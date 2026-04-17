@@ -1,7 +1,10 @@
 import AgentPanel from "./components/AgentPanel";
 import ApprovalQueue from "./components/ApprovalQueue";
+import LayoutHeader from "./components/LayoutHeader";
+import TaskTimeline from "./components/TaskTimeline";
 import { mockAgents } from "./data/mockAgents";
 import { mockApprovals } from "./data/mockApprovals";
+import { mockTimeline } from "./data/mockTimeline";
 
 export default function App() {
   return (
@@ -13,13 +16,10 @@ export default function App() {
         margin: "0 auto",
       }}
     >
-      <header style={{ marginBottom: 24 }}>
-        <h1>O3DE Agent Control App</h1>
-        <p>
-          Early operator shell for orchestrating O3DE-focused agents, approvals,
-          logs, artifacts, and tool-driven workflows.
-        </p>
-      </header>
+      <LayoutHeader
+        title="O3DE Agent Control App"
+        subtitle="Early operator shell for orchestrating O3DE-focused agents, approvals, logs, artifacts, and tool-driven workflows."
+      />
 
       <section style={{ marginBottom: 32 }}>
         <h2>Agent Control</h2>
@@ -37,6 +37,8 @@ export default function App() {
       <section>
         <ApprovalQueue items={mockApprovals} />
       </section>
+
+      <TaskTimeline items={mockTimeline} />
     </main>
   );
 }
