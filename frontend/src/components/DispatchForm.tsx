@@ -31,6 +31,8 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
     timeout_s: 30,
     args: {},
   });
+  const [argsText, setArgsText] = useState("{}");
+  const [locksText, setLocksText] = useState("project_config");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,9 +64,17 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
     setError(null);
 
     try {
+      const parsedArgs = JSON.parse(argsText) as Record<string, unknown>;
+      const parsedLocks = locksText
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
       const response = await dispatchTool({
         ...request,
         request_id: crypto.randomUUID(),
+        args: parsedArgs,
+        locks: parsedLocks,
       });
       onResponse(response);
     } catch (err) {
@@ -142,6 +152,38 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
               onChange={(e) =>
                 setRequest({ ...request, engine_root: e.target.value })
               }
+            />
+          </label>
+
+          <label>
+            Locks (comma-separated)
+            <input
+              style={{ display: "block", width: "100%", marginTop: 4 }}
+              value={locksText}
+              onChange={(e) => setLocksText(e.target.value)}
+            />
+          </label>
+
+          <label>
+            Timeout (seconds)
+            <input
+              type="number"
+              min={1}
+              style={{ display: "block", width: "100%", marginTop: 4 }}
+              value={request.timeout_s}
+              onChange={(e) =>
+                setRequest({ ...request, timeout_s: Number(e.target.value) || 1 })
+              }
+            />
+          </label>
+
+          <label>
+            Args (JSON)
+            <textarea
+              rows={6}
+              style={{ display: "block", width: "100%", marginTop: 4 }}
+              value={argsText}
+              onChange={(e) => setArgsText(e.target.value)}
             />
           </label>
 
