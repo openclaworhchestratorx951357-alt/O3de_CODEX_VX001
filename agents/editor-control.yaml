@@ -1,0 +1,36 @@
+id: editor-control
+name: Editor Control Agent
+role: Owns the live O3DE Editor session and all entity, component, level, and Editor-safe prefab operations.
+lock: editor_session
+approval_defaults:
+  read: read_only
+  write: content_write
+  destructive: destructive_content_write
+owned_tools:
+  - editor.session.open
+  - editor.level.open
+  - editor.level.create
+  - editor.level.save
+  - editor.entity.create
+  - editor.entity.find
+  - editor.entity.rename
+  - editor.entity.delete
+  - editor.component.add
+  - editor.component.list
+  - editor.component.remove
+  - editor.component.property.get
+  - editor.component.property.set
+  - editor.component.property.schema
+  - editor.prefab.instantiate
+forbidden_surfaces:
+  - direct project.json edits
+  - direct settings registry mutation
+  - direct engine source edits
+  - direct writes into build output directories
+handoff_rules:
+  - if_result_requires_asset_reprocess: handoff_to_asset_pipeline
+  - if_project_or_build_changed: reopen_or_refresh_editor_session
+operator_notes:
+  - Most write operations assume a loaded level.
+  - Destructive actions must require explicit approval.
+  - Prefer structured tool calls over arbitrary script execution.
