@@ -1,28 +1,60 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { dispatchTool } from "../lib/api";
 import type { RequestEnvelope, ResponseEnvelope } from "../types/contracts";
 
+type CatalogAgent = {
+  id: string;
+  name: string;
+  tools: string[];
+};
+
 type DispatchFormProps = {
+  agents: CatalogAgent[];
   onResponse: (response: ResponseEnvelope) => void;
 };
 
-const initialRequest: RequestEnvelope = {
-  request_id: crypto.randomUUID(),
-  tool: "project.inspect",
-  agent: "project-build",
-  project_root: "/path/to/project",
-  engine_root: "/path/to/engine",
-  dry_run: true,
-  locks: ["project_config"],
-  timeout_s: 30,
-  args: {},
-};
+export default function DispatchForm({ agents, onResponse }: DispatchFormProps) {
+  const firstAgent = agents[0]?.id ?? "project-build";
+  const toolsForSelectedAgent = useMemo(() => {
+    return agents.find((agent) => agent.id === firstAgent)?.tools ?? ["project.inspect"];
+  }, [agents, firstAgent]);
 
-export default function DispatchForm({ onResponse }: DispatchFormProps) {
-  const [request, setRequest] = useState<RequestEnvelope>(initialRequest);
+  const [request, setRequest] = useState<RequestEnvelope>({
+    request_id: crypto.randomUUID(),
+    tool: toolsForSelectedAgent[0] ?? "project.inspect",
+    agent: firstAgent,
+    project_root: "/path/to/project",
+    engine_root: "/path/to/engine",
+    dry_run: true,
+    locks: ["project_config"],
+    timeout_s: 30,
+    args: {},
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedAgent = agents.find((agent) => agent.id === request.agent);
+  const availableTools = selectedAgent?.tools ?? [];
+
+  useEffect(() => {
+    if (!selectedAgent && agents.length > 0) {
+      const fallbackAgent = agents[0];
+      setRequest((current) => ({
+        ...current,
+        agent: fallbackAgent.id,
+        tool: fallbackAgent.tools[0] ?? current.tool,
+      }));
+      return;
+    }
+
+    if (selectedAgent && !selectedAgent.tools.includes(request.tool)) {
+      setRequest((current) => ({
+        ...current,
+        tool: selectedAgent.tools[0] ?? current.tool,
+      }));
+    }
+  }, [agents, request.tool, selectedAgent]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -55,21 +87,40 @@ export default function DispatchForm({ onResponse }: DispatchFormProps) {
       <form onSubmit={handleSubmit}>
         <div style={{ display: "grid", gap: 12 }}>
           <label>
-            Tool
-            <input
+            Agent
+            <select
               style={{ display: "block", width: "100%", marginTop: 4 }}
-              value={request.tool}
-              onChange={(e) => setRequest({ ...request, tool: e.target.value })}
-            />
+              value={request.agent}
+              onChange={(e) => {
+                const nextAgent = agents.find((agent) => agent.id === e.target.value);
+                setRequest({
+                  ...request,
+                  agent: e.target.value,
+                  tool: nextAgent?.tools[0] ?? request.tool,
+                });
+              }}
+            >
+              {agents.map((agent) => (
+                <option key={agent.id} value={agent.id}>
+                  {agent.name}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label>
-            Agent
-            <input
+            Tool
+            <select
               style={{ display: "block", width: "100%", marginTop: 4 }}
-              value={request.agent}
-              onChange={(e) => setRequest({ ...request, agent: e.target.value })}
-            />
+              value={request.tool}
+              onChange={(e) => setRequest({ ...request, tool: e.target.value })}
+            >
+              {availableTools.map((tool) => (
+                <option key={tool} value={tool}>
+                  {tool}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label>
@@ -106,7 +157,7 @@ export default function DispatchForm({ onResponse }: DispatchFormProps) {
             />
           </label>
 
-          <button type="submit" disabled={submitting}>
+          <button type="submit" disabled={submitting || agents.length === 0}>
             {submitting ? "Dispatching..." : "Dispatch Request"}
           </button>
 
