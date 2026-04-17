@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/request-envelope.schema.json",
+  "title": "O3DE Agent Request Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "tool",
+    "agent",
+    "project_root",
+    "engine_root",
+    "dry_run",
+    "locks",
+    "timeout_s",
+    "args"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tool": {
+      "type": "string",
+      "minLength": 1
+    },
+    "agent": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "engine_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "session_id": {
+      "type": ["string", "null"]
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "approval_token": {
+      "type": ["string", "null"]
+    },
+    "locks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "timeout_s": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "args": {
+      "type": "object"
+    }
+  }
+}
