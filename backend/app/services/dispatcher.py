@@ -1,16 +1,50 @@
 from app.models.request_envelope import RequestEnvelope
-from app.models.response_envelope import ResponseEnvelope
+from app.models.response_envelope import ResponseEnvelope, ResponseError
+from app.services.catalog import catalog_service
 
 
 class DispatcherService:
     """Initial dispatch layer for structured tool requests.
 
-    This service currently performs only lightweight acceptance logic and
-    returns a normalized response envelope. Real policy enforcement,
-    lock checks, approvals, and tool routing will be added here.
+    This service performs basic acceptance and validates that the requested
+    agent exists and that the tool belongs to that agent before returning a
+    normalized response envelope.
     """
 
     def dispatch(self, request: RequestEnvelope) -> ResponseEnvelope:
+        if not catalog_service.is_allowed_agent(request.agent):
+            return ResponseEnvelope(
+                request_id=request.request_id,
+                ok=False,
+                error=ResponseError(
+                    code="INVALID_AGENT",
+                    message=f"Unknown agent '{request.agent}'.",
+                    retryable=False,
+                    details={"agent": request.agent},
+                ),
+                warnings=["Dispatch rejected before execution."],
+                logs=[f"Rejected request for unknown agent '{request.agent}'."],
+            )
+
+        if not catalog_service.is_allowed_tool_for_agent(request.agent, request.tool):
+            return ResponseEnvelope(
+                request_id=request.request_id,
+                ok=False,
+                error=ResponseError(
+                    code="INVALID_TOOL",
+                    message=(
+                        f"Tool '{request.tool}' is not registered for agent "
+                        f"'{request.agent}'."
+                    ),
+                    retryable=False,
+                    details={"agent": request.agent, "tool": request.tool},
+                ),
+                warnings=["Dispatch rejected before execution."],
+                logs=[
+                    f"Rejected tool '{request.tool}' for agent '{request.agent}'."
+                ],
+            )
+
         return ResponseEnvelope(
             request_id=request.request_id,
             ok=True,
