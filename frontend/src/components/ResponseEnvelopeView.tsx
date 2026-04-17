@@ -39,18 +39,86 @@ export default function ResponseEnvelopeView({
           {statusLabel}
         </span>
       </div>
-      {response ? (
-        <pre
-          style={{
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            margin: 0,
-          }}
-        >
-          {JSON.stringify(response, null, 2)}
-        </pre>
-      ) : (
+
+      {!response ? (
         <p>No response received yet.</p>
+      ) : (
+        <div style={{ display: "grid", gap: 16 }}>
+          <section>
+            <strong>Request</strong>
+            <div>Request ID: {response.request_id}</div>
+            <div>Timing: {response.timing_ms ?? 0} ms</div>
+          </section>
+
+          {response.result ? (
+            <section>
+              <strong>Result</strong>
+              <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>
+                {JSON.stringify(response.result, null, 2)}
+              </pre>
+            </section>
+          ) : null}
+
+          {response.error ? (
+            <section>
+              <strong>Error</strong>
+              <div>Code: {response.error.code}</div>
+              <div>Message: {response.error.message}</div>
+              <div>Retryable: {String(response.error.retryable)}</div>
+              {response.error.details ? (
+                <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>
+                  {JSON.stringify(response.error.details, null, 2)}
+                </pre>
+              ) : null}
+            </section>
+          ) : null}
+
+          {response.state ? (
+            <section>
+              <strong>State</strong>
+              <ul>
+                <li>dirty: {String(response.state.dirty)}</li>
+                <li>requires_save: {String(response.state.requires_save)}</li>
+                <li>requires_reconfigure: {String(response.state.requires_reconfigure)}</li>
+                <li>requires_rebuild: {String(response.state.requires_rebuild)}</li>
+                <li>requires_asset_reprocess: {String(response.state.requires_asset_reprocess)}</li>
+              </ul>
+            </section>
+          ) : null}
+
+          {response.warnings && response.warnings.length > 0 ? (
+            <section>
+              <strong>Warnings</strong>
+              <ul>
+                {response.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {response.logs && response.logs.length > 0 ? (
+            <section>
+              <strong>Logs</strong>
+              <ul>
+                {response.logs.map((log) => (
+                  <li key={log}>{log}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {response.artifacts && response.artifacts.length > 0 ? (
+            <section>
+              <strong>Artifacts</strong>
+              <ul>
+                {response.artifacts.map((artifact) => (
+                  <li key={artifact}>{artifact}</li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+        </div>
       )}
     </section>
   );
