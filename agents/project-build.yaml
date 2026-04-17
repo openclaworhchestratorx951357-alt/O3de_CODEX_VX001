@@ -1,0 +1,34 @@
+id: project-build
+name: Project / Build Agent
+role: Owns project manifest changes, local overrides, settings patches, gem registration, configure/build/export workflows, and prerequisite validation.
+locks:
+  - project_config
+  - build_tree
+approval_defaults:
+  read: read_only
+  write: config_write
+  execute: build_execute
+owned_tools:
+  - project.inspect
+  - project.edit_properties
+  - project.user_override.set
+  - settings.get
+  - settings.patch
+  - gem.register
+  - gem.enable
+  - gem.disable
+  - build.configure
+  - build.compile
+  - build.export_project
+  - toolchain.validate
+forbidden_surfaces:
+  - direct live editor mutation
+  - direct engine source patching
+  - silent shared config changes outside controlled mutators
+handoff_rules:
+  - after_project_or_build_change: refresh_editor_assumptions
+  - after_engine_affecting_config_change: notify_validation_agent
+operator_notes:
+  - Shared config mutations must remain auditable and reversible.
+  - Gem enable or disable operations can invalidate current Editor assumptions.
+  - Export and build execution may require protected-environment approvals.
