@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.api.routes.health import router as health_router
 from app.api.routes.tools import router as tools_router
 
 app = FastAPI(
@@ -11,12 +12,8 @@ app = FastAPI(
     ),
 )
 
+app.include_router(health_router)
 app.include_router(tools_router)
-
-
-@app.get("/health")
-def health() -> dict:
-    return {"ok": True, "service": "backend", "version": "0.1.0"}
 
 
 @app.get("/")
