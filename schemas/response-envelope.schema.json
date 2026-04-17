@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/response-envelope.schema.json",
+  "title": "O3DE Agent Response Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "request_id",
+    "ok"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "result": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dirty": { "type": "boolean" },
+        "requires_save": { "type": "boolean" },
+        "requires_reconfigure": { "type": "boolean" },
+        "requires_rebuild": { "type": "boolean" },
+        "requires_asset_reprocess": { "type": "boolean" }
+      },
+      "required": [
+        "dirty",
+        "requires_save",
+        "requires_reconfigure",
+        "requires_rebuild",
+        "requires_asset_reprocess"
+      ]
+    },
+    "timing_ms": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "logs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "error": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "retryable": { "type": "boolean" },
+        "details": { "type": ["object", "null"], "additionalProperties": true }
+      },
+      "required": ["code", "message", "retryable", "details"]
+    }
+  }
+}
