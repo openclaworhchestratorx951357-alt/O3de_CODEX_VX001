@@ -1,0 +1,29 @@
+id: render-lookdev
+name: Render / Lookdev Agent
+role: Owns Atom-facing materials, shaders, passes, render pipeline assets, viewport captures, and rendering-focused review workflows above the RHI layer.
+lock: render_pipeline
+approval_defaults:
+  read: read_only
+  write: content_write
+  execute: build_execute
+owned_tools:
+  - render.pipeline.inspect
+  - render.pipeline.patch
+  - render.pass.toggle
+  - render.material.inspect
+  - render.material.patch
+  - render.shader.inspect
+  - render.shader.rebuild
+  - render.capture.viewport
+  - render.backend.report
+forbidden_surfaces:
+  - direct low-level RHI mutation in v1
+  - direct shared config mutation outside approved config tools
+  - direct engine source patching without engine-code handoff
+handoff_rules:
+  - after_shader_or_pipeline_change: notify_asset_and_validation_agents
+  - after_capture_request: register_artifacts_for_review
+operator_notes:
+  - Prefer RPI, material, and pass-level edits before engine-level renderer patches.
+  - Shader and material changes may require rebuild or reprocess steps.
+  - Visual validation tolerances should account for postfx and TAA behavior.
