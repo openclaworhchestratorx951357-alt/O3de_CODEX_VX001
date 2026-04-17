@@ -1,0 +1,30 @@
+id: asset-pipeline
+name: Asset / Media Pipeline Agent
+role: Owns source asset inspection, asset processing, builder workflows, cache-sensitive operations, and safer content relocation flows.
+lock: asset_pipeline
+approval_defaults:
+  read: read_only
+  write: content_write
+  destructive: destructive_content_write
+owned_tools:
+  - asset.processor.status
+  - asset.processor.wait
+  - asset.source.inspect
+  - asset.product.resolve
+  - asset.batch.process
+  - asset.builder.create_python
+  - asset.builder.update_descriptor
+  - asset.scene.supported_formats.get
+  - asset.move.safe
+  - asset.procedural_prefab.generate
+forbidden_surfaces:
+  - direct engine source edits
+  - direct project manifest mutation outside approved config tools
+  - direct render backend mutation
+handoff_rules:
+  - if_shader_or_material_products_impacted: handoff_to_render_lookdev
+  - if_builder_or_gem_state_changes: notify_project_build_agent
+operator_notes:
+  - Path-based references can still be fragile in some workflows.
+  - Batch processing should be preferred for deterministic CI-like runs.
+  - Destructive moves and renames must require explicit approval.
