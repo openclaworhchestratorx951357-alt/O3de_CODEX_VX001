@@ -7,6 +7,14 @@ type ResponseEnvelopeViewProps = {
 export default function ResponseEnvelopeView({
   response,
 }: ResponseEnvelopeViewProps) {
+  const statusLabel = response ? (response.ok ? "success" : "failure") : "idle";
+  const statusColor =
+    statusLabel === "success"
+      ? "#1a7f37"
+      : statusLabel === "failure"
+        ? "#cf222e"
+        : "#6e7781";
+
   return (
     <section
       style={{
@@ -16,7 +24,21 @@ export default function ResponseEnvelopeView({
         marginBottom: 24,
       }}
     >
-      <h3 style={{ marginTop: 0 }}>Last Dispatch Response</h3>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+        <h3 style={{ margin: 0 }}>Last Dispatch Response</h3>
+        <span
+          style={{
+            background: statusColor,
+            color: "white",
+            borderRadius: 999,
+            padding: "4px 10px",
+            fontSize: 12,
+            textTransform: "uppercase",
+          }}
+        >
+          {statusLabel}
+        </span>
+      </div>
       {response ? (
         <pre
           style={{
