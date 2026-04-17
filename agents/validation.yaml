@@ -1,0 +1,28 @@
+id: validation
+name: Validation Agent
+role: Owns test cataloging, native and Python test execution, Editor test runs, TIAF sequences, crash triage, and visual validation workflows.
+lock: test_runtime
+approval_defaults:
+  read: read_only
+  execute: test_execute
+owned_tools:
+  - test.catalog.list
+  - test.run.gtest
+  - test.run.pytest
+  - test.run.editor_python
+  - test.run.benchmark
+  - test.tiaf.sequence
+  - test.visual.capture
+  - test.visual.diff
+  - test.crash_triage.bundle
+forbidden_surfaces:
+  - direct engine source mutation
+  - direct shared config mutation
+  - direct live editor content authoring outside test scenarios
+handoff_rules:
+  - after_engine_or_build_change: select_targeted_validation_sequence
+  - after_render_capture: evaluate_visual_diff_or_register_baseline
+operator_notes:
+  - TIAF rollout requires clear historic-data and reseed policies.
+  - Visual validation may need explicit tolerances for exposure and TAA.
+  - Crash bundles should include logs, dumps, commands, and recent actions.
