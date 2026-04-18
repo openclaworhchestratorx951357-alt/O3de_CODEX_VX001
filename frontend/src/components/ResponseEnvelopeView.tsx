@@ -48,6 +48,9 @@ export default function ResponseEnvelopeView({
             <strong>Request</strong>
             <div>Request ID: {response.request_id}</div>
             <div>Timing: {response.timing_ms ?? 0} ms</div>
+            {response.result && typeof response.result.execution_mode === "string" ? (
+              <div>Execution interpretation: {describeExecutionResult(response.result)}</div>
+            ) : null}
           </section>
 
           {response.result ? (
@@ -122,4 +125,23 @@ export default function ResponseEnvelopeView({
       )}
     </section>
   );
+}
+
+function describeExecutionResult(result: Record<string, unknown>): string {
+  const executionMode = typeof result.execution_mode === "string"
+    ? result.execution_mode
+    : "unknown";
+  const simulated = typeof result.simulated === "boolean" ? result.simulated : null;
+  const tool = typeof result.tool === "string" ? result.tool : null;
+
+  if (executionMode === "real" && simulated === false && tool === "project.inspect") {
+    return "Real read-only project inspection path ran for project.inspect.";
+  }
+  if (executionMode === "simulated" && simulated === true && tool === "project.inspect") {
+    return "project.inspect remained simulated for this run, including hybrid fallback cases.";
+  }
+  if (executionMode === "simulated" && simulated === true) {
+    return "This dispatch remained on the simulated execution path.";
+  }
+  return `Execution mode reported as ${executionMode}.`;
 }

@@ -2,18 +2,27 @@ import { useMemo, useState } from "react";
 
 import { dispatchTool } from "../lib/api";
 import type {
+  AdaptersResponse,
   CatalogAgent,
   LockName,
   RequestEnvelope,
+  ReadinessStatus,
   ResponseEnvelope,
 } from "../types/contracts";
 
 type DispatchFormProps = {
   agents: CatalogAgent[];
+  adapters: AdaptersResponse | null;
+  readiness: ReadinessStatus | null;
   onResponse: (response: ResponseEnvelope) => void;
 };
 
-export default function DispatchForm({ agents, onResponse }: DispatchFormProps) {
+export default function DispatchForm({
+  agents,
+  adapters,
+  readiness,
+  onResponse,
+}: DispatchFormProps) {
   const firstAgent = agents[0]?.id ?? "project-build";
   const toolsForSelectedAgent = useMemo(() => {
     return (
@@ -50,6 +59,19 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
   const availableTools = effectiveAgent?.tools ?? [];
   const selectedTool = availableTools.find((tool) => tool.name === request.tool);
   const effectiveToolName = selectedTool?.name ?? availableTools[0]?.name ?? request.tool;
+  const hybridModeActive = readiness?.adapter_mode.active_mode === "hybrid";
+  const selectedFamily = selectedTool?.adapter_family ?? effectiveAgent?.id ?? request.agent;
+  const selectedFamilyStatus = adapters?.families.find(
+    (family) => family.family === selectedFamily,
+  );
+  const selectedToolMayUseRealPath = hybridModeActive
+    && effectiveToolName === "project.inspect"
+    && selectedFamilyStatus?.supports_real_execution === true;
+  const hybridDispatchNote = hybridModeActive
+    ? selectedToolMayUseRealPath
+      ? "Hybrid mode is active. This tool may use the first real read-only project inspection path when its manifest preconditions are satisfied; otherwise it will fall back to simulation."
+      : "Hybrid mode is active, but this selected tool will still remain simulated in this phase."
+    : null;
 
   function isLockName(value: string): value is LockName {
     return [
@@ -101,6 +123,9 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
       }}
     >
       <h3 style={{ marginTop: 0 }}>Dispatch Tool Request</h3>
+      {hybridDispatchNote ? (
+        <p style={{ marginTop: 0, color: "#57606a" }}>{hybridDispatchNote}</p>
+      ) : null}
       <form onSubmit={handleSubmit}>
         <div style={{ display: "grid", gap: 12 }}>
           <label>
@@ -139,6 +164,27 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
               ))}
             </select>
           </label>
+
+          {selectedTool ? (
+            <div
+              style={{
+                border: "1px solid #d8dee4",
+                borderRadius: 8,
+                padding: 12,
+                background: "#f6f8fa",
+                color: "#57606a",
+              }}
+            >
+              <div><strong>Approval class:</strong> {selectedTool.approval_class}</div>
+              <div><strong>Risk:</strong> {selectedTool.risk}</div>
+              <div>
+                <strong>Expected execution truth:</strong>{" "}
+                {selectedToolMayUseRealPath
+                  ? "Possible real read-only project inspection in hybrid mode; simulated fallback remains explicit."
+                  : "Simulated in the current phase."}
+              </div>
+            </div>
+          ) : null}
 
           <label>
             Project Root

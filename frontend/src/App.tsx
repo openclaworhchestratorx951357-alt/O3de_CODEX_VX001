@@ -348,6 +348,8 @@ export default function App() {
             tags: ["project", "inspect"],
           }],
         }]}
+        adapters={adapters}
+        readiness={readiness}
         onResponse={handleDispatchResponse}
       />
       <ResponseEnvelopeView response={lastResponse} />
