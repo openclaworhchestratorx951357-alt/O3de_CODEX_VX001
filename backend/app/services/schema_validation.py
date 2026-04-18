@@ -360,6 +360,12 @@ class SchemaValidationService:
             ("render.material.inspect", "artifact-metadata"): (
                 "schemas/tools/render.material.inspect.artifact-metadata.schema.json"
             ),
+            ("render.capture.viewport", "execution-details"): (
+                "schemas/tools/render.capture.viewport.execution-details.schema.json"
+            ),
+            ("render.capture.viewport", "artifact-metadata"): (
+                "schemas/tools/render.capture.viewport.artifact-metadata.schema.json"
+            ),
             ("project.inspect", "execution-details"): (
                 "schemas/tools/project.inspect.execution-details.schema.json"
             ),
