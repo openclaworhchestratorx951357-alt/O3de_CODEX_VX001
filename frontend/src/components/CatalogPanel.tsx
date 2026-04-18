@@ -24,7 +24,16 @@ export default function CatalogPanel({ agents }: CatalogPanelProps) {
               <strong>{agent.name}</strong>
               <div>ID: {agent.id}</div>
               <div>Role: {agent.role}</div>
-              <div>Tools: {agent.tools.map((tool) => tool.name).join(", ")}</div>
+              <ul style={{ marginTop: 8 }}>
+                {agent.tools.map((tool) => (
+                  <li key={tool.name} style={{ marginBottom: 8 }}>
+                    <strong>{tool.name}</strong>
+                    <div>Approval: {tool.approval_class}</div>
+                    <div>Capability: {tool.capability_status ?? "unspecified"}</div>
+                    <div>Risk: {tool.risk}</div>
+                  </li>
+                ))}
+              </ul>
             </li>
           ))}
         </ul>

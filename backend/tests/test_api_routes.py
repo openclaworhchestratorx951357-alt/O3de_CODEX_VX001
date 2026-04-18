@@ -146,6 +146,7 @@ def test_catalog_returns_rich_tool_metadata() -> None:
         payload = response.json()
         assert payload["agents"][0]["tools"][0]["approval_class"]
         assert payload["agents"][0]["tools"][0]["adapter_family"]
+        assert payload["agents"][0]["tools"][0]["capability_status"]
         assert payload["agents"][0]["tools"][0]["args_schema"]
         assert payload["agents"][0]["tools"][0]["result_schema"]
 
@@ -156,6 +157,7 @@ def test_policies_route_exposes_schema_cross_links() -> None:
         assert response.status_code == 200
         payload = response.json()
         assert payload["policies"][0]["adapter_family"]
+        assert payload["policies"][0]["capability_status"]
         assert payload["policies"][0]["args_schema"]
         assert payload["policies"][0]["result_schema"]
 

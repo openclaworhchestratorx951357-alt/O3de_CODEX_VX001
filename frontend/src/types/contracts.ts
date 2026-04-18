@@ -129,6 +129,7 @@ export interface ToolPolicy {
   tool: string;
   approval_class: string;
   adapter_family: string;
+  capability_status: string;
   args_schema: string;
   result_schema: string;
   required_locks: string[];
@@ -186,6 +187,7 @@ export interface ToolDefinition {
   description: string;
   approval_class: ApprovalClass;
   adapter_family?: string;
+  capability_status?: string;
   default_locks: LockName[];
   default_timeout_s: number;
   risk: string;

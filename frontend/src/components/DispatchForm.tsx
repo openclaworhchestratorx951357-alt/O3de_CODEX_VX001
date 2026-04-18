@@ -67,6 +67,7 @@ export default function DispatchForm({
   const selectedToolMayUseRealPath = hybridModeActive
     && effectiveToolName === "project.inspect"
     && selectedFamilyStatus?.supports_real_execution === true;
+  const selectedCapabilityStatus = selectedTool?.capability_status ?? "simulated-only";
   const hybridDispatchNote = hybridModeActive
     ? selectedToolMayUseRealPath
       ? "Hybrid mode is active. This tool may use the first real read-only project inspection path when its manifest preconditions are satisfied; otherwise it will fall back to simulation."
@@ -176,11 +177,16 @@ export default function DispatchForm({
               }}
             >
               <div><strong>Approval class:</strong> {selectedTool.approval_class}</div>
+              <div><strong>Capability:</strong> {selectedCapabilityStatus}</div>
               <div><strong>Risk:</strong> {selectedTool.risk}</div>
               <div>
                 <strong>Expected execution truth:</strong>{" "}
-                {selectedToolMayUseRealPath
+                {selectedCapabilityStatus === "hybrid-read-only" && selectedToolMayUseRealPath
                   ? "Possible real read-only project inspection in hybrid mode; simulated fallback remains explicit."
+                  : selectedCapabilityStatus === "plan-only"
+                    ? "This tool remains non-real in the current phase and should be treated as planning/preflight work only."
+                    : selectedCapabilityStatus === "mutation-gated"
+                      ? "This tool remains gated and non-real in the current phase."
                   : "Simulated in the current phase."}
               </div>
             </div>
