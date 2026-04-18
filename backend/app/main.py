@@ -1,3 +1,6 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -14,6 +17,12 @@ from app.api.routes.tools_catalog import router as tools_catalog_router
 from app.models.api import RootStatus
 from app.services.db import initialize_database
 
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    initialize_database(raise_on_failure=False)
+    yield
+
 app = FastAPI(
     title="O3DE Agent Control Backend",
     version="0.3.1",
@@ -21,6 +30,7 @@ app = FastAPI(
         "Backend orchestration layer for O3DE-focused agents, approvals, locks, "
         "artifacts, and structured tool execution."
     ),
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -41,11 +51,6 @@ app.include_router(events_router)
 app.include_router(policies_router)
 app.include_router(executions_router)
 app.include_router(artifacts_router)
-
-
-@app.on_event("startup")
-def startup() -> None:
-    initialize_database(raise_on_failure=False)
 
 
 @app.get("/", response_model=RootStatus)
