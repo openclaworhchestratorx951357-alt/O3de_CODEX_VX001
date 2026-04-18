@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from app.main import app
 from app.services.approvals import approvals_service
@@ -27,8 +28,8 @@ def test_root_includes_current_control_plane_routes() -> None:
         response = client.get("/")
         assert response.status_code == 200
         payload = response.json()
-        assert payload["status"] == "phase-3-contract-prep"
-        assert payload["phase"] == "phase-3-prep"
+        assert payload["status"] == "phase-6-adapter-framework"
+        assert payload["phase"] == "phase-6"
         assert "/runs" in payload["routes"]
 
 
@@ -43,6 +44,11 @@ def test_ready_reports_database_status_details() -> None:
         assert payload["database_strategy"].startswith("SQLite via")
         assert payload["database_path"].endswith("control-plane.sqlite3")
         assert len(payload["attempted_database_paths"]) >= 1
+        assert payload["adapter_mode"]["ready"] is True
+        assert payload["adapter_mode"]["configured_mode"] == "simulated"
+        assert payload["adapter_mode"]["active_mode"] == "simulated"
+        assert payload["adapter_mode"]["supports_real_execution"] is False
+        assert "project-build" in payload["adapter_mode"]["available_families"]
         assert payload["schema_validation"]["mode"] == "subset-json-schema"
         assert payload["schema_validation"]["schema_scope"] == "published-tool-arg-result-schemas"
         assert payload["schema_validation"]["supports_request_args"] is True
@@ -53,7 +59,20 @@ def test_ready_reports_database_status_details() -> None:
         assert "allOf" in payload["schema_validation"]["supported_keywords"]
         assert "oneOf" in payload["schema_validation"]["unsupported_keywords"]
         assert "sqlite approvals store" in payload["dependencies"]
+        assert "adapter mode: simulated" in payload["dependencies"]
         assert payload["persistence_warning"] in (None, "")
+
+
+def test_ready_reports_adapter_mode_as_not_ready_when_config_is_invalid() -> None:
+    with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "real"}, clear=False):
+        with isolated_client() as client:
+            response = client.get("/ready")
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["ok"] is False
+            assert payload["adapter_mode"]["ready"] is False
+            assert payload["adapter_mode"]["configured_mode"] == "real"
+            assert payload["adapter_mode"]["active_mode"] == "unavailable"
 
 
 def test_catalog_returns_rich_tool_metadata() -> None:

@@ -75,6 +75,20 @@ For the local compose baseline, the backend uses:
 - `O3DE_CONTROL_PLANE_DB_PATH=/app/runtime/control_plane.sqlite3`
 - a mounted repo-root `./runtime` directory
 
+## Adapter mode baseline
+
+The backend now routes tool execution through an explicit adapter boundary.
+
+Current mode support:
+- `O3DE_ADAPTER_MODE=simulated`
+
+Current truth:
+- adapter selection is config-driven
+- only simulated adapters are implemented in this phase
+- real O3DE adapters are still not implemented
+
+`GET /ready` now reports adapter-mode readiness, configured mode, active mode, and registered adapter families.
+
 ## Schema validation status
 
 The backend currently uses a subset validator for published per-tool arg and simulated-result schemas.

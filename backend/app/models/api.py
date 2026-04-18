@@ -39,6 +39,16 @@ class SchemaValidationStatus(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class AdapterModeStatus(BaseModel):
+    ready: bool
+    configured_mode: str = Field(..., min_length=1)
+    active_mode: str = Field(..., min_length=1)
+    supports_real_execution: bool
+    available_families: list[str] = Field(default_factory=list)
+    warning: str | None = None
+    notes: list[str] = Field(default_factory=list)
+
+
 class ReadinessStatus(BaseModel):
     ok: bool
     service: str = Field(..., min_length=1)
@@ -49,6 +59,7 @@ class ReadinessStatus(BaseModel):
     database_path: str = Field(..., min_length=1)
     persistence_warning: str | None = None
     attempted_database_paths: list[str] = Field(default_factory=list)
+    adapter_mode: AdapterModeStatus
     schema_validation: SchemaValidationStatus
     dependencies: list[str] = Field(default_factory=list)
 

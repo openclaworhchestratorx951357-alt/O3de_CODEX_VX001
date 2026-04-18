@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.models.api import HealthStatus, ReadinessStatus, VersionStatus
+from app.services.adapters import adapter_service
 from app.services.db import (
     get_database_path,
     get_database_runtime_status,
@@ -22,19 +23,22 @@ def health() -> HealthStatus:
 def ready() -> ReadinessStatus:
     runtime_status = get_database_runtime_status()
     persistence_ready = is_database_ready()
+    adapter_status = adapter_service.get_runtime_status()
     return ReadinessStatus(
-        ok=persistence_ready,
+        ok=persistence_ready and adapter_status.ready,
         service="backend",
-        execution_mode="simulated",
+        execution_mode=adapter_status.active_mode,
         persistence_ready=persistence_ready,
         requested_database_strategy=runtime_status.requested_strategy,
         database_strategy=get_database_strategy_summary(),
         database_path=str(get_database_path()),
         persistence_warning=get_database_runtime_warning(),
         attempted_database_paths=runtime_status.attempted_paths,
+        adapter_mode=adapter_status,
         schema_validation=schema_validation_service.get_capability_status(),
         dependencies=[
             get_database_strategy_summary(),
+            f"adapter mode: {adapter_status.active_mode}",
             "sqlite approvals store",
             "sqlite locks store",
             "sqlite events store",

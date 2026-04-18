@@ -5,7 +5,8 @@ from app.models.control_plane import (
     RunStatus,
 )
 from app.models.request_envelope import RequestEnvelope
-from app.models.response_envelope import DispatchResult, ResponseEnvelope, ResponseError
+from app.models.response_envelope import ResponseEnvelope, ResponseError
+from app.services.adapters import AdapterConfigurationError, adapter_service
 from app.services.approvals import approvals_service
 from app.services.artifacts import artifacts_service
 from app.services.catalog import catalog_service
@@ -26,18 +27,19 @@ class DispatcherService:
     """
 
     def dispatch(self, request: RequestEnvelope) -> ResponseEnvelope:
+        adapter_status = adapter_service.get_runtime_status()
         requested_locks = self._merge_locks(request, agent=request.agent, tool=request.tool)
         run = runs_service.create_run(
             request,
             requested_locks=requested_locks,
-            execution_mode="simulated",
+            execution_mode=adapter_status.active_mode,
         )
         execution = executions_service.create_execution(
             run_id=run.id,
             request_id=request.request_id,
             agent=request.agent,
             tool=request.tool,
-            execution_mode="simulated",
+            execution_mode=adapter_status.active_mode,
             status=ExecutionStatus.PENDING,
             details={"requested_locks": requested_locks},
             logs=["Dispatch request received."],
@@ -156,6 +158,45 @@ class DispatcherService:
                 logs=["Missing tool policy definition."],
             )
 
+        if not adapter_status.ready:
+            runs_service.update_run(
+                run.id,
+                status=RunStatus.FAILED,
+                result_summary="Rejected because the configured adapter mode is not ready.",
+            )
+            executions_service.update_execution(
+                execution.id,
+                status=ExecutionStatus.FAILED,
+                logs=["Configured adapter mode is not ready."],
+                details={"configured_mode": adapter_status.configured_mode},
+                result_summary="Rejected because the configured adapter mode is not ready.",
+                finished=True,
+            )
+            events_service.record(
+                category="adapter",
+                severity=EventSeverity.ERROR,
+                message="Dispatch rejected because the configured adapter mode is not ready.",
+                run_id=run.id,
+                details={"configured_mode": adapter_status.configured_mode},
+            )
+            return ResponseEnvelope(
+                request_id=request.request_id,
+                ok=False,
+                operation_id=run.id,
+                error=ResponseError(
+                    code="ADAPTER_NOT_READY",
+                    message=adapter_status.warning
+                    or "Configured adapter mode is not currently available.",
+                    retryable=False,
+                    details={
+                        "configured_mode": adapter_status.configured_mode,
+                        "active_mode": adapter_status.active_mode,
+                    },
+                ),
+                warnings=["Dispatch rejected before adapter execution."],
+                logs=["Configured adapter mode is not ready."],
+            )
+
         validation_errors = schema_validation_service.validate_tool_args(
             schema_ref=policy.args_schema,
             payload=request.args,
@@ -223,26 +264,74 @@ class DispatcherService:
             run.id,
             status=RunStatus.RUNNING,
             granted_locks=[lock.name for lock in acquired_locks],
-            warnings=[
-                "Execution mode is simulated until real O3DE adapters are implemented.",
-            ],
+            warnings=adapter_status.notes,
         )
+        try:
+            adapter_report = adapter_service.execute(
+                tool=request.tool,
+                agent=request.agent,
+                project_root=request.project_root,
+                engine_root=request.engine_root,
+                dry_run=request.dry_run,
+                approval_class=policy.approval_class,
+                locks_acquired=[lock.name for lock in acquired_locks],
+            )
+        except AdapterConfigurationError as exc:
+            locks_service.release(run.id)
+            runs_service.update_run(
+                run.id,
+                status=RunStatus.FAILED,
+                result_summary="Adapter execution could not start with the current configuration.",
+            )
+            executions_service.update_execution(
+                execution.id,
+                status=ExecutionStatus.FAILED,
+                warnings=adapter_status.notes,
+                logs=["Control-plane prechecks passed.", str(exc)],
+                details={
+                    "requested_locks": requested_locks,
+                    "granted_locks": [lock.name for lock in acquired_locks],
+                    "configured_mode": adapter_status.configured_mode,
+                },
+                result_summary="Adapter execution could not start with the current configuration.",
+                finished=True,
+            )
+            events_service.record(
+                category="adapter",
+                severity=EventSeverity.ERROR,
+                message="Dispatch failed because adapter execution could not start.",
+                run_id=run.id,
+                details={"configured_mode": adapter_status.configured_mode},
+            )
+            return ResponseEnvelope(
+                request_id=request.request_id,
+                ok=False,
+                operation_id=run.id,
+                error=ResponseError(
+                    code="ADAPTER_NOT_READY",
+                    message=str(exc),
+                    retryable=False,
+                    details={
+                        "configured_mode": adapter_status.configured_mode,
+                        "active_mode": adapter_status.active_mode,
+                    },
+                ),
+                warnings=["Dispatch failed before adapter execution could begin."],
+                logs=["Control-plane prechecks passed.", str(exc)],
+            )
+
         executions_service.update_execution(
             execution.id,
             status=ExecutionStatus.RUNNING,
-            warnings=[
-                "Execution mode is simulated until real O3DE adapters are implemented.",
-            ],
-            logs=[
-                "Control-plane prechecks passed.",
-                f"Acquired locks: {acquired_lock_summary}.",
-            ],
+            warnings=adapter_report.warnings,
+            logs=["Control-plane prechecks passed.", f"Acquired locks: {acquired_lock_summary}."],
             details={
                 "requested_locks": requested_locks,
                 "granted_locks": [lock.name for lock in acquired_locks],
-                "simulated": True,
+                "simulated": adapter_report.result.simulated,
+                "adapter_mode": adapter_report.execution_mode,
             },
-            result_summary="Simulated execution started.",
+            result_summary="Adapter execution started.",
         )
         events_service.record(
             category="locks",
@@ -252,22 +341,7 @@ class DispatcherService:
             details={"locks": acquired_lock_summary},
         )
 
-        result = DispatchResult(
-            status="simulated_success",
-            tool=request.tool,
-            agent=request.agent,
-            project_root=request.project_root,
-            engine_root=request.engine_root,
-            dry_run=request.dry_run,
-            simulated=True,
-            execution_mode="simulated",
-            approval_class=policy.approval_class,
-            locks_acquired=[lock.name for lock in acquired_locks],
-            message=(
-                "Control-plane prechecks passed and the run was recorded, "
-                "but no real O3DE adapter was executed."
-            ),
-        )
+        result = adapter_report.result
         result_validation_errors = schema_validation_service.validate_tool_result(
             schema_ref=policy.result_schema,
             payload=result.model_dump(),
@@ -285,16 +359,12 @@ class DispatcherService:
         artifact = artifacts_service.create_artifact(
             run_id=run.id,
             execution_id=execution.id,
-            label="Simulated dispatch summary",
-            kind="simulated_result",
-            uri=f"simulated://runs/{run.id}/executions/{execution.id}/summary",
+            label=adapter_report.artifact_label,
+            kind=adapter_report.artifact_kind,
+            uri=adapter_report.artifact_uri.format(run_id=run.id, execution_id=execution.id),
             content_type="application/json",
-            simulated=True,
-            metadata={
-                "tool": request.tool,
-                "agent": request.agent,
-                "execution_mode": "simulated",
-            },
+            simulated=result.simulated,
+            metadata=adapter_report.artifact_metadata,
         )
 
         locks_service.release(run.id)
@@ -306,17 +376,16 @@ class DispatcherService:
         executions_service.update_execution(
             execution.id,
             status=ExecutionStatus.SUCCEEDED,
-            logs=[
-                "Simulated execution completed successfully.",
-                "No real O3DE adapter was invoked.",
-            ],
+            warnings=adapter_report.warnings,
+            logs=adapter_report.logs,
             artifact_ids=[artifact.id],
             details={
                 "result": result.model_dump(),
                 "artifact_id": artifact.id,
-                "simulated": True,
+                "simulated": result.simulated,
+                "adapter_mode": adapter_report.execution_mode,
             },
-            result_summary="Simulated dispatch completed successfully.",
+            result_summary=adapter_report.result_summary,
             finished=True,
         )
         events_service.record(
@@ -324,7 +393,7 @@ class DispatcherService:
             severity=EventSeverity.INFO,
             message="Simulated dispatch completed.",
             run_id=run.id,
-            details={"tool": request.tool},
+            details={"tool": request.tool, "adapter_mode": adapter_report.execution_mode},
         )
 
         return ResponseEnvelope(

@@ -192,3 +192,15 @@ def test_events_and_runs_remain_queryable_after_restart() -> None:
         assert persisted_execution.execution_mode == "simulated"
         assert persisted_artifact is not None
         assert persisted_artifact.simulated is True
+
+
+def test_dispatch_rejects_when_adapter_mode_is_invalid() -> None:
+    with isolated_database():
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "real"}, clear=False):
+            response = dispatcher_service.dispatch(
+                make_request("project-build", "project.inspect")
+            )
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "ADAPTER_NOT_READY"

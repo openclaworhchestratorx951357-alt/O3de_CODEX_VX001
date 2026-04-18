@@ -15,6 +15,7 @@ from app.api.routes.runs import router as runs_router
 from app.api.routes.tools import router as tools_router
 from app.api.routes.tools_catalog import router as tools_catalog_router
 from app.models.api import RootStatus
+from app.services.adapters import adapter_service
 from app.services.db import initialize_database
 
 
@@ -55,10 +56,11 @@ app.include_router(artifacts_router)
 
 @app.get("/", response_model=RootStatus)
 def root() -> RootStatus:
+    adapter_status = adapter_service.get_runtime_status()
     return RootStatus(
         name="O3DE Agent Control Backend",
-        status="phase-3-contract-prep",
-        execution_mode="simulated",
+        status="phase-6-adapter-framework",
+        execution_mode=adapter_status.active_mode,
         routes=[
             "/health",
             "/ready",
@@ -73,5 +75,5 @@ def root() -> RootStatus:
             "/executions",
             "/artifacts",
         ],
-        phase="phase-3-prep",
+        phase="phase-6",
     )
