@@ -93,8 +93,8 @@ Before widening into broader real adapter execution, the next slice should stay
 narrow and truthful.
 
 Recommended next boundary:
-- define the exact contract for the next manifest-adjacent real precursor,
-  most likely project-config inspection that stays file-read-only, or
-- begin that next narrow real-adapter candidate only if it can keep mutation
-  disabled, stay on the same project-manifest source of truth, and keep
-  fallback behavior explicit
+- define the exact contract for the next manifest-adjacent Gem-state refinement
+  that stays file-read-only on `project_root/project.json`, or
+- begin that next narrow refinement only if it can keep mutation disabled, stay
+  on the same project-manifest source of truth, and keep fallback behavior
+  explicit
