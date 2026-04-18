@@ -112,6 +112,16 @@ export async function fetchRuns(): Promise<RunRecord[]> {
   return payload.runs ?? [];
 }
 
+export async function fetchRun(runId: string): Promise<RunRecord> {
+  const response = await fetch(`${API_BASE_URL}/runs/${runId}`);
+
+  if (!response.ok) {
+    throw new Error(`Run fetch failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as RunRecord;
+}
+
 export async function fetchLocks(): Promise<LockRecord[]> {
   const response = await fetch(`${API_BASE_URL}/locks`);
 

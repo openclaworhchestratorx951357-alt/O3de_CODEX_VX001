@@ -10,6 +10,7 @@ import LayoutHeader from "./components/LayoutHeader";
 import LocksPanel from "./components/LocksPanel";
 import PoliciesPanel from "./components/PoliciesPanel";
 import ResponseEnvelopeView from "./components/ResponseEnvelopeView";
+import RunDetailPanel from "./components/RunDetailPanel";
 import RunsPanel from "./components/RunsPanel";
 import TaskTimeline from "./components/TaskTimeline";
 import { mockAgents } from "./data/mockAgents";
@@ -19,6 +20,7 @@ import {
   fetchApprovals,
   fetchEvents,
   fetchExecutions,
+  fetchRun,
   fetchLocks,
   fetchPolicies,
   fetchRuns,
@@ -51,6 +53,8 @@ export default function App() {
   const [locks, setLocks] = useState<LockRecord[]>([]);
   const [policies, setPolicies] = useState<ToolPolicy[]>([]);
   const [runs, setRuns] = useState<RunRecord[]>([]);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+  const [selectedRun, setSelectedRun] = useState<RunRecord | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
   const [artifactsError, setArtifactsError] = useState<string | null>(null);
@@ -59,6 +63,7 @@ export default function App() {
   const [locksError, setLocksError] = useState<string | null>(null);
   const [policiesError, setPoliciesError] = useState<string | null>(null);
   const [runsError, setRunsError] = useState<string | null>(null);
+  const [selectedRunError, setSelectedRunError] = useState<string | null>(null);
   const [approvalsLoading, setApprovalsLoading] = useState(true);
   const [artifactsLoading, setArtifactsLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(true);
@@ -66,6 +71,7 @@ export default function App() {
   const [locksLoading, setLocksLoading] = useState(true);
   const [policiesLoading, setPoliciesLoading] = useState(true);
   const [runsLoading, setRunsLoading] = useState(true);
+  const [selectedRunLoading, setSelectedRunLoading] = useState(false);
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
 
   async function loadApprovals() {
@@ -125,6 +131,22 @@ export default function App() {
       );
     } finally {
       setRunsLoading(false);
+    }
+  }
+
+  async function loadRunDetail(runId: string) {
+    setSelectedRunId(runId);
+    setSelectedRunLoading(true);
+    try {
+      const nextRun = await fetchRun(runId);
+      setSelectedRun(nextRun);
+      setSelectedRunError(null);
+    } catch (error) {
+      setSelectedRunError(
+        error instanceof Error ? error.message : "Failed to load run detail",
+      );
+    } finally {
+      setSelectedRunLoading(false);
     }
   }
 
@@ -326,6 +348,13 @@ export default function App() {
         items={runs}
         loading={runsLoading}
         error={runsError}
+        selectedRunId={selectedRunId}
+        onSelectRun={(runId) => void loadRunDetail(runId)}
+      />
+      <RunDetailPanel
+        item={selectedRun}
+        loading={selectedRunLoading}
+        error={selectedRunError}
       />
       <LocksPanel
         items={locks}

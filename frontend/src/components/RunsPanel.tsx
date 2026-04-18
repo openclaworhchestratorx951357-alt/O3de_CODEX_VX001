@@ -4,9 +4,17 @@ type RunsPanelProps = {
   items: RunRecord[];
   loading: boolean;
   error: string | null;
+  selectedRunId: string | null;
+  onSelectRun: (runId: string) => void;
 };
 
-export default function RunsPanel({ items, loading, error }: RunsPanelProps) {
+export default function RunsPanel({
+  items,
+  loading,
+  error,
+  selectedRunId,
+  onSelectRun,
+}: RunsPanelProps) {
   return (
     <section
       style={{
@@ -37,6 +45,14 @@ export default function RunsPanel({ items, loading, error }: RunsPanelProps) {
               <div>Dry run: {String(item.dry_run)}</div>
               <div>Run ID: {item.id}</div>
               {item.result_summary ? <div>Summary: {item.result_summary}</div> : null}
+              <button
+                type="button"
+                style={{ marginTop: 8 }}
+                disabled={selectedRunId === item.id}
+                onClick={() => onSelectRun(item.id)}
+              >
+                {selectedRunId === item.id ? "Selected" : "View detail"}
+              </button>
             </li>
           ))}
         </ul>
