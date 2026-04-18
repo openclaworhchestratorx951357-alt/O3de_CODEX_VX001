@@ -5,6 +5,8 @@ import type {
   EventsResponse,
   RequestEnvelope,
   ResponseEnvelope,
+  RunRecord,
+  RunsResponse,
 } from "../types/contracts";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:8000";
@@ -89,4 +91,15 @@ export async function fetchEvents(): Promise<EventRecord[]> {
 
   const payload = (await response.json()) as EventsResponse;
   return payload.events ?? [];
+}
+
+export async function fetchRuns(): Promise<RunRecord[]> {
+  const response = await fetch(`${API_BASE_URL}/runs`);
+
+  if (!response.ok) {
+    throw new Error(`Runs fetch failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as RunsResponse;
+  return payload.runs ?? [];
 }

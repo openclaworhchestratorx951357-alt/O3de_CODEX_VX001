@@ -92,6 +92,28 @@ export interface EventsResponse {
   events: EventRecord[];
 }
 
+export interface RunRecord {
+  id: string;
+  request_id: string;
+  agent: string;
+  tool: string;
+  status: "pending" | "waiting_approval" | "blocked" | "running" | "succeeded" | "rejected" | "failed";
+  created_at: string;
+  updated_at: string;
+  dry_run: boolean;
+  approval_id?: string | null;
+  approval_token?: string | null;
+  requested_locks: string[];
+  granted_locks: string[];
+  warnings: string[];
+  execution_mode: string;
+  result_summary?: string | null;
+}
+
+export interface RunsResponse {
+  runs: RunRecord[];
+}
+
 export interface ToolDefinition {
   name: string;
   description: string;

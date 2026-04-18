@@ -6,12 +6,14 @@ import CatalogPanel from "./components/CatalogPanel";
 import DispatchForm from "./components/DispatchForm";
 import LayoutHeader from "./components/LayoutHeader";
 import ResponseEnvelopeView from "./components/ResponseEnvelopeView";
+import RunsPanel from "./components/RunsPanel";
 import TaskTimeline from "./components/TaskTimeline";
 import { mockAgents } from "./data/mockAgents";
 import {
   approveApproval,
   fetchApprovals,
   fetchEvents,
+  fetchRuns,
   fetchToolsCatalog,
   rejectApproval,
 } from "./lib/api";
@@ -20,6 +22,7 @@ import type {
   CatalogAgent,
   EventRecord,
   ResponseEnvelope,
+  RunRecord,
 } from "./types/contracts";
 
 type ToolsCatalog = {
@@ -31,11 +34,14 @@ export default function App() {
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
   const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
   const [events, setEvents] = useState<EventRecord[]>([]);
+  const [runs, setRuns] = useState<RunRecord[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
   const [eventsError, setEventsError] = useState<string | null>(null);
+  const [runsError, setRunsError] = useState<string | null>(null);
   const [approvalsLoading, setApprovalsLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(true);
+  const [runsLoading, setRunsLoading] = useState(true);
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
 
   async function loadApprovals() {
@@ -68,6 +74,21 @@ export default function App() {
     }
   }
 
+  async function loadRuns() {
+    setRunsLoading(true);
+    try {
+      const nextRuns = await fetchRuns();
+      setRuns(nextRuns);
+      setRunsError(null);
+    } catch (error) {
+      setRunsError(
+        error instanceof Error ? error.message : "Failed to load runs",
+      );
+    } finally {
+      setRunsLoading(false);
+    }
+  }
+
   useEffect(() => {
     async function loadInitialData() {
       try {
@@ -81,6 +102,7 @@ export default function App() {
 
       await loadApprovals();
       await loadEvents();
+      await loadRuns();
     }
 
     void loadInitialData();
@@ -99,6 +121,7 @@ export default function App() {
       }
       await loadApprovals();
       await loadEvents();
+      await loadRuns();
     } catch (error) {
       setApprovalsError(
         error instanceof Error ? error.message : "Failed to update approval",
@@ -112,6 +135,7 @@ export default function App() {
     setLastResponse(response);
     void loadApprovals();
     void loadEvents();
+    void loadRuns();
   }
 
   const agentsForDisplay = catalogAgents.length > 0
@@ -191,6 +215,11 @@ export default function App() {
         items={events}
         loading={eventsLoading}
         error={eventsError}
+      />
+      <RunsPanel
+        items={runs}
+        loading={runsLoading}
+        error={runsError}
       />
     </main>
   );
