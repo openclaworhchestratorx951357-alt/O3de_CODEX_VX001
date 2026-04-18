@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { dispatchTool } from "../lib/api";
 import type {
@@ -46,7 +46,10 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
   const [error, setError] = useState<string | null>(null);
 
   const selectedAgent = agents.find((agent) => agent.id === request.agent);
-  const availableTools = selectedAgent?.tools ?? [];
+  const effectiveAgent = selectedAgent ?? agents[0] ?? null;
+  const availableTools = effectiveAgent?.tools ?? [];
+  const selectedTool = availableTools.find((tool) => tool.name === request.tool);
+  const effectiveToolName = selectedTool?.name ?? availableTools[0]?.name ?? request.tool;
 
   function isLockName(value: string): value is LockName {
     return [
@@ -59,28 +62,6 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
       "test_runtime",
     ].includes(value);
   }
-
-  useEffect(() => {
-    if (!selectedAgent && agents.length > 0) {
-      const fallbackAgent = agents[0];
-      setRequest((current) => ({
-        ...current,
-        agent: fallbackAgent.id,
-        tool: fallbackAgent.tools[0]?.name ?? current.tool,
-      }));
-      return;
-    }
-
-    if (
-      selectedAgent &&
-      !selectedAgent.tools.some((tool) => tool.name === request.tool)
-    ) {
-      setRequest((current) => ({
-        ...current,
-        tool: selectedAgent.tools[0]?.name ?? current.tool,
-      }));
-    }
-  }, [agents, request.tool, selectedAgent]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -97,6 +78,8 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
       const response = await dispatchTool({
         ...request,
         request_id: crypto.randomUUID(),
+        agent: effectiveAgent?.id ?? request.agent,
+        tool: effectiveToolName,
         args: parsedArgs,
         locks: parsedLocks,
       });
@@ -124,7 +107,7 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
             Agent
             <select
               style={{ display: "block", width: "100%", marginTop: 4 }}
-              value={request.agent}
+              value={effectiveAgent?.id ?? request.agent}
               onChange={(e) => {
                 const nextAgent = agents.find((agent) => agent.id === e.target.value);
                 setRequest({
@@ -146,7 +129,7 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
             Tool
             <select
               style={{ display: "block", width: "100%", marginTop: 4 }}
-              value={request.tool}
+              value={effectiveToolName}
               onChange={(e) => setRequest({ ...request, tool: e.target.value })}
             >
               {availableTools.map((tool) => (

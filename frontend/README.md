@@ -22,6 +22,11 @@ React and Vite frontend for the O3DE Agent Control app.
 1. Change into the frontend directory.
 2. Run npm run build.
 
+## Lint
+
+1. Change into the frontend directory.
+2. Run npm run lint.
+
 ## Docker
 
 The frontend now has a Phase 5 baseline container image:
