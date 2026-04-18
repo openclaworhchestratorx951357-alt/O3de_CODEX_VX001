@@ -91,6 +91,8 @@ Current truth:
 
 `GET /version` also reports the current adapter contract version so operators can track contract changes separately from the backend API version.
 
+`GET /adapters` provides a read-only adapter registry summary with configured mode, active mode, supported modes, contract version, warning state, and registered adapter families.
+
 Persisted execution records and artifact metadata now also carry adapter provenance fields such as `adapter_family` and `adapter_contract_version` so run history keeps the current simulated adapter boundary explicit.
 
 ## Schema validation status
@@ -117,4 +119,5 @@ Simulated execution remains explicitly labeled as simulated even when result-sha
 
 - `GET /` — backend root status
 - `GET /health` — backend health
+- `GET /adapters` — adapter registry summary
 - `POST /tools/dispatch` — structured tool dispatch stub

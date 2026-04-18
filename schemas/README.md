@@ -7,7 +7,7 @@ Current contents:
 - control-plane entity schemas for runs, approvals, locks, events, executions, and artifacts
 - tool policy schema
 - dispatch result schema
-- machine-readable route output schemas for root, health, readiness, version, and list endpoints
+- machine-readable route output schemas for root, health, readiness, version, adapters, and list endpoints
 - per-tool argument and result schemas under `schemas/tools/`
 
 Cross-linking:

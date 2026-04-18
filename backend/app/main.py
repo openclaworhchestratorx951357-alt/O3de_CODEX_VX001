@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.adapters import router as adapters_router
 from app.api.routes.approvals import router as approvals_router
 from app.api.routes.artifacts import router as artifacts_router
 from app.api.routes.events import router as events_router
@@ -43,6 +44,7 @@ app.add_middleware(
 )
 
 app.include_router(health_router)
+app.include_router(adapters_router)
 app.include_router(tools_router)
 app.include_router(tools_catalog_router)
 app.include_router(runs_router)
@@ -65,6 +67,7 @@ def root() -> RootStatus:
             "/health",
             "/ready",
             "/version",
+            "/adapters",
             "/tools/catalog",
             "/tools/dispatch",
             "/runs",

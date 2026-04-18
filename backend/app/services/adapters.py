@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
-from app.models.api import AdapterModeStatus
+from app.models.api import AdapterFamilyStatus, AdapterModeStatus, AdaptersResponse
 from app.models.response_envelope import DispatchResult
 from app.services.catalog import catalog_service
 
@@ -187,6 +187,31 @@ class AdapterService:
             dry_run=dry_run,
             approval_class=approval_class,
             locks_acquired=locks_acquired,
+        )
+
+    def list_adapters(self) -> AdaptersResponse:
+        runtime_status = self.get_runtime_status()
+        families = [
+            AdapterFamilyStatus(
+                family=family,
+                mode=runtime_status.active_mode,
+                supports_real_execution=False,
+                contract_version=runtime_status.contract_version,
+                execution_boundary=runtime_status.execution_boundary,
+                ready=runtime_status.ready,
+                notes=runtime_status.notes,
+            )
+            for family in runtime_status.available_families
+        ]
+        return AdaptersResponse(
+            configured_mode=runtime_status.configured_mode,
+            active_mode=runtime_status.active_mode,
+            supported_modes=runtime_status.supported_modes,
+            contract_version=runtime_status.contract_version,
+            supports_real_execution=runtime_status.supports_real_execution,
+            families=families,
+            warning=runtime_status.warning,
+            notes=runtime_status.notes,
         )
 
 

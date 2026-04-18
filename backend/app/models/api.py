@@ -52,6 +52,27 @@ class AdapterModeStatus(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class AdapterFamilyStatus(BaseModel):
+    family: str = Field(..., min_length=1)
+    mode: str = Field(..., min_length=1)
+    supports_real_execution: bool
+    contract_version: str = Field(..., min_length=1)
+    execution_boundary: str = Field(..., min_length=1)
+    ready: bool
+    notes: list[str] = Field(default_factory=list)
+
+
+class AdaptersResponse(BaseModel):
+    configured_mode: str = Field(..., min_length=1)
+    active_mode: str = Field(..., min_length=1)
+    supported_modes: list[str] = Field(default_factory=list)
+    contract_version: str = Field(..., min_length=1)
+    supports_real_execution: bool
+    families: list[AdapterFamilyStatus] = Field(default_factory=list)
+    warning: str | None = None
+    notes: list[str] = Field(default_factory=list)
+
+
 class ReadinessStatus(BaseModel):
     ok: bool
     service: str = Field(..., min_length=1)
@@ -92,6 +113,10 @@ class EventsResponse(BaseModel):
 
 class PoliciesResponse(BaseModel):
     policies: list[ToolPolicy] = Field(default_factory=list)
+
+
+class AdaptersEnvelope(BaseModel):
+    adapters: AdaptersResponse
 
 
 class ExecutionsResponse(BaseModel):

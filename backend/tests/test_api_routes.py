@@ -87,6 +87,30 @@ def test_version_reports_adapter_contract_version() -> None:
         assert payload["adapter_contract_version"] == "v0.1"
 
 
+def test_adapters_endpoint_reports_registry_summary() -> None:
+    with isolated_client() as client:
+        response = client.get("/adapters")
+        assert response.status_code == 200
+        payload = response.json()["adapters"]
+        assert payload["configured_mode"] == "simulated"
+        assert payload["active_mode"] == "simulated"
+        assert payload["supported_modes"] == ["simulated"]
+        assert payload["contract_version"] == "v0.1"
+        assert payload["supports_real_execution"] is False
+        assert any(family["family"] == "project-build" for family in payload["families"])
+
+
+def test_adapters_endpoint_reports_invalid_mode_truthfully() -> None:
+    with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "real"}, clear=False):
+        with isolated_client() as client:
+            response = client.get("/adapters")
+            assert response.status_code == 200
+            payload = response.json()["adapters"]
+            assert payload["configured_mode"] == "real"
+            assert payload["active_mode"] == "unavailable"
+            assert payload["warning"]
+
+
 def test_catalog_returns_rich_tool_metadata() -> None:
     with isolated_client() as client:
         response = client.get("/tools/catalog")
