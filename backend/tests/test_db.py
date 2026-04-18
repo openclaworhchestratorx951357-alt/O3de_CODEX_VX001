@@ -291,6 +291,35 @@ def test_schema_validation_service_accepts_real_project_inspect_artifact_metadat
     assert errors == []
 
 
+def test_schema_validation_service_validates_project_inspect_persisted_payload_helpers() -> None:
+    execution_detail_errors = schema_validation_service.validate_execution_details(
+        tool_name="project.inspect",
+        payload={
+            "inspection_surface": "project_manifest",
+            "execution_boundary": "Hybrid mode enabled a real read-only manifest path.",
+            "adapter_family": "project-build",
+            "adapter_mode": "hybrid",
+            "adapter_contract_version": "v0.1",
+        },
+    )
+    artifact_metadata_errors = schema_validation_service.validate_artifact_metadata(
+        tool_name="project.inspect",
+        payload={
+            "tool": "project.inspect",
+            "agent": "project-build",
+            "execution_mode": "real",
+            "inspection_surface": "project_manifest",
+            "execution_boundary": "Hybrid mode enabled a real read-only manifest path.",
+            "adapter_family": "project-build",
+            "adapter_mode": "hybrid",
+            "adapter_contract_version": "v0.1",
+        },
+    )
+
+    assert execution_detail_errors == []
+    assert artifact_metadata_errors == []
+
+
 def test_schema_validation_service_reports_subset_capabilities_truthfully() -> None:
     capability = schema_validation_service.get_capability_status()
 

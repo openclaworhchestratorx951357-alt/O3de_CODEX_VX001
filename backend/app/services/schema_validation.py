@@ -116,6 +116,34 @@ class SchemaValidationService:
         self._validate_node(payload, schema, schema_path, "$", errors)
         return errors
 
+    def validate_execution_details(
+        self,
+        *,
+        tool_name: str,
+        payload: dict[str, Any],
+    ) -> list[str]:
+        schema_ref = self._persisted_schema_ref(
+            tool_name=tool_name,
+            schema_kind="execution-details",
+        )
+        if schema_ref is None:
+            return []
+        return self.validate_tool_args(schema_ref=schema_ref, payload=payload)
+
+    def validate_artifact_metadata(
+        self,
+        *,
+        tool_name: str,
+        payload: dict[str, Any],
+    ) -> list[str]:
+        schema_ref = self._persisted_schema_ref(
+            tool_name=tool_name,
+            schema_kind="artifact-metadata",
+        )
+        if schema_ref is None:
+            return []
+        return self.validate_tool_args(schema_ref=schema_ref, payload=payload)
+
     def _validate_node(
         self,
         value: Any,
@@ -251,6 +279,22 @@ class SchemaValidationService:
         elif isinstance(value, list):
             for item in value:
                 self._collect_schema_keywords(item, observed)
+
+    def _persisted_schema_ref(
+        self,
+        *,
+        tool_name: str,
+        schema_kind: str,
+    ) -> str | None:
+        persisted_schema_refs = {
+            ("project.inspect", "execution-details"): (
+                "schemas/tools/project.inspect.execution-details.schema.json"
+            ),
+            ("project.inspect", "artifact-metadata"): (
+                "schemas/tools/project.inspect.artifact-metadata.schema.json"
+            ),
+        }
+        return persisted_schema_refs.get((tool_name, schema_kind))
 
 
 schema_validation_service = SchemaValidationService()

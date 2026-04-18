@@ -13,6 +13,7 @@ from app.services.events import events_service
 from app.services.executions import executions_service
 from app.services.locks import locks_service
 from app.services.runs import runs_service
+from app.services.schema_validation import schema_validation_service
 
 
 def make_request(
@@ -346,6 +347,20 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
         assert artifact.metadata["manifest_settings"]["version"] == "1.0.0"
         assert artifact.metadata["manifest_settings_keys"] == ["version"]
         assert artifact.metadata["requested_settings_subset_present"] is True
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="project.inspect",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="project.inspect",
+                payload=artifact.metadata,
+            )
+            == []
+        )
 
 
 def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() -> None:
@@ -456,6 +471,13 @@ def test_project_inspect_falls_back_to_simulated_when_manifest_is_missing_in_hyb
         execution = executions_service.list_executions()[0]
         assert execution.details["real_path_available"] is False
         assert "fallback_reason" in execution.details
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="project.inspect",
+                payload=execution.details,
+            )
+            == []
+        )
 
 
 def test_build_configure_uses_real_preflight_path_in_hybrid_mode() -> None:
