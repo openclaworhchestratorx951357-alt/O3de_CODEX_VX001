@@ -21,6 +21,25 @@ function readDetail(item: EventRecord, key: string): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+function describeTimelineMeaning(item: EventRecord): string | null {
+  const capabilityStatus = readDetail(item, "capability_status");
+  const adapterMode = readDetail(item, "adapter_mode");
+  const message = item.message.toLowerCase();
+
+  if (capabilityStatus === "plan-only") {
+    if (adapterMode === "real" || message.includes("plan-only build.configure preflight")) {
+      return "This event reflects the real plan-only build.configure preflight path, not a real configure mutation.";
+    }
+    return "This event reflects plan-only build.configure behavior; simulated fallback still remains possible in this phase.";
+  }
+
+  if (capabilityStatus === "hybrid-read-only") {
+    return "This event reflects the first real read-only project.inspect path or its simulated fallback.";
+  }
+
+  return null;
+}
+
 export default function TaskTimeline({ items, loading, error }: TaskTimelineProps) {
   return (
     <section
@@ -47,6 +66,7 @@ export default function TaskTimeline({ items, loading, error }: TaskTimelineProp
             (() => {
               const capabilityStatus = readDetail(item, "capability_status");
               const adapterMode = readDetail(item, "adapter_mode");
+              const meaning = describeTimelineMeaning(item);
               return (
                 <li key={item.id} style={{ marginBottom: 12 }}>
                   <strong>{item.message}</strong>
@@ -55,6 +75,7 @@ export default function TaskTimeline({ items, loading, error }: TaskTimelineProp
                   <div>State: {formatEventState(item)}</div>
                   {capabilityStatus ? <div>Capability: {capabilityStatus}</div> : null}
                   {adapterMode ? <div>Adapter mode: {adapterMode}</div> : null}
+                  {meaning ? <div>Meaning: {meaning}</div> : null}
                   {item.run_id ? <div>Run: {item.run_id}</div> : null}
                   <div>Created: {new Date(item.created_at).toLocaleString()}</div>
                 </li>

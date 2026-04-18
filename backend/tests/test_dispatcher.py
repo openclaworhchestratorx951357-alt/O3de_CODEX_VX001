@@ -380,3 +380,48 @@ def test_dispatch_events_publish_capability_status_vocabulary() -> None:
         dispatch_event = next(event for event in events if event.category == "dispatch")
         assert dispatch_event.details["capability_status"] == "hybrid-read-only"
         assert "hybrid-read-only" in dispatch_event.message
+
+
+def test_build_configure_events_use_plan_only_wording_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps({"project_name": "PlanOnlyProject"}),
+            encoding="utf-8",
+        )
+        first = dispatcher_service.dispatch(
+            make_request(
+                "project-build",
+                "build.configure",
+                project_root=str(project_root),
+            )
+        )
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            approved_request = make_request(
+                "project-build",
+                "build.configure",
+                project_root=str(project_root),
+            )
+            approved_request.approval_token = approval.token
+            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is True
+        events = events_service.list_events()
+        dispatch_event = next(
+            event
+            for event in reversed(events)
+            if event.run_id == response.operation_id
+            and event.category == "dispatch"
+            and event.details.get("capability_status") == "plan-only"
+        )
+        locks_event = next(
+            event
+            for event in reversed(events)
+            if event.run_id == response.operation_id and event.category == "locks"
+        )
+        assert "plan-only build.configure preflight" in dispatch_event.message
+        assert "plan-only build.configure preflight" in locks_event.message

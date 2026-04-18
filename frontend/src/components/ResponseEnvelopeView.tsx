@@ -144,7 +144,7 @@ function describeExecutionResult(result: Record<string, unknown>): string {
     return "project.inspect remained simulated for this run, including hybrid fallback cases.";
   }
   if (executionMode === "simulated" && simulated === true && tool === "build.configure") {
-    return "build.configure remained simulated for this run, including hybrid fallback cases.";
+    return "build.configure remained on a simulated path for this run, including hybrid fallback from the plan-only preflight path.";
   }
   if (executionMode === "simulated" && simulated === true) {
     return "This dispatch remained on the simulated execution path.";

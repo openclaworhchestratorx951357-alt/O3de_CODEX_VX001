@@ -187,8 +187,8 @@ class DispatcherService:
                 category="adapter",
                 severity=EventSeverity.ERROR,
                 message=(
-                    f"{capability_status} dispatch rejected because the configured "
-                    "adapter mode is not ready."
+                    f"{self._capability_message_prefix(request)} rejected because the "
+                    "configured adapter mode is not ready."
                 ),
                 run_id=run.id,
                 details={
@@ -255,7 +255,9 @@ class DispatcherService:
             events_service.record(
                 category="locks",
                 severity=EventSeverity.WARNING,
-                message=f"{capability_status} dispatch blocked by an active lock.",
+                message=(
+                    f"{self._capability_message_prefix(request)} blocked by an active lock."
+                ),
                 run_id=run.id,
                 details={
                     "locks": ", ".join(lock.name for lock in conflicts),
@@ -324,7 +326,7 @@ class DispatcherService:
                 category="adapter",
                 severity=EventSeverity.ERROR,
                 message=(
-                    f"{capability_status} dispatch failed because adapter execution "
+                    f"{self._capability_message_prefix(request)} failed because adapter execution "
                     "could not start."
                 ),
                 run_id=run.id,
@@ -365,7 +367,7 @@ class DispatcherService:
         events_service.record(
             category="locks",
             severity=EventSeverity.INFO,
-            message=f"{capability_status} run acquired required locks.",
+            message=f"{self._capability_message_prefix(request)} acquired required locks.",
             run_id=run.id,
             details={
                 "locks": acquired_lock_summary,
@@ -422,7 +424,10 @@ class DispatcherService:
         events_service.record(
             category="dispatch",
             severity=EventSeverity.INFO,
-            message=f"{capability_status} dispatch completed: {adapter_report.result_summary}",
+            message=(
+                f"{self._capability_message_prefix(request)} completed: "
+                f"{adapter_report.result_summary}"
+            ),
             run_id=run.id,
             details={
                 "tool": request.tool,
@@ -729,6 +734,14 @@ class DispatcherService:
                 if candidate.name == tool_name:
                     return candidate.capability_status
         return "unknown"
+
+    def _capability_message_prefix(self, request: RequestEnvelope) -> str:
+        capability = self._request_capability_status(request)
+        if request.tool == "build.configure" and capability == "plan-only":
+            return "plan-only build.configure preflight"
+        if request.tool == "project.inspect" and capability == "hybrid-read-only":
+            return "hybrid-read-only project.inspect path"
+        return f"{capability} dispatch"
 
 
 dispatcher_service = DispatcherService()
