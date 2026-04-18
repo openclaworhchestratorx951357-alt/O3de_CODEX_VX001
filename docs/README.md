@@ -9,6 +9,7 @@ See these official source files:
 - `docs/SLICE-START-CHECKLIST.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
 - `docs/PHASE-7-CHECKPOINT.md`
+- `docs/PERSISTED-SCHEMA-COVERAGE-CHECKPOINT.md`
 - `docs/PHASE-7-REAL-ADAPTER-GATE.md`
 - `docs/PHASE-7-PROJECT-BUILD-CANDIDATES.md`
 - `docs/PHASE-7-PROJECT-INSPECT-CHECKLIST.md`
@@ -27,6 +28,8 @@ Current Phase 7 checkpoint truth:
 - the next safest refinement is still manifest-adjacent and keeps Gem-state evidence on `project.json`
 - `build.configure` is still only a real plan-only preflight path
 - mutation surfaces remain gated
+- persisted execution-details and artifact-metadata schema coverage now spans 8
+  tools across `project-build`, `asset-pipeline`, and `render-lookdev`
 
 Planned contents:
 - architecture
