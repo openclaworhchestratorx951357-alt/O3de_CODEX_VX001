@@ -141,6 +141,7 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                     {"inspection_surface": "simulated"}
                     if tool
                     in {
+                        "asset.processor.status",
                         "project.inspect",
                         "build.configure",
                         "settings.patch",
@@ -160,6 +161,7 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                     {"inspection_surface": "simulated"}
                     if tool
                     in {
+                        "asset.processor.status",
                         "project.inspect",
                         "build.configure",
                         "settings.patch",
