@@ -4,6 +4,7 @@ import AgentPanel from "./components/AgentPanel";
 import ApprovalQueue from "./components/ApprovalQueue";
 import CatalogPanel from "./components/CatalogPanel";
 import DispatchForm from "./components/DispatchForm";
+import ExecutionsPanel from "./components/ExecutionsPanel";
 import LayoutHeader from "./components/LayoutHeader";
 import LocksPanel from "./components/LocksPanel";
 import PoliciesPanel from "./components/PoliciesPanel";
@@ -15,6 +16,7 @@ import {
   approveApproval,
   fetchApprovals,
   fetchEvents,
+  fetchExecutions,
   fetchLocks,
   fetchPolicies,
   fetchRuns,
@@ -25,6 +27,7 @@ import type {
   ApprovalRecord,
   CatalogAgent,
   EventRecord,
+  ExecutionRecord,
   LockRecord,
   ResponseEnvelope,
   RunRecord,
@@ -40,17 +43,20 @@ export default function App() {
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
   const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
   const [events, setEvents] = useState<EventRecord[]>([]);
+  const [executions, setExecutions] = useState<ExecutionRecord[]>([]);
   const [locks, setLocks] = useState<LockRecord[]>([]);
   const [policies, setPolicies] = useState<ToolPolicy[]>([]);
   const [runs, setRuns] = useState<RunRecord[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
   const [eventsError, setEventsError] = useState<string | null>(null);
+  const [executionsError, setExecutionsError] = useState<string | null>(null);
   const [locksError, setLocksError] = useState<string | null>(null);
   const [policiesError, setPoliciesError] = useState<string | null>(null);
   const [runsError, setRunsError] = useState<string | null>(null);
   const [approvalsLoading, setApprovalsLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(true);
+  const [executionsLoading, setExecutionsLoading] = useState(true);
   const [locksLoading, setLocksLoading] = useState(true);
   const [policiesLoading, setPoliciesLoading] = useState(true);
   const [runsLoading, setRunsLoading] = useState(true);
@@ -101,6 +107,21 @@ export default function App() {
     }
   }
 
+  async function loadExecutions() {
+    setExecutionsLoading(true);
+    try {
+      const nextExecutions = await fetchExecutions();
+      setExecutions(nextExecutions);
+      setExecutionsError(null);
+    } catch (error) {
+      setExecutionsError(
+        error instanceof Error ? error.message : "Failed to load executions",
+      );
+    } finally {
+      setExecutionsLoading(false);
+    }
+  }
+
   async function loadLocks() {
     setLocksLoading(true);
     try {
@@ -144,6 +165,7 @@ export default function App() {
 
       await loadApprovals();
       await loadEvents();
+      await loadExecutions();
       await loadLocks();
       await loadPolicies();
       await loadRuns();
@@ -165,6 +187,7 @@ export default function App() {
       }
       await loadApprovals();
       await loadEvents();
+      await loadExecutions();
       await loadLocks();
       await loadPolicies();
       await loadRuns();
@@ -181,6 +204,7 @@ export default function App() {
     setLastResponse(response);
     void loadApprovals();
     void loadEvents();
+    void loadExecutions();
     void loadLocks();
     void loadPolicies();
     void loadRuns();
@@ -263,6 +287,11 @@ export default function App() {
         items={events}
         loading={eventsLoading}
         error={eventsError}
+      />
+      <ExecutionsPanel
+        items={executions}
+        loading={executionsLoading}
+        error={executionsError}
       />
       <RunsPanel
         items={runs}

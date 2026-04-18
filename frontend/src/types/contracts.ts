@@ -141,6 +141,27 @@ export interface PoliciesResponse {
   policies: ToolPolicy[];
 }
 
+export interface ExecutionRecord {
+  id: string;
+  run_id: string;
+  request_id: string;
+  agent: string;
+  tool: string;
+  execution_mode: string;
+  status: "pending" | "waiting_approval" | "blocked" | "running" | "succeeded" | "rejected" | "failed";
+  started_at: string;
+  finished_at?: string | null;
+  warnings: string[];
+  logs: string[];
+  artifact_ids: string[];
+  details: Record<string, unknown>;
+  result_summary?: string | null;
+}
+
+export interface ExecutionsResponse {
+  executions: ExecutionRecord[];
+}
+
 export interface ToolDefinition {
   name: string;
   description: string;

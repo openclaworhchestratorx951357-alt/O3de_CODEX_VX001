@@ -3,6 +3,8 @@ import type {
   ApprovalsResponse,
   EventRecord,
   EventsResponse,
+  ExecutionRecord,
+  ExecutionsResponse,
   RequestEnvelope,
   ResponseEnvelope,
   LockRecord,
@@ -128,4 +130,15 @@ export async function fetchPolicies(): Promise<ToolPolicy[]> {
 
   const payload = (await response.json()) as PoliciesResponse;
   return payload.policies ?? [];
+}
+
+export async function fetchExecutions(): Promise<ExecutionRecord[]> {
+  const response = await fetch(`${API_BASE_URL}/executions`);
+
+  if (!response.ok) {
+    throw new Error(`Executions fetch failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as ExecutionsResponse;
+  return payload.executions ?? [];
 }
