@@ -64,8 +64,8 @@ def test_ready_reports_database_status_details() -> None:
         assert "$schema" in payload["schema_validation"]["active_metadata_keywords"]
         assert "allOf" in payload["schema_validation"]["supported_keywords"]
         assert "oneOf" in payload["schema_validation"]["unsupported_keywords"]
-        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 16
-        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 16
+        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 17
+        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 17
         assert payload["schema_validation"]["persisted_execution_details_tools"] == [
             "asset.processor.status",
             "asset.source.inspect",
@@ -82,6 +82,7 @@ def test_ready_reports_database_status_details() -> None:
             "settings.patch",
             "test.run.editor_python",
             "test.run.gtest",
+            "test.tiaf.sequence",
             "test.visual.diff",
         ]
         assert payload["schema_validation"]["persisted_artifact_metadata_tools"] == [
@@ -100,6 +101,7 @@ def test_ready_reports_database_status_details() -> None:
             "settings.patch",
             "test.run.editor_python",
             "test.run.gtest",
+            "test.tiaf.sequence",
             "test.visual.diff",
         ]
         assert payload["schema_validation"]["persisted_family_coverage"] == [
@@ -161,16 +163,15 @@ def test_ready_reports_database_status_details() -> None:
             {
                 "family": "validation",
                 "total_tools": 4,
-                "execution_details_tools": 3,
-                "artifact_metadata_tools": 3,
+                "execution_details_tools": 4,
+                "artifact_metadata_tools": 4,
                 "covered_tools": [
                     "test.run.editor_python",
                     "test.run.gtest",
+                    "test.tiaf.sequence",
                     "test.visual.diff",
                 ],
-                "uncovered_tools": [
-                    "test.tiaf.sequence",
-                ],
+                "uncovered_tools": [],
             },
         ]
         assert "sqlite approvals store" in payload["dependencies"]
