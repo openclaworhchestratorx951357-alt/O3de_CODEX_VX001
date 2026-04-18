@@ -72,6 +72,23 @@ export default function ExecutionsPanel({
               const manifestSettings = readRecord(item.details, "manifest_settings");
               const inspectionEvidence = readStringArray(item.details, "inspection_evidence");
               const gemNames = readStringArray(item.details, "gem_names");
+              const requestedSettingsEvidence = readStringArray(
+                item.details,
+                "requested_settings_evidence",
+              );
+              const requestedSettingsKeys = readStringArray(
+                item.details,
+                "requested_settings_keys",
+              );
+              const matchedRequestedSettingsKeys = readStringArray(
+                item.details,
+                "matched_requested_settings_keys",
+              );
+              const missingRequestedSettingsKeys = readStringArray(
+                item.details,
+                "missing_requested_settings_keys",
+              );
+              const settingsSelectionMode = readString(item.details, "settings_selection_mode");
               const requestedGemEvidence = readStringArray(item.details, "requested_gem_evidence");
               const requestedGemNames = readStringArray(item.details, "requested_gem_names");
               const matchedRequestedGemNames = readStringArray(
@@ -89,6 +106,10 @@ export default function ExecutionsPanel({
                 "requested_project_config_keys",
               );
               const settingsKeys = readStringArray(item.details, "manifest_settings_keys");
+              const requestedSettingsSubsetPresent = readBoolean(
+                item.details,
+                "requested_settings_subset_present",
+              );
               const gemEntriesPresent = readBoolean(item.details, "gem_entries_present");
               const requestedGemSubsetPresent = readBoolean(
                 item.details,
@@ -137,6 +158,25 @@ export default function ExecutionsPanel({
                   {projectConfig ? (
                     <div>Project config snapshot: {JSON.stringify(projectConfig)}</div>
                   ) : null}
+                  {requestedSettingsEvidence.length > 0 ? (
+                    <div>Requested settings evidence: {requestedSettingsEvidence.join(", ")}</div>
+                  ) : null}
+                  {settingsSelectionMode ? (
+                    <div>Settings selection mode: {settingsSelectionMode}</div>
+                  ) : null}
+                  {requestedSettingsKeys.length > 0 ? (
+                    <div>Requested settings keys: {requestedSettingsKeys.join(", ")}</div>
+                  ) : null}
+                  {matchedRequestedSettingsKeys.length > 0 ? (
+                    <div>
+                      Matched requested settings keys: {matchedRequestedSettingsKeys.join(", ")}
+                    </div>
+                  ) : null}
+                  {missingRequestedSettingsKeys.length > 0 ? (
+                    <div>
+                      Missing requested settings keys: {missingRequestedSettingsKeys.join(", ")}
+                    </div>
+                  ) : null}
                   {requestedGemEvidence.length > 0 ? (
                     <div>Requested Gem evidence: {requestedGemEvidence.join(", ")}</div>
                   ) : null}
@@ -165,6 +205,11 @@ export default function ExecutionsPanel({
                   ) : null}
                   {settingsKeys.length > 0 ? (
                     <div>Manifest settings keys: {settingsKeys.join(", ")}</div>
+                  ) : null}
+                  {requestedSettingsSubsetPresent !== null ? (
+                    <div>
+                      Requested settings subset present: {String(requestedSettingsSubsetPresent)}
+                    </div>
                   ) : null}
                   {manifestSettings ? (
                     <div>

@@ -267,12 +267,27 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         }
         manifest_keys = sorted(str(key) for key in manifest.keys())
         inspection_evidence: list[str] = ["project_manifest"]
-        manifest_settings = self._manifest_settings_snapshot(manifest)
         project_config_keys = self._normalized_string_list(args.get("project_config_keys"))
         project_config = self._project_config_snapshot(
             manifest,
             requested_keys=project_config_keys,
             include_project_config=inspection_flags["include_project_config"],
+        )
+        requested_settings_keys = self._normalized_string_list(args.get("requested_settings_keys"))
+        manifest_settings = self._manifest_settings_snapshot(
+            manifest,
+            requested_keys=requested_settings_keys,
+            include_settings=inspection_flags["include_settings"],
+        )
+        matched_requested_settings_keys = (
+            [key for key in requested_settings_keys if key in manifest_settings]
+            if inspection_flags["include_settings"]
+            else []
+        )
+        missing_requested_settings_keys = (
+            [key for key in requested_settings_keys if key not in manifest_settings]
+            if inspection_flags["include_settings"]
+            else []
         )
         requested_gem_names = self._normalized_string_list(args.get("requested_gem_names"))
         matched_requested_gem_names = (
@@ -296,6 +311,19 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "missing_requested_gem_names",
                 ]
             )
+        requested_settings_evidence = (
+            ["manifest_settings", "manifest_settings_keys"]
+            if inspection_flags["include_settings"]
+            else []
+        )
+        if inspection_flags["include_settings"] and requested_settings_keys:
+            requested_settings_evidence.extend(
+                [
+                    "requested_settings_keys",
+                    "matched_requested_settings_keys",
+                    "missing_requested_settings_keys",
+                ]
+            )
         message = "Read-only project manifest inspection completed against real project files."
         if isinstance(project_name, str) and project_name.strip():
             message = (
@@ -315,7 +343,12 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             message += "."
             inspection_evidence.append("gem_names")
         if inspection_flags["include_settings"]:
-            message += " Manifest-backed settings inspection evidence was captured."
+            message += (
+                " Manifest-backed settings inspection evidence was captured."
+                if not requested_settings_keys
+                else " Manifest-backed settings inspection evidence was captured for "
+                "the requested subset contract."
+            )
             inspection_evidence.append("manifest_settings")
 
         warnings: list[str] = []
@@ -339,6 +372,20 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "No manifest-backed settings fields were present for the current "
                     "inspection request."
                 )
+        if (
+            inspection_flags["include_settings"]
+            and requested_settings_keys
+            and not matched_requested_settings_keys
+        ):
+            warnings.append(
+                "None of the requested_settings_keys matched manifest-backed settings "
+                "fields for the current inspection request."
+            )
+        if inspection_flags["include_settings"] and missing_requested_settings_keys:
+            warnings.append(
+                "Some requested_settings_keys were not present in manifest-backed "
+                f"settings fields: {', '.join(missing_requested_settings_keys)}."
+            )
         if inspection_flags["include_gems"] and not enabled_gems:
             warnings.append(
                 "No gem_names entries were present for the current inspection request."
@@ -406,11 +453,21 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     f"gem_names with {len(matched_requested_gem_names)} matches."
                 ),
                 (
-                    "Captured manifest-backed top-level settings evidence."
-                    if inspection_flags["include_settings"] and manifest_settings
-                    else "Settings inspection evidence was not requested."
+                    "Settings inspection evidence was not requested."
                     if not inspection_flags["include_settings"]
+                    else "Captured manifest-backed top-level settings evidence."
+                    if not requested_settings_keys and manifest_settings
                     else "No manifest-backed settings evidence was available to capture."
+                    if not requested_settings_keys
+                    else "Captured requested settings subset evidence with "
+                    f"{len(matched_requested_settings_keys)} matched and "
+                    f"{len(missing_requested_settings_keys)} missing requested keys."
+                ),
+                (
+                    "Requested settings subset matching was not requested."
+                    if not inspection_flags["include_settings"] or not requested_settings_keys
+                    else "Requested settings subset matching resolved against manifest-backed "
+                    f"settings fields with {len(matched_requested_settings_keys)} matches."
                 ),
             ],
             artifact_label="Real project manifest inspection evidence",
@@ -441,6 +498,19 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "requested_project_config_keys": (
                     project_config_keys if inspection_flags["include_project_config"] else []
                 ),
+                "requested_settings_evidence": requested_settings_evidence,
+                "settings_selection_mode": (
+                    "requested-subset"
+                    if inspection_flags["include_settings"] and requested_settings_keys
+                    else "all-discovered"
+                    if inspection_flags["include_settings"]
+                    else "not-requested"
+                ),
+                "requested_settings_keys": (
+                    requested_settings_keys if inspection_flags["include_settings"] else []
+                ),
+                "matched_requested_settings_keys": matched_requested_settings_keys,
+                "missing_requested_settings_keys": missing_requested_settings_keys,
                 "requested_gem_evidence": requested_gem_evidence,
                 "gem_selection_mode": (
                     "requested-subset"
@@ -471,6 +541,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     sorted(manifest_settings.keys())
                     if inspection_flags["include_settings"]
                     else []
+                ),
+                "requested_settings_subset_present": (
+                    len(matched_requested_settings_keys) > 0
+                    if inspection_flags["include_settings"] and requested_settings_keys
+                    else False
                 ),
             },
             execution_details={
@@ -496,6 +571,19 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "requested_project_config_keys": (
                     project_config_keys if inspection_flags["include_project_config"] else []
                 ),
+                "requested_settings_evidence": requested_settings_evidence,
+                "settings_selection_mode": (
+                    "requested-subset"
+                    if inspection_flags["include_settings"] and requested_settings_keys
+                    else "all-discovered"
+                    if inspection_flags["include_settings"]
+                    else "not-requested"
+                ),
+                "requested_settings_keys": (
+                    requested_settings_keys if inspection_flags["include_settings"] else []
+                ),
+                "matched_requested_settings_keys": matched_requested_settings_keys,
+                "missing_requested_settings_keys": missing_requested_settings_keys,
                 "requested_gem_evidence": requested_gem_evidence,
                 "gem_selection_mode": (
                     "requested-subset"
@@ -526,6 +614,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     sorted(manifest_settings.keys())
                     if inspection_flags["include_settings"]
                     else []
+                ),
+                "requested_settings_subset_present": (
+                    len(matched_requested_settings_keys) > 0
+                    if inspection_flags["include_settings"] and requested_settings_keys
+                    else False
                 ),
             },
             result_summary="Real project manifest inspection completed successfully.",
@@ -785,9 +878,23 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     normalized.append(candidate)
         return normalized
 
-    def _manifest_settings_snapshot(self, manifest: dict[str, Any]) -> dict[str, Any]:
+    def _manifest_settings_snapshot(
+        self,
+        manifest: dict[str, Any],
+        *,
+        requested_keys: list[str],
+        include_settings: bool,
+    ) -> dict[str, Any]:
+        if not include_settings:
+            return {}
+
+        allowed_keys = set(MANIFEST_SETTINGS_KEYS)
+        selected_keys = [
+            key for key in requested_keys if key in allowed_keys
+        ] or [key for key in MANIFEST_SETTINGS_KEYS if key in manifest]
+
         snapshot: dict[str, Any] = {}
-        for key in MANIFEST_SETTINGS_KEYS:
+        for key in selected_keys:
             if key in manifest:
                 snapshot[key] = manifest[key]
         return snapshot

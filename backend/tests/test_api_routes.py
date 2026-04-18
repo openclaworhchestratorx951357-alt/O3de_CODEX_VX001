@@ -336,6 +336,7 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                             "include_gems": True,
                             "requested_gem_names": ["ApiGem", "MissingGem"],
                             "include_settings": True,
+                            "requested_settings_keys": ["version", "missing_setting"],
                         },
                     },
                 )
@@ -352,6 +353,22 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                 assert execution["details"]["project_config_keys"] == [
                     "project_name",
                     "version",
+                ]
+                assert execution["details"]["requested_settings_evidence"] == [
+                    "manifest_settings",
+                    "manifest_settings_keys",
+                    "requested_settings_keys",
+                    "matched_requested_settings_keys",
+                    "missing_requested_settings_keys",
+                ]
+                assert execution["details"]["settings_selection_mode"] == "requested-subset"
+                assert execution["details"]["requested_settings_keys"] == [
+                    "version",
+                    "missing_setting",
+                ]
+                assert execution["details"]["matched_requested_settings_keys"] == ["version"]
+                assert execution["details"]["missing_requested_settings_keys"] == [
+                    "missing_setting",
                 ]
                 assert execution["details"]["requested_gem_evidence"] == [
                     "gem_names",
@@ -370,6 +387,8 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                 assert execution["details"]["gem_names"] == ["ApiGem"]
                 assert execution["details"]["gem_entries_present"] is True
                 assert execution["details"]["requested_gem_subset_present"] is True
+                assert execution["details"]["manifest_settings_keys"] == ["version"]
+                assert execution["details"]["requested_settings_subset_present"] is True
                 assert execution["details"]["manifest_settings"]["version"] == "2.0.0"
 
 

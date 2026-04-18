@@ -16,6 +16,10 @@
       "items": { "type": "string", "minLength": 1 }
     },
     "include_settings": { "type": "boolean" },
+    "requested_settings_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
     "include_build_state": { "type": "boolean" }
   }
 }

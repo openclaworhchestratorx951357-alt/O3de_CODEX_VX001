@@ -66,6 +66,23 @@ export default function ArtifactsPanel({
               const manifestSettings = readRecord(item.metadata, "manifest_settings");
               const inspectionEvidence = readStringArray(item.metadata, "inspection_evidence");
               const gemNames = readStringArray(item.metadata, "gem_names");
+              const requestedSettingsEvidence = readStringArray(
+                item.metadata,
+                "requested_settings_evidence",
+              );
+              const requestedSettingsKeys = readStringArray(
+                item.metadata,
+                "requested_settings_keys",
+              );
+              const matchedRequestedSettingsKeys = readStringArray(
+                item.metadata,
+                "matched_requested_settings_keys",
+              );
+              const missingRequestedSettingsKeys = readStringArray(
+                item.metadata,
+                "missing_requested_settings_keys",
+              );
+              const settingsSelectionMode = readString(item.metadata, "settings_selection_mode");
               const requestedGemEvidence = readStringArray(item.metadata, "requested_gem_evidence");
               const requestedGemNames = readStringArray(item.metadata, "requested_gem_names");
               const matchedRequestedGemNames = readStringArray(
@@ -83,6 +100,7 @@ export default function ArtifactsPanel({
                 "requested_project_config_keys",
               );
               const settingsKeys = readStringArray(item.metadata, "manifest_settings_keys");
+              const requestedSettingsSubsetPresent = item.metadata.requested_settings_subset_present;
               const gemEntriesPresent = item.metadata.gem_entries_present;
               const requestedGemSubsetPresent = item.metadata.requested_gem_subset_present;
               const preset = planDetails && typeof planDetails.preset === "string"
@@ -129,6 +147,25 @@ export default function ArtifactsPanel({
                   {projectConfig ? (
                     <div>Project config snapshot: {JSON.stringify(projectConfig)}</div>
                   ) : null}
+                  {requestedSettingsEvidence.length > 0 ? (
+                    <div>Requested settings evidence: {requestedSettingsEvidence.join(", ")}</div>
+                  ) : null}
+                  {settingsSelectionMode ? (
+                    <div>Settings selection mode: {settingsSelectionMode}</div>
+                  ) : null}
+                  {requestedSettingsKeys.length > 0 ? (
+                    <div>Requested settings keys: {requestedSettingsKeys.join(", ")}</div>
+                  ) : null}
+                  {matchedRequestedSettingsKeys.length > 0 ? (
+                    <div>
+                      Matched requested settings keys: {matchedRequestedSettingsKeys.join(", ")}
+                    </div>
+                  ) : null}
+                  {missingRequestedSettingsKeys.length > 0 ? (
+                    <div>
+                      Missing requested settings keys: {missingRequestedSettingsKeys.join(", ")}
+                    </div>
+                  ) : null}
                   {requestedGemEvidence.length > 0 ? (
                     <div>Requested Gem evidence: {requestedGemEvidence.join(", ")}</div>
                   ) : null}
@@ -157,6 +194,11 @@ export default function ArtifactsPanel({
                   ) : null}
                   {settingsKeys.length > 0 ? (
                     <div>Manifest settings keys: {settingsKeys.join(", ")}</div>
+                  ) : null}
+                  {typeof requestedSettingsSubsetPresent === "boolean" ? (
+                    <div>
+                      Requested settings subset present: {String(requestedSettingsSubsetPresent)}
+                    </div>
                   ) : null}
                   {manifestSettings ? (
                     <div>

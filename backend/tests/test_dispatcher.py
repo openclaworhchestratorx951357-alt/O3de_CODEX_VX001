@@ -252,6 +252,7 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
                 "include_gems": True,
                 "requested_gem_names": ["ExampleGem", "MissingGem"],
                 "include_settings": True,
+                "requested_settings_keys": ["version", "missing_setting"],
             }
             response = dispatcher_service.dispatch(request)
 
@@ -283,6 +284,17 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
             "version",
             "compatible_engines",
         ]
+        assert execution.details["requested_settings_evidence"] == [
+            "manifest_settings",
+            "manifest_settings_keys",
+            "requested_settings_keys",
+            "matched_requested_settings_keys",
+            "missing_requested_settings_keys",
+        ]
+        assert execution.details["settings_selection_mode"] == "requested-subset"
+        assert execution.details["requested_settings_keys"] == ["version", "missing_setting"]
+        assert execution.details["matched_requested_settings_keys"] == ["version"]
+        assert execution.details["missing_requested_settings_keys"] == ["missing_setting"]
         assert execution.details["requested_gem_evidence"] == [
             "gem_names",
             "gem_names_count",
@@ -298,13 +310,25 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
         assert execution.details["gem_names_count"] == 1
         assert execution.details["gem_entries_present"] is True
         assert execution.details["requested_gem_subset_present"] is True
-        assert execution.details["manifest_settings"]["compatible_engines"] == ["o3de"]
         assert execution.details["manifest_settings"]["version"] == "1.0.0"
+        assert execution.details["manifest_settings_keys"] == ["version"]
+        assert execution.details["requested_settings_subset_present"] is True
         assert artifact is not None
         assert artifact.simulated is False
         assert artifact.metadata["execution_mode"] == "real"
         assert artifact.metadata["project_name"] == "Phase7Project"
         assert artifact.metadata["project_config"]["version"] == "1.0.0"
+        assert artifact.metadata["requested_settings_evidence"] == [
+            "manifest_settings",
+            "manifest_settings_keys",
+            "requested_settings_keys",
+            "matched_requested_settings_keys",
+            "missing_requested_settings_keys",
+        ]
+        assert artifact.metadata["settings_selection_mode"] == "requested-subset"
+        assert artifact.metadata["requested_settings_keys"] == ["version", "missing_setting"]
+        assert artifact.metadata["matched_requested_settings_keys"] == ["version"]
+        assert artifact.metadata["missing_requested_settings_keys"] == ["missing_setting"]
         assert artifact.metadata["requested_gem_evidence"] == [
             "gem_names",
             "gem_names_count",
@@ -319,7 +343,9 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
         assert artifact.metadata["gem_names"] == ["ExampleGem"]
         assert artifact.metadata["gem_entries_present"] is True
         assert artifact.metadata["requested_gem_subset_present"] is True
-        assert artifact.metadata["manifest_settings"]["compatible_engines"] == ["o3de"]
+        assert artifact.metadata["manifest_settings"]["version"] == "1.0.0"
+        assert artifact.metadata["manifest_settings_keys"] == ["version"]
+        assert artifact.metadata["requested_settings_subset_present"] is True
 
 
 def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() -> None:
@@ -342,6 +368,7 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
                 "include_gems": True,
                 "requested_gem_names": ["MissingGem"],
                 "include_settings": True,
+                "requested_settings_keys": ["summary", "missing_setting"],
             }
             response = dispatcher_service.dispatch(request)
 
@@ -358,6 +385,20 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
         assert execution.details["project_config"] == {}
         assert execution.details["project_config_keys"] == []
         assert execution.details["requested_project_config_keys"] == ["version", "summary"]
+        assert execution.details["requested_settings_evidence"] == [
+            "manifest_settings",
+            "manifest_settings_keys",
+            "requested_settings_keys",
+            "matched_requested_settings_keys",
+            "missing_requested_settings_keys",
+        ]
+        assert execution.details["settings_selection_mode"] == "requested-subset"
+        assert execution.details["requested_settings_keys"] == ["summary", "missing_setting"]
+        assert execution.details["matched_requested_settings_keys"] == []
+        assert execution.details["missing_requested_settings_keys"] == [
+            "summary",
+            "missing_setting",
+        ]
         assert execution.details["requested_gem_evidence"] == [
             "gem_names",
             "gem_names_count",
@@ -373,9 +414,20 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
         assert execution.details["gem_names_count"] == 0
         assert execution.details["gem_entries_present"] is False
         assert execution.details["requested_gem_subset_present"] is False
-        assert execution.details["manifest_settings"]["project_name"] == "LeanProject"
+        assert execution.details["manifest_settings"] == {}
+        assert execution.details["manifest_settings_keys"] == []
+        assert execution.details["requested_settings_subset_present"] is False
         assert any(
             "No manifest-backed project-config fields were present" in warning
+            for warning in execution.warnings
+        )
+        assert any(
+            "No manifest-backed settings fields were present" in warning
+            for warning in execution.warnings
+        )
+        assert any(
+            "None of the requested_settings_keys matched manifest-backed settings fields"
+            in warning
             for warning in execution.warnings
         )
         assert any("No gem_names entries were present" in warning for warning in execution.warnings)
