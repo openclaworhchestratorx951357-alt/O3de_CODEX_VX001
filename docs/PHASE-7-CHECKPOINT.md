@@ -29,8 +29,8 @@ Real O3DE execution is still narrow.
 
 Current truth:
 - may use a real read-only manifest-backed path in `O3DE_ADAPTER_MODE=hybrid`
-- may now capture manifest-backed project-config, Gem, and top-level settings
-  evidence from `project_root/project.json` when requested
+- may now capture manifest-backed project-config, requested-vs-discovered Gem,
+  and top-level settings evidence from `project_root/project.json` when requested
 - falls back to simulated when the real manifest path is unavailable
 - remains explicitly labeled as real vs simulated in backend and frontend
 - still does not authorize deeper layered settings discovery or any mutation path
@@ -66,8 +66,8 @@ The operator shell now exposes this boundary through:
 - system status
 - adapter registry
 - catalog and dispatch capability labels
-- dispatch guidance for manifest-backed project-config, Gem, and settings
-  evidence requests
+- dispatch guidance for manifest-backed project-config, requested-vs-discovered
+  Gem, and settings evidence requests
 - timeline wording
 - runs list and run detail
 - executions and artifacts provenance
@@ -79,8 +79,8 @@ The operator shell now exposes this boundary through:
 - broad real O3DE adapters are still not implemented
 - `build.configure` is not a real configure execution path
 - `project.inspect` real evidence is still limited to manifest-backed
-  project-config, Gem, and top-level settings fields rather than broader
-  layered config discovery
+  project-config, requested-vs-discovered Gem, and top-level settings fields
+  rather than broader layered config discovery
 - no mutation path has moved to real execution
 - simulated fallback remains part of the truthful accepted behavior
 - default non-container persistence is still not claimed healthy; explicit

@@ -7,7 +7,7 @@ type CatalogPanelProps = {
 export default function CatalogPanel({ agents }: CatalogPanelProps) {
   function describeCapability(toolName: string, capabilityStatus?: string): string {
     if (capabilityStatus === "hybrid-read-only" && toolName === "project.inspect") {
-      return "Real read-only in hybrid mode when manifest preconditions are satisfied, with manifest-backed project-config, Gem, and top-level settings evidence.";
+      return "Real read-only in hybrid mode when manifest preconditions are satisfied, with manifest-backed project-config, requested-vs-discovered Gem evidence, and top-level settings evidence.";
     }
     if (capabilityStatus === "plan-only" && toolName === "build.configure") {
       return "Real only as a plan-only preflight in hybrid mode when dry_run=true; no real configure mutation runs.";
