@@ -19,6 +19,19 @@ HYBRID_EXECUTION_BOUNDARY = (
     "real read-only project-manifest path, build.configure may use a real plan-only "
     "preflight path, and all other tools remain simulated."
 )
+MANIFEST_SETTINGS_KEYS = (
+    "project_id",
+    "project_name",
+    "display_name",
+    "version",
+    "summary",
+    "compatible_engines",
+    "engine_api_dependencies",
+    "origin",
+    "user_tags",
+    "icon_path",
+    "restricted_platform_name",
+)
 
 
 @dataclass(slots=True)
@@ -232,25 +245,42 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             )
 
         project_name = manifest.get("project_name")
-        enabled_gems = manifest.get("gem_names")
+        enabled_gems = self._normalized_string_list(manifest.get("gem_names"))
         inspection_flags = {
             "include_gems": bool(args.get("include_gems", False)),
             "include_settings": bool(args.get("include_settings", False)),
             "include_build_state": bool(args.get("include_build_state", False)),
         }
         manifest_keys = sorted(str(key) for key in manifest.keys())
+        inspection_evidence: list[str] = ["project_manifest"]
+        manifest_settings = self._manifest_settings_snapshot(manifest)
         message = "Read-only project manifest inspection completed against real project files."
         if isinstance(project_name, str) and project_name.strip():
             message = (
                 "Read-only project manifest inspection completed against real project "
                 f"files for '{project_name}'."
             )
+        if inspection_flags["include_gems"]:
+            message += " Manifest-backed Gem inspection evidence was captured."
+            inspection_evidence.append("gem_names")
+        if inspection_flags["include_settings"]:
+            message += " Manifest-backed settings inspection evidence was captured."
+            inspection_evidence.append("manifest_settings")
 
         warnings: list[str] = []
         if inspection_flags["include_settings"]:
             warnings.append(
-                "Settings inspection remains limited in this slice; manifest-backed "
-                "project inspection is the only real path."
+                "Settings inspection remains limited to manifest-backed top-level "
+                "project settings in this slice."
+            )
+            if not manifest_settings:
+                warnings.append(
+                    "No manifest-backed settings fields were present for the current "
+                    "inspection request."
+                )
+        if inspection_flags["include_gems"] and not enabled_gems:
+            warnings.append(
+                "No gem_names entries were present for the current inspection request."
             )
         if inspection_flags["include_build_state"]:
             warnings.append(
@@ -278,6 +308,18 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             logs=[
                 "Hybrid adapter mode enabled a real project.inspect path.",
                 f"Read project manifest from '{manifest_path}'.",
+                (
+                    f"Captured {len(enabled_gems)} manifest-backed Gem entries."
+                    if inspection_flags["include_gems"]
+                    else "Gem inspection evidence was not requested."
+                ),
+                (
+                    "Captured manifest-backed top-level settings evidence."
+                    if inspection_flags["include_settings"] and manifest_settings
+                    else "Settings inspection evidence was not requested."
+                    if not inspection_flags["include_settings"]
+                    else "No manifest-backed settings evidence was available to capture."
+                ),
             ],
             artifact_label="Real project manifest inspection evidence",
             artifact_kind="project_manifest_inspection",
@@ -291,11 +333,21 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
                 "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
                 "inspection_surface": "project_manifest",
+                "inspection_evidence": inspection_evidence,
                 "project_manifest_path": str(manifest_path),
                 "manifest_keys": manifest_keys,
                 "project_name": project_name,
                 "include_flags": inspection_flags,
-                "gem_names_count": len(enabled_gems) if isinstance(enabled_gems, list) else 0,
+                "gem_names": enabled_gems if inspection_flags["include_gems"] else [],
+                "gem_names_count": len(enabled_gems) if inspection_flags["include_gems"] else 0,
+                "manifest_settings": (
+                    manifest_settings if inspection_flags["include_settings"] else {}
+                ),
+                "manifest_settings_keys": (
+                    sorted(manifest_settings.keys())
+                    if inspection_flags["include_settings"]
+                    else []
+                ),
             },
             execution_details={
                 "simulated": False,
@@ -304,10 +356,21 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
                 "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
                 "inspection_surface": "project_manifest",
+                "inspection_evidence": inspection_evidence,
                 "project_manifest_path": str(manifest_path),
                 "manifest_keys": manifest_keys,
                 "project_name": project_name,
                 "include_flags": inspection_flags,
+                "gem_names": enabled_gems if inspection_flags["include_gems"] else [],
+                "gem_names_count": len(enabled_gems) if inspection_flags["include_gems"] else 0,
+                "manifest_settings": (
+                    manifest_settings if inspection_flags["include_settings"] else {}
+                ),
+                "manifest_settings_keys": (
+                    sorted(manifest_settings.keys())
+                    if inspection_flags["include_settings"]
+                    else []
+                ),
             },
             result_summary="Real project manifest inspection completed successfully.",
         )
@@ -554,6 +617,24 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         simulated.execution_details["fallback_reason"] = reason
         simulated.result_summary = "build.configure fell back to the simulated path."
         return simulated
+
+    def _normalized_string_list(self, value: Any) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        normalized: list[str] = []
+        for entry in value:
+            if isinstance(entry, str):
+                candidate = entry.strip()
+                if candidate:
+                    normalized.append(candidate)
+        return normalized
+
+    def _manifest_settings_snapshot(self, manifest: dict[str, Any]) -> dict[str, Any]:
+        snapshot: dict[str, Any] = {}
+        for key in MANIFEST_SETTINGS_KEYS:
+            if key in manifest:
+                snapshot[key] = manifest[key]
+        return snapshot
 
 
 class AdapterService:

@@ -61,7 +61,7 @@ def root() -> RootStatus:
     adapter_status = adapter_service.get_runtime_status()
     return RootStatus(
         name="O3DE Agent Control Backend",
-        status="phase-7-build-configure-preflight",
+        status="phase-7-manifest-inspection-evidence",
         execution_mode=adapter_status.active_mode,
         routes=[
             "/health",

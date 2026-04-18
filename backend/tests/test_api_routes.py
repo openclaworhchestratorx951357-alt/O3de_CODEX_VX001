@@ -29,7 +29,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         response = client.get("/")
         assert response.status_code == 200
         payload = response.json()
-        assert payload["status"] == "phase-7-build-configure-preflight"
+        assert payload["status"] == "phase-7-manifest-inspection-evidence"
         assert payload["phase"] == "phase-7"
         assert "/runs" in payload["routes"]
 
@@ -308,7 +308,13 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)
         (project_root / "project.json").write_text(
-            json.dumps({"project_name": "ApiHybridProject"}),
+            json.dumps(
+                {
+                    "project_name": "ApiHybridProject",
+                    "gem_names": ["ApiGem"],
+                    "version": "2.0.0",
+                }
+            ),
             encoding="utf-8",
         )
         with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
@@ -324,7 +330,7 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                         "dry_run": True,
                         "locks": [],
                         "timeout_s": 30,
-                        "args": {"include_gems": True},
+                        "args": {"include_gems": True, "include_settings": True},
                     },
                 )
                 assert dispatch.status_code == 200
@@ -332,6 +338,12 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                 assert payload["ok"] is True
                 assert payload["result"]["simulated"] is False
                 assert payload["result"]["execution_mode"] == "real"
+
+                executions = client.get("/executions")
+                assert executions.status_code == 200
+                execution = executions.json()["executions"][0]
+                assert execution["details"]["gem_names"] == ["ApiGem"]
+                assert execution["details"]["manifest_settings"]["version"] == "2.0.0"
 
 
 def test_dispatch_route_uses_real_build_configure_preflight_in_hybrid_mode() -> None:

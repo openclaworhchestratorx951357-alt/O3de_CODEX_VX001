@@ -87,6 +87,7 @@ Current truth:
 - adapter selection is config-driven
 - simulated remains the default path for all tools
 - `hybrid` now enables a first real read-only `project.inspect` manifest path when `project_root/project.json` exists and can be read cleanly
+- that real `project.inspect` path can now also persist manifest-backed Gem and top-level settings inspection evidence when those flags are requested
 - `hybrid` also enables a real `build.configure` plan-only preflight path when `dry_run=true` and the same project-manifest preconditions are satisfied
 - actual configure mutation still remains simulated in this phase
 - every other tool still remains simulated in this phase
@@ -100,6 +101,7 @@ Current truth:
 
 Persisted execution records and artifact metadata now also carry adapter provenance fields such as `adapter_family` and `adapter_contract_version` so run history keeps the current simulated adapter boundary explicit.
 For the first real `project.inspect` path, persisted execution details and artifact metadata also carry manifest-inspection provenance so operators can distinguish real read-only inspection from simulated fallback.
+That same real `project.inspect` path now records manifest-backed `gem_names` and top-level settings evidence when `include_gems` or `include_settings` is requested, while still keeping deeper settings/Gem mutation work out of scope.
 For the real `build.configure` preflight path, persisted execution details and artifact metadata also carry plan-only preflight provenance so operators can distinguish real preflight evidence from simulated fallback.
 
 ## Schema validation status
