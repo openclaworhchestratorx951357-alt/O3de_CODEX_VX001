@@ -29,7 +29,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         response = client.get("/")
         assert response.status_code == 200
         payload = response.json()
-        assert payload["status"] == "phase-7-first-real-inspect"
+        assert payload["status"] == "phase-7-build-configure-preflight"
         assert payload["phase"] == "phase-7"
         assert "/runs" in payload["routes"]
 
@@ -332,3 +332,56 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                 assert payload["ok"] is True
                 assert payload["result"]["simulated"] is False
                 assert payload["result"]["execution_mode"] == "real"
+
+
+def test_dispatch_route_uses_real_build_configure_preflight_in_hybrid_mode() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps({"project_name": "ApiConfigureProject"}),
+            encoding="utf-8",
+        )
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-configure-preflight-1",
+                        "tool": "build.configure",
+                        "agent": "project-build",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": True,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "args": {"preset": "profile", "generator": "Ninja"},
+                    },
+                )
+                approval_id = dispatch.json()["approval_id"]
+                approval = approvals_service.get_approval(approval_id)
+                assert approval is not None
+                client.post(
+                    f"/approvals/{approval_id}/approve",
+                    json={"reason": "Approve configure preflight for test"},
+                )
+                approved_dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-configure-preflight-2",
+                        "tool": "build.configure",
+                        "agent": "project-build",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": True,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "approval_token": approval.token,
+                        "args": {"preset": "profile", "generator": "Ninja"},
+                    },
+                )
+                assert approved_dispatch.status_code == 200
+                payload = approved_dispatch.json()
+                assert payload["ok"] is True
+                assert payload["result"]["simulated"] is False
+                assert payload["result"]["execution_mode"] == "real"
+                assert "no configure command was executed" in payload["result"]["message"]

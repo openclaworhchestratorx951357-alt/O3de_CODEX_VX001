@@ -20,6 +20,7 @@ def make_request(
     tool: str,
     *,
     project_root: str = "/tmp/project",
+    dry_run: bool = True,
 ) -> RequestEnvelope:
     return RequestEnvelope(
         request_id="req-1",
@@ -27,7 +28,7 @@ def make_request(
         agent=agent,
         project_root=project_root,
         engine_root="/tmp/engine",
-        dry_run=True,
+        dry_run=dry_run,
         locks=[],
         timeout_s=30,
         args={},
@@ -281,6 +282,95 @@ def test_project_inspect_falls_back_to_simulated_when_manifest_is_missing_in_hyb
         execution = executions_service.list_executions()[0]
         assert execution.details["real_path_available"] is False
         assert "fallback_reason" in execution.details
+
+
+def test_build_configure_uses_real_preflight_path_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        manifest_path = project_root / "project.json"
+        manifest_path.write_text(
+            json.dumps({"project_name": "Phase7ConfigureProject"}),
+            encoding="utf-8",
+        )
+        first = dispatcher_service.dispatch(
+            make_request(
+                "project-build",
+                "build.configure",
+                project_root=str(project_root),
+            )
+        )
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            approved_request = make_request(
+                "project-build",
+                "build.configure",
+                project_root=str(project_root),
+            )
+            approved_request.approval_token = approval.token
+            approved_request.args = {"preset": "profile", "generator": "Ninja"}
+            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        assert "no configure command was executed" in response.result.message
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "build_configure_preflight"
+        assert execution.details["plan_details"]["preset"] == "profile"
+        assert execution.details["plan_details"]["generator"] == "Ninja"
+        assert artifact is not None
+        assert artifact.simulated is False
+        assert artifact.metadata["plan_details"]["preset"] == "profile"
+
+
+def test_build_configure_falls_back_to_simulated_when_not_dry_run_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text("{}", encoding="utf-8")
+        first = dispatcher_service.dispatch(
+            make_request(
+                "project-build",
+                "build.configure",
+                project_root=str(project_root),
+            )
+        )
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            approved_request = make_request(
+                "project-build",
+                "build.configure",
+                project_root=str(project_root),
+                dry_run=False,
+            )
+            approved_request.approval_token = approval.token
+            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        assert execution.details["real_path_available"] is False
+        assert "dry_run=true" in execution.details["fallback_reason"]
 
 
 def test_dispatch_events_publish_capability_status_vocabulary() -> None:

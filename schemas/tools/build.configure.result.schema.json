@@ -8,9 +8,7 @@
       "type": "object",
       "properties": {
         "tool": { "const": "build.configure" },
-        "approval_class": { "const": "build_execute" },
-        "execution_mode": { "const": "simulated" },
-        "simulated": { "const": true }
+        "approval_class": { "const": "build_execute" }
       }
     }
   ]

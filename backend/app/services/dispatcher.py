@@ -23,7 +23,7 @@ class DispatcherService:
 
     This service creates run records, performs policy and approval checks,
     enforces in-memory locks, records events, and clearly labels execution as
-    simulated until real O3DE adapters arrive in later phases.
+    simulated unless a narrow real adapter path is explicitly available.
     """
 
     def dispatch(self, request: RequestEnvelope) -> ResponseEnvelope:
@@ -159,7 +159,7 @@ class DispatcherService:
                     retryable=False,
                     details={"agent": request.agent, "tool": request.tool},
                 ),
-                warnings=["Dispatch rejected before simulated execution."],
+                warnings=["Dispatch rejected before tool execution."],
                 logs=["Missing tool policy definition."],
             )
         capability_status = policy.capability_status
@@ -272,7 +272,7 @@ class DispatcherService:
                     retryable=True,
                     details={"conflicts": serialized_conflicts},
                 ),
-                warnings=["Dispatch blocked before simulated execution."],
+                warnings=["Dispatch blocked before tool execution."],
                 logs=[
                     f"Run blocked by locks: {', '.join(lock.name for lock in conflicts)}."
                 ],
@@ -434,7 +434,11 @@ class DispatcherService:
         result_warning = (
             "Underlying O3DE execution remains simulated in this phase."
             if result.simulated
-            else "This run used the first real read-only project inspection path."
+            else (
+                "This run used the first real read-only project inspection path."
+                if request.tool == "project.inspect"
+                else "This run used the real plan-only build.configure preflight path."
+            )
         )
         return ResponseEnvelope(
             request_id=request.request_id,
@@ -495,14 +499,14 @@ class DispatcherService:
                 status=RunStatus.WAITING_APPROVAL,
                 approval_id=approval.id,
                 approval_token=approval.token,
-                result_summary="Waiting for approval before simulated execution.",
+                result_summary="Waiting for approval before tool execution.",
             )
             executions_service.update_execution(
                 execution_id,
                 status=ExecutionStatus.WAITING_APPROVAL,
-                logs=["Waiting for explicit approval before simulated execution."],
+                logs=["Waiting for explicit approval before tool execution."],
                 details={"approval_class": approval_class},
-                result_summary="Waiting for approval before simulated execution.",
+                result_summary="Waiting for approval before tool execution.",
                 finished=True,
             )
             events_service.record(
@@ -566,7 +570,7 @@ class DispatcherService:
                     retryable=False,
                     details={"approval_token": request.approval_token},
                 ),
-                warnings=["Dispatch rejected before simulated execution."],
+                warnings=["Dispatch rejected before tool execution."],
                 logs=["Approval token validation failed."],
             )
 
@@ -625,7 +629,7 @@ class DispatcherService:
         executions_service.update_execution(
             execution_id,
             status=ExecutionStatus.FAILED,
-            logs=["Tool argument validation failed before simulated execution."],
+            logs=["Tool argument validation failed before tool execution."],
             details={
                 "args_schema_ref": schema_ref,
                 "arg_validation_errors": validation_errors,
@@ -656,7 +660,7 @@ class DispatcherService:
                     "arg_validation_errors": validation_errors,
                 },
             ),
-            warnings=["Dispatch rejected before simulated execution."],
+            warnings=["Dispatch rejected before tool execution."],
             logs=["Tool argument validation failed against the published schema."],
         )
 

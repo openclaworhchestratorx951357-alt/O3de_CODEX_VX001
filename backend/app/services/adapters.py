@@ -16,7 +16,8 @@ ADAPTER_EXECUTION_BOUNDARY = (
 )
 HYBRID_EXECUTION_BOUNDARY = (
     "Control-plane bookkeeping is real. In hybrid mode, project.inspect may use a "
-    "real read-only project-manifest path while all other tools remain simulated."
+    "real read-only project-manifest path, build.configure may use a real plan-only "
+    "preflight path, and all other tools remain simulated."
 )
 
 
@@ -139,8 +140,8 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         approval_class: str,
         locks_acquired: list[str],
     ) -> AdapterExecutionReport:
-        if tool != "project.inspect":
-            simulated = self._simulated.execute(
+        if tool == "project.inspect":
+            return self._execute_project_inspect(
                 tool=tool,
                 agent=agent,
                 project_root=project_root,
@@ -150,18 +151,51 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 approval_class=approval_class,
                 locks_acquired=locks_acquired,
             )
-            simulated.warnings.append(
-                "Hybrid adapter mode is active, but this tool still runs through the "
-                "simulated path in this phase."
+        if tool == "build.configure":
+            return self._execute_build_configure(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
             )
-            simulated.logs.append(
-                "Hybrid mode did not change execution for this tool; simulated adapter "
-                "path remained in use."
-            )
-            simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
-            simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
-            return simulated
+        simulated = self._simulated.execute(
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+        )
+        simulated.warnings.append(
+            "Hybrid adapter mode is active, but this tool still runs through the "
+            "simulated path in this phase."
+        )
+        simulated.logs.append(
+            "Hybrid mode did not change execution for this tool; simulated adapter "
+            "path remained in use."
+        )
+        simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        return simulated
 
+    def _execute_project_inspect(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
         manifest_path = Path(project_root).expanduser().resolve() / "project.json"
         if not manifest_path.is_file():
             return self._fallback_project_inspect(
@@ -278,6 +312,177 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             result_summary="Real project manifest inspection completed successfully.",
         )
 
+    def _execute_build_configure(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        if not dry_run:
+            simulated = self._simulated.execute(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+            )
+            simulated.warnings.append(
+                "Real build.configure preflight is only available when dry_run=true; "
+                "mutating configure execution remains simulated in this phase."
+            )
+            simulated.logs.append(
+                "Hybrid mode fell back to the simulated build.configure path because "
+                "the request was not dry-run."
+            )
+            simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+            simulated.artifact_metadata["real_path_available"] = False
+            simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+            simulated.execution_details["real_path_available"] = False
+            simulated.execution_details["fallback_reason"] = (
+                "Real build.configure preflight requires dry_run=true."
+            )
+            simulated.result_summary = "build.configure fell back to the simulated path."
+            return simulated
+
+        manifest_path = Path(project_root).expanduser().resolve() / "project.json"
+        if not manifest_path.is_file():
+            return self._fallback_build_configure(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real build.configure preflight was unavailable because "
+                    f"'{manifest_path}' was not found."
+                ),
+            )
+
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            return self._fallback_build_configure(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real build.configure preflight was unavailable because the project "
+                    f"manifest could not be read cleanly: {exc}"
+                ),
+            )
+
+        project_name = manifest.get("project_name")
+        preset = str(args.get("preset", "")).strip() or "default"
+        generator = str(args.get("generator", "")).strip() or "unspecified"
+        config = str(args.get("config", "")).strip() or "unspecified"
+        clean_requested = bool(args.get("clean", False))
+        manifest_keys = sorted(str(key) for key in manifest.keys())
+        build_dir = Path(project_root).expanduser().resolve() / "build" / preset
+        engine_root_exists = Path(engine_root).expanduser().resolve().exists()
+        plan_details = {
+            "preset": preset,
+            "generator": generator,
+            "config": config,
+            "clean_requested": clean_requested,
+            "build_directory": str(build_dir),
+            "build_directory_exists": build_dir.exists(),
+            "engine_root_exists": engine_root_exists,
+            "project_manifest_path": str(manifest_path),
+        }
+        message = (
+            "Real build.configure preflight completed; no configure command was executed."
+        )
+        if isinstance(project_name, str) and project_name.strip():
+            message = (
+                "Real build.configure preflight completed for "
+                f"'{project_name}'; no configure command was executed."
+            )
+
+        warnings = [
+            "This is a real plan-only preflight path; actual configure mutation remains gated.",
+        ]
+        if clean_requested:
+            warnings.append(
+                "The clean flag was recorded in the preflight plan only; no build tree "
+                "content was removed in this slice."
+            )
+        if not engine_root_exists:
+            warnings.append(
+                "Engine root path does not currently exist; this preflight recorded the "
+                "missing prerequisite instead of attempting a real configure step."
+            )
+
+        result = DispatchResult(
+            status="real_success",
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            simulated=False,
+            execution_mode="real",
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+            message=message,
+        )
+        return AdapterExecutionReport(
+            execution_mode="real",
+            result=result,
+            warnings=warnings,
+            logs=[
+                "Hybrid adapter mode enabled a real build.configure preflight path.",
+                f"Read project manifest from '{manifest_path}'.",
+                f"Recorded build preflight target directory '{build_dir}'.",
+            ],
+            artifact_label="Real build configure preflight evidence",
+            artifact_kind="build_configure_preflight",
+            artifact_uri=manifest_path.as_uri(),
+            artifact_metadata={
+                "tool": tool,
+                "agent": agent,
+                "execution_mode": "real",
+                "adapter_family": self.family,
+                "adapter_mode": self.mode,
+                "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+                "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+                "inspection_surface": "build_configure_preflight",
+                "project_manifest_path": str(manifest_path),
+                "manifest_keys": manifest_keys,
+                "project_name": project_name,
+                "plan_details": plan_details,
+            },
+            execution_details={
+                "simulated": False,
+                "adapter_mode": "real",
+                "adapter_family": self.family,
+                "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+                "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+                "inspection_surface": "build_configure_preflight",
+                "project_manifest_path": str(manifest_path),
+                "manifest_keys": manifest_keys,
+                "project_name": project_name,
+                "plan_details": plan_details,
+            },
+            result_summary="Real build.configure preflight completed successfully.",
+        )
+
     def _fallback_project_inspect(
         self,
         *,
@@ -312,6 +517,42 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         simulated.execution_details["real_path_available"] = False
         simulated.execution_details["fallback_reason"] = reason
         simulated.result_summary = "Project inspection fell back to the simulated path."
+        return simulated
+
+    def _fallback_build_configure(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+        reason: str,
+    ) -> AdapterExecutionReport:
+        simulated = self._simulated.execute(
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+        )
+        simulated.warnings.append(reason)
+        simulated.logs.append(reason)
+        simulated.logs.append(
+            "Hybrid mode fell back to the simulated build.configure path."
+        )
+        simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.artifact_metadata["real_path_available"] = False
+        simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.execution_details["real_path_available"] = False
+        simulated.execution_details["fallback_reason"] = reason
+        simulated.result_summary = "build.configure fell back to the simulated path."
         return simulated
 
 
@@ -358,7 +599,8 @@ class AdapterService:
                 notes=[
                     "Adapter mode selection is now config-driven.",
                     "Real O3DE adapters are not yet implemented.",
-                    "Hybrid mode currently enables only a real read-only project.inspect path.",
+                    "Hybrid mode currently enables a real read-only project.inspect "
+                    "path and a real plan-only build.configure preflight path.",
                 ],
             )
         if configured_mode == "hybrid":
@@ -376,6 +618,9 @@ class AdapterService:
                     "Adapter mode selection is now config-driven.",
                     "Hybrid mode enables a real read-only project.inspect path when its "
                     "manifest preconditions are satisfied.",
+                    "Hybrid mode also enables a real plan-only build.configure "
+                    "preflight path when dry_run=true and manifest preconditions are "
+                    "satisfied.",
                     "All other tools remain simulated in this phase.",
                     "Real mutating O3DE adapters are not yet implemented.",
                 ],
@@ -439,7 +684,9 @@ class AdapterService:
             family_notes = list(runtime_status.notes)
             if family_supports_real:
                 family_notes.append(
-                    "Only project.inspect currently has a real read-only path in this family."
+                    "project.inspect currently has a real read-only path and "
+                    "build.configure currently has a real plan-only preflight path "
+                    "in this family."
                 )
             elif runtime_status.active_mode == "hybrid":
                 family_notes.append(
