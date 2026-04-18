@@ -348,6 +348,12 @@ class SchemaValidationService:
             ("asset.processor.status", "artifact-metadata"): (
                 "schemas/tools/asset.processor.status.artifact-metadata.schema.json"
             ),
+            ("asset.source.inspect", "execution-details"): (
+                "schemas/tools/asset.source.inspect.execution-details.schema.json"
+            ),
+            ("asset.source.inspect", "artifact-metadata"): (
+                "schemas/tools/asset.source.inspect.artifact-metadata.schema.json"
+            ),
             ("project.inspect", "execution-details"): (
                 "schemas/tools/project.inspect.execution-details.schema.json"
             ),

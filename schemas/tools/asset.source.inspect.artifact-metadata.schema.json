@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/asset.source.inspect.artifact-metadata.schema.json",
+  "title": "asset.source.inspect artifact metadata",
+  "allOf": [
+    {
+      "$ref": "./asset.source.inspect.execution-details.schema.json"
+    },
+    {
+      "type": "object",
+      "required": [
+        "tool",
+        "agent",
+        "execution_mode",
+        "adapter_family",
+        "adapter_mode",
+        "adapter_contract_version"
+      ],
+      "properties": {
+        "tool": { "const": "asset.source.inspect" },
+        "agent": { "const": "asset-pipeline" },
+        "execution_mode": { "const": "simulated" }
+      }
+    }
+  ]
+}
