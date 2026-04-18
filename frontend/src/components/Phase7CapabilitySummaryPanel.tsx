@@ -21,7 +21,7 @@ const CAPABILITY_ORDER = [
 
 const CAPABILITY_DESCRIPTIONS: Record<string, string> = {
   "hybrid-read-only":
-    "May use a real read-only path in hybrid mode when its preconditions are satisfied. Today that means project.inspect can capture real manifest-backed project, Gem, and top-level settings evidence.",
+    "May use a real read-only path in hybrid mode when its preconditions are satisfied. Today that means project.inspect can capture real manifest-backed project-config, Gem, and top-level settings evidence from project.json.",
   "plan-only":
     "Real only as planning or preflight-oriented evidence. Today build.configure can run a real preflight when dry_run=true, but it still does not execute a real configure mutation.",
   "mutation-gated":
@@ -46,9 +46,9 @@ export default function Phase7CapabilitySummaryPanel({
       </p>
       <p style={{ marginTop: 0, color: "#57606a" }}>
         Current accepted real boundary: <strong>project.inspect</strong> can use
-        the real read-only manifest path and expose project, Gem, and top-level
-        settings evidence. <strong>build.configure</strong> remains real only as
-        a plan-only preflight when <code>dry_run=true</code>.
+        the real read-only manifest path and expose project-config, Gem, and
+        top-level settings evidence. <strong>build.configure</strong> remains
+        real only as a plan-only preflight when <code>dry_run=true</code>.
       </p>
       {buckets.length > 0 ? (
         <div

@@ -22,8 +22,8 @@ See these official source files:
 
 Current Phase 7 checkpoint truth:
 - `project.inspect` is the current real read-only path in hybrid mode
-- that path now includes manifest-backed project, Gem, and top-level settings evidence
-- the next safest precursor remains manifest-adjacent project-config inspection
+- that path now includes manifest-backed project-config, Gem, and top-level settings evidence
+- the next safest precursor is still manifest-adjacent project-config inspection expansion
 - `build.configure` is still only a real plan-only preflight path
 - mutation surfaces remain gated
 
