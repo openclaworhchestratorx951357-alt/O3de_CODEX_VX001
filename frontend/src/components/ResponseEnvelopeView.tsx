@@ -1,4 +1,4 @@
-import type { ResponseEnvelope } from "../types/contracts";
+import type { ProjectInspectResult, ResponseEnvelope } from "../types/contracts";
 
 type ResponseEnvelopeViewProps = {
   response: ResponseEnvelope | null;
@@ -128,13 +128,15 @@ export default function ResponseEnvelopeView({
 }
 
 function describeExecutionResult(result: Record<string, unknown>): string {
+  const projectInspectResult = result as Partial<ProjectInspectResult>;
   const executionMode = typeof result.execution_mode === "string"
     ? result.execution_mode
     : "unknown";
   const simulated = typeof result.simulated === "boolean" ? result.simulated : null;
+  const projectInspectTool = projectInspectResult.tool ?? null;
   const tool = typeof result.tool === "string" ? result.tool : null;
 
-  if (executionMode === "real" && simulated === false && tool === "project.inspect") {
+  if (executionMode === "real" && simulated === false && projectInspectTool === "project.inspect") {
     return "Real read-only project inspection path ran for project.inspect, and it may include manifest-backed project-config, requested-vs-discovered Gem evidence, requested Gem subset matching, requested settings subset matching, and top-level settings evidence.";
   }
   if (executionMode === "real" && simulated === false && tool === "build.configure") {

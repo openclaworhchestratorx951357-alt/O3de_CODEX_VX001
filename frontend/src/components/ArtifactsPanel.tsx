@@ -1,4 +1,7 @@
-import type { ArtifactRecord } from "../types/contracts";
+import type {
+  ArtifactRecord,
+  ProjectInspectEvidenceDetails,
+} from "../types/contracts";
 
 type ArtifactsPanelProps = {
   items: ArtifactRecord[];
@@ -57,52 +60,53 @@ export default function ArtifactsPanel({
         <ul>
           {items.map((item) => (
             (() => {
-              const projectName = readString(item.metadata, "project_name");
-              const manifestPath = readString(item.metadata, "project_manifest_path");
-              const inspectionSurface = readString(item.metadata, "inspection_surface");
-              const executionMode = readString(item.metadata, "execution_mode");
-              const planDetails = readRecord(item.metadata, "plan_details");
-              const projectConfig = readRecord(item.metadata, "project_config");
-              const manifestSettings = readRecord(item.metadata, "manifest_settings");
-              const inspectionEvidence = readStringArray(item.metadata, "inspection_evidence");
-              const gemNames = readStringArray(item.metadata, "gem_names");
+              const metadata = item.metadata as ProjectInspectEvidenceDetails & Record<string, unknown>;
+              const projectName = readString(metadata, "project_name");
+              const manifestPath = readString(metadata, "project_manifest_path");
+              const inspectionSurface = readString(metadata, "inspection_surface");
+              const executionMode = readString(metadata, "execution_mode");
+              const planDetails = readRecord(metadata, "plan_details");
+              const projectConfig = readRecord(metadata, "project_config");
+              const manifestSettings = readRecord(metadata, "manifest_settings");
+              const inspectionEvidence = readStringArray(metadata, "inspection_evidence");
+              const gemNames = readStringArray(metadata, "gem_names");
               const requestedSettingsEvidence = readStringArray(
-                item.metadata,
+                metadata,
                 "requested_settings_evidence",
               );
               const requestedSettingsKeys = readStringArray(
-                item.metadata,
+                metadata,
                 "requested_settings_keys",
               );
               const matchedRequestedSettingsKeys = readStringArray(
-                item.metadata,
+                metadata,
                 "matched_requested_settings_keys",
               );
               const missingRequestedSettingsKeys = readStringArray(
-                item.metadata,
+                metadata,
                 "missing_requested_settings_keys",
               );
-              const settingsSelectionMode = readString(item.metadata, "settings_selection_mode");
-              const requestedGemEvidence = readStringArray(item.metadata, "requested_gem_evidence");
-              const requestedGemNames = readStringArray(item.metadata, "requested_gem_names");
+              const settingsSelectionMode = readString(metadata, "settings_selection_mode");
+              const requestedGemEvidence = readStringArray(metadata, "requested_gem_evidence");
+              const requestedGemNames = readStringArray(metadata, "requested_gem_names");
               const matchedRequestedGemNames = readStringArray(
-                item.metadata,
+                metadata,
                 "matched_requested_gem_names",
               );
               const missingRequestedGemNames = readStringArray(
-                item.metadata,
+                metadata,
                 "missing_requested_gem_names",
               );
-              const gemSelectionMode = readString(item.metadata, "gem_selection_mode");
-              const projectConfigKeys = readStringArray(item.metadata, "project_config_keys");
+              const gemSelectionMode = readString(metadata, "gem_selection_mode");
+              const projectConfigKeys = readStringArray(metadata, "project_config_keys");
               const requestedProjectConfigKeys = readStringArray(
-                item.metadata,
+                metadata,
                 "requested_project_config_keys",
               );
-              const settingsKeys = readStringArray(item.metadata, "manifest_settings_keys");
-              const requestedSettingsSubsetPresent = item.metadata.requested_settings_subset_present;
-              const gemEntriesPresent = item.metadata.gem_entries_present;
-              const requestedGemSubsetPresent = item.metadata.requested_gem_subset_present;
+              const settingsKeys = readStringArray(metadata, "manifest_settings_keys");
+              const requestedSettingsSubsetPresent = metadata.requested_settings_subset_present;
+              const gemEntriesPresent = metadata.gem_entries_present;
+              const requestedGemSubsetPresent = metadata.requested_gem_subset_present;
               const preset = planDetails && typeof planDetails.preset === "string"
                 ? planDetails.preset
                 : null;

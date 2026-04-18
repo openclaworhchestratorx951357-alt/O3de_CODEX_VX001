@@ -1,4 +1,7 @@
-import type { ExecutionRecord } from "../types/contracts";
+import type {
+  ExecutionRecord,
+  ProjectInspectEvidenceDetails,
+} from "../types/contracts";
 
 type ExecutionsPanelProps = {
   items: ExecutionRecord[];
@@ -62,57 +65,58 @@ export default function ExecutionsPanel({
         <ul>
           {items.map((item) => (
             (() => {
-              const inspectionSurface = readString(item.details, "inspection_surface");
-              const projectName = readString(item.details, "project_name");
-              const manifestPath = readString(item.details, "project_manifest_path");
-              const fallbackReason = readString(item.details, "fallback_reason");
-              const realPathAvailable = readBoolean(item.details, "real_path_available");
-              const planDetails = readRecord(item.details, "plan_details");
-              const projectConfig = readRecord(item.details, "project_config");
-              const manifestSettings = readRecord(item.details, "manifest_settings");
-              const inspectionEvidence = readStringArray(item.details, "inspection_evidence");
-              const gemNames = readStringArray(item.details, "gem_names");
+              const details = item.details as ProjectInspectEvidenceDetails & Record<string, unknown>;
+              const inspectionSurface = readString(details, "inspection_surface");
+              const projectName = readString(details, "project_name");
+              const manifestPath = readString(details, "project_manifest_path");
+              const fallbackReason = readString(details, "fallback_reason");
+              const realPathAvailable = readBoolean(details, "real_path_available");
+              const planDetails = readRecord(details, "plan_details");
+              const projectConfig = readRecord(details, "project_config");
+              const manifestSettings = readRecord(details, "manifest_settings");
+              const inspectionEvidence = readStringArray(details, "inspection_evidence");
+              const gemNames = readStringArray(details, "gem_names");
               const requestedSettingsEvidence = readStringArray(
-                item.details,
+                details,
                 "requested_settings_evidence",
               );
               const requestedSettingsKeys = readStringArray(
-                item.details,
+                details,
                 "requested_settings_keys",
               );
               const matchedRequestedSettingsKeys = readStringArray(
-                item.details,
+                details,
                 "matched_requested_settings_keys",
               );
               const missingRequestedSettingsKeys = readStringArray(
-                item.details,
+                details,
                 "missing_requested_settings_keys",
               );
-              const settingsSelectionMode = readString(item.details, "settings_selection_mode");
-              const requestedGemEvidence = readStringArray(item.details, "requested_gem_evidence");
-              const requestedGemNames = readStringArray(item.details, "requested_gem_names");
+              const settingsSelectionMode = readString(details, "settings_selection_mode");
+              const requestedGemEvidence = readStringArray(details, "requested_gem_evidence");
+              const requestedGemNames = readStringArray(details, "requested_gem_names");
               const matchedRequestedGemNames = readStringArray(
-                item.details,
+                details,
                 "matched_requested_gem_names",
               );
               const missingRequestedGemNames = readStringArray(
-                item.details,
+                details,
                 "missing_requested_gem_names",
               );
-              const gemSelectionMode = readString(item.details, "gem_selection_mode");
-              const projectConfigKeys = readStringArray(item.details, "project_config_keys");
+              const gemSelectionMode = readString(details, "gem_selection_mode");
+              const projectConfigKeys = readStringArray(details, "project_config_keys");
               const requestedProjectConfigKeys = readStringArray(
-                item.details,
+                details,
                 "requested_project_config_keys",
               );
-              const settingsKeys = readStringArray(item.details, "manifest_settings_keys");
+              const settingsKeys = readStringArray(details, "manifest_settings_keys");
               const requestedSettingsSubsetPresent = readBoolean(
-                item.details,
+                details,
                 "requested_settings_subset_present",
               );
-              const gemEntriesPresent = readBoolean(item.details, "gem_entries_present");
+              const gemEntriesPresent = readBoolean(details, "gem_entries_present");
               const requestedGemSubsetPresent = readBoolean(
-                item.details,
+                details,
                 "requested_gem_subset_present",
               );
               const preset = planDetails && typeof planDetails.preset === "string"

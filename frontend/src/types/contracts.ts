@@ -60,6 +60,51 @@ export interface ResponseEnvelope {
   error?: ResponseError | null;
 }
 
+export interface ProjectInspectResult {
+  status: "simulated_success" | "real_success";
+  tool: "project.inspect";
+  agent: "project-build";
+  project_root: string;
+  engine_root: string;
+  dry_run: boolean;
+  simulated: boolean;
+  execution_mode: "simulated" | "real";
+  approval_class: "read_only";
+  locks_acquired: string[];
+  message: string;
+}
+
+export interface ProjectInspectEvidenceDetails {
+  inspection_surface?: string;
+  inspection_evidence?: string[];
+  project_manifest_path?: string;
+  manifest_keys?: string[];
+  project_name?: string;
+  include_flags?: Record<string, boolean>;
+  project_config?: Record<string, unknown>;
+  project_config_keys?: string[];
+  requested_project_config_keys?: string[];
+  requested_settings_evidence?: string[];
+  settings_selection_mode?: string;
+  requested_settings_keys?: string[];
+  matched_requested_settings_keys?: string[];
+  missing_requested_settings_keys?: string[];
+  requested_gem_evidence?: string[];
+  gem_selection_mode?: string;
+  requested_gem_names?: string[];
+  matched_requested_gem_names?: string[];
+  missing_requested_gem_names?: string[];
+  gem_names?: string[];
+  gem_names_count?: number;
+  gem_entries_present?: boolean;
+  requested_gem_subset_present?: boolean;
+  manifest_settings?: Record<string, unknown>;
+  manifest_settings_keys?: string[];
+  requested_settings_subset_present?: boolean;
+  real_path_available?: boolean;
+  fallback_reason?: string;
+}
+
 export interface ApprovalRecord {
   id: string;
   run_id: string;
@@ -156,7 +201,7 @@ export interface ExecutionRecord {
   warnings: string[];
   logs: string[];
   artifact_ids: string[];
-  details: Record<string, unknown>;
+  details: Record<string, unknown> | ProjectInspectEvidenceDetails;
   result_summary?: string | null;
 }
 
@@ -175,7 +220,7 @@ export interface ArtifactRecord {
   content_type?: string | null;
   simulated: boolean;
   created_at: string;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, unknown> | ProjectInspectEvidenceDetails;
 }
 
 export interface ArtifactsResponse {

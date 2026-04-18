@@ -118,6 +118,27 @@ def test_schema_validation_service_accepts_simulated_project_inspect_result() ->
     assert errors == []
 
 
+def test_schema_validation_service_accepts_real_project_inspect_result() -> None:
+    errors = schema_validation_service.validate_tool_result(
+        schema_ref="schemas/tools/project.inspect.result.schema.json",
+        payload={
+            "status": "real_success",
+            "tool": "project.inspect",
+            "agent": "project-build",
+            "project_root": "/tmp/project",
+            "engine_root": "/tmp/engine",
+            "dry_run": True,
+            "simulated": False,
+            "execution_mode": "real",
+            "approval_class": "read_only",
+            "locks_acquired": ["project_config"],
+            "message": "Real project inspection completed.",
+        },
+    )
+
+    assert errors == []
+
+
 def test_schema_validation_service_reports_subset_capabilities_truthfully() -> None:
     capability = schema_validation_service.get_capability_status()
 
