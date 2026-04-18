@@ -8,6 +8,7 @@ See these official source files:
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/SLICE-START-CHECKLIST.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
+- `docs/PHASE-7-CHECKPOINT.md`
 - `docs/PHASE-7-REAL-ADAPTER-GATE.md`
 - `docs/PHASE-7-PROJECT-BUILD-CANDIDATES.md`
 - `docs/PHASE-7-PROJECT-INSPECT-CHECKLIST.md`
