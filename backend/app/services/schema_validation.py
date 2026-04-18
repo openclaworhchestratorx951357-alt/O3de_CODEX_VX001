@@ -321,6 +321,12 @@ class SchemaValidationService:
 
     def _persisted_schema_refs(self) -> dict[tuple[str, str], str]:
         return {
+            ("editor.level.open", "execution-details"): (
+                "schemas/tools/editor.level.open.execution-details.schema.json"
+            ),
+            ("editor.level.open", "artifact-metadata"): (
+                "schemas/tools/editor.level.open.artifact-metadata.schema.json"
+            ),
             ("editor.session.open", "execution-details"): (
                 "schemas/tools/editor.session.open.execution-details.schema.json"
             ),

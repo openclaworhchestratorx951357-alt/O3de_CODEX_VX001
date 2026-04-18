@@ -141,6 +141,7 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                     {"inspection_surface": "simulated"}
                     if tool
                     in {
+                        "editor.level.open",
                         "editor.session.open",
                         "asset.processor.status",
                         "asset.source.inspect",
@@ -166,6 +167,7 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                     {"inspection_surface": "simulated"}
                     if tool
                     in {
+                        "editor.level.open",
                         "editor.session.open",
                         "asset.processor.status",
                         "asset.source.inspect",
