@@ -48,6 +48,9 @@ def test_ready_reports_database_status_details() -> None:
         assert payload["adapter_mode"]["configured_mode"] == "simulated"
         assert payload["adapter_mode"]["active_mode"] == "simulated"
         assert payload["adapter_mode"]["supports_real_execution"] is False
+        assert payload["adapter_mode"]["contract_version"] == "v0.1"
+        assert payload["adapter_mode"]["execution_boundary"]
+        assert payload["adapter_mode"]["supported_modes"] == ["simulated"]
         assert "project-build" in payload["adapter_mode"]["available_families"]
         assert payload["schema_validation"]["mode"] == "subset-json-schema"
         assert payload["schema_validation"]["schema_scope"] == "published-tool-arg-result-schemas"
@@ -73,6 +76,15 @@ def test_ready_reports_adapter_mode_as_not_ready_when_config_is_invalid() -> Non
             assert payload["adapter_mode"]["ready"] is False
             assert payload["adapter_mode"]["configured_mode"] == "real"
             assert payload["adapter_mode"]["active_mode"] == "unavailable"
+            assert payload["adapter_mode"]["supported_modes"] == ["simulated"]
+
+
+def test_version_reports_adapter_contract_version() -> None:
+    with isolated_client() as client:
+        response = client.get("/version")
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["adapter_contract_version"] == "v0.1"
 
 
 def test_catalog_returns_rich_tool_metadata() -> None:

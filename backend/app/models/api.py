@@ -44,6 +44,9 @@ class AdapterModeStatus(BaseModel):
     configured_mode: str = Field(..., min_length=1)
     active_mode: str = Field(..., min_length=1)
     supports_real_execution: bool
+    contract_version: str = Field(..., min_length=1)
+    execution_boundary: str = Field(..., min_length=1)
+    supported_modes: list[str] = Field(default_factory=list)
     available_families: list[str] = Field(default_factory=list)
     warning: str | None = None
     notes: list[str] = Field(default_factory=list)
@@ -68,6 +71,7 @@ class VersionStatus(BaseModel):
     service: str = Field(..., min_length=1)
     version: str = Field(..., min_length=1)
     api_version: str = Field(..., min_length=1)
+    adapter_contract_version: str = Field(..., min_length=1)
 
 
 class RunsResponse(BaseModel):

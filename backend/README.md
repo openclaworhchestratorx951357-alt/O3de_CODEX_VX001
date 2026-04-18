@@ -87,7 +87,9 @@ Current truth:
 - only simulated adapters are implemented in this phase
 - real O3DE adapters are still not implemented
 
-`GET /ready` now reports adapter-mode readiness, configured mode, active mode, and registered adapter families.
+`GET /ready` now reports adapter-mode readiness, configured mode, active mode, supported modes, adapter contract version, execution-boundary text, and registered adapter families.
+
+`GET /version` also reports the current adapter contract version so operators can track contract changes separately from the backend API version.
 
 ## Schema validation status
 

@@ -44,6 +44,9 @@
         "configured_mode",
         "active_mode",
         "supports_real_execution",
+        "contract_version",
+        "execution_boundary",
+        "supported_modes",
         "available_families",
         "warning",
         "notes"
@@ -53,6 +56,12 @@
         "configured_mode": { "type": "string", "minLength": 1 },
         "active_mode": { "type": "string", "minLength": 1 },
         "supports_real_execution": { "type": "boolean" },
+        "contract_version": { "type": "string", "minLength": 1 },
+        "execution_boundary": { "type": "string", "minLength": 1 },
+        "supported_modes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
         "available_families": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 }

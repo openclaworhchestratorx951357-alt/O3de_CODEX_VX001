@@ -50,8 +50,10 @@ def ready() -> ReadinessStatus:
 
 @router.get("/version", response_model=VersionStatus)
 def version() -> VersionStatus:
+    adapter_status = adapter_service.get_runtime_status()
     return VersionStatus(
         service="backend",
         version="0.3.1",
         api_version="v0.3.1",
+        adapter_contract_version=adapter_status.contract_version,
     )

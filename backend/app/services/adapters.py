@@ -8,6 +8,10 @@ from app.models.response_envelope import DispatchResult
 from app.services.catalog import catalog_service
 
 SUPPORTED_ADAPTER_MODES = {"simulated"}
+ADAPTER_CONTRACT_VERSION = "v0.1"
+ADAPTER_EXECUTION_BOUNDARY = (
+    "Control-plane bookkeeping is real, but O3DE tool execution remains simulated."
+)
 
 
 @dataclass(slots=True)
@@ -122,6 +126,9 @@ class AdapterService:
                 configured_mode=configured_mode,
                 active_mode="unavailable",
                 supports_real_execution=False,
+                contract_version=ADAPTER_CONTRACT_VERSION,
+                execution_boundary=ADAPTER_EXECUTION_BOUNDARY,
+                supported_modes=sorted(SUPPORTED_ADAPTER_MODES),
                 available_families=available_families,
                 warning=(
                     f"Configured adapter mode '{configured_mode}' is not supported; "
@@ -138,6 +145,9 @@ class AdapterService:
             configured_mode=configured_mode,
             active_mode="simulated",
             supports_real_execution=False,
+            contract_version=ADAPTER_CONTRACT_VERSION,
+            execution_boundary=ADAPTER_EXECUTION_BOUNDARY,
+            supported_modes=sorted(SUPPORTED_ADAPTER_MODES),
             available_families=available_families,
             warning=None,
             notes=[
