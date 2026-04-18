@@ -307,6 +307,12 @@ class SchemaValidationService:
             ("settings.patch", "artifact-metadata"): (
                 "schemas/tools/settings.patch.artifact-metadata.schema.json"
             ),
+            ("gem.enable", "execution-details"): (
+                "schemas/tools/gem.enable.execution-details.schema.json"
+            ),
+            ("gem.enable", "artifact-metadata"): (
+                "schemas/tools/gem.enable.artifact-metadata.schema.json"
+            ),
             ("project.inspect", "execution-details"): (
                 "schemas/tools/project.inspect.execution-details.schema.json"
             ),

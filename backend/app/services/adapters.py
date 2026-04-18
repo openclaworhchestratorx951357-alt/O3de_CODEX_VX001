@@ -139,7 +139,8 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                 "execution_boundary": ADAPTER_EXECUTION_BOUNDARY,
                 **(
                     {"inspection_surface": "simulated"}
-                    if tool in {"project.inspect", "build.configure", "settings.patch"}
+                    if tool
+                    in {"project.inspect", "build.configure", "settings.patch", "gem.enable"}
                     else {}
                 ),
             },
@@ -151,7 +152,8 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                 "execution_boundary": ADAPTER_EXECUTION_BOUNDARY,
                 **(
                     {"inspection_surface": "simulated"}
-                    if tool in {"project.inspect", "build.configure", "settings.patch"}
+                    if tool
+                    in {"project.inspect", "build.configure", "settings.patch", "gem.enable"}
                     else {}
                 ),
             },
