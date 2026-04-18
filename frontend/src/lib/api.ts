@@ -1,4 +1,6 @@
 import type {
+  AdaptersEnvelope,
+  AdaptersResponse,
   ArtifactRecord,
   ArtifactsResponse,
   ApprovalRecord,
@@ -164,4 +166,15 @@ export async function fetchArtifacts(): Promise<ArtifactRecord[]> {
 
   const payload = (await response.json()) as ArtifactsResponse;
   return payload.artifacts ?? [];
+}
+
+export async function fetchAdapters(): Promise<AdaptersResponse> {
+  const response = await fetch(`${API_BASE_URL}/adapters`);
+
+  if (!response.ok) {
+    throw new Error(`Adapters fetch failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as AdaptersEnvelope;
+  return payload.adapters;
 }

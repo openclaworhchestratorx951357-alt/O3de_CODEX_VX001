@@ -128,6 +128,7 @@ export interface ToolPolicy {
   agent: string;
   tool: string;
   approval_class: string;
+  adapter_family: string;
   args_schema: string;
   result_schema: string;
   required_locks: string[];
@@ -184,6 +185,7 @@ export interface ToolDefinition {
   name: string;
   description: string;
   approval_class: ApprovalClass;
+  adapter_family?: string;
   default_locks: LockName[];
   default_timeout_s: number;
   risk: string;
@@ -204,4 +206,29 @@ export interface AgentDefinition {
   role: string;
   locks: LockName[];
   owned_tools: string[];
+}
+
+export interface AdapterFamilyStatus {
+  family: string;
+  mode: string;
+  supports_real_execution: boolean;
+  contract_version: string;
+  execution_boundary: string;
+  ready: boolean;
+  notes: string[];
+}
+
+export interface AdaptersResponse {
+  configured_mode: string;
+  active_mode: string;
+  supported_modes: string[];
+  contract_version: string;
+  supports_real_execution: boolean;
+  families: AdapterFamilyStatus[];
+  warning?: string | null;
+  notes: string[];
+}
+
+export interface AdaptersEnvelope {
+  adapters: AdaptersResponse;
 }

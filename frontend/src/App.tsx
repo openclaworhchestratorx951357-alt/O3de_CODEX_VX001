@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import AgentPanel from "./components/AgentPanel";
+import AdaptersPanel from "./components/AdaptersPanel";
 import ArtifactsPanel from "./components/ArtifactsPanel";
 import ApprovalQueue from "./components/ApprovalQueue";
 import CatalogPanel from "./components/CatalogPanel";
@@ -16,6 +17,7 @@ import TaskTimeline from "./components/TaskTimeline";
 import { mockAgents } from "./data/mockAgents";
 import {
   approveApproval,
+  fetchAdapters,
   fetchArtifacts,
   fetchApprovals,
   fetchEvents,
@@ -29,6 +31,7 @@ import {
 } from "./lib/api";
 import type {
   ArtifactRecord,
+  AdaptersResponse,
   ApprovalRecord,
   CatalogAgent,
   EventRecord,
@@ -47,6 +50,7 @@ export default function App() {
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
   const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
+  const [adapters, setAdapters] = useState<AdaptersResponse | null>(null);
   const [artifacts, setArtifacts] = useState<ArtifactRecord[]>([]);
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [executions, setExecutions] = useState<ExecutionRecord[]>([]);
@@ -57,6 +61,7 @@ export default function App() {
   const [selectedRun, setSelectedRun] = useState<RunRecord | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
+  const [adaptersError, setAdaptersError] = useState<string | null>(null);
   const [artifactsError, setArtifactsError] = useState<string | null>(null);
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [executionsError, setExecutionsError] = useState<string | null>(null);
@@ -65,6 +70,7 @@ export default function App() {
   const [runsError, setRunsError] = useState<string | null>(null);
   const [selectedRunError, setSelectedRunError] = useState<string | null>(null);
   const [approvalsLoading, setApprovalsLoading] = useState(true);
+  const [adaptersLoading, setAdaptersLoading] = useState(true);
   const [artifactsLoading, setArtifactsLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [executionsLoading, setExecutionsLoading] = useState(true);
@@ -86,6 +92,21 @@ export default function App() {
       );
     } finally {
       setApprovalsLoading(false);
+    }
+  }
+
+  async function loadAdapters() {
+    setAdaptersLoading(true);
+    try {
+      const nextAdapters = await fetchAdapters();
+      setAdapters(nextAdapters);
+      setAdaptersError(null);
+    } catch (error) {
+      setAdaptersError(
+        error instanceof Error ? error.message : "Failed to load adapters",
+      );
+    } finally {
+      setAdaptersLoading(false);
     }
   }
 
@@ -207,6 +228,7 @@ export default function App() {
       }
 
       await loadApprovals();
+      await loadAdapters();
       await loadArtifacts();
       await loadEvents();
       await loadExecutions();
@@ -230,6 +252,7 @@ export default function App() {
         await rejectApproval(approvalId);
       }
       await loadApprovals();
+      await loadAdapters();
       await loadArtifacts();
       await loadEvents();
       await loadExecutions();
@@ -317,6 +340,12 @@ export default function App() {
           />
         ))}
       </section>
+
+      <AdaptersPanel
+        adapters={adapters}
+        loading={adaptersLoading}
+        error={adaptersError}
+      />
 
       <section>
         <ApprovalQueue
