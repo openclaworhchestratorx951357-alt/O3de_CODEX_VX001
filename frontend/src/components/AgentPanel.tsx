@@ -2,7 +2,7 @@ type AgentPanelProps = {
   name: string;
   role: string;
   lockLabel: string;
-  tools: string[];
+  tools: readonly string[];
 };
 
 export default function AgentPanel({

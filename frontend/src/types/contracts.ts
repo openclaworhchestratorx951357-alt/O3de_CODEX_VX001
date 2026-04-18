@@ -78,6 +78,20 @@ export interface ApprovalsResponse {
   approvals: ApprovalRecord[];
 }
 
+export interface EventRecord {
+  id: string;
+  run_id?: string | null;
+  category: string;
+  severity: "info" | "warning" | "error";
+  message: string;
+  created_at: string;
+  details: Record<string, string>;
+}
+
+export interface EventsResponse {
+  events: EventRecord[];
+}
+
 export interface ToolDefinition {
   name: string;
   description: string;

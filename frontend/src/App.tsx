@@ -8,16 +8,17 @@ import LayoutHeader from "./components/LayoutHeader";
 import ResponseEnvelopeView from "./components/ResponseEnvelopeView";
 import TaskTimeline from "./components/TaskTimeline";
 import { mockAgents } from "./data/mockAgents";
-import { mockTimeline } from "./data/mockTimeline";
 import {
   approveApproval,
   fetchApprovals,
+  fetchEvents,
   fetchToolsCatalog,
   rejectApproval,
 } from "./lib/api";
 import type {
   ApprovalRecord,
   CatalogAgent,
+  EventRecord,
   ResponseEnvelope,
 } from "./types/contracts";
 
@@ -29,9 +30,12 @@ export default function App() {
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
   const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
+  const [events, setEvents] = useState<EventRecord[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
+  const [eventsError, setEventsError] = useState<string | null>(null);
   const [approvalsLoading, setApprovalsLoading] = useState(true);
+  const [eventsLoading, setEventsLoading] = useState(true);
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
 
   async function loadApprovals() {
@@ -49,6 +53,21 @@ export default function App() {
     }
   }
 
+  async function loadEvents() {
+    setEventsLoading(true);
+    try {
+      const nextEvents = await fetchEvents();
+      setEvents(nextEvents);
+      setEventsError(null);
+    } catch (error) {
+      setEventsError(
+        error instanceof Error ? error.message : "Failed to load events",
+      );
+    } finally {
+      setEventsLoading(false);
+    }
+  }
+
   useEffect(() => {
     async function loadInitialData() {
       try {
@@ -61,6 +80,7 @@ export default function App() {
       }
 
       await loadApprovals();
+      await loadEvents();
     }
 
     void loadInitialData();
@@ -78,6 +98,7 @@ export default function App() {
         await rejectApproval(approvalId);
       }
       await loadApprovals();
+      await loadEvents();
     } catch (error) {
       setApprovalsError(
         error instanceof Error ? error.message : "Failed to update approval",
@@ -90,6 +111,7 @@ export default function App() {
   function handleDispatchResponse(response: ResponseEnvelope) {
     setLastResponse(response);
     void loadApprovals();
+    void loadEvents();
   }
 
   const agentsForDisplay = catalogAgents.length > 0
@@ -98,7 +120,7 @@ export default function App() {
         name: agent.name,
         role: agent.role,
         locks: agent.tools[0]?.default_locks.length
-          ? agent.tools[0].default_locks
+          ? [...agent.tools[0].default_locks]
           : ["project_config"],
         owned_tools: agent.tools.map((tool) => tool.name),
       }))
@@ -165,7 +187,11 @@ export default function App() {
         />
       </section>
 
-      <TaskTimeline items={mockTimeline} />
+      <TaskTimeline
+        items={events}
+        loading={eventsLoading}
+        error={eventsError}
+      />
     </main>
   );
 }

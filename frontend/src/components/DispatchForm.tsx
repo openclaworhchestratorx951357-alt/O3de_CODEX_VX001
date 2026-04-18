@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { dispatchTool } from "../lib/api";
 import type {
   CatalogAgent,
+  LockName,
   RequestEnvelope,
   ResponseEnvelope,
 } from "../types/contracts";
@@ -47,6 +48,18 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
   const selectedAgent = agents.find((agent) => agent.id === request.agent);
   const availableTools = selectedAgent?.tools ?? [];
 
+  function isLockName(value: string): value is LockName {
+    return [
+      "editor_session",
+      "project_config",
+      "asset_pipeline",
+      "render_pipeline",
+      "build_tree",
+      "engine_source",
+      "test_runtime",
+    ].includes(value);
+  }
+
   useEffect(() => {
     if (!selectedAgent && agents.length > 0) {
       const fallbackAgent = agents[0];
@@ -79,7 +92,7 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
       const parsedLocks = locksText
         .split(",")
         .map((item) => item.trim())
-        .filter(Boolean);
+        .filter(isLockName);
 
       const response = await dispatchTool({
         ...request,

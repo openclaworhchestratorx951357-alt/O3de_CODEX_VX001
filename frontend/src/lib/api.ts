@@ -1,6 +1,8 @@
 import type {
   ApprovalRecord,
   ApprovalsResponse,
+  EventRecord,
+  EventsResponse,
   RequestEnvelope,
   ResponseEnvelope,
 } from "../types/contracts";
@@ -76,4 +78,15 @@ export async function rejectApproval(approvalId: string): Promise<ApprovalRecord
   }
 
   return (await response.json()) as ApprovalRecord;
+}
+
+export async function fetchEvents(): Promise<EventRecord[]> {
+  const response = await fetch(`${API_BASE_URL}/events`);
+
+  if (!response.ok) {
+    throw new Error(`Events fetch failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as EventsResponse;
+  return payload.events ?? [];
 }
