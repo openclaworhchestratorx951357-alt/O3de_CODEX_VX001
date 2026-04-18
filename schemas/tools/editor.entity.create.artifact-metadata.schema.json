@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/editor.entity.create.artifact-metadata.schema.json",
+  "title": "editor.entity.create artifact metadata",
+  "allOf": [
+    {
+      "$ref": "./editor.entity.create.execution-details.schema.json"
+    },
+    {
+      "type": "object",
+      "required": [
+        "tool",
+        "agent",
+        "execution_mode",
+        "adapter_family",
+        "adapter_mode",
+        "adapter_contract_version"
+      ],
+      "properties": {
+        "tool": { "const": "editor.entity.create" },
+        "agent": { "const": "editor-control" },
+        "execution_mode": { "const": "simulated" }
+      }
+    }
+  ]
+}

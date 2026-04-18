@@ -334,13 +334,14 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
     assert "$schema" in capability.active_metadata_keywords
     assert "allOf" in capability.supported_keywords
     assert "oneOf" in capability.unsupported_keywords
-    assert capability.persisted_execution_details_tool_count == 12
-    assert capability.persisted_artifact_metadata_tool_count == 12
+    assert capability.persisted_execution_details_tool_count == 13
+    assert capability.persisted_artifact_metadata_tool_count == 13
     assert capability.persisted_execution_details_tools == [
         "asset.processor.status",
         "asset.source.inspect",
         "build.compile",
         "build.configure",
+        "editor.entity.create",
         "editor.level.open",
         "editor.session.open",
         "gem.enable",
@@ -355,6 +356,7 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
         "asset.source.inspect",
         "build.compile",
         "build.configure",
+        "editor.entity.create",
         "editor.level.open",
         "editor.session.open",
         "gem.enable",
@@ -368,15 +370,15 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
         {
             "family": "editor-control",
             "total_tools": 4,
-            "execution_details_tools": 2,
-            "artifact_metadata_tools": 2,
+            "execution_details_tools": 3,
+            "artifact_metadata_tools": 3,
             "covered_tools": [
+                "editor.entity.create",
                 "editor.level.open",
                 "editor.session.open",
             ],
             "uncovered_tools": [
                 "editor.component.add",
-                "editor.entity.create",
             ],
         },
         {
