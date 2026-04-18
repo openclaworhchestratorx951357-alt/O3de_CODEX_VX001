@@ -48,9 +48,38 @@ export default function SystemStatusPanel(
             <p><strong>Mode:</strong> {readiness.schema_validation.mode}</p>
             <p><strong>Scope:</strong> {readiness.schema_validation.schema_scope}</p>
             <p>
+              <strong>Persisted details:</strong>{" "}
+              {readiness.schema_validation.supports_persisted_execution_details ? "yes" : "no"}
+            </p>
+            <p>
+              <strong>Persisted metadata:</strong>{" "}
+              {readiness.schema_validation.supports_persisted_artifact_metadata ? "yes" : "no"}
+            </p>
+            <p>
               <strong>Active unsupported:</strong>{" "}
               {readiness.schema_validation.active_unsupported_keywords.length}
             </p>
+          </article>
+          <article style={cardStyle}>
+            <h3 style={headingStyle}>Persisted Coverage</h3>
+            <p>
+              <strong>Execution details tools:</strong>{" "}
+              {readiness.schema_validation.persisted_execution_details_tool_count}
+            </p>
+            <p>
+              <strong>Artifact metadata tools:</strong>{" "}
+              {readiness.schema_validation.persisted_artifact_metadata_tool_count}
+            </p>
+            <p>
+              <strong>Families visible:</strong>{" "}
+              {summarizeFamilies(readiness.schema_validation.persisted_execution_details_tools)}
+            </p>
+            <p style={listLabelStyle}><strong>Covered tools</strong></p>
+            <ul style={listStyle}>
+              {readiness.schema_validation.persisted_execution_details_tools.map((toolName) => (
+                <li key={toolName}>{toolName}</li>
+              ))}
+            </ul>
           </article>
           <article style={cardStyle}>
             <h3 style={headingStyle}>Adapter Boundary</h3>
@@ -75,3 +104,39 @@ const headingStyle: CSSProperties = {
   marginTop: 0,
   marginBottom: 12,
 };
+
+const listLabelStyle: CSSProperties = {
+  marginBottom: 8,
+};
+
+const listStyle: CSSProperties = {
+  margin: 0,
+  paddingLeft: 18,
+};
+
+function summarizeFamilies(toolNames: string[]): string {
+  const families = new Set<string>();
+
+  for (const toolName of toolNames) {
+    if (toolName.startsWith("asset.")) {
+      families.add("asset-pipeline");
+      continue;
+    }
+    if (toolName.startsWith("render.")) {
+      families.add("render-lookdev");
+      continue;
+    }
+    if (
+      toolName.startsWith("project.")
+      || toolName.startsWith("settings.")
+      || toolName.startsWith("gem.")
+      || toolName.startsWith("build.")
+    ) {
+      families.add("project-build");
+      continue;
+    }
+    families.add("other");
+  }
+
+  return Array.from(families).join(", ");
+}

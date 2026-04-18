@@ -285,12 +285,18 @@ export interface SchemaValidationStatus {
   schema_scope: string;
   supports_request_args: boolean;
   supports_result_conformance: boolean;
+  supports_persisted_execution_details: boolean;
+  supports_persisted_artifact_metadata: boolean;
   active_keywords: string[];
   active_unsupported_keywords: string[];
   active_metadata_keywords: string[];
   supported_keywords: string[];
   supported_refs: string[];
   unsupported_keywords: string[];
+  persisted_execution_details_tool_count: number;
+  persisted_artifact_metadata_tool_count: number;
+  persisted_execution_details_tools: string[];
+  persisted_artifact_metadata_tools: string[];
   notes: string[];
 }
 
