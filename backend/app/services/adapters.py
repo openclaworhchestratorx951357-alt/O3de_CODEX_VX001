@@ -274,9 +274,28 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             requested_keys=project_config_keys,
             include_project_config=inspection_flags["include_project_config"],
         )
+        requested_gem_names = self._normalized_string_list(args.get("requested_gem_names"))
+        matched_requested_gem_names = (
+            [gem_name for gem_name in requested_gem_names if gem_name in enabled_gems]
+            if inspection_flags["include_gems"]
+            else []
+        )
+        missing_requested_gem_names = (
+            [gem_name for gem_name in requested_gem_names if gem_name not in enabled_gems]
+            if inspection_flags["include_gems"]
+            else []
+        )
         requested_gem_evidence = (
             ["gem_names", "gem_names_count"] if inspection_flags["include_gems"] else []
         )
+        if inspection_flags["include_gems"] and requested_gem_names:
+            requested_gem_evidence.extend(
+                [
+                    "requested_gem_names",
+                    "matched_requested_gem_names",
+                    "missing_requested_gem_names",
+                ]
+            )
         message = "Read-only project manifest inspection completed against real project files."
         if isinstance(project_name, str) and project_name.strip():
             message = (
@@ -287,7 +306,13 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             message += " Manifest-backed project-config evidence was captured."
             inspection_evidence.append("project_config")
         if inspection_flags["include_gems"]:
-            message += " Manifest-backed Gem inspection evidence was captured."
+            message += (
+                " Manifest-backed Gem inspection evidence was captured"
+                if not requested_gem_names
+                else " Manifest-backed Gem inspection evidence was captured for the "
+                "requested subset contract"
+            )
+            message += "."
             inspection_evidence.append("gem_names")
         if inspection_flags["include_settings"]:
             message += " Manifest-backed settings inspection evidence was captured."
@@ -317,6 +342,20 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         if inspection_flags["include_gems"] and not enabled_gems:
             warnings.append(
                 "No gem_names entries were present for the current inspection request."
+            )
+        if (
+            inspection_flags["include_gems"]
+            and requested_gem_names
+            and not matched_requested_gem_names
+        ):
+            warnings.append(
+                "None of the requested_gem_names matched manifest-backed gem_names entries "
+                "for the current inspection request."
+            )
+        if inspection_flags["include_gems"] and missing_requested_gem_names:
+            warnings.append(
+                "Some requested_gem_names were not present in manifest-backed gem_names "
+                f"entries: {', '.join(missing_requested_gem_names)}."
             )
         if inspection_flags["include_build_state"]:
             warnings.append(
@@ -352,9 +391,19 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     else "No manifest-backed project-config evidence was available to capture."
                 ),
                 (
-                    f"Captured {len(enabled_gems)} manifest-backed Gem entries."
-                    if inspection_flags["include_gems"]
-                    else "Gem inspection evidence was not requested."
+                    "Gem inspection evidence was not requested."
+                    if not inspection_flags["include_gems"]
+                    else f"Captured {len(enabled_gems)} manifest-backed Gem entries."
+                    if not requested_gem_names
+                    else "Captured requested Gem subset evidence with "
+                    f"{len(matched_requested_gem_names)} matched and "
+                    f"{len(missing_requested_gem_names)} missing requested names."
+                ),
+                (
+                    "Requested Gem subset matching was not requested."
+                    if not inspection_flags["include_gems"] or not requested_gem_names
+                    else "Requested Gem subset matching resolved against manifest-backed "
+                    f"gem_names with {len(matched_requested_gem_names)} matches."
                 ),
                 (
                     "Captured manifest-backed top-level settings evidence."
@@ -393,10 +442,27 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     project_config_keys if inspection_flags["include_project_config"] else []
                 ),
                 "requested_gem_evidence": requested_gem_evidence,
+                "gem_selection_mode": (
+                    "requested-subset"
+                    if inspection_flags["include_gems"] and requested_gem_names
+                    else "all-discovered"
+                    if inspection_flags["include_gems"]
+                    else "not-requested"
+                ),
+                "requested_gem_names": (
+                    requested_gem_names if inspection_flags["include_gems"] else []
+                ),
+                "matched_requested_gem_names": matched_requested_gem_names,
+                "missing_requested_gem_names": missing_requested_gem_names,
                 "gem_names": enabled_gems if inspection_flags["include_gems"] else [],
                 "gem_names_count": len(enabled_gems) if inspection_flags["include_gems"] else 0,
                 "gem_entries_present": (
                     len(enabled_gems) > 0 if inspection_flags["include_gems"] else False
+                ),
+                "requested_gem_subset_present": (
+                    len(matched_requested_gem_names) > 0
+                    if inspection_flags["include_gems"] and requested_gem_names
+                    else False
                 ),
                 "manifest_settings": (
                     manifest_settings if inspection_flags["include_settings"] else {}
@@ -431,10 +497,27 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     project_config_keys if inspection_flags["include_project_config"] else []
                 ),
                 "requested_gem_evidence": requested_gem_evidence,
+                "gem_selection_mode": (
+                    "requested-subset"
+                    if inspection_flags["include_gems"] and requested_gem_names
+                    else "all-discovered"
+                    if inspection_flags["include_gems"]
+                    else "not-requested"
+                ),
+                "requested_gem_names": (
+                    requested_gem_names if inspection_flags["include_gems"] else []
+                ),
+                "matched_requested_gem_names": matched_requested_gem_names,
+                "missing_requested_gem_names": missing_requested_gem_names,
                 "gem_names": enabled_gems if inspection_flags["include_gems"] else [],
                 "gem_names_count": len(enabled_gems) if inspection_flags["include_gems"] else 0,
                 "gem_entries_present": (
                     len(enabled_gems) > 0 if inspection_flags["include_gems"] else False
+                ),
+                "requested_gem_subset_present": (
+                    len(matched_requested_gem_names) > 0
+                    if inspection_flags["include_gems"] and requested_gem_names
+                    else False
                 ),
                 "manifest_settings": (
                     manifest_settings if inspection_flags["include_settings"] else {}

@@ -255,10 +255,10 @@ export default function DispatchForm({
           {effectiveToolName === "project.inspect" ? (
             <p style={{ margin: 0, color: "#57606a" }}>
               Tip: set <code>include_project_config</code>, <code>include_gems</code>,
-              and/or <code>include_settings</code> in args JSON to request the
-              currently supported real manifest-backed project-config,
-              requested-vs-discovered Gem evidence, and top-level settings
-              evidence in hybrid mode.
+              optional <code>requested_gem_names</code>, and/or <code>include_settings</code>
+              in args JSON to request the currently supported real manifest-backed
+              project-config, requested-vs-discovered Gem evidence, requested Gem
+              subset matching, and top-level settings evidence in hybrid mode.
             </p>
           ) : null}
 

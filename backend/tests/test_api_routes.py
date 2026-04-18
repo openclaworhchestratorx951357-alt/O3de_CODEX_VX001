@@ -334,6 +334,7 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                             "include_project_config": True,
                             "project_config_keys": ["project_name", "version"],
                             "include_gems": True,
+                            "requested_gem_names": ["ApiGem", "MissingGem"],
                             "include_settings": True,
                         },
                     },
@@ -355,9 +356,20 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                 assert execution["details"]["requested_gem_evidence"] == [
                     "gem_names",
                     "gem_names_count",
+                    "requested_gem_names",
+                    "matched_requested_gem_names",
+                    "missing_requested_gem_names",
                 ]
+                assert execution["details"]["gem_selection_mode"] == "requested-subset"
+                assert execution["details"]["requested_gem_names"] == [
+                    "ApiGem",
+                    "MissingGem",
+                ]
+                assert execution["details"]["matched_requested_gem_names"] == ["ApiGem"]
+                assert execution["details"]["missing_requested_gem_names"] == ["MissingGem"]
                 assert execution["details"]["gem_names"] == ["ApiGem"]
                 assert execution["details"]["gem_entries_present"] is True
+                assert execution["details"]["requested_gem_subset_present"] is True
                 assert execution["details"]["manifest_settings"]["version"] == "2.0.0"
 
 

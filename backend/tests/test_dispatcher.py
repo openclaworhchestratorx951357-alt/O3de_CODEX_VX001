@@ -250,6 +250,7 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
                 "include_project_config": True,
                 "project_config_keys": ["project_name", "version", "compatible_engines"],
                 "include_gems": True,
+                "requested_gem_names": ["ExampleGem", "MissingGem"],
                 "include_settings": True,
             }
             response = dispatcher_service.dispatch(request)
@@ -285,10 +286,18 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
         assert execution.details["requested_gem_evidence"] == [
             "gem_names",
             "gem_names_count",
+            "requested_gem_names",
+            "matched_requested_gem_names",
+            "missing_requested_gem_names",
         ]
+        assert execution.details["gem_selection_mode"] == "requested-subset"
+        assert execution.details["requested_gem_names"] == ["ExampleGem", "MissingGem"]
+        assert execution.details["matched_requested_gem_names"] == ["ExampleGem"]
+        assert execution.details["missing_requested_gem_names"] == ["MissingGem"]
         assert execution.details["gem_names"] == ["ExampleGem"]
         assert execution.details["gem_names_count"] == 1
         assert execution.details["gem_entries_present"] is True
+        assert execution.details["requested_gem_subset_present"] is True
         assert execution.details["manifest_settings"]["compatible_engines"] == ["o3de"]
         assert execution.details["manifest_settings"]["version"] == "1.0.0"
         assert artifact is not None
@@ -299,9 +308,17 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
         assert artifact.metadata["requested_gem_evidence"] == [
             "gem_names",
             "gem_names_count",
+            "requested_gem_names",
+            "matched_requested_gem_names",
+            "missing_requested_gem_names",
         ]
+        assert artifact.metadata["gem_selection_mode"] == "requested-subset"
+        assert artifact.metadata["requested_gem_names"] == ["ExampleGem", "MissingGem"]
+        assert artifact.metadata["matched_requested_gem_names"] == ["ExampleGem"]
+        assert artifact.metadata["missing_requested_gem_names"] == ["MissingGem"]
         assert artifact.metadata["gem_names"] == ["ExampleGem"]
         assert artifact.metadata["gem_entries_present"] is True
+        assert artifact.metadata["requested_gem_subset_present"] is True
         assert artifact.metadata["manifest_settings"]["compatible_engines"] == ["o3de"]
 
 
@@ -323,6 +340,7 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
                 "include_project_config": True,
                 "project_config_keys": ["version", "summary"],
                 "include_gems": True,
+                "requested_gem_names": ["MissingGem"],
                 "include_settings": True,
             }
             response = dispatcher_service.dispatch(request)
@@ -343,16 +361,29 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
         assert execution.details["requested_gem_evidence"] == [
             "gem_names",
             "gem_names_count",
+            "requested_gem_names",
+            "matched_requested_gem_names",
+            "missing_requested_gem_names",
         ]
+        assert execution.details["gem_selection_mode"] == "requested-subset"
+        assert execution.details["requested_gem_names"] == ["MissingGem"]
+        assert execution.details["matched_requested_gem_names"] == []
+        assert execution.details["missing_requested_gem_names"] == ["MissingGem"]
         assert execution.details["gem_names"] == []
         assert execution.details["gem_names_count"] == 0
         assert execution.details["gem_entries_present"] is False
+        assert execution.details["requested_gem_subset_present"] is False
         assert execution.details["manifest_settings"]["project_name"] == "LeanProject"
         assert any(
             "No manifest-backed project-config fields were present" in warning
             for warning in execution.warnings
         )
         assert any("No gem_names entries were present" in warning for warning in execution.warnings)
+        assert any(
+            "None of the requested_gem_names matched manifest-backed gem_names entries"
+            in warning
+            for warning in execution.warnings
+        )
 
 
 def test_project_inspect_falls_back_to_simulated_when_manifest_is_missing_in_hybrid_mode() -> None:

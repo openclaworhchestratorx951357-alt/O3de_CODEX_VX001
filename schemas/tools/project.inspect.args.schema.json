@@ -11,6 +11,10 @@
       "items": { "type": "string", "minLength": 1 }
     },
     "include_gems": { "type": "boolean" },
+    "requested_gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
     "include_settings": { "type": "boolean" },
     "include_build_state": { "type": "boolean" }
   }

@@ -73,6 +73,16 @@ export default function ExecutionsPanel({
               const inspectionEvidence = readStringArray(item.details, "inspection_evidence");
               const gemNames = readStringArray(item.details, "gem_names");
               const requestedGemEvidence = readStringArray(item.details, "requested_gem_evidence");
+              const requestedGemNames = readStringArray(item.details, "requested_gem_names");
+              const matchedRequestedGemNames = readStringArray(
+                item.details,
+                "matched_requested_gem_names",
+              );
+              const missingRequestedGemNames = readStringArray(
+                item.details,
+                "missing_requested_gem_names",
+              );
+              const gemSelectionMode = readString(item.details, "gem_selection_mode");
               const projectConfigKeys = readStringArray(item.details, "project_config_keys");
               const requestedProjectConfigKeys = readStringArray(
                 item.details,
@@ -80,6 +90,10 @@ export default function ExecutionsPanel({
               );
               const settingsKeys = readStringArray(item.details, "manifest_settings_keys");
               const gemEntriesPresent = readBoolean(item.details, "gem_entries_present");
+              const requestedGemSubsetPresent = readBoolean(
+                item.details,
+                "requested_gem_subset_present",
+              );
               const preset = planDetails && typeof planDetails.preset === "string"
                 ? planDetails.preset
                 : null;
@@ -126,9 +140,28 @@ export default function ExecutionsPanel({
                   {requestedGemEvidence.length > 0 ? (
                     <div>Requested Gem evidence: {requestedGemEvidence.join(", ")}</div>
                   ) : null}
+                  {gemSelectionMode ? <div>Gem selection mode: {gemSelectionMode}</div> : null}
+                  {requestedGemNames.length > 0 ? (
+                    <div>Requested Gem names: {requestedGemNames.join(", ")}</div>
+                  ) : null}
+                  {matchedRequestedGemNames.length > 0 ? (
+                    <div>
+                      Matched requested Gem names: {matchedRequestedGemNames.join(", ")}
+                    </div>
+                  ) : null}
+                  {missingRequestedGemNames.length > 0 ? (
+                    <div>
+                      Missing requested Gem names: {missingRequestedGemNames.join(", ")}
+                    </div>
+                  ) : null}
                   {gemNames.length > 0 ? <div>Gem names: {gemNames.join(", ")}</div> : null}
                   {gemEntriesPresent !== null ? (
                     <div>Gem entries present: {String(gemEntriesPresent)}</div>
+                  ) : null}
+                  {requestedGemSubsetPresent !== null ? (
+                    <div>
+                      Requested Gem subset present: {String(requestedGemSubsetPresent)}
+                    </div>
                   ) : null}
                   {settingsKeys.length > 0 ? (
                     <div>Manifest settings keys: {settingsKeys.join(", ")}</div>
