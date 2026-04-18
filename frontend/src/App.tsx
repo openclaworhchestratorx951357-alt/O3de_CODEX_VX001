@@ -8,10 +8,18 @@ import LayoutHeader from "./components/LayoutHeader";
 import ResponseEnvelopeView from "./components/ResponseEnvelopeView";
 import TaskTimeline from "./components/TaskTimeline";
 import { mockAgents } from "./data/mockAgents";
-import { mockApprovals } from "./data/mockApprovals";
 import { mockTimeline } from "./data/mockTimeline";
-import { fetchToolsCatalog } from "./lib/api";
-import type { CatalogAgent, ResponseEnvelope } from "./types/contracts";
+import {
+  approveApproval,
+  fetchApprovals,
+  fetchToolsCatalog,
+  rejectApproval,
+} from "./lib/api";
+import type {
+  ApprovalRecord,
+  CatalogAgent,
+  ResponseEnvelope,
+} from "./types/contracts";
 
 type ToolsCatalog = {
   agents: CatalogAgent[];
@@ -20,10 +28,29 @@ type ToolsCatalog = {
 export default function App() {
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
+  const [approvalsError, setApprovalsError] = useState<string | null>(null);
+  const [approvalsLoading, setApprovalsLoading] = useState(true);
+  const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
+
+  async function loadApprovals() {
+    setApprovalsLoading(true);
+    try {
+      const nextApprovals = await fetchApprovals();
+      setApprovals(nextApprovals);
+      setApprovalsError(null);
+    } catch (error) {
+      setApprovalsError(
+        error instanceof Error ? error.message : "Failed to load approvals",
+      );
+    } finally {
+      setApprovalsLoading(false);
+    }
+  }
 
   useEffect(() => {
-    async function loadCatalog() {
+    async function loadInitialData() {
       try {
         const catalog = (await fetchToolsCatalog()) as ToolsCatalog;
         setCatalogAgents(catalog.agents ?? []);
@@ -32,10 +59,38 @@ export default function App() {
           error instanceof Error ? error.message : "Failed to load tools catalog",
         );
       }
+
+      await loadApprovals();
     }
 
-    void loadCatalog();
+    void loadInitialData();
   }, []);
+
+  async function handleApprovalDecision(
+    approvalId: string,
+    action: "approve" | "reject",
+  ) {
+    setBusyApprovalId(approvalId);
+    try {
+      if (action === "approve") {
+        await approveApproval(approvalId);
+      } else {
+        await rejectApproval(approvalId);
+      }
+      await loadApprovals();
+    } catch (error) {
+      setApprovalsError(
+        error instanceof Error ? error.message : "Failed to update approval",
+      );
+    } finally {
+      setBusyApprovalId(null);
+    }
+  }
+
+  function handleDispatchResponse(response: ResponseEnvelope) {
+    setLastResponse(response);
+    void loadApprovals();
+  }
 
   const agentsForDisplay = catalogAgents.length > 0
     ? catalogAgents.map((agent) => ({
@@ -82,7 +137,7 @@ export default function App() {
             tags: ["project", "inspect"],
           }],
         }]}
-        onResponse={setLastResponse}
+        onResponse={handleDispatchResponse}
       />
       <ResponseEnvelopeView response={lastResponse} />
 
@@ -100,7 +155,14 @@ export default function App() {
       </section>
 
       <section>
-        <ApprovalQueue items={mockApprovals} />
+        <ApprovalQueue
+          items={approvals}
+          loading={approvalsLoading}
+          error={approvalsError}
+          busyApprovalId={busyApprovalId}
+          onApprove={(approvalId) => handleApprovalDecision(approvalId, "approve")}
+          onReject={(approvalId) => handleApprovalDecision(approvalId, "reject")}
+        />
       </section>
 
       <TaskTimeline items={mockTimeline} />

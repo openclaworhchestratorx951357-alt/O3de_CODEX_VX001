@@ -60,6 +60,24 @@ export interface ResponseEnvelope {
   error?: ResponseError | null;
 }
 
+export interface ApprovalRecord {
+  id: string;
+  run_id: string;
+  request_id: string;
+  agent: string;
+  tool: string;
+  approval_class: ApprovalClass;
+  status: "pending" | "approved" | "rejected";
+  reason?: string | null;
+  token: string;
+  created_at: string;
+  decided_at?: string | null;
+}
+
+export interface ApprovalsResponse {
+  approvals: ApprovalRecord[];
+}
+
 export interface ToolDefinition {
   name: string;
   description: string;

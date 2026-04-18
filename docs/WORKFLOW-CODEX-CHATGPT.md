@@ -137,8 +137,9 @@ At the beginning of every Codex work session:
 2. print current branch
 3. print `git status --short`
 4. fetch latest refs
-5. confirm the exact task being worked on
-6. only then begin edits
+5. reconcile the active branch with GitHub when it is safe to do so
+6. confirm the exact task being worked on
+7. only then begin edits
 
 Recommended session start commands:
 
@@ -147,8 +148,29 @@ git rev-parse --show-toplevel
 git remote get-url origin
 git branch --show-current
 git status --short
-git fetch --all --prune
+git fetch origin --prune
 ```
+
+### Required slice-start sync rule
+
+Every new implementation slice must also apply this rule:
+
+- after `git fetch origin --prune`, if the worktree is clean, update the active branch from GitHub before editing:
+
+```powershell
+git pull --ff-only origin <current-branch>
+```
+
+- if the worktree is dirty, do not pull blindly over local changes
+- instead, report the current local state first and decide whether the slice should:
+  - sync/push the already-existing local work, or
+  - intentionally continue from accepted local changes already present in the worktree
+
+GitHub is the source of truth, so every slice must begin from:
+- a freshly fetched remote view, and
+- a fast-forwarded local branch whenever that can be done safely
+
+See `docs/SLICE-START-CHECKLIST.md` for the standing slice-start preflight.
 
 If working directly on `main`, Codex must say so explicitly.
 If working on a feature branch, Codex must print the branch name before editing.
@@ -252,6 +274,7 @@ Codex must not:
 - claim tests passed if they were not run
 - claim production readiness without stating what was actually verified
 - overwrite existing local work without checking `git status`
+- skip the per-slice remote fetch/sync preflight
 - commit secrets, tokens, or private credentials
 
 If uncertain, stop and report the exact uncertainty.
@@ -312,6 +335,13 @@ Before making changes, verify that:
 - git remote get-url origin points to openclaworhchestratorx951357-alt/O3de_CODEX_VX001
 If verification fails, stop immediately and report the mismatch.
 
+Before each new slice:
+- print git branch --show-current
+- print git status --short
+- run git fetch origin --prune
+- if the worktree is clean, run git pull --ff-only origin <current-branch>
+- if the worktree is dirty, report that state before editing and do not pull blindly over local changes
+
 Only edit the verified worktree for this repository.
 Do not invent implementation status.
 Do not claim real O3DE integrations unless they are actually implemented and validated.
@@ -332,7 +362,7 @@ After finishing, report:
 
 ## README Pointer
 
-This workflow document should be linked from the root README and docs README so it is easy to find.
+This workflow document and `docs/SLICE-START-CHECKLIST.md` should be linked from the root README and docs README so they are easy to find.
 
 ---
 

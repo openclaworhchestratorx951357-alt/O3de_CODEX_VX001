@@ -1,4 +1,9 @@
-import type { RequestEnvelope, ResponseEnvelope } from "../types/contracts";
+import type {
+  ApprovalRecord,
+  ApprovalsResponse,
+  RequestEnvelope,
+  ResponseEnvelope,
+} from "../types/contracts";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:8000";
 
@@ -28,4 +33,47 @@ export async function fetchToolsCatalog(): Promise<unknown> {
   }
 
   return response.json();
+}
+
+export async function fetchApprovals(): Promise<ApprovalRecord[]> {
+  const response = await fetch(`${API_BASE_URL}/approvals`);
+
+  if (!response.ok) {
+    throw new Error(`Approvals fetch failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as ApprovalsResponse;
+  return payload.approvals ?? [];
+}
+
+export async function approveApproval(approvalId: string): Promise<ApprovalRecord> {
+  const response = await fetch(`${API_BASE_URL}/approvals/${approvalId}/approve`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Approval decision failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as ApprovalRecord;
+}
+
+export async function rejectApproval(approvalId: string): Promise<ApprovalRecord> {
+  const response = await fetch(`${API_BASE_URL}/approvals/${approvalId}/reject`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({}),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Approval decision failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as ApprovalRecord;
 }
