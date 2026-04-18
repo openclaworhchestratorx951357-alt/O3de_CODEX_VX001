@@ -24,6 +24,21 @@ source .venv/bin/activate
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+## Docker
+
+The backend now has a Phase 5 baseline container image:
+
+```bash
+docker build -t o3de-codex-backend ./backend
+docker run --rm -p 8000:8000 -e O3DE_CONTROL_PLANE_DB_PATH=/app/runtime/control_plane.sqlite3 -v "$(pwd)/runtime:/app/runtime" o3de-codex-backend
+```
+
+For the full stack, prefer the repo-root compose flow:
+
+```bash
+docker compose up --build
+```
+
 ## Persistence configuration
 
 The backend persists control-plane state in SQLite.
@@ -55,6 +70,10 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - schema-validation capability and limits for the currently implemented subset validator
 
 If `/ready` reports `persistence_ready=false`, the backend is not claiming healthy writable persistence.
+
+For the local compose baseline, the backend uses:
+- `O3DE_CONTROL_PLANE_DB_PATH=/app/runtime/control_plane.sqlite3`
+- a mounted repo-root `./runtime` directory
 
 ## Schema validation status
 
