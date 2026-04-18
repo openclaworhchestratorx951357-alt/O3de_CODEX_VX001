@@ -72,12 +72,37 @@ export default function SystemStatusPanel(
             </p>
             <p>
               <strong>Families visible:</strong>{" "}
-              {summarizeFamilies(readiness.schema_validation.persisted_execution_details_tools)}
+              {readiness.schema_validation.persisted_family_coverage
+                .filter((family) => family.execution_details_tools > 0)
+                .map((family) => family.family)
+                .join(", ")}
             </p>
             <p style={listLabelStyle}><strong>Covered tools</strong></p>
             <ul style={listStyle}>
               {readiness.schema_validation.persisted_execution_details_tools.map((toolName) => (
                 <li key={toolName}>{toolName}</li>
+              ))}
+            </ul>
+          </article>
+          <article style={cardStyle}>
+            <h3 style={headingStyle}>Family Rollout</h3>
+            <ul style={listStyle}>
+              {readiness.schema_validation.persisted_family_coverage.map((family) => (
+                <li key={family.family} style={{ marginBottom: 10 }}>
+                  <strong>{family.family}</strong>: {family.execution_details_tools}/
+                  {family.total_tools} execution-details, {family.artifact_metadata_tools}/
+                  {family.total_tools} artifact-metadata
+                  <div style={subtleTextStyle}>
+                    Covered: {family.covered_tools.length > 0
+                      ? family.covered_tools.join(", ")
+                      : "none"}
+                  </div>
+                  <div style={subtleTextStyle}>
+                    Remaining: {family.uncovered_tools.length > 0
+                      ? family.uncovered_tools.join(", ")
+                      : "none"}
+                  </div>
+                </li>
               ))}
             </ul>
           </article>
@@ -114,29 +139,7 @@ const listStyle: CSSProperties = {
   paddingLeft: 18,
 };
 
-function summarizeFamilies(toolNames: string[]): string {
-  const families = new Set<string>();
-
-  for (const toolName of toolNames) {
-    if (toolName.startsWith("asset.")) {
-      families.add("asset-pipeline");
-      continue;
-    }
-    if (toolName.startsWith("render.")) {
-      families.add("render-lookdev");
-      continue;
-    }
-    if (
-      toolName.startsWith("project.")
-      || toolName.startsWith("settings.")
-      || toolName.startsWith("gem.")
-      || toolName.startsWith("build.")
-    ) {
-      families.add("project-build");
-      continue;
-    }
-    families.add("other");
-  }
-
-  return Array.from(families).join(", ");
+const subtleTextStyle: CSSProperties = {
+  color: "#555",
+  marginTop: 4,
 }

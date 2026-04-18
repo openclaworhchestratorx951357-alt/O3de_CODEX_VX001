@@ -297,7 +297,17 @@ export interface SchemaValidationStatus {
   persisted_artifact_metadata_tool_count: number;
   persisted_execution_details_tools: string[];
   persisted_artifact_metadata_tools: string[];
+  persisted_family_coverage: PersistedSchemaFamilyCoverage[];
   notes: string[];
+}
+
+export interface PersistedSchemaFamilyCoverage {
+  family: string;
+  total_tools: number;
+  execution_details_tools: number;
+  artifact_metadata_tools: number;
+  covered_tools: string[];
+  uncovered_tools: string[];
 }
 
 export interface AdapterModeStatus {

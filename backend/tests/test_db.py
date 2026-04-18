@@ -358,6 +358,76 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
         "render.material.inspect",
         "settings.patch",
     ]
+    assert [item.model_dump() for item in capability.persisted_family_coverage] == [
+        {
+            "family": "editor-control",
+            "total_tools": 4,
+            "execution_details_tools": 0,
+            "artifact_metadata_tools": 0,
+            "covered_tools": [],
+            "uncovered_tools": [
+                "editor.component.add",
+                "editor.entity.create",
+                "editor.level.open",
+                "editor.session.open",
+            ],
+        },
+        {
+            "family": "asset-pipeline",
+            "total_tools": 4,
+            "execution_details_tools": 2,
+            "artifact_metadata_tools": 2,
+            "covered_tools": [
+                "asset.processor.status",
+                "asset.source.inspect",
+            ],
+            "uncovered_tools": [
+                "asset.batch.process",
+                "asset.move.safe",
+            ],
+        },
+        {
+            "family": "project-build",
+            "total_tools": 5,
+            "execution_details_tools": 5,
+            "artifact_metadata_tools": 5,
+            "covered_tools": [
+                "build.compile",
+                "build.configure",
+                "gem.enable",
+                "project.inspect",
+                "settings.patch",
+            ],
+            "uncovered_tools": [],
+        },
+        {
+            "family": "render-lookdev",
+            "total_tools": 4,
+            "execution_details_tools": 2,
+            "artifact_metadata_tools": 2,
+            "covered_tools": [
+                "render.capture.viewport",
+                "render.material.inspect",
+            ],
+            "uncovered_tools": [
+                "render.material.patch",
+                "render.shader.rebuild",
+            ],
+        },
+        {
+            "family": "validation",
+            "total_tools": 4,
+            "execution_details_tools": 0,
+            "artifact_metadata_tools": 0,
+            "covered_tools": [],
+            "uncovered_tools": [
+                "test.run.editor_python",
+                "test.run.gtest",
+                "test.tiaf.sequence",
+                "test.visual.diff",
+            ],
+        },
+    ]
     assert any("does not claim full JSON Schema support" in note for note in capability.notes)
     assert any(
         "published tool arg/result schema files" in note for note in capability.notes

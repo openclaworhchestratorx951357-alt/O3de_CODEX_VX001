@@ -11,6 +11,15 @@ from app.models.control_plane import (
 )
 
 
+class PersistedSchemaFamilyCoverage(BaseModel):
+    family: str = Field(..., min_length=1)
+    total_tools: int
+    execution_details_tools: int
+    artifact_metadata_tools: int
+    covered_tools: list[str] = Field(default_factory=list)
+    uncovered_tools: list[str] = Field(default_factory=list)
+
+
 class RootStatus(BaseModel):
     name: str = Field(..., min_length=1)
     status: str = Field(..., min_length=1)
@@ -42,6 +51,9 @@ class SchemaValidationStatus(BaseModel):
     persisted_artifact_metadata_tool_count: int = 0
     persisted_execution_details_tools: list[str] = Field(default_factory=list)
     persisted_artifact_metadata_tools: list[str] = Field(default_factory=list)
+    persisted_family_coverage: list[PersistedSchemaFamilyCoverage] = Field(
+        default_factory=list
+    )
     notes: list[str] = Field(default_factory=list)
 
 

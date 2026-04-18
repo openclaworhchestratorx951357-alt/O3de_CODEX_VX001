@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from app.models.api import SchemaValidationStatus
+from app.services.catalog import catalog_service
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 TOOL_SCHEMAS_ROOT = REPO_ROOT / "schemas" / "tools"
@@ -41,6 +42,7 @@ class SchemaValidationService:
     def get_capability_status(self) -> SchemaValidationStatus:
         schema_profile = self._collect_active_tool_schema_profile()
         persisted_coverage = self._persisted_schema_coverage()
+        family_coverage = self._persisted_family_coverage(persisted_coverage)
         active_keywords = schema_profile["active_keywords"]
         active_unsupported_keywords = schema_profile["active_unsupported_keywords"]
         active_metadata_keywords = schema_profile["active_metadata_keywords"]
@@ -82,6 +84,7 @@ class SchemaValidationService:
             ),
             persisted_execution_details_tools=persisted_coverage["execution-details"],
             persisted_artifact_metadata_tools=persisted_coverage["artifact-metadata"],
+            persisted_family_coverage=family_coverage,
             notes=[
                 (
                     "Validation coverage is intentionally limited to the subset used by "
@@ -385,6 +388,41 @@ class SchemaValidationService:
             "execution-details": sorted(coverage["execution-details"]),
             "artifact-metadata": sorted(coverage["artifact-metadata"]),
         }
+
+    def _persisted_family_coverage(
+        self,
+        persisted_coverage: dict[str, list[str]],
+    ) -> list[dict[str, Any]]:
+        execution_details = set(persisted_coverage["execution-details"])
+        artifact_metadata = set(persisted_coverage["artifact-metadata"])
+        family_rows: list[dict[str, Any]] = []
+
+        for agent in catalog_service.get_catalog_model().agents:
+            tool_names = sorted(tool.name for tool in agent.tools)
+            covered_tools = sorted(
+                tool_name
+                for tool_name in tool_names
+                if tool_name in execution_details and tool_name in artifact_metadata
+            )
+            uncovered_tools = sorted(
+                tool_name for tool_name in tool_names if tool_name not in covered_tools
+            )
+            family_rows.append(
+                {
+                    "family": agent.id,
+                    "total_tools": len(tool_names),
+                    "execution_details_tools": sum(
+                        1 for tool_name in tool_names if tool_name in execution_details
+                    ),
+                    "artifact_metadata_tools": sum(
+                        1 for tool_name in tool_names if tool_name in artifact_metadata
+                    ),
+                    "covered_tools": covered_tools,
+                    "uncovered_tools": uncovered_tools,
+                }
+            )
+
+        return family_rows
 
 
 schema_validation_service = SchemaValidationService()
