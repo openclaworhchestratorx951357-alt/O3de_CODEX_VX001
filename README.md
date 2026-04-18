@@ -18,6 +18,7 @@ See these official source files before making changes:
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
 - `docs/PHASE-7-REAL-ADAPTER-GATE.md`
 - `docs/PHASE-7-PROJECT-BUILD-CANDIDATES.md`
+- `docs/PHASE-7-PROJECT-INSPECT-CHECKLIST.md`
 - `CONTRIBUTING.md`
 - `docs/LOCAL-STACK-RUNBOOK.md`
 
