@@ -49,6 +49,8 @@ export interface ResponseError {
 export interface ResponseEnvelope {
   request_id: string;
   ok: boolean;
+  operation_id?: string | null;
+  approval_id?: string | null;
   result?: Record<string, unknown> | null;
   warnings?: string[];
   artifacts?: string[];
@@ -56,6 +58,24 @@ export interface ResponseEnvelope {
   timing_ms?: number;
   logs?: string[];
   error?: ResponseError | null;
+}
+
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  approval_class: ApprovalClass;
+  default_locks: LockName[];
+  default_timeout_s: number;
+  risk: string;
+  tags: string[];
+}
+
+export interface CatalogAgent {
+  id: string;
+  name: string;
+  role: string;
+  summary: string;
+  tools: ToolDefinition[];
 }
 
 export interface AgentDefinition {

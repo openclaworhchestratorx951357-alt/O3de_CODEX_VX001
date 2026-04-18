@@ -1,13 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.approvals import router as approvals_router
+from app.api.routes.events import router as events_router
 from app.api.routes.health import router as health_router
+from app.api.routes.locks import router as locks_router
+from app.api.routes.policies import router as policies_router
+from app.api.routes.runs import router as runs_router
 from app.api.routes.tools import router as tools_router
 from app.api.routes.tools_catalog import router as tools_catalog_router
+from app.models.api import RootStatus
+from app.services.db import initialize_database
 
 app = FastAPI(
     title="O3DE Agent Control Backend",
-    version="0.1.0",
+    version="0.3.0",
     description=(
         "Backend orchestration layer for O3DE-focused agents, approvals, locks, "
         "artifacts, and structured tool execution."
@@ -25,18 +32,35 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(tools_router)
 app.include_router(tools_catalog_router)
+app.include_router(runs_router)
+app.include_router(approvals_router)
+app.include_router(locks_router)
+app.include_router(events_router)
+app.include_router(policies_router)
 
 
-@app.get("/")
-def root() -> dict:
-    return {
-        "name": "O3DE Agent Control Backend",
-        "status": "bootstrapped",
-        "routes": ["/health", "/tools/dispatch", "/tools/catalog"],
-        "next": [
-            "request validation",
-            "tool dispatch",
-            "approval checks",
-            "lock enforcement",
+@app.on_event("startup")
+def startup() -> None:
+    initialize_database()
+
+
+@app.get("/", response_model=RootStatus)
+def root() -> RootStatus:
+    return RootStatus(
+        name="O3DE Agent Control Backend",
+        status="phase-2-persistence",
+        execution_mode="simulated",
+        routes=[
+            "/health",
+            "/ready",
+            "/version",
+            "/tools/catalog",
+            "/tools/dispatch",
+            "/runs",
+            "/approvals",
+            "/locks",
+            "/events",
+            "/policies",
         ],
-    }
+        phase="phase-2",
+    )

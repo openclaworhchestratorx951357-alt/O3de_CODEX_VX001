@@ -11,13 +11,7 @@ import { mockAgents } from "./data/mockAgents";
 import { mockApprovals } from "./data/mockApprovals";
 import { mockTimeline } from "./data/mockTimeline";
 import { fetchToolsCatalog } from "./lib/api";
-import type { ResponseEnvelope } from "./types/contracts";
-
-type CatalogAgent = {
-  id: string;
-  name: string;
-  tools: string[];
-};
+import type { CatalogAgent, ResponseEnvelope } from "./types/contracts";
 
 type ToolsCatalog = {
   agents: CatalogAgent[];
@@ -47,9 +41,11 @@ export default function App() {
     ? catalogAgents.map((agent) => ({
         id: agent.id,
         name: agent.name,
-        role: "Catalog-backed agent entry",
-        locks: ["catalog"],
-        owned_tools: agent.tools,
+        role: agent.role,
+        locks: agent.tools[0]?.default_locks.length
+          ? agent.tools[0].default_locks
+          : ["project_config"],
+        owned_tools: agent.tools.map((tool) => tool.name),
       }))
     : mockAgents;
 
@@ -71,7 +67,21 @@ export default function App() {
 
       <CatalogPanel agents={catalogAgents} />
       <DispatchForm
-        agents={catalogAgents.length > 0 ? catalogAgents : [{ id: "project-build", name: "Project / Build Agent", tools: ["project.inspect"] }]}
+        agents={catalogAgents.length > 0 ? catalogAgents : [{
+          id: "project-build",
+          name: "Project / Build Agent",
+          role: "Fallback catalog entry",
+          summary: "Fallback catalog entry",
+          tools: [{
+            name: "project.inspect",
+            description: "Inspect project manifest and override state.",
+            approval_class: "read_only",
+            default_locks: ["project_config"],
+            default_timeout_s: 30,
+            risk: "low",
+            tags: ["project", "inspect"],
+          }],
+        }]}
         onResponse={setLastResponse}
       />
       <ResponseEnvelopeView response={lastResponse} />

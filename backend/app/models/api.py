@@ -1,0 +1,60 @@
+from pydantic import BaseModel, Field
+
+from app.models.control_plane import (
+    ApprovalRecord,
+    EventRecord,
+    LockRecord,
+    RunRecord,
+    ToolPolicy,
+)
+
+
+class RootStatus(BaseModel):
+    name: str = Field(..., min_length=1)
+    status: str = Field(..., min_length=1)
+    execution_mode: str = Field(..., min_length=1)
+    routes: list[str] = Field(default_factory=list)
+    phase: str = Field(..., min_length=1)
+
+
+class HealthStatus(BaseModel):
+    ok: bool
+    service: str = Field(..., min_length=1)
+    version: str = Field(..., min_length=1)
+
+
+class ReadinessStatus(BaseModel):
+    ok: bool
+    service: str = Field(..., min_length=1)
+    execution_mode: str = Field(..., min_length=1)
+    dependencies: list[str] = Field(default_factory=list)
+
+
+class VersionStatus(BaseModel):
+    service: str = Field(..., min_length=1)
+    version: str = Field(..., min_length=1)
+    api_version: str = Field(..., min_length=1)
+
+
+class RunsResponse(BaseModel):
+    runs: list[RunRecord] = Field(default_factory=list)
+
+
+class ApprovalsResponse(BaseModel):
+    approvals: list[ApprovalRecord] = Field(default_factory=list)
+
+
+class LocksResponse(BaseModel):
+    locks: list[LockRecord] = Field(default_factory=list)
+
+
+class EventsResponse(BaseModel):
+    events: list[EventRecord] = Field(default_factory=list)
+
+
+class PoliciesResponse(BaseModel):
+    policies: list[ToolPolicy] = Field(default_factory=list)
+
+
+class ApprovalDecisionRequest(BaseModel):
+    reason: str | None = None

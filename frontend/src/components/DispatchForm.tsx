@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { dispatchTool } from "../lib/api";
-import type { RequestEnvelope, ResponseEnvelope } from "../types/contracts";
-
-type CatalogAgent = {
-  id: string;
-  name: string;
-  tools: string[];
-};
+import type {
+  CatalogAgent,
+  RequestEnvelope,
+  ResponseEnvelope,
+} from "../types/contracts";
 
 type DispatchFormProps = {
   agents: CatalogAgent[];
@@ -17,12 +15,22 @@ type DispatchFormProps = {
 export default function DispatchForm({ agents, onResponse }: DispatchFormProps) {
   const firstAgent = agents[0]?.id ?? "project-build";
   const toolsForSelectedAgent = useMemo(() => {
-    return agents.find((agent) => agent.id === firstAgent)?.tools ?? ["project.inspect"];
+    return (
+      agents.find((agent) => agent.id === firstAgent)?.tools ?? [{
+        name: "project.inspect",
+        description: "Inspect project manifest and override state.",
+        approval_class: "read_only",
+        default_locks: ["project_config"],
+        default_timeout_s: 30,
+        risk: "low",
+        tags: ["project", "inspect"],
+      }]
+    );
   }, [agents, firstAgent]);
 
   const [request, setRequest] = useState<RequestEnvelope>({
     request_id: crypto.randomUUID(),
-    tool: toolsForSelectedAgent[0] ?? "project.inspect",
+    tool: toolsForSelectedAgent[0]?.name ?? "project.inspect",
     agent: firstAgent,
     project_root: "/path/to/project",
     engine_root: "/path/to/engine",
@@ -45,15 +53,18 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
       setRequest((current) => ({
         ...current,
         agent: fallbackAgent.id,
-        tool: fallbackAgent.tools[0] ?? current.tool,
+        tool: fallbackAgent.tools[0]?.name ?? current.tool,
       }));
       return;
     }
 
-    if (selectedAgent && !selectedAgent.tools.includes(request.tool)) {
+    if (
+      selectedAgent &&
+      !selectedAgent.tools.some((tool) => tool.name === request.tool)
+    ) {
       setRequest((current) => ({
         ...current,
-        tool: selectedAgent.tools[0] ?? current.tool,
+        tool: selectedAgent.tools[0]?.name ?? current.tool,
       }));
     }
   }, [agents, request.tool, selectedAgent]);
@@ -106,7 +117,7 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
                 setRequest({
                   ...request,
                   agent: e.target.value,
-                  tool: nextAgent?.tools[0] ?? request.tool,
+                  tool: nextAgent?.tools[0]?.name ?? request.tool,
                 });
               }}
             >
@@ -126,8 +137,8 @@ export default function DispatchForm({ agents, onResponse }: DispatchFormProps) 
               onChange={(e) => setRequest({ ...request, tool: e.target.value })}
             >
               {availableTools.map((tool) => (
-                <option key={tool} value={tool}>
-                  {tool}
+                <option key={tool.name} value={tool.name}>
+                  {tool.name}
                 </option>
               ))}
             </select>

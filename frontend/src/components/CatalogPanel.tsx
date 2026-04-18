@@ -1,8 +1,4 @@
-type CatalogAgent = {
-  id: string;
-  name: string;
-  tools: string[];
-};
+import type { CatalogAgent } from "../types/contracts";
 
 type CatalogPanelProps = {
   agents: CatalogAgent[];
@@ -27,7 +23,8 @@ export default function CatalogPanel({ agents }: CatalogPanelProps) {
             <li key={agent.id} style={{ marginBottom: 12 }}>
               <strong>{agent.name}</strong>
               <div>ID: {agent.id}</div>
-              <div>Tools: {agent.tools.join(", ")}</div>
+              <div>Role: {agent.role}</div>
+              <div>Tools: {agent.tools.map((tool) => tool.name).join(", ")}</div>
             </li>
           ))}
         </ul>

@@ -1,0 +1,130 @@
+import json
+import os
+import sqlite3
+import threading
+from contextlib import contextmanager
+from pathlib import Path
+from typing import Any, Iterator
+
+
+DEFAULT_DB_PATH = Path(__file__).resolve().parents[2] / ".runtime" / "control_plane.sqlite3"
+
+_db_lock = threading.Lock()
+_configured_db_path: Path | None = None
+
+
+def configure_database(path: str | Path | None) -> Path:
+    global _configured_db_path
+    _configured_db_path = Path(path).resolve() if path else None
+    return get_database_path()
+
+
+def get_database_path() -> Path:
+    if _configured_db_path is not None:
+        return _configured_db_path
+
+    configured = os.getenv("O3DE_CONTROL_PLANE_DB_PATH")
+    if configured:
+        return Path(configured).resolve()
+
+    return DEFAULT_DB_PATH
+
+
+def initialize_database() -> Path:
+    db_path = get_database_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with _db_lock:
+        with sqlite3.connect(db_path) as connection:
+            connection.execute("PRAGMA foreign_keys = ON")
+            connection.executescript(
+                """
+                CREATE TABLE IF NOT EXISTS runs (
+                    id TEXT PRIMARY KEY,
+                    request_id TEXT NOT NULL,
+                    agent TEXT NOT NULL,
+                    tool TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    dry_run INTEGER NOT NULL,
+                    approval_id TEXT,
+                    approval_token TEXT,
+                    requested_locks TEXT NOT NULL,
+                    granted_locks TEXT NOT NULL,
+                    warnings TEXT NOT NULL,
+                    execution_mode TEXT NOT NULL,
+                    result_summary TEXT
+                );
+
+                CREATE TABLE IF NOT EXISTS approvals (
+                    id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL,
+                    request_id TEXT NOT NULL,
+                    agent TEXT NOT NULL,
+                    tool TEXT NOT NULL,
+                    approval_class TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    reason TEXT,
+                    token TEXT NOT NULL UNIQUE,
+                    created_at TEXT NOT NULL,
+                    decided_at TEXT,
+                    FOREIGN KEY(run_id) REFERENCES runs(id)
+                );
+
+                CREATE TABLE IF NOT EXISTS locks (
+                    name TEXT PRIMARY KEY,
+                    owner_run_id TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY(owner_run_id) REFERENCES runs(id)
+                );
+
+                CREATE TABLE IF NOT EXISTS events (
+                    id TEXT PRIMARY KEY,
+                    run_id TEXT,
+                    category TEXT NOT NULL,
+                    severity TEXT NOT NULL,
+                    message TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    details TEXT NOT NULL,
+                    FOREIGN KEY(run_id) REFERENCES runs(id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_runs_created_at ON runs(created_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_approvals_created_at ON approvals(created_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at DESC);
+                """
+            )
+    return db_path
+
+
+@contextmanager
+def connection() -> Iterator[sqlite3.Connection]:
+    db_path = initialize_database()
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def reset_database() -> None:
+    initialize_database()
+    with connection() as conn:
+        conn.execute("DELETE FROM approvals")
+        conn.execute("DELETE FROM locks")
+        conn.execute("DELETE FROM events")
+        conn.execute("DELETE FROM runs")
+
+
+def encode_json(value: Any) -> str:
+    return json.dumps(value, sort_keys=True)
+
+
+def decode_json(value: str | None, fallback: Any) -> Any:
+    if value is None:
+        return fallback
+    return json.loads(value)
