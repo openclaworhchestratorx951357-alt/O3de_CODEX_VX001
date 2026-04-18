@@ -5,6 +5,11 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
+    "include_project_config": { "type": "boolean" },
+    "project_config_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
     "include_gems": { "type": "boolean" },
     "include_settings": { "type": "boolean" },
     "include_build_state": { "type": "boolean" }

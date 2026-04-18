@@ -32,6 +32,19 @@ MANIFEST_SETTINGS_KEYS = (
     "icon_path",
     "restricted_platform_name",
 )
+MANIFEST_PROJECT_CONFIG_KEYS = (
+    "project_id",
+    "project_name",
+    "display_name",
+    "version",
+    "summary",
+    "compatible_engines",
+    "engine_api_dependencies",
+    "origin",
+    "user_tags",
+    "icon_path",
+    "restricted_platform_name",
+)
 
 
 @dataclass(slots=True)
@@ -247,6 +260,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         project_name = manifest.get("project_name")
         enabled_gems = self._normalized_string_list(manifest.get("gem_names"))
         inspection_flags = {
+            "include_project_config": bool(args.get("include_project_config", False)),
             "include_gems": bool(args.get("include_gems", False)),
             "include_settings": bool(args.get("include_settings", False)),
             "include_build_state": bool(args.get("include_build_state", False)),
@@ -254,12 +268,21 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         manifest_keys = sorted(str(key) for key in manifest.keys())
         inspection_evidence: list[str] = ["project_manifest"]
         manifest_settings = self._manifest_settings_snapshot(manifest)
+        project_config_keys = self._normalized_string_list(args.get("project_config_keys"))
+        project_config = self._project_config_snapshot(
+            manifest,
+            requested_keys=project_config_keys,
+            include_project_config=inspection_flags["include_project_config"],
+        )
         message = "Read-only project manifest inspection completed against real project files."
         if isinstance(project_name, str) and project_name.strip():
             message = (
                 "Read-only project manifest inspection completed against real project "
                 f"files for '{project_name}'."
             )
+        if inspection_flags["include_project_config"]:
+            message += " Manifest-backed project-config evidence was captured."
+            inspection_evidence.append("project_config")
         if inspection_flags["include_gems"]:
             message += " Manifest-backed Gem inspection evidence was captured."
             inspection_evidence.append("gem_names")
@@ -268,6 +291,16 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             inspection_evidence.append("manifest_settings")
 
         warnings: list[str] = []
+        if inspection_flags["include_project_config"]:
+            warnings.append(
+                "Project-config inspection remains limited to manifest-backed top-level "
+                "fields from project.json in this slice."
+            )
+            if not project_config:
+                warnings.append(
+                    "No manifest-backed project-config fields were present for the current "
+                    "inspection request."
+                )
         if inspection_flags["include_settings"]:
             warnings.append(
                 "Settings inspection remains limited to manifest-backed top-level "
@@ -309,6 +342,13 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "Hybrid adapter mode enabled a real project.inspect path.",
                 f"Read project manifest from '{manifest_path}'.",
                 (
+                    "Captured manifest-backed project-config inspection evidence."
+                    if inspection_flags["include_project_config"] and project_config
+                    else "Project-config inspection evidence was not requested."
+                    if not inspection_flags["include_project_config"]
+                    else "No manifest-backed project-config evidence was available to capture."
+                ),
+                (
                     f"Captured {len(enabled_gems)} manifest-backed Gem entries."
                     if inspection_flags["include_gems"]
                     else "Gem inspection evidence was not requested."
@@ -338,6 +378,17 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "manifest_keys": manifest_keys,
                 "project_name": project_name,
                 "include_flags": inspection_flags,
+                "project_config": (
+                    project_config if inspection_flags["include_project_config"] else {}
+                ),
+                "project_config_keys": (
+                    sorted(project_config.keys())
+                    if inspection_flags["include_project_config"]
+                    else []
+                ),
+                "requested_project_config_keys": (
+                    project_config_keys if inspection_flags["include_project_config"] else []
+                ),
                 "gem_names": enabled_gems if inspection_flags["include_gems"] else [],
                 "gem_names_count": len(enabled_gems) if inspection_flags["include_gems"] else 0,
                 "manifest_settings": (
@@ -361,6 +412,17 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "manifest_keys": manifest_keys,
                 "project_name": project_name,
                 "include_flags": inspection_flags,
+                "project_config": (
+                    project_config if inspection_flags["include_project_config"] else {}
+                ),
+                "project_config_keys": (
+                    sorted(project_config.keys())
+                    if inspection_flags["include_project_config"]
+                    else []
+                ),
+                "requested_project_config_keys": (
+                    project_config_keys if inspection_flags["include_project_config"] else []
+                ),
                 "gem_names": enabled_gems if inspection_flags["include_gems"] else [],
                 "gem_names_count": len(enabled_gems) if inspection_flags["include_gems"] else 0,
                 "manifest_settings": (
@@ -632,6 +694,27 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
     def _manifest_settings_snapshot(self, manifest: dict[str, Any]) -> dict[str, Any]:
         snapshot: dict[str, Any] = {}
         for key in MANIFEST_SETTINGS_KEYS:
+            if key in manifest:
+                snapshot[key] = manifest[key]
+        return snapshot
+
+    def _project_config_snapshot(
+        self,
+        manifest: dict[str, Any],
+        *,
+        requested_keys: list[str],
+        include_project_config: bool,
+    ) -> dict[str, Any]:
+        if not include_project_config:
+            return {}
+
+        allowed_keys = set(MANIFEST_PROJECT_CONFIG_KEYS)
+        selected_keys = [
+            key for key in requested_keys if key in allowed_keys
+        ] or [key for key in MANIFEST_PROJECT_CONFIG_KEYS if key in manifest]
+
+        snapshot: dict[str, Any] = {}
+        for key in selected_keys:
             if key in manifest:
                 snapshot[key] = manifest[key]
         return snapshot

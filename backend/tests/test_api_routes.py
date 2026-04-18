@@ -29,7 +29,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         response = client.get("/")
         assert response.status_code == 200
         payload = response.json()
-        assert payload["status"] == "phase-7-manifest-inspection-evidence"
+        assert payload["status"] == "phase-7-project-config-inspection"
         assert payload["phase"] == "phase-7"
         assert "/runs" in payload["routes"]
 
@@ -330,7 +330,12 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                         "dry_run": True,
                         "locks": [],
                         "timeout_s": 30,
-                        "args": {"include_gems": True, "include_settings": True},
+                        "args": {
+                            "include_project_config": True,
+                            "project_config_keys": ["project_name", "version"],
+                            "include_gems": True,
+                            "include_settings": True,
+                        },
                     },
                 )
                 assert dispatch.status_code == 200
@@ -342,6 +347,11 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                 executions = client.get("/executions")
                 assert executions.status_code == 200
                 execution = executions.json()["executions"][0]
+                assert execution["details"]["project_config"]["project_name"] == "ApiHybridProject"
+                assert execution["details"]["project_config_keys"] == [
+                    "project_name",
+                    "version",
+                ]
                 assert execution["details"]["gem_names"] == ["ApiGem"]
                 assert execution["details"]["manifest_settings"]["version"] == "2.0.0"
 

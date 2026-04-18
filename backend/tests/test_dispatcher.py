@@ -246,7 +246,12 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
                 "project.inspect",
                 project_root=str(project_root),
             )
-            request.args = {"include_gems": True, "include_settings": True}
+            request.args = {
+                "include_project_config": True,
+                "project_config_keys": ["project_name", "version", "compatible_engines"],
+                "include_gems": True,
+                "include_settings": True,
+            }
             response = dispatcher_service.dispatch(request)
 
         assert response.ok is True
@@ -259,11 +264,24 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
         assert execution.details["inspection_surface"] == "project_manifest"
         assert execution.details["inspection_evidence"] == [
             "project_manifest",
+            "project_config",
             "gem_names",
             "manifest_settings",
         ]
         assert execution.details["project_manifest_path"].endswith("project.json")
         assert execution.details["project_name"] == "Phase7Project"
+        assert execution.details["project_config"]["project_name"] == "Phase7Project"
+        assert execution.details["project_config"]["version"] == "1.0.0"
+        assert execution.details["project_config_keys"] == [
+            "compatible_engines",
+            "project_name",
+            "version",
+        ]
+        assert execution.details["requested_project_config_keys"] == [
+            "project_name",
+            "version",
+            "compatible_engines",
+        ]
         assert execution.details["gem_names"] == ["ExampleGem"]
         assert execution.details["gem_names_count"] == 1
         assert execution.details["manifest_settings"]["compatible_engines"] == ["o3de"]
@@ -272,6 +290,7 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
         assert artifact.simulated is False
         assert artifact.metadata["execution_mode"] == "real"
         assert artifact.metadata["project_name"] == "Phase7Project"
+        assert artifact.metadata["project_config"]["version"] == "1.0.0"
         assert artifact.metadata["gem_names"] == ["ExampleGem"]
         assert artifact.metadata["manifest_settings"]["compatible_engines"] == ["o3de"]
 
@@ -290,7 +309,12 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
                 "project.inspect",
                 project_root=str(project_root),
             )
-            request.args = {"include_gems": True, "include_settings": True}
+            request.args = {
+                "include_project_config": True,
+                "project_config_keys": ["version", "summary"],
+                "include_gems": True,
+                "include_settings": True,
+            }
             response = dispatcher_service.dispatch(request)
 
         assert response.ok is True
@@ -303,9 +327,16 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
             for execution in executions_service.list_executions()
             if execution.run_id == run_id
         )
+        assert execution.details["project_config"] == {}
+        assert execution.details["project_config_keys"] == []
+        assert execution.details["requested_project_config_keys"] == ["version", "summary"]
         assert execution.details["gem_names"] == []
         assert execution.details["gem_names_count"] == 0
         assert execution.details["manifest_settings"]["project_name"] == "LeanProject"
+        assert any(
+            "No manifest-backed project-config fields were present" in warning
+            for warning in execution.warnings
+        )
         assert any("No gem_names entries were present" in warning for warning in execution.warnings)
 
 
