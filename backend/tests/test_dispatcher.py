@@ -3,8 +3,10 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from app.services.approvals import approvals_service
+from app.services.artifacts import artifacts_service
 from app.services.db import configure_database, initialize_database, reset_database
 from app.services.events import events_service
+from app.services.executions import executions_service
 from app.models.request_envelope import RequestEnvelope
 from app.services.dispatcher import dispatcher_service
 from app.services.locks import locks_service
@@ -46,6 +48,7 @@ def test_dispatch_accepts_valid_agent_and_tool() -> None:
         assert response.ok is True
         assert response.error is None
         assert response.operation_id is not None
+        assert len(response.artifacts) == 1
 
 
 def test_dispatch_rejects_unknown_agent() -> None:
@@ -93,6 +96,7 @@ def test_dispatch_accepts_after_approval() -> None:
         assert response.ok is True
         assert response.result is not None
         assert response.result["execution_mode"] == "simulated"
+        assert len(executions_service.list_executions()) >= 2
 
 
 def test_dispatch_blocks_when_lock_is_owned() -> None:
@@ -135,11 +139,19 @@ def test_events_and_runs_remain_queryable_after_restart() -> None:
         response = dispatcher_service.dispatch(make_request("project-build", "project.inspect"))
         run_id = response.operation_id
         assert run_id is not None
+        artifact_id = response.artifacts[0]
+        execution_id = executions_service.list_executions()[0].id
 
         configure_database(db_path)
         initialize_database()
 
         persisted_run = runs_service.get_run(run_id)
         persisted_events = events_service.list_events()
+        persisted_execution = executions_service.get_execution(execution_id)
+        persisted_artifact = artifacts_service.get_artifact(artifact_id)
         assert persisted_run is not None
         assert any(event.run_id == run_id for event in persisted_events)
+        assert persisted_execution is not None
+        assert persisted_execution.execution_mode == "simulated"
+        assert persisted_artifact is not None
+        assert persisted_artifact.simulated is True

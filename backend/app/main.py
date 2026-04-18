@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.artifacts import router as artifacts_router
 from app.api.routes.approvals import router as approvals_router
 from app.api.routes.events import router as events_router
+from app.api.routes.executions import router as executions_router
 from app.api.routes.health import router as health_router
 from app.api.routes.locks import router as locks_router
 from app.api.routes.policies import router as policies_router
@@ -37,6 +39,8 @@ app.include_router(approvals_router)
 app.include_router(locks_router)
 app.include_router(events_router)
 app.include_router(policies_router)
+app.include_router(executions_router)
+app.include_router(artifacts_router)
 
 
 @app.on_event("startup")
@@ -61,6 +65,8 @@ def root() -> RootStatus:
             "/locks",
             "/events",
             "/policies",
+            "/executions",
+            "/artifacts",
         ],
         phase="phase-2",
     )

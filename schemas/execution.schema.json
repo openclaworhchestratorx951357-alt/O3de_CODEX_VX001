@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/execution.schema.json",
+  "title": "Control Plane Execution",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "run_id",
+    "request_id",
+    "agent",
+    "tool",
+    "execution_mode",
+    "status",
+    "started_at",
+    "warnings",
+    "logs",
+    "artifact_ids",
+    "details"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "request_id": { "type": "string", "minLength": 1 },
+    "agent": { "type": "string", "minLength": 1 },
+    "tool": { "type": "string", "minLength": 1 },
+    "execution_mode": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "waiting_approval", "blocked", "running", "succeeded", "rejected", "failed"]
+    },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": ["string", "null"], "format": "date-time" },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "logs": { "type": "array", "items": { "type": "string" } },
+    "artifact_ids": { "type": "array", "items": { "type": "string" } },
+    "details": { "type": "object", "additionalProperties": true },
+    "result_summary": { "type": ["string", "null"] }
+  }
+}

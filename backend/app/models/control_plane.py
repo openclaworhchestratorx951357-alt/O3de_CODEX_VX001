@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from enum import Enum
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -28,6 +30,16 @@ class EventSeverity(str, Enum):
     INFO = "info"
     WARNING = "warning"
     ERROR = "error"
+
+
+class ExecutionStatus(str, Enum):
+    PENDING = "pending"
+    WAITING_APPROVAL = "waiting_approval"
+    BLOCKED = "blocked"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    REJECTED = "rejected"
+    FAILED = "failed"
 
 
 class ToolPolicy(BaseModel):
@@ -87,3 +99,34 @@ class EventRecord(BaseModel):
     message: str = Field(..., min_length=1)
     created_at: datetime = Field(default_factory=utc_now)
     details: dict[str, str] = Field(default_factory=dict)
+
+
+class ExecutionRecord(BaseModel):
+    id: str = Field(..., min_length=1)
+    run_id: str = Field(..., min_length=1)
+    request_id: str = Field(..., min_length=1)
+    agent: str = Field(..., min_length=1)
+    tool: str = Field(..., min_length=1)
+    execution_mode: str = Field(default="simulated", min_length=1)
+    status: ExecutionStatus
+    started_at: datetime = Field(default_factory=utc_now)
+    finished_at: datetime | None = None
+    warnings: list[str] = Field(default_factory=list)
+    logs: list[str] = Field(default_factory=list)
+    artifact_ids: list[str] = Field(default_factory=list)
+    details: dict[str, Any] = Field(default_factory=dict)
+    result_summary: str | None = None
+
+
+class ArtifactRecord(BaseModel):
+    id: str = Field(..., min_length=1)
+    run_id: str = Field(..., min_length=1)
+    execution_id: str = Field(..., min_length=1)
+    label: str = Field(..., min_length=1)
+    kind: str = Field(..., min_length=1)
+    uri: str = Field(..., min_length=1)
+    path: str | None = None
+    content_type: str | None = None
+    simulated: bool = True
+    created_at: datetime = Field(default_factory=utc_now)
+    metadata: dict[str, Any] = Field(default_factory=dict)

@@ -122,3 +122,33 @@ def test_events_endpoint_returns_persisted_dispatch_history() -> None:
         assert response.status_code == 200
         payload = response.json()
         assert len(payload["events"]) >= 1
+
+
+def test_executions_and_artifacts_endpoints_reflect_simulated_dispatch() -> None:
+    with isolated_client() as client:
+        dispatch = client.post(
+            "/tools/dispatch",
+            json={
+                "request_id": "api-artifacts-1",
+                "tool": "project.inspect",
+                "agent": "project-build",
+                "project_root": "/tmp/project",
+                "engine_root": "/tmp/engine",
+                "dry_run": True,
+                "locks": [],
+                "timeout_s": 30,
+                "args": {},
+            },
+        )
+        payload = dispatch.json()
+        artifact_id = payload["artifacts"][0]
+
+        executions = client.get("/executions")
+        artifacts = client.get("/artifacts")
+        artifact = client.get(f"/artifacts/{artifact_id}")
+
+        assert executions.status_code == 200
+        assert artifacts.status_code == 200
+        assert artifact.status_code == 200
+        assert executions.json()["executions"][0]["execution_mode"] == "simulated"
+        assert artifact.json()["simulated"] is True

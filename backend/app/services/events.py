@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from app.models.control_plane import EventRecord, EventSeverity
-from app.services.db import connection, decode_json, encode_json
+from app.repositories.control_plane import control_plane_repository
 
 
 class EventsService:
@@ -22,39 +22,10 @@ class EventsService:
             message=message,
             details=details or {},
         )
-        with connection() as conn:
-            conn.execute(
-                """
-                INSERT INTO events (
-                    id, run_id, category, severity, message, created_at, details
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    event.id,
-                    event.run_id,
-                    event.category,
-                    event.severity.value,
-                    event.message,
-                    event.created_at.isoformat(),
-                    encode_json(event.details),
-                ),
-            )
-        return event
+        return control_plane_repository.create_event(event)
 
     def list_events(self) -> list[EventRecord]:
-        with connection() as conn:
-            rows = conn.execute(
-                "SELECT * FROM events ORDER BY created_at DESC, id DESC"
-            ).fetchall()
-        return [
-            EventRecord.model_validate(
-                {
-                    **dict(row),
-                    "details": decode_json(row["details"], {}),
-                }
-            )
-            for row in rows
-        ]
+        return control_plane_repository.list_events()
 
 
 events_service = EventsService()

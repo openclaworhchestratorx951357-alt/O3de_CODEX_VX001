@@ -2,7 +2,9 @@ from pydantic import BaseModel, Field
 
 from app.models.control_plane import (
     ApprovalRecord,
+    ArtifactRecord,
     EventRecord,
+    ExecutionRecord,
     LockRecord,
     RunRecord,
     ToolPolicy,
@@ -54,6 +56,14 @@ class EventsResponse(BaseModel):
 
 class PoliciesResponse(BaseModel):
     policies: list[ToolPolicy] = Field(default_factory=list)
+
+
+class ExecutionsResponse(BaseModel):
+    executions: list[ExecutionRecord] = Field(default_factory=list)
+
+
+class ArtifactsResponse(BaseModel):
+    artifacts: list[ArtifactRecord] = Field(default_factory=list)
 
 
 class ApprovalDecisionRequest(BaseModel):

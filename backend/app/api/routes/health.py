@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.models.api import HealthStatus, ReadinessStatus, VersionStatus
-from app.services.db import get_database_path
+from app.services.db import get_database_strategy_summary
 
 router = APIRouter(tags=["health"])
 
@@ -18,10 +18,12 @@ def ready() -> ReadinessStatus:
         service="backend",
         execution_mode="simulated",
         dependencies=[
-            f"sqlite runs store ({get_database_path()})",
+            get_database_strategy_summary(),
             "sqlite approvals store",
             "sqlite locks store",
             "sqlite events store",
+            "sqlite execution records store",
+            "sqlite artifact metadata store",
         ],
     )
 

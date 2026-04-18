@@ -1,9 +1,16 @@
-from app.models.control_plane import ApprovalStatus, EventSeverity, RunStatus
+from app.models.control_plane import (
+    ApprovalStatus,
+    EventSeverity,
+    ExecutionStatus,
+    RunStatus,
+)
 from app.models.request_envelope import RequestEnvelope
 from app.models.response_envelope import ResponseEnvelope, ResponseError
 from app.services.approvals import approvals_service
+from app.services.artifacts import artifacts_service
 from app.services.catalog import catalog_service
 from app.services.events import events_service
+from app.services.executions import executions_service
 from app.services.locks import locks_service
 from app.services.policy import policy_service
 from app.services.runs import runs_service
@@ -24,6 +31,17 @@ class DispatcherService:
             requested_locks=requested_locks,
             execution_mode="simulated",
         )
+        execution = executions_service.create_execution(
+            run_id=run.id,
+            request_id=request.request_id,
+            agent=request.agent,
+            tool=request.tool,
+            execution_mode="simulated",
+            status=ExecutionStatus.PENDING,
+            details={"requested_locks": requested_locks},
+            logs=["Dispatch request received."],
+            result_summary="Execution record opened for this dispatch attempt.",
+        )
         events_service.record(
             category="dispatch",
             severity=EventSeverity.INFO,
@@ -37,6 +55,13 @@ class DispatcherService:
                 run.id,
                 status=RunStatus.FAILED,
                 result_summary="Rejected due to unknown agent.",
+            )
+            executions_service.update_execution(
+                execution.id,
+                status=ExecutionStatus.FAILED,
+                logs=["Rejected request for unknown agent."],
+                result_summary="Rejected due to unknown agent.",
+                finished=True,
             )
             events_service.record(
                 category="dispatch",
@@ -63,6 +88,13 @@ class DispatcherService:
                 run.id,
                 status=RunStatus.FAILED,
                 result_summary="Rejected due to invalid tool/agent pairing.",
+            )
+            executions_service.update_execution(
+                execution.id,
+                status=ExecutionStatus.FAILED,
+                logs=["Rejected due to invalid tool/agent pairing."],
+                result_summary="Rejected due to invalid tool/agent pairing.",
+                finished=True,
             )
             events_service.record(
                 category="dispatch",
@@ -96,6 +128,13 @@ class DispatcherService:
                 status=RunStatus.FAILED,
                 result_summary="Rejected because no tool policy was found.",
             )
+            executions_service.update_execution(
+                execution.id,
+                status=ExecutionStatus.FAILED,
+                logs=["Missing tool policy definition."],
+                result_summary="Rejected because no tool policy was found.",
+                finished=True,
+            )
             events_service.record(
                 category="policy",
                 severity=EventSeverity.ERROR,
@@ -116,7 +155,12 @@ class DispatcherService:
                 logs=["Missing tool policy definition."],
             )
 
-        approval_problem = self._check_approval(request, run.id, policy.approval_class)
+        approval_problem = self._check_approval(
+            request,
+            run.id,
+            execution.id,
+            policy.approval_class,
+        )
         if approval_problem is not None:
             return approval_problem
 
@@ -126,6 +170,14 @@ class DispatcherService:
                 run.id,
                 status=RunStatus.BLOCKED,
                 result_summary="Blocked by an active lock.",
+            )
+            executions_service.update_execution(
+                execution.id,
+                status=ExecutionStatus.BLOCKED,
+                logs=[f"Blocked by locks: {', '.join(lock.name for lock in conflicts)}."],
+                details={"conflicts": [lock.model_dump() for lock in conflicts]},
+                result_summary="Blocked by an active lock.",
+                finished=True,
             )
             events_service.record(
                 category="locks",
@@ -159,6 +211,23 @@ class DispatcherService:
                 "Execution mode is simulated until real O3DE adapters are implemented.",
             ],
         )
+        executions_service.update_execution(
+            execution.id,
+            status=ExecutionStatus.RUNNING,
+            warnings=[
+                "Execution mode is simulated until real O3DE adapters are implemented.",
+            ],
+            logs=[
+                "Control-plane prechecks passed.",
+                f"Acquired locks: {', '.join(lock.name for lock in acquired_locks) if acquired_locks else 'none'}.",
+            ],
+            details={
+                "requested_locks": requested_locks,
+                "granted_locks": [lock.name for lock in acquired_locks],
+                "simulated": True,
+            },
+            result_summary="Simulated execution started.",
+        )
         events_service.record(
             category="locks",
             severity=EventSeverity.INFO,
@@ -182,12 +251,42 @@ class DispatcherService:
                 "but no real O3DE adapter was executed."
             ),
         }
+        artifact = artifacts_service.create_artifact(
+            run_id=run.id,
+            execution_id=execution.id,
+            label="Simulated dispatch summary",
+            kind="simulated_result",
+            uri=f"simulated://runs/{run.id}/executions/{execution.id}/summary",
+            content_type="application/json",
+            simulated=True,
+            metadata={
+                "tool": request.tool,
+                "agent": request.agent,
+                "execution_mode": "simulated",
+            },
+        )
 
         locks_service.release(run.id)
         runs_service.update_run(
             run.id,
             status=RunStatus.SUCCEEDED,
             result_summary="Simulated dispatch completed successfully.",
+        )
+        executions_service.update_execution(
+            execution.id,
+            status=ExecutionStatus.SUCCEEDED,
+            logs=[
+                "Simulated execution completed successfully.",
+                "No real O3DE adapter was invoked.",
+            ],
+            artifact_ids=[artifact.id],
+            details={
+                "result": result,
+                "artifact_id": artifact.id,
+                "simulated": True,
+            },
+            result_summary="Simulated dispatch completed successfully.",
+            finished=True,
         )
         events_service.record(
             category="dispatch",
@@ -206,6 +305,7 @@ class DispatcherService:
                 "Control-plane bookkeeping is real for this run.",
                 "Underlying O3DE execution remains simulated in this phase.",
             ],
+            artifacts=[artifact.id],
             logs=[
                 f"Dispatch requested for tool '{request.tool}'.",
                 f"Agent '{request.agent}' requested locks: {', '.join(requested_locks) if requested_locks else 'none'}.",
@@ -232,6 +332,7 @@ class DispatcherService:
         self,
         request: RequestEnvelope,
         run_id: str,
+        execution_id: str,
         approval_class: str,
     ) -> ResponseEnvelope | None:
         if approval_class == "read_only":
@@ -252,6 +353,14 @@ class DispatcherService:
                 approval_id=approval.id,
                 approval_token=approval.token,
                 result_summary="Waiting for approval before simulated execution.",
+            )
+            executions_service.update_execution(
+                execution_id,
+                status=ExecutionStatus.WAITING_APPROVAL,
+                logs=["Waiting for explicit approval before simulated execution."],
+                details={"approval_class": approval_class},
+                result_summary="Waiting for approval before simulated execution.",
+                finished=True,
             )
             events_service.record(
                 category="approvals",
@@ -282,6 +391,14 @@ class DispatcherService:
                 status=RunStatus.REJECTED,
                 result_summary="Rejected due to invalid approval token.",
             )
+            executions_service.update_execution(
+                execution_id,
+                status=ExecutionStatus.REJECTED,
+                logs=["Approval token validation failed."],
+                details={"approval_token": request.approval_token},
+                result_summary="Rejected due to invalid approval token.",
+                finished=True,
+            )
             events_service.record(
                 category="approvals",
                 severity=EventSeverity.ERROR,
@@ -309,6 +426,14 @@ class DispatcherService:
                 approval_id=approval.id,
                 approval_token=approval.token,
                 result_summary="Approval token exists but has not been approved yet.",
+            )
+            executions_service.update_execution(
+                execution_id,
+                status=ExecutionStatus.WAITING_APPROVAL,
+                logs=["Approval token exists but approval has not been granted yet."],
+                details={"approval_id": approval.id, "status": approval.status.value},
+                result_summary="Approval token exists but has not been approved yet.",
+                finished=True,
             )
             return ResponseEnvelope(
                 request_id=request.request_id,

@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from app.models.control_plane import RunRecord, RunStatus
 from app.models.request_envelope import RequestEnvelope
-from app.services.db import connection, decode_json, encode_json
+from app.repositories.control_plane import control_plane_repository
 
 
 class RunsService:
@@ -24,49 +24,13 @@ class RunsService:
             requested_locks=requested_locks,
             execution_mode=execution_mode,
         )
-        with connection() as conn:
-            conn.execute(
-                """
-                INSERT INTO runs (
-                    id, request_id, agent, tool, status, created_at, updated_at,
-                    dry_run, approval_id, approval_token, requested_locks,
-                    granted_locks, warnings, execution_mode, result_summary
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    run.id,
-                    run.request_id,
-                    run.agent,
-                    run.tool,
-                    run.status.value,
-                    run.created_at.isoformat(),
-                    run.updated_at.isoformat(),
-                    int(run.dry_run),
-                    run.approval_id,
-                    run.approval_token,
-                    encode_json(run.requested_locks),
-                    encode_json(run.granted_locks),
-                    encode_json(run.warnings),
-                    run.execution_mode,
-                    run.result_summary,
-                ),
-            )
-        return run
+        return control_plane_repository.create_run(run)
 
     def list_runs(self) -> list[RunRecord]:
-        with connection() as conn:
-            rows = conn.execute(
-                "SELECT * FROM runs ORDER BY created_at DESC, id DESC"
-            ).fetchall()
-        return [self._row_to_run(row) for row in rows]
+        return control_plane_repository.list_runs()
 
     def get_run(self, run_id: str) -> RunRecord | None:
-        with connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM runs WHERE id = ?",
-                (run_id,),
-            ).fetchone()
-        return self._row_to_run(row) if row else None
+        return control_plane_repository.get_run(run_id)
 
     def update_run(
         self,
@@ -95,39 +59,7 @@ class RunsService:
         if result_summary is not None:
             run.result_summary = result_summary
         run.updated_at = datetime.now(timezone.utc)
-        with connection() as conn:
-            conn.execute(
-                """
-                UPDATE runs
-                SET status = ?, updated_at = ?, approval_id = ?, approval_token = ?,
-                    granted_locks = ?, warnings = ?, result_summary = ?
-                WHERE id = ?
-                """,
-                (
-                    run.status.value,
-                    run.updated_at.isoformat(),
-                    run.approval_id,
-                    run.approval_token,
-                    encode_json(run.granted_locks),
-                    encode_json(run.warnings),
-                    run.result_summary,
-                    run.id,
-                ),
-            )
-        return run
-
-    def _row_to_run(self, row: object) -> RunRecord:
-        mapping = dict(row)
-        return RunRecord.model_validate(
-            {
-                **mapping,
-                "status": mapping["status"],
-                "dry_run": bool(mapping["dry_run"]),
-                "requested_locks": decode_json(mapping["requested_locks"], []),
-                "granted_locks": decode_json(mapping["granted_locks"], []),
-                "warnings": decode_json(mapping["warnings"], []),
-            }
-        )
+        return control_plane_repository.update_run(run)
 
 
 runs_service = RunsService()

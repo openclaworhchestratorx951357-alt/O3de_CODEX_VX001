@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from app.models.control_plane import ApprovalRecord, ApprovalStatus
-from app.services.db import connection
+from app.repositories.control_plane import control_plane_repository
 
 
 class ApprovalsService:
@@ -26,52 +26,16 @@ class ApprovalsService:
             reason=reason,
             token=f"approval-{uuid4().hex}",
         )
-        with connection() as conn:
-            conn.execute(
-                """
-                INSERT INTO approvals (
-                    id, run_id, request_id, agent, tool, approval_class,
-                    status, reason, token, created_at, decided_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    approval.id,
-                    approval.run_id,
-                    approval.request_id,
-                    approval.agent,
-                    approval.tool,
-                    approval.approval_class,
-                    approval.status.value,
-                    approval.reason,
-                    approval.token,
-                    approval.created_at.isoformat(),
-                    approval.decided_at.isoformat() if approval.decided_at else None,
-                ),
-            )
-        return approval
+        return control_plane_repository.create_approval(approval)
 
     def list_approvals(self) -> list[ApprovalRecord]:
-        with connection() as conn:
-            rows = conn.execute(
-                "SELECT * FROM approvals ORDER BY created_at DESC, id DESC"
-            ).fetchall()
-        return [self._row_to_approval(row) for row in rows]
+        return control_plane_repository.list_approvals()
 
     def get_approval(self, approval_id: str) -> ApprovalRecord | None:
-        with connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM approvals WHERE id = ?",
-                (approval_id,),
-            ).fetchone()
-        return self._row_to_approval(row) if row else None
+        return control_plane_repository.get_approval(approval_id)
 
     def get_approval_by_token(self, token: str) -> ApprovalRecord | None:
-        with connection() as conn:
-            row = conn.execute(
-                "SELECT * FROM approvals WHERE token = ?",
-                (token,),
-            ).fetchone()
-        return self._row_to_approval(row) if row else None
+        return control_plane_repository.get_approval_by_token(token)
 
     def approve(
         self,
@@ -84,21 +48,7 @@ class ApprovalsService:
         approval.status = ApprovalStatus.APPROVED
         approval.reason = reason or approval.reason
         approval.decided_at = datetime.now(timezone.utc)
-        with connection() as conn:
-            conn.execute(
-                """
-                UPDATE approvals
-                SET status = ?, reason = ?, decided_at = ?
-                WHERE id = ?
-                """,
-                (
-                    approval.status.value,
-                    approval.reason,
-                    approval.decided_at.isoformat(),
-                    approval.id,
-                ),
-            )
-        return approval
+        return control_plane_repository.update_approval(approval)
 
     def reject(
         self,
@@ -111,24 +61,7 @@ class ApprovalsService:
         approval.status = ApprovalStatus.REJECTED
         approval.reason = reason or approval.reason
         approval.decided_at = datetime.now(timezone.utc)
-        with connection() as conn:
-            conn.execute(
-                """
-                UPDATE approvals
-                SET status = ?, reason = ?, decided_at = ?
-                WHERE id = ?
-                """,
-                (
-                    approval.status.value,
-                    approval.reason,
-                    approval.decided_at.isoformat(),
-                    approval.id,
-                ),
-            )
-        return approval
-
-    def _row_to_approval(self, row: object) -> ApprovalRecord:
-        return ApprovalRecord.model_validate(dict(row))
+        return control_plane_repository.update_approval(approval)
 
 
 approvals_service = ApprovalsService()
