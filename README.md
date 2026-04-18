@@ -17,6 +17,7 @@ See these official source files before making changes:
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
 - `docs/PHASE-7-REAL-ADAPTER-GATE.md`
+- `docs/PHASE-7-PROJECT-BUILD-CANDIDATES.md`
 - `CONTRIBUTING.md`
 - `docs/LOCAL-STACK-RUNBOOK.md`
 
