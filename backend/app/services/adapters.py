@@ -274,6 +274,9 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             requested_keys=project_config_keys,
             include_project_config=inspection_flags["include_project_config"],
         )
+        requested_gem_evidence = (
+            ["gem_names", "gem_names_count"] if inspection_flags["include_gems"] else []
+        )
         message = "Read-only project manifest inspection completed against real project files."
         if isinstance(project_name, str) and project_name.strip():
             message = (
@@ -389,8 +392,12 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "requested_project_config_keys": (
                     project_config_keys if inspection_flags["include_project_config"] else []
                 ),
+                "requested_gem_evidence": requested_gem_evidence,
                 "gem_names": enabled_gems if inspection_flags["include_gems"] else [],
                 "gem_names_count": len(enabled_gems) if inspection_flags["include_gems"] else 0,
+                "gem_entries_present": (
+                    len(enabled_gems) > 0 if inspection_flags["include_gems"] else False
+                ),
                 "manifest_settings": (
                     manifest_settings if inspection_flags["include_settings"] else {}
                 ),
@@ -423,8 +430,12 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "requested_project_config_keys": (
                     project_config_keys if inspection_flags["include_project_config"] else []
                 ),
+                "requested_gem_evidence": requested_gem_evidence,
                 "gem_names": enabled_gems if inspection_flags["include_gems"] else [],
                 "gem_names_count": len(enabled_gems) if inspection_flags["include_gems"] else 0,
+                "gem_entries_present": (
+                    len(enabled_gems) > 0 if inspection_flags["include_gems"] else False
+                ),
                 "manifest_settings": (
                     manifest_settings if inspection_flags["include_settings"] else {}
                 ),

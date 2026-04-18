@@ -282,8 +282,13 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
             "version",
             "compatible_engines",
         ]
+        assert execution.details["requested_gem_evidence"] == [
+            "gem_names",
+            "gem_names_count",
+        ]
         assert execution.details["gem_names"] == ["ExampleGem"]
         assert execution.details["gem_names_count"] == 1
+        assert execution.details["gem_entries_present"] is True
         assert execution.details["manifest_settings"]["compatible_engines"] == ["o3de"]
         assert execution.details["manifest_settings"]["version"] == "1.0.0"
         assert artifact is not None
@@ -291,7 +296,12 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
         assert artifact.metadata["execution_mode"] == "real"
         assert artifact.metadata["project_name"] == "Phase7Project"
         assert artifact.metadata["project_config"]["version"] == "1.0.0"
+        assert artifact.metadata["requested_gem_evidence"] == [
+            "gem_names",
+            "gem_names_count",
+        ]
         assert artifact.metadata["gem_names"] == ["ExampleGem"]
+        assert artifact.metadata["gem_entries_present"] is True
         assert artifact.metadata["manifest_settings"]["compatible_engines"] == ["o3de"]
 
 
@@ -330,8 +340,13 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
         assert execution.details["project_config"] == {}
         assert execution.details["project_config_keys"] == []
         assert execution.details["requested_project_config_keys"] == ["version", "summary"]
+        assert execution.details["requested_gem_evidence"] == [
+            "gem_names",
+            "gem_names_count",
+        ]
         assert execution.details["gem_names"] == []
         assert execution.details["gem_names_count"] == 0
+        assert execution.details["gem_entries_present"] is False
         assert execution.details["manifest_settings"]["project_name"] == "LeanProject"
         assert any(
             "No manifest-backed project-config fields were present" in warning

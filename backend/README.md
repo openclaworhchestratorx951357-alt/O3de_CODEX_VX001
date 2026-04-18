@@ -89,6 +89,7 @@ Current truth:
 - `hybrid` now enables a first real read-only `project.inspect` manifest path when `project_root/project.json` exists and can be read cleanly
 - that real `project.inspect` path can now also persist manifest-backed Gem and top-level settings inspection evidence when those flags are requested
 - that same real `project.inspect` path can now also persist a file-read-only manifest-backed project-config snapshot and inspected-key evidence when explicitly requested
+- that same real `project.inspect` path can now also distinguish requested Gem evidence from actually discovered Gem entries while staying on the same manifest-backed source of truth
 - `hybrid` also enables a real `build.configure` plan-only preflight path when `dry_run=true` and the same project-manifest preconditions are satisfied
 - actual configure mutation still remains simulated in this phase
 - every other tool still remains simulated in this phase
@@ -103,6 +104,7 @@ Current truth:
 Persisted execution records and artifact metadata now also carry adapter provenance fields such as `adapter_family` and `adapter_contract_version` so run history keeps the current simulated adapter boundary explicit.
 For the first real `project.inspect` path, persisted execution details and artifact metadata also carry manifest-inspection provenance so operators can distinguish real read-only inspection from simulated fallback.
 That same real `project.inspect` path now records manifest-backed `gem_names` and top-level settings evidence when `include_gems` or `include_settings` is requested, while still keeping deeper settings/Gem mutation work out of scope.
+That same path now also records `requested_gem_evidence` and `gem_entries_present` so operators can distinguish requested Gem-state inspection from actually discovered manifest-backed Gem entries.
 That same path can also record manifest-backed `project_config`, `project_config_keys`, and `requested_project_config_keys` evidence when `include_project_config` is requested, while still staying on `project_root/project.json` as the only real source of truth.
 For the real `build.configure` preflight path, persisted execution details and artifact metadata also carry plan-only preflight provenance so operators can distinguish real preflight evidence from simulated fallback.
 

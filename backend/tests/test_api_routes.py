@@ -29,7 +29,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         response = client.get("/")
         assert response.status_code == 200
         payload = response.json()
-        assert payload["status"] == "phase-7-project-config-inspection"
+        assert payload["status"] == "phase-7-gem-state-refinement"
         assert payload["phase"] == "phase-7"
         assert "/runs" in payload["routes"]
 
@@ -352,7 +352,12 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                     "project_name",
                     "version",
                 ]
+                assert execution["details"]["requested_gem_evidence"] == [
+                    "gem_names",
+                    "gem_names_count",
+                ]
                 assert execution["details"]["gem_names"] == ["ApiGem"]
+                assert execution["details"]["gem_entries_present"] is True
                 assert execution["details"]["manifest_settings"]["version"] == "2.0.0"
 
 
