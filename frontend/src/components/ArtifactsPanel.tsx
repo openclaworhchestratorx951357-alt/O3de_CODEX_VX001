@@ -62,9 +62,15 @@ export default function ArtifactsPanel({
               const inspectionSurface = readString(item.metadata, "inspection_surface");
               const executionMode = readString(item.metadata, "execution_mode");
               const planDetails = readRecord(item.metadata, "plan_details");
+              const projectConfig = readRecord(item.metadata, "project_config");
               const manifestSettings = readRecord(item.metadata, "manifest_settings");
               const inspectionEvidence = readStringArray(item.metadata, "inspection_evidence");
               const gemNames = readStringArray(item.metadata, "gem_names");
+              const projectConfigKeys = readStringArray(item.metadata, "project_config_keys");
+              const requestedProjectConfigKeys = readStringArray(
+                item.metadata,
+                "requested_project_config_keys",
+              );
               const settingsKeys = readStringArray(item.metadata, "manifest_settings_keys");
               const preset = planDetails && typeof planDetails.preset === "string"
                 ? planDetails.preset
@@ -98,6 +104,17 @@ export default function ArtifactsPanel({
                   {manifestPath ? <div>Manifest path: {manifestPath}</div> : null}
                   {inspectionEvidence.length > 0 ? (
                     <div>Inspection evidence: {inspectionEvidence.join(", ")}</div>
+                  ) : null}
+                  {projectConfigKeys.length > 0 ? (
+                    <div>Project config keys: {projectConfigKeys.join(", ")}</div>
+                  ) : null}
+                  {requestedProjectConfigKeys.length > 0 ? (
+                    <div>
+                      Requested project config keys: {requestedProjectConfigKeys.join(", ")}
+                    </div>
+                  ) : null}
+                  {projectConfig ? (
+                    <div>Project config snapshot: {JSON.stringify(projectConfig)}</div>
                   ) : null}
                   {gemNames.length > 0 ? <div>Gem names: {gemNames.join(", ")}</div> : null}
                   {settingsKeys.length > 0 ? (

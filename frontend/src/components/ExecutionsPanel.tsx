@@ -68,9 +68,15 @@ export default function ExecutionsPanel({
               const fallbackReason = readString(item.details, "fallback_reason");
               const realPathAvailable = readBoolean(item.details, "real_path_available");
               const planDetails = readRecord(item.details, "plan_details");
+              const projectConfig = readRecord(item.details, "project_config");
               const manifestSettings = readRecord(item.details, "manifest_settings");
               const inspectionEvidence = readStringArray(item.details, "inspection_evidence");
               const gemNames = readStringArray(item.details, "gem_names");
+              const projectConfigKeys = readStringArray(item.details, "project_config_keys");
+              const requestedProjectConfigKeys = readStringArray(
+                item.details,
+                "requested_project_config_keys",
+              );
               const settingsKeys = readStringArray(item.details, "manifest_settings_keys");
               const preset = planDetails && typeof planDetails.preset === "string"
                 ? planDetails.preset
@@ -103,6 +109,17 @@ export default function ExecutionsPanel({
                   {manifestPath ? <div>Manifest path: {manifestPath}</div> : null}
                   {inspectionEvidence.length > 0 ? (
                     <div>Inspection evidence: {inspectionEvidence.join(", ")}</div>
+                  ) : null}
+                  {projectConfigKeys.length > 0 ? (
+                    <div>Project config keys: {projectConfigKeys.join(", ")}</div>
+                  ) : null}
+                  {requestedProjectConfigKeys.length > 0 ? (
+                    <div>
+                      Requested project config keys: {requestedProjectConfigKeys.join(", ")}
+                    </div>
+                  ) : null}
+                  {projectConfig ? (
+                    <div>Project config snapshot: {JSON.stringify(projectConfig)}</div>
                   ) : null}
                   {gemNames.length > 0 ? <div>Gem names: {gemNames.join(", ")}</div> : null}
                   {settingsKeys.length > 0 ? (
