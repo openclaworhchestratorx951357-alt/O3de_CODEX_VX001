@@ -354,6 +354,12 @@ class SchemaValidationService:
             ("asset.source.inspect", "artifact-metadata"): (
                 "schemas/tools/asset.source.inspect.artifact-metadata.schema.json"
             ),
+            ("render.material.inspect", "execution-details"): (
+                "schemas/tools/render.material.inspect.execution-details.schema.json"
+            ),
+            ("render.material.inspect", "artifact-metadata"): (
+                "schemas/tools/render.material.inspect.artifact-metadata.schema.json"
+            ),
             ("project.inspect", "execution-details"): (
                 "schemas/tools/project.inspect.execution-details.schema.json"
             ),

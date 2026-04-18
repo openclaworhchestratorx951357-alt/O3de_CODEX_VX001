@@ -143,6 +143,7 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                     in {
                         "asset.processor.status",
                         "asset.source.inspect",
+                        "render.material.inspect",
                         "project.inspect",
                         "build.configure",
                         "settings.patch",
@@ -164,6 +165,7 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                     in {
                         "asset.processor.status",
                         "asset.source.inspect",
+                        "render.material.inspect",
                         "project.inspect",
                         "build.configure",
                         "settings.patch",

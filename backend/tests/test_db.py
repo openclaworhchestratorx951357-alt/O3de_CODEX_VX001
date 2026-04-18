@@ -334,8 +334,8 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
     assert "$schema" in capability.active_metadata_keywords
     assert "allOf" in capability.supported_keywords
     assert "oneOf" in capability.unsupported_keywords
-    assert capability.persisted_execution_details_tool_count == 7
-    assert capability.persisted_artifact_metadata_tool_count == 7
+    assert capability.persisted_execution_details_tool_count == 8
+    assert capability.persisted_artifact_metadata_tool_count == 8
     assert capability.persisted_execution_details_tools == [
         "asset.processor.status",
         "asset.source.inspect",
@@ -343,6 +343,7 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
         "build.configure",
         "gem.enable",
         "project.inspect",
+        "render.material.inspect",
         "settings.patch",
     ]
     assert capability.persisted_artifact_metadata_tools == [
@@ -352,6 +353,7 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
         "build.configure",
         "gem.enable",
         "project.inspect",
+        "render.material.inspect",
         "settings.patch",
     ]
     assert any("does not claim full JSON Schema support" in note for note in capability.notes)

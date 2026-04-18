@@ -64,8 +64,8 @@ def test_ready_reports_database_status_details() -> None:
         assert "$schema" in payload["schema_validation"]["active_metadata_keywords"]
         assert "allOf" in payload["schema_validation"]["supported_keywords"]
         assert "oneOf" in payload["schema_validation"]["unsupported_keywords"]
-        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 7
-        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 7
+        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 8
+        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 8
         assert payload["schema_validation"]["persisted_execution_details_tools"] == [
             "asset.processor.status",
             "asset.source.inspect",
@@ -73,6 +73,7 @@ def test_ready_reports_database_status_details() -> None:
             "build.configure",
             "gem.enable",
             "project.inspect",
+            "render.material.inspect",
             "settings.patch",
         ]
         assert payload["schema_validation"]["persisted_artifact_metadata_tools"] == [
@@ -82,6 +83,7 @@ def test_ready_reports_database_status_details() -> None:
             "build.configure",
             "gem.enable",
             "project.inspect",
+            "render.material.inspect",
             "settings.patch",
         ]
         assert "sqlite approvals store" in payload["dependencies"]
