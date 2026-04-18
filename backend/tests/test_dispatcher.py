@@ -1,3 +1,4 @@
+import json
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -14,12 +15,17 @@ from app.services.locks import locks_service
 from app.services.runs import runs_service
 
 
-def make_request(agent: str, tool: str) -> RequestEnvelope:
+def make_request(
+    agent: str,
+    tool: str,
+    *,
+    project_root: str = "/tmp/project",
+) -> RequestEnvelope:
     return RequestEnvelope(
         request_id="req-1",
         tool=tool,
         agent=agent,
-        project_root="/tmp/project",
+        project_root=project_root,
         engine_root="/tmp/engine",
         dry_run=True,
         locks=[],
@@ -215,3 +221,63 @@ def test_dispatch_rejects_when_adapter_mode_is_invalid() -> None:
         assert response.ok is False
         assert response.error is not None
         assert response.error.code == "ADAPTER_NOT_READY"
+
+
+def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        manifest_path = project_root / "project.json"
+        manifest_path.write_text(
+            json.dumps(
+                {
+                    "project_name": "Phase7Project",
+                    "gem_names": ["ExampleGem"],
+                    "compatible_engines": ["o3de"],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            request = make_request(
+                "project-build",
+                "project.inspect",
+                project_root=str(project_root),
+            )
+            request.args = {"include_gems": True}
+            response = dispatcher_service.dispatch(request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        assert "Phase7Project" in response.result.message
+        execution = executions_service.list_executions()[0]
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "project_manifest"
+        assert execution.details["project_manifest_path"].endswith("project.json")
+        assert execution.details["project_name"] == "Phase7Project"
+        assert artifact is not None
+        assert artifact.simulated is False
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["project_name"] == "Phase7Project"
+
+
+def test_project_inspect_falls_back_to_simulated_when_manifest_is_missing_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                make_request(
+                    "project-build",
+                    "project.inspect",
+                    project_root=temp_dir,
+                )
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is True
+        assert response.result.execution_mode == "simulated"
+        execution = executions_service.list_executions()[0]
+        assert execution.details["real_path_available"] is False
+        assert "fallback_reason" in execution.details

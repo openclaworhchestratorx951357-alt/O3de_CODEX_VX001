@@ -1,3 +1,4 @@
+import json
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -28,8 +29,8 @@ def test_root_includes_current_control_plane_routes() -> None:
         response = client.get("/")
         assert response.status_code == 200
         payload = response.json()
-        assert payload["status"] == "phase-6-adapter-framework"
-        assert payload["phase"] == "phase-6"
+        assert payload["status"] == "phase-7-first-real-inspect"
+        assert payload["phase"] == "phase-7"
         assert "/runs" in payload["routes"]
 
 
@@ -50,7 +51,7 @@ def test_ready_reports_database_status_details() -> None:
         assert payload["adapter_mode"]["supports_real_execution"] is False
         assert payload["adapter_mode"]["contract_version"] == "v0.1"
         assert payload["adapter_mode"]["execution_boundary"]
-        assert payload["adapter_mode"]["supported_modes"] == ["simulated"]
+        assert payload["adapter_mode"]["supported_modes"] == ["hybrid", "simulated"]
         assert "project-build" in payload["adapter_mode"]["available_families"]
         assert payload["schema_validation"]["mode"] == "subset-json-schema"
         assert payload["schema_validation"]["schema_scope"] == "published-tool-arg-result-schemas"
@@ -76,7 +77,19 @@ def test_ready_reports_adapter_mode_as_not_ready_when_config_is_invalid() -> Non
             assert payload["adapter_mode"]["ready"] is False
             assert payload["adapter_mode"]["configured_mode"] == "real"
             assert payload["adapter_mode"]["active_mode"] == "unavailable"
-            assert payload["adapter_mode"]["supported_modes"] == ["simulated"]
+            assert payload["adapter_mode"]["supported_modes"] == ["hybrid", "simulated"]
+
+
+def test_ready_reports_hybrid_mode_truthfully() -> None:
+    with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+        with isolated_client() as client:
+            response = client.get("/ready")
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["adapter_mode"]["ready"] is True
+            assert payload["adapter_mode"]["configured_mode"] == "hybrid"
+            assert payload["adapter_mode"]["active_mode"] == "hybrid"
+            assert payload["adapter_mode"]["supports_real_execution"] is True
 
 
 def test_version_reports_adapter_contract_version() -> None:
@@ -94,10 +107,25 @@ def test_adapters_endpoint_reports_registry_summary() -> None:
         payload = response.json()["adapters"]
         assert payload["configured_mode"] == "simulated"
         assert payload["active_mode"] == "simulated"
-        assert payload["supported_modes"] == ["simulated"]
+        assert payload["supported_modes"] == ["hybrid", "simulated"]
         assert payload["contract_version"] == "v0.1"
         assert payload["supports_real_execution"] is False
         assert any(family["family"] == "project-build" for family in payload["families"])
+
+
+def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
+    with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+        with isolated_client() as client:
+            response = client.get("/adapters")
+            assert response.status_code == 200
+            payload = response.json()["adapters"]
+            assert payload["configured_mode"] == "hybrid"
+            assert payload["active_mode"] == "hybrid"
+            assert payload["supports_real_execution"] is True
+            project_build = next(
+                family for family in payload["families"] if family["family"] == "project-build"
+            )
+            assert project_build["supports_real_execution"] is True
 
 
 def test_adapters_endpoint_reports_invalid_mode_truthfully() -> None:
@@ -268,3 +296,33 @@ def test_executions_and_artifacts_endpoints_reflect_simulated_dispatch() -> None
         assert artifact.json()["simulated"] is True
         assert artifact.json()["metadata"]["adapter_family"] == "project-build"
         assert artifact.json()["metadata"]["adapter_contract_version"] == "v0.1"
+
+
+def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps({"project_name": "ApiHybridProject"}),
+            encoding="utf-8",
+        )
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-real-inspect-1",
+                        "tool": "project.inspect",
+                        "agent": "project-build",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": True,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "args": {"include_gems": True},
+                    },
+                )
+                assert dispatch.status_code == 200
+                payload = dispatch.json()
+                assert payload["ok"] is True
+                assert payload["result"]["simulated"] is False
+                assert payload["result"]["execution_mode"] == "real"

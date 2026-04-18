@@ -23,7 +23,7 @@
     "service": { "type": "string", "minLength": 1 },
     "execution_mode": {
       "type": "string",
-      "enum": ["simulated", "unavailable"]
+      "enum": ["hybrid", "simulated", "unavailable"]
     },
     "persistence_ready": { "type": "boolean" },
     "requested_database_strategy": { "type": "string", "minLength": 1 },

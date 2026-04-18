@@ -283,6 +283,7 @@ class DispatcherService:
                 project_root=request.project_root,
                 engine_root=request.engine_root,
                 dry_run=request.dry_run,
+                args=request.args,
                 approval_class=policy.approval_class,
                 locks_acquired=[lock.name for lock in acquired_locks],
             )
@@ -341,11 +342,7 @@ class DispatcherService:
             details={
                 "requested_locks": requested_locks,
                 "granted_locks": [lock.name for lock in acquired_locks],
-                "simulated": adapter_report.result.simulated,
-                "adapter_mode": adapter_report.execution_mode,
-                "adapter_family": policy.adapter_family,
-                "adapter_contract_version": adapter_status.contract_version,
-                "execution_boundary": adapter_status.execution_boundary,
+                **adapter_report.execution_details,
             },
             result_summary="Adapter execution started.",
         )
@@ -387,7 +384,7 @@ class DispatcherService:
         runs_service.update_run(
             run.id,
             status=RunStatus.SUCCEEDED,
-            result_summary="Simulated dispatch completed successfully.",
+            result_summary=adapter_report.result_summary,
         )
         executions_service.update_execution(
             execution.id,
@@ -398,11 +395,7 @@ class DispatcherService:
             details={
                 "result": result.model_dump(),
                 "artifact_id": artifact.id,
-                "simulated": result.simulated,
-                "adapter_mode": adapter_report.execution_mode,
-                "adapter_family": policy.adapter_family,
-                "adapter_contract_version": adapter_status.contract_version,
-                "execution_boundary": adapter_status.execution_boundary,
+                **adapter_report.execution_details,
             },
             result_summary=adapter_report.result_summary,
             finished=True,
@@ -410,11 +403,16 @@ class DispatcherService:
         events_service.record(
             category="dispatch",
             severity=EventSeverity.INFO,
-            message="Simulated dispatch completed.",
+            message=adapter_report.result_summary,
             run_id=run.id,
             details={"tool": request.tool, "adapter_mode": adapter_report.execution_mode},
         )
 
+        result_warning = (
+            "Underlying O3DE execution remains simulated in this phase."
+            if result.simulated
+            else "This run used the first real read-only project inspection path."
+        )
         return ResponseEnvelope(
             request_id=request.request_id,
             ok=True,
@@ -422,7 +420,7 @@ class DispatcherService:
             result=result,
             warnings=[
                 "Control-plane bookkeeping is real for this run.",
-                "Underlying O3DE execution remains simulated in this phase.",
+                result_warning,
             ],
             artifacts=[artifact.id],
             logs=[
@@ -640,24 +638,23 @@ class DispatcherService:
         runs_service.update_run(
             run_id,
             status=RunStatus.FAILED,
-            result_summary="Rejected because the simulated result failed schema conformance.",
+            result_summary="Rejected because the adapter result failed schema conformance.",
         )
         executions_service.update_execution(
             execution_id,
             status=ExecutionStatus.FAILED,
-            logs=["Simulated result validation failed before completion was reported."],
+            logs=["Adapter result validation failed before completion was reported."],
             details={
                 "result_schema_ref": schema_ref,
                 "result_validation_errors": validation_errors,
-                "simulated": True,
             },
-            result_summary="Rejected because the simulated result failed schema conformance.",
+            result_summary="Rejected because the adapter result failed schema conformance.",
             finished=True,
         )
         events_service.record(
             category="validation",
             severity=EventSeverity.ERROR,
-            message="Simulated result validation failed.",
+            message="Adapter result validation failed.",
             run_id=run_id,
             details={"result_schema_ref": schema_ref},
         )
@@ -667,15 +664,15 @@ class DispatcherService:
             operation_id=run_id,
             error=ResponseError(
                 code="INVALID_RESULT",
-                message="Simulated result did not match the published result schema.",
+                message="Adapter result did not match the published result schema.",
                 retryable=False,
                 details={
                     "result_schema_ref": schema_ref,
                     "result_validation_errors": validation_errors,
                 },
             ),
-            warnings=["Dispatch failed before simulated completion could be reported."],
-            logs=["Simulated result validation failed against the published result schema."],
+            warnings=["Dispatch failed before adapter completion could be reported."],
+            logs=["Adapter result validation failed against the published result schema."],
         )
 
 

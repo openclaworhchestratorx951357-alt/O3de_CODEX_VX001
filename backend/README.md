@@ -81,11 +81,14 @@ The backend now routes tool execution through an explicit adapter boundary.
 
 Current mode support:
 - `O3DE_ADAPTER_MODE=simulated`
+- `O3DE_ADAPTER_MODE=hybrid`
 
 Current truth:
 - adapter selection is config-driven
-- only simulated adapters are implemented in this phase
-- real O3DE adapters are still not implemented
+- simulated remains the default path for all tools
+- `hybrid` now enables a first real read-only `project.inspect` manifest path when `project_root/project.json` exists and can be read cleanly
+- every other tool still remains simulated in this phase
+- broad real O3DE adapters are still not implemented
 
 `GET /ready` now reports adapter-mode readiness, configured mode, active mode, supported modes, adapter contract version, execution-boundary text, and registered adapter families.
 
@@ -94,6 +97,7 @@ Current truth:
 `GET /adapters` provides a read-only adapter registry summary with configured mode, active mode, supported modes, contract version, warning state, and registered adapter families.
 
 Persisted execution records and artifact metadata now also carry adapter provenance fields such as `adapter_family` and `adapter_contract_version` so run history keeps the current simulated adapter boundary explicit.
+For the first real `project.inspect` path, persisted execution details and artifact metadata also carry manifest-inspection provenance so operators can distinguish real read-only inspection from simulated fallback.
 
 ## Schema validation status
 

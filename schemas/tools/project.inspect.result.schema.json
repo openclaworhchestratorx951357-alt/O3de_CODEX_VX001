@@ -8,9 +8,7 @@
       "type": "object",
       "properties": {
         "tool": { "const": "project.inspect" },
-        "approval_class": { "const": "read_only" },
-        "execution_mode": { "const": "simulated" },
-        "simulated": { "const": true }
+        "approval_class": { "const": "read_only" }
       }
     }
   ]

@@ -1,16 +1,22 @@
+import json
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from app.models.api import AdapterFamilyStatus, AdapterModeStatus, AdaptersResponse
 from app.models.response_envelope import DispatchResult
 from app.services.catalog import catalog_service
 
-SUPPORTED_ADAPTER_MODES = {"simulated"}
+SUPPORTED_ADAPTER_MODES = {"hybrid", "simulated"}
 ADAPTER_CONTRACT_VERSION = "v0.1"
 ADAPTER_EXECUTION_BOUNDARY = (
     "Control-plane bookkeeping is real, but O3DE tool execution remains simulated."
+)
+HYBRID_EXECUTION_BOUNDARY = (
+    "Control-plane bookkeeping is real. In hybrid mode, project.inspect may use a "
+    "real read-only project-manifest path while all other tools remain simulated."
 )
 
 
@@ -24,6 +30,7 @@ class AdapterExecutionReport:
     artifact_kind: str
     artifact_uri: str
     artifact_metadata: dict[str, Any]
+    execution_details: dict[str, Any]
     result_summary: str
 
 
@@ -45,6 +52,7 @@ class ToolExecutionAdapter(ABC):
         project_root: str,
         engine_root: str,
         dry_run: bool,
+        args: dict[str, Any],
         approval_class: str,
         locks_acquired: list[str],
     ) -> AdapterExecutionReport:
@@ -60,6 +68,7 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
         project_root: str,
         engine_root: str,
         dry_run: bool,
+        args: dict[str, Any],
         approval_class: str,
         locks_acquired: list[str],
     ) -> AdapterExecutionReport:
@@ -101,8 +110,209 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                 "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
                 "execution_boundary": ADAPTER_EXECUTION_BOUNDARY,
             },
+            execution_details={
+                "simulated": True,
+                "adapter_mode": "simulated",
+                "adapter_family": self.family,
+                "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+                "execution_boundary": ADAPTER_EXECUTION_BOUNDARY,
+                "inspection_surface": "simulated",
+            },
             result_summary="Simulated dispatch completed successfully.",
         )
+
+
+class ProjectBuildHybridAdapter(ToolExecutionAdapter):
+    def __init__(self, *, family: str, mode: str) -> None:
+        super().__init__(family=family, mode=mode)
+        self._simulated = SimulatedToolExecutionAdapter(family=family, mode=mode)
+
+    def execute(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        if tool != "project.inspect":
+            simulated = self._simulated.execute(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+            )
+            simulated.warnings.append(
+                "Hybrid adapter mode is active, but this tool still runs through the "
+                "simulated path in this phase."
+            )
+            simulated.logs.append(
+                "Hybrid mode did not change execution for this tool; simulated adapter "
+                "path remained in use."
+            )
+            simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+            simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+            return simulated
+
+        manifest_path = Path(project_root).expanduser().resolve() / "project.json"
+        if not manifest_path.is_file():
+            return self._fallback_project_inspect(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real project inspection was unavailable because "
+                    f"'{manifest_path}' was not found."
+                ),
+            )
+
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            return self._fallback_project_inspect(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real project inspection was unavailable because the project "
+                    f"manifest could not be read cleanly: {exc}"
+                ),
+            )
+
+        project_name = manifest.get("project_name")
+        enabled_gems = manifest.get("gem_names")
+        inspection_flags = {
+            "include_gems": bool(args.get("include_gems", False)),
+            "include_settings": bool(args.get("include_settings", False)),
+            "include_build_state": bool(args.get("include_build_state", False)),
+        }
+        manifest_keys = sorted(str(key) for key in manifest.keys())
+        message = "Read-only project manifest inspection completed against real project files."
+        if isinstance(project_name, str) and project_name.strip():
+            message = (
+                "Read-only project manifest inspection completed against real project "
+                f"files for '{project_name}'."
+            )
+
+        warnings: list[str] = []
+        if inspection_flags["include_settings"]:
+            warnings.append(
+                "Settings inspection remains limited in this slice; manifest-backed "
+                "project inspection is the only real path."
+            )
+        if inspection_flags["include_build_state"]:
+            warnings.append(
+                "Build-state inspection remains simulated in this slice even when the "
+                "project manifest path is real."
+            )
+
+        result = DispatchResult(
+            status="real_success",
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            simulated=False,
+            execution_mode="real",
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+            message=message,
+        )
+        return AdapterExecutionReport(
+            execution_mode="real",
+            result=result,
+            warnings=warnings,
+            logs=[
+                "Hybrid adapter mode enabled a real project.inspect path.",
+                f"Read project manifest from '{manifest_path}'.",
+            ],
+            artifact_label="Real project manifest inspection evidence",
+            artifact_kind="project_manifest_inspection",
+            artifact_uri=manifest_path.as_uri(),
+            artifact_metadata={
+                "tool": tool,
+                "agent": agent,
+                "execution_mode": "real",
+                "adapter_family": self.family,
+                "adapter_mode": self.mode,
+                "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+                "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+                "inspection_surface": "project_manifest",
+                "project_manifest_path": str(manifest_path),
+                "manifest_keys": manifest_keys,
+                "project_name": project_name,
+                "include_flags": inspection_flags,
+                "gem_names_count": len(enabled_gems) if isinstance(enabled_gems, list) else 0,
+            },
+            execution_details={
+                "simulated": False,
+                "adapter_mode": "real",
+                "adapter_family": self.family,
+                "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+                "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+                "inspection_surface": "project_manifest",
+                "project_manifest_path": str(manifest_path),
+                "manifest_keys": manifest_keys,
+                "project_name": project_name,
+                "include_flags": inspection_flags,
+            },
+            result_summary="Real project manifest inspection completed successfully.",
+        )
+
+    def _fallback_project_inspect(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+        reason: str,
+    ) -> AdapterExecutionReport:
+        simulated = self._simulated.execute(
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+        )
+        simulated.warnings.append(reason)
+        simulated.logs.append(reason)
+        simulated.logs.append(
+            "Hybrid mode fell back to the simulated project.inspect path."
+        )
+        simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.artifact_metadata["real_path_available"] = False
+        simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.execution_details["real_path_available"] = False
+        simulated.execution_details["fallback_reason"] = reason
+        simulated.result_summary = "Project inspection fell back to the simulated path."
+        return simulated
 
 
 class AdapterService:
@@ -113,10 +323,19 @@ class AdapterService:
         configured_mode = self._configured_mode()
         if configured_mode not in SUPPORTED_ADAPTER_MODES:
             return {}
-        return {
-            agent.id: SimulatedToolExecutionAdapter(family=agent.id, mode=configured_mode)
-            for agent in catalog_service.get_catalog_model().agents
-        }
+        registry: dict[str, ToolExecutionAdapter] = {}
+        for agent in catalog_service.get_catalog_model().agents:
+            if configured_mode == "hybrid" and agent.id == "project-build":
+                registry[agent.id] = ProjectBuildHybridAdapter(
+                    family=agent.id,
+                    mode=configured_mode,
+                )
+            else:
+                registry[agent.id] = SimulatedToolExecutionAdapter(
+                    family=agent.id,
+                    mode=configured_mode,
+                )
+        return registry
 
     def get_runtime_status(self) -> AdapterModeStatus:
         configured_mode = self._configured_mode()
@@ -134,12 +353,31 @@ class AdapterService:
                 available_families=available_families,
                 warning=(
                     f"Configured adapter mode '{configured_mode}' is not supported; "
-                    "only 'simulated' is currently available."
+                    "only 'simulated' and 'hybrid' are currently available."
                 ),
                 notes=[
                     "Adapter mode selection is now config-driven.",
                     "Real O3DE adapters are not yet implemented.",
-                    "Simulated execution remains the only supported adapter mode in this phase.",
+                    "Hybrid mode currently enables only a real read-only project.inspect path.",
+                ],
+            )
+        if configured_mode == "hybrid":
+            return AdapterModeStatus(
+                ready=True,
+                configured_mode=configured_mode,
+                active_mode="hybrid",
+                supports_real_execution=True,
+                contract_version=ADAPTER_CONTRACT_VERSION,
+                execution_boundary=HYBRID_EXECUTION_BOUNDARY,
+                supported_modes=sorted(SUPPORTED_ADAPTER_MODES),
+                available_families=available_families,
+                warning=None,
+                notes=[
+                    "Adapter mode selection is now config-driven.",
+                    "Hybrid mode enables a real read-only project.inspect path when its "
+                    "manifest preconditions are satisfied.",
+                    "All other tools remain simulated in this phase.",
+                    "Real mutating O3DE adapters are not yet implemented.",
                 ],
             )
         return AdapterModeStatus(
@@ -155,7 +393,7 @@ class AdapterService:
             notes=[
                 "Adapter mode selection is now config-driven.",
                 "Real O3DE adapters are not yet implemented.",
-                "Simulated execution remains the only supported adapter mode in this phase.",
+                "Simulated execution remains the default adapter mode in this phase.",
             ],
         )
 
@@ -167,6 +405,7 @@ class AdapterService:
         project_root: str,
         engine_root: str,
         dry_run: bool,
+        args: dict[str, Any],
         approval_class: str,
         locks_acquired: list[str],
     ) -> AdapterExecutionReport:
@@ -185,24 +424,38 @@ class AdapterService:
             project_root=project_root,
             engine_root=engine_root,
             dry_run=dry_run,
+            args=args,
             approval_class=approval_class,
             locks_acquired=locks_acquired,
         )
 
     def list_adapters(self) -> AdaptersResponse:
         runtime_status = self.get_runtime_status()
-        families = [
-            AdapterFamilyStatus(
-                family=family,
-                mode=runtime_status.active_mode,
-                supports_real_execution=False,
-                contract_version=runtime_status.contract_version,
-                execution_boundary=runtime_status.execution_boundary,
-                ready=runtime_status.ready,
-                notes=runtime_status.notes,
+        families: list[AdapterFamilyStatus] = []
+        for family in runtime_status.available_families:
+            family_supports_real = (
+                runtime_status.active_mode == "hybrid" and family == "project-build"
             )
-            for family in runtime_status.available_families
-        ]
+            family_notes = list(runtime_status.notes)
+            if family_supports_real:
+                family_notes.append(
+                    "Only project.inspect currently has a real read-only path in this family."
+                )
+            elif runtime_status.active_mode == "hybrid":
+                family_notes.append(
+                    "This family remains simulated even while hybrid mode is active."
+                )
+            families.append(
+                AdapterFamilyStatus(
+                    family=family,
+                    mode=runtime_status.active_mode,
+                    supports_real_execution=family_supports_real,
+                    contract_version=runtime_status.contract_version,
+                    execution_boundary=runtime_status.execution_boundary,
+                    ready=runtime_status.ready,
+                    notes=family_notes,
+                )
+            )
         return AdaptersResponse(
             configured_mode=runtime_status.configured_mode,
             active_mode=runtime_status.active_mode,
