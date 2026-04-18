@@ -369,6 +369,12 @@ class SchemaValidationService:
             ("render.capture.viewport", "artifact-metadata"): (
                 "schemas/tools/render.capture.viewport.artifact-metadata.schema.json"
             ),
+            ("test.visual.diff", "execution-details"): (
+                "schemas/tools/test.visual.diff.execution-details.schema.json"
+            ),
+            ("test.visual.diff", "artifact-metadata"): (
+                "schemas/tools/test.visual.diff.artifact-metadata.schema.json"
+            ),
             ("project.inspect", "execution-details"): (
                 "schemas/tools/project.inspect.execution-details.schema.json"
             ),

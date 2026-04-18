@@ -142,6 +142,16 @@ def make_render_capture_viewport_request() -> RequestEnvelope:
     return request
 
 
+def make_test_visual_diff_request() -> RequestEnvelope:
+    request = make_request("validation", "test.visual.diff")
+    request.args = {
+        "baseline_artifact_id": "artifact-baseline-001",
+        "candidate_artifact_id": "artifact-candidate-001",
+        "threshold": 0.1,
+    }
+    return request
+
+
 @contextmanager
 def isolated_database() -> Path:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
@@ -635,6 +645,48 @@ def test_dispatch_rejects_when_render_capture_viewport_artifact_metadata_fail_sc
         assert response.error.details["persisted_payload_kind"] == "artifact metadata"
         assert response.error.details["persisted_schema_ref"].endswith(
             "render.capture.viewport.artifact-metadata.schema.json"
+        )
+
+
+def test_dispatch_rejects_when_test_visual_diff_execution_details_fail_schema_validation(
+    ) -> None:
+    with isolated_database():
+        with patch(
+            "app.services.dispatcher.schema_validation_service.validate_execution_details",
+            return_value=["$.simulated: expected constant value True"],
+        ):
+            response = dispatcher_service.dispatch(make_test_visual_diff_request())
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_PERSISTED_PAYLOAD"
+        assert response.error.details is not None
+        assert response.error.details["persisted_payload_kind"] == "execution details"
+        assert response.error.details["persisted_schema_ref"].endswith(
+            "test.visual.diff.execution-details.schema.json"
+        )
+
+
+def test_dispatch_rejects_when_test_visual_diff_artifact_metadata_fail_schema_validation(
+    ) -> None:
+    with isolated_database():
+        with patch(
+            "app.services.dispatcher.schema_validation_service.validate_execution_details",
+            return_value=[],
+        ):
+            with patch(
+                "app.services.dispatcher.schema_validation_service.validate_artifact_metadata",
+                return_value=["$.execution_mode: expected constant value 'simulated'"],
+            ):
+                response = dispatcher_service.dispatch(make_test_visual_diff_request())
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_PERSISTED_PAYLOAD"
+        assert response.error.details is not None
+        assert response.error.details["persisted_payload_kind"] == "artifact metadata"
+        assert response.error.details["persisted_schema_ref"].endswith(
+            "test.visual.diff.artifact-metadata.schema.json"
         )
 
 
@@ -1412,6 +1464,44 @@ def test_render_capture_viewport_simulated_persisted_payloads_match_published_sc
         assert (
             schema_validation_service.validate_artifact_metadata(
                 tool_name="render.capture.viewport",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_test_visual_diff_simulated_persisted_payloads_match_published_schemas(
+    ) -> None:
+    with isolated_database():
+        response = dispatcher_service.dispatch(make_test_visual_diff_request())
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "simulated"
+        assert execution.details["simulated"] is True
+        assert artifact is not None
+        assert artifact.simulated is True
+        assert artifact.metadata["execution_mode"] == "simulated"
+        assert artifact.metadata["inspection_surface"] == "simulated"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="test.visual.diff",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="test.visual.diff",
                 payload=artifact.metadata,
             )
             == []
