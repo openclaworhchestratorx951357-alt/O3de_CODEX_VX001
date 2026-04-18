@@ -28,6 +28,26 @@ The repository now includes a first local stack baseline for Phase 5:
 - `.github/workflows/ci.yml`
 - `pyproject.toml`
 
+## Phase 5 local task runner baseline
+
+The repository now also includes a repo-root PowerShell helper for repeatable local checks:
+- `scripts/dev.ps1`
+
+Common examples:
+
+```powershell
+pwsh -File .\scripts\dev.ps1 checks
+pwsh -File .\scripts\dev.ps1 backend-lint
+pwsh -File .\scripts\dev.ps1 backend-test
+pwsh -File .\scripts\dev.ps1 frontend-lint
+pwsh -File .\scripts\dev.ps1 frontend-build
+```
+
+Notes:
+- backend tasks use the repo-local `backend/.vendor_tools` install path and set `PYTHONPATH` automatically
+- frontend tasks run from `frontend/`
+- compose tasks are available, but still require Docker to be installed locally
+
 Local container startup:
 
 ```bash
