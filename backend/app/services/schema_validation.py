@@ -321,6 +321,12 @@ class SchemaValidationService:
 
     def _persisted_schema_refs(self) -> dict[tuple[str, str], str]:
         return {
+            ("test.run.gtest", "execution-details"): (
+                "schemas/tools/test.run.gtest.execution-details.schema.json"
+            ),
+            ("test.run.gtest", "artifact-metadata"): (
+                "schemas/tools/test.run.gtest.artifact-metadata.schema.json"
+            ),
             ("test.run.editor_python", "execution-details"): (
                 "schemas/tools/test.run.editor_python.execution-details.schema.json"
             ),
