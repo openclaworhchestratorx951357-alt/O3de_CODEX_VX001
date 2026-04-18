@@ -132,13 +132,14 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                 "tool": tool,
                 "agent": agent,
                 "execution_mode": "simulated",
+                "simulated": True,
                 "adapter_family": self.family,
                 "adapter_mode": self.mode,
                 "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
                 "execution_boundary": ADAPTER_EXECUTION_BOUNDARY,
                 **(
                     {"inspection_surface": "simulated"}
-                    if tool in {"project.inspect", "build.configure"}
+                    if tool in {"project.inspect", "build.configure", "settings.patch"}
                     else {}
                 ),
             },
@@ -150,7 +151,7 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                 "execution_boundary": ADAPTER_EXECUTION_BOUNDARY,
                 **(
                     {"inspection_surface": "simulated"}
-                    if tool in {"project.inspect", "build.configure"}
+                    if tool in {"project.inspect", "build.configure", "settings.patch"}
                     else {}
                 ),
             },

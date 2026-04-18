@@ -301,6 +301,12 @@ class SchemaValidationService:
             ("build.configure", "artifact-metadata"): (
                 "schemas/tools/build.configure.artifact-metadata.schema.json"
             ),
+            ("settings.patch", "execution-details"): (
+                "schemas/tools/settings.patch.execution-details.schema.json"
+            ),
+            ("settings.patch", "artifact-metadata"): (
+                "schemas/tools/settings.patch.artifact-metadata.schema.json"
+            ),
             ("project.inspect", "execution-details"): (
                 "schemas/tools/project.inspect.execution-details.schema.json"
             ),

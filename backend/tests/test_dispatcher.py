@@ -36,6 +36,32 @@ def make_request(
     )
 
 
+def make_settings_patch_request() -> RequestEnvelope:
+    request = make_request("project-build", "settings.patch")
+    request.args = {
+        "registry_path": "/O3DE/Settings",
+        "operations": [
+            {
+                "op": "set",
+                "path": "/render/quality",
+                "value": "high",
+            }
+        ],
+    }
+    return request
+
+
+def approve_settings_patch_request() -> RequestEnvelope:
+    first = dispatcher_service.dispatch(make_settings_patch_request())
+    approval = approvals_service.get_approval(first.approval_id or "")
+    assert approval is not None
+    approvals_service.approve(approval.id)
+
+    approved_request = make_settings_patch_request()
+    approved_request.approval_token = approval.token
+    return approved_request
+
+
 @contextmanager
 def isolated_database() -> Path:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
@@ -235,6 +261,48 @@ def test_dispatch_rejects_when_build_configure_artifact_metadata_fail_schema_val
         assert response.error.details["persisted_payload_kind"] == "artifact metadata"
         assert response.error.details["persisted_schema_ref"].endswith(
             "build.configure.artifact-metadata.schema.json"
+        )
+
+
+def test_dispatch_rejects_when_settings_patch_execution_details_fail_schema_validation() -> None:
+    with isolated_database():
+        approved_request = approve_settings_patch_request()
+        with patch(
+            "app.services.dispatcher.schema_validation_service.validate_execution_details",
+            return_value=["$.simulated: expected constant value True"],
+        ):
+            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_PERSISTED_PAYLOAD"
+        assert response.error.details is not None
+        assert response.error.details["persisted_payload_kind"] == "execution details"
+        assert response.error.details["persisted_schema_ref"].endswith(
+            "settings.patch.execution-details.schema.json"
+        )
+
+
+def test_dispatch_rejects_when_settings_patch_artifact_metadata_fail_schema_validation() -> None:
+    with isolated_database():
+        approved_request = approve_settings_patch_request()
+        with patch(
+            "app.services.dispatcher.schema_validation_service.validate_execution_details",
+            return_value=[],
+        ):
+            with patch(
+                "app.services.dispatcher.schema_validation_service.validate_artifact_metadata",
+                return_value=["$.execution_mode: expected constant value 'simulated'"],
+            ):
+                response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_PERSISTED_PAYLOAD"
+        assert response.error.details is not None
+        assert response.error.details["persisted_payload_kind"] == "artifact metadata"
+        assert response.error.details["persisted_schema_ref"].endswith(
+            "settings.patch.artifact-metadata.schema.json"
         )
 
 
@@ -755,3 +823,40 @@ def test_build_configure_events_use_plan_only_wording_in_hybrid_mode() -> None:
         )
         assert "plan-only build.configure preflight" in dispatch_event.message
         assert "plan-only build.configure preflight" in locks_event.message
+
+
+def test_settings_patch_simulated_persisted_payloads_match_published_schemas() -> None:
+    with isolated_database():
+        response = dispatcher_service.dispatch(approve_settings_patch_request())
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "simulated"
+        assert execution.details["simulated"] is True
+        assert artifact is not None
+        assert artifact.simulated is True
+        assert artifact.metadata["execution_mode"] == "simulated"
+        assert artifact.metadata["inspection_surface"] == "simulated"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="settings.patch",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="settings.patch",
+                payload=artifact.metadata,
+            )
+            == []
+        )
