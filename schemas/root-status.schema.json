@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/root-status.schema.json",
+  "title": "Root Status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "status", "execution_mode", "routes", "phase"],
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "status": { "type": "string", "minLength": 1 },
+    "execution_mode": {
+      "type": "string",
+      "enum": ["simulated"]
+    },
+    "routes": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "phase": { "type": "string", "minLength": 1 }
+  }
+}

@@ -1,22 +1,36 @@
 from fastapi import APIRouter
 
 from app.models.api import HealthStatus, ReadinessStatus, VersionStatus
-from app.services.db import get_database_strategy_summary
+from app.services.db import (
+    get_database_path,
+    get_database_runtime_status,
+    get_database_runtime_warning,
+    get_database_strategy_summary,
+    is_database_ready,
+)
 
 router = APIRouter(tags=["health"])
 
 
 @router.get("/health", response_model=HealthStatus)
 def health() -> HealthStatus:
-    return HealthStatus(ok=True, service="backend", version="0.3.0")
+    return HealthStatus(ok=True, service="backend", version="0.3.1")
 
 
 @router.get("/ready", response_model=ReadinessStatus)
 def ready() -> ReadinessStatus:
+    runtime_status = get_database_runtime_status()
+    persistence_ready = is_database_ready()
     return ReadinessStatus(
-        ok=True,
+        ok=persistence_ready,
         service="backend",
         execution_mode="simulated",
+        persistence_ready=persistence_ready,
+        requested_database_strategy=runtime_status.requested_strategy,
+        database_strategy=get_database_strategy_summary(),
+        database_path=str(get_database_path()),
+        persistence_warning=get_database_runtime_warning(),
+        attempted_database_paths=runtime_status.attempted_paths,
         dependencies=[
             get_database_strategy_summary(),
             "sqlite approvals store",
@@ -32,6 +46,6 @@ def ready() -> ReadinessStatus:
 def version() -> VersionStatus:
     return VersionStatus(
         service="backend",
-        version="0.3.0",
-        api_version="v0.3",
+        version="0.3.1",
+        api_version="v0.3.1",
     )

@@ -24,6 +24,37 @@ source .venv/bin/activate
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+## Persistence configuration
+
+The backend persists control-plane state in SQLite.
+
+Recommended operator setup:
+- Set `O3DE_CONTROL_PLANE_DB_PATH` to a known-good writable `.sqlite3` file path whenever you already know a safe location.
+- If you prefer to provide a writable directory instead of a full file path, set `O3DE_CONTROL_PLANE_DB_FALLBACK_DIR`. The backend will place `control_plane.sqlite3` there and try that operator path before the repo-local `.runtime` fallback.
+- Set `O3DE_CONTROL_PLANE_DB_STRATEGY=operator` when you want the operator fallback directory to be preferred ahead of LOCALAPPDATA.
+
+Examples:
+
+```powershell
+$env:O3DE_CONTROL_PLANE_DB_PATH="$env:LOCALAPPDATA\Temp\O3DE_CODEX_VX001\control-plane\control_plane.sqlite3"
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+```powershell
+$env:O3DE_CONTROL_PLANE_DB_FALLBACK_DIR="$env:LOCALAPPDATA\Temp\O3DE_CODEX_VX001\operator-fallback"
+$env:O3DE_CONTROL_PLANE_DB_STRATEGY="operator"
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+`GET /ready` reports:
+- the requested database strategy
+- the active database strategy and path actually in use
+- attempted database paths
+- whether persistence is actually ready
+- warning or error text when a preferred target failed
+
+If `/ready` reports `persistence_ready=false`, the backend is not claiming healthy writable persistence.
+
 ## Useful endpoints
 
 - `GET /` — backend root status

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/health-status.schema.json",
+  "title": "Health Status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ok", "service", "version"],
+  "properties": {
+    "ok": { "type": "boolean" },
+    "service": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "minLength": 1 }
+  }
+}

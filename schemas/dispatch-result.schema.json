@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/dispatch-result.schema.json",
+  "title": "Dispatch Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "status",
+    "tool",
+    "agent",
+    "project_root",
+    "engine_root",
+    "dry_run",
+    "simulated",
+    "execution_mode",
+    "approval_class",
+    "locks_acquired",
+    "message"
+  ],
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": ["simulated_success"]
+    },
+    "tool": { "type": "string", "minLength": 1 },
+    "agent": { "type": "string", "minLength": 1 },
+    "project_root": { "type": "string", "minLength": 1 },
+    "engine_root": { "type": "string", "minLength": 1 },
+    "dry_run": { "type": "boolean" },
+    "simulated": { "type": "boolean", "const": true },
+    "execution_mode": {
+      "type": "string",
+      "enum": ["simulated"]
+    },
+    "approval_class": {
+      "type": "string",
+      "enum": [
+        "read_only",
+        "project_write",
+        "content_write",
+        "destructive_content_write",
+        "config_write",
+        "build_execute",
+        "test_execute"
+      ]
+    },
+    "locks_acquired": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "message": { "type": "string", "minLength": 1 }
+  }
+}

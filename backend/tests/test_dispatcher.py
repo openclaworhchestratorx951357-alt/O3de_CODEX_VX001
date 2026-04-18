@@ -48,6 +48,8 @@ def test_dispatch_accepts_valid_agent_and_tool() -> None:
         assert response.ok is True
         assert response.error is None
         assert response.operation_id is not None
+        assert response.result is not None
+        assert response.result.simulated is True
         assert len(response.artifacts) == 1
 
 

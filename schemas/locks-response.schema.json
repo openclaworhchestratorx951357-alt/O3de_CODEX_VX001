@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/locks-response.schema.json",
+  "title": "Locks Response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["locks"],
+  "properties": {
+    "locks": {
+      "type": "array",
+      "items": {
+        "$ref": "lock.schema.json"
+      }
+    }
+  }
+}

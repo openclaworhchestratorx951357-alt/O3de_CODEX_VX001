@@ -16,7 +16,7 @@ from app.services.db import initialize_database
 
 app = FastAPI(
     title="O3DE Agent Control Backend",
-    version="0.3.0",
+    version="0.3.1",
     description=(
         "Backend orchestration layer for O3DE-focused agents, approvals, locks, "
         "artifacts, and structured tool execution."
@@ -45,14 +45,14 @@ app.include_router(artifacts_router)
 
 @app.on_event("startup")
 def startup() -> None:
-    initialize_database()
+    initialize_database(raise_on_failure=False)
 
 
 @app.get("/", response_model=RootStatus)
 def root() -> RootStatus:
     return RootStatus(
         name="O3DE Agent Control Backend",
-        status="phase-2-persistence",
+        status="phase-3-contract-prep",
         execution_mode="simulated",
         routes=[
             "/health",
@@ -68,5 +68,5 @@ def root() -> RootStatus:
             "/executions",
             "/artifacts",
         ],
-        phase="phase-2",
+        phase="phase-3-prep",
     )

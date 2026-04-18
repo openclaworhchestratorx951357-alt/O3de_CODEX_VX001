@@ -10,7 +10,6 @@ from app.models.control_plane import (
     ToolPolicy,
 )
 
-
 class RootStatus(BaseModel):
     name: str = Field(..., min_length=1)
     status: str = Field(..., min_length=1)
@@ -29,6 +28,12 @@ class ReadinessStatus(BaseModel):
     ok: bool
     service: str = Field(..., min_length=1)
     execution_mode: str = Field(..., min_length=1)
+    persistence_ready: bool
+    requested_database_strategy: str = Field(..., min_length=1)
+    database_strategy: str = Field(..., min_length=1)
+    database_path: str = Field(..., min_length=1)
+    persistence_warning: str | None = None
+    attempted_database_paths: list[str] = Field(default_factory=list)
     dependencies: list[str] = Field(default_factory=list)
 
 

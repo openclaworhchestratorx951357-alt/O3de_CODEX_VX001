@@ -153,6 +153,21 @@ git fetch --all --prune
 If working directly on `main`, Codex must say so explicitly.
 If working on a feature branch, Codex must print the branch name before editing.
 
+### Current local-run persistence baseline
+
+Until default non-elevated persistence is fixed for this environment, local backend runs must use an explicit operator-configured writable SQLite path.
+
+Preferred approach:
+- set `O3DE_CONTROL_PLANE_DB_PATH` to a known-good writable `.sqlite3` path
+- treat that explicit path as the current local-run baseline
+- do not claim default LOCALAPPDATA or repo-local persistence is healthy unless it was actually re-verified
+
+If using a directory-based operator fallback instead of an exact file path:
+- set `O3DE_CONTROL_PLANE_DB_FALLBACK_DIR` to a known-good writable directory
+- optionally set `O3DE_CONTROL_PLANE_DB_STRATEGY=operator`
+
+Readiness must report the requested strategy, active path, attempted paths, and actual persistence status truthfully.
+
 ---
 
 ## Branching Rules

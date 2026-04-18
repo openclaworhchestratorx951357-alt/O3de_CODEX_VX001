@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/readiness-status.schema.json",
+  "title": "Readiness Status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ok",
+    "service",
+    "execution_mode",
+    "persistence_ready",
+    "requested_database_strategy",
+    "database_strategy",
+    "database_path",
+    "persistence_warning",
+    "attempted_database_paths",
+    "dependencies"
+  ],
+  "properties": {
+    "ok": { "type": "boolean" },
+    "service": { "type": "string", "minLength": 1 },
+    "execution_mode": {
+      "type": "string",
+      "enum": ["simulated"]
+    },
+    "persistence_ready": { "type": "boolean" },
+    "requested_database_strategy": { "type": "string", "minLength": 1 },
+    "database_strategy": { "type": "string", "minLength": 1 },
+    "database_path": { "type": "string", "minLength": 1 },
+    "persistence_warning": {
+      "type": ["string", "null"]
+    },
+    "attempted_database_paths": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

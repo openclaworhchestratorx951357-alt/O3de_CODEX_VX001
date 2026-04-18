@@ -5,7 +5,7 @@ from app.models.control_plane import (
     RunStatus,
 )
 from app.models.request_envelope import RequestEnvelope
-from app.models.response_envelope import ResponseEnvelope, ResponseError
+from app.models.response_envelope import DispatchResult, ResponseEnvelope, ResponseError
 from app.services.approvals import approvals_service
 from app.services.artifacts import artifacts_service
 from app.services.catalog import catalog_service
@@ -236,21 +236,22 @@ class DispatcherService:
             details={"locks": ", ".join(lock.name for lock in acquired_locks) or "none"},
         )
 
-        result = {
-            "status": "simulated_success",
-            "tool": request.tool,
-            "agent": request.agent,
-            "project_root": request.project_root,
-            "engine_root": request.engine_root,
-            "dry_run": request.dry_run,
-            "execution_mode": "simulated",
-            "approval_class": policy.approval_class,
-            "locks_acquired": [lock.name for lock in acquired_locks],
-            "message": (
+        result = DispatchResult(
+            status="simulated_success",
+            tool=request.tool,
+            agent=request.agent,
+            project_root=request.project_root,
+            engine_root=request.engine_root,
+            dry_run=request.dry_run,
+            simulated=True,
+            execution_mode="simulated",
+            approval_class=policy.approval_class,
+            locks_acquired=[lock.name for lock in acquired_locks],
+            message=(
                 "Control-plane prechecks passed and the run was recorded, "
                 "but no real O3DE adapter was executed."
             ),
-        }
+        )
         artifact = artifacts_service.create_artifact(
             run_id=run.id,
             execution_id=execution.id,
@@ -281,7 +282,7 @@ class DispatcherService:
             ],
             artifact_ids=[artifact.id],
             details={
-                "result": result,
+                "result": result.model_dump(),
                 "artifact_id": artifact.id,
                 "simulated": True,
             },

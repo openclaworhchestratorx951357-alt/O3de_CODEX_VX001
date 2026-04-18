@@ -28,17 +28,24 @@ def test_root_includes_phase_one_routes() -> None:
         response = client.get("/")
         assert response.status_code == 200
         payload = response.json()
-        assert payload["status"] == "phase-2-persistence"
+        assert payload["status"] == "phase-3-contract-prep"
+        assert payload["phase"] == "phase-3-prep"
         assert "/runs" in payload["routes"]
 
 
-def test_ready_reports_in_memory_dependencies() -> None:
+def test_ready_reports_database_status_details() -> None:
     with isolated_client() as client:
         response = client.get("/ready")
         assert response.status_code == 200
         payload = response.json()
         assert payload["ok"] is True
+        assert payload["persistence_ready"] is True
+        assert payload["requested_database_strategy"]
+        assert payload["database_strategy"].startswith("SQLite via")
+        assert payload["database_path"].endswith("control-plane.sqlite3")
+        assert len(payload["attempted_database_paths"]) >= 1
         assert "sqlite approvals store" in payload["dependencies"]
+        assert payload["persistence_warning"] in (None, "")
 
 
 def test_catalog_returns_rich_tool_metadata() -> None:
@@ -150,5 +157,6 @@ def test_executions_and_artifacts_endpoints_reflect_simulated_dispatch() -> None
         assert executions.status_code == 200
         assert artifacts.status_code == 200
         assert artifact.status_code == 200
+        assert payload["result"]["simulated"] is True
         assert executions.json()["executions"][0]["execution_mode"] == "simulated"
         assert artifact.json()["simulated"] is True

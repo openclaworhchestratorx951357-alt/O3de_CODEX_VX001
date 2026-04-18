@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/policies-response.schema.json",
+  "title": "Policies Response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["policies"],
+  "properties": {
+    "policies": {
+      "type": "array",
+      "items": {
+        "$ref": "policy.schema.json"
+      }
+    }
+  }
+}
