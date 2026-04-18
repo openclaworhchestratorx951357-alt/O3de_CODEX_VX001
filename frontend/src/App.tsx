@@ -9,6 +9,7 @@ import DispatchForm from "./components/DispatchForm";
 import ExecutionsPanel from "./components/ExecutionsPanel";
 import LayoutHeader from "./components/LayoutHeader";
 import LocksPanel from "./components/LocksPanel";
+import Phase7CapabilitySummaryPanel from "./components/Phase7CapabilitySummaryPanel";
 import PoliciesPanel from "./components/PoliciesPanel";
 import ResponseEnvelopeView from "./components/ResponseEnvelopeView";
 import RunDetailPanel from "./components/RunDetailPanel";
@@ -378,6 +379,8 @@ export default function App() {
         loading={readinessLoading}
         error={readinessError}
       />
+
+      <Phase7CapabilitySummaryPanel agents={catalogAgents} />
 
       <section>
         <ApprovalQueue
