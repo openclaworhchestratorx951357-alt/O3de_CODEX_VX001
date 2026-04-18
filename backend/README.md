@@ -52,8 +52,27 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - attempted database paths
 - whether persistence is actually ready
 - warning or error text when a preferred target failed
+- schema-validation capability and limits for the currently implemented subset validator
 
 If `/ready` reports `persistence_ready=false`, the backend is not claiming healthy writable persistence.
+
+## Schema validation status
+
+The backend currently uses a subset validator for published per-tool arg and simulated-result schemas.
+
+What it does support for the currently published schema set:
+- request-arg validation at dispatch time
+- simulated result-shape conformance checks before a simulated dispatch is reported successful
+- relative local `$ref` resolution
+- a limited keyword set used by the current schemas, including `type`, `required`, `properties`, `additionalProperties`, `enum`, `const`, `minLength`, `minItems`, `minProperties`, `minimum`, `maximum`, `items`, and `allOf`
+
+What it does not claim:
+- full JSON Schema support
+- the validator does not claim full JSON Schema support
+- broad support for keywords such as `anyOf`, `oneOf`, `not`, `pattern`, `format`, `exclusiveMinimum`, `exclusiveMaximum`, `uniqueItems`, `patternProperties`, or `dependentRequired`
+- validation of real O3DE adapter outputs
+
+Simulated execution remains explicitly labeled as simulated even when result-shape conformance checks pass.
 
 ## Useful endpoints
 

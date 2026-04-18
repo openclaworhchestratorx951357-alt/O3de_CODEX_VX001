@@ -14,6 +14,7 @@
     "database_path",
     "persistence_warning",
     "attempted_database_paths",
+    "schema_validation",
     "dependencies"
   ],
   "properties": {
@@ -33,6 +34,40 @@
     "attempted_database_paths": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
+    },
+    "schema_validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "supports_request_args",
+        "supports_result_conformance",
+        "supported_keywords",
+        "supported_refs",
+        "unsupported_keywords",
+        "notes"
+      ],
+      "properties": {
+        "mode": { "type": "string", "minLength": 1 },
+        "supports_request_args": { "type": "boolean" },
+        "supports_result_conformance": { "type": "boolean" },
+        "supported_keywords": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "supported_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "unsupported_keywords": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
     },
     "dependencies": {
       "type": "array",

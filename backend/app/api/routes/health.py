@@ -8,6 +8,7 @@ from app.services.db import (
     get_database_strategy_summary,
     is_database_ready,
 )
+from app.services.schema_validation import schema_validation_service
 
 router = APIRouter(tags=["health"])
 
@@ -31,6 +32,7 @@ def ready() -> ReadinessStatus:
         database_path=str(get_database_path()),
         persistence_warning=get_database_runtime_warning(),
         attempted_database_paths=runtime_status.attempted_paths,
+        schema_validation=schema_validation_service.get_capability_status(),
         dependencies=[
             get_database_strategy_summary(),
             "sqlite approvals store",

@@ -2,11 +2,54 @@ import json
 from pathlib import Path
 from typing import Any
 
+from app.models.api import SchemaValidationStatus
+
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
 class SchemaValidationService:
+    def get_capability_status(self) -> SchemaValidationStatus:
+        return SchemaValidationStatus(
+            mode="subset-json-schema",
+            supports_request_args=True,
+            supports_result_conformance=True,
+            supported_keywords=[
+                "$ref",
+                "allOf",
+                "type",
+                "required",
+                "properties",
+                "additionalProperties",
+                "enum",
+                "const",
+                "minLength",
+                "minItems",
+                "minProperties",
+                "minimum",
+                "maximum",
+                "items",
+            ],
+            supported_refs=["relative local schema refs only"],
+            unsupported_keywords=[
+                "anyOf",
+                "oneOf",
+                "not",
+                "pattern",
+                "format",
+                "exclusiveMinimum",
+                "exclusiveMaximum",
+                "uniqueItems",
+                "patternProperties",
+                "dependentRequired",
+            ],
+            notes=[
+                "Validation coverage is intentionally limited to the subset used by the published tool arg/result schemas.",
+                "The validator does not claim full JSON Schema support.",
+                "Simulated result conformance checks validate the current simulated dispatch payload shape, not real O3DE adapter outputs.",
+            ],
+        )
+
     def load_schema(self, schema_ref: str) -> dict[str, Any]:
         schema_path = REPO_ROOT / schema_ref
         return json.loads(schema_path.read_text(encoding="utf-8"))

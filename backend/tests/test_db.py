@@ -108,3 +108,14 @@ def test_schema_validation_service_accepts_simulated_project_inspect_result() ->
     )
 
     assert errors == []
+
+
+def test_schema_validation_service_reports_subset_capabilities_truthfully() -> None:
+    capability = schema_validation_service.get_capability_status()
+
+    assert capability.mode == "subset-json-schema"
+    assert capability.supports_request_args is True
+    assert capability.supports_result_conformance is True
+    assert "allOf" in capability.supported_keywords
+    assert "oneOf" in capability.unsupported_keywords
+    assert any("does not claim full JSON Schema support" in note for note in capability.notes)

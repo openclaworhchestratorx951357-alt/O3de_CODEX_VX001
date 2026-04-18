@@ -167,6 +167,7 @@ If using a directory-based operator fallback instead of an exact file path:
 - optionally set `O3DE_CONTROL_PLANE_DB_STRATEGY=operator`
 
 Readiness must report the requested strategy, active path, attempted paths, and actual persistence status truthfully.
+Readiness and operator docs should also report schema-validation capability truthfully, including that the current validator only supports the subset used by the published tool schemas and does not claim full JSON Schema support.
 
 ---
 
