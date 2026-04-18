@@ -45,8 +45,12 @@ def test_ready_reports_database_status_details() -> None:
         assert payload["database_path"].endswith("control-plane.sqlite3")
         assert len(payload["attempted_database_paths"]) >= 1
         assert payload["schema_validation"]["mode"] == "subset-json-schema"
+        assert payload["schema_validation"]["schema_scope"] == "published-tool-arg-result-schemas"
         assert payload["schema_validation"]["supports_request_args"] is True
         assert payload["schema_validation"]["supports_result_conformance"] is True
+        assert "$ref" in payload["schema_validation"]["active_keywords"]
+        assert payload["schema_validation"]["active_unsupported_keywords"] == []
+        assert "$schema" in payload["schema_validation"]["active_metadata_keywords"]
         assert "allOf" in payload["schema_validation"]["supported_keywords"]
         assert "oneOf" in payload["schema_validation"]["unsupported_keywords"]
         assert "sqlite approvals store" in payload["dependencies"]

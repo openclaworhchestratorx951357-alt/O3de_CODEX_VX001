@@ -6,31 +6,56 @@ from app.models.api import SchemaValidationStatus
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+TOOL_SCHEMAS_ROOT = REPO_ROOT / "schemas" / "tools"
+SUPPORTED_VALIDATION_KEYWORDS = {
+    "$ref",
+    "allOf",
+    "type",
+    "required",
+    "properties",
+    "additionalProperties",
+    "enum",
+    "const",
+    "minLength",
+    "minItems",
+    "minProperties",
+    "minimum",
+    "maximum",
+    "items",
+}
+NOT_CLAIMED_KEYWORDS = {
+    "anyOf",
+    "oneOf",
+    "not",
+    "pattern",
+    "format",
+    "exclusiveMinimum",
+    "exclusiveMaximum",
+    "uniqueItems",
+    "patternProperties",
+    "dependentRequired",
+}
+SCHEMA_METADATA_KEYWORDS = {"$schema", "$id", "title"}
 
 
 class SchemaValidationService:
     def get_capability_status(self) -> SchemaValidationStatus:
+        schema_profile = self._collect_active_tool_schema_profile()
+        active_keywords = schema_profile["active_keywords"]
+        active_unsupported_keywords = schema_profile["active_unsupported_keywords"]
+        active_metadata_keywords = schema_profile["active_metadata_keywords"]
         return SchemaValidationStatus(
             mode="subset-json-schema",
+            schema_scope="published-tool-arg-result-schemas",
             supports_request_args=True,
             supports_result_conformance=True,
-            supported_keywords=[
-                "$ref",
-                "allOf",
-                "type",
-                "required",
-                "properties",
-                "additionalProperties",
-                "enum",
-                "const",
-                "minLength",
-                "minItems",
-                "minProperties",
-                "minimum",
-                "maximum",
-                "items",
-            ],
-            supported_refs=["relative local schema refs only"],
+            active_keywords=active_keywords,
+            active_unsupported_keywords=active_unsupported_keywords,
+            active_metadata_keywords=active_metadata_keywords,
+            supported_keywords=sorted(
+                keyword for keyword in active_keywords if keyword in SUPPORTED_VALIDATION_KEYWORDS
+            ),
+            supported_refs=["relative local schema refs only"] if "$ref" in active_keywords else [],
             unsupported_keywords=[
                 "anyOf",
                 "oneOf",
@@ -45,6 +70,8 @@ class SchemaValidationService:
             ],
             notes=[
                 "Validation coverage is intentionally limited to the subset used by the published tool arg/result schemas.",
+                "Active keywords are derived from the current published tool arg/result schema files, not the broader repository schema tree.",
+                "Current published tool schemas are expected to stay within the supported subset; active unsupported keywords should remain empty.",
                 "The validator does not claim full JSON Schema support.",
                 "Simulated result conformance checks validate the current simulated dispatch payload shape, not real O3DE adapter outputs.",
             ],
@@ -191,6 +218,26 @@ class SchemaValidationService:
         if checker is None:
             return True
         return checker(value)
+
+    def _collect_active_tool_schema_profile(self) -> dict[str, list[str]]:
+        observed: set[str] = set()
+        for schema_path in TOOL_SCHEMAS_ROOT.rglob("*.json"):
+            data = json.loads(schema_path.read_text(encoding="utf-8"))
+            self._collect_schema_keywords(data, observed)
+        return {
+            "active_keywords": sorted(observed & SUPPORTED_VALIDATION_KEYWORDS),
+            "active_unsupported_keywords": sorted(observed & NOT_CLAIMED_KEYWORDS),
+            "active_metadata_keywords": sorted(observed & SCHEMA_METADATA_KEYWORDS),
+        }
+
+    def _collect_schema_keywords(self, value: Any, observed: set[str]) -> None:
+        if isinstance(value, dict):
+            observed.update(value.keys())
+            for item in value.values():
+                self._collect_schema_keywords(item, observed)
+        elif isinstance(value, list):
+            for item in value:
+                self._collect_schema_keywords(item, observed)
 
 
 schema_validation_service = SchemaValidationService()

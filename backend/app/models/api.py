@@ -26,8 +26,12 @@ class HealthStatus(BaseModel):
 
 class SchemaValidationStatus(BaseModel):
     mode: str = Field(..., min_length=1)
+    schema_scope: str = Field(..., min_length=1)
     supports_request_args: bool
     supports_result_conformance: bool
+    active_keywords: list[str] = Field(default_factory=list)
+    active_unsupported_keywords: list[str] = Field(default_factory=list)
+    active_metadata_keywords: list[str] = Field(default_factory=list)
     supported_keywords: list[str] = Field(default_factory=list)
     supported_refs: list[str] = Field(default_factory=list)
     unsupported_keywords: list[str] = Field(default_factory=list)

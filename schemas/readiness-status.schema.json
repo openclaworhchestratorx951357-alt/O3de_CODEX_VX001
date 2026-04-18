@@ -40,8 +40,12 @@
       "additionalProperties": false,
       "required": [
         "mode",
+        "schema_scope",
         "supports_request_args",
         "supports_result_conformance",
+        "active_keywords",
+        "active_unsupported_keywords",
+        "active_metadata_keywords",
         "supported_keywords",
         "supported_refs",
         "unsupported_keywords",
@@ -49,8 +53,21 @@
       ],
       "properties": {
         "mode": { "type": "string", "minLength": 1 },
+        "schema_scope": { "type": "string", "minLength": 1 },
         "supports_request_args": { "type": "boolean" },
         "supports_result_conformance": { "type": "boolean" },
+        "active_keywords": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "active_unsupported_keywords": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "active_metadata_keywords": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
         "supported_keywords": {
           "type": "array",
           "items": { "type": "string", "minLength": 1 }

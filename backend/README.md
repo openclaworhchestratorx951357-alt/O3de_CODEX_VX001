@@ -65,6 +65,8 @@ What it does support for the currently published schema set:
 - simulated result-shape conformance checks before a simulated dispatch is reported successful
 - relative local `$ref` resolution
 - a limited keyword set used by the current schemas, including `type`, `required`, `properties`, `additionalProperties`, `enum`, `const`, `minLength`, `minItems`, `minProperties`, `minimum`, `maximum`, `items`, and `allOf`
+- readiness metadata reports the active keyword subset derived from the published tool arg/result schemas
+- readiness metadata also reports whether any currently published tool schemas use unsupported keywords; for the current accepted schema set that list should stay empty
 
 What it does not claim:
 - full JSON Schema support

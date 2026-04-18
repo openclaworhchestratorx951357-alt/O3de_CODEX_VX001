@@ -114,8 +114,19 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
     capability = schema_validation_service.get_capability_status()
 
     assert capability.mode == "subset-json-schema"
+    assert capability.schema_scope == "published-tool-arg-result-schemas"
     assert capability.supports_request_args is True
     assert capability.supports_result_conformance is True
+    assert "$ref" in capability.active_keywords
+    assert capability.active_unsupported_keywords == []
+    assert "$schema" in capability.active_metadata_keywords
     assert "allOf" in capability.supported_keywords
     assert "oneOf" in capability.unsupported_keywords
     assert any("does not claim full JSON Schema support" in note for note in capability.notes)
+    assert any(
+        "published tool arg/result schema files" in note for note in capability.notes
+    )
+    assert any(
+        "active unsupported keywords should remain empty" in note
+        for note in capability.notes
+    )
