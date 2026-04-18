@@ -16,6 +16,7 @@ Agent control app for O3DE-focused orchestration, tooling, approvals, and operat
 See these official source files before making changes:
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
+- `CONTRIBUTING.md`
 
 ## Phase 5 startup baseline
 
