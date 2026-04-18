@@ -34,6 +34,8 @@ export default function Phase7CapabilitySummaryPanel({
   agents,
 }: Phase7CapabilitySummaryPanelProps) {
   const buckets = buildBuckets(agents);
+  const planOnlyCount = buckets.find((bucket) => bucket.label === "plan-only")?.tools.length ?? 0;
+  const hybridCount = buckets.find((bucket) => bucket.label === "hybrid-read-only")?.tools.length ?? 0;
 
   return (
     <section style={{ marginBottom: 32 }}>
@@ -42,6 +44,23 @@ export default function Phase7CapabilitySummaryPanel({
         Current operator summary of which tool surfaces are real-capable,
         hybrid-only, planning-only, mutation-gated, or still simulated.
       </p>
+      {buckets.length > 0 ? (
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            flexWrap: "wrap",
+            marginBottom: 12,
+          }}
+        >
+          <span style={summaryBadgeStyle}>
+            hybrid-read-only surfaces: {hybridCount}
+          </span>
+          <span style={{ ...summaryBadgeStyle, background: "#fff8c5" }}>
+            plan-only surfaces: {planOnlyCount}
+          </span>
+        </div>
+      ) : null}
       {buckets.length === 0 ? (
         <p>No capability summary is available until the catalog loads.</p>
       ) : (
@@ -53,7 +72,14 @@ export default function Phase7CapabilitySummaryPanel({
           }}
         >
           {buckets.map((bucket) => (
-            <article key={bucket.label} style={cardStyle}>
+            <article
+              key={bucket.label}
+              style={{
+                ...cardStyle,
+                borderColor: bucket.label === "plan-only" ? "#b08800" : "#ddd",
+                background: bucket.label === "plan-only" ? "#fffdf0" : "#fafafa",
+              }}
+            >
               <h3 style={headingStyle}>{bucket.label}</h3>
               <p style={{ marginTop: 0, color: "#57606a" }}>{bucket.description}</p>
               <p><strong>Count:</strong> {bucket.tools.length}</p>
@@ -101,4 +127,13 @@ const cardStyle: CSSProperties = {
 const headingStyle: CSSProperties = {
   marginTop: 0,
   marginBottom: 12,
+};
+
+const summaryBadgeStyle: CSSProperties = {
+  border: "1px solid #d0d7de",
+  borderRadius: 999,
+  padding: "6px 10px",
+  background: "#f6f8fa",
+  color: "#24292f",
+  fontSize: 14,
 };

@@ -36,27 +36,63 @@ export default function RunsPanel({
         <p>No runs recorded yet.</p>
       ) : (
         <ul>
-          {items.map((item) => (
-            <li key={item.id} style={{ marginBottom: 12 }}>
-              <strong>{item.tool}</strong>
-              <div>Agent: {item.agent}</div>
-              <div>Status: {item.status}</div>
-              <div>Execution mode: {item.execution_mode}</div>
-              <div>Dry run: {String(item.dry_run)}</div>
-              <div>Run ID: {item.id}</div>
-              {item.result_summary ? <div>Summary: {item.result_summary}</div> : null}
-              <button
-                type="button"
-                style={{ marginTop: 8 }}
-                disabled={selectedRunId === item.id}
-                onClick={() => onSelectRun(item.id)}
-              >
-                {selectedRunId === item.id ? "Selected" : "View detail"}
-              </button>
-            </li>
-          ))}
+          {items.map((item) => {
+            const capability = getRunCapabilityLabel(item);
+            const executionTruth = getRunExecutionTruth(item);
+
+            return (
+              <li key={item.id} style={{ marginBottom: 12 }}>
+                <strong>{item.tool}</strong>
+                <div>Agent: {item.agent}</div>
+                <div>Status: {item.status}</div>
+                <div>Execution mode: {item.execution_mode}</div>
+                <div>Capability: {capability}</div>
+                <div>Execution truth: {executionTruth}</div>
+                <div>Dry run: {String(item.dry_run)}</div>
+                <div>Run ID: {item.id}</div>
+                {item.result_summary ? <div>Summary: {item.result_summary}</div> : null}
+                <button
+                  type="button"
+                  style={{ marginTop: 8 }}
+                  disabled={selectedRunId === item.id}
+                  onClick={() => onSelectRun(item.id)}
+                >
+                  {selectedRunId === item.id ? "Selected" : "View detail"}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
   );
+}
+
+function getRunCapabilityLabel(item: RunRecord): string {
+  if (item.tool === "project.inspect") {
+    return "hybrid-read-only";
+  }
+  if (item.tool === "build.configure") {
+    return "plan-only";
+  }
+  if (item.tool === "settings.patch" || item.tool === "gem.enable" || item.tool === "build.compile") {
+    return "mutation-gated";
+  }
+  return "simulated-only";
+}
+
+function getRunExecutionTruth(item: RunRecord): string {
+  if (item.tool === "build.configure") {
+    return item.execution_mode === "real"
+      ? "Real plan-only preflight path."
+      : "Simulated path or hybrid fallback.";
+  }
+  if (item.tool === "project.inspect") {
+    return item.execution_mode === "real"
+      ? "Real read-only inspection path."
+      : "Simulated path or hybrid fallback.";
+  }
+  return item.execution_mode === "real"
+    ? "Narrow real adapter path."
+    : "Simulated path.";
 }
