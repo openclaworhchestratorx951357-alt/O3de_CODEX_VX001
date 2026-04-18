@@ -140,7 +140,13 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                 **(
                     {"inspection_surface": "simulated"}
                     if tool
-                    in {"project.inspect", "build.configure", "settings.patch", "gem.enable"}
+                    in {
+                        "project.inspect",
+                        "build.configure",
+                        "settings.patch",
+                        "gem.enable",
+                        "build.compile",
+                    }
                     else {}
                 ),
             },
@@ -153,7 +159,13 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                 **(
                     {"inspection_surface": "simulated"}
                     if tool
-                    in {"project.inspect", "build.configure", "settings.patch", "gem.enable"}
+                    in {
+                        "project.inspect",
+                        "build.configure",
+                        "settings.patch",
+                        "gem.enable",
+                        "build.compile",
+                    }
                     else {}
                 ),
             },

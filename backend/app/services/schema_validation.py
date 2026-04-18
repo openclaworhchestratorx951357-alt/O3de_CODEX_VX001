@@ -313,6 +313,12 @@ class SchemaValidationService:
             ("gem.enable", "artifact-metadata"): (
                 "schemas/tools/gem.enable.artifact-metadata.schema.json"
             ),
+            ("build.compile", "execution-details"): (
+                "schemas/tools/build.compile.execution-details.schema.json"
+            ),
+            ("build.compile", "artifact-metadata"): (
+                "schemas/tools/build.compile.artifact-metadata.schema.json"
+            ),
             ("project.inspect", "execution-details"): (
                 "schemas/tools/project.inspect.execution-details.schema.json"
             ),

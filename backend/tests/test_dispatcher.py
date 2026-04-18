@@ -81,6 +81,25 @@ def approve_gem_enable_request() -> RequestEnvelope:
     return approved_request
 
 
+def make_build_compile_request() -> RequestEnvelope:
+    request = make_request("project-build", "build.compile")
+    request.args = {
+        "targets": ["Editor"],
+    }
+    return request
+
+
+def approve_build_compile_request() -> RequestEnvelope:
+    first = dispatcher_service.dispatch(make_build_compile_request())
+    approval = approvals_service.get_approval(first.approval_id or "")
+    assert approval is not None
+    approvals_service.approve(approval.id)
+
+    approved_request = make_build_compile_request()
+    approved_request.approval_token = approval.token
+    return approved_request
+
+
 @contextmanager
 def isolated_database() -> Path:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
@@ -364,6 +383,48 @@ def test_dispatch_rejects_when_gem_enable_artifact_metadata_fail_schema_validati
         assert response.error.details["persisted_payload_kind"] == "artifact metadata"
         assert response.error.details["persisted_schema_ref"].endswith(
             "gem.enable.artifact-metadata.schema.json"
+        )
+
+
+def test_dispatch_rejects_when_build_compile_execution_details_fail_schema_validation() -> None:
+    with isolated_database():
+        approved_request = approve_build_compile_request()
+        with patch(
+            "app.services.dispatcher.schema_validation_service.validate_execution_details",
+            return_value=["$.simulated: expected constant value True"],
+        ):
+            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_PERSISTED_PAYLOAD"
+        assert response.error.details is not None
+        assert response.error.details["persisted_payload_kind"] == "execution details"
+        assert response.error.details["persisted_schema_ref"].endswith(
+            "build.compile.execution-details.schema.json"
+        )
+
+
+def test_dispatch_rejects_when_build_compile_artifact_metadata_fail_schema_validation() -> None:
+    with isolated_database():
+        approved_request = approve_build_compile_request()
+        with patch(
+            "app.services.dispatcher.schema_validation_service.validate_execution_details",
+            return_value=[],
+        ):
+            with patch(
+                "app.services.dispatcher.schema_validation_service.validate_artifact_metadata",
+                return_value=["$.execution_mode: expected constant value 'simulated'"],
+            ):
+                response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_PERSISTED_PAYLOAD"
+        assert response.error.details is not None
+        assert response.error.details["persisted_payload_kind"] == "artifact metadata"
+        assert response.error.details["persisted_schema_ref"].endswith(
+            "build.compile.artifact-metadata.schema.json"
         )
 
 
@@ -954,6 +1015,43 @@ def test_gem_enable_simulated_persisted_payloads_match_published_schemas() -> No
         assert (
             schema_validation_service.validate_artifact_metadata(
                 tool_name="gem.enable",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_build_compile_simulated_persisted_payloads_match_published_schemas() -> None:
+    with isolated_database():
+        response = dispatcher_service.dispatch(approve_build_compile_request())
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "simulated"
+        assert execution.details["simulated"] is True
+        assert artifact is not None
+        assert artifact.simulated is True
+        assert artifact.metadata["execution_mode"] == "simulated"
+        assert artifact.metadata["inspection_surface"] == "simulated"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="build.compile",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="build.compile",
                 payload=artifact.metadata,
             )
             == []
