@@ -6,6 +6,19 @@ type RunDetailPanelProps = {
   error: string | null;
 };
 
+function describeRunTruth(item: RunRecord): string {
+  if (item.execution_mode === "real" && item.tool === "project.inspect") {
+    return "This run used the real read-only project.inspect path and may include manifest-backed Gem/settings evidence.";
+  }
+  if (item.execution_mode === "real" && item.tool === "build.configure") {
+    return "This run used the real plan-only build.configure preflight path.";
+  }
+  if (item.execution_mode === "simulated" && item.tool === "build.configure") {
+    return "This build.configure run remained on a simulated fallback path.";
+  }
+  return "This run remained on a simulated execution path.";
+}
+
 export default function RunDetailPanel({
   item,
   loading,
@@ -40,15 +53,7 @@ export default function RunDetailPanel({
           <div><strong>Execution mode:</strong> {item.execution_mode}</div>
           <div>
             <strong>Execution truth:</strong>{" "}
-            {item.execution_mode === "real"
-              ? item.tool === "project.inspect"
-                ? "This run used the first real read-only project.inspect path."
-                : item.tool === "build.configure"
-                  ? "This run used the real plan-only build.configure preflight path."
-                  : "This run used a narrow real adapter path."
-              : item.tool === "build.configure"
-                ? "This build.configure run remained on a simulated fallback path."
-                : "This run remained on a simulated execution path."}
+            {describeRunTruth(item)}
           </div>
           <div><strong>Dry run:</strong> {String(item.dry_run)}</div>
           <div><strong>Requested locks:</strong> {item.requested_locks.join(", ") || "none"}</div>

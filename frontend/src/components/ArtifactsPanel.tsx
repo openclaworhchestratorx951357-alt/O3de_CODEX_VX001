@@ -21,6 +21,14 @@ function readRecord(
     : null;
 }
 
+function readStringArray(metadata: Record<string, unknown>, key: string): string[] {
+  const value = metadata[key];
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((entry): entry is string => typeof entry === "string" && entry.length > 0);
+}
+
 export default function ArtifactsPanel({
   items,
   loading,
@@ -54,6 +62,10 @@ export default function ArtifactsPanel({
               const inspectionSurface = readString(item.metadata, "inspection_surface");
               const executionMode = readString(item.metadata, "execution_mode");
               const planDetails = readRecord(item.metadata, "plan_details");
+              const manifestSettings = readRecord(item.metadata, "manifest_settings");
+              const inspectionEvidence = readStringArray(item.metadata, "inspection_evidence");
+              const gemNames = readStringArray(item.metadata, "gem_names");
+              const settingsKeys = readStringArray(item.metadata, "manifest_settings_keys");
               const preset = planDetails && typeof planDetails.preset === "string"
                 ? planDetails.preset
                 : null;
@@ -84,6 +96,18 @@ export default function ArtifactsPanel({
                   <div>Provenance: {provenanceLabel}</div>
                   {projectName ? <div>Project name: {projectName}</div> : null}
                   {manifestPath ? <div>Manifest path: {manifestPath}</div> : null}
+                  {inspectionEvidence.length > 0 ? (
+                    <div>Inspection evidence: {inspectionEvidence.join(", ")}</div>
+                  ) : null}
+                  {gemNames.length > 0 ? <div>Gem names: {gemNames.join(", ")}</div> : null}
+                  {settingsKeys.length > 0 ? (
+                    <div>Manifest settings keys: {settingsKeys.join(", ")}</div>
+                  ) : null}
+                  {manifestSettings ? (
+                    <div>
+                      Manifest settings snapshot: {JSON.stringify(manifestSettings)}
+                    </div>
+                  ) : null}
                   {preset ? <div>Preset: {preset}</div> : null}
                   {generator ? <div>Generator: {generator}</div> : null}
                   {buildDirectory ? <div>Build directory: {buildDirectory}</div> : null}
