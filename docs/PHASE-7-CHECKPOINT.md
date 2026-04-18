@@ -29,8 +29,11 @@ Real O3DE execution is still narrow.
 
 Current truth:
 - may use a real read-only manifest-backed path in `O3DE_ADAPTER_MODE=hybrid`
+- may now capture manifest-backed project, Gem, and top-level settings evidence
+  from `project_root/project.json` when requested
 - falls back to simulated when the real manifest path is unavailable
 - remains explicitly labeled as real vs simulated in backend and frontend
+- still does not authorize deeper layered settings discovery or any mutation path
 
 ### Real plan-only
 
@@ -63,6 +66,7 @@ The operator shell now exposes this boundary through:
 - system status
 - adapter registry
 - catalog and dispatch capability labels
+- dispatch guidance for manifest-backed Gem/settings evidence requests
 - timeline wording
 - runs list and run detail
 - executions and artifacts provenance
@@ -73,6 +77,9 @@ The operator shell now exposes this boundary through:
 
 - broad real O3DE adapters are still not implemented
 - `build.configure` is not a real configure execution path
+- `project.inspect` real evidence is still limited to manifest-backed project,
+  Gem, and top-level settings fields rather than broader layered config
+  discovery
 - no mutation path has moved to real execution
 - simulated fallback remains part of the truthful accepted behavior
 - default non-container persistence is still not claimed healthy; explicit
@@ -85,7 +92,8 @@ Before widening into broader real adapter execution, the next slice should stay
 narrow and truthful.
 
 Recommended next boundary:
-- define and document the exact admission checklist for the first expansion
-  beyond the current Phase 7 checkpoint, or
-- begin the next narrow real-adapter candidate only if it can keep mutation
-  disabled and fallback behavior explicit
+- define the exact contract for the next manifest-adjacent real precursor,
+  most likely project-config inspection that stays file-read-only, or
+- begin that next narrow real-adapter candidate only if it can keep mutation
+  disabled, stay on the same project-manifest source of truth, and keep
+  fallback behavior explicit

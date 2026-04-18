@@ -25,6 +25,12 @@ See these official source files before making changes:
 - `CONTRIBUTING.md`
 - `docs/LOCAL-STACK-RUNBOOK.md`
 
+Current Phase 7 checkpoint truth:
+- `project.inspect` is the current real read-only path in hybrid mode
+- that path now includes manifest-backed project, Gem, and top-level settings evidence
+- `build.configure` remains only a real plan-only preflight path
+- mutation surfaces remain gated
+
 ## Phase 5 startup baseline
 
 The repository now includes a first local stack baseline for Phase 5:

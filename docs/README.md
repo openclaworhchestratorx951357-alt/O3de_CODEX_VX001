@@ -19,6 +19,12 @@ See these official source files:
 - `docs/LOCAL-STACK-RUNBOOK.md`
 - `CONTRIBUTING.md`
 
+Current Phase 7 checkpoint truth:
+- `project.inspect` is the current real read-only path in hybrid mode
+- that path now includes manifest-backed project, Gem, and top-level settings evidence
+- `build.configure` is still only a real plan-only preflight path
+- mutation surfaces remain gated
+
 Planned contents:
 - architecture
 - implementation plans
