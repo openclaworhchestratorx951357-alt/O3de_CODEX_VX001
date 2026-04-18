@@ -327,16 +327,38 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
     assert capability.schema_scope == "published-tool-arg-result-schemas"
     assert capability.supports_request_args is True
     assert capability.supports_result_conformance is True
+    assert capability.supports_persisted_execution_details is True
+    assert capability.supports_persisted_artifact_metadata is True
     assert "$ref" in capability.active_keywords
     assert capability.active_unsupported_keywords == []
     assert "$schema" in capability.active_metadata_keywords
     assert "allOf" in capability.supported_keywords
     assert "oneOf" in capability.unsupported_keywords
+    assert capability.persisted_execution_details_tool_count == 5
+    assert capability.persisted_artifact_metadata_tool_count == 5
+    assert capability.persisted_execution_details_tools == [
+        "build.compile",
+        "build.configure",
+        "gem.enable",
+        "project.inspect",
+        "settings.patch",
+    ]
+    assert capability.persisted_artifact_metadata_tools == [
+        "build.compile",
+        "build.configure",
+        "gem.enable",
+        "project.inspect",
+        "settings.patch",
+    ]
     assert any("does not claim full JSON Schema support" in note for note in capability.notes)
     assert any(
         "published tool arg/result schema files" in note for note in capability.notes
     )
     assert any(
         "active unsupported keywords should remain empty" in note
+        for note in capability.notes
+    )
+    assert any(
+        "Persisted payload coverage is reported separately" in note
         for note in capability.notes
     )

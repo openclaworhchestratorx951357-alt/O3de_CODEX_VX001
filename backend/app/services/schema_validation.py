@@ -40,6 +40,7 @@ SCHEMA_METADATA_KEYWORDS = {"$schema", "$id", "title"}
 class SchemaValidationService:
     def get_capability_status(self) -> SchemaValidationStatus:
         schema_profile = self._collect_active_tool_schema_profile()
+        persisted_coverage = self._persisted_schema_coverage()
         active_keywords = schema_profile["active_keywords"]
         active_unsupported_keywords = schema_profile["active_unsupported_keywords"]
         active_metadata_keywords = schema_profile["active_metadata_keywords"]
@@ -48,6 +49,12 @@ class SchemaValidationService:
             schema_scope="published-tool-arg-result-schemas",
             supports_request_args=True,
             supports_result_conformance=True,
+            supports_persisted_execution_details=bool(
+                persisted_coverage["execution-details"]
+            ),
+            supports_persisted_artifact_metadata=bool(
+                persisted_coverage["artifact-metadata"]
+            ),
             active_keywords=active_keywords,
             active_unsupported_keywords=active_unsupported_keywords,
             active_metadata_keywords=active_metadata_keywords,
@@ -67,10 +74,22 @@ class SchemaValidationService:
                 "patternProperties",
                 "dependentRequired",
             ],
+            persisted_execution_details_tool_count=len(
+                persisted_coverage["execution-details"]
+            ),
+            persisted_artifact_metadata_tool_count=len(
+                persisted_coverage["artifact-metadata"]
+            ),
+            persisted_execution_details_tools=persisted_coverage["execution-details"],
+            persisted_artifact_metadata_tools=persisted_coverage["artifact-metadata"],
             notes=[
                 (
                     "Validation coverage is intentionally limited to the subset used by "
                     "the published tool arg/result schemas."
+                ),
+                (
+                    "Persisted payload coverage is reported separately so execution-details "
+                    "and artifact-metadata schema rollout stays explicit."
                 ),
                 (
                     "Active keywords are derived from the current published tool arg/result "
@@ -294,7 +313,11 @@ class SchemaValidationService:
         tool_name: str,
         schema_kind: str,
     ) -> str | None:
-        persisted_schema_refs = {
+        persisted_schema_refs = self._persisted_schema_refs()
+        return persisted_schema_refs.get((tool_name, schema_kind))
+
+    def _persisted_schema_refs(self) -> dict[tuple[str, str], str]:
+        return {
             ("build.configure", "execution-details"): (
                 "schemas/tools/build.configure.execution-details.schema.json"
             ),
@@ -326,7 +349,18 @@ class SchemaValidationService:
                 "schemas/tools/project.inspect.artifact-metadata.schema.json"
             ),
         }
-        return persisted_schema_refs.get((tool_name, schema_kind))
+
+    def _persisted_schema_coverage(self) -> dict[str, list[str]]:
+        coverage: dict[str, set[str]] = {
+            "execution-details": set(),
+            "artifact-metadata": set(),
+        }
+        for tool_name, schema_kind in self._persisted_schema_refs():
+            coverage[schema_kind].add(tool_name)
+        return {
+            "execution-details": sorted(coverage["execution-details"]),
+            "artifact-metadata": sorted(coverage["artifact-metadata"]),
+        }
 
 
 schema_validation_service = SchemaValidationService()

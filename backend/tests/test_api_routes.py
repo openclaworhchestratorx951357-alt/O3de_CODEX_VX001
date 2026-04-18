@@ -57,11 +57,29 @@ def test_ready_reports_database_status_details() -> None:
         assert payload["schema_validation"]["schema_scope"] == "published-tool-arg-result-schemas"
         assert payload["schema_validation"]["supports_request_args"] is True
         assert payload["schema_validation"]["supports_result_conformance"] is True
+        assert payload["schema_validation"]["supports_persisted_execution_details"] is True
+        assert payload["schema_validation"]["supports_persisted_artifact_metadata"] is True
         assert "$ref" in payload["schema_validation"]["active_keywords"]
         assert payload["schema_validation"]["active_unsupported_keywords"] == []
         assert "$schema" in payload["schema_validation"]["active_metadata_keywords"]
         assert "allOf" in payload["schema_validation"]["supported_keywords"]
         assert "oneOf" in payload["schema_validation"]["unsupported_keywords"]
+        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 5
+        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 5
+        assert payload["schema_validation"]["persisted_execution_details_tools"] == [
+            "build.compile",
+            "build.configure",
+            "gem.enable",
+            "project.inspect",
+            "settings.patch",
+        ]
+        assert payload["schema_validation"]["persisted_artifact_metadata_tools"] == [
+            "build.compile",
+            "build.configure",
+            "gem.enable",
+            "project.inspect",
+            "settings.patch",
+        ]
         assert "sqlite approvals store" in payload["dependencies"]
         assert "adapter mode: simulated" in payload["dependencies"]
         assert payload["persistence_warning"] in (None, "")
