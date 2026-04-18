@@ -6,6 +6,7 @@ import CatalogPanel from "./components/CatalogPanel";
 import DispatchForm from "./components/DispatchForm";
 import LayoutHeader from "./components/LayoutHeader";
 import LocksPanel from "./components/LocksPanel";
+import PoliciesPanel from "./components/PoliciesPanel";
 import ResponseEnvelopeView from "./components/ResponseEnvelopeView";
 import RunsPanel from "./components/RunsPanel";
 import TaskTimeline from "./components/TaskTimeline";
@@ -15,6 +16,7 @@ import {
   fetchApprovals,
   fetchEvents,
   fetchLocks,
+  fetchPolicies,
   fetchRuns,
   fetchToolsCatalog,
   rejectApproval,
@@ -26,6 +28,7 @@ import type {
   LockRecord,
   ResponseEnvelope,
   RunRecord,
+  ToolPolicy,
 } from "./types/contracts";
 
 type ToolsCatalog = {
@@ -38,15 +41,18 @@ export default function App() {
   const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [locks, setLocks] = useState<LockRecord[]>([]);
+  const [policies, setPolicies] = useState<ToolPolicy[]>([]);
   const [runs, setRuns] = useState<RunRecord[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [locksError, setLocksError] = useState<string | null>(null);
+  const [policiesError, setPoliciesError] = useState<string | null>(null);
   const [runsError, setRunsError] = useState<string | null>(null);
   const [approvalsLoading, setApprovalsLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [locksLoading, setLocksLoading] = useState(true);
+  const [policiesLoading, setPoliciesLoading] = useState(true);
   const [runsLoading, setRunsLoading] = useState(true);
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
 
@@ -110,6 +116,21 @@ export default function App() {
     }
   }
 
+  async function loadPolicies() {
+    setPoliciesLoading(true);
+    try {
+      const nextPolicies = await fetchPolicies();
+      setPolicies(nextPolicies);
+      setPoliciesError(null);
+    } catch (error) {
+      setPoliciesError(
+        error instanceof Error ? error.message : "Failed to load policies",
+      );
+    } finally {
+      setPoliciesLoading(false);
+    }
+  }
+
   useEffect(() => {
     async function loadInitialData() {
       try {
@@ -124,6 +145,7 @@ export default function App() {
       await loadApprovals();
       await loadEvents();
       await loadLocks();
+      await loadPolicies();
       await loadRuns();
     }
 
@@ -144,6 +166,7 @@ export default function App() {
       await loadApprovals();
       await loadEvents();
       await loadLocks();
+      await loadPolicies();
       await loadRuns();
     } catch (error) {
       setApprovalsError(
@@ -159,6 +182,7 @@ export default function App() {
     void loadApprovals();
     void loadEvents();
     void loadLocks();
+    void loadPolicies();
     void loadRuns();
   }
 
@@ -249,6 +273,11 @@ export default function App() {
         items={locks}
         loading={locksLoading}
         error={locksError}
+      />
+      <PoliciesPanel
+        items={policies}
+        loading={policiesLoading}
+        error={policiesError}
       />
     </main>
   );

@@ -7,8 +7,10 @@ import type {
   ResponseEnvelope,
   LockRecord,
   LocksResponse,
+  PoliciesResponse,
   RunRecord,
   RunsResponse,
+  ToolPolicy,
 } from "../types/contracts";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:8000";
@@ -115,4 +117,15 @@ export async function fetchLocks(): Promise<LockRecord[]> {
 
   const payload = (await response.json()) as LocksResponse;
   return payload.locks ?? [];
+}
+
+export async function fetchPolicies(): Promise<ToolPolicy[]> {
+  const response = await fetch(`${API_BASE_URL}/policies`);
+
+  if (!response.ok) {
+    throw new Error(`Policies fetch failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as PoliciesResponse;
+  return payload.policies ?? [];
 }

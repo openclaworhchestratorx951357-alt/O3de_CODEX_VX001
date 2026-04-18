@@ -124,6 +124,23 @@ export interface LocksResponse {
   locks: LockRecord[];
 }
 
+export interface ToolPolicy {
+  agent: string;
+  tool: string;
+  approval_class: string;
+  args_schema: string;
+  result_schema: string;
+  required_locks: string[];
+  risk: string;
+  requires_approval: boolean;
+  supports_dry_run: boolean;
+  execution_mode: string;
+}
+
+export interface PoliciesResponse {
+  policies: ToolPolicy[];
+}
+
 export interface ToolDefinition {
   name: string;
   description: string;
