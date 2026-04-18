@@ -7,13 +7,15 @@ from app.services.schema_validation import schema_validation_service
 
 
 def test_localappdata_failure_falls_back_to_repo_runtime() -> None:
-    with TemporaryDirectory() as temp_dir:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         blocked_local = Path(temp_dir) / "blocked-localappdata"
         repo_fallback = Path(temp_dir) / "repo-runtime" / "control_plane.sqlite3"
         original_initialize = db._initialize_database_file
 
         def fake_initialize(path: Path) -> None:
-            if path == blocked_local / "O3DE_CODEX_VX001" / "control-plane" / "control_plane.sqlite3":
+            if path == (
+                blocked_local / "O3DE_CODEX_VX001" / "control-plane" / "control_plane.sqlite3"
+            ):
                 raise PermissionError("LOCALAPPDATA denied for test")
             original_initialize(path)
 
@@ -38,7 +40,11 @@ def test_explicit_database_path_failure_stays_unhealthy() -> None:
         {"O3DE_CONTROL_PLANE_DB_PATH": str(impossible_path)},
         clear=False,
     ):
-        with patch.object(db, "_initialize_database_file", side_effect=PermissionError("explicit path denied")):
+        with patch.object(
+            db,
+            "_initialize_database_file",
+            side_effect=PermissionError("explicit path denied"),
+        ):
             status = db.get_database_runtime_status(force_refresh=True)
 
     assert status.ready is False
@@ -48,14 +54,16 @@ def test_explicit_database_path_failure_stays_unhealthy() -> None:
 
 
 def test_operator_fallback_path_is_used_before_repo_fallback() -> None:
-    with TemporaryDirectory() as temp_dir:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         blocked_local = Path(temp_dir) / "blocked-localappdata"
         operator_dir = Path(temp_dir) / "known-good-operator-dir"
         repo_fallback = Path(temp_dir) / "repo-runtime" / "control_plane.sqlite3"
         original_initialize = db._initialize_database_file
 
         def fake_initialize(path: Path) -> None:
-            if path == blocked_local / "O3DE_CODEX_VX001" / "control-plane" / "control_plane.sqlite3":
+            if path == (
+                blocked_local / "O3DE_CODEX_VX001" / "control-plane" / "control_plane.sqlite3"
+            ):
                 raise PermissionError("LOCALAPPDATA denied for test")
             original_initialize(path)
 

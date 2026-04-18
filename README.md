@@ -26,7 +26,7 @@ The repository now includes a first local stack baseline for Phase 5:
 - `docker-compose.yml`
 - `.env.example`
 - `.github/workflows/ci.yml`
-- `backend/pytest.ini`
+- `pyproject.toml`
 
 Local container startup:
 

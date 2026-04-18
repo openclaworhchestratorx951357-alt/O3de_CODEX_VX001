@@ -1,5 +1,7 @@
 __pycache__/
 *.pyc
+backend/.venv/
+backend/.vendor_tools/
 /.runtime/
 /runtime/
 backend/.runtime/

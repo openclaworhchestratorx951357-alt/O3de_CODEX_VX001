@@ -10,6 +10,7 @@ from app.models.control_plane import (
     ToolPolicy,
 )
 
+
 class RootStatus(BaseModel):
     name: str = Field(..., min_length=1)
     status: str = Field(..., min_length=1)

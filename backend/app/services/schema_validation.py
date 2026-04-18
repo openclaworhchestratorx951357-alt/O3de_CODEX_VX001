@@ -4,7 +4,6 @@ from typing import Any
 
 from app.models.api import SchemaValidationStatus
 
-
 REPO_ROOT = Path(__file__).resolve().parents[3]
 TOOL_SCHEMAS_ROOT = REPO_ROOT / "schemas" / "tools"
 SUPPORTED_VALIDATION_KEYWORDS = {
@@ -69,11 +68,23 @@ class SchemaValidationService:
                 "dependentRequired",
             ],
             notes=[
-                "Validation coverage is intentionally limited to the subset used by the published tool arg/result schemas.",
-                "Active keywords are derived from the current published tool arg/result schema files, not the broader repository schema tree.",
-                "Current published tool schemas are expected to stay within the supported subset; active unsupported keywords should remain empty.",
+                (
+                    "Validation coverage is intentionally limited to the subset used by "
+                    "the published tool arg/result schemas."
+                ),
+                (
+                    "Active keywords are derived from the current published tool arg/result "
+                    "schema files, not the broader repository schema tree."
+                ),
+                (
+                    "Current published tool schemas are expected to stay within the "
+                    "supported subset; active unsupported keywords should remain empty."
+                ),
                 "The validator does not claim full JSON Schema support.",
-                "Simulated result conformance checks validate the current simulated dispatch payload shape, not real O3DE adapter outputs.",
+                (
+                    "Simulated result conformance checks validate the current simulated "
+                    "dispatch payload shape, not real O3DE adapter outputs."
+                ),
             ],
         )
 
@@ -171,7 +182,9 @@ class SchemaValidationService:
         if isinstance(value, dict):
             min_properties = schema.get("minProperties")
             if min_properties is not None and len(value) < min_properties:
-                errors.append(f"{path}: object must contain at least {min_properties} propertie(s)")
+                errors.append(
+                    f"{path}: object must contain at least {min_properties} propertie(s)"
+                )
             required = schema.get("required", [])
             for key in required:
                 if key not in value:

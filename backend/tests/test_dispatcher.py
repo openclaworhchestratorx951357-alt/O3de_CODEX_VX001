@@ -3,13 +3,13 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+from app.models.request_envelope import RequestEnvelope
 from app.services.approvals import approvals_service
 from app.services.artifacts import artifacts_service
 from app.services.db import configure_database, initialize_database, reset_database
+from app.services.dispatcher import dispatcher_service
 from app.services.events import events_service
 from app.services.executions import executions_service
-from app.models.request_envelope import RequestEnvelope
-from app.services.dispatcher import dispatcher_service
 from app.services.locks import locks_service
 from app.services.runs import runs_service
 
@@ -30,7 +30,7 @@ def make_request(agent: str, tool: str) -> RequestEnvelope:
 
 @contextmanager
 def isolated_database() -> Path:
-    with TemporaryDirectory() as temp_dir:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         db_path = Path(temp_dir) / "control-plane.sqlite3"
         configure_database(db_path)
         initialize_database()
@@ -132,18 +132,18 @@ def test_dispatch_accepts_after_approval() -> None:
 
         assert response.ok is True
         assert response.result is not None
-        assert response.result["execution_mode"] == "simulated"
+        assert response.result.execution_mode == "simulated"
         assert len(executions_service.list_executions()) >= 2
 
 
 def test_dispatch_blocks_when_lock_is_owned() -> None:
     with isolated_database():
-        first = dispatcher_service.dispatch(make_request("project-build", "build.compile"))
+        first = dispatcher_service.dispatch(make_request("project-build", "build.configure"))
         approval = approvals_service.get_approval(first.approval_id or "")
         assert approval is not None
         approvals_service.approve(approval.id)
 
-        blocking_request = make_request("project-build", "build.compile")
+        blocking_request = make_request("project-build", "build.configure")
         blocking_request.approval_token = approval.token
         blocking_run_response = dispatcher_service.dispatch(blocking_request)
         assert blocking_run_response.ok is True
@@ -151,7 +151,7 @@ def test_dispatch_blocks_when_lock_is_owned() -> None:
         assert blocking_run_id is not None
 
         locks_service.acquire(["build_tree"], owner_run_id=blocking_run_id)
-        blocked_request = make_request("project-build", "build.compile")
+        blocked_request = make_request("project-build", "build.configure")
         blocked_request.approval_token = approval.token
         blocked = dispatcher_service.dispatch(blocked_request)
 

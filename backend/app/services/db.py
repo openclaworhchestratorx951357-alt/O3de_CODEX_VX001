@@ -1,12 +1,11 @@
-from contextlib import contextmanager
-from dataclasses import dataclass, field
 import json
 import os
-from pathlib import Path
 import sqlite3
 import threading
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Iterator
-
 
 DEFAULT_DB_PATH = Path(__file__).resolve().parents[3] / ".runtime" / "control_plane.sqlite3"
 OPERATOR_FALLBACK_FILENAME = "control_plane.sqlite3"

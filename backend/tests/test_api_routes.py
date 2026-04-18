@@ -2,16 +2,15 @@ from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from fastapi.testclient import TestClient
-
 from app.main import app
 from app.services.approvals import approvals_service
 from app.services.db import configure_database, initialize_database, reset_database
+from fastapi.testclient import TestClient
 
 
 @contextmanager
 def isolated_client() -> TestClient:
-    with TemporaryDirectory() as temp_dir:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         db_path = Path(temp_dir) / "control-plane.sqlite3"
         configure_database(db_path)
         initialize_database()
@@ -23,7 +22,7 @@ def isolated_client() -> TestClient:
             configure_database(None)
 
 
-def test_root_includes_phase_one_routes() -> None:
+def test_root_includes_current_control_plane_routes() -> None:
     with isolated_client() as client:
         response = client.get("/")
         assert response.status_code == 200

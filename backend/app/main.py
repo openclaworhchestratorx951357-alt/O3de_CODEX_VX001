@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes.artifacts import router as artifacts_router
 from app.api.routes.approvals import router as approvals_router
+from app.api.routes.artifacts import router as artifacts_router
 from app.api.routes.events import router as events_router
 from app.api.routes.executions import router as executions_router
 from app.api.routes.health import router as health_router

@@ -180,6 +180,7 @@ class DispatcherService:
 
         conflicts = locks_service.get_conflicts(requested_locks, owner_run_id=run.id)
         if conflicts:
+            serialized_conflicts = [lock.model_dump(mode="json") for lock in conflicts]
             runs_service.update_run(
                 run.id,
                 status=RunStatus.BLOCKED,
@@ -189,7 +190,7 @@ class DispatcherService:
                 execution.id,
                 status=ExecutionStatus.BLOCKED,
                 logs=[f"Blocked by locks: {', '.join(lock.name for lock in conflicts)}."],
-                details={"conflicts": [lock.model_dump() for lock in conflicts]},
+                details={"conflicts": serialized_conflicts},
                 result_summary="Blocked by an active lock.",
                 finished=True,
             )
@@ -208,7 +209,7 @@ class DispatcherService:
                     code="STATE_LOCKED",
                     message="Requested lock is already held by another run.",
                     retryable=True,
-                    details={"conflicts": [lock.model_dump() for lock in conflicts]},
+                    details={"conflicts": serialized_conflicts},
                 ),
                 warnings=["Dispatch blocked before simulated execution."],
                 logs=[
@@ -217,6 +218,7 @@ class DispatcherService:
             )
 
         acquired_locks = locks_service.acquire(requested_locks, owner_run_id=run.id)
+        acquired_lock_summary = ", ".join(lock.name for lock in acquired_locks) or "none"
         runs_service.update_run(
             run.id,
             status=RunStatus.RUNNING,
@@ -233,7 +235,7 @@ class DispatcherService:
             ],
             logs=[
                 "Control-plane prechecks passed.",
-                f"Acquired locks: {', '.join(lock.name for lock in acquired_locks) if acquired_locks else 'none'}.",
+                f"Acquired locks: {acquired_lock_summary}.",
             ],
             details={
                 "requested_locks": requested_locks,
@@ -247,7 +249,7 @@ class DispatcherService:
             severity=EventSeverity.INFO,
             message="Required locks acquired for run.",
             run_id=run.id,
-            details={"locks": ", ".join(lock.name for lock in acquired_locks) or "none"},
+            details={"locks": acquired_lock_summary},
         )
 
         result = DispatchResult(
@@ -337,7 +339,10 @@ class DispatcherService:
             artifacts=[artifact.id],
             logs=[
                 f"Dispatch requested for tool '{request.tool}'.",
-                f"Agent '{request.agent}' requested locks: {', '.join(requested_locks) if requested_locks else 'none'}.",
+                (
+                    f"Agent '{request.agent}' requested locks: "
+                    f"{', '.join(requested_locks) if requested_locks else 'none'}."
+                ),
             ],
         )
 
