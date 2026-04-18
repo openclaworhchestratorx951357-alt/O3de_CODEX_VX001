@@ -16,6 +16,16 @@ function readBoolean(details: Record<string, unknown>, key: string): boolean | n
   return typeof value === "boolean" ? value : null;
 }
 
+function readRecord(
+  details: Record<string, unknown>,
+  key: string,
+): Record<string, unknown> | null {
+  const value = details[key];
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
 export default function ExecutionsPanel({
   items,
   loading,
@@ -49,11 +59,25 @@ export default function ExecutionsPanel({
               const manifestPath = readString(item.details, "project_manifest_path");
               const fallbackReason = readString(item.details, "fallback_reason");
               const realPathAvailable = readBoolean(item.details, "real_path_available");
+              const planDetails = readRecord(item.details, "plan_details");
+              const preset = planDetails && typeof planDetails.preset === "string"
+                ? planDetails.preset
+                : null;
+              const generator = planDetails && typeof planDetails.generator === "string"
+                ? planDetails.generator
+                : null;
+              const buildDirectory = planDetails && typeof planDetails.build_directory === "string"
+                ? planDetails.build_directory
+                : null;
               const provenanceLabel = item.execution_mode === "real"
-                ? "Real read-only project inspection"
+                ? inspectionSurface === "build_configure_preflight"
+                  ? "Real plan-only build.configure preflight"
+                  : "Real read-only project inspection"
                 : inspectionSurface === "project_manifest"
                   ? "Real project manifest provenance recorded"
-                  : "Simulated execution record";
+                  : inspectionSurface === "build_configure_preflight"
+                    ? "Real build.configure preflight provenance recorded"
+                    : "Simulated execution record";
 
               return (
                 <li key={item.id} style={{ marginBottom: 12 }}>
@@ -65,6 +89,9 @@ export default function ExecutionsPanel({
                   <div>Provenance: {provenanceLabel}</div>
                   {projectName ? <div>Project name: {projectName}</div> : null}
                   {manifestPath ? <div>Manifest path: {manifestPath}</div> : null}
+                  {preset ? <div>Preset: {preset}</div> : null}
+                  {generator ? <div>Generator: {generator}</div> : null}
+                  {buildDirectory ? <div>Build directory: {buildDirectory}</div> : null}
                   {realPathAvailable === false ? (
                     <div>Real path available: false</div>
                   ) : null}

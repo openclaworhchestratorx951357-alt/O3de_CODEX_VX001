@@ -41,8 +41,14 @@ export default function RunDetailPanel({
           <div>
             <strong>Execution truth:</strong>{" "}
             {item.execution_mode === "real"
-              ? "This run used the first real read-only project.inspect path."
-              : "This run remained on a simulated execution path."}
+              ? item.tool === "project.inspect"
+                ? "This run used the first real read-only project.inspect path."
+                : item.tool === "build.configure"
+                  ? "This run used the real plan-only build.configure preflight path."
+                  : "This run used a narrow real adapter path."
+              : item.tool === "build.configure"
+                ? "This build.configure run remained on a simulated fallback path."
+                : "This run remained on a simulated execution path."}
           </div>
           <div><strong>Dry run:</strong> {String(item.dry_run)}</div>
           <div><strong>Requested locks:</strong> {item.requested_locks.join(", ") || "none"}</div>

@@ -137,8 +137,14 @@ function describeExecutionResult(result: Record<string, unknown>): string {
   if (executionMode === "real" && simulated === false && tool === "project.inspect") {
     return "Real read-only project inspection path ran for project.inspect.";
   }
+  if (executionMode === "real" && simulated === false && tool === "build.configure") {
+    return "Real plan-only build.configure preflight ran; no configure command was executed.";
+  }
   if (executionMode === "simulated" && simulated === true && tool === "project.inspect") {
     return "project.inspect remained simulated for this run, including hybrid fallback cases.";
+  }
+  if (executionMode === "simulated" && simulated === true && tool === "build.configure") {
+    return "build.configure remained simulated for this run, including hybrid fallback cases.";
   }
   if (executionMode === "simulated" && simulated === true) {
     return "This dispatch remained on the simulated execution path.";

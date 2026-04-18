@@ -11,6 +11,16 @@ function readString(metadata: Record<string, unknown>, key: string): string | nu
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
+function readRecord(
+  metadata: Record<string, unknown>,
+  key: string,
+): Record<string, unknown> | null {
+  const value = metadata[key];
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
 export default function ArtifactsPanel({
   items,
   loading,
@@ -43,8 +53,20 @@ export default function ArtifactsPanel({
               const manifestPath = readString(item.metadata, "project_manifest_path");
               const inspectionSurface = readString(item.metadata, "inspection_surface");
               const executionMode = readString(item.metadata, "execution_mode");
+              const planDetails = readRecord(item.metadata, "plan_details");
+              const preset = planDetails && typeof planDetails.preset === "string"
+                ? planDetails.preset
+                : null;
+              const generator = planDetails && typeof planDetails.generator === "string"
+                ? planDetails.generator
+                : null;
+              const buildDirectory = planDetails && typeof planDetails.build_directory === "string"
+                ? planDetails.build_directory
+                : null;
               const provenanceLabel = item.simulated
                 ? "Simulated artifact"
+                : inspectionSurface === "build_configure_preflight"
+                  ? "Real build.configure preflight evidence"
                 : inspectionSurface === "project_manifest"
                   ? "Real project manifest evidence"
                   : "Real artifact";
@@ -62,6 +84,9 @@ export default function ArtifactsPanel({
                   <div>Provenance: {provenanceLabel}</div>
                   {projectName ? <div>Project name: {projectName}</div> : null}
                   {manifestPath ? <div>Manifest path: {manifestPath}</div> : null}
+                  {preset ? <div>Preset: {preset}</div> : null}
+                  {generator ? <div>Generator: {generator}</div> : null}
+                  {buildDirectory ? <div>Build directory: {buildDirectory}</div> : null}
                 </li>
               );
             })()
