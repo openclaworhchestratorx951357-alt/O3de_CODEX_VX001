@@ -134,6 +134,49 @@ def test_dispatch_rejects_simulated_result_that_fails_result_schema_validation()
         )
 
 
+def test_dispatch_rejects_when_project_inspect_execution_details_fail_schema_validation() -> None:
+    with isolated_database():
+        with patch(
+            "app.services.dispatcher.schema_validation_service.validate_execution_details",
+            return_value=[
+                (
+                    "$.inspection_surface: expected one of ['simulated', "
+                    "'project_manifest']"
+                )
+            ],
+        ):
+            response = dispatcher_service.dispatch(
+                make_request("project-build", "project.inspect")
+            )
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_PERSISTED_PAYLOAD"
+        assert response.error.details is not None
+        assert response.error.details["persisted_payload_kind"] == "execution details"
+
+
+def test_dispatch_rejects_when_project_inspect_artifact_metadata_fail_schema_validation() -> None:
+    with isolated_database():
+        with patch(
+            "app.services.dispatcher.schema_validation_service.validate_execution_details",
+            return_value=[],
+        ):
+            with patch(
+                "app.services.dispatcher.schema_validation_service.validate_artifact_metadata",
+                return_value=["$.tool: expected constant value 'project.inspect'"],
+            ):
+                response = dispatcher_service.dispatch(
+                    make_request("project-build", "project.inspect")
+                )
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_PERSISTED_PAYLOAD"
+        assert response.error.details is not None
+        assert response.error.details["persisted_payload_kind"] == "artifact metadata"
+
+
 def test_dispatch_accepts_after_approval() -> None:
     with isolated_database():
         first = dispatcher_service.dispatch(make_request("project-build", "build.configure"))

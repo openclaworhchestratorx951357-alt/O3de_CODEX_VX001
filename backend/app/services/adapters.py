@@ -136,6 +136,11 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                 "adapter_mode": self.mode,
                 "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
                 "execution_boundary": ADAPTER_EXECUTION_BOUNDARY,
+                **(
+                    {"inspection_surface": "simulated"}
+                    if tool == "project.inspect"
+                    else {}
+                ),
             },
             execution_details={
                 "simulated": True,
@@ -825,6 +830,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         )
         simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
         simulated.artifact_metadata["real_path_available"] = False
+        simulated.artifact_metadata["fallback_reason"] = reason
         simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
         simulated.execution_details["real_path_available"] = False
         simulated.execution_details["fallback_reason"] = reason

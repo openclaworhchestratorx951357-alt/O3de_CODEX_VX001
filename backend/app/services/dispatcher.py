@@ -352,16 +352,17 @@ class DispatcherService:
                 logs=["Control-plane prechecks passed.", str(exc)],
             )
 
+        running_execution_details = {
+            "requested_locks": requested_locks,
+            "granted_locks": [lock.name for lock in acquired_locks],
+            **adapter_report.execution_details,
+        }
         executions_service.update_execution(
             execution.id,
             status=ExecutionStatus.RUNNING,
             warnings=adapter_report.warnings,
             logs=["Control-plane prechecks passed.", f"Acquired locks: {acquired_lock_summary}."],
-            details={
-                "requested_locks": requested_locks,
-                "granted_locks": [lock.name for lock in acquired_locks],
-                **adapter_report.execution_details,
-            },
+            details=running_execution_details,
             result_summary="Adapter execution started.",
         )
         events_service.record(
@@ -390,6 +391,40 @@ class DispatcherService:
                 validation_errors=result_validation_errors,
             )
 
+        persisted_execution_validation_errors = (
+            schema_validation_service.validate_execution_details(
+                tool_name=request.tool,
+                payload=adapter_report.execution_details,
+            )
+        )
+        if persisted_execution_validation_errors:
+            locks_service.release(run.id)
+            return self._reject_invalid_persisted_payload(
+                request=request,
+                run_id=run.id,
+                execution_id=execution.id,
+                schema_ref="schemas/tools/project.inspect.execution-details.schema.json",
+                validation_errors=persisted_execution_validation_errors,
+                payload_kind="execution details",
+            )
+
+        persisted_artifact_validation_errors = (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name=request.tool,
+                payload=adapter_report.artifact_metadata,
+            )
+        )
+        if persisted_artifact_validation_errors:
+            locks_service.release(run.id)
+            return self._reject_invalid_persisted_payload(
+                request=request,
+                run_id=run.id,
+                execution_id=execution.id,
+                schema_ref="schemas/tools/project.inspect.artifact-metadata.schema.json",
+                validation_errors=persisted_artifact_validation_errors,
+                payload_kind="artifact metadata",
+            )
+
         artifact = artifacts_service.create_artifact(
             run_id=run.id,
             execution_id=execution.id,
@@ -407,17 +442,18 @@ class DispatcherService:
             status=RunStatus.SUCCEEDED,
             result_summary=adapter_report.result_summary,
         )
+        succeeded_execution_details = {
+            "result": result.model_dump(),
+            "artifact_id": artifact.id,
+            **adapter_report.execution_details,
+        }
         executions_service.update_execution(
             execution.id,
             status=ExecutionStatus.SUCCEEDED,
             warnings=adapter_report.warnings,
             logs=adapter_report.logs,
             artifact_ids=[artifact.id],
-            details={
-                "result": result.model_dump(),
-                "artifact_id": artifact.id,
-                **adapter_report.execution_details,
-            },
+            details=succeeded_execution_details,
             result_summary=adapter_report.result_summary,
             finished=True,
         )
@@ -719,6 +755,65 @@ class DispatcherService:
             ),
             warnings=["Dispatch failed before adapter completion could be reported."],
             logs=["Adapter result validation failed against the published result schema."],
+        )
+
+    def _reject_invalid_persisted_payload(
+        self,
+        *,
+        request: RequestEnvelope,
+        run_id: str,
+        execution_id: str,
+        schema_ref: str,
+        validation_errors: list[str],
+        payload_kind: str,
+    ) -> ResponseEnvelope:
+        runs_service.update_run(
+            run_id,
+            status=RunStatus.FAILED,
+            result_summary=f"Rejected because persisted {payload_kind} failed schema conformance.",
+        )
+        executions_service.update_execution(
+            execution_id,
+            status=ExecutionStatus.FAILED,
+            logs=[f"Persisted {payload_kind} validation failed before completion was reported."],
+            details={
+                "persisted_schema_ref": schema_ref,
+                "persisted_payload_kind": payload_kind,
+                "persisted_validation_errors": validation_errors,
+            },
+            result_summary=f"Rejected because persisted {payload_kind} failed schema conformance.",
+            finished=True,
+        )
+        events_service.record(
+            category="validation",
+            severity=EventSeverity.ERROR,
+            message=(
+                f"Persisted {payload_kind} validation failed for the current "
+                "capability-gated dispatch."
+            ),
+            run_id=run_id,
+            details={
+                "persisted_schema_ref": schema_ref,
+                "persisted_payload_kind": payload_kind,
+                "capability_status": self._request_capability_status(request),
+            },
+        )
+        return ResponseEnvelope(
+            request_id=request.request_id,
+            ok=False,
+            operation_id=run_id,
+            error=ResponseError(
+                code="INVALID_PERSISTED_PAYLOAD",
+                message=f"Persisted {payload_kind} did not match the published schema.",
+                retryable=False,
+                details={
+                    "persisted_schema_ref": schema_ref,
+                    "persisted_payload_kind": payload_kind,
+                    "persisted_validation_errors": validation_errors,
+                },
+            ),
+            warnings=["Dispatch failed before persisted records could be finalized."],
+            logs=[f"Persisted {payload_kind} validation failed against the published schema."],
         )
 
     def _request_capability_status(self, request: RequestEnvelope) -> str:
