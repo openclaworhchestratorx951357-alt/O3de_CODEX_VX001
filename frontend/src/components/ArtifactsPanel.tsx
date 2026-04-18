@@ -66,12 +66,14 @@ export default function ArtifactsPanel({
               const manifestSettings = readRecord(item.metadata, "manifest_settings");
               const inspectionEvidence = readStringArray(item.metadata, "inspection_evidence");
               const gemNames = readStringArray(item.metadata, "gem_names");
+              const requestedGemEvidence = readStringArray(item.metadata, "requested_gem_evidence");
               const projectConfigKeys = readStringArray(item.metadata, "project_config_keys");
               const requestedProjectConfigKeys = readStringArray(
                 item.metadata,
                 "requested_project_config_keys",
               );
               const settingsKeys = readStringArray(item.metadata, "manifest_settings_keys");
+              const gemEntriesPresent = item.metadata.gem_entries_present;
               const preset = planDetails && typeof planDetails.preset === "string"
                 ? planDetails.preset
                 : null;
@@ -116,7 +118,13 @@ export default function ArtifactsPanel({
                   {projectConfig ? (
                     <div>Project config snapshot: {JSON.stringify(projectConfig)}</div>
                   ) : null}
+                  {requestedGemEvidence.length > 0 ? (
+                    <div>Requested Gem evidence: {requestedGemEvidence.join(", ")}</div>
+                  ) : null}
                   {gemNames.length > 0 ? <div>Gem names: {gemNames.join(", ")}</div> : null}
+                  {typeof gemEntriesPresent === "boolean" ? (
+                    <div>Gem entries present: {String(gemEntriesPresent)}</div>
+                  ) : null}
                   {settingsKeys.length > 0 ? (
                     <div>Manifest settings keys: {settingsKeys.join(", ")}</div>
                   ) : null}
