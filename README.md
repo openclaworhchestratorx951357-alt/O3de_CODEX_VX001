@@ -17,6 +17,7 @@ See these official source files before making changes:
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
 - `CONTRIBUTING.md`
+- `docs/LOCAL-STACK-RUNBOOK.md`
 
 ## Phase 5 startup baseline
 
@@ -33,6 +34,9 @@ CI now validates the stack baseline by:
 - rendering the compose configuration
 - building the backend image
 - building the frontend image
+
+Local Docker/compose startup is also now verified on this machine. See:
+- `docs/LOCAL-STACK-RUNBOOK.md`
 
 ## Phase 5 local task runner baseline
 
