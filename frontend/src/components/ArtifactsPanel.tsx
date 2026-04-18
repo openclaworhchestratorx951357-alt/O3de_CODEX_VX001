@@ -6,6 +6,11 @@ type ArtifactsPanelProps = {
   error: string | null;
 };
 
+function readString(metadata: Record<string, unknown>, key: string): string | null {
+  const value = metadata[key];
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
 export default function ArtifactsPanel({
   items,
   loading,
@@ -33,15 +38,33 @@ export default function ArtifactsPanel({
       ) : (
         <ul>
           {items.map((item) => (
-            <li key={item.id} style={{ marginBottom: 12 }}>
-              <strong>{item.label}</strong>
-              <div>Kind: {item.kind}</div>
-              <div>Run ID: {item.run_id}</div>
-              <div>Execution ID: {item.execution_id}</div>
-              <div>URI: {item.uri}</div>
-              {item.path ? <div>Path: {item.path}</div> : null}
-              <div>Simulated: {String(item.simulated)}</div>
-            </li>
+            (() => {
+              const projectName = readString(item.metadata, "project_name");
+              const manifestPath = readString(item.metadata, "project_manifest_path");
+              const inspectionSurface = readString(item.metadata, "inspection_surface");
+              const executionMode = readString(item.metadata, "execution_mode");
+              const provenanceLabel = item.simulated
+                ? "Simulated artifact"
+                : inspectionSurface === "project_manifest"
+                  ? "Real project manifest evidence"
+                  : "Real artifact";
+
+              return (
+                <li key={item.id} style={{ marginBottom: 12 }}>
+                  <strong>{item.label}</strong>
+                  <div>Kind: {item.kind}</div>
+                  <div>Run ID: {item.run_id}</div>
+                  <div>Execution ID: {item.execution_id}</div>
+                  <div>URI: {item.uri}</div>
+                  {item.path ? <div>Path: {item.path}</div> : null}
+                  <div>Simulated: {String(item.simulated)}</div>
+                  {executionMode ? <div>Execution mode: {executionMode}</div> : null}
+                  <div>Provenance: {provenanceLabel}</div>
+                  {projectName ? <div>Project name: {projectName}</div> : null}
+                  {manifestPath ? <div>Manifest path: {manifestPath}</div> : null}
+                </li>
+              );
+            })()
           ))}
         </ul>
       )}

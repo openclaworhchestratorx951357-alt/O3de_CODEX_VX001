@@ -38,6 +38,12 @@ export default function RunDetailPanel({
           <div><strong>Tool:</strong> {item.tool}</div>
           <div><strong>Status:</strong> {item.status}</div>
           <div><strong>Execution mode:</strong> {item.execution_mode}</div>
+          <div>
+            <strong>Execution truth:</strong>{" "}
+            {item.execution_mode === "real"
+              ? "This run used the first real read-only project.inspect path."
+              : "This run remained on a simulated execution path."}
+          </div>
           <div><strong>Dry run:</strong> {String(item.dry_run)}</div>
           <div><strong>Requested locks:</strong> {item.requested_locks.join(", ") || "none"}</div>
           <div><strong>Granted locks:</strong> {item.granted_locks.join(", ") || "none"}</div>
