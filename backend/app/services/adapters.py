@@ -138,7 +138,7 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                 "execution_boundary": ADAPTER_EXECUTION_BOUNDARY,
                 **(
                     {"inspection_surface": "simulated"}
-                    if tool == "project.inspect"
+                    if tool in {"project.inspect", "build.configure"}
                     else {}
                 ),
             },
@@ -148,7 +148,11 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                 "adapter_family": self.family,
                 "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
                 "execution_boundary": ADAPTER_EXECUTION_BOUNDARY,
-                "inspection_surface": "simulated",
+                **(
+                    {"inspection_surface": "simulated"}
+                    if tool in {"project.inspect", "build.configure"}
+                    else {}
+                ),
             },
             result_summary="Simulated dispatch completed successfully.",
         )
@@ -662,6 +666,9 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             )
             simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
             simulated.artifact_metadata["real_path_available"] = False
+            simulated.artifact_metadata["fallback_reason"] = (
+                "Real build.configure preflight requires dry_run=true."
+            )
             simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
             simulated.execution_details["real_path_available"] = False
             simulated.execution_details["fallback_reason"] = (
@@ -867,6 +874,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         )
         simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
         simulated.artifact_metadata["real_path_available"] = False
+        simulated.artifact_metadata["fallback_reason"] = reason
         simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
         simulated.execution_details["real_path_available"] = False
         simulated.execution_details["fallback_reason"] = reason

@@ -399,11 +399,16 @@ class DispatcherService:
         )
         if persisted_execution_validation_errors:
             locks_service.release(run.id)
+            execution_schema_ref = schema_validation_service.get_persisted_schema_ref(
+                tool_name=request.tool,
+                schema_kind="execution-details",
+            )
             return self._reject_invalid_persisted_payload(
                 request=request,
                 run_id=run.id,
                 execution_id=execution.id,
-                schema_ref="schemas/tools/project.inspect.execution-details.schema.json",
+                schema_ref=execution_schema_ref
+                or f"schemas/tools/{request.tool}.execution-details.schema.json",
                 validation_errors=persisted_execution_validation_errors,
                 payload_kind="execution details",
             )
@@ -416,11 +421,16 @@ class DispatcherService:
         )
         if persisted_artifact_validation_errors:
             locks_service.release(run.id)
+            artifact_schema_ref = schema_validation_service.get_persisted_schema_ref(
+                tool_name=request.tool,
+                schema_kind="artifact-metadata",
+            )
             return self._reject_invalid_persisted_payload(
                 request=request,
                 run_id=run.id,
                 execution_id=execution.id,
-                schema_ref="schemas/tools/project.inspect.artifact-metadata.schema.json",
+                schema_ref=artifact_schema_ref
+                or f"schemas/tools/{request.tool}.artifact-metadata.schema.json",
                 validation_errors=persisted_artifact_validation_errors,
                 payload_kind="artifact metadata",
             )

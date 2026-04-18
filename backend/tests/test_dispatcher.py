@@ -177,6 +177,67 @@ def test_dispatch_rejects_when_project_inspect_artifact_metadata_fail_schema_val
         assert response.error.details["persisted_payload_kind"] == "artifact metadata"
 
 
+def test_dispatch_rejects_when_build_configure_execution_details_fail_schema_validation() -> None:
+    with isolated_database():
+        first = dispatcher_service.dispatch(make_request("project-build", "build.configure"))
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        approved_request = make_request("project-build", "build.configure")
+        approved_request.approval_token = approval.token
+
+        with patch(
+            "app.services.dispatcher.schema_validation_service.validate_execution_details",
+            return_value=[
+                (
+                    "$.inspection_surface: expected one of ['simulated', "
+                    "'build_configure_preflight']"
+                )
+            ],
+        ):
+            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_PERSISTED_PAYLOAD"
+        assert response.error.details is not None
+        assert response.error.details["persisted_payload_kind"] == "execution details"
+        assert response.error.details["persisted_schema_ref"].endswith(
+            "build.configure.execution-details.schema.json"
+        )
+
+
+def test_dispatch_rejects_when_build_configure_artifact_metadata_fail_schema_validation() -> None:
+    with isolated_database():
+        first = dispatcher_service.dispatch(make_request("project-build", "build.configure"))
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        approved_request = make_request("project-build", "build.configure")
+        approved_request.approval_token = approval.token
+
+        with patch(
+            "app.services.dispatcher.schema_validation_service.validate_execution_details",
+            return_value=[],
+        ):
+            with patch(
+                "app.services.dispatcher.schema_validation_service.validate_artifact_metadata",
+                return_value=["$.tool: expected constant value 'build.configure'"],
+            ):
+                response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_PERSISTED_PAYLOAD"
+        assert response.error.details is not None
+        assert response.error.details["persisted_payload_kind"] == "artifact metadata"
+        assert response.error.details["persisted_schema_ref"].endswith(
+            "build.configure.artifact-metadata.schema.json"
+        )
+
+
 def test_dispatch_accepts_after_approval() -> None:
     with isolated_database():
         first = dispatcher_service.dispatch(make_request("project-build", "build.configure"))
@@ -571,6 +632,20 @@ def test_build_configure_uses_real_preflight_path_in_hybrid_mode() -> None:
         assert artifact is not None
         assert artifact.simulated is False
         assert artifact.metadata["plan_details"]["preset"] == "profile"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="build.configure",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="build.configure",
+                payload=artifact.metadata,
+            )
+            == []
+        )
 
 
 def test_build_configure_falls_back_to_simulated_when_not_dry_run_in_hybrid_mode() -> None:
@@ -610,6 +685,22 @@ def test_build_configure_falls_back_to_simulated_when_not_dry_run_in_hybrid_mode
         )
         assert execution.details["real_path_available"] is False
         assert "dry_run=true" in execution.details["fallback_reason"]
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert artifact is not None
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="build.configure",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="build.configure",
+                payload=artifact.metadata,
+            )
+            == []
+        )
 
 
 def test_dispatch_events_publish_capability_status_vocabulary() -> None:

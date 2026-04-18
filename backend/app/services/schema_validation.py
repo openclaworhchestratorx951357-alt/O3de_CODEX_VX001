@@ -130,6 +130,14 @@ class SchemaValidationService:
             return []
         return self.validate_tool_args(schema_ref=schema_ref, payload=payload)
 
+    def get_persisted_schema_ref(
+        self,
+        *,
+        tool_name: str,
+        schema_kind: str,
+    ) -> str | None:
+        return self._persisted_schema_ref(tool_name=tool_name, schema_kind=schema_kind)
+
     def validate_artifact_metadata(
         self,
         *,
@@ -287,6 +295,12 @@ class SchemaValidationService:
         schema_kind: str,
     ) -> str | None:
         persisted_schema_refs = {
+            ("build.configure", "execution-details"): (
+                "schemas/tools/build.configure.execution-details.schema.json"
+            ),
+            ("build.configure", "artifact-metadata"): (
+                "schemas/tools/build.configure.artifact-metadata.schema.json"
+            ),
             ("project.inspect", "execution-details"): (
                 "schemas/tools/project.inspect.execution-details.schema.json"
             ),
