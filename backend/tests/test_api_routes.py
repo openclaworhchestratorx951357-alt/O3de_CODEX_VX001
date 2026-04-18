@@ -236,4 +236,11 @@ def test_executions_and_artifacts_endpoints_reflect_simulated_dispatch() -> None
         assert artifact.status_code == 200
         assert payload["result"]["simulated"] is True
         assert executions.json()["executions"][0]["execution_mode"] == "simulated"
+        assert executions.json()["executions"][0]["details"]["adapter_family"] == "project-build"
+        assert (
+            executions.json()["executions"][0]["details"]["adapter_contract_version"]
+            == "v0.1"
+        )
         assert artifact.json()["simulated"] is True
+        assert artifact.json()["metadata"]["adapter_family"] == "project-build"
+        assert artifact.json()["metadata"]["adapter_contract_version"] == "v0.1"

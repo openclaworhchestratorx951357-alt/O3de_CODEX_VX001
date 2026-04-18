@@ -91,6 +91,8 @@ Current truth:
 
 `GET /version` also reports the current adapter contract version so operators can track contract changes separately from the backend API version.
 
+Persisted execution records and artifact metadata now also carry adapter provenance fields such as `adapter_family` and `adapter_contract_version` so run history keeps the current simulated adapter boundary explicit.
+
 ## Schema validation status
 
 The backend currently uses a subset validator for published per-tool arg and simulated-result schemas.

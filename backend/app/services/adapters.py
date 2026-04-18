@@ -98,6 +98,8 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                 "execution_mode": "simulated",
                 "adapter_family": self.family,
                 "adapter_mode": self.mode,
+                "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+                "execution_boundary": ADAPTER_EXECUTION_BOUNDARY,
             },
             result_summary="Simulated dispatch completed successfully.",
         )

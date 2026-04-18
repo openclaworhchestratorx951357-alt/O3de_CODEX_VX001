@@ -52,6 +52,13 @@ def test_dispatch_accepts_valid_agent_and_tool() -> None:
         assert response.result is not None
         assert response.result.simulated is True
         assert len(response.artifacts) == 1
+        execution = executions_service.list_executions()[0]
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["adapter_family"] == "project-build"
+        assert execution.details["adapter_contract_version"] == "v0.1"
+        assert artifact is not None
+        assert artifact.metadata["adapter_family"] == "project-build"
+        assert artifact.metadata["adapter_contract_version"] == "v0.1"
 
 
 def test_dispatch_rejects_unknown_agent() -> None:
@@ -190,8 +197,12 @@ def test_events_and_runs_remain_queryable_after_restart() -> None:
         assert any(event.run_id == run_id for event in persisted_events)
         assert persisted_execution is not None
         assert persisted_execution.execution_mode == "simulated"
+        assert persisted_execution.details["adapter_family"] == "project-build"
+        assert persisted_execution.details["adapter_contract_version"] == "v0.1"
         assert persisted_artifact is not None
         assert persisted_artifact.simulated is True
+        assert persisted_artifact.metadata["adapter_family"] == "project-build"
+        assert persisted_artifact.metadata["adapter_contract_version"] == "v0.1"
 
 
 def test_dispatch_rejects_when_adapter_mode_is_invalid() -> None:

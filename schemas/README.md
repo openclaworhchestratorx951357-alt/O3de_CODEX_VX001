@@ -13,6 +13,7 @@ Current contents:
 Cross-linking:
 - `/tools/catalog` exposes `adapter_family`, `args_schema`, and `result_schema` for every registered tool
 - `/policies` exposes the same adapter/schema links alongside approval and lock policy metadata
+- persisted execution `details` and artifact `metadata` now carry adapter provenance such as `adapter_family` and `adapter_contract_version`
 
 Planned additions:
 - UI layout schemas
