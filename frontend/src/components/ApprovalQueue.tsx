@@ -13,6 +13,13 @@ function formatApprovalTitle(item: ApprovalRecord): string {
   return `${item.tool} requested by ${item.agent}`;
 }
 
+function describeApprovalMeaning(item: ApprovalRecord): string | null {
+  if (item.tool === "build.configure") {
+    return "In hybrid mode, this approval may allow the real plan-only build.configure preflight path when dry_run=true. It does not imply a real configure mutation.";
+  }
+  return null;
+}
+
 export default function ApprovalQueue({
   items,
   loading,
@@ -31,8 +38,8 @@ export default function ApprovalQueue({
     >
       <h3 style={{ marginTop: 0 }}>Approval Queue</h3>
       <p style={{ marginTop: 0, color: "#57606a" }}>
-        Approval decisions resume simulated execution only. No real O3DE adapter
-        work is implied here.
+        Approval decisions resume capability-gated execution. Any real path still
+        remains narrow and explicitly labeled.
       </p>
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
       {loading ? (
@@ -47,6 +54,9 @@ export default function ApprovalQueue({
               <div>Class: {item.approval_class}</div>
               <div>Status: {item.status}</div>
               <div>Run: {item.run_id}</div>
+              {describeApprovalMeaning(item) ? (
+                <div>Meaning: {describeApprovalMeaning(item)}</div>
+              ) : null}
               {item.reason ? <div>Reason: {item.reason}</div> : null}
               {item.status === "pending" ? (
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>

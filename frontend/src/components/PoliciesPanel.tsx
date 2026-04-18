@@ -23,7 +23,8 @@ export default function PoliciesPanel({
       <h3 style={{ marginTop: 0 }}>Policies</h3>
       <p style={{ marginTop: 0, color: "#57606a" }}>
         These policy records describe approval, lock, and execution guardrails.
-        Execution mode remains explicitly labeled, including simulated tools.
+        Execution mode and capability status remain explicitly labeled,
+        including simulated and plan-only tool surfaces.
       </p>
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
       {loading ? (
@@ -37,10 +38,17 @@ export default function PoliciesPanel({
               <strong>{item.tool}</strong>
               <div>Agent: {item.agent}</div>
               <div>Approval class: {item.approval_class}</div>
+              <div>Capability: {item.capability_status}</div>
               <div>Requires approval: {String(item.requires_approval)}</div>
               <div>Required locks: {item.required_locks.join(", ") || "none"}</div>
               <div>Risk: {item.risk}</div>
               <div>Execution mode: {item.execution_mode}</div>
+              {item.tool === "build.configure" ? (
+                <div>
+                  Meaning: In hybrid mode this remains plan-only. Approval can
+                  enable a real preflight path, but not a real configure mutation.
+                </div>
+              ) : null}
             </li>
           ))}
         </ul>
