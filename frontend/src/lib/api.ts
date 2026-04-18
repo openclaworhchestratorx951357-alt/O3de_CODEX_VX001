@@ -5,6 +5,8 @@ import type {
   EventsResponse,
   RequestEnvelope,
   ResponseEnvelope,
+  LockRecord,
+  LocksResponse,
   RunRecord,
   RunsResponse,
 } from "../types/contracts";
@@ -102,4 +104,15 @@ export async function fetchRuns(): Promise<RunRecord[]> {
 
   const payload = (await response.json()) as RunsResponse;
   return payload.runs ?? [];
+}
+
+export async function fetchLocks(): Promise<LockRecord[]> {
+  const response = await fetch(`${API_BASE_URL}/locks`);
+
+  if (!response.ok) {
+    throw new Error(`Locks fetch failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as LocksResponse;
+  return payload.locks ?? [];
 }

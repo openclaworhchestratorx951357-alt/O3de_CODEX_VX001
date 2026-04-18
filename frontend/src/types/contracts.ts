@@ -114,6 +114,16 @@ export interface RunsResponse {
   runs: RunRecord[];
 }
 
+export interface LockRecord {
+  name: string;
+  owner_run_id: string;
+  created_at: string;
+}
+
+export interface LocksResponse {
+  locks: LockRecord[];
+}
+
 export interface ToolDefinition {
   name: string;
   description: string;

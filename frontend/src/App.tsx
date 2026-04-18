@@ -5,6 +5,7 @@ import ApprovalQueue from "./components/ApprovalQueue";
 import CatalogPanel from "./components/CatalogPanel";
 import DispatchForm from "./components/DispatchForm";
 import LayoutHeader from "./components/LayoutHeader";
+import LocksPanel from "./components/LocksPanel";
 import ResponseEnvelopeView from "./components/ResponseEnvelopeView";
 import RunsPanel from "./components/RunsPanel";
 import TaskTimeline from "./components/TaskTimeline";
@@ -13,6 +14,7 @@ import {
   approveApproval,
   fetchApprovals,
   fetchEvents,
+  fetchLocks,
   fetchRuns,
   fetchToolsCatalog,
   rejectApproval,
@@ -21,6 +23,7 @@ import type {
   ApprovalRecord,
   CatalogAgent,
   EventRecord,
+  LockRecord,
   ResponseEnvelope,
   RunRecord,
 } from "./types/contracts";
@@ -34,13 +37,16 @@ export default function App() {
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
   const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
   const [events, setEvents] = useState<EventRecord[]>([]);
+  const [locks, setLocks] = useState<LockRecord[]>([]);
   const [runs, setRuns] = useState<RunRecord[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
   const [eventsError, setEventsError] = useState<string | null>(null);
+  const [locksError, setLocksError] = useState<string | null>(null);
   const [runsError, setRunsError] = useState<string | null>(null);
   const [approvalsLoading, setApprovalsLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(true);
+  const [locksLoading, setLocksLoading] = useState(true);
   const [runsLoading, setRunsLoading] = useState(true);
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
 
@@ -89,6 +95,21 @@ export default function App() {
     }
   }
 
+  async function loadLocks() {
+    setLocksLoading(true);
+    try {
+      const nextLocks = await fetchLocks();
+      setLocks(nextLocks);
+      setLocksError(null);
+    } catch (error) {
+      setLocksError(
+        error instanceof Error ? error.message : "Failed to load locks",
+      );
+    } finally {
+      setLocksLoading(false);
+    }
+  }
+
   useEffect(() => {
     async function loadInitialData() {
       try {
@@ -102,6 +123,7 @@ export default function App() {
 
       await loadApprovals();
       await loadEvents();
+      await loadLocks();
       await loadRuns();
     }
 
@@ -121,6 +143,7 @@ export default function App() {
       }
       await loadApprovals();
       await loadEvents();
+      await loadLocks();
       await loadRuns();
     } catch (error) {
       setApprovalsError(
@@ -135,6 +158,7 @@ export default function App() {
     setLastResponse(response);
     void loadApprovals();
     void loadEvents();
+    void loadLocks();
     void loadRuns();
   }
 
@@ -220,6 +244,11 @@ export default function App() {
         items={runs}
         loading={runsLoading}
         error={runsError}
+      />
+      <LocksPanel
+        items={locks}
+        loading={locksLoading}
+        error={locksError}
       />
     </main>
   );
