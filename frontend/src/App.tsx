@@ -13,6 +13,7 @@ import PoliciesPanel from "./components/PoliciesPanel";
 import ResponseEnvelopeView from "./components/ResponseEnvelopeView";
 import RunDetailPanel from "./components/RunDetailPanel";
 import RunsPanel from "./components/RunsPanel";
+import SystemStatusPanel from "./components/SystemStatusPanel";
 import TaskTimeline from "./components/TaskTimeline";
 import { mockAgents } from "./data/mockAgents";
 import {
@@ -25,6 +26,7 @@ import {
   fetchRun,
   fetchLocks,
   fetchPolicies,
+  fetchReadiness,
   fetchRuns,
   fetchToolsCatalog,
   rejectApproval,
@@ -37,6 +39,7 @@ import type {
   EventRecord,
   ExecutionRecord,
   LockRecord,
+  ReadinessStatus,
   ResponseEnvelope,
   RunRecord,
   ToolPolicy,
@@ -56,6 +59,7 @@ export default function App() {
   const [executions, setExecutions] = useState<ExecutionRecord[]>([]);
   const [locks, setLocks] = useState<LockRecord[]>([]);
   const [policies, setPolicies] = useState<ToolPolicy[]>([]);
+  const [readiness, setReadiness] = useState<ReadinessStatus | null>(null);
   const [runs, setRuns] = useState<RunRecord[]>([]);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedRun, setSelectedRun] = useState<RunRecord | null>(null);
@@ -67,6 +71,7 @@ export default function App() {
   const [executionsError, setExecutionsError] = useState<string | null>(null);
   const [locksError, setLocksError] = useState<string | null>(null);
   const [policiesError, setPoliciesError] = useState<string | null>(null);
+  const [readinessError, setReadinessError] = useState<string | null>(null);
   const [runsError, setRunsError] = useState<string | null>(null);
   const [selectedRunError, setSelectedRunError] = useState<string | null>(null);
   const [approvalsLoading, setApprovalsLoading] = useState(true);
@@ -76,6 +81,7 @@ export default function App() {
   const [executionsLoading, setExecutionsLoading] = useState(true);
   const [locksLoading, setLocksLoading] = useState(true);
   const [policiesLoading, setPoliciesLoading] = useState(true);
+  const [readinessLoading, setReadinessLoading] = useState(true);
   const [runsLoading, setRunsLoading] = useState(true);
   const [selectedRunLoading, setSelectedRunLoading] = useState(false);
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
@@ -216,6 +222,21 @@ export default function App() {
     }
   }
 
+  async function loadReadiness() {
+    setReadinessLoading(true);
+    try {
+      const nextReadiness = await fetchReadiness();
+      setReadiness(nextReadiness);
+      setReadinessError(null);
+    } catch (error) {
+      setReadinessError(
+        error instanceof Error ? error.message : "Failed to load system status",
+      );
+    } finally {
+      setReadinessLoading(false);
+    }
+  }
+
   useEffect(() => {
     async function loadInitialData() {
       try {
@@ -234,6 +255,7 @@ export default function App() {
       await loadExecutions();
       await loadLocks();
       await loadPolicies();
+      await loadReadiness();
       await loadRuns();
     }
 
@@ -258,6 +280,7 @@ export default function App() {
       await loadExecutions();
       await loadLocks();
       await loadPolicies();
+      await loadReadiness();
       await loadRuns();
     } catch (error) {
       setApprovalsError(
@@ -276,6 +299,7 @@ export default function App() {
     void loadExecutions();
     void loadLocks();
     void loadPolicies();
+    void loadReadiness();
     void loadRuns();
   }
 
@@ -345,6 +369,12 @@ export default function App() {
         adapters={adapters}
         loading={adaptersLoading}
         error={adaptersError}
+      />
+
+      <SystemStatusPanel
+        readiness={readiness}
+        loading={readinessLoading}
+        error={readinessError}
       />
 
       <section>

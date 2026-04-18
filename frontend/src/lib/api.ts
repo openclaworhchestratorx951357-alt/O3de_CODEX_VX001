@@ -14,6 +14,7 @@ import type {
   LockRecord,
   LocksResponse,
   PoliciesResponse,
+  ReadinessStatus,
   RunRecord,
   RunsResponse,
   ToolPolicy,
@@ -177,4 +178,14 @@ export async function fetchAdapters(): Promise<AdaptersResponse> {
 
   const payload = (await response.json()) as AdaptersEnvelope;
   return payload.adapters;
+}
+
+export async function fetchReadiness(): Promise<ReadinessStatus> {
+  const response = await fetch(`${API_BASE_URL}/ready`);
+
+  if (!response.ok) {
+    throw new Error(`Readiness fetch failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as ReadinessStatus;
 }

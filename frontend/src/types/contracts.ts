@@ -232,3 +232,45 @@ export interface AdaptersResponse {
 export interface AdaptersEnvelope {
   adapters: AdaptersResponse;
 }
+
+export interface SchemaValidationStatus {
+  mode: string;
+  schema_scope: string;
+  supports_request_args: boolean;
+  supports_result_conformance: boolean;
+  active_keywords: string[];
+  active_unsupported_keywords: string[];
+  active_metadata_keywords: string[];
+  supported_keywords: string[];
+  supported_refs: string[];
+  unsupported_keywords: string[];
+  notes: string[];
+}
+
+export interface AdapterModeStatus {
+  ready: boolean;
+  configured_mode: string;
+  active_mode: string;
+  supports_real_execution: boolean;
+  contract_version: string;
+  execution_boundary: string;
+  supported_modes: string[];
+  available_families: string[];
+  warning?: string | null;
+  notes: string[];
+}
+
+export interface ReadinessStatus {
+  ok: boolean;
+  service: string;
+  execution_mode: string;
+  persistence_ready: boolean;
+  requested_database_strategy: string;
+  database_strategy: string;
+  database_path: string;
+  persistence_warning?: string | null;
+  attempted_database_paths: string[];
+  adapter_mode: AdapterModeStatus;
+  schema_validation: SchemaValidationStatus;
+  dependencies: string[];
+}
