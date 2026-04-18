@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class RequestEnvelope(BaseModel):
@@ -13,5 +13,17 @@ class RequestEnvelope(BaseModel):
     dry_run: bool = False
     approval_token: str | None = None
     locks: list[str] = Field(default_factory=list)
-    timeout_s: int = Field(..., ge=1)
+    timeout_s: int = Field(default=30, ge=1, le=3600)
     args: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("locks")
+    @classmethod
+    def normalize_locks(cls, value: list[str]) -> list[str]:
+        deduped: list[str] = []
+        seen: set[str] = set()
+        for item in value:
+            cleaned = item.strip()
+            if cleaned and cleaned not in seen:
+                deduped.append(cleaned)
+                seen.add(cleaned)
+        return deduped
