@@ -21,6 +21,7 @@ See these official source files before making changes:
 - `docs/PHASE-7-PROJECT-BUILD-CANDIDATES.md`
 - `docs/PHASE-7-PROJECT-INSPECT-CHECKLIST.md`
 - `docs/PHASE-7-SETTINGS-GEM-INSPECTION-CHECKLIST.md`
+- `docs/PHASE-7-SETTINGS-GEM-CANDIDATES.md`
 - `CONTRIBUTING.md`
 - `docs/LOCAL-STACK-RUNBOOK.md`
 
