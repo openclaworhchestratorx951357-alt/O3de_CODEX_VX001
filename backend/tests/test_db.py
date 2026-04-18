@@ -139,6 +139,158 @@ def test_schema_validation_service_accepts_real_project_inspect_result() -> None
     assert errors == []
 
 
+def test_schema_validation_service_accepts_real_project_inspect_execution_details() -> None:
+    errors = schema_validation_service.validate_tool_args(
+        schema_ref="schemas/tools/project.inspect.execution-details.schema.json",
+        payload={
+            "inspection_surface": "project_manifest",
+            "execution_boundary": "Hybrid mode enabled a real read-only manifest path.",
+            "adapter_family": "project-build",
+            "adapter_mode": "hybrid",
+            "adapter_contract_version": "v0.1",
+            "inspection_evidence": [
+                "project_manifest",
+                "project_config",
+                "gem_names",
+                "manifest_settings"
+            ],
+            "project_manifest_path": "/tmp/project/project.json",
+            "manifest_keys": ["project_name", "version", "gem_names"],
+            "project_name": "SchemaProject",
+            "include_flags": {
+                "include_project_config": True,
+                "include_gems": True,
+                "include_settings": True,
+                "include_build_state": False
+            },
+            "project_config": {
+                "project_name": "SchemaProject",
+                "version": "1.0.0"
+            },
+            "project_config_keys": ["project_name", "version"],
+            "requested_project_config_keys": ["project_name", "version"],
+            "requested_settings_evidence": [
+                "manifest_settings",
+                "manifest_settings_keys",
+                "requested_settings_keys",
+                "matched_requested_settings_keys",
+                "missing_requested_settings_keys"
+            ],
+            "settings_selection_mode": "requested-subset",
+            "requested_settings_keys": ["version", "missing_setting"],
+            "matched_requested_settings_keys": ["version"],
+            "missing_requested_settings_keys": ["missing_setting"],
+            "requested_gem_evidence": [
+                "gem_names",
+                "gem_names_count",
+                "requested_gem_names",
+                "matched_requested_gem_names",
+                "missing_requested_gem_names"
+            ],
+            "gem_selection_mode": "requested-subset",
+            "requested_gem_names": ["SchemaGem", "MissingGem"],
+            "matched_requested_gem_names": ["SchemaGem"],
+            "missing_requested_gem_names": ["MissingGem"],
+            "gem_names": ["SchemaGem"],
+            "gem_names_count": 1,
+            "gem_entries_present": True,
+            "requested_gem_subset_present": True,
+            "manifest_settings": {"version": "1.0.0"},
+            "manifest_settings_keys": ["version"],
+            "requested_settings_subset_present": True
+        },
+    )
+
+    assert errors == []
+
+
+def test_schema_validation_service_accepts_simulated_project_inspect_execution_details() -> None:
+    errors = schema_validation_service.validate_tool_args(
+        schema_ref="schemas/tools/project.inspect.execution-details.schema.json",
+        payload={
+            "inspection_surface": "simulated",
+            "execution_boundary": (
+                "Execution mode is simulated until real O3DE adapters are implemented."
+            ),
+            "adapter_family": "project-build",
+            "adapter_mode": "hybrid",
+            "adapter_contract_version": "v0.1",
+            "real_path_available": False,
+            "fallback_reason": "Manifest file was not found."
+        },
+    )
+
+    assert errors == []
+
+
+def test_schema_validation_service_accepts_real_project_inspect_artifact_metadata() -> None:
+    errors = schema_validation_service.validate_tool_args(
+        schema_ref="schemas/tools/project.inspect.artifact-metadata.schema.json",
+        payload={
+            "tool": "project.inspect",
+            "agent": "project-build",
+            "execution_mode": "real",
+            "adapter_family": "project-build",
+            "adapter_mode": "hybrid",
+            "adapter_contract_version": "v0.1",
+            "inspection_surface": "project_manifest",
+            "execution_boundary": "Hybrid mode enabled a real read-only manifest path.",
+            "inspection_evidence": [
+                "project_manifest",
+                "project_config",
+                "gem_names",
+                "manifest_settings"
+            ],
+            "project_manifest_path": "/tmp/project/project.json",
+            "manifest_keys": ["project_name", "version", "gem_names"],
+            "project_name": "SchemaProject",
+            "include_flags": {
+                "include_project_config": True,
+                "include_gems": True,
+                "include_settings": True,
+                "include_build_state": False
+            },
+            "project_config": {
+                "project_name": "SchemaProject",
+                "version": "1.0.0"
+            },
+            "project_config_keys": ["project_name", "version"],
+            "requested_project_config_keys": ["project_name", "version"],
+            "requested_settings_evidence": [
+                "manifest_settings",
+                "manifest_settings_keys",
+                "requested_settings_keys",
+                "matched_requested_settings_keys",
+                "missing_requested_settings_keys"
+            ],
+            "settings_selection_mode": "requested-subset",
+            "requested_settings_keys": ["version", "missing_setting"],
+            "matched_requested_settings_keys": ["version"],
+            "missing_requested_settings_keys": ["missing_setting"],
+            "requested_gem_evidence": [
+                "gem_names",
+                "gem_names_count",
+                "requested_gem_names",
+                "matched_requested_gem_names",
+                "missing_requested_gem_names"
+            ],
+            "gem_selection_mode": "requested-subset",
+            "requested_gem_names": ["SchemaGem", "MissingGem"],
+            "matched_requested_gem_names": ["SchemaGem"],
+            "missing_requested_gem_names": ["MissingGem"],
+            "gem_names": ["SchemaGem"],
+            "gem_names_count": 1,
+            "gem_entries_present": True,
+            "requested_gem_subset_present": True,
+            "manifest_settings": {"version": "1.0.0"},
+            "manifest_settings_keys": ["version"],
+            "requested_settings_subset_present": True
+        },
+    )
+
+    assert errors == []
+
+
 def test_schema_validation_service_reports_subset_capabilities_truthfully() -> None:
     capability = schema_validation_service.get_capability_status()
 

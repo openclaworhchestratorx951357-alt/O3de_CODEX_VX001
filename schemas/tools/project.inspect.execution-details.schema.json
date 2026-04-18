@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/project.inspect.execution-details.schema.json",
+  "title": "project.inspect execution details",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "inspection_surface",
+    "execution_boundary"
+  ],
+  "properties": {
+    "inspection_surface": {
+      "type": "string",
+      "enum": ["simulated", "project_manifest"]
+    },
+    "execution_boundary": { "type": "string", "minLength": 1 },
+    "adapter_family": { "type": "string", "minLength": 1 },
+    "adapter_mode": { "type": "string", "minLength": 1 },
+    "adapter_contract_version": { "type": "string", "minLength": 1 },
+    "real_path_available": { "type": "boolean" },
+    "fallback_reason": { "type": "string", "minLength": 1 },
+    "inspection_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "project_manifest_path": { "type": "string", "minLength": 1 },
+    "manifest_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "project_name": { "type": "string", "minLength": 1 },
+    "include_flags": {
+      "type": "object",
+      "additionalProperties": { "type": "boolean" }
+    },
+    "project_config": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "project_config_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "requested_project_config_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "requested_settings_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "settings_selection_mode": { "type": "string", "minLength": 1 },
+    "requested_settings_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "matched_requested_settings_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "missing_requested_settings_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "requested_gem_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "gem_selection_mode": { "type": "string", "minLength": 1 },
+    "requested_gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "matched_requested_gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "missing_requested_gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "gem_names_count": { "type": "integer", "minimum": 0 },
+    "gem_entries_present": { "type": "boolean" },
+    "requested_gem_subset_present": { "type": "boolean" },
+    "manifest_settings": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "manifest_settings_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "requested_settings_subset_present": { "type": "boolean" }
+  }
+}
