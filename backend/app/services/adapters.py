@@ -141,6 +141,7 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                     {"inspection_surface": "simulated"}
                     if tool
                     in {
+                        "editor.component.add",
                         "editor.entity.create",
                         "editor.level.open",
                         "editor.session.open",
@@ -168,6 +169,7 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                     {"inspection_surface": "simulated"}
                     if tool
                     in {
+                        "editor.component.add",
                         "editor.entity.create",
                         "editor.level.open",
                         "editor.session.open",
