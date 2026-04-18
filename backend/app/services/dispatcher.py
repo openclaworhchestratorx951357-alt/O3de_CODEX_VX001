@@ -14,6 +14,7 @@ from app.services.executions import executions_service
 from app.services.locks import locks_service
 from app.services.policy import policy_service
 from app.services.runs import runs_service
+from app.services.schema_validation import schema_validation_service
 
 
 class DispatcherService:
@@ -155,6 +156,19 @@ class DispatcherService:
                 logs=["Missing tool policy definition."],
             )
 
+        validation_errors = schema_validation_service.validate_tool_args(
+            schema_ref=policy.args_schema,
+            payload=request.args,
+        )
+        if validation_errors:
+            return self._reject_invalid_args(
+                request=request,
+                run_id=run.id,
+                execution_id=execution.id,
+                schema_ref=policy.args_schema,
+                validation_errors=validation_errors,
+            )
+
         approval_problem = self._check_approval(
             request,
             run.id,
@@ -252,6 +266,20 @@ class DispatcherService:
                 "but no real O3DE adapter was executed."
             ),
         )
+        result_validation_errors = schema_validation_service.validate_tool_result(
+            schema_ref=policy.result_schema,
+            payload=result.model_dump(),
+        )
+        if result_validation_errors:
+            locks_service.release(run.id)
+            return self._reject_invalid_result(
+                request=request,
+                run_id=run.id,
+                execution_id=execution.id,
+                schema_ref=policy.result_schema,
+                validation_errors=result_validation_errors,
+            )
+
         artifact = artifacts_service.create_artifact(
             run_id=run.id,
             execution_id=execution.id,
@@ -457,6 +485,105 @@ class DispatcherService:
             approval_token=approval.token,
         )
         return None
+
+    def _reject_invalid_args(
+        self,
+        *,
+        request: RequestEnvelope,
+        run_id: str,
+        execution_id: str,
+        schema_ref: str,
+        validation_errors: list[str],
+    ) -> ResponseEnvelope:
+        runs_service.update_run(
+            run_id,
+            status=RunStatus.FAILED,
+            result_summary="Rejected due to invalid tool arguments.",
+        )
+        executions_service.update_execution(
+            execution_id,
+            status=ExecutionStatus.FAILED,
+            logs=["Tool argument validation failed before simulated execution."],
+            details={
+                "args_schema_ref": schema_ref,
+                "arg_validation_errors": validation_errors,
+            },
+            result_summary="Rejected due to invalid tool arguments.",
+            finished=True,
+        )
+        events_service.record(
+            category="validation",
+            severity=EventSeverity.ERROR,
+            message="Tool argument validation failed.",
+            run_id=run_id,
+            details={"args_schema_ref": schema_ref},
+        )
+        return ResponseEnvelope(
+            request_id=request.request_id,
+            ok=False,
+            operation_id=run_id,
+            error=ResponseError(
+                code="INVALID_ARGS",
+                message="Tool arguments did not match the published schema.",
+                retryable=False,
+                details={
+                    "args_schema_ref": schema_ref,
+                    "arg_validation_errors": validation_errors,
+                },
+            ),
+            warnings=["Dispatch rejected before simulated execution."],
+            logs=["Tool argument validation failed against the published schema."],
+        )
+
+    def _reject_invalid_result(
+        self,
+        *,
+        request: RequestEnvelope,
+        run_id: str,
+        execution_id: str,
+        schema_ref: str,
+        validation_errors: list[str],
+    ) -> ResponseEnvelope:
+        runs_service.update_run(
+            run_id,
+            status=RunStatus.FAILED,
+            result_summary="Rejected because the simulated result failed schema conformance.",
+        )
+        executions_service.update_execution(
+            execution_id,
+            status=ExecutionStatus.FAILED,
+            logs=["Simulated result validation failed before completion was reported."],
+            details={
+                "result_schema_ref": schema_ref,
+                "result_validation_errors": validation_errors,
+                "simulated": True,
+            },
+            result_summary="Rejected because the simulated result failed schema conformance.",
+            finished=True,
+        )
+        events_service.record(
+            category="validation",
+            severity=EventSeverity.ERROR,
+            message="Simulated result validation failed.",
+            run_id=run_id,
+            details={"result_schema_ref": schema_ref},
+        )
+        return ResponseEnvelope(
+            request_id=request.request_id,
+            ok=False,
+            operation_id=run_id,
+            error=ResponseError(
+                code="INVALID_RESULT",
+                message="Simulated result did not match the published result schema.",
+                retryable=False,
+                details={
+                    "result_schema_ref": schema_ref,
+                    "result_validation_errors": validation_errors,
+                },
+            ),
+            warnings=["Dispatch failed before simulated completion could be reported."],
+            logs=["Simulated result validation failed against the published result schema."],
+        )
 
 
 dispatcher_service = DispatcherService()

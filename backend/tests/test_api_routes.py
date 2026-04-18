@@ -91,6 +91,31 @@ def test_runs_endpoint_reflects_dispatch_attempt() -> None:
         assert response.json()["id"] == run_id
 
 
+def test_dispatch_route_rejects_args_that_fail_published_schema() -> None:
+    with isolated_client() as client:
+        dispatch = client.post(
+            "/tools/dispatch",
+            json={
+                "request_id": "api-invalid-args-1",
+                "tool": "build.compile",
+                "agent": "project-build",
+                "project_root": "/tmp/project",
+                "engine_root": "/tmp/engine",
+                "dry_run": True,
+                "locks": [],
+                "timeout_s": 30,
+                "args": {"targets": []},
+            },
+        )
+        assert dispatch.status_code == 200
+        payload = dispatch.json()
+        assert payload["ok"] is False
+        assert payload["error"]["code"] == "INVALID_ARGS"
+        assert payload["error"]["details"]["args_schema_ref"].endswith(
+            "build.compile.args.schema.json"
+        )
+
+
 def test_approval_endpoints_allow_explicit_decision() -> None:
     with isolated_client() as client:
         dispatch = client.post(

@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from app.services.approvals import approvals_service
 from app.services.artifacts import artifacts_service
@@ -82,6 +83,40 @@ def test_dispatch_requires_approval_for_mutating_tool() -> None:
         assert response.approval_id is not None
         assert response.error is not None
         assert response.error.code == "APPROVAL_REQUIRED"
+
+
+def test_dispatch_rejects_args_that_fail_tool_schema_validation() -> None:
+    with isolated_database():
+        request = make_request("project-build", "build.compile")
+        request.args = {"targets": []}
+        response = dispatcher_service.dispatch(request)
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_ARGS"
+        assert response.error.details is not None
+        assert response.error.details["args_schema_ref"].endswith(
+            "build.compile.args.schema.json"
+        )
+
+
+def test_dispatch_rejects_simulated_result_that_fails_result_schema_validation() -> None:
+    with isolated_database():
+        with patch(
+            "app.services.dispatcher.schema_validation_service.validate_tool_result",
+            return_value=["$.simulated: expected constant value True"],
+        ):
+            response = dispatcher_service.dispatch(
+                make_request("project-build", "project.inspect")
+            )
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_RESULT"
+        assert response.error.details is not None
+        assert response.error.details["result_schema_ref"].endswith(
+            "project.inspect.result.schema.json"
+        )
 
 
 def test_dispatch_accepts_after_approval() -> None:

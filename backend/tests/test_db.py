@@ -3,6 +3,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import app.services.db as db
+from app.services.schema_validation import schema_validation_service
 
 
 def test_localappdata_failure_falls_back_to_repo_runtime() -> None:
@@ -76,3 +77,34 @@ def test_operator_fallback_path_is_used_before_repo_fallback() -> None:
         assert status.active_path == operator_dir / "control_plane.sqlite3"
         assert status.warning is not None
         assert "using" in status.warning
+
+
+def test_schema_validation_service_rejects_invalid_build_compile_args() -> None:
+    errors = schema_validation_service.validate_tool_args(
+        schema_ref="schemas/tools/build.compile.args.schema.json",
+        payload={"targets": []},
+    )
+
+    assert errors
+    assert "at least 1 item" in errors[0]
+
+
+def test_schema_validation_service_accepts_simulated_project_inspect_result() -> None:
+    errors = schema_validation_service.validate_tool_result(
+        schema_ref="schemas/tools/project.inspect.result.schema.json",
+        payload={
+            "status": "simulated_success",
+            "tool": "project.inspect",
+            "agent": "project-build",
+            "project_root": "/tmp/project",
+            "engine_root": "/tmp/engine",
+            "dry_run": True,
+            "simulated": True,
+            "execution_mode": "simulated",
+            "approval_class": "read_only",
+            "locks_acquired": ["project_config"],
+            "message": "Simulated project inspection completed.",
+        },
+    )
+
+    assert errors == []
