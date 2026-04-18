@@ -28,6 +28,11 @@ The repository now includes a first local stack baseline for Phase 5:
 - `.github/workflows/ci.yml`
 - `pyproject.toml`
 
+CI now validates the stack baseline by:
+- rendering the compose configuration
+- building the backend image
+- building the frontend image
+
 ## Phase 5 local task runner baseline
 
 The repository now also includes a repo-root PowerShell helper for repeatable local checks:
