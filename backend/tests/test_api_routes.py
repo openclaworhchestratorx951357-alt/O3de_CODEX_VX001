@@ -54,6 +54,17 @@ def test_catalog_returns_rich_tool_metadata() -> None:
         assert response.status_code == 200
         payload = response.json()
         assert payload["agents"][0]["tools"][0]["approval_class"]
+        assert payload["agents"][0]["tools"][0]["args_schema"]
+        assert payload["agents"][0]["tools"][0]["result_schema"]
+
+
+def test_policies_route_exposes_schema_cross_links() -> None:
+    with isolated_client() as client:
+        response = client.get("/policies")
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["policies"][0]["args_schema"]
+        assert payload["policies"][0]["result_schema"]
 
 
 def test_runs_endpoint_reflects_dispatch_attempt() -> None:

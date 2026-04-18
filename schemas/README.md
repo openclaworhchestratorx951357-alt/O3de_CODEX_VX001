@@ -8,9 +8,12 @@ Current contents:
 - tool policy schema
 - dispatch result schema
 - machine-readable route output schemas for root, health, readiness, version, and list endpoints
+- per-tool argument and result schemas under `schemas/tools/`
+
+Cross-linking:
+- `/tools/catalog` exposes `args_schema` and `result_schema` for every registered tool
+- `/policies` exposes the same schema links alongside approval and lock policy metadata
 
 Planned additions:
-- per-tool argument schemas
-- per-tool result schemas
 - UI layout schemas
 - broader validation/result schemas beyond the current control-plane route surface

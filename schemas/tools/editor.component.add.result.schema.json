@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/editor.component.add.result.schema.json",
+  "title": "editor.component.add result",
+  "allOf": [
+    { "$ref": "../dispatch-result.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "editor.component.add" },
+        "approval_class": { "const": "content_write" },
+        "execution_mode": { "const": "simulated" },
+        "simulated": { "const": true }
+      }
+    }
+  ]
+}

@@ -32,4 +32,6 @@ def test_tool_definition_includes_policy_metadata() -> None:
     tool = catalog_service.get_tool_definition("project-build", "build.configure")
     assert tool is not None
     assert tool.approval_class == "build_execute"
+    assert tool.args_schema.endswith("build.configure.args.schema.json")
+    assert tool.result_schema.endswith("build.configure.result.schema.json")
     assert "build_tree" in tool.default_locks

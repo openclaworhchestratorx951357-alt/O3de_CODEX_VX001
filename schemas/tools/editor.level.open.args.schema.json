@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/editor.level.open.args.schema.json",
+  "title": "editor.level.open args",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["level_path"],
+  "properties": {
+    "level_path": { "type": "string", "minLength": 1 },
+    "make_writable": { "type": "boolean" },
+    "focus_viewport": { "type": "boolean" }
+  }
+}

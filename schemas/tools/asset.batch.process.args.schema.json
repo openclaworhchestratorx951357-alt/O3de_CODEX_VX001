@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/asset.batch.process.args.schema.json",
+  "title": "asset.batch.process args",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "source_glob": { "type": "string", "minLength": 1 },
+    "platforms": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "clean": { "type": "boolean" },
+    "max_jobs": { "type": "integer", "minimum": 1 }
+  }
+}

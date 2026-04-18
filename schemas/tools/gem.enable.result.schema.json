@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/gem.enable.result.schema.json",
+  "title": "gem.enable result",
+  "allOf": [
+    { "$ref": "../dispatch-result.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "gem.enable" },
+        "approval_class": { "const": "config_write" },
+        "execution_mode": { "const": "simulated" },
+        "simulated": { "const": true }
+      }
+    }
+  ]
+}

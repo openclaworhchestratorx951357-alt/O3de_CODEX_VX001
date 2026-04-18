@@ -8,6 +8,8 @@
     "agent",
     "tool",
     "approval_class",
+    "args_schema",
+    "result_schema",
     "required_locks",
     "risk",
     "requires_approval",
@@ -29,6 +31,8 @@
         "test_execute"
       ]
     },
+    "args_schema": { "type": "string", "minLength": 1 },
+    "result_schema": { "type": "string", "minLength": 1 },
     "required_locks": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 }

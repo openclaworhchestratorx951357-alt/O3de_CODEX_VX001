@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/editor.session.open.args.schema.json",
+  "title": "editor.session.open args",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "session_mode": { "type": "string", "enum": ["attach", "open"] },
+    "project_path": { "type": "string", "minLength": 1 },
+    "level_path": { "type": "string", "minLength": 1 },
+    "timeout_s": { "type": "integer", "minimum": 1 }
+  }
+}

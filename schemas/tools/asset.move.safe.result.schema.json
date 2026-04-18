@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/asset.move.safe.result.schema.json",
+  "title": "asset.move.safe result",
+  "allOf": [
+    { "$ref": "../dispatch-result.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "asset.move.safe" },
+        "approval_class": { "const": "destructive_content_write" },
+        "execution_mode": { "const": "simulated" },
+        "simulated": { "const": true }
+      }
+    }
+  ]
+}

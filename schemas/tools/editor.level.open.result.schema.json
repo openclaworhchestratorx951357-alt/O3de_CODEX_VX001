@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/editor.level.open.result.schema.json",
+  "title": "editor.level.open result",
+  "allOf": [
+    { "$ref": "../dispatch-result.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "editor.level.open" },
+        "approval_class": { "const": "content_write" },
+        "execution_mode": { "const": "simulated" },
+        "simulated": { "const": true }
+      }
+    }
+  ]
+}

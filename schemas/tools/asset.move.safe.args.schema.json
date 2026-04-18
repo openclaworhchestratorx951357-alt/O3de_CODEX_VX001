@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/asset.move.safe.args.schema.json",
+  "title": "asset.move.safe args",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source_path", "destination_path"],
+  "properties": {
+    "source_path": { "type": "string", "minLength": 1 },
+    "destination_path": { "type": "string", "minLength": 1 },
+    "update_references": { "type": "boolean" },
+    "dry_run_plan": { "type": "boolean" }
+  }
+}

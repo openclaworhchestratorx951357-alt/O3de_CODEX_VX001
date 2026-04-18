@@ -5,6 +5,8 @@ class ToolDefinition(BaseModel):
     name: str = Field(..., min_length=1)
     description: str = Field(..., min_length=1)
     approval_class: str = Field(..., min_length=1)
+    args_schema: str = Field(..., min_length=1)
+    result_schema: str = Field(..., min_length=1)
     default_locks: list[str] = Field(default_factory=list)
     default_timeout_s: int = Field(default=30, ge=1)
     risk: str = Field(default="low", min_length=1)

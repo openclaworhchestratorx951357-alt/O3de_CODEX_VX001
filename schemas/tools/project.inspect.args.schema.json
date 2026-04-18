@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/project.inspect.args.schema.json",
+  "title": "project.inspect args",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "include_gems": { "type": "boolean" },
+    "include_settings": { "type": "boolean" },
+    "include_build_state": { "type": "boolean" }
+  }
+}
