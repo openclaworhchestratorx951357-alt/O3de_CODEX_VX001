@@ -334,8 +334,8 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
     assert "$schema" in capability.active_metadata_keywords
     assert "allOf" in capability.supported_keywords
     assert "oneOf" in capability.unsupported_keywords
-    assert capability.persisted_execution_details_tool_count == 14
-    assert capability.persisted_artifact_metadata_tool_count == 14
+    assert capability.persisted_execution_details_tool_count == 15
+    assert capability.persisted_artifact_metadata_tool_count == 15
     assert capability.persisted_execution_details_tools == [
         "asset.processor.status",
         "asset.source.inspect",
@@ -350,6 +350,7 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
         "render.capture.viewport",
         "render.material.inspect",
         "settings.patch",
+        "test.run.editor_python",
         "test.visual.diff",
     ]
     assert capability.persisted_artifact_metadata_tools == [
@@ -366,6 +367,7 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
         "render.capture.viewport",
         "render.material.inspect",
         "settings.patch",
+        "test.run.editor_python",
         "test.visual.diff",
     ]
     assert [item.model_dump() for item in capability.persisted_family_coverage] == [
@@ -427,13 +429,13 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
         {
             "family": "validation",
             "total_tools": 4,
-            "execution_details_tools": 1,
-            "artifact_metadata_tools": 1,
+            "execution_details_tools": 2,
+            "artifact_metadata_tools": 2,
             "covered_tools": [
+                "test.run.editor_python",
                 "test.visual.diff",
             ],
             "uncovered_tools": [
-                "test.run.editor_python",
                 "test.run.gtest",
                 "test.tiaf.sequence",
             ],

@@ -152,6 +152,27 @@ def make_test_visual_diff_request() -> RequestEnvelope:
     return request
 
 
+def make_test_run_editor_python_request() -> RequestEnvelope:
+    request = make_request("validation", "test.run.editor_python")
+    request.args = {
+        "test_modules": ["Automated.testing.sample_test"],
+        "editor_args": ["--autotest_mode"],
+        "timeout_s": 120,
+    }
+    return request
+
+
+def approve_test_run_editor_python_request() -> RequestEnvelope:
+    first = dispatcher_service.dispatch(make_test_run_editor_python_request())
+    approval = approvals_service.get_approval(first.approval_id or "")
+    assert approval is not None
+    approvals_service.approve(approval.id)
+
+    approved_request = make_test_run_editor_python_request()
+    approved_request.approval_token = approval.token
+    return approved_request
+
+
 def make_editor_session_open_request() -> RequestEnvelope:
     request = make_request("editor-control", "editor.session.open")
     request.args = {
@@ -776,6 +797,50 @@ def test_dispatch_rejects_when_test_visual_diff_artifact_metadata_fail_schema_va
         assert response.error.details["persisted_payload_kind"] == "artifact metadata"
         assert response.error.details["persisted_schema_ref"].endswith(
             "test.visual.diff.artifact-metadata.schema.json"
+        )
+
+
+def test_dispatch_rejects_when_test_run_editor_python_execution_details_fail_schema_validation(
+    ) -> None:
+    with isolated_database():
+        approved_request = approve_test_run_editor_python_request()
+        with patch(
+            "app.services.dispatcher.schema_validation_service.validate_execution_details",
+            return_value=["$.simulated: expected constant value True"],
+        ):
+            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_PERSISTED_PAYLOAD"
+        assert response.error.details is not None
+        assert response.error.details["persisted_payload_kind"] == "execution details"
+        assert response.error.details["persisted_schema_ref"].endswith(
+            "test.run.editor_python.execution-details.schema.json"
+        )
+
+
+def test_dispatch_rejects_when_test_run_editor_python_artifact_metadata_fail_schema_validation(
+    ) -> None:
+    with isolated_database():
+        approved_request = approve_test_run_editor_python_request()
+        with patch(
+            "app.services.dispatcher.schema_validation_service.validate_execution_details",
+            return_value=[],
+        ):
+            with patch(
+                "app.services.dispatcher.schema_validation_service.validate_artifact_metadata",
+                return_value=["$.tool: expected constant value 'test.run.editor_python'"],
+            ):
+                response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_PERSISTED_PAYLOAD"
+        assert response.error.details is not None
+        assert response.error.details["persisted_payload_kind"] == "artifact metadata"
+        assert response.error.details["persisted_schema_ref"].endswith(
+            "test.run.editor_python.artifact-metadata.schema.json"
         )
 
 
@@ -1767,6 +1832,44 @@ def test_test_visual_diff_simulated_persisted_payloads_match_published_schemas(
         assert (
             schema_validation_service.validate_artifact_metadata(
                 tool_name="test.visual.diff",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_test_run_editor_python_simulated_persisted_payloads_match_published_schemas(
+    ) -> None:
+    with isolated_database():
+        response = dispatcher_service.dispatch(approve_test_run_editor_python_request())
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "simulated"
+        assert execution.details["simulated"] is True
+        assert artifact is not None
+        assert artifact.simulated is True
+        assert artifact.metadata["execution_mode"] == "simulated"
+        assert artifact.metadata["inspection_surface"] == "simulated"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="test.run.editor_python",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="test.run.editor_python",
                 payload=artifact.metadata,
             )
             == []
