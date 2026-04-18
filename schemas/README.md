@@ -11,8 +11,8 @@ Current contents:
 - per-tool argument and result schemas under `schemas/tools/`
 
 Cross-linking:
-- `/tools/catalog` exposes `args_schema` and `result_schema` for every registered tool
-- `/policies` exposes the same schema links alongside approval and lock policy metadata
+- `/tools/catalog` exposes `adapter_family`, `args_schema`, and `result_schema` for every registered tool
+- `/policies` exposes the same adapter/schema links alongside approval and lock policy metadata
 
 Planned additions:
 - UI layout schemas
