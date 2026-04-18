@@ -162,6 +162,7 @@ class DispatcherService:
                 warnings=["Dispatch rejected before simulated execution."],
                 logs=["Missing tool policy definition."],
             )
+        capability_status = policy.capability_status
 
         if not adapter_status.ready:
             runs_service.update_run(
@@ -185,9 +186,15 @@ class DispatcherService:
             events_service.record(
                 category="adapter",
                 severity=EventSeverity.ERROR,
-                message="Dispatch rejected because the configured adapter mode is not ready.",
+                message=(
+                    f"{capability_status} dispatch rejected because the configured "
+                    "adapter mode is not ready."
+                ),
                 run_id=run.id,
-                details={"configured_mode": adapter_status.configured_mode},
+                details={
+                    "configured_mode": adapter_status.configured_mode,
+                    "capability_status": capability_status,
+                },
             )
             return ResponseEnvelope(
                 request_id=request.request_id,
@@ -248,9 +255,12 @@ class DispatcherService:
             events_service.record(
                 category="locks",
                 severity=EventSeverity.WARNING,
-                message="Dispatch blocked by an active lock.",
+                message=f"{capability_status} dispatch blocked by an active lock.",
                 run_id=run.id,
-                details={"locks": ", ".join(lock.name for lock in conflicts)},
+                details={
+                    "locks": ", ".join(lock.name for lock in conflicts),
+                    "capability_status": capability_status,
+                },
             )
             return ResponseEnvelope(
                 request_id=request.request_id,
@@ -313,9 +323,15 @@ class DispatcherService:
             events_service.record(
                 category="adapter",
                 severity=EventSeverity.ERROR,
-                message="Dispatch failed because adapter execution could not start.",
+                message=(
+                    f"{capability_status} dispatch failed because adapter execution "
+                    "could not start."
+                ),
                 run_id=run.id,
-                details={"configured_mode": adapter_status.configured_mode},
+                details={
+                    "configured_mode": adapter_status.configured_mode,
+                    "capability_status": capability_status,
+                },
             )
             return ResponseEnvelope(
                 request_id=request.request_id,
@@ -349,9 +365,12 @@ class DispatcherService:
         events_service.record(
             category="locks",
             severity=EventSeverity.INFO,
-            message="Required locks acquired for run.",
+            message=f"{capability_status} run acquired required locks.",
             run_id=run.id,
-            details={"locks": acquired_lock_summary},
+            details={
+                "locks": acquired_lock_summary,
+                "capability_status": capability_status,
+            },
         )
 
         result = adapter_report.result
@@ -403,9 +422,13 @@ class DispatcherService:
         events_service.record(
             category="dispatch",
             severity=EventSeverity.INFO,
-            message=adapter_report.result_summary,
+            message=f"{capability_status} dispatch completed: {adapter_report.result_summary}",
             run_id=run.id,
-            details={"tool": request.tool, "adapter_mode": adapter_report.execution_mode},
+            details={
+                "tool": request.tool,
+                "adapter_mode": adapter_report.execution_mode,
+                "capability_status": capability_status,
+            },
         )
 
         result_warning = (
@@ -485,9 +508,17 @@ class DispatcherService:
             events_service.record(
                 category="approvals",
                 severity=EventSeverity.WARNING,
-                message="Approval required before dispatch can continue.",
+                message=(
+                    f"{approval_class} / {request.tool} remains "
+                    f"{self._approval_capability_label(request.tool)} "
+                    "and requires approval before dispatch can continue."
+                ),
                 run_id=run_id,
-                details={"approval_id": approval.id, "tool": request.tool},
+                details={
+                    "approval_id": approval.id,
+                    "tool": request.tool,
+                    "capability_status": self._approval_capability_label(request.tool),
+                },
             )
             return ResponseEnvelope(
                 request_id=request.request_id,
@@ -605,9 +636,12 @@ class DispatcherService:
         events_service.record(
             category="validation",
             severity=EventSeverity.ERROR,
-            message="Tool argument validation failed.",
+            message="Tool argument validation failed for the current capability-gated dispatch.",
             run_id=run_id,
-            details={"args_schema_ref": schema_ref},
+            details={
+                "args_schema_ref": schema_ref,
+                "capability_status": self._request_capability_status(request),
+            },
         )
         return ResponseEnvelope(
             request_id=request.request_id,
@@ -654,9 +688,12 @@ class DispatcherService:
         events_service.record(
             category="validation",
             severity=EventSeverity.ERROR,
-            message="Adapter result validation failed.",
+            message="Adapter result validation failed for the current capability-gated dispatch.",
             run_id=run_id,
-            details={"result_schema_ref": schema_ref},
+            details={
+                "result_schema_ref": schema_ref,
+                "capability_status": self._request_capability_status(request),
+            },
         )
         return ResponseEnvelope(
             request_id=request.request_id,
@@ -674,6 +711,20 @@ class DispatcherService:
             warnings=["Dispatch failed before adapter completion could be reported."],
             logs=["Adapter result validation failed against the published result schema."],
         )
+
+    def _request_capability_status(self, request: RequestEnvelope) -> str:
+        policy = policy_service.get_policy(request.agent, request.tool)
+        return policy.capability_status if policy is not None else "unknown"
+
+    def _approval_capability_label(self, tool_name: str) -> str:
+        tool = catalog_service.get_tool_definition("project-build", tool_name)
+        if tool is not None:
+            return tool.capability_status
+        for agent in catalog_service.get_catalog_model().agents:
+            for candidate in agent.tools:
+                if candidate.name == tool_name:
+                    return candidate.capability_status
+        return "unknown"
 
 
 dispatcher_service = DispatcherService()

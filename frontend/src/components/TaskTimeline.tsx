@@ -16,6 +16,11 @@ function formatEventState(item: EventRecord): "planned" | "active" | "done" {
   return "done";
 }
 
+function readDetail(item: EventRecord, key: string): string | null {
+  const value = item.details[key];
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
 export default function TaskTimeline({ items, loading, error }: TaskTimelineProps) {
   return (
     <section
@@ -39,14 +44,22 @@ export default function TaskTimeline({ items, loading, error }: TaskTimelineProp
       ) : (
         <ul>
           {items.map((item) => (
-            <li key={item.id} style={{ marginBottom: 12 }}>
-              <strong>{item.message}</strong>
-              <div>Category: {item.category}</div>
-              <div>Severity: {item.severity}</div>
-              <div>State: {formatEventState(item)}</div>
-              {item.run_id ? <div>Run: {item.run_id}</div> : null}
-              <div>Created: {new Date(item.created_at).toLocaleString()}</div>
-            </li>
+            (() => {
+              const capabilityStatus = readDetail(item, "capability_status");
+              const adapterMode = readDetail(item, "adapter_mode");
+              return (
+                <li key={item.id} style={{ marginBottom: 12 }}>
+                  <strong>{item.message}</strong>
+                  <div>Category: {item.category}</div>
+                  <div>Severity: {item.severity}</div>
+                  <div>State: {formatEventState(item)}</div>
+                  {capabilityStatus ? <div>Capability: {capabilityStatus}</div> : null}
+                  {adapterMode ? <div>Adapter mode: {adapterMode}</div> : null}
+                  {item.run_id ? <div>Run: {item.run_id}</div> : null}
+                  <div>Created: {new Date(item.created_at).toLocaleString()}</div>
+                </li>
+              );
+            })()
           ))}
         </ul>
       )}

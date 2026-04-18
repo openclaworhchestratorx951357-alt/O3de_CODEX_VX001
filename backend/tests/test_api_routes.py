@@ -260,6 +260,10 @@ def test_events_endpoint_returns_persisted_dispatch_history() -> None:
         assert response.status_code == 200
         payload = response.json()
         assert len(payload["events"]) >= 1
+        assert any(
+            event["details"].get("capability_status") == "hybrid-read-only"
+            for event in payload["events"]
+        )
 
 
 def test_executions_and_artifacts_endpoints_reflect_simulated_dispatch() -> None:

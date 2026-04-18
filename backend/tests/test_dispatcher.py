@@ -281,3 +281,12 @@ def test_project_inspect_falls_back_to_simulated_when_manifest_is_missing_in_hyb
         execution = executions_service.list_executions()[0]
         assert execution.details["real_path_available"] is False
         assert "fallback_reason" in execution.details
+
+
+def test_dispatch_events_publish_capability_status_vocabulary() -> None:
+    with isolated_database():
+        dispatcher_service.dispatch(make_request("project-build", "project.inspect"))
+        events = events_service.list_events()
+        dispatch_event = next(event for event in events if event.category == "dispatch")
+        assert dispatch_event.details["capability_status"] == "hybrid-read-only"
+        assert "hybrid-read-only" in dispatch_event.message
