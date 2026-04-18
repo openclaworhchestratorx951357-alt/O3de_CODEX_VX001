@@ -64,9 +64,10 @@ def test_ready_reports_database_status_details() -> None:
         assert "$schema" in payload["schema_validation"]["active_metadata_keywords"]
         assert "allOf" in payload["schema_validation"]["supported_keywords"]
         assert "oneOf" in payload["schema_validation"]["unsupported_keywords"]
-        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 17
-        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 17
+        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 18
+        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 18
         assert payload["schema_validation"]["persisted_execution_details_tools"] == [
+            "asset.batch.process",
             "asset.processor.status",
             "asset.source.inspect",
             "build.compile",
@@ -86,6 +87,7 @@ def test_ready_reports_database_status_details() -> None:
             "test.visual.diff",
         ]
         assert payload["schema_validation"]["persisted_artifact_metadata_tools"] == [
+            "asset.batch.process",
             "asset.processor.status",
             "asset.source.inspect",
             "build.compile",
@@ -121,14 +123,14 @@ def test_ready_reports_database_status_details() -> None:
             {
                 "family": "asset-pipeline",
                 "total_tools": 4,
-                "execution_details_tools": 2,
-                "artifact_metadata_tools": 2,
+                "execution_details_tools": 3,
+                "artifact_metadata_tools": 3,
                 "covered_tools": [
+                    "asset.batch.process",
                     "asset.processor.status",
                     "asset.source.inspect",
                 ],
                 "uncovered_tools": [
-                    "asset.batch.process",
                     "asset.move.safe",
                 ],
             },

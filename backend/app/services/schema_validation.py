@@ -321,6 +321,12 @@ class SchemaValidationService:
 
     def _persisted_schema_refs(self) -> dict[tuple[str, str], str]:
         return {
+            ("asset.batch.process", "execution-details"): (
+                "schemas/tools/asset.batch.process.execution-details.schema.json"
+            ),
+            ("asset.batch.process", "artifact-metadata"): (
+                "schemas/tools/asset.batch.process.artifact-metadata.schema.json"
+            ),
             ("test.tiaf.sequence", "execution-details"): (
                 "schemas/tools/test.tiaf.sequence.execution-details.schema.json"
             ),
