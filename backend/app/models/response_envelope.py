@@ -21,6 +21,8 @@ class ResponseError(BaseModel):
 class ResponseEnvelope(BaseModel):
     request_id: str = Field(..., min_length=1)
     ok: bool
+    operation_id: str | None = None
+    approval_id: str | None = None
     result: dict[str, Any] | None = None
     warnings: list[str] = Field(default_factory=list)
     artifacts: list[str] = Field(default_factory=list)
