@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import AgentPanel from "./components/AgentPanel";
+import ArtifactsPanel from "./components/ArtifactsPanel";
 import ApprovalQueue from "./components/ApprovalQueue";
 import CatalogPanel from "./components/CatalogPanel";
 import DispatchForm from "./components/DispatchForm";
@@ -14,6 +15,7 @@ import TaskTimeline from "./components/TaskTimeline";
 import { mockAgents } from "./data/mockAgents";
 import {
   approveApproval,
+  fetchArtifacts,
   fetchApprovals,
   fetchEvents,
   fetchExecutions,
@@ -24,6 +26,7 @@ import {
   rejectApproval,
 } from "./lib/api";
 import type {
+  ArtifactRecord,
   ApprovalRecord,
   CatalogAgent,
   EventRecord,
@@ -42,6 +45,7 @@ export default function App() {
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
   const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
+  const [artifacts, setArtifacts] = useState<ArtifactRecord[]>([]);
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [executions, setExecutions] = useState<ExecutionRecord[]>([]);
   const [locks, setLocks] = useState<LockRecord[]>([]);
@@ -49,12 +53,14 @@ export default function App() {
   const [runs, setRuns] = useState<RunRecord[]>([]);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
+  const [artifactsError, setArtifactsError] = useState<string | null>(null);
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [executionsError, setExecutionsError] = useState<string | null>(null);
   const [locksError, setLocksError] = useState<string | null>(null);
   const [policiesError, setPoliciesError] = useState<string | null>(null);
   const [runsError, setRunsError] = useState<string | null>(null);
   const [approvalsLoading, setApprovalsLoading] = useState(true);
+  const [artifactsLoading, setArtifactsLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(true);
   const [executionsLoading, setExecutionsLoading] = useState(true);
   const [locksLoading, setLocksLoading] = useState(true);
@@ -89,6 +95,21 @@ export default function App() {
       );
     } finally {
       setEventsLoading(false);
+    }
+  }
+
+  async function loadArtifacts() {
+    setArtifactsLoading(true);
+    try {
+      const nextArtifacts = await fetchArtifacts();
+      setArtifacts(nextArtifacts);
+      setArtifactsError(null);
+    } catch (error) {
+      setArtifactsError(
+        error instanceof Error ? error.message : "Failed to load artifacts",
+      );
+    } finally {
+      setArtifactsLoading(false);
     }
   }
 
@@ -164,6 +185,7 @@ export default function App() {
       }
 
       await loadApprovals();
+      await loadArtifacts();
       await loadEvents();
       await loadExecutions();
       await loadLocks();
@@ -186,6 +208,7 @@ export default function App() {
         await rejectApproval(approvalId);
       }
       await loadApprovals();
+      await loadArtifacts();
       await loadEvents();
       await loadExecutions();
       await loadLocks();
@@ -203,6 +226,7 @@ export default function App() {
   function handleDispatchResponse(response: ResponseEnvelope) {
     setLastResponse(response);
     void loadApprovals();
+    void loadArtifacts();
     void loadEvents();
     void loadExecutions();
     void loadLocks();
@@ -287,6 +311,11 @@ export default function App() {
         items={events}
         loading={eventsLoading}
         error={eventsError}
+      />
+      <ArtifactsPanel
+        items={artifacts}
+        loading={artifactsLoading}
+        error={artifactsError}
       />
       <ExecutionsPanel
         items={executions}

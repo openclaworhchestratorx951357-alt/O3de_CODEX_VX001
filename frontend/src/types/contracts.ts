@@ -162,6 +162,24 @@ export interface ExecutionsResponse {
   executions: ExecutionRecord[];
 }
 
+export interface ArtifactRecord {
+  id: string;
+  run_id: string;
+  execution_id: string;
+  label: string;
+  kind: string;
+  uri: string;
+  path?: string | null;
+  content_type?: string | null;
+  simulated: boolean;
+  created_at: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface ArtifactsResponse {
+  artifacts: ArtifactRecord[];
+}
+
 export interface ToolDefinition {
   name: string;
   description: string;

@@ -1,4 +1,6 @@
 import type {
+  ArtifactRecord,
+  ArtifactsResponse,
   ApprovalRecord,
   ApprovalsResponse,
   EventRecord,
@@ -141,4 +143,15 @@ export async function fetchExecutions(): Promise<ExecutionRecord[]> {
 
   const payload = (await response.json()) as ExecutionsResponse;
   return payload.executions ?? [];
+}
+
+export async function fetchArtifacts(): Promise<ArtifactRecord[]> {
+  const response = await fetch(`${API_BASE_URL}/artifacts`);
+
+  if (!response.ok) {
+    throw new Error(`Artifacts fetch failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as ArtifactsResponse;
+  return payload.artifacts ?? [];
 }
