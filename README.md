@@ -25,6 +25,8 @@ The repository now includes a first local stack baseline for Phase 5:
 - `frontend/nginx.conf`
 - `docker-compose.yml`
 - `.env.example`
+- `.github/workflows/ci.yml`
+- `backend/pytest.ini`
 
 Local container startup:
 
