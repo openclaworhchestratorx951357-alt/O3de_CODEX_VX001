@@ -21,6 +21,20 @@ $BackendDir = Join-Path $RepoRoot "backend"
 $FrontendDir = Join-Path $RepoRoot "frontend"
 $VendorTools = Join-Path $BackendDir ".vendor_tools"
 $BackendPythonPath = "$VendorTools;$BackendDir"
+$BackendVenvPython = Join-Path $BackendDir ".venv\Scripts\python.exe"
+
+function Get-BackendPython {
+    if (Test-Path $BackendVenvPython) {
+        return $BackendVenvPython
+    }
+
+    $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+    if ($null -ne $pythonCommand) {
+        return $pythonCommand.Source
+    }
+
+    throw "Unable to locate a backend Python interpreter. Expected $BackendVenvPython or a python executable on PATH."
+}
 
 function Invoke-RepoCommand {
     param(
@@ -42,14 +56,14 @@ function Invoke-RepoCommand {
 function Invoke-BackendLint {
     Invoke-RepoCommand -WorkingDirectory $RepoRoot -Command (
         '$env:PYTHONPATH="' + $BackendPythonPath + '"; ' +
-        'python -m ruff check backend/app backend/tests --no-cache'
+        '& "' + (Get-BackendPython) + '" -m ruff check backend/app backend/tests --no-cache'
     )
 }
 
 function Invoke-BackendTests {
     Invoke-RepoCommand -WorkingDirectory $RepoRoot -Command (
         '$env:PYTHONPATH="' + $BackendPythonPath + '"; ' +
-        'python -m pytest backend/tests -q'
+        '& "' + (Get-BackendPython) + '" -m pytest backend/tests -q'
     )
 }
 
