@@ -186,6 +186,8 @@ export interface ToolPolicy {
   approval_class: string;
   adapter_family: string;
   capability_status: string;
+  real_admission_stage: string;
+  next_real_requirement: string;
   args_schema: string;
   result_schema: string;
   required_locks: string[];

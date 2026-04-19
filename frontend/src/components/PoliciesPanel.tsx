@@ -24,7 +24,7 @@ export default function PoliciesPanel({
       <p style={{ marginTop: 0, color: "#57606a" }}>
         These policy records describe approval, lock, and execution guardrails.
         Execution mode and capability status remain explicitly labeled,
-        including simulated and plan-only tool surfaces.
+        including simulated, plan-only, and mutation-candidate tool surfaces.
       </p>
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
       {loading ? (
@@ -39,14 +39,23 @@ export default function PoliciesPanel({
               <div>Agent: {item.agent}</div>
               <div>Approval class: {item.approval_class}</div>
               <div>Capability: {item.capability_status}</div>
+              <div>Admission stage: {item.real_admission_stage}</div>
               <div>Requires approval: {String(item.requires_approval)}</div>
               <div>Required locks: {item.required_locks.join(", ") || "none"}</div>
               <div>Risk: {item.risk}</div>
               <div>Execution mode: {item.execution_mode}</div>
+              <div>Next requirement: {item.next_real_requirement}</div>
               {item.tool === "build.configure" ? (
                 <div>
                   Meaning: In hybrid mode this remains plan-only. Approval can
                   enable a real preflight path, but not a real configure mutation.
+                </div>
+              ) : null}
+              {item.tool === "settings.patch" ? (
+                <div>
+                  Meaning: This is the first recommended mutation candidate, but it
+                  remains simulated until backup, rollback, and failure-visible
+                  patch-plan gates are explicitly admitted.
                 </div>
               ) : null}
             </li>

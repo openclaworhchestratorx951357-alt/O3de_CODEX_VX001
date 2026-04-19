@@ -47,6 +47,8 @@ class ToolPolicy(BaseModel):
     approval_class: str = Field(..., min_length=1)
     adapter_family: str = Field(..., min_length=1)
     capability_status: str = Field(..., min_length=1)
+    real_admission_stage: str = Field(..., min_length=1)
+    next_real_requirement: str = Field(..., min_length=1)
     args_schema: str = Field(..., min_length=1)
     result_schema: str = Field(..., min_length=1)
     required_locks: list[str] = Field(default_factory=list)

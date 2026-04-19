@@ -294,8 +294,23 @@ def test_policies_route_exposes_schema_cross_links() -> None:
         payload = response.json()
         assert payload["policies"][0]["adapter_family"]
         assert payload["policies"][0]["capability_status"]
+        assert payload["policies"][0]["real_admission_stage"]
+        assert payload["policies"][0]["next_real_requirement"]
         assert payload["policies"][0]["args_schema"]
         assert payload["policies"][0]["result_schema"]
+
+
+def test_policies_route_marks_settings_patch_as_first_mutation_candidate() -> None:
+    with isolated_client() as client:
+        response = client.get("/policies")
+        assert response.status_code == 200
+        settings_patch = next(
+            policy
+            for policy in response.json()["policies"]
+            if policy["tool"] == "settings.patch"
+        )
+        assert settings_patch["real_admission_stage"] == "first-mutation-candidate"
+        assert "backup" in settings_patch["next_real_requirement"].lower()
 
 
 def test_runs_endpoint_reflects_dispatch_attempt() -> None:
