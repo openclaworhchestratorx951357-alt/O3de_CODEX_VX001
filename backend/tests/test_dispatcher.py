@@ -2193,14 +2193,81 @@ def test_settings_patch_writes_manifest_on_fully_admitted_path_in_hybrid_mode() 
         assert execution.details["applied_operation_count"] == 1
         assert execution.details["rollback_attempted"] is False
         assert execution.details["rollback_succeeded"] is False
+        assert execution.details["rollback_outcome"] is None
         assert execution.details["post_write_verification_attempted"] is True
         assert execution.details["post_write_verification_succeeded"] is True
         assert execution.details["verified_operation_paths"] == ["/version"]
         assert execution.details["verification_mismatched_paths"] == []
+        assert execution.details["backup_source_path"].endswith("project.json")
         assert artifact is not None
         assert artifact.metadata["inspection_surface"] == "settings_patch_mutation"
         assert artifact.metadata["mutation_applied"] is True
         assert artifact.metadata["post_write_verification_succeeded"] is True
+
+
+def test_settings_patch_rolls_back_when_manifest_write_fails() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        manifest_path = project_root / "project.json"
+        manifest_path.write_text(
+            json.dumps({"project_name": "WriteFailProject", "version": "1.0.0"}),
+            encoding="utf-8",
+        )
+        initial_request = make_settings_patch_request()
+        initial_request.project_root = str(project_root)
+        first = dispatcher_service.dispatch(initial_request)
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        original_write_text = Path.write_text
+        failed_once = {"manifest_write": False}
+
+        def patched_write_text(
+            self: Path,
+            data: str,
+            *args: object,
+            **kwargs: object,
+        ) -> int:
+            if self == manifest_path and not failed_once["manifest_write"]:
+                failed_once["manifest_write"] = True
+                raise OSError("write failed")
+            return original_write_text(self, data, *args, **kwargs)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            approved_request = make_request(
+                "project-build",
+                "settings.patch",
+                project_root=str(project_root),
+                dry_run=False,
+            )
+            approved_request.approval_token = approval.token
+            approved_request.args = {
+                "registry_path": "/O3DE/Settings",
+                "operations": [{"op": "set", "path": "/version", "value": "1.0.1"}],
+            }
+            with patch("pathlib.Path.write_text", new=patched_write_text):
+                response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "ADAPTER_PRECHECK_FAILED"
+        restored_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        assert restored_manifest["version"] == "1.0.0"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        assert execution.details["rollback_attempted"] is True
+        assert execution.details["rollback_succeeded"] is True
+        assert execution.details["rollback_trigger"] == "mutation_write_failure"
+        assert execution.details["rollback_outcome"] == "restored_and_verified"
+        assert execution.details["rollback_verification_attempted"] is True
+        assert execution.details["rollback_verification_succeeded"] is True
+        assert execution.details["backup_source_path"].endswith("project.json")
 
 
 def test_settings_patch_rolls_back_when_post_write_verification_fails() -> None:
@@ -2258,6 +2325,11 @@ def test_settings_patch_rolls_back_when_post_write_verification_fails() -> None:
             if execution.run_id == run_id
         )
         assert execution.details["rollback_attempted"] is True
+        assert execution.details["rollback_succeeded"] is True
+        assert execution.details["rollback_trigger"] == "post_write_verification_value_mismatch"
+        assert execution.details["rollback_outcome"] == "restored_and_verified"
+        assert execution.details["rollback_verification_attempted"] is True
+        assert execution.details["rollback_verification_succeeded"] is True
         assert execution.details["post_write_verification_attempted"] is True
         assert execution.details["post_write_verification_succeeded"] is False
 

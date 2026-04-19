@@ -1137,6 +1137,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 ),
             )
         backup_target = manifest_path.with_suffix(f"{manifest_path.suffix}.bak")
+        backup_source_path = str(manifest_path)
         backup_created = False
         backup_error: str | None = None
         if registry_path_admitted and supported_operations:
@@ -1193,12 +1194,56 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         )
         rollback_attempted = False
         rollback_succeeded = False
+        rollback_outcome: str | None = None
+        rollback_trigger: str | None = None
+        rollback_verification_attempted = False
+        rollback_verification_succeeded = False
+        rollback_verification_error: str | None = None
         applied_operation_count = 0
         post_write_verification_attempted = False
         post_write_verification_succeeded = False
         verified_operation_paths: list[str] = []
         verification_mismatched_paths: list[str] = []
         verification_error: str | None = None
+
+        def _attempt_rollback(*, trigger: str) -> tuple[bool, bool, str | None, str | None, str]:
+            rollback_error_local: str | None = None
+            rollback_verification_error_local: str | None = None
+            rollback_verification_succeeded_local = False
+            rollback_outcome_local = "restore_failed"
+            try:
+                backup_payload = backup_target.read_text(encoding="utf-8")
+                manifest_path.write_text(backup_payload, encoding="utf-8")
+                try:
+                    restored_payload = manifest_path.read_text(encoding="utf-8")
+                    rollback_verification_succeeded_local = restored_payload == backup_payload
+                    if rollback_verification_succeeded_local:
+                        rollback_outcome_local = "restored_and_verified"
+                    else:
+                        rollback_verification_error_local = (
+                            "Restored manifest content did not match backup payload."
+                        )
+                        rollback_outcome_local = "restored_but_unverified"
+                except (OSError, json.JSONDecodeError) as exc:
+                    rollback_verification_error_local = str(exc)
+                    rollback_outcome_local = "restored_but_unverified"
+                return (
+                    True,
+                    rollback_verification_succeeded_local,
+                    rollback_error_local,
+                    rollback_verification_error_local,
+                    rollback_outcome_local,
+                )
+            except OSError as exc:
+                rollback_error_local = str(exc)
+                return (
+                    False,
+                    False,
+                    rollback_error_local,
+                    rollback_verification_error_local,
+                    rollback_outcome_local,
+                )
+
         if mutation_applied:
             mutated_manifest = dict(manifest)
             for operation in supported_operations:
@@ -1213,21 +1258,22 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 applied_operation_count = len(supported_operations)
             except OSError as exc:
                 rollback_attempted = True
-                rollback_error: str | None = None
-                try:
-                    manifest_path.write_text(
-                        backup_target.read_text(encoding="utf-8"),
-                        encoding="utf-8",
-                    )
-                    rollback_succeeded = True
-                except OSError as rollback_exc:
-                    rollback_error = str(rollback_exc)
+                rollback_trigger = "mutation_write_failure"
+                (
+                    rollback_succeeded,
+                    rollback_verification_succeeded,
+                    rollback_error,
+                    rollback_verification_error,
+                    rollback_outcome,
+                ) = _attempt_rollback(trigger=rollback_trigger)
+                rollback_verification_attempted = rollback_succeeded
                 raise AdapterExecutionRejected(
                     "Real settings.patch mutation failed while writing the manifest "
                     "and triggered rollback handling.",
                     details={
                         "inspection_surface": "settings_patch_mutation",
                         "project_manifest_path": str(manifest_path),
+                        "backup_source_path": backup_source_path,
                         "backup_target": str(backup_target),
                         "backup_created": backup_created,
                         "registry_path": registry_path,
@@ -1238,7 +1284,17 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                         "unsupported_operation_paths": unsupported_operation_paths,
                         "rollback_attempted": rollback_attempted,
                         "rollback_succeeded": rollback_succeeded,
+                        "rollback_trigger": rollback_trigger,
+                        "rollback_outcome": rollback_outcome,
                         "rollback_error": rollback_error,
+                        "rollback_verification_attempted": rollback_verification_attempted,
+                        "rollback_verification_succeeded": rollback_verification_succeeded,
+                        "rollback_verification_error": rollback_verification_error,
+                        "backup_provenance": {
+                            "source_path": backup_source_path,
+                            "backup_target": str(backup_target),
+                            "backup_created": backup_created,
+                        },
                     },
                     warnings=[
                         "settings.patch mutation failed during manifest write and "
@@ -1249,7 +1305,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                         f"Read project manifest from '{manifest_path}'.",
                         f"Mutation write failed for '{manifest_path}': {exc}",
                         (
-                            f"Rollback restored manifest content from '{backup_target}'."
+                            "Rollback restored and verified manifest content from "
+                            f"'{backup_target}'."
+                            if rollback_outcome == "restored_and_verified"
+                            else f"Rollback restored manifest content from '{backup_target}', "
+                            "but verification remained incomplete."
                             if rollback_succeeded
                             else "Rollback could not restore manifest content after the "
                             "failed mutation write."
@@ -1262,21 +1322,22 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             except (OSError, json.JSONDecodeError) as exc:
                 verification_error = str(exc)
                 rollback_attempted = True
-                rollback_error: str | None = None
-                try:
-                    manifest_path.write_text(
-                        backup_target.read_text(encoding="utf-8"),
-                        encoding="utf-8",
-                    )
-                    rollback_succeeded = True
-                except OSError as rollback_exc:
-                    rollback_error = str(rollback_exc)
+                rollback_trigger = "post_write_verification_reload_failure"
+                (
+                    rollback_succeeded,
+                    rollback_verification_succeeded,
+                    rollback_error,
+                    rollback_verification_error,
+                    rollback_outcome,
+                ) = _attempt_rollback(trigger=rollback_trigger)
+                rollback_verification_attempted = rollback_succeeded
                 raise AdapterExecutionRejected(
                     "Real settings.patch mutation failed post-write verification and "
                     "triggered rollback handling.",
                     details={
                         "inspection_surface": "settings_patch_mutation",
                         "project_manifest_path": str(manifest_path),
+                        "backup_source_path": backup_source_path,
                         "backup_target": str(backup_target),
                         "backup_created": backup_created,
                         "registry_path": registry_path,
@@ -1287,10 +1348,20 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                         "unsupported_operation_paths": unsupported_operation_paths,
                         "rollback_attempted": rollback_attempted,
                         "rollback_succeeded": rollback_succeeded,
+                        "rollback_trigger": rollback_trigger,
+                        "rollback_outcome": rollback_outcome,
                         "rollback_error": rollback_error,
+                        "rollback_verification_attempted": rollback_verification_attempted,
+                        "rollback_verification_succeeded": rollback_verification_succeeded,
+                        "rollback_verification_error": rollback_verification_error,
                         "post_write_verification_attempted": True,
                         "post_write_verification_succeeded": False,
                         "verification_error": verification_error,
+                        "backup_provenance": {
+                            "source_path": backup_source_path,
+                            "backup_target": str(backup_target),
+                            "backup_created": backup_created,
+                        },
                     },
                     warnings=[
                         "settings.patch mutation write completed, but post-write "
@@ -1302,7 +1373,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                         "Post-write verification could not reload "
                         f"'{manifest_path}': {verification_error}",
                         (
-                            f"Rollback restored manifest content from '{backup_target}'."
+                            "Rollback restored and verified manifest content from "
+                            f"'{backup_target}'."
+                            if rollback_outcome == "restored_and_verified"
+                            else f"Rollback restored manifest content from '{backup_target}', "
+                            "but verification remained incomplete."
                             if rollback_succeeded
                             else "Rollback could not restore manifest content after the "
                             "post-write verification failure."
@@ -1321,21 +1396,22 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "Post-write verification did not match expected manifest values."
                 )
                 rollback_attempted = True
-                rollback_error = None
-                try:
-                    manifest_path.write_text(
-                        backup_target.read_text(encoding="utf-8"),
-                        encoding="utf-8",
-                    )
-                    rollback_succeeded = True
-                except OSError as rollback_exc:
-                    rollback_error = str(rollback_exc)
+                rollback_trigger = "post_write_verification_value_mismatch"
+                (
+                    rollback_succeeded,
+                    rollback_verification_succeeded,
+                    rollback_error,
+                    rollback_verification_error,
+                    rollback_outcome,
+                ) = _attempt_rollback(trigger=rollback_trigger)
+                rollback_verification_attempted = rollback_succeeded
                 raise AdapterExecutionRejected(
                     "Real settings.patch mutation failed post-write verification and "
                     "triggered rollback handling.",
                     details={
                         "inspection_surface": "settings_patch_mutation",
                         "project_manifest_path": str(manifest_path),
+                        "backup_source_path": backup_source_path,
                         "backup_target": str(backup_target),
                         "backup_created": backup_created,
                         "registry_path": registry_path,
@@ -1346,12 +1422,22 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                         "unsupported_operation_paths": unsupported_operation_paths,
                         "rollback_attempted": rollback_attempted,
                         "rollback_succeeded": rollback_succeeded,
+                        "rollback_trigger": rollback_trigger,
+                        "rollback_outcome": rollback_outcome,
                         "rollback_error": rollback_error,
+                        "rollback_verification_attempted": rollback_verification_attempted,
+                        "rollback_verification_succeeded": rollback_verification_succeeded,
+                        "rollback_verification_error": rollback_verification_error,
                         "post_write_verification_attempted": True,
                         "post_write_verification_succeeded": False,
                         "verified_operation_paths": verified_operation_paths,
                         "verification_mismatched_paths": verification_mismatched_paths,
                         "verification_error": verification_error,
+                        "backup_provenance": {
+                            "source_path": backup_source_path,
+                            "backup_target": str(backup_target),
+                            "backup_created": backup_created,
+                        },
                     },
                     warnings=[
                         "settings.patch mutation values did not pass post-write "
@@ -1362,7 +1448,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                         f"Read project manifest from '{manifest_path}'.",
                         "Post-write verification found mismatched manifest values.",
                         (
-                            f"Rollback restored manifest content from '{backup_target}'."
+                            "Rollback restored and verified manifest content from "
+                            f"'{backup_target}'."
+                            if rollback_outcome == "restored_and_verified"
+                            else f"Rollback restored manifest content from '{backup_target}', "
+                            "but verification remained incomplete."
                             if rollback_succeeded
                             else "Rollback could not restore manifest content after the "
                             "post-write verification mismatch."
@@ -1390,8 +1480,14 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "unsupported_operation_paths": unsupported_operation_paths,
             "admitted_registry_path": "/O3DE/Settings",
             "admitted_manifest_paths": admitted_manifest_paths,
+            "backup_source_path": backup_source_path,
             "backup_target": str(backup_target),
             "backup_created": backup_created,
+            "backup_provenance": {
+                "source_path": backup_source_path,
+                "backup_target": str(backup_target),
+                "backup_created": backup_created,
+            },
             "rollback_strategy": rollback_strategy,
             "rollback_ready": rollback_ready,
             "rollback_artifact_path": str(backup_target),
@@ -1403,6 +1499,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "mutation_applied": mutation_applied,
             "rollback_attempted": rollback_attempted,
             "rollback_succeeded": rollback_succeeded,
+            "rollback_trigger": rollback_trigger,
+            "rollback_outcome": rollback_outcome,
+            "rollback_verification_attempted": rollback_verification_attempted,
+            "rollback_verification_succeeded": rollback_verification_succeeded,
+            "rollback_verification_error": rollback_verification_error,
             "applied_operation_count": applied_operation_count,
             "post_write_verification_attempted": post_write_verification_attempted,
             "post_write_verification_succeeded": post_write_verification_succeeded,
@@ -1534,8 +1635,14 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "unsupported_operation_paths": unsupported_operation_paths,
             "admitted_registry_path": "/O3DE/Settings",
             "admitted_manifest_paths": admitted_manifest_paths,
+            "backup_source_path": backup_source_path,
             "backup_target": str(backup_target),
             "backup_created": backup_created,
+            "backup_provenance": {
+                "source_path": backup_source_path,
+                "backup_target": str(backup_target),
+                "backup_created": backup_created,
+            },
             "rollback_strategy": rollback_strategy,
             "rollback_ready": rollback_ready,
             "rollback_artifact_path": str(backup_target),
@@ -1547,6 +1654,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "mutation_applied": mutation_applied,
             "rollback_attempted": rollback_attempted,
             "rollback_succeeded": rollback_succeeded,
+            "rollback_trigger": rollback_trigger,
+            "rollback_outcome": rollback_outcome,
+            "rollback_verification_attempted": rollback_verification_attempted,
+            "rollback_verification_succeeded": rollback_verification_succeeded,
+            "rollback_verification_error": rollback_verification_error,
             "applied_operation_count": applied_operation_count,
             "post_write_verification_attempted": post_write_verification_attempted,
             "post_write_verification_succeeded": post_write_verification_succeeded,

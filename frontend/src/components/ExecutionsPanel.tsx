@@ -198,6 +198,27 @@ export default function ExecutionsPanel({
               const rollbackReady = planDetails && typeof planDetails.rollback_ready === "boolean"
                 ? planDetails.rollback_ready
                 : readBoolean(details, "rollback_ready");
+              const rollbackAttempted = planDetails && typeof planDetails.rollback_attempted === "boolean"
+                ? planDetails.rollback_attempted
+                : readBoolean(details, "rollback_attempted");
+              const rollbackSucceeded = planDetails && typeof planDetails.rollback_succeeded === "boolean"
+                ? planDetails.rollback_succeeded
+                : readBoolean(details, "rollback_succeeded");
+              const rollbackTrigger = planDetails && typeof planDetails.rollback_trigger === "string"
+                ? planDetails.rollback_trigger
+                : readString(details, "rollback_trigger");
+              const rollbackOutcome = planDetails && typeof planDetails.rollback_outcome === "string"
+                ? planDetails.rollback_outcome
+                : readString(details, "rollback_outcome");
+              const rollbackVerificationAttempted = planDetails && typeof planDetails.rollback_verification_attempted === "boolean"
+                ? planDetails.rollback_verification_attempted
+                : readBoolean(details, "rollback_verification_attempted");
+              const rollbackVerificationSucceeded = planDetails && typeof planDetails.rollback_verification_succeeded === "boolean"
+                ? planDetails.rollback_verification_succeeded
+                : readBoolean(details, "rollback_verification_succeeded");
+              const backupSourcePath = planDetails && typeof planDetails.backup_source_path === "string"
+                ? planDetails.backup_source_path
+                : readString(details, "backup_source_path");
               const patchPlanValid = planDetails && typeof planDetails.patch_plan_valid === "boolean"
                 ? planDetails.patch_plan_valid
                 : readBoolean(details, "patch_plan_valid");
@@ -359,6 +380,7 @@ export default function ExecutionsPanel({
                   {buildDirectory ? <div>Build directory: {buildDirectory}</div> : null}
                   {registryPath ? <div>Registry path: {registryPath}</div> : null}
                   {backupTarget ? <div>Backup target: {backupTarget}</div> : null}
+                  {backupSourcePath ? <div>Backup source path: {backupSourcePath}</div> : null}
                   {backupCreated !== null ? (
                     <div>Backup created: {String(backupCreated)}</div>
                   ) : null}
@@ -377,6 +399,20 @@ export default function ExecutionsPanel({
                   {rollbackStrategy ? <div>Rollback strategy: {rollbackStrategy}</div> : null}
                   {rollbackReady !== null ? (
                     <div>Rollback ready: {String(rollbackReady)}</div>
+                  ) : null}
+                  {rollbackAttempted !== null ? (
+                    <div>Rollback attempted: {String(rollbackAttempted)}</div>
+                  ) : null}
+                  {rollbackSucceeded !== null ? (
+                    <div>Rollback succeeded: {String(rollbackSucceeded)}</div>
+                  ) : null}
+                  {rollbackTrigger ? <div>Rollback trigger: {rollbackTrigger}</div> : null}
+                  {rollbackOutcome ? <div>Rollback outcome: {rollbackOutcome}</div> : null}
+                  {rollbackVerificationAttempted !== null ? (
+                    <div>Rollback verification attempted: {String(rollbackVerificationAttempted)}</div>
+                  ) : null}
+                  {rollbackVerificationSucceeded !== null ? (
+                    <div>Rollback verification succeeded: {String(rollbackVerificationSucceeded)}</div>
                   ) : null}
                   {patchPlanValid !== null ? (
                     <div>Patch plan valid: {String(patchPlanValid)}</div>
