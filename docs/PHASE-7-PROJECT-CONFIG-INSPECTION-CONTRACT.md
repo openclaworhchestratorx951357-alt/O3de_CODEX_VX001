@@ -87,7 +87,8 @@ statements true:
 
 Minimum evidence should identify:
 - manifest path used
-- config keys inspected
+- config keys returned for the current inspection
+- manifest-backed config keys that were available to inspect
 - requested config keys
 - matched requested config keys
 - missing requested config keys

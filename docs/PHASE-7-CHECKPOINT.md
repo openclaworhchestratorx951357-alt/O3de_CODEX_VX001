@@ -91,6 +91,7 @@ The operator shell now exposes this boundary through:
 - operator overview drilldowns and refresh timestamps
 - explicit requested-vs-matched project-config count evidence for manifest-backed
   project inspection
+- explicit discovered-vs-returned manifest-backed project-config key inventory
 
 ## What remains intentionally limited
 

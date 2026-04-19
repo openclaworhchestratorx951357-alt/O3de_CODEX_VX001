@@ -364,6 +364,21 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             requested_keys=project_config_keys,
             include_project_config=inspection_flags["include_project_config"],
         )
+        available_project_config = self._project_config_snapshot(
+            manifest,
+            requested_keys=[],
+            include_project_config=inspection_flags["include_project_config"],
+        )
+        available_project_config_keys = (
+            sorted(available_project_config.keys())
+            if inspection_flags["include_project_config"]
+            else []
+        )
+        available_project_config_count = (
+            len(available_project_config_keys)
+            if inspection_flags["include_project_config"]
+            else 0
+        )
         matched_requested_project_config_keys = (
             [key for key in project_config_keys if key in project_config]
             if inspection_flags["include_project_config"]
@@ -679,6 +694,8 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     if inspection_flags["include_project_config"]
                     else []
                 ),
+                "available_project_config_keys": available_project_config_keys,
+                "available_project_config_count": available_project_config_count,
                 "requested_project_config_evidence": requested_project_config_evidence,
                 "project_config_selection_mode": (
                     "requested-subset"
@@ -796,6 +813,8 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     if inspection_flags["include_project_config"]
                     else []
                 ),
+                "available_project_config_keys": available_project_config_keys,
+                "available_project_config_count": available_project_config_count,
                 "requested_project_config_evidence": requested_project_config_evidence,
                 "project_config_selection_mode": (
                     "requested-subset"

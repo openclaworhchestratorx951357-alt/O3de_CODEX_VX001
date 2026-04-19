@@ -168,6 +168,8 @@ def test_schema_validation_service_accepts_real_project_inspect_execution_detail
                 "version": "1.0.0"
             },
             "project_config_keys": ["project_name", "version"],
+            "available_project_config_keys": ["project_name", "version"],
+            "available_project_config_count": 2,
             "requested_project_config_keys": ["project_name", "version"],
             "matched_requested_project_config_count": 2,
             "missing_requested_project_config_count": 0,
@@ -258,6 +260,8 @@ def test_schema_validation_service_accepts_real_project_inspect_artifact_metadat
                 "version": "1.0.0"
             },
             "project_config_keys": ["project_name", "version"],
+            "available_project_config_keys": ["project_name", "version"],
+            "available_project_config_count": 2,
             "requested_project_config_keys": ["project_name", "version"],
             "matched_requested_project_config_count": 2,
             "missing_requested_project_config_count": 0,

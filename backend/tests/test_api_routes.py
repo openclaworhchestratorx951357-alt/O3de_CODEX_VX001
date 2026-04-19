@@ -1166,6 +1166,11 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                     "project_name",
                     "version",
                 ]
+                assert execution["details"]["available_project_config_keys"] == [
+                    "project_name",
+                    "version",
+                ]
+                assert execution["details"]["available_project_config_count"] == 2
                 assert execution["details"]["requested_project_config_keys"] == [
                     "project_name",
                     "version",
