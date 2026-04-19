@@ -100,8 +100,12 @@ export default function App() {
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
   const [selectedArtifact, setSelectedArtifact] = useState<ArtifactRecord | null>(null);
   const [runDetailRefreshHint, setRunDetailRefreshHint] = useState<string | null>(null);
+  const [executionDetailRefreshHint, setExecutionDetailRefreshHint] = useState<string | null>(null);
+  const [artifactDetailRefreshHint, setArtifactDetailRefreshHint] = useState<string | null>(null);
   const [operatorOverviewRefreshedAt, setOperatorOverviewRefreshedAt] = useState<string | null>(null);
   const [runDetailRefreshedAt, setRunDetailRefreshedAt] = useState<string | null>(null);
+  const [executionDetailRefreshedAt, setExecutionDetailRefreshedAt] = useState<string | null>(null);
+  const [artifactDetailRefreshedAt, setArtifactDetailRefreshedAt] = useState<string | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
   const [adaptersError, setAdaptersError] = useState<string | null>(null);
@@ -217,10 +221,12 @@ export default function App() {
       setArtifacts(nextArtifacts);
       setArtifactsRefreshedAt(new Date().toISOString());
       setArtifactsError(null);
+      return nextArtifacts;
     } catch (error) {
       setArtifactsError(
         error instanceof Error ? error.message : "Failed to load artifacts",
       );
+      return [];
     } finally {
       setArtifactsLoading(false);
     }
@@ -303,6 +309,7 @@ export default function App() {
     try {
       const nextExecution = await fetchExecution(executionId);
       setSelectedExecution(nextExecution);
+      setExecutionDetailRefreshedAt(new Date().toISOString());
       setSelectedExecutionError(null);
     } catch (error) {
       setSelectedExecutionError(
@@ -319,6 +326,7 @@ export default function App() {
     try {
       const nextArtifact = await fetchArtifact(artifactId);
       setSelectedArtifact(nextArtifact);
+      setArtifactDetailRefreshedAt(new Date().toISOString());
       setSelectedArtifactError(null);
     } catch (error) {
       setSelectedArtifactError(
@@ -519,23 +527,45 @@ export default function App() {
 
   async function refreshDashboardState() {
     const nextExecutionsPromise = loadExecutions();
+    const nextArtifactsPromise = loadArtifacts();
     await Promise.all([
       loadApprovals(),
       loadAdapters(),
-      loadArtifacts(),
       loadEvents(),
       nextExecutionsPromise,
+      nextArtifactsPromise,
       loadLocks(),
       loadPolicies(),
       loadReadiness(),
       loadControlPlaneSummary(),
     ]);
     const nextExecutions = await nextExecutionsPromise;
+    const nextArtifacts = await nextArtifactsPromise;
 
     await loadRuns(selectedToolFilter, selectedAuditFilter, {
       executionItems: nextExecutions,
       announceSelectionRefresh: announceRunDetailRefreshRef.current,
     });
+    if (selectedExecutionId && nextExecutions.some((item) => item.id === selectedExecutionId)) {
+      await loadExecutionDetail(selectedExecutionId);
+      setExecutionDetailRefreshHint("Refresh preserved the selected execution detail.");
+    } else if (selectedExecutionId) {
+      setSelectedExecutionId(null);
+      setSelectedExecution(null);
+      setExecutionDetailRefreshHint("Selected execution is no longer present after refresh.");
+    } else {
+      setExecutionDetailRefreshHint(null);
+    }
+    if (selectedArtifactId && nextArtifacts.some((item) => item.id === selectedArtifactId)) {
+      await loadArtifactDetail(selectedArtifactId);
+      setArtifactDetailRefreshHint("Refresh preserved the selected artifact detail.");
+    } else if (selectedArtifactId) {
+      setSelectedArtifactId(null);
+      setSelectedArtifact(null);
+      setArtifactDetailRefreshHint("Selected artifact is no longer present after refresh.");
+    } else {
+      setArtifactDetailRefreshHint(null);
+    }
     setUpdatedFocusedSection(activeFocusedSection);
     announceRunDetailRefreshRef.current = false;
     restoreFocusedSection();
@@ -787,6 +817,7 @@ export default function App() {
           error={artifactsError}
           selectedArtifactId={selectedArtifactId}
           onSelectArtifact={(artifactId) => {
+            setArtifactDetailRefreshHint(null);
             void loadArtifactDetail(artifactId);
           }}
           searchPreset={artifactsSearchPreset}
@@ -804,6 +835,7 @@ export default function App() {
           error={executionsError}
           selectedExecutionId={selectedExecutionId}
           onSelectExecution={(executionId) => {
+            setExecutionDetailRefreshHint(null);
             void loadExecutionDetail(executionId);
           }}
           searchPreset={executionsSearchPreset}
@@ -849,11 +881,15 @@ export default function App() {
         item={selectedExecution}
         loading={selectedExecutionLoading}
         error={selectedExecutionError}
+        refreshHint={executionDetailRefreshHint}
+        lastRefreshedAt={executionDetailRefreshedAt}
       />
       <ArtifactDetailPanel
         item={selectedArtifact}
         loading={selectedArtifactLoading}
         error={selectedArtifactError}
+        refreshHint={artifactDetailRefreshHint}
+        lastRefreshedAt={artifactDetailRefreshedAt}
       />
       <LocksPanel
         items={locks}

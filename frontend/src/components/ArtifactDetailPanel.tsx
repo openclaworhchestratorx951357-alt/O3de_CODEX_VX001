@@ -7,12 +7,16 @@ import {
   summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
+  summaryCalloutStyle,
+  summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
 
 type ArtifactDetailPanelProps = {
   item: ArtifactRecord | null;
   loading: boolean;
   error: string | null;
+  refreshHint?: string | null;
+  lastRefreshedAt?: string | null;
 };
 
 function readProjectInspectDetails(
@@ -28,6 +32,8 @@ export default function ArtifactDetailPanel({
   item,
   loading,
   error,
+  refreshHint,
+  lastRefreshedAt,
 }: ArtifactDetailPanelProps) {
   const projectInspectDetails = item?.metadata && item.kind === "project_manifest_inspection"
     ? readProjectInspectDetails(item.metadata)
@@ -42,6 +48,14 @@ export default function ArtifactDetailPanel({
       emptyMessage="Select an artifact to inspect its detail."
       hasItems={Boolean(item)}
     >
+      {refreshHint ? (
+        <div style={summaryCalloutStyle}>{refreshHint}</div>
+      ) : null}
+      {lastRefreshedAt ? (
+        <div style={summaryTimestampNoteStyle}>
+          Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
+        </div>
+      ) : null}
       <div style={summaryCardGridStyle}>
         <article style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Artifact</h4>
