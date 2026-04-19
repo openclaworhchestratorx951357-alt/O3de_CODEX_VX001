@@ -22,6 +22,8 @@ type RecordLineageStripProps = {
   executionStatus?: string | null;
   executionSummary?: string | null;
   artifactId?: string | null;
+  artifactLabel?: string | null;
+  artifactKind?: string | null;
   artifactMode?: string | null;
   artifactSimulated?: boolean | null;
   executionMode?: string | null;
@@ -47,6 +49,8 @@ export default function RecordLineageStrip({
   executionStatus,
   executionSummary,
   artifactId,
+  artifactLabel,
+  artifactKind,
   artifactMode,
   artifactSimulated,
   executionMode,
@@ -128,6 +132,12 @@ export default function RecordLineageStrip({
         <SummaryFact label="Artifact ID" copyValue={artifactId ?? undefined}>
           {artifactId ?? "not linked"}
         </SummaryFact>
+        {artifactLabel ? (
+          <SummaryFact label="Artifact label">{artifactLabel}</SummaryFact>
+        ) : null}
+        {artifactKind ? (
+          <SummaryFact label="Artifact kind">{artifactKind}</SummaryFact>
+        ) : null}
         {artifactMode ? (
           <SummaryFact label="Artifact mode">
             <StatusChip

@@ -79,6 +79,8 @@ export default function ExecutionDetailPanel({
         executionStatus={item?.status ?? null}
         executionSummary={item?.result_summary ?? null}
         artifactId={selectedArtifactId ?? item?.artifact_ids[0] ?? null}
+        artifactLabel={lineageArtifact?.label ?? null}
+        artifactKind={lineageArtifact?.kind ?? null}
         artifactMode={lineageArtifact?.execution_mode ?? null}
         artifactSimulated={lineageArtifact?.simulated ?? null}
         executionMode={item?.execution_mode ?? null}
