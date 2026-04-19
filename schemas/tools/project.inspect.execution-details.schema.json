@@ -46,6 +46,17 @@
       "items": { "type": "string", "minLength": 1 }
     },
     "available_project_config_count": { "type": "integer", "minimum": 0 },
+    "available_compatible_engines": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "available_compatible_engine_count": { "type": "integer", "minimum": 0 },
+    "available_engine_api_dependency_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "available_engine_api_dependency_count": { "type": "integer", "minimum": 0 },
+    "engine_compatibility_fields_present": { "type": "boolean" },
     "requested_project_config_evidence": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 }

@@ -93,6 +93,7 @@ The operator shell now exposes this boundary through:
   project inspection
 - explicit discovered-vs-returned manifest-backed project-config key inventory
 - explicit discovered-vs-returned manifest-backed Gem inventory
+- explicit manifest-backed engine compatibility inventory
 
 ## What remains intentionally limited
 
@@ -100,8 +101,8 @@ The operator shell now exposes this boundary through:
 - `build.configure` is not a real configure execution path
 - `project.inspect` real evidence is still limited to manifest-backed
   project-config, requested-vs-discovered Gem, requested Gem subset matching,
-  requested settings subset matching, and top-level settings fields rather than
-  broader layered config discovery
+  requested settings subset matching, top-level settings fields, and explicit
+  engine compatibility inventory rather than broader layered config discovery
 - broader mutation paths are still not implemented beyond the first admitted
   manifest-backed settings.patch case
 - simulated fallback remains part of the truthful accepted behavior
@@ -115,7 +116,7 @@ Before widening into broader real adapter execution, the next slice should stay
 narrow and truthful.
 
 Recommended next boundary:
-- define the exact contract for the next manifest-adjacent Gem-state refinement
+- define the exact contract for the next manifest-adjacent inspection refinement
   that stays file-read-only on `project_root/project.json`, or
 - begin that next narrow refinement only if it stays on the same
   project-manifest source of truth, keeps fallback behavior explicit, and does

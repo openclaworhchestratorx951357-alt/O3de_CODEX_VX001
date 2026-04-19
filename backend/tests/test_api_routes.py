@@ -1116,6 +1116,8 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                 {
                     "project_name": "ApiHybridProject",
                     "gem_names": ["ApiGem"],
+                    "compatible_engines": ["o3de"],
+                    "engine_api_dependencies": {"renderer": "1.0.0"},
                     "version": "2.0.0",
                 }
             ),
@@ -1167,10 +1169,19 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                     "version",
                 ]
                 assert execution["details"]["available_project_config_keys"] == [
+                    "compatible_engines",
+                    "engine_api_dependencies",
                     "project_name",
                     "version",
                 ]
-                assert execution["details"]["available_project_config_count"] == 2
+                assert execution["details"]["available_project_config_count"] == 4
+                assert execution["details"]["available_compatible_engines"] == ["o3de"]
+                assert execution["details"]["available_compatible_engine_count"] == 1
+                assert execution["details"]["available_engine_api_dependency_keys"] == [
+                    "renderer",
+                ]
+                assert execution["details"]["available_engine_api_dependency_count"] == 1
+                assert execution["details"]["engine_compatibility_fields_present"] is True
                 assert execution["details"]["requested_project_config_keys"] == [
                     "project_name",
                     "version",

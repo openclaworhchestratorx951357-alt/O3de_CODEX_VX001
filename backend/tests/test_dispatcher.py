@@ -1515,6 +1515,7 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
                     "project_name": "Phase7Project",
                     "gem_names": ["ExampleGem"],
                     "compatible_engines": ["o3de"],
+                    "engine_api_dependencies": {"framework": "1.0.0"},
                     "version": "1.0.0",
                 }
             ),
@@ -1570,10 +1571,16 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
         ]
         assert execution.details["available_project_config_keys"] == [
             "compatible_engines",
+            "engine_api_dependencies",
             "project_name",
             "version",
         ]
-        assert execution.details["available_project_config_count"] == 3
+        assert execution.details["available_project_config_count"] == 4
+        assert execution.details["available_compatible_engines"] == ["o3de"]
+        assert execution.details["available_compatible_engine_count"] == 1
+        assert execution.details["available_engine_api_dependency_keys"] == ["framework"]
+        assert execution.details["available_engine_api_dependency_count"] == 1
+        assert execution.details["engine_compatibility_fields_present"] is True
         assert execution.details["requested_project_config_keys"] == [
             "project_name",
             "version",
@@ -1633,10 +1640,16 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
         assert artifact.metadata["project_config"]["version"] == "1.0.0"
         assert artifact.metadata["available_project_config_keys"] == [
             "compatible_engines",
+            "engine_api_dependencies",
             "project_name",
             "version",
         ]
-        assert artifact.metadata["available_project_config_count"] == 3
+        assert artifact.metadata["available_project_config_count"] == 4
+        assert artifact.metadata["available_compatible_engines"] == ["o3de"]
+        assert artifact.metadata["available_compatible_engine_count"] == 1
+        assert artifact.metadata["available_engine_api_dependency_keys"] == ["framework"]
+        assert artifact.metadata["available_engine_api_dependency_count"] == 1
+        assert artifact.metadata["engine_compatibility_fields_present"] is True
         assert artifact.metadata["matched_requested_project_config_count"] == 3
         assert artifact.metadata["missing_requested_project_config_count"] == 0
         assert artifact.metadata["project_config_fields_present"] is True
@@ -1730,6 +1743,11 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
         assert execution.details["project_config_keys"] == []
         assert execution.details["available_project_config_keys"] == ["project_name"]
         assert execution.details["available_project_config_count"] == 1
+        assert execution.details["available_compatible_engines"] == []
+        assert execution.details["available_compatible_engine_count"] == 0
+        assert execution.details["available_engine_api_dependency_keys"] == []
+        assert execution.details["available_engine_api_dependency_count"] == 0
+        assert execution.details["engine_compatibility_fields_present"] is False
         assert execution.details["requested_project_config_evidence"] == [
             "project_config",
             "project_config_keys",

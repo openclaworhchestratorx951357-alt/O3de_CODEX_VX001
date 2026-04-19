@@ -379,6 +379,10 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             if inspection_flags["include_project_config"]
             else 0
         )
+        available_compatible_engines = self._manifest_compatible_engines(manifest)
+        available_engine_api_dependency_keys = self._manifest_engine_api_dependency_keys(
+            manifest
+        )
         matched_requested_project_config_keys = (
             [key for key in project_config_keys if key in project_config]
             if inspection_flags["include_project_config"]
@@ -696,6 +700,17 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 ),
                 "available_project_config_keys": available_project_config_keys,
                 "available_project_config_count": available_project_config_count,
+                "available_compatible_engines": available_compatible_engines,
+                "available_compatible_engine_count": len(available_compatible_engines),
+                "available_engine_api_dependency_keys": (
+                    available_engine_api_dependency_keys
+                ),
+                "available_engine_api_dependency_count": (
+                    len(available_engine_api_dependency_keys)
+                ),
+                "engine_compatibility_fields_present": bool(
+                    available_compatible_engines or available_engine_api_dependency_keys
+                ),
                 "requested_project_config_evidence": requested_project_config_evidence,
                 "project_config_selection_mode": (
                     "requested-subset"
@@ -817,6 +832,17 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 ),
                 "available_project_config_keys": available_project_config_keys,
                 "available_project_config_count": available_project_config_count,
+                "available_compatible_engines": available_compatible_engines,
+                "available_compatible_engine_count": len(available_compatible_engines),
+                "available_engine_api_dependency_keys": (
+                    available_engine_api_dependency_keys
+                ),
+                "available_engine_api_dependency_count": (
+                    len(available_engine_api_dependency_keys)
+                ),
+                "engine_compatibility_fields_present": bool(
+                    available_compatible_engines or available_engine_api_dependency_keys
+                ),
                 "requested_project_config_evidence": requested_project_config_evidence,
                 "project_config_selection_mode": (
                     "requested-subset"
@@ -2063,6 +2089,22 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             if key in manifest:
                 snapshot[key] = manifest[key]
         return snapshot
+
+    def _manifest_compatible_engines(self, manifest: dict[str, Any]) -> list[str]:
+        compatible_engines = manifest.get("compatible_engines")
+        if not isinstance(compatible_engines, list):
+            return []
+        return self._normalized_string_list(compatible_engines)
+
+    def _manifest_engine_api_dependency_keys(self, manifest: dict[str, Any]) -> list[str]:
+        engine_api_dependencies = manifest.get("engine_api_dependencies")
+        if not isinstance(engine_api_dependencies, dict):
+            return []
+        return sorted(
+            key.strip()
+            for key in engine_api_dependencies
+            if isinstance(key, str) and key.strip()
+        )
 
 
 class AdapterService:
