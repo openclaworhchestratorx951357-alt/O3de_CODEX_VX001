@@ -22,8 +22,9 @@ import {
   fetchAdapters,
   fetchArtifacts,
   fetchApprovals,
+  fetchExecution,
+  fetchExecutionCards,
   fetchEvents,
-  fetchExecutions,
   fetchRun,
   fetchRunCards,
   fetchRunsSummaryForFilter,
@@ -38,8 +39,8 @@ import type {
   AdaptersResponse,
   ApprovalRecord,
   CatalogAgent,
+  ExecutionListItem,
   EventRecord,
-  ExecutionRecord,
   LockRecord,
   ReadinessStatus,
   RunAuditRecord,
@@ -71,7 +72,7 @@ export default function App() {
   const [adapters, setAdapters] = useState<AdaptersResponse | null>(null);
   const [artifacts, setArtifacts] = useState<ArtifactRecord[]>([]);
   const [events, setEvents] = useState<EventRecord[]>([]);
-  const [executions, setExecutions] = useState<ExecutionRecord[]>([]);
+  const [executions, setExecutions] = useState<ExecutionListItem[]>([]);
   const [locks, setLocks] = useState<LockRecord[]>([]);
   const [policies, setPolicies] = useState<ToolPolicy[]>([]);
   const [readiness, setReadiness] = useState<ReadinessStatus | null>(null);
@@ -81,6 +82,8 @@ export default function App() {
     useState<SettingsPatchAuditSummary | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedRun, setSelectedRun] = useState<RunRecord | null>(null);
+  const [selectedExecutionDetails, setSelectedExecutionDetails] =
+    useState<Record<string, unknown> | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
   const [adaptersError, setAdaptersError] = useState<string | null>(null);
@@ -194,9 +197,17 @@ export default function App() {
   async function loadRunDetail(runId: string) {
     setSelectedRunId(runId);
     setSelectedRunLoading(true);
+    setSelectedExecutionDetails(null);
     try {
       const nextRun = await fetchRun(runId);
       setSelectedRun(nextRun);
+      const matchingExecution = executions.find((execution) => execution.run_id === runId);
+      if (matchingExecution) {
+        const nextExecution = await fetchExecution(matchingExecution.id);
+        setSelectedExecutionDetails(
+          (nextExecution.details as Record<string, unknown> | null | undefined) ?? null,
+        );
+      }
       setSelectedRunError(null);
     } catch (error) {
       setSelectedRunError(
@@ -210,7 +221,7 @@ export default function App() {
   async function loadExecutions() {
     setExecutionsLoading(true);
     try {
-      const nextExecutions = await fetchExecutions();
+      const nextExecutions = await fetchExecutionCards();
       setExecutions(nextExecutions);
       setExecutionsError(null);
     } catch (error) {
@@ -369,10 +380,6 @@ export default function App() {
         owned_tools: agent.tools.map((tool) => tool.name),
       }))
     : mockAgents;
-  const selectedExecution = selectedRun
-    ? executions.find((execution) => execution.run_id === selectedRun.id) ?? null
-    : null;
-
   return (
     <main
       style={{
@@ -482,9 +489,7 @@ export default function App() {
         item={selectedRun}
         loading={selectedRunLoading}
         error={selectedRunError}
-        executionDetails={
-          (selectedExecution?.details as Record<string, unknown> | null | undefined) ?? null
-        }
+        executionDetails={selectedExecutionDetails}
       />
       <LocksPanel
         items={locks}

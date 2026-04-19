@@ -191,6 +191,28 @@ class ExecutionsResponse(BaseModel):
     executions: list[ExecutionRecord] = Field(default_factory=list)
 
 
+class ExecutionListItem(BaseModel):
+    id: str = Field(..., min_length=1)
+    run_id: str = Field(..., min_length=1)
+    request_id: str = Field(..., min_length=1)
+    agent: str = Field(..., min_length=1)
+    tool: str = Field(..., min_length=1)
+    execution_mode: str = Field(..., min_length=1)
+    status: str = Field(..., min_length=1)
+    started_at: str = Field(..., min_length=1)
+    finished_at: str | None = None
+    result_summary: str | None = None
+    warning_count: int = 0
+    artifact_count: int = 0
+    inspection_surface: str | None = None
+    mutation_audit_status: str | None = None
+    mutation_audit_summary: str | None = None
+
+
+class ExecutionListResponse(BaseModel):
+    executions: list[ExecutionListItem] = Field(default_factory=list)
+
+
 class ArtifactsResponse(BaseModel):
     artifacts: list[ArtifactRecord] = Field(default_factory=list)
 

@@ -7,6 +7,8 @@ import type {
   ApprovalsResponse,
   EventRecord,
   EventsResponse,
+  ExecutionListItem,
+  ExecutionListResponse,
   ExecutionRecord,
   ExecutionsResponse,
   RequestEnvelope,
@@ -235,6 +237,27 @@ export async function fetchExecutions(): Promise<ExecutionRecord[]> {
 
   const payload = (await response.json()) as ExecutionsResponse;
   return payload.executions ?? [];
+}
+
+export async function fetchExecutionCards(): Promise<ExecutionListItem[]> {
+  const response = await fetch(`${API_BASE_URL}/executions/cards`);
+
+  if (!response.ok) {
+    throw new Error(`Execution cards fetch failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as ExecutionListResponse;
+  return payload.executions ?? [];
+}
+
+export async function fetchExecution(executionId: string): Promise<ExecutionRecord> {
+  const response = await fetch(`${API_BASE_URL}/executions/${executionId}`);
+
+  if (!response.ok) {
+    throw new Error(`Execution fetch failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as ExecutionRecord;
 }
 
 export async function fetchArtifacts(): Promise<ArtifactRecord[]> {

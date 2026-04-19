@@ -282,6 +282,28 @@ export interface ExecutionsResponse {
   executions: ExecutionRecord[];
 }
 
+export interface ExecutionListItem {
+  id: string;
+  run_id: string;
+  request_id: string;
+  agent: string;
+  tool: string;
+  execution_mode: string;
+  status: string;
+  started_at: string;
+  finished_at?: string | null;
+  result_summary?: string | null;
+  warning_count: number;
+  artifact_count: number;
+  inspection_surface?: string | null;
+  mutation_audit_status?: string | null;
+  mutation_audit_summary?: string | null;
+}
+
+export interface ExecutionListResponse {
+  executions: ExecutionListItem[];
+}
+
 export interface ArtifactRecord {
   id: string;
   run_id: string;

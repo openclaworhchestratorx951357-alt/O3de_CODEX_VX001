@@ -78,6 +78,7 @@ def root() -> RootStatus:
             "/events",
             "/policies",
             "/executions",
+            "/executions/cards",
             "/artifacts",
         ],
         phase="phase-7",
