@@ -121,6 +121,8 @@ export default function SystemStatusPanel(
             <h3 style={headingStyle}>Adapter Boundary</h3>
             <p><strong>Configured mode:</strong> {readiness.adapter_mode.configured_mode}</p>
             <p><strong>Supported modes:</strong> {readiness.adapter_mode.supported_modes.join(", ")}</p>
+            <p><strong>Real tool paths:</strong> {readiness.adapter_mode.real_tool_paths.join(", ") || "none"}</p>
+            <p><strong>Plan-only tool paths:</strong> {readiness.adapter_mode.plan_only_tool_paths.join(", ") || "none"}</p>
             <p><strong>Boundary:</strong> {readiness.adapter_mode.execution_boundary}</p>
           </article>
         </div>

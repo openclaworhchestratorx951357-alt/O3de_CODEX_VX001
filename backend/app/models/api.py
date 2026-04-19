@@ -66,6 +66,9 @@ class AdapterModeStatus(BaseModel):
     execution_boundary: str = Field(..., min_length=1)
     supported_modes: list[str] = Field(default_factory=list)
     available_families: list[str] = Field(default_factory=list)
+    real_tool_paths: list[str] = Field(default_factory=list)
+    plan_only_tool_paths: list[str] = Field(default_factory=list)
+    simulated_tool_paths: list[str] = Field(default_factory=list)
     warning: str | None = None
     notes: list[str] = Field(default_factory=list)
 
@@ -77,6 +80,9 @@ class AdapterFamilyStatus(BaseModel):
     contract_version: str = Field(..., min_length=1)
     execution_boundary: str = Field(..., min_length=1)
     ready: bool
+    real_tool_paths: list[str] = Field(default_factory=list)
+    plan_only_tool_paths: list[str] = Field(default_factory=list)
+    simulated_tool_paths: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
 
 
@@ -86,6 +92,9 @@ class AdaptersResponse(BaseModel):
     supported_modes: list[str] = Field(default_factory=list)
     contract_version: str = Field(..., min_length=1)
     supports_real_execution: bool
+    real_tool_paths: list[str] = Field(default_factory=list)
+    plan_only_tool_paths: list[str] = Field(default_factory=list)
+    simulated_tool_paths: list[str] = Field(default_factory=list)
     families: list[AdapterFamilyStatus] = Field(default_factory=list)
     warning: str | None = None
     notes: list[str] = Field(default_factory=list)

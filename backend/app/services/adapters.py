@@ -11,6 +11,14 @@ from app.services.catalog import catalog_service
 
 SUPPORTED_ADAPTER_MODES = {"hybrid", "simulated"}
 ADAPTER_CONTRACT_VERSION = "v0.1"
+REAL_TOOL_PATHS_BY_MODE = {
+    "simulated": [],
+    "hybrid": ["project.inspect"],
+}
+PLAN_ONLY_TOOL_PATHS_BY_MODE = {
+    "simulated": [],
+    "hybrid": ["build.configure"],
+}
 ADAPTER_EXECUTION_BOUNDARY = (
     "Control-plane bookkeeping is real, but O3DE tool execution remains simulated."
 )
@@ -983,6 +991,35 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
 
 
 class AdapterService:
+    def _real_tool_paths_for_mode(self, active_mode: str) -> list[str]:
+        return list(REAL_TOOL_PATHS_BY_MODE.get(active_mode, []))
+
+    def _plan_only_tool_paths_for_mode(self, active_mode: str) -> list[str]:
+        return list(PLAN_ONLY_TOOL_PATHS_BY_MODE.get(active_mode, []))
+
+    def _simulated_tool_paths_for_family(
+        self,
+        *,
+        family: str,
+        active_mode: str,
+    ) -> list[str]:
+        tool_names = sorted(
+            tool.name
+            for agent in catalog_service.get_catalog_model().agents
+            if agent.id == family
+            for tool in agent.tools
+        )
+        family_real = set()
+        family_plan_only = set()
+        if active_mode == "hybrid" and family == "project-build":
+            family_real = set(self._real_tool_paths_for_mode(active_mode))
+            family_plan_only = set(self._plan_only_tool_paths_for_mode(active_mode))
+        return sorted(
+            tool_name
+            for tool_name in tool_names
+            if tool_name not in family_real and tool_name not in family_plan_only
+        )
+
     def _configured_mode(self) -> str:
         return os.getenv("O3DE_ADAPTER_MODE", "simulated").strip().lower() or "simulated"
 
@@ -1018,6 +1055,9 @@ class AdapterService:
                 execution_boundary=ADAPTER_EXECUTION_BOUNDARY,
                 supported_modes=sorted(SUPPORTED_ADAPTER_MODES),
                 available_families=available_families,
+                real_tool_paths=[],
+                plan_only_tool_paths=[],
+                simulated_tool_paths=[],
                 warning=(
                     f"Configured adapter mode '{configured_mode}' is not supported; "
                     "only 'simulated' and 'hybrid' are currently available."
@@ -1030,6 +1070,14 @@ class AdapterService:
                 ],
             )
         if configured_mode == "hybrid":
+            real_tool_paths = self._real_tool_paths_for_mode("hybrid")
+            plan_only_tool_paths = self._plan_only_tool_paths_for_mode("hybrid")
+            simulated_tool_paths = sorted(
+                tool.name
+                for agent in catalog_service.get_catalog_model().agents
+                for tool in agent.tools
+                if tool.name not in real_tool_paths and tool.name not in plan_only_tool_paths
+            )
             return AdapterModeStatus(
                 ready=True,
                 configured_mode=configured_mode,
@@ -1039,6 +1087,9 @@ class AdapterService:
                 execution_boundary=HYBRID_EXECUTION_BOUNDARY,
                 supported_modes=sorted(SUPPORTED_ADAPTER_MODES),
                 available_families=available_families,
+                real_tool_paths=real_tool_paths,
+                plan_only_tool_paths=plan_only_tool_paths,
+                simulated_tool_paths=simulated_tool_paths,
                 warning=None,
                 notes=[
                     "Adapter mode selection is now config-driven.",
@@ -1060,6 +1111,13 @@ class AdapterService:
             execution_boundary=ADAPTER_EXECUTION_BOUNDARY,
             supported_modes=sorted(SUPPORTED_ADAPTER_MODES),
             available_families=available_families,
+            real_tool_paths=[],
+            plan_only_tool_paths=[],
+            simulated_tool_paths=sorted(
+                tool.name
+                for agent in catalog_service.get_catalog_model().agents
+                for tool in agent.tools
+            ),
             warning=None,
             notes=[
                 "Adapter mode selection is now config-driven.",
@@ -1107,6 +1165,20 @@ class AdapterService:
             family_supports_real = (
                 runtime_status.active_mode == "hybrid" and family == "project-build"
             )
+            family_real_tool_paths = (
+                list(runtime_status.real_tool_paths)
+                if family_supports_real
+                else []
+            )
+            family_plan_only_tool_paths = (
+                list(runtime_status.plan_only_tool_paths)
+                if family_supports_real
+                else []
+            )
+            family_simulated_tool_paths = self._simulated_tool_paths_for_family(
+                family=family,
+                active_mode=runtime_status.active_mode,
+            )
             family_notes = list(runtime_status.notes)
             if family_supports_real:
                 family_notes.append(
@@ -1126,6 +1198,9 @@ class AdapterService:
                     contract_version=runtime_status.contract_version,
                     execution_boundary=runtime_status.execution_boundary,
                     ready=runtime_status.ready,
+                    real_tool_paths=family_real_tool_paths,
+                    plan_only_tool_paths=family_plan_only_tool_paths,
+                    simulated_tool_paths=family_simulated_tool_paths,
                     notes=family_notes,
                 )
             )
@@ -1135,6 +1210,9 @@ class AdapterService:
             supported_modes=runtime_status.supported_modes,
             contract_version=runtime_status.contract_version,
             supports_real_execution=runtime_status.supports_real_execution,
+            real_tool_paths=runtime_status.real_tool_paths,
+            plan_only_tool_paths=runtime_status.plan_only_tool_paths,
+            simulated_tool_paths=runtime_status.simulated_tool_paths,
             families=families,
             warning=runtime_status.warning,
             notes=runtime_status.notes,

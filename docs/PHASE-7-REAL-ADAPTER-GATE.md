@@ -21,7 +21,11 @@ As of the current accepted branch state:
 - adapter mode selection is real and config-driven
 - adapter registry reporting is real
 - adapter-family provenance is persisted
-- actual O3DE execution is still simulated
+- `project.inspect` is the current real read-only hybrid path when manifest
+  preconditions are satisfied
+- `build.configure` is the current real plan-only hybrid preflight path when
+  `dry_run=true` and manifest preconditions are satisfied
+- all remaining published tools still execute through explicitly simulated paths
 
 That means a tool is only eligible for "real" status when the adapter behind it
 has been implemented and validated, not just because the control plane around

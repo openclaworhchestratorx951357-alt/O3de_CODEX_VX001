@@ -14,8 +14,8 @@ export default function AdaptersPanel(
       <h2>Adapter Registry</h2>
       <p style={{ marginTop: 0, color: "#555" }}>
         Read-only adapter registry view. Control-plane bookkeeping is real, but
-        O3DE execution remains explicitly simulated until real adapters are
-        implemented.
+        only the named hybrid paths below should be treated as real today.
+        Everything else remains explicitly simulated or plan-only.
       </p>
       {loading ? <p>Loading adapter registry...</p> : null}
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
@@ -34,6 +34,9 @@ export default function AdaptersPanel(
           <p><strong>Contract version:</strong> {adapters.contract_version}</p>
           <p><strong>Supported modes:</strong> {adapters.supported_modes.join(", ") || "none"}</p>
           <p><strong>Real execution enabled:</strong> {adapters.supports_real_execution ? "yes" : "no"}</p>
+          <p><strong>Real tool paths:</strong> {adapters.real_tool_paths.join(", ") || "none"}</p>
+          <p><strong>Plan-only tool paths:</strong> {adapters.plan_only_tool_paths.join(", ") || "none"}</p>
+          <p><strong>Still simulated:</strong> {adapters.simulated_tool_paths.length}</p>
           <p><strong>Warning:</strong> {adapters.warning ?? "none"}</p>
           <p><strong>Boundary:</strong> {adapters.families[0]?.execution_boundary ?? "No adapter boundary reported."}</p>
           {adapters.notes.length > 0 ? (
@@ -74,6 +77,9 @@ export default function AdaptersPanel(
                     <p><strong>Ready:</strong> {family.ready ? "yes" : "no"}</p>
                     <p><strong>Real execution:</strong> {family.supports_real_execution ? "yes" : "no"}</p>
                     <p><strong>Contract:</strong> {family.contract_version}</p>
+                    <p><strong>Real paths:</strong> {family.real_tool_paths.join(", ") || "none"}</p>
+                    <p><strong>Plan-only:</strong> {family.plan_only_tool_paths.join(", ") || "none"}</p>
+                    <p><strong>Simulated paths:</strong> {family.simulated_tool_paths.join(", ") || "none"}</p>
                   </article>
                 ))}
               </div>

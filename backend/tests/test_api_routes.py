@@ -53,6 +53,9 @@ def test_ready_reports_database_status_details() -> None:
         assert payload["adapter_mode"]["execution_boundary"]
         assert payload["adapter_mode"]["supported_modes"] == ["hybrid", "simulated"]
         assert "project-build" in payload["adapter_mode"]["available_families"]
+        assert payload["adapter_mode"]["real_tool_paths"] == []
+        assert payload["adapter_mode"]["plan_only_tool_paths"] == []
+        assert "project.inspect" in payload["adapter_mode"]["simulated_tool_paths"]
         assert payload["schema_validation"]["mode"] == "subset-json-schema"
         assert payload["schema_validation"]["schema_scope"] == "published-tool-arg-result-schemas"
         assert payload["schema_validation"]["supports_request_args"] is True
@@ -208,6 +211,9 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
             assert payload["adapter_mode"]["configured_mode"] == "hybrid"
             assert payload["adapter_mode"]["active_mode"] == "hybrid"
             assert payload["adapter_mode"]["supports_real_execution"] is True
+            assert payload["adapter_mode"]["real_tool_paths"] == ["project.inspect"]
+            assert payload["adapter_mode"]["plan_only_tool_paths"] == ["build.configure"]
+            assert "gem.enable" in payload["adapter_mode"]["simulated_tool_paths"]
 
 
 def test_version_reports_adapter_contract_version() -> None:
@@ -228,6 +234,9 @@ def test_adapters_endpoint_reports_registry_summary() -> None:
         assert payload["supported_modes"] == ["hybrid", "simulated"]
         assert payload["contract_version"] == "v0.1"
         assert payload["supports_real_execution"] is False
+        assert payload["real_tool_paths"] == []
+        assert payload["plan_only_tool_paths"] == []
+        assert "project.inspect" in payload["simulated_tool_paths"]
         assert any(family["family"] == "project-build" for family in payload["families"])
 
 
@@ -240,10 +249,19 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
             assert payload["configured_mode"] == "hybrid"
             assert payload["active_mode"] == "hybrid"
             assert payload["supports_real_execution"] is True
+            assert payload["real_tool_paths"] == ["project.inspect"]
+            assert payload["plan_only_tool_paths"] == ["build.configure"]
             project_build = next(
                 family for family in payload["families"] if family["family"] == "project-build"
             )
             assert project_build["supports_real_execution"] is True
+            assert project_build["real_tool_paths"] == ["project.inspect"]
+            assert project_build["plan_only_tool_paths"] == ["build.configure"]
+            assert sorted(project_build["simulated_tool_paths"]) == [
+                "build.compile",
+                "gem.enable",
+                "settings.patch",
+            ]
 
 
 def test_adapters_endpoint_reports_invalid_mode_truthfully() -> None:
