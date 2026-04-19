@@ -14,6 +14,8 @@ Agent control app for O3DE-focused orchestration, tooling, approvals, and operat
 ## Development workflow
 
 See these official source files before making changes:
+- `docs/CODEX-OPERATING-RUNBOOK.md`
+- `docs/WORKTREE-STRATEGY.md`
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
 - `docs/PHASE-7-CHECKPOINT.md`
