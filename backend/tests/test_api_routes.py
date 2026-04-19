@@ -352,7 +352,8 @@ def test_policies_route_marks_settings_patch_as_real_mutation_preflight_active()
         )
         assert settings_patch["real_admission_stage"] == "real-mutation-preflight-active"
         assert "backup" in settings_patch["next_real_requirement"].lower()
-        assert "dry-run preflight" in settings_patch["next_real_requirement"].lower()
+        assert "manifest-backed" in settings_patch["next_real_requirement"].lower()
+        assert "set-only mutation path" in settings_patch["next_real_requirement"].lower()
 
 
 def test_runs_endpoint_reflects_dispatch_attempt() -> None:

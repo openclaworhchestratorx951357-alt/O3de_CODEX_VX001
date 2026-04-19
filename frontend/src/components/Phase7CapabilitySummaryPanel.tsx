@@ -25,7 +25,7 @@ const CAPABILITY_DESCRIPTIONS: Record<string, string> = {
   "plan-only":
     "Real only as planning or preflight-oriented evidence. Today build.configure can run a real preflight when dry_run=true, but it still does not execute a real configure mutation.",
   "mutation-gated":
-    "Still blocked from real execution until stricter approval and recovery boundaries are proven.",
+    "Still guarded behind stricter approval and recovery boundaries. Today settings.patch remains tightly gated in the catalog, but the admitted hybrid boundary includes a real preflight path and the first manifest-backed set-only mutation case.",
   "simulated-only":
     "Still fully simulated in the current phase.",
 };
@@ -50,7 +50,10 @@ export default function Phase7CapabilitySummaryPanel({
         requested-vs-discovered Gem evidence, requested Gem subset matching,
         requested settings subset matching, and top-level settings evidence.
         <strong>build.configure</strong> remains real only as a plan-only
-        preflight when <code>dry_run=true</code>.
+        preflight when <code>dry_run=true</code>. <strong>settings.patch</strong>
+        now has an admitted real hybrid boundary for preflight and the first
+        manifest-backed set-only mutation case, while broader mutation surfaces
+        remain gated.
       </p>
       {buckets.length > 0 ? (
         <div

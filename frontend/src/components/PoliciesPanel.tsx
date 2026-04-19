@@ -85,9 +85,10 @@ export default function PoliciesPanel({
               ) : null}
               {item.tool === "settings.patch" ? (
                 <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
-                  Meaning: This is the first recommended mutation candidate, but it
-                  remains simulated until backup, rollback, and failure-visible
-                  patch-plan gates are explicitly admitted.
+                  Meaning: This surface stays tightly mutation-gated in the catalog,
+                  but the admitted hybrid boundary now includes a real preflight path
+                  and the first manifest-backed set-only mutation case with backup,
+                  rollback, and post-write verification evidence.
                 </div>
               ) : null}
             </SummaryListItem>

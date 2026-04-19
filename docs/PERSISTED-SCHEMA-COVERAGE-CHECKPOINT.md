@@ -81,8 +81,9 @@ checkpoint.
 Current execution truth is still:
 - `project.inspect` may use a real read-only hybrid path
 - `build.configure` may use a real plan-only hybrid preflight path
-- `settings.patch`, `gem.enable`, and `build.compile` remain simulated in
-  practice
+- `settings.patch` now has an admitted real hybrid boundary for preflight and
+  the first manifest-backed set-only mutation case
+- `gem.enable` and `build.compile` remain simulated in practice
 - `editor-control`, `asset-pipeline`, `render-lookdev`, and `validation`
   tools remain simulated-only in practice
 
@@ -108,7 +109,7 @@ described truthfully and consistently.
 
 After that, the next engineering decision is whether to:
 - keep tightening contract and documentation evidence around the existing
-  hybrid boundary
+  hybrid boundary, especially the admitted settings.patch mutation boundary
 - or start a new phase for genuinely real adapter implementation work
 
 ## Non-goals of this checkpoint

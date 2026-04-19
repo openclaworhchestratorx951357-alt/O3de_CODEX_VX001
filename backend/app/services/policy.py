@@ -29,9 +29,9 @@ def tool_next_real_requirement(tool_name: str) -> str:
         )
     if tool_name == "settings.patch":
         return (
-            "Keep real execution limited to dry-run preflight until backup, rollback, "
-            "post-write verification, and failure-visible mutation criteria are "
-            "explicitly admitted."
+            "Keep real execution tightly limited to the admitted manifest-backed "
+            "preflight and first set-only mutation path, with backup, rollback, "
+            "post-write verification, and failure-visible behavior kept explicit."
         )
     if tool_name == "gem.enable":
         return (

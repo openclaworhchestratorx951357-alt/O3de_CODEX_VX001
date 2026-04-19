@@ -18,6 +18,8 @@ As of the current accepted branch state:
 - adapter registry reporting is real
 - operator visibility for adapter mode, capability gating, provenance, and
   approval/policy meaning is in place
+- operator visibility now also includes persisted settings.patch audit summary,
+  admitted mutation evidence wording, and refresh-preserved run detail context
 
 Real O3DE execution is still narrow.
 
@@ -47,14 +49,25 @@ Current truth:
 - does not execute a real configure mutation
 - falls back to simulated when preconditions are not satisfied
 
-### Mutation-gated
+### Real mutation-gated
 
 - `settings.patch`
+
+Current truth:
+- may use a real hybrid preflight path
+- now also includes the first admitted manifest-backed set-only mutation path
+- keeps backup provenance, rollback outcome evidence, patch-plan evidence, and
+  post-write verification explicit
+- remains approval-gated and tightly bounded rather than broadly mutation-capable
+- falls back to simulated when the admitted real path is unavailable or
+  preconditions are not satisfied
+
+### Mutation candidates after the current gate
+
 - `gem.enable`
 - `build.compile`
 
 Current truth:
-- still not real
 - remain approval-gated and explicitly non-real in this phase
 
 ### Simulated-only
@@ -75,6 +88,7 @@ The operator shell now exposes this boundary through:
 - executions and artifacts provenance
 - approval queue and policy meaning
 - Phase 7 capability summary
+- operator overview drilldowns and refresh timestamps
 
 ## What remains intentionally limited
 
@@ -84,7 +98,8 @@ The operator shell now exposes this boundary through:
   project-config, requested-vs-discovered Gem, requested Gem subset matching,
   requested settings subset matching, and top-level settings fields rather than
   broader layered config discovery
-- no mutation path has moved to real execution
+- broader mutation paths are still not implemented beyond the first admitted
+  manifest-backed settings.patch case
 - simulated fallback remains part of the truthful accepted behavior
 - default non-container persistence is still not claimed healthy; explicit
   operator-configured persistence remains the truthful baseline for
@@ -98,6 +113,7 @@ narrow and truthful.
 Recommended next boundary:
 - define the exact contract for the next manifest-adjacent Gem-state refinement
   that stays file-read-only on `project_root/project.json`, or
-- begin that next narrow refinement only if it can keep mutation disabled, stay
-  on the same project-manifest source of truth, and keep fallback behavior
-  explicit
+- begin that next narrow refinement only if it stays on the same
+  project-manifest source of truth, keeps fallback behavior explicit, and does
+  not blur the already-admitted settings.patch mutation boundary into a broader
+  mutation claim
