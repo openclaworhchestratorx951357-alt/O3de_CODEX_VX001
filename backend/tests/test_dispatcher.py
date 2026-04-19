@@ -1587,10 +1587,13 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
             "matched_requested_settings_keys",
             "missing_requested_settings_keys",
         ]
+        assert execution.details["settings_evidence_source"] == "project_manifest_top_level"
         assert execution.details["settings_selection_mode"] == "requested-subset"
         assert execution.details["requested_settings_keys"] == ["version", "missing_setting"]
         assert execution.details["matched_requested_settings_keys"] == ["version"]
         assert execution.details["missing_requested_settings_keys"] == ["missing_setting"]
+        assert execution.details["matched_requested_settings_count"] == 1
+        assert execution.details["missing_requested_settings_count"] == 1
         assert execution.details["requested_gem_evidence"] == [
             "gem_names",
             "gem_names_count",
@@ -1621,10 +1624,13 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
             "matched_requested_settings_keys",
             "missing_requested_settings_keys",
         ]
+        assert artifact.metadata["settings_evidence_source"] == "project_manifest_top_level"
         assert artifact.metadata["settings_selection_mode"] == "requested-subset"
         assert artifact.metadata["requested_settings_keys"] == ["version", "missing_setting"]
         assert artifact.metadata["matched_requested_settings_keys"] == ["version"]
         assert artifact.metadata["missing_requested_settings_keys"] == ["missing_setting"]
+        assert artifact.metadata["matched_requested_settings_count"] == 1
+        assert artifact.metadata["missing_requested_settings_count"] == 1
         assert artifact.metadata["requested_gem_evidence"] == [
             "gem_names",
             "gem_names_count",
@@ -1716,6 +1722,7 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
             "matched_requested_settings_keys",
             "missing_requested_settings_keys",
         ]
+        assert execution.details["settings_evidence_source"] == "project_manifest_top_level"
         assert execution.details["settings_selection_mode"] == "requested-subset"
         assert execution.details["requested_settings_keys"] == ["summary", "missing_setting"]
         assert execution.details["matched_requested_settings_keys"] == []
@@ -1723,6 +1730,8 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
             "summary",
             "missing_setting",
         ]
+        assert execution.details["matched_requested_settings_count"] == 0
+        assert execution.details["missing_requested_settings_count"] == 2
         assert execution.details["requested_gem_evidence"] == [
             "gem_names",
             "gem_names_count",

@@ -19,6 +19,11 @@ function readBoolean(details: Record<string, unknown>, key: string): boolean | n
   return typeof value === "boolean" ? value : null;
 }
 
+function readNumber(details: Record<string, unknown>, key: string): number | null {
+  const value = details[key];
+  return typeof value === "number" ? value : null;
+}
+
 function readRecord(
   details: Record<string, unknown>,
   key: string,
@@ -88,6 +93,7 @@ export default function ExecutionsPanel({
                 details,
                 "requested_settings_evidence",
               );
+              const settingsEvidenceSource = readString(details, "settings_evidence_source");
               const requestedSettingsKeys = readStringArray(
                 details,
                 "requested_settings_keys",
@@ -99,6 +105,14 @@ export default function ExecutionsPanel({
               const missingRequestedSettingsKeys = readStringArray(
                 details,
                 "missing_requested_settings_keys",
+              );
+              const matchedRequestedSettingsCount = readNumber(
+                details,
+                "matched_requested_settings_count",
+              );
+              const missingRequestedSettingsCount = readNumber(
+                details,
+                "missing_requested_settings_count",
               );
               const settingsSelectionMode = readString(details, "settings_selection_mode");
               const requestedGemEvidence = readStringArray(details, "requested_gem_evidence");
@@ -208,6 +222,9 @@ export default function ExecutionsPanel({
                   {requestedSettingsEvidence.length > 0 ? (
                     <div>Requested settings evidence: {requestedSettingsEvidence.join(", ")}</div>
                   ) : null}
+                  {settingsEvidenceSource ? (
+                    <div>Settings evidence source: {settingsEvidenceSource}</div>
+                  ) : null}
                   {settingsSelectionMode ? (
                     <div>Settings selection mode: {settingsSelectionMode}</div>
                   ) : null}
@@ -223,6 +240,12 @@ export default function ExecutionsPanel({
                     <div>
                       Missing requested settings keys: {missingRequestedSettingsKeys.join(", ")}
                     </div>
+                  ) : null}
+                  {matchedRequestedSettingsCount !== null ? (
+                    <div>Matched requested settings count: {matchedRequestedSettingsCount}</div>
+                  ) : null}
+                  {missingRequestedSettingsCount !== null ? (
+                    <div>Missing requested settings count: {missingRequestedSettingsCount}</div>
                   ) : null}
                   {requestedGemEvidence.length > 0 ? (
                     <div>Requested Gem evidence: {requestedGemEvidence.join(", ")}</div>

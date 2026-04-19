@@ -515,6 +515,10 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                     "matched_requested_settings_keys",
                     "missing_requested_settings_keys",
                 ]
+                assert (
+                    execution["details"]["settings_evidence_source"]
+                    == "project_manifest_top_level"
+                )
                 assert execution["details"]["settings_selection_mode"] == "requested-subset"
                 assert execution["details"]["requested_settings_keys"] == [
                     "version",
@@ -524,6 +528,8 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                 assert execution["details"]["missing_requested_settings_keys"] == [
                     "missing_setting",
                 ]
+                assert execution["details"]["matched_requested_settings_count"] == 1
+                assert execution["details"]["missing_requested_settings_count"] == 1
                 assert execution["details"]["requested_gem_evidence"] == [
                     "gem_names",
                     "gem_names_count",

@@ -90,10 +90,13 @@ export interface ProjectInspectEvidenceDetails {
   missing_requested_project_config_keys?: string[];
   requested_project_config_subset_present?: boolean;
   requested_settings_evidence?: string[];
+  settings_evidence_source?: string;
   settings_selection_mode?: string;
   requested_settings_keys?: string[];
   matched_requested_settings_keys?: string[];
   missing_requested_settings_keys?: string[];
+  matched_requested_settings_count?: number;
+  missing_requested_settings_count?: number;
   requested_gem_evidence?: string[];
   gem_selection_mode?: string;
   requested_gem_names?: string[];

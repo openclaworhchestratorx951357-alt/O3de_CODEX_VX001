@@ -105,6 +105,10 @@ Minimum evidence fields should include:
 - `adapter_contract_version`
 - `execution_boundary`
 - a marker that the path used settings or Gem inspection specifically
+- a truthful source marker when settings evidence comes only from top-level
+  `project.json` manifest fields
+- enough requested-vs-matched-vs-missing detail that operators do not need to
+  infer subset results manually
 
 ## Minimum operator visibility expectations
 

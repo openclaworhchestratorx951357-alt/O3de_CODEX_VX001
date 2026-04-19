@@ -8,7 +8,7 @@ type RunDetailPanelProps = {
 
 function describeRunTruth(item: RunRecord): string {
   if (item.execution_mode === "real" && item.tool === "project.inspect") {
-    return "This run used the real read-only project.inspect path and may include manifest-backed project-config subset matching, requested-vs-discovered Gem evidence, requested Gem subset matching, requested settings subset matching, and top-level settings evidence.";
+    return "This run used the real read-only project.inspect path and may include manifest-backed project-config subset matching, requested-vs-discovered Gem evidence, requested Gem subset matching, and manifest-backed top-level settings subset evidence.";
   }
   if (item.execution_mode === "real" && item.tool === "build.configure") {
     return "This run used the real plan-only build.configure preflight path.";

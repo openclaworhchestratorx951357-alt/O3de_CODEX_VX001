@@ -411,6 +411,16 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "missing_requested_settings_keys",
                 ]
             )
+        matched_requested_settings_count = (
+            len(matched_requested_settings_keys)
+            if inspection_flags["include_settings"]
+            else 0
+        )
+        missing_requested_settings_count = (
+            len(missing_requested_settings_keys)
+            if inspection_flags["include_settings"]
+            else 0
+        )
         message = "Read-only project manifest inspection completed against real project files."
         if isinstance(project_name, str) and project_name.strip():
             message = (
@@ -640,6 +650,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     missing_requested_project_config_keys
                 ),
                 "requested_settings_evidence": requested_settings_evidence,
+                "settings_evidence_source": (
+                    "project_manifest_top_level"
+                    if inspection_flags["include_settings"]
+                    else "not-requested"
+                ),
                 "settings_selection_mode": (
                     "requested-subset"
                     if inspection_flags["include_settings"] and requested_settings_keys
@@ -652,6 +667,8 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 ),
                 "matched_requested_settings_keys": matched_requested_settings_keys,
                 "missing_requested_settings_keys": missing_requested_settings_keys,
+                "matched_requested_settings_count": matched_requested_settings_count,
+                "missing_requested_settings_count": missing_requested_settings_count,
                 "requested_gem_evidence": requested_gem_evidence,
                 "gem_selection_mode": (
                     "requested-subset"
@@ -732,6 +749,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     missing_requested_project_config_keys
                 ),
                 "requested_settings_evidence": requested_settings_evidence,
+                "settings_evidence_source": (
+                    "project_manifest_top_level"
+                    if inspection_flags["include_settings"]
+                    else "not-requested"
+                ),
                 "settings_selection_mode": (
                     "requested-subset"
                     if inspection_flags["include_settings"] and requested_settings_keys
@@ -744,6 +766,8 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 ),
                 "matched_requested_settings_keys": matched_requested_settings_keys,
                 "missing_requested_settings_keys": missing_requested_settings_keys,
+                "matched_requested_settings_count": matched_requested_settings_count,
+                "missing_requested_settings_count": missing_requested_settings_count,
                 "requested_gem_evidence": requested_gem_evidence,
                 "gem_selection_mode": (
                     "requested-subset"

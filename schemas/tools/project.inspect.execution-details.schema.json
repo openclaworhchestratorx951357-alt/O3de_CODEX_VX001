@@ -63,6 +63,7 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
     },
+    "settings_evidence_source": { "type": "string", "minLength": 1 },
     "settings_selection_mode": { "type": "string", "minLength": 1 },
     "requested_settings_keys": {
       "type": "array",
@@ -76,6 +77,8 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
     },
+    "matched_requested_settings_count": { "type": "integer", "minimum": 0 },
+    "missing_requested_settings_count": { "type": "integer", "minimum": 0 },
     "requested_gem_evidence": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
