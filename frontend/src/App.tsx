@@ -119,13 +119,16 @@ export default function App() {
     useState<AuditFilter>("all");
   const [runsSearchPreset, setRunsSearchPreset] = useState<string | null>(null);
   const [approvalsSearchPreset, setApprovalsSearchPreset] = useState<string | null>(null);
+  const [artifactsSearchPreset, setArtifactsSearchPreset] = useState<string | null>(null);
   const [executionsSearchPreset, setExecutionsSearchPreset] = useState<string | null>(null);
   const [eventsSearchPreset, setEventsSearchPreset] = useState<string | null>(null);
   const [runsSearchVersion, setRunsSearchVersion] = useState(0);
   const [approvalsSearchVersion, setApprovalsSearchVersion] = useState(0);
+  const [artifactsSearchVersion, setArtifactsSearchVersion] = useState(0);
   const [executionsSearchVersion, setExecutionsSearchVersion] = useState(0);
   const [eventsSearchVersion, setEventsSearchVersion] = useState(0);
   const approvalsSectionRef = useRef<HTMLElement | null>(null);
+  const artifactsSectionRef = useRef<HTMLDivElement | null>(null);
   const executionsSectionRef = useRef<HTMLDivElement | null>(null);
   const eventsSectionRef = useRef<HTMLDivElement | null>(null);
   const runsSectionRef = useRef<HTMLDivElement | null>(null);
@@ -410,12 +413,32 @@ export default function App() {
     target?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function handleRunStatusDrilldown(status: string) {
+  async function handleRunStatusDrilldown(status: string) {
     setSelectedToolFilter("all");
     setSelectedAuditFilter("all");
     setRunsSearchPreset(status);
     setRunsSearchVersion((value) => value + 1);
-    void loadRuns("all", "all");
+    setRunsLoading(true);
+    try {
+      const [nextRuns, nextRunsSummary] = await Promise.all([
+        fetchRunCards("all", "all"),
+        fetchRunsSummaryForFilter("all", "all"),
+      ]);
+      setRuns(nextRuns);
+      setRunAudits(nextRunsSummary.runAudits);
+      setSettingsPatchAuditSummary(nextRunsSummary.settingsPatchAuditSummary);
+      setRunsError(null);
+      const firstMatchingRun = nextRuns.find((item) => item.status === status);
+      if (firstMatchingRun) {
+        await loadRunDetail(firstMatchingRun.id);
+      }
+    } catch (error) {
+      setRunsError(
+        error instanceof Error ? error.message : "Failed to load runs",
+      );
+    } finally {
+      setRunsLoading(false);
+    }
     scrollToSection(runsSectionRef.current);
   }
 
@@ -429,6 +452,12 @@ export default function App() {
     setExecutionsSearchPreset(mode);
     setExecutionsSearchVersion((value) => value + 1);
     scrollToSection(executionsSectionRef.current);
+  }
+
+  function handleArtifactModeDrilldown(mode: string) {
+    setArtifactsSearchPreset(mode);
+    setArtifactsSearchVersion((value) => value + 1);
+    scrollToSection(artifactsSectionRef.current);
   }
 
   function handleEventSeverityDrilldown(severity: string) {
@@ -519,6 +548,7 @@ export default function App() {
         onRunStatusSelect={handleRunStatusDrilldown}
         onPendingApprovalsSelect={handlePendingApprovalsDrilldown}
         onExecutionModeSelect={handleExecutionModeDrilldown}
+        onArtifactModeSelect={handleArtifactModeDrilldown}
         onEventSeveritySelect={handleEventSeverityDrilldown}
       />
 
@@ -546,11 +576,15 @@ export default function App() {
           searchPreset={eventsSearchPreset}
         />
       </div>
-      <ArtifactsPanel
-        items={artifacts}
-        loading={artifactsLoading}
-        error={artifactsError}
-      />
+      <div ref={artifactsSectionRef}>
+        <ArtifactsPanel
+          key={`artifacts-search-${artifactsSearchVersion}`}
+          items={artifacts}
+          loading={artifactsLoading}
+          error={artifactsError}
+          searchPreset={artifactsSearchPreset}
+        />
+      </div>
       <div ref={executionsSectionRef}>
         <ExecutionsPanel
           key={`executions-search-${executionsSearchVersion}`}

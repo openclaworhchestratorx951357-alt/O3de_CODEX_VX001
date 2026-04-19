@@ -21,14 +21,16 @@ type ArtifactsPanelProps = {
   items: ArtifactListItem[];
   loading: boolean;
   error: string | null;
+  searchPreset?: string | null;
 };
 
 export default function ArtifactsPanel({
   items,
   loading,
   error,
+  searchPreset,
 }: ArtifactsPanelProps) {
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
   const filteredItems = useMemo(
     () => items.filter((item) => matchesArtifactSearch(item, normalizedQuery)),

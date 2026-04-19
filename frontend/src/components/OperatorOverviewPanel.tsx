@@ -26,6 +26,7 @@ type OperatorOverviewPanelProps = {
   onRunStatusSelect: (status: string) => void;
   onPendingApprovalsSelect: () => void;
   onExecutionModeSelect: (mode: string) => void;
+  onArtifactModeSelect: (mode: string) => void;
   onEventSeveritySelect: (severity: string) => void;
 };
 
@@ -36,6 +37,7 @@ export default function OperatorOverviewPanel({
   onRunStatusSelect,
   onPendingApprovalsSelect,
   onExecutionModeSelect,
+  onArtifactModeSelect,
   onEventSeveritySelect,
 }: OperatorOverviewPanelProps) {
   return (
@@ -122,6 +124,7 @@ export default function OperatorOverviewPanel({
                     entries={summary.artifacts_by_mode}
                     toneForKey={getExecutionModeTone}
                     emptyLabel="none"
+                    onSelect={onArtifactModeSelect}
                   />
                 </SummaryFact>
               </SummaryFacts>
