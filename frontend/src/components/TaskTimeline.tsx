@@ -17,7 +17,9 @@ import {
   summaryControlRowStyle,
   summaryFocusBadgeStyle,
   summaryInlineActionButtonStyle,
+  summaryRefreshBadgeStyle,
   summarySearchInputStyle,
+  summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
 
 type TaskTimelineProps = {
@@ -27,6 +29,8 @@ type TaskTimelineProps = {
   searchPreset?: string | null;
   focusLabel?: string | null;
   onClearFocus?: () => void;
+  lastRefreshedAt?: string | null;
+  updateBadgeLabel?: string | null;
 };
 
 function describeTimelineMeaning(item: EventListItem): string | null {
@@ -55,6 +59,8 @@ export default function TaskTimeline({
   searchPreset,
   focusLabel,
   onClearFocus,
+  lastRefreshedAt,
+  updateBadgeLabel,
 }: TaskTimelineProps) {
   const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
@@ -87,6 +93,9 @@ export default function TaskTimeline({
             ) : null}
           </span>
         ) : null}
+        {updateBadgeLabel ? (
+          <span style={summaryRefreshBadgeStyle}>{updateBadgeLabel}</span>
+        ) : null}
         <input
           type="search"
           value={searchValue}
@@ -95,6 +104,11 @@ export default function TaskTimeline({
           style={summarySearchInputStyle}
         />
       </div>
+      {lastRefreshedAt ? (
+        <div style={summaryTimestampNoteStyle}>
+          Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
+        </div>
+      ) : null}
       <SummaryList>
         {filteredItems.map((item) => {
           const capabilityStatus = item.capability_status ?? null;

@@ -16,7 +16,9 @@ import {
   summaryControlRowStyle,
   summaryFocusBadgeStyle,
   summaryInlineActionButtonStyle,
+  summaryRefreshBadgeStyle,
   summarySearchInputStyle,
+  summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
 
 type ArtifactsPanelProps = {
@@ -26,6 +28,8 @@ type ArtifactsPanelProps = {
   searchPreset?: string | null;
   focusLabel?: string | null;
   onClearFocus?: () => void;
+  lastRefreshedAt?: string | null;
+  updateBadgeLabel?: string | null;
 };
 
 export default function ArtifactsPanel({
@@ -35,6 +39,8 @@ export default function ArtifactsPanel({
   searchPreset,
   focusLabel,
   onClearFocus,
+  lastRefreshedAt,
+  updateBadgeLabel,
 }: ArtifactsPanelProps) {
   const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
@@ -67,6 +73,9 @@ export default function ArtifactsPanel({
             ) : null}
           </span>
         ) : null}
+        {updateBadgeLabel ? (
+          <span style={summaryRefreshBadgeStyle}>{updateBadgeLabel}</span>
+        ) : null}
         <input
           type="search"
           value={searchValue}
@@ -75,6 +84,11 @@ export default function ArtifactsPanel({
           style={summarySearchInputStyle}
         />
       </div>
+      {lastRefreshedAt ? (
+        <div style={summaryTimestampNoteStyle}>
+          Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
+        </div>
+      ) : null}
       <SummaryList>
         {filteredItems.map((item) => {
           const provenanceLabel = getArtifactProvenanceLabel(item);

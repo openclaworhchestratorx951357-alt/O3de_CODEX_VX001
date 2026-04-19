@@ -137,6 +137,12 @@ export const summaryTimestampNoteStyle: CSSProperties = {
   marginBottom: 8,
 };
 
+export const summaryRefreshBadgeStyle: CSSProperties = {
+  ...summaryBadgeStyle,
+  background: "#dafbe1",
+  borderColor: "#1a7f37",
+};
+
 export function formatSummaryLabeledText(label: string, value: string): string {
   return `${label}: ${value}`;
 }

@@ -15,7 +15,9 @@ import {
   summaryCalloutStyle,
   summaryControlRowStyle,
   summaryInlineActionButtonStyle,
+  summaryRefreshBadgeStyle,
   summarySearchInputStyle,
+  summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
 
 type ApprovalQueueProps = {
@@ -28,6 +30,8 @@ type ApprovalQueueProps = {
   searchPreset?: string | null;
   focusLabel?: string | null;
   onClearFocus?: () => void;
+  lastRefreshedAt?: string | null;
+  updateBadgeLabel?: string | null;
 };
 
 function formatApprovalTitle(item: ApprovalListItem): string {
@@ -51,6 +55,8 @@ export default function ApprovalQueue({
   searchPreset,
   focusLabel,
   onClearFocus,
+  lastRefreshedAt,
+  updateBadgeLabel,
 }: ApprovalQueueProps) {
   const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
@@ -84,6 +90,9 @@ export default function ApprovalQueue({
             ) : null}
           </span>
         ) : null}
+        {updateBadgeLabel ? (
+          <span style={summaryRefreshBadgeStyle}>{updateBadgeLabel}</span>
+        ) : null}
         <input
           type="search"
           value={searchValue}
@@ -92,6 +101,11 @@ export default function ApprovalQueue({
           style={summarySearchInputStyle}
         />
       </div>
+      {lastRefreshedAt ? (
+        <div style={summaryTimestampNoteStyle}>
+          Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
+        </div>
+      ) : null}
       <SummaryList>
         {filteredItems.map((item) => (
           <SummaryListItem key={item.id} card>

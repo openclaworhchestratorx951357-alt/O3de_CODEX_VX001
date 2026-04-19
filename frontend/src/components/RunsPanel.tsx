@@ -16,13 +16,16 @@ import {
   getRunStatusTone,
 } from "./statusChipTones";
 import {
+  formatSummaryTimestamp,
   summaryActionButtonStyle,
   summaryBadgeStyle,
   summaryControlRowStyle,
   summaryFocusBadgeStyle,
   summaryFilterButtonStyle,
   summaryInlineActionButtonStyle,
+  summaryRefreshBadgeStyle,
   summarySearchInputStyle,
+  summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
 
 type RunsPanelProps = {
@@ -40,6 +43,8 @@ type RunsPanelProps = {
   searchPreset?: string | null;
   focusLabel?: string | null;
   onClearFocus?: () => void;
+  lastRefreshedAt?: string | null;
+  updateBadgeLabel?: string | null;
 };
 
 type AuditFilter =
@@ -76,6 +81,8 @@ export default function RunsPanel({
   searchPreset,
   focusLabel,
   onClearFocus,
+  lastRefreshedAt,
+  updateBadgeLabel,
 }: RunsPanelProps) {
   const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const runAuditByRunId = useMemo(
@@ -126,6 +133,9 @@ export default function RunsPanel({
               </button>
             ) : null}
           </span>
+        ) : null}
+        {updateBadgeLabel ? (
+          <span style={summaryRefreshBadgeStyle}>{updateBadgeLabel}</span>
         ) : null}
         {(["all", "settings.patch"] as const).map((value) => (
           <button
@@ -191,6 +201,11 @@ export default function RunsPanel({
           style={summarySearchInputStyle}
         />
       </div>
+      {lastRefreshedAt ? (
+        <div style={summaryTimestampNoteStyle}>
+          Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
+        </div>
+      ) : null}
       <SummaryList>
           {visibleItems.map((item) => {
             const capability = getRunCapabilityLabel(item);

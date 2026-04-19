@@ -17,7 +17,9 @@ import {
   summaryControlRowStyle,
   summaryFocusBadgeStyle,
   summaryInlineActionButtonStyle,
+  summaryRefreshBadgeStyle,
   summarySearchInputStyle,
+  summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
 
 type ExecutionsPanelProps = {
@@ -27,6 +29,8 @@ type ExecutionsPanelProps = {
   searchPreset?: string | null;
   focusLabel?: string | null;
   onClearFocus?: () => void;
+  lastRefreshedAt?: string | null;
+  updateBadgeLabel?: string | null;
 };
 
 export default function ExecutionsPanel({
@@ -36,6 +40,8 @@ export default function ExecutionsPanel({
   searchPreset,
   focusLabel,
   onClearFocus,
+  lastRefreshedAt,
+  updateBadgeLabel,
 }: ExecutionsPanelProps) {
   const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
@@ -69,6 +75,9 @@ export default function ExecutionsPanel({
             ) : null}
           </span>
         ) : null}
+        {updateBadgeLabel ? (
+          <span style={summaryRefreshBadgeStyle}>{updateBadgeLabel}</span>
+        ) : null}
         <input
           type="search"
           value={searchValue}
@@ -77,6 +86,11 @@ export default function ExecutionsPanel({
           style={summarySearchInputStyle}
         />
       </div>
+      {lastRefreshedAt ? (
+        <div style={summaryTimestampNoteStyle}>
+          Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
+        </div>
+      ) : null}
       <SummaryList>
         {filteredItems.map((item) => {
           const provenanceLabel = getExecutionProvenanceLabel(item);

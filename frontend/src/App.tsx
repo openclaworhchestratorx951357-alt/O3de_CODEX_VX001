@@ -121,6 +121,11 @@ export default function App() {
     useState<ToolFilter>("all");
   const [selectedAuditFilter, setSelectedAuditFilter] =
     useState<AuditFilter>("all");
+  const [runsRefreshedAt, setRunsRefreshedAt] = useState<string | null>(null);
+  const [approvalsRefreshedAt, setApprovalsRefreshedAt] = useState<string | null>(null);
+  const [artifactsRefreshedAt, setArtifactsRefreshedAt] = useState<string | null>(null);
+  const [executionsRefreshedAt, setExecutionsRefreshedAt] = useState<string | null>(null);
+  const [eventsRefreshedAt, setEventsRefreshedAt] = useState<string | null>(null);
   const [runsSearchPreset, setRunsSearchPreset] = useState<string | null>(null);
   const [approvalsSearchPreset, setApprovalsSearchPreset] = useState<string | null>(null);
   const [artifactsSearchPreset, setArtifactsSearchPreset] = useState<string | null>(null);
@@ -132,6 +137,7 @@ export default function App() {
   const [executionsFocusLabel, setExecutionsFocusLabel] = useState<string | null>(null);
   const [eventsFocusLabel, setEventsFocusLabel] = useState<string | null>(null);
   const [activeFocusedSection, setActiveFocusedSection] = useState<FocusedSection | null>(null);
+  const [updatedFocusedSection, setUpdatedFocusedSection] = useState<FocusedSection | null>(null);
   const [runsSearchVersion, setRunsSearchVersion] = useState(0);
   const [approvalsSearchVersion, setApprovalsSearchVersion] = useState(0);
   const [artifactsSearchVersion, setArtifactsSearchVersion] = useState(0);
@@ -149,6 +155,7 @@ export default function App() {
     try {
       const nextApprovals = await fetchApprovalCards();
       setApprovals(nextApprovals);
+      setApprovalsRefreshedAt(new Date().toISOString());
       setApprovalsError(null);
     } catch (error) {
       setApprovalsError(
@@ -179,6 +186,7 @@ export default function App() {
     try {
       const nextEvents = await fetchEventCards();
       setEvents(nextEvents);
+      setEventsRefreshedAt(new Date().toISOString());
       setEventsError(null);
     } catch (error) {
       setEventsError(
@@ -194,6 +202,7 @@ export default function App() {
     try {
       const nextArtifacts = await fetchArtifactCards();
       setArtifacts(nextArtifacts);
+      setArtifactsRefreshedAt(new Date().toISOString());
       setArtifactsError(null);
     } catch (error) {
       setArtifactsError(
@@ -221,6 +230,7 @@ export default function App() {
       setRuns(nextRuns);
       setRunAudits(nextRunsSummary.runAudits);
       setSettingsPatchAuditSummary(nextRunsSummary.settingsPatchAuditSummary);
+      setRunsRefreshedAt(new Date().toISOString());
       setRunsError(null);
       if (selectedRunId && nextRuns.some((item) => item.id === selectedRunId)) {
         await loadRunDetail(selectedRunId, options?.executionItems);
@@ -279,6 +289,7 @@ export default function App() {
     try {
       const nextExecutions = await fetchExecutionCards();
       setExecutions(nextExecutions);
+      setExecutionsRefreshedAt(new Date().toISOString());
       setExecutionsError(null);
       return nextExecutions;
     } catch (error) {
@@ -457,6 +468,10 @@ export default function App() {
     }
   }
 
+  function getFocusedSectionUpdateLabel(section: FocusedSection): string | null {
+    return updatedFocusedSection === section ? "data updated after refresh" : null;
+  }
+
   async function refreshDashboardState() {
     const nextExecutionsPromise = loadExecutions();
     await Promise.all([
@@ -476,6 +491,7 @@ export default function App() {
       executionItems: nextExecutions,
       announceSelectionRefresh: announceRunDetailRefreshRef.current,
     });
+    setUpdatedFocusedSection(activeFocusedSection);
     announceRunDetailRefreshRef.current = false;
     restoreFocusedSection();
   }
@@ -486,6 +502,7 @@ export default function App() {
     setRunsSearchPreset(status);
     setRunsFocusLabel(`status = ${status}`);
     setActiveFocusedSection("runs");
+    setUpdatedFocusedSection(null);
     setRunsSearchVersion((value) => value + 1);
     setRunsLoading(true);
     try {
@@ -516,6 +533,7 @@ export default function App() {
     setApprovalsSearchPreset("pending");
     setApprovalsFocusLabel("status = pending");
     setActiveFocusedSection("approvals");
+    setUpdatedFocusedSection(null);
     setApprovalsSearchVersion((value) => value + 1);
     scrollToSection(approvalsSectionRef.current);
   }
@@ -524,6 +542,7 @@ export default function App() {
     setExecutionsSearchPreset(mode);
     setExecutionsFocusLabel(`execution mode = ${mode}`);
     setActiveFocusedSection("executions");
+    setUpdatedFocusedSection(null);
     setExecutionsSearchVersion((value) => value + 1);
     scrollToSection(executionsSectionRef.current);
   }
@@ -532,6 +551,7 @@ export default function App() {
     setArtifactsSearchPreset(mode);
     setArtifactsFocusLabel(`artifact mode = ${mode}`);
     setActiveFocusedSection("artifacts");
+    setUpdatedFocusedSection(null);
     setArtifactsSearchVersion((value) => value + 1);
     scrollToSection(artifactsSectionRef.current);
   }
@@ -540,6 +560,7 @@ export default function App() {
     setEventsSearchPreset(severity);
     setEventsFocusLabel(`severity = ${severity}`);
     setActiveFocusedSection("events");
+    setUpdatedFocusedSection(null);
     setEventsSearchVersion((value) => value + 1);
     scrollToSection(eventsSectionRef.current);
   }
@@ -547,6 +568,7 @@ export default function App() {
   function clearRunsFocus() {
     setRunsSearchPreset(null);
     setRunsFocusLabel(null);
+    setUpdatedFocusedSection(null);
     if (activeFocusedSection === "runs") {
       setActiveFocusedSection(null);
     }
@@ -556,6 +578,7 @@ export default function App() {
   function clearApprovalsFocus() {
     setApprovalsSearchPreset(null);
     setApprovalsFocusLabel(null);
+    setUpdatedFocusedSection(null);
     if (activeFocusedSection === "approvals") {
       setActiveFocusedSection(null);
     }
@@ -565,6 +588,7 @@ export default function App() {
   function clearArtifactsFocus() {
     setArtifactsSearchPreset(null);
     setArtifactsFocusLabel(null);
+    setUpdatedFocusedSection(null);
     if (activeFocusedSection === "artifacts") {
       setActiveFocusedSection(null);
     }
@@ -574,6 +598,7 @@ export default function App() {
   function clearExecutionsFocus() {
     setExecutionsSearchPreset(null);
     setExecutionsFocusLabel(null);
+    setUpdatedFocusedSection(null);
     if (activeFocusedSection === "executions") {
       setActiveFocusedSection(null);
     }
@@ -583,6 +608,7 @@ export default function App() {
   function clearEventsFocus() {
     setEventsSearchPreset(null);
     setEventsFocusLabel(null);
+    setUpdatedFocusedSection(null);
     if (activeFocusedSection === "events") {
       setActiveFocusedSection(null);
     }
@@ -690,6 +716,8 @@ export default function App() {
           searchPreset={approvalsSearchPreset}
           focusLabel={approvalsFocusLabel}
           onClearFocus={clearApprovalsFocus}
+          lastRefreshedAt={approvalsRefreshedAt}
+          updateBadgeLabel={getFocusedSectionUpdateLabel("approvals")}
         />
       </section>
 
@@ -702,6 +730,8 @@ export default function App() {
           searchPreset={eventsSearchPreset}
           focusLabel={eventsFocusLabel}
           onClearFocus={clearEventsFocus}
+          lastRefreshedAt={eventsRefreshedAt}
+          updateBadgeLabel={getFocusedSectionUpdateLabel("events")}
         />
       </div>
       <div ref={artifactsSectionRef}>
@@ -713,6 +743,8 @@ export default function App() {
           searchPreset={artifactsSearchPreset}
           focusLabel={artifactsFocusLabel}
           onClearFocus={clearArtifactsFocus}
+          lastRefreshedAt={artifactsRefreshedAt}
+          updateBadgeLabel={getFocusedSectionUpdateLabel("artifacts")}
         />
       </div>
       <div ref={executionsSectionRef}>
@@ -724,6 +756,8 @@ export default function App() {
           searchPreset={executionsSearchPreset}
           focusLabel={executionsFocusLabel}
           onClearFocus={clearExecutionsFocus}
+          lastRefreshedAt={executionsRefreshedAt}
+          updateBadgeLabel={getFocusedSectionUpdateLabel("executions")}
         />
       </div>
       <div ref={runsSectionRef}>
@@ -746,6 +780,8 @@ export default function App() {
           searchPreset={runsSearchPreset}
           focusLabel={runsFocusLabel}
           onClearFocus={clearRunsFocus}
+          lastRefreshedAt={runsRefreshedAt}
+          updateBadgeLabel={getFocusedSectionUpdateLabel("runs")}
         />
       </div>
       <RunDetailPanel
