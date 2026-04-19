@@ -9,7 +9,7 @@ import {
 import {
   formatSummaryTimestamp,
   summaryActionButtonStyle,
-  summaryActionRowStyle,
+  summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
 } from "./summaryPrimitives";
@@ -74,139 +74,152 @@ export default function RecordLineageStrip({
   return (
     <article style={{ ...summaryCardStyle, marginBottom: 12 }}>
       <h4 style={summaryCardHeadingStyle}>Record Lineage</h4>
-      <SummaryFacts>
-        <SummaryFact label="Run ID" copyValue={runId ?? undefined}>
-          {runId ?? "not linked"}
-        </SummaryFact>
-        {runStatus ? (
-          <SummaryFact label="Run status">
-            <StatusChip
-              label={runStatus}
-              tone={getRunStatusTone(runStatus)}
-            />
-          </SummaryFact>
-        ) : null}
-        {runSummary ? (
-          <SummaryFact label="Run summary">{runSummary}</SummaryFact>
-        ) : null}
-        {runUpdatedAt ? (
-          <SummaryFact label="Run updated">
-            {formatSummaryTimestamp(runUpdatedAt)}
-          </SummaryFact>
-        ) : null}
-        {typeof runWarningCount === "number" ? (
-          <SummaryFact label="Run warnings">
-            <StatusChip
-              label={String(runWarningCount)}
-              tone={runWarningCount > 0 ? "warning" : "success"}
-            />
-          </SummaryFact>
-        ) : null}
-        <SummaryFact label="Execution ID" copyValue={executionId ?? undefined}>
-          {executionId ?? "not linked"}
-        </SummaryFact>
-        {executionStatus ? (
-          <SummaryFact label="Execution status">
-            <StatusChip
-              label={executionStatus}
-              tone={getExecutionStatusTone(executionStatus)}
-            />
-          </SummaryFact>
-        ) : null}
-        {executionSummary ? (
-          <SummaryFact label="Execution summary">{executionSummary}</SummaryFact>
-        ) : null}
-        {executionStartedAt ? (
-          <SummaryFact label="Execution started">
-            {formatSummaryTimestamp(executionStartedAt)}
-          </SummaryFact>
-        ) : null}
-        {typeof executionWarningCount === "number" ? (
-          <SummaryFact label="Execution warnings">
-            <StatusChip
-              label={String(executionWarningCount)}
-              tone={executionWarningCount > 0 ? "warning" : "success"}
-            />
-          </SummaryFact>
-        ) : null}
-        <SummaryFact label="Artifact ID" copyValue={artifactId ?? undefined}>
-          {artifactId ?? "not linked"}
-        </SummaryFact>
-        {artifactLabel ? (
-          <SummaryFact label="Artifact label">{artifactLabel}</SummaryFact>
-        ) : null}
-        {artifactKind ? (
-          <SummaryFact label="Artifact kind">{artifactKind}</SummaryFact>
-        ) : null}
-        {artifactMode ? (
-          <SummaryFact label="Artifact mode">
-            <StatusChip
-              label={artifactMode}
-              tone={getExecutionModeTone(artifactMode)}
-            />
-          </SummaryFact>
-        ) : null}
-        {artifactCreatedAt ? (
-          <SummaryFact label="Artifact created">
-            {formatSummaryTimestamp(artifactCreatedAt)}
-          </SummaryFact>
-        ) : null}
-        {artifactAuditStatus ? (
-          <SummaryFact label="Artifact audit">
-            <StatusChip
-              label={artifactAuditStatus}
-              tone={getAuditStatusTone(artifactAuditStatus)}
-            />
-          </SummaryFact>
-        ) : null}
-        {typeof artifactSimulated === "boolean" ? (
-          <SummaryFact label="Artifact simulated">
-            <StatusChip
-              label={String(artifactSimulated)}
-              tone={artifactSimulated ? "warning" : "success"}
-            />
-          </SummaryFact>
-        ) : null}
-        {executionMode ? (
-          <SummaryFact label="Execution mode">
-            <StatusChip
-              label={executionMode}
-              tone={getExecutionModeTone(executionMode)}
-            />
-          </SummaryFact>
-        ) : null}
-      </SummaryFacts>
-      <div style={summaryActionRowStyle}>
-        {runId && onOpenRun ? (
-          <button
-            type="button"
-            style={summaryActionButtonStyle}
-            disabled={selectedRunId === runId}
-            onClick={() => onOpenRun(runId)}
-          >
-            {selectedRunId === runId ? "Current run" : "Open run"}
-          </button>
-        ) : null}
-        {executionId && onOpenExecution ? (
-          <button
-            type="button"
-            style={summaryActionButtonStyle}
-            disabled={selectedExecutionId === executionId}
-            onClick={() => onOpenExecution(executionId)}
-          >
-            {selectedExecutionId === executionId ? "Current execution" : "Open execution"}
-          </button>
-        ) : null}
-        {artifactId && onOpenArtifact ? (
-          <button
-            type="button"
-            style={summaryActionButtonStyle}
-            disabled={selectedArtifactId === artifactId}
-            onClick={() => onOpenArtifact(artifactId)}
-          >
-            {selectedArtifactId === artifactId ? "Current artifact" : "Open artifact"}
-          </button>
-        ) : null}
+      <div style={summaryCardGridStyle}>
+        <section style={summaryCardStyle}>
+          <h5 style={summaryCardHeadingStyle}>Run</h5>
+          <SummaryFacts>
+            <SummaryFact label="Run ID" copyValue={runId ?? undefined}>
+              {runId ?? "not linked"}
+            </SummaryFact>
+            {runStatus ? (
+              <SummaryFact label="Status">
+                <StatusChip
+                  label={runStatus}
+                  tone={getRunStatusTone(runStatus)}
+                />
+              </SummaryFact>
+            ) : null}
+            {runSummary ? (
+              <SummaryFact label="Summary">{runSummary}</SummaryFact>
+            ) : null}
+            {runUpdatedAt ? (
+              <SummaryFact label="Updated">
+                {formatSummaryTimestamp(runUpdatedAt)}
+              </SummaryFact>
+            ) : null}
+            {typeof runWarningCount === "number" ? (
+              <SummaryFact label="Warnings">
+                <StatusChip
+                  label={String(runWarningCount)}
+                  tone={runWarningCount > 0 ? "warning" : "success"}
+                />
+              </SummaryFact>
+            ) : null}
+          </SummaryFacts>
+          {runId && onOpenRun ? (
+            <button
+              type="button"
+              style={summaryActionButtonStyle}
+              disabled={selectedRunId === runId}
+              onClick={() => onOpenRun(runId)}
+            >
+              {selectedRunId === runId ? "Current run" : "Open run"}
+            </button>
+          ) : null}
+        </section>
+        <section style={summaryCardStyle}>
+          <h5 style={summaryCardHeadingStyle}>Execution</h5>
+          <SummaryFacts>
+            <SummaryFact label="Execution ID" copyValue={executionId ?? undefined}>
+              {executionId ?? "not linked"}
+            </SummaryFact>
+            {executionStatus ? (
+              <SummaryFact label="Status">
+                <StatusChip
+                  label={executionStatus}
+                  tone={getExecutionStatusTone(executionStatus)}
+                />
+              </SummaryFact>
+            ) : null}
+            {executionSummary ? (
+              <SummaryFact label="Summary">{executionSummary}</SummaryFact>
+            ) : null}
+            {executionMode ? (
+              <SummaryFact label="Mode">
+                <StatusChip
+                  label={executionMode}
+                  tone={getExecutionModeTone(executionMode)}
+                />
+              </SummaryFact>
+            ) : null}
+            {executionStartedAt ? (
+              <SummaryFact label="Started">
+                {formatSummaryTimestamp(executionStartedAt)}
+              </SummaryFact>
+            ) : null}
+            {typeof executionWarningCount === "number" ? (
+              <SummaryFact label="Warnings">
+                <StatusChip
+                  label={String(executionWarningCount)}
+                  tone={executionWarningCount > 0 ? "warning" : "success"}
+                />
+              </SummaryFact>
+            ) : null}
+          </SummaryFacts>
+          {executionId && onOpenExecution ? (
+            <button
+              type="button"
+              style={summaryActionButtonStyle}
+              disabled={selectedExecutionId === executionId}
+              onClick={() => onOpenExecution(executionId)}
+            >
+              {selectedExecutionId === executionId ? "Current execution" : "Open execution"}
+            </button>
+          ) : null}
+        </section>
+        <section style={summaryCardStyle}>
+          <h5 style={summaryCardHeadingStyle}>Artifact</h5>
+          <SummaryFacts>
+            <SummaryFact label="Artifact ID" copyValue={artifactId ?? undefined}>
+              {artifactId ?? "not linked"}
+            </SummaryFact>
+            {artifactLabel ? (
+              <SummaryFact label="Label">{artifactLabel}</SummaryFact>
+            ) : null}
+            {artifactKind ? (
+              <SummaryFact label="Kind">{artifactKind}</SummaryFact>
+            ) : null}
+            {artifactMode ? (
+              <SummaryFact label="Mode">
+                <StatusChip
+                  label={artifactMode}
+                  tone={getExecutionModeTone(artifactMode)}
+                />
+              </SummaryFact>
+            ) : null}
+            {artifactCreatedAt ? (
+              <SummaryFact label="Created">
+                {formatSummaryTimestamp(artifactCreatedAt)}
+              </SummaryFact>
+            ) : null}
+            {artifactAuditStatus ? (
+              <SummaryFact label="Audit">
+                <StatusChip
+                  label={artifactAuditStatus}
+                  tone={getAuditStatusTone(artifactAuditStatus)}
+                />
+              </SummaryFact>
+            ) : null}
+            {typeof artifactSimulated === "boolean" ? (
+              <SummaryFact label="Simulated">
+                <StatusChip
+                  label={String(artifactSimulated)}
+                  tone={artifactSimulated ? "warning" : "success"}
+                />
+              </SummaryFact>
+            ) : null}
+          </SummaryFacts>
+          {artifactId && onOpenArtifact ? (
+            <button
+              type="button"
+              style={summaryActionButtonStyle}
+              disabled={selectedArtifactId === artifactId}
+              onClick={() => onOpenArtifact(artifactId)}
+            >
+              {selectedArtifactId === artifactId ? "Current artifact" : "Open artifact"}
+            </button>
+          ) : null}
+        </section>
       </div>
     </article>
   );
