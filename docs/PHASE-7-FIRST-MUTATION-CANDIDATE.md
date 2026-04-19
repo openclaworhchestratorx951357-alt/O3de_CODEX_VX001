@@ -86,6 +86,11 @@ That checkpoint has now been crossed for one narrow case:
 
 Outside that narrow path, mutation remains blocked or simulated.
 
+The admitted mutation path now also re-reads `project.json` after the write and
+verifies the expected values before reporting success. If that post-write
+verification fails, rollback handling is triggered and the run does not report
+successful mutation.
+
 ## Admission criteria before implementation
 
 Before any real `settings.patch` implementation slice begins, all of the

@@ -2193,9 +2193,73 @@ def test_settings_patch_writes_manifest_on_fully_admitted_path_in_hybrid_mode() 
         assert execution.details["applied_operation_count"] == 1
         assert execution.details["rollback_attempted"] is False
         assert execution.details["rollback_succeeded"] is False
+        assert execution.details["post_write_verification_attempted"] is True
+        assert execution.details["post_write_verification_succeeded"] is True
+        assert execution.details["verified_operation_paths"] == ["/version"]
+        assert execution.details["verification_mismatched_paths"] == []
         assert artifact is not None
         assert artifact.metadata["inspection_surface"] == "settings_patch_mutation"
         assert artifact.metadata["mutation_applied"] is True
+        assert artifact.metadata["post_write_verification_succeeded"] is True
+
+
+def test_settings_patch_rolls_back_when_post_write_verification_fails() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        manifest_path = project_root / "project.json"
+        manifest_path.write_text(
+            json.dumps({"project_name": "VerificationFailProject", "version": "1.0.0"}),
+            encoding="utf-8",
+        )
+        initial_request = make_settings_patch_request()
+        initial_request.project_root = str(project_root)
+        first = dispatcher_service.dispatch(initial_request)
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        original_read_text = Path.read_text
+
+        def patched_read_text(self: Path, *args: object, **kwargs: object) -> str:
+            if self == manifest_path:
+                current = original_read_text(self, *args, **kwargs)
+                payload = json.loads(current)
+                if payload.get("version") == "1.0.1":
+                    payload["version"] = "1.0.0"
+                    return json.dumps(payload)
+            return original_read_text(self, *args, **kwargs)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            approved_request = make_request(
+                "project-build",
+                "settings.patch",
+                project_root=str(project_root),
+                dry_run=False,
+            )
+            approved_request.approval_token = approval.token
+            approved_request.args = {
+                "registry_path": "/O3DE/Settings",
+                "operations": [{"op": "set", "path": "/version", "value": "1.0.1"}],
+            }
+            with patch("pathlib.Path.read_text", new=patched_read_text):
+                response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "ADAPTER_PRECHECK_FAILED"
+        assert "post-write verification" in response.error.message
+        restored_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        assert restored_manifest["version"] == "1.0.0"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        assert execution.details["rollback_attempted"] is True
+        assert execution.details["post_write_verification_attempted"] is True
+        assert execution.details["post_write_verification_succeeded"] is False
 
 
 def test_settings_patch_rejects_when_backup_creation_fails_in_hybrid_mode() -> None:

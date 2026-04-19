@@ -151,6 +151,18 @@ export default function ArtifactsPanel({
               const patchPlanValid = planDetails && typeof planDetails.patch_plan_valid === "boolean"
                 ? planDetails.patch_plan_valid
                 : readBoolean(metadata, "patch_plan_valid");
+              const postWriteVerificationAttempted = planDetails && typeof planDetails.post_write_verification_attempted === "boolean"
+                ? planDetails.post_write_verification_attempted
+                : readBoolean(metadata, "post_write_verification_attempted");
+              const postWriteVerificationSucceeded = planDetails && typeof planDetails.post_write_verification_succeeded === "boolean"
+                ? planDetails.post_write_verification_succeeded
+                : readBoolean(metadata, "post_write_verification_succeeded");
+              const verifiedOperationPaths = planDetails
+                ? readStringArray(planDetails, "verified_operation_paths")
+                : [];
+              const verificationMismatchedPaths = planDetails
+                ? readStringArray(planDetails, "verification_mismatched_paths")
+                : [];
               const provenanceLabel = item.simulated
                 ? "Simulated artifact"
                 : inspectionSurface === "build_configure_preflight"
@@ -274,6 +286,18 @@ export default function ArtifactsPanel({
                   ) : null}
                   {patchPlanValid !== null ? (
                     <div>Patch plan valid: {String(patchPlanValid)}</div>
+                  ) : null}
+                  {postWriteVerificationAttempted !== null ? (
+                    <div>Post-write verification attempted: {String(postWriteVerificationAttempted)}</div>
+                  ) : null}
+                  {postWriteVerificationSucceeded !== null ? (
+                    <div>Post-write verification succeeded: {String(postWriteVerificationSucceeded)}</div>
+                  ) : null}
+                  {verifiedOperationPaths.length > 0 ? (
+                    <div>Verified operation paths: {verifiedOperationPaths.join(", ")}</div>
+                  ) : null}
+                  {verificationMismatchedPaths.length > 0 ? (
+                    <div>Verification mismatched paths: {verificationMismatchedPaths.join(", ")}</div>
                   ) : null}
                 </li>
               );

@@ -806,3 +806,6 @@ def test_dispatch_route_uses_real_settings_patch_mutation_in_hybrid_mode() -> No
                 assert execution["details"]["mutation_applied"] is True
                 assert execution["details"]["mutation_ready"] is True
                 assert execution["details"]["mutation_blocked"] is False
+                assert execution["details"]["post_write_verification_attempted"] is True
+                assert execution["details"]["post_write_verification_succeeded"] is True
+                assert execution["details"]["verified_operation_paths"] == ["/version"]

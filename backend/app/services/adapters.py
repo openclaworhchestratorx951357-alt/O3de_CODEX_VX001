@@ -1194,6 +1194,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         rollback_attempted = False
         rollback_succeeded = False
         applied_operation_count = 0
+        post_write_verification_attempted = False
+        post_write_verification_succeeded = False
+        verified_operation_paths: list[str] = []
+        verification_mismatched_paths: list[str] = []
+        verification_error: str | None = None
         if mutation_applied:
             mutated_manifest = dict(manifest)
             for operation in supported_operations:
@@ -1251,6 +1256,120 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                         ),
                     ],
                 ) from exc
+            post_write_verification_attempted = True
+            try:
+                verified_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                verification_error = str(exc)
+                rollback_attempted = True
+                rollback_error: str | None = None
+                try:
+                    manifest_path.write_text(
+                        backup_target.read_text(encoding="utf-8"),
+                        encoding="utf-8",
+                    )
+                    rollback_succeeded = True
+                except OSError as rollback_exc:
+                    rollback_error = str(rollback_exc)
+                raise AdapterExecutionRejected(
+                    "Real settings.patch mutation failed post-write verification and "
+                    "triggered rollback handling.",
+                    details={
+                        "inspection_surface": "settings_patch_mutation",
+                        "project_manifest_path": str(manifest_path),
+                        "backup_target": str(backup_target),
+                        "backup_created": backup_created,
+                        "registry_path": registry_path,
+                        "operation_count": len(normalized_operations),
+                        "supported_operation_count": len(supported_operations),
+                        "unsupported_operation_count": len(unsupported_operations),
+                        "supported_operation_paths": supported_operation_paths,
+                        "unsupported_operation_paths": unsupported_operation_paths,
+                        "rollback_attempted": rollback_attempted,
+                        "rollback_succeeded": rollback_succeeded,
+                        "rollback_error": rollback_error,
+                        "post_write_verification_attempted": True,
+                        "post_write_verification_succeeded": False,
+                        "verification_error": verification_error,
+                    },
+                    warnings=[
+                        "settings.patch mutation write completed, but post-write "
+                        "verification failed and triggered rollback handling."
+                    ],
+                    logs=[
+                        "Hybrid adapter mode enabled a real settings.patch mutation path.",
+                        f"Read project manifest from '{manifest_path}'.",
+                        "Post-write verification could not reload "
+                        f"'{manifest_path}': {verification_error}",
+                        (
+                            f"Rollback restored manifest content from '{backup_target}'."
+                            if rollback_succeeded
+                            else "Rollback could not restore manifest content after the "
+                            "post-write verification failure."
+                        ),
+                    ],
+                ) from exc
+            for operation in supported_operations:
+                key = str(operation.get("path", "")).strip().lstrip("/")
+                expected_value = operation.get("value")
+                if verified_manifest.get(key) == expected_value:
+                    verified_operation_paths.append(f"/{key}")
+                else:
+                    verification_mismatched_paths.append(f"/{key}")
+            if verification_mismatched_paths:
+                verification_error = (
+                    "Post-write verification did not match expected manifest values."
+                )
+                rollback_attempted = True
+                rollback_error = None
+                try:
+                    manifest_path.write_text(
+                        backup_target.read_text(encoding="utf-8"),
+                        encoding="utf-8",
+                    )
+                    rollback_succeeded = True
+                except OSError as rollback_exc:
+                    rollback_error = str(rollback_exc)
+                raise AdapterExecutionRejected(
+                    "Real settings.patch mutation failed post-write verification and "
+                    "triggered rollback handling.",
+                    details={
+                        "inspection_surface": "settings_patch_mutation",
+                        "project_manifest_path": str(manifest_path),
+                        "backup_target": str(backup_target),
+                        "backup_created": backup_created,
+                        "registry_path": registry_path,
+                        "operation_count": len(normalized_operations),
+                        "supported_operation_count": len(supported_operations),
+                        "unsupported_operation_count": len(unsupported_operations),
+                        "supported_operation_paths": supported_operation_paths,
+                        "unsupported_operation_paths": unsupported_operation_paths,
+                        "rollback_attempted": rollback_attempted,
+                        "rollback_succeeded": rollback_succeeded,
+                        "rollback_error": rollback_error,
+                        "post_write_verification_attempted": True,
+                        "post_write_verification_succeeded": False,
+                        "verified_operation_paths": verified_operation_paths,
+                        "verification_mismatched_paths": verification_mismatched_paths,
+                        "verification_error": verification_error,
+                    },
+                    warnings=[
+                        "settings.patch mutation values did not pass post-write "
+                        "verification and triggered rollback handling."
+                    ],
+                    logs=[
+                        "Hybrid adapter mode enabled a real settings.patch mutation path.",
+                        f"Read project manifest from '{manifest_path}'.",
+                        "Post-write verification found mismatched manifest values.",
+                        (
+                            f"Rollback restored manifest content from '{backup_target}'."
+                            if rollback_succeeded
+                            else "Rollback could not restore manifest content after the "
+                            "post-write verification mismatch."
+                        ),
+                    ],
+                )
+            post_write_verification_succeeded = True
         post_backup_validation = {
             "registry_path_admitted": registry_path_admitted,
             "supported_operations_present": len(supported_operations) > 0,
@@ -1285,6 +1404,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "rollback_attempted": rollback_attempted,
             "rollback_succeeded": rollback_succeeded,
             "applied_operation_count": applied_operation_count,
+            "post_write_verification_attempted": post_write_verification_attempted,
+            "post_write_verification_succeeded": post_write_verification_succeeded,
+            "verified_operation_paths": verified_operation_paths,
+            "verification_mismatched_paths": verification_mismatched_paths,
+            "verification_error": verification_error,
             "project_manifest_path": str(manifest_path),
         }
         warnings: list[str] = []
@@ -1337,11 +1461,17 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "write-blocked in this slice."
                 )
             )
-        else:
+        if post_write_verification_succeeded:
             warnings.append(
-                "Post-backup patch-plan validation remains partial; this run published "
-                "rollback planning metadata without admitting mutation."
+                "Post-write verification re-read the manifest and confirmed the "
+                "expected settings values."
             )
+        else:
+            if not patch_plan_valid:
+                warnings.append(
+                    "Post-backup patch-plan validation remains partial; this run published "
+                    "rollback planning metadata without admitting mutation."
+                )
 
         message = "Real settings.patch preflight completed; no settings were written."
         if isinstance(project_name, str) and project_name.strip():
@@ -1418,6 +1548,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "rollback_attempted": rollback_attempted,
             "rollback_succeeded": rollback_succeeded,
             "applied_operation_count": applied_operation_count,
+            "post_write_verification_attempted": post_write_verification_attempted,
+            "post_write_verification_succeeded": post_write_verification_succeeded,
+            "verified_operation_paths": verified_operation_paths,
+            "verification_mismatched_paths": verification_mismatched_paths,
+            "verification_error": verification_error,
             "plan_details": plan_details,
         }
         return AdapterExecutionReport(
@@ -1452,6 +1587,12 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     if patch_plan_valid
                     else "Published partial post-backup patch-plan validation and "
                     "rollback metadata; mutation remains non-admitted."
+                ),
+                (
+                    "Post-write verification re-read the manifest and confirmed all "
+                    "admitted setting values."
+                    if post_write_verification_succeeded
+                    else "Post-write verification was not required for this execution path."
                 ),
             ],
             artifact_label=(
