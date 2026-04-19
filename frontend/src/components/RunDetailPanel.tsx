@@ -1,5 +1,6 @@
 import type { RunRecord, SettingsPatchMutationAudit } from "../types/contracts";
 import SummarySection from "./SummarySection";
+import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import {
   formatSummaryLabeledText,
   formatSummaryTimestamp,
@@ -69,24 +70,26 @@ export default function RunDetailPanel({
       <div style={summaryCardGridStyle}>
         <article style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Identity</h4>
-          <div><strong>Run ID:</strong> {item?.id}</div>
-          <div><strong>Request ID:</strong> {item?.request_id}</div>
-          <div><strong>Agent:</strong> {item?.agent}</div>
-          <div><strong>Tool:</strong> {item?.tool}</div>
+          <SummaryFacts>
+            <SummaryFact label="Run ID">{item?.id}</SummaryFact>
+            <SummaryFact label="Request ID">{item?.request_id}</SummaryFact>
+            <SummaryFact label="Agent">{item?.agent}</SummaryFact>
+            <SummaryFact label="Tool">{item?.tool}</SummaryFact>
+          </SummaryFacts>
         </article>
         <article style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Execution</h4>
-          <div><strong>Status:</strong> {item?.status}</div>
-          <div><strong>Execution mode:</strong> {item?.execution_mode}</div>
-          <div><strong>Dry run:</strong> {String(item?.dry_run)}</div>
-          <div>
-            <strong>Created:</strong>{" "}
-            {item ? formatSummaryTimestamp(item.created_at) : ""}
-          </div>
-          <div>
-            <strong>Updated:</strong>{" "}
-            {item ? formatSummaryTimestamp(item.updated_at) : ""}
-          </div>
+          <SummaryFacts>
+            <SummaryFact label="Status">{item?.status}</SummaryFact>
+            <SummaryFact label="Execution mode">{item?.execution_mode}</SummaryFact>
+            <SummaryFact label="Dry run">{String(item?.dry_run)}</SummaryFact>
+            <SummaryFact label="Created">
+              {item ? formatSummaryTimestamp(item.created_at) : ""}
+            </SummaryFact>
+            <SummaryFact label="Updated">
+              {item ? formatSummaryTimestamp(item.updated_at) : ""}
+            </SummaryFact>
+          </SummaryFacts>
         </article>
         <article style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Truth Boundary</h4>
@@ -101,46 +104,37 @@ export default function RunDetailPanel({
         </article>
         <article style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Locks And Warnings</h4>
-          <div>
-            <strong>Requested locks:</strong>{" "}
-            {item?.requested_locks.join(", ") || "none"}
-          </div>
-          <div>
-            <strong>Granted locks:</strong>{" "}
-            {item?.granted_locks.join(", ") || "none"}
-          </div>
-          <div>
-            <strong>Warnings:</strong> {item?.warnings.join(", ") || "none"}
-          </div>
+          <SummaryFacts>
+            <SummaryFact label="Requested locks">
+              {item?.requested_locks.join(", ") || "none"}
+            </SummaryFact>
+            <SummaryFact label="Granted locks">
+              {item?.granted_locks.join(", ") || "none"}
+            </SummaryFact>
+            <SummaryFact label="Warnings">
+              {item?.warnings.join(", ") || "none"}
+            </SummaryFact>
+          </SummaryFacts>
         </article>
         {item?.tool === "settings.patch" && mutationAudit ? (
           <article style={summaryCardStyle}>
             <h4 style={summaryCardHeadingStyle}>Mutation Audit</h4>
-            <div>
-              <strong>Audit summary:</strong> {mutationAudit.summary ?? "available"}
-            </div>
-            <div>
-              <strong>Audit phase:</strong> {mutationAudit.phase ?? "unknown"}
-            </div>
-            <div>
-              <strong>Audit status:</strong> {mutationAudit.status ?? "unknown"}
-            </div>
-            {typeof mutationAudit.backup_created === "boolean" ? (
-              <div>
-                <strong>Backup created:</strong> {String(mutationAudit.backup_created)}
-              </div>
-            ) : null}
-            {typeof mutationAudit.post_write_verification_succeeded === "boolean" ? (
-              <div>
-                <strong>Verification succeeded:</strong>{" "}
-                {String(mutationAudit.post_write_verification_succeeded)}
-              </div>
-            ) : null}
-            {mutationAudit.rollback_outcome ? (
-              <div>
-                <strong>Rollback outcome:</strong> {mutationAudit.rollback_outcome}
-              </div>
-            ) : null}
+            <SummaryFacts>
+              <SummaryFact label="Audit summary">{mutationAudit.summary ?? "available"}</SummaryFact>
+              <SummaryFact label="Audit phase">{mutationAudit.phase ?? "unknown"}</SummaryFact>
+              <SummaryFact label="Audit status">{mutationAudit.status ?? "unknown"}</SummaryFact>
+              {typeof mutationAudit.backup_created === "boolean" ? (
+                <SummaryFact label="Backup created">{String(mutationAudit.backup_created)}</SummaryFact>
+              ) : null}
+              {typeof mutationAudit.post_write_verification_succeeded === "boolean" ? (
+                <SummaryFact label="Verification succeeded">
+                  {String(mutationAudit.post_write_verification_succeeded)}
+                </SummaryFact>
+              ) : null}
+              {mutationAudit.rollback_outcome ? (
+                <SummaryFact label="Rollback outcome">{mutationAudit.rollback_outcome}</SummaryFact>
+              ) : null}
+            </SummaryFacts>
           </article>
         ) : null}
       </div>

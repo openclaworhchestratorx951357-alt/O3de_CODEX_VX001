@@ -6,6 +6,7 @@ import type {
   SettingsPatchAuditSummary,
 } from "../types/contracts";
 import SummarySection from "./SummarySection";
+import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import StatusChip from "./StatusChip";
 import {
@@ -158,19 +159,35 @@ export default function RunsPanel({
             return (
               <SummaryListItem key={item.id} card>
                 <strong>{item.tool}</strong>
-                <div>Agent: {item.agent}</div>
-                <div>Status: <StatusChip label={item.status} tone={getRunStatusTone(item.status)} /></div>
-                <div>Execution mode: <StatusChip label={item.execution_mode} tone={getExecutionModeTone(item.execution_mode)} /></div>
-                <div>Capability: <StatusChip label={capability} tone={getCapabilityTone(capability)} /></div>
-                <div>Execution truth: {executionTruth}</div>
-                {auditStatus ? (
-                  <div>Audit status: <StatusChip label={auditStatus} tone={getAuditStatusTone(auditStatus)} /></div>
-                ) : null}
-                {audit?.audit_phase ? <div>Audit phase: {audit.audit_phase}</div> : null}
-                {audit?.audit_summary ? <div>Audit summary: {audit.audit_summary}</div> : null}
-                <div>Dry run: {String(item.dry_run)}</div>
-                <div>Run ID: {item.id}</div>
-                {item.result_summary ? <div>Summary: {item.result_summary}</div> : null}
+                <SummaryFacts>
+                  <SummaryFact label="Agent">{item.agent}</SummaryFact>
+                  <SummaryFact label="Status">
+                    <StatusChip label={item.status} tone={getRunStatusTone(item.status)} />
+                  </SummaryFact>
+                  <SummaryFact label="Execution mode">
+                    <StatusChip label={item.execution_mode} tone={getExecutionModeTone(item.execution_mode)} />
+                  </SummaryFact>
+                  <SummaryFact label="Capability">
+                    <StatusChip label={capability} tone={getCapabilityTone(capability)} />
+                  </SummaryFact>
+                  <SummaryFact label="Execution truth">{executionTruth}</SummaryFact>
+                  {auditStatus ? (
+                    <SummaryFact label="Audit status">
+                      <StatusChip label={auditStatus} tone={getAuditStatusTone(auditStatus)} />
+                    </SummaryFact>
+                  ) : null}
+                  {audit?.audit_phase ? (
+                    <SummaryFact label="Audit phase">{audit.audit_phase}</SummaryFact>
+                  ) : null}
+                  {audit?.audit_summary ? (
+                    <SummaryFact label="Audit summary">{audit.audit_summary}</SummaryFact>
+                  ) : null}
+                  <SummaryFact label="Dry run">{String(item.dry_run)}</SummaryFact>
+                  <SummaryFact label="Run ID">{item.id}</SummaryFact>
+                  {item.result_summary ? (
+                    <SummaryFact label="Summary">{item.result_summary}</SummaryFact>
+                  ) : null}
+                </SummaryFacts>
                 <button
                   type="button"
                   style={{

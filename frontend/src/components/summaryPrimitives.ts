@@ -45,6 +45,29 @@ export const summaryCardStyle: CSSProperties = {
   gap: 8,
 };
 
+export const summaryFactsGridStyle: CSSProperties = {
+  display: "grid",
+  gap: 8,
+};
+
+export const summaryFactRowStyle: CSSProperties = {
+  display: "grid",
+  gap: 4,
+};
+
+export const summaryFactLabelStyle: CSSProperties = {
+  color: "#57606a",
+  fontSize: 12,
+  fontWeight: 600,
+};
+
+export const summaryFactValueStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 6,
+  flexWrap: "wrap",
+};
+
 export const summaryCardHeadingStyle: CSSProperties = {
   margin: 0,
 };
