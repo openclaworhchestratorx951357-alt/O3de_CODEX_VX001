@@ -901,6 +901,7 @@ export default function App() {
           item={selectedExecution}
           loading={selectedExecutionLoading}
           error={selectedExecutionError}
+          selectedArtifactId={selectedArtifactId}
           onOpenRun={openRunDetail}
           onOpenArtifact={openArtifactDetail}
           refreshHint={executionDetailRefreshHint}

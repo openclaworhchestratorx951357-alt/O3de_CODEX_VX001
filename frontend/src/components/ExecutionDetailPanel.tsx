@@ -16,6 +16,7 @@ type ExecutionDetailPanelProps = {
   item: ExecutionRecord | null;
   loading: boolean;
   error: string | null;
+  selectedArtifactId?: string | null;
   onOpenRun?: (runId: string) => void;
   onOpenArtifact?: (artifactId: string) => void;
   refreshHint?: string | null;
@@ -35,6 +36,7 @@ export default function ExecutionDetailPanel({
   item,
   loading,
   error,
+  selectedArtifactId,
   onOpenRun,
   onOpenArtifact,
   refreshHint,
@@ -105,13 +107,20 @@ export default function ExecutionDetailPanel({
               </button>
             ) : null}
             {onOpenArtifact && item.artifact_ids.length > 0 ? (
-              <button
-                type="button"
-                style={summaryActionButtonStyle}
-                onClick={() => onOpenArtifact(item.artifact_ids[0])}
-              >
-                Open first related artifact detail
-              </button>
+              <div style={{ display: "grid", gap: 8 }}>
+                {item.artifact_ids.map((artifactId) => (
+                  <button
+                    key={artifactId}
+                    type="button"
+                    style={summaryActionButtonStyle}
+                    onClick={() => onOpenArtifact(artifactId)}
+                  >
+                    {selectedArtifactId === artifactId
+                      ? `Artifact ${artifactId} selected`
+                      : `Open artifact ${artifactId}`}
+                  </button>
+                ))}
+              </div>
             ) : null}
           </article>
         ) : null}
