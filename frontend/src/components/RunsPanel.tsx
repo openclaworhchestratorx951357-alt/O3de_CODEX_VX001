@@ -8,6 +8,7 @@ import type {
 import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import {
+  summaryActionButtonStyle,
   summaryBadgeStyle,
   summaryControlRowStyle,
   summaryFilterButtonStyle,
@@ -163,7 +164,10 @@ export default function RunsPanel({
                 {item.result_summary ? <div>Summary: {item.result_summary}</div> : null}
                 <button
                   type="button"
-                  style={{ marginTop: 8 }}
+                  style={{
+                    ...summaryActionButtonStyle,
+                    marginTop: 8,
+                  }}
                   disabled={selectedRunId === item.id}
                   onClick={() => onSelectRun(item.id)}
                 >

@@ -3,6 +3,8 @@ import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import {
   formatSummaryTimestamp,
+  summaryActionButtonStyle,
+  summaryActionRowStyle,
 } from "./summaryPrimitives";
 
 type ApprovalQueueProps = {
@@ -59,9 +61,10 @@ export default function ApprovalQueue({
             ) : null}
             {item.reason ? <div>Reason: {item.reason}</div> : null}
             {item.can_decide ? (
-              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <div style={summaryActionRowStyle}>
                 <button
                   type="button"
+                  style={summaryActionButtonStyle}
                   disabled={busyApprovalId === item.id}
                   onClick={() => void onApprove(item.id)}
                 >
@@ -69,6 +72,7 @@ export default function ApprovalQueue({
                 </button>
                 <button
                   type="button"
+                  style={summaryActionButtonStyle}
                   disabled={busyApprovalId === item.id}
                   onClick={() => void onReject(item.id)}
                 >

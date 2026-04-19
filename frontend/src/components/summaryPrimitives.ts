@@ -23,6 +23,13 @@ export const summaryControlRowStyle: CSSProperties = {
   marginBottom: 16,
 };
 
+export const summaryActionRowStyle: CSSProperties = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+  marginTop: 8,
+};
+
 export const summaryCardGridStyle: CSSProperties = {
   display: "grid",
   gap: 12,
@@ -58,6 +65,14 @@ export const summaryFilterButtonStyle: CSSProperties = {
   border: "1px solid #d0d7de",
   borderRadius: 999,
   padding: "6px 12px",
+  cursor: "pointer",
+};
+
+export const summaryActionButtonStyle: CSSProperties = {
+  border: "1px solid #d0d7de",
+  borderRadius: 8,
+  padding: "6px 12px",
+  background: "#f6f8fa",
   cursor: "pointer",
 };
 
