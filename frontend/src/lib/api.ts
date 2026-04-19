@@ -20,6 +20,8 @@ import type {
   RequestEnvelope,
   ResponseEnvelope,
   LockRecord,
+  LockListItem,
+  LocksListResponse,
   LocksResponse,
   PoliciesResponse,
   ReadinessStatus,
@@ -242,6 +244,17 @@ export async function fetchLocks(): Promise<LockRecord[]> {
   }
 
   const payload = (await response.json()) as LocksResponse;
+  return payload.locks ?? [];
+}
+
+export async function fetchLockCards(): Promise<LockListItem[]> {
+  const response = await fetch(`${API_BASE_URL}/locks/cards`);
+
+  if (!response.ok) {
+    throw new Error(`Lock cards fetch failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as LocksListResponse;
   return payload.locks ?? [];
 }
 

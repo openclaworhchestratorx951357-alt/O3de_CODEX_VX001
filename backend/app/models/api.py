@@ -193,6 +193,16 @@ class LocksResponse(BaseModel):
     locks: list[LockRecord] = Field(default_factory=list)
 
 
+class LockListItem(BaseModel):
+    name: str = Field(..., min_length=1)
+    owner_run_id: str = Field(..., min_length=1)
+    created_at: str = Field(..., min_length=1)
+
+
+class LocksListResponse(BaseModel):
+    locks: list[LockListItem] = Field(default_factory=list)
+
+
 class EventsResponse(BaseModel):
     events: list[EventRecord] = Field(default_factory=list)
 

@@ -1,3 +1,4 @@
+from app.models.api import LockListItem, LocksListResponse
 from app.models.control_plane import LockRecord
 from app.repositories.control_plane import control_plane_repository
 
@@ -5,6 +6,18 @@ from app.repositories.control_plane import control_plane_repository
 class LocksService:
     def list_locks(self) -> list[LockRecord]:
         return control_plane_repository.list_locks()
+
+    def list_lock_cards(self) -> LocksListResponse:
+        return LocksListResponse(
+            locks=[
+                LockListItem(
+                    name=lock.name,
+                    owner_run_id=lock.owner_run_id,
+                    created_at=lock.created_at.isoformat(),
+                )
+                for lock in self.list_locks()
+            ]
+        )
 
     def get_conflicts(
         self,

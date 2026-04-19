@@ -274,6 +274,16 @@ export interface LocksResponse {
   locks: LockRecord[];
 }
 
+export interface LockListItem {
+  name: string;
+  owner_run_id: string;
+  created_at: string;
+}
+
+export interface LocksListResponse {
+  locks: LockListItem[];
+}
+
 export interface ToolPolicy {
   agent: string;
   tool: string;

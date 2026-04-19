@@ -35,6 +35,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert "/runs/cards" in payload["routes"]
         assert "/runs/summary" in payload["routes"]
         assert "/approvals/cards" in payload["routes"]
+        assert "/locks/cards" in payload["routes"]
         assert "/events/cards" in payload["routes"]
         assert "/executions/cards" in payload["routes"]
         assert "/artifacts/cards" in payload["routes"]
@@ -652,6 +653,29 @@ def test_events_endpoint_returns_persisted_dispatch_history() -> None:
             for event in card_payload["events"]
         )
         assert "details" not in card_payload["events"][0]
+
+
+def test_locks_cards_endpoint_returns_compact_lock_records() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/tools/dispatch",
+            json={
+                "request_id": "api-locks-1",
+                "tool": "project.inspect",
+                "agent": "project-build",
+                "project_root": "/tmp/project",
+                "engine_root": "/tmp/engine",
+                "dry_run": True,
+                "locks": ["project_config"],
+                "timeout_s": 30,
+                "args": {},
+            },
+        )
+        assert response.status_code == 200
+        cards_response = client.get("/locks/cards")
+        assert cards_response.status_code == 200
+        payload = cards_response.json()
+        assert payload["locks"] == []
 
 
 def test_executions_and_artifacts_endpoints_reflect_simulated_dispatch() -> None:

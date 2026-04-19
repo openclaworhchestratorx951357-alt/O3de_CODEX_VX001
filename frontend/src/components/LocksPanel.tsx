@@ -1,7 +1,7 @@
-import type { LockRecord } from "../types/contracts";
+import type { LockListItem } from "../types/contracts";
 
 type LocksPanelProps = {
-  items: LockRecord[];
+  items: LockListItem[];
   loading: boolean;
   error: string | null;
 };

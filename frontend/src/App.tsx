@@ -25,10 +25,10 @@ import {
   fetchExecution,
   fetchExecutionCards,
   fetchEventCards,
+  fetchLockCards,
   fetchRun,
   fetchRunCards,
   fetchRunsSummaryForFilter,
-  fetchLocks,
   fetchPolicies,
   fetchReadiness,
   fetchToolsCatalog,
@@ -41,7 +41,7 @@ import type {
   CatalogAgent,
   ExecutionListItem,
   EventListItem,
-  LockRecord,
+  LockListItem,
   ReadinessStatus,
   RunAuditRecord,
   RunListItem,
@@ -73,7 +73,7 @@ export default function App() {
   const [artifacts, setArtifacts] = useState<ArtifactListItem[]>([]);
   const [events, setEvents] = useState<EventListItem[]>([]);
   const [executions, setExecutions] = useState<ExecutionListItem[]>([]);
-  const [locks, setLocks] = useState<LockRecord[]>([]);
+  const [locks, setLocks] = useState<LockListItem[]>([]);
   const [policies, setPolicies] = useState<ToolPolicy[]>([]);
   const [readiness, setReadiness] = useState<ReadinessStatus | null>(null);
   const [runs, setRuns] = useState<RunListItem[]>([]);
@@ -236,7 +236,7 @@ export default function App() {
   async function loadLocks() {
     setLocksLoading(true);
     try {
-      const nextLocks = await fetchLocks();
+      const nextLocks = await fetchLockCards();
       setLocks(nextLocks);
       setLocksError(null);
     } catch (error) {
