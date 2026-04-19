@@ -2069,7 +2069,10 @@ def test_settings_patch_falls_back_to_simulated_when_not_dry_run_in_hybrid_mode(
         )
         artifact = artifacts_service.get_artifact(response.artifacts[0])
         assert execution.details["real_path_available"] is False
-        assert "dry_run=true" in execution.details["fallback_reason"]
+        assert (
+            "fully admitted manifest-backed set-only path"
+            in execution.details["fallback_reason"]
+        )
         assert artifact is not None
         assert (
             schema_validation_service.validate_execution_details(
@@ -2138,6 +2141,61 @@ def test_settings_patch_reports_fully_valid_patch_plan_when_all_operations_are_a
             "mutation-ready but intentionally write-blocked" in warning
             for warning in execution.warnings
         )
+
+
+def test_settings_patch_writes_manifest_on_fully_admitted_path_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        manifest_path = project_root / "project.json"
+        manifest_path.write_text(
+            json.dumps({"project_name": "WritableProject", "version": "1.0.0"}),
+            encoding="utf-8",
+        )
+        initial_request = make_settings_patch_request()
+        initial_request.project_root = str(project_root)
+        first = dispatcher_service.dispatch(initial_request)
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            approved_request = make_request(
+                "project-build",
+                "settings.patch",
+                project_root=str(project_root),
+                dry_run=False,
+            )
+            approved_request.approval_token = approval.token
+            approved_request.args = {
+                "registry_path": "/O3DE/Settings",
+                "operations": [{"op": "set", "path": "/version", "value": "1.0.1"}],
+            }
+            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert "settings were written" in response.result.message
+        persisted_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        assert persisted_manifest["version"] == "1.0.1"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "settings_patch_mutation"
+        assert execution.details["mutation_applied"] is True
+        assert execution.details["mutation_ready"] is True
+        assert execution.details["mutation_blocked"] is False
+        assert execution.details["applied_operation_count"] == 1
+        assert execution.details["rollback_attempted"] is False
+        assert execution.details["rollback_succeeded"] is False
+        assert artifact is not None
+        assert artifact.metadata["inspection_surface"] == "settings_patch_mutation"
+        assert artifact.metadata["mutation_applied"] is True
 
 
 def test_settings_patch_rejects_when_backup_creation_fails_in_hybrid_mode() -> None:

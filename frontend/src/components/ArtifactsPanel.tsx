@@ -155,6 +155,8 @@ export default function ArtifactsPanel({
                 ? "Simulated artifact"
                 : inspectionSurface === "build_configure_preflight"
                   ? "Real build.configure preflight evidence"
+                : inspectionSurface === "settings_patch_mutation"
+                  ? "Real settings.patch mutation evidence"
                 : inspectionSurface === "settings_patch_preflight"
                   ? "Real settings.patch preflight evidence"
                 : inspectionSurface === "project_manifest"

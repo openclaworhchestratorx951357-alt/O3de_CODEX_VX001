@@ -25,9 +25,9 @@ The first recommended mutation-capable candidate is:
 
 This recommendation is now partially implemented as a bounded preflight.
 
-`settings.patch` now has a real dry-run-only preflight path in hybrid mode when
-`dry_run=true`, but actual settings mutation remains simulated and gated behind
-later admission criteria.
+`settings.patch` now has a real dry-run preflight path in hybrid mode and a
+first real mutation path for the fully admitted manifest-backed set-only case.
+Broader settings mutation remains gated behind later admission criteria.
 
 ## Why `settings.patch` first
 
@@ -77,6 +77,14 @@ If the post-backup plan is fully admitted, the run now records a
 mutation-ready-but-write-blocked state. This is still not a real settings
 write, but it gives operators a truthful final checkpoint before mutation
 admission.
+
+That checkpoint has now been crossed for one narrow case:
+- `dry_run=false`
+- `registry_path=/O3DE/Settings`
+- all requested operations are admitted top-level manifest-backed `set`
+  operations
+
+Outside that narrow path, mutation remains blocked or simulated.
 
 ## Admission criteria before implementation
 

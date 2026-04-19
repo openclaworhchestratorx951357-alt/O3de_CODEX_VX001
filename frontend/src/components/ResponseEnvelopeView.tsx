@@ -144,6 +144,9 @@ function describeExecutionResult(result: Record<string, unknown>): string {
   }
   if (executionMode === "real" && simulated === false && tool === "settings.patch") {
     const message = typeof result.message === "string" ? result.message : "";
+    if (message.startsWith("Real settings.patch mutation completed")) {
+      return "Real settings.patch mutation ran and wrote settings on the fully admitted path.";
+    }
     if (message.includes("ready for mutation")) {
       return "Real settings.patch preflight validated a mutation-ready plan, but writes remained intentionally disabled.";
     }

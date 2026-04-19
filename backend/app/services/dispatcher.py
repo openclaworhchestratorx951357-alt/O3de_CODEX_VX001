@@ -545,8 +545,13 @@ class DispatcherService:
                 if request.tool == "project.inspect"
                 else "This run used the real plan-only build.configure preflight path."
                 if request.tool == "build.configure"
-                else "This run used the real plan-only settings.patch preflight path; "
-                "no settings were written."
+                else (
+                    "This run used the first real settings.patch mutation path."
+                    if isinstance(result.message, str)
+                    and result.message.startswith("Real settings.patch mutation completed")
+                    else "This run used the real plan-only settings.patch preflight path; "
+                    "no settings were written."
+                )
             )
         )
         return ResponseEnvelope(
@@ -903,7 +908,11 @@ class DispatcherService:
         if request.tool == "build.configure" and capability == "plan-only":
             return "plan-only build.configure preflight"
         if request.tool == "settings.patch" and capability == "mutation-gated":
-            return "plan-only settings.patch preflight"
+            return (
+                "mutation-gated settings.patch path"
+                if not request.dry_run
+                else "plan-only settings.patch preflight"
+            )
         if request.tool == "project.inspect" and capability == "hybrid-read-only":
             return "hybrid-read-only project.inspect path"
         return f"{capability} dispatch"

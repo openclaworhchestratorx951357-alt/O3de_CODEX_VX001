@@ -204,6 +204,8 @@ export default function ExecutionsPanel({
               const provenanceLabel = item.execution_mode === "real"
                 ? inspectionSurface === "build_configure_preflight"
                   ? "Real plan-only build.configure preflight"
+                  : inspectionSurface === "settings_patch_mutation"
+                    ? "Real settings.patch mutation"
                   : inspectionSurface === "settings_patch_preflight"
                     ? "Real dry-run-only settings.patch preflight"
                   : "Real read-only project inspection"
@@ -211,6 +213,8 @@ export default function ExecutionsPanel({
                   ? "Real project manifest provenance recorded"
                   : inspectionSurface === "build_configure_preflight"
                     ? "Real build.configure preflight provenance recorded"
+                    : inspectionSurface === "settings_patch_mutation"
+                      ? "Real settings.patch mutation provenance recorded"
                     : inspectionSurface === "settings_patch_preflight"
                       ? "Real settings.patch preflight provenance recorded"
                     : "Simulated execution record";

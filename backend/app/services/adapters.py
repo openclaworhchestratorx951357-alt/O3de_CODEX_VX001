@@ -1050,19 +1050,6 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         approval_class: str,
         locks_acquired: list[str],
     ) -> AdapterExecutionReport:
-        if not dry_run:
-            return self._fallback_settings_patch(
-                tool=tool,
-                agent=agent,
-                project_root=project_root,
-                engine_root=engine_root,
-                dry_run=dry_run,
-                args=args,
-                approval_class=approval_class,
-                locks_acquired=locks_acquired,
-                reason="Real settings.patch preflight requires dry_run=true.",
-            )
-
         manifest_path = Path(project_root).expanduser().resolve() / "project.json"
         if not manifest_path.is_file():
             return self._fallback_settings_patch(
@@ -1107,6 +1094,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             operation
             for operation in normalized_operations
             if isinstance(operation, dict)
+            and str(operation.get("op", "")).strip() == "set"
             and str(operation.get("path", "")).strip() in admitted_manifest_paths
         ]
         unsupported_operations = [
@@ -1129,6 +1117,25 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 if isinstance(operation, dict)
             }
         )
+        if not dry_run and (
+            not registry_path_admitted
+            or len(supported_operations) == 0
+            or len(unsupported_operations) > 0
+        ):
+            return self._fallback_settings_patch(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real settings.patch mutation remains limited to the fully admitted "
+                    "manifest-backed set-only path in this slice."
+                ),
+            )
         backup_target = manifest_path.with_suffix(f"{manifest_path.suffix}.bak")
         backup_created = False
         backup_error: str | None = None
@@ -1175,14 +1182,75 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             and len(supported_operations) > 0
             and len(unsupported_operations) == 0
         )
+        mutation_applied = patch_plan_valid and not dry_run
         mutation_ready = patch_plan_valid
-        mutation_blocked = patch_plan_valid
+        mutation_blocked = patch_plan_valid and dry_run
         mutation_blocked_reason = (
             "Validated mutation-ready settings.patch plan remains intentionally "
             "write-disabled in this slice."
             if mutation_blocked
             else None
         )
+        rollback_attempted = False
+        rollback_succeeded = False
+        applied_operation_count = 0
+        if mutation_applied:
+            mutated_manifest = dict(manifest)
+            for operation in supported_operations:
+                key = str(operation.get("path", "")).strip().lstrip("/")
+                mutated_manifest[key] = operation.get("value")
+            try:
+                manifest_path.write_text(
+                    json.dumps(mutated_manifest, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+                manifest = mutated_manifest
+                applied_operation_count = len(supported_operations)
+            except OSError as exc:
+                rollback_attempted = True
+                rollback_error: str | None = None
+                try:
+                    manifest_path.write_text(
+                        backup_target.read_text(encoding="utf-8"),
+                        encoding="utf-8",
+                    )
+                    rollback_succeeded = True
+                except OSError as rollback_exc:
+                    rollback_error = str(rollback_exc)
+                raise AdapterExecutionRejected(
+                    "Real settings.patch mutation failed while writing the manifest "
+                    "and triggered rollback handling.",
+                    details={
+                        "inspection_surface": "settings_patch_mutation",
+                        "project_manifest_path": str(manifest_path),
+                        "backup_target": str(backup_target),
+                        "backup_created": backup_created,
+                        "registry_path": registry_path,
+                        "operation_count": len(normalized_operations),
+                        "supported_operation_count": len(supported_operations),
+                        "unsupported_operation_count": len(unsupported_operations),
+                        "supported_operation_paths": supported_operation_paths,
+                        "unsupported_operation_paths": unsupported_operation_paths,
+                        "rollback_attempted": rollback_attempted,
+                        "rollback_succeeded": rollback_succeeded,
+                        "rollback_error": rollback_error,
+                    },
+                    warnings=[
+                        "settings.patch mutation failed during manifest write and "
+                        "triggered rollback handling."
+                    ],
+                    logs=[
+                        "Hybrid adapter mode enabled a real settings.patch mutation path.",
+                        f"Read project manifest from '{manifest_path}'.",
+                        f"Mutation write failed for '{manifest_path}': {exc}",
+                        (
+                            f"Rollback restored manifest content from '{backup_target}'."
+                            if rollback_succeeded
+                            else "Rollback could not restore manifest content after the "
+                            "failed mutation write."
+                        ),
+                    ],
+                ) from exc
         post_backup_validation = {
             "registry_path_admitted": registry_path_admitted,
             "supported_operations_present": len(supported_operations) > 0,
@@ -1191,6 +1259,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "patch_plan_valid": patch_plan_valid,
             "mutation_ready": mutation_ready,
             "mutation_blocked": mutation_blocked,
+            "mutation_applied": mutation_applied,
         }
         manifest_keys = sorted(str(key) for key in manifest.keys())
         plan_details = {
@@ -1212,15 +1281,30 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "mutation_ready": mutation_ready,
             "mutation_blocked": mutation_blocked,
             "mutation_blocked_reason": mutation_blocked_reason,
+            "mutation_applied": mutation_applied,
+            "rollback_attempted": rollback_attempted,
+            "rollback_succeeded": rollback_succeeded,
+            "applied_operation_count": applied_operation_count,
             "project_manifest_path": str(manifest_path),
         }
-        warnings = [
-            "This is a real settings.patch preflight only; no settings were written.",
-        ]
+        warnings: list[str] = []
+        if mutation_applied:
+            warnings.append(
+                "A real settings.patch mutation was applied only for the fully "
+                "admitted manifest-backed set-only path in this slice."
+            )
+        else:
+            warnings.append(
+                "This is a real settings.patch preflight only; no settings were written."
+            )
         if backup_created:
             warnings.append(
-                "A real backup file was created for this dry-run preflight, but no "
-                "settings were written in this slice."
+                (
+                    "A real backup file was created before the settings.patch mutation."
+                    if mutation_applied
+                    else "A real backup file was created for this dry-run preflight, "
+                    "but no settings were written in this slice."
+                )
             )
         else:
             warnings.append(
@@ -1244,9 +1328,14 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             )
         if patch_plan_valid:
             warnings.append(
-                "Post-backup patch-plan validation passed for the admitted settings "
-                "scope, and the run is now mutation-ready but intentionally "
-                "write-blocked in this slice."
+                (
+                    "Post-backup patch-plan validation passed for the admitted settings "
+                    "scope, and the mutation was applied in this slice."
+                    if mutation_applied
+                    else "Post-backup patch-plan validation passed for the admitted "
+                    "settings scope, and the run is now mutation-ready but intentionally "
+                    "write-blocked in this slice."
+                )
             )
         else:
             warnings.append(
@@ -1260,6 +1349,13 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "Real settings.patch preflight completed for "
                 f"'{project_name}'; no settings were written."
             )
+        if mutation_applied:
+            message = "Real settings.patch mutation completed; settings were written."
+            if isinstance(project_name, str) and project_name.strip():
+                message = (
+                    "Real settings.patch mutation completed for "
+                    f"'{project_name}'; settings were written."
+                )
         if mutation_blocked:
             message = (
                 "Real settings.patch preflight completed; the plan is ready for "
@@ -1291,7 +1387,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "adapter_family": self.family,
             "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
             "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
-            "inspection_surface": "settings_patch_preflight",
+            "inspection_surface": (
+                "settings_patch_mutation"
+                if mutation_applied
+                else "settings_patch_preflight"
+            ),
             "real_path_available": True,
             "project_manifest_path": str(manifest_path),
             "manifest_keys": manifest_keys,
@@ -1314,6 +1414,10 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "mutation_ready": mutation_ready,
             "mutation_blocked": mutation_blocked,
             "mutation_blocked_reason": mutation_blocked_reason,
+            "mutation_applied": mutation_applied,
+            "rollback_attempted": rollback_attempted,
+            "rollback_succeeded": rollback_succeeded,
+            "applied_operation_count": applied_operation_count,
             "plan_details": plan_details,
         }
         return AdapterExecutionReport(
@@ -1321,7 +1425,12 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             result=result,
             warnings=warnings,
             logs=[
-                "Hybrid adapter mode enabled a real settings.patch preflight path.",
+                (
+                    "Hybrid adapter mode enabled a real settings.patch mutation path."
+                    if mutation_applied
+                    else "Hybrid adapter mode enabled a real settings.patch preflight "
+                    "path."
+                ),
                 f"Read project manifest from '{manifest_path}'.",
                 (
                     f"Created settings.patch preflight backup at '{backup_target}'."
@@ -1335,15 +1444,26 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     f"{len(unsupported_operations)} unsupported."
                 ),
                 (
-                    "Validated a fully admitted post-backup patch plan with rollback "
-                    "metadata published; writes remain intentionally disabled."
+                    "Validated a fully admitted post-backup patch plan and applied the "
+                    "settings.patch mutation using the published rollback boundary."
+                    if mutation_applied
+                    else "Validated a fully admitted post-backup patch plan with "
+                    "rollback metadata published; writes remain intentionally disabled."
                     if patch_plan_valid
                     else "Published partial post-backup patch-plan validation and "
                     "rollback metadata; mutation remains non-admitted."
                 ),
             ],
-            artifact_label="Real settings patch preflight evidence",
-            artifact_kind="settings_patch_preflight",
+            artifact_label=(
+                "Real settings patch mutation evidence"
+                if mutation_applied
+                else "Real settings patch preflight evidence"
+            ),
+            artifact_kind=(
+                "settings_patch_mutation"
+                if mutation_applied
+                else "settings_patch_preflight"
+            ),
             artifact_uri=manifest_path.as_uri(),
             artifact_metadata={
                 "tool": tool,
@@ -1352,7 +1472,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 **details,
             },
             execution_details=details,
-            result_summary="Real settings.patch preflight completed successfully.",
+            result_summary=(
+                "Real settings.patch mutation completed successfully."
+                if mutation_applied
+                else "Real settings.patch preflight completed successfully."
+            ),
         )
 
     def _fallback_project_inspect(

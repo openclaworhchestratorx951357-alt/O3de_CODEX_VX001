@@ -727,3 +727,82 @@ def test_dispatch_route_uses_real_settings_patch_preflight_in_hybrid_mode() -> N
                 assert execution["details"]["patch_plan_valid"] is False
                 assert execution["details"]["mutation_ready"] is False
                 assert execution["details"]["mutation_blocked"] is False
+
+
+def test_dispatch_route_uses_real_settings_patch_mutation_in_hybrid_mode() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        manifest_path = project_root / "project.json"
+        manifest_path.write_text(
+            json.dumps(
+                {
+                    "project_name": "ApiWritableSettingsProject",
+                    "version": "4.0.0",
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-settings-mutation-1",
+                        "tool": "settings.patch",
+                        "agent": "project-build",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "args": {
+                            "registry_path": "/O3DE/Settings",
+                            "operations": [{"op": "set", "path": "/version", "value": "4.0.1"}],
+                        },
+                    },
+                )
+                approval_id = dispatch.json()["approval_id"]
+                approval = approvals_service.get_approval(approval_id)
+                assert approval is not None
+                client.post(
+                    f"/approvals/{approval_id}/approve",
+                    json={"reason": "Approve settings.patch mutation for test"},
+                )
+                approved_dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-settings-mutation-2",
+                        "tool": "settings.patch",
+                        "agent": "project-build",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "approval_token": approval.token,
+                        "args": {
+                            "registry_path": "/O3DE/Settings",
+                            "operations": [{"op": "set", "path": "/version", "value": "4.0.1"}],
+                        },
+                    },
+                )
+                assert approved_dispatch.status_code == 200
+                payload = approved_dispatch.json()
+                assert payload["ok"] is True
+                assert payload["result"]["simulated"] is False
+                assert payload["result"]["execution_mode"] == "real"
+                assert "settings were written" in payload["result"]["message"]
+                persisted_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                assert persisted_manifest["version"] == "4.0.1"
+
+                executions = client.get("/executions")
+                assert executions.status_code == 200
+                execution = next(
+                    execution
+                    for execution in executions.json()["executions"]
+                    if execution["run_id"] == payload["operation_id"]
+                )
+                assert execution["details"]["inspection_surface"] == "settings_patch_mutation"
+                assert execution["details"]["mutation_applied"] is True
+                assert execution["details"]["mutation_ready"] is True
+                assert execution["details"]["mutation_blocked"] is False
