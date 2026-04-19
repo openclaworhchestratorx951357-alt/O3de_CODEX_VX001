@@ -43,17 +43,15 @@ class RunsService:
         requested_tool: str | None = None,
         requested_audit_status: str | None = None,
     ) -> RunListResponse:
+        run_audits = self._list_settings_patch_run_audits(
+            requested_tool=requested_tool,
+            requested_audit_status=requested_audit_status,
+        )
         runs = self.list_runs_for_audit_status(
             requested_tool=requested_tool,
             requested_audit_status=requested_audit_status,
         )
-        run_audits_by_id = {
-            audit.run_id: audit
-            for audit in self.get_runs_summary(
-                requested_tool=requested_tool,
-                requested_audit_status=requested_audit_status,
-            ).run_audits
-        }
+        run_audits_by_id = {audit.run_id: audit for audit in run_audits}
         return RunListResponse(
             runs=[
                 RunListItem(
@@ -83,28 +81,26 @@ class RunsService:
         requested_audit_status: str | None = None,
     ) -> list[RunRecord]:
         runs = self.list_runs()
-        if requested_tool is not None and requested_tool != "all":
+        if requested_tool not in (None, "all"):
             runs = [run for run in runs if run.tool == requested_tool]
-            if requested_tool == "settings.patch" and (
-                requested_audit_status is None or requested_audit_status == "all"
-            ):
-                auditable_runs_by_id = {
-                    audit.run_id
-                    for audit in self.get_runs_summary(
-                        requested_tool=requested_tool,
-                        requested_audit_status="all",
-                    ).run_audits
-                }
-                return [run for run in runs if run.id in auditable_runs_by_id]
+        if requested_tool == "settings.patch":
+            auditable_runs_by_id = {
+                audit.run_id
+                for audit in self._list_settings_patch_run_audits(
+                    requested_tool=requested_tool,
+                    requested_audit_status=requested_audit_status,
+                )
+            }
+            return [run for run in runs if run.id in auditable_runs_by_id]
         if requested_audit_status is None or requested_audit_status == "all":
             return runs
 
         auditable_runs_by_id = {
             audit.run_id
-            for audit in self.get_runs_summary(
+            for audit in self._list_settings_patch_run_audits(
                 requested_tool=requested_tool,
                 requested_audit_status=requested_audit_status,
-            ).run_audits
+            )
         }
         return [run for run in runs if run.id in auditable_runs_by_id]
 
@@ -117,93 +113,20 @@ class RunsService:
         requested_tool: str | None = None,
         requested_audit_status: str | None = None,
     ) -> RunsSummaryResponse:
-        runs = self.list_runs()
         if requested_tool not in (None, "all", "settings.patch"):
             return RunsSummaryResponse(
-                settings_patch_audit_summary=SettingsPatchAuditSummary(
-                    available_filters=[
-                        "all",
-                        "preflight",
-                        "blocked",
-                        "succeeded",
-                        "rolled_back",
-                        "other",
-                    ]
-                ),
+                settings_patch_audit_summary=self._empty_settings_patch_audit_summary(),
                 run_audits=[],
             )
-        executions_by_run_id = {
-            execution.run_id: execution
-            for execution in control_plane_repository.list_executions()
-        }
-        run_audits: list[RunAuditRecord] = []
-        summary = SettingsPatchAuditSummary(
-            available_filters=[
-                "all",
-                "preflight",
-                "blocked",
-                "succeeded",
-                "rolled_back",
-                "other",
-            ]
+        run_audits = self._list_settings_patch_run_audits(
+            requested_tool=requested_tool,
+            requested_audit_status="all",
         )
-
-        for run in runs:
-            if run.tool != "settings.patch":
-                continue
-            if requested_tool == "settings.patch" and run.tool != requested_tool:
-                continue
-            if run.status in {
-                RunStatus.PENDING,
-                RunStatus.WAITING_APPROVAL,
-                RunStatus.RUNNING,
-            }:
-                continue
-            execution = executions_by_run_id.get(run.id)
-            if execution is None:
-                continue
-            mutation_audit = self._mutation_audit_from_execution(execution.details)
-            audit_status = self._audit_status_for_run(run=run, mutation_audit=mutation_audit)
-            audit_phase = (
-                str(mutation_audit.get("phase")).strip()
-                if isinstance(mutation_audit.get("phase"), str)
-                else None
-            ) if mutation_audit else None
-            audit_summary = (
-                str(mutation_audit.get("summary")).strip()
-                if isinstance(mutation_audit.get("summary"), str)
-                else run.result_summary
-            ) if mutation_audit else run.result_summary
-            run_audits.append(
-                RunAuditRecord(
-                    run_id=run.id,
-                    tool=run.tool,
-                    audit_status=audit_status,
-                    audit_phase=audit_phase,
-                    audit_summary=audit_summary,
-                    execution_mode=run.execution_mode,
-                )
-            )
-            summary.total_runs += 1
-            if audit_status == "preflight":
-                summary.preflight += 1
-            elif audit_status == "blocked":
-                summary.blocked += 1
-            elif audit_status == "succeeded":
-                summary.succeeded += 1
-            elif audit_status == "rolled_back":
-                summary.rolled_back += 1
-            else:
-                summary.other += 1
-
-        filtered_run_audits = [
-            audit
-            for audit in run_audits
-            if self._matches_audit_filter(
-                audit=audit,
-                requested_audit_status=requested_audit_status,
-            )
-        ]
+        summary = self._summarize_settings_patch_audits(run_audits)
+        filtered_run_audits = self._filter_run_audits(
+            run_audits=run_audits,
+            requested_audit_status=requested_audit_status,
+        )
 
         return RunsSummaryResponse(
             settings_patch_audit_summary=summary,
@@ -275,6 +198,107 @@ class RunsService:
         if requested_audit_status is None or requested_audit_status == "all":
             return True
         return audit.audit_status == requested_audit_status
+
+    def _empty_settings_patch_audit_summary(self) -> SettingsPatchAuditSummary:
+        return SettingsPatchAuditSummary(
+            available_filters=[
+                "all",
+                "preflight",
+                "blocked",
+                "succeeded",
+                "rolled_back",
+                "other",
+            ]
+        )
+
+    def _filter_run_audits(
+        self,
+        *,
+        run_audits: list[RunAuditRecord],
+        requested_audit_status: str | None,
+    ) -> list[RunAuditRecord]:
+        return [
+            audit
+            for audit in run_audits
+            if self._matches_audit_filter(
+                audit=audit,
+                requested_audit_status=requested_audit_status,
+            )
+        ]
+
+    def _summarize_settings_patch_audits(
+        self,
+        run_audits: list[RunAuditRecord],
+    ) -> SettingsPatchAuditSummary:
+        summary = self._empty_settings_patch_audit_summary()
+        for audit in run_audits:
+            summary.total_runs += 1
+            if audit.audit_status == "preflight":
+                summary.preflight += 1
+            elif audit.audit_status == "blocked":
+                summary.blocked += 1
+            elif audit.audit_status == "succeeded":
+                summary.succeeded += 1
+            elif audit.audit_status == "rolled_back":
+                summary.rolled_back += 1
+            else:
+                summary.other += 1
+        return summary
+
+    def _list_settings_patch_run_audits(
+        self,
+        *,
+        requested_tool: str | None,
+        requested_audit_status: str | None,
+    ) -> list[RunAuditRecord]:
+        if requested_tool not in (None, "all", "settings.patch"):
+            return []
+        runs = self.list_runs()
+        executions_by_run_id = {
+            execution.run_id: execution
+            for execution in control_plane_repository.list_executions()
+        }
+        run_audits: list[RunAuditRecord] = []
+        for run in runs:
+            if run.tool != "settings.patch":
+                continue
+            if requested_tool == "settings.patch" and run.tool != requested_tool:
+                continue
+            if run.status in {
+                RunStatus.PENDING,
+                RunStatus.WAITING_APPROVAL,
+                RunStatus.RUNNING,
+            }:
+                continue
+            execution = executions_by_run_id.get(run.id)
+            if execution is None:
+                continue
+            mutation_audit = self._mutation_audit_from_execution(execution.details)
+            audit_status = self._audit_status_for_run(run=run, mutation_audit=mutation_audit)
+            audit_phase = (
+                str(mutation_audit.get("phase")).strip()
+                if isinstance(mutation_audit.get("phase"), str)
+                else None
+            ) if mutation_audit else None
+            audit_summary = (
+                str(mutation_audit.get("summary")).strip()
+                if isinstance(mutation_audit.get("summary"), str)
+                else run.result_summary
+            ) if mutation_audit else run.result_summary
+            run_audits.append(
+                RunAuditRecord(
+                    run_id=run.id,
+                    tool=run.tool,
+                    audit_status=audit_status,
+                    audit_phase=audit_phase,
+                    audit_summary=audit_summary,
+                    execution_mode=run.execution_mode,
+                )
+            )
+        return self._filter_run_audits(
+            run_audits=run_audits,
+            requested_audit_status=requested_audit_status,
+        )
 
 
 runs_service = RunsService()
