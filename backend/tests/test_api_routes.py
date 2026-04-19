@@ -508,6 +508,30 @@ def test_runs_summary_endpoint_reports_settings_patch_audit_states() -> None:
                     == approved_mutation.json()["operation_id"]
                 )
 
+                tool_filtered_runs_response = client.get(
+                    "/runs",
+                    params={"tool": "settings.patch"},
+                )
+                assert tool_filtered_runs_response.status_code == 200
+                tool_filtered_runs_payload = tool_filtered_runs_response.json()
+                assert len(tool_filtered_runs_payload["runs"]) == 2
+                assert all(
+                    run["tool"] == "settings.patch"
+                    for run in tool_filtered_runs_payload["runs"]
+                )
+
+                tool_filtered_summary_response = client.get(
+                    "/runs/summary",
+                    params={"tool": "settings.patch"},
+                )
+                assert tool_filtered_summary_response.status_code == 200
+                tool_filtered_summary_payload = tool_filtered_summary_response.json()
+                assert (
+                    tool_filtered_summary_payload["settings_patch_audit_summary"]["total_runs"]
+                    == 2
+                )
+                assert len(tool_filtered_summary_payload["run_audits"]) == 2
+
 
 def test_dispatch_route_rejects_args_that_fail_published_schema() -> None:
     with isolated_client() as client:

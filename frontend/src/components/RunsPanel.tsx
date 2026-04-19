@@ -10,6 +10,8 @@ type RunsPanelProps = {
   items: RunRecord[];
   runAudits: RunAuditRecord[];
   settingsPatchAuditSummary: SettingsPatchAuditSummary | null;
+  selectedToolFilter: ToolFilter;
+  onToolFilterChange: (filter: ToolFilter) => void;
   selectedAuditFilter: AuditFilter;
   onAuditFilterChange: (filter: AuditFilter) => void;
   loading: boolean;
@@ -26,6 +28,8 @@ type AuditFilter =
   | "rolled_back"
   | "other";
 
+type ToolFilter = "all" | "settings.patch";
+
 const DEFAULT_AUDIT_FILTERS: AuditFilter[] = [
   "all",
   "preflight",
@@ -39,6 +43,8 @@ export default function RunsPanel({
   items,
   runAudits,
   settingsPatchAuditSummary,
+  selectedToolFilter,
+  onToolFilterChange,
   selectedAuditFilter,
   onAuditFilterChange,
   loading,
@@ -76,6 +82,22 @@ export default function RunsPanel({
         Runs reflect persisted control-plane bookkeeping. Execution mode remains
         explicitly labeled, including simulated flows.
       </p>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        {(["all", "settings.patch"] as const).map((value) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => onToolFilterChange(value)}
+            style={{
+              ...filterButtonStyle,
+              background: selectedToolFilter === value ? "#ddf4ff" : "#f6f8fa",
+              borderColor: selectedToolFilter === value ? "#0969da" : "#d0d7de",
+            }}
+          >
+            {value === "all" ? "All tools" : "settings.patch only"}
+          </button>
+        ))}
+      </div>
       {settingsPatchAuditSummary && settingsPatchAuditSummary.total_runs > 0 ? (
         <div
           style={{

@@ -61,6 +61,8 @@ type AuditFilter =
   | "rolled_back"
   | "other";
 
+type ToolFilter = "all" | "settings.patch";
+
 export default function App() {
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
@@ -100,6 +102,8 @@ export default function App() {
   const [runsLoading, setRunsLoading] = useState(true);
   const [selectedRunLoading, setSelectedRunLoading] = useState(false);
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
+  const [selectedToolFilter, setSelectedToolFilter] =
+    useState<ToolFilter>("all");
   const [selectedAuditFilter, setSelectedAuditFilter] =
     useState<AuditFilter>("all");
 
@@ -163,12 +167,15 @@ export default function App() {
     }
   }
 
-  async function loadRuns(auditFilter: AuditFilter = selectedAuditFilter) {
+  async function loadRuns(
+    toolFilter: ToolFilter = selectedToolFilter,
+    auditFilter: AuditFilter = selectedAuditFilter,
+  ) {
     setRunsLoading(true);
     try {
       const [nextRuns, nextRunsSummary] = await Promise.all([
-        fetchRuns(auditFilter),
-        fetchRunsSummaryForFilter(auditFilter),
+        fetchRuns(toolFilter, auditFilter),
+        fetchRunsSummaryForFilter(toolFilter, auditFilter),
       ]);
       setRuns(nextRuns);
       setRunAudits(nextRunsSummary.runAudits);
@@ -280,8 +287,8 @@ export default function App() {
       await loadReadiness();
       try {
         const [nextRuns, nextRunsSummary] = await Promise.all([
-          fetchRuns("all"),
-          fetchRunsSummaryForFilter("all"),
+          fetchRuns("all", "all"),
+          fetchRunsSummaryForFilter("all", "all"),
         ]);
         setRuns(nextRuns);
         setRunAudits(nextRunsSummary.runAudits);
@@ -318,7 +325,7 @@ export default function App() {
       await loadLocks();
       await loadPolicies();
       await loadReadiness();
-      await loadRuns();
+      await loadRuns(selectedToolFilter, selectedAuditFilter);
     } catch (error) {
       setApprovalsError(
         error instanceof Error ? error.message : "Failed to update approval",
@@ -337,12 +344,17 @@ export default function App() {
     void loadLocks();
     void loadPolicies();
     void loadReadiness();
-    void loadRuns();
+    void loadRuns(selectedToolFilter, selectedAuditFilter);
   }
 
   function handleAuditFilterChange(filter: AuditFilter) {
     setSelectedAuditFilter(filter);
-    void loadRuns(filter);
+    void loadRuns(selectedToolFilter, filter);
+  }
+
+  function handleToolFilterChange(filter: ToolFilter) {
+    setSelectedToolFilter(filter);
+    void loadRuns(filter, selectedAuditFilter);
   }
 
   const agentsForDisplay = catalogAgents.length > 0
@@ -456,6 +468,8 @@ export default function App() {
         items={runs}
         runAudits={runAudits}
         settingsPatchAuditSummary={settingsPatchAuditSummary}
+        selectedToolFilter={selectedToolFilter}
+        onToolFilterChange={handleToolFilterChange}
         selectedAuditFilter={selectedAuditFilter}
         onAuditFilterChange={handleAuditFilterChange}
         loading={runsLoading}

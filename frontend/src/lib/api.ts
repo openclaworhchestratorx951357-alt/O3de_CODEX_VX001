@@ -108,9 +108,13 @@ export async function fetchEvents(): Promise<EventRecord[]> {
 }
 
 export async function fetchRuns(
+  tool?: string,
   auditStatus?: string,
 ): Promise<RunRecord[]> {
   const params = new URLSearchParams();
+  if (tool && tool !== "all") {
+    params.set("tool", tool);
+  }
   if (auditStatus && auditStatus !== "all") {
     params.set("audit_status", auditStatus);
   }
@@ -145,12 +149,16 @@ export async function fetchRunsSummary(): Promise<{
 }
 
 export async function fetchRunsSummaryForFilter(
+  tool?: string,
   auditStatus?: string,
 ): Promise<{
   settingsPatchAuditSummary: SettingsPatchAuditSummary;
   runAudits: RunAuditRecord[];
 }> {
   const params = new URLSearchParams();
+  if (tool && tool !== "all") {
+    params.set("tool", tool);
+  }
   if (auditStatus && auditStatus !== "all") {
     params.set("audit_status", auditStatus);
   }

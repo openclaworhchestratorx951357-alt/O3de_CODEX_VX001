@@ -9,10 +9,12 @@ router = APIRouter(tags=["runs"])
 
 @router.get("/runs", response_model=RunsResponse)
 def list_runs(
+    tool: str | None = Query(default=None),
     audit_status: str | None = Query(default=None),
 ) -> RunsResponse:
     return RunsResponse(
         runs=runs_service.list_runs_for_audit_status(
+            requested_tool=tool,
             requested_audit_status=audit_status,
         )
     )
@@ -20,9 +22,13 @@ def list_runs(
 
 @router.get("/runs/summary", response_model=RunsSummaryResponse)
 def get_runs_summary(
+    tool: str | None = Query(default=None),
     audit_status: str | None = Query(default=None),
 ) -> RunsSummaryResponse:
-    return runs_service.get_runs_summary(requested_audit_status=audit_status)
+    return runs_service.get_runs_summary(
+        requested_tool=tool,
+        requested_audit_status=audit_status,
+    )
 
 
 @router.get("/runs/{run_id}", response_model=RunRecord)
