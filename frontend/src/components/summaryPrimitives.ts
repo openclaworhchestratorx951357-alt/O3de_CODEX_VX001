@@ -99,6 +99,15 @@ export const summaryActionButtonStyle: CSSProperties = {
   cursor: "pointer",
 };
 
+export const summaryInlineActionButtonStyle: CSSProperties = {
+  border: "1px solid #d0d7de",
+  borderRadius: 6,
+  padding: "2px 8px",
+  background: "#f6f8fa",
+  cursor: "pointer",
+  fontSize: 12,
+};
+
 export const summaryCalloutStyle: CSSProperties = {
   ...summaryMutedTextStyle,
   marginTop: 8,

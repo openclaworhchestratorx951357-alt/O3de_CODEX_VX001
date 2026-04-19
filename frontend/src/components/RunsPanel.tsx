@@ -183,7 +183,7 @@ export default function RunsPanel({
                     <SummaryFact label="Audit summary">{audit.audit_summary}</SummaryFact>
                   ) : null}
                   <SummaryFact label="Dry run">{String(item.dry_run)}</SummaryFact>
-                  <SummaryFact label="Run ID">{item.id}</SummaryFact>
+                  <SummaryFact label="Run ID" copyValue={item.id}>{item.id}</SummaryFact>
                   {item.result_summary ? (
                     <SummaryFact label="Summary">{item.result_summary}</SummaryFact>
                   ) : null}

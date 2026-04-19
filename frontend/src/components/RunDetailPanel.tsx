@@ -71,8 +71,8 @@ export default function RunDetailPanel({
         <article style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Identity</h4>
           <SummaryFacts>
-            <SummaryFact label="Run ID">{item?.id}</SummaryFact>
-            <SummaryFact label="Request ID">{item?.request_id}</SummaryFact>
+            <SummaryFact label="Run ID" copyValue={item?.id ?? undefined}>{item?.id}</SummaryFact>
+            <SummaryFact label="Request ID" copyValue={item?.request_id ?? undefined}>{item?.request_id}</SummaryFact>
             <SummaryFact label="Agent">{item?.agent}</SummaryFact>
             <SummaryFact label="Tool">{item?.tool}</SummaryFact>
           </SummaryFacts>

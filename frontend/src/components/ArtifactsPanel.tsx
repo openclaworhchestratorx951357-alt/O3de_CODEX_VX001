@@ -41,10 +41,10 @@ export default function ArtifactsPanel({
               <strong>{item.label}</strong>
               <SummaryFacts>
                 <SummaryFact label="Kind">{item.kind}</SummaryFact>
-                <SummaryFact label="Run ID">{item.run_id}</SummaryFact>
-                <SummaryFact label="Execution ID">{item.execution_id}</SummaryFact>
-                <SummaryFact label="URI">{item.uri}</SummaryFact>
-                {item.path ? <SummaryFact label="Path">{item.path}</SummaryFact> : null}
+                <SummaryFact label="Run ID" copyValue={item.run_id}>{item.run_id}</SummaryFact>
+                <SummaryFact label="Execution ID" copyValue={item.execution_id}>{item.execution_id}</SummaryFact>
+                <SummaryFact label="URI" copyValue={item.uri}>{item.uri}</SummaryFact>
+                {item.path ? <SummaryFact label="Path" copyValue={item.path}>{item.path}</SummaryFact> : null}
                 {item.content_type ? (
                   <SummaryFact label="Content type">{item.content_type}</SummaryFact>
                 ) : null}

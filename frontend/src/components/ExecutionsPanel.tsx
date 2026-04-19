@@ -48,7 +48,7 @@ export default function ExecutionsPanel({
                 <SummaryFact label="Execution mode">
                   <StatusChip label={item.execution_mode} tone={getExecutionModeTone(item.execution_mode)} />
                 </SummaryFact>
-                <SummaryFact label="Run ID">{item.run_id}</SummaryFact>
+                <SummaryFact label="Run ID" copyValue={item.run_id}>{item.run_id}</SummaryFact>
                 <SummaryFact label="Started">{formatSummaryTimestamp(item.started_at)}</SummaryFact>
                 {item.finished_at ? (
                   <SummaryFact label="Finished">{formatSummaryTimestamp(item.finished_at)}</SummaryFact>
