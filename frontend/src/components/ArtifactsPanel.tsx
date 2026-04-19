@@ -25,6 +25,8 @@ type ArtifactsPanelProps = {
   items: ArtifactListItem[];
   loading: boolean;
   error: string | null;
+  selectedArtifactId?: string | null;
+  onSelectArtifact?: (artifactId: string) => void;
   searchPreset?: string | null;
   focusLabel?: string | null;
   onClearFocus?: () => void;
@@ -36,6 +38,8 @@ export default function ArtifactsPanel({
   items,
   loading,
   error,
+  selectedArtifactId,
+  onSelectArtifact,
   searchPreset,
   focusLabel,
   onClearFocus,
@@ -127,6 +131,17 @@ export default function ArtifactsPanel({
                 {item.mutation_audit_status ? (
                   <SummaryFact label="Mutation audit status">
                     <StatusChip label={item.mutation_audit_status} tone={getAuditStatusTone(item.mutation_audit_status)} />
+                  </SummaryFact>
+                ) : null}
+                {onSelectArtifact ? (
+                  <SummaryFact label="Detail">
+                    <button
+                      type="button"
+                      style={summaryInlineActionButtonStyle}
+                      onClick={() => onSelectArtifact(item.id)}
+                    >
+                      {selectedArtifactId === item.id ? "Selected" : "View detail"}
+                    </button>
                   </SummaryFact>
                 ) : null}
               </SummaryFacts>

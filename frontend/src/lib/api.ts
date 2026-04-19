@@ -280,6 +280,15 @@ export async function fetchArtifactCards(): Promise<ArtifactListItem[]> {
   return payload.artifacts ?? [];
 }
 
+export async function fetchArtifact(artifactId: string): Promise<ArtifactRecord> {
+  const artifacts = await fetchArtifacts();
+  const match = artifacts.find((artifact) => artifact.id === artifactId);
+  if (!match) {
+    throw new Error(`Artifact fetch failed because artifact ${artifactId} was not found`);
+  }
+  return match;
+}
+
 export async function fetchAdapters(): Promise<AdaptersResponse> {
   const payload = await getJson<AdaptersEnvelope>("/adapters", "Adapters fetch");
   return payload.adapters;

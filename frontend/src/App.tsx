@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from "react";
 
 import AgentPanel from "./components/AgentPanel";
 import AdaptersPanel from "./components/AdaptersPanel";
+import ArtifactDetailPanel from "./components/ArtifactDetailPanel";
 import ArtifactsPanel from "./components/ArtifactsPanel";
 import ApprovalQueue from "./components/ApprovalQueue";
 import CatalogPanel from "./components/CatalogPanel";
 import DispatchForm from "./components/DispatchForm";
+import ExecutionDetailPanel from "./components/ExecutionDetailPanel";
 import ExecutionsPanel from "./components/ExecutionsPanel";
 import LayoutHeader from "./components/LayoutHeader";
 import LocksPanel from "./components/LocksPanel";
@@ -22,6 +24,7 @@ import {
   approveApproval,
   fetchAdapters,
   fetchApprovalCards,
+  fetchArtifact,
   fetchArtifactCards,
   fetchControlPlaneSummary,
   fetchExecution,
@@ -38,10 +41,12 @@ import {
 } from "./lib/api";
 import type {
   ArtifactListItem,
+  ArtifactRecord,
   AdaptersResponse,
   ApprovalListItem,
   CatalogAgent,
   ControlPlaneSummaryResponse,
+  ExecutionRecord,
   ExecutionListItem,
   EventListItem,
   LockListItem,
@@ -90,6 +95,10 @@ export default function App() {
   const [selectedRun, setSelectedRun] = useState<RunRecord | null>(null);
   const [selectedExecutionDetails, setSelectedExecutionDetails] =
     useState<Record<string, unknown> | null>(null);
+  const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null);
+  const [selectedExecution, setSelectedExecution] = useState<ExecutionRecord | null>(null);
+  const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
+  const [selectedArtifact, setSelectedArtifact] = useState<ArtifactRecord | null>(null);
   const [runDetailRefreshHint, setRunDetailRefreshHint] = useState<string | null>(null);
   const [operatorOverviewRefreshedAt, setOperatorOverviewRefreshedAt] = useState<string | null>(null);
   const [runDetailRefreshedAt, setRunDetailRefreshedAt] = useState<string | null>(null);
@@ -116,7 +125,11 @@ export default function App() {
   const [controlPlaneSummaryLoading, setControlPlaneSummaryLoading] = useState(true);
   const [runsLoading, setRunsLoading] = useState(true);
   const [selectedRunLoading, setSelectedRunLoading] = useState(false);
+  const [selectedExecutionLoading, setSelectedExecutionLoading] = useState(false);
+  const [selectedArtifactLoading, setSelectedArtifactLoading] = useState(false);
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
+  const [selectedExecutionError, setSelectedExecutionError] = useState<string | null>(null);
+  const [selectedArtifactError, setSelectedArtifactError] = useState<string | null>(null);
   const [selectedToolFilter, setSelectedToolFilter] =
     useState<ToolFilter>("all");
   const [selectedAuditFilter, setSelectedAuditFilter] =
@@ -281,6 +294,38 @@ export default function App() {
       );
     } finally {
       setSelectedRunLoading(false);
+    }
+  }
+
+  async function loadExecutionDetail(executionId: string) {
+    setSelectedExecutionId(executionId);
+    setSelectedExecutionLoading(true);
+    try {
+      const nextExecution = await fetchExecution(executionId);
+      setSelectedExecution(nextExecution);
+      setSelectedExecutionError(null);
+    } catch (error) {
+      setSelectedExecutionError(
+        error instanceof Error ? error.message : "Failed to load execution detail",
+      );
+    } finally {
+      setSelectedExecutionLoading(false);
+    }
+  }
+
+  async function loadArtifactDetail(artifactId: string) {
+    setSelectedArtifactId(artifactId);
+    setSelectedArtifactLoading(true);
+    try {
+      const nextArtifact = await fetchArtifact(artifactId);
+      setSelectedArtifact(nextArtifact);
+      setSelectedArtifactError(null);
+    } catch (error) {
+      setSelectedArtifactError(
+        error instanceof Error ? error.message : "Failed to load artifact detail",
+      );
+    } finally {
+      setSelectedArtifactLoading(false);
     }
   }
 
@@ -740,6 +785,10 @@ export default function App() {
           items={artifacts}
           loading={artifactsLoading}
           error={artifactsError}
+          selectedArtifactId={selectedArtifactId}
+          onSelectArtifact={(artifactId) => {
+            void loadArtifactDetail(artifactId);
+          }}
           searchPreset={artifactsSearchPreset}
           focusLabel={artifactsFocusLabel}
           onClearFocus={clearArtifactsFocus}
@@ -753,6 +802,10 @@ export default function App() {
           items={executions}
           loading={executionsLoading}
           error={executionsError}
+          selectedExecutionId={selectedExecutionId}
+          onSelectExecution={(executionId) => {
+            void loadExecutionDetail(executionId);
+          }}
           searchPreset={executionsSearchPreset}
           focusLabel={executionsFocusLabel}
           onClearFocus={clearExecutionsFocus}
@@ -791,6 +844,16 @@ export default function App() {
         executionDetails={selectedExecutionDetails}
         refreshHint={runDetailRefreshHint}
         lastRefreshedAt={runDetailRefreshedAt}
+      />
+      <ExecutionDetailPanel
+        item={selectedExecution}
+        loading={selectedExecutionLoading}
+        error={selectedExecutionError}
+      />
+      <ArtifactDetailPanel
+        item={selectedArtifact}
+        loading={selectedArtifactLoading}
+        error={selectedArtifactError}
       />
       <LocksPanel
         items={locks}

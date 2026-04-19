@@ -26,6 +26,8 @@ type ExecutionsPanelProps = {
   items: ExecutionListItem[];
   loading: boolean;
   error: string | null;
+  selectedExecutionId?: string | null;
+  onSelectExecution?: (executionId: string) => void;
   searchPreset?: string | null;
   focusLabel?: string | null;
   onClearFocus?: () => void;
@@ -37,6 +39,8 @@ export default function ExecutionsPanel({
   items,
   loading,
   error,
+  selectedExecutionId,
+  onSelectExecution,
   searchPreset,
   focusLabel,
   onClearFocus,
@@ -128,6 +132,17 @@ export default function ExecutionsPanel({
                 ) : null}
                 <SummaryFact label="Warnings">{item.warning_count}</SummaryFact>
                 <SummaryFact label="Artifacts">{item.artifact_count}</SummaryFact>
+                {onSelectExecution ? (
+                  <SummaryFact label="Detail">
+                    <button
+                      type="button"
+                      style={summaryInlineActionButtonStyle}
+                      onClick={() => onSelectExecution(item.id)}
+                    >
+                      {selectedExecutionId === item.id ? "Selected" : "View detail"}
+                    </button>
+                  </SummaryFact>
+                ) : null}
               </SummaryFacts>
             </SummaryListItem>
           );
