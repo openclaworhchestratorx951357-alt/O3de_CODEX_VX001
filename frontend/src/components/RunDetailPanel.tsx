@@ -1,6 +1,11 @@
 import type { RunRecord, SettingsPatchMutationAudit } from "../types/contracts";
 import SummarySection from "./SummarySection";
-import { formatSummaryTimestamp } from "./summaryPrimitives";
+import {
+  formatSummaryTimestamp,
+  summaryCardGridStyle,
+  summaryCardHeadingStyle,
+  summaryCardStyle,
+} from "./summaryPrimitives";
 
 type RunDetailPanelProps = {
   item: RunRecord | null;
@@ -59,22 +64,16 @@ export default function RunDetailPanel({
       emptyMessage="Select a run to inspect its detail."
       hasItems={Boolean(item)}
     >
-      <div
-        style={{
-          display: "grid",
-          gap: 12,
-          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-        }}
-      >
-        <article style={detailCardStyle}>
-          <h4 style={detailHeadingStyle}>Identity</h4>
+      <div style={summaryCardGridStyle}>
+        <article style={summaryCardStyle}>
+          <h4 style={summaryCardHeadingStyle}>Identity</h4>
           <div><strong>Run ID:</strong> {item?.id}</div>
           <div><strong>Request ID:</strong> {item?.request_id}</div>
           <div><strong>Agent:</strong> {item?.agent}</div>
           <div><strong>Tool:</strong> {item?.tool}</div>
         </article>
-        <article style={detailCardStyle}>
-          <h4 style={detailHeadingStyle}>Execution</h4>
+        <article style={summaryCardStyle}>
+          <h4 style={summaryCardHeadingStyle}>Execution</h4>
           <div><strong>Status:</strong> {item?.status}</div>
           <div><strong>Execution mode:</strong> {item?.execution_mode}</div>
           <div><strong>Dry run:</strong> {String(item?.dry_run)}</div>
@@ -87,8 +86,8 @@ export default function RunDetailPanel({
             {item ? formatSummaryTimestamp(item.updated_at) : ""}
           </div>
         </article>
-        <article style={detailCardStyle}>
-          <h4 style={detailHeadingStyle}>Truth Boundary</h4>
+        <article style={summaryCardStyle}>
+          <h4 style={summaryCardHeadingStyle}>Truth Boundary</h4>
           <div>{item ? describeRunTruth(item) : null}</div>
           {item?.result_summary ? (
             <div style={{ marginTop: 8 }}>
@@ -96,8 +95,8 @@ export default function RunDetailPanel({
             </div>
           ) : null}
         </article>
-        <article style={detailCardStyle}>
-          <h4 style={detailHeadingStyle}>Locks And Warnings</h4>
+        <article style={summaryCardStyle}>
+          <h4 style={summaryCardHeadingStyle}>Locks And Warnings</h4>
           <div>
             <strong>Requested locks:</strong>{" "}
             {item?.requested_locks.join(", ") || "none"}
@@ -111,8 +110,8 @@ export default function RunDetailPanel({
           </div>
         </article>
         {item?.tool === "settings.patch" && mutationAudit ? (
-          <article style={detailCardStyle}>
-            <h4 style={detailHeadingStyle}>Mutation Audit</h4>
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Mutation Audit</h4>
             <div>
               <strong>Audit summary:</strong> {mutationAudit.summary ?? "available"}
             </div>
@@ -144,16 +143,3 @@ export default function RunDetailPanel({
     </SummarySection>
   );
 }
-
-const detailCardStyle = {
-  border: "1px solid #d8dee4",
-  borderRadius: 10,
-  padding: 12,
-  background: "#f6f8fa",
-  display: "grid",
-  gap: 8,
-};
-
-const detailHeadingStyle = {
-  margin: 0,
-};

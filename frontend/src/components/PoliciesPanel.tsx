@@ -1,6 +1,10 @@
 import type { ToolPolicy } from "../types/contracts";
 import SummarySection from "./SummarySection";
-import { summaryItemStyle } from "./summaryPrimitives";
+import {
+  summaryCardStyle,
+  summaryItemStyle,
+  summaryMutedTextStyle,
+} from "./summaryPrimitives";
 
 type PoliciesPanelProps = {
   items: ToolPolicy[];
@@ -25,7 +29,7 @@ export default function PoliciesPanel({
       <ul>
           {items.map((item) => (
             <li key={`${item.agent}:${item.tool}`} style={summaryItemStyle}>
-              <div style={policyCardStyle}>
+              <div style={summaryCardStyle}>
                 <strong>{item.tool}</strong>
                 <div>Agent: {item.agent}</div>
                 <div>Approval class: {item.approval_class}</div>
@@ -38,13 +42,13 @@ export default function PoliciesPanel({
                 <div>Next requirement: {item.next_real_requirement}</div>
               </div>
               {item.tool === "build.configure" ? (
-                <div style={meaningStyle}>
+                <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
                   Meaning: In hybrid mode this remains plan-only. Approval can
                   enable a real preflight path, but not a real configure mutation.
                 </div>
               ) : null}
               {item.tool === "settings.patch" ? (
-                <div style={meaningStyle}>
+                <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
                   Meaning: This is the first recommended mutation candidate, but it
                   remains simulated until backup, rollback, and failure-visible
                   patch-plan gates are explicitly admitted.
@@ -56,17 +60,3 @@ export default function PoliciesPanel({
     </SummarySection>
   );
 }
-
-const policyCardStyle = {
-  border: "1px solid #d8dee4",
-  borderRadius: 10,
-  padding: 12,
-  background: "#f6f8fa",
-  display: "grid",
-  gap: 6,
-};
-
-const meaningStyle = {
-  marginTop: 8,
-  color: "#57606a",
-};
