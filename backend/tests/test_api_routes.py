@@ -1,12 +1,29 @@
 import json
 from contextlib import contextmanager
+from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from app.main import app
+from app.models.control_plane import (
+    ApprovalRecord,
+    ArtifactRecord,
+    EventRecord,
+    EventSeverity,
+    ExecutionRecord,
+    ExecutionStatus,
+    RunRecord,
+    RunStatus,
+)
+from app.repositories.control_plane import control_plane_repository
 from app.services.approvals import approvals_service
-from app.services.db import configure_database, initialize_database, reset_database
+from app.services.db import (
+    configure_database,
+    connection,
+    initialize_database,
+    reset_database,
+)
 from fastapi.testclient import TestClient
 
 
@@ -686,6 +703,186 @@ def test_locks_cards_endpoint_returns_compact_lock_records() -> None:
         assert cards_response.status_code == 200
         payload = cards_response.json()
         assert payload["locks"] == []
+
+
+def test_persisted_list_endpoints_return_default_stable_ordering() -> None:
+    created_at = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+    started_at = datetime(2026, 1, 1, 13, 0, tzinfo=timezone.utc)
+
+    with isolated_client() as client:
+        control_plane_repository.create_run(
+            RunRecord(
+                id="run-a",
+                request_id="request-a",
+                agent="project-build",
+                tool="project.inspect",
+                status=RunStatus.SUCCEEDED,
+                created_at=created_at,
+                updated_at=created_at,
+                result_summary="older-or-lower-id run",
+            )
+        )
+        control_plane_repository.create_run(
+            RunRecord(
+                id="run-b",
+                request_id="request-b",
+                agent="project-build",
+                tool="project.inspect",
+                status=RunStatus.SUCCEEDED,
+                created_at=created_at,
+                updated_at=created_at,
+                result_summary="same-timestamp higher-id run",
+            )
+        )
+        control_plane_repository.create_execution(
+            ExecutionRecord(
+                id="exe-a",
+                run_id="run-a",
+                request_id="request-a",
+                agent="project-build",
+                tool="project.inspect",
+                execution_mode="simulated",
+                status=ExecutionStatus.SUCCEEDED,
+                started_at=started_at,
+                details={"inspection_surface": "simulated"},
+                result_summary="older-or-lower-id execution",
+            )
+        )
+        control_plane_repository.create_execution(
+            ExecutionRecord(
+                id="exe-b",
+                run_id="run-b",
+                request_id="request-b",
+                agent="project-build",
+                tool="project.inspect",
+                execution_mode="simulated",
+                status=ExecutionStatus.SUCCEEDED,
+                started_at=started_at,
+                details={"inspection_surface": "simulated"},
+                result_summary="same-timestamp higher-id execution",
+            )
+        )
+        control_plane_repository.create_artifact(
+            ArtifactRecord(
+                id="art-a",
+                run_id="run-a",
+                execution_id="exe-a",
+                label="artifact-a",
+                kind="simulated_result",
+                uri="memory://artifact-a",
+                simulated=True,
+                created_at=created_at,
+                metadata={"execution_mode": "simulated"},
+            )
+        )
+        control_plane_repository.create_artifact(
+            ArtifactRecord(
+                id="art-b",
+                run_id="run-b",
+                execution_id="exe-b",
+                label="artifact-b",
+                kind="simulated_result",
+                uri="memory://artifact-b",
+                simulated=True,
+                created_at=created_at,
+                metadata={"execution_mode": "simulated"},
+            )
+        )
+        control_plane_repository.create_event(
+            EventRecord(
+                id="evt-a",
+                run_id="run-a",
+                category="dispatch",
+                severity=EventSeverity.INFO,
+                message="event-a",
+                created_at=created_at,
+                details={},
+            )
+        )
+        control_plane_repository.create_event(
+            EventRecord(
+                id="evt-b",
+                run_id="run-b",
+                category="dispatch",
+                severity=EventSeverity.INFO,
+                message="event-b",
+                created_at=created_at,
+                details={},
+            )
+        )
+        control_plane_repository.create_approval(
+            ApprovalRecord(
+                id="apr-a",
+                run_id="run-a",
+                request_id="request-a",
+                agent="project-build",
+                tool="settings.patch",
+                approval_class="config_write",
+                token="token-a",
+                created_at=created_at,
+            )
+        )
+        control_plane_repository.create_approval(
+            ApprovalRecord(
+                id="apr-b",
+                run_id="run-b",
+                request_id="request-b",
+                agent="project-build",
+                tool="settings.patch",
+                approval_class="config_write",
+                token="token-b",
+                created_at=created_at,
+            )
+        )
+        with connection() as conn:
+            conn.execute(
+                "INSERT INTO locks (name, owner_run_id, created_at) VALUES (?, ?, ?)",
+                ("project_config", "run-b", created_at.isoformat()),
+            )
+            conn.execute(
+                "INSERT INTO locks (name, owner_run_id, created_at) VALUES (?, ?, ?)",
+                ("build_tree", "run-a", created_at.isoformat()),
+            )
+
+        runs_response = client.get("/runs")
+        executions_response = client.get("/executions")
+        artifacts_response = client.get("/artifacts")
+        events_response = client.get("/events")
+        approvals_response = client.get("/approvals")
+        locks_response = client.get("/locks")
+
+        assert runs_response.status_code == 200
+        assert [run["id"] for run in runs_response.json()["runs"][:2]] == ["run-b", "run-a"]
+
+        assert executions_response.status_code == 200
+        assert [execution["id"] for execution in executions_response.json()["executions"][:2]] == [
+            "exe-b",
+            "exe-a",
+        ]
+
+        assert artifacts_response.status_code == 200
+        assert [artifact["id"] for artifact in artifacts_response.json()["artifacts"][:2]] == [
+            "art-b",
+            "art-a",
+        ]
+
+        assert events_response.status_code == 200
+        assert [event["id"] for event in events_response.json()["events"][:2]] == [
+            "evt-b",
+            "evt-a",
+        ]
+
+        assert approvals_response.status_code == 200
+        assert [approval["id"] for approval in approvals_response.json()["approvals"][:2]] == [
+            "apr-b",
+            "apr-a",
+        ]
+
+        assert locks_response.status_code == 200
+        assert [lock["name"] for lock in locks_response.json()["locks"][:2]] == [
+            "build_tree",
+            "project_config",
+        ]
 
 
 def test_executions_and_artifacts_endpoints_reflect_simulated_dispatch() -> None:
