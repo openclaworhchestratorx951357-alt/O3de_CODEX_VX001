@@ -1115,10 +1115,13 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
             json.dumps(
                 {
                     "project_name": "ApiHybridProject",
+                    "display_name": "API Hybrid Project",
                     "gem_names": ["ApiGem"],
                     "compatible_engines": ["o3de"],
                     "engine_api_dependencies": {"renderer": "1.0.0"},
                     "origin": {"template": "ApiTemplate", "source": "manifest"},
+                    "icon_path": "icons/api-project.svg",
+                    "restricted_platform_name": "windows",
                     "version": "2.0.0",
                 }
             ),
@@ -1171,12 +1174,15 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                 ]
                 assert execution["details"]["available_project_config_keys"] == [
                     "compatible_engines",
+                    "display_name",
                     "engine_api_dependencies",
+                    "icon_path",
                     "origin",
                     "project_name",
+                    "restricted_platform_name",
                     "version",
                 ]
-                assert execution["details"]["available_project_config_count"] == 5
+                assert execution["details"]["available_project_config_count"] == 8
                 assert execution["details"]["available_project_origin"] == {
                     "template": "ApiTemplate",
                     "source": "manifest",
@@ -1187,6 +1193,13 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                     "template",
                 ]
                 assert execution["details"]["project_origin_present"] is True
+                assert execution["details"]["available_display_name"] == "API Hybrid Project"
+                assert execution["details"]["available_icon_path"] == "icons/api-project.svg"
+                assert (
+                    execution["details"]["available_restricted_platform_name"]
+                    == "windows"
+                )
+                assert execution["details"]["presentation_fields_present"] is True
                 assert execution["details"]["available_compatible_engines"] == ["o3de"]
                 assert execution["details"]["available_compatible_engine_count"] == 1
                 assert execution["details"]["available_engine_api_dependency_keys"] == [

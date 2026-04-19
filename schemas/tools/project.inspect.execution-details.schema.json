@@ -55,6 +55,19 @@
       "items": { "type": "string", "minLength": 1 }
     },
     "project_origin_present": { "type": "boolean" },
+    "available_display_name": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "available_icon_path": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "available_restricted_platform_name": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "presentation_fields_present": { "type": "boolean" },
     "available_compatible_engines": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 }

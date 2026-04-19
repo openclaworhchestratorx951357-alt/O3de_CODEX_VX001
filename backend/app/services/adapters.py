@@ -380,6 +380,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             else 0
         )
         available_project_origin = self._manifest_origin_value(manifest)
+        available_display_name = self._manifest_string_value(manifest, "display_name")
+        available_icon_path = self._manifest_string_value(manifest, "icon_path")
+        available_restricted_platform_name = self._manifest_string_value(
+            manifest, "restricted_platform_name"
+        )
         available_compatible_engines = self._manifest_compatible_engines(manifest)
         available_engine_api_dependency_keys = self._manifest_engine_api_dependency_keys(
             manifest
@@ -711,6 +716,16 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     else []
                 ),
                 "project_origin_present": available_project_origin is not None,
+                "available_display_name": available_display_name,
+                "available_icon_path": available_icon_path,
+                "available_restricted_platform_name": available_restricted_platform_name,
+                "presentation_fields_present": any(
+                    [
+                        available_display_name is not None,
+                        available_icon_path is not None,
+                        available_restricted_platform_name is not None,
+                    ]
+                ),
                 "available_compatible_engines": available_compatible_engines,
                 "available_compatible_engine_count": len(available_compatible_engines),
                 "available_engine_api_dependency_keys": (
@@ -853,6 +868,16 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     else []
                 ),
                 "project_origin_present": available_project_origin is not None,
+                "available_display_name": available_display_name,
+                "available_icon_path": available_icon_path,
+                "available_restricted_platform_name": available_restricted_platform_name,
+                "presentation_fields_present": any(
+                    [
+                        available_display_name is not None,
+                        available_icon_path is not None,
+                        available_restricted_platform_name is not None,
+                    ]
+                ),
                 "available_compatible_engines": available_compatible_engines,
                 "available_compatible_engine_count": len(available_compatible_engines),
                 "available_engine_api_dependency_keys": (
@@ -2121,6 +2146,13 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         if "origin" not in manifest:
             return None
         return manifest["origin"]
+
+    def _manifest_string_value(self, manifest: dict[str, Any], key: str) -> str | None:
+        value = manifest.get(key)
+        if not isinstance(value, str):
+            return None
+        candidate = value.strip()
+        return candidate or None
 
     def _manifest_engine_api_dependency_keys(self, manifest: dict[str, Any]) -> list[str]:
         engine_api_dependencies = manifest.get("engine_api_dependencies")
