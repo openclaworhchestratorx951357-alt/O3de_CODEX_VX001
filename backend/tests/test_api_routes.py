@@ -486,10 +486,28 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                 assert executions.status_code == 200
                 execution = executions.json()["executions"][0]
                 assert execution["details"]["project_config"]["project_name"] == "ApiHybridProject"
+                assert execution["details"]["requested_project_config_evidence"] == [
+                    "project_config",
+                    "project_config_keys",
+                    "requested_project_config_keys",
+                    "matched_requested_project_config_keys",
+                    "missing_requested_project_config_keys",
+                ]
+                assert execution["details"]["project_config_selection_mode"] == "requested-subset"
                 assert execution["details"]["project_config_keys"] == [
                     "project_name",
                     "version",
                 ]
+                assert execution["details"]["requested_project_config_keys"] == [
+                    "project_name",
+                    "version",
+                ]
+                assert execution["details"]["matched_requested_project_config_keys"] == [
+                    "project_name",
+                    "version",
+                ]
+                assert execution["details"]["missing_requested_project_config_keys"] == []
+                assert execution["details"]["requested_project_config_subset_present"] is True
                 assert execution["details"]["requested_settings_evidence"] == [
                     "manifest_settings",
                     "manifest_settings_keys",

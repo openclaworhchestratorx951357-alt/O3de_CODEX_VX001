@@ -83,7 +83,12 @@ export interface ProjectInspectEvidenceDetails {
   include_flags?: Record<string, boolean>;
   project_config?: Record<string, unknown>;
   project_config_keys?: string[];
+  requested_project_config_evidence?: string[];
+  project_config_selection_mode?: string;
   requested_project_config_keys?: string[];
+  matched_requested_project_config_keys?: string[];
+  missing_requested_project_config_keys?: string[];
+  requested_project_config_subset_present?: boolean;
   requested_settings_evidence?: string[];
   settings_selection_mode?: string;
   requested_settings_keys?: string[];

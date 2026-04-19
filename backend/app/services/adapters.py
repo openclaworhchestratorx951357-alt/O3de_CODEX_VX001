@@ -337,6 +337,16 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             requested_keys=project_config_keys,
             include_project_config=inspection_flags["include_project_config"],
         )
+        matched_requested_project_config_keys = (
+            [key for key in project_config_keys if key in project_config]
+            if inspection_flags["include_project_config"]
+            else []
+        )
+        missing_requested_project_config_keys = (
+            [key for key in project_config_keys if key not in project_config]
+            if inspection_flags["include_project_config"]
+            else []
+        )
         requested_settings_keys = self._normalized_string_list(args.get("requested_settings_keys"))
         manifest_settings = self._manifest_settings_snapshot(
             manifest,
@@ -375,6 +385,19 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "missing_requested_gem_names",
                 ]
             )
+        requested_project_config_evidence = (
+            ["project_config", "project_config_keys"]
+            if inspection_flags["include_project_config"]
+            else []
+        )
+        if inspection_flags["include_project_config"] and project_config_keys:
+            requested_project_config_evidence.extend(
+                [
+                    "requested_project_config_keys",
+                    "matched_requested_project_config_keys",
+                    "missing_requested_project_config_keys",
+                ]
+            )
         requested_settings_evidence = (
             ["manifest_settings", "manifest_settings_keys"]
             if inspection_flags["include_settings"]
@@ -395,7 +418,12 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 f"files for '{project_name}'."
             )
         if inspection_flags["include_project_config"]:
-            message += " Manifest-backed project-config evidence was captured."
+            message += (
+                " Manifest-backed project-config evidence was captured."
+                if not project_config_keys
+                else " Manifest-backed project-config evidence was captured for the "
+                "requested subset contract."
+            )
             inspection_evidence.append("project_config")
         if inspection_flags["include_gems"]:
             message += (
@@ -426,6 +454,23 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "No manifest-backed project-config fields were present for the current "
                     "inspection request."
                 )
+        if (
+            inspection_flags["include_project_config"]
+            and project_config_keys
+            and not matched_requested_project_config_keys
+        ):
+            warnings.append(
+                "None of the requested_project_config_keys matched manifest-backed "
+                "project-config fields for the current inspection request."
+            )
+        if (
+            inspection_flags["include_project_config"]
+            and missing_requested_project_config_keys
+        ):
+            warnings.append(
+                "Some requested_project_config_keys were not present in manifest-backed "
+                f"project-config fields: {', '.join(missing_requested_project_config_keys)}."
+            )
         if inspection_flags["include_settings"]:
             warnings.append(
                 "Settings inspection remains limited to manifest-backed top-level "
@@ -496,10 +541,28 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 f"Read project manifest from '{manifest_path}'.",
                 (
                     "Captured manifest-backed project-config inspection evidence."
-                    if inspection_flags["include_project_config"] and project_config
+                    if (
+                        inspection_flags["include_project_config"]
+                        and project_config
+                        and not project_config_keys
+                    )
+                    else "Captured requested project-config subset evidence with "
+                    f"{len(matched_requested_project_config_keys)} matched and "
+                    f"{len(missing_requested_project_config_keys)} missing requested keys."
+                    if inspection_flags["include_project_config"] and project_config_keys
                     else "Project-config inspection evidence was not requested."
                     if not inspection_flags["include_project_config"]
                     else "No manifest-backed project-config evidence was available to capture."
+                ),
+                (
+                    "Requested project-config subset matching was not requested."
+                    if (
+                        not inspection_flags["include_project_config"]
+                        or not project_config_keys
+                    )
+                    else "Requested project-config subset matching resolved against "
+                    "manifest-backed project-config fields with "
+                    f"{len(matched_requested_project_config_keys)} matches."
                 ),
                 (
                     "Gem inspection evidence was not requested."
@@ -559,8 +622,22 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     if inspection_flags["include_project_config"]
                     else []
                 ),
+                "requested_project_config_evidence": requested_project_config_evidence,
+                "project_config_selection_mode": (
+                    "requested-subset"
+                    if inspection_flags["include_project_config"] and project_config_keys
+                    else "all-discovered"
+                    if inspection_flags["include_project_config"]
+                    else "not-requested"
+                ),
                 "requested_project_config_keys": (
                     project_config_keys if inspection_flags["include_project_config"] else []
+                ),
+                "matched_requested_project_config_keys": (
+                    matched_requested_project_config_keys
+                ),
+                "missing_requested_project_config_keys": (
+                    missing_requested_project_config_keys
                 ),
                 "requested_settings_evidence": requested_settings_evidence,
                 "settings_selection_mode": (
@@ -609,6 +686,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "requested_settings_subset_present": (
                     len(matched_requested_settings_keys) > 0
                     if inspection_flags["include_settings"] and requested_settings_keys
+                    else False
+                ),
+                "requested_project_config_subset_present": (
+                    len(matched_requested_project_config_keys) > 0
+                    if inspection_flags["include_project_config"] and project_config_keys
                     else False
                 ),
             },
@@ -632,8 +714,22 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     if inspection_flags["include_project_config"]
                     else []
                 ),
+                "requested_project_config_evidence": requested_project_config_evidence,
+                "project_config_selection_mode": (
+                    "requested-subset"
+                    if inspection_flags["include_project_config"] and project_config_keys
+                    else "all-discovered"
+                    if inspection_flags["include_project_config"]
+                    else "not-requested"
+                ),
                 "requested_project_config_keys": (
                     project_config_keys if inspection_flags["include_project_config"] else []
+                ),
+                "matched_requested_project_config_keys": (
+                    matched_requested_project_config_keys
+                ),
+                "missing_requested_project_config_keys": (
+                    missing_requested_project_config_keys
                 ),
                 "requested_settings_evidence": requested_settings_evidence,
                 "settings_selection_mode": (
@@ -682,6 +778,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "requested_settings_subset_present": (
                     len(matched_requested_settings_keys) > 0
                     if inspection_flags["include_settings"] and requested_settings_keys
+                    else False
+                ),
+                "requested_project_config_subset_present": (
+                    len(matched_requested_project_config_keys) > 0
+                    if inspection_flags["include_project_config"] and project_config_keys
                     else False
                 ),
             },

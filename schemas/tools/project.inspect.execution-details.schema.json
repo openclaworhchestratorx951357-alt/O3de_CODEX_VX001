@@ -41,10 +41,24 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
     },
+    "requested_project_config_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "project_config_selection_mode": { "type": "string", "minLength": 1 },
     "requested_project_config_keys": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
     },
+    "matched_requested_project_config_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "missing_requested_project_config_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "requested_project_config_subset_present": { "type": "boolean" },
     "requested_settings_evidence": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 }

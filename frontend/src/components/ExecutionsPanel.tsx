@@ -73,6 +73,14 @@ export default function ExecutionsPanel({
               const realPathAvailable = readBoolean(details, "real_path_available");
               const planDetails = readRecord(details, "plan_details");
               const projectConfig = readRecord(details, "project_config");
+              const requestedProjectConfigEvidence = readStringArray(
+                details,
+                "requested_project_config_evidence",
+              );
+              const projectConfigSelectionMode = readString(
+                details,
+                "project_config_selection_mode",
+              );
               const manifestSettings = readRecord(details, "manifest_settings");
               const inspectionEvidence = readStringArray(details, "inspection_evidence");
               const gemNames = readStringArray(details, "gem_names");
@@ -109,7 +117,19 @@ export default function ExecutionsPanel({
                 details,
                 "requested_project_config_keys",
               );
+              const matchedRequestedProjectConfigKeys = readStringArray(
+                details,
+                "matched_requested_project_config_keys",
+              );
+              const missingRequestedProjectConfigKeys = readStringArray(
+                details,
+                "missing_requested_project_config_keys",
+              );
               const settingsKeys = readStringArray(details, "manifest_settings_keys");
+              const requestedProjectConfigSubsetPresent = readBoolean(
+                details,
+                "requested_project_config_subset_present",
+              );
               const requestedSettingsSubsetPresent = readBoolean(
                 details,
                 "requested_settings_subset_present",
@@ -154,9 +174,32 @@ export default function ExecutionsPanel({
                   {projectConfigKeys.length > 0 ? (
                     <div>Project config keys: {projectConfigKeys.join(", ")}</div>
                   ) : null}
+                  {requestedProjectConfigEvidence.length > 0 ? (
+                    <div>
+                      Requested project config evidence: {requestedProjectConfigEvidence.join(", ")}
+                    </div>
+                  ) : null}
+                  {projectConfigSelectionMode ? (
+                    <div>Project config selection mode: {projectConfigSelectionMode}</div>
+                  ) : null}
                   {requestedProjectConfigKeys.length > 0 ? (
                     <div>
                       Requested project config keys: {requestedProjectConfigKeys.join(", ")}
+                    </div>
+                  ) : null}
+                  {matchedRequestedProjectConfigKeys.length > 0 ? (
+                    <div>
+                      Matched requested project config keys: {matchedRequestedProjectConfigKeys.join(", ")}
+                    </div>
+                  ) : null}
+                  {missingRequestedProjectConfigKeys.length > 0 ? (
+                    <div>
+                      Missing requested project config keys: {missingRequestedProjectConfigKeys.join(", ")}
+                    </div>
+                  ) : null}
+                  {requestedProjectConfigSubsetPresent !== null ? (
+                    <div>
+                      Requested project config subset present: {String(requestedProjectConfigSubsetPresent)}
                     </div>
                   ) : null}
                   {projectConfig ? (

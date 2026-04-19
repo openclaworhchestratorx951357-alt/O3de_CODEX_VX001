@@ -1555,6 +1555,14 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
         assert execution.details["project_name"] == "Phase7Project"
         assert execution.details["project_config"]["project_name"] == "Phase7Project"
         assert execution.details["project_config"]["version"] == "1.0.0"
+        assert execution.details["requested_project_config_evidence"] == [
+            "project_config",
+            "project_config_keys",
+            "requested_project_config_keys",
+            "matched_requested_project_config_keys",
+            "missing_requested_project_config_keys",
+        ]
+        assert execution.details["project_config_selection_mode"] == "requested-subset"
         assert execution.details["project_config_keys"] == [
             "compatible_engines",
             "project_name",
@@ -1565,6 +1573,13 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
             "version",
             "compatible_engines",
         ]
+        assert execution.details["matched_requested_project_config_keys"] == [
+            "project_name",
+            "version",
+            "compatible_engines",
+        ]
+        assert execution.details["missing_requested_project_config_keys"] == []
+        assert execution.details["requested_project_config_subset_present"] is True
         assert execution.details["requested_settings_evidence"] == [
             "manifest_settings",
             "manifest_settings_keys",
@@ -1679,7 +1694,21 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
         )
         assert execution.details["project_config"] == {}
         assert execution.details["project_config_keys"] == []
+        assert execution.details["requested_project_config_evidence"] == [
+            "project_config",
+            "project_config_keys",
+            "requested_project_config_keys",
+            "matched_requested_project_config_keys",
+            "missing_requested_project_config_keys",
+        ]
+        assert execution.details["project_config_selection_mode"] == "requested-subset"
         assert execution.details["requested_project_config_keys"] == ["version", "summary"]
+        assert execution.details["matched_requested_project_config_keys"] == []
+        assert execution.details["missing_requested_project_config_keys"] == [
+            "version",
+            "summary",
+        ]
+        assert execution.details["requested_project_config_subset_present"] is False
         assert execution.details["requested_settings_evidence"] == [
             "manifest_settings",
             "manifest_settings_keys",
@@ -1714,6 +1743,16 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
         assert execution.details["requested_settings_subset_present"] is False
         assert any(
             "No manifest-backed project-config fields were present" in warning
+            for warning in execution.warnings
+        )
+        assert any(
+            "None of the requested_project_config_keys matched manifest-backed "
+            "project-config fields" in warning
+            for warning in execution.warnings
+        )
+        assert any(
+            "Some requested_project_config_keys were not present in manifest-backed "
+            "project-config fields: version, summary." in warning
             for warning in execution.warnings
         )
         assert any(

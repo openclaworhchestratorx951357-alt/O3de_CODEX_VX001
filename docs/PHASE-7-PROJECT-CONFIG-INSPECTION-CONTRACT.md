@@ -44,6 +44,8 @@ This precursor must not widen into:
 The accepted real scope for the next precursor is:
 - reading top-level project config fields from `project_root/project.json`
 - reporting which manifest-backed config keys were inspected
+- distinguishing requested project-config keys from matched and missing
+  manifest-backed keys
 - persisting enough evidence to distinguish real file-read-only inspection from
   simulated fallback
 
@@ -86,6 +88,9 @@ statements true:
 Minimum evidence should identify:
 - manifest path used
 - config keys inspected
+- requested config keys
+- matched requested config keys
+- missing requested config keys
 - whether the path was real or simulated
 - adapter family
 - adapter mode
