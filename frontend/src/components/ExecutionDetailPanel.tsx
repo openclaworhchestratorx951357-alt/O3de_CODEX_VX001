@@ -4,6 +4,7 @@ import type {
   ProjectInspectEvidenceDetails,
 } from "../types/contracts";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
+import RecordLineageStrip from "./RecordLineageStrip";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import StatusChip from "./StatusChip";
@@ -66,6 +67,12 @@ export default function ExecutionDetailPanel({
       emptyMessage="Select an execution to inspect its detail."
       hasItems={Boolean(item)}
     >
+      <RecordLineageStrip
+        runId={item?.run_id ?? null}
+        executionId={item?.id ?? null}
+        artifactId={selectedArtifactId ?? item?.artifact_ids[0] ?? null}
+        executionMode={item?.execution_mode ?? null}
+      />
       {refreshHint ? (
         <div style={summaryCalloutStyle}>{refreshHint}</div>
       ) : null}

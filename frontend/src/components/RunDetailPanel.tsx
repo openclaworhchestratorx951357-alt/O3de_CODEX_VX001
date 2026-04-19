@@ -4,6 +4,7 @@ import type {
   SettingsPatchMutationAudit,
 } from "../types/contracts";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
+import RecordLineageStrip from "./RecordLineageStrip";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import {
@@ -93,6 +94,11 @@ export default function RunDetailPanel({
       emptyMessage="Select a run to inspect its detail."
       hasItems={Boolean(item)}
     >
+      <RecordLineageStrip
+        runId={item?.id ?? null}
+        executionId={relatedExecutionId}
+        executionMode={item?.execution_mode ?? null}
+      />
       {refreshHint ? (
         <div style={summaryCalloutStyle}>{refreshHint}</div>
       ) : null}

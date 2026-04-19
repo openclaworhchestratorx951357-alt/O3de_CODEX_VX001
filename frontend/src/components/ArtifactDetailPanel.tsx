@@ -1,5 +1,6 @@
 import type { ArtifactRecord, ProjectInspectEvidenceDetails } from "../types/contracts";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
+import RecordLineageStrip from "./RecordLineageStrip";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import {
@@ -53,6 +54,11 @@ export default function ArtifactDetailPanel({
       emptyMessage="Select an artifact to inspect its detail."
       hasItems={Boolean(item)}
     >
+      <RecordLineageStrip
+        runId={item?.run_id ?? null}
+        executionId={item?.execution_id ?? null}
+        artifactId={item?.id ?? null}
+      />
       {refreshHint ? (
         <div style={summaryCalloutStyle}>{refreshHint}</div>
       ) : null}
