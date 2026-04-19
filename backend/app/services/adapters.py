@@ -379,6 +379,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             if inspection_flags["include_project_config"]
             else 0
         )
+        available_project_origin = self._manifest_origin_value(manifest)
         available_compatible_engines = self._manifest_compatible_engines(manifest)
         available_engine_api_dependency_keys = self._manifest_engine_api_dependency_keys(
             manifest
@@ -700,6 +701,16 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 ),
                 "available_project_config_keys": available_project_config_keys,
                 "available_project_config_count": available_project_config_count,
+                "available_project_origin": available_project_origin,
+                "available_project_origin_type": self._json_value_type(
+                    available_project_origin
+                ),
+                "available_project_origin_keys": (
+                    sorted(available_project_origin.keys())
+                    if isinstance(available_project_origin, dict)
+                    else []
+                ),
+                "project_origin_present": available_project_origin is not None,
                 "available_compatible_engines": available_compatible_engines,
                 "available_compatible_engine_count": len(available_compatible_engines),
                 "available_engine_api_dependency_keys": (
@@ -832,6 +843,16 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 ),
                 "available_project_config_keys": available_project_config_keys,
                 "available_project_config_count": available_project_config_count,
+                "available_project_origin": available_project_origin,
+                "available_project_origin_type": self._json_value_type(
+                    available_project_origin
+                ),
+                "available_project_origin_keys": (
+                    sorted(available_project_origin.keys())
+                    if isinstance(available_project_origin, dict)
+                    else []
+                ),
+                "project_origin_present": available_project_origin is not None,
                 "available_compatible_engines": available_compatible_engines,
                 "available_compatible_engine_count": len(available_compatible_engines),
                 "available_engine_api_dependency_keys": (
@@ -2096,6 +2117,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             return []
         return self._normalized_string_list(compatible_engines)
 
+    def _manifest_origin_value(self, manifest: dict[str, Any]) -> Any | None:
+        if "origin" not in manifest:
+            return None
+        return manifest["origin"]
+
     def _manifest_engine_api_dependency_keys(self, manifest: dict[str, Any]) -> list[str]:
         engine_api_dependencies = manifest.get("engine_api_dependencies")
         if not isinstance(engine_api_dependencies, dict):
@@ -2105,6 +2131,21 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             for key in engine_api_dependencies
             if isinstance(key, str) and key.strip()
         )
+
+    def _json_value_type(self, value: Any) -> str:
+        if value is None:
+            return "null"
+        if isinstance(value, bool):
+            return "boolean"
+        if isinstance(value, str):
+            return "string"
+        if isinstance(value, dict):
+            return "object"
+        if isinstance(value, list):
+            return "array"
+        if isinstance(value, int | float):
+            return "number"
+        return "unknown"
 
 
 class AdapterService:

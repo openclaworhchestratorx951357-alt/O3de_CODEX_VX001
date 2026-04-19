@@ -170,6 +170,13 @@ def test_schema_validation_service_accepts_real_project_inspect_execution_detail
             "project_config_keys": ["project_name", "version"],
             "available_project_config_keys": ["project_name", "version"],
             "available_project_config_count": 2,
+            "available_project_origin": {
+                "template": "SchemaTemplate",
+                "source": "manifest"
+            },
+            "available_project_origin_type": "object",
+            "available_project_origin_keys": ["source", "template"],
+            "project_origin_present": True,
             "available_compatible_engines": ["o3de"],
             "available_compatible_engine_count": 1,
             "available_engine_api_dependency_keys": ["framework"],
@@ -269,6 +276,13 @@ def test_schema_validation_service_accepts_real_project_inspect_artifact_metadat
             "project_config_keys": ["project_name", "version"],
             "available_project_config_keys": ["project_name", "version"],
             "available_project_config_count": 2,
+            "available_project_origin": {
+                "template": "SchemaTemplate",
+                "source": "manifest"
+            },
+            "available_project_origin_type": "object",
+            "available_project_origin_keys": ["source", "template"],
+            "project_origin_present": True,
             "available_compatible_engines": ["o3de"],
             "available_compatible_engine_count": 1,
             "available_engine_api_dependency_keys": ["framework"],

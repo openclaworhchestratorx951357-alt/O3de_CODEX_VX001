@@ -94,6 +94,7 @@ The operator shell now exposes this boundary through:
 - explicit discovered-vs-returned manifest-backed project-config key inventory
 - explicit discovered-vs-returned manifest-backed Gem inventory
 - explicit manifest-backed engine compatibility inventory
+- explicit manifest-backed project origin provenance
 
 ## What remains intentionally limited
 
@@ -101,8 +102,9 @@ The operator shell now exposes this boundary through:
 - `build.configure` is not a real configure execution path
 - `project.inspect` real evidence is still limited to manifest-backed
   project-config, requested-vs-discovered Gem, requested Gem subset matching,
-  requested settings subset matching, top-level settings fields, and explicit
-  engine compatibility inventory rather than broader layered config discovery
+  requested settings subset matching, top-level settings fields, explicit
+  engine compatibility inventory, and explicit project origin provenance rather
+  than broader layered config discovery
 - broader mutation paths are still not implemented beyond the first admitted
   manifest-backed settings.patch case
 - simulated fallback remains part of the truthful accepted behavior
