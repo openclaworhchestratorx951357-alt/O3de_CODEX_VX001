@@ -112,6 +112,15 @@ Use a dedicated worktree when:
 
 See `docs/WORKTREE-STRATEGY.md` for the standard named lanes.
 
+When a fresh worktree is created, bootstrap it before running repo tasks:
+
+```powershell
+pwsh -File .\scripts\dev.ps1 bootstrap-worktree
+```
+
+That task is the standard way to make a new worktree usable without manually
+rebuilding every local dependency path.
+
 ## Verification matrix
 
 Every slice must finish with the narrowest truthful verification that proves the

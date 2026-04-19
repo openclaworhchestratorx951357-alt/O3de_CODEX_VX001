@@ -95,6 +95,21 @@ git worktree add ..\O3de_CODEX_VX001-ci-devx -b codex/ci-devx origin/feature/pro
 If the branch should start from the current local branch tip instead of the
 remote tracking branch, replace the final argument with the current branch name.
 
+After creating a fresh worktree, bootstrap its local task environment:
+
+```powershell
+pwsh -File .\scripts\dev.ps1 bootstrap-worktree
+```
+
+Current bootstrap behavior:
+- links `backend/.venv` from the primary checkout when the worktree does not
+  have its own backend virtualenv
+- links `backend/.vendor_tools` from the primary checkout when needed
+- installs a local `frontend/node_modules` tree inside the worktree
+
+This keeps backend Python assets shared while letting frontend tools run against
+worktree-local packages and source paths.
+
 ## Worktree rules
 
 One worktree should own one concern at a time.
