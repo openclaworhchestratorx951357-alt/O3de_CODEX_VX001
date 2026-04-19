@@ -157,6 +157,9 @@ Current `codex/ci-devx` finding:
 - backend task launches return clean exit codes in diagnostics
 - the remaining runner issue is frontend build under scripted invocation, where
   `esbuild` can fail with Windows `spawn EPERM` in the worktree shell context
+- current workaround: if `pwsh -File .\scripts\dev.ps1 frontend-build` reports
+  that Windows child-process launch limit, run `npm run build` directly from the
+  worktree `frontend/` directory and report that result explicitly
 
 ### Frontend slices
 

@@ -119,6 +119,14 @@ pwsh -File .\scripts\dev.ps1 runner-diagnostics
 Use that output to compare executable resolution, cwd, env overrides, and
 scripted versus direct task behavior before patching the runner.
 
+Current `codex/ci-devx` boundary:
+- backend verification is stable through the scripted runner
+- frontend lint is stable through the scripted runner
+- frontend build may still fail under scripted child-process launch with Windows
+  `spawn EPERM`
+- when that happens, the accepted temporary workaround is to run `npm run build`
+  directly from the worktree `frontend/` directory and report that result
+
 ## Worktree rules
 
 One worktree should own one concern at a time.
