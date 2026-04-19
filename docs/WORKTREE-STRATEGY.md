@@ -110,6 +110,15 @@ Current bootstrap behavior:
 This keeps backend Python assets shared while letting frontend tools run against
 worktree-local packages and source paths.
 
+If worktree-local task execution is inconsistent, gather the launch trace first:
+
+```powershell
+pwsh -File .\scripts\dev.ps1 runner-diagnostics
+```
+
+Use that output to compare executable resolution, cwd, env overrides, and
+scripted versus direct task behavior before patching the runner.
+
 ## Worktree rules
 
 One worktree should own one concern at a time.
