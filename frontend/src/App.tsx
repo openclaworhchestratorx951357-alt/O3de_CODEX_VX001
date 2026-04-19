@@ -165,6 +165,9 @@ export default function App() {
   const executionsSectionRef = useRef<HTMLDivElement | null>(null);
   const eventsSectionRef = useRef<HTMLDivElement | null>(null);
   const runsSectionRef = useRef<HTMLDivElement | null>(null);
+  const runDetailSectionRef = useRef<HTMLDivElement | null>(null);
+  const executionDetailSectionRef = useRef<HTMLDivElement | null>(null);
+  const artifactDetailSectionRef = useRef<HTMLDivElement | null>(null);
   const announceRunDetailRefreshRef = useRef(false);
 
   async function loadApprovals() {
@@ -525,6 +528,27 @@ export default function App() {
     return updatedFocusedSection === section ? "data updated after refresh" : null;
   }
 
+  function openRunDetail(runId: string) {
+    setRunDetailRefreshHint(null);
+    void loadRunDetail(runId).then(() => {
+      scrollToSection(runDetailSectionRef.current);
+    });
+  }
+
+  function openExecutionDetail(executionId: string) {
+    setExecutionDetailRefreshHint(null);
+    void loadExecutionDetail(executionId).then(() => {
+      scrollToSection(executionDetailSectionRef.current);
+    });
+  }
+
+  function openArtifactDetail(artifactId: string) {
+    setArtifactDetailRefreshHint(null);
+    void loadArtifactDetail(artifactId).then(() => {
+      scrollToSection(artifactDetailSectionRef.current);
+    });
+  }
+
   async function refreshDashboardState() {
     const nextExecutionsPromise = loadExecutions();
     const nextArtifactsPromise = loadArtifacts();
@@ -816,10 +840,7 @@ export default function App() {
           loading={artifactsLoading}
           error={artifactsError}
           selectedArtifactId={selectedArtifactId}
-          onSelectArtifact={(artifactId) => {
-            setArtifactDetailRefreshHint(null);
-            void loadArtifactDetail(artifactId);
-          }}
+          onSelectArtifact={openArtifactDetail}
           searchPreset={artifactsSearchPreset}
           focusLabel={artifactsFocusLabel}
           onClearFocus={clearArtifactsFocus}
@@ -834,10 +855,7 @@ export default function App() {
           loading={executionsLoading}
           error={executionsError}
           selectedExecutionId={selectedExecutionId}
-          onSelectExecution={(executionId) => {
-            setExecutionDetailRefreshHint(null);
-            void loadExecutionDetail(executionId);
-          }}
+          onSelectExecution={openExecutionDetail}
           searchPreset={executionsSearchPreset}
           focusLabel={executionsFocusLabel}
           onClearFocus={clearExecutionsFocus}
@@ -858,10 +876,7 @@ export default function App() {
           loading={runsLoading}
           error={runsError}
           selectedRunId={selectedRunId}
-          onSelectRun={(runId) => {
-            setRunDetailRefreshHint(null);
-            void loadRunDetail(runId);
-          }}
+          onSelectRun={openRunDetail}
           searchPreset={runsSearchPreset}
           focusLabel={runsFocusLabel}
           onClearFocus={clearRunsFocus}
@@ -869,28 +884,40 @@ export default function App() {
           updateBadgeLabel={getFocusedSectionUpdateLabel("runs")}
         />
       </div>
-      <RunDetailPanel
-        item={selectedRun}
-        loading={selectedRunLoading}
-        error={selectedRunError}
-        executionDetails={selectedExecutionDetails}
-        refreshHint={runDetailRefreshHint}
-        lastRefreshedAt={runDetailRefreshedAt}
-      />
-      <ExecutionDetailPanel
-        item={selectedExecution}
-        loading={selectedExecutionLoading}
-        error={selectedExecutionError}
-        refreshHint={executionDetailRefreshHint}
-        lastRefreshedAt={executionDetailRefreshedAt}
-      />
-      <ArtifactDetailPanel
-        item={selectedArtifact}
-        loading={selectedArtifactLoading}
-        error={selectedArtifactError}
-        refreshHint={artifactDetailRefreshHint}
-        lastRefreshedAt={artifactDetailRefreshedAt}
-      />
+      <div ref={runDetailSectionRef}>
+        <RunDetailPanel
+          item={selectedRun}
+          loading={selectedRunLoading}
+          error={selectedRunError}
+          executionDetails={selectedExecutionDetails}
+          relatedExecutionId={executions.find((execution) => execution.run_id === selectedRunId)?.id ?? null}
+          onOpenExecution={openExecutionDetail}
+          refreshHint={runDetailRefreshHint}
+          lastRefreshedAt={runDetailRefreshedAt}
+        />
+      </div>
+      <div ref={executionDetailSectionRef}>
+        <ExecutionDetailPanel
+          item={selectedExecution}
+          loading={selectedExecutionLoading}
+          error={selectedExecutionError}
+          onOpenRun={openRunDetail}
+          onOpenArtifact={openArtifactDetail}
+          refreshHint={executionDetailRefreshHint}
+          lastRefreshedAt={executionDetailRefreshedAt}
+        />
+      </div>
+      <div ref={artifactDetailSectionRef}>
+        <ArtifactDetailPanel
+          item={selectedArtifact}
+          loading={selectedArtifactLoading}
+          error={selectedArtifactError}
+          onOpenRun={openRunDetail}
+          onOpenExecution={openExecutionDetail}
+          refreshHint={artifactDetailRefreshHint}
+          lastRefreshedAt={artifactDetailRefreshedAt}
+        />
+      </div>
       <LocksPanel
         items={locks}
         loading={locksLoading}

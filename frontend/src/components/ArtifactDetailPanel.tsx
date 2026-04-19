@@ -4,6 +4,7 @@ import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import {
   formatSummaryTimestamp,
+  summaryActionButtonStyle,
   summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
@@ -15,6 +16,8 @@ type ArtifactDetailPanelProps = {
   item: ArtifactRecord | null;
   loading: boolean;
   error: string | null;
+  onOpenRun?: (runId: string) => void;
+  onOpenExecution?: (executionId: string) => void;
   refreshHint?: string | null;
   lastRefreshedAt?: string | null;
 };
@@ -32,6 +35,8 @@ export default function ArtifactDetailPanel({
   item,
   loading,
   error,
+  onOpenRun,
+  onOpenExecution,
   refreshHint,
   lastRefreshedAt,
 }: ArtifactDetailPanelProps) {
@@ -78,6 +83,35 @@ export default function ArtifactDetailPanel({
             </SummaryFact>
           </SummaryFacts>
         </article>
+        {item ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Related Records</h4>
+            <SummaryFacts>
+              <SummaryFact label="Run ID" copyValue={item.run_id}>{item.run_id}</SummaryFact>
+              <SummaryFact label="Execution ID" copyValue={item.execution_id}>
+                {item.execution_id}
+              </SummaryFact>
+            </SummaryFacts>
+            {onOpenRun ? (
+              <button
+                type="button"
+                style={summaryActionButtonStyle}
+                onClick={() => onOpenRun(item.run_id)}
+              >
+                Open related run detail
+              </button>
+            ) : null}
+            {onOpenExecution ? (
+              <button
+                type="button"
+                style={summaryActionButtonStyle}
+                onClick={() => onOpenExecution(item.execution_id)}
+              >
+                Open related execution detail
+              </button>
+            ) : null}
+          </article>
+        ) : null}
       </div>
       {projectInspectDetails ? (
         <ProjectInspectEvidenceSummary

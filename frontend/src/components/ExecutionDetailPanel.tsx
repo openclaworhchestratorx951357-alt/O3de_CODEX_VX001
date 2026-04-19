@@ -4,6 +4,7 @@ import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import {
   formatSummaryTimestamp,
+  summaryActionButtonStyle,
   summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
@@ -15,6 +16,8 @@ type ExecutionDetailPanelProps = {
   item: ExecutionRecord | null;
   loading: boolean;
   error: string | null;
+  onOpenRun?: (runId: string) => void;
+  onOpenArtifact?: (artifactId: string) => void;
   refreshHint?: string | null;
   lastRefreshedAt?: string | null;
 };
@@ -32,6 +35,8 @@ export default function ExecutionDetailPanel({
   item,
   loading,
   error,
+  onOpenRun,
+  onOpenArtifact,
   refreshHint,
   lastRefreshedAt,
 }: ExecutionDetailPanelProps) {
@@ -81,6 +86,35 @@ export default function ExecutionDetailPanel({
             <SummaryFact label="Warnings">{item?.warnings.length ?? 0}</SummaryFact>
           </SummaryFacts>
         </article>
+        {item ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Related Records</h4>
+            <SummaryFacts>
+              <SummaryFact label="Run ID" copyValue={item.run_id}>{item.run_id}</SummaryFact>
+              <SummaryFact label="Artifact IDs">
+                {item.artifact_ids.length > 0 ? item.artifact_ids.join(", ") : "none"}
+              </SummaryFact>
+            </SummaryFacts>
+            {onOpenRun ? (
+              <button
+                type="button"
+                style={summaryActionButtonStyle}
+                onClick={() => onOpenRun(item.run_id)}
+              >
+                Open related run detail
+              </button>
+            ) : null}
+            {onOpenArtifact && item.artifact_ids.length > 0 ? (
+              <button
+                type="button"
+                style={summaryActionButtonStyle}
+                onClick={() => onOpenArtifact(item.artifact_ids[0])}
+              >
+                Open first related artifact detail
+              </button>
+            ) : null}
+          </article>
+        ) : null}
       </div>
       {projectInspectDetails ? (
         <ProjectInspectEvidenceSummary

@@ -9,6 +9,7 @@ import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import {
   formatSummaryLabeledText,
   formatSummaryTimestamp,
+  summaryActionButtonStyle,
   summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
@@ -21,6 +22,8 @@ type RunDetailPanelProps = {
   loading: boolean;
   error: string | null;
   executionDetails?: Record<string, unknown> | null;
+  relatedExecutionId?: string | null;
+  onOpenExecution?: (executionId: string) => void;
   refreshHint?: string | null;
   lastRefreshedAt?: string | null;
 };
@@ -73,6 +76,8 @@ export default function RunDetailPanel({
   loading,
   error,
   executionDetails,
+  relatedExecutionId,
+  onOpenExecution,
   refreshHint,
   lastRefreshedAt,
 }: RunDetailPanelProps) {
@@ -164,6 +169,23 @@ export default function RunDetailPanel({
                 <SummaryFact label="Rollback outcome">{mutationAudit.rollback_outcome}</SummaryFact>
               ) : null}
             </SummaryFacts>
+          </article>
+        ) : null}
+        {relatedExecutionId && onOpenExecution ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Related Records</h4>
+            <SummaryFacts>
+              <SummaryFact label="Execution ID" copyValue={relatedExecutionId}>
+                {relatedExecutionId}
+              </SummaryFact>
+            </SummaryFacts>
+            <button
+              type="button"
+              style={summaryActionButtonStyle}
+              onClick={() => onOpenExecution(relatedExecutionId)}
+            >
+              Open related execution detail
+            </button>
           </article>
         ) : null}
       </div>
