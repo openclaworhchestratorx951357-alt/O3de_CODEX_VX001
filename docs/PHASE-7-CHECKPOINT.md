@@ -89,6 +89,8 @@ The operator shell now exposes this boundary through:
 - approval queue and policy meaning
 - Phase 7 capability summary
 - operator overview drilldowns and refresh timestamps
+- explicit requested-vs-matched project-config count evidence for manifest-backed
+  project inspection
 
 ## What remains intentionally limited
 

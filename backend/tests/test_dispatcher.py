@@ -1579,6 +1579,9 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
             "compatible_engines",
         ]
         assert execution.details["missing_requested_project_config_keys"] == []
+        assert execution.details["matched_requested_project_config_count"] == 3
+        assert execution.details["missing_requested_project_config_count"] == 0
+        assert execution.details["project_config_fields_present"] is True
         assert execution.details["requested_project_config_subset_present"] is True
         assert execution.details["requested_settings_evidence"] == [
             "manifest_settings",
@@ -1620,6 +1623,9 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
         assert artifact.metadata["execution_mode"] == "real"
         assert artifact.metadata["project_name"] == "Phase7Project"
         assert artifact.metadata["project_config"]["version"] == "1.0.0"
+        assert artifact.metadata["matched_requested_project_config_count"] == 3
+        assert artifact.metadata["missing_requested_project_config_count"] == 0
+        assert artifact.metadata["project_config_fields_present"] is True
         assert artifact.metadata["requested_settings_evidence"] == [
             "manifest_settings",
             "manifest_settings_keys",
@@ -1720,6 +1726,9 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
             "version",
             "summary",
         ]
+        assert execution.details["matched_requested_project_config_count"] == 0
+        assert execution.details["missing_requested_project_config_count"] == 2
+        assert execution.details["project_config_fields_present"] is False
         assert execution.details["requested_project_config_subset_present"] is False
         assert execution.details["requested_settings_evidence"] == [
             "manifest_settings",

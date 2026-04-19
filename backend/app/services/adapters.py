@@ -374,6 +374,16 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             if inspection_flags["include_project_config"]
             else []
         )
+        matched_requested_project_config_count = (
+            len(matched_requested_project_config_keys)
+            if inspection_flags["include_project_config"]
+            else 0
+        )
+        missing_requested_project_config_count = (
+            len(missing_requested_project_config_keys)
+            if inspection_flags["include_project_config"]
+            else 0
+        )
         requested_settings_keys = self._normalized_string_list(args.get("requested_settings_keys"))
         manifest_settings = self._manifest_settings_snapshot(
             manifest,
@@ -686,6 +696,17 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "missing_requested_project_config_keys": (
                     missing_requested_project_config_keys
                 ),
+                "matched_requested_project_config_count": (
+                    matched_requested_project_config_count
+                ),
+                "missing_requested_project_config_count": (
+                    missing_requested_project_config_count
+                ),
+                "project_config_fields_present": (
+                    len(project_config) > 0
+                    if inspection_flags["include_project_config"]
+                    else False
+                ),
                 "requested_settings_evidence": requested_settings_evidence,
                 "settings_evidence_source": (
                     "project_manifest_top_level"
@@ -791,6 +812,17 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 ),
                 "missing_requested_project_config_keys": (
                     missing_requested_project_config_keys
+                ),
+                "matched_requested_project_config_count": (
+                    matched_requested_project_config_count
+                ),
+                "missing_requested_project_config_count": (
+                    missing_requested_project_config_count
+                ),
+                "project_config_fields_present": (
+                    len(project_config) > 0
+                    if inspection_flags["include_project_config"]
+                    else False
                 ),
                 "requested_settings_evidence": requested_settings_evidence,
                 "settings_evidence_source": (

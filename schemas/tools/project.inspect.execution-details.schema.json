@@ -58,6 +58,9 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
     },
+    "matched_requested_project_config_count": { "type": "integer", "minimum": 0 },
+    "missing_requested_project_config_count": { "type": "integer", "minimum": 0 },
+    "project_config_fields_present": { "type": "boolean" },
     "requested_project_config_subset_present": { "type": "boolean" },
     "requested_settings_evidence": {
       "type": "array",
