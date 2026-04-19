@@ -137,7 +137,7 @@ function describeExecutionResult(result: Record<string, unknown>): string {
   const tool = typeof result.tool === "string" ? result.tool : null;
 
   if (executionMode === "real" && simulated === false && projectInspectTool === "project.inspect") {
-    return "Real read-only project inspection path ran for project.inspect, and it may include manifest-backed project-config, requested-vs-discovered Gem evidence, requested Gem subset matching, requested settings subset matching, and top-level settings evidence.";
+    return "Real read-only project inspection path ran for project.inspect, and it may include explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence.";
   }
   if (executionMode === "real" && simulated === false && tool === "build.configure") {
     return "Real plan-only build.configure preflight ran; no configure command was executed.";

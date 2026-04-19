@@ -31,7 +31,7 @@ function readMutationAudit(
 
 function describeRunTruth(item: RunRecord): string {
   if (item.execution_mode === "real" && item.tool === "project.inspect") {
-    return "This run used the real read-only project.inspect path and may include manifest-backed project-config subset matching, manifest-backed Gem subset/source evidence, and manifest-backed top-level settings subset evidence.";
+    return "This run used the real read-only project.inspect path and may include explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence.";
   }
   if (item.execution_mode === "real" && item.tool === "build.configure") {
     return "This run used the real plan-only build.configure preflight path.";

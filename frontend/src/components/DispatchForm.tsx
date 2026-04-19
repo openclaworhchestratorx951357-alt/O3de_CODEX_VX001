@@ -73,7 +73,7 @@ export default function DispatchForm({
   const selectedCapabilityStatus = selectedTool?.capability_status ?? "simulated-only";
   const hybridDispatchNote = hybridModeActive
     ? selectedToolMayUseRealPath
-      ? "Hybrid mode is active. This tool may use the real read-only project inspection path when its manifest preconditions are satisfied, including manifest-backed project-config, requested-vs-discovered Gem evidence, requested Gem subset matching, requested settings subset matching, and top-level settings evidence when requested; otherwise it will fall back to simulation."
+      ? "Hybrid mode is active. This tool may use the real read-only project inspection path when its manifest preconditions are satisfied, including explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence; otherwise it will fall back to simulation."
       : selectedToolMayUseRealPlanOnlyPath
         ? "Hybrid mode is active. This tool may use the real plan-only build.configure preflight path when dry_run=true and manifest preconditions are satisfied; otherwise it will fall back to simulation."
         : "Hybrid mode is active, but this selected tool will still remain simulated in this phase."
@@ -187,7 +187,7 @@ export default function DispatchForm({
               <div>
                 <strong>Expected execution truth:</strong>{" "}
                 {selectedCapabilityStatus === "hybrid-read-only" && selectedToolMayUseRealPath
-                  ? "Possible real read-only project inspection in hybrid mode, including manifest-backed project-config, requested-vs-discovered Gem evidence, requested Gem subset matching, requested settings subset matching, and top-level settings evidence when requested; simulated fallback remains explicit."
+                  ? "Possible real read-only project inspection in hybrid mode, including explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence; simulated fallback remains explicit."
                   : selectedCapabilityStatus === "plan-only" && selectedToolMayUseRealPlanOnlyPath
                     ? "Possible real plan-only build.configure preflight in hybrid mode when dry_run=true; actual configure mutation is still not real."
                     : selectedCapabilityStatus === "plan-only"
@@ -258,9 +258,9 @@ export default function DispatchForm({
               optional <code>requested_gem_names</code>, <code>include_settings</code>,
               and optional <code>requested_settings_keys</code> in args JSON to
               request the currently supported real manifest-backed project-config,
-              requested-vs-discovered Gem evidence, requested Gem subset matching,
-              requested settings subset matching, and top-level settings evidence
-              in hybrid mode.
+              requested-vs-discovered Gem evidence, requested settings subset
+              matching, and the explicit manifest-backed origin, presentation,
+              identity, and tag inventories in hybrid mode.
             </p>
           ) : null}
 
