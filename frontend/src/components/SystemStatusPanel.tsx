@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 
 import type { ReadinessStatus } from "../types/contracts";
 import SummarySection from "./SummarySection";
+import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import StatusChip from "./StatusChip";
 import {
   getExecutionModeTone,
@@ -38,67 +39,78 @@ export default function SystemStatusPanel(
         <div style={summaryCardGridStyle}>
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Backend</h3>
-            <p><strong>Ready:</strong> <StatusChip label={readinessData.ok ? "yes" : "no"} tone={readinessData.ok ? "success" : "danger"} /></p>
-            <p><strong>Execution mode:</strong> <StatusChip label={readinessData.execution_mode} tone={getExecutionModeTone(readinessData.execution_mode)} /></p>
-            <p><strong>Adapter contract:</strong> {readinessData.adapter_mode.contract_version}</p>
+            <SummaryFacts>
+              <SummaryFact label="Ready">
+                <StatusChip label={readinessData.ok ? "yes" : "no"} tone={readinessData.ok ? "success" : "danger"} />
+              </SummaryFact>
+              <SummaryFact label="Execution mode">
+                <StatusChip label={readinessData.execution_mode} tone={getExecutionModeTone(readinessData.execution_mode)} />
+              </SummaryFact>
+              <SummaryFact label="Adapter contract">
+                {readinessData.adapter_mode.contract_version}
+              </SummaryFact>
+            </SummaryFacts>
           </article>
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Persistence</h3>
-            <p><strong>Ready:</strong> <StatusChip label={readinessData.persistence_ready ? "yes" : "no"} tone={readinessData.persistence_ready ? "success" : "danger"} /></p>
-            <p><strong>Strategy:</strong> {readinessData.database_strategy}</p>
-            <p><strong>Path:</strong> {readinessData.database_path}</p>
-            <p><strong>Warning:</strong> {readinessData.persistence_warning ?? "none"}</p>
+            <SummaryFacts>
+              <SummaryFact label="Ready">
+                <StatusChip label={readinessData.persistence_ready ? "yes" : "no"} tone={readinessData.persistence_ready ? "success" : "danger"} />
+              </SummaryFact>
+              <SummaryFact label="Strategy">{readinessData.database_strategy}</SummaryFact>
+              <SummaryFact label="Path">{readinessData.database_path}</SummaryFact>
+              <SummaryFact label="Warning">{readinessData.persistence_warning ?? "none"}</SummaryFact>
+            </SummaryFacts>
           </article>
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Schema Validation</h3>
-            <p><strong>Mode:</strong> <StatusChip label={readinessData.schema_validation.mode} tone={getSchemaModeTone(readinessData.schema_validation.mode)} /></p>
-            <p><strong>Scope:</strong> {readinessData.schema_validation.schema_scope}</p>
-            <p>
-              <strong>Persisted details:</strong>{" "}
-              <StatusChip
-                label={readinessData.schema_validation.supports_persisted_execution_details ? "yes" : "no"}
-                tone={readinessData.schema_validation.supports_persisted_execution_details ? "success" : "warning"}
-              />
-            </p>
-            <p>
-              <strong>Persisted metadata:</strong>{" "}
-              <StatusChip
-                label={readinessData.schema_validation.supports_persisted_artifact_metadata ? "yes" : "no"}
-                tone={readinessData.schema_validation.supports_persisted_artifact_metadata ? "success" : "warning"}
-              />
-            </p>
-            <p>
-              <strong>Active unsupported:</strong>{" "}
-              {readinessData.schema_validation.active_unsupported_keywords.length}
-            </p>
+            <SummaryFacts>
+              <SummaryFact label="Mode">
+                <StatusChip label={readinessData.schema_validation.mode} tone={getSchemaModeTone(readinessData.schema_validation.mode)} />
+              </SummaryFact>
+              <SummaryFact label="Scope">{readinessData.schema_validation.schema_scope}</SummaryFact>
+              <SummaryFact label="Persisted details">
+                <StatusChip
+                  label={readinessData.schema_validation.supports_persisted_execution_details ? "yes" : "no"}
+                  tone={readinessData.schema_validation.supports_persisted_execution_details ? "success" : "warning"}
+                />
+              </SummaryFact>
+              <SummaryFact label="Persisted metadata">
+                <StatusChip
+                  label={readinessData.schema_validation.supports_persisted_artifact_metadata ? "yes" : "no"}
+                  tone={readinessData.schema_validation.supports_persisted_artifact_metadata ? "success" : "warning"}
+                />
+              </SummaryFact>
+              <SummaryFact label="Active unsupported">
+                {readinessData.schema_validation.active_unsupported_keywords.length}
+              </SummaryFact>
+            </SummaryFacts>
           </article>
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Persisted Coverage</h3>
-            <p>
-              <strong>Execution details tools:</strong>{" "}
-              {readinessData.schema_validation.persisted_execution_details_tool_count}
-            </p>
-            <p>
-              <strong>Artifact metadata tools:</strong>{" "}
-              {readinessData.schema_validation.persisted_artifact_metadata_tool_count}
-            </p>
-            <p>
-              <strong>Families with coverage:</strong>{" "}
-              {readinessData.schema_validation.persisted_family_coverage
-                .filter((family) => family.execution_details_tools > 0)
-                .map((family) => family.family)
-                .join(", ")}
-            </p>
-            <p>
-              <strong>Fully covered families:</strong>{" "}
-              {readinessData.schema_validation.persisted_family_coverage
-                .filter((family) => (
-                  family.execution_details_tools === family.total_tools
-                  && family.artifact_metadata_tools === family.total_tools
-                ))
-                .map((family) => family.family)
-                .join(", ")}
-            </p>
+            <SummaryFacts>
+              <SummaryFact label="Execution details tools">
+                {readinessData.schema_validation.persisted_execution_details_tool_count}
+              </SummaryFact>
+              <SummaryFact label="Artifact metadata tools">
+                {readinessData.schema_validation.persisted_artifact_metadata_tool_count}
+              </SummaryFact>
+              <SummaryFact label="Families with coverage">
+                {readinessData.schema_validation.persisted_family_coverage
+                  .filter((family) => family.execution_details_tools > 0)
+                  .map((family) => family.family)
+                  .join(", ")}
+              </SummaryFact>
+              <SummaryFact label="Fully covered families">
+                {readinessData.schema_validation.persisted_family_coverage
+                  .filter((family) => (
+                    family.execution_details_tools === family.total_tools
+                    && family.artifact_metadata_tools === family.total_tools
+                  ))
+                  .map((family) => family.family)
+                  .join(", ")}
+              </SummaryFact>
+            </SummaryFacts>
             <p style={listLabelStyle}><strong>Covered tools</strong></p>
             <ul style={listStyle}>
               {readinessData.schema_validation.persisted_execution_details_tools.map((toolName) => (
@@ -130,11 +142,21 @@ export default function SystemStatusPanel(
           </article>
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Adapter Boundary</h3>
-            <p><strong>Configured mode:</strong> <StatusChip label={readinessData.adapter_mode.configured_mode} tone={getExecutionModeTone(readinessData.adapter_mode.configured_mode)} /></p>
-            <p><strong>Supported modes:</strong> {readinessData.adapter_mode.supported_modes.join(", ")}</p>
-            <p><strong>Real tool paths:</strong> {readinessData.adapter_mode.real_tool_paths.join(", ") || "none"}</p>
-            <p><strong>Plan-only tool paths:</strong> {readinessData.adapter_mode.plan_only_tool_paths.join(", ") || "none"}</p>
-            <p><strong>Boundary:</strong> {readinessData.adapter_mode.execution_boundary}</p>
+            <SummaryFacts>
+              <SummaryFact label="Configured mode">
+                <StatusChip label={readinessData.adapter_mode.configured_mode} tone={getExecutionModeTone(readinessData.adapter_mode.configured_mode)} />
+              </SummaryFact>
+              <SummaryFact label="Supported modes">
+                {readinessData.adapter_mode.supported_modes.join(", ")}
+              </SummaryFact>
+              <SummaryFact label="Real tool paths">
+                {readinessData.adapter_mode.real_tool_paths.join(", ") || "none"}
+              </SummaryFact>
+              <SummaryFact label="Plan-only tool paths">
+                {readinessData.adapter_mode.plan_only_tool_paths.join(", ") || "none"}
+              </SummaryFact>
+              <SummaryFact label="Boundary">{readinessData.adapter_mode.execution_boundary}</SummaryFact>
+            </SummaryFacts>
           </article>
         </div>
       ) : null}

@@ -1,5 +1,6 @@
 import type { ArtifactListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
+import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import StatusChip from "./StatusChip";
 import {
@@ -38,34 +39,41 @@ export default function ArtifactsPanel({
           return (
             <SummaryListItem key={item.id} card>
               <strong>{item.label}</strong>
-              <div>Kind: {item.kind}</div>
-              <div>Run ID: {item.run_id}</div>
-              <div>Execution ID: {item.execution_id}</div>
-              <div>URI: {item.uri}</div>
-              {item.path ? <div>Path: {item.path}</div> : null}
-              {item.content_type ? <div>Content type: {item.content_type}</div> : null}
-              <div>
-                Simulated: <StatusChip label={String(item.simulated)} tone={item.simulated ? "warning" : "success"} />
-              </div>
-              {item.execution_mode ? (
-                <div>
-                  Execution mode: <StatusChip label={item.execution_mode} tone={getExecutionModeTone(item.execution_mode)} />
-                </div>
-              ) : null}
-              <div>Created: {formatSummaryTimestamp(item.created_at)}</div>
-              <div style={summaryCalloutStyle}>
-                {formatSummaryLabeledText("Provenance", provenanceLabel)}
-              </div>
-              {item.project_name ? <div>Project name: {item.project_name}</div> : null}
-              {item.mutation_audit_summary ? (
-                <div>Mutation audit: {item.mutation_audit_summary}</div>
-              ) : null}
-              {item.mutation_audit_status ? (
-                <div>
-                  Mutation audit status:{" "}
-                  <StatusChip label={item.mutation_audit_status} tone={getAuditStatusTone(item.mutation_audit_status)} />
-                </div>
-              ) : null}
+              <SummaryFacts>
+                <SummaryFact label="Kind">{item.kind}</SummaryFact>
+                <SummaryFact label="Run ID">{item.run_id}</SummaryFact>
+                <SummaryFact label="Execution ID">{item.execution_id}</SummaryFact>
+                <SummaryFact label="URI">{item.uri}</SummaryFact>
+                {item.path ? <SummaryFact label="Path">{item.path}</SummaryFact> : null}
+                {item.content_type ? (
+                  <SummaryFact label="Content type">{item.content_type}</SummaryFact>
+                ) : null}
+                <SummaryFact label="Simulated">
+                  <StatusChip label={String(item.simulated)} tone={item.simulated ? "warning" : "success"} />
+                </SummaryFact>
+                {item.execution_mode ? (
+                  <SummaryFact label="Execution mode">
+                    <StatusChip label={item.execution_mode} tone={getExecutionModeTone(item.execution_mode)} />
+                  </SummaryFact>
+                ) : null}
+                <SummaryFact label="Created">{formatSummaryTimestamp(item.created_at)}</SummaryFact>
+                <SummaryFact label="Provenance">
+                  <span style={summaryCalloutStyle}>
+                    {formatSummaryLabeledText("Provenance", provenanceLabel)}
+                  </span>
+                </SummaryFact>
+                {item.project_name ? (
+                  <SummaryFact label="Project name">{item.project_name}</SummaryFact>
+                ) : null}
+                {item.mutation_audit_summary ? (
+                  <SummaryFact label="Mutation audit">{item.mutation_audit_summary}</SummaryFact>
+                ) : null}
+                {item.mutation_audit_status ? (
+                  <SummaryFact label="Mutation audit status">
+                    <StatusChip label={item.mutation_audit_status} tone={getAuditStatusTone(item.mutation_audit_status)} />
+                  </SummaryFact>
+                ) : null}
+              </SummaryFacts>
             </SummaryListItem>
           );
         })}
