@@ -1,3 +1,5 @@
+import { useMemo, useState } from "react";
+
 import type { ArtifactListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -11,6 +13,8 @@ import {
   formatSummaryLabeledText,
   formatSummaryTimestamp,
   summaryCalloutStyle,
+  summaryControlRowStyle,
+  summarySearchInputStyle,
 } from "./summaryPrimitives";
 
 type ArtifactsPanelProps = {
@@ -24,17 +28,33 @@ export default function ArtifactsPanel({
   loading,
   error,
 }: ArtifactsPanelProps) {
+  const [searchValue, setSearchValue] = useState("");
+  const normalizedQuery = searchValue.trim().toLowerCase();
+  const filteredItems = useMemo(
+    () => items.filter((item) => matchesArtifactSearch(item, normalizedQuery)),
+    [items, normalizedQuery],
+  );
+
   return (
     <SummarySection
       title="Artifacts"
       description="These are persisted artifact records. Simulated artifacts stay explicitly labeled as simulated."
       loading={loading}
       error={error}
-      emptyMessage="No artifacts are recorded yet."
-      hasItems={items.length > 0}
+      emptyMessage={normalizedQuery ? "No artifacts match the current search." : "No artifacts are recorded yet."}
+      hasItems={filteredItems.length > 0}
     >
+      <div style={summaryControlRowStyle}>
+        <input
+          type="search"
+          value={searchValue}
+          onChange={(event) => setSearchValue(event.target.value)}
+          placeholder="Search artifacts by label, kind, ID, path, URI, or project"
+          style={summarySearchInputStyle}
+        />
+      </div>
       <SummaryList>
-        {items.map((item) => {
+        {filteredItems.map((item) => {
           const provenanceLabel = getArtifactProvenanceLabel(item);
           return (
             <SummaryListItem key={item.id} card>
@@ -80,6 +100,27 @@ export default function ArtifactsPanel({
       </SummaryList>
     </SummarySection>
   );
+}
+
+function matchesArtifactSearch(item: ArtifactListItem, query: string): boolean {
+  if (!query) {
+    return true;
+  }
+
+  return [
+    item.id,
+    item.label,
+    item.kind,
+    item.run_id,
+    item.execution_id,
+    item.uri,
+    item.path ?? "",
+    item.content_type ?? "",
+    item.execution_mode ?? "",
+    item.project_name ?? "",
+    item.mutation_audit_summary ?? "",
+    item.mutation_audit_status ?? "",
+  ].some((value) => value.toLowerCase().includes(query));
 }
 
 function getArtifactProvenanceLabel(item: ArtifactListItem): string {
