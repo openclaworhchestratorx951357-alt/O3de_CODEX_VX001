@@ -17,8 +17,10 @@ import {
 type RecordLineageStripProps = {
   runId?: string | null;
   runStatus?: string | null;
+  runSummary?: string | null;
   executionId?: string | null;
   executionStatus?: string | null;
+  executionSummary?: string | null;
   artifactId?: string | null;
   artifactMode?: string | null;
   artifactSimulated?: boolean | null;
@@ -40,8 +42,10 @@ type RecordLineageStripProps = {
 export default function RecordLineageStrip({
   runId,
   runStatus,
+  runSummary,
   executionId,
   executionStatus,
+  executionSummary,
   artifactId,
   artifactMode,
   artifactSimulated,
@@ -78,6 +82,9 @@ export default function RecordLineageStrip({
             />
           </SummaryFact>
         ) : null}
+        {runSummary ? (
+          <SummaryFact label="Run summary">{runSummary}</SummaryFact>
+        ) : null}
         {runUpdatedAt ? (
           <SummaryFact label="Run updated">
             {formatSummaryTimestamp(runUpdatedAt)}
@@ -101,6 +108,9 @@ export default function RecordLineageStrip({
               tone={getExecutionStatusTone(executionStatus)}
             />
           </SummaryFact>
+        ) : null}
+        {executionSummary ? (
+          <SummaryFact label="Execution summary">{executionSummary}</SummaryFact>
         ) : null}
         {executionStartedAt ? (
           <SummaryFact label="Execution started">

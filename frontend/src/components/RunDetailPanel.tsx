@@ -100,6 +100,7 @@ export default function RunDetailPanel({
       <RecordLineageStrip
         runId={item?.id ?? null}
         runStatus={item?.status ?? null}
+        runSummary={item?.result_summary ?? null}
         executionId={relatedExecutionId}
         executionMode={item?.execution_mode ?? null}
         runUpdatedAt={item?.updated_at ?? null}
