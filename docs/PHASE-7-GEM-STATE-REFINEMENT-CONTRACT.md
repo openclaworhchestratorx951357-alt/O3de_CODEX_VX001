@@ -89,9 +89,9 @@ Minimum evidence should identify:
 - Gem-state fields inspected
 - requested Gem-state fields
 - discovered Gem names
-- Gem entry count
-- matched and missing requested project-config field counts when project-config
-  subset evidence is requested
+- discovered Gem entry count
+- returned Gem names for the current inspection contract
+- matched and missing requested Gem counts when Gem subset evidence is requested
 - a truthful source marker showing Gem evidence came from manifest-backed
   `project.json` Gem fields only
 - enough requested-vs-matched-vs-missing detail that operators do not need to

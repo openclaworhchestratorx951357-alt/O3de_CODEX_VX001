@@ -764,6 +764,8 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "missing_requested_gem_names": missing_requested_gem_names,
                 "matched_requested_gem_count": matched_requested_gem_count,
                 "missing_requested_gem_count": missing_requested_gem_count,
+                "available_gem_names": enabled_gems if inspection_flags["include_gems"] else [],
+                "available_gem_count": len(enabled_gems) if inspection_flags["include_gems"] else 0,
                 "gem_names": enabled_gems if inspection_flags["include_gems"] else [],
                 "gem_names_count": len(enabled_gems) if inspection_flags["include_gems"] else 0,
                 "gem_entries_present": (
@@ -883,6 +885,8 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "missing_requested_gem_names": missing_requested_gem_names,
                 "matched_requested_gem_count": matched_requested_gem_count,
                 "missing_requested_gem_count": missing_requested_gem_count,
+                "available_gem_names": enabled_gems if inspection_flags["include_gems"] else [],
+                "available_gem_count": len(enabled_gems) if inspection_flags["include_gems"] else 0,
                 "gem_names": enabled_gems if inspection_flags["include_gems"] else [],
                 "gem_names_count": len(enabled_gems) if inspection_flags["include_gems"] else 0,
                 "gem_entries_present": (

@@ -107,6 +107,11 @@
     },
     "matched_requested_gem_count": { "type": "integer", "minimum": 0 },
     "missing_requested_gem_count": { "type": "integer", "minimum": 0 },
+    "available_gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "available_gem_count": { "type": "integer", "minimum": 0 },
     "gem_names": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 }

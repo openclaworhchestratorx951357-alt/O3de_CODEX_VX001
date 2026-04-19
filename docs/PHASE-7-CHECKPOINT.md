@@ -92,6 +92,7 @@ The operator shell now exposes this boundary through:
 - explicit requested-vs-matched project-config count evidence for manifest-backed
   project inspection
 - explicit discovered-vs-returned manifest-backed project-config key inventory
+- explicit discovered-vs-returned manifest-backed Gem inventory
 
 ## What remains intentionally limited
 

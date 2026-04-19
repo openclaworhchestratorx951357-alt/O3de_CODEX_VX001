@@ -1220,6 +1220,8 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                 assert execution["details"]["missing_requested_gem_names"] == ["MissingGem"]
                 assert execution["details"]["matched_requested_gem_count"] == 1
                 assert execution["details"]["missing_requested_gem_count"] == 1
+                assert execution["details"]["available_gem_names"] == ["ApiGem"]
+                assert execution["details"]["available_gem_count"] == 1
                 assert execution["details"]["gem_names"] == ["ApiGem"]
                 assert execution["details"]["gem_entries_present"] is True
                 assert execution["details"]["requested_gem_subset_present"] is True
