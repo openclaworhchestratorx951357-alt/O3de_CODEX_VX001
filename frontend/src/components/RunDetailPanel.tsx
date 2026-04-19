@@ -10,7 +10,6 @@ import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import {
   formatSummaryLabeledText,
   formatSummaryTimestamp,
-  summaryActionButtonStyle,
   summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
@@ -99,6 +98,7 @@ export default function RunDetailPanel({
         runStatus={item?.status ?? null}
         executionId={relatedExecutionId}
         executionMode={item?.execution_mode ?? null}
+        onOpenExecution={onOpenExecution}
       />
       {refreshHint ? (
         <div style={summaryCalloutStyle}>{refreshHint}</div>
@@ -178,7 +178,7 @@ export default function RunDetailPanel({
             </SummaryFacts>
           </article>
         ) : null}
-        {relatedExecutionId && onOpenExecution ? (
+        {relatedExecutionId ? (
           <article style={summaryCardStyle}>
             <h4 style={summaryCardHeadingStyle}>Related Records</h4>
             <SummaryFacts>
@@ -186,13 +186,6 @@ export default function RunDetailPanel({
                 {relatedExecutionId}
               </SummaryFact>
             </SummaryFacts>
-            <button
-              type="button"
-              style={summaryActionButtonStyle}
-              onClick={() => onOpenExecution(relatedExecutionId)}
-            >
-              Open related execution detail
-            </button>
           </article>
         ) : null}
       </div>

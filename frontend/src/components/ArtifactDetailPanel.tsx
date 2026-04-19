@@ -5,7 +5,6 @@ import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import {
   formatSummaryTimestamp,
-  summaryActionButtonStyle,
   summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
@@ -59,6 +58,8 @@ export default function ArtifactDetailPanel({
         executionId={item?.execution_id ?? null}
         artifactId={item?.id ?? null}
         artifactSimulated={item?.simulated ?? null}
+        onOpenRun={onOpenRun}
+        onOpenExecution={onOpenExecution}
       />
       {refreshHint ? (
         <div style={summaryCalloutStyle}>{refreshHint}</div>
@@ -99,24 +100,6 @@ export default function ArtifactDetailPanel({
                 {item.execution_id}
               </SummaryFact>
             </SummaryFacts>
-            {onOpenRun ? (
-              <button
-                type="button"
-                style={summaryActionButtonStyle}
-                onClick={() => onOpenRun(item.run_id)}
-              >
-                Open related run detail
-              </button>
-            ) : null}
-            {onOpenExecution ? (
-              <button
-                type="button"
-                style={summaryActionButtonStyle}
-                onClick={() => onOpenExecution(item.execution_id)}
-              >
-                Open related execution detail
-              </button>
-            ) : null}
           </article>
         ) : null}
       </div>

@@ -6,6 +6,8 @@ import {
   getRunStatusTone,
 } from "./statusChipTones";
 import {
+  summaryActionButtonStyle,
+  summaryActionRowStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
 } from "./summaryPrimitives";
@@ -19,6 +21,9 @@ type RecordLineageStripProps = {
   artifactMode?: string | null;
   artifactSimulated?: boolean | null;
   executionMode?: string | null;
+  onOpenRun?: (runId: string) => void;
+  onOpenExecution?: (executionId: string) => void;
+  onOpenArtifact?: (artifactId: string) => void;
 };
 
 export default function RecordLineageStrip({
@@ -30,6 +35,9 @@ export default function RecordLineageStrip({
   artifactMode,
   artifactSimulated,
   executionMode,
+  onOpenRun,
+  onOpenExecution,
+  onOpenArtifact,
 }: RecordLineageStripProps) {
   if (!runId && !executionId && !artifactId) {
     return null;
@@ -89,6 +97,35 @@ export default function RecordLineageStrip({
           </SummaryFact>
         ) : null}
       </SummaryFacts>
+      <div style={summaryActionRowStyle}>
+        {runId && onOpenRun ? (
+          <button
+            type="button"
+            style={summaryActionButtonStyle}
+            onClick={() => onOpenRun(runId)}
+          >
+            Open run
+          </button>
+        ) : null}
+        {executionId && onOpenExecution ? (
+          <button
+            type="button"
+            style={summaryActionButtonStyle}
+            onClick={() => onOpenExecution(executionId)}
+          >
+            Open execution
+          </button>
+        ) : null}
+        {artifactId && onOpenArtifact ? (
+          <button
+            type="button"
+            style={summaryActionButtonStyle}
+            onClick={() => onOpenArtifact(artifactId)}
+          >
+            Open artifact
+          </button>
+        ) : null}
+      </div>
     </article>
   );
 }

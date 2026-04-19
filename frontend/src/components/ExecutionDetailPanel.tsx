@@ -77,6 +77,8 @@ export default function ExecutionDetailPanel({
         artifactMode={lineageArtifact?.execution_mode ?? null}
         artifactSimulated={lineageArtifact?.simulated ?? null}
         executionMode={item?.execution_mode ?? null}
+        onOpenRun={onOpenRun}
+        onOpenArtifact={onOpenArtifact}
       />
       {refreshHint ? (
         <div style={summaryCalloutStyle}>{refreshHint}</div>
@@ -123,15 +125,6 @@ export default function ExecutionDetailPanel({
                 {relatedArtifacts.length}
               </SummaryFact>
             </SummaryFacts>
-            {onOpenRun ? (
-              <button
-                type="button"
-                style={summaryActionButtonStyle}
-                onClick={() => onOpenRun(item.run_id)}
-              >
-                Open related run detail
-              </button>
-            ) : null}
             {onOpenArtifact && item.artifact_ids.length > 0 ? (
               <div style={{ ...summaryCardGridStyle, marginTop: 8 }}>
                 {item.artifact_ids.map((artifactId) => {
