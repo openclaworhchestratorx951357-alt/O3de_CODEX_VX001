@@ -23,10 +23,11 @@ Read this together with:
 The first recommended mutation-capable candidate is:
 - `settings.patch`
 
-This is a planning recommendation only.
+This recommendation is now partially implemented as a bounded preflight.
 
-`settings.patch` remains simulated until a later slice explicitly implements and
-validates a real mutation path.
+`settings.patch` now has a real dry-run-only preflight path in hybrid mode when
+`dry_run=true`, but actual settings mutation remains simulated and gated behind
+later admission criteria.
 
 ## Why `settings.patch` first
 
@@ -41,10 +42,24 @@ Compared with the current mutation-gated alternatives:
 
 This recommendation does not claim that:
 - a real settings mutation path already exists
+- a real settings write happened in the current slice
 - layered settings discovery exists
 - rollback is already implemented
 - approval and lock handling are sufficient by themselves
 - a patch plan is already operator-safe
+
+## Current admitted scope
+
+The currently admitted real scope is intentionally narrow:
+- read `project.json`
+- admit only dry-run preflight for `registry_path=/O3DE/Settings`
+- match only manifest-backed top-level settings paths already present in
+  `project.json`
+- record backup intent without creating a backup file
+- report unsupported operations truthfully without widening into mutation
+
+If `dry_run=false`, if `project.json` is unavailable, or if later mutation-safe
+criteria are needed, the path falls back to simulated.
 
 ## Admission criteria before implementation
 

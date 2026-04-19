@@ -171,14 +171,30 @@ export default function ExecutionsPanel({
               const buildDirectory = planDetails && typeof planDetails.build_directory === "string"
                 ? planDetails.build_directory
                 : null;
+              const registryPath = planDetails && typeof planDetails.registry_path === "string"
+                ? planDetails.registry_path
+                : null;
+              const backupTarget = planDetails && typeof planDetails.backup_target === "string"
+                ? planDetails.backup_target
+                : null;
+              const supportedOperationCount = planDetails && typeof planDetails.supported_operation_count === "number"
+                ? planDetails.supported_operation_count
+                : null;
+              const unsupportedOperationCount = planDetails && typeof planDetails.unsupported_operation_count === "number"
+                ? planDetails.unsupported_operation_count
+                : null;
               const provenanceLabel = item.execution_mode === "real"
                 ? inspectionSurface === "build_configure_preflight"
                   ? "Real plan-only build.configure preflight"
+                  : inspectionSurface === "settings_patch_preflight"
+                    ? "Real dry-run-only settings.patch preflight"
                   : "Real read-only project inspection"
                 : inspectionSurface === "project_manifest"
                   ? "Real project manifest provenance recorded"
                   : inspectionSurface === "build_configure_preflight"
                     ? "Real build.configure preflight provenance recorded"
+                    : inspectionSurface === "settings_patch_preflight"
+                      ? "Real settings.patch preflight provenance recorded"
                     : "Simulated execution record";
 
               return (
@@ -307,6 +323,14 @@ export default function ExecutionsPanel({
                   {preset ? <div>Preset: {preset}</div> : null}
                   {generator ? <div>Generator: {generator}</div> : null}
                   {buildDirectory ? <div>Build directory: {buildDirectory}</div> : null}
+                  {registryPath ? <div>Registry path: {registryPath}</div> : null}
+                  {backupTarget ? <div>Backup target: {backupTarget}</div> : null}
+                  {supportedOperationCount !== null ? (
+                    <div>Supported operations: {supportedOperationCount}</div>
+                  ) : null}
+                  {unsupportedOperationCount !== null ? (
+                    <div>Unsupported operations: {unsupportedOperationCount}</div>
+                  ) : null}
                   {realPathAvailable === false ? (
                     <div>Real path available: false</div>
                   ) : null}

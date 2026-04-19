@@ -212,7 +212,10 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
             assert payload["adapter_mode"]["active_mode"] == "hybrid"
             assert payload["adapter_mode"]["supports_real_execution"] is True
             assert payload["adapter_mode"]["real_tool_paths"] == ["project.inspect"]
-            assert payload["adapter_mode"]["plan_only_tool_paths"] == ["build.configure"]
+            assert payload["adapter_mode"]["plan_only_tool_paths"] == [
+                "build.configure",
+                "settings.patch",
+            ]
             assert "gem.enable" in payload["adapter_mode"]["simulated_tool_paths"]
 
 
@@ -250,17 +253,19 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
             assert payload["active_mode"] == "hybrid"
             assert payload["supports_real_execution"] is True
             assert payload["real_tool_paths"] == ["project.inspect"]
-            assert payload["plan_only_tool_paths"] == ["build.configure"]
+            assert payload["plan_only_tool_paths"] == ["build.configure", "settings.patch"]
             project_build = next(
                 family for family in payload["families"] if family["family"] == "project-build"
             )
             assert project_build["supports_real_execution"] is True
             assert project_build["real_tool_paths"] == ["project.inspect"]
-            assert project_build["plan_only_tool_paths"] == ["build.configure"]
+            assert project_build["plan_only_tool_paths"] == [
+                "build.configure",
+                "settings.patch",
+            ]
             assert sorted(project_build["simulated_tool_paths"]) == [
                 "build.compile",
                 "gem.enable",
-                "settings.patch",
             ]
 
 
@@ -300,7 +305,7 @@ def test_policies_route_exposes_schema_cross_links() -> None:
         assert payload["policies"][0]["result_schema"]
 
 
-def test_policies_route_marks_settings_patch_as_first_mutation_candidate() -> None:
+def test_policies_route_marks_settings_patch_as_real_mutation_preflight_active() -> None:
     with isolated_client() as client:
         response = client.get("/policies")
         assert response.status_code == 200
@@ -309,8 +314,9 @@ def test_policies_route_marks_settings_patch_as_first_mutation_candidate() -> No
             for policy in response.json()["policies"]
             if policy["tool"] == "settings.patch"
         )
-        assert settings_patch["real_admission_stage"] == "first-mutation-candidate"
+        assert settings_patch["real_admission_stage"] == "real-mutation-preflight-active"
         assert "backup" in settings_patch["next_real_requirement"].lower()
+        assert "dry-run preflight" in settings_patch["next_real_requirement"].lower()
 
 
 def test_runs_endpoint_reflects_dispatch_attempt() -> None:
@@ -621,3 +627,93 @@ def test_dispatch_route_uses_real_build_configure_preflight_in_hybrid_mode() -> 
                 assert payload["result"]["simulated"] is False
                 assert payload["result"]["execution_mode"] == "real"
                 assert "no configure command was executed" in payload["result"]["message"]
+
+
+def test_dispatch_route_uses_real_settings_patch_preflight_in_hybrid_mode() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps(
+                {
+                    "project_name": "ApiSettingsProject",
+                    "version": "3.0.0",
+                    "display_name": "API Settings Project",
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-settings-preflight-1",
+                        "tool": "settings.patch",
+                        "agent": "project-build",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": True,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "args": {
+                            "registry_path": "/O3DE/Settings",
+                            "operations": [
+                                {"op": "set", "path": "/version", "value": "3.0.1"},
+                                {"op": "set", "path": "/render/quality", "value": "high"},
+                            ],
+                        },
+                    },
+                )
+                approval_id = dispatch.json()["approval_id"]
+                approval = approvals_service.get_approval(approval_id)
+                assert approval is not None
+                client.post(
+                    f"/approvals/{approval_id}/approve",
+                    json={"reason": "Approve settings.patch preflight for test"},
+                )
+                approved_dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-settings-preflight-2",
+                        "tool": "settings.patch",
+                        "agent": "project-build",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": True,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "approval_token": approval.token,
+                        "args": {
+                            "registry_path": "/O3DE/Settings",
+                            "operations": [
+                                {"op": "set", "path": "/version", "value": "3.0.1"},
+                                {"op": "set", "path": "/render/quality", "value": "high"},
+                            ],
+                        },
+                    },
+                )
+                assert approved_dispatch.status_code == 200
+                payload = approved_dispatch.json()
+                assert payload["ok"] is True
+                assert payload["result"]["simulated"] is False
+                assert payload["result"]["execution_mode"] == "real"
+                assert "no settings were written" in payload["result"]["message"]
+                assert any(
+                    "settings.patch preflight path" in warning
+                    for warning in payload["warnings"]
+                )
+
+                executions = client.get("/executions")
+                assert executions.status_code == 200
+                execution = next(
+                    execution
+                    for execution in executions.json()["executions"]
+                    if execution["run_id"] == payload["operation_id"]
+                )
+                assert execution["details"]["inspection_surface"] == "settings_patch_preflight"
+                assert execution["details"]["registry_path"] == "/O3DE/Settings"
+                assert execution["details"]["operation_count"] == 2
+                assert execution["details"]["supported_operation_count"] == 1
+                assert execution["details"]["unsupported_operation_count"] == 1
+                assert execution["details"]["backup_created"] is False
+                assert execution["details"]["mutation_ready"] is False

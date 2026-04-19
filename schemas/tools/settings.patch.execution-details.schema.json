@@ -12,12 +12,32 @@
   "properties": {
     "inspection_surface": {
       "type": "string",
-      "const": "simulated"
+      "enum": ["simulated", "settings_patch_preflight"]
     },
     "execution_boundary": { "type": "string", "minLength": 1 },
-    "simulated": { "type": "boolean", "const": true },
+    "simulated": { "type": "boolean" },
     "adapter_family": { "type": "string", "minLength": 1 },
     "adapter_mode": { "type": "string", "minLength": 1 },
-    "adapter_contract_version": { "type": "string", "minLength": 1 }
+    "adapter_contract_version": { "type": "string", "minLength": 1 },
+    "real_path_available": { "type": "boolean" },
+    "fallback_reason": { "type": "string", "minLength": 1 },
+    "project_manifest_path": { "type": "string", "minLength": 1 },
+    "project_name": { "type": ["string", "null"] },
+    "registry_path": { "type": "string", "minLength": 1 },
+    "operation_count": { "type": "number" },
+    "supported_operation_count": { "type": "number" },
+    "unsupported_operation_count": { "type": "number" },
+    "admitted_registry_path": { "type": "string", "minLength": 1 },
+    "admitted_manifest_paths": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "backup_target": { "type": "string", "minLength": 1 },
+    "backup_created": { "type": "boolean" },
+    "mutation_ready": { "type": "boolean" },
+    "plan_details": {
+      "type": "object",
+      "additionalProperties": true
+    }
   }
 }

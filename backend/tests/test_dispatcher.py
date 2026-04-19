@@ -1936,6 +1936,140 @@ def test_build_configure_falls_back_to_simulated_when_not_dry_run_in_hybrid_mode
         )
 
 
+def test_settings_patch_uses_real_preflight_path_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps(
+                {
+                    "project_name": "Phase7SettingsProject",
+                    "version": "1.2.3",
+                    "display_name": "Phase 7 Settings",
+                }
+            ),
+            encoding="utf-8",
+        )
+        initial_request = make_settings_patch_request()
+        initial_request.project_root = str(project_root)
+        first = dispatcher_service.dispatch(initial_request)
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            approved_request = make_request(
+                "project-build",
+                "settings.patch",
+                project_root=str(project_root),
+            )
+            approved_request.approval_token = approval.token
+            approved_request.args = {
+                "registry_path": "/O3DE/Settings",
+                "operations": [
+                    {"op": "set", "path": "/version", "value": "1.2.4"},
+                    {"op": "set", "path": "/render/quality", "value": "high"},
+                ],
+            }
+            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        assert "no settings were written" in response.result.message
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "settings_patch_preflight"
+        assert execution.details["project_name"] == "Phase7SettingsProject"
+        assert execution.details["registry_path"] == "/O3DE/Settings"
+        assert execution.details["operation_count"] == 2
+        assert execution.details["supported_operation_count"] == 1
+        assert execution.details["unsupported_operation_count"] == 1
+        assert execution.details["admitted_registry_path"] == "/O3DE/Settings"
+        assert "/version" in execution.details["admitted_manifest_paths"]
+        assert execution.details["backup_target"].endswith("project.json.bak")
+        assert execution.details["backup_created"] is False
+        assert execution.details["mutation_ready"] is False
+        assert artifact is not None
+        assert artifact.simulated is False
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "settings_patch_preflight"
+        assert artifact.metadata["plan_details"]["supported_operation_count"] == 1
+        assert artifact.metadata["plan_details"]["unsupported_operation_count"] == 1
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="settings.patch",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="settings.patch",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_settings_patch_falls_back_to_simulated_when_not_dry_run_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text("{}", encoding="utf-8")
+        initial_request = make_settings_patch_request()
+        initial_request.project_root = str(project_root)
+        first = dispatcher_service.dispatch(initial_request)
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            approved_request = make_request(
+                "project-build",
+                "settings.patch",
+                project_root=str(project_root),
+                dry_run=False,
+            )
+            approved_request.approval_token = approval.token
+            approved_request.args = make_settings_patch_request().args
+            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["real_path_available"] is False
+        assert "dry_run=true" in execution.details["fallback_reason"]
+        assert artifact is not None
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="settings.patch",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="settings.patch",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
 def test_dispatch_events_publish_capability_status_vocabulary() -> None:
     with isolated_database():
         dispatcher_service.dispatch(make_request("project-build", "project.inspect"))
@@ -1988,6 +2122,51 @@ def test_build_configure_events_use_plan_only_wording_in_hybrid_mode() -> None:
         )
         assert "plan-only build.configure preflight" in dispatch_event.message
         assert "plan-only build.configure preflight" in locks_event.message
+
+
+def test_settings_patch_events_use_plan_only_wording_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps({"project_name": "PlanOnlySettingsProject", "version": "1.0.0"}),
+            encoding="utf-8",
+        )
+        initial_request = make_settings_patch_request()
+        initial_request.project_root = str(project_root)
+        first = dispatcher_service.dispatch(initial_request)
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            approved_request = make_request(
+                "project-build",
+                "settings.patch",
+                project_root=str(project_root),
+            )
+            approved_request.approval_token = approval.token
+            approved_request.args = {
+                "registry_path": "/O3DE/Settings",
+                "operations": [{"op": "set", "path": "/version", "value": "1.0.1"}],
+            }
+            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is True
+        events = events_service.list_events()
+        dispatch_event = next(
+            event
+            for event in reversed(events)
+            if event.run_id == response.operation_id
+            and event.category == "dispatch"
+            and event.details.get("capability_status") == "mutation-gated"
+        )
+        locks_event = next(
+            event
+            for event in reversed(events)
+            if event.run_id == response.operation_id and event.category == "locks"
+        )
+        assert "plan-only settings.patch preflight" in dispatch_event.message
+        assert "plan-only settings.patch preflight" in locks_event.message
 
 
 def test_settings_patch_simulated_persisted_payloads_match_published_schemas() -> None:

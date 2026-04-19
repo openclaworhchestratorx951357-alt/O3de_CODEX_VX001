@@ -19,7 +19,7 @@
       "properties": {
         "tool": { "const": "settings.patch" },
         "agent": { "const": "project-build" },
-        "execution_mode": { "const": "simulated" }
+        "execution_mode": { "type": "string", "enum": ["simulated", "real"] }
       }
     }
   ]

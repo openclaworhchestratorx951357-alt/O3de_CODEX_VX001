@@ -9,8 +9,8 @@
       "properties": {
         "tool": { "const": "settings.patch" },
         "approval_class": { "const": "config_write" },
-        "execution_mode": { "const": "simulated" },
-        "simulated": { "const": true }
+        "execution_mode": { "type": "string", "enum": ["simulated", "real"] },
+        "simulated": { "type": "boolean" }
       }
     }
   ]

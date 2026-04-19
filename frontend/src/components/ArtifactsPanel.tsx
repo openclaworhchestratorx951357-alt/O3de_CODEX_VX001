@@ -116,10 +116,24 @@ export default function ArtifactsPanel({
               const buildDirectory = planDetails && typeof planDetails.build_directory === "string"
                 ? planDetails.build_directory
                 : null;
+              const registryPath = planDetails && typeof planDetails.registry_path === "string"
+                ? planDetails.registry_path
+                : null;
+              const backupTarget = planDetails && typeof planDetails.backup_target === "string"
+                ? planDetails.backup_target
+                : null;
+              const supportedOperationCount = planDetails && typeof planDetails.supported_operation_count === "number"
+                ? planDetails.supported_operation_count
+                : null;
+              const unsupportedOperationCount = planDetails && typeof planDetails.unsupported_operation_count === "number"
+                ? planDetails.unsupported_operation_count
+                : null;
               const provenanceLabel = item.simulated
                 ? "Simulated artifact"
                 : inspectionSurface === "build_configure_preflight"
                   ? "Real build.configure preflight evidence"
+                : inspectionSurface === "settings_patch_preflight"
+                  ? "Real settings.patch preflight evidence"
                 : inspectionSurface === "project_manifest"
                   ? "Real project manifest evidence"
                   : "Real artifact";
@@ -212,6 +226,14 @@ export default function ArtifactsPanel({
                   {preset ? <div>Preset: {preset}</div> : null}
                   {generator ? <div>Generator: {generator}</div> : null}
                   {buildDirectory ? <div>Build directory: {buildDirectory}</div> : null}
+                  {registryPath ? <div>Registry path: {registryPath}</div> : null}
+                  {backupTarget ? <div>Backup target: {backupTarget}</div> : null}
+                  {supportedOperationCount !== null ? (
+                    <div>Supported operations: {supportedOperationCount}</div>
+                  ) : null}
+                  {unsupportedOperationCount !== null ? (
+                    <div>Unsupported operations: {unsupportedOperationCount}</div>
+                  ) : null}
                 </li>
               );
             })()

@@ -142,11 +142,17 @@ function describeExecutionResult(result: Record<string, unknown>): string {
   if (executionMode === "real" && simulated === false && tool === "build.configure") {
     return "Real plan-only build.configure preflight ran; no configure command was executed.";
   }
+  if (executionMode === "real" && simulated === false && tool === "settings.patch") {
+    return "Real dry-run-only settings.patch preflight ran; no settings were written.";
+  }
   if (executionMode === "simulated" && simulated === true && tool === "project.inspect") {
     return "project.inspect remained simulated for this run, including hybrid fallback cases.";
   }
   if (executionMode === "simulated" && simulated === true && tool === "build.configure") {
     return "build.configure remained on a simulated path for this run, including hybrid fallback from the plan-only preflight path.";
+  }
+  if (executionMode === "simulated" && simulated === true && tool === "settings.patch") {
+    return "settings.patch remained on a simulated path for this run, including hybrid fallback from the dry-run-only preflight path.";
   }
   if (executionMode === "simulated" && simulated === true) {
     return "This dispatch remained on the simulated execution path.";

@@ -26,7 +26,7 @@ See these official source files:
 Current Phase 7 checkpoint truth:
 - `project.inspect` is the current real read-only path in hybrid mode
 - that path now includes manifest-backed project-config subset matching, manifest-backed Gem subset/source evidence with explicit source/count visibility, and manifest-backed top-level settings subset evidence with explicit source/count visibility
-- `settings.patch` is now the first recommended mutation-capable planning candidate, but it remains simulated
+- `settings.patch` is still the first recommended mutation-capable candidate and now has a real dry-run-only preflight path in hybrid mode when `dry_run=true`
 - the next safest refinement is still manifest-adjacent and keeps settings/Gem evidence on `project.json`
 - `build.configure` is still only a real plan-only preflight path
 - mutation surfaces remain gated

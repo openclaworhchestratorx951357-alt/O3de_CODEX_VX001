@@ -17,7 +17,7 @@ REAL_TOOL_PATHS_BY_MODE = {
 }
 PLAN_ONLY_TOOL_PATHS_BY_MODE = {
     "simulated": [],
-    "hybrid": ["build.configure"],
+    "hybrid": ["build.configure", "settings.patch"],
 }
 ADAPTER_EXECUTION_BOUNDARY = (
     "Control-plane bookkeeping is real, but O3DE tool execution remains simulated."
@@ -25,7 +25,8 @@ ADAPTER_EXECUTION_BOUNDARY = (
 HYBRID_EXECUTION_BOUNDARY = (
     "Control-plane bookkeeping is real. In hybrid mode, project.inspect may use a "
     "real read-only project-manifest path, build.configure may use a real plan-only "
-    "preflight path, and all other tools remain simulated."
+    "preflight path, settings.patch may use a real dry-run-only preflight path, "
+    "and all other tools remain simulated."
 )
 MANIFEST_SETTINGS_KEYS = (
     "project_id",
@@ -243,6 +244,17 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             )
         if tool == "build.configure":
             return self._execute_build_configure(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+            )
+        if tool == "settings.patch":
+            return self._execute_settings_patch(
                 tool=tool,
                 agent=agent,
                 project_root=project_root,
@@ -1011,6 +1023,184 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             result_summary="Real build.configure preflight completed successfully.",
         )
 
+    def _execute_settings_patch(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        if not dry_run:
+            return self._fallback_settings_patch(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason="Real settings.patch preflight requires dry_run=true.",
+            )
+
+        manifest_path = Path(project_root).expanduser().resolve() / "project.json"
+        if not manifest_path.is_file():
+            return self._fallback_settings_patch(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real settings.patch preflight was unavailable because "
+                    f"'{manifest_path}' was not found."
+                ),
+            )
+
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            return self._fallback_settings_patch(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real settings.patch preflight was unavailable because the project "
+                    f"manifest could not be read cleanly: {exc}"
+                ),
+            )
+
+        project_name = manifest.get("project_name")
+        registry_path = str(args.get("registry_path", "")).strip() or "/O3DE/Settings"
+        operations = args.get("operations")
+        normalized_operations = operations if isinstance(operations, list) else []
+        admitted_manifest_paths = [f"/{key}" for key in MANIFEST_SETTINGS_KEYS]
+        supported_operations = [
+            operation
+            for operation in normalized_operations
+            if isinstance(operation, dict)
+            and str(operation.get("path", "")).strip() in admitted_manifest_paths
+        ]
+        unsupported_operations = [
+            operation
+            for operation in normalized_operations
+            if operation not in supported_operations
+        ]
+        backup_target = f"{manifest_path}.bak"
+        manifest_keys = sorted(str(key) for key in manifest.keys())
+        plan_details = {
+            "registry_path": registry_path,
+            "operation_count": len(normalized_operations),
+            "supported_operation_count": len(supported_operations),
+            "unsupported_operation_count": len(unsupported_operations),
+            "admitted_registry_path": "/O3DE/Settings",
+            "admitted_manifest_paths": admitted_manifest_paths,
+            "backup_target": backup_target,
+            "backup_created": False,
+            "mutation_ready": False,
+            "project_manifest_path": str(manifest_path),
+        }
+        warnings = [
+            "This is a real settings.patch preflight only; no settings were written.",
+            "Backup target was planned but no backup file was created in this slice.",
+        ]
+        if registry_path != "/O3DE/Settings":
+            warnings.append(
+                "Requested registry_path is outside the admitted real preflight scope; "
+                "this slice only admits /O3DE/Settings."
+            )
+        if unsupported_operations:
+            warnings.append(
+                "Some requested operations are outside the admitted manifest-backed "
+                "settings scope and remain non-admitted in this slice."
+            )
+        if not supported_operations:
+            warnings.append(
+                "No requested operations matched the admitted manifest-backed settings "
+                "preflight scope."
+            )
+
+        message = "Real settings.patch preflight completed; no settings were written."
+        if isinstance(project_name, str) and project_name.strip():
+            message = (
+                "Real settings.patch preflight completed for "
+                f"'{project_name}'; no settings were written."
+            )
+
+        result = DispatchResult(
+            status="real_success",
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            simulated=False,
+            execution_mode="real",
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+            message=message,
+        )
+        details = {
+            "simulated": False,
+            "adapter_mode": "real",
+            "adapter_family": self.family,
+            "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+            "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+            "inspection_surface": "settings_patch_preflight",
+            "real_path_available": True,
+            "project_manifest_path": str(manifest_path),
+            "manifest_keys": manifest_keys,
+            "project_name": project_name,
+            "registry_path": registry_path,
+            "operation_count": len(normalized_operations),
+            "supported_operation_count": len(supported_operations),
+            "unsupported_operation_count": len(unsupported_operations),
+            "admitted_registry_path": "/O3DE/Settings",
+            "admitted_manifest_paths": admitted_manifest_paths,
+            "backup_target": backup_target,
+            "backup_created": False,
+            "mutation_ready": False,
+            "plan_details": plan_details,
+        }
+        return AdapterExecutionReport(
+            execution_mode="real",
+            result=result,
+            warnings=warnings,
+            logs=[
+                "Hybrid adapter mode enabled a real settings.patch preflight path.",
+                f"Read project manifest from '{manifest_path}'.",
+                (
+                    "Matched admitted manifest-backed settings operations for dry-run "
+                    f"preflight: {len(supported_operations)} supported, "
+                    f"{len(unsupported_operations)} unsupported."
+                ),
+            ],
+            artifact_label="Real settings patch preflight evidence",
+            artifact_kind="settings_patch_preflight",
+            artifact_uri=manifest_path.as_uri(),
+            artifact_metadata={
+                "tool": tool,
+                "agent": agent,
+                "execution_mode": "real",
+                **details,
+            },
+            execution_details=details,
+            result_summary="Real settings.patch preflight completed successfully.",
+        )
+
     def _fallback_project_inspect(
         self,
         *,
@@ -1083,6 +1273,43 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         simulated.execution_details["real_path_available"] = False
         simulated.execution_details["fallback_reason"] = reason
         simulated.result_summary = "build.configure fell back to the simulated path."
+        return simulated
+
+    def _fallback_settings_patch(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+        reason: str,
+    ) -> AdapterExecutionReport:
+        simulated = self._simulated.execute(
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+        )
+        simulated.warnings.append(reason)
+        simulated.logs.append(reason)
+        simulated.logs.append(
+            "Hybrid mode fell back to the simulated settings.patch path."
+        )
+        simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.artifact_metadata["real_path_available"] = False
+        simulated.artifact_metadata["fallback_reason"] = reason
+        simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.execution_details["real_path_available"] = False
+        simulated.execution_details["fallback_reason"] = reason
+        simulated.result_summary = "settings.patch fell back to the simulated path."
         return simulated
 
     def _normalized_string_list(self, value: Any) -> list[str]:
@@ -1215,7 +1442,8 @@ class AdapterService:
                     "Adapter mode selection is now config-driven.",
                     "Real O3DE adapters are not yet implemented.",
                     "Hybrid mode currently enables a real read-only project.inspect "
-                    "path and a real plan-only build.configure preflight path.",
+                    "path, a real plan-only build.configure preflight path, and a "
+                    "real dry-run-only settings.patch preflight path.",
                 ],
             )
         if configured_mode == "hybrid":
@@ -1247,6 +1475,9 @@ class AdapterService:
                     "Hybrid mode also enables a real plan-only build.configure "
                     "preflight path when dry_run=true and manifest preconditions are "
                     "satisfied.",
+                    "Hybrid mode also enables a real dry-run-only settings.patch "
+                    "preflight path when manifest-backed settings admission criteria "
+                    "are satisfied.",
                     "All other tools remain simulated in this phase.",
                     "Real mutating O3DE adapters are not yet implemented.",
                 ],
@@ -1332,8 +1563,8 @@ class AdapterService:
             if family_supports_real:
                 family_notes.append(
                     "project.inspect currently has a real read-only path and "
-                    "build.configure currently has a real plan-only preflight path "
-                    "in this family."
+                    "build.configure and settings.patch currently have real "
+                    "preflight-only paths in this family."
                 )
             elif runtime_status.active_mode == "hybrid":
                 family_notes.append(

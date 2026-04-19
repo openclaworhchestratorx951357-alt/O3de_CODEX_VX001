@@ -13,8 +13,14 @@ function describeRunTruth(item: RunRecord): string {
   if (item.execution_mode === "real" && item.tool === "build.configure") {
     return "This run used the real plan-only build.configure preflight path.";
   }
+  if (item.execution_mode === "real" && item.tool === "settings.patch") {
+    return "This run used the real dry-run-only settings.patch preflight path; no settings were written.";
+  }
   if (item.execution_mode === "simulated" && item.tool === "build.configure") {
     return "This build.configure run remained on a simulated fallback path.";
+  }
+  if (item.execution_mode === "simulated" && item.tool === "settings.patch") {
+    return "This settings.patch run remained on a simulated path.";
   }
   return "This run remained on a simulated execution path.";
 }

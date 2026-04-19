@@ -8,7 +8,7 @@ def tool_real_admission_stage(tool_name: str) -> str:
     if tool_name == "build.configure":
         return "real-plan-only-active"
     if tool_name == "settings.patch":
-        return "first-mutation-candidate"
+        return "real-mutation-preflight-active"
     if tool_name == "gem.enable":
         return "mutation-candidate-after-gate"
     if tool_name == "build.compile":
@@ -29,8 +29,9 @@ def tool_next_real_requirement(tool_name: str) -> str:
         )
     if tool_name == "settings.patch":
         return (
-            "Recommended first mutation candidate after explicit backup, rollback, "
-            "and failure-visible patch-plan admission criteria are published."
+            "Keep real execution limited to dry-run preflight until backup, rollback, "
+            "post-write verification, and failure-visible mutation criteria are "
+            "explicitly admitted."
         )
     if tool_name == "gem.enable":
         return (
