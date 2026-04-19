@@ -82,7 +82,9 @@ export default function ExecutionDetailPanel({
         artifactSimulated={lineageArtifact?.simulated ?? null}
         executionMode={item?.execution_mode ?? null}
         executionStartedAt={item?.started_at ?? null}
+        executionWarningCount={item?.warnings.length ?? null}
         artifactCreatedAt={lineageArtifact?.created_at ?? null}
+        artifactAuditStatus={lineageArtifact?.mutation_audit_status ?? null}
         selectedRunId={selectedRunId}
         selectedExecutionId={selectedExecutionId}
         selectedArtifactId={selectedArtifactId}

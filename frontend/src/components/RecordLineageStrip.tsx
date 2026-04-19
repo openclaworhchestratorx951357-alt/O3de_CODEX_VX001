@@ -1,6 +1,7 @@
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import StatusChip from "./StatusChip";
 import {
+  getAuditStatusTone,
   getExecutionModeTone,
   getExecutionStatusTone,
   getRunStatusTone,
@@ -23,8 +24,11 @@ type RecordLineageStripProps = {
   artifactSimulated?: boolean | null;
   executionMode?: string | null;
   runUpdatedAt?: string | null;
+  runWarningCount?: number | null;
   executionStartedAt?: string | null;
+  executionWarningCount?: number | null;
   artifactCreatedAt?: string | null;
+  artifactAuditStatus?: string | null;
   selectedRunId?: string | null;
   selectedExecutionId?: string | null;
   selectedArtifactId?: string | null;
@@ -43,8 +47,11 @@ export default function RecordLineageStrip({
   artifactSimulated,
   executionMode,
   runUpdatedAt,
+  runWarningCount,
   executionStartedAt,
+  executionWarningCount,
   artifactCreatedAt,
+  artifactAuditStatus,
   selectedRunId,
   selectedExecutionId,
   selectedArtifactId,
@@ -76,6 +83,14 @@ export default function RecordLineageStrip({
             {formatSummaryTimestamp(runUpdatedAt)}
           </SummaryFact>
         ) : null}
+        {typeof runWarningCount === "number" ? (
+          <SummaryFact label="Run warnings">
+            <StatusChip
+              label={String(runWarningCount)}
+              tone={runWarningCount > 0 ? "warning" : "success"}
+            />
+          </SummaryFact>
+        ) : null}
         <SummaryFact label="Execution ID" copyValue={executionId ?? undefined}>
           {executionId ?? "not linked"}
         </SummaryFact>
@@ -92,6 +107,14 @@ export default function RecordLineageStrip({
             {formatSummaryTimestamp(executionStartedAt)}
           </SummaryFact>
         ) : null}
+        {typeof executionWarningCount === "number" ? (
+          <SummaryFact label="Execution warnings">
+            <StatusChip
+              label={String(executionWarningCount)}
+              tone={executionWarningCount > 0 ? "warning" : "success"}
+            />
+          </SummaryFact>
+        ) : null}
         <SummaryFact label="Artifact ID" copyValue={artifactId ?? undefined}>
           {artifactId ?? "not linked"}
         </SummaryFact>
@@ -106,6 +129,14 @@ export default function RecordLineageStrip({
         {artifactCreatedAt ? (
           <SummaryFact label="Artifact created">
             {formatSummaryTimestamp(artifactCreatedAt)}
+          </SummaryFact>
+        ) : null}
+        {artifactAuditStatus ? (
+          <SummaryFact label="Artifact audit">
+            <StatusChip
+              label={artifactAuditStatus}
+              tone={getAuditStatusTone(artifactAuditStatus)}
+            />
           </SummaryFact>
         ) : null}
         {typeof artifactSimulated === "boolean" ? (
