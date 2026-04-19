@@ -81,6 +81,8 @@ export default function ExecutionDetailPanel({
         artifactMode={lineageArtifact?.execution_mode ?? null}
         artifactSimulated={lineageArtifact?.simulated ?? null}
         executionMode={item?.execution_mode ?? null}
+        executionStartedAt={item?.started_at ?? null}
+        artifactCreatedAt={lineageArtifact?.created_at ?? null}
         selectedRunId={selectedRunId}
         selectedExecutionId={selectedExecutionId}
         selectedArtifactId={selectedArtifactId}

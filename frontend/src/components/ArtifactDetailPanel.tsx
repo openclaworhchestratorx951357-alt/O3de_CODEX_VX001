@@ -64,6 +64,7 @@ export default function ArtifactDetailPanel({
         executionId={item?.execution_id ?? null}
         artifactId={item?.id ?? null}
         artifactSimulated={item?.simulated ?? null}
+        artifactCreatedAt={item?.created_at ?? null}
         selectedRunId={selectedRunId}
         selectedExecutionId={selectedExecutionId}
         selectedArtifactId={selectedArtifactId}

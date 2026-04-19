@@ -6,6 +6,7 @@ import {
   getRunStatusTone,
 } from "./statusChipTones";
 import {
+  formatSummaryTimestamp,
   summaryActionButtonStyle,
   summaryActionRowStyle,
   summaryCardHeadingStyle,
@@ -21,6 +22,9 @@ type RecordLineageStripProps = {
   artifactMode?: string | null;
   artifactSimulated?: boolean | null;
   executionMode?: string | null;
+  runUpdatedAt?: string | null;
+  executionStartedAt?: string | null;
+  artifactCreatedAt?: string | null;
   selectedRunId?: string | null;
   selectedExecutionId?: string | null;
   selectedArtifactId?: string | null;
@@ -38,6 +42,9 @@ export default function RecordLineageStrip({
   artifactMode,
   artifactSimulated,
   executionMode,
+  runUpdatedAt,
+  executionStartedAt,
+  artifactCreatedAt,
   selectedRunId,
   selectedExecutionId,
   selectedArtifactId,
@@ -64,6 +71,11 @@ export default function RecordLineageStrip({
             />
           </SummaryFact>
         ) : null}
+        {runUpdatedAt ? (
+          <SummaryFact label="Run updated">
+            {formatSummaryTimestamp(runUpdatedAt)}
+          </SummaryFact>
+        ) : null}
         <SummaryFact label="Execution ID" copyValue={executionId ?? undefined}>
           {executionId ?? "not linked"}
         </SummaryFact>
@@ -75,6 +87,11 @@ export default function RecordLineageStrip({
             />
           </SummaryFact>
         ) : null}
+        {executionStartedAt ? (
+          <SummaryFact label="Execution started">
+            {formatSummaryTimestamp(executionStartedAt)}
+          </SummaryFact>
+        ) : null}
         <SummaryFact label="Artifact ID" copyValue={artifactId ?? undefined}>
           {artifactId ?? "not linked"}
         </SummaryFact>
@@ -84,6 +101,11 @@ export default function RecordLineageStrip({
               label={artifactMode}
               tone={getExecutionModeTone(artifactMode)}
             />
+          </SummaryFact>
+        ) : null}
+        {artifactCreatedAt ? (
+          <SummaryFact label="Artifact created">
+            {formatSummaryTimestamp(artifactCreatedAt)}
           </SummaryFact>
         ) : null}
         {typeof artifactSimulated === "boolean" ? (

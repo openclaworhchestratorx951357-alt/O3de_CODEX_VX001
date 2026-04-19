@@ -102,6 +102,7 @@ export default function RunDetailPanel({
         runStatus={item?.status ?? null}
         executionId={relatedExecutionId}
         executionMode={item?.execution_mode ?? null}
+        runUpdatedAt={item?.updated_at ?? null}
         selectedRunId={selectedRunId}
         selectedExecutionId={selectedExecutionId}
         onOpenExecution={onOpenExecution}
