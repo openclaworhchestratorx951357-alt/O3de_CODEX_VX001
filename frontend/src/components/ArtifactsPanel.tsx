@@ -2,7 +2,9 @@ import type { ArtifactListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import {
+  formatSummaryLabeledText,
   formatSummaryTimestamp,
+  summaryCalloutStyle,
 } from "./summaryPrimitives";
 
 type ArtifactsPanelProps = {
@@ -40,7 +42,9 @@ export default function ArtifactsPanel({
               <div>Simulated: {String(item.simulated)}</div>
               {item.execution_mode ? <div>Execution mode: {item.execution_mode}</div> : null}
               <div>Created: {formatSummaryTimestamp(item.created_at)}</div>
-              <div>Provenance: {provenanceLabel}</div>
+              <div style={summaryCalloutStyle}>
+                {formatSummaryLabeledText("Provenance", provenanceLabel)}
+              </div>
               {item.project_name ? <div>Project name: {item.project_name}</div> : null}
               {item.mutation_audit_summary ? (
                 <div>Mutation audit: {item.mutation_audit_summary}</div>

@@ -3,8 +3,10 @@ import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import {
   formatSummaryTimestamp,
+  formatSummaryLabeledText,
   summaryActionButtonStyle,
   summaryActionRowStyle,
+  summaryCalloutStyle,
 } from "./summaryPrimitives";
 
 type ApprovalQueueProps = {
@@ -57,7 +59,9 @@ export default function ApprovalQueue({
               <div>Decided: {formatSummaryTimestamp(item.decided_at)}</div>
             ) : null}
             {describeApprovalMeaning(item) ? (
-              <div>Meaning: {describeApprovalMeaning(item)}</div>
+              <div style={summaryCalloutStyle}>
+                {formatSummaryLabeledText("Meaning", describeApprovalMeaning(item) ?? "")}
+              </div>
             ) : null}
             {item.reason ? <div>Reason: {item.reason}</div> : null}
             {item.can_decide ? (

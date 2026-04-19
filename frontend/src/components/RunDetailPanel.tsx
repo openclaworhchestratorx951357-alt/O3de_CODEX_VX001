@@ -1,10 +1,12 @@
 import type { RunRecord, SettingsPatchMutationAudit } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import {
+  formatSummaryLabeledText,
   formatSummaryTimestamp,
   summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
+  summaryCalloutStyle,
 } from "./summaryPrimitives";
 
 type RunDetailPanelProps = {
@@ -88,7 +90,9 @@ export default function RunDetailPanel({
         </article>
         <article style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Truth Boundary</h4>
-          <div>{item ? describeRunTruth(item) : null}</div>
+          <div style={summaryCalloutStyle}>
+            {item ? formatSummaryLabeledText("Execution truth", describeRunTruth(item)) : null}
+          </div>
           {item?.result_summary ? (
             <div style={{ marginTop: 8 }}>
               <strong>Summary:</strong> {item.result_summary}

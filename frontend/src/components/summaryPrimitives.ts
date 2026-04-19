@@ -76,6 +76,15 @@ export const summaryActionButtonStyle: CSSProperties = {
   cursor: "pointer",
 };
 
+export const summaryCalloutStyle: CSSProperties = {
+  ...summaryMutedTextStyle,
+  marginTop: 8,
+};
+
+export function formatSummaryLabeledText(label: string, value: string): string {
+  return `${label}: ${value}`;
+}
+
 export function formatSummaryTimestamp(value: string): string {
   return new Date(value).toLocaleString();
 }

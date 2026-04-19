@@ -2,7 +2,9 @@ import type { ExecutionListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import {
+  formatSummaryLabeledText,
   formatSummaryTimestamp,
+  summaryCalloutStyle,
 } from "./summaryPrimitives";
 
 type ExecutionsPanelProps = {
@@ -39,7 +41,9 @@ export default function ExecutionsPanel({
               {item.finished_at ? (
                 <div>Finished: {formatSummaryTimestamp(item.finished_at)}</div>
               ) : null}
-              <div>Provenance: {provenanceLabel}</div>
+              <div style={summaryCalloutStyle}>
+                {formatSummaryLabeledText("Provenance", provenanceLabel)}
+              </div>
               {item.mutation_audit_summary ? (
                 <div>Mutation audit: {item.mutation_audit_summary}</div>
               ) : null}

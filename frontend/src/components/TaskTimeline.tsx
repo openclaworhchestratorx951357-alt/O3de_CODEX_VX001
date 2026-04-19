@@ -2,7 +2,9 @@ import type { EventListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import {
+  formatSummaryLabeledText,
   formatSummaryTimestamp,
+  summaryCalloutStyle,
 } from "./summaryPrimitives";
 
 type TaskTimelineProps = {
@@ -53,7 +55,11 @@ export default function TaskTimeline({ items, loading, error }: TaskTimelineProp
               <div>State: {item.event_state}</div>
               {capabilityStatus ? <div>Capability: {capabilityStatus}</div> : null}
               {adapterMode ? <div>Adapter mode: {adapterMode}</div> : null}
-              {meaning ? <div>Meaning: {meaning}</div> : null}
+              {meaning ? (
+                <div style={summaryCalloutStyle}>
+                  {formatSummaryLabeledText("Meaning", meaning)}
+                </div>
+              ) : null}
               {item.run_id ? <div>Run: {item.run_id}</div> : null}
               <div>Created: {formatSummaryTimestamp(item.created_at)}</div>
             </SummaryListItem>
