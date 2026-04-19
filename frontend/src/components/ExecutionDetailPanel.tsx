@@ -3,6 +3,10 @@ import type {
   ExecutionRecord,
   ProjectInspectEvidenceDetails,
 } from "../types/contracts";
+import {
+  compareArtifactPriority,
+  getPreferredArtifact,
+} from "../lib/recordPriority";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
 import RecordLineageStrip from "./RecordLineageStrip";
 import SummarySection from "./SummarySection";
@@ -61,8 +65,22 @@ export default function ExecutionDetailPanel({
   const projectInspectDetails = item?.tool === "project.inspect"
     ? readProjectInspectDetails(item.details)
     : null;
-  const lineageArtifactId = selectedArtifactId ?? item?.artifact_ids[0] ?? null;
-  const lineageArtifact = relatedArtifacts.find((artifact) => artifact.id === lineageArtifactId);
+  const prioritizedArtifacts = [...relatedArtifacts].sort((left, right) => {
+    if (selectedArtifactId) {
+      if (left.id === selectedArtifactId && right.id !== selectedArtifactId) {
+        return -1;
+      }
+      if (right.id === selectedArtifactId && left.id !== selectedArtifactId) {
+        return 1;
+      }
+    }
+    return compareArtifactPriority(left, right);
+  });
+  const preferredArtifact = getPreferredArtifact(relatedArtifacts);
+  const lineageArtifact = selectedArtifactId
+    ? relatedArtifacts.find((artifact) => artifact.id === selectedArtifactId) ?? null
+    : preferredArtifact;
+  const lineageArtifactId = lineageArtifact?.id ?? item?.artifact_ids[0] ?? null;
 
   return (
     <SummarySection
@@ -78,7 +96,7 @@ export default function ExecutionDetailPanel({
         executionId={item?.id ?? null}
         executionStatus={item?.status ?? null}
         executionSummary={item?.result_summary ?? null}
-        artifactId={selectedArtifactId ?? item?.artifact_ids[0] ?? null}
+        artifactId={lineageArtifactId}
         artifactLabel={lineageArtifact?.label ?? null}
         artifactKind={lineageArtifact?.kind ?? null}
         artifactMode={lineageArtifact?.execution_mode ?? null}
@@ -141,8 +159,8 @@ export default function ExecutionDetailPanel({
             </SummaryFacts>
             {onOpenArtifact && item.artifact_ids.length > 0 ? (
               <div style={{ ...summaryCardGridStyle, marginTop: 8 }}>
-                {item.artifact_ids.map((artifactId) => {
-                  const artifact = relatedArtifacts.find((entry) => entry.id === artifactId);
+                {prioritizedArtifacts.map((artifact) => {
+                  const artifactId = artifact.id;
                   const artifactLabel = artifact?.label ?? "artifact";
                   const artifactKind = artifact?.kind ?? "unknown kind";
                   return (

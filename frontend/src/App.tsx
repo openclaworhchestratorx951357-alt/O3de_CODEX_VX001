@@ -39,6 +39,7 @@ import {
   fetchToolsCatalog,
   rejectApproval,
 } from "./lib/api";
+import { getPreferredExecution } from "./lib/recordPriority";
 import type {
   ArtifactListItem,
   ArtifactRecord,
@@ -170,6 +171,22 @@ export default function App() {
   const artifactDetailSectionRef = useRef<HTMLDivElement | null>(null);
   const announceRunDetailRefreshRef = useRef(false);
 
+  function getPreferredExecutionForRun(
+    runId: string,
+    executionItems: ExecutionListItem[] = executions,
+  ): ExecutionListItem | null {
+    const matchingExecutions = executionItems.filter((execution) => execution.run_id === runId);
+    if (selectedExecutionId) {
+      const selectedExecutionMatch = matchingExecutions.find(
+        (execution) => execution.id === selectedExecutionId,
+      );
+      if (selectedExecutionMatch) {
+        return selectedExecutionMatch;
+      }
+    }
+    return getPreferredExecution(matchingExecutions);
+  }
+
   async function loadApprovals() {
     setApprovalsLoading(true);
     try {
@@ -288,7 +305,7 @@ export default function App() {
     try {
       const nextRun = await fetchRun(runId);
       setSelectedRun(nextRun);
-      const matchingExecution = executionItems.find((execution) => execution.run_id === runId);
+      const matchingExecution = getPreferredExecutionForRun(runId, executionItems);
       if (matchingExecution) {
         const nextExecution = await fetchExecution(matchingExecution.id);
         setSelectedExecutionDetails(
@@ -890,7 +907,11 @@ export default function App() {
           loading={selectedRunLoading}
           error={selectedRunError}
           executionDetails={selectedExecutionDetails}
-          relatedExecutionId={executions.find((execution) => execution.run_id === selectedRunId)?.id ?? null}
+          relatedExecutionId={
+            selectedRunId
+              ? getPreferredExecutionForRun(selectedRunId)?.id ?? null
+              : null
+          }
           selectedRunId={selectedRunId}
           selectedExecutionId={selectedExecutionId}
           onOpenExecution={openExecutionDetail}
