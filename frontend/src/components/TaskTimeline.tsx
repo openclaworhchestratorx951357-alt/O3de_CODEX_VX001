@@ -1,8 +1,8 @@
 import type { EventListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
+import { SummaryList, SummaryListItem } from "./SummaryList";
 import {
   formatSummaryTimestamp,
-  summaryItemStyle,
 } from "./summaryPrimitives";
 
 type TaskTimelineProps = {
@@ -40,13 +40,13 @@ export default function TaskTimeline({ items, loading, error }: TaskTimelineProp
       emptyMessage="No timeline events are recorded yet."
       hasItems={items.length > 0}
     >
-      <ul>
+      <SummaryList>
         {items.map((item) => {
           const capabilityStatus = item.capability_status ?? null;
           const adapterMode = item.adapter_mode ?? null;
           const meaning = describeTimelineMeaning(item);
           return (
-            <li key={item.id} style={summaryItemStyle}>
+            <SummaryListItem key={item.id} card>
               <strong>{item.message}</strong>
               <div>Category: {item.category}</div>
               <div>Severity: {item.severity}</div>
@@ -56,10 +56,10 @@ export default function TaskTimeline({ items, loading, error }: TaskTimelineProp
               {meaning ? <div>Meaning: {meaning}</div> : null}
               {item.run_id ? <div>Run: {item.run_id}</div> : null}
               <div>Created: {formatSummaryTimestamp(item.created_at)}</div>
-            </li>
+            </SummaryListItem>
           );
         })}
-      </ul>
+      </SummaryList>
     </SummarySection>
   );
 }

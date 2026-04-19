@@ -1,8 +1,8 @@
 import type { ExecutionListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
+import { SummaryList, SummaryListItem } from "./SummaryList";
 import {
   formatSummaryTimestamp,
-  summaryItemStyle,
 } from "./summaryPrimitives";
 
 type ExecutionsPanelProps = {
@@ -25,11 +25,11 @@ export default function ExecutionsPanel({
       emptyMessage="No executions are recorded yet."
       hasItems={items.length > 0}
     >
-      <ul>
+      <SummaryList>
         {items.map((item) => {
           const provenanceLabel = getExecutionProvenanceLabel(item);
           return (
-            <li key={item.id} style={summaryItemStyle}>
+            <SummaryListItem key={item.id} card>
               <strong>{item.tool}</strong>
               <div>Agent: {item.agent}</div>
               <div>Status: {item.status}</div>
@@ -49,10 +49,10 @@ export default function ExecutionsPanel({
               {item.result_summary ? <div>Summary: {item.result_summary}</div> : null}
               <div>Warnings: {item.warning_count}</div>
               <div>Artifacts: {item.artifact_count}</div>
-            </li>
+            </SummaryListItem>
           );
         })}
-      </ul>
+      </SummaryList>
     </SummarySection>
   );
 }

@@ -1,8 +1,8 @@
 import type { LockListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
+import { SummaryList, SummaryListItem } from "./SummaryList";
 import {
   formatSummaryTimestamp,
-  summaryItemStyle,
 } from "./summaryPrimitives";
 
 type LocksPanelProps = {
@@ -21,15 +21,15 @@ export default function LocksPanel({ items, loading, error }: LocksPanelProps) {
       emptyMessage="No active locks are recorded."
       hasItems={items.length > 0}
     >
-      <ul>
+      <SummaryList>
         {items.map((item) => (
-          <li key={`${item.name}:${item.owner_run_id}`} style={summaryItemStyle}>
+          <SummaryListItem key={`${item.name}:${item.owner_run_id}`} card>
             <strong>{item.name}</strong>
             <div>Owner run: {item.owner_run_id}</div>
             <div>Created: {formatSummaryTimestamp(item.created_at)}</div>
-          </li>
+          </SummaryListItem>
         ))}
-      </ul>
+      </SummaryList>
     </SummarySection>
   );
 }

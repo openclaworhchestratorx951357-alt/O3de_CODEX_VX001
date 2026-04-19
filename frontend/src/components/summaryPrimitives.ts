@@ -8,6 +8,12 @@ export const summaryItemStyle = {
   marginBottom: 12,
 };
 
+export const summaryListStyle = {
+  listStyle: "none",
+  margin: 0,
+  padding: 0,
+};
+
 export const summaryCardGridStyle = {
   display: "grid",
   gap: 12,

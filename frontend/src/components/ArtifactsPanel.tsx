@@ -1,8 +1,8 @@
 import type { ArtifactListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
+import { SummaryList, SummaryListItem } from "./SummaryList";
 import {
   formatSummaryTimestamp,
-  summaryItemStyle,
 } from "./summaryPrimitives";
 
 type ArtifactsPanelProps = {
@@ -25,11 +25,11 @@ export default function ArtifactsPanel({
       emptyMessage="No artifacts are recorded yet."
       hasItems={items.length > 0}
     >
-      <ul>
+      <SummaryList>
         {items.map((item) => {
           const provenanceLabel = getArtifactProvenanceLabel(item);
           return (
-            <li key={item.id} style={summaryItemStyle}>
+            <SummaryListItem key={item.id} card>
               <strong>{item.label}</strong>
               <div>Kind: {item.kind}</div>
               <div>Run ID: {item.run_id}</div>
@@ -48,10 +48,10 @@ export default function ArtifactsPanel({
               {item.mutation_audit_status ? (
                 <div>Mutation audit status: {item.mutation_audit_status}</div>
               ) : null}
-            </li>
+            </SummaryListItem>
           );
         })}
-      </ul>
+      </SummaryList>
     </SummarySection>
   );
 }

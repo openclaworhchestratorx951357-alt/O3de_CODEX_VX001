@@ -1,8 +1,7 @@
 import type { ToolPolicy } from "../types/contracts";
 import SummarySection from "./SummarySection";
+import { SummaryList, SummaryListItem } from "./SummaryList";
 import {
-  summaryCardStyle,
-  summaryItemStyle,
   summaryMutedTextStyle,
 } from "./summaryPrimitives";
 
@@ -26,10 +25,9 @@ export default function PoliciesPanel({
       emptyMessage="No policies published yet."
       hasItems={items.length > 0}
     >
-      <ul>
+      <SummaryList>
           {items.map((item) => (
-            <li key={`${item.agent}:${item.tool}`} style={summaryItemStyle}>
-              <div style={summaryCardStyle}>
+            <SummaryListItem key={`${item.agent}:${item.tool}`} card>
                 <strong>{item.tool}</strong>
                 <div>Agent: {item.agent}</div>
                 <div>Approval class: {item.approval_class}</div>
@@ -40,7 +38,6 @@ export default function PoliciesPanel({
                 <div>Risk: {item.risk}</div>
                 <div>Execution mode: {item.execution_mode}</div>
                 <div>Next requirement: {item.next_real_requirement}</div>
-              </div>
               {item.tool === "build.configure" ? (
                 <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
                   Meaning: In hybrid mode this remains plan-only. Approval can
@@ -54,9 +51,9 @@ export default function PoliciesPanel({
                   patch-plan gates are explicitly admitted.
                 </div>
               ) : null}
-            </li>
+            </SummaryListItem>
           ))}
-      </ul>
+      </SummaryList>
     </SummarySection>
   );
 }

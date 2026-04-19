@@ -1,8 +1,8 @@
 import type { ApprovalListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
+import { SummaryList, SummaryListItem } from "./SummaryList";
 import {
   formatSummaryTimestamp,
-  summaryItemStyle,
 } from "./summaryPrimitives";
 
 type ApprovalQueueProps = {
@@ -43,9 +43,9 @@ export default function ApprovalQueue({
       hasItems={items.length > 0}
       marginTop={0}
     >
-      <ul>
+      <SummaryList>
         {items.map((item) => (
-          <li key={item.id} style={summaryItemStyle}>
+          <SummaryListItem key={item.id} card>
             <strong>{formatApprovalTitle(item)}</strong>
             <div>Class: {item.approval_class}</div>
             <div>Status: {item.status}</div>
@@ -76,9 +76,9 @@ export default function ApprovalQueue({
                 </button>
               </div>
             ) : null}
-          </li>
+          </SummaryListItem>
         ))}
-      </ul>
+      </SummaryList>
     </SummarySection>
   );
 }

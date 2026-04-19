@@ -6,7 +6,7 @@ import type {
   SettingsPatchAuditSummary,
 } from "../types/contracts";
 import SummarySection from "./SummarySection";
-import { summaryItemStyle } from "./summaryPrimitives";
+import { SummaryList, SummaryListItem } from "./SummaryList";
 
 type RunsPanelProps = {
   items: RunListItem[];
@@ -142,7 +142,7 @@ export default function RunsPanel({
           ))}
         </div>
       ) : null}
-      <ul>
+      <SummaryList>
           {filteredItems.map((item) => {
             const capability = getRunCapabilityLabel(item);
             const executionTruth = getRunExecutionTruth(item);
@@ -150,7 +150,7 @@ export default function RunsPanel({
             const auditStatus = getAuditStatusLabel(item, audit);
 
             return (
-              <li key={item.id} style={summaryItemStyle}>
+              <SummaryListItem key={item.id} card>
                 <strong>{item.tool}</strong>
                 <div>Agent: {item.agent}</div>
                 <div>Status: {item.status}</div>
@@ -171,10 +171,10 @@ export default function RunsPanel({
                 >
                   {selectedRunId === item.id ? "Selected" : "View detail"}
                 </button>
-              </li>
+              </SummaryListItem>
             );
           })}
-      </ul>
+      </SummaryList>
     </SummarySection>
   );
 }
