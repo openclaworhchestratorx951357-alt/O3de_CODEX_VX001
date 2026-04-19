@@ -67,7 +67,7 @@ class PolicyService:
                         requires_approval=tool.approval_class != "read_only",
                     )
                 )
-        return policies
+        return sorted(policies, key=lambda policy: (policy.agent, policy.tool))
 
     def get_policy(self, agent_id: str, tool_name: str) -> ToolPolicy | None:
         tool = catalog_service.get_tool_definition(agent_id, tool_name)

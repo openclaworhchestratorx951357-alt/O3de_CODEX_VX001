@@ -312,6 +312,16 @@ def test_policies_route_exposes_schema_cross_links() -> None:
         assert payload["policies"][0]["result_schema"]
 
 
+def test_policies_route_returns_policies_in_stable_agent_then_tool_order() -> None:
+    with isolated_client() as client:
+        response = client.get("/policies")
+        assert response.status_code == 200
+        policies = response.json()["policies"]
+
+        ordering = [(policy["agent"], policy["tool"]) for policy in policies]
+        assert ordering == sorted(ordering)
+
+
 def test_policies_route_marks_settings_patch_as_real_mutation_preflight_active() -> None:
     with isolated_client() as client:
         response = client.get("/policies")
