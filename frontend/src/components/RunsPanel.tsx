@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import type {
   RunListItem,
@@ -20,6 +20,7 @@ import {
   summaryBadgeStyle,
   summaryControlRowStyle,
   summaryFilterButtonStyle,
+  summarySearchInputStyle,
 } from "./summaryPrimitives";
 
 type RunsPanelProps = {
@@ -68,6 +69,7 @@ export default function RunsPanel({
   selectedRunId,
   onSelectRun,
 }: RunsPanelProps) {
+  const [searchValue, setSearchValue] = useState("");
   const runAuditByRunId = useMemo(
     () => new Map(runAudits.map((audit) => [audit.run_id, audit] as const)),
     [runAudits],
@@ -83,6 +85,15 @@ export default function RunsPanel({
   const filteredItems = items.filter((item) =>
     matchesAuditFilter(item, runAuditByRunId.get(item.id), selectedAuditFilter),
   );
+  const normalizedQuery = searchValue.trim().toLowerCase();
+  const visibleItems = useMemo(
+    () =>
+      filteredItems.filter((item) => {
+        const audit = runAuditByRunId.get(item.id);
+        return matchesRunSearch(item, audit, normalizedQuery);
+      }),
+    [filteredItems, normalizedQuery, runAuditByRunId],
+  );
 
   return (
     <SummarySection
@@ -90,8 +101,8 @@ export default function RunsPanel({
       description="Runs reflect persisted control-plane bookkeeping. Execution mode remains explicitly labeled, including simulated flows."
       loading={loading}
       error={error}
-      emptyMessage="No runs recorded yet."
-      hasItems={filteredItems.length > 0}
+      emptyMessage={normalizedQuery ? "No runs match the current search." : "No runs recorded yet."}
+      hasItems={visibleItems.length > 0}
     >
       <div style={summaryControlRowStyle}>
         {(["all", "settings.patch"] as const).map((value) => (
@@ -149,8 +160,17 @@ export default function RunsPanel({
           ))}
         </div>
       ) : null}
+      <div style={summaryControlRowStyle}>
+        <input
+          type="search"
+          value={searchValue}
+          onChange={(event) => setSearchValue(event.target.value)}
+          placeholder="Search runs by tool, agent, run ID, or summary"
+          style={summarySearchInputStyle}
+        />
+      </div>
       <SummaryList>
-          {filteredItems.map((item) => {
+          {visibleItems.map((item) => {
             const capability = getRunCapabilityLabel(item);
             const executionTruth = getRunExecutionTruth(item);
             const audit = runAuditByRunId.get(item.id);
@@ -271,6 +291,29 @@ function matchesAuditFilter(
     return !status || !["preflight", "blocked", "succeeded", "rolled_back"].includes(status);
   }
   return status === filter;
+}
+
+function matchesRunSearch(
+  item: RunListItem,
+  audit: RunAuditRecord | undefined,
+  query: string,
+): boolean {
+  if (!query) {
+    return true;
+  }
+
+  return [
+    item.id,
+    item.request_id,
+    item.agent,
+    item.tool,
+    item.status,
+    item.execution_mode,
+    item.result_summary ?? "",
+    audit?.audit_status ?? "",
+    audit?.audit_phase ?? "",
+    audit?.audit_summary ?? "",
+  ].some((value) => value.toLowerCase().includes(query));
 }
 
 function getFilterLabel(filter: AuditFilter): string {

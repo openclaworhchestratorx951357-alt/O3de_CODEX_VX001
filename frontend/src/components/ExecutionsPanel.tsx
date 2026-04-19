@@ -1,3 +1,5 @@
+import { useMemo, useState } from "react";
+
 import type { ExecutionListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -12,6 +14,8 @@ import {
   formatSummaryLabeledText,
   formatSummaryTimestamp,
   summaryCalloutStyle,
+  summaryControlRowStyle,
+  summarySearchInputStyle,
 } from "./summaryPrimitives";
 
 type ExecutionsPanelProps = {
@@ -25,17 +29,34 @@ export default function ExecutionsPanel({
   loading,
   error,
 }: ExecutionsPanelProps) {
+  const [searchValue, setSearchValue] = useState("");
+  const normalizedQuery = searchValue.trim().toLowerCase();
+  const filteredItems = useMemo(
+    () =>
+      items.filter((item) => matchesExecutionSearch(item, normalizedQuery)),
+    [items, normalizedQuery],
+  );
+
   return (
     <SummarySection
       title="Executions"
       description="These are persisted execution records. Execution mode remains explicit, including simulated control-plane runs."
       loading={loading}
       error={error}
-      emptyMessage="No executions are recorded yet."
-      hasItems={items.length > 0}
+      emptyMessage={normalizedQuery ? "No executions match the current search." : "No executions are recorded yet."}
+      hasItems={filteredItems.length > 0}
     >
+      <div style={summaryControlRowStyle}>
+        <input
+          type="search"
+          value={searchValue}
+          onChange={(event) => setSearchValue(event.target.value)}
+          placeholder="Search executions by tool, agent, run ID, or summary"
+          style={summarySearchInputStyle}
+        />
+      </div>
       <SummaryList>
-        {items.map((item) => {
+        {filteredItems.map((item) => {
           const provenanceLabel = getExecutionProvenanceLabel(item);
           return (
             <SummaryListItem key={item.id} card>
@@ -78,6 +99,25 @@ export default function ExecutionsPanel({
       </SummaryList>
     </SummarySection>
   );
+}
+
+function matchesExecutionSearch(item: ExecutionListItem, query: string): boolean {
+  if (!query) {
+    return true;
+  }
+
+  return [
+    item.id,
+    item.run_id,
+    item.request_id,
+    item.agent,
+    item.tool,
+    item.execution_mode,
+    item.status,
+    item.result_summary ?? "",
+    item.mutation_audit_summary ?? "",
+    item.mutation_audit_status ?? "",
+  ].some((value) => value.toLowerCase().includes(query));
 }
 
 function getExecutionProvenanceLabel(item: ExecutionListItem): string {

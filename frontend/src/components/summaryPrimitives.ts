@@ -91,6 +91,14 @@ export const summaryFilterButtonStyle: CSSProperties = {
   cursor: "pointer",
 };
 
+export const summarySearchInputStyle: CSSProperties = {
+  border: "1px solid #d0d7de",
+  borderRadius: 8,
+  padding: "6px 10px",
+  minWidth: 220,
+  background: "#ffffff",
+};
+
 export const summaryActionButtonStyle: CSSProperties = {
   border: "1px solid #d0d7de",
   borderRadius: 8,
