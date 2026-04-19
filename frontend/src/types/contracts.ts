@@ -116,6 +116,25 @@ export interface ProjectInspectEvidenceDetails {
   fallback_reason?: string;
 }
 
+export interface SettingsPatchMutationAudit {
+  phase?: string;
+  status?: string;
+  backup_created?: boolean;
+  backup_target?: string;
+  backup_source_path?: string;
+  patch_plan_valid?: boolean;
+  mutation_applied?: boolean;
+  post_write_verification_attempted?: boolean;
+  post_write_verification_succeeded?: boolean;
+  rollback_attempted?: boolean;
+  rollback_succeeded?: boolean;
+  rollback_trigger?: string | null;
+  rollback_outcome?: string | null;
+  summary?: string;
+  verified_operation_paths?: string[];
+  verification_mismatched_paths?: string[];
+}
+
 export interface ApprovalRecord {
   id: string;
   run_id: string;

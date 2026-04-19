@@ -727,6 +727,8 @@ def test_dispatch_route_uses_real_settings_patch_preflight_in_hybrid_mode() -> N
                 assert execution["details"]["patch_plan_valid"] is False
                 assert execution["details"]["mutation_ready"] is False
                 assert execution["details"]["mutation_blocked"] is False
+                assert execution["details"]["mutation_audit"]["phase"] == "preflight"
+                assert execution["details"]["mutation_audit"]["status"] == "preflight"
 
 
 def test_dispatch_route_uses_real_settings_patch_mutation_in_hybrid_mode() -> None:
@@ -810,3 +812,5 @@ def test_dispatch_route_uses_real_settings_patch_mutation_in_hybrid_mode() -> No
                 assert execution["details"]["post_write_verification_succeeded"] is True
                 assert execution["details"]["verified_operation_paths"] == ["/version"]
                 assert execution["details"]["backup_source_path"].endswith("project.json")
+                assert execution["details"]["mutation_audit"]["phase"] == "mutation"
+                assert execution["details"]["mutation_audit"]["status"] == "succeeded"

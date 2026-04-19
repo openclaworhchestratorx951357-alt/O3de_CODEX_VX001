@@ -1,10 +1,20 @@
-import type { RunRecord } from "../types/contracts";
+import type { RunRecord, SettingsPatchMutationAudit } from "../types/contracts";
 
 type RunDetailPanelProps = {
   item: RunRecord | null;
   loading: boolean;
   error: string | null;
+  executionDetails?: Record<string, unknown> | null;
 };
+
+function readMutationAudit(
+  details: Record<string, unknown> | null | undefined,
+): SettingsPatchMutationAudit | null {
+  const value = details?.mutation_audit;
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as SettingsPatchMutationAudit)
+    : null;
+}
 
 function describeRunTruth(item: RunRecord): string {
   if (item.execution_mode === "real" && item.tool === "project.inspect") {
@@ -35,7 +45,9 @@ export default function RunDetailPanel({
   item,
   loading,
   error,
+  executionDetails,
 }: RunDetailPanelProps) {
+  const mutationAudit = readMutationAudit(executionDetails);
   return (
     <section
       style={{
@@ -67,6 +79,35 @@ export default function RunDetailPanel({
             <strong>Execution truth:</strong>{" "}
             {describeRunTruth(item)}
           </div>
+          {item.tool === "settings.patch" && mutationAudit ? (
+            <>
+              <div>
+                <strong>Mutation audit:</strong> {mutationAudit.summary ?? "available"}
+              </div>
+              <div>
+                <strong>Audit phase:</strong> {mutationAudit.phase ?? "unknown"}
+              </div>
+              <div>
+                <strong>Audit status:</strong> {mutationAudit.status ?? "unknown"}
+              </div>
+              {typeof mutationAudit.backup_created === "boolean" ? (
+                <div>
+                  <strong>Backup created:</strong> {String(mutationAudit.backup_created)}
+                </div>
+              ) : null}
+              {typeof mutationAudit.post_write_verification_succeeded === "boolean" ? (
+                <div>
+                  <strong>Verification succeeded:</strong>{" "}
+                  {String(mutationAudit.post_write_verification_succeeded)}
+                </div>
+              ) : null}
+              {mutationAudit.rollback_outcome ? (
+                <div>
+                  <strong>Rollback outcome:</strong> {mutationAudit.rollback_outcome}
+                </div>
+              ) : null}
+            </>
+          ) : null}
           <div><strong>Dry run:</strong> {String(item.dry_run)}</div>
           <div><strong>Requested locks:</strong> {item.requested_locks.join(", ") || "none"}</div>
           <div><strong>Granted locks:</strong> {item.granted_locks.join(", ") || "none"}</div>

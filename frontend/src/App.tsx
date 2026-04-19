@@ -315,6 +315,9 @@ export default function App() {
         owned_tools: agent.tools.map((tool) => tool.name),
       }))
     : mockAgents;
+  const selectedExecution = selectedRun
+    ? executions.find((execution) => execution.run_id === selectedRun.id) ?? null
+    : null;
 
   return (
     <main
@@ -419,6 +422,9 @@ export default function App() {
         item={selectedRun}
         loading={selectedRunLoading}
         error={selectedRunError}
+        executionDetails={
+          (selectedExecution?.details as Record<string, unknown> | null | undefined) ?? null
+        }
       />
       <LocksPanel
         items={locks}

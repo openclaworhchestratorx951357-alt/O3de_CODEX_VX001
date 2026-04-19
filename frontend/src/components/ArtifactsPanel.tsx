@@ -1,6 +1,7 @@
 import type {
   ArtifactRecord,
   ProjectInspectEvidenceDetails,
+  SettingsPatchMutationAudit,
 } from "../types/contracts";
 
 type ArtifactsPanelProps = {
@@ -37,6 +38,15 @@ function readStringArray(metadata: Record<string, unknown>, key: string): string
   return value.filter((entry): entry is string => typeof entry === "string" && entry.length > 0);
 }
 
+function readMutationAudit(
+  metadata: Record<string, unknown>,
+): SettingsPatchMutationAudit | null {
+  const value = metadata.mutation_audit;
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as SettingsPatchMutationAudit)
+    : null;
+}
+
 export default function ArtifactsPanel({
   items,
   loading,
@@ -70,6 +80,7 @@ export default function ArtifactsPanel({
               const manifestPath = readString(metadata, "project_manifest_path");
               const inspectionSurface = readString(metadata, "inspection_surface");
               const executionMode = readString(metadata, "execution_mode");
+              const mutationAudit = readMutationAudit(metadata);
               const planDetails = readRecord(metadata, "plan_details");
               const projectConfig = readRecord(metadata, "project_config");
               const manifestSettings = readRecord(metadata, "manifest_settings");
@@ -186,6 +197,15 @@ export default function ArtifactsPanel({
                   <div>Simulated: {String(item.simulated)}</div>
                   {executionMode ? <div>Execution mode: {executionMode}</div> : null}
                   <div>Provenance: {provenanceLabel}</div>
+                  {mutationAudit?.summary ? (
+                    <div>Mutation audit: {mutationAudit.summary}</div>
+                  ) : null}
+                  {mutationAudit?.phase ? (
+                    <div>Mutation audit phase: {mutationAudit.phase}</div>
+                  ) : null}
+                  {mutationAudit?.status ? (
+                    <div>Mutation audit status: {mutationAudit.status}</div>
+                  ) : null}
                   {projectName ? <div>Project name: {projectName}</div> : null}
                   {manifestPath ? <div>Manifest path: {manifestPath}</div> : null}
                   {inspectionEvidence.length > 0 ? (

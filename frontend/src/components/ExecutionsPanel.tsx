@@ -1,6 +1,7 @@
 import type {
   ExecutionRecord,
   ProjectInspectEvidenceDetails,
+  SettingsPatchMutationAudit,
 } from "../types/contracts";
 
 type ExecutionsPanelProps = {
@@ -42,6 +43,15 @@ function readStringArray(details: Record<string, unknown>, key: string): string[
   return value.filter((entry): entry is string => typeof entry === "string" && entry.length > 0);
 }
 
+function readMutationAudit(
+  details: Record<string, unknown>,
+): SettingsPatchMutationAudit | null {
+  const value = details.mutation_audit;
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as SettingsPatchMutationAudit)
+    : null;
+}
+
 export default function ExecutionsPanel({
   items,
   loading,
@@ -72,6 +82,7 @@ export default function ExecutionsPanel({
             (() => {
               const details = item.details as ProjectInspectEvidenceDetails & Record<string, unknown>;
               const inspectionSurface = readString(details, "inspection_surface");
+              const mutationAudit = readMutationAudit(details);
               const projectName = readString(details, "project_name");
               const manifestPath = readString(details, "project_manifest_path");
               const fallbackReason = readString(details, "fallback_reason");
@@ -260,6 +271,15 @@ export default function ExecutionsPanel({
                   <div>Execution mode: {item.execution_mode}</div>
                   <div>Run ID: {item.run_id}</div>
                   <div>Provenance: {provenanceLabel}</div>
+                  {mutationAudit?.summary ? (
+                    <div>Mutation audit: {mutationAudit.summary}</div>
+                  ) : null}
+                  {mutationAudit?.phase ? (
+                    <div>Mutation audit phase: {mutationAudit.phase}</div>
+                  ) : null}
+                  {mutationAudit?.status ? (
+                    <div>Mutation audit status: {mutationAudit.status}</div>
+                  ) : null}
                   {projectName ? <div>Project name: {projectName}</div> : null}
                   {manifestPath ? <div>Manifest path: {manifestPath}</div> : null}
                   {inspectionEvidence.length > 0 ? (

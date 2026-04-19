@@ -1206,6 +1206,36 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         verification_mismatched_paths: list[str] = []
         verification_error: str | None = None
 
+        def _build_mutation_audit(
+            *,
+            phase: str,
+            status: str,
+            summary: str,
+            include_verification_paths: bool = False,
+        ) -> dict[str, Any]:
+            audit = {
+                "phase": phase,
+                "status": status,
+                "backup_created": backup_created,
+                "backup_target": str(backup_target),
+                "backup_source_path": backup_source_path,
+                "patch_plan_valid": patch_plan_valid,
+                "mutation_applied": mutation_applied,
+                "post_write_verification_attempted": post_write_verification_attempted,
+                "post_write_verification_succeeded": post_write_verification_succeeded,
+                "rollback_attempted": rollback_attempted,
+                "rollback_succeeded": rollback_succeeded,
+                "rollback_trigger": rollback_trigger,
+                "rollback_outcome": rollback_outcome,
+                "summary": summary,
+            }
+            if include_verification_paths:
+                audit["verified_operation_paths"] = list(verified_operation_paths)
+                audit["verification_mismatched_paths"] = list(
+                    verification_mismatched_paths
+                )
+            return audit
+
         def _attempt_rollback(*, trigger: str) -> tuple[bool, bool, str | None, str | None, str]:
             rollback_error_local: str | None = None
             rollback_verification_error_local: str | None = None
@@ -1267,6 +1297,22 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     rollback_outcome,
                 ) = _attempt_rollback(trigger=rollback_trigger)
                 rollback_verification_attempted = rollback_succeeded
+                mutation_audit = _build_mutation_audit(
+                    phase="rollback",
+                    status=(
+                        "rolled_back"
+                        if rollback_outcome == "restored_and_verified"
+                        else "failed"
+                    ),
+                    summary=(
+                        "Mutation write failed and rollback restored the manifest."
+                        if rollback_outcome == "restored_and_verified"
+                        else (
+                            "Mutation write failed and rollback could not fully "
+                            "verify the manifest restore."
+                        )
+                    ),
+                )
                 raise AdapterExecutionRejected(
                     "Real settings.patch mutation failed while writing the manifest "
                     "and triggered rollback handling.",
@@ -1290,6 +1336,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                         "rollback_verification_attempted": rollback_verification_attempted,
                         "rollback_verification_succeeded": rollback_verification_succeeded,
                         "rollback_verification_error": rollback_verification_error,
+                        "mutation_audit": mutation_audit,
                         "backup_provenance": {
                             "source_path": backup_source_path,
                             "backup_target": str(backup_target),
@@ -1331,6 +1378,23 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     rollback_outcome,
                 ) = _attempt_rollback(trigger=rollback_trigger)
                 rollback_verification_attempted = rollback_succeeded
+                mutation_audit = _build_mutation_audit(
+                    phase="rollback",
+                    status=(
+                        "rolled_back"
+                        if rollback_outcome == "restored_and_verified"
+                        else "failed"
+                    ),
+                    summary=(
+                        "Post-write verification reload failed and rollback "
+                        "restored the manifest."
+                        if rollback_outcome == "restored_and_verified"
+                        else (
+                            "Post-write verification reload failed and rollback "
+                            "could not fully verify the manifest restore."
+                        )
+                    ),
+                )
                 raise AdapterExecutionRejected(
                     "Real settings.patch mutation failed post-write verification and "
                     "triggered rollback handling.",
@@ -1357,6 +1421,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                         "post_write_verification_attempted": True,
                         "post_write_verification_succeeded": False,
                         "verification_error": verification_error,
+                        "mutation_audit": mutation_audit,
                         "backup_provenance": {
                             "source_path": backup_source_path,
                             "backup_target": str(backup_target),
@@ -1405,6 +1470,25 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     rollback_outcome,
                 ) = _attempt_rollback(trigger=rollback_trigger)
                 rollback_verification_attempted = rollback_succeeded
+                mutation_audit = _build_mutation_audit(
+                    phase="rollback",
+                    status=(
+                        "rolled_back"
+                        if rollback_outcome == "restored_and_verified"
+                        else "failed"
+                    ),
+                    summary=(
+                        "Post-write verification detected mismatched values and "
+                        "rollback restored the manifest."
+                        if rollback_outcome == "restored_and_verified"
+                        else (
+                            "Post-write verification detected mismatched values "
+                            "and rollback could not fully verify the manifest "
+                            "restore."
+                        )
+                    ),
+                    include_verification_paths=True,
+                )
                 raise AdapterExecutionRejected(
                     "Real settings.patch mutation failed post-write verification and "
                     "triggered rollback handling.",
@@ -1433,6 +1517,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                         "verified_operation_paths": verified_operation_paths,
                         "verification_mismatched_paths": verification_mismatched_paths,
                         "verification_error": verification_error,
+                        "mutation_audit": mutation_audit,
                         "backup_provenance": {
                             "source_path": backup_source_path,
                             "backup_target": str(backup_target),
@@ -1599,6 +1684,33 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "remain intentionally disabled."
                 )
 
+        mutation_audit = _build_mutation_audit(
+            phase="mutation" if mutation_applied else "preflight",
+            status=(
+                "succeeded"
+                if mutation_applied
+                else "blocked"
+                if mutation_blocked
+                else "preflight"
+            ),
+            summary=(
+                "A real settings.patch mutation was applied and verified."
+                if mutation_applied and post_write_verification_succeeded
+                else "A real settings.patch mutation was applied."
+                if mutation_applied
+                else (
+                    "The admitted settings.patch plan is mutation-ready, but "
+                    "writes remain intentionally disabled."
+                )
+                if mutation_blocked
+                else (
+                    "The real settings.patch path published preflight evidence "
+                    "only; no settings were written."
+                )
+            ),
+            include_verification_paths=True,
+        )
+
         result = DispatchResult(
             status="real_success",
             tool=tool,
@@ -1665,6 +1777,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "verified_operation_paths": verified_operation_paths,
             "verification_mismatched_paths": verification_mismatched_paths,
             "verification_error": verification_error,
+            "mutation_audit": mutation_audit,
             "plan_details": plan_details,
         }
         return AdapterExecutionReport(

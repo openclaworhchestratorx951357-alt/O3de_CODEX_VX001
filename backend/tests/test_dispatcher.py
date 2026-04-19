@@ -2010,10 +2010,21 @@ def test_settings_patch_uses_real_preflight_path_in_hybrid_mode() -> None:
         assert execution.details["mutation_ready"] is False
         assert execution.details["mutation_blocked"] is False
         assert execution.details["mutation_blocked_reason"] is None
+        assert execution.details["mutation_audit"]["phase"] == "preflight"
+        assert execution.details["mutation_audit"]["status"] == "preflight"
+        assert execution.details["mutation_audit"]["backup_created"] is True
+        assert (
+            execution.details["mutation_audit"]["summary"]
+            == (
+                "The real settings.patch path published preflight evidence "
+                "only; no settings were written."
+            )
+        )
         assert artifact is not None
         assert artifact.simulated is False
         assert artifact.metadata["execution_mode"] == "real"
         assert artifact.metadata["inspection_surface"] == "settings_patch_preflight"
+        assert artifact.metadata["mutation_audit"]["phase"] == "preflight"
         assert artifact.metadata["plan_details"]["supported_operation_count"] == 1
         assert artifact.metadata["plan_details"]["unsupported_operation_count"] == 1
         assert artifact.metadata["plan_details"]["backup_created"] is True
@@ -2135,6 +2146,9 @@ def test_settings_patch_reports_fully_valid_patch_plan_when_all_operations_are_a
         assert execution.details["post_backup_validation"]["mutation_blocked"] is True
         assert execution.details["mutation_ready"] is True
         assert execution.details["mutation_blocked"] is True
+        assert execution.details["mutation_audit"]["phase"] == "preflight"
+        assert execution.details["mutation_audit"]["status"] == "blocked"
+        assert "mutation-ready" in execution.details["mutation_audit"]["summary"]
         assert "intentionally write-disabled" in execution.details["mutation_blocked_reason"]
         assert "ready for mutation" in response.result.message
         assert any(
@@ -2199,10 +2213,14 @@ def test_settings_patch_writes_manifest_on_fully_admitted_path_in_hybrid_mode() 
         assert execution.details["verified_operation_paths"] == ["/version"]
         assert execution.details["verification_mismatched_paths"] == []
         assert execution.details["backup_source_path"].endswith("project.json")
+        assert execution.details["mutation_audit"]["phase"] == "mutation"
+        assert execution.details["mutation_audit"]["status"] == "succeeded"
+        assert execution.details["mutation_audit"]["post_write_verification_succeeded"] is True
         assert artifact is not None
         assert artifact.metadata["inspection_surface"] == "settings_patch_mutation"
         assert artifact.metadata["mutation_applied"] is True
         assert artifact.metadata["post_write_verification_succeeded"] is True
+        assert artifact.metadata["mutation_audit"]["status"] == "succeeded"
 
 
 def test_settings_patch_rolls_back_when_manifest_write_fails() -> None:
@@ -2268,6 +2286,9 @@ def test_settings_patch_rolls_back_when_manifest_write_fails() -> None:
         assert execution.details["rollback_verification_attempted"] is True
         assert execution.details["rollback_verification_succeeded"] is True
         assert execution.details["backup_source_path"].endswith("project.json")
+        assert execution.details["mutation_audit"]["phase"] == "rollback"
+        assert execution.details["mutation_audit"]["status"] == "rolled_back"
+        assert execution.details["mutation_audit"]["rollback_trigger"] == "mutation_write_failure"
 
 
 def test_settings_patch_rolls_back_when_post_write_verification_fails() -> None:
@@ -2332,6 +2353,12 @@ def test_settings_patch_rolls_back_when_post_write_verification_fails() -> None:
         assert execution.details["rollback_verification_succeeded"] is True
         assert execution.details["post_write_verification_attempted"] is True
         assert execution.details["post_write_verification_succeeded"] is False
+        assert execution.details["mutation_audit"]["phase"] == "rollback"
+        assert execution.details["mutation_audit"]["status"] == "rolled_back"
+        assert (
+            execution.details["mutation_audit"]["rollback_trigger"]
+            == "post_write_verification_value_mismatch"
+        )
 
 
 def test_settings_patch_rejects_when_backup_creation_fails_in_hybrid_mode() -> None:
