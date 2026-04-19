@@ -189,6 +189,23 @@ export interface RunsResponse {
   runs: RunRecord[];
 }
 
+export interface RunListItem {
+  id: string;
+  request_id: string;
+  agent: string;
+  tool: string;
+  status: string;
+  dry_run: boolean;
+  execution_mode: string;
+  result_summary?: string | null;
+  audit_status?: string | null;
+  audit_summary?: string | null;
+}
+
+export interface RunListResponse {
+  runs: RunListItem[];
+}
+
 export interface SettingsPatchAuditSummary {
   total_runs: number;
   preflight: number;

@@ -2,7 +2,13 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
-from app.models.api import RunAuditRecord, RunsSummaryResponse, SettingsPatchAuditSummary
+from app.models.api import (
+    RunAuditRecord,
+    RunListItem,
+    RunListResponse,
+    RunsSummaryResponse,
+    SettingsPatchAuditSummary,
+)
 from app.models.control_plane import RunRecord, RunStatus
 from app.models.request_envelope import RequestEnvelope
 from app.repositories.control_plane import control_plane_repository
@@ -30,6 +36,45 @@ class RunsService:
 
     def list_runs(self) -> list[RunRecord]:
         return control_plane_repository.list_runs()
+
+    def list_run_cards(
+        self,
+        *,
+        requested_tool: str | None = None,
+        requested_audit_status: str | None = None,
+    ) -> RunListResponse:
+        runs = self.list_runs_for_audit_status(
+            requested_tool=requested_tool,
+            requested_audit_status=requested_audit_status,
+        )
+        run_audits_by_id = {
+            audit.run_id: audit
+            for audit in self.get_runs_summary(
+                requested_tool=requested_tool,
+                requested_audit_status=requested_audit_status,
+            ).run_audits
+        }
+        return RunListResponse(
+            runs=[
+                RunListItem(
+                    id=run.id,
+                    request_id=run.request_id,
+                    agent=run.agent,
+                    tool=run.tool,
+                    status=run.status.value,
+                    dry_run=run.dry_run,
+                    execution_mode=run.execution_mode,
+                    result_summary=run.result_summary,
+                    audit_status=run_audits_by_id.get(run.id).audit_status
+                    if run.id in run_audits_by_id
+                    else None,
+                    audit_summary=run_audits_by_id.get(run.id).audit_summary
+                    if run.id in run_audits_by_id
+                    else None,
+                )
+                for run in runs
+            ]
+        )
 
     def list_runs_for_audit_status(
         self,

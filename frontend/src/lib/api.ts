@@ -15,6 +15,8 @@ import type {
   LocksResponse,
   PoliciesResponse,
   ReadinessStatus,
+  RunListItem,
+  RunListResponse,
   RunRecord,
   RunAuditRecord,
   RunsResponse,
@@ -128,6 +130,30 @@ export async function fetchRuns(
   }
 
   const payload = (await response.json()) as RunsResponse;
+  return payload.runs ?? [];
+}
+
+export async function fetchRunCards(
+  tool?: string,
+  auditStatus?: string,
+): Promise<RunListItem[]> {
+  const params = new URLSearchParams();
+  if (tool && tool !== "all") {
+    params.set("tool", tool);
+  }
+  if (auditStatus && auditStatus !== "all") {
+    params.set("audit_status", auditStatus);
+  }
+  const query = params.toString();
+  const response = await fetch(
+    `${API_BASE_URL}/runs/cards${query ? `?${query}` : ""}`,
+  );
+
+  if (!response.ok) {
+    throw new Error(`Run cards fetch failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as RunListResponse;
   return payload.runs ?? [];
 }
 

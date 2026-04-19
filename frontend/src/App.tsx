@@ -25,11 +25,11 @@ import {
   fetchEvents,
   fetchExecutions,
   fetchRun,
+  fetchRunCards,
   fetchRunsSummaryForFilter,
   fetchLocks,
   fetchPolicies,
   fetchReadiness,
-  fetchRuns,
   fetchToolsCatalog,
   rejectApproval,
 } from "./lib/api";
@@ -43,6 +43,7 @@ import type {
   LockRecord,
   ReadinessStatus,
   RunAuditRecord,
+  RunListItem,
   ResponseEnvelope,
   RunRecord,
   SettingsPatchAuditSummary,
@@ -74,7 +75,7 @@ export default function App() {
   const [locks, setLocks] = useState<LockRecord[]>([]);
   const [policies, setPolicies] = useState<ToolPolicy[]>([]);
   const [readiness, setReadiness] = useState<ReadinessStatus | null>(null);
-  const [runs, setRuns] = useState<RunRecord[]>([]);
+  const [runs, setRuns] = useState<RunListItem[]>([]);
   const [runAudits, setRunAudits] = useState<RunAuditRecord[]>([]);
   const [settingsPatchAuditSummary, setSettingsPatchAuditSummary] =
     useState<SettingsPatchAuditSummary | null>(null);
@@ -174,7 +175,7 @@ export default function App() {
     setRunsLoading(true);
     try {
       const [nextRuns, nextRunsSummary] = await Promise.all([
-        fetchRuns(toolFilter, auditFilter),
+        fetchRunCards(toolFilter, auditFilter),
         fetchRunsSummaryForFilter(toolFilter, auditFilter),
       ]);
       setRuns(nextRuns);
@@ -287,7 +288,7 @@ export default function App() {
       await loadReadiness();
       try {
         const [nextRuns, nextRunsSummary] = await Promise.all([
-          fetchRuns("all", "all"),
+          fetchRunCards("all", "all"),
           fetchRunsSummaryForFilter("all", "all"),
         ]);
         setRuns(nextRuns);

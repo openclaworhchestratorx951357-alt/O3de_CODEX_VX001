@@ -126,6 +126,23 @@ class RunsResponse(BaseModel):
     runs: list[RunRecord] = Field(default_factory=list)
 
 
+class RunListItem(BaseModel):
+    id: str = Field(..., min_length=1)
+    request_id: str = Field(..., min_length=1)
+    agent: str = Field(..., min_length=1)
+    tool: str = Field(..., min_length=1)
+    status: str = Field(..., min_length=1)
+    dry_run: bool
+    execution_mode: str = Field(..., min_length=1)
+    result_summary: str | None = None
+    audit_status: str | None = None
+    audit_summary: str | None = None
+
+
+class RunListResponse(BaseModel):
+    runs: list[RunListItem] = Field(default_factory=list)
+
+
 class SettingsPatchAuditSummary(BaseModel):
     total_runs: int = 0
     preflight: int = 0

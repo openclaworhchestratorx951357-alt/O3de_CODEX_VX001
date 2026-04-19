@@ -1,13 +1,13 @@
 import { useMemo } from "react";
 
 import type {
+  RunListItem,
   RunAuditRecord,
-  RunRecord,
   SettingsPatchAuditSummary,
 } from "../types/contracts";
 
 type RunsPanelProps = {
-  items: RunRecord[];
+  items: RunListItem[];
   runAudits: RunAuditRecord[];
   settingsPatchAuditSummary: SettingsPatchAuditSummary | null;
   selectedToolFilter: ToolFilter;
@@ -188,7 +188,7 @@ export default function RunsPanel({
   );
 }
 
-function getRunCapabilityLabel(item: RunRecord): string {
+function getRunCapabilityLabel(item: RunListItem): string {
   if (item.tool === "project.inspect") {
     return "hybrid-read-only";
   }
@@ -201,7 +201,7 @@ function getRunCapabilityLabel(item: RunRecord): string {
   return "simulated-only";
 }
 
-function getRunExecutionTruth(item: RunRecord): string {
+function getRunExecutionTruth(item: RunListItem): string {
   if (item.tool === "build.configure") {
     return item.execution_mode === "real"
       ? "Real plan-only preflight path."
@@ -218,7 +218,7 @@ function getRunExecutionTruth(item: RunRecord): string {
 }
 
 function getAuditStatusLabel(
-  item: RunRecord,
+  item: RunListItem,
   audit: RunAuditRecord | undefined,
 ): string | null {
   if (item.tool !== "settings.patch") {
@@ -234,7 +234,7 @@ function getAuditStatusLabel(
 }
 
 function matchesAuditFilter(
-  item: RunRecord,
+  item: RunListItem,
   audit: RunAuditRecord | undefined,
   filter: AuditFilter,
 ): boolean {

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query
 
-from app.models.api import RunsResponse, RunsSummaryResponse
+from app.models.api import RunListResponse, RunsResponse, RunsSummaryResponse
 from app.models.control_plane import RunRecord
 from app.services.runs import runs_service
 
@@ -17,6 +17,17 @@ def list_runs(
             requested_tool=tool,
             requested_audit_status=audit_status,
         )
+    )
+
+
+@router.get("/runs/cards", response_model=RunListResponse)
+def list_run_cards(
+    tool: str | None = Query(default=None),
+    audit_status: str | None = Query(default=None),
+) -> RunListResponse:
+    return runs_service.list_run_cards(
+        requested_tool=tool,
+        requested_audit_status=audit_status,
     )
 
 

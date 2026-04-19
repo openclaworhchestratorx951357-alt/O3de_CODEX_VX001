@@ -32,6 +32,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert payload["status"] == "phase-7-gem-state-refinement"
         assert payload["phase"] == "phase-7"
         assert "/runs" in payload["routes"]
+        assert "/runs/cards" in payload["routes"]
         assert "/runs/summary" in payload["routes"]
 
 
@@ -507,6 +508,24 @@ def test_runs_summary_endpoint_reports_settings_patch_audit_states() -> None:
                     filtered_runs_payload["runs"][0]["id"]
                     == approved_mutation.json()["operation_id"]
                 )
+
+                filtered_run_cards_response = client.get(
+                    "/runs/cards",
+                    params={"tool": "settings.patch", "audit_status": "succeeded"},
+                )
+                assert filtered_run_cards_response.status_code == 200
+                filtered_run_cards_payload = filtered_run_cards_response.json()
+                assert len(filtered_run_cards_payload["runs"]) == 1
+                run_card = filtered_run_cards_payload["runs"][0]
+                assert run_card["id"] == approved_mutation.json()["operation_id"]
+                assert run_card["tool"] == "settings.patch"
+                assert run_card["execution_mode"] == "hybrid"
+                assert run_card["audit_status"] == "succeeded"
+                assert run_card["audit_summary"] == (
+                    "A real settings.patch mutation was applied and verified."
+                )
+                assert "created_at" not in run_card
+                assert "requested_locks" not in run_card
 
                 tool_filtered_runs_response = client.get(
                     "/runs",
