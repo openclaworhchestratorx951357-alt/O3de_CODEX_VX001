@@ -1601,10 +1601,13 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
             "matched_requested_gem_names",
             "missing_requested_gem_names",
         ]
+        assert execution.details["gem_evidence_source"] == "project_manifest_gem_names"
         assert execution.details["gem_selection_mode"] == "requested-subset"
         assert execution.details["requested_gem_names"] == ["ExampleGem", "MissingGem"]
         assert execution.details["matched_requested_gem_names"] == ["ExampleGem"]
         assert execution.details["missing_requested_gem_names"] == ["MissingGem"]
+        assert execution.details["matched_requested_gem_count"] == 1
+        assert execution.details["missing_requested_gem_count"] == 1
         assert execution.details["gem_names"] == ["ExampleGem"]
         assert execution.details["gem_names_count"] == 1
         assert execution.details["gem_entries_present"] is True
@@ -1638,10 +1641,13 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
             "matched_requested_gem_names",
             "missing_requested_gem_names",
         ]
+        assert artifact.metadata["gem_evidence_source"] == "project_manifest_gem_names"
         assert artifact.metadata["gem_selection_mode"] == "requested-subset"
         assert artifact.metadata["requested_gem_names"] == ["ExampleGem", "MissingGem"]
         assert artifact.metadata["matched_requested_gem_names"] == ["ExampleGem"]
         assert artifact.metadata["missing_requested_gem_names"] == ["MissingGem"]
+        assert artifact.metadata["matched_requested_gem_count"] == 1
+        assert artifact.metadata["missing_requested_gem_count"] == 1
         assert artifact.metadata["gem_names"] == ["ExampleGem"]
         assert artifact.metadata["gem_entries_present"] is True
         assert artifact.metadata["requested_gem_subset_present"] is True
@@ -1739,10 +1745,13 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
             "matched_requested_gem_names",
             "missing_requested_gem_names",
         ]
+        assert execution.details["gem_evidence_source"] == "project_manifest_gem_names"
         assert execution.details["gem_selection_mode"] == "requested-subset"
         assert execution.details["requested_gem_names"] == ["MissingGem"]
         assert execution.details["matched_requested_gem_names"] == []
         assert execution.details["missing_requested_gem_names"] == ["MissingGem"]
+        assert execution.details["matched_requested_gem_count"] == 0
+        assert execution.details["missing_requested_gem_count"] == 1
         assert execution.details["gem_names"] == []
         assert execution.details["gem_names_count"] == 0
         assert execution.details["gem_entries_present"] is False

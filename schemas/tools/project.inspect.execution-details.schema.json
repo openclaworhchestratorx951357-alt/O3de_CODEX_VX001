@@ -83,6 +83,7 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
     },
+    "gem_evidence_source": { "type": "string", "minLength": 1 },
     "gem_selection_mode": { "type": "string", "minLength": 1 },
     "requested_gem_names": {
       "type": "array",
@@ -96,6 +97,8 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
     },
+    "matched_requested_gem_count": { "type": "integer", "minimum": 0 },
+    "missing_requested_gem_count": { "type": "integer", "minimum": 0 },
     "gem_names": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 }

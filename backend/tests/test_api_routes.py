@@ -537,6 +537,7 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                     "matched_requested_gem_names",
                     "missing_requested_gem_names",
                 ]
+                assert execution["details"]["gem_evidence_source"] == "project_manifest_gem_names"
                 assert execution["details"]["gem_selection_mode"] == "requested-subset"
                 assert execution["details"]["requested_gem_names"] == [
                     "ApiGem",
@@ -544,6 +545,8 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                 ]
                 assert execution["details"]["matched_requested_gem_names"] == ["ApiGem"]
                 assert execution["details"]["missing_requested_gem_names"] == ["MissingGem"]
+                assert execution["details"]["matched_requested_gem_count"] == 1
+                assert execution["details"]["missing_requested_gem_count"] == 1
                 assert execution["details"]["gem_names"] == ["ApiGem"]
                 assert execution["details"]["gem_entries_present"] is True
                 assert execution["details"]["requested_gem_subset_present"] is True

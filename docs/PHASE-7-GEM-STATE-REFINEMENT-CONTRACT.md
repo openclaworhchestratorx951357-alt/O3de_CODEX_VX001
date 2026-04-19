@@ -90,6 +90,10 @@ Minimum evidence should identify:
 - requested Gem-state fields
 - discovered Gem names
 - Gem entry count
+- a truthful source marker showing Gem evidence came from manifest-backed
+  `project.json` Gem fields only
+- enough requested-vs-matched-vs-missing detail that operators do not need to
+  infer subset results manually
 - whether the path was real or simulated
 - adapter family
 - adapter mode

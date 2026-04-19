@@ -98,10 +98,13 @@ export interface ProjectInspectEvidenceDetails {
   matched_requested_settings_count?: number;
   missing_requested_settings_count?: number;
   requested_gem_evidence?: string[];
+  gem_evidence_source?: string;
   gem_selection_mode?: string;
   requested_gem_names?: string[];
   matched_requested_gem_names?: string[];
   missing_requested_gem_names?: string[];
+  matched_requested_gem_count?: number;
+  missing_requested_gem_count?: number;
   gem_names?: string[];
   gem_names_count?: number;
   gem_entries_present?: boolean;

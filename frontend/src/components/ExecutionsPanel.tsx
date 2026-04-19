@@ -116,6 +116,7 @@ export default function ExecutionsPanel({
               );
               const settingsSelectionMode = readString(details, "settings_selection_mode");
               const requestedGemEvidence = readStringArray(details, "requested_gem_evidence");
+              const gemEvidenceSource = readString(details, "gem_evidence_source");
               const requestedGemNames = readStringArray(details, "requested_gem_names");
               const matchedRequestedGemNames = readStringArray(
                 details,
@@ -124,6 +125,14 @@ export default function ExecutionsPanel({
               const missingRequestedGemNames = readStringArray(
                 details,
                 "missing_requested_gem_names",
+              );
+              const matchedRequestedGemCount = readNumber(
+                details,
+                "matched_requested_gem_count",
+              );
+              const missingRequestedGemCount = readNumber(
+                details,
+                "missing_requested_gem_count",
               );
               const gemSelectionMode = readString(details, "gem_selection_mode");
               const projectConfigKeys = readStringArray(details, "project_config_keys");
@@ -250,6 +259,9 @@ export default function ExecutionsPanel({
                   {requestedGemEvidence.length > 0 ? (
                     <div>Requested Gem evidence: {requestedGemEvidence.join(", ")}</div>
                   ) : null}
+                  {gemEvidenceSource ? (
+                    <div>Gem evidence source: {gemEvidenceSource}</div>
+                  ) : null}
                   {gemSelectionMode ? <div>Gem selection mode: {gemSelectionMode}</div> : null}
                   {requestedGemNames.length > 0 ? (
                     <div>Requested Gem names: {requestedGemNames.join(", ")}</div>
@@ -263,6 +275,12 @@ export default function ExecutionsPanel({
                     <div>
                       Missing requested Gem names: {missingRequestedGemNames.join(", ")}
                     </div>
+                  ) : null}
+                  {matchedRequestedGemCount !== null ? (
+                    <div>Matched requested Gem count: {matchedRequestedGemCount}</div>
+                  ) : null}
+                  {missingRequestedGemCount !== null ? (
+                    <div>Missing requested Gem count: {missingRequestedGemCount}</div>
                   ) : null}
                   {gemNames.length > 0 ? <div>Gem names: {gemNames.join(", ")}</div> : null}
                   {gemEntriesPresent !== null ? (

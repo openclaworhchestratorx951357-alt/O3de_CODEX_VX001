@@ -385,6 +385,16 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "missing_requested_gem_names",
                 ]
             )
+        matched_requested_gem_count = (
+            len(matched_requested_gem_names)
+            if inspection_flags["include_gems"]
+            else 0
+        )
+        missing_requested_gem_count = (
+            len(missing_requested_gem_names)
+            if inspection_flags["include_gems"]
+            else 0
+        )
         requested_project_config_evidence = (
             ["project_config", "project_config_keys"]
             if inspection_flags["include_project_config"]
@@ -670,6 +680,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "matched_requested_settings_count": matched_requested_settings_count,
                 "missing_requested_settings_count": missing_requested_settings_count,
                 "requested_gem_evidence": requested_gem_evidence,
+                "gem_evidence_source": (
+                    "project_manifest_gem_names"
+                    if inspection_flags["include_gems"]
+                    else "not-requested"
+                ),
                 "gem_selection_mode": (
                     "requested-subset"
                     if inspection_flags["include_gems"] and requested_gem_names
@@ -682,6 +697,8 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 ),
                 "matched_requested_gem_names": matched_requested_gem_names,
                 "missing_requested_gem_names": missing_requested_gem_names,
+                "matched_requested_gem_count": matched_requested_gem_count,
+                "missing_requested_gem_count": missing_requested_gem_count,
                 "gem_names": enabled_gems if inspection_flags["include_gems"] else [],
                 "gem_names_count": len(enabled_gems) if inspection_flags["include_gems"] else 0,
                 "gem_entries_present": (
@@ -769,6 +786,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "matched_requested_settings_count": matched_requested_settings_count,
                 "missing_requested_settings_count": missing_requested_settings_count,
                 "requested_gem_evidence": requested_gem_evidence,
+                "gem_evidence_source": (
+                    "project_manifest_gem_names"
+                    if inspection_flags["include_gems"]
+                    else "not-requested"
+                ),
                 "gem_selection_mode": (
                     "requested-subset"
                     if inspection_flags["include_gems"] and requested_gem_names
@@ -781,6 +803,8 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 ),
                 "matched_requested_gem_names": matched_requested_gem_names,
                 "missing_requested_gem_names": missing_requested_gem_names,
+                "matched_requested_gem_count": matched_requested_gem_count,
+                "missing_requested_gem_count": missing_requested_gem_count,
                 "gem_names": enabled_gems if inspection_flags["include_gems"] else [],
                 "gem_names_count": len(enabled_gems) if inspection_flags["include_gems"] else 0,
                 "gem_entries_present": (
