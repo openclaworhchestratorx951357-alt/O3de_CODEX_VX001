@@ -121,6 +121,15 @@ pwsh -File .\scripts\dev.ps1 bootstrap-worktree
 That task is the standard way to make a new worktree usable without manually
 rebuilding every local dependency path.
 
+If the worktree runner itself needs investigation, use:
+
+```powershell
+pwsh -File .\scripts\dev.ps1 runner-diagnostics
+```
+
+That diagnostic task is the standard way to compare backend and frontend launch
+behavior before changing the task runner again.
+
 ## Verification matrix
 
 Every slice must finish with the narrowest truthful verification that proves the
@@ -143,6 +152,11 @@ pwsh -File .\scripts\dev.ps1 backend-test
 If `scripts/dev.ps1` has wrapper issues in the current shell, direct repo-local
 Python execution is acceptable as a fallback as long as the exact command is
 reported.
+
+Current `codex/ci-devx` finding:
+- backend task launches return clean exit codes in diagnostics
+- the remaining runner issue is frontend build under scripted invocation, where
+  `esbuild` can fail with Windows `spawn EPERM` in the worktree shell context
 
 ### Frontend slices
 

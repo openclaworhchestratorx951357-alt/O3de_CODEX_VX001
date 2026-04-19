@@ -3,6 +3,7 @@ param(
     [Parameter(Position = 0)]
     [ValidateSet(
         "bootstrap-worktree",
+        "runner-diagnostics",
         "backend-lint",
         "backend-test",
         "frontend-lint",
@@ -131,6 +132,59 @@ function Invoke-RepoProcess {
     }
 }
 
+function Write-DiagnosticHeader {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Title
+    )
+
+    Write-Host ""
+    Write-Host "=== $Title ==="
+}
+
+function Invoke-DiagnosticCommand {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Label,
+        [Parameter(Mandatory = $true)]
+        [string]$WorkingDirectory,
+        [Parameter(Mandatory = $true)]
+        [string]$Command,
+        [hashtable]$Environment = @{}
+    )
+
+    Write-Host ""
+    Write-Host "-- $Label"
+    Write-Host "cwd: $WorkingDirectory"
+    Write-Host "command: $Command"
+
+    Push-Location $WorkingDirectory
+    try {
+        $savedEnvironment = @{}
+        foreach ($variableName in $Environment.Keys) {
+            $savedEnvironment[$variableName] = [Environment]::GetEnvironmentVariable($variableName, "Process")
+            [Environment]::SetEnvironmentVariable($variableName, $Environment[$variableName], "Process")
+            Write-Host "env[$variableName]=$($Environment[$variableName])"
+        }
+
+        try {
+            Invoke-Expression $Command
+            Write-Host "exit_code=$LASTEXITCODE"
+        }
+        catch {
+            Write-Host "threw=$($_.Exception.Message)"
+        }
+        finally {
+            foreach ($variableName in $Environment.Keys) {
+                [Environment]::SetEnvironmentVariable($variableName, $savedEnvironment[$variableName], "Process")
+            }
+        }
+    }
+    finally {
+        Pop-Location
+    }
+}
+
 function Invoke-WorktreeBootstrap {
     $primaryRepoRoot = Get-PrimaryRepoRoot
     if ($primaryRepoRoot -eq $RepoRoot) {
@@ -144,6 +198,49 @@ function Invoke-WorktreeBootstrap {
 
     Write-Host "Worktree bootstrap complete. Shared dependency directories are linked from:"
     Write-Host $primaryRepoRoot
+}
+
+function Invoke-RunnerDiagnostics {
+    Write-DiagnosticHeader -Title "Runner Context"
+    Write-Host "repo_root: $RepoRoot"
+    Write-Host "backend_dir: $BackendDir"
+    Write-Host "frontend_dir: $FrontendDir"
+    Write-Host "backend_python: $(Get-BackendPython)"
+    Write-Host "npm_executable: $(Get-NpmExecutable)"
+    Write-Host "powershell_version: $($PSVersionTable.PSVersion)"
+    Write-Host "process_pwd: $((Get-Location).Path)"
+    Write-Host "PATH: $env:PATH"
+    Write-Host "ComSpec: $env:ComSpec"
+    Write-Host "PATHEXT: $env:PATHEXT"
+
+    Write-DiagnosticHeader -Title "Backend Test Launch Comparison"
+    Invoke-DiagnosticCommand `
+        -Label "direct python pytest" `
+        -WorkingDirectory $RepoRoot `
+        -Command ('& "' + (Get-BackendPython) + '" -m pytest backend/tests/test_api_routes.py -q') `
+        -Environment @{ PYTHONPATH = $BackendPythonPath }
+
+    Invoke-DiagnosticCommand `
+        -Label "script-style python pytest" `
+        -WorkingDirectory $RepoRoot `
+        -Command ('& "' + (Get-BackendPython) + '" -m pytest backend/tests -q') `
+        -Environment @{ PYTHONPATH = $BackendPythonPath }
+
+    Write-DiagnosticHeader -Title "Frontend Build Launch Comparison"
+    Invoke-DiagnosticCommand `
+        -Label "shell npm run build" `
+        -WorkingDirectory $FrontendDir `
+        -Command "npm run build"
+
+    Invoke-DiagnosticCommand `
+        -Label "explicit npm.cmd run build" `
+        -WorkingDirectory $FrontendDir `
+        -Command ('& "' + (Get-NpmExecutable) + '" run build')
+
+    Invoke-DiagnosticCommand `
+        -Label "shell npm run lint" `
+        -WorkingDirectory $FrontendDir `
+        -Command "npm run lint"
 }
 
 function Invoke-BackendLint {
@@ -180,6 +277,7 @@ function Invoke-ComposeUp {
 
 switch ($Task) {
     "bootstrap-worktree" { Invoke-WorktreeBootstrap }
+    "runner-diagnostics" { Invoke-RunnerDiagnostics }
     "backend-lint" { Invoke-BackendLint }
     "backend-test" { Invoke-BackendTests }
     "frontend-lint" { Invoke-FrontendLint }
