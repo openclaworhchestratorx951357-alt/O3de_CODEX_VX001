@@ -11,8 +11,10 @@ import {
   formatSummaryLabeledText,
   summaryActionButtonStyle,
   summaryActionRowStyle,
+  summaryFocusBadgeStyle,
   summaryCalloutStyle,
   summaryControlRowStyle,
+  summaryInlineActionButtonStyle,
   summarySearchInputStyle,
 } from "./summaryPrimitives";
 
@@ -24,6 +26,8 @@ type ApprovalQueueProps = {
   onApprove: (approvalId: string) => Promise<void>;
   onReject: (approvalId: string) => Promise<void>;
   searchPreset?: string | null;
+  focusLabel?: string | null;
+  onClearFocus?: () => void;
 };
 
 function formatApprovalTitle(item: ApprovalListItem): string {
@@ -45,6 +49,8 @@ export default function ApprovalQueue({
   onApprove,
   onReject,
   searchPreset,
+  focusLabel,
+  onClearFocus,
 }: ApprovalQueueProps) {
   const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
@@ -64,6 +70,20 @@ export default function ApprovalQueue({
       marginTop={0}
     >
       <div style={summaryControlRowStyle}>
+        {focusLabel ? (
+          <span style={summaryFocusBadgeStyle}>
+            focused from overview: {focusLabel}
+            {onClearFocus ? (
+              <button
+                type="button"
+                style={summaryInlineActionButtonStyle}
+                onClick={onClearFocus}
+              >
+                Clear
+              </button>
+            ) : null}
+          </span>
+        ) : null}
         <input
           type="search"
           value={searchValue}

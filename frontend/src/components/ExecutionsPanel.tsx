@@ -15,6 +15,8 @@ import {
   formatSummaryTimestamp,
   summaryCalloutStyle,
   summaryControlRowStyle,
+  summaryFocusBadgeStyle,
+  summaryInlineActionButtonStyle,
   summarySearchInputStyle,
 } from "./summaryPrimitives";
 
@@ -23,6 +25,8 @@ type ExecutionsPanelProps = {
   loading: boolean;
   error: string | null;
   searchPreset?: string | null;
+  focusLabel?: string | null;
+  onClearFocus?: () => void;
 };
 
 export default function ExecutionsPanel({
@@ -30,6 +34,8 @@ export default function ExecutionsPanel({
   loading,
   error,
   searchPreset,
+  focusLabel,
+  onClearFocus,
 }: ExecutionsPanelProps) {
   const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
@@ -49,6 +55,20 @@ export default function ExecutionsPanel({
       hasItems={filteredItems.length > 0}
     >
       <div style={summaryControlRowStyle}>
+        {focusLabel ? (
+          <span style={summaryFocusBadgeStyle}>
+            focused from overview: {focusLabel}
+            {onClearFocus ? (
+              <button
+                type="button"
+                style={summaryInlineActionButtonStyle}
+                onClick={onClearFocus}
+              >
+                Clear
+              </button>
+            ) : null}
+          </span>
+        ) : null}
         <input
           type="search"
           value={searchValue}

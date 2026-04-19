@@ -19,7 +19,9 @@ import {
   summaryActionButtonStyle,
   summaryBadgeStyle,
   summaryControlRowStyle,
+  summaryFocusBadgeStyle,
   summaryFilterButtonStyle,
+  summaryInlineActionButtonStyle,
   summarySearchInputStyle,
 } from "./summaryPrimitives";
 
@@ -36,6 +38,8 @@ type RunsPanelProps = {
   selectedRunId: string | null;
   onSelectRun: (runId: string) => void;
   searchPreset?: string | null;
+  focusLabel?: string | null;
+  onClearFocus?: () => void;
 };
 
 type AuditFilter =
@@ -70,6 +74,8 @@ export default function RunsPanel({
   selectedRunId,
   onSelectRun,
   searchPreset,
+  focusLabel,
+  onClearFocus,
 }: RunsPanelProps) {
   const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const runAuditByRunId = useMemo(
@@ -107,6 +113,20 @@ export default function RunsPanel({
       hasItems={visibleItems.length > 0}
     >
       <div style={summaryControlRowStyle}>
+        {focusLabel ? (
+          <span style={summaryFocusBadgeStyle}>
+            focused from overview: {focusLabel}
+            {onClearFocus ? (
+              <button
+                type="button"
+                style={summaryInlineActionButtonStyle}
+                onClick={onClearFocus}
+              >
+                Clear
+              </button>
+            ) : null}
+          </span>
+        ) : null}
         {(["all", "settings.patch"] as const).map((value) => (
           <button
             key={value}

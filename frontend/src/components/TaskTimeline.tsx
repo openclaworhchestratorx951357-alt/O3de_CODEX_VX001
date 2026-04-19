@@ -15,6 +15,8 @@ import {
   formatSummaryTimestamp,
   summaryCalloutStyle,
   summaryControlRowStyle,
+  summaryFocusBadgeStyle,
+  summaryInlineActionButtonStyle,
   summarySearchInputStyle,
 } from "./summaryPrimitives";
 
@@ -23,6 +25,8 @@ type TaskTimelineProps = {
   loading: boolean;
   error: string | null;
   searchPreset?: string | null;
+  focusLabel?: string | null;
+  onClearFocus?: () => void;
 };
 
 function describeTimelineMeaning(item: EventListItem): string | null {
@@ -44,7 +48,14 @@ function describeTimelineMeaning(item: EventListItem): string | null {
   return null;
 }
 
-export default function TaskTimeline({ items, loading, error, searchPreset }: TaskTimelineProps) {
+export default function TaskTimeline({
+  items,
+  loading,
+  error,
+  searchPreset,
+  focusLabel,
+  onClearFocus,
+}: TaskTimelineProps) {
   const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
   const filteredItems = useMemo(
@@ -62,6 +73,20 @@ export default function TaskTimeline({ items, loading, error, searchPreset }: Ta
       hasItems={filteredItems.length > 0}
     >
       <div style={summaryControlRowStyle}>
+        {focusLabel ? (
+          <span style={summaryFocusBadgeStyle}>
+            focused from overview: {focusLabel}
+            {onClearFocus ? (
+              <button
+                type="button"
+                style={summaryInlineActionButtonStyle}
+                onClick={onClearFocus}
+              >
+                Clear
+              </button>
+            ) : null}
+          </span>
+        ) : null}
         <input
           type="search"
           value={searchValue}

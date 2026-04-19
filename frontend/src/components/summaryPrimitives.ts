@@ -116,6 +116,15 @@ export const summaryInlineActionButtonStyle: CSSProperties = {
   fontSize: 12,
 };
 
+export const summaryFocusBadgeStyle: CSSProperties = {
+  ...summaryBadgeStyle,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  background: "#ddf4ff",
+  borderColor: "#0969da",
+};
+
 export const summaryCalloutStyle: CSSProperties = {
   ...summaryMutedTextStyle,
   marginTop: 8,

@@ -14,6 +14,8 @@ import {
   formatSummaryTimestamp,
   summaryCalloutStyle,
   summaryControlRowStyle,
+  summaryFocusBadgeStyle,
+  summaryInlineActionButtonStyle,
   summarySearchInputStyle,
 } from "./summaryPrimitives";
 
@@ -22,6 +24,8 @@ type ArtifactsPanelProps = {
   loading: boolean;
   error: string | null;
   searchPreset?: string | null;
+  focusLabel?: string | null;
+  onClearFocus?: () => void;
 };
 
 export default function ArtifactsPanel({
@@ -29,6 +33,8 @@ export default function ArtifactsPanel({
   loading,
   error,
   searchPreset,
+  focusLabel,
+  onClearFocus,
 }: ArtifactsPanelProps) {
   const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
@@ -47,6 +53,20 @@ export default function ArtifactsPanel({
       hasItems={filteredItems.length > 0}
     >
       <div style={summaryControlRowStyle}>
+        {focusLabel ? (
+          <span style={summaryFocusBadgeStyle}>
+            focused from overview: {focusLabel}
+            {onClearFocus ? (
+              <button
+                type="button"
+                style={summaryInlineActionButtonStyle}
+                onClick={onClearFocus}
+              >
+                Clear
+              </button>
+            ) : null}
+          </span>
+        ) : null}
         <input
           type="search"
           value={searchValue}

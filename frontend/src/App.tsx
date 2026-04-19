@@ -122,6 +122,11 @@ export default function App() {
   const [artifactsSearchPreset, setArtifactsSearchPreset] = useState<string | null>(null);
   const [executionsSearchPreset, setExecutionsSearchPreset] = useState<string | null>(null);
   const [eventsSearchPreset, setEventsSearchPreset] = useState<string | null>(null);
+  const [runsFocusLabel, setRunsFocusLabel] = useState<string | null>(null);
+  const [approvalsFocusLabel, setApprovalsFocusLabel] = useState<string | null>(null);
+  const [artifactsFocusLabel, setArtifactsFocusLabel] = useState<string | null>(null);
+  const [executionsFocusLabel, setExecutionsFocusLabel] = useState<string | null>(null);
+  const [eventsFocusLabel, setEventsFocusLabel] = useState<string | null>(null);
   const [runsSearchVersion, setRunsSearchVersion] = useState(0);
   const [approvalsSearchVersion, setApprovalsSearchVersion] = useState(0);
   const [artifactsSearchVersion, setArtifactsSearchVersion] = useState(0);
@@ -207,6 +212,13 @@ export default function App() {
       setRunAudits(nextRunsSummary.runAudits);
       setSettingsPatchAuditSummary(nextRunsSummary.settingsPatchAuditSummary);
       setRunsError(null);
+      if (selectedRunId && nextRuns.some((item) => item.id === selectedRunId)) {
+        await loadRunDetail(selectedRunId);
+      } else if (selectedRunId) {
+        setSelectedRunId(null);
+        setSelectedRun(null);
+        setSelectedExecutionDetails(null);
+      }
     } catch (error) {
       setRunsError(
         error instanceof Error ? error.message : "Failed to load runs",
@@ -417,6 +429,7 @@ export default function App() {
     setSelectedToolFilter("all");
     setSelectedAuditFilter("all");
     setRunsSearchPreset(status);
+    setRunsFocusLabel(`status = ${status}`);
     setRunsSearchVersion((value) => value + 1);
     setRunsLoading(true);
     try {
@@ -444,26 +457,60 @@ export default function App() {
 
   function handlePendingApprovalsDrilldown() {
     setApprovalsSearchPreset("pending");
+    setApprovalsFocusLabel("status = pending");
     setApprovalsSearchVersion((value) => value + 1);
     scrollToSection(approvalsSectionRef.current);
   }
 
   function handleExecutionModeDrilldown(mode: string) {
     setExecutionsSearchPreset(mode);
+    setExecutionsFocusLabel(`execution mode = ${mode}`);
     setExecutionsSearchVersion((value) => value + 1);
     scrollToSection(executionsSectionRef.current);
   }
 
   function handleArtifactModeDrilldown(mode: string) {
     setArtifactsSearchPreset(mode);
+    setArtifactsFocusLabel(`artifact mode = ${mode}`);
     setArtifactsSearchVersion((value) => value + 1);
     scrollToSection(artifactsSectionRef.current);
   }
 
   function handleEventSeverityDrilldown(severity: string) {
     setEventsSearchPreset(severity);
+    setEventsFocusLabel(`severity = ${severity}`);
     setEventsSearchVersion((value) => value + 1);
     scrollToSection(eventsSectionRef.current);
+  }
+
+  function clearRunsFocus() {
+    setRunsSearchPreset(null);
+    setRunsFocusLabel(null);
+    setRunsSearchVersion((value) => value + 1);
+  }
+
+  function clearApprovalsFocus() {
+    setApprovalsSearchPreset(null);
+    setApprovalsFocusLabel(null);
+    setApprovalsSearchVersion((value) => value + 1);
+  }
+
+  function clearArtifactsFocus() {
+    setArtifactsSearchPreset(null);
+    setArtifactsFocusLabel(null);
+    setArtifactsSearchVersion((value) => value + 1);
+  }
+
+  function clearExecutionsFocus() {
+    setExecutionsSearchPreset(null);
+    setExecutionsFocusLabel(null);
+    setExecutionsSearchVersion((value) => value + 1);
+  }
+
+  function clearEventsFocus() {
+    setEventsSearchPreset(null);
+    setEventsFocusLabel(null);
+    setEventsSearchVersion((value) => value + 1);
   }
 
   const agentsForDisplay = catalogAgents.length > 0
@@ -564,6 +611,8 @@ export default function App() {
           onApprove={(approvalId) => handleApprovalDecision(approvalId, "approve")}
           onReject={(approvalId) => handleApprovalDecision(approvalId, "reject")}
           searchPreset={approvalsSearchPreset}
+          focusLabel={approvalsFocusLabel}
+          onClearFocus={clearApprovalsFocus}
         />
       </section>
 
@@ -574,6 +623,8 @@ export default function App() {
           loading={eventsLoading}
           error={eventsError}
           searchPreset={eventsSearchPreset}
+          focusLabel={eventsFocusLabel}
+          onClearFocus={clearEventsFocus}
         />
       </div>
       <div ref={artifactsSectionRef}>
@@ -583,6 +634,8 @@ export default function App() {
           loading={artifactsLoading}
           error={artifactsError}
           searchPreset={artifactsSearchPreset}
+          focusLabel={artifactsFocusLabel}
+          onClearFocus={clearArtifactsFocus}
         />
       </div>
       <div ref={executionsSectionRef}>
@@ -592,6 +645,8 @@ export default function App() {
           loading={executionsLoading}
           error={executionsError}
           searchPreset={executionsSearchPreset}
+          focusLabel={executionsFocusLabel}
+          onClearFocus={clearExecutionsFocus}
         />
       </div>
       <div ref={runsSectionRef}>
@@ -609,6 +664,8 @@ export default function App() {
           selectedRunId={selectedRunId}
           onSelectRun={(runId) => void loadRunDetail(runId)}
           searchPreset={runsSearchPreset}
+          focusLabel={runsFocusLabel}
+          onClearFocus={clearRunsFocus}
         />
       </div>
       <RunDetailPanel
