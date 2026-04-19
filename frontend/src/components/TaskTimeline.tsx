@@ -1,4 +1,9 @@
 import type { EventListItem } from "../types/contracts";
+import SummarySection from "./SummarySection";
+import {
+  formatSummaryTimestamp,
+  summaryItemStyle,
+} from "./summaryPrimitives";
 
 type TaskTimelineProps = {
   items: EventListItem[];
@@ -27,48 +32,34 @@ function describeTimelineMeaning(item: EventListItem): string | null {
 
 export default function TaskTimeline({ items, loading, error }: TaskTimelineProps) {
   return (
-    <section
-      style={{
-        border: "1px solid #d0d7de",
-        borderRadius: 12,
-        padding: 16,
-        marginTop: 24,
-      }}
+    <SummarySection
+      title="Task Timeline"
+      description="This timeline shows persisted control-plane events, including simulated execution activity where applicable."
+      loading={loading}
+      error={error}
+      emptyMessage="No timeline events are recorded yet."
+      hasItems={items.length > 0}
     >
-      <h3 style={{ marginTop: 0 }}>Task Timeline</h3>
-      <p style={{ marginTop: 0, color: "#57606a" }}>
-        This timeline shows persisted control-plane events, including simulated
-        execution activity where applicable.
-      </p>
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
-      {loading ? (
-        <p>Loading timeline...</p>
-      ) : items.length === 0 ? (
-        <p>No events recorded yet.</p>
-      ) : (
-        <ul>
-          {items.map((item) => (
-            (() => {
-              const capabilityStatus = item.capability_status ?? null;
-              const adapterMode = item.adapter_mode ?? null;
-              const meaning = describeTimelineMeaning(item);
-              return (
-                <li key={item.id} style={{ marginBottom: 12 }}>
-                  <strong>{item.message}</strong>
-                  <div>Category: {item.category}</div>
-                  <div>Severity: {item.severity}</div>
-                  <div>State: {item.event_state}</div>
-                  {capabilityStatus ? <div>Capability: {capabilityStatus}</div> : null}
-                  {adapterMode ? <div>Adapter mode: {adapterMode}</div> : null}
-                  {meaning ? <div>Meaning: {meaning}</div> : null}
-                  {item.run_id ? <div>Run: {item.run_id}</div> : null}
-                  <div>Created: {new Date(item.created_at).toLocaleString()}</div>
-                </li>
-              );
-            })()
-          ))}
-        </ul>
-      )}
-    </section>
+      <ul>
+        {items.map((item) => {
+          const capabilityStatus = item.capability_status ?? null;
+          const adapterMode = item.adapter_mode ?? null;
+          const meaning = describeTimelineMeaning(item);
+          return (
+            <li key={item.id} style={summaryItemStyle}>
+              <strong>{item.message}</strong>
+              <div>Category: {item.category}</div>
+              <div>Severity: {item.severity}</div>
+              <div>State: {item.event_state}</div>
+              {capabilityStatus ? <div>Capability: {capabilityStatus}</div> : null}
+              {adapterMode ? <div>Adapter mode: {adapterMode}</div> : null}
+              {meaning ? <div>Meaning: {meaning}</div> : null}
+              {item.run_id ? <div>Run: {item.run_id}</div> : null}
+              <div>Created: {formatSummaryTimestamp(item.created_at)}</div>
+            </li>
+          );
+        })}
+      </ul>
+    </SummarySection>
   );
 }

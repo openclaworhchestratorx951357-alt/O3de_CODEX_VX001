@@ -1,4 +1,9 @@
 import type { ApprovalListItem } from "../types/contracts";
+import SummarySection from "./SummarySection";
+import {
+  formatSummaryTimestamp,
+  summaryItemStyle,
+} from "./summaryPrimitives";
 
 type ApprovalQueueProps = {
   items: ApprovalListItem[];
@@ -29,57 +34,51 @@ export default function ApprovalQueue({
   onReject,
 }: ApprovalQueueProps) {
   return (
-    <section
-      style={{
-        border: "1px solid #d0d7de",
-        borderRadius: 12,
-        padding: 16,
-      }}
+    <SummarySection
+      title="Approval Queue"
+      description="Approval decisions resume capability-gated execution. Any real path still remains narrow and explicitly labeled."
+      loading={loading}
+      error={error}
+      emptyMessage="No approvals are waiting for a decision."
+      hasItems={items.length > 0}
+      marginTop={0}
     >
-      <h3 style={{ marginTop: 0 }}>Approval Queue</h3>
-      <p style={{ marginTop: 0, color: "#57606a" }}>
-        Approval decisions resume capability-gated execution. Any real path still
-        remains narrow and explicitly labeled.
-      </p>
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
-      {loading ? (
-        <p>Loading approvals...</p>
-      ) : items.length === 0 ? (
-        <p>No pending approvals.</p>
-      ) : (
-        <ul>
-          {items.map((item) => (
-            <li key={item.id} style={{ marginBottom: 12 }}>
-              <strong>{formatApprovalTitle(item)}</strong>
-              <div>Class: {item.approval_class}</div>
-              <div>Status: {item.status}</div>
-              <div>Run: {item.run_id}</div>
-              {describeApprovalMeaning(item) ? (
-                <div>Meaning: {describeApprovalMeaning(item)}</div>
-              ) : null}
-              {item.reason ? <div>Reason: {item.reason}</div> : null}
-              {item.can_decide ? (
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  <button
-                    type="button"
-                    disabled={busyApprovalId === item.id}
-                    onClick={() => void onApprove(item.id)}
-                  >
-                    {busyApprovalId === item.id ? "Working..." : "Approve"}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busyApprovalId === item.id}
-                    onClick={() => void onReject(item.id)}
-                  >
-                    {busyApprovalId === item.id ? "Working..." : "Reject"}
-                  </button>
-                </div>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+      <ul>
+        {items.map((item) => (
+          <li key={item.id} style={summaryItemStyle}>
+            <strong>{formatApprovalTitle(item)}</strong>
+            <div>Class: {item.approval_class}</div>
+            <div>Status: {item.status}</div>
+            <div>Run: {item.run_id}</div>
+            <div>Created: {formatSummaryTimestamp(item.created_at)}</div>
+            {item.decided_at ? (
+              <div>Decided: {formatSummaryTimestamp(item.decided_at)}</div>
+            ) : null}
+            {describeApprovalMeaning(item) ? (
+              <div>Meaning: {describeApprovalMeaning(item)}</div>
+            ) : null}
+            {item.reason ? <div>Reason: {item.reason}</div> : null}
+            {item.can_decide ? (
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button
+                  type="button"
+                  disabled={busyApprovalId === item.id}
+                  onClick={() => void onApprove(item.id)}
+                >
+                  {busyApprovalId === item.id ? "Working..." : "Approve"}
+                </button>
+                <button
+                  type="button"
+                  disabled={busyApprovalId === item.id}
+                  onClick={() => void onReject(item.id)}
+                >
+                  {busyApprovalId === item.id ? "Working..." : "Reject"}
+                </button>
+              </div>
+            ) : null}
+          </li>
+        ))}
+      </ul>
+    </SummarySection>
   );
 }
