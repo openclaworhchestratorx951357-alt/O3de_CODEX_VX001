@@ -217,5 +217,27 @@ class ArtifactsResponse(BaseModel):
     artifacts: list[ArtifactRecord] = Field(default_factory=list)
 
 
+class ArtifactListItem(BaseModel):
+    id: str = Field(..., min_length=1)
+    run_id: str = Field(..., min_length=1)
+    execution_id: str = Field(..., min_length=1)
+    label: str = Field(..., min_length=1)
+    kind: str = Field(..., min_length=1)
+    uri: str = Field(..., min_length=1)
+    path: str | None = None
+    content_type: str | None = None
+    simulated: bool
+    created_at: str = Field(..., min_length=1)
+    inspection_surface: str | None = None
+    execution_mode: str | None = None
+    project_name: str | None = None
+    mutation_audit_status: str | None = None
+    mutation_audit_summary: str | None = None
+
+
+class ArtifactListResponse(BaseModel):
+    artifacts: list[ArtifactListItem] = Field(default_factory=list)
+
+
 class ApprovalDecisionRequest(BaseModel):
     reason: str | None = None

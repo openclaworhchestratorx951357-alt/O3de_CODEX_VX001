@@ -35,6 +35,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert "/runs/cards" in payload["routes"]
         assert "/runs/summary" in payload["routes"]
         assert "/executions/cards" in payload["routes"]
+        assert "/artifacts/cards" in payload["routes"]
 
 
 def test_ready_reports_database_status_details() -> None:
@@ -655,11 +656,13 @@ def test_executions_and_artifacts_endpoints_reflect_simulated_dispatch() -> None
         executions = client.get("/executions")
         execution_cards = client.get("/executions/cards")
         artifacts = client.get("/artifacts")
+        artifact_cards = client.get("/artifacts/cards")
         artifact = client.get(f"/artifacts/{artifact_id}")
 
         assert executions.status_code == 200
         assert execution_cards.status_code == 200
         assert artifacts.status_code == 200
+        assert artifact_cards.status_code == 200
         assert artifact.status_code == 200
         assert payload["result"]["simulated"] is True
         assert executions.json()["executions"][0]["execution_mode"] == "simulated"
@@ -675,6 +678,13 @@ def test_executions_and_artifacts_endpoints_reflect_simulated_dispatch() -> None
         assert execution_card["artifact_count"] == 1
         assert execution_card["inspection_surface"] == "simulated"
         assert "details" not in execution_card
+        artifact_card = artifact_cards.json()["artifacts"][0]
+        assert artifact_card["label"] == "Simulated dispatch summary"
+        assert artifact_card["kind"] == "simulated_result"
+        assert artifact_card["simulated"] is True
+        assert artifact_card["execution_mode"] == "simulated"
+        assert artifact_card["inspection_surface"] == "simulated"
+        assert "metadata" not in artifact_card
         assert artifact.json()["simulated"] is True
         assert artifact.json()["metadata"]["adapter_family"] == "project-build"
         assert artifact.json()["metadata"]["adapter_contract_version"] == "v0.1"

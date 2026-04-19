@@ -1,51 +1,10 @@
-import type {
-  ArtifactRecord,
-  ProjectInspectEvidenceDetails,
-  SettingsPatchMutationAudit,
-} from "../types/contracts";
+import type { ArtifactListItem } from "../types/contracts";
 
 type ArtifactsPanelProps = {
-  items: ArtifactRecord[];
+  items: ArtifactListItem[];
   loading: boolean;
   error: string | null;
 };
-
-function readString(metadata: Record<string, unknown>, key: string): string | null {
-  const value = metadata[key];
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function readRecord(
-  metadata: Record<string, unknown>,
-  key: string,
-): Record<string, unknown> | null {
-  const value = metadata[key];
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-function readBoolean(metadata: Record<string, unknown>, key: string): boolean | null {
-  const value = metadata[key];
-  return typeof value === "boolean" ? value : null;
-}
-
-function readStringArray(metadata: Record<string, unknown>, key: string): string[] {
-  const value = metadata[key];
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.filter((entry): entry is string => typeof entry === "string" && entry.length > 0);
-}
-
-function readMutationAudit(
-  metadata: Record<string, unknown>,
-): SettingsPatchMutationAudit | null {
-  const value = metadata.mutation_audit;
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? (value as SettingsPatchMutationAudit)
-    : null;
-}
 
 export default function ArtifactsPanel({
   items,
@@ -73,258 +32,52 @@ export default function ArtifactsPanel({
         <p>No artifacts recorded yet.</p>
       ) : (
         <ul>
-          {items.map((item) => (
-            (() => {
-              const metadata = item.metadata as ProjectInspectEvidenceDetails & Record<string, unknown>;
-              const projectName = readString(metadata, "project_name");
-              const manifestPath = readString(metadata, "project_manifest_path");
-              const inspectionSurface = readString(metadata, "inspection_surface");
-              const executionMode = readString(metadata, "execution_mode");
-              const mutationAudit = readMutationAudit(metadata);
-              const planDetails = readRecord(metadata, "plan_details");
-              const projectConfig = readRecord(metadata, "project_config");
-              const manifestSettings = readRecord(metadata, "manifest_settings");
-              const inspectionEvidence = readStringArray(metadata, "inspection_evidence");
-              const gemNames = readStringArray(metadata, "gem_names");
-              const requestedSettingsEvidence = readStringArray(
-                metadata,
-                "requested_settings_evidence",
-              );
-              const requestedSettingsKeys = readStringArray(
-                metadata,
-                "requested_settings_keys",
-              );
-              const matchedRequestedSettingsKeys = readStringArray(
-                metadata,
-                "matched_requested_settings_keys",
-              );
-              const missingRequestedSettingsKeys = readStringArray(
-                metadata,
-                "missing_requested_settings_keys",
-              );
-              const settingsSelectionMode = readString(metadata, "settings_selection_mode");
-              const requestedGemEvidence = readStringArray(metadata, "requested_gem_evidence");
-              const requestedGemNames = readStringArray(metadata, "requested_gem_names");
-              const matchedRequestedGemNames = readStringArray(
-                metadata,
-                "matched_requested_gem_names",
-              );
-              const missingRequestedGemNames = readStringArray(
-                metadata,
-                "missing_requested_gem_names",
-              );
-              const gemSelectionMode = readString(metadata, "gem_selection_mode");
-              const projectConfigKeys = readStringArray(metadata, "project_config_keys");
-              const requestedProjectConfigKeys = readStringArray(
-                metadata,
-                "requested_project_config_keys",
-              );
-              const settingsKeys = readStringArray(metadata, "manifest_settings_keys");
-              const requestedSettingsSubsetPresent = metadata.requested_settings_subset_present;
-              const gemEntriesPresent = metadata.gem_entries_present;
-              const requestedGemSubsetPresent = metadata.requested_gem_subset_present;
-              const preset = planDetails && typeof planDetails.preset === "string"
-                ? planDetails.preset
-                : null;
-              const generator = planDetails && typeof planDetails.generator === "string"
-                ? planDetails.generator
-                : null;
-              const buildDirectory = planDetails && typeof planDetails.build_directory === "string"
-                ? planDetails.build_directory
-                : null;
-              const registryPath = planDetails && typeof planDetails.registry_path === "string"
-                ? planDetails.registry_path
-                : null;
-              const backupTarget = planDetails && typeof planDetails.backup_target === "string"
-                ? planDetails.backup_target
-                : null;
-              const supportedOperationCount = planDetails && typeof planDetails.supported_operation_count === "number"
-                ? planDetails.supported_operation_count
-                : null;
-              const unsupportedOperationCount = planDetails && typeof planDetails.unsupported_operation_count === "number"
-                ? planDetails.unsupported_operation_count
-                : null;
-              const supportedOperationPaths = planDetails
-                ? readStringArray(planDetails, "supported_operation_paths")
-                : [];
-              const unsupportedOperationPaths = planDetails
-                ? readStringArray(planDetails, "unsupported_operation_paths")
-                : [];
-              const backupCreated = planDetails && typeof planDetails.backup_created === "boolean"
-                ? planDetails.backup_created
-                : readBoolean(metadata, "backup_created");
-              const rollbackStrategy = planDetails && typeof planDetails.rollback_strategy === "string"
-                ? planDetails.rollback_strategy
-                : readString(metadata, "rollback_strategy");
-              const rollbackReady = planDetails && typeof planDetails.rollback_ready === "boolean"
-                ? planDetails.rollback_ready
-                : readBoolean(metadata, "rollback_ready");
-              const patchPlanValid = planDetails && typeof planDetails.patch_plan_valid === "boolean"
-                ? planDetails.patch_plan_valid
-                : readBoolean(metadata, "patch_plan_valid");
-              const postWriteVerificationAttempted = planDetails && typeof planDetails.post_write_verification_attempted === "boolean"
-                ? planDetails.post_write_verification_attempted
-                : readBoolean(metadata, "post_write_verification_attempted");
-              const postWriteVerificationSucceeded = planDetails && typeof planDetails.post_write_verification_succeeded === "boolean"
-                ? planDetails.post_write_verification_succeeded
-                : readBoolean(metadata, "post_write_verification_succeeded");
-              const verifiedOperationPaths = planDetails
-                ? readStringArray(planDetails, "verified_operation_paths")
-                : [];
-              const verificationMismatchedPaths = planDetails
-                ? readStringArray(planDetails, "verification_mismatched_paths")
-                : [];
-              const provenanceLabel = item.simulated
-                ? "Simulated artifact"
-                : inspectionSurface === "build_configure_preflight"
-                  ? "Real build.configure preflight evidence"
-                : inspectionSurface === "settings_patch_mutation"
-                  ? "Real settings.patch mutation evidence"
-                : inspectionSurface === "settings_patch_preflight"
-                  ? "Real settings.patch preflight evidence"
-                : inspectionSurface === "project_manifest"
-                  ? "Real project manifest evidence"
-                  : "Real artifact";
-
-              return (
-                <li key={item.id} style={{ marginBottom: 12 }}>
-                  <strong>{item.label}</strong>
-                  <div>Kind: {item.kind}</div>
-                  <div>Run ID: {item.run_id}</div>
-                  <div>Execution ID: {item.execution_id}</div>
-                  <div>URI: {item.uri}</div>
-                  {item.path ? <div>Path: {item.path}</div> : null}
-                  <div>Simulated: {String(item.simulated)}</div>
-                  {executionMode ? <div>Execution mode: {executionMode}</div> : null}
-                  <div>Provenance: {provenanceLabel}</div>
-                  {mutationAudit?.summary ? (
-                    <div>Mutation audit: {mutationAudit.summary}</div>
-                  ) : null}
-                  {mutationAudit?.phase ? (
-                    <div>Mutation audit phase: {mutationAudit.phase}</div>
-                  ) : null}
-                  {mutationAudit?.status ? (
-                    <div>Mutation audit status: {mutationAudit.status}</div>
-                  ) : null}
-                  {projectName ? <div>Project name: {projectName}</div> : null}
-                  {manifestPath ? <div>Manifest path: {manifestPath}</div> : null}
-                  {inspectionEvidence.length > 0 ? (
-                    <div>Inspection evidence: {inspectionEvidence.join(", ")}</div>
-                  ) : null}
-                  {projectConfigKeys.length > 0 ? (
-                    <div>Project config keys: {projectConfigKeys.join(", ")}</div>
-                  ) : null}
-                  {requestedProjectConfigKeys.length > 0 ? (
-                    <div>
-                      Requested project config keys: {requestedProjectConfigKeys.join(", ")}
-                    </div>
-                  ) : null}
-                  {projectConfig ? (
-                    <div>Project config snapshot: {JSON.stringify(projectConfig)}</div>
-                  ) : null}
-                  {requestedSettingsEvidence.length > 0 ? (
-                    <div>Requested settings evidence: {requestedSettingsEvidence.join(", ")}</div>
-                  ) : null}
-                  {settingsSelectionMode ? (
-                    <div>Settings selection mode: {settingsSelectionMode}</div>
-                  ) : null}
-                  {requestedSettingsKeys.length > 0 ? (
-                    <div>Requested settings keys: {requestedSettingsKeys.join(", ")}</div>
-                  ) : null}
-                  {matchedRequestedSettingsKeys.length > 0 ? (
-                    <div>
-                      Matched requested settings keys: {matchedRequestedSettingsKeys.join(", ")}
-                    </div>
-                  ) : null}
-                  {missingRequestedSettingsKeys.length > 0 ? (
-                    <div>
-                      Missing requested settings keys: {missingRequestedSettingsKeys.join(", ")}
-                    </div>
-                  ) : null}
-                  {requestedGemEvidence.length > 0 ? (
-                    <div>Requested Gem evidence: {requestedGemEvidence.join(", ")}</div>
-                  ) : null}
-                  {gemSelectionMode ? <div>Gem selection mode: {gemSelectionMode}</div> : null}
-                  {requestedGemNames.length > 0 ? (
-                    <div>Requested Gem names: {requestedGemNames.join(", ")}</div>
-                  ) : null}
-                  {matchedRequestedGemNames.length > 0 ? (
-                    <div>
-                      Matched requested Gem names: {matchedRequestedGemNames.join(", ")}
-                    </div>
-                  ) : null}
-                  {missingRequestedGemNames.length > 0 ? (
-                    <div>
-                      Missing requested Gem names: {missingRequestedGemNames.join(", ")}
-                    </div>
-                  ) : null}
-                  {gemNames.length > 0 ? <div>Gem names: {gemNames.join(", ")}</div> : null}
-                  {typeof gemEntriesPresent === "boolean" ? (
-                    <div>Gem entries present: {String(gemEntriesPresent)}</div>
-                  ) : null}
-                  {typeof requestedGemSubsetPresent === "boolean" ? (
-                    <div>
-                      Requested Gem subset present: {String(requestedGemSubsetPresent)}
-                    </div>
-                  ) : null}
-                  {settingsKeys.length > 0 ? (
-                    <div>Manifest settings keys: {settingsKeys.join(", ")}</div>
-                  ) : null}
-                  {typeof requestedSettingsSubsetPresent === "boolean" ? (
-                    <div>
-                      Requested settings subset present: {String(requestedSettingsSubsetPresent)}
-                    </div>
-                  ) : null}
-                  {manifestSettings ? (
-                    <div>
-                      Manifest settings snapshot: {JSON.stringify(manifestSettings)}
-                    </div>
-                  ) : null}
-                  {preset ? <div>Preset: {preset}</div> : null}
-                  {generator ? <div>Generator: {generator}</div> : null}
-                  {buildDirectory ? <div>Build directory: {buildDirectory}</div> : null}
-                  {registryPath ? <div>Registry path: {registryPath}</div> : null}
-                  {backupTarget ? <div>Backup target: {backupTarget}</div> : null}
-                  {backupCreated !== null ? (
-                    <div>Backup created: {String(backupCreated)}</div>
-                  ) : null}
-                  {supportedOperationCount !== null ? (
-                    <div>Supported operations: {supportedOperationCount}</div>
-                  ) : null}
-                  {unsupportedOperationCount !== null ? (
-                    <div>Unsupported operations: {unsupportedOperationCount}</div>
-                  ) : null}
-                  {supportedOperationPaths.length > 0 ? (
-                    <div>Supported operation paths: {supportedOperationPaths.join(", ")}</div>
-                  ) : null}
-                  {unsupportedOperationPaths.length > 0 ? (
-                    <div>Unsupported operation paths: {unsupportedOperationPaths.join(", ")}</div>
-                  ) : null}
-                  {rollbackStrategy ? <div>Rollback strategy: {rollbackStrategy}</div> : null}
-                  {rollbackReady !== null ? (
-                    <div>Rollback ready: {String(rollbackReady)}</div>
-                  ) : null}
-                  {patchPlanValid !== null ? (
-                    <div>Patch plan valid: {String(patchPlanValid)}</div>
-                  ) : null}
-                  {postWriteVerificationAttempted !== null ? (
-                    <div>Post-write verification attempted: {String(postWriteVerificationAttempted)}</div>
-                  ) : null}
-                  {postWriteVerificationSucceeded !== null ? (
-                    <div>Post-write verification succeeded: {String(postWriteVerificationSucceeded)}</div>
-                  ) : null}
-                  {verifiedOperationPaths.length > 0 ? (
-                    <div>Verified operation paths: {verifiedOperationPaths.join(", ")}</div>
-                  ) : null}
-                  {verificationMismatchedPaths.length > 0 ? (
-                    <div>Verification mismatched paths: {verificationMismatchedPaths.join(", ")}</div>
-                  ) : null}
-                </li>
-              );
-            })()
-          ))}
+          {items.map((item) => {
+            const provenanceLabel = getArtifactProvenanceLabel(item);
+            return (
+              <li key={item.id} style={{ marginBottom: 12 }}>
+                <strong>{item.label}</strong>
+                <div>Kind: {item.kind}</div>
+                <div>Run ID: {item.run_id}</div>
+                <div>Execution ID: {item.execution_id}</div>
+                <div>URI: {item.uri}</div>
+                {item.path ? <div>Path: {item.path}</div> : null}
+                {item.content_type ? <div>Content type: {item.content_type}</div> : null}
+                <div>Simulated: {String(item.simulated)}</div>
+                {item.execution_mode ? <div>Execution mode: {item.execution_mode}</div> : null}
+                <div>Created: {item.created_at}</div>
+                <div>Provenance: {provenanceLabel}</div>
+                {item.project_name ? <div>Project name: {item.project_name}</div> : null}
+                {item.mutation_audit_summary ? (
+                  <div>Mutation audit: {item.mutation_audit_summary}</div>
+                ) : null}
+                {item.mutation_audit_status ? (
+                  <div>Mutation audit status: {item.mutation_audit_status}</div>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
   );
+}
+
+function getArtifactProvenanceLabel(item: ArtifactListItem): string {
+  if (item.simulated) {
+    return "Simulated artifact";
+  }
+  if (item.inspection_surface === "build_configure_preflight") {
+    return "Real build.configure preflight evidence";
+  }
+  if (item.inspection_surface === "settings_patch_mutation") {
+    return "Real settings.patch mutation evidence";
+  }
+  if (item.inspection_surface === "settings_patch_preflight") {
+    return "Real settings.patch preflight evidence";
+  }
+  if (item.inspection_surface === "project_manifest") {
+    return "Real project manifest evidence";
+  }
+  return "Real artifact";
 }

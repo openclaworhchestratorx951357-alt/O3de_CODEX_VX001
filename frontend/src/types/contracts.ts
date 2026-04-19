@@ -322,6 +322,28 @@ export interface ArtifactsResponse {
   artifacts: ArtifactRecord[];
 }
 
+export interface ArtifactListItem {
+  id: string;
+  run_id: string;
+  execution_id: string;
+  label: string;
+  kind: string;
+  uri: string;
+  path?: string | null;
+  content_type?: string | null;
+  simulated: boolean;
+  created_at: string;
+  inspection_surface?: string | null;
+  execution_mode?: string | null;
+  project_name?: string | null;
+  mutation_audit_status?: string | null;
+  mutation_audit_summary?: string | null;
+}
+
+export interface ArtifactListResponse {
+  artifacts: ArtifactListItem[];
+}
+
 export interface ToolDefinition {
   name: string;
   description: string;

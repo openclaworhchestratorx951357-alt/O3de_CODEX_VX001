@@ -20,7 +20,7 @@ import { mockAgents } from "./data/mockAgents";
 import {
   approveApproval,
   fetchAdapters,
-  fetchArtifacts,
+  fetchArtifactCards,
   fetchApprovals,
   fetchExecution,
   fetchExecutionCards,
@@ -35,7 +35,7 @@ import {
   rejectApproval,
 } from "./lib/api";
 import type {
-  ArtifactRecord,
+  ArtifactListItem,
   AdaptersResponse,
   ApprovalRecord,
   CatalogAgent,
@@ -70,7 +70,7 @@ export default function App() {
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
   const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
   const [adapters, setAdapters] = useState<AdaptersResponse | null>(null);
-  const [artifacts, setArtifacts] = useState<ArtifactRecord[]>([]);
+  const [artifacts, setArtifacts] = useState<ArtifactListItem[]>([]);
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [executions, setExecutions] = useState<ExecutionListItem[]>([]);
   const [locks, setLocks] = useState<LockRecord[]>([]);
@@ -159,7 +159,7 @@ export default function App() {
   async function loadArtifacts() {
     setArtifactsLoading(true);
     try {
-      const nextArtifacts = await fetchArtifacts();
+      const nextArtifacts = await fetchArtifactCards();
       setArtifacts(nextArtifacts);
       setArtifactsError(null);
     } catch (error) {
