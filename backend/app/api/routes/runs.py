@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from app.models.api import RunsResponse
+from app.models.api import RunsResponse, RunsSummaryResponse
 from app.models.control_plane import RunRecord
 from app.services.runs import runs_service
 
@@ -10,6 +10,11 @@ router = APIRouter(tags=["runs"])
 @router.get("/runs", response_model=RunsResponse)
 def list_runs() -> RunsResponse:
     return RunsResponse(runs=runs_service.list_runs())
+
+
+@router.get("/runs/summary", response_model=RunsSummaryResponse)
+def get_runs_summary() -> RunsSummaryResponse:
+    return runs_service.get_runs_summary()
 
 
 @router.get("/runs/{run_id}", response_model=RunRecord)

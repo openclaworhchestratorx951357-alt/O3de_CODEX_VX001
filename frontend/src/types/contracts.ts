@@ -189,6 +189,30 @@ export interface RunsResponse {
   runs: RunRecord[];
 }
 
+export interface SettingsPatchAuditSummary {
+  total_runs: number;
+  preflight: number;
+  blocked: number;
+  succeeded: number;
+  rolled_back: number;
+  other: number;
+  available_filters: string[];
+}
+
+export interface RunAuditRecord {
+  run_id: string;
+  tool: string;
+  audit_status: string;
+  audit_phase?: string | null;
+  audit_summary?: string | null;
+  execution_mode: string;
+}
+
+export interface RunsSummaryResponse {
+  settings_patch_audit_summary: SettingsPatchAuditSummary;
+  run_audits: RunAuditRecord[];
+}
+
 export interface LockRecord {
   name: string;
   owner_run_id: string;

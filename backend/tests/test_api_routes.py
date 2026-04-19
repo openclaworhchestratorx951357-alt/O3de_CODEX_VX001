@@ -32,6 +32,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert payload["status"] == "phase-7-gem-state-refinement"
         assert payload["phase"] == "phase-7"
         assert "/runs" in payload["routes"]
+        assert "/runs/summary" in payload["routes"]
 
 
 def test_ready_reports_database_status_details() -> None:
@@ -341,6 +342,145 @@ def test_runs_endpoint_reflects_dispatch_attempt() -> None:
         response = client.get(f"/runs/{run_id}")
         assert response.status_code == 200
         assert response.json()["id"] == run_id
+
+
+def test_runs_summary_endpoint_reports_settings_patch_audit_states() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps(
+                {
+                    "project_name": "ApiSummaryProject",
+                    "version": "5.0.0",
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                preflight_dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-summary-preflight-1",
+                        "tool": "settings.patch",
+                        "agent": "project-build",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": True,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "args": {
+                            "registry_path": "/O3DE/Settings",
+                            "operations": [
+                                {"op": "set", "path": "/version", "value": "5.0.1"},
+                                {"op": "set", "path": "/render/quality", "value": "high"},
+                            ],
+                        },
+                    },
+                )
+                preflight_approval_id = preflight_dispatch.json()["approval_id"]
+                preflight_approval = approvals_service.get_approval(preflight_approval_id)
+                assert preflight_approval is not None
+                client.post(
+                    f"/approvals/{preflight_approval_id}/approve",
+                    json={"reason": "Approve settings.patch preflight for summary test"},
+                )
+                approved_preflight = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-summary-preflight-2",
+                        "tool": "settings.patch",
+                        "agent": "project-build",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": True,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "approval_token": preflight_approval.token,
+                        "args": {
+                            "registry_path": "/O3DE/Settings",
+                            "operations": [
+                                {"op": "set", "path": "/version", "value": "5.0.1"},
+                                {"op": "set", "path": "/render/quality", "value": "high"},
+                            ],
+                        },
+                    },
+                )
+                assert approved_preflight.status_code == 200
+
+                mutation_dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-summary-mutation-1",
+                        "tool": "settings.patch",
+                        "agent": "project-build",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "args": {
+                            "registry_path": "/O3DE/Settings",
+                            "operations": [{"op": "set", "path": "/version", "value": "5.0.2"}],
+                        },
+                    },
+                )
+                mutation_approval_id = mutation_dispatch.json()["approval_id"]
+                mutation_approval = approvals_service.get_approval(mutation_approval_id)
+                assert mutation_approval is not None
+                client.post(
+                    f"/approvals/{mutation_approval_id}/approve",
+                    json={"reason": "Approve settings.patch mutation for summary test"},
+                )
+                approved_mutation = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-summary-mutation-2",
+                        "tool": "settings.patch",
+                        "agent": "project-build",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "approval_token": mutation_approval.token,
+                        "args": {
+                            "registry_path": "/O3DE/Settings",
+                            "operations": [{"op": "set", "path": "/version", "value": "5.0.2"}],
+                        },
+                    },
+                )
+                assert approved_mutation.status_code == 200
+
+                summary_response = client.get("/runs/summary")
+                assert summary_response.status_code == 200
+                payload = summary_response.json()
+                assert payload["settings_patch_audit_summary"]["total_runs"] == 2
+                assert payload["settings_patch_audit_summary"]["preflight"] == 1
+                assert payload["settings_patch_audit_summary"]["succeeded"] == 1
+                assert payload["settings_patch_audit_summary"]["blocked"] == 0
+                assert payload["settings_patch_audit_summary"]["rolled_back"] == 0
+                assert payload["settings_patch_audit_summary"]["other"] == 0
+                assert payload["settings_patch_audit_summary"]["available_filters"] == [
+                    "all",
+                    "preflight",
+                    "blocked",
+                    "succeeded",
+                    "rolled_back",
+                    "other",
+                ]
+                run_audits = {
+                    audit["run_id"]: audit
+                    for audit in payload["run_audits"]
+                }
+                assert (
+                    run_audits[approved_preflight.json()["operation_id"]]["audit_status"]
+                    == "preflight"
+                )
+                assert (
+                    run_audits[approved_mutation.json()["operation_id"]]["audit_status"]
+                    == "succeeded"
+                )
 
 
 def test_dispatch_route_rejects_args_that_fail_published_schema() -> None:

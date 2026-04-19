@@ -126,6 +126,30 @@ class RunsResponse(BaseModel):
     runs: list[RunRecord] = Field(default_factory=list)
 
 
+class SettingsPatchAuditSummary(BaseModel):
+    total_runs: int = 0
+    preflight: int = 0
+    blocked: int = 0
+    succeeded: int = 0
+    rolled_back: int = 0
+    other: int = 0
+    available_filters: list[str] = Field(default_factory=list)
+
+
+class RunAuditRecord(BaseModel):
+    run_id: str = Field(..., min_length=1)
+    tool: str = Field(..., min_length=1)
+    audit_status: str = Field(..., min_length=1)
+    audit_phase: str | None = None
+    audit_summary: str | None = None
+    execution_mode: str = Field(..., min_length=1)
+
+
+class RunsSummaryResponse(BaseModel):
+    settings_patch_audit_summary: SettingsPatchAuditSummary
+    run_audits: list[RunAuditRecord] = Field(default_factory=list)
+
+
 class ApprovalsResponse(BaseModel):
     approvals: list[ApprovalRecord] = Field(default_factory=list)
 

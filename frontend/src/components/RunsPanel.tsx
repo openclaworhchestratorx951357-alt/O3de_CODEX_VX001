@@ -1,14 +1,15 @@
 import { useMemo, useState } from "react";
 
 import type {
-  ExecutionRecord,
+  RunAuditRecord,
   RunRecord,
-  SettingsPatchMutationAudit,
+  SettingsPatchAuditSummary,
 } from "../types/contracts";
 
 type RunsPanelProps = {
   items: RunRecord[];
-  executions: ExecutionRecord[];
+  runAudits: RunAuditRecord[];
+  settingsPatchAuditSummary: SettingsPatchAuditSummary | null;
   loading: boolean;
   error: string | null;
   selectedRunId: string | null;
@@ -23,26 +24,39 @@ type AuditFilter =
   | "rolled_back"
   | "other";
 
+const DEFAULT_AUDIT_FILTERS: AuditFilter[] = [
+  "all",
+  "preflight",
+  "blocked",
+  "succeeded",
+  "rolled_back",
+  "other",
+];
+
 export default function RunsPanel({
   items,
-  executions,
+  runAudits,
+  settingsPatchAuditSummary,
   loading,
   error,
   selectedRunId,
   onSelectRun,
 }: RunsPanelProps) {
   const [auditFilter, setAuditFilter] = useState<AuditFilter>("all");
-  const executionByRunId = useMemo(
-    () =>
-      new Map(
-        executions.map((execution) => [execution.run_id, execution] as const),
-      ),
-    [executions],
+  const runAuditByRunId = useMemo(
+    () => new Map(runAudits.map((audit) => [audit.run_id, audit] as const)),
+    [runAudits],
   );
-  const settingsPatchRuns = items.filter((item) => item.tool === "settings.patch");
-  const auditSummary = summarizeAuditStates(settingsPatchRuns, executionByRunId);
+  const availableFilters = useMemo(
+    () =>
+      settingsPatchAuditSummary?.available_filters?.filter(
+        (value): value is AuditFilter =>
+          DEFAULT_AUDIT_FILTERS.includes(value as AuditFilter),
+      ) ?? DEFAULT_AUDIT_FILTERS,
+    [settingsPatchAuditSummary],
+  );
   const filteredItems = items.filter((item) =>
-    matchesAuditFilter(item, executionByRunId.get(item.id), auditFilter),
+    matchesAuditFilter(item, runAuditByRunId.get(item.id), auditFilter),
   );
 
   return (
@@ -59,7 +73,7 @@ export default function RunsPanel({
         Runs reflect persisted control-plane bookkeeping. Execution mode remains
         explicitly labeled, including simulated flows.
       </p>
-      {settingsPatchRuns.length > 0 ? (
+      {settingsPatchAuditSummary && settingsPatchAuditSummary.total_runs > 0 ? (
         <div
           style={{
             display: "flex",
@@ -69,37 +83,28 @@ export default function RunsPanel({
           }}
         >
           <span style={summaryBadgeStyle}>
-            settings.patch runs: {settingsPatchRuns.length}
+            settings.patch runs: {settingsPatchAuditSummary.total_runs}
           </span>
           <span style={summaryBadgeStyle}>
-            preflight: {auditSummary.preflight}
+            preflight: {settingsPatchAuditSummary.preflight}
           </span>
           <span style={summaryBadgeStyle}>
-            blocked: {auditSummary.blocked}
+            blocked: {settingsPatchAuditSummary.blocked}
           </span>
           <span style={summaryBadgeStyle}>
-            succeeded: {auditSummary.succeeded}
+            succeeded: {settingsPatchAuditSummary.succeeded}
           </span>
           <span style={summaryBadgeStyle}>
-            rolled_back: {auditSummary.rolledBack}
+            rolled_back: {settingsPatchAuditSummary.rolled_back}
           </span>
           <span style={summaryBadgeStyle}>
-            other: {auditSummary.other}
+            other: {settingsPatchAuditSummary.other}
           </span>
         </div>
       ) : null}
-      {settingsPatchRuns.length > 0 ? (
+      {settingsPatchAuditSummary && settingsPatchAuditSummary.total_runs > 0 ? (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-          {(
-            [
-              ["all", "All runs"],
-              ["preflight", "Preflight"],
-              ["blocked", "Blocked"],
-              ["succeeded", "Succeeded"],
-              ["rolled_back", "Rolled back"],
-              ["other", "Other"],
-            ] as const
-          ).map(([value, label]) => (
+          {availableFilters.map((value) => (
             <button
               key={value}
               type="button"
@@ -110,7 +115,7 @@ export default function RunsPanel({
                 borderColor: auditFilter === value ? "#0969da" : "#d0d7de",
               }}
             >
-              {label}
+              {getFilterLabel(value)}
             </button>
           ))}
         </div>
@@ -125,9 +130,8 @@ export default function RunsPanel({
           {filteredItems.map((item) => {
             const capability = getRunCapabilityLabel(item);
             const executionTruth = getRunExecutionTruth(item);
-            const execution = executionByRunId.get(item.id);
-            const audit = readMutationAudit(execution);
-            const auditStatus = getAuditStatusLabel(item, execution);
+            const audit = runAuditByRunId.get(item.id);
+            const auditStatus = getAuditStatusLabel(item, audit);
 
             return (
               <li key={item.id} style={{ marginBottom: 12 }}>
@@ -138,7 +142,7 @@ export default function RunsPanel({
                 <div>Capability: {capability}</div>
                 <div>Execution truth: {executionTruth}</div>
                 {auditStatus ? <div>Audit status: {auditStatus}</div> : null}
-                {audit?.summary ? <div>Audit summary: {audit.summary}</div> : null}
+                {audit?.audit_summary ? <div>Audit summary: {audit.audit_summary}</div> : null}
                 <div>Dry run: {String(item.dry_run)}</div>
                 <div>Run ID: {item.id}</div>
                 {item.result_summary ? <div>Summary: {item.result_summary}</div> : null}
@@ -157,16 +161,6 @@ export default function RunsPanel({
       )}
     </section>
   );
-}
-
-function readMutationAudit(
-  execution: ExecutionRecord | undefined,
-): SettingsPatchMutationAudit | null {
-  const details = execution?.details as Record<string, unknown> | null | undefined;
-  const value = details?.mutation_audit;
-  return value !== null && typeof value === "object" && !Array.isArray(value)
-    ? (value as SettingsPatchMutationAudit)
-    : null;
 }
 
 function getRunCapabilityLabel(item: RunRecord): string {
@@ -200,14 +194,13 @@ function getRunExecutionTruth(item: RunRecord): string {
 
 function getAuditStatusLabel(
   item: RunRecord,
-  execution: ExecutionRecord | undefined,
+  audit: RunAuditRecord | undefined,
 ): string | null {
   if (item.tool !== "settings.patch") {
     return null;
   }
-  const audit = readMutationAudit(execution);
-  if (audit?.status) {
-    return audit.status;
+  if (audit?.audit_status) {
+    return audit.audit_status;
   }
   if (item.execution_mode === "simulated") {
     return "simulated";
@@ -217,7 +210,7 @@ function getAuditStatusLabel(
 
 function matchesAuditFilter(
   item: RunRecord,
-  execution: ExecutionRecord | undefined,
+  audit: RunAuditRecord | undefined,
   filter: AuditFilter,
 ): boolean {
   if (filter === "all") {
@@ -226,7 +219,7 @@ function matchesAuditFilter(
   if (item.tool !== "settings.patch") {
     return filter === "other";
   }
-  const status = getAuditStatusLabel(item, execution);
+  const status = getAuditStatusLabel(item, audit);
   if (filter === "rolled_back") {
     return status === "rolled_back";
   }
@@ -236,40 +229,14 @@ function matchesAuditFilter(
   return status === filter;
 }
 
-function summarizeAuditStates(
-  items: RunRecord[],
-  executionByRunId: Map<string, ExecutionRecord>,
-): {
-  preflight: number;
-  blocked: number;
-  succeeded: number;
-  rolledBack: number;
-  other: number;
-} {
-  return items.reduce(
-    (summary, item) => {
-      const status = getAuditStatusLabel(item, executionByRunId.get(item.id));
-      if (status === "preflight") {
-        summary.preflight += 1;
-      } else if (status === "blocked") {
-        summary.blocked += 1;
-      } else if (status === "succeeded") {
-        summary.succeeded += 1;
-      } else if (status === "rolled_back") {
-        summary.rolledBack += 1;
-      } else {
-        summary.other += 1;
-      }
-      return summary;
-    },
-    {
-      preflight: 0,
-      blocked: 0,
-      succeeded: 0,
-      rolledBack: 0,
-      other: 0,
-    },
-  );
+function getFilterLabel(filter: AuditFilter): string {
+  if (filter === "all") {
+    return "All runs";
+  }
+  if (filter === "rolled_back") {
+    return "Rolled back";
+  }
+  return filter.charAt(0).toUpperCase() + filter.slice(1);
 }
 
 const summaryBadgeStyle = {

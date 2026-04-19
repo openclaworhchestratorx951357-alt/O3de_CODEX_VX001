@@ -25,6 +25,7 @@ import {
   fetchEvents,
   fetchExecutions,
   fetchRun,
+  fetchRunsSummary,
   fetchLocks,
   fetchPolicies,
   fetchReadiness,
@@ -41,8 +42,10 @@ import type {
   ExecutionRecord,
   LockRecord,
   ReadinessStatus,
+  RunAuditRecord,
   ResponseEnvelope,
   RunRecord,
+  SettingsPatchAuditSummary,
   ToolPolicy,
 } from "./types/contracts";
 
@@ -62,6 +65,9 @@ export default function App() {
   const [policies, setPolicies] = useState<ToolPolicy[]>([]);
   const [readiness, setReadiness] = useState<ReadinessStatus | null>(null);
   const [runs, setRuns] = useState<RunRecord[]>([]);
+  const [runAudits, setRunAudits] = useState<RunAuditRecord[]>([]);
+  const [settingsPatchAuditSummary, setSettingsPatchAuditSummary] =
+    useState<SettingsPatchAuditSummary | null>(null);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedRun, setSelectedRun] = useState<RunRecord | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
@@ -150,8 +156,13 @@ export default function App() {
   async function loadRuns() {
     setRunsLoading(true);
     try {
-      const nextRuns = await fetchRuns();
+      const [nextRuns, nextRunsSummary] = await Promise.all([
+        fetchRuns(),
+        fetchRunsSummary(),
+      ]);
       setRuns(nextRuns);
+      setRunAudits(nextRunsSummary.runAudits);
+      setSettingsPatchAuditSummary(nextRunsSummary.settingsPatchAuditSummary);
       setRunsError(null);
     } catch (error) {
       setRunsError(
@@ -413,7 +424,8 @@ export default function App() {
       />
       <RunsPanel
         items={runs}
-        executions={executions}
+        runAudits={runAudits}
+        settingsPatchAuditSummary={settingsPatchAuditSummary}
         loading={runsLoading}
         error={runsError}
         selectedRunId={selectedRunId}

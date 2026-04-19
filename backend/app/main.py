@@ -71,6 +71,7 @@ def root() -> RootStatus:
             "/tools/catalog",
             "/tools/dispatch",
             "/runs",
+            "/runs/summary",
             "/approvals",
             "/locks",
             "/events",

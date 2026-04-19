@@ -16,7 +16,10 @@ import type {
   PoliciesResponse,
   ReadinessStatus,
   RunRecord,
+  RunAuditRecord,
   RunsResponse,
+  RunsSummaryResponse,
+  SettingsPatchAuditSummary,
   ToolPolicy,
 } from "../types/contracts";
 
@@ -123,6 +126,23 @@ export async function fetchRun(runId: string): Promise<RunRecord> {
   }
 
   return (await response.json()) as RunRecord;
+}
+
+export async function fetchRunsSummary(): Promise<{
+  settingsPatchAuditSummary: SettingsPatchAuditSummary;
+  runAudits: RunAuditRecord[];
+}> {
+  const response = await fetch(`${API_BASE_URL}/runs/summary`);
+
+  if (!response.ok) {
+    throw new Error(`Runs summary fetch failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as RunsSummaryResponse;
+  return {
+    settingsPatchAuditSummary: payload.settings_patch_audit_summary,
+    runAudits: payload.run_audits ?? [],
+  };
 }
 
 export async function fetchLocks(): Promise<LockRecord[]> {

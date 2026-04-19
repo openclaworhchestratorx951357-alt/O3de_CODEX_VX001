@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
+from typing import Any
 from uuid import uuid4
 
+from app.models.api import RunAuditRecord, RunsSummaryResponse, SettingsPatchAuditSummary
 from app.models.control_plane import RunRecord, RunStatus
 from app.models.request_envelope import RequestEnvelope
 from app.repositories.control_plane import control_plane_repository
@@ -32,6 +34,75 @@ class RunsService:
     def get_run(self, run_id: str) -> RunRecord | None:
         return control_plane_repository.get_run(run_id)
 
+    def get_runs_summary(self) -> RunsSummaryResponse:
+        runs = self.list_runs()
+        executions_by_run_id = {
+            execution.run_id: execution
+            for execution in control_plane_repository.list_executions()
+        }
+        run_audits: list[RunAuditRecord] = []
+        summary = SettingsPatchAuditSummary(
+            available_filters=[
+                "all",
+                "preflight",
+                "blocked",
+                "succeeded",
+                "rolled_back",
+                "other",
+            ]
+        )
+
+        for run in runs:
+            if run.tool != "settings.patch":
+                continue
+            if run.status in {
+                RunStatus.PENDING,
+                RunStatus.WAITING_APPROVAL,
+                RunStatus.RUNNING,
+            }:
+                continue
+            execution = executions_by_run_id.get(run.id)
+            if execution is None:
+                continue
+            mutation_audit = self._mutation_audit_from_execution(execution.details)
+            audit_status = self._audit_status_for_run(run=run, mutation_audit=mutation_audit)
+            audit_phase = (
+                str(mutation_audit.get("phase")).strip()
+                if isinstance(mutation_audit.get("phase"), str)
+                else None
+            ) if mutation_audit else None
+            audit_summary = (
+                str(mutation_audit.get("summary")).strip()
+                if isinstance(mutation_audit.get("summary"), str)
+                else run.result_summary
+            ) if mutation_audit else run.result_summary
+            run_audits.append(
+                RunAuditRecord(
+                    run_id=run.id,
+                    tool=run.tool,
+                    audit_status=audit_status,
+                    audit_phase=audit_phase,
+                    audit_summary=audit_summary,
+                    execution_mode=run.execution_mode,
+                )
+            )
+            summary.total_runs += 1
+            if audit_status == "preflight":
+                summary.preflight += 1
+            elif audit_status == "blocked":
+                summary.blocked += 1
+            elif audit_status == "succeeded":
+                summary.succeeded += 1
+            elif audit_status == "rolled_back":
+                summary.rolled_back += 1
+            else:
+                summary.other += 1
+
+        return RunsSummaryResponse(
+            settings_patch_audit_summary=summary,
+            run_audits=run_audits,
+        )
+
     def update_run(
         self,
         run_id: str,
@@ -60,6 +131,33 @@ class RunsService:
             run.result_summary = result_summary
         run.updated_at = datetime.now(timezone.utc)
         return control_plane_repository.update_run(run)
+
+    def _mutation_audit_from_execution(
+        self,
+        details: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
+        if not isinstance(details, dict):
+            return None
+        mutation_audit = details.get("mutation_audit")
+        if mutation_audit is None or not isinstance(mutation_audit, dict):
+            return None
+        return mutation_audit
+
+    def _audit_status_for_run(
+        self,
+        *,
+        run: RunRecord,
+        mutation_audit: dict[str, Any] | None,
+    ) -> str:
+        if mutation_audit:
+            raw_status = mutation_audit.get("status")
+            if isinstance(raw_status, str):
+                normalized = raw_status.strip()
+                if normalized:
+                    return normalized
+        if run.execution_mode == "simulated":
+            return "other"
+        return "other"
 
 
 runs_service = RunsService()
