@@ -21,6 +21,9 @@ type RecordLineageStripProps = {
   artifactMode?: string | null;
   artifactSimulated?: boolean | null;
   executionMode?: string | null;
+  selectedRunId?: string | null;
+  selectedExecutionId?: string | null;
+  selectedArtifactId?: string | null;
   onOpenRun?: (runId: string) => void;
   onOpenExecution?: (executionId: string) => void;
   onOpenArtifact?: (artifactId: string) => void;
@@ -35,6 +38,9 @@ export default function RecordLineageStrip({
   artifactMode,
   artifactSimulated,
   executionMode,
+  selectedRunId,
+  selectedExecutionId,
+  selectedArtifactId,
   onOpenRun,
   onOpenExecution,
   onOpenArtifact,
@@ -102,27 +108,30 @@ export default function RecordLineageStrip({
           <button
             type="button"
             style={summaryActionButtonStyle}
+            disabled={selectedRunId === runId}
             onClick={() => onOpenRun(runId)}
           >
-            Open run
+            {selectedRunId === runId ? "Current run" : "Open run"}
           </button>
         ) : null}
         {executionId && onOpenExecution ? (
           <button
             type="button"
             style={summaryActionButtonStyle}
+            disabled={selectedExecutionId === executionId}
             onClick={() => onOpenExecution(executionId)}
           >
-            Open execution
+            {selectedExecutionId === executionId ? "Current execution" : "Open execution"}
           </button>
         ) : null}
         {artifactId && onOpenArtifact ? (
           <button
             type="button"
             style={summaryActionButtonStyle}
+            disabled={selectedArtifactId === artifactId}
             onClick={() => onOpenArtifact(artifactId)}
           >
-            Open artifact
+            {selectedArtifactId === artifactId ? "Current artifact" : "Open artifact"}
           </button>
         ) : null}
       </div>

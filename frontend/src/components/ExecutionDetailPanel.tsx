@@ -26,6 +26,8 @@ type ExecutionDetailPanelProps = {
   item: ExecutionRecord | null;
   loading: boolean;
   error: string | null;
+  selectedRunId?: string | null;
+  selectedExecutionId?: string | null;
   selectedArtifactId?: string | null;
   relatedArtifacts?: ArtifactListItem[];
   onOpenRun?: (runId: string) => void;
@@ -47,6 +49,8 @@ export default function ExecutionDetailPanel({
   item,
   loading,
   error,
+  selectedRunId,
+  selectedExecutionId,
   selectedArtifactId,
   relatedArtifacts = [],
   onOpenRun,
@@ -77,6 +81,9 @@ export default function ExecutionDetailPanel({
         artifactMode={lineageArtifact?.execution_mode ?? null}
         artifactSimulated={lineageArtifact?.simulated ?? null}
         executionMode={item?.execution_mode ?? null}
+        selectedRunId={selectedRunId}
+        selectedExecutionId={selectedExecutionId}
+        selectedArtifactId={selectedArtifactId}
         onOpenRun={onOpenRun}
         onOpenArtifact={onOpenArtifact}
       />

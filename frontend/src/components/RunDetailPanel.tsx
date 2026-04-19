@@ -23,6 +23,8 @@ type RunDetailPanelProps = {
   error: string | null;
   executionDetails?: Record<string, unknown> | null;
   relatedExecutionId?: string | null;
+  selectedRunId?: string | null;
+  selectedExecutionId?: string | null;
   onOpenExecution?: (executionId: string) => void;
   refreshHint?: string | null;
   lastRefreshedAt?: string | null;
@@ -77,6 +79,8 @@ export default function RunDetailPanel({
   error,
   executionDetails,
   relatedExecutionId,
+  selectedRunId,
+  selectedExecutionId,
   onOpenExecution,
   refreshHint,
   lastRefreshedAt,
@@ -98,6 +102,8 @@ export default function RunDetailPanel({
         runStatus={item?.status ?? null}
         executionId={relatedExecutionId}
         executionMode={item?.execution_mode ?? null}
+        selectedRunId={selectedRunId}
+        selectedExecutionId={selectedExecutionId}
         onOpenExecution={onOpenExecution}
       />
       {refreshHint ? (

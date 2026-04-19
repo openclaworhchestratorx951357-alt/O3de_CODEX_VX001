@@ -891,6 +891,8 @@ export default function App() {
           error={selectedRunError}
           executionDetails={selectedExecutionDetails}
           relatedExecutionId={executions.find((execution) => execution.run_id === selectedRunId)?.id ?? null}
+          selectedRunId={selectedRunId}
+          selectedExecutionId={selectedExecutionId}
           onOpenExecution={openExecutionDetail}
           refreshHint={runDetailRefreshHint}
           lastRefreshedAt={runDetailRefreshedAt}
@@ -901,6 +903,8 @@ export default function App() {
           item={selectedExecution}
           loading={selectedExecutionLoading}
           error={selectedExecutionError}
+          selectedRunId={selectedRunId}
+          selectedExecutionId={selectedExecutionId}
           selectedArtifactId={selectedArtifactId}
           relatedArtifacts={
             selectedExecution
@@ -918,6 +922,9 @@ export default function App() {
           item={selectedArtifact}
           loading={selectedArtifactLoading}
           error={selectedArtifactError}
+          selectedRunId={selectedRunId}
+          selectedExecutionId={selectedExecutionId}
+          selectedArtifactId={selectedArtifactId}
           onOpenRun={openRunDetail}
           onOpenExecution={openExecutionDetail}
           refreshHint={artifactDetailRefreshHint}

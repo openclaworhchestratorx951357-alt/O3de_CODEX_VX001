@@ -16,6 +16,9 @@ type ArtifactDetailPanelProps = {
   item: ArtifactRecord | null;
   loading: boolean;
   error: string | null;
+  selectedRunId?: string | null;
+  selectedExecutionId?: string | null;
+  selectedArtifactId?: string | null;
   onOpenRun?: (runId: string) => void;
   onOpenExecution?: (executionId: string) => void;
   refreshHint?: string | null;
@@ -35,6 +38,9 @@ export default function ArtifactDetailPanel({
   item,
   loading,
   error,
+  selectedRunId,
+  selectedExecutionId,
+  selectedArtifactId,
   onOpenRun,
   onOpenExecution,
   refreshHint,
@@ -58,6 +64,9 @@ export default function ArtifactDetailPanel({
         executionId={item?.execution_id ?? null}
         artifactId={item?.id ?? null}
         artifactSimulated={item?.simulated ?? null}
+        selectedRunId={selectedRunId}
+        selectedExecutionId={selectedExecutionId}
+        selectedArtifactId={selectedArtifactId}
         onOpenRun={onOpenRun}
         onOpenExecution={onOpenExecution}
       />
