@@ -31,6 +31,23 @@ class RunsService:
     def list_runs(self) -> list[RunRecord]:
         return control_plane_repository.list_runs()
 
+    def list_runs_for_audit_status(
+        self,
+        *,
+        requested_audit_status: str | None = None,
+    ) -> list[RunRecord]:
+        runs = self.list_runs()
+        if requested_audit_status is None or requested_audit_status == "all":
+            return runs
+
+        auditable_runs_by_id = {
+            audit.run_id
+            for audit in self.get_runs_summary(
+                requested_audit_status=requested_audit_status,
+            ).run_audits
+        }
+        return [run for run in runs if run.id in auditable_runs_by_id]
+
     def get_run(self, run_id: str) -> RunRecord | None:
         return control_plane_repository.get_run(run_id)
 

@@ -107,8 +107,17 @@ export async function fetchEvents(): Promise<EventRecord[]> {
   return payload.events ?? [];
 }
 
-export async function fetchRuns(): Promise<RunRecord[]> {
-  const response = await fetch(`${API_BASE_URL}/runs`);
+export async function fetchRuns(
+  auditStatus?: string,
+): Promise<RunRecord[]> {
+  const params = new URLSearchParams();
+  if (auditStatus && auditStatus !== "all") {
+    params.set("audit_status", auditStatus);
+  }
+  const query = params.toString();
+  const response = await fetch(
+    `${API_BASE_URL}/runs${query ? `?${query}` : ""}`,
+  );
 
   if (!response.ok) {
     throw new Error(`Runs fetch failed with status ${response.status}`);

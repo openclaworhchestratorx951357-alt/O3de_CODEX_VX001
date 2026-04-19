@@ -167,7 +167,7 @@ export default function App() {
     setRunsLoading(true);
     try {
       const [nextRuns, nextRunsSummary] = await Promise.all([
-        fetchRuns(),
+        fetchRuns(auditFilter),
         fetchRunsSummaryForFilter(auditFilter),
       ]);
       setRuns(nextRuns);
@@ -280,7 +280,7 @@ export default function App() {
       await loadReadiness();
       try {
         const [nextRuns, nextRunsSummary] = await Promise.all([
-          fetchRuns(),
+          fetchRuns("all"),
           fetchRunsSummaryForFilter("all"),
         ]);
         setRuns(nextRuns);

@@ -8,8 +8,14 @@ router = APIRouter(tags=["runs"])
 
 
 @router.get("/runs", response_model=RunsResponse)
-def list_runs() -> RunsResponse:
-    return RunsResponse(runs=runs_service.list_runs())
+def list_runs(
+    audit_status: str | None = Query(default=None),
+) -> RunsResponse:
+    return RunsResponse(
+        runs=runs_service.list_runs_for_audit_status(
+            requested_audit_status=audit_status,
+        )
+    )
 
 
 @router.get("/runs/summary", response_model=RunsSummaryResponse)
