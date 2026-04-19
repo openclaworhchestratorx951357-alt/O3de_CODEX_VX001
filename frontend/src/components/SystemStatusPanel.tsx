@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 
 import type { ReadinessStatus } from "../types/contracts";
 import SummarySection from "./SummarySection";
+import StatusChip from "./StatusChip";
 import {
   summaryCardGridStyle,
   summaryCardHeadingStyle,
@@ -33,28 +34,34 @@ export default function SystemStatusPanel(
         <div style={summaryCardGridStyle}>
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Backend</h3>
-            <p><strong>Ready:</strong> {readinessData.ok ? "yes" : "no"}</p>
-            <p><strong>Execution mode:</strong> {readinessData.execution_mode}</p>
+            <p><strong>Ready:</strong> <StatusChip label={readinessData.ok ? "yes" : "no"} tone={readinessData.ok ? "success" : "danger"} /></p>
+            <p><strong>Execution mode:</strong> <StatusChip label={readinessData.execution_mode} tone={getExecutionModeTone(readinessData.execution_mode)} /></p>
             <p><strong>Adapter contract:</strong> {readinessData.adapter_mode.contract_version}</p>
           </article>
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Persistence</h3>
-            <p><strong>Ready:</strong> {readinessData.persistence_ready ? "yes" : "no"}</p>
+            <p><strong>Ready:</strong> <StatusChip label={readinessData.persistence_ready ? "yes" : "no"} tone={readinessData.persistence_ready ? "success" : "danger"} /></p>
             <p><strong>Strategy:</strong> {readinessData.database_strategy}</p>
             <p><strong>Path:</strong> {readinessData.database_path}</p>
             <p><strong>Warning:</strong> {readinessData.persistence_warning ?? "none"}</p>
           </article>
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Schema Validation</h3>
-            <p><strong>Mode:</strong> {readinessData.schema_validation.mode}</p>
+            <p><strong>Mode:</strong> <StatusChip label={readinessData.schema_validation.mode} tone={getSchemaModeTone(readinessData.schema_validation.mode)} /></p>
             <p><strong>Scope:</strong> {readinessData.schema_validation.schema_scope}</p>
             <p>
               <strong>Persisted details:</strong>{" "}
-              {readinessData.schema_validation.supports_persisted_execution_details ? "yes" : "no"}
+              <StatusChip
+                label={readinessData.schema_validation.supports_persisted_execution_details ? "yes" : "no"}
+                tone={readinessData.schema_validation.supports_persisted_execution_details ? "success" : "warning"}
+              />
             </p>
             <p>
               <strong>Persisted metadata:</strong>{" "}
-              {readinessData.schema_validation.supports_persisted_artifact_metadata ? "yes" : "no"}
+              <StatusChip
+                label={readinessData.schema_validation.supports_persisted_artifact_metadata ? "yes" : "no"}
+                tone={readinessData.schema_validation.supports_persisted_artifact_metadata ? "success" : "warning"}
+              />
             </p>
             <p>
               <strong>Active unsupported:</strong>{" "}
@@ -119,7 +126,7 @@ export default function SystemStatusPanel(
           </article>
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Adapter Boundary</h3>
-            <p><strong>Configured mode:</strong> {readinessData.adapter_mode.configured_mode}</p>
+            <p><strong>Configured mode:</strong> <StatusChip label={readinessData.adapter_mode.configured_mode} tone={getExecutionModeTone(readinessData.adapter_mode.configured_mode)} /></p>
             <p><strong>Supported modes:</strong> {readinessData.adapter_mode.supported_modes.join(", ")}</p>
             <p><strong>Real tool paths:</strong> {readinessData.adapter_mode.real_tool_paths.join(", ") || "none"}</p>
             <p><strong>Plan-only tool paths:</strong> {readinessData.adapter_mode.plan_only_tool_paths.join(", ") || "none"}</p>
@@ -144,3 +151,23 @@ const subtleTextStyle: CSSProperties = {
   color: "#555",
   marginTop: 4,
 };
+
+function getExecutionModeTone(mode: string) {
+  if (mode === "real") {
+    return "success" as const;
+  }
+  if (mode === "simulated") {
+    return "warning" as const;
+  }
+  return "neutral" as const;
+}
+
+function getSchemaModeTone(mode: string) {
+  if (mode === "active" || mode === "real") {
+    return "success" as const;
+  }
+  if (mode === "hybrid" || mode === "plan-only") {
+    return "warning" as const;
+  }
+  return "neutral" as const;
+}

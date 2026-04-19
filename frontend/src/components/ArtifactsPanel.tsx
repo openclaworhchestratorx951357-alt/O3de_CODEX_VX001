@@ -1,6 +1,7 @@
 import type { ArtifactListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
+import StatusChip from "./StatusChip";
 import {
   formatSummaryLabeledText,
   formatSummaryTimestamp,
@@ -39,8 +40,14 @@ export default function ArtifactsPanel({
               <div>URI: {item.uri}</div>
               {item.path ? <div>Path: {item.path}</div> : null}
               {item.content_type ? <div>Content type: {item.content_type}</div> : null}
-              <div>Simulated: {String(item.simulated)}</div>
-              {item.execution_mode ? <div>Execution mode: {item.execution_mode}</div> : null}
+              <div>
+                Simulated: <StatusChip label={String(item.simulated)} tone={item.simulated ? "warning" : "success"} />
+              </div>
+              {item.execution_mode ? (
+                <div>
+                  Execution mode: <StatusChip label={item.execution_mode} tone={getExecutionModeTone(item.execution_mode)} />
+                </div>
+              ) : null}
               <div>Created: {formatSummaryTimestamp(item.created_at)}</div>
               <div style={summaryCalloutStyle}>
                 {formatSummaryLabeledText("Provenance", provenanceLabel)}
@@ -50,7 +57,10 @@ export default function ArtifactsPanel({
                 <div>Mutation audit: {item.mutation_audit_summary}</div>
               ) : null}
               {item.mutation_audit_status ? (
-                <div>Mutation audit status: {item.mutation_audit_status}</div>
+                <div>
+                  Mutation audit status:{" "}
+                  <StatusChip label={item.mutation_audit_status} tone={getAuditStatusTone(item.mutation_audit_status)} />
+                </div>
               ) : null}
             </SummaryListItem>
           );
@@ -77,4 +87,27 @@ function getArtifactProvenanceLabel(item: ArtifactListItem): string {
     return "Real project manifest evidence";
   }
   return "Real artifact";
+}
+
+function getExecutionModeTone(mode: string) {
+  if (mode === "real") {
+    return "success" as const;
+  }
+  if (mode === "simulated") {
+    return "warning" as const;
+  }
+  return "neutral" as const;
+}
+
+function getAuditStatusTone(status: string) {
+  if (status === "succeeded") {
+    return "success" as const;
+  }
+  if (status === "blocked" || status === "rolled_back") {
+    return "danger" as const;
+  }
+  if (status === "preflight" || status === "simulated" || status === "unknown") {
+    return "warning" as const;
+  }
+  return "neutral" as const;
 }
