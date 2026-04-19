@@ -133,9 +133,24 @@ export default function ArtifactsPanel({
               const unsupportedOperationCount = planDetails && typeof planDetails.unsupported_operation_count === "number"
                 ? planDetails.unsupported_operation_count
                 : null;
+              const supportedOperationPaths = planDetails
+                ? readStringArray(planDetails, "supported_operation_paths")
+                : [];
+              const unsupportedOperationPaths = planDetails
+                ? readStringArray(planDetails, "unsupported_operation_paths")
+                : [];
               const backupCreated = planDetails && typeof planDetails.backup_created === "boolean"
                 ? planDetails.backup_created
                 : readBoolean(metadata, "backup_created");
+              const rollbackStrategy = planDetails && typeof planDetails.rollback_strategy === "string"
+                ? planDetails.rollback_strategy
+                : readString(metadata, "rollback_strategy");
+              const rollbackReady = planDetails && typeof planDetails.rollback_ready === "boolean"
+                ? planDetails.rollback_ready
+                : readBoolean(metadata, "rollback_ready");
+              const patchPlanValid = planDetails && typeof planDetails.patch_plan_valid === "boolean"
+                ? planDetails.patch_plan_valid
+                : readBoolean(metadata, "patch_plan_valid");
               const provenanceLabel = item.simulated
                 ? "Simulated artifact"
                 : inspectionSurface === "build_configure_preflight"
@@ -244,6 +259,19 @@ export default function ArtifactsPanel({
                   ) : null}
                   {unsupportedOperationCount !== null ? (
                     <div>Unsupported operations: {unsupportedOperationCount}</div>
+                  ) : null}
+                  {supportedOperationPaths.length > 0 ? (
+                    <div>Supported operation paths: {supportedOperationPaths.join(", ")}</div>
+                  ) : null}
+                  {unsupportedOperationPaths.length > 0 ? (
+                    <div>Unsupported operation paths: {unsupportedOperationPaths.join(", ")}</div>
+                  ) : null}
+                  {rollbackStrategy ? <div>Rollback strategy: {rollbackStrategy}</div> : null}
+                  {rollbackReady !== null ? (
+                    <div>Rollback ready: {String(rollbackReady)}</div>
+                  ) : null}
+                  {patchPlanValid !== null ? (
+                    <div>Patch plan valid: {String(patchPlanValid)}</div>
                   ) : null}
                 </li>
               );

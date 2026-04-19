@@ -57,6 +57,8 @@ The currently admitted real scope is intentionally narrow:
   `project.json`
 - create a real backup file before reporting dry-run preflight success when the
   request includes admitted operations
+- publish post-backup patch-plan validation and rollback-planning metadata
+  without admitting real settings writes
 - report unsupported operations truthfully without widening into mutation
 
 If `dry_run=false`, if `project.json` is unavailable, or if later mutation-safe
@@ -65,6 +67,11 @@ criteria are needed, the path falls back to simulated.
 If backup creation fails for an otherwise admitted real preflight request, the
 run now rejects visibly before any mutation-capable step and does not degrade
 silently to simulated.
+
+If backup creation succeeds, the run now also records whether the remaining
+patch plan is fully admitted or only partially admitted, plus the rollback
+strategy that would restore the project manifest backup in a future mutation
+slice.
 
 ## Admission criteria before implementation
 

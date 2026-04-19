@@ -717,4 +717,12 @@ def test_dispatch_route_uses_real_settings_patch_preflight_in_hybrid_mode() -> N
                 assert execution["details"]["unsupported_operation_count"] == 1
                 assert execution["details"]["backup_created"] is True
                 assert Path(execution["details"]["backup_target"]).is_file()
+                assert execution["details"]["supported_operation_paths"] == ["/version"]
+                assert execution["details"]["unsupported_operation_paths"] == ["/render/quality"]
+                assert (
+                    execution["details"]["rollback_strategy"]
+                    == "restore-project-manifest-backup"
+                )
+                assert execution["details"]["rollback_ready"] is True
+                assert execution["details"]["patch_plan_valid"] is False
                 assert execution["details"]["mutation_ready"] is False

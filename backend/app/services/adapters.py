@@ -1114,10 +1114,25 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             for operation in normalized_operations
             if operation not in supported_operations
         ]
+        registry_path_admitted = registry_path == "/O3DE/Settings"
+        supported_operation_paths = sorted(
+            {
+                str(operation.get("path", "")).strip()
+                for operation in supported_operations
+                if isinstance(operation, dict)
+            }
+        )
+        unsupported_operation_paths = sorted(
+            {
+                str(operation.get("path", "")).strip()
+                for operation in unsupported_operations
+                if isinstance(operation, dict)
+            }
+        )
         backup_target = manifest_path.with_suffix(f"{manifest_path.suffix}.bak")
         backup_created = False
         backup_error: str | None = None
-        if registry_path == "/O3DE/Settings" and supported_operations:
+        if registry_path_admitted and supported_operations:
             try:
                 backup_target.write_text(
                     manifest_path.read_text(encoding="utf-8"),
@@ -1139,6 +1154,8 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                         "operation_count": len(normalized_operations),
                         "supported_operation_count": len(supported_operations),
                         "unsupported_operation_count": len(unsupported_operations),
+                        "supported_operation_paths": supported_operation_paths,
+                        "unsupported_operation_paths": unsupported_operation_paths,
                     },
                     warnings=[
                         "settings.patch preflight was rejected before mutation because "
@@ -1150,16 +1167,38 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                         f"Backup creation failed for '{backup_target}': {backup_error}",
                     ],
                 ) from exc
+        rollback_strategy = "restore-project-manifest-backup"
+        rollback_ready = backup_created
+        patch_plan_valid = (
+            registry_path_admitted
+            and backup_created
+            and len(supported_operations) > 0
+            and len(unsupported_operations) == 0
+        )
+        post_backup_validation = {
+            "registry_path_admitted": registry_path_admitted,
+            "supported_operations_present": len(supported_operations) > 0,
+            "unsupported_operations_present": len(unsupported_operations) > 0,
+            "backup_created": backup_created,
+            "patch_plan_valid": patch_plan_valid,
+        }
         manifest_keys = sorted(str(key) for key in manifest.keys())
         plan_details = {
             "registry_path": registry_path,
             "operation_count": len(normalized_operations),
             "supported_operation_count": len(supported_operations),
             "unsupported_operation_count": len(unsupported_operations),
+            "supported_operation_paths": supported_operation_paths,
+            "unsupported_operation_paths": unsupported_operation_paths,
             "admitted_registry_path": "/O3DE/Settings",
             "admitted_manifest_paths": admitted_manifest_paths,
             "backup_target": str(backup_target),
             "backup_created": backup_created,
+            "rollback_strategy": rollback_strategy,
+            "rollback_ready": rollback_ready,
+            "rollback_artifact_path": str(backup_target),
+            "patch_plan_valid": patch_plan_valid,
+            "post_backup_validation": post_backup_validation,
             "mutation_ready": False,
             "project_manifest_path": str(manifest_path),
         }
@@ -1190,6 +1229,16 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             warnings.append(
                 "No requested operations matched the admitted manifest-backed settings "
                 "preflight scope."
+            )
+        if patch_plan_valid:
+            warnings.append(
+                "Post-backup patch-plan validation passed for the admitted settings "
+                "scope, but actual mutation remains disabled in this slice."
+            )
+        else:
+            warnings.append(
+                "Post-backup patch-plan validation remains partial; this run published "
+                "rollback planning metadata without admitting mutation."
             )
 
         message = "Real settings.patch preflight completed; no settings were written."
@@ -1227,10 +1276,17 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "operation_count": len(normalized_operations),
             "supported_operation_count": len(supported_operations),
             "unsupported_operation_count": len(unsupported_operations),
+            "supported_operation_paths": supported_operation_paths,
+            "unsupported_operation_paths": unsupported_operation_paths,
             "admitted_registry_path": "/O3DE/Settings",
             "admitted_manifest_paths": admitted_manifest_paths,
             "backup_target": str(backup_target),
             "backup_created": backup_created,
+            "rollback_strategy": rollback_strategy,
+            "rollback_ready": rollback_ready,
+            "rollback_artifact_path": str(backup_target),
+            "patch_plan_valid": patch_plan_valid,
+            "post_backup_validation": post_backup_validation,
             "mutation_ready": False,
             "plan_details": plan_details,
         }
@@ -1251,6 +1307,13 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "Matched admitted manifest-backed settings operations for dry-run "
                     f"preflight: {len(supported_operations)} supported, "
                     f"{len(unsupported_operations)} unsupported."
+                ),
+                (
+                    "Validated a fully admitted post-backup patch plan with rollback "
+                    "metadata published."
+                    if patch_plan_valid
+                    else "Published partial post-backup patch-plan validation and "
+                    "rollback metadata; mutation remains non-admitted."
                 ),
             ],
             artifact_label="Real settings patch preflight evidence",

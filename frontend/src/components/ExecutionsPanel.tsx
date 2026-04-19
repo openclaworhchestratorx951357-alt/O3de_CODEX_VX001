@@ -183,9 +183,24 @@ export default function ExecutionsPanel({
               const unsupportedOperationCount = planDetails && typeof planDetails.unsupported_operation_count === "number"
                 ? planDetails.unsupported_operation_count
                 : null;
+              const supportedOperationPaths = planDetails
+                ? readStringArray(planDetails, "supported_operation_paths")
+                : [];
+              const unsupportedOperationPaths = planDetails
+                ? readStringArray(planDetails, "unsupported_operation_paths")
+                : [];
               const backupCreated = planDetails && typeof planDetails.backup_created === "boolean"
                 ? planDetails.backup_created
                 : readBoolean(details, "backup_created");
+              const rollbackStrategy = planDetails && typeof planDetails.rollback_strategy === "string"
+                ? planDetails.rollback_strategy
+                : readString(details, "rollback_strategy");
+              const rollbackReady = planDetails && typeof planDetails.rollback_ready === "boolean"
+                ? planDetails.rollback_ready
+                : readBoolean(details, "rollback_ready");
+              const patchPlanValid = planDetails && typeof planDetails.patch_plan_valid === "boolean"
+                ? planDetails.patch_plan_valid
+                : readBoolean(details, "patch_plan_valid");
               const provenanceLabel = item.execution_mode === "real"
                 ? inspectionSurface === "build_configure_preflight"
                   ? "Real plan-only build.configure preflight"
@@ -336,6 +351,19 @@ export default function ExecutionsPanel({
                   ) : null}
                   {unsupportedOperationCount !== null ? (
                     <div>Unsupported operations: {unsupportedOperationCount}</div>
+                  ) : null}
+                  {supportedOperationPaths.length > 0 ? (
+                    <div>Supported operation paths: {supportedOperationPaths.join(", ")}</div>
+                  ) : null}
+                  {unsupportedOperationPaths.length > 0 ? (
+                    <div>Unsupported operation paths: {unsupportedOperationPaths.join(", ")}</div>
+                  ) : null}
+                  {rollbackStrategy ? <div>Rollback strategy: {rollbackStrategy}</div> : null}
+                  {rollbackReady !== null ? (
+                    <div>Rollback ready: {String(rollbackReady)}</div>
+                  ) : null}
+                  {patchPlanValid !== null ? (
+                    <div>Patch plan valid: {String(patchPlanValid)}</div>
                   ) : null}
                   {realPathAvailable === false ? (
                     <div>Real path available: false</div>

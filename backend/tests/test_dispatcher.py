@@ -1996,6 +1996,15 @@ def test_settings_patch_uses_real_preflight_path_in_hybrid_mode() -> None:
         assert execution.details["backup_target"].endswith("project.json.bak")
         assert execution.details["backup_created"] is True
         assert Path(execution.details["backup_target"]).is_file()
+        assert execution.details["supported_operation_paths"] == ["/version"]
+        assert execution.details["unsupported_operation_paths"] == ["/render/quality"]
+        assert execution.details["rollback_strategy"] == "restore-project-manifest-backup"
+        assert execution.details["rollback_ready"] is True
+        assert execution.details["patch_plan_valid"] is False
+        assert execution.details["post_backup_validation"]["registry_path_admitted"] is True
+        assert execution.details["post_backup_validation"]["supported_operations_present"] is True
+        assert execution.details["post_backup_validation"]["unsupported_operations_present"] is True
+        assert execution.details["post_backup_validation"]["patch_plan_valid"] is False
         assert execution.details["mutation_ready"] is False
         assert artifact is not None
         assert artifact.simulated is False
@@ -2004,6 +2013,8 @@ def test_settings_patch_uses_real_preflight_path_in_hybrid_mode() -> None:
         assert artifact.metadata["plan_details"]["supported_operation_count"] == 1
         assert artifact.metadata["plan_details"]["unsupported_operation_count"] == 1
         assert artifact.metadata["plan_details"]["backup_created"] is True
+        assert artifact.metadata["plan_details"]["rollback_ready"] is True
+        assert artifact.metadata["plan_details"]["patch_plan_valid"] is False
         assert (
             schema_validation_service.validate_execution_details(
                 tool_name="settings.patch",
@@ -2069,6 +2080,53 @@ def test_settings_patch_falls_back_to_simulated_when_not_dry_run_in_hybrid_mode(
                 payload=artifact.metadata,
             )
             == []
+        )
+
+
+def test_settings_patch_reports_fully_valid_patch_plan_when_all_operations_are_admitted() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps({"project_name": "FullyAdmittedProject", "version": "1.0.0"}),
+            encoding="utf-8",
+        )
+        initial_request = make_settings_patch_request()
+        initial_request.project_root = str(project_root)
+        first = dispatcher_service.dispatch(initial_request)
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            approved_request = make_request(
+                "project-build",
+                "settings.patch",
+                project_root=str(project_root),
+            )
+            approved_request.approval_token = approval.token
+            approved_request.args = {
+                "registry_path": "/O3DE/Settings",
+                "operations": [{"op": "set", "path": "/version", "value": "1.0.1"}],
+            }
+            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        assert execution.details["supported_operation_paths"] == ["/version"]
+        assert execution.details["unsupported_operation_paths"] == []
+        assert execution.details["backup_created"] is True
+        assert execution.details["rollback_ready"] is True
+        assert execution.details["patch_plan_valid"] is True
+        assert execution.details["post_backup_validation"]["patch_plan_valid"] is True
+        assert any(
+            "Post-backup patch-plan validation passed" in warning
+            for warning in execution.warnings
         )
 
 
