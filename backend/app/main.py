@@ -76,6 +76,7 @@ def root() -> RootStatus:
             "/approvals",
             "/locks",
             "/events",
+            "/events/cards",
             "/policies",
             "/executions",
             "/executions/cards",

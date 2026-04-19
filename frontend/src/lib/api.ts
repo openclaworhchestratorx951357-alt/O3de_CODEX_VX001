@@ -7,6 +7,8 @@ import type {
   ArtifactsResponse,
   ApprovalRecord,
   ApprovalsResponse,
+  EventListItem,
+  EventListResponse,
   EventRecord,
   EventsResponse,
   ExecutionListItem,
@@ -110,6 +112,17 @@ export async function fetchEvents(): Promise<EventRecord[]> {
   }
 
   const payload = (await response.json()) as EventsResponse;
+  return payload.events ?? [];
+}
+
+export async function fetchEventCards(): Promise<EventListItem[]> {
+  const response = await fetch(`${API_BASE_URL}/events/cards`);
+
+  if (!response.ok) {
+    throw new Error(`Event cards fetch failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as EventListResponse;
   return payload.events ?? [];
 }
 

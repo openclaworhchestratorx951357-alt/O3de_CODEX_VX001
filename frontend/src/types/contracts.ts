@@ -167,6 +167,22 @@ export interface EventsResponse {
   events: EventRecord[];
 }
 
+export interface EventListItem {
+  id: string;
+  run_id?: string | null;
+  category: string;
+  severity: string;
+  message: string;
+  created_at: string;
+  capability_status?: string | null;
+  adapter_mode?: string | null;
+  event_state: string;
+}
+
+export interface EventListResponse {
+  events: EventListItem[];
+}
+
 export interface RunRecord {
   id: string;
   request_id: string;

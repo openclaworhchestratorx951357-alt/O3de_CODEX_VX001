@@ -1,29 +1,14 @@
-import type { EventRecord } from "../types/contracts";
+import type { EventListItem } from "../types/contracts";
 
 type TaskTimelineProps = {
-  items: EventRecord[];
+  items: EventListItem[];
   loading: boolean;
   error: string | null;
 };
 
-function formatEventState(item: EventRecord): "planned" | "active" | "done" {
-  if (item.severity === "error") {
-    return "active";
-  }
-  if (item.severity === "warning") {
-    return "active";
-  }
-  return "done";
-}
-
-function readDetail(item: EventRecord, key: string): string | null {
-  const value = item.details[key];
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
-
-function describeTimelineMeaning(item: EventRecord): string | null {
-  const capabilityStatus = readDetail(item, "capability_status");
-  const adapterMode = readDetail(item, "adapter_mode");
+function describeTimelineMeaning(item: EventListItem): string | null {
+  const capabilityStatus = item.capability_status ?? null;
+  const adapterMode = item.adapter_mode ?? null;
   const message = item.message.toLowerCase();
 
   if (capabilityStatus === "plan-only") {
@@ -64,15 +49,15 @@ export default function TaskTimeline({ items, loading, error }: TaskTimelineProp
         <ul>
           {items.map((item) => (
             (() => {
-              const capabilityStatus = readDetail(item, "capability_status");
-              const adapterMode = readDetail(item, "adapter_mode");
+              const capabilityStatus = item.capability_status ?? null;
+              const adapterMode = item.adapter_mode ?? null;
               const meaning = describeTimelineMeaning(item);
               return (
                 <li key={item.id} style={{ marginBottom: 12 }}>
                   <strong>{item.message}</strong>
                   <div>Category: {item.category}</div>
                   <div>Severity: {item.severity}</div>
-                  <div>State: {formatEventState(item)}</div>
+                  <div>State: {item.event_state}</div>
                   {capabilityStatus ? <div>Capability: {capabilityStatus}</div> : null}
                   {adapterMode ? <div>Adapter mode: {adapterMode}</div> : null}
                   {meaning ? <div>Meaning: {meaning}</div> : null}

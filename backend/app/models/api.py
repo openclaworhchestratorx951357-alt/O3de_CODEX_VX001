@@ -179,6 +179,22 @@ class EventsResponse(BaseModel):
     events: list[EventRecord] = Field(default_factory=list)
 
 
+class EventListItem(BaseModel):
+    id: str = Field(..., min_length=1)
+    run_id: str | None = None
+    category: str = Field(..., min_length=1)
+    severity: str = Field(..., min_length=1)
+    message: str = Field(..., min_length=1)
+    created_at: str = Field(..., min_length=1)
+    capability_status: str | None = None
+    adapter_mode: str | None = None
+    event_state: str = Field(..., min_length=1)
+
+
+class EventListResponse(BaseModel):
+    events: list[EventListItem] = Field(default_factory=list)
+
+
 class PoliciesResponse(BaseModel):
     policies: list[ToolPolicy] = Field(default_factory=list)
 

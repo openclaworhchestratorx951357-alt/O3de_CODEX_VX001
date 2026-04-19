@@ -34,6 +34,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert "/runs" in payload["routes"]
         assert "/runs/cards" in payload["routes"]
         assert "/runs/summary" in payload["routes"]
+        assert "/events/cards" in payload["routes"]
         assert "/executions/cards" in payload["routes"]
         assert "/artifacts/cards" in payload["routes"]
 
@@ -625,13 +626,22 @@ def test_events_endpoint_returns_persisted_dispatch_history() -> None:
             },
         )
         response = client.get("/events")
+        card_response = client.get("/events/cards")
         assert response.status_code == 200
+        assert card_response.status_code == 200
         payload = response.json()
+        card_payload = card_response.json()
         assert len(payload["events"]) >= 1
         assert any(
             event["details"].get("capability_status") == "hybrid-read-only"
             for event in payload["events"]
         )
+        assert len(card_payload["events"]) >= 1
+        assert any(
+            event.get("capability_status") == "hybrid-read-only"
+            for event in card_payload["events"]
+        )
+        assert "details" not in card_payload["events"][0]
 
 
 def test_executions_and_artifacts_endpoints_reflect_simulated_dispatch() -> None:

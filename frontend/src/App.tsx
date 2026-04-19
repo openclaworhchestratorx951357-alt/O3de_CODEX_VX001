@@ -24,7 +24,7 @@ import {
   fetchApprovals,
   fetchExecution,
   fetchExecutionCards,
-  fetchEvents,
+  fetchEventCards,
   fetchRun,
   fetchRunCards,
   fetchRunsSummaryForFilter,
@@ -40,7 +40,7 @@ import type {
   ApprovalRecord,
   CatalogAgent,
   ExecutionListItem,
-  EventRecord,
+  EventListItem,
   LockRecord,
   ReadinessStatus,
   RunAuditRecord,
@@ -71,7 +71,7 @@ export default function App() {
   const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
   const [adapters, setAdapters] = useState<AdaptersResponse | null>(null);
   const [artifacts, setArtifacts] = useState<ArtifactListItem[]>([]);
-  const [events, setEvents] = useState<EventRecord[]>([]);
+  const [events, setEvents] = useState<EventListItem[]>([]);
   const [executions, setExecutions] = useState<ExecutionListItem[]>([]);
   const [locks, setLocks] = useState<LockRecord[]>([]);
   const [policies, setPolicies] = useState<ToolPolicy[]>([]);
@@ -144,7 +144,7 @@ export default function App() {
   async function loadEvents() {
     setEventsLoading(true);
     try {
-      const nextEvents = await fetchEvents();
+      const nextEvents = await fetchEventCards();
       setEvents(nextEvents);
       setEventsError(null);
     } catch (error) {
