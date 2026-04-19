@@ -264,7 +264,17 @@ function Invoke-FrontendLint {
 }
 
 function Invoke-FrontendBuild {
-    Invoke-RepoProcess -WorkingDirectory $FrontendDir -FilePath (Get-NpmExecutable) -ArgumentList @("run", "build")
+    try {
+        Invoke-RepoProcess -WorkingDirectory $FrontendDir -FilePath (Get-NpmExecutable) -ArgumentList @("run", "build")
+    }
+    catch {
+        throw (
+            "Frontend build failed through the scripted runner in this worktree shell context. " +
+            "Known workaround: from the worktree frontend directory, run 'npm run build' directly in an " +
+            "interactive shell and report that result alongside the scripted failure. " +
+            "Original error: " + $_.Exception.Message
+        )
+    }
 }
 
 function Invoke-ComposeBuild {
