@@ -15,6 +15,7 @@ type RunDetailPanelProps = {
   loading: boolean;
   error: string | null;
   executionDetails?: Record<string, unknown> | null;
+  refreshHint?: string | null;
 };
 
 function readMutationAudit(
@@ -56,6 +57,7 @@ export default function RunDetailPanel({
   loading,
   error,
   executionDetails,
+  refreshHint,
 }: RunDetailPanelProps) {
   const mutationAudit = readMutationAudit(executionDetails);
   return (
@@ -67,6 +69,9 @@ export default function RunDetailPanel({
       emptyMessage="Select a run to inspect its detail."
       hasItems={Boolean(item)}
     >
+      {refreshHint ? (
+        <div style={summaryCalloutStyle}>{refreshHint}</div>
+      ) : null}
       <div style={summaryCardGridStyle}>
         <article style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Identity</h4>

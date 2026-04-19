@@ -69,6 +69,7 @@ type AuditFilter =
 type ToolFilter = "all" | "settings.patch";
 
 export default function App() {
+  type FocusedSection = "approvals" | "artifacts" | "events" | "executions" | "runs";
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
   const [approvals, setApprovals] = useState<ApprovalListItem[]>([]);
@@ -89,6 +90,7 @@ export default function App() {
   const [selectedRun, setSelectedRun] = useState<RunRecord | null>(null);
   const [selectedExecutionDetails, setSelectedExecutionDetails] =
     useState<Record<string, unknown> | null>(null);
+  const [runDetailRefreshHint, setRunDetailRefreshHint] = useState<string | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
   const [adaptersError, setAdaptersError] = useState<string | null>(null);
@@ -127,6 +129,7 @@ export default function App() {
   const [artifactsFocusLabel, setArtifactsFocusLabel] = useState<string | null>(null);
   const [executionsFocusLabel, setExecutionsFocusLabel] = useState<string | null>(null);
   const [eventsFocusLabel, setEventsFocusLabel] = useState<string | null>(null);
+  const [activeFocusedSection, setActiveFocusedSection] = useState<FocusedSection | null>(null);
   const [runsSearchVersion, setRunsSearchVersion] = useState(0);
   const [approvalsSearchVersion, setApprovalsSearchVersion] = useState(0);
   const [artifactsSearchVersion, setArtifactsSearchVersion] = useState(0);
@@ -137,6 +140,7 @@ export default function App() {
   const executionsSectionRef = useRef<HTMLDivElement | null>(null);
   const eventsSectionRef = useRef<HTMLDivElement | null>(null);
   const runsSectionRef = useRef<HTMLDivElement | null>(null);
+  const announceRunDetailRefreshRef = useRef(false);
 
   async function loadApprovals() {
     setApprovalsLoading(true);
@@ -201,6 +205,10 @@ export default function App() {
   async function loadRuns(
     toolFilter: ToolFilter = selectedToolFilter,
     auditFilter: AuditFilter = selectedAuditFilter,
+    options?: {
+      executionItems?: ExecutionListItem[];
+      announceSelectionRefresh?: boolean;
+    },
   ) {
     setRunsLoading(true);
     try {
@@ -213,11 +221,19 @@ export default function App() {
       setSettingsPatchAuditSummary(nextRunsSummary.settingsPatchAuditSummary);
       setRunsError(null);
       if (selectedRunId && nextRuns.some((item) => item.id === selectedRunId)) {
-        await loadRunDetail(selectedRunId);
+        await loadRunDetail(selectedRunId, options?.executionItems);
+        if (options?.announceSelectionRefresh) {
+          setRunDetailRefreshHint("Refresh preserved the selected run detail.");
+        }
       } else if (selectedRunId) {
         setSelectedRunId(null);
         setSelectedRun(null);
         setSelectedExecutionDetails(null);
+        if (options?.announceSelectionRefresh) {
+          setRunDetailRefreshHint("Selected run is no longer present after refresh.");
+        }
+      } else if (options?.announceSelectionRefresh) {
+        setRunDetailRefreshHint(null);
       }
     } catch (error) {
       setRunsError(
@@ -228,14 +244,17 @@ export default function App() {
     }
   }
 
-  async function loadRunDetail(runId: string) {
+  async function loadRunDetail(
+    runId: string,
+    executionItems: ExecutionListItem[] = executions,
+  ) {
     setSelectedRunId(runId);
     setSelectedRunLoading(true);
     setSelectedExecutionDetails(null);
     try {
       const nextRun = await fetchRun(runId);
       setSelectedRun(nextRun);
-      const matchingExecution = executions.find((execution) => execution.run_id === runId);
+      const matchingExecution = executionItems.find((execution) => execution.run_id === runId);
       if (matchingExecution) {
         const nextExecution = await fetchExecution(matchingExecution.id);
         setSelectedExecutionDetails(
@@ -258,10 +277,12 @@ export default function App() {
       const nextExecutions = await fetchExecutionCards();
       setExecutions(nextExecutions);
       setExecutionsError(null);
+      return nextExecutions;
     } catch (error) {
       setExecutionsError(
         error instanceof Error ? error.message : "Failed to load executions",
       );
+      return [];
     } finally {
       setExecutionsLoading(false);
     }
@@ -379,16 +400,8 @@ export default function App() {
       } else {
         await rejectApproval(approvalId);
       }
-      await loadApprovals();
-      await loadAdapters();
-      await loadArtifacts();
-      await loadEvents();
-      await loadExecutions();
-      await loadLocks();
-      await loadPolicies();
-      await loadReadiness();
-      await loadControlPlaneSummary();
-      await loadRuns(selectedToolFilter, selectedAuditFilter);
+      announceRunDetailRefreshRef.current = true;
+      await refreshDashboardState();
     } catch (error) {
       setApprovalsError(
         error instanceof Error ? error.message : "Failed to update approval",
@@ -400,15 +413,8 @@ export default function App() {
 
   function handleDispatchResponse(response: ResponseEnvelope) {
     setLastResponse(response);
-    void loadApprovals();
-    void loadArtifacts();
-    void loadEvents();
-    void loadExecutions();
-    void loadLocks();
-    void loadPolicies();
-    void loadReadiness();
-    void loadControlPlaneSummary();
-    void loadRuns(selectedToolFilter, selectedAuditFilter);
+    announceRunDetailRefreshRef.current = true;
+    void refreshDashboardState();
   }
 
   function handleAuditFilterChange(filter: AuditFilter) {
@@ -425,11 +431,57 @@ export default function App() {
     target?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  function restoreFocusedSection() {
+    if (activeFocusedSection === "approvals") {
+      scrollToSection(approvalsSectionRef.current);
+      return;
+    }
+    if (activeFocusedSection === "artifacts") {
+      scrollToSection(artifactsSectionRef.current);
+      return;
+    }
+    if (activeFocusedSection === "events") {
+      scrollToSection(eventsSectionRef.current);
+      return;
+    }
+    if (activeFocusedSection === "executions") {
+      scrollToSection(executionsSectionRef.current);
+      return;
+    }
+    if (activeFocusedSection === "runs") {
+      scrollToSection(runsSectionRef.current);
+    }
+  }
+
+  async function refreshDashboardState() {
+    const nextExecutionsPromise = loadExecutions();
+    await Promise.all([
+      loadApprovals(),
+      loadAdapters(),
+      loadArtifacts(),
+      loadEvents(),
+      nextExecutionsPromise,
+      loadLocks(),
+      loadPolicies(),
+      loadReadiness(),
+      loadControlPlaneSummary(),
+    ]);
+    const nextExecutions = await nextExecutionsPromise;
+
+    await loadRuns(selectedToolFilter, selectedAuditFilter, {
+      executionItems: nextExecutions,
+      announceSelectionRefresh: announceRunDetailRefreshRef.current,
+    });
+    announceRunDetailRefreshRef.current = false;
+    restoreFocusedSection();
+  }
+
   async function handleRunStatusDrilldown(status: string) {
     setSelectedToolFilter("all");
     setSelectedAuditFilter("all");
     setRunsSearchPreset(status);
     setRunsFocusLabel(`status = ${status}`);
+    setActiveFocusedSection("runs");
     setRunsSearchVersion((value) => value + 1);
     setRunsLoading(true);
     try {
@@ -441,6 +493,7 @@ export default function App() {
       setRunAudits(nextRunsSummary.runAudits);
       setSettingsPatchAuditSummary(nextRunsSummary.settingsPatchAuditSummary);
       setRunsError(null);
+      setRunDetailRefreshHint(null);
       const firstMatchingRun = nextRuns.find((item) => item.status === status);
       if (firstMatchingRun) {
         await loadRunDetail(firstMatchingRun.id);
@@ -458,6 +511,7 @@ export default function App() {
   function handlePendingApprovalsDrilldown() {
     setApprovalsSearchPreset("pending");
     setApprovalsFocusLabel("status = pending");
+    setActiveFocusedSection("approvals");
     setApprovalsSearchVersion((value) => value + 1);
     scrollToSection(approvalsSectionRef.current);
   }
@@ -465,6 +519,7 @@ export default function App() {
   function handleExecutionModeDrilldown(mode: string) {
     setExecutionsSearchPreset(mode);
     setExecutionsFocusLabel(`execution mode = ${mode}`);
+    setActiveFocusedSection("executions");
     setExecutionsSearchVersion((value) => value + 1);
     scrollToSection(executionsSectionRef.current);
   }
@@ -472,6 +527,7 @@ export default function App() {
   function handleArtifactModeDrilldown(mode: string) {
     setArtifactsSearchPreset(mode);
     setArtifactsFocusLabel(`artifact mode = ${mode}`);
+    setActiveFocusedSection("artifacts");
     setArtifactsSearchVersion((value) => value + 1);
     scrollToSection(artifactsSectionRef.current);
   }
@@ -479,6 +535,7 @@ export default function App() {
   function handleEventSeverityDrilldown(severity: string) {
     setEventsSearchPreset(severity);
     setEventsFocusLabel(`severity = ${severity}`);
+    setActiveFocusedSection("events");
     setEventsSearchVersion((value) => value + 1);
     scrollToSection(eventsSectionRef.current);
   }
@@ -486,30 +543,45 @@ export default function App() {
   function clearRunsFocus() {
     setRunsSearchPreset(null);
     setRunsFocusLabel(null);
+    if (activeFocusedSection === "runs") {
+      setActiveFocusedSection(null);
+    }
     setRunsSearchVersion((value) => value + 1);
   }
 
   function clearApprovalsFocus() {
     setApprovalsSearchPreset(null);
     setApprovalsFocusLabel(null);
+    if (activeFocusedSection === "approvals") {
+      setActiveFocusedSection(null);
+    }
     setApprovalsSearchVersion((value) => value + 1);
   }
 
   function clearArtifactsFocus() {
     setArtifactsSearchPreset(null);
     setArtifactsFocusLabel(null);
+    if (activeFocusedSection === "artifacts") {
+      setActiveFocusedSection(null);
+    }
     setArtifactsSearchVersion((value) => value + 1);
   }
 
   function clearExecutionsFocus() {
     setExecutionsSearchPreset(null);
     setExecutionsFocusLabel(null);
+    if (activeFocusedSection === "executions") {
+      setActiveFocusedSection(null);
+    }
     setExecutionsSearchVersion((value) => value + 1);
   }
 
   function clearEventsFocus() {
     setEventsSearchPreset(null);
     setEventsFocusLabel(null);
+    if (activeFocusedSection === "events") {
+      setActiveFocusedSection(null);
+    }
     setEventsSearchVersion((value) => value + 1);
   }
 
@@ -662,7 +734,10 @@ export default function App() {
           loading={runsLoading}
           error={runsError}
           selectedRunId={selectedRunId}
-          onSelectRun={(runId) => void loadRunDetail(runId)}
+          onSelectRun={(runId) => {
+            setRunDetailRefreshHint(null);
+            void loadRunDetail(runId);
+          }}
           searchPreset={runsSearchPreset}
           focusLabel={runsFocusLabel}
           onClearFocus={clearRunsFocus}
@@ -673,6 +748,7 @@ export default function App() {
         loading={selectedRunLoading}
         error={selectedRunError}
         executionDetails={selectedExecutionDetails}
+        refreshHint={runDetailRefreshHint}
       />
       <LocksPanel
         items={locks}
