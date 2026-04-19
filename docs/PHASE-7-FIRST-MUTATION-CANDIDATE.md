@@ -55,11 +55,16 @@ The currently admitted real scope is intentionally narrow:
 - admit only dry-run preflight for `registry_path=/O3DE/Settings`
 - match only manifest-backed top-level settings paths already present in
   `project.json`
-- record backup intent without creating a backup file
+- create a real backup file before reporting dry-run preflight success when the
+  request includes admitted operations
 - report unsupported operations truthfully without widening into mutation
 
 If `dry_run=false`, if `project.json` is unavailable, or if later mutation-safe
 criteria are needed, the path falls back to simulated.
+
+If backup creation fails for an otherwise admitted real preflight request, the
+run now rejects visibly before any mutation-capable step and does not degrade
+silently to simulated.
 
 ## Admission criteria before implementation
 

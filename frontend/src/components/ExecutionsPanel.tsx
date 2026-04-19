@@ -183,6 +183,9 @@ export default function ExecutionsPanel({
               const unsupportedOperationCount = planDetails && typeof planDetails.unsupported_operation_count === "number"
                 ? planDetails.unsupported_operation_count
                 : null;
+              const backupCreated = planDetails && typeof planDetails.backup_created === "boolean"
+                ? planDetails.backup_created
+                : readBoolean(details, "backup_created");
               const provenanceLabel = item.execution_mode === "real"
                 ? inspectionSurface === "build_configure_preflight"
                   ? "Real plan-only build.configure preflight"
@@ -325,6 +328,9 @@ export default function ExecutionsPanel({
                   {buildDirectory ? <div>Build directory: {buildDirectory}</div> : null}
                   {registryPath ? <div>Registry path: {registryPath}</div> : null}
                   {backupTarget ? <div>Backup target: {backupTarget}</div> : null}
+                  {backupCreated !== null ? (
+                    <div>Backup created: {String(backupCreated)}</div>
+                  ) : null}
                   {supportedOperationCount !== null ? (
                     <div>Supported operations: {supportedOperationCount}</div>
                   ) : null}

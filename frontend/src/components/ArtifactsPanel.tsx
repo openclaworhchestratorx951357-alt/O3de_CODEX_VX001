@@ -24,6 +24,11 @@ function readRecord(
     : null;
 }
 
+function readBoolean(metadata: Record<string, unknown>, key: string): boolean | null {
+  const value = metadata[key];
+  return typeof value === "boolean" ? value : null;
+}
+
 function readStringArray(metadata: Record<string, unknown>, key: string): string[] {
   const value = metadata[key];
   if (!Array.isArray(value)) {
@@ -128,6 +133,9 @@ export default function ArtifactsPanel({
               const unsupportedOperationCount = planDetails && typeof planDetails.unsupported_operation_count === "number"
                 ? planDetails.unsupported_operation_count
                 : null;
+              const backupCreated = planDetails && typeof planDetails.backup_created === "boolean"
+                ? planDetails.backup_created
+                : readBoolean(metadata, "backup_created");
               const provenanceLabel = item.simulated
                 ? "Simulated artifact"
                 : inspectionSurface === "build_configure_preflight"
@@ -228,6 +236,9 @@ export default function ArtifactsPanel({
                   {buildDirectory ? <div>Build directory: {buildDirectory}</div> : null}
                   {registryPath ? <div>Registry path: {registryPath}</div> : null}
                   {backupTarget ? <div>Backup target: {backupTarget}</div> : null}
+                  {backupCreated !== null ? (
+                    <div>Backup created: {String(backupCreated)}</div>
+                  ) : null}
                   {supportedOperationCount !== null ? (
                     <div>Supported operations: {supportedOperationCount}</div>
                   ) : null}

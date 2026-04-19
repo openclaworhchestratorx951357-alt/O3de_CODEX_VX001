@@ -6,7 +6,11 @@ from app.models.control_plane import (
 )
 from app.models.request_envelope import RequestEnvelope
 from app.models.response_envelope import ResponseEnvelope, ResponseError
-from app.services.adapters import AdapterConfigurationError, adapter_service
+from app.services.adapters import (
+    AdapterConfigurationError,
+    AdapterExecutionRejected,
+    adapter_service,
+)
 from app.services.approvals import approvals_service
 from app.services.artifacts import artifacts_service
 from app.services.catalog import catalog_service
@@ -350,6 +354,57 @@ class DispatcherService:
                 ),
                 warnings=["Dispatch failed before adapter execution could begin."],
                 logs=["Control-plane prechecks passed.", str(exc)],
+            )
+        except AdapterExecutionRejected as exc:
+            locks_service.release(run.id)
+            result_summary = "Adapter preflight rejected execution before completion."
+            runs_service.update_run(
+                run.id,
+                status=RunStatus.FAILED,
+                result_summary=result_summary,
+            )
+            executions_service.update_execution(
+                execution.id,
+                status=ExecutionStatus.FAILED,
+                warnings=exc.warnings,
+                logs=["Control-plane prechecks passed.", *exc.logs],
+                details={
+                    "requested_locks": requested_locks,
+                    "granted_locks": [lock.name for lock in acquired_locks],
+                    **exc.details,
+                },
+                result_summary=result_summary,
+                finished=True,
+            )
+            events_service.record(
+                category="adapter",
+                severity=EventSeverity.ERROR,
+                message=(
+                    f"{self._capability_message_prefix(request)} rejected execution "
+                    "during real preflight."
+                ),
+                run_id=run.id,
+                details={
+                    "configured_mode": adapter_status.configured_mode,
+                    "capability_status": capability_status,
+                },
+            )
+            return ResponseEnvelope(
+                request_id=request.request_id,
+                ok=False,
+                operation_id=run.id,
+                error=ResponseError(
+                    code="ADAPTER_PRECHECK_FAILED",
+                    message=str(exc),
+                    retryable=False,
+                    details=exc.details,
+                ),
+                warnings=[
+                    "Dispatch was rejected during adapter preflight before any "
+                    "mutation-capable step ran.",
+                    *exc.warnings,
+                ],
+                logs=["Control-plane prechecks passed.", *exc.logs],
             )
 
         running_execution_details = {

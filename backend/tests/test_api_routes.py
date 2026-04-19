@@ -715,5 +715,6 @@ def test_dispatch_route_uses_real_settings_patch_preflight_in_hybrid_mode() -> N
                 assert execution["details"]["operation_count"] == 2
                 assert execution["details"]["supported_operation_count"] == 1
                 assert execution["details"]["unsupported_operation_count"] == 1
-                assert execution["details"]["backup_created"] is False
+                assert execution["details"]["backup_created"] is True
+                assert Path(execution["details"]["backup_target"]).is_file()
                 assert execution["details"]["mutation_ready"] is False

@@ -74,6 +74,21 @@ class AdapterConfigurationError(RuntimeError):
     pass
 
 
+class AdapterExecutionRejected(RuntimeError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        details: dict[str, Any] | None = None,
+        warnings: list[str] | None = None,
+        logs: list[str] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.details = details or {}
+        self.warnings = warnings or []
+        self.logs = logs or []
+
+
 class ToolExecutionAdapter(ABC):
     def __init__(self, *, family: str, mode: str) -> None:
         self.family = family
@@ -1099,7 +1114,42 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             for operation in normalized_operations
             if operation not in supported_operations
         ]
-        backup_target = f"{manifest_path}.bak"
+        backup_target = manifest_path.with_suffix(f"{manifest_path.suffix}.bak")
+        backup_created = False
+        backup_error: str | None = None
+        if registry_path == "/O3DE/Settings" and supported_operations:
+            try:
+                backup_target.write_text(
+                    manifest_path.read_text(encoding="utf-8"),
+                    encoding="utf-8",
+                )
+                backup_created = True
+            except OSError as exc:
+                backup_error = str(exc)
+                raise AdapterExecutionRejected(
+                    "Real settings.patch preflight was rejected because the backup file "
+                    "could not be created before any mutation-capable step.",
+                    details={
+                        "inspection_surface": "settings_patch_preflight",
+                        "project_manifest_path": str(manifest_path),
+                        "backup_target": str(backup_target),
+                        "backup_created": False,
+                        "backup_error": backup_error,
+                        "registry_path": registry_path,
+                        "operation_count": len(normalized_operations),
+                        "supported_operation_count": len(supported_operations),
+                        "unsupported_operation_count": len(unsupported_operations),
+                    },
+                    warnings=[
+                        "settings.patch preflight was rejected before mutation because "
+                        "the backup file could not be created."
+                    ],
+                    logs=[
+                        "Hybrid adapter mode enabled a real settings.patch preflight path.",
+                        f"Read project manifest from '{manifest_path}'.",
+                        f"Backup creation failed for '{backup_target}': {backup_error}",
+                    ],
+                ) from exc
         manifest_keys = sorted(str(key) for key in manifest.keys())
         plan_details = {
             "registry_path": registry_path,
@@ -1108,15 +1158,24 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "unsupported_operation_count": len(unsupported_operations),
             "admitted_registry_path": "/O3DE/Settings",
             "admitted_manifest_paths": admitted_manifest_paths,
-            "backup_target": backup_target,
-            "backup_created": False,
+            "backup_target": str(backup_target),
+            "backup_created": backup_created,
             "mutation_ready": False,
             "project_manifest_path": str(manifest_path),
         }
         warnings = [
             "This is a real settings.patch preflight only; no settings were written.",
-            "Backup target was planned but no backup file was created in this slice.",
         ]
+        if backup_created:
+            warnings.append(
+                "A real backup file was created for this dry-run preflight, but no "
+                "settings were written in this slice."
+            )
+        else:
+            warnings.append(
+                "Backup creation was not attempted because no admitted settings.patch "
+                "operations were available for the current real preflight scope."
+            )
         if registry_path != "/O3DE/Settings":
             warnings.append(
                 "Requested registry_path is outside the admitted real preflight scope; "
@@ -1170,8 +1229,8 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "unsupported_operation_count": len(unsupported_operations),
             "admitted_registry_path": "/O3DE/Settings",
             "admitted_manifest_paths": admitted_manifest_paths,
-            "backup_target": backup_target,
-            "backup_created": False,
+            "backup_target": str(backup_target),
+            "backup_created": backup_created,
             "mutation_ready": False,
             "plan_details": plan_details,
         }
@@ -1182,6 +1241,12 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             logs=[
                 "Hybrid adapter mode enabled a real settings.patch preflight path.",
                 f"Read project manifest from '{manifest_path}'.",
+                (
+                    f"Created settings.patch preflight backup at '{backup_target}'."
+                    if backup_created
+                    else "Skipped backup creation because no admitted operations were "
+                    "available for the current real preflight scope."
+                ),
                 (
                     "Matched admitted manifest-backed settings operations for dry-run "
                     f"preflight: {len(supported_operations)} supported, "
