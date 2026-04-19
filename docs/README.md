@@ -28,8 +28,12 @@ Current Phase 7 checkpoint truth:
 - the next safest refinement is still manifest-adjacent and keeps Gem-state evidence on `project.json`
 - `build.configure` is still only a real plan-only preflight path
 - mutation surfaces remain gated
-- persisted execution-details and artifact-metadata schema coverage now spans 8
-  tools across `project-build`, `asset-pipeline`, and `render-lookdev`
+- persisted execution-details and artifact-metadata schema coverage now spans 21
+  tools across the published catalog
+- fully covered persisted-schema families are now `editor-control`,
+  `asset-pipeline`, `project-build`, `render-lookdev`, and `validation`
+- this remains a persisted-payload contract milestone, not a broader
+  real-adapter milestone
 
 Planned contents:
 - architecture

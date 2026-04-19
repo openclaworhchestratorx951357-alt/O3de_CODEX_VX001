@@ -16,7 +16,8 @@ export default function SystemStatusPanel(
       <h2>System Status</h2>
       <p style={{ marginTop: 0, color: "#555" }}>
         Operator summary of backend readiness, persistence, adapter contract,
-        and schema-validation state. Simulated execution remains explicitly
+        and schema-validation state. Persisted coverage is a contract signal,
+        not a real-execution claim. Simulated execution remains explicitly
         labeled and real O3DE adapters are still not implemented.
       </p>
       {loading ? <p>Loading system status...</p> : null}
@@ -71,9 +72,19 @@ export default function SystemStatusPanel(
               {readiness.schema_validation.persisted_artifact_metadata_tool_count}
             </p>
             <p>
-              <strong>Families visible:</strong>{" "}
+              <strong>Families with coverage:</strong>{" "}
               {readiness.schema_validation.persisted_family_coverage
                 .filter((family) => family.execution_details_tools > 0)
+                .map((family) => family.family)
+                .join(", ")}
+            </p>
+            <p>
+              <strong>Fully covered families:</strong>{" "}
+              {readiness.schema_validation.persisted_family_coverage
+                .filter((family) => (
+                  family.execution_details_tools === family.total_tools
+                  && family.artifact_metadata_tools === family.total_tools
+                ))
                 .map((family) => family.family)
                 .join(", ")}
             </p>
