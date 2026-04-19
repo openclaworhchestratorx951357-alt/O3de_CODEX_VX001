@@ -1,3 +1,5 @@
+import { useMemo, useState } from "react";
+
 import type { ApprovalListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -10,6 +12,8 @@ import {
   summaryActionButtonStyle,
   summaryActionRowStyle,
   summaryCalloutStyle,
+  summaryControlRowStyle,
+  summarySearchInputStyle,
 } from "./summaryPrimitives";
 
 type ApprovalQueueProps = {
@@ -40,18 +44,34 @@ export default function ApprovalQueue({
   onApprove,
   onReject,
 }: ApprovalQueueProps) {
+  const [searchValue, setSearchValue] = useState("");
+  const normalizedQuery = searchValue.trim().toLowerCase();
+  const filteredItems = useMemo(
+    () => items.filter((item) => matchesApprovalSearch(item, normalizedQuery)),
+    [items, normalizedQuery],
+  );
+
   return (
     <SummarySection
       title="Approval Queue"
       description="Approval decisions resume capability-gated execution. Any real path still remains narrow and explicitly labeled."
       loading={loading}
       error={error}
-      emptyMessage="No approvals are waiting for a decision."
-      hasItems={items.length > 0}
+      emptyMessage={normalizedQuery ? "No approvals match the current search." : "No approvals are waiting for a decision."}
+      hasItems={filteredItems.length > 0}
       marginTop={0}
     >
+      <div style={summaryControlRowStyle}>
+        <input
+          type="search"
+          value={searchValue}
+          onChange={(event) => setSearchValue(event.target.value)}
+          placeholder="Search approvals by tool, agent, run, class, or reason"
+          style={summarySearchInputStyle}
+        />
+      </div>
       <SummaryList>
-        {items.map((item) => (
+        {filteredItems.map((item) => (
           <SummaryListItem key={item.id} card>
             <strong>{formatApprovalTitle(item)}</strong>
             <SummaryFacts>
@@ -96,4 +116,21 @@ export default function ApprovalQueue({
       </SummaryList>
     </SummarySection>
   );
+}
+
+function matchesApprovalSearch(item: ApprovalListItem, query: string): boolean {
+  if (!query) {
+    return true;
+  }
+
+  return [
+    item.id,
+    item.run_id,
+    item.request_id,
+    item.agent,
+    item.tool,
+    item.approval_class,
+    item.status,
+    item.reason ?? "",
+  ].some((value) => value.toLowerCase().includes(query));
 }

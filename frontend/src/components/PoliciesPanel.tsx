@@ -1,3 +1,5 @@
+import { useMemo, useState } from "react";
+
 import type { ToolPolicy } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -10,6 +12,8 @@ import {
 } from "./statusChipTones";
 import {
   summaryMutedTextStyle,
+  summaryControlRowStyle,
+  summarySearchInputStyle,
 } from "./summaryPrimitives";
 
 type PoliciesPanelProps = {
@@ -23,17 +27,33 @@ export default function PoliciesPanel({
   loading,
   error,
 }: PoliciesPanelProps) {
+  const [searchValue, setSearchValue] = useState("");
+  const normalizedQuery = searchValue.trim().toLowerCase();
+  const filteredItems = useMemo(
+    () => items.filter((item) => matchesPolicySearch(item, normalizedQuery)),
+    [items, normalizedQuery],
+  );
+
   return (
     <SummarySection
       title="Policies"
       description="These policy records describe approval, lock, and execution guardrails. Execution mode and capability status remain explicitly labeled, including simulated, plan-only, and mutation-candidate tool surfaces."
       loading={loading}
       error={error}
-      emptyMessage="No policies published yet."
-      hasItems={items.length > 0}
+      emptyMessage={normalizedQuery ? "No policies match the current search." : "No policies published yet."}
+      hasItems={filteredItems.length > 0}
     >
+      <div style={summaryControlRowStyle}>
+        <input
+          type="search"
+          value={searchValue}
+          onChange={(event) => setSearchValue(event.target.value)}
+          placeholder="Search policies by tool, agent, capability, risk, or locks"
+          style={summarySearchInputStyle}
+        />
+      </div>
       <SummaryList>
-          {items.map((item) => (
+          {filteredItems.map((item) => (
             <SummaryListItem key={`${item.agent}:${item.tool}`} card>
                 <strong>{item.tool}</strong>
                 <SummaryFacts>
@@ -75,4 +95,23 @@ export default function PoliciesPanel({
       </SummaryList>
     </SummarySection>
   );
+}
+
+function matchesPolicySearch(item: ToolPolicy, query: string): boolean {
+  if (!query) {
+    return true;
+  }
+
+  return [
+    item.agent,
+    item.tool,
+    item.approval_class,
+    item.adapter_family,
+    item.capability_status,
+    item.real_admission_stage,
+    item.next_real_requirement,
+    item.risk,
+    item.execution_mode,
+    item.required_locks.join(" "),
+  ].some((value) => value.toLowerCase().includes(query));
 }
