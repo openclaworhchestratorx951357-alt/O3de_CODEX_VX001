@@ -902,6 +902,11 @@ export default function App() {
           loading={selectedExecutionLoading}
           error={selectedExecutionError}
           selectedArtifactId={selectedArtifactId}
+          relatedArtifacts={
+            selectedExecution
+              ? artifacts.filter((artifact) => artifact.execution_id === selectedExecution.id)
+              : []
+          }
           onOpenRun={openRunDetail}
           onOpenArtifact={openArtifactDetail}
           refreshHint={executionDetailRefreshHint}

@@ -1,4 +1,8 @@
-import type { ExecutionRecord, ProjectInspectEvidenceDetails } from "../types/contracts";
+import type {
+  ArtifactListItem,
+  ExecutionRecord,
+  ProjectInspectEvidenceDetails,
+} from "../types/contracts";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -17,6 +21,7 @@ type ExecutionDetailPanelProps = {
   loading: boolean;
   error: string | null;
   selectedArtifactId?: string | null;
+  relatedArtifacts?: ArtifactListItem[];
   onOpenRun?: (runId: string) => void;
   onOpenArtifact?: (artifactId: string) => void;
   refreshHint?: string | null;
@@ -37,6 +42,7 @@ export default function ExecutionDetailPanel({
   loading,
   error,
   selectedArtifactId,
+  relatedArtifacts = [],
   onOpenRun,
   onOpenArtifact,
   refreshHint,
@@ -96,6 +102,9 @@ export default function ExecutionDetailPanel({
               <SummaryFact label="Artifact IDs">
                 {item.artifact_ids.length > 0 ? item.artifact_ids.join(", ") : "none"}
               </SummaryFact>
+              <SummaryFact label="Artifact records">
+                {relatedArtifacts.length}
+              </SummaryFact>
             </SummaryFacts>
             {onOpenRun ? (
               <button
@@ -108,18 +117,23 @@ export default function ExecutionDetailPanel({
             ) : null}
             {onOpenArtifact && item.artifact_ids.length > 0 ? (
               <div style={{ display: "grid", gap: 8 }}>
-                {item.artifact_ids.map((artifactId) => (
-                  <button
-                    key={artifactId}
-                    type="button"
-                    style={summaryActionButtonStyle}
-                    onClick={() => onOpenArtifact(artifactId)}
-                  >
-                    {selectedArtifactId === artifactId
-                      ? `Artifact ${artifactId} selected`
-                      : `Open artifact ${artifactId}`}
-                  </button>
-                ))}
+                {item.artifact_ids.map((artifactId) => {
+                  const artifact = relatedArtifacts.find((entry) => entry.id === artifactId);
+                  const artifactLabel = artifact?.label ?? "artifact";
+                  const artifactKind = artifact?.kind ?? "unknown kind";
+                  return (
+                    <button
+                      key={artifactId}
+                      type="button"
+                      style={summaryActionButtonStyle}
+                      onClick={() => onOpenArtifact(artifactId)}
+                    >
+                      {selectedArtifactId === artifactId
+                        ? `Selected: ${artifactLabel} (${artifactKind})`
+                        : `Open: ${artifactLabel} (${artifactKind})`}
+                    </button>
+                  );
+                })}
               </div>
             ) : null}
           </article>
