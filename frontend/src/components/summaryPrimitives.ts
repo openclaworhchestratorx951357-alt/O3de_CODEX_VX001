@@ -130,6 +130,13 @@ export const summaryCalloutStyle: CSSProperties = {
   marginTop: 8,
 };
 
+export const summaryTimestampNoteStyle: CSSProperties = {
+  ...summaryMutedTextStyle,
+  fontSize: 12,
+  marginTop: 8,
+  marginBottom: 8,
+};
+
 export function formatSummaryLabeledText(label: string, value: string): string {
   return `${label}: ${value}`;
 }

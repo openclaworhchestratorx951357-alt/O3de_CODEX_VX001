@@ -8,6 +8,7 @@ import {
   summaryCardHeadingStyle,
   summaryCardStyle,
   summaryCalloutStyle,
+  summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
 
 type RunDetailPanelProps = {
@@ -16,6 +17,7 @@ type RunDetailPanelProps = {
   error: string | null;
   executionDetails?: Record<string, unknown> | null;
   refreshHint?: string | null;
+  lastRefreshedAt?: string | null;
 };
 
 function readMutationAudit(
@@ -58,6 +60,7 @@ export default function RunDetailPanel({
   error,
   executionDetails,
   refreshHint,
+  lastRefreshedAt,
 }: RunDetailPanelProps) {
   const mutationAudit = readMutationAudit(executionDetails);
   return (
@@ -71,6 +74,11 @@ export default function RunDetailPanel({
     >
       {refreshHint ? (
         <div style={summaryCalloutStyle}>{refreshHint}</div>
+      ) : null}
+      {lastRefreshedAt ? (
+        <div style={summaryTimestampNoteStyle}>
+          Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
+        </div>
       ) : null}
       <div style={summaryCardGridStyle}>
         <article style={summaryCardStyle}>

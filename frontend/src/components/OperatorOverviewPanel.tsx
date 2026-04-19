@@ -12,17 +12,20 @@ import {
   getSeverityTone,
 } from "./statusChipTones";
 import {
+  formatSummaryTimestamp,
   summaryBadgeStyle,
   summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
   summaryMutedTextStyle,
+  summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
 
 type OperatorOverviewPanelProps = {
   summary: ControlPlaneSummaryResponse | null;
   loading: boolean;
   error: string | null;
+  lastRefreshedAt?: string | null;
   onRunStatusSelect: (status: string) => void;
   onPendingApprovalsSelect: () => void;
   onExecutionModeSelect: (mode: string) => void;
@@ -34,6 +37,7 @@ export default function OperatorOverviewPanel({
   summary,
   loading,
   error,
+  lastRefreshedAt,
   onRunStatusSelect,
   onPendingApprovalsSelect,
   onExecutionModeSelect,
@@ -52,6 +56,11 @@ export default function OperatorOverviewPanel({
     >
       {summary ? (
         <>
+          {lastRefreshedAt ? (
+            <div style={summaryTimestampNoteStyle}>
+              Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
+            </div>
+          ) : null}
           <div style={badgeRowStyle}>
             <span style={summaryBadgeStyle}>runs: {summary.runs_total}</span>
             <span style={summaryBadgeStyle}>approvals: {summary.approvals_total}</span>

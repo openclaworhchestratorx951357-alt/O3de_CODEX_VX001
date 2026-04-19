@@ -91,6 +91,8 @@ export default function App() {
   const [selectedExecutionDetails, setSelectedExecutionDetails] =
     useState<Record<string, unknown> | null>(null);
   const [runDetailRefreshHint, setRunDetailRefreshHint] = useState<string | null>(null);
+  const [operatorOverviewRefreshedAt, setOperatorOverviewRefreshedAt] = useState<string | null>(null);
+  const [runDetailRefreshedAt, setRunDetailRefreshedAt] = useState<string | null>(null);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
   const [adaptersError, setAdaptersError] = useState<string | null>(null);
@@ -261,6 +263,7 @@ export default function App() {
           (nextExecution.details as Record<string, unknown> | null | undefined) ?? null,
         );
       }
+      setRunDetailRefreshedAt(new Date().toISOString());
       setSelectedRunError(null);
     } catch (error) {
       setSelectedRunError(
@@ -338,6 +341,7 @@ export default function App() {
     try {
       const nextSummary = await fetchControlPlaneSummary();
       setControlPlaneSummary(nextSummary);
+      setOperatorOverviewRefreshedAt(new Date().toISOString());
       setControlPlaneSummaryError(null);
     } catch (error) {
       setControlPlaneSummaryError(
@@ -664,6 +668,7 @@ export default function App() {
         summary={controlPlaneSummary}
         loading={controlPlaneSummaryLoading}
         error={controlPlaneSummaryError}
+        lastRefreshedAt={operatorOverviewRefreshedAt}
         onRunStatusSelect={handleRunStatusDrilldown}
         onPendingApprovalsSelect={handlePendingApprovalsDrilldown}
         onExecutionModeSelect={handleExecutionModeDrilldown}
@@ -749,6 +754,7 @@ export default function App() {
         error={selectedRunError}
         executionDetails={selectedExecutionDetails}
         refreshHint={runDetailRefreshHint}
+        lastRefreshedAt={runDetailRefreshedAt}
       />
       <LocksPanel
         items={locks}
