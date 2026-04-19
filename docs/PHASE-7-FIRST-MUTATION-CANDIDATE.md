@@ -73,6 +73,11 @@ patch plan is fully admitted or only partially admitted, plus the rollback
 strategy that would restore the project manifest backup in a future mutation
 slice.
 
+If the post-backup plan is fully admitted, the run now records a
+mutation-ready-but-write-blocked state. This is still not a real settings
+write, but it gives operators a truthful final checkpoint before mutation
+admission.
+
 ## Admission criteria before implementation
 
 Before any real `settings.patch` implementation slice begins, all of the

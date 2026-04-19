@@ -143,6 +143,10 @@ function describeExecutionResult(result: Record<string, unknown>): string {
     return "Real plan-only build.configure preflight ran; no configure command was executed.";
   }
   if (executionMode === "real" && simulated === false && tool === "settings.patch") {
+    const message = typeof result.message === "string" ? result.message : "";
+    if (message.includes("ready for mutation")) {
+      return "Real settings.patch preflight validated a mutation-ready plan, but writes remained intentionally disabled.";
+    }
     return "Real dry-run-only settings.patch preflight ran; no settings were written.";
   }
   if (executionMode === "simulated" && simulated === true && tool === "project.inspect") {

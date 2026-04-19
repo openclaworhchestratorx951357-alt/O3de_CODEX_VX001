@@ -1175,12 +1175,22 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             and len(supported_operations) > 0
             and len(unsupported_operations) == 0
         )
+        mutation_ready = patch_plan_valid
+        mutation_blocked = patch_plan_valid
+        mutation_blocked_reason = (
+            "Validated mutation-ready settings.patch plan remains intentionally "
+            "write-disabled in this slice."
+            if mutation_blocked
+            else None
+        )
         post_backup_validation = {
             "registry_path_admitted": registry_path_admitted,
             "supported_operations_present": len(supported_operations) > 0,
             "unsupported_operations_present": len(unsupported_operations) > 0,
             "backup_created": backup_created,
             "patch_plan_valid": patch_plan_valid,
+            "mutation_ready": mutation_ready,
+            "mutation_blocked": mutation_blocked,
         }
         manifest_keys = sorted(str(key) for key in manifest.keys())
         plan_details = {
@@ -1199,7 +1209,9 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "rollback_artifact_path": str(backup_target),
             "patch_plan_valid": patch_plan_valid,
             "post_backup_validation": post_backup_validation,
-            "mutation_ready": False,
+            "mutation_ready": mutation_ready,
+            "mutation_blocked": mutation_blocked,
+            "mutation_blocked_reason": mutation_blocked_reason,
             "project_manifest_path": str(manifest_path),
         }
         warnings = [
@@ -1233,7 +1245,8 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         if patch_plan_valid:
             warnings.append(
                 "Post-backup patch-plan validation passed for the admitted settings "
-                "scope, but actual mutation remains disabled in this slice."
+                "scope, and the run is now mutation-ready but intentionally "
+                "write-blocked in this slice."
             )
         else:
             warnings.append(
@@ -1247,6 +1260,17 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "Real settings.patch preflight completed for "
                 f"'{project_name}'; no settings were written."
             )
+        if mutation_blocked:
+            message = (
+                "Real settings.patch preflight completed; the plan is ready for "
+                "mutation, but writes remain intentionally disabled."
+            )
+            if isinstance(project_name, str) and project_name.strip():
+                message = (
+                    "Real settings.patch preflight completed for "
+                    f"'{project_name}'; the plan is ready for mutation, but writes "
+                    "remain intentionally disabled."
+                )
 
         result = DispatchResult(
             status="real_success",
@@ -1287,7 +1311,9 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "rollback_artifact_path": str(backup_target),
             "patch_plan_valid": patch_plan_valid,
             "post_backup_validation": post_backup_validation,
-            "mutation_ready": False,
+            "mutation_ready": mutation_ready,
+            "mutation_blocked": mutation_blocked,
+            "mutation_blocked_reason": mutation_blocked_reason,
             "plan_details": plan_details,
         }
         return AdapterExecutionReport(
@@ -1310,7 +1336,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 ),
                 (
                     "Validated a fully admitted post-backup patch plan with rollback "
-                    "metadata published."
+                    "metadata published; writes remain intentionally disabled."
                     if patch_plan_valid
                     else "Published partial post-backup patch-plan validation and "
                     "rollback metadata; mutation remains non-admitted."

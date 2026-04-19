@@ -726,3 +726,4 @@ def test_dispatch_route_uses_real_settings_patch_preflight_in_hybrid_mode() -> N
                 assert execution["details"]["rollback_ready"] is True
                 assert execution["details"]["patch_plan_valid"] is False
                 assert execution["details"]["mutation_ready"] is False
+                assert execution["details"]["mutation_blocked"] is False

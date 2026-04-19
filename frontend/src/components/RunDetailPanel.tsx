@@ -14,6 +14,9 @@ function describeRunTruth(item: RunRecord): string {
     return "This run used the real plan-only build.configure preflight path.";
   }
   if (item.execution_mode === "real" && item.tool === "settings.patch") {
+    if (item.result_summary?.includes("mutation-ready")) {
+      return "This run validated a mutation-ready settings.patch plan, but writes remained intentionally disabled.";
+    }
     return "This run used the real dry-run-only settings.patch preflight path; no settings were written.";
   }
   if (item.execution_mode === "simulated" && item.tool === "build.configure") {

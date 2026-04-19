@@ -2005,7 +2005,11 @@ def test_settings_patch_uses_real_preflight_path_in_hybrid_mode() -> None:
         assert execution.details["post_backup_validation"]["supported_operations_present"] is True
         assert execution.details["post_backup_validation"]["unsupported_operations_present"] is True
         assert execution.details["post_backup_validation"]["patch_plan_valid"] is False
+        assert execution.details["post_backup_validation"]["mutation_ready"] is False
+        assert execution.details["post_backup_validation"]["mutation_blocked"] is False
         assert execution.details["mutation_ready"] is False
+        assert execution.details["mutation_blocked"] is False
+        assert execution.details["mutation_blocked_reason"] is None
         assert artifact is not None
         assert artifact.simulated is False
         assert artifact.metadata["execution_mode"] == "real"
@@ -2124,8 +2128,14 @@ def test_settings_patch_reports_fully_valid_patch_plan_when_all_operations_are_a
         assert execution.details["rollback_ready"] is True
         assert execution.details["patch_plan_valid"] is True
         assert execution.details["post_backup_validation"]["patch_plan_valid"] is True
+        assert execution.details["post_backup_validation"]["mutation_ready"] is True
+        assert execution.details["post_backup_validation"]["mutation_blocked"] is True
+        assert execution.details["mutation_ready"] is True
+        assert execution.details["mutation_blocked"] is True
+        assert "intentionally write-disabled" in execution.details["mutation_blocked_reason"]
+        assert "ready for mutation" in response.result.message
         assert any(
-            "Post-backup patch-plan validation passed" in warning
+            "mutation-ready but intentionally write-blocked" in warning
             for warning in execution.warnings
         )
 
