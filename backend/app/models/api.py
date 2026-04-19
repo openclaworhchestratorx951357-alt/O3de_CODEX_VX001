@@ -122,6 +122,23 @@ class VersionStatus(BaseModel):
     adapter_contract_version: str = Field(..., min_length=1)
 
 
+class ControlPlaneSummaryResponse(BaseModel):
+    runs_total: int = 0
+    runs_by_status: dict[str, int] = Field(default_factory=dict)
+    approvals_total: int = 0
+    approvals_pending: int = 0
+    approvals_decided: int = 0
+    executions_total: int = 0
+    executions_by_status: dict[str, int] = Field(default_factory=dict)
+    executions_by_mode: dict[str, int] = Field(default_factory=dict)
+    artifacts_total: int = 0
+    artifacts_by_mode: dict[str, int] = Field(default_factory=dict)
+    events_total: int = 0
+    active_events: int = 0
+    events_by_severity: dict[str, int] = Field(default_factory=dict)
+    locks_total: int = 0
+
+
 class RunsResponse(BaseModel):
     runs: list[RunRecord] = Field(default_factory=list)
 

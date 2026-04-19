@@ -13,6 +13,7 @@ from app.api.routes.health import router as health_router
 from app.api.routes.locks import router as locks_router
 from app.api.routes.policies import router as policies_router
 from app.api.routes.runs import router as runs_router
+from app.api.routes.summary import router as summary_router
 from app.api.routes.tools import router as tools_router
 from app.api.routes.tools_catalog import router as tools_catalog_router
 from app.models.api import RootStatus
@@ -45,6 +46,7 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(adapters_router)
+app.include_router(summary_router)
 app.include_router(tools_router)
 app.include_router(tools_catalog_router)
 app.include_router(runs_router)
@@ -68,6 +70,7 @@ def root() -> RootStatus:
             "/ready",
             "/version",
             "/adapters",
+            "/summary",
             "/tools/catalog",
             "/tools/dispatch",
             "/runs",

@@ -8,6 +8,7 @@ from unittest.mock import patch
 from app.main import app
 from app.models.control_plane import (
     ApprovalRecord,
+    ApprovalStatus,
     ArtifactRecord,
     EventRecord,
     EventSeverity,
@@ -48,6 +49,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         payload = response.json()
         assert payload["status"] == "phase-7-gem-state-refinement"
         assert payload["phase"] == "phase-7"
+        assert "/summary" in payload["routes"]
         assert "/runs" in payload["routes"]
         assert "/runs/cards" in payload["routes"]
         assert "/runs/summary" in payload["routes"]
@@ -883,6 +885,170 @@ def test_persisted_list_endpoints_return_default_stable_ordering() -> None:
             "build_tree",
             "project_config",
         ]
+
+
+def test_summary_endpoint_reports_persisted_operator_counts() -> None:
+    created_at = datetime(2026, 2, 1, 9, 0, tzinfo=timezone.utc)
+    started_at = datetime(2026, 2, 1, 10, 0, tzinfo=timezone.utc)
+
+    with isolated_client() as client:
+        control_plane_repository.create_run(
+            RunRecord(
+                id="run-summary-a",
+                request_id="request-summary-a",
+                agent="project-build",
+                tool="project.inspect",
+                status=RunStatus.SUCCEEDED,
+                created_at=created_at,
+                updated_at=created_at,
+            )
+        )
+        control_plane_repository.create_run(
+            RunRecord(
+                id="run-summary-b",
+                request_id="request-summary-b",
+                agent="project-build",
+                tool="settings.patch",
+                status=RunStatus.REJECTED,
+                created_at=created_at,
+                updated_at=created_at,
+            )
+        )
+        control_plane_repository.create_approval(
+            ApprovalRecord(
+                id="apr-summary-a",
+                run_id="run-summary-a",
+                request_id="request-summary-a",
+                agent="project-build",
+                tool="settings.patch",
+                approval_class="config_write",
+                token="token-summary-a",
+                created_at=created_at,
+            )
+        )
+        control_plane_repository.create_approval(
+            ApprovalRecord(
+                id="apr-summary-b",
+                run_id="run-summary-b",
+                request_id="request-summary-b",
+                agent="project-build",
+                tool="build.configure",
+                approval_class="build_execute",
+                token="token-summary-b",
+                status=ApprovalStatus.APPROVED,
+                created_at=created_at,
+            )
+        )
+        control_plane_repository.create_execution(
+            ExecutionRecord(
+                id="exe-summary-a",
+                run_id="run-summary-a",
+                request_id="request-summary-a",
+                agent="project-build",
+                tool="project.inspect",
+                execution_mode="simulated",
+                status=ExecutionStatus.SUCCEEDED,
+                started_at=started_at,
+            )
+        )
+        control_plane_repository.create_execution(
+            ExecutionRecord(
+                id="exe-summary-b",
+                run_id="run-summary-b",
+                request_id="request-summary-b",
+                agent="project-build",
+                tool="settings.patch",
+                execution_mode="real",
+                status=ExecutionStatus.FAILED,
+                started_at=started_at,
+            )
+        )
+        control_plane_repository.create_artifact(
+            ArtifactRecord(
+                id="art-summary-a",
+                run_id="run-summary-a",
+                execution_id="exe-summary-a",
+                label="artifact-summary-a",
+                kind="simulated_result",
+                uri="memory://artifact-summary-a",
+                simulated=True,
+                created_at=created_at,
+                metadata={"execution_mode": "simulated"},
+            )
+        )
+        control_plane_repository.create_artifact(
+            ArtifactRecord(
+                id="art-summary-b",
+                run_id="run-summary-b",
+                execution_id="exe-summary-b",
+                label="artifact-summary-b",
+                kind="manifest_backup",
+                uri="memory://artifact-summary-b",
+                simulated=False,
+                created_at=created_at,
+                metadata={"execution_mode": "real"},
+            )
+        )
+        control_plane_repository.create_event(
+            EventRecord(
+                id="evt-summary-a",
+                run_id="run-summary-a",
+                category="dispatch",
+                severity=EventSeverity.INFO,
+                message="informational event",
+                created_at=created_at,
+                details={},
+            )
+        )
+        control_plane_repository.create_event(
+            EventRecord(
+                id="evt-summary-b",
+                run_id="run-summary-b",
+                category="dispatch",
+                severity=EventSeverity.WARNING,
+                message="warning event",
+                created_at=created_at,
+                details={},
+            )
+        )
+        control_plane_repository.create_event(
+            EventRecord(
+                id="evt-summary-c",
+                run_id="run-summary-b",
+                category="dispatch",
+                severity=EventSeverity.ERROR,
+                message="error event",
+                created_at=created_at,
+                details={},
+            )
+        )
+        with connection() as conn:
+            conn.execute(
+                "INSERT INTO locks (name, owner_run_id, created_at) VALUES (?, ?, ?)",
+                ("build_tree", "run-summary-a", created_at.isoformat()),
+            )
+            conn.execute(
+                "INSERT INTO locks (name, owner_run_id, created_at) VALUES (?, ?, ?)",
+                ("project_config", "run-summary-b", created_at.isoformat()),
+            )
+
+        response = client.get("/summary")
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["runs_total"] == 2
+        assert payload["runs_by_status"] == {"rejected": 1, "succeeded": 1}
+        assert payload["approvals_total"] == 2
+        assert payload["approvals_pending"] == 1
+        assert payload["approvals_decided"] == 1
+        assert payload["executions_total"] == 2
+        assert payload["executions_by_status"] == {"failed": 1, "succeeded": 1}
+        assert payload["executions_by_mode"] == {"real": 1, "simulated": 1}
+        assert payload["artifacts_total"] == 2
+        assert payload["artifacts_by_mode"] == {"real": 1, "simulated": 1}
+        assert payload["events_total"] == 3
+        assert payload["active_events"] == 2
+        assert payload["events_by_severity"] == {"error": 1, "info": 1, "warning": 1}
+        assert payload["locks_total"] == 2
 
 
 def test_executions_and_artifacts_endpoints_reflect_simulated_dispatch() -> None:
