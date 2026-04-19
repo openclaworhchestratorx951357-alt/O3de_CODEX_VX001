@@ -20,8 +20,8 @@ import { mockAgents } from "./data/mockAgents";
 import {
   approveApproval,
   fetchAdapters,
+  fetchApprovalCards,
   fetchArtifactCards,
-  fetchApprovals,
   fetchExecution,
   fetchExecutionCards,
   fetchEventCards,
@@ -37,7 +37,7 @@ import {
 import type {
   ArtifactListItem,
   AdaptersResponse,
-  ApprovalRecord,
+  ApprovalListItem,
   CatalogAgent,
   ExecutionListItem,
   EventListItem,
@@ -68,7 +68,7 @@ type ToolFilter = "all" | "settings.patch";
 export default function App() {
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
-  const [approvals, setApprovals] = useState<ApprovalRecord[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalListItem[]>([]);
   const [adapters, setAdapters] = useState<AdaptersResponse | null>(null);
   const [artifacts, setArtifacts] = useState<ArtifactListItem[]>([]);
   const [events, setEvents] = useState<EventListItem[]>([]);
@@ -114,7 +114,7 @@ export default function App() {
   async function loadApprovals() {
     setApprovalsLoading(true);
     try {
-      const nextApprovals = await fetchApprovals();
+      const nextApprovals = await fetchApprovalCards();
       setApprovals(nextApprovals);
       setApprovalsError(null);
     } catch (error) {

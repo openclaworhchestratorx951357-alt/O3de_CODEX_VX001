@@ -34,6 +34,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert "/runs" in payload["routes"]
         assert "/runs/cards" in payload["routes"]
         assert "/runs/summary" in payload["routes"]
+        assert "/approvals/cards" in payload["routes"]
         assert "/events/cards" in payload["routes"]
         assert "/executions/cards" in payload["routes"]
         assert "/artifacts/cards" in payload["routes"]
@@ -607,6 +608,15 @@ def test_approval_endpoints_allow_explicit_decision() -> None:
         )
         assert response.status_code == 200
         assert response.json()["status"] == "approved"
+        cards_response = client.get("/approvals/cards")
+        assert cards_response.status_code == 200
+        cards_payload = cards_response.json()
+        assert len(cards_payload["approvals"]) == 1
+        approval_card = cards_payload["approvals"][0]
+        assert approval_card["id"] == approval_id
+        assert approval_card["status"] == "approved"
+        assert approval_card["can_decide"] is False
+        assert "token" not in approval_card
 
 
 def test_events_endpoint_returns_persisted_dispatch_history() -> None:

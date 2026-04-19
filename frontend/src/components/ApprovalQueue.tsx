@@ -1,7 +1,7 @@
-import type { ApprovalRecord } from "../types/contracts";
+import type { ApprovalListItem } from "../types/contracts";
 
 type ApprovalQueueProps = {
-  items: ApprovalRecord[];
+  items: ApprovalListItem[];
   loading: boolean;
   error: string | null;
   busyApprovalId: string | null;
@@ -9,11 +9,11 @@ type ApprovalQueueProps = {
   onReject: (approvalId: string) => Promise<void>;
 };
 
-function formatApprovalTitle(item: ApprovalRecord): string {
+function formatApprovalTitle(item: ApprovalListItem): string {
   return `${item.tool} requested by ${item.agent}`;
 }
 
-function describeApprovalMeaning(item: ApprovalRecord): string | null {
+function describeApprovalMeaning(item: ApprovalListItem): string | null {
   if (item.tool === "build.configure") {
     return "In hybrid mode, this approval may allow the real plan-only build.configure preflight path when dry_run=true. It does not imply a real configure mutation.";
   }
@@ -58,7 +58,7 @@ export default function ApprovalQueue({
                 <div>Meaning: {describeApprovalMeaning(item)}</div>
               ) : null}
               {item.reason ? <div>Reason: {item.reason}</div> : null}
-              {item.status === "pending" ? (
+              {item.can_decide ? (
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                   <button
                     type="button"

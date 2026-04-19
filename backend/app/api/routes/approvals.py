@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from app.models.api import ApprovalDecisionRequest, ApprovalsResponse
+from app.models.api import ApprovalDecisionRequest, ApprovalsListResponse, ApprovalsResponse
 from app.models.control_plane import ApprovalRecord, EventSeverity, RunStatus
 from app.services.approvals import approvals_service
 from app.services.events import events_service
@@ -12,6 +12,11 @@ router = APIRouter(tags=["approvals"])
 @router.get("/approvals", response_model=ApprovalsResponse)
 def list_approvals() -> ApprovalsResponse:
     return ApprovalsResponse(approvals=approvals_service.list_approvals())
+
+
+@router.get("/approvals/cards", response_model=ApprovalsListResponse)
+def list_approval_cards() -> ApprovalsListResponse:
+    return approvals_service.list_approval_cards()
 
 
 @router.post("/approvals/{approval_id}/approve", response_model=ApprovalRecord)

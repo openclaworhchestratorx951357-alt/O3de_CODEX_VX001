@@ -5,6 +5,8 @@ import type {
   ArtifactListResponse,
   ArtifactRecord,
   ArtifactsResponse,
+  ApprovalListItem,
+  ApprovalsListResponse,
   ApprovalRecord,
   ApprovalsResponse,
   EventListItem,
@@ -69,6 +71,17 @@ export async function fetchApprovals(): Promise<ApprovalRecord[]> {
   }
 
   const payload = (await response.json()) as ApprovalsResponse;
+  return payload.approvals ?? [];
+}
+
+export async function fetchApprovalCards(): Promise<ApprovalListItem[]> {
+  const response = await fetch(`${API_BASE_URL}/approvals/cards`);
+
+  if (!response.ok) {
+    throw new Error(`Approval cards fetch failed with status ${response.status}`);
+  }
+
+  const payload = (await response.json()) as ApprovalsListResponse;
   return payload.approvals ?? [];
 }
 

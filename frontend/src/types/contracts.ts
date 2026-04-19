@@ -153,6 +153,24 @@ export interface ApprovalsResponse {
   approvals: ApprovalRecord[];
 }
 
+export interface ApprovalListItem {
+  id: string;
+  run_id: string;
+  request_id: string;
+  agent: string;
+  tool: string;
+  approval_class: ApprovalClass | string;
+  status: "pending" | "approved" | "rejected" | string;
+  reason?: string | null;
+  created_at: string;
+  decided_at?: string | null;
+  can_decide: boolean;
+}
+
+export interface ApprovalsListResponse {
+  approvals: ApprovalListItem[];
+}
+
 export interface EventRecord {
   id: string;
   run_id?: string | null;

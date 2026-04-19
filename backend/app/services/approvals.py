@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from app.models.api import ApprovalListItem, ApprovalsListResponse
 from app.models.control_plane import ApprovalRecord, ApprovalStatus
 from app.repositories.control_plane import control_plane_repository
 
@@ -30,6 +31,28 @@ class ApprovalsService:
 
     def list_approvals(self) -> list[ApprovalRecord]:
         return control_plane_repository.list_approvals()
+
+    def list_approval_cards(self) -> ApprovalsListResponse:
+        return ApprovalsListResponse(
+            approvals=[
+                ApprovalListItem(
+                    id=approval.id,
+                    run_id=approval.run_id,
+                    request_id=approval.request_id,
+                    agent=approval.agent,
+                    tool=approval.tool,
+                    approval_class=approval.approval_class,
+                    status=approval.status.value,
+                    reason=approval.reason,
+                    created_at=approval.created_at.isoformat(),
+                    decided_at=approval.decided_at.isoformat()
+                    if approval.decided_at is not None
+                    else None,
+                    can_decide=approval.status == ApprovalStatus.PENDING,
+                )
+                for approval in self.list_approvals()
+            ]
+        )
 
     def get_approval(self, approval_id: str) -> ApprovalRecord | None:
         return control_plane_repository.get_approval(approval_id)

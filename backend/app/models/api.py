@@ -171,6 +171,24 @@ class ApprovalsResponse(BaseModel):
     approvals: list[ApprovalRecord] = Field(default_factory=list)
 
 
+class ApprovalListItem(BaseModel):
+    id: str = Field(..., min_length=1)
+    run_id: str = Field(..., min_length=1)
+    request_id: str = Field(..., min_length=1)
+    agent: str = Field(..., min_length=1)
+    tool: str = Field(..., min_length=1)
+    approval_class: str = Field(..., min_length=1)
+    status: str = Field(..., min_length=1)
+    reason: str | None = None
+    created_at: str = Field(..., min_length=1)
+    decided_at: str | None = None
+    can_decide: bool
+
+
+class ApprovalsListResponse(BaseModel):
+    approvals: list[ApprovalListItem] = Field(default_factory=list)
+
+
 class LocksResponse(BaseModel):
     locks: list[LockRecord] = Field(default_factory=list)
 
