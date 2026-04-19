@@ -3,6 +3,10 @@ import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import StatusChip from "./StatusChip";
 import {
+  getAuditStatusTone,
+  getExecutionModeTone,
+} from "./statusChipTones";
+import {
   formatSummaryLabeledText,
   formatSummaryTimestamp,
   summaryCalloutStyle,
@@ -87,27 +91,4 @@ function getArtifactProvenanceLabel(item: ArtifactListItem): string {
     return "Real project manifest evidence";
   }
   return "Real artifact";
-}
-
-function getExecutionModeTone(mode: string) {
-  if (mode === "real") {
-    return "success" as const;
-  }
-  if (mode === "simulated") {
-    return "warning" as const;
-  }
-  return "neutral" as const;
-}
-
-function getAuditStatusTone(status: string) {
-  if (status === "succeeded") {
-    return "success" as const;
-  }
-  if (status === "blocked" || status === "rolled_back") {
-    return "danger" as const;
-  }
-  if (status === "preflight" || status === "simulated" || status === "unknown") {
-    return "warning" as const;
-  }
-  return "neutral" as const;
 }

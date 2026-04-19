@@ -3,6 +3,11 @@ import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import StatusChip from "./StatusChip";
 import {
+  getAdapterModeTone,
+  getCapabilityTone,
+  getSeverityTone,
+} from "./statusChipTones";
+import {
   formatSummaryLabeledText,
   formatSummaryTimestamp,
   summaryCalloutStyle,
@@ -71,40 +76,4 @@ export default function TaskTimeline({ items, loading, error }: TaskTimelineProp
       </SummaryList>
     </SummarySection>
   );
-}
-
-function getSeverityTone(severity: string) {
-  if (severity === "error") {
-    return "danger" as const;
-  }
-  if (severity === "warning") {
-    return "warning" as const;
-  }
-  if (severity === "info") {
-    return "info" as const;
-  }
-  return "neutral" as const;
-}
-
-function getCapabilityTone(capability: string) {
-  if (capability === "hybrid-read-only") {
-    return "info" as const;
-  }
-  if (capability === "plan-only") {
-    return "warning" as const;
-  }
-  if (capability === "mutation-gated") {
-    return "danger" as const;
-  }
-  return "neutral" as const;
-}
-
-function getAdapterModeTone(mode: string) {
-  if (mode === "real") {
-    return "success" as const;
-  }
-  if (mode === "simulated") {
-    return "warning" as const;
-  }
-  return "neutral" as const;
 }

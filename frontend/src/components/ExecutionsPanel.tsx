@@ -3,6 +3,11 @@ import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import StatusChip from "./StatusChip";
 import {
+  getAuditStatusTone,
+  getExecutionModeTone,
+  getExecutionStatusTone,
+} from "./statusChipTones";
+import {
   formatSummaryLabeledText,
   formatSummaryTimestamp,
   summaryCalloutStyle,
@@ -63,42 +68,6 @@ export default function ExecutionsPanel({
       </SummaryList>
     </SummarySection>
   );
-}
-
-function getExecutionStatusTone(status: string) {
-  if (status === "succeeded") {
-    return "success" as const;
-  }
-  if (status === "failed" || status === "rejected" || status === "blocked") {
-    return "danger" as const;
-  }
-  if (status === "waiting_approval" || status === "pending" || status === "running") {
-    return "warning" as const;
-  }
-  return "neutral" as const;
-}
-
-function getExecutionModeTone(mode: string) {
-  if (mode === "real") {
-    return "success" as const;
-  }
-  if (mode === "simulated") {
-    return "warning" as const;
-  }
-  return "neutral" as const;
-}
-
-function getAuditStatusTone(status: string) {
-  if (status === "succeeded") {
-    return "success" as const;
-  }
-  if (status === "blocked" || status === "rolled_back") {
-    return "danger" as const;
-  }
-  if (status === "preflight" || status === "simulated" || status === "unknown") {
-    return "warning" as const;
-  }
-  return "neutral" as const;
 }
 
 function getExecutionProvenanceLabel(item: ExecutionListItem): string {

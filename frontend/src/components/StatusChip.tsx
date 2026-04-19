@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-type StatusChipTone =
+export type StatusChipTone =
   | "neutral"
   | "info"
   | "success"

@@ -2,6 +2,7 @@ import type { ApprovalListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import StatusChip from "./StatusChip";
+import { getApprovalStatusTone } from "./statusChipTones";
 import {
   formatSummaryTimestamp,
   formatSummaryLabeledText,
@@ -90,17 +91,4 @@ export default function ApprovalQueue({
       </SummaryList>
     </SummarySection>
   );
-}
-
-function getApprovalStatusTone(status: string) {
-  if (status === "approved") {
-    return "success" as const;
-  }
-  if (status === "rejected") {
-    return "danger" as const;
-  }
-  if (status === "pending") {
-    return "warning" as const;
-  }
-  return "neutral" as const;
 }

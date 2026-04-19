@@ -9,6 +9,12 @@ import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import StatusChip from "./StatusChip";
 import {
+  getAuditStatusTone,
+  getCapabilityTone,
+  getExecutionModeTone,
+  getRunStatusTone,
+} from "./statusChipTones";
+import {
   summaryActionButtonStyle,
   summaryBadgeStyle,
   summaryControlRowStyle,
@@ -258,53 +264,4 @@ function getFilterLabel(filter: AuditFilter): string {
     return "Rolled back";
   }
   return filter.charAt(0).toUpperCase() + filter.slice(1);
-}
-
-function getRunStatusTone(status: string) {
-  if (status === "succeeded") {
-    return "success" as const;
-  }
-  if (status === "failed" || status === "rejected" || status === "blocked") {
-    return "danger" as const;
-  }
-  if (status === "waiting_approval" || status === "pending" || status === "running") {
-    return "warning" as const;
-  }
-  return "neutral" as const;
-}
-
-function getExecutionModeTone(mode: string) {
-  if (mode === "real") {
-    return "success" as const;
-  }
-  if (mode === "simulated") {
-    return "warning" as const;
-  }
-  return "neutral" as const;
-}
-
-function getCapabilityTone(capability: string) {
-  if (capability === "hybrid-read-only") {
-    return "info" as const;
-  }
-  if (capability === "plan-only") {
-    return "warning" as const;
-  }
-  if (capability === "mutation-gated") {
-    return "danger" as const;
-  }
-  return "neutral" as const;
-}
-
-function getAuditStatusTone(status: string) {
-  if (status === "succeeded") {
-    return "success" as const;
-  }
-  if (status === "blocked" || status === "rolled_back") {
-    return "danger" as const;
-  }
-  if (status === "preflight" || status === "simulated" || status === "unknown") {
-    return "warning" as const;
-  }
-  return "neutral" as const;
 }

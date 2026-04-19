@@ -4,6 +4,10 @@ import type { ReadinessStatus } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import StatusChip from "./StatusChip";
 import {
+  getExecutionModeTone,
+  getSchemaModeTone,
+} from "./statusChipTones";
+import {
   summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
@@ -151,23 +155,3 @@ const subtleTextStyle: CSSProperties = {
   color: "#555",
   marginTop: 4,
 };
-
-function getExecutionModeTone(mode: string) {
-  if (mode === "real") {
-    return "success" as const;
-  }
-  if (mode === "simulated") {
-    return "warning" as const;
-  }
-  return "neutral" as const;
-}
-
-function getSchemaModeTone(mode: string) {
-  if (mode === "active" || mode === "real") {
-    return "success" as const;
-  }
-  if (mode === "hybrid" || mode === "plan-only") {
-    return "warning" as const;
-  }
-  return "neutral" as const;
-}

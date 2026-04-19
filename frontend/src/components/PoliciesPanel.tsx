@@ -3,6 +3,11 @@ import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import StatusChip from "./StatusChip";
 import {
+  getAdmissionTone,
+  getCapabilityTone,
+  getExecutionModeTone,
+} from "./statusChipTones";
+import {
   summaryMutedTextStyle,
 } from "./summaryPrimitives";
 
@@ -68,40 +73,4 @@ export default function PoliciesPanel({
       </SummaryList>
     </SummarySection>
   );
-}
-
-function getCapabilityTone(capability: string) {
-  if (capability === "hybrid-read-only") {
-    return "info" as const;
-  }
-  if (capability === "plan-only") {
-    return "warning" as const;
-  }
-  if (capability === "mutation-gated") {
-    return "danger" as const;
-  }
-  if (capability === "simulated-only") {
-    return "neutral" as const;
-  }
-  return "neutral" as const;
-}
-
-function getAdmissionTone(stage: string) {
-  if (stage.includes("real")) {
-    return "success" as const;
-  }
-  if (stage.includes("plan") || stage.includes("candidate")) {
-    return "warning" as const;
-  }
-  return "neutral" as const;
-}
-
-function getExecutionModeTone(mode: string) {
-  if (mode === "real") {
-    return "success" as const;
-  }
-  if (mode === "simulated") {
-    return "warning" as const;
-  }
-  return "neutral" as const;
 }
