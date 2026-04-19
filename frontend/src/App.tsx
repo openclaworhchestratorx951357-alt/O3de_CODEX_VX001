@@ -413,6 +413,7 @@ export default function App() {
       />
       <RunsPanel
         items={runs}
+        executions={executions}
         loading={runsLoading}
         error={runsError}
         selectedRunId={selectedRunId}
