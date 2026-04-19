@@ -1,5 +1,6 @@
 import type { EventListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
+import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import StatusChip from "./StatusChip";
 import {
@@ -56,20 +57,32 @@ export default function TaskTimeline({ items, loading, error }: TaskTimelineProp
           return (
             <SummaryListItem key={item.id} card>
               <strong>{item.message}</strong>
-              <div>Category: {item.category}</div>
-              <div>Severity: <StatusChip label={item.severity} tone={getSeverityTone(item.severity)} /></div>
-              <div>State: <StatusChip label={item.event_state} tone="neutral" /></div>
-              {capabilityStatus ? (
-                <div>Capability: <StatusChip label={capabilityStatus} tone={getCapabilityTone(capabilityStatus)} /></div>
-              ) : null}
-              {adapterMode ? <div>Adapter mode: <StatusChip label={adapterMode} tone={getAdapterModeTone(adapterMode)} /></div> : null}
+              <SummaryFacts>
+                <SummaryFact label="Category">{item.category}</SummaryFact>
+                <SummaryFact label="Severity">
+                  <StatusChip label={item.severity} tone={getSeverityTone(item.severity)} />
+                </SummaryFact>
+                <SummaryFact label="State">
+                  <StatusChip label={item.event_state} tone="neutral" />
+                </SummaryFact>
+                {capabilityStatus ? (
+                  <SummaryFact label="Capability">
+                    <StatusChip label={capabilityStatus} tone={getCapabilityTone(capabilityStatus)} />
+                  </SummaryFact>
+                ) : null}
+                {adapterMode ? (
+                  <SummaryFact label="Adapter mode">
+                    <StatusChip label={adapterMode} tone={getAdapterModeTone(adapterMode)} />
+                  </SummaryFact>
+                ) : null}
+                {item.run_id ? <SummaryFact label="Run">{item.run_id}</SummaryFact> : null}
+                <SummaryFact label="Created">{formatSummaryTimestamp(item.created_at)}</SummaryFact>
+              </SummaryFacts>
               {meaning ? (
                 <div style={summaryCalloutStyle}>
                   {formatSummaryLabeledText("Meaning", meaning)}
                 </div>
               ) : null}
-              {item.run_id ? <div>Run: {item.run_id}</div> : null}
-              <div>Created: {formatSummaryTimestamp(item.created_at)}</div>
             </SummaryListItem>
           );
         })}

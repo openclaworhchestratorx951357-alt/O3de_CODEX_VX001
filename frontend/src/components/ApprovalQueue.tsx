@@ -1,5 +1,6 @@
 import type { ApprovalListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
+import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import { SummaryList, SummaryListItem } from "./SummaryList";
 import StatusChip from "./StatusChip";
 import { getApprovalStatusTone } from "./statusChipTones";
@@ -53,19 +54,23 @@ export default function ApprovalQueue({
         {items.map((item) => (
           <SummaryListItem key={item.id} card>
             <strong>{formatApprovalTitle(item)}</strong>
-            <div>Class: {item.approval_class}</div>
-            <div>Status: <StatusChip label={item.status} tone={getApprovalStatusTone(item.status)} /></div>
-            <div>Run: {item.run_id}</div>
-            <div>Created: {formatSummaryTimestamp(item.created_at)}</div>
-            {item.decided_at ? (
-              <div>Decided: {formatSummaryTimestamp(item.decided_at)}</div>
-            ) : null}
+            <SummaryFacts>
+              <SummaryFact label="Class">{item.approval_class}</SummaryFact>
+              <SummaryFact label="Status">
+                <StatusChip label={item.status} tone={getApprovalStatusTone(item.status)} />
+              </SummaryFact>
+              <SummaryFact label="Run">{item.run_id}</SummaryFact>
+              <SummaryFact label="Created">{formatSummaryTimestamp(item.created_at)}</SummaryFact>
+              {item.decided_at ? (
+                <SummaryFact label="Decided">{formatSummaryTimestamp(item.decided_at)}</SummaryFact>
+              ) : null}
+              {item.reason ? <SummaryFact label="Reason">{item.reason}</SummaryFact> : null}
+            </SummaryFacts>
             {describeApprovalMeaning(item) ? (
               <div style={summaryCalloutStyle}>
                 {formatSummaryLabeledText("Meaning", describeApprovalMeaning(item) ?? "")}
               </div>
             ) : null}
-            {item.reason ? <div>Reason: {item.reason}</div> : null}
             {item.can_decide ? (
               <div style={summaryActionRowStyle}>
                 <button
