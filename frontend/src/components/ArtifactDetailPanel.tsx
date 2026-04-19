@@ -58,6 +58,7 @@ export default function ArtifactDetailPanel({
         runId={item?.run_id ?? null}
         executionId={item?.execution_id ?? null}
         artifactId={item?.id ?? null}
+        artifactSimulated={item?.simulated ?? null}
       />
       {refreshHint ? (
         <div style={summaryCalloutStyle}>{refreshHint}</div>

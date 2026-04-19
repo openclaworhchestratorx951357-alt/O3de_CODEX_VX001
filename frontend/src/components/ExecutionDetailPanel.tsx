@@ -57,6 +57,8 @@ export default function ExecutionDetailPanel({
   const projectInspectDetails = item?.tool === "project.inspect"
     ? readProjectInspectDetails(item.details)
     : null;
+  const lineageArtifactId = selectedArtifactId ?? item?.artifact_ids[0] ?? null;
+  const lineageArtifact = relatedArtifacts.find((artifact) => artifact.id === lineageArtifactId);
 
   return (
     <SummarySection
@@ -70,7 +72,10 @@ export default function ExecutionDetailPanel({
       <RecordLineageStrip
         runId={item?.run_id ?? null}
         executionId={item?.id ?? null}
+        executionStatus={item?.status ?? null}
         artifactId={selectedArtifactId ?? item?.artifact_ids[0] ?? null}
+        artifactMode={lineageArtifact?.execution_mode ?? null}
+        artifactSimulated={lineageArtifact?.simulated ?? null}
         executionMode={item?.execution_mode ?? null}
       />
       {refreshHint ? (

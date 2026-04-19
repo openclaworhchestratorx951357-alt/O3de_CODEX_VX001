@@ -96,6 +96,7 @@ export default function RunDetailPanel({
     >
       <RecordLineageStrip
         runId={item?.id ?? null}
+        runStatus={item?.status ?? null}
         executionId={relatedExecutionId}
         executionMode={item?.execution_mode ?? null}
       />
