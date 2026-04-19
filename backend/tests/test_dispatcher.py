@@ -209,6 +209,27 @@ def make_render_capture_viewport_request() -> RequestEnvelope:
     return request
 
 
+def make_render_shader_rebuild_request() -> RequestEnvelope:
+    request = make_request("render-lookdev", "render.shader.rebuild")
+    request.args = {
+        "shader_targets": ["ExampleShader"],
+        "platforms": ["pc"],
+        "force": True,
+    }
+    return request
+
+
+def approve_render_shader_rebuild_request() -> RequestEnvelope:
+    first = dispatcher_service.dispatch(make_render_shader_rebuild_request())
+    approval = approvals_service.get_approval(first.approval_id or "")
+    assert approval is not None
+    approvals_service.approve(approval.id)
+
+    approved_request = make_render_shader_rebuild_request()
+    approved_request.approval_token = approval.token
+    return approved_request
+
+
 def make_test_visual_diff_request() -> RequestEnvelope:
     request = make_request("validation", "test.visual.diff")
     request.args = {
@@ -910,6 +931,26 @@ def test_dispatch_rejects_when_render_material_patch_execution_details_fail_sche
         )
 
 
+def test_dispatch_rejects_when_render_shader_rebuild_execution_details_fail_schema_validation(
+    ) -> None:
+    with isolated_database():
+        approved_request = approve_render_shader_rebuild_request()
+        with patch(
+            "app.services.dispatcher.schema_validation_service.validate_execution_details",
+            return_value=["$.simulated: expected constant value True"],
+        ):
+            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_PERSISTED_PAYLOAD"
+        assert response.error.details is not None
+        assert response.error.details["persisted_payload_kind"] == "execution details"
+        assert response.error.details["persisted_schema_ref"].endswith(
+            "render.shader.rebuild.execution-details.schema.json"
+        )
+
+
 def test_dispatch_rejects_when_render_material_inspect_artifact_metadata_fail_schema_validation(
     ) -> None:
     with isolated_database():
@@ -954,6 +995,30 @@ def test_dispatch_rejects_when_render_material_patch_artifact_metadata_fail_sche
         assert response.error.details["persisted_payload_kind"] == "artifact metadata"
         assert response.error.details["persisted_schema_ref"].endswith(
             "render.material.patch.artifact-metadata.schema.json"
+        )
+
+
+def test_dispatch_rejects_when_render_shader_rebuild_artifact_metadata_fail_schema_validation(
+    ) -> None:
+    with isolated_database():
+        approved_request = approve_render_shader_rebuild_request()
+        with patch(
+            "app.services.dispatcher.schema_validation_service.validate_execution_details",
+            return_value=[],
+        ):
+            with patch(
+                "app.services.dispatcher.schema_validation_service.validate_artifact_metadata",
+                return_value=["$.tool: expected constant value 'render.shader.rebuild'"],
+            ):
+                response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_PERSISTED_PAYLOAD"
+        assert response.error.details is not None
+        assert response.error.details["persisted_payload_kind"] == "artifact metadata"
+        assert response.error.details["persisted_schema_ref"].endswith(
+            "render.shader.rebuild.artifact-metadata.schema.json"
         )
 
 
@@ -2197,6 +2262,44 @@ def test_render_material_patch_simulated_persisted_payloads_match_published_sche
         assert (
             schema_validation_service.validate_artifact_metadata(
                 tool_name="render.material.patch",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_render_shader_rebuild_simulated_persisted_payloads_match_published_schemas(
+    ) -> None:
+    with isolated_database():
+        response = dispatcher_service.dispatch(approve_render_shader_rebuild_request())
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "simulated"
+        assert execution.details["simulated"] is True
+        assert artifact is not None
+        assert artifact.simulated is True
+        assert artifact.metadata["execution_mode"] == "simulated"
+        assert artifact.metadata["inspection_surface"] == "simulated"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="render.shader.rebuild",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="render.shader.rebuild",
                 payload=artifact.metadata,
             )
             == []

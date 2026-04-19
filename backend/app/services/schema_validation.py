@@ -321,6 +321,12 @@ class SchemaValidationService:
 
     def _persisted_schema_refs(self) -> dict[tuple[str, str], str]:
         return {
+            ("render.shader.rebuild", "execution-details"): (
+                "schemas/tools/render.shader.rebuild.execution-details.schema.json"
+            ),
+            ("render.shader.rebuild", "artifact-metadata"): (
+                "schemas/tools/render.shader.rebuild.artifact-metadata.schema.json"
+            ),
             ("render.material.patch", "execution-details"): (
                 "schemas/tools/render.material.patch.execution-details.schema.json"
             ),
