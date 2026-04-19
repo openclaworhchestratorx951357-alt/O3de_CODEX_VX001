@@ -9,6 +9,7 @@ import DispatchForm from "./components/DispatchForm";
 import ExecutionsPanel from "./components/ExecutionsPanel";
 import LayoutHeader from "./components/LayoutHeader";
 import LocksPanel from "./components/LocksPanel";
+import OperatorOverviewPanel from "./components/OperatorOverviewPanel";
 import Phase7CapabilitySummaryPanel from "./components/Phase7CapabilitySummaryPanel";
 import PoliciesPanel from "./components/PoliciesPanel";
 import ResponseEnvelopeView from "./components/ResponseEnvelopeView";
@@ -22,6 +23,7 @@ import {
   fetchAdapters,
   fetchApprovalCards,
   fetchArtifactCards,
+  fetchControlPlaneSummary,
   fetchExecution,
   fetchExecutionCards,
   fetchEventCards,
@@ -39,6 +41,7 @@ import type {
   AdaptersResponse,
   ApprovalListItem,
   CatalogAgent,
+  ControlPlaneSummaryResponse,
   ExecutionListItem,
   EventListItem,
   LockListItem,
@@ -76,6 +79,8 @@ export default function App() {
   const [locks, setLocks] = useState<LockListItem[]>([]);
   const [policies, setPolicies] = useState<ToolPolicy[]>([]);
   const [readiness, setReadiness] = useState<ReadinessStatus | null>(null);
+  const [controlPlaneSummary, setControlPlaneSummary] =
+    useState<ControlPlaneSummaryResponse | null>(null);
   const [runs, setRuns] = useState<RunListItem[]>([]);
   const [runAudits, setRunAudits] = useState<RunAuditRecord[]>([]);
   const [settingsPatchAuditSummary, setSettingsPatchAuditSummary] =
@@ -93,6 +98,7 @@ export default function App() {
   const [locksError, setLocksError] = useState<string | null>(null);
   const [policiesError, setPoliciesError] = useState<string | null>(null);
   const [readinessError, setReadinessError] = useState<string | null>(null);
+  const [controlPlaneSummaryError, setControlPlaneSummaryError] = useState<string | null>(null);
   const [runsError, setRunsError] = useState<string | null>(null);
   const [selectedRunError, setSelectedRunError] = useState<string | null>(null);
   const [approvalsLoading, setApprovalsLoading] = useState(true);
@@ -103,6 +109,7 @@ export default function App() {
   const [locksLoading, setLocksLoading] = useState(true);
   const [policiesLoading, setPoliciesLoading] = useState(true);
   const [readinessLoading, setReadinessLoading] = useState(true);
+  const [controlPlaneSummaryLoading, setControlPlaneSummaryLoading] = useState(true);
   const [runsLoading, setRunsLoading] = useState(true);
   const [selectedRunLoading, setSelectedRunLoading] = useState(false);
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
@@ -278,6 +285,21 @@ export default function App() {
     }
   }
 
+  async function loadControlPlaneSummary() {
+    setControlPlaneSummaryLoading(true);
+    try {
+      const nextSummary = await fetchControlPlaneSummary();
+      setControlPlaneSummary(nextSummary);
+      setControlPlaneSummaryError(null);
+    } catch (error) {
+      setControlPlaneSummaryError(
+        error instanceof Error ? error.message : "Failed to load operator overview",
+      );
+    } finally {
+      setControlPlaneSummaryLoading(false);
+    }
+  }
+
   useEffect(() => {
     async function loadInitialData() {
       try {
@@ -297,6 +319,7 @@ export default function App() {
       await loadLocks();
       await loadPolicies();
       await loadReadiness();
+      await loadControlPlaneSummary();
       try {
         const [nextRuns, nextRunsSummary] = await Promise.all([
           fetchRunCards("all", "all"),
@@ -337,6 +360,7 @@ export default function App() {
       await loadLocks();
       await loadPolicies();
       await loadReadiness();
+      await loadControlPlaneSummary();
       await loadRuns(selectedToolFilter, selectedAuditFilter);
     } catch (error) {
       setApprovalsError(
@@ -356,6 +380,7 @@ export default function App() {
     void loadLocks();
     void loadPolicies();
     void loadReadiness();
+    void loadControlPlaneSummary();
     void loadRuns(selectedToolFilter, selectedAuditFilter);
   }
 
@@ -442,6 +467,12 @@ export default function App() {
         readiness={readiness}
         loading={readinessLoading}
         error={readinessError}
+      />
+
+      <OperatorOverviewPanel
+        summary={controlPlaneSummary}
+        loading={controlPlaneSummaryLoading}
+        error={controlPlaneSummaryError}
       />
 
       <Phase7CapabilitySummaryPanel agents={catalogAgents} />

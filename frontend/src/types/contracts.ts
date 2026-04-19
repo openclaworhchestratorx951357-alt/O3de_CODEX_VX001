@@ -507,3 +507,20 @@ export interface ReadinessStatus {
   schema_validation: SchemaValidationStatus;
   dependencies: string[];
 }
+
+export interface ControlPlaneSummaryResponse {
+  runs_total: number;
+  runs_by_status: Record<string, number>;
+  approvals_total: number;
+  approvals_pending: number;
+  approvals_decided: number;
+  executions_total: number;
+  executions_by_status: Record<string, number>;
+  executions_by_mode: Record<string, number>;
+  artifacts_total: number;
+  artifacts_by_mode: Record<string, number>;
+  events_total: number;
+  active_events: number;
+  events_by_severity: Record<string, number>;
+  locks_total: number;
+}

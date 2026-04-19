@@ -17,6 +17,7 @@ import type {
   ExecutionListResponse,
   ExecutionRecord,
   ExecutionsResponse,
+  ControlPlaneSummaryResponse,
   RequestEnvelope,
   ResponseEnvelope,
   LockRecord,
@@ -286,4 +287,8 @@ export async function fetchAdapters(): Promise<AdaptersResponse> {
 
 export async function fetchReadiness(): Promise<ReadinessStatus> {
   return getJson<ReadinessStatus>("/ready", "Readiness fetch");
+}
+
+export async function fetchControlPlaneSummary(): Promise<ControlPlaneSummaryResponse> {
+  return getJson<ControlPlaneSummaryResponse>("/summary", "Control-plane summary fetch");
 }
