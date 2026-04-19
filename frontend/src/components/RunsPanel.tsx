@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import type {
   RunAuditRecord,
@@ -10,6 +10,8 @@ type RunsPanelProps = {
   items: RunRecord[];
   runAudits: RunAuditRecord[];
   settingsPatchAuditSummary: SettingsPatchAuditSummary | null;
+  selectedAuditFilter: AuditFilter;
+  onAuditFilterChange: (filter: AuditFilter) => void;
   loading: boolean;
   error: string | null;
   selectedRunId: string | null;
@@ -37,12 +39,13 @@ export default function RunsPanel({
   items,
   runAudits,
   settingsPatchAuditSummary,
+  selectedAuditFilter,
+  onAuditFilterChange,
   loading,
   error,
   selectedRunId,
   onSelectRun,
 }: RunsPanelProps) {
-  const [auditFilter, setAuditFilter] = useState<AuditFilter>("all");
   const runAuditByRunId = useMemo(
     () => new Map(runAudits.map((audit) => [audit.run_id, audit] as const)),
     [runAudits],
@@ -56,7 +59,7 @@ export default function RunsPanel({
     [settingsPatchAuditSummary],
   );
   const filteredItems = items.filter((item) =>
-    matchesAuditFilter(item, runAuditByRunId.get(item.id), auditFilter),
+    matchesAuditFilter(item, runAuditByRunId.get(item.id), selectedAuditFilter),
   );
 
   return (
@@ -108,11 +111,11 @@ export default function RunsPanel({
             <button
               key={value}
               type="button"
-              onClick={() => setAuditFilter(value)}
+              onClick={() => onAuditFilterChange(value)}
               style={{
                 ...filterButtonStyle,
-                background: auditFilter === value ? "#ddf4ff" : "#f6f8fa",
-                borderColor: auditFilter === value ? "#0969da" : "#d0d7de",
+                background: selectedAuditFilter === value ? "#ddf4ff" : "#f6f8fa",
+                borderColor: selectedAuditFilter === value ? "#0969da" : "#d0d7de",
               }}
             >
               {getFilterLabel(value)}

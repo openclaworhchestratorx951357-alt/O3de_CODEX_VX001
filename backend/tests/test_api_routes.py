@@ -482,6 +482,20 @@ def test_runs_summary_endpoint_reports_settings_patch_audit_states() -> None:
                     == "succeeded"
                 )
 
+                filtered_summary_response = client.get(
+                    "/runs/summary",
+                    params={"audit_status": "succeeded"},
+                )
+                assert filtered_summary_response.status_code == 200
+                filtered_payload = filtered_summary_response.json()
+                assert filtered_payload["settings_patch_audit_summary"]["total_runs"] == 2
+                assert len(filtered_payload["run_audits"]) == 1
+                assert (
+                    filtered_payload["run_audits"][0]["run_id"]
+                    == approved_mutation.json()["operation_id"]
+                )
+                assert filtered_payload["run_audits"][0]["audit_status"] == "succeeded"
+
 
 def test_dispatch_route_rejects_args_that_fail_published_schema() -> None:
     with isolated_client() as client:

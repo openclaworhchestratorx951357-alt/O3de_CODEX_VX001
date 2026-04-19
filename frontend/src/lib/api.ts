@@ -132,7 +132,23 @@ export async function fetchRunsSummary(): Promise<{
   settingsPatchAuditSummary: SettingsPatchAuditSummary;
   runAudits: RunAuditRecord[];
 }> {
-  const response = await fetch(`${API_BASE_URL}/runs/summary`);
+  return fetchRunsSummaryForFilter();
+}
+
+export async function fetchRunsSummaryForFilter(
+  auditStatus?: string,
+): Promise<{
+  settingsPatchAuditSummary: SettingsPatchAuditSummary;
+  runAudits: RunAuditRecord[];
+}> {
+  const params = new URLSearchParams();
+  if (auditStatus && auditStatus !== "all") {
+    params.set("audit_status", auditStatus);
+  }
+  const query = params.toString();
+  const response = await fetch(
+    `${API_BASE_URL}/runs/summary${query ? `?${query}` : ""}`,
+  );
 
   if (!response.ok) {
     throw new Error(`Runs summary fetch failed with status ${response.status}`);

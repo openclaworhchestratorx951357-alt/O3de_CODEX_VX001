@@ -25,7 +25,7 @@ import {
   fetchEvents,
   fetchExecutions,
   fetchRun,
-  fetchRunsSummary,
+  fetchRunsSummaryForFilter,
   fetchLocks,
   fetchPolicies,
   fetchReadiness,
@@ -52,6 +52,14 @@ import type {
 type ToolsCatalog = {
   agents: CatalogAgent[];
 };
+
+type AuditFilter =
+  | "all"
+  | "preflight"
+  | "blocked"
+  | "succeeded"
+  | "rolled_back"
+  | "other";
 
 export default function App() {
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
@@ -92,6 +100,8 @@ export default function App() {
   const [runsLoading, setRunsLoading] = useState(true);
   const [selectedRunLoading, setSelectedRunLoading] = useState(false);
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
+  const [selectedAuditFilter, setSelectedAuditFilter] =
+    useState<AuditFilter>("all");
 
   async function loadApprovals() {
     setApprovalsLoading(true);
@@ -153,12 +163,12 @@ export default function App() {
     }
   }
 
-  async function loadRuns() {
+  async function loadRuns(auditFilter: AuditFilter = selectedAuditFilter) {
     setRunsLoading(true);
     try {
       const [nextRuns, nextRunsSummary] = await Promise.all([
         fetchRuns(),
-        fetchRunsSummary(),
+        fetchRunsSummaryForFilter(auditFilter),
       ]);
       setRuns(nextRuns);
       setRunAudits(nextRunsSummary.runAudits);
@@ -268,7 +278,22 @@ export default function App() {
       await loadLocks();
       await loadPolicies();
       await loadReadiness();
-      await loadRuns();
+      try {
+        const [nextRuns, nextRunsSummary] = await Promise.all([
+          fetchRuns(),
+          fetchRunsSummaryForFilter("all"),
+        ]);
+        setRuns(nextRuns);
+        setRunAudits(nextRunsSummary.runAudits);
+        setSettingsPatchAuditSummary(nextRunsSummary.settingsPatchAuditSummary);
+        setRunsError(null);
+      } catch (error) {
+        setRunsError(
+          error instanceof Error ? error.message : "Failed to load runs",
+        );
+      } finally {
+        setRunsLoading(false);
+      }
     }
 
     void loadInitialData();
@@ -313,6 +338,11 @@ export default function App() {
     void loadPolicies();
     void loadReadiness();
     void loadRuns();
+  }
+
+  function handleAuditFilterChange(filter: AuditFilter) {
+    setSelectedAuditFilter(filter);
+    void loadRuns(filter);
   }
 
   const agentsForDisplay = catalogAgents.length > 0
@@ -426,6 +456,8 @@ export default function App() {
         items={runs}
         runAudits={runAudits}
         settingsPatchAuditSummary={settingsPatchAuditSummary}
+        selectedAuditFilter={selectedAuditFilter}
+        onAuditFilterChange={handleAuditFilterChange}
         loading={runsLoading}
         error={runsError}
         selectedRunId={selectedRunId}

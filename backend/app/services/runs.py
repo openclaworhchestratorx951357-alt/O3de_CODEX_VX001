@@ -34,7 +34,11 @@ class RunsService:
     def get_run(self, run_id: str) -> RunRecord | None:
         return control_plane_repository.get_run(run_id)
 
-    def get_runs_summary(self) -> RunsSummaryResponse:
+    def get_runs_summary(
+        self,
+        *,
+        requested_audit_status: str | None = None,
+    ) -> RunsSummaryResponse:
         runs = self.list_runs()
         executions_by_run_id = {
             execution.run_id: execution
@@ -98,9 +102,18 @@ class RunsService:
             else:
                 summary.other += 1
 
+        filtered_run_audits = [
+            audit
+            for audit in run_audits
+            if self._matches_audit_filter(
+                audit=audit,
+                requested_audit_status=requested_audit_status,
+            )
+        ]
+
         return RunsSummaryResponse(
             settings_patch_audit_summary=summary,
-            run_audits=run_audits,
+            run_audits=filtered_run_audits,
         )
 
     def update_run(
@@ -158,6 +171,16 @@ class RunsService:
         if run.execution_mode == "simulated":
             return "other"
         return "other"
+
+    def _matches_audit_filter(
+        self,
+        *,
+        audit: RunAuditRecord,
+        requested_audit_status: str | None,
+    ) -> bool:
+        if requested_audit_status is None or requested_audit_status == "all":
+            return True
+        return audit.audit_status == requested_audit_status
 
 
 runs_service = RunsService()
