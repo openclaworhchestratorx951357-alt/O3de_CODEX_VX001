@@ -1,6 +1,7 @@
 from app.models.api import LockListItem, LocksListResponse
 from app.models.control_plane import LockRecord
 from app.repositories.control_plane import control_plane_repository
+from app.services.card_utils import isoformat_or_none
 
 
 class LocksService:
@@ -13,7 +14,7 @@ class LocksService:
                 LockListItem(
                     name=lock.name,
                     owner_run_id=lock.owner_run_id,
-                    created_at=lock.created_at.isoformat(),
+                    created_at=isoformat_or_none(lock.created_at) or "",
                 )
                 for lock in self.list_locks()
             ]

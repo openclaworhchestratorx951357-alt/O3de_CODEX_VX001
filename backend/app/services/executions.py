@@ -1,10 +1,14 @@
 from datetime import datetime, timezone
-from typing import Any
 from uuid import uuid4
 
 from app.models.api import ExecutionListItem, ExecutionListResponse
 from app.models.control_plane import ExecutionRecord, ExecutionStatus
 from app.repositories.control_plane import control_plane_repository
+from app.services.card_utils import (
+    isoformat_or_none,
+    read_nested_string_value,
+    read_string_value,
+)
 
 
 class ExecutionsService:
@@ -52,22 +56,19 @@ class ExecutionsService:
                     execution_mode=execution.execution_mode,
                     status=execution.status.value,
                     started_at=execution.started_at.isoformat(),
-                    finished_at=execution.finished_at.isoformat()
-                    if execution.finished_at is not None
-                    else None,
+                    finished_at=isoformat_or_none(execution.finished_at),
                     result_summary=execution.result_summary,
                     warning_count=len(execution.warnings),
                     artifact_count=len(execution.artifact_ids),
-                    inspection_surface=self._read_string_detail(
+                    inspection_surface=read_string_value(execution.details, "inspection_surface"),
+                    mutation_audit_status=read_nested_string_value(
                         execution.details,
-                        "inspection_surface",
-                    ),
-                    mutation_audit_status=self._mutation_audit_string(
-                        execution.details,
+                        "mutation_audit",
                         "status",
                     ),
-                    mutation_audit_summary=self._mutation_audit_string(
+                    mutation_audit_summary=read_nested_string_value(
                         execution.details,
+                        "mutation_audit",
                         "summary",
                     ),
                 )
@@ -108,29 +109,6 @@ class ExecutionsService:
         if finished:
             execution.finished_at = datetime.now(timezone.utc)
         return control_plane_repository.update_execution(execution)
-
-    def _read_string_detail(
-        self,
-        details: dict[str, object] | None,
-        key: str,
-    ) -> str | None:
-        if not isinstance(details, dict):
-            return None
-        value = details.get(key)
-        return value.strip() if isinstance(value, str) and value.strip() else None
-
-    def _mutation_audit_string(
-        self,
-        details: dict[str, Any] | None,
-        key: str,
-    ) -> str | None:
-        if not isinstance(details, dict):
-            return None
-        mutation_audit = details.get("mutation_audit")
-        if not isinstance(mutation_audit, dict):
-            return None
-        value = mutation_audit.get(key)
-        return value.strip() if isinstance(value, str) and value.strip() else None
 
 
 executions_service = ExecutionsService()

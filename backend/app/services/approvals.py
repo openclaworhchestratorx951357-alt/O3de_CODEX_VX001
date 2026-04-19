@@ -4,6 +4,7 @@ from uuid import uuid4
 from app.models.api import ApprovalListItem, ApprovalsListResponse
 from app.models.control_plane import ApprovalRecord, ApprovalStatus
 from app.repositories.control_plane import control_plane_repository
+from app.services.card_utils import isoformat_or_none
 
 
 class ApprovalsService:
@@ -45,9 +46,7 @@ class ApprovalsService:
                     status=approval.status.value,
                     reason=approval.reason,
                     created_at=approval.created_at.isoformat(),
-                    decided_at=approval.decided_at.isoformat()
-                    if approval.decided_at is not None
-                    else None,
+                    decided_at=isoformat_or_none(approval.decided_at),
                     can_decide=approval.status == ApprovalStatus.PENDING,
                 )
                 for approval in self.list_approvals()
