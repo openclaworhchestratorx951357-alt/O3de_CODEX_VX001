@@ -1,26 +1,35 @@
-export const summarySectionStyle = {
+import type { CSSProperties } from "react";
+
+export const summarySectionStyle: CSSProperties = {
   border: "1px solid #d0d7de",
   borderRadius: 12,
   padding: 16,
 };
 
-export const summaryItemStyle = {
+export const summaryItemStyle: CSSProperties = {
   marginBottom: 12,
 };
 
-export const summaryListStyle = {
+export const summaryListStyle: CSSProperties = {
   listStyle: "none",
   margin: 0,
   padding: 0,
 };
 
-export const summaryCardGridStyle = {
+export const summaryControlRowStyle: CSSProperties = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+  marginBottom: 16,
+};
+
+export const summaryCardGridStyle: CSSProperties = {
   display: "grid",
   gap: 12,
   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
 };
 
-export const summaryCardStyle = {
+export const summaryCardStyle: CSSProperties = {
   border: "1px solid #d8dee4",
   borderRadius: 10,
   padding: 12,
@@ -29,12 +38,27 @@ export const summaryCardStyle = {
   gap: 8,
 };
 
-export const summaryCardHeadingStyle = {
+export const summaryCardHeadingStyle: CSSProperties = {
   margin: 0,
 };
 
-export const summaryMutedTextStyle = {
+export const summaryMutedTextStyle: CSSProperties = {
   color: "#57606a",
+};
+
+export const summaryBadgeStyle: CSSProperties = {
+  border: "1px solid #d0d7de",
+  borderRadius: 999,
+  padding: "6px 10px",
+  background: "#f6f8fa",
+  fontSize: 12,
+};
+
+export const summaryFilterButtonStyle: CSSProperties = {
+  border: "1px solid #d0d7de",
+  borderRadius: 999,
+  padding: "6px 12px",
+  cursor: "pointer",
 };
 
 export function formatSummaryTimestamp(value: string): string {

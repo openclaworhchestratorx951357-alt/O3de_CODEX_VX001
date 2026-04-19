@@ -7,6 +7,11 @@ import type {
 } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
+import {
+  summaryBadgeStyle,
+  summaryControlRowStyle,
+  summaryFilterButtonStyle,
+} from "./summaryPrimitives";
 
 type RunsPanelProps = {
   items: RunListItem[];
@@ -79,14 +84,14 @@ export default function RunsPanel({
       emptyMessage="No runs recorded yet."
       hasItems={filteredItems.length > 0}
     >
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+      <div style={summaryControlRowStyle}>
         {(["all", "settings.patch"] as const).map((value) => (
           <button
             key={value}
             type="button"
             onClick={() => onToolFilterChange(value)}
             style={{
-              ...filterButtonStyle,
+              ...summaryFilterButtonStyle,
               background: selectedToolFilter === value ? "#ddf4ff" : "#f6f8fa",
               borderColor: selectedToolFilter === value ? "#0969da" : "#d0d7de",
             }}
@@ -96,14 +101,7 @@ export default function RunsPanel({
         ))}
       </div>
       {settingsPatchAuditSummary && settingsPatchAuditSummary.total_runs > 0 ? (
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 8,
-            marginBottom: 16,
-          }}
-        >
+        <div style={summaryControlRowStyle}>
           <span style={summaryBadgeStyle}>
             settings.patch runs: {settingsPatchAuditSummary.total_runs}
           </span>
@@ -125,14 +123,14 @@ export default function RunsPanel({
         </div>
       ) : null}
       {settingsPatchAuditSummary && settingsPatchAuditSummary.total_runs > 0 ? (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+        <div style={summaryControlRowStyle}>
           {availableFilters.map((value) => (
             <button
               key={value}
               type="button"
               onClick={() => onAuditFilterChange(value)}
               style={{
-                ...filterButtonStyle,
+                ...summaryFilterButtonStyle,
                 background: selectedAuditFilter === value ? "#ddf4ff" : "#f6f8fa",
                 borderColor: selectedAuditFilter === value ? "#0969da" : "#d0d7de",
               }}
@@ -254,18 +252,3 @@ function getFilterLabel(filter: AuditFilter): string {
   }
   return filter.charAt(0).toUpperCase() + filter.slice(1);
 }
-
-const summaryBadgeStyle = {
-  border: "1px solid #d0d7de",
-  borderRadius: 999,
-  padding: "6px 10px",
-  background: "#f6f8fa",
-  fontSize: 12,
-};
-
-const filterButtonStyle = {
-  border: "1px solid #d0d7de",
-  borderRadius: 999,
-  padding: "6px 12px",
-  cursor: "pointer",
-};
