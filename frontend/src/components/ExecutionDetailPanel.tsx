@@ -6,6 +6,11 @@ import type {
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
+import StatusChip from "./StatusChip";
+import {
+  getAuditStatusTone,
+  getExecutionModeTone,
+} from "./statusChipTones";
 import {
   formatSummaryTimestamp,
   summaryActionButtonStyle,
@@ -116,22 +121,49 @@ export default function ExecutionDetailPanel({
               </button>
             ) : null}
             {onOpenArtifact && item.artifact_ids.length > 0 ? (
-              <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ ...summaryCardGridStyle, marginTop: 8 }}>
                 {item.artifact_ids.map((artifactId) => {
                   const artifact = relatedArtifacts.find((entry) => entry.id === artifactId);
                   const artifactLabel = artifact?.label ?? "artifact";
                   const artifactKind = artifact?.kind ?? "unknown kind";
                   return (
-                    <button
-                      key={artifactId}
-                      type="button"
-                      style={summaryActionButtonStyle}
-                      onClick={() => onOpenArtifact(artifactId)}
-                    >
-                      {selectedArtifactId === artifactId
-                        ? `Selected: ${artifactLabel} (${artifactKind})`
-                        : `Open: ${artifactLabel} (${artifactKind})`}
-                    </button>
+                    <article key={artifactId} style={summaryCardStyle}>
+                      <h5 style={summaryCardHeadingStyle}>{artifactLabel}</h5>
+                      <SummaryFacts>
+                        <SummaryFact label="Artifact ID" copyValue={artifactId}>
+                          {artifactId}
+                        </SummaryFact>
+                        <SummaryFact label="Kind">{artifactKind}</SummaryFact>
+                        <SummaryFact label="Created">
+                          {artifact?.created_at
+                            ? formatSummaryTimestamp(artifact.created_at)
+                            : "not recorded"}
+                        </SummaryFact>
+                        <SummaryFact label="Execution mode">
+                          <StatusChip
+                            label={artifact?.execution_mode ?? "unknown"}
+                            tone={getExecutionModeTone(artifact?.execution_mode ?? "unknown")}
+                          />
+                        </SummaryFact>
+                        {artifact?.mutation_audit_status ? (
+                          <SummaryFact label="Mutation audit">
+                            <StatusChip
+                              label={artifact.mutation_audit_status}
+                              tone={getAuditStatusTone(artifact.mutation_audit_status)}
+                            />
+                          </SummaryFact>
+                        ) : null}
+                      </SummaryFacts>
+                      <button
+                        type="button"
+                        style={summaryActionButtonStyle}
+                        onClick={() => onOpenArtifact(artifactId)}
+                      >
+                        {selectedArtifactId === artifactId
+                          ? "Artifact detail selected"
+                          : "Open artifact detail"}
+                      </button>
+                    </article>
                   );
                 })}
               </div>
