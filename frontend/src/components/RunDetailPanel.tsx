@@ -1,4 +1,6 @@
 import type { RunRecord, SettingsPatchMutationAudit } from "../types/contracts";
+import SummarySection from "./SummarySection";
+import { formatSummaryTimestamp } from "./summaryPrimitives";
 
 type RunDetailPanelProps = {
   item: RunRecord | null;
@@ -49,74 +51,109 @@ export default function RunDetailPanel({
 }: RunDetailPanelProps) {
   const mutationAudit = readMutationAudit(executionDetails);
   return (
-    <section
-      style={{
-        border: "1px solid #d0d7de",
-        borderRadius: 12,
-        padding: 16,
-        marginTop: 24,
-      }}
+    <SummarySection
+      title="Run Detail"
+      description="This view shows one persisted run record with explicit execution truth, including simulated runs."
+      loading={loading}
+      error={error}
+      emptyMessage="Select a run to inspect its detail."
+      hasItems={Boolean(item)}
     >
-      <h3 style={{ marginTop: 0 }}>Run Detail</h3>
-      <p style={{ marginTop: 0, color: "#57606a" }}>
-        This view shows a single persisted run record. Execution mode remains
-        explicit, including simulated runs.
-      </p>
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
-      {loading ? (
-        <p>Loading run detail...</p>
-      ) : !item ? (
-        <p>Select a run to inspect its detail.</p>
-      ) : (
-        <div style={{ display: "grid", gap: 8 }}>
-          <div><strong>Run ID:</strong> {item.id}</div>
-          <div><strong>Request ID:</strong> {item.request_id}</div>
-          <div><strong>Agent:</strong> {item.agent}</div>
-          <div><strong>Tool:</strong> {item.tool}</div>
-          <div><strong>Status:</strong> {item.status}</div>
-          <div><strong>Execution mode:</strong> {item.execution_mode}</div>
+      <div
+        style={{
+          display: "grid",
+          gap: 12,
+          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+        }}
+      >
+        <article style={detailCardStyle}>
+          <h4 style={detailHeadingStyle}>Identity</h4>
+          <div><strong>Run ID:</strong> {item?.id}</div>
+          <div><strong>Request ID:</strong> {item?.request_id}</div>
+          <div><strong>Agent:</strong> {item?.agent}</div>
+          <div><strong>Tool:</strong> {item?.tool}</div>
+        </article>
+        <article style={detailCardStyle}>
+          <h4 style={detailHeadingStyle}>Execution</h4>
+          <div><strong>Status:</strong> {item?.status}</div>
+          <div><strong>Execution mode:</strong> {item?.execution_mode}</div>
+          <div><strong>Dry run:</strong> {String(item?.dry_run)}</div>
           <div>
-            <strong>Execution truth:</strong>{" "}
-            {describeRunTruth(item)}
+            <strong>Created:</strong>{" "}
+            {item ? formatSummaryTimestamp(item.created_at) : ""}
           </div>
-          {item.tool === "settings.patch" && mutationAudit ? (
-            <>
-              <div>
-                <strong>Mutation audit:</strong> {mutationAudit.summary ?? "available"}
-              </div>
-              <div>
-                <strong>Audit phase:</strong> {mutationAudit.phase ?? "unknown"}
-              </div>
-              <div>
-                <strong>Audit status:</strong> {mutationAudit.status ?? "unknown"}
-              </div>
-              {typeof mutationAudit.backup_created === "boolean" ? (
-                <div>
-                  <strong>Backup created:</strong> {String(mutationAudit.backup_created)}
-                </div>
-              ) : null}
-              {typeof mutationAudit.post_write_verification_succeeded === "boolean" ? (
-                <div>
-                  <strong>Verification succeeded:</strong>{" "}
-                  {String(mutationAudit.post_write_verification_succeeded)}
-                </div>
-              ) : null}
-              {mutationAudit.rollback_outcome ? (
-                <div>
-                  <strong>Rollback outcome:</strong> {mutationAudit.rollback_outcome}
-                </div>
-              ) : null}
-            </>
+          <div>
+            <strong>Updated:</strong>{" "}
+            {item ? formatSummaryTimestamp(item.updated_at) : ""}
+          </div>
+        </article>
+        <article style={detailCardStyle}>
+          <h4 style={detailHeadingStyle}>Truth Boundary</h4>
+          <div>{item ? describeRunTruth(item) : null}</div>
+          {item?.result_summary ? (
+            <div style={{ marginTop: 8 }}>
+              <strong>Summary:</strong> {item.result_summary}
+            </div>
           ) : null}
-          <div><strong>Dry run:</strong> {String(item.dry_run)}</div>
-          <div><strong>Requested locks:</strong> {item.requested_locks.join(", ") || "none"}</div>
-          <div><strong>Granted locks:</strong> {item.granted_locks.join(", ") || "none"}</div>
-          <div><strong>Warnings:</strong> {item.warnings.join(", ") || "none"}</div>
-          {item.result_summary ? (
-            <div><strong>Summary:</strong> {item.result_summary}</div>
-          ) : null}
-        </div>
-      )}
-    </section>
+        </article>
+        <article style={detailCardStyle}>
+          <h4 style={detailHeadingStyle}>Locks And Warnings</h4>
+          <div>
+            <strong>Requested locks:</strong>{" "}
+            {item?.requested_locks.join(", ") || "none"}
+          </div>
+          <div>
+            <strong>Granted locks:</strong>{" "}
+            {item?.granted_locks.join(", ") || "none"}
+          </div>
+          <div>
+            <strong>Warnings:</strong> {item?.warnings.join(", ") || "none"}
+          </div>
+        </article>
+        {item?.tool === "settings.patch" && mutationAudit ? (
+          <article style={detailCardStyle}>
+            <h4 style={detailHeadingStyle}>Mutation Audit</h4>
+            <div>
+              <strong>Audit summary:</strong> {mutationAudit.summary ?? "available"}
+            </div>
+            <div>
+              <strong>Audit phase:</strong> {mutationAudit.phase ?? "unknown"}
+            </div>
+            <div>
+              <strong>Audit status:</strong> {mutationAudit.status ?? "unknown"}
+            </div>
+            {typeof mutationAudit.backup_created === "boolean" ? (
+              <div>
+                <strong>Backup created:</strong> {String(mutationAudit.backup_created)}
+              </div>
+            ) : null}
+            {typeof mutationAudit.post_write_verification_succeeded === "boolean" ? (
+              <div>
+                <strong>Verification succeeded:</strong>{" "}
+                {String(mutationAudit.post_write_verification_succeeded)}
+              </div>
+            ) : null}
+            {mutationAudit.rollback_outcome ? (
+              <div>
+                <strong>Rollback outcome:</strong> {mutationAudit.rollback_outcome}
+              </div>
+            ) : null}
+          </article>
+        ) : null}
+      </div>
+    </SummarySection>
   );
 }
+
+const detailCardStyle = {
+  border: "1px solid #d8dee4",
+  borderRadius: 10,
+  padding: 12,
+  background: "#f6f8fa",
+  display: "grid",
+  gap: 8,
+};
+
+const detailHeadingStyle = {
+  margin: 0,
+};

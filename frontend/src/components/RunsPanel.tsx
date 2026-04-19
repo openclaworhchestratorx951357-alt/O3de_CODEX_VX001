@@ -5,6 +5,8 @@ import type {
   RunAuditRecord,
   SettingsPatchAuditSummary,
 } from "../types/contracts";
+import SummarySection from "./SummarySection";
+import { summaryItemStyle } from "./summaryPrimitives";
 
 type RunsPanelProps = {
   items: RunListItem[];
@@ -69,19 +71,14 @@ export default function RunsPanel({
   );
 
   return (
-    <section
-      style={{
-        border: "1px solid #d0d7de",
-        borderRadius: 12,
-        padding: 16,
-        marginTop: 24,
-      }}
+    <SummarySection
+      title="Runs"
+      description="Runs reflect persisted control-plane bookkeeping. Execution mode remains explicitly labeled, including simulated flows."
+      loading={loading}
+      error={error}
+      emptyMessage="No runs recorded yet."
+      hasItems={filteredItems.length > 0}
     >
-      <h3 style={{ marginTop: 0 }}>Runs</h3>
-      <p style={{ marginTop: 0, color: "#57606a" }}>
-        Runs reflect persisted control-plane bookkeeping. Execution mode remains
-        explicitly labeled, including simulated flows.
-      </p>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
         {(["all", "settings.patch"] as const).map((value) => (
           <button
@@ -145,13 +142,7 @@ export default function RunsPanel({
           ))}
         </div>
       ) : null}
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
-      {loading ? (
-        <p>Loading runs...</p>
-      ) : filteredItems.length === 0 ? (
-        <p>No runs recorded yet.</p>
-      ) : (
-        <ul>
+      <ul>
           {filteredItems.map((item) => {
             const capability = getRunCapabilityLabel(item);
             const executionTruth = getRunExecutionTruth(item);
@@ -159,7 +150,7 @@ export default function RunsPanel({
             const auditStatus = getAuditStatusLabel(item, audit);
 
             return (
-              <li key={item.id} style={{ marginBottom: 12 }}>
+              <li key={item.id} style={summaryItemStyle}>
                 <strong>{item.tool}</strong>
                 <div>Agent: {item.agent}</div>
                 <div>Status: {item.status}</div>
@@ -167,6 +158,7 @@ export default function RunsPanel({
                 <div>Capability: {capability}</div>
                 <div>Execution truth: {executionTruth}</div>
                 {auditStatus ? <div>Audit status: {auditStatus}</div> : null}
+                {audit?.audit_phase ? <div>Audit phase: {audit.audit_phase}</div> : null}
                 {audit?.audit_summary ? <div>Audit summary: {audit.audit_summary}</div> : null}
                 <div>Dry run: {String(item.dry_run)}</div>
                 <div>Run ID: {item.id}</div>
@@ -182,9 +174,8 @@ export default function RunsPanel({
               </li>
             );
           })}
-        </ul>
-      )}
-    </section>
+      </ul>
+    </SummarySection>
   );
 }
 
