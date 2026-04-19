@@ -334,10 +334,11 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
     assert "$schema" in capability.active_metadata_keywords
     assert "allOf" in capability.supported_keywords
     assert "oneOf" in capability.unsupported_keywords
-    assert capability.persisted_execution_details_tool_count == 18
-    assert capability.persisted_artifact_metadata_tool_count == 18
+    assert capability.persisted_execution_details_tool_count == 19
+    assert capability.persisted_artifact_metadata_tool_count == 19
     assert capability.persisted_execution_details_tools == [
         "asset.batch.process",
+        "asset.move.safe",
         "asset.processor.status",
         "asset.source.inspect",
         "build.compile",
@@ -358,6 +359,7 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
     ]
     assert capability.persisted_artifact_metadata_tools == [
         "asset.batch.process",
+        "asset.move.safe",
         "asset.processor.status",
         "asset.source.inspect",
         "build.compile",
@@ -393,16 +395,15 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
         {
             "family": "asset-pipeline",
             "total_tools": 4,
-            "execution_details_tools": 3,
-            "artifact_metadata_tools": 3,
+            "execution_details_tools": 4,
+            "artifact_metadata_tools": 4,
             "covered_tools": [
                 "asset.batch.process",
+                "asset.move.safe",
                 "asset.processor.status",
                 "asset.source.inspect",
             ],
-            "uncovered_tools": [
-                "asset.move.safe",
-            ],
+            "uncovered_tools": [],
         },
         {
             "family": "project-build",
