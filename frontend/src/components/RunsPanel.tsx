@@ -7,6 +7,7 @@ import type {
 } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
+import StatusChip from "./StatusChip";
 import {
   summaryActionButtonStyle,
   summaryBadgeStyle,
@@ -152,11 +153,13 @@ export default function RunsPanel({
               <SummaryListItem key={item.id} card>
                 <strong>{item.tool}</strong>
                 <div>Agent: {item.agent}</div>
-                <div>Status: {item.status}</div>
-                <div>Execution mode: {item.execution_mode}</div>
-                <div>Capability: {capability}</div>
+                <div>Status: <StatusChip label={item.status} tone={getRunStatusTone(item.status)} /></div>
+                <div>Execution mode: <StatusChip label={item.execution_mode} tone={getExecutionModeTone(item.execution_mode)} /></div>
+                <div>Capability: <StatusChip label={capability} tone={getCapabilityTone(capability)} /></div>
                 <div>Execution truth: {executionTruth}</div>
-                {auditStatus ? <div>Audit status: {auditStatus}</div> : null}
+                {auditStatus ? (
+                  <div>Audit status: <StatusChip label={auditStatus} tone={getAuditStatusTone(auditStatus)} /></div>
+                ) : null}
                 {audit?.audit_phase ? <div>Audit phase: {audit.audit_phase}</div> : null}
                 {audit?.audit_summary ? <div>Audit summary: {audit.audit_summary}</div> : null}
                 <div>Dry run: {String(item.dry_run)}</div>
@@ -255,4 +258,53 @@ function getFilterLabel(filter: AuditFilter): string {
     return "Rolled back";
   }
   return filter.charAt(0).toUpperCase() + filter.slice(1);
+}
+
+function getRunStatusTone(status: string) {
+  if (status === "succeeded") {
+    return "success" as const;
+  }
+  if (status === "failed" || status === "rejected" || status === "blocked") {
+    return "danger" as const;
+  }
+  if (status === "waiting_approval" || status === "pending" || status === "running") {
+    return "warning" as const;
+  }
+  return "neutral" as const;
+}
+
+function getExecutionModeTone(mode: string) {
+  if (mode === "real") {
+    return "success" as const;
+  }
+  if (mode === "simulated") {
+    return "warning" as const;
+  }
+  return "neutral" as const;
+}
+
+function getCapabilityTone(capability: string) {
+  if (capability === "hybrid-read-only") {
+    return "info" as const;
+  }
+  if (capability === "plan-only") {
+    return "warning" as const;
+  }
+  if (capability === "mutation-gated") {
+    return "danger" as const;
+  }
+  return "neutral" as const;
+}
+
+function getAuditStatusTone(status: string) {
+  if (status === "succeeded") {
+    return "success" as const;
+  }
+  if (status === "blocked" || status === "rolled_back") {
+    return "danger" as const;
+  }
+  if (status === "preflight" || status === "simulated" || status === "unknown") {
+    return "warning" as const;
+  }
+  return "neutral" as const;
 }

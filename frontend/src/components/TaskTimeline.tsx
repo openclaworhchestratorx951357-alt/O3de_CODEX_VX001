@@ -1,6 +1,7 @@
 import type { EventListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
+import StatusChip from "./StatusChip";
 import {
   formatSummaryLabeledText,
   formatSummaryTimestamp,
@@ -51,10 +52,12 @@ export default function TaskTimeline({ items, loading, error }: TaskTimelineProp
             <SummaryListItem key={item.id} card>
               <strong>{item.message}</strong>
               <div>Category: {item.category}</div>
-              <div>Severity: {item.severity}</div>
-              <div>State: {item.event_state}</div>
-              {capabilityStatus ? <div>Capability: {capabilityStatus}</div> : null}
-              {adapterMode ? <div>Adapter mode: {adapterMode}</div> : null}
+              <div>Severity: <StatusChip label={item.severity} tone={getSeverityTone(item.severity)} /></div>
+              <div>State: <StatusChip label={item.event_state} tone="neutral" /></div>
+              {capabilityStatus ? (
+                <div>Capability: <StatusChip label={capabilityStatus} tone={getCapabilityTone(capabilityStatus)} /></div>
+              ) : null}
+              {adapterMode ? <div>Adapter mode: <StatusChip label={adapterMode} tone={getAdapterModeTone(adapterMode)} /></div> : null}
               {meaning ? (
                 <div style={summaryCalloutStyle}>
                   {formatSummaryLabeledText("Meaning", meaning)}
@@ -68,4 +71,40 @@ export default function TaskTimeline({ items, loading, error }: TaskTimelineProp
       </SummaryList>
     </SummarySection>
   );
+}
+
+function getSeverityTone(severity: string) {
+  if (severity === "error") {
+    return "danger" as const;
+  }
+  if (severity === "warning") {
+    return "warning" as const;
+  }
+  if (severity === "info") {
+    return "info" as const;
+  }
+  return "neutral" as const;
+}
+
+function getCapabilityTone(capability: string) {
+  if (capability === "hybrid-read-only") {
+    return "info" as const;
+  }
+  if (capability === "plan-only") {
+    return "warning" as const;
+  }
+  if (capability === "mutation-gated") {
+    return "danger" as const;
+  }
+  return "neutral" as const;
+}
+
+function getAdapterModeTone(mode: string) {
+  if (mode === "real") {
+    return "success" as const;
+  }
+  if (mode === "simulated") {
+    return "warning" as const;
+  }
+  return "neutral" as const;
 }

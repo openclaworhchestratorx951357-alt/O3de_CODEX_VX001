@@ -1,6 +1,7 @@
 import type { ExecutionListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryList, SummaryListItem } from "./SummaryList";
+import StatusChip from "./StatusChip";
 import {
   formatSummaryLabeledText,
   formatSummaryTimestamp,
@@ -34,8 +35,8 @@ export default function ExecutionsPanel({
             <SummaryListItem key={item.id} card>
               <strong>{item.tool}</strong>
               <div>Agent: {item.agent}</div>
-              <div>Status: {item.status}</div>
-              <div>Execution mode: {item.execution_mode}</div>
+              <div>Status: <StatusChip label={item.status} tone={getExecutionStatusTone(item.status)} /></div>
+              <div>Execution mode: <StatusChip label={item.execution_mode} tone={getExecutionModeTone(item.execution_mode)} /></div>
               <div>Run ID: {item.run_id}</div>
               <div>Started: {formatSummaryTimestamp(item.started_at)}</div>
               {item.finished_at ? (
@@ -48,7 +49,10 @@ export default function ExecutionsPanel({
                 <div>Mutation audit: {item.mutation_audit_summary}</div>
               ) : null}
               {item.mutation_audit_status ? (
-                <div>Mutation audit status: {item.mutation_audit_status}</div>
+                <div>
+                  Mutation audit status:{" "}
+                  <StatusChip label={item.mutation_audit_status} tone={getAuditStatusTone(item.mutation_audit_status)} />
+                </div>
               ) : null}
               {item.result_summary ? <div>Summary: {item.result_summary}</div> : null}
               <div>Warnings: {item.warning_count}</div>
@@ -59,6 +63,42 @@ export default function ExecutionsPanel({
       </SummaryList>
     </SummarySection>
   );
+}
+
+function getExecutionStatusTone(status: string) {
+  if (status === "succeeded") {
+    return "success" as const;
+  }
+  if (status === "failed" || status === "rejected" || status === "blocked") {
+    return "danger" as const;
+  }
+  if (status === "waiting_approval" || status === "pending" || status === "running") {
+    return "warning" as const;
+  }
+  return "neutral" as const;
+}
+
+function getExecutionModeTone(mode: string) {
+  if (mode === "real") {
+    return "success" as const;
+  }
+  if (mode === "simulated") {
+    return "warning" as const;
+  }
+  return "neutral" as const;
+}
+
+function getAuditStatusTone(status: string) {
+  if (status === "succeeded") {
+    return "success" as const;
+  }
+  if (status === "blocked" || status === "rolled_back") {
+    return "danger" as const;
+  }
+  if (status === "preflight" || status === "simulated" || status === "unknown") {
+    return "warning" as const;
+  }
+  return "neutral" as const;
 }
 
 function getExecutionProvenanceLabel(item: ExecutionListItem): string {
