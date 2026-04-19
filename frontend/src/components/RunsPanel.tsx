@@ -35,6 +35,7 @@ type RunsPanelProps = {
   error: string | null;
   selectedRunId: string | null;
   onSelectRun: (runId: string) => void;
+  searchPreset?: string | null;
 };
 
 type AuditFilter =
@@ -68,8 +69,9 @@ export default function RunsPanel({
   error,
   selectedRunId,
   onSelectRun,
+  searchPreset,
 }: RunsPanelProps) {
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const runAuditByRunId = useMemo(
     () => new Map(runAudits.map((audit) => [audit.run_id, audit] as const)),
     [runAudits],

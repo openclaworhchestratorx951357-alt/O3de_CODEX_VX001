@@ -22,14 +22,16 @@ type ExecutionsPanelProps = {
   items: ExecutionListItem[];
   loading: boolean;
   error: string | null;
+  searchPreset?: string | null;
 };
 
 export default function ExecutionsPanel({
   items,
   loading,
   error,
+  searchPreset,
 }: ExecutionsPanelProps) {
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
   const filteredItems = useMemo(
     () =>

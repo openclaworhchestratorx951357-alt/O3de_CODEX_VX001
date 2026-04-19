@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import AgentPanel from "./components/AgentPanel";
 import AdaptersPanel from "./components/AdaptersPanel";
@@ -117,6 +117,18 @@ export default function App() {
     useState<ToolFilter>("all");
   const [selectedAuditFilter, setSelectedAuditFilter] =
     useState<AuditFilter>("all");
+  const [runsSearchPreset, setRunsSearchPreset] = useState<string | null>(null);
+  const [approvalsSearchPreset, setApprovalsSearchPreset] = useState<string | null>(null);
+  const [executionsSearchPreset, setExecutionsSearchPreset] = useState<string | null>(null);
+  const [eventsSearchPreset, setEventsSearchPreset] = useState<string | null>(null);
+  const [runsSearchVersion, setRunsSearchVersion] = useState(0);
+  const [approvalsSearchVersion, setApprovalsSearchVersion] = useState(0);
+  const [executionsSearchVersion, setExecutionsSearchVersion] = useState(0);
+  const [eventsSearchVersion, setEventsSearchVersion] = useState(0);
+  const approvalsSectionRef = useRef<HTMLElement | null>(null);
+  const executionsSectionRef = useRef<HTMLDivElement | null>(null);
+  const eventsSectionRef = useRef<HTMLDivElement | null>(null);
+  const runsSectionRef = useRef<HTMLDivElement | null>(null);
 
   async function loadApprovals() {
     setApprovalsLoading(true);
@@ -394,6 +406,37 @@ export default function App() {
     void loadRuns(filter, selectedAuditFilter);
   }
 
+  function scrollToSection(target: HTMLElement | null) {
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function handleRunStatusDrilldown(status: string) {
+    setSelectedToolFilter("all");
+    setSelectedAuditFilter("all");
+    setRunsSearchPreset(status);
+    setRunsSearchVersion((value) => value + 1);
+    void loadRuns("all", "all");
+    scrollToSection(runsSectionRef.current);
+  }
+
+  function handlePendingApprovalsDrilldown() {
+    setApprovalsSearchPreset("pending");
+    setApprovalsSearchVersion((value) => value + 1);
+    scrollToSection(approvalsSectionRef.current);
+  }
+
+  function handleExecutionModeDrilldown(mode: string) {
+    setExecutionsSearchPreset(mode);
+    setExecutionsSearchVersion((value) => value + 1);
+    scrollToSection(executionsSectionRef.current);
+  }
+
+  function handleEventSeverityDrilldown(severity: string) {
+    setEventsSearchPreset(severity);
+    setEventsSearchVersion((value) => value + 1);
+    scrollToSection(eventsSectionRef.current);
+  }
+
   const agentsForDisplay = catalogAgents.length > 0
     ? catalogAgents.map((agent) => ({
         id: agent.id,
@@ -473,49 +516,67 @@ export default function App() {
         summary={controlPlaneSummary}
         loading={controlPlaneSummaryLoading}
         error={controlPlaneSummaryError}
+        onRunStatusSelect={handleRunStatusDrilldown}
+        onPendingApprovalsSelect={handlePendingApprovalsDrilldown}
+        onExecutionModeSelect={handleExecutionModeDrilldown}
+        onEventSeveritySelect={handleEventSeverityDrilldown}
       />
 
       <Phase7CapabilitySummaryPanel agents={catalogAgents} />
 
-      <section>
+      <section ref={approvalsSectionRef}>
         <ApprovalQueue
+          key={`approvals-search-${approvalsSearchVersion}`}
           items={approvals}
           loading={approvalsLoading}
           error={approvalsError}
           busyApprovalId={busyApprovalId}
           onApprove={(approvalId) => handleApprovalDecision(approvalId, "approve")}
           onReject={(approvalId) => handleApprovalDecision(approvalId, "reject")}
+          searchPreset={approvalsSearchPreset}
         />
       </section>
 
-      <TaskTimeline
-        items={events}
-        loading={eventsLoading}
-        error={eventsError}
-      />
+      <div ref={eventsSectionRef}>
+        <TaskTimeline
+          key={`events-search-${eventsSearchVersion}`}
+          items={events}
+          loading={eventsLoading}
+          error={eventsError}
+          searchPreset={eventsSearchPreset}
+        />
+      </div>
       <ArtifactsPanel
         items={artifacts}
         loading={artifactsLoading}
         error={artifactsError}
       />
-      <ExecutionsPanel
-        items={executions}
-        loading={executionsLoading}
-        error={executionsError}
-      />
-      <RunsPanel
-        items={runs}
-        runAudits={runAudits}
-        settingsPatchAuditSummary={settingsPatchAuditSummary}
-        selectedToolFilter={selectedToolFilter}
-        onToolFilterChange={handleToolFilterChange}
-        selectedAuditFilter={selectedAuditFilter}
-        onAuditFilterChange={handleAuditFilterChange}
-        loading={runsLoading}
-        error={runsError}
-        selectedRunId={selectedRunId}
-        onSelectRun={(runId) => void loadRunDetail(runId)}
-      />
+      <div ref={executionsSectionRef}>
+        <ExecutionsPanel
+          key={`executions-search-${executionsSearchVersion}`}
+          items={executions}
+          loading={executionsLoading}
+          error={executionsError}
+          searchPreset={executionsSearchPreset}
+        />
+      </div>
+      <div ref={runsSectionRef}>
+        <RunsPanel
+          key={`runs-search-${runsSearchVersion}`}
+          items={runs}
+          runAudits={runAudits}
+          settingsPatchAuditSummary={settingsPatchAuditSummary}
+          selectedToolFilter={selectedToolFilter}
+          onToolFilterChange={handleToolFilterChange}
+          selectedAuditFilter={selectedAuditFilter}
+          onAuditFilterChange={handleAuditFilterChange}
+          loading={runsLoading}
+          error={runsError}
+          selectedRunId={selectedRunId}
+          onSelectRun={(runId) => void loadRunDetail(runId)}
+          searchPreset={runsSearchPreset}
+        />
+      </div>
       <RunDetailPanel
         item={selectedRun}
         loading={selectedRunLoading}

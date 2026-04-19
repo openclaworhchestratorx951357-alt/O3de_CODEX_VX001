@@ -22,6 +22,7 @@ type TaskTimelineProps = {
   items: EventListItem[];
   loading: boolean;
   error: string | null;
+  searchPreset?: string | null;
 };
 
 function describeTimelineMeaning(item: EventListItem): string | null {
@@ -43,8 +44,8 @@ function describeTimelineMeaning(item: EventListItem): string | null {
   return null;
 }
 
-export default function TaskTimeline({ items, loading, error }: TaskTimelineProps) {
-  const [searchValue, setSearchValue] = useState("");
+export default function TaskTimeline({ items, loading, error, searchPreset }: TaskTimelineProps) {
+  const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
   const filteredItems = useMemo(
     () => items.filter((item) => matchesTimelineSearch(item, normalizedQuery)),

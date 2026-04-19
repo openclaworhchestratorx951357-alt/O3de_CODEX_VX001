@@ -23,12 +23,20 @@ type OperatorOverviewPanelProps = {
   summary: ControlPlaneSummaryResponse | null;
   loading: boolean;
   error: string | null;
+  onRunStatusSelect: (status: string) => void;
+  onPendingApprovalsSelect: () => void;
+  onExecutionModeSelect: (mode: string) => void;
+  onEventSeveritySelect: (severity: string) => void;
 };
 
 export default function OperatorOverviewPanel({
   summary,
   loading,
   error,
+  onRunStatusSelect,
+  onPendingApprovalsSelect,
+  onExecutionModeSelect,
+  onEventSeveritySelect,
 }: OperatorOverviewPanelProps) {
   return (
     <SummarySection
@@ -60,6 +68,7 @@ export default function OperatorOverviewPanel({
                     entries={summary.runs_by_status}
                     toneForKey={getRunStatusTone}
                     emptyLabel="none"
+                    onSelect={onRunStatusSelect}
                   />
                 </SummaryFact>
               </SummaryFacts>
@@ -69,10 +78,16 @@ export default function OperatorOverviewPanel({
               <SummaryFacts>
                 <SummaryFact label="Total">{summary.approvals_total}</SummaryFact>
                 <SummaryFact label="Pending">
-                  <StatusChip
-                    label={String(summary.approvals_pending)}
-                    tone={getApprovalStatusTone(summary.approvals_pending > 0 ? "pending" : "approved")}
-                  />
+                  <button
+                    type="button"
+                    onClick={onPendingApprovalsSelect}
+                    style={chipButtonStyle}
+                  >
+                    <StatusChip
+                      label={String(summary.approvals_pending)}
+                      tone={getApprovalStatusTone(summary.approvals_pending > 0 ? "pending" : "approved")}
+                    />
+                  </button>
                 </SummaryFact>
                 <SummaryFact label="Decided">{summary.approvals_decided}</SummaryFact>
               </SummaryFacts>
@@ -93,6 +108,7 @@ export default function OperatorOverviewPanel({
                     entries={summary.executions_by_mode}
                     toneForKey={getExecutionModeTone}
                     emptyLabel="none"
+                    onSelect={onExecutionModeSelect}
                   />
                 </SummaryFact>
               </SummaryFacts>
@@ -125,6 +141,7 @@ export default function OperatorOverviewPanel({
                     entries={summary.events_by_severity}
                     toneForKey={getSeverityTone}
                     emptyLabel="none"
+                    onSelect={onEventSeveritySelect}
                   />
                 </SummaryFact>
               </SummaryFacts>
@@ -149,9 +166,10 @@ type StatusBreakdownProps = {
   entries: Record<string, number>;
   toneForKey: (key: string) => "neutral" | "info" | "success" | "warning" | "danger";
   emptyLabel: string;
+  onSelect?: (key: string) => void;
 };
 
-function StatusBreakdown({ entries, toneForKey, emptyLabel }: StatusBreakdownProps) {
+function StatusBreakdown({ entries, toneForKey, emptyLabel, onSelect }: StatusBreakdownProps) {
   const sortedEntries = Object.entries(entries).sort(([left], [right]) => left.localeCompare(right));
 
   if (sortedEntries.length === 0) {
@@ -161,11 +179,17 @@ function StatusBreakdown({ entries, toneForKey, emptyLabel }: StatusBreakdownPro
   return (
     <div style={chipWrapStyle}>
       {sortedEntries.map(([key, value]) => (
-        <StatusChip
+        <button
           key={key}
-          label={`${key}: ${value}`}
-          tone={toneForKey(key)}
-        />
+          type="button"
+          onClick={onSelect ? () => onSelect(key) : undefined}
+          style={chipButtonStyle}
+        >
+          <StatusChip
+            label={`${key}: ${value}`}
+            tone={toneForKey(key)}
+          />
+        </button>
       ))}
     </div>
   );
@@ -182,4 +206,11 @@ const chipWrapStyle: CSSProperties = {
   display: "flex",
   gap: 6,
   flexWrap: "wrap",
+};
+
+const chipButtonStyle: CSSProperties = {
+  border: "none",
+  padding: 0,
+  background: "transparent",
+  cursor: "pointer",
 };

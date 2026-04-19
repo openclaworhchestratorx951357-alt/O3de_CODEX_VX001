@@ -23,6 +23,7 @@ type ApprovalQueueProps = {
   busyApprovalId: string | null;
   onApprove: (approvalId: string) => Promise<void>;
   onReject: (approvalId: string) => Promise<void>;
+  searchPreset?: string | null;
 };
 
 function formatApprovalTitle(item: ApprovalListItem): string {
@@ -43,8 +44,9 @@ export default function ApprovalQueue({
   busyApprovalId,
   onApprove,
   onReject,
+  searchPreset,
 }: ApprovalQueueProps) {
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
   const filteredItems = useMemo(
     () => items.filter((item) => matchesApprovalSearch(item, normalizedQuery)),
