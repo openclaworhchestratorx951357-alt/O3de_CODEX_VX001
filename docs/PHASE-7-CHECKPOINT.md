@@ -96,6 +96,7 @@ The operator shell now exposes this boundary through:
 - explicit manifest-backed engine compatibility inventory
 - explicit manifest-backed project origin provenance
 - explicit manifest-backed presentation metadata inventory
+- explicit manifest-backed identity and tag inventory
 
 ## What remains intentionally limited
 
@@ -105,8 +106,8 @@ The operator shell now exposes this boundary through:
   project-config, requested-vs-discovered Gem, requested Gem subset matching,
   requested settings subset matching, top-level settings fields, explicit
   engine compatibility inventory, explicit project origin provenance, and
-  explicit presentation metadata inventory rather than broader layered config
-  discovery
+  explicit presentation metadata inventory, and explicit identity/tag inventory
+  rather than broader layered config discovery
 - broader mutation paths are still not implemented beyond the first admitted
   manifest-backed settings.patch case
 - simulated fallback remains part of the truthful accepted behavior

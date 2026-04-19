@@ -1512,12 +1512,14 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
         manifest_path.write_text(
             json.dumps(
                 {
+                    "project_id": "{11111111-1111-1111-1111-111111111111}",
                     "project_name": "Phase7Project",
                     "display_name": "Phase Seven Project",
                     "gem_names": ["ExampleGem"],
                     "compatible_engines": ["o3de"],
                     "engine_api_dependencies": {"framework": "1.0.0"},
                     "origin": {"template": "DefaultProject", "source": "manifest"},
+                    "user_tags": ["sandbox", "phase7"],
                     "icon_path": "icons/project.svg",
                     "restricted_platform_name": "pc",
                     "version": "1.0.0",
@@ -1579,11 +1581,13 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
             "engine_api_dependencies",
             "icon_path",
             "origin",
+            "project_id",
             "project_name",
             "restricted_platform_name",
+            "user_tags",
             "version",
         ]
-        assert execution.details["available_project_config_count"] == 8
+        assert execution.details["available_project_config_count"] == 10
         assert execution.details["available_project_origin"] == {
             "template": "DefaultProject",
             "source": "manifest",
@@ -1594,6 +1598,14 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
             "template",
         ]
         assert execution.details["project_origin_present"] is True
+        assert (
+            execution.details["available_project_id"]
+            == "{11111111-1111-1111-1111-111111111111}"
+        )
+        assert execution.details["project_id_present"] is True
+        assert execution.details["available_user_tags"] == ["sandbox", "phase7"]
+        assert execution.details["available_user_tag_count"] == 2
+        assert execution.details["identity_fields_present"] is True
         assert execution.details["available_display_name"] == "Phase Seven Project"
         assert execution.details["available_icon_path"] == "icons/project.svg"
         assert execution.details["available_restricted_platform_name"] == "pc"
@@ -1666,11 +1678,13 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
             "engine_api_dependencies",
             "icon_path",
             "origin",
+            "project_id",
             "project_name",
             "restricted_platform_name",
+            "user_tags",
             "version",
         ]
-        assert artifact.metadata["available_project_config_count"] == 8
+        assert artifact.metadata["available_project_config_count"] == 10
         assert artifact.metadata["available_project_origin"] == {
             "template": "DefaultProject",
             "source": "manifest",
@@ -1681,6 +1695,14 @@ def test_project_inspect_uses_real_manifest_path_in_hybrid_mode() -> None:
             "template",
         ]
         assert artifact.metadata["project_origin_present"] is True
+        assert (
+            artifact.metadata["available_project_id"]
+            == "{11111111-1111-1111-1111-111111111111}"
+        )
+        assert artifact.metadata["project_id_present"] is True
+        assert artifact.metadata["available_user_tags"] == ["sandbox", "phase7"]
+        assert artifact.metadata["available_user_tag_count"] == 2
+        assert artifact.metadata["identity_fields_present"] is True
         assert artifact.metadata["available_display_name"] == "Phase Seven Project"
         assert artifact.metadata["available_icon_path"] == "icons/project.svg"
         assert artifact.metadata["available_restricted_platform_name"] == "pc"
@@ -1787,6 +1809,11 @@ def test_project_inspect_reports_empty_requested_manifest_evidence_truthfully() 
         assert execution.details["available_project_origin_type"] == "null"
         assert execution.details["available_project_origin_keys"] == []
         assert execution.details["project_origin_present"] is False
+        assert execution.details["available_project_id"] is None
+        assert execution.details["project_id_present"] is False
+        assert execution.details["available_user_tags"] == []
+        assert execution.details["available_user_tag_count"] == 0
+        assert execution.details["identity_fields_present"] is False
         assert execution.details["available_display_name"] is None
         assert execution.details["available_icon_path"] is None
         assert execution.details["available_restricted_platform_name"] is None

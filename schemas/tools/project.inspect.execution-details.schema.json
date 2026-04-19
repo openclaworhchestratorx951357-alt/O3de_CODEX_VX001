@@ -55,6 +55,17 @@
       "items": { "type": "string", "minLength": 1 }
     },
     "project_origin_present": { "type": "boolean" },
+    "available_project_id": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "project_id_present": { "type": "boolean" },
+    "available_user_tags": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "available_user_tag_count": { "type": "integer", "minimum": 0 },
+    "identity_fields_present": { "type": "boolean" },
     "available_display_name": {
       "type": ["string", "null"],
       "minLength": 1

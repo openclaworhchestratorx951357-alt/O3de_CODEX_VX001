@@ -91,6 +91,7 @@ Minimum evidence should identify:
 - manifest-backed config keys that were available to inspect
 - manifest-backed project origin provenance that was available to inspect
 - manifest-backed presentation metadata that was available to inspect
+- manifest-backed identity and tag fields that were available to inspect
 - manifest-backed engine compatibility values and dependency keys that were
   available to inspect
 - requested config keys

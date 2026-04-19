@@ -380,6 +380,8 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             else 0
         )
         available_project_origin = self._manifest_origin_value(manifest)
+        available_project_id = self._manifest_string_value(manifest, "project_id")
+        available_user_tags = self._manifest_string_list_value(manifest, "user_tags")
         available_display_name = self._manifest_string_value(manifest, "display_name")
         available_icon_path = self._manifest_string_value(manifest, "icon_path")
         available_restricted_platform_name = self._manifest_string_value(
@@ -716,6 +718,16 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     else []
                 ),
                 "project_origin_present": available_project_origin is not None,
+                "available_project_id": available_project_id,
+                "project_id_present": available_project_id is not None,
+                "available_user_tags": available_user_tags,
+                "available_user_tag_count": len(available_user_tags),
+                "identity_fields_present": any(
+                    [
+                        available_project_id is not None,
+                        len(available_user_tags) > 0,
+                    ]
+                ),
                 "available_display_name": available_display_name,
                 "available_icon_path": available_icon_path,
                 "available_restricted_platform_name": available_restricted_platform_name,
@@ -868,6 +880,16 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     else []
                 ),
                 "project_origin_present": available_project_origin is not None,
+                "available_project_id": available_project_id,
+                "project_id_present": available_project_id is not None,
+                "available_user_tags": available_user_tags,
+                "available_user_tag_count": len(available_user_tags),
+                "identity_fields_present": any(
+                    [
+                        available_project_id is not None,
+                        len(available_user_tags) > 0,
+                    ]
+                ),
                 "available_display_name": available_display_name,
                 "available_icon_path": available_icon_path,
                 "available_restricted_platform_name": available_restricted_platform_name,
@@ -2153,6 +2175,12 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             return None
         candidate = value.strip()
         return candidate or None
+
+    def _manifest_string_list_value(self, manifest: dict[str, Any], key: str) -> list[str]:
+        value = manifest.get(key)
+        if not isinstance(value, list):
+            return []
+        return self._normalized_string_list(value)
 
     def _manifest_engine_api_dependency_keys(self, manifest: dict[str, Any]) -> list[str]:
         engine_api_dependencies = manifest.get("engine_api_dependencies")

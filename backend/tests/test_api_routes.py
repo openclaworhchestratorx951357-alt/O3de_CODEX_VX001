@@ -1114,12 +1114,14 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
         (project_root / "project.json").write_text(
             json.dumps(
                 {
+                    "project_id": "{22222222-2222-2222-2222-222222222222}",
                     "project_name": "ApiHybridProject",
                     "display_name": "API Hybrid Project",
                     "gem_names": ["ApiGem"],
                     "compatible_engines": ["o3de"],
                     "engine_api_dependencies": {"renderer": "1.0.0"},
                     "origin": {"template": "ApiTemplate", "source": "manifest"},
+                    "user_tags": ["api", "hybrid"],
                     "icon_path": "icons/api-project.svg",
                     "restricted_platform_name": "windows",
                     "version": "2.0.0",
@@ -1178,11 +1180,13 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                     "engine_api_dependencies",
                     "icon_path",
                     "origin",
+                    "project_id",
                     "project_name",
                     "restricted_platform_name",
+                    "user_tags",
                     "version",
                 ]
-                assert execution["details"]["available_project_config_count"] == 8
+                assert execution["details"]["available_project_config_count"] == 10
                 assert execution["details"]["available_project_origin"] == {
                     "template": "ApiTemplate",
                     "source": "manifest",
@@ -1193,6 +1197,14 @@ def test_dispatch_route_uses_real_project_inspect_path_in_hybrid_mode() -> None:
                     "template",
                 ]
                 assert execution["details"]["project_origin_present"] is True
+                assert (
+                    execution["details"]["available_project_id"]
+                    == "{22222222-2222-2222-2222-222222222222}"
+                )
+                assert execution["details"]["project_id_present"] is True
+                assert execution["details"]["available_user_tags"] == ["api", "hybrid"]
+                assert execution["details"]["available_user_tag_count"] == 2
+                assert execution["details"]["identity_fields_present"] is True
                 assert execution["details"]["available_display_name"] == "API Hybrid Project"
                 assert execution["details"]["available_icon_path"] == "icons/api-project.svg"
                 assert (
