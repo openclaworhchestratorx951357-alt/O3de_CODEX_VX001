@@ -1,4 +1,8 @@
-import type { RunRecord, SettingsPatchMutationAudit } from "../types/contracts";
+import type {
+  ProjectInspectEvidenceDetails,
+  RunRecord,
+  SettingsPatchMutationAudit,
+} from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import {
@@ -54,6 +58,19 @@ function describeRunTruth(item: RunRecord): string {
   return "This run remained on a simulated execution path.";
 }
 
+function readProjectInspectDetails(
+  details: Record<string, unknown> | null | undefined,
+): ProjectInspectEvidenceDetails | null {
+  if (details === null || typeof details !== "object" || Array.isArray(details)) {
+    return null;
+  }
+  return details as ProjectInspectEvidenceDetails;
+}
+
+function renderJoinedValue(values: string[] | undefined, emptyLabel = "none"): string {
+  return values && values.length > 0 ? values.join(", ") : emptyLabel;
+}
+
 export default function RunDetailPanel({
   item,
   loading,
@@ -63,6 +80,66 @@ export default function RunDetailPanel({
   lastRefreshedAt,
 }: RunDetailPanelProps) {
   const mutationAudit = readMutationAudit(executionDetails);
+  const projectInspectDetails = readProjectInspectDetails(executionDetails);
+  const isProjectInspectDetail = item?.tool === "project.inspect" && projectInspectDetails;
+  const availableProjectConfigKeys = Array.isArray(projectInspectDetails?.available_project_config_keys)
+    ? projectInspectDetails.available_project_config_keys
+    : [];
+  const availableGemNames = Array.isArray(projectInspectDetails?.available_gem_names)
+    ? projectInspectDetails.available_gem_names
+    : [];
+  const availableUserTags = Array.isArray(projectInspectDetails?.available_user_tags)
+    ? projectInspectDetails.available_user_tags
+    : [];
+  const availableCompatibleEngines = Array.isArray(projectInspectDetails?.available_compatible_engines)
+    ? projectInspectDetails.available_compatible_engines
+    : [];
+  const availableEngineApiDependencyKeys = Array.isArray(
+    projectInspectDetails?.available_engine_api_dependency_keys,
+  )
+    ? projectInspectDetails.available_engine_api_dependency_keys
+    : [];
+  const requestedSettingsKeys = Array.isArray(projectInspectDetails?.requested_settings_keys)
+    ? projectInspectDetails.requested_settings_keys
+    : [];
+  const matchedRequestedSettingsKeys = Array.isArray(
+    projectInspectDetails?.matched_requested_settings_keys,
+  )
+    ? projectInspectDetails.matched_requested_settings_keys
+    : [];
+  const missingRequestedSettingsKeys = Array.isArray(
+    projectInspectDetails?.missing_requested_settings_keys,
+  )
+    ? projectInspectDetails.missing_requested_settings_keys
+    : [];
+  const requestedGemNames = Array.isArray(projectInspectDetails?.requested_gem_names)
+    ? projectInspectDetails.requested_gem_names
+    : [];
+  const matchedRequestedGemNames = Array.isArray(
+    projectInspectDetails?.matched_requested_gem_names,
+  )
+    ? projectInspectDetails.matched_requested_gem_names
+    : [];
+  const missingRequestedGemNames = Array.isArray(
+    projectInspectDetails?.missing_requested_gem_names,
+  )
+    ? projectInspectDetails.missing_requested_gem_names
+    : [];
+  const requestedProjectConfigKeys = Array.isArray(
+    projectInspectDetails?.requested_project_config_keys,
+  )
+    ? projectInspectDetails.requested_project_config_keys
+    : [];
+  const matchedRequestedProjectConfigKeys = Array.isArray(
+    projectInspectDetails?.matched_requested_project_config_keys,
+  )
+    ? projectInspectDetails.matched_requested_project_config_keys
+    : [];
+  const missingRequestedProjectConfigKeys = Array.isArray(
+    projectInspectDetails?.missing_requested_project_config_keys,
+  )
+    ? projectInspectDetails.missing_requested_project_config_keys
+    : [];
   return (
     <SummarySection
       title="Run Detail"
@@ -151,6 +228,112 @@ export default function RunDetailPanel({
           </article>
         ) : null}
       </div>
+      {isProjectInspectDetail ? (
+        <div style={{ ...summaryCardGridStyle, marginTop: 16 }}>
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Manifest Surface</h4>
+            <SummaryFacts>
+              <SummaryFact label="Inspection surface">
+                {projectInspectDetails.inspection_surface ?? "unknown"}
+              </SummaryFact>
+              <SummaryFact label="Manifest path" copyValue={projectInspectDetails.project_manifest_path ?? undefined}>
+                {projectInspectDetails.project_manifest_path ?? "not recorded"}
+              </SummaryFact>
+              <SummaryFact label="Evidence markers">
+                {renderJoinedValue(projectInspectDetails.inspection_evidence)}
+              </SummaryFact>
+              <SummaryFact label="Discovered config keys">
+                {renderJoinedValue(availableProjectConfigKeys)}
+              </SummaryFact>
+            </SummaryFacts>
+          </article>
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Config Evidence</h4>
+            <SummaryFacts>
+              <SummaryFact label="Selection mode">
+                {projectInspectDetails.project_config_selection_mode ?? "not recorded"}
+              </SummaryFact>
+              <SummaryFact label="Requested config keys">
+                {renderJoinedValue(requestedProjectConfigKeys)}
+              </SummaryFact>
+              <SummaryFact label="Matched config keys">
+                {renderJoinedValue(matchedRequestedProjectConfigKeys)}
+              </SummaryFact>
+              <SummaryFact label="Missing config keys">
+                {renderJoinedValue(missingRequestedProjectConfigKeys)}
+              </SummaryFact>
+            </SummaryFacts>
+          </article>
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Gem Evidence</h4>
+            <SummaryFacts>
+              <SummaryFact label="Discovered Gems">
+                {renderJoinedValue(availableGemNames)}
+              </SummaryFact>
+              <SummaryFact label="Requested Gem names">
+                {renderJoinedValue(requestedGemNames)}
+              </SummaryFact>
+              <SummaryFact label="Matched Gem names">
+                {renderJoinedValue(matchedRequestedGemNames)}
+              </SummaryFact>
+              <SummaryFact label="Missing Gem names">
+                {renderJoinedValue(missingRequestedGemNames)}
+              </SummaryFact>
+            </SummaryFacts>
+          </article>
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Settings Evidence</h4>
+            <SummaryFacts>
+              <SummaryFact label="Settings source">
+                {projectInspectDetails.settings_evidence_source ?? "not recorded"}
+              </SummaryFact>
+              <SummaryFact label="Requested settings keys">
+                {renderJoinedValue(requestedSettingsKeys)}
+              </SummaryFact>
+              <SummaryFact label="Matched settings keys">
+                {renderJoinedValue(matchedRequestedSettingsKeys)}
+              </SummaryFact>
+              <SummaryFact label="Missing settings keys">
+                {renderJoinedValue(missingRequestedSettingsKeys)}
+              </SummaryFact>
+            </SummaryFacts>
+          </article>
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Project Metadata</h4>
+            <SummaryFacts>
+              <SummaryFact label="Project origin type">
+                {projectInspectDetails.available_project_origin_type ?? "null"}
+              </SummaryFact>
+              <SummaryFact label="Project ID">
+                {projectInspectDetails.available_project_id ?? "not recorded"}
+              </SummaryFact>
+              <SummaryFact label="Display name">
+                {projectInspectDetails.available_display_name ?? "not recorded"}
+              </SummaryFact>
+              <SummaryFact label="Restricted platform">
+                {projectInspectDetails.available_restricted_platform_name ?? "not recorded"}
+              </SummaryFact>
+            </SummaryFacts>
+          </article>
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Compatibility And Tags</h4>
+            <SummaryFacts>
+              <SummaryFact label="Compatible engines">
+                {renderJoinedValue(availableCompatibleEngines)}
+              </SummaryFact>
+              <SummaryFact label="Engine API dependency keys">
+                {renderJoinedValue(availableEngineApiDependencyKeys)}
+              </SummaryFact>
+              <SummaryFact label="User tags">
+                {renderJoinedValue(availableUserTags)}
+              </SummaryFact>
+              <SummaryFact label="Icon path">
+                {projectInspectDetails.available_icon_path ?? "not recorded"}
+              </SummaryFact>
+            </SummaryFacts>
+          </article>
+        </div>
+      ) : null}
     </SummarySection>
   );
 }
