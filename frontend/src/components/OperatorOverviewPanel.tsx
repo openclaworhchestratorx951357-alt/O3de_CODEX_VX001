@@ -1,6 +1,15 @@
 import type { CSSProperties } from "react";
 
 import type { ControlPlaneSummaryResponse } from "../types/contracts";
+import {
+  getDominantMode,
+  getOverviewApprovalAttentionLabel,
+  getOverviewArtifactAttentionLabel,
+  getOverviewEventAttentionLabel,
+  getOverviewExecutionAttentionLabel,
+  getOverviewLockAttentionLabel,
+  getOverviewRunAttentionLabel,
+} from "../lib/operatorStatus";
 import OperatorStatusRail from "./OperatorStatusRail";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -77,7 +86,7 @@ export default function OperatorOverviewPanel({
                 <SummaryFact label="Total">{summary.runs_total}</SummaryFact>
                 <SummaryFact label="Operator status">
                   <OperatorStatusRail
-                    attentionLabel={getRunAttentionLabel(summary)}
+                    attentionLabel={getOverviewRunAttentionLabel(summary)}
                   />
                 </SummaryFact>
                 <SummaryFact label="Statuses">
@@ -96,7 +105,7 @@ export default function OperatorOverviewPanel({
                 <SummaryFact label="Total">{summary.approvals_total}</SummaryFact>
                 <SummaryFact label="Operator status">
                   <OperatorStatusRail
-                    attentionLabel={getApprovalAttentionLabel(summary)}
+                    attentionLabel={getOverviewApprovalAttentionLabel(summary)}
                   />
                 </SummaryFact>
                 <SummaryFact label="Pending">
@@ -121,7 +130,7 @@ export default function OperatorOverviewPanel({
                 <SummaryFact label="Operator status">
                   <OperatorStatusRail
                     executionMode={getDominantMode(summary.executions_by_mode)}
-                    attentionLabel={getExecutionAttentionLabel(summary)}
+                    attentionLabel={getOverviewExecutionAttentionLabel(summary)}
                   />
                 </SummaryFact>
                 <SummaryFact label="Statuses">
@@ -149,7 +158,7 @@ export default function OperatorOverviewPanel({
                   <OperatorStatusRail
                     executionMode={getDominantMode(summary.artifacts_by_mode)}
                     simulated={summary.artifacts_by_mode.simulated > 0}
-                    attentionLabel={getArtifactAttentionLabel(summary)}
+                    attentionLabel={getOverviewArtifactAttentionLabel(summary)}
                   />
                 </SummaryFact>
                 <SummaryFact label="Modes">
@@ -168,7 +177,7 @@ export default function OperatorOverviewPanel({
                 <SummaryFact label="Total">{summary.events_total}</SummaryFact>
                 <SummaryFact label="Operator status">
                   <OperatorStatusRail
-                    attentionLabel={getEventAttentionLabel(summary)}
+                    attentionLabel={getOverviewEventAttentionLabel(summary)}
                   />
                 </SummaryFact>
                 <SummaryFact label="Active pressure">
@@ -193,7 +202,7 @@ export default function OperatorOverviewPanel({
                 <SummaryFact label="Held">{summary.locks_total}</SummaryFact>
                 <SummaryFact label="Operator status">
                   <OperatorStatusRail
-                    attentionLabel={getLockAttentionLabel(summary)}
+                    attentionLabel={getOverviewLockAttentionLabel(summary)}
                   />
                 </SummaryFact>
               </SummaryFacts>
@@ -239,67 +248,6 @@ function StatusBreakdown({ entries, toneForKey, emptyLabel, onSelect }: StatusBr
       ))}
     </div>
   );
-}
-
-function getDominantMode(entries: Record<string, number>): string | null {
-  const sortedEntries = Object.entries(entries).sort((left, right) => right[1] - left[1]);
-  return sortedEntries[0]?.[0] ?? null;
-}
-
-function getRunAttentionLabel(summary: ControlPlaneSummaryResponse): string {
-  const liveRuns = (summary.runs_by_status.running ?? 0)
-    + (summary.runs_by_status.pending ?? 0)
-    + (summary.runs_by_status.waiting_approval ?? 0);
-
-  if (liveRuns > 0) {
-    return "Live decision state";
-  }
-
-  return "Routine follow-up";
-}
-
-function getApprovalAttentionLabel(summary: ControlPlaneSummaryResponse): string {
-  if (summary.approvals_pending > 0) {
-    return "Audit review needed";
-  }
-
-  return "Routine follow-up";
-}
-
-function getExecutionAttentionLabel(summary: ControlPlaneSummaryResponse): string {
-  if ((summary.executions_by_mode.simulated ?? 0) > 0) {
-    return "Simulation boundary";
-  }
-
-  if ((summary.executions_by_status.running ?? 0) > 0) {
-    return "Live decision state";
-  }
-
-  return "Routine follow-up";
-}
-
-function getArtifactAttentionLabel(summary: ControlPlaneSummaryResponse): string {
-  if ((summary.artifacts_by_mode.simulated ?? 0) > 0) {
-    return "Simulation boundary";
-  }
-
-  return "Routine follow-up";
-}
-
-function getEventAttentionLabel(summary: ControlPlaneSummaryResponse): string {
-  if (summary.active_events > 0) {
-    return "Monitor active pressure";
-  }
-
-  return "Routine follow-up";
-}
-
-function getLockAttentionLabel(summary: ControlPlaneSummaryResponse): string {
-  if (summary.locks_total > 0) {
-    return "Monitor live occupancy";
-  }
-
-  return "Routine follow-up";
 }
 
 const badgeRowStyle: CSSProperties = {

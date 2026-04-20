@@ -1,6 +1,12 @@
 import type { CSSProperties } from "react";
 
 import type { ReadinessStatus } from "../types/contracts";
+import {
+  getAdapterAttentionLabel,
+  getCoverageAttentionLabel,
+  getPersistenceAttentionLabel,
+  getSchemaAttentionLabel,
+} from "../lib/operatorStatus";
 import OperatorStatusRail from "./OperatorStatusRail";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -199,49 +205,6 @@ export default function SystemStatusPanel(
       ) : null}
     </SummarySection>
   );
-}
-
-function getPersistenceAttentionLabel(readiness: ReadinessStatus): string {
-  if (!readiness.persistence_ready || readiness.persistence_warning) {
-    return "Audit review needed";
-  }
-
-  return "Operator baseline confirmed";
-}
-
-function getSchemaAttentionLabel(readiness: ReadinessStatus): string {
-  if (readiness.schema_validation.active_unsupported_keywords.length > 0) {
-    return "Audit review needed";
-  }
-
-  return "Routine follow-up";
-}
-
-function getCoverageAttentionLabel(readiness: ReadinessStatus): string {
-  const coveredFamilies = readiness.schema_validation.persisted_family_coverage
-    .filter((family) => family.execution_details_tools > 0);
-
-  if (coveredFamilies.length === 0) {
-    return "Audit review needed";
-  }
-
-  if (coveredFamilies.length < readiness.schema_validation.persisted_family_coverage.length) {
-    return "Monitor partial coverage";
-  }
-
-  return "Operator baseline confirmed";
-}
-
-function getAdapterAttentionLabel(readiness: ReadinessStatus): string {
-  if (readiness.adapter_mode.configured_mode === "simulated") {
-    return "Simulation boundary";
-  }
-
-  if (!readiness.adapter_mode.supports_real_execution) {
-    return "Audit review needed";
-  }
-
-  return "Routine follow-up";
 }
 
 const listLabelStyle: CSSProperties = {

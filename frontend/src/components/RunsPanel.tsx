@@ -5,6 +5,10 @@ import type {
   RunAuditRecord,
   SettingsPatchAuditSummary,
 } from "../types/contracts";
+import {
+  getRunAttentionLabel,
+  getRunAuditStatusLabel,
+} from "../lib/operatorStatus";
 import OperatorStatusRail from "./OperatorStatusRail";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -305,33 +309,7 @@ function getAuditStatusLabel(
   item: RunListItem,
   audit: RunAuditRecord | undefined,
 ): string | null {
-  if (item.tool !== "settings.patch") {
-    return null;
-  }
-  if (audit?.audit_status) {
-    return audit.audit_status;
-  }
-  if (item.execution_mode === "simulated") {
-    return "simulated";
-  }
-  return "unknown";
-}
-
-function getRunAttentionLabel(
-  item: RunListItem,
-  audit: RunAuditRecord | undefined,
-): string {
-  const auditStatus = getAuditStatusLabel(item, audit);
-  if (item.execution_mode === "simulated") {
-    return "Simulation boundary";
-  }
-  if (auditStatus && auditStatus !== "unknown" && auditStatus !== "simulated") {
-    return "Audit review needed";
-  }
-  if (item.status === "running" || item.status === "waiting_approval" || item.status === "pending") {
-    return "Live decision state";
-  }
-  return "Routine follow-up";
+  return getRunAuditStatusLabel(item, audit);
 }
 
 function matchesAuditFilter(
