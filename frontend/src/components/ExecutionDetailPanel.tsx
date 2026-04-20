@@ -145,22 +145,17 @@ export default function ExecutionDetailPanel({
       />
       <div style={summaryCardGridStyle}>
         <article style={summaryCardStyle}>
-          <h4 style={summaryCardHeadingStyle}>Execution</h4>
+          <h4 style={summaryCardHeadingStyle}>Execution Identity</h4>
           <SummaryFacts>
             <SummaryFact label="Execution ID" copyValue={item?.id ?? undefined}>{item?.id}</SummaryFact>
             <SummaryFact label="Run ID" copyValue={item?.run_id ?? undefined}>{item?.run_id}</SummaryFact>
             <SummaryFact label="Tool">{item?.tool}</SummaryFact>
             <SummaryFact label="Agent">{item?.agent}</SummaryFact>
-            <SummaryFact label="Mode">{item?.execution_mode}</SummaryFact>
-            <SummaryFact label="Status">{item?.status}</SummaryFact>
           </SummaryFacts>
         </article>
         <article style={summaryCardStyle}>
-          <h4 style={summaryCardHeadingStyle}>Timing</h4>
+          <h4 style={summaryCardHeadingStyle}>Execution Totals</h4>
           <SummaryFacts>
-            <SummaryFact label="Started">
-              {item ? formatSummaryTimestamp(item.started_at) : ""}
-            </SummaryFact>
             <SummaryFact label="Finished">
               {item?.finished_at ? formatSummaryTimestamp(item.finished_at) : "not finished"}
             </SummaryFact>
