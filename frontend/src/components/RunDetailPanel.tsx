@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import type {
   ProjectInspectEvidenceDetails,
   RunRecord,
@@ -102,6 +103,25 @@ export default function RunDetailPanel({
   const mutationAudit = readMutationAudit(executionDetails);
   const projectInspectDetails = readProjectInspectDetails(executionDetails);
   const isProjectInspectDetail = item?.tool === "project.inspect" && projectInspectDetails;
+  const truthBoundaryRef = useRef<HTMLElement | null>(null);
+  const mutationAuditRef = useRef<HTMLElement | null>(null);
+  const evidenceSummaryRef = useRef<HTMLDivElement | null>(null);
+  const handleJump = () => {
+    if (isProjectInspectDetail && evidenceSummaryRef.current) {
+      evidenceSummaryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    if (item?.tool === "settings.patch" && mutationAudit && mutationAuditRef.current) {
+      mutationAuditRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    truthBoundaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const jumpLabel = isProjectInspectDetail
+    ? "Jump to evidence"
+    : item?.tool === "settings.patch" && mutationAudit
+      ? "Jump to mutation audit"
+      : "Jump to truth boundary";
   return (
     <SummarySection
       title="Run Detail"
@@ -141,6 +161,8 @@ export default function RunDetailPanel({
           actionDescription={relatedExecutionActionDescription}
           attentionLabel={relatedExecutionAttentionLabel}
           attentionDescription={relatedExecutionAttentionDescription}
+          jumpLabel={jumpLabel}
+          onJump={handleJump}
         />
       </div>
       <div style={summaryCardGridStyle}>
@@ -167,7 +189,7 @@ export default function RunDetailPanel({
             ) : null}
           </SummaryFacts>
         </article>
-        <article style={summaryCardStyle}>
+        <article ref={truthBoundaryRef} style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Truth Boundary</h4>
           <div style={summaryCalloutStyle}>
             {item ? formatSummaryLabeledText("Execution truth", describeRunTruth(item)) : null}
@@ -193,7 +215,7 @@ export default function RunDetailPanel({
           </SummaryFacts>
         </article>
         {item?.tool === "settings.patch" && mutationAudit ? (
-          <article style={summaryCardStyle}>
+          <article ref={mutationAuditRef} style={summaryCardStyle}>
             <h4 style={summaryCardHeadingStyle}>Mutation Audit</h4>
             <SummaryFacts>
               <SummaryFact label="Audit summary">{mutationAudit.summary ?? "available"}</SummaryFact>
@@ -214,7 +236,11 @@ export default function RunDetailPanel({
           </article>
         ) : null}
       </div>
-      {isProjectInspectDetail ? <ProjectInspectEvidenceSummary details={projectInspectDetails} /> : null}
+      {isProjectInspectDetail ? (
+        <div ref={evidenceSummaryRef}>
+          <ProjectInspectEvidenceSummary details={projectInspectDetails} />
+        </div>
+      ) : null}
     </SummarySection>
   );
 }

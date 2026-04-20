@@ -2,6 +2,7 @@ import {
   summaryBadgeStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
+  summaryInlineActionButtonStyle,
   summaryMutedTextStyle,
   summaryTopStackStyle,
 } from "./summaryPrimitives";
@@ -15,6 +16,8 @@ type TriageSummaryStripProps = {
   actionDescription?: string | null;
   attentionLabel?: string | null;
   attentionDescription?: string | null;
+  jumpLabel?: string | null;
+  onJump?: (() => void) | null;
 };
 
 type StripItem = {
@@ -101,6 +104,8 @@ export default function TriageSummaryStrip({
   actionDescription,
   attentionLabel,
   attentionDescription,
+  jumpLabel,
+  onJump,
 }: TriageSummaryStripProps) {
   const items: StripItem[] = [];
 
@@ -120,7 +125,18 @@ export default function TriageSummaryStrip({
 
   return (
     <article style={{ ...summaryCardStyle, marginBottom: 0 }}>
-      <h4 style={summaryCardHeadingStyle}>{heading}</h4>
+      <div style={{ display: "flex", gap: 8, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
+        <h4 style={summaryCardHeadingStyle}>{heading}</h4>
+        {jumpLabel && onJump ? (
+          <button
+            type="button"
+            style={summaryInlineActionButtonStyle}
+            onClick={onJump}
+          >
+            {jumpLabel}
+          </button>
+        ) : null}
+      </div>
       {subjectLabel ? <div style={summaryMutedTextStyle}>{subjectLabel}</div> : null}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {items.map((item) => {

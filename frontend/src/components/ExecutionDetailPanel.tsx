@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import type {
   ArtifactListItem,
   ExecutionRecord,
@@ -70,6 +71,8 @@ export default function ExecutionDetailPanel({
   const projectInspectDetails = item?.tool === "project.inspect"
     ? readProjectInspectDetails(item.details)
     : null;
+  const relatedRecordsRef = useRef<HTMLElement | null>(null);
+  const evidenceSummaryRef = useRef<HTMLDivElement | null>(null);
   const prioritizedArtifacts = [...relatedArtifacts].sort((left, right) => {
     if (selectedArtifactId) {
       if (left.id === selectedArtifactId && right.id !== selectedArtifactId) {
@@ -95,6 +98,14 @@ export default function ExecutionDetailPanel({
   const lineageArtifactAttention = lineageArtifact
     ? describeArtifactAttention(lineageArtifact, selectedArtifactId)
     : null;
+  const handleJump = () => {
+    if (relatedArtifacts.length > 0 && relatedRecordsRef.current) {
+      relatedRecordsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    evidenceSummaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const jumpLabel = relatedArtifacts.length > 0 ? "Jump to related records" : "Jump to evidence";
 
   return (
     <SummarySection
@@ -144,6 +155,8 @@ export default function ExecutionDetailPanel({
           actionDescription={lineageArtifactAction?.description ?? null}
           attentionLabel={lineageArtifactAttention?.label ?? null}
           attentionDescription={lineageArtifactAttention?.description ?? null}
+          jumpLabel={projectInspectDetails || relatedArtifacts.length > 0 ? jumpLabel : null}
+          onJump={projectInspectDetails || relatedArtifacts.length > 0 ? handleJump : null}
         />
       </div>
       <div style={summaryCardGridStyle}>
@@ -167,7 +180,7 @@ export default function ExecutionDetailPanel({
           </SummaryFacts>
         </article>
         {item ? (
-          <article style={summaryCardStyle}>
+          <article ref={relatedRecordsRef} style={summaryCardStyle}>
             <h4 style={summaryCardHeadingStyle}>Related Records</h4>
             <SummaryFacts>
               <SummaryFact label="Run ID" copyValue={item.run_id}>{item.run_id}</SummaryFact>
@@ -236,10 +249,12 @@ export default function ExecutionDetailPanel({
         ) : null}
       </div>
       {projectInspectDetails ? (
-        <ProjectInspectEvidenceSummary
-          details={projectInspectDetails}
-          title="Execution Evidence Summary"
-        />
+        <div ref={evidenceSummaryRef}>
+          <ProjectInspectEvidenceSummary
+            details={projectInspectDetails}
+            title="Execution Evidence Summary"
+          />
+        </div>
       ) : null}
     </SummarySection>
   );
