@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   ProjectInspectEvidenceDetails,
   RunRecord,
@@ -16,6 +16,7 @@ import {
   summaryCardHeadingStyle,
   summaryCardStyle,
   summaryCalloutStyle,
+  summaryHighlightedCardStyle,
   summaryTimestampNoteStyle,
   summaryTopStackStyle,
 } from "./summaryPrimitives";
@@ -100,21 +101,32 @@ export default function RunDetailPanel({
   refreshHint,
   lastRefreshedAt,
 }: RunDetailPanelProps) {
+  const [highlightedSection, setHighlightedSection] = useState<string | null>(null);
   const mutationAudit = readMutationAudit(executionDetails);
   const projectInspectDetails = readProjectInspectDetails(executionDetails);
   const isProjectInspectDetail = item?.tool === "project.inspect" && projectInspectDetails;
   const truthBoundaryRef = useRef<HTMLElement | null>(null);
   const mutationAuditRef = useRef<HTMLElement | null>(null);
   const evidenceSummaryRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!highlightedSection) {
+      return undefined;
+    }
+    const timeoutId = window.setTimeout(() => setHighlightedSection(null), 1800);
+    return () => window.clearTimeout(timeoutId);
+  }, [highlightedSection]);
   const handleJump = () => {
     if (isProjectInspectDetail && evidenceSummaryRef.current) {
+      setHighlightedSection("evidence");
       evidenceSummaryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
     if (item?.tool === "settings.patch" && mutationAudit && mutationAuditRef.current) {
+      setHighlightedSection("mutation-audit");
       mutationAuditRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
+    setHighlightedSection("truth-boundary");
     truthBoundaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const jumpLabel = isProjectInspectDetail
@@ -189,7 +201,13 @@ export default function RunDetailPanel({
             ) : null}
           </SummaryFacts>
         </article>
-        <article ref={truthBoundaryRef} style={summaryCardStyle}>
+        <article
+          ref={truthBoundaryRef}
+          style={{
+            ...summaryCardStyle,
+            ...(highlightedSection === "truth-boundary" ? summaryHighlightedCardStyle : {}),
+          }}
+        >
           <h4 style={summaryCardHeadingStyle}>Truth Boundary</h4>
           <div style={summaryCalloutStyle}>
             {item ? formatSummaryLabeledText("Execution truth", describeRunTruth(item)) : null}
@@ -215,7 +233,13 @@ export default function RunDetailPanel({
           </SummaryFacts>
         </article>
         {item?.tool === "settings.patch" && mutationAudit ? (
-          <article ref={mutationAuditRef} style={summaryCardStyle}>
+          <article
+            ref={mutationAuditRef}
+            style={{
+              ...summaryCardStyle,
+              ...(highlightedSection === "mutation-audit" ? summaryHighlightedCardStyle : {}),
+            }}
+          >
             <h4 style={summaryCardHeadingStyle}>Mutation Audit</h4>
             <SummaryFacts>
               <SummaryFact label="Audit summary">{mutationAudit.summary ?? "available"}</SummaryFact>
@@ -237,7 +261,10 @@ export default function RunDetailPanel({
         ) : null}
       </div>
       {isProjectInspectDetail ? (
-        <div ref={evidenceSummaryRef}>
+        <div
+          ref={evidenceSummaryRef}
+          style={highlightedSection === "evidence" ? summaryHighlightedCardStyle : undefined}
+        >
           <ProjectInspectEvidenceSummary details={projectInspectDetails} />
         </div>
       ) : null}

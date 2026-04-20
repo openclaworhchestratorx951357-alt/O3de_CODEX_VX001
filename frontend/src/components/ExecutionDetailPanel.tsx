@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type {
   ArtifactListItem,
   ExecutionRecord,
@@ -28,6 +28,7 @@ import {
   summaryCardHeadingStyle,
   summaryCardStyle,
   summaryCalloutStyle,
+  summaryHighlightedCardStyle,
   summaryTimestampNoteStyle,
   summaryTopStackStyle,
 } from "./summaryPrimitives";
@@ -68,11 +69,19 @@ export default function ExecutionDetailPanel({
   refreshHint,
   lastRefreshedAt,
 }: ExecutionDetailPanelProps) {
+  const [highlightedSection, setHighlightedSection] = useState<string | null>(null);
   const projectInspectDetails = item?.tool === "project.inspect"
     ? readProjectInspectDetails(item.details)
     : null;
   const relatedRecordsRef = useRef<HTMLElement | null>(null);
   const evidenceSummaryRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!highlightedSection) {
+      return undefined;
+    }
+    const timeoutId = window.setTimeout(() => setHighlightedSection(null), 1800);
+    return () => window.clearTimeout(timeoutId);
+  }, [highlightedSection]);
   const prioritizedArtifacts = [...relatedArtifacts].sort((left, right) => {
     if (selectedArtifactId) {
       if (left.id === selectedArtifactId && right.id !== selectedArtifactId) {
@@ -100,9 +109,11 @@ export default function ExecutionDetailPanel({
     : null;
   const handleJump = () => {
     if (relatedArtifacts.length > 0 && relatedRecordsRef.current) {
+      setHighlightedSection("related-records");
       relatedRecordsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
+    setHighlightedSection("evidence");
     evidenceSummaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const jumpLabel = relatedArtifacts.length > 0 ? "Jump to related records" : "Jump to evidence";
@@ -180,7 +191,13 @@ export default function ExecutionDetailPanel({
           </SummaryFacts>
         </article>
         {item ? (
-          <article ref={relatedRecordsRef} style={summaryCardStyle}>
+          <article
+            ref={relatedRecordsRef}
+            style={{
+              ...summaryCardStyle,
+              ...(highlightedSection === "related-records" ? summaryHighlightedCardStyle : {}),
+            }}
+          >
             <h4 style={summaryCardHeadingStyle}>Related Records</h4>
             <SummaryFacts>
               <SummaryFact label="Run ID" copyValue={item.run_id}>{item.run_id}</SummaryFact>
@@ -249,7 +266,10 @@ export default function ExecutionDetailPanel({
         ) : null}
       </div>
       {projectInspectDetails ? (
-        <div ref={evidenceSummaryRef}>
+        <div
+          ref={evidenceSummaryRef}
+          style={highlightedSection === "evidence" ? summaryHighlightedCardStyle : undefined}
+        >
           <ProjectInspectEvidenceSummary
             details={projectInspectDetails}
             title="Execution Evidence Summary"

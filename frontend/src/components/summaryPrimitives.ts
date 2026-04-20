@@ -51,6 +51,11 @@ export const summaryCardStyle: CSSProperties = {
   gap: 8,
 };
 
+export const summaryHighlightedCardStyle: CSSProperties = {
+  boxShadow: "0 0 0 3px rgba(9, 105, 218, 0.18)",
+  borderColor: "#0969da",
+};
+
 export const summaryFactsGridStyle: CSSProperties = {
   display: "grid",
   gap: 8,
