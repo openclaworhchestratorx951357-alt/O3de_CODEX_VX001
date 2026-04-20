@@ -5,11 +5,14 @@ import type {
   SettingsPatchMutationAudit,
 } from "../types/contracts";
 import { getRunTruthBoundaryDescription } from "../lib/executionTruth";
+import LaneActionsCard, { type LaneActionEntry } from "./LaneActionsCard";
+import OperatorLaneStateBlock, { type OperatorLaneStateEntry } from "./OperatorLaneStateBlock";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
 import RecordLineageStrip from "./RecordLineageStrip";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import TriageSummaryStrip from "./TriageSummaryStrip";
+import { buildLaneActionEntries, buildOperatorLaneStateEntries } from "./laneViewModel";
 import {
   formatSummaryLabeledText,
   formatSummaryTimestamp,
@@ -27,6 +30,7 @@ type RunDetailPanelProps = {
   item: RunRecord | null;
   loading: boolean;
   error: string | null;
+  breadcrumbs?: Array<{ kind: "run" | "execution" | "artifact"; id: string; label: string }>;
   executionDetails?: Record<string, unknown> | null;
   relatedExecutionId?: string | null;
   relatedExecutionPriorityLabel?: string | null;
@@ -35,9 +39,55 @@ type RunDetailPanelProps = {
   relatedExecutionActionDescription?: string | null;
   relatedExecutionAttentionLabel?: string | null;
   relatedExecutionAttentionDescription?: string | null;
+  priorityShortcutLabel?: string | null;
+  priorityShortcutDescription?: string | null;
+  warningShortcutLabel?: string | null;
+  warningShortcutDescription?: string | null;
+  originatingArtifactId?: string | null;
+  originatingArtifactLabel?: string | null;
+  originatingArtifactKind?: string | null;
+  pinnedRecordId?: string | null;
+  pinnedRecordStatusLabel?: string | null;
+  pinnedRecordStatusDetail?: string | null;
+  laneQueueLabel?: string | null;
+  laneQueueDetail?: string | null;
+  laneCompletionLabel?: string | null;
+  laneCompletionDetail?: string | null;
+  laneRolloverLabel?: string | null;
+  laneRolloverDetail?: string | null;
+  laneMetricsLabel?: string | null;
+  laneMetricsDetail?: string | null;
+  laneDriverLabel?: string | null;
+  laneDriverDetail?: string | null;
+  laneMemoryLabel?: string | null;
+  laneMemoryDetail?: string | null;
+  laneHistoryEntries?: Array<{ kind: "run" | "execution" | "artifact"; id: string; label: string; detail: string }>;
+  laneHandoffLabel?: string | null;
+  laneHandoffDetail?: string | null;
+  laneExportLabel?: string | null;
+  laneExportDetail?: string | null;
+  laneOperatorNoteLabel?: string | null;
+  laneOperatorNoteDetail?: string | null;
+  activeLanePresetLabel?: string | null;
+  activeLanePresetDetail?: string | null;
+  lanePresetRestoredLabel?: string | null;
+  lanePresetRestoredDetail?: string | null;
+  lanePresetDriftLabel?: string | null;
+  lanePresetDriftDetail?: string | null;
   selectedRunId?: string | null;
   selectedExecutionId?: string | null;
+  selectedArtifactId?: string | null;
   onOpenExecution?: (executionId: string) => void;
+  onOpenArtifact?: (artifactId: string) => void;
+  onOpenPriorityRecord?: (() => void) | null;
+  onOpenWarningRecord?: (() => void) | null;
+  onPinRecord?: (() => void) | null;
+  onUnpinRecord?: (() => void) | null;
+  onRefocusPinnedRecord?: (() => void) | null;
+  onOpenNextLaneRecord?: (() => void) | null;
+  onOpenLaneRolloverRecord?: (() => void) | null;
+  onReturnToLane?: (() => void) | null;
+  onOpenLaneHistoryEntry?: ((entry: { kind: "run" | "execution" | "artifact"; id: string; label: string; detail: string }) => void) | null;
   refreshHint?: string | null;
   lastRefreshedAt?: string | null;
   onRefresh?: (() => void) | null;
@@ -66,6 +116,7 @@ export default function RunDetailPanel({
   item,
   loading,
   error,
+  breadcrumbs = [],
   executionDetails,
   relatedExecutionId,
   relatedExecutionPriorityLabel,
@@ -74,9 +125,55 @@ export default function RunDetailPanel({
   relatedExecutionActionDescription,
   relatedExecutionAttentionLabel,
   relatedExecutionAttentionDescription,
+  priorityShortcutLabel,
+  priorityShortcutDescription,
+  warningShortcutLabel,
+  warningShortcutDescription,
+  originatingArtifactId,
+  originatingArtifactLabel,
+  originatingArtifactKind,
+  pinnedRecordId,
+  pinnedRecordStatusLabel,
+  pinnedRecordStatusDetail,
+  laneQueueLabel,
+  laneQueueDetail,
+  laneCompletionLabel,
+  laneCompletionDetail,
+  laneRolloverLabel,
+  laneRolloverDetail,
+  laneMetricsLabel,
+  laneMetricsDetail,
+  laneDriverLabel,
+  laneDriverDetail,
+  laneMemoryLabel,
+  laneMemoryDetail,
+  laneHistoryEntries = [],
+  laneHandoffLabel,
+  laneHandoffDetail,
+  laneExportLabel,
+  laneExportDetail,
+  laneOperatorNoteLabel,
+  laneOperatorNoteDetail,
+  activeLanePresetLabel,
+  activeLanePresetDetail,
+  lanePresetRestoredLabel,
+  lanePresetRestoredDetail,
+  lanePresetDriftLabel,
+  lanePresetDriftDetail,
   selectedRunId,
   selectedExecutionId,
+  selectedArtifactId,
   onOpenExecution,
+  onOpenArtifact,
+  onOpenPriorityRecord,
+  onOpenWarningRecord,
+  onPinRecord,
+  onUnpinRecord,
+  onRefocusPinnedRecord,
+  onOpenNextLaneRecord,
+  onOpenLaneRolloverRecord,
+  onReturnToLane,
+  onOpenLaneHistoryEntry,
   refreshHint,
   lastRefreshedAt,
   onRefresh,
@@ -89,6 +186,40 @@ export default function RunDetailPanel({
   const truthBoundaryRef = useRef<HTMLElement | null>(null);
   const mutationAuditRef = useRef<HTMLElement | null>(null);
   const evidenceSummaryRef = useRef<HTMLDivElement | null>(null);
+  const laneStateEntries: OperatorLaneStateEntry[] = buildOperatorLaneStateEntries({
+    laneHandoffLabel,
+    laneHandoffDetail,
+    laneExportLabel,
+    laneExportDetail,
+    laneOperatorNoteLabel,
+    laneOperatorNoteDetail,
+    activeLanePresetLabel,
+    activeLanePresetDetail,
+    lanePresetRestoredLabel,
+    lanePresetRestoredDetail,
+    lanePresetDriftLabel,
+    lanePresetDriftDetail,
+  });
+  const laneActionEntries: LaneActionEntry[] = buildLaneActionEntries({
+    recordKindLabel: "run",
+    isPinnedRecord: Boolean(item && pinnedRecordId === item.id),
+    pinnedRecordStatusDetail,
+    laneQueueLabel,
+    laneQueueDetail,
+    laneCompletionDetail,
+    laneRolloverLabel,
+    laneRolloverDetail,
+    laneMemoryLabel,
+    laneMemoryDetail,
+    onPinRecord,
+    onUnpinRecord,
+    onRefocusPinnedRecord,
+    onRefresh,
+    refreshing,
+    onOpenNextLaneRecord,
+    onOpenLaneRolloverRecord,
+    onReturnToLane,
+  });
   useEffect(() => {
     if (!highlightedSection) {
       return undefined;
@@ -156,6 +287,7 @@ export default function RunDetailPanel({
             Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
           </div>
         ) : null}
+        <OperatorLaneStateBlock entries={laneStateEntries} />
         <TriageSummaryStrip
           heading="Operator Triage Summary"
           subjectLabel={relatedExecutionId ? `Related execution ${relatedExecutionId}` : null}
@@ -168,8 +300,137 @@ export default function RunDetailPanel({
           jumpLabel={jumpLabel}
           onJump={handleJump}
         />
+        {priorityShortcutLabel && priorityShortcutDescription && onOpenPriorityRecord ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Triage Shortcut</h4>
+            <div style={summaryCalloutStyle}>{priorityShortcutDescription}</div>
+            <button
+              type="button"
+              style={summaryActionButtonStyle}
+              onClick={onOpenPriorityRecord}
+            >
+              {priorityShortcutLabel}
+            </button>
+          </article>
+        ) : null}
+        {warningShortcutLabel && warningShortcutDescription && onOpenWarningRecord ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Warning Shortcut</h4>
+            <div style={summaryCalloutStyle}>{warningShortcutDescription}</div>
+            <button
+              type="button"
+              style={summaryActionButtonStyle}
+              onClick={onOpenWarningRecord}
+            >
+              {warningShortcutLabel}
+            </button>
+          </article>
+        ) : null}
+        <LaneActionsCard entries={laneActionEntries} />
+        {item && pinnedRecordId === item.id && laneMetricsLabel && laneMetricsDetail ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Lane Metrics</h4>
+            <div style={summaryCalloutStyle}>{laneMetricsDetail}</div>
+            {laneDriverLabel ? (
+              <div style={summaryCalloutStyle}>
+                <strong>{laneDriverLabel}:</strong> {laneDriverDetail ?? "Signal driver is available from persisted lane heuristics."}
+              </div>
+            ) : null}
+          </article>
+        ) : null}
+        {laneHistoryEntries.length > 0 && onOpenLaneHistoryEntry ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Recent Lane Returns</h4>
+            <div style={{ display: "grid", gap: 8 }}>
+              {laneHistoryEntries.map((entry) => (
+                <button
+                  key={`${entry.kind}-${entry.id}`}
+                  type="button"
+                  style={summaryActionButtonStyle}
+                  onClick={() => onOpenLaneHistoryEntry(entry)}
+                >
+                  Recent: {entry.label}
+                </button>
+              ))}
+            </div>
+          </article>
+        ) : null}
       </div>
       <div style={summaryCardGridStyle}>
+        {breadcrumbs.length > 0 ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Navigated From</h4>
+            <SummaryFacts>
+              {breadcrumbs.map((breadcrumb) => (
+                <SummaryFact
+                  key={`${breadcrumb.kind}-${breadcrumb.id}`}
+                  label={breadcrumb.kind}
+                  copyValue={breadcrumb.id}
+                >
+                  {breadcrumb.label}
+                </SummaryFact>
+              ))}
+            </SummaryFacts>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {breadcrumbs.map((breadcrumb) => {
+                const isCurrent = (breadcrumb.kind === "run" && selectedRunId === breadcrumb.id)
+                  || (breadcrumb.kind === "execution" && selectedExecutionId === breadcrumb.id)
+                  || (breadcrumb.kind === "artifact" && selectedArtifactId === breadcrumb.id);
+                const onClick = breadcrumb.kind === "execution"
+                  ? onOpenExecution
+                    ? () => onOpenExecution(breadcrumb.id)
+                    : null
+                  : breadcrumb.kind === "artifact"
+                    ? onOpenArtifact
+                      ? () => onOpenArtifact(breadcrumb.id)
+                      : null
+                    : null;
+                if (!onClick) {
+                  return null;
+                }
+                return (
+                  <button
+                    key={`navigate-${breadcrumb.kind}-${breadcrumb.id}`}
+                    type="button"
+                    style={summaryActionButtonStyle}
+                    disabled={isCurrent}
+                    onClick={onClick}
+                  >
+                    {isCurrent ? `Current ${breadcrumb.kind}` : `Open ${breadcrumb.kind}`}
+                  </button>
+                );
+              })}
+            </div>
+          </article>
+        ) : null}
+        {originatingArtifactId ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Artifact Context</h4>
+            <SummaryFacts>
+              <SummaryFact label="Originating artifact" copyValue={originatingArtifactId}>
+                {originatingArtifactId}
+              </SummaryFact>
+              <SummaryFact label="Label">
+                {originatingArtifactLabel ?? "not recorded"}
+              </SummaryFact>
+              <SummaryFact label="Kind">
+                {originatingArtifactKind ?? "not recorded"}
+              </SummaryFact>
+            </SummaryFacts>
+            {onOpenArtifact ? (
+              <button
+                type="button"
+                style={summaryActionButtonStyle}
+                disabled={selectedArtifactId === originatingArtifactId}
+                onClick={() => onOpenArtifact(originatingArtifactId)}
+              >
+                {selectedArtifactId === originatingArtifactId
+                  ? "Origin artifact selected"
+                  : "Return to origin artifact"}
+              </button>
+            ) : null}
+          </article>
+        ) : null}
         <article style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Run Identity</h4>
           <SummaryFacts>

@@ -11,12 +11,15 @@ import {
   getPreferredArtifact,
   recommendArtifactAction,
 } from "../lib/recordPriority";
+import LaneActionsCard, { type LaneActionEntry } from "./LaneActionsCard";
+import OperatorLaneStateBlock, { type OperatorLaneStateEntry } from "./OperatorLaneStateBlock";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
 import RecordLineageStrip from "./RecordLineageStrip";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import StatusChip from "./StatusChip";
 import TriageSummaryStrip from "./TriageSummaryStrip";
+import { buildLaneActionEntries, buildOperatorLaneStateEntries } from "./laneViewModel";
 import {
   getAuditStatusTone,
   getExecutionModeTone,
@@ -37,12 +40,56 @@ type ExecutionDetailPanelProps = {
   item: ExecutionRecord | null;
   loading: boolean;
   error: string | null;
+  breadcrumbs?: Array<{ kind: "run" | "execution" | "artifact"; id: string; label: string }>;
   selectedRunId?: string | null;
   selectedExecutionId?: string | null;
   selectedArtifactId?: string | null;
+  pinnedRecordId?: string | null;
+  pinnedRecordStatusLabel?: string | null;
+  pinnedRecordStatusDetail?: string | null;
+  laneQueueLabel?: string | null;
+  laneQueueDetail?: string | null;
+  laneCompletionLabel?: string | null;
+  laneCompletionDetail?: string | null;
+  laneRolloverLabel?: string | null;
+  laneRolloverDetail?: string | null;
+  laneMetricsLabel?: string | null;
+  laneMetricsDetail?: string | null;
+  laneDriverLabel?: string | null;
+  laneDriverDetail?: string | null;
+  laneMemoryLabel?: string | null;
+  laneMemoryDetail?: string | null;
+  laneHistoryEntries?: Array<{ kind: "run" | "execution" | "artifact"; id: string; label: string; detail: string }>;
+  laneHandoffLabel?: string | null;
+  laneHandoffDetail?: string | null;
+  laneExportLabel?: string | null;
+  laneExportDetail?: string | null;
+  laneOperatorNoteLabel?: string | null;
+  laneOperatorNoteDetail?: string | null;
+  activeLanePresetLabel?: string | null;
+  activeLanePresetDetail?: string | null;
+  lanePresetRestoredLabel?: string | null;
+  lanePresetRestoredDetail?: string | null;
+  lanePresetDriftLabel?: string | null;
+  lanePresetDriftDetail?: string | null;
+  priorityShortcutLabel?: string | null;
+  priorityShortcutDescription?: string | null;
+  warningShortcutLabel?: string | null;
+  warningShortcutDescription?: string | null;
   relatedArtifacts?: ArtifactListItem[];
+  originatingArtifactLabel?: string | null;
+  originatingArtifactKind?: string | null;
   onOpenRun?: (runId: string) => void;
   onOpenArtifact?: (artifactId: string) => void;
+  onOpenPriorityRecord?: (() => void) | null;
+  onOpenWarningRecord?: (() => void) | null;
+  onPinRecord?: (() => void) | null;
+  onUnpinRecord?: (() => void) | null;
+  onRefocusPinnedRecord?: (() => void) | null;
+  onOpenNextLaneRecord?: (() => void) | null;
+  onOpenLaneRolloverRecord?: (() => void) | null;
+  onReturnToLane?: (() => void) | null;
+  onOpenLaneHistoryEntry?: ((entry: { kind: "run" | "execution" | "artifact"; id: string; label: string; detail: string }) => void) | null;
   refreshHint?: string | null;
   lastRefreshedAt?: string | null;
   onRefresh?: (() => void) | null;
@@ -62,12 +109,56 @@ export default function ExecutionDetailPanel({
   item,
   loading,
   error,
+  breadcrumbs = [],
   selectedRunId,
   selectedExecutionId,
   selectedArtifactId,
+  pinnedRecordId,
+  pinnedRecordStatusLabel,
+  pinnedRecordStatusDetail,
+  laneQueueLabel,
+  laneQueueDetail,
+  laneCompletionLabel,
+  laneCompletionDetail,
+  laneRolloverLabel,
+  laneRolloverDetail,
+  laneMetricsLabel,
+  laneMetricsDetail,
+  laneDriverLabel,
+  laneDriverDetail,
+  laneMemoryLabel,
+  laneMemoryDetail,
+  laneHistoryEntries = [],
+  laneHandoffLabel,
+  laneHandoffDetail,
+  laneExportLabel,
+  laneExportDetail,
+  laneOperatorNoteLabel,
+  laneOperatorNoteDetail,
+  activeLanePresetLabel,
+  activeLanePresetDetail,
+  lanePresetRestoredLabel,
+  lanePresetRestoredDetail,
+  lanePresetDriftLabel,
+  lanePresetDriftDetail,
+  priorityShortcutLabel,
+  priorityShortcutDescription,
+  warningShortcutLabel,
+  warningShortcutDescription,
   relatedArtifacts = [],
+  originatingArtifactLabel,
+  originatingArtifactKind,
   onOpenRun,
   onOpenArtifact,
+  onOpenPriorityRecord,
+  onOpenWarningRecord,
+  onPinRecord,
+  onUnpinRecord,
+  onRefocusPinnedRecord,
+  onOpenNextLaneRecord,
+  onOpenLaneRolloverRecord,
+  onReturnToLane,
+  onOpenLaneHistoryEntry,
   refreshHint,
   lastRefreshedAt,
   onRefresh,
@@ -79,6 +170,40 @@ export default function ExecutionDetailPanel({
     : null;
   const relatedRecordsRef = useRef<HTMLElement | null>(null);
   const evidenceSummaryRef = useRef<HTMLDivElement | null>(null);
+  const laneStateEntries: OperatorLaneStateEntry[] = buildOperatorLaneStateEntries({
+    laneHandoffLabel,
+    laneHandoffDetail,
+    laneExportLabel,
+    laneExportDetail,
+    laneOperatorNoteLabel,
+    laneOperatorNoteDetail,
+    activeLanePresetLabel,
+    activeLanePresetDetail,
+    lanePresetRestoredLabel,
+    lanePresetRestoredDetail,
+    lanePresetDriftLabel,
+    lanePresetDriftDetail,
+  });
+  const laneActionEntries: LaneActionEntry[] = buildLaneActionEntries({
+    recordKindLabel: "execution",
+    isPinnedRecord: Boolean(item && pinnedRecordId === item.id),
+    pinnedRecordStatusDetail,
+    laneQueueLabel,
+    laneQueueDetail,
+    laneCompletionDetail,
+    laneRolloverLabel,
+    laneRolloverDetail,
+    laneMemoryLabel,
+    laneMemoryDetail,
+    onPinRecord,
+    onUnpinRecord,
+    onRefocusPinnedRecord,
+    onRefresh,
+    refreshing,
+    onOpenNextLaneRecord,
+    onOpenLaneRolloverRecord,
+    onReturnToLane,
+  });
   useEffect(() => {
     if (!highlightedSection) {
       return undefined;
@@ -172,6 +297,7 @@ export default function ExecutionDetailPanel({
             Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
           </div>
         ) : null}
+        <OperatorLaneStateBlock entries={laneStateEntries} />
         <TriageSummaryStrip
           heading="Operator Triage Summary"
           subjectLabel={lineageArtifactId ? `Prioritized artifact ${lineageArtifactId}` : null}
@@ -184,8 +310,137 @@ export default function ExecutionDetailPanel({
           jumpLabel={projectInspectDetails || relatedArtifacts.length > 0 ? jumpLabel : null}
           onJump={projectInspectDetails || relatedArtifacts.length > 0 ? handleJump : null}
         />
+        {priorityShortcutLabel && priorityShortcutDescription && onOpenPriorityRecord ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Triage Shortcut</h4>
+            <div style={summaryCalloutStyle}>{priorityShortcutDescription}</div>
+            <button
+              type="button"
+              style={summaryActionButtonStyle}
+              onClick={onOpenPriorityRecord}
+            >
+              {priorityShortcutLabel}
+            </button>
+          </article>
+        ) : null}
+        {warningShortcutLabel && warningShortcutDescription && onOpenWarningRecord ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Risk Shortcut</h4>
+            <div style={summaryCalloutStyle}>{warningShortcutDescription}</div>
+            <button
+              type="button"
+              style={summaryActionButtonStyle}
+              onClick={onOpenWarningRecord}
+            >
+              {warningShortcutLabel}
+            </button>
+          </article>
+        ) : null}
+        <LaneActionsCard entries={laneActionEntries} />
+        {item && pinnedRecordId === item.id && laneMetricsLabel && laneMetricsDetail ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Lane Metrics</h4>
+            <div style={summaryCalloutStyle}>{laneMetricsDetail}</div>
+            {laneDriverLabel ? (
+              <div style={summaryCalloutStyle}>
+                <strong>{laneDriverLabel}:</strong> {laneDriverDetail ?? "Signal driver is available from persisted lane heuristics."}
+              </div>
+            ) : null}
+          </article>
+        ) : null}
+        {laneHistoryEntries.length > 0 && onOpenLaneHistoryEntry ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Recent Lane Returns</h4>
+            <div style={{ display: "grid", gap: 8 }}>
+              {laneHistoryEntries.map((entry) => (
+                <button
+                  key={`${entry.kind}-${entry.id}`}
+                  type="button"
+                  style={summaryActionButtonStyle}
+                  onClick={() => onOpenLaneHistoryEntry(entry)}
+                >
+                  Recent: {entry.label}
+                </button>
+              ))}
+            </div>
+          </article>
+        ) : null}
       </div>
       <div style={summaryCardGridStyle}>
+        {breadcrumbs.length > 0 ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Navigated From</h4>
+            <SummaryFacts>
+              {breadcrumbs.map((breadcrumb) => (
+                <SummaryFact
+                  key={`${breadcrumb.kind}-${breadcrumb.id}`}
+                  label={breadcrumb.kind}
+                  copyValue={breadcrumb.id}
+                >
+                  {breadcrumb.label}
+                </SummaryFact>
+              ))}
+            </SummaryFacts>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {breadcrumbs.map((breadcrumb) => {
+                const isCurrent = (breadcrumb.kind === "run" && selectedRunId === breadcrumb.id)
+                  || (breadcrumb.kind === "execution" && selectedExecutionId === breadcrumb.id)
+                  || (breadcrumb.kind === "artifact" && selectedArtifactId === breadcrumb.id);
+                const onClick = breadcrumb.kind === "run"
+                  ? onOpenRun
+                    ? () => onOpenRun(breadcrumb.id)
+                    : null
+                  : breadcrumb.kind === "artifact"
+                    ? onOpenArtifact
+                      ? () => onOpenArtifact(breadcrumb.id)
+                      : null
+                    : null;
+                if (!onClick) {
+                  return null;
+                }
+                return (
+                  <button
+                    key={`navigate-${breadcrumb.kind}-${breadcrumb.id}`}
+                    type="button"
+                    style={summaryActionButtonStyle}
+                    disabled={isCurrent}
+                    onClick={onClick}
+                  >
+                    {isCurrent ? `Current ${breadcrumb.kind}` : `Open ${breadcrumb.kind}`}
+                  </button>
+                );
+              })}
+            </div>
+          </article>
+        ) : null}
+        {lineageArtifactId ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Artifact Context</h4>
+            <SummaryFacts>
+              <SummaryFact label="Originating artifact" copyValue={lineageArtifactId}>
+                {lineageArtifactId}
+              </SummaryFact>
+              <SummaryFact label="Label">
+                {originatingArtifactLabel ?? lineageArtifact?.label ?? "not recorded"}
+              </SummaryFact>
+              <SummaryFact label="Kind">
+                {originatingArtifactKind ?? lineageArtifact?.kind ?? "not recorded"}
+              </SummaryFact>
+            </SummaryFacts>
+            {onOpenArtifact ? (
+              <button
+                type="button"
+                style={summaryActionButtonStyle}
+                disabled={selectedArtifactId === lineageArtifactId}
+                onClick={() => onOpenArtifact(lineageArtifactId)}
+              >
+                {selectedArtifactId === lineageArtifactId
+                  ? "Origin artifact selected"
+                  : "Return to origin artifact"}
+              </button>
+            ) : null}
+          </article>
+        ) : null}
         <article style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Execution Identity</h4>
           <SummaryFacts>

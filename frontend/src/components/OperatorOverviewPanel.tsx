@@ -11,7 +11,9 @@ import {
   getOverviewRunAttentionLabel,
 } from "../lib/operatorStatus";
 import OperatorStatusRail from "./OperatorStatusRail";
+import OperatorLaneStateBlock, { type OperatorLaneStateEntry } from "./OperatorLaneStateBlock";
 import SummarySection from "./SummarySection";
+import { buildOperatorLaneStateEntries } from "./laneViewModel";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import StatusChip from "./StatusChip";
 import {
@@ -37,6 +39,60 @@ type OperatorOverviewPanelProps = {
   loading: boolean;
   error: string | null;
   lastRefreshedAt?: string | null;
+  pinnedRecordLabel?: string | null;
+  pinnedRecordSummary?: string | null;
+  pinnedRecordStatusLabel?: string | null;
+  pinnedRecordStatusDetail?: string | null;
+  nextPinnedLaneLabel?: string | null;
+  nextPinnedLaneDetail?: string | null;
+  laneCompletionLabel?: string | null;
+  laneCompletionDetail?: string | null;
+  laneRolloverLabel?: string | null;
+  laneRolloverDetail?: string | null;
+  laneMetricsLabel?: string | null;
+  laneMetricsDetail?: string | null;
+  laneDriverLabel?: string | null;
+  laneDriverDetail?: string | null;
+  laneFilterLabel?: string | null;
+  laneReadinessLabel?: string | null;
+  laneReadinessDetail?: string | null;
+  laneHistoryStatusLabel?: string | null;
+  laneHistoryStatusDetail?: string | null;
+  laneRecoveryLabel?: string | null;
+  laneHandoffLabel?: string | null;
+  laneHandoffDetail?: string | null;
+  laneExportLabel?: string | null;
+  laneExportDetail?: string | null;
+  laneOperatorNoteLabel?: string | null;
+  laneOperatorNoteDetail?: string | null;
+  laneOperatorNoteDraft?: string;
+  activeLanePresetLabel?: string | null;
+  activeLanePresetDetail?: string | null;
+  lanePresetRestoredLabel?: string | null;
+  lanePresetRestoredDetail?: string | null;
+  lanePresetDriftLabel?: string | null;
+  lanePresetDriftDetail?: string | null;
+  lanePresetEntries?: Array<{
+    id: "execution_warnings" | "artifact_audit_risk" | "simulated_review";
+    label: string;
+    detail: string;
+    available: boolean;
+    availabilityDetail: string;
+  }>;
+  onOpenPinnedRecord?: (() => void) | null;
+  onRefocusPinnedRecord?: (() => void) | null;
+  onClearPinnedRecord?: (() => void) | null;
+  onClearLocalLaneContext?: (() => void) | null;
+  onOpenNextPinnedLaneRecord?: (() => void) | null;
+  onOpenLaneRolloverRecord?: (() => void) | null;
+  onSetLaneFilterMode?: ((mode: "all" | "warnings" | "audit_risk" | "simulated_only") => void) | null;
+  onApplyLaneRecovery?: (() => void) | null;
+  onDropStaleLaneHistory?: (() => void) | null;
+  onApplyLanePreset?: ((presetId: "execution_warnings" | "artifact_audit_risk" | "simulated_review") => void) | null;
+  onCopyLaneContext?: (() => void) | null;
+  onLaneOperatorNoteDraftChange?: ((value: string) => void) | null;
+  onSaveLaneOperatorNote?: (() => void) | null;
+  onClearLaneOperatorNote?: (() => void) | null;
   onRunStatusSelect: (status: string) => void;
   onPendingApprovalsSelect: () => void;
   onExecutionModeSelect: (mode: string) => void;
@@ -51,6 +107,54 @@ export default function OperatorOverviewPanel({
   loading,
   error,
   lastRefreshedAt,
+  pinnedRecordLabel,
+  pinnedRecordSummary,
+  pinnedRecordStatusLabel,
+  pinnedRecordStatusDetail,
+  nextPinnedLaneLabel,
+  nextPinnedLaneDetail,
+  laneCompletionLabel,
+  laneCompletionDetail,
+  laneRolloverLabel,
+  laneRolloverDetail,
+  laneMetricsLabel,
+  laneMetricsDetail,
+  laneDriverLabel,
+  laneDriverDetail,
+  laneFilterLabel,
+  laneReadinessLabel,
+  laneReadinessDetail,
+  laneHistoryStatusLabel,
+  laneHistoryStatusDetail,
+  laneRecoveryLabel,
+  laneHandoffLabel,
+  laneHandoffDetail,
+  laneExportLabel,
+  laneExportDetail,
+  laneOperatorNoteLabel,
+  laneOperatorNoteDetail,
+  laneOperatorNoteDraft = "",
+  activeLanePresetLabel,
+  activeLanePresetDetail,
+  lanePresetRestoredLabel,
+  lanePresetRestoredDetail,
+  lanePresetDriftLabel,
+  lanePresetDriftDetail,
+  lanePresetEntries = [],
+  onOpenPinnedRecord,
+  onRefocusPinnedRecord,
+  onClearPinnedRecord,
+  onClearLocalLaneContext,
+  onOpenNextPinnedLaneRecord,
+  onOpenLaneRolloverRecord,
+  onSetLaneFilterMode,
+  onApplyLaneRecovery,
+  onDropStaleLaneHistory,
+  onApplyLanePreset,
+  onCopyLaneContext,
+  onLaneOperatorNoteDraftChange,
+  onSaveLaneOperatorNote,
+  onClearLaneOperatorNote,
   onRunStatusSelect,
   onPendingApprovalsSelect,
   onExecutionModeSelect,
@@ -59,6 +163,21 @@ export default function OperatorOverviewPanel({
   onRefresh,
   refreshing = false,
 }: OperatorOverviewPanelProps) {
+  const laneStateEntries: OperatorLaneStateEntry[] = buildOperatorLaneStateEntries({
+    laneHandoffLabel,
+    laneHandoffDetail,
+    laneExportLabel,
+    laneExportDetail,
+    laneOperatorNoteLabel,
+    laneOperatorNoteDetail,
+    activeLanePresetLabel,
+    activeLanePresetDetail,
+    lanePresetRestoredLabel,
+    lanePresetRestoredDetail,
+    lanePresetDriftLabel,
+    lanePresetDriftDetail,
+  });
+
   return (
     <SummarySection
       title="Operator Overview"
@@ -94,7 +213,264 @@ export default function OperatorOverviewPanel({
             <span style={summaryBadgeStyle}>artifacts: {summary.artifacts_total}</span>
             <span style={summaryBadgeStyle}>events: {summary.events_total}</span>
             <span style={summaryBadgeStyle}>locks: {summary.locks_total}</span>
+            {pinnedRecordLabel ? (
+              <span style={summaryBadgeStyle}>pinned: {pinnedRecordLabel}</span>
+            ) : null}
+            {pinnedRecordStatusLabel ? (
+              <span style={summaryBadgeStyle}>{pinnedRecordStatusLabel}</span>
+            ) : null}
           </div>
+          {pinnedRecordLabel ? (
+            <article style={{ ...summaryCardStyle, marginBottom: 12 }}>
+              <h3 style={summaryCardHeadingStyle}>Pinned Decision Lane</h3>
+              <p style={summaryMutedTextStyle}>
+                {pinnedRecordLabel}
+                {pinnedRecordSummary ? ` | ${pinnedRecordSummary}` : ""}
+              </p>
+              {pinnedRecordStatusDetail ? (
+                <p style={summaryMutedTextStyle}>{pinnedRecordStatusDetail}</p>
+              ) : null}
+              {nextPinnedLaneDetail ? (
+                <p style={summaryMutedTextStyle}>{nextPinnedLaneDetail}</p>
+              ) : null}
+              {laneCompletionDetail ? (
+                <p style={summaryMutedTextStyle}>{laneCompletionDetail}</p>
+              ) : null}
+              {laneRolloverDetail ? (
+                <p style={summaryMutedTextStyle}>{laneRolloverDetail}</p>
+              ) : null}
+              {laneMetricsDetail ? (
+                <p style={summaryMutedTextStyle}>{laneMetricsDetail}</p>
+              ) : null}
+              {laneDriverDetail ? (
+                <p style={summaryMutedTextStyle}>{laneDriverDetail}</p>
+              ) : null}
+              {laneReadinessDetail ? (
+                <p style={summaryMutedTextStyle}>{laneReadinessDetail}</p>
+              ) : null}
+              {laneHistoryStatusDetail ? (
+                <p style={summaryMutedTextStyle}>{laneHistoryStatusDetail}</p>
+              ) : null}
+              <OperatorLaneStateBlock entries={laneStateEntries} compact />
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {onOpenPinnedRecord ? (
+                  <button
+                    type="button"
+                    onClick={onOpenPinnedRecord}
+                    style={summaryActionButtonStyle}
+                  >
+                    Open pinned lane
+                  </button>
+                ) : null}
+                {onRefocusPinnedRecord ? (
+                  <button
+                    type="button"
+                    onClick={onRefocusPinnedRecord}
+                    style={summaryActionButtonStyle}
+                  >
+                    Re-focus pinned lane
+                  </button>
+                ) : null}
+                {onClearPinnedRecord ? (
+                  <button
+                    type="button"
+                    onClick={onClearPinnedRecord}
+                    style={summaryActionButtonStyle}
+                  >
+                    Clear pinned lane
+                  </button>
+                ) : null}
+                {onClearLocalLaneContext ? (
+                  <button
+                    type="button"
+                    onClick={onClearLocalLaneContext}
+                    style={summaryActionButtonStyle}
+                  >
+                    Clear local lane context
+                  </button>
+                ) : null}
+                {nextPinnedLaneLabel && onOpenNextPinnedLaneRecord ? (
+                  <button
+                    type="button"
+                    onClick={onOpenNextPinnedLaneRecord}
+                    style={summaryActionButtonStyle}
+                  >
+                    Advance pinned lane
+                  </button>
+                ) : null}
+                {laneRolloverLabel && onOpenLaneRolloverRecord ? (
+                  <button
+                    type="button"
+                    onClick={onOpenLaneRolloverRecord}
+                    style={summaryActionButtonStyle}
+                  >
+                    Roll over lane
+                  </button>
+                ) : null}
+                {laneMetricsLabel ? (
+                  <span style={summaryBadgeStyle}>{laneMetricsLabel}</span>
+                ) : null}
+                {laneDriverLabel ? (
+                  <span style={summaryBadgeStyle}>{laneDriverLabel}</span>
+                ) : null}
+                {laneFilterLabel ? (
+                  <span style={summaryBadgeStyle}>{laneFilterLabel}</span>
+                ) : null}
+                {laneReadinessLabel ? (
+                  <span style={summaryBadgeStyle}>{laneReadinessLabel}</span>
+                ) : null}
+                {laneHistoryStatusLabel ? (
+                  <span style={summaryBadgeStyle}>{laneHistoryStatusLabel}</span>
+                ) : null}
+                {laneRecoveryLabel ? (
+                  <span style={summaryBadgeStyle}>{laneRecoveryLabel}</span>
+                ) : null}
+                {laneHandoffLabel ? (
+                  <span style={summaryBadgeStyle}>{laneHandoffLabel}</span>
+                ) : null}
+                {laneExportLabel ? (
+                  <span style={summaryBadgeStyle}>{laneExportLabel}</span>
+                ) : null}
+                {laneOperatorNoteLabel ? (
+                  <span style={summaryBadgeStyle}>{laneOperatorNoteLabel}</span>
+                ) : null}
+                {activeLanePresetLabel ? (
+                  <span style={summaryBadgeStyle}>{activeLanePresetLabel}</span>
+                ) : null}
+                {lanePresetRestoredLabel ? (
+                  <span style={summaryBadgeStyle}>{lanePresetRestoredLabel}</span>
+                ) : null}
+                {lanePresetDriftLabel ? (
+                  <span style={{ ...summaryBadgeStyle, color: "#8a4600", borderColor: "#f0b429" }}>
+                    {lanePresetDriftLabel}
+                  </span>
+                ) : null}
+                {laneRecoveryLabel && onApplyLaneRecovery ? (
+                  <button
+                    type="button"
+                    onClick={onApplyLaneRecovery}
+                    style={summaryActionButtonStyle}
+                  >
+                    {laneRecoveryLabel}
+                  </button>
+                ) : null}
+                {pinnedRecordLabel && onCopyLaneContext ? (
+                  <button
+                    type="button"
+                    onClick={onCopyLaneContext}
+                    style={summaryActionButtonStyle}
+                  >
+                    Copy lane context
+                  </button>
+                ) : null}
+                {laneHistoryStatusLabel === "recent returns stale" && onDropStaleLaneHistory ? (
+                  <button
+                    type="button"
+                    onClick={onDropStaleLaneHistory}
+                    style={summaryActionButtonStyle}
+                  >
+                    Drop stale recent returns
+                  </button>
+                ) : null}
+                {lanePresetEntries.length > 0 && onApplyLanePreset ? (
+                  lanePresetEntries.map((preset) => (
+                    <button
+                      key={`overview-preset-${preset.id}`}
+                      type="button"
+                      onClick={() => onApplyLanePreset(preset.id)}
+                      disabled={!preset.available}
+                      title={preset.available ? preset.detail : preset.availabilityDetail}
+                      style={summaryActionButtonStyle}
+                    >
+                      Preset: {preset.label}
+                    </button>
+                  ))
+                ) : null}
+                {onLaneOperatorNoteDraftChange && onSaveLaneOperatorNote ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
+                      minWidth: 280,
+                      maxWidth: 380,
+                    }}
+                  >
+                    <label style={summaryMutedTextStyle}>
+                      Operator note
+                      <textarea
+                        value={laneOperatorNoteDraft}
+                        onChange={(event) => onLaneOperatorNoteDraftChange(event.target.value)}
+                        rows={3}
+                        placeholder="Local browser-session note for the pinned lane."
+                        style={{
+                          marginTop: 6,
+                          width: "100%",
+                          resize: "vertical",
+                          border: "1px solid #d0d7de",
+                          borderRadius: 6,
+                          padding: 8,
+                          font: "inherit",
+                          color: "#1f2328",
+                          backgroundColor: "#ffffff",
+                        }}
+                      />
+                    </label>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        onClick={onSaveLaneOperatorNote}
+                        style={summaryActionButtonStyle}
+                      >
+                        Save lane note
+                      </button>
+                      {onClearLaneOperatorNote ? (
+                        <button
+                          type="button"
+                          onClick={onClearLaneOperatorNote}
+                          style={summaryActionButtonStyle}
+                        >
+                          Clear lane note
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+                {onSetLaneFilterMode ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => onSetLaneFilterMode("all")}
+                      style={summaryActionButtonStyle}
+                    >
+                      All signals
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSetLaneFilterMode("warnings")}
+                      style={summaryActionButtonStyle}
+                    >
+                      Warnings only
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSetLaneFilterMode("audit_risk")}
+                      style={summaryActionButtonStyle}
+                    >
+                      Audit risk
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onSetLaneFilterMode("simulated_only")}
+                      style={summaryActionButtonStyle}
+                    >
+                      Simulated only
+                    </button>
+                  </>
+                ) : null}
+              </div>
+            </article>
+          ) : null}
           <div style={summaryCardGridStyle}>
             <article style={summaryCardStyle}>
               <h3 style={summaryCardHeadingStyle}>Runs</h3>

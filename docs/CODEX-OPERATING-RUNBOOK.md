@@ -36,9 +36,44 @@ These are active constraints for this repository:
   non-container runs unless non-container defaults are re-verified
 - containerized compose readiness may be reported healthy only for the verified
   compose path
+- browser-session operator lane helpers in the frontend must not be described as
+  backend persistence, shared operator state, or durable export infrastructure
 
 If any new code, UI copy, docs, or automation summary blurs those boundaries,
 that slice is not done.
+
+## Operator lane UX baseline
+
+The frontend operator shell now includes a substantial local lane-operations
+layer. That layer is useful, but it is not the same thing as backend capability.
+
+Current accepted operator-lane UX baseline:
+- pinned lane progression across run, execution, and artifact records
+- lane completion, rollover, metrics, and driver cues
+- lane filter presets for warnings, audit risk, and simulated review
+- lane memory and recent-return navigation
+- keyboard shortcuts for lane advance and lane return
+- active preset, preset restore, preset drift, and preset availability cues
+- lane handoff summaries for advance, rollover, restore, recovery, preset
+  application, and local note updates
+- local operator notes for the current lane
+- local clipboard copy of lane context
+- local lane-context reset controls
+- carried-through operator lane state and lane actions in detail panels
+
+Truth boundary for this UX layer:
+- preset restore state is browser-session local
+- operator notes are browser-session local
+- lane handoff summaries are browser-session local
+- copied lane context is local clipboard output only
+- local lane reset clears browser-session UX helpers only
+- none of the above imply backend persistence, shared operator state, or real
+  adapter expansion
+
+When a slice touches any of these surfaces, verify both:
+- the UI still labels local-only behavior truthfully
+- docs and closeout wording still distinguish browser-session UX from persisted
+  control-plane records
 
 ## Slice assignment model
 
@@ -169,6 +204,12 @@ Minimum target:
 pwsh -File .\scripts\dev.ps1 frontend-lint
 pwsh -File .\scripts\dev.ps1 frontend-build
 ```
+
+If the slice changes operator lane UX wording, also verify that:
+- local-only notes, preset restore, clipboard copy, and reset controls are not
+  described as persisted
+- simulated execution remains explicitly labeled in the same views
+- no frontend-only change is described as a backend contract expansion
 
 ### Cross-surface truth slices
 

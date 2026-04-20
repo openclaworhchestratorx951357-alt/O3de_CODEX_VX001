@@ -36,6 +36,11 @@ Current Phase 7 checkpoint truth:
 - `build.configure` remains only a real plan-only preflight path
 - mutation surfaces remain gated
 
+Current operator-lane UX truth:
+- the frontend now includes pinned-lane progression, presets, handoff summaries, local operator notes, clipboard copy, and local reset controls
+- those operator-lane helpers are browser-session local frontend UX unless explicitly documented otherwise
+- they do not change backend persistence truth, do not create shared operator state, and do not expand real O3DE adapter capability
+
 ## Phase 5 startup baseline
 
 The repository now includes a first local stack baseline for Phase 5:

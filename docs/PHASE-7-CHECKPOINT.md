@@ -97,6 +97,10 @@ The operator shell now exposes this boundary through:
 - explicit manifest-backed project origin provenance
 - explicit manifest-backed presentation metadata inventory
 - explicit manifest-backed identity and tag inventory
+- local operator-lane state, action rails, and detail-panel carry-through for
+  pinned-lane navigation
+- explicit preset restore, preset drift, local note, local clipboard, and local
+  reset cues inside the operator shell
 
 ## What remains intentionally limited
 
@@ -114,6 +118,9 @@ The operator shell now exposes this boundary through:
 - default non-container persistence is still not claimed healthy; explicit
   operator-configured persistence remains the truthful baseline for
   non-container local runs
+- operator-lane notes, preset restore memory, handoff summaries, clipboard copy,
+  and local reset remain frontend browser-session helpers rather than backend
+  persistence or shared operator records
 
 ## Next safe expansion boundary
 
