@@ -142,7 +142,7 @@ export default function RunDetailPanel({
       />
       <div style={summaryCardGridStyle}>
         <article style={summaryCardStyle}>
-          <h4 style={summaryCardHeadingStyle}>Identity</h4>
+          <h4 style={summaryCardHeadingStyle}>Run Identity</h4>
           <SummaryFacts>
             <SummaryFact label="Run ID" copyValue={item?.id ?? undefined}>{item?.id}</SummaryFact>
             <SummaryFact label="Request ID" copyValue={item?.request_id ?? undefined}>{item?.request_id}</SummaryFact>
@@ -151,17 +151,17 @@ export default function RunDetailPanel({
           </SummaryFacts>
         </article>
         <article style={summaryCardStyle}>
-          <h4 style={summaryCardHeadingStyle}>Execution</h4>
+          <h4 style={summaryCardHeadingStyle}>Run Totals</h4>
           <SummaryFacts>
-            <SummaryFact label="Status">{item?.status}</SummaryFact>
-            <SummaryFact label="Execution mode">{item?.execution_mode}</SummaryFact>
             <SummaryFact label="Dry run">{String(item?.dry_run)}</SummaryFact>
             <SummaryFact label="Created">
               {item ? formatSummaryTimestamp(item.created_at) : ""}
             </SummaryFact>
-            <SummaryFact label="Updated">
-              {item ? formatSummaryTimestamp(item.updated_at) : ""}
-            </SummaryFact>
+            {relatedExecutionId ? (
+              <SummaryFact label="Related execution" copyValue={relatedExecutionId}>
+                {relatedExecutionId}
+              </SummaryFact>
+            ) : null}
           </SummaryFacts>
         </article>
         <article style={summaryCardStyle}>
@@ -207,16 +207,6 @@ export default function RunDetailPanel({
               {mutationAudit.rollback_outcome ? (
                 <SummaryFact label="Rollback outcome">{mutationAudit.rollback_outcome}</SummaryFact>
               ) : null}
-            </SummaryFacts>
-          </article>
-        ) : null}
-        {relatedExecutionId ? (
-          <article style={summaryCardStyle}>
-            <h4 style={summaryCardHeadingStyle}>Related Records</h4>
-            <SummaryFacts>
-              <SummaryFact label="Execution ID" copyValue={relatedExecutionId}>
-                {relatedExecutionId}
-              </SummaryFact>
             </SummaryFacts>
           </article>
         ) : null}
