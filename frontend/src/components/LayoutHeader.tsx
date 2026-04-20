@@ -7,19 +7,22 @@ import {
 type LayoutHeaderProps = {
   title: string;
   subtitle: string;
-  onRefresh?: (() => void) | null;
   refreshing?: boolean;
   lastRefreshedAt?: string | null;
   refreshStatusLabel?: string | null;
+  refreshActions?: Array<{
+    label: string;
+    onClick: () => void;
+  }>;
 };
 
 export default function LayoutHeader({
   title,
   subtitle,
-  onRefresh,
   refreshing = false,
   lastRefreshedAt,
   refreshStatusLabel,
+  refreshActions = [],
 }: LayoutHeaderProps) {
   return (
     <header
@@ -58,16 +61,17 @@ export default function LayoutHeader({
               last refresh: {formatSummaryTimestamp(lastRefreshedAt)}
             </span>
           ) : null}
-          {onRefresh ? (
+          {refreshActions.map((action, index) => (
             <button
+              key={`${action.label}-${index}`}
               type="button"
-              onClick={onRefresh}
+              onClick={action.onClick}
               disabled={refreshing}
               style={summaryActionButtonStyle}
             >
-              {refreshing ? "Refreshing..." : "Refresh dashboard"}
+              {refreshing ? "Refreshing..." : action.label}
             </button>
-          ) : null}
+          ))}
         </div>
       </div>
     </header>

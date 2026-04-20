@@ -81,6 +81,7 @@ type ToolFilter = "all" | "settings.patch";
 
 export default function App() {
   type FocusedSection = "approvals" | "artifacts" | "events" | "executions" | "runs";
+  type RefreshScope = "full" | "overview" | "records";
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
   const [approvals, setApprovals] = useState<ApprovalListItem[]>([]);
@@ -187,6 +188,18 @@ export default function App() {
   const relatedExecutionAttention = selectedRunId
     ? getPreferredExecutionAttentionForRun(selectedRunId)
     : null;
+
+  async function loadCatalog() {
+    try {
+      const catalog = (await fetchToolsCatalog()) as ToolsCatalog;
+      setCatalogAgents(catalog.agents ?? []);
+      setCatalogError(null);
+    } catch (error) {
+      setCatalogError(
+        error instanceof Error ? error.message : "Failed to load tools catalog",
+      );
+    }
+  }
 
   function getPreferredExecutionForRun(
     runId: string,
@@ -493,14 +506,7 @@ export default function App() {
 
   useEffect(() => {
     async function loadInitialData() {
-      try {
-        const catalog = (await fetchToolsCatalog()) as ToolsCatalog;
-        setCatalogAgents(catalog.agents ?? []);
-      } catch (error) {
-        setCatalogError(
-          error instanceof Error ? error.message : "Failed to load tools catalog",
-        );
-      }
+      await loadCatalog();
 
       await loadApprovals();
       await loadAdapters();
@@ -624,51 +630,67 @@ export default function App() {
   }
 
   async function refreshDashboardState() {
-    setDashboardRefreshing(true);
-    const nextExecutionsPromise = loadExecutions();
-    const nextArtifactsPromise = loadArtifacts();
-    try {
-      await Promise.all([
-        loadApprovals(),
-        loadAdapters(),
-        loadEvents(),
-        nextExecutionsPromise,
-        nextArtifactsPromise,
-        loadLocks(),
-        loadPolicies(),
-        loadReadiness(),
-        loadControlPlaneSummary(),
-      ]);
-      const nextExecutions = await nextExecutionsPromise;
-      const nextArtifacts = await nextArtifactsPromise;
+    await refreshDashboardStateForScope("full");
+  }
 
-      await loadRuns(selectedToolFilter, selectedAuditFilter, {
-        executionItems: nextExecutions,
-        announceSelectionRefresh: announceRunDetailRefreshRef.current,
-      });
-      if (selectedExecutionId && nextExecutions.some((item) => item.id === selectedExecutionId)) {
-        await loadExecutionDetail(selectedExecutionId);
-        setExecutionDetailRefreshHint("Refresh preserved the selected execution detail.");
-      } else if (selectedExecutionId) {
-        setSelectedExecutionId(null);
-        setSelectedExecution(null);
-        setExecutionDetailRefreshHint("Selected execution is no longer present after refresh.");
-      } else {
-        setExecutionDetailRefreshHint(null);
+  async function refreshDashboardStateForScope(scope: RefreshScope) {
+    setDashboardRefreshing(true);
+    setDashboardRefreshStatus(`refreshing ${scope} surfaces`);
+    try {
+      if (scope === "full" || scope === "overview") {
+        await Promise.all([
+          loadCatalog(),
+          loadAdapters(),
+          loadReadiness(),
+          loadControlPlaneSummary(),
+          loadPolicies(),
+        ]);
       }
-      if (selectedArtifactId && nextArtifacts.some((item) => item.id === selectedArtifactId)) {
-        await loadArtifactDetail(selectedArtifactId);
-        setArtifactDetailRefreshHint("Refresh preserved the selected artifact detail.");
-      } else if (selectedArtifactId) {
-        setSelectedArtifactId(null);
-        setSelectedArtifact(null);
-        setArtifactDetailRefreshHint("Selected artifact is no longer present after refresh.");
-      } else {
-        setArtifactDetailRefreshHint(null);
+
+      if (scope === "full") {
+        await Promise.all([
+          loadApprovals(),
+          loadEvents(),
+          loadLocks(),
+        ]);
       }
+
+      if (scope === "full" || scope === "records") {
+        const nextExecutionsPromise = loadExecutions();
+        const nextArtifactsPromise = loadArtifacts();
+        await Promise.all([nextExecutionsPromise, nextArtifactsPromise]);
+        const nextExecutions = await nextExecutionsPromise;
+        const nextArtifacts = await nextArtifactsPromise;
+
+        await loadRuns(selectedToolFilter, selectedAuditFilter, {
+          executionItems: nextExecutions,
+          announceSelectionRefresh: announceRunDetailRefreshRef.current,
+        });
+        if (selectedExecutionId && nextExecutions.some((item) => item.id === selectedExecutionId)) {
+          await loadExecutionDetail(selectedExecutionId);
+          setExecutionDetailRefreshHint("Refresh preserved the selected execution detail.");
+        } else if (selectedExecutionId) {
+          setSelectedExecutionId(null);
+          setSelectedExecution(null);
+          setExecutionDetailRefreshHint("Selected execution is no longer present after refresh.");
+        } else {
+          setExecutionDetailRefreshHint(null);
+        }
+        if (selectedArtifactId && nextArtifacts.some((item) => item.id === selectedArtifactId)) {
+          await loadArtifactDetail(selectedArtifactId);
+          setArtifactDetailRefreshHint("Refresh preserved the selected artifact detail.");
+        } else if (selectedArtifactId) {
+          setSelectedArtifactId(null);
+          setSelectedArtifact(null);
+          setArtifactDetailRefreshHint("Selected artifact is no longer present after refresh.");
+        } else {
+          setArtifactDetailRefreshHint(null);
+        }
+      }
+
       setUpdatedFocusedSection(activeFocusedSection);
       setDashboardRefreshedAt(new Date().toISOString());
-      setDashboardRefreshStatus("dashboard refreshed");
+      setDashboardRefreshStatus(`${scope} refresh complete`);
       restoreFocusedSection();
     } finally {
       announceRunDetailRefreshRef.current = false;
@@ -818,12 +840,29 @@ export default function App() {
       <LayoutHeader
         title="O3DE Agent Control App"
         subtitle="Early operator shell for orchestrating O3DE-focused agents, approvals, logs, artifacts, and tool-driven workflows."
-        onRefresh={() => {
-          void refreshDashboardState();
-        }}
         refreshing={dashboardRefreshing}
         lastRefreshedAt={dashboardRefreshedAt}
         refreshStatusLabel={dashboardRefreshStatus}
+        refreshActions={[
+          {
+            label: "Refresh dashboard",
+            onClick: () => {
+              void refreshDashboardStateForScope("full");
+            },
+          },
+          {
+            label: "Refresh overview",
+            onClick: () => {
+              void refreshDashboardStateForScope("overview");
+            },
+          },
+          {
+            label: "Refresh records",
+            onClick: () => {
+              void refreshDashboardStateForScope("records");
+            },
+          },
+        ]}
       />
 
       {catalogError ? <p style={{ color: "crimson" }}>{catalogError}</p> : null}
