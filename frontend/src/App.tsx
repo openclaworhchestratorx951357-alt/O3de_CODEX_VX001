@@ -109,6 +109,8 @@ export default function App() {
   const [executionDetailRefreshHint, setExecutionDetailRefreshHint] = useState<string | null>(null);
   const [artifactDetailRefreshHint, setArtifactDetailRefreshHint] = useState<string | null>(null);
   const [operatorOverviewRefreshedAt, setOperatorOverviewRefreshedAt] = useState<string | null>(null);
+  const [dashboardRefreshedAt, setDashboardRefreshedAt] = useState<string | null>(null);
+  const [dashboardRefreshStatus, setDashboardRefreshStatus] = useState<string | null>(null);
   const [runDetailRefreshedAt, setRunDetailRefreshedAt] = useState<string | null>(null);
   const [executionDetailRefreshedAt, setExecutionDetailRefreshedAt] = useState<string | null>(null);
   const [artifactDetailRefreshedAt, setArtifactDetailRefreshedAt] = useState<string | null>(null);
@@ -137,6 +139,7 @@ export default function App() {
   const [selectedRunLoading, setSelectedRunLoading] = useState(false);
   const [selectedExecutionLoading, setSelectedExecutionLoading] = useState(false);
   const [selectedArtifactLoading, setSelectedArtifactLoading] = useState(false);
+  const [dashboardRefreshing, setDashboardRefreshing] = useState(false);
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
   const [selectedExecutionError, setSelectedExecutionError] = useState<string | null>(null);
   const [selectedArtifactError, setSelectedArtifactError] = useState<string | null>(null);
@@ -523,6 +526,8 @@ export default function App() {
         );
       } finally {
         setRunsLoading(false);
+        setDashboardRefreshedAt(new Date().toISOString());
+        setDashboardRefreshStatus("initial load complete");
       }
     }
 
@@ -619,49 +624,56 @@ export default function App() {
   }
 
   async function refreshDashboardState() {
+    setDashboardRefreshing(true);
     const nextExecutionsPromise = loadExecutions();
     const nextArtifactsPromise = loadArtifacts();
-    await Promise.all([
-      loadApprovals(),
-      loadAdapters(),
-      loadEvents(),
-      nextExecutionsPromise,
-      nextArtifactsPromise,
-      loadLocks(),
-      loadPolicies(),
-      loadReadiness(),
-      loadControlPlaneSummary(),
-    ]);
-    const nextExecutions = await nextExecutionsPromise;
-    const nextArtifacts = await nextArtifactsPromise;
+    try {
+      await Promise.all([
+        loadApprovals(),
+        loadAdapters(),
+        loadEvents(),
+        nextExecutionsPromise,
+        nextArtifactsPromise,
+        loadLocks(),
+        loadPolicies(),
+        loadReadiness(),
+        loadControlPlaneSummary(),
+      ]);
+      const nextExecutions = await nextExecutionsPromise;
+      const nextArtifacts = await nextArtifactsPromise;
 
-    await loadRuns(selectedToolFilter, selectedAuditFilter, {
-      executionItems: nextExecutions,
-      announceSelectionRefresh: announceRunDetailRefreshRef.current,
-    });
-    if (selectedExecutionId && nextExecutions.some((item) => item.id === selectedExecutionId)) {
-      await loadExecutionDetail(selectedExecutionId);
-      setExecutionDetailRefreshHint("Refresh preserved the selected execution detail.");
-    } else if (selectedExecutionId) {
-      setSelectedExecutionId(null);
-      setSelectedExecution(null);
-      setExecutionDetailRefreshHint("Selected execution is no longer present after refresh.");
-    } else {
-      setExecutionDetailRefreshHint(null);
+      await loadRuns(selectedToolFilter, selectedAuditFilter, {
+        executionItems: nextExecutions,
+        announceSelectionRefresh: announceRunDetailRefreshRef.current,
+      });
+      if (selectedExecutionId && nextExecutions.some((item) => item.id === selectedExecutionId)) {
+        await loadExecutionDetail(selectedExecutionId);
+        setExecutionDetailRefreshHint("Refresh preserved the selected execution detail.");
+      } else if (selectedExecutionId) {
+        setSelectedExecutionId(null);
+        setSelectedExecution(null);
+        setExecutionDetailRefreshHint("Selected execution is no longer present after refresh.");
+      } else {
+        setExecutionDetailRefreshHint(null);
+      }
+      if (selectedArtifactId && nextArtifacts.some((item) => item.id === selectedArtifactId)) {
+        await loadArtifactDetail(selectedArtifactId);
+        setArtifactDetailRefreshHint("Refresh preserved the selected artifact detail.");
+      } else if (selectedArtifactId) {
+        setSelectedArtifactId(null);
+        setSelectedArtifact(null);
+        setArtifactDetailRefreshHint("Selected artifact is no longer present after refresh.");
+      } else {
+        setArtifactDetailRefreshHint(null);
+      }
+      setUpdatedFocusedSection(activeFocusedSection);
+      setDashboardRefreshedAt(new Date().toISOString());
+      setDashboardRefreshStatus("dashboard refreshed");
+      restoreFocusedSection();
+    } finally {
+      announceRunDetailRefreshRef.current = false;
+      setDashboardRefreshing(false);
     }
-    if (selectedArtifactId && nextArtifacts.some((item) => item.id === selectedArtifactId)) {
-      await loadArtifactDetail(selectedArtifactId);
-      setArtifactDetailRefreshHint("Refresh preserved the selected artifact detail.");
-    } else if (selectedArtifactId) {
-      setSelectedArtifactId(null);
-      setSelectedArtifact(null);
-      setArtifactDetailRefreshHint("Selected artifact is no longer present after refresh.");
-    } else {
-      setArtifactDetailRefreshHint(null);
-    }
-    setUpdatedFocusedSection(activeFocusedSection);
-    announceRunDetailRefreshRef.current = false;
-    restoreFocusedSection();
   }
 
   async function handleRunStatusDrilldown(status: string) {
@@ -806,6 +818,12 @@ export default function App() {
       <LayoutHeader
         title="O3DE Agent Control App"
         subtitle="Early operator shell for orchestrating O3DE-focused agents, approvals, logs, artifacts, and tool-driven workflows."
+        onRefresh={() => {
+          void refreshDashboardState();
+        }}
+        refreshing={dashboardRefreshing}
+        lastRefreshedAt={dashboardRefreshedAt}
+        refreshStatusLabel={dashboardRefreshStatus}
       />
 
       {catalogError ? <p style={{ color: "crimson" }}>{catalogError}</p> : null}
