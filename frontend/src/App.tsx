@@ -11,6 +11,15 @@ import ExecutionDetailPanel from "./components/ExecutionDetailPanel";
 import ExecutionsPanel from "./components/ExecutionsPanel";
 import LayoutHeader from "./components/LayoutHeader";
 import LocksPanel from "./components/LocksPanel";
+import OverviewContextStrip from "./components/OverviewContextStrip";
+import OverviewHandoffConfidencePanel from "./components/OverviewHandoffConfidencePanel";
+import OverviewContextMemoryPanel from "./components/OverviewContextMemoryPanel";
+import OverviewCloseoutReadinessPanel from "./components/OverviewCloseoutReadinessPanel";
+import OverviewHandoffExportPanel from "./components/OverviewHandoffExportPanel";
+import OverviewHandoffPackagePanel from "./components/OverviewHandoffPackagePanel";
+import OverviewAttentionPanel from "./components/OverviewAttentionPanel";
+import OverviewReviewQueuePanel from "./components/OverviewReviewQueuePanel";
+import OverviewReviewSessionPanel from "./components/OverviewReviewSessionPanel";
 import OperatorOverviewPanel from "./components/OperatorOverviewPanel";
 import Phase7CapabilitySummaryPanel from "./components/Phase7CapabilitySummaryPanel";
 import PoliciesPanel from "./components/PoliciesPanel";
@@ -26,9 +35,11 @@ import {
   fetchApprovalCards,
   fetchArtifact,
   fetchArtifactCards,
+  fetchArtifactCardsForTruthFilter,
   fetchControlPlaneSummary,
   fetchExecution,
   fetchExecutionCards,
+  fetchExecutionCardsForTruthFilter,
   fetchEventCards,
   fetchLockCards,
   fetchRun,
@@ -47,6 +58,23 @@ import {
   getPreferredExecution,
   recommendExecutionAction,
 } from "./lib/recordPriority";
+import {
+  activateArtifactLaneFromOverview,
+  activateExecutionLaneFromOverview,
+  activateRunsLaneFromOverview,
+  buildOverviewAutoOpenHint,
+  clearFocusedSection,
+  createNeutralTruthFilter,
+  createFallbackCategoryTruthFilter,
+  createInspectionSurfaceTruthFilter,
+  createManifestSourceTruthFilter,
+  createTruthFilterForDimension,
+  formatOverviewFocusLabel,
+  formatTruthFilterFocusLabel,
+  resetLaneFocus,
+  resetPresetLaneFocus,
+} from "./lib/laneController";
+import type { FocusedSection, TruthFilterState } from "./lib/laneController";
 import type {
   ArtifactListItem,
   ArtifactRecord,
@@ -190,7 +218,6 @@ type AuditFilter =
   | "other";
 
 type ToolFilter = "all" | "settings.patch";
-type FocusedSection = "approvals" | "artifacts" | "events" | "executions" | "runs";
 type RefreshScope = "full" | "overview" | "records";
 type RefreshTarget =
   | "catalog"
@@ -207,8 +234,103 @@ type RefreshTarget =
   | "selected execution detail"
   | "selected artifact detail";
 
+type RunsOverviewContextKind =
+  | "status"
+  | "inspection_surface"
+  | "fallback_category"
+  | "manifest_source_of_truth";
+
+type ExecutionsOverviewContextKind =
+  | "execution_mode"
+  | "inspection_surface"
+  | "fallback_category"
+  | "manifest_source_of_truth";
+
+type ArtifactsOverviewContextKind =
+  | "artifact_mode"
+  | "inspection_surface"
+  | "fallback_category"
+  | "manifest_source_of_truth";
+
+type OverviewContextHistoryEntry<TKind extends string> = {
+  id: string;
+  focusLabel: string;
+  originLabel: string;
+  value: string;
+  kind: TKind;
+};
+
+type OverviewContextPresetEntry<TKind extends string> = {
+  id: string;
+  focusLabel: string;
+  originLabel: string;
+  value: string;
+  kind: TKind;
+  savedAt: string;
+};
+
+type OverviewReviewDisposition = "in_queue" | "reviewed" | "snoozed";
+
+type OverviewReviewState = {
+  disposition: OverviewReviewDisposition;
+  updatedAt: string;
+};
+
+type OverviewContextNote = {
+  text: string;
+  updatedAt: string;
+};
+
+type OverviewSessionSnapshotBaseline = {
+  copiedAt: string;
+  contexts: Partial<Record<"runs" | "executions" | "artifacts", {
+    reviewDisposition: OverviewReviewDisposition;
+    noteUpdatedAt: string | null;
+    hasDrift: boolean;
+  }>>;
+};
+
+type OverviewContextId = "runs" | "executions" | "artifacts";
+
+type OverviewContextMemoryEntry = {
+  id: OverviewContextId;
+  laneLabel: string;
+  focusLabel: string;
+  originLabel: string;
+  savedAt: string;
+  triageLabel: string | null;
+  reviewDisposition: OverviewReviewDisposition;
+  noteText: string;
+  lastReviewedLabel: string | null;
+  lastReviewedDetail: string | null;
+  nextSuggestedCheck: string | null;
+};
+
+type OverviewReviewDiagnosticEntry = {
+  id: OverviewContextId;
+  label: string;
+  savedAt: string;
+  reviewState: OverviewReviewState | null;
+  hasDrift: boolean;
+};
+
+type ReadinessDiagnosticEntry = {
+  id: OverviewContextId;
+  laneLabel: string;
+  focusLabel: string;
+  ready: boolean;
+  summaryLabel: string;
+  detail: string;
+};
+
+const OVERVIEW_CONTEXT_IDS: OverviewContextId[] = ["runs", "executions", "artifacts"];
+
 const ACTIVE_LANE_PRESET_SESSION_KEY = "o3de-control-app-active-lane-preset";
 const LANE_OPERATOR_NOTES_SESSION_KEY = "o3de-control-app-lane-operator-notes";
+const OVERVIEW_CONTEXT_PRESETS_SESSION_KEY = "o3de-control-app-overview-context-presets";
+const OVERVIEW_REVIEW_STATE_SESSION_KEY = "o3de-control-app-overview-review-state";
+const OVERVIEW_CONTEXT_NOTES_SESSION_KEY = "o3de-control-app-overview-context-notes";
+const OVERVIEW_SESSION_SNAPSHOT_BASELINE_SESSION_KEY = "o3de-control-app-overview-session-snapshot-baseline";
 
 export default function App() {
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
@@ -311,11 +433,47 @@ export default function App() {
   const [artifactsSearchPreset, setArtifactsSearchPreset] = useState<string | null>(null);
   const [executionsSearchPreset, setExecutionsSearchPreset] = useState<string | null>(null);
   const [eventsSearchPreset, setEventsSearchPreset] = useState<string | null>(null);
+  const [artifactTruthFilter, setArtifactTruthFilter] = useState<TruthFilterState>(
+    createNeutralTruthFilter(),
+  );
+  const [executionTruthFilter, setExecutionTruthFilter] = useState<TruthFilterState>(
+    createNeutralTruthFilter(),
+  );
+  const [runTruthFilter, setRunTruthFilter] = useState<TruthFilterState>(
+    createNeutralTruthFilter(),
+  );
   const [runsFocusLabel, setRunsFocusLabel] = useState<string | null>(null);
   const [approvalsFocusLabel, setApprovalsFocusLabel] = useState<string | null>(null);
   const [artifactsFocusLabel, setArtifactsFocusLabel] = useState<string | null>(null);
   const [executionsFocusLabel, setExecutionsFocusLabel] = useState<string | null>(null);
   const [eventsFocusLabel, setEventsFocusLabel] = useState<string | null>(null);
+  const [runsOverviewContextHistory, setRunsOverviewContextHistory] = useState<
+    OverviewContextHistoryEntry<RunsOverviewContextKind>[]
+  >([]);
+  const [executionsOverviewContextHistory, setExecutionsOverviewContextHistory] = useState<
+    OverviewContextHistoryEntry<ExecutionsOverviewContextKind>[]
+  >([]);
+  const [artifactsOverviewContextHistory, setArtifactsOverviewContextHistory] = useState<
+    OverviewContextHistoryEntry<ArtifactsOverviewContextKind>[]
+  >([]);
+  const [runsOverviewContextPreset, setRunsOverviewContextPreset] = useState<
+    OverviewContextPresetEntry<RunsOverviewContextKind> | null
+  >(null);
+  const [executionsOverviewContextPreset, setExecutionsOverviewContextPreset] = useState<
+    OverviewContextPresetEntry<ExecutionsOverviewContextKind> | null
+  >(null);
+  const [artifactsOverviewContextPreset, setArtifactsOverviewContextPreset] = useState<
+    OverviewContextPresetEntry<ArtifactsOverviewContextKind> | null
+  >(null);
+  const [overviewReviewState, setOverviewReviewState] = useState<
+    Partial<Record<"runs" | "executions" | "artifacts", OverviewReviewState>>
+  >({});
+  const [overviewContextNotes, setOverviewContextNotes] = useState<
+    Partial<Record<"runs" | "executions" | "artifacts", OverviewContextNote>>
+  >({});
+  const [overviewSessionSnapshotBaseline, setOverviewSessionSnapshotBaseline] = useState<
+    OverviewSessionSnapshotBaseline | null
+  >(null);
   const [activeFocusedSection, setActiveFocusedSection] = useState<FocusedSection | null>(null);
   const [updatedFocusedSection, setUpdatedFocusedSection] = useState<FocusedSection | null>(null);
   const [runsSearchVersion, setRunsSearchVersion] = useState(0);
@@ -460,6 +618,488 @@ export default function App() {
     artifacts,
   );
   const activeLaneOperatorNote = getActiveLaneOperatorNote(pinnedRecord, laneOperatorNotes);
+  function getLocalReviewCue(
+    entryId: OverviewContextId,
+    noteText: string,
+    reviewState: OverviewReviewState | null | undefined,
+  ): {
+    lastReviewedLabel: string | null;
+    lastReviewedDetail: string | null;
+    nextSuggestedCheck: string | null;
+  } {
+    const updatedAt = reviewState?.updatedAt ?? null;
+    const normalizedNote = noteText.trim();
+    const disposition = reviewState?.disposition ?? "in_queue";
+
+    const lastReviewedLabel = updatedAt
+      ? `Last reviewed: ${new Date(updatedAt).toLocaleTimeString()}`
+      : null;
+    const lastReviewedDetail = updatedAt
+      ? `Local ${disposition.replace("_", " ")} state was last updated in this browser session at ${new Date(updatedAt).toLocaleTimeString()}.`
+      : "This saved context has not been explicitly reviewed yet in this browser session.";
+
+    if (normalizedNote) {
+      return {
+        lastReviewedLabel,
+        lastReviewedDetail,
+        nextSuggestedCheck: normalizedNote,
+      };
+    }
+
+    if (entryId === "executions") {
+      return {
+        lastReviewedLabel,
+        lastReviewedDetail,
+        nextSuggestedCheck: disposition === "snoozed"
+          ? "Recheck the highest-priority execution in this slice before returning it to active queue work."
+          : "Verify warnings, audit state, and linked artifacts in the current execution slice.",
+      };
+    }
+    if (entryId === "artifacts") {
+      return {
+        lastReviewedLabel,
+        lastReviewedDetail,
+        nextSuggestedCheck: disposition === "snoozed"
+          ? "Recheck the strongest risk-bearing artifact in this slice before keeping it snoozed."
+          : "Verify simulation markers, mutation-audit state, and provenance on the current artifact slice.",
+      };
+    }
+    return {
+      lastReviewedLabel,
+      lastReviewedDetail,
+      nextSuggestedCheck: disposition === "snoozed"
+        ? "Recheck whether this run slice still needs to stay out of the active queue."
+        : "Verify the current run slice still matches the intended operator follow-up.",
+    };
+  }
+  function buildOverviewContextMemoryEntry(
+    id: OverviewContextId,
+    preset: OverviewContextPresetEntry<string> | null,
+    laneLabel: string,
+    triageLabel: string | null,
+  ): OverviewContextMemoryEntry | null {
+    if (!preset) {
+      return null;
+    }
+    const noteText = overviewContextNotes[id]?.text ?? "";
+    return {
+      id,
+      laneLabel,
+      focusLabel: preset.focusLabel,
+      originLabel: preset.originLabel,
+      savedAt: preset.savedAt,
+      triageLabel,
+      reviewDisposition: overviewReviewState[id]?.disposition ?? "in_queue",
+      noteText,
+      ...getLocalReviewCue(id, noteText, overviewReviewState[id]),
+    };
+  }
+  const overviewContextMemoryEntries = [
+    buildOverviewContextMemoryEntry("runs", runsOverviewContextPreset, "Runs", null),
+    buildOverviewContextMemoryEntry(
+      "executions",
+      executionsOverviewContextPreset,
+      "Executions",
+      "Triage next execution",
+    ),
+    buildOverviewContextMemoryEntry(
+      "artifacts",
+      artifactsOverviewContextPreset,
+      "Artifacts",
+      "Triage next artifact",
+    ),
+  ].filter((entry): entry is OverviewContextMemoryEntry => entry !== null);
+  const overviewContextMemoryById = overviewContextMemoryEntries.reduce(
+    (result, entry) => {
+      result[entry.id] = entry;
+      return result;
+    },
+    {} as Partial<Record<OverviewContextId, OverviewContextMemoryEntry>>,
+  );
+  const savedExecutionContextItems = executionsOverviewContextPreset
+    ? getExecutionItemsForSavedContext(executionsOverviewContextPreset)
+    : [];
+  const savedExecutionPriority = executionsOverviewContextPreset
+    ? getPreferredExecution(savedExecutionContextItems)
+    : null;
+  const savedArtifactContextItems = artifactsOverviewContextPreset
+    ? getArtifactItemsForSavedContext(artifactsOverviewContextPreset)
+    : [];
+  const savedArtifactPriority = artifactsOverviewContextPreset
+    ? getPreferredArtifact(savedArtifactContextItems)
+    : null;
+  const overviewReviewQueueEntries = [
+    executionsOverviewContextPreset && savedExecutionPriority
+      && (overviewReviewState.executions?.disposition ?? "in_queue") !== "reviewed"
+      ? {
+          id: "executions",
+          laneLabel: "Executions",
+          focusLabel: executionsOverviewContextPreset.focusLabel,
+          priorityLabel: describeExecutionPriority(
+            savedExecutionPriority,
+            savedExecutionContextItems,
+            selectedExecutionId,
+          ).label,
+          priorityDetail: describeExecutionPriority(
+            savedExecutionPriority,
+            savedExecutionContextItems,
+            selectedExecutionId,
+          ).description,
+          savedAt: executionsOverviewContextPreset.savedAt,
+          triageLabel: "Triage next execution",
+          reviewDisposition: overviewReviewState.executions?.disposition ?? "in_queue",
+          noteText: overviewContextNotes.executions?.text ?? "",
+          ...getLocalReviewCue(
+            "executions",
+            overviewContextNotes.executions?.text ?? "",
+            overviewReviewState.executions,
+          ),
+        }
+      : null,
+    artifactsOverviewContextPreset && savedArtifactPriority
+      && (overviewReviewState.artifacts?.disposition ?? "in_queue") !== "reviewed"
+      ? {
+          id: "artifacts",
+          laneLabel: "Artifacts",
+          focusLabel: artifactsOverviewContextPreset.focusLabel,
+          priorityLabel: describeArtifactPriority(
+            savedArtifactPriority,
+            savedArtifactContextItems,
+            selectedArtifactId,
+          ).label,
+          priorityDetail: describeArtifactPriority(
+            savedArtifactPriority,
+            savedArtifactContextItems,
+            selectedArtifactId,
+          ).description,
+          savedAt: artifactsOverviewContextPreset.savedAt,
+          triageLabel: "Triage next artifact",
+          reviewDisposition: overviewReviewState.artifacts?.disposition ?? "in_queue",
+          noteText: overviewContextNotes.artifacts?.text ?? "",
+          ...getLocalReviewCue(
+            "artifacts",
+            overviewContextNotes.artifacts?.text ?? "",
+            overviewReviewState.artifacts,
+          ),
+        }
+      : null,
+  ].filter((entry): entry is {
+    id: "executions" | "artifacts";
+    laneLabel: string;
+    focusLabel: string;
+    priorityLabel: string;
+    priorityDetail: string;
+    savedAt: string;
+    triageLabel: string;
+    reviewDisposition: OverviewReviewDisposition;
+    noteText: string;
+    lastReviewedLabel: string | null;
+    lastReviewedDetail: string | null;
+    nextSuggestedCheck: string | null;
+  } => entry !== null);
+  const savedRunContextItems = runsOverviewContextPreset
+    ? getRunItemsForSavedContext(runsOverviewContextPreset)
+    : [];
+  function buildOverviewReviewDiagnostic(
+    id: OverviewContextId,
+    preset: OverviewContextPresetEntry<string> | null,
+    hasDrift: boolean,
+  ): OverviewReviewDiagnosticEntry | null {
+    if (!preset) {
+      return null;
+    }
+    return {
+      id,
+      label: `${overviewContextMemoryById[id]?.laneLabel ?? id}: ${preset.focusLabel}`,
+      savedAt: preset.savedAt,
+      reviewState: overviewReviewState[id] ?? null,
+      hasDrift,
+    };
+  }
+  const overviewReviewDiagnostics = [
+    buildOverviewReviewDiagnostic("runs", runsOverviewContextPreset, savedRunContextItems.length === 0),
+    buildOverviewReviewDiagnostic(
+      "executions",
+      executionsOverviewContextPreset,
+      savedExecutionContextItems.length === 0 || !savedExecutionPriority,
+    ),
+    buildOverviewReviewDiagnostic(
+      "artifacts",
+      artifactsOverviewContextPreset,
+      savedArtifactContextItems.length === 0 || !savedArtifactPriority,
+    ),
+  ].filter((entry): entry is OverviewReviewDiagnosticEntry => entry !== null);
+  const overviewReviewDiagnosticsById = overviewReviewDiagnostics.reduce(
+    (result, entry) => {
+      result[entry.id] = entry;
+      return result;
+    },
+    {} as Partial<Record<OverviewContextId, OverviewReviewDiagnosticEntry>>,
+  );
+  const staleThresholdMs = 1000 * 60 * 30;
+  const staleDiagnostics = overviewReviewDiagnostics.filter(
+    (entry) => Date.now() - Date.parse(entry.savedAt) > staleThresholdMs,
+  );
+  const snoozedDiagnostics = overviewReviewDiagnostics
+    .filter((entry) => entry.reviewState?.disposition === "snoozed")
+    .sort((left, right) => Date.parse(left.reviewState?.updatedAt ?? left.savedAt) - Date.parse(right.reviewState?.updatedAt ?? right.savedAt));
+  const longestSnoozedEntry = snoozedDiagnostics[0] ?? null;
+  const currentSnapshotBaseline: OverviewSessionSnapshotBaseline = {
+    copiedAt: new Date().toISOString(),
+    contexts: {
+      ...(runsOverviewContextPreset ? {
+        runs: {
+          reviewDisposition: overviewReviewState.runs?.disposition ?? "in_queue",
+          noteUpdatedAt: overviewContextNotes.runs?.updatedAt ?? null,
+          hasDrift: savedRunContextItems.length === 0,
+        },
+      } : {}),
+      ...(executionsOverviewContextPreset ? {
+        executions: {
+          reviewDisposition: overviewReviewState.executions?.disposition ?? "in_queue",
+          noteUpdatedAt: overviewContextNotes.executions?.updatedAt ?? null,
+          hasDrift: savedExecutionContextItems.length === 0 || !savedExecutionPriority,
+        },
+      } : {}),
+      ...(artifactsOverviewContextPreset ? {
+        artifacts: {
+          reviewDisposition: overviewReviewState.artifacts?.disposition ?? "in_queue",
+          noteUpdatedAt: overviewContextNotes.artifacts?.updatedAt ?? null,
+          hasDrift: savedArtifactContextItems.length === 0 || !savedArtifactPriority,
+        },
+      } : {}),
+    },
+  };
+  const compareDelta = overviewSessionSnapshotBaseline
+    ? OVERVIEW_CONTEXT_IDS.reduce(
+        (summary, id) => {
+          const previous = overviewSessionSnapshotBaseline.contexts[id];
+          const current = currentSnapshotBaseline.contexts[id];
+          if (!previous || !current) {
+            return summary;
+          }
+          if (previous.reviewDisposition !== "reviewed" && current.reviewDisposition === "reviewed") {
+            summary.newlyReviewed += 1;
+          }
+          if (current.noteUpdatedAt && current.noteUpdatedAt !== previous.noteUpdatedAt) {
+            summary.notesUpdated += 1;
+          }
+          if (!previous.hasDrift && current.hasDrift) {
+            summary.newlyDrifted += 1;
+          }
+          return summary;
+        },
+        { newlyReviewed: 0, notesUpdated: 0, newlyDrifted: 0 },
+      )
+    : null;
+  const readinessDiagnostics = overviewContextMemoryEntries.map((entry) => {
+    const matchingDiagnostic = overviewReviewDiagnosticsById[entry.id];
+    const missingSignals: string[] = [];
+    if (!entry.noteText.trim()) {
+      missingSignals.push("missing local note");
+    }
+    if (entry.reviewDisposition !== "reviewed") {
+      missingSignals.push("not marked reviewed");
+    }
+    if (matchingDiagnostic?.hasDrift) {
+      missingSignals.push("context drifted from current persisted records");
+    }
+    if (Date.now() - Date.parse(entry.savedAt) > staleThresholdMs) {
+      missingSignals.push("saved context is stale");
+    }
+    return {
+      id: entry.id,
+      laneLabel: entry.laneLabel,
+      focusLabel: entry.focusLabel,
+      ready: missingSignals.length === 0,
+      summaryLabel: missingSignals.length === 0 ? "ready for local handoff" : "needs follow-up",
+      detail: missingSignals.length === 0
+        ? "This saved context has a local note, a reviewed state, and no current drift or staleness flags in this browser session."
+        : `Still missing: ${missingSignals.join(", ")}.`,
+    };
+  });
+  const readinessDiagnosticsById = readinessDiagnostics.reduce(
+    (result, entry) => {
+      result[entry.id] = entry;
+      return result;
+    },
+    {} as Partial<Record<OverviewContextId, ReadinessDiagnosticEntry>>,
+  );
+  const handoffPackageEntries = readinessDiagnostics.map((entry) => {
+    const matchingMemoryEntry = overviewContextMemoryById[entry.id];
+    const previousSnapshotContext = overviewSessionSnapshotBaseline?.contexts[entry.id] ?? null;
+    const currentSnapshotContext = currentSnapshotBaseline.contexts[entry.id] ?? null;
+    const isStale = matchingMemoryEntry
+      ? Date.now() - Date.parse(matchingMemoryEntry.savedAt) > staleThresholdMs
+      : false;
+    const changedSinceSnapshot = previousSnapshotContext && currentSnapshotContext
+      ? previousSnapshotContext.reviewDisposition !== currentSnapshotContext.reviewDisposition
+        || previousSnapshotContext.noteUpdatedAt !== currentSnapshotContext.noteUpdatedAt
+        || previousSnapshotContext.hasDrift !== currentSnapshotContext.hasDrift
+      : false;
+    const savedAtLabel = matchingMemoryEntry
+      ? new Date(matchingMemoryEntry.savedAt).toLocaleTimeString()
+      : "unknown";
+    return {
+      id: entry.id,
+      laneLabel: entry.laneLabel,
+      focusLabel: entry.focusLabel,
+      detail: entry.ready
+        ? "Included because the local note, reviewed state, and drift/staleness checks are all satisfied in this browser session."
+        : entry.detail,
+      provenanceLabel: previousSnapshotContext
+        ? changedSinceSnapshot
+          ? "changed since last snapshot"
+          : isStale
+            ? "stale but unchanged since snapshot"
+            : "unchanged since last snapshot"
+        : isStale
+          ? "stale local context"
+          : "recent local context",
+      provenanceDetail: matchingMemoryEntry
+        ? [
+            `Saved locally at ${savedAtLabel} from ${matchingMemoryEntry.originLabel}.`,
+            previousSnapshotContext
+              ? changedSinceSnapshot
+                ? "Tracked review, note, or drift state changed after the last copied session snapshot."
+                : "No tracked review, note, or drift changes were detected since the last copied session snapshot."
+              : "No copied session snapshot baseline exists yet for this saved context.",
+          ].join(" ")
+        : "Derived from current browser-session state only.",
+    };
+  });
+  const changedSinceSnapshotCount = handoffPackageEntries.filter(
+    (entry) => entry.provenanceLabel === "changed since last snapshot",
+  ).length;
+  const handoffPackageIncludedEntries = handoffPackageEntries.filter(
+    (entry) => readinessDiagnosticsById[entry.id]?.ready === true,
+  );
+  const handoffPackageExcludedEntries = handoffPackageEntries.filter(
+    (entry) => readinessDiagnosticsById[entry.id]?.ready !== true,
+  );
+  const handoffConfidence = (() => {
+    const excludedCount = handoffPackageExcludedEntries.length;
+    const driftedCount = overviewReviewDiagnostics.filter((entry) => entry.hasDrift).length;
+    const staleCount = staleDiagnostics.length;
+    if (excludedCount > 0 || driftedCount > 0) {
+      return {
+        tone: "risk" as const,
+        label: "risk: follow-up still required",
+        detail: "One or more saved contexts are excluded or drifted, so this local handoff draft should be treated as incomplete until those items are rechecked.",
+      };
+    }
+    if (staleCount > 0 || changedSinceSnapshotCount > 0) {
+      return {
+        tone: "caution" as const,
+        label: "caution: recheck before handoff",
+        detail: "All current items may be includable, but stale or changed-since-snapshot signals suggest a quick local verification pass before relying on this draft.",
+      };
+    }
+    return {
+      tone: "high" as const,
+      label: "high confidence: locally aligned",
+      detail: "Current saved contexts are locally included with no drift, no exclusions, and no stale or changed-since-snapshot warnings in this browser session.",
+    };
+  })();
+  const overviewReviewSessionSummary = {
+    inQueueCount: Object.values(overviewReviewState).filter(
+      (entry) => entry?.disposition === "in_queue",
+    ).length,
+    snoozedCount: Object.values(overviewReviewState).filter(
+      (entry) => entry?.disposition === "snoozed",
+    ).length,
+    reviewedCount: Object.values(overviewReviewState).filter(
+      (entry) => entry?.disposition === "reviewed",
+    ).length,
+    staleCount: staleDiagnostics.length,
+    driftedCount: overviewReviewDiagnostics.filter((entry) => entry.hasDrift).length,
+    longestSnoozedLabel: longestSnoozedEntry
+      ? `Longest snoozed: ${longestSnoozedEntry.label}`
+      : null,
+    longestSnoozedDetail: longestSnoozedEntry
+      ? `Snoozed since ${new Date(longestSnoozedEntry.reviewState?.updatedAt ?? longestSnoozedEntry.savedAt).toLocaleTimeString()} in this browser session.`
+      : null,
+    lastSnapshotLabel: overviewSessionSnapshotBaseline
+      ? `Last snapshot: ${new Date(overviewSessionSnapshotBaseline.copiedAt).toLocaleTimeString()}`
+      : null,
+    compareSummaryLabel: compareDelta
+      ? `Since last snapshot: ${compareDelta.newlyReviewed} newly reviewed, ${compareDelta.notesUpdated} notes updated, ${compareDelta.newlyDrifted} newly drifted.`
+      : null,
+    readyCount: readinessDiagnostics.filter((entry) => entry.ready).length,
+    pendingCount: readinessDiagnostics.filter((entry) => !entry.ready).length,
+  };
+  const handoffExportGeneratedAt = new Date().toLocaleTimeString();
+  const overviewHandoffExportLines = [
+    "Overview local handoff draft (browser-session only)",
+    "This draft is generated from frontend-local review state and current persisted records visible in the UI.",
+    "It does not create backend persistence, operator storage, or orchestration-owned handoff state.",
+    `Generated at: ${handoffExportGeneratedAt}`,
+    `Included contexts: ${handoffPackageIncludedEntries.length}`,
+    `Excluded contexts: ${handoffPackageExcludedEntries.length}`,
+    "",
+    "Included now:",
+    ...(handoffPackageIncludedEntries.length > 0
+      ? handoffPackageIncludedEntries.map(
+          (entry) => `- ${entry.laneLabel}: ${entry.focusLabel} | ${entry.detail} | ${entry.provenanceLabel}: ${entry.provenanceDetail}`,
+        )
+      : ["- none"]),
+    "",
+    "Excluded for follow-up:",
+    ...(handoffPackageExcludedEntries.length > 0
+      ? handoffPackageExcludedEntries.map(
+          (entry) => `- ${entry.laneLabel}: ${entry.focusLabel} | ${entry.detail} | ${entry.provenanceLabel}: ${entry.provenanceDetail}`,
+        )
+      : ["- none"]),
+    "",
+    "Snapshot summary:",
+    `- In queue: ${overviewReviewSessionSummary.inQueueCount}`,
+    `- Snoozed: ${overviewReviewSessionSummary.snoozedCount}`,
+    `- Reviewed: ${overviewReviewSessionSummary.reviewedCount}`,
+    `- Stale: ${overviewReviewSessionSummary.staleCount}`,
+    `- Drifted: ${overviewReviewSessionSummary.driftedCount}`,
+    `- Ready for local handoff: ${overviewReviewSessionSummary.readyCount}`,
+    `- Needs follow-up: ${overviewReviewSessionSummary.pendingCount}`,
+  ];
+  const overviewHandoffExportDraft = overviewHandoffExportLines.join("\n");
+  const attentionRecommendations = [
+    staleDiagnostics[0]
+      ? {
+          id: `stale:${staleDiagnostics[0].id}`,
+          label: "Revisit stale saved context",
+          detail: `${staleDiagnostics[0].label} has been sitting for more than 30 minutes in this browser session and may need a fresh review pass.`,
+          primaryActionLabel: "Open stale context",
+          secondaryActionLabel: staleDiagnostics[0].id === "executions" || staleDiagnostics[0].id === "artifacts"
+            ? "Triage stale context"
+            : null,
+        }
+      : null,
+    overviewReviewDiagnostics.find((entry) => entry.hasDrift)
+      ? {
+          id: `drift:${overviewReviewDiagnostics.find((entry) => entry.hasDrift)!.id}`,
+          label: "Reopen drifted context",
+          detail: `${overviewReviewDiagnostics.find((entry) => entry.hasDrift)!.label} no longer lines up cleanly with the latest persisted records and should be rechecked.`,
+          primaryActionLabel: "Open drifted context",
+          secondaryActionLabel: null,
+        }
+      : null,
+    longestSnoozedEntry
+      ? {
+          id: `snoozed:${longestSnoozedEntry.id}`,
+          label: "Triage longest snoozed context",
+          detail: `${longestSnoozedEntry.label} has been snoozed the longest in this browser session and may be ready to return to active review.`,
+          primaryActionLabel: longestSnoozedEntry.id === "executions" || longestSnoozedEntry.id === "artifacts"
+            ? "Triage longest snoozed"
+            : "Open longest snoozed",
+          secondaryActionLabel: "Keep in queue",
+        }
+      : null,
+  ].filter((entry): entry is {
+    id: string;
+    label: string;
+    detail: string;
+    primaryActionLabel: string;
+    secondaryActionLabel: string | null;
+  } => entry !== null);
 
   function dedupeBreadcrumbs(items: DetailBreadcrumb[]): DetailBreadcrumb[] {
     const seen = new Set<string>();
@@ -991,6 +1631,9 @@ export default function App() {
     setActiveLanePresetSource("manual");
     setLanePresetRestoredAt(null);
     setPendingLanePresetRestoreId(null);
+    setRunsOverviewContextPreset(null);
+    setExecutionsOverviewContextPreset(null);
+    setArtifactsOverviewContextPreset(null);
     setLaneHandoffSummary(null);
     setLaneExportStatus(null);
     setLaneOperatorNoteDraft("");
@@ -1009,6 +1652,7 @@ export default function App() {
 
     if (typeof window !== "undefined") {
       window.sessionStorage.removeItem(ACTIVE_LANE_PRESET_SESSION_KEY);
+      window.sessionStorage.removeItem(OVERVIEW_CONTEXT_PRESETS_SESSION_KEY);
       if (!pinnedRecord) {
         window.sessionStorage.removeItem(LANE_OPERATOR_NOTES_SESSION_KEY);
       }
@@ -1061,6 +1705,166 @@ export default function App() {
 
     window.sessionStorage.removeItem(ACTIVE_LANE_PRESET_SESSION_KEY);
   }, [activeLanePresetId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const storedValue = window.sessionStorage.getItem(OVERVIEW_CONTEXT_PRESETS_SESSION_KEY);
+    if (!storedValue) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(storedValue) as {
+        runs?: OverviewContextPresetEntry<RunsOverviewContextKind> | null;
+        executions?: OverviewContextPresetEntry<ExecutionsOverviewContextKind> | null;
+        artifacts?: OverviewContextPresetEntry<ArtifactsOverviewContextKind> | null;
+      };
+      setRunsOverviewContextPreset(parsed.runs ?? null);
+      setExecutionsOverviewContextPreset(parsed.executions ?? null);
+      setArtifactsOverviewContextPreset(parsed.artifacts ?? null);
+    } catch {
+      window.sessionStorage.removeItem(OVERVIEW_CONTEXT_PRESETS_SESSION_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const hasPreset =
+      runsOverviewContextPreset
+      || executionsOverviewContextPreset
+      || artifactsOverviewContextPreset;
+    if (!hasPreset) {
+      window.sessionStorage.removeItem(OVERVIEW_CONTEXT_PRESETS_SESSION_KEY);
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      OVERVIEW_CONTEXT_PRESETS_SESSION_KEY,
+      JSON.stringify({
+        runs: runsOverviewContextPreset,
+        executions: executionsOverviewContextPreset,
+        artifacts: artifactsOverviewContextPreset,
+      }),
+    );
+  }, [
+    runsOverviewContextPreset,
+    executionsOverviewContextPreset,
+    artifactsOverviewContextPreset,
+  ]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const storedValue = window.sessionStorage.getItem(OVERVIEW_REVIEW_STATE_SESSION_KEY);
+    if (!storedValue) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(storedValue) as Partial<
+        Record<"runs" | "executions" | "artifacts", OverviewReviewState>
+      >;
+      setOverviewReviewState(parsed);
+    } catch {
+      window.sessionStorage.removeItem(OVERVIEW_REVIEW_STATE_SESSION_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const hasEntries = Object.keys(overviewReviewState).length > 0;
+    if (!hasEntries) {
+      window.sessionStorage.removeItem(OVERVIEW_REVIEW_STATE_SESSION_KEY);
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      OVERVIEW_REVIEW_STATE_SESSION_KEY,
+      JSON.stringify(overviewReviewState),
+    );
+  }, [overviewReviewState]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const storedValue = window.sessionStorage.getItem(OVERVIEW_CONTEXT_NOTES_SESSION_KEY);
+    if (!storedValue) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(storedValue) as Partial<
+        Record<"runs" | "executions" | "artifacts", OverviewContextNote>
+      >;
+      setOverviewContextNotes(parsed);
+    } catch {
+      window.sessionStorage.removeItem(OVERVIEW_CONTEXT_NOTES_SESSION_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const hasEntries = Object.keys(overviewContextNotes).length > 0;
+    if (!hasEntries) {
+      window.sessionStorage.removeItem(OVERVIEW_CONTEXT_NOTES_SESSION_KEY);
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      OVERVIEW_CONTEXT_NOTES_SESSION_KEY,
+      JSON.stringify(overviewContextNotes),
+    );
+  }, [overviewContextNotes]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const storedValue = window.sessionStorage.getItem(OVERVIEW_SESSION_SNAPSHOT_BASELINE_SESSION_KEY);
+    if (!storedValue) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(storedValue) as OverviewSessionSnapshotBaseline;
+      setOverviewSessionSnapshotBaseline(parsed);
+    } catch {
+      window.sessionStorage.removeItem(OVERVIEW_SESSION_SNAPSHOT_BASELINE_SESSION_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!overviewSessionSnapshotBaseline) {
+      window.sessionStorage.removeItem(OVERVIEW_SESSION_SNAPSHOT_BASELINE_SESSION_KEY);
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      OVERVIEW_SESSION_SNAPSHOT_BASELINE_SESSION_KEY,
+      JSON.stringify(overviewSessionSnapshotBaseline),
+    );
+  }, [overviewSessionSnapshotBaseline]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -1340,10 +2144,12 @@ export default function App() {
     }
   }
 
-  async function loadArtifacts() {
+  async function loadArtifacts(
+    truthFilter: TruthFilterState = artifactTruthFilter,
+  ) {
     setArtifactsLoading(true);
     try {
-      const nextArtifacts = await fetchArtifactCards();
+      const nextArtifacts = await fetchArtifactCardsForTruthFilter(truthFilter);
       setArtifacts(nextArtifacts);
       setArtifactsRefreshedAt(new Date().toISOString());
       setArtifactsError(null);
@@ -1361,6 +2167,7 @@ export default function App() {
   async function loadRuns(
     toolFilter: ToolFilter = selectedToolFilter,
     auditFilter: AuditFilter = selectedAuditFilter,
+    truthFilter: TruthFilterState = runTruthFilter,
     options?: {
       executionItems?: ExecutionListItem[];
       announceSelectionRefresh?: boolean;
@@ -1369,7 +2176,7 @@ export default function App() {
     setRunsLoading(true);
     try {
       const [nextRuns, nextRunsSummary] = await Promise.all([
-        fetchRunCards(toolFilter, auditFilter),
+        fetchRunCards(toolFilter, auditFilter, truthFilter),
         fetchRunsSummaryForFilter(toolFilter, auditFilter),
       ]);
       setRuns(nextRuns);
@@ -1392,10 +2199,12 @@ export default function App() {
       } else if (options?.announceSelectionRefresh) {
         setRunDetailRefreshHint(null);
       }
+      return nextRuns;
     } catch (error) {
       setRunsError(
         error instanceof Error ? error.message : "Failed to load runs",
       );
+      return [];
     } finally {
       setRunsLoading(false);
     }
@@ -1463,10 +2272,12 @@ export default function App() {
     }
   }
 
-  async function loadExecutions() {
+  async function loadExecutions(
+    truthFilter: TruthFilterState = executionTruthFilter,
+  ) {
     setExecutionsLoading(true);
     try {
-      const nextExecutions = await fetchExecutionCards();
+      const nextExecutions = await fetchExecutionCardsForTruthFilter(truthFilter);
       setExecutions(nextExecutions);
       setExecutionsRefreshedAt(new Date().toISOString());
       setExecutionsError(null);
@@ -1557,7 +2368,7 @@ export default function App() {
       await loadControlPlaneSummary();
       try {
         const [nextRuns, nextRunsSummary] = await Promise.all([
-          fetchRunCards("all", "all"),
+          fetchRunCards("all", "all", runTruthFilter),
           fetchRunsSummaryForFilter("all", "all"),
         ]);
         setRuns(nextRuns);
@@ -1606,6 +2417,55 @@ export default function App() {
     void refreshDashboardState();
   }
 
+  function openFirstRunLaneMatch(runItems: RunListItem[]): void {
+    const preferredRun = runItems[0] ?? null;
+    if (!preferredRun) {
+      return;
+    }
+    openRunDetail(preferredRun.id, {
+      autoOpenedFromOverview: buildOverviewAutoOpenHint(
+        runsFocusLabel,
+        "Chosen as the first matching run in the filtered overview results.",
+      ),
+    });
+  }
+
+  function openFirstExecutionLaneMatch(executionItems: ExecutionListItem[]): void {
+    const preferredExecution = getPreferredExecution(executionItems);
+    if (!preferredExecution) {
+      return;
+    }
+    const selectionReason = describeExecutionPriority(
+      preferredExecution,
+      executionItems,
+      null,
+    );
+    openExecutionDetail(preferredExecution.id, {
+      autoOpenedFromOverview: buildOverviewAutoOpenHint(
+        executionsFocusLabel,
+        selectionReason.description,
+      ),
+    });
+  }
+
+  function openFirstArtifactLaneMatch(artifactItems: ArtifactListItem[]): void {
+    const preferredArtifact = getPreferredArtifact(artifactItems);
+    if (!preferredArtifact) {
+      return;
+    }
+    const selectionReason = describeArtifactPriority(
+      preferredArtifact,
+      artifactItems,
+      null,
+    );
+    openArtifactDetail(preferredArtifact.id, {
+      autoOpenedFromOverview: buildOverviewAutoOpenHint(
+        artifactsFocusLabel,
+        selectionReason.description,
+      ),
+    });
+  }
+
   function handleAuditFilterChange(filter: AuditFilter) {
     setSelectedAuditFilter(filter);
     void loadRuns(selectedToolFilter, filter);
@@ -1618,6 +2478,598 @@ export default function App() {
 
   function scrollToSection(target: HTMLElement | null) {
     target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function buildRunsLaneOverviewOptions(options: {
+    focusLabel: string;
+    searchPreset: string;
+    truthFilter?: TruthFilterState;
+    runFilter?: (item: RunListItem) => boolean;
+  }) {
+    return {
+      ...options,
+      setSelectedToolFilter,
+      setSelectedAuditFilter,
+      setRunTruthFilter,
+      setRunsSearchPreset,
+      setRunsFocusLabel,
+      setActiveFocusedSection,
+      setUpdatedFocusedSection,
+      setRunsSearchVersion,
+      loadRuns,
+      setRunDetailRefreshHint,
+      openFirstRunLaneMatch,
+      scrollToSection: () => scrollToSection(runsSectionRef.current),
+    };
+  }
+
+  function buildExecutionLaneOverviewOptions(options: {
+    focusLabel: string;
+    searchPreset: string;
+    truthFilter?: TruthFilterState;
+    executionFilter?: (item: ExecutionListItem) => boolean;
+  }) {
+    return {
+      ...options,
+      setExecutionTruthFilter,
+      setExecutionsSearchPreset,
+      setExecutionsFocusLabel,
+      setActiveFocusedSection,
+      setUpdatedFocusedSection,
+      setExecutionsSearchVersion,
+      loadExecutions,
+      openFirstExecutionLaneMatch,
+      scrollToSection: () => scrollToSection(executionsSectionRef.current),
+    };
+  }
+
+  function buildArtifactLaneOverviewOptions(options: {
+    focusLabel: string;
+    searchPreset: string;
+    truthFilter?: TruthFilterState;
+    artifactFilter?: (item: ArtifactListItem) => boolean;
+  }) {
+    return {
+      ...options,
+      setArtifactTruthFilter,
+      setArtifactsSearchPreset,
+      setArtifactsFocusLabel,
+      setActiveFocusedSection,
+      setUpdatedFocusedSection,
+      setArtifactsSearchVersion,
+      loadArtifacts,
+      openFirstArtifactLaneMatch,
+      scrollToSection: () => scrollToSection(artifactsSectionRef.current),
+    };
+  }
+
+  function describeOverviewFocusOrigin(focusLabel: string | null): string | null {
+    const normalizedLabel = focusLabel?.trim().toLowerCase();
+    if (!normalizedLabel) {
+      return null;
+    }
+    if (normalizedLabel.startsWith("status = ")) {
+      return "status drilldown";
+    }
+    if (normalizedLabel.startsWith("execution mode = ")) {
+      return "execution-mode drilldown";
+    }
+    if (normalizedLabel.startsWith("artifact mode = ")) {
+      return "artifact-mode drilldown";
+    }
+    if (normalizedLabel.startsWith("severity = ")) {
+      return "event-severity drilldown";
+    }
+    if (normalizedLabel.startsWith("inspection surface = ")) {
+      return "inspection-surface drilldown";
+    }
+    if (normalizedLabel.startsWith("fallback category = ")) {
+      return "fallback-category drilldown";
+    }
+    if (normalizedLabel.startsWith("manifest source of truth = ")) {
+      return "manifest-source-of-truth drilldown";
+    }
+    return "overview drilldown";
+  }
+
+  function describeOverviewAutoOpenOutcome(refreshHint: string | null): string | null {
+    const normalizedHint = refreshHint?.trim();
+    if (!normalizedHint || !normalizedHint.startsWith("Auto-opened from overview drilldown")) {
+      return null;
+    }
+
+    const firstSentenceBreak = normalizedHint.indexOf(". ");
+    if (firstSentenceBreak === -1) {
+      return "Preferred detail record was opened automatically.";
+    }
+
+    return normalizedHint.slice(firstSentenceBreak + 2).trim();
+  }
+
+  function pushOverviewContextHistory<TKind extends string>(
+    history: OverviewContextHistoryEntry<TKind>[],
+    entry: OverviewContextHistoryEntry<TKind>,
+  ): OverviewContextHistoryEntry<TKind>[] {
+    return [
+      entry,
+      ...history.filter((item) => item.id !== entry.id),
+    ].slice(0, 2);
+  }
+
+  function promoteOverviewContextPreset<TKind extends string>(
+    entry: OverviewContextHistoryEntry<TKind>,
+  ): OverviewContextPresetEntry<TKind> {
+    return {
+      ...entry,
+      savedAt: new Date().toISOString(),
+    };
+  }
+
+  function replayRunsOverviewContext(
+    entry: OverviewContextHistoryEntry<RunsOverviewContextKind>,
+  ): Promise<void> {
+    if (entry.kind === "status") {
+      return activateRunsLaneFromOverview(buildRunsLaneOverviewOptions({
+        focusLabel: entry.focusLabel,
+        searchPreset: entry.value,
+        runFilter: (item) => item.status === entry.value,
+      }));
+    }
+
+    return activateRunsLaneFromOverview(buildRunsLaneOverviewOptions({
+      focusLabel: entry.focusLabel,
+      searchPreset: entry.value,
+      truthFilter: createTruthFilterForDimension(entry.kind, entry.value),
+    }));
+  }
+
+  function replayExecutionsOverviewContext(
+    entry: OverviewContextHistoryEntry<ExecutionsOverviewContextKind>,
+  ): void {
+    if (entry.kind === "execution_mode") {
+      activateExecutionLaneFromOverview(buildExecutionLaneOverviewOptions({
+        focusLabel: entry.focusLabel,
+        searchPreset: entry.value,
+        executionFilter: (item) => item.execution_mode === entry.value,
+      }));
+      return;
+    }
+
+    activateExecutionLaneFromOverview(buildExecutionLaneOverviewOptions({
+      focusLabel: entry.focusLabel,
+      searchPreset: entry.value,
+      truthFilter: createTruthFilterForDimension(entry.kind, entry.value),
+    }));
+  }
+
+  function replayArtifactsOverviewContext(
+    entry: OverviewContextHistoryEntry<ArtifactsOverviewContextKind>,
+  ): void {
+    if (entry.kind === "artifact_mode") {
+      activateArtifactLaneFromOverview(buildArtifactLaneOverviewOptions({
+        focusLabel: entry.focusLabel,
+        searchPreset: entry.value,
+        artifactFilter: (item) => {
+          if (entry.value === "simulated") {
+            return item.simulated || item.execution_mode === "simulated";
+          }
+          return item.execution_mode === entry.value;
+        },
+      }));
+      return;
+    }
+
+    activateArtifactLaneFromOverview(buildArtifactLaneOverviewOptions({
+      focusLabel: entry.focusLabel,
+      searchPreset: entry.value,
+      truthFilter: createTruthFilterForDimension(entry.kind, entry.value),
+    }));
+  }
+
+  function getCurrentRunsOverviewContextEntry():
+    | OverviewContextHistoryEntry<RunsOverviewContextKind>
+    | null {
+    if (!runsFocusLabel) {
+      return null;
+    }
+    return runsOverviewContextHistory.find((entry) => entry.focusLabel === runsFocusLabel) ?? null;
+  }
+
+  function getCurrentExecutionsOverviewContextEntry():
+    | OverviewContextHistoryEntry<ExecutionsOverviewContextKind>
+    | null {
+    if (!executionsFocusLabel) {
+      return null;
+    }
+    return executionsOverviewContextHistory.find(
+      (entry) => entry.focusLabel === executionsFocusLabel,
+    ) ?? null;
+  }
+
+  function getCurrentArtifactsOverviewContextEntry():
+    | OverviewContextHistoryEntry<ArtifactsOverviewContextKind>
+    | null {
+    if (!artifactsFocusLabel) {
+      return null;
+    }
+    return artifactsOverviewContextHistory.find(
+      (entry) => entry.focusLabel === artifactsFocusLabel,
+    ) ?? null;
+  }
+
+  function getRunsOverviewImpactSummary(): { label: string; detail: string | null } | null {
+    const activeEntry = getCurrentRunsOverviewContextEntry();
+    if (!activeEntry) {
+      return null;
+    }
+
+    const matchingRuns = runs.filter((run) => {
+      if (activeEntry.kind === "status") {
+        return run.status === activeEntry.value;
+      }
+      if (activeEntry.kind === "inspection_surface") {
+        return run.inspection_surface === activeEntry.value;
+      }
+      if (activeEntry.kind === "fallback_category") {
+        return run.fallback_category === activeEntry.value;
+      }
+      return run.project_manifest_source_of_truth === activeEntry.value;
+    });
+    const simulatedCount = matchingRuns.filter(
+      (run) => run.execution_mode === "simulated" || run.dry_run,
+    ).length;
+
+    return {
+      label: `${matchingRuns.length} run${matchingRuns.length === 1 ? "" : "s"} currently match this context.`,
+      detail: simulatedCount > 0
+        ? `${simulatedCount} ${simulatedCount === 1 ? "record remains" : "records remain"} explicitly simulated or dry-run.`
+        : "No matching runs in this slice are currently marked simulated or dry-run.",
+    };
+  }
+
+  function getExecutionsOverviewImpactSummary(): { label: string; detail: string | null } | null {
+    const activeEntry = getCurrentExecutionsOverviewContextEntry();
+    if (!activeEntry) {
+      return null;
+    }
+
+    const matchingExecutions = executions.filter((execution) => {
+      if (activeEntry.kind === "execution_mode") {
+        return execution.execution_mode === activeEntry.value;
+      }
+      if (activeEntry.kind === "inspection_surface") {
+        return execution.inspection_surface === activeEntry.value;
+      }
+      if (activeEntry.kind === "fallback_category") {
+        return execution.fallback_category === activeEntry.value;
+      }
+      return execution.project_manifest_source_of_truth === activeEntry.value;
+    });
+    const warningBearingCount = matchingExecutions.filter(
+      (execution) => execution.warning_count > 0,
+    ).length;
+
+    return {
+      label: `${matchingExecutions.length} execution${matchingExecutions.length === 1 ? "" : "s"} currently match this context.`,
+      detail: warningBearingCount > 0
+        ? `${warningBearingCount} ${warningBearingCount === 1 ? "execution carries" : "executions carry"} persisted warnings inside this slice.`
+        : "No matching executions in this slice currently carry persisted warnings.",
+    };
+  }
+
+  function getArtifactsOverviewImpactSummary(): { label: string; detail: string | null } | null {
+    const activeEntry = getCurrentArtifactsOverviewContextEntry();
+    if (!activeEntry) {
+      return null;
+    }
+
+    const matchingArtifacts = artifacts.filter((artifact) => {
+      if (activeEntry.kind === "artifact_mode") {
+        if (activeEntry.value === "simulated") {
+          return artifact.simulated || artifact.execution_mode === "simulated";
+        }
+        return artifact.execution_mode === activeEntry.value;
+      }
+      if (activeEntry.kind === "inspection_surface") {
+        return artifact.inspection_surface === activeEntry.value;
+      }
+      if (activeEntry.kind === "fallback_category") {
+        return artifact.fallback_category === activeEntry.value;
+      }
+      return artifact.project_manifest_source_of_truth === activeEntry.value;
+    });
+    const simulatedCount = matchingArtifacts.filter(
+      (artifact) => artifact.simulated || artifact.execution_mode === "simulated",
+    ).length;
+
+    return {
+      label: `${matchingArtifacts.length} artifact${matchingArtifacts.length === 1 ? "" : "s"} currently match this context.`,
+      detail: simulatedCount > 0
+        ? `${simulatedCount} ${simulatedCount === 1 ? "artifact remains" : "artifacts remain"} explicitly simulated inside this slice.`
+        : "No matching artifacts in this slice are currently marked simulated.",
+    };
+  }
+
+  function handlePromoteRunsOverviewContextPreset() {
+    const activeEntry = getCurrentRunsOverviewContextEntry();
+    if (!activeEntry) {
+      return;
+    }
+    setRunsOverviewContextPreset(promoteOverviewContextPreset(activeEntry));
+    setLaneHandoffSummary({
+      label: "handoff: local run context preset saved",
+      detail: `Saved ${activeEntry.focusLabel} as a browser-session run context preset. This does not create or persist a backend preset.`,
+    });
+  }
+
+  function handlePromoteExecutionsOverviewContextPreset() {
+    const activeEntry = getCurrentExecutionsOverviewContextEntry();
+    if (!activeEntry) {
+      return;
+    }
+    setExecutionsOverviewContextPreset(promoteOverviewContextPreset(activeEntry));
+    setLaneHandoffSummary({
+      label: "handoff: local execution context preset saved",
+      detail: `Saved ${activeEntry.focusLabel} as a browser-session execution context preset. This does not create or persist a backend preset.`,
+    });
+  }
+
+  function handlePromoteArtifactsOverviewContextPreset() {
+    const activeEntry = getCurrentArtifactsOverviewContextEntry();
+    if (!activeEntry) {
+      return;
+    }
+    setArtifactsOverviewContextPreset(promoteOverviewContextPreset(activeEntry));
+    setLaneHandoffSummary({
+      label: "handoff: local artifact context preset saved",
+      detail: `Saved ${activeEntry.focusLabel} as a browser-session artifact context preset. This does not create or persist a backend preset.`,
+    });
+  }
+
+  function getExecutionItemsForSavedContext(
+    entry: OverviewContextPresetEntry<ExecutionsOverviewContextKind>,
+  ): ExecutionListItem[] {
+    return executions.filter((execution) => {
+      if (entry.kind === "execution_mode") {
+        return execution.execution_mode === entry.value;
+      }
+      if (entry.kind === "inspection_surface") {
+        return execution.inspection_surface === entry.value;
+      }
+      if (entry.kind === "fallback_category") {
+        return execution.fallback_category === entry.value;
+      }
+      return execution.project_manifest_source_of_truth === entry.value;
+    });
+  }
+
+  function getRunItemsForSavedContext(
+    entry: OverviewContextPresetEntry<RunsOverviewContextKind>,
+  ): RunListItem[] {
+    return runs.filter((run) => {
+      if (entry.kind === "status") {
+        return run.status === entry.value;
+      }
+      if (entry.kind === "inspection_surface") {
+        return run.inspection_surface === entry.value;
+      }
+      if (entry.kind === "fallback_category") {
+        return run.fallback_category === entry.value;
+      }
+      return run.project_manifest_source_of_truth === entry.value;
+    });
+  }
+
+  function getArtifactItemsForSavedContext(
+    entry: OverviewContextPresetEntry<ArtifactsOverviewContextKind>,
+  ): ArtifactListItem[] {
+    return artifacts.filter((artifact) => {
+      if (entry.kind === "artifact_mode") {
+        if (entry.value === "simulated") {
+          return artifact.simulated || artifact.execution_mode === "simulated";
+        }
+        return artifact.execution_mode === entry.value;
+      }
+      if (entry.kind === "inspection_surface") {
+        return artifact.inspection_surface === entry.value;
+      }
+      if (entry.kind === "fallback_category") {
+        return artifact.fallback_category === entry.value;
+      }
+      return artifact.project_manifest_source_of_truth === entry.value;
+    });
+  }
+
+  function handleTriageSavedExecutionContext() {
+    if (!executionsOverviewContextPreset) {
+      return;
+    }
+    replayExecutionsOverviewContext(executionsOverviewContextPreset);
+    const matchingExecutions = getExecutionItemsForSavedContext(executionsOverviewContextPreset);
+    const preferredExecution = getPreferredExecution(matchingExecutions);
+    if (!preferredExecution) {
+      return;
+    }
+    openExecutionDetail(preferredExecution.id, {
+      autoOpenedFromOverview: `Auto-opened from saved local execution context for ${executionsOverviewContextPreset.focusLabel}. ${describeExecutionPriority(preferredExecution, matchingExecutions, selectedExecutionId).description}`,
+    });
+    setLaneHandoffSummary({
+      label: "handoff: triage saved execution context",
+      detail: `Reopened the saved local execution context for ${executionsOverviewContextPreset.focusLabel} and jumped to the highest-priority persisted execution in that slice.`,
+    });
+  }
+
+  function handleTriageSavedArtifactContext() {
+    if (!artifactsOverviewContextPreset) {
+      return;
+    }
+    replayArtifactsOverviewContext(artifactsOverviewContextPreset);
+    const matchingArtifacts = getArtifactItemsForSavedContext(artifactsOverviewContextPreset);
+    const preferredArtifact = getPreferredArtifact(matchingArtifacts);
+    if (!preferredArtifact) {
+      return;
+    }
+    openArtifactDetail(preferredArtifact.id, {
+      autoOpenedFromOverview: `Auto-opened from saved local artifact context for ${artifactsOverviewContextPreset.focusLabel}. ${describeArtifactPriority(preferredArtifact, matchingArtifacts, selectedArtifactId).description}`,
+    });
+    setLaneHandoffSummary({
+      label: "handoff: triage saved artifact context",
+      detail: `Reopened the saved local artifact context for ${artifactsOverviewContextPreset.focusLabel} and jumped to the highest-priority persisted artifact in that slice.`,
+    });
+  }
+
+  function setOverviewReviewDisposition(
+    entryId: "runs" | "executions" | "artifacts",
+    disposition: OverviewReviewDisposition,
+  ) {
+    setOverviewReviewState((current) => ({
+      ...current,
+      [entryId]: {
+        disposition,
+        updatedAt: new Date().toISOString(),
+      },
+    }));
+  }
+
+  function handleMarkOverviewEntryReviewed(entryId: "runs" | "executions" | "artifacts") {
+    setOverviewReviewDisposition(entryId, "reviewed");
+    setLaneHandoffSummary({
+      label: "handoff: local review marked reviewed",
+      detail: `Marked the ${entryId} saved context as reviewed in this browser session. No backend review state was changed.`,
+    });
+  }
+
+  function handleSnoozeOverviewEntry(entryId: "runs" | "executions" | "artifacts") {
+    setOverviewReviewDisposition(entryId, "snoozed");
+    setLaneHandoffSummary({
+      label: "handoff: local review snoozed",
+      detail: `Snoozed the ${entryId} saved context in this browser session. It remains local workspace memory only and was not persisted to the backend.`,
+    });
+  }
+
+  function handleKeepOverviewEntryInQueue(entryId: "runs" | "executions" | "artifacts") {
+    setOverviewReviewDisposition(entryId, "in_queue");
+    setLaneHandoffSummary({
+      label: "handoff: local review returned to queue",
+      detail: `Returned the ${entryId} saved context to the local review queue for this browser session. No backend queue state was changed.`,
+    });
+  }
+
+  function handleSaveOverviewContextNote(
+    entryId: "runs" | "executions" | "artifacts",
+    text: string,
+  ) {
+    const trimmedText = text.trim();
+    if (!trimmedText) {
+      setOverviewContextNotes((current) => {
+        const next = { ...current };
+        delete next[entryId];
+        return next;
+      });
+      setLaneHandoffSummary({
+        label: "handoff: local context note cleared",
+        detail: `Cleared the browser-session note for the ${entryId} saved context. No backend note persistence was changed.`,
+      });
+      return;
+    }
+
+    setOverviewContextNotes((current) => ({
+      ...current,
+      [entryId]: {
+        text: trimmedText,
+        updatedAt: new Date().toISOString(),
+      },
+    }));
+    setLaneHandoffSummary({
+      label: "handoff: local context note saved",
+      detail: `Saved a browser-session note for the ${entryId} saved context. This note remains frontend-local and does not persist to the backend.`,
+    });
+  }
+
+  async function handleCopyOverviewReviewSessionSnapshot() {
+    const lines = [
+      "Overview review session snapshot (browser-session only)",
+      `In queue: ${overviewReviewSessionSummary.inQueueCount}`,
+      `Snoozed: ${overviewReviewSessionSummary.snoozedCount}`,
+      `Reviewed: ${overviewReviewSessionSummary.reviewedCount}`,
+      `Stale: ${overviewReviewSessionSummary.staleCount}`,
+      `Drifted: ${overviewReviewSessionSummary.driftedCount}`,
+      `Longest snoozed: ${overviewReviewSessionSummary.longestSnoozedLabel ?? "none"}`,
+      `Longest snoozed detail: ${overviewReviewSessionSummary.longestSnoozedDetail ?? "none"}`,
+      "",
+      "Attention recommendations:",
+      ...(attentionRecommendations.length > 0
+        ? attentionRecommendations.map(
+            (entry) => `- ${entry.label}: ${entry.detail}`,
+          )
+        : ["- none"]),
+      "",
+      "Saved local contexts:",
+      ...(overviewContextMemoryEntries.length > 0
+        ? overviewContextMemoryEntries.map((entry) => [
+            `- ${entry.laneLabel}: ${entry.focusLabel}`,
+            `  origin: ${entry.originLabel}`,
+            `  review: ${entry.reviewDisposition}`,
+            `  saved at: ${new Date(entry.savedAt).toLocaleTimeString()}`,
+            `  last reviewed: ${entry.lastReviewedLabel ?? "not reviewed yet"}`,
+            `  next suggested check: ${entry.nextSuggestedCheck ?? "none"}`,
+            `  note: ${entry.noteText || "none"}`,
+          ].join("\n"))
+        : ["- none"]),
+      "",
+      "Truth labels:",
+      "- simulated execution must remain explicitly labeled",
+      "- real O3DE adapters are still not broadly implemented",
+      "- operator-configured persistence remains the truthful baseline for local non-container runs",
+      "- this snapshot reflects browser-session frontend state only and does not imply backend persistence",
+    ];
+    const summary = lines.join("\n");
+
+    if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+      setLaneHandoffSummary({
+        label: "handoff: session snapshot copy unavailable",
+        detail: "Clipboard copy is not available in this browser context. No backend export was attempted.",
+      });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(summary);
+      setOverviewSessionSnapshotBaseline(currentSnapshotBaseline);
+      setLaneHandoffSummary({
+        label: "handoff: session snapshot copied",
+        detail: "Copied a browser-session overview review snapshot to the local clipboard. No backend export or persistence was performed.",
+      });
+    } catch {
+      setLaneHandoffSummary({
+        label: "handoff: session snapshot copy failed",
+        detail: "Clipboard access was blocked by the browser. No backend export was attempted.",
+      });
+    }
+  }
+
+  async function handleCopyOverviewHandoffExportDraft() {
+    if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
+      setLaneHandoffSummary({
+        label: "handoff: export draft copy unavailable",
+        detail: "Clipboard copy is not available in this browser context. No backend export was attempted.",
+      });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(overviewHandoffExportDraft);
+      setOverviewSessionSnapshotBaseline(currentSnapshotBaseline);
+      setLaneHandoffSummary({
+        label: "handoff: export draft copied",
+        detail: "Copied the local browser-session handoff draft to the clipboard. No backend export or persistence was performed.",
+      });
+    } catch {
+      setLaneHandoffSummary({
+        label: "handoff: export draft copy failed",
+        detail: "Clipboard access was blocked by the browser. No backend export was attempted.",
+      });
+    }
   }
 
   function restoreFocusedSection() {
@@ -1646,8 +3098,11 @@ export default function App() {
     return updatedFocusedSection === section ? "data updated after refresh" : null;
   }
 
-  function openRunDetail(runId: string) {
-    setRunDetailRefreshHint(null);
+  function openRunDetail(
+    runId: string,
+    options?: { autoOpenedFromOverview?: string | null },
+  ) {
+    setRunDetailRefreshHint(options?.autoOpenedFromOverview ?? null);
     setRunDetailBreadcrumbs(buildRunDetailBreadcrumbs(runId));
     if (laneMemorySnapshot) {
       setLaneMemory(laneMemorySnapshot);
@@ -1663,8 +3118,11 @@ export default function App() {
     });
   }
 
-  function openExecutionDetail(executionId: string) {
-    setExecutionDetailRefreshHint(null);
+  function openExecutionDetail(
+    executionId: string,
+    options?: { autoOpenedFromOverview?: string | null },
+  ) {
+    setExecutionDetailRefreshHint(options?.autoOpenedFromOverview ?? null);
     setExecutionDetailBreadcrumbs(buildExecutionDetailBreadcrumbs(executionId));
     if (laneMemorySnapshot) {
       setLaneMemory(laneMemorySnapshot);
@@ -1680,8 +3138,11 @@ export default function App() {
     });
   }
 
-  function openArtifactDetail(artifactId: string) {
-    setArtifactDetailRefreshHint(null);
+  function openArtifactDetail(
+    artifactId: string,
+    options?: { autoOpenedFromOverview?: string | null },
+  ) {
+    setArtifactDetailRefreshHint(options?.autoOpenedFromOverview ?? null);
     setArtifactDetailBreadcrumbs(buildArtifactDetailBreadcrumbs(artifactId));
     if (laneMemorySnapshot) {
       setLaneMemory(laneMemorySnapshot);
@@ -1835,7 +3296,7 @@ export default function App() {
         const nextExecutions = await nextExecutionsPromise;
         const nextArtifacts = await nextArtifactsPromise;
 
-        await loadRuns(selectedToolFilter, selectedAuditFilter, {
+        await loadRuns(selectedToolFilter, selectedAuditFilter, runTruthFilter, {
           executionItems: nextExecutions,
           announceSelectionRefresh: announceRunDetailRefreshRef.current,
         });
@@ -1880,41 +3341,24 @@ export default function App() {
   }
 
   async function handleRunStatusDrilldown(status: string) {
-    setSelectedToolFilter("all");
-    setSelectedAuditFilter("all");
-    setRunsSearchPreset(status);
-    setRunsFocusLabel(`status = ${status}`);
-    setActiveFocusedSection("runs");
-    setUpdatedFocusedSection(null);
-    setRunsSearchVersion((value) => value + 1);
-    setRunsLoading(true);
-    try {
-      const [nextRuns, nextRunsSummary] = await Promise.all([
-        fetchRunCards("all", "all"),
-        fetchRunsSummaryForFilter("all", "all"),
-      ]);
-      setRuns(nextRuns);
-      setRunAudits(nextRunsSummary.runAudits);
-      setSettingsPatchAuditSummary(nextRunsSummary.settingsPatchAuditSummary);
-      setRunsError(null);
-      setRunDetailRefreshHint(null);
-      const firstMatchingRun = nextRuns.find((item) => item.status === status);
-      if (firstMatchingRun) {
-        await loadRunDetail(firstMatchingRun.id);
-      }
-    } catch (error) {
-      setRunsError(
-        error instanceof Error ? error.message : "Failed to load runs",
-      );
-    } finally {
-      setRunsLoading(false);
-    }
-    scrollToSection(runsSectionRef.current);
+    const focusLabel = formatOverviewFocusLabel("status", status);
+    setRunsOverviewContextHistory((history) => pushOverviewContextHistory(history, {
+      id: `status:${status}`,
+      focusLabel,
+      originLabel: "status drilldown",
+      value: status,
+      kind: "status",
+    }));
+    await activateRunsLaneFromOverview(buildRunsLaneOverviewOptions({
+      focusLabel,
+      searchPreset: status,
+      runFilter: (item) => item.status === status,
+    }));
   }
 
   function handlePendingApprovalsDrilldown() {
     setApprovalsSearchPreset("pending");
-    setApprovalsFocusLabel("status = pending");
+    setApprovalsFocusLabel(formatOverviewFocusLabel("status", "pending"));
     setActiveFocusedSection("approvals");
     setUpdatedFocusedSection(null);
     setApprovalsSearchVersion((value) => value + 1);
@@ -1922,26 +3366,161 @@ export default function App() {
   }
 
   function handleExecutionModeDrilldown(mode: string) {
-    setExecutionsSearchPreset(mode);
-    setExecutionsFocusLabel(`execution mode = ${mode}`);
-    setActiveFocusedSection("executions");
-    setUpdatedFocusedSection(null);
-    setExecutionsSearchVersion((value) => value + 1);
-    scrollToSection(executionsSectionRef.current);
+    const focusLabel = formatOverviewFocusLabel("execution mode", mode);
+    setExecutionsOverviewContextHistory((history) => pushOverviewContextHistory(history, {
+      id: `execution_mode:${mode}`,
+      focusLabel,
+      originLabel: "execution-mode drilldown",
+      value: mode,
+      kind: "execution_mode",
+    }));
+    activateExecutionLaneFromOverview(buildExecutionLaneOverviewOptions({
+      focusLabel,
+      searchPreset: mode,
+      executionFilter: (item) => item.execution_mode === mode,
+    }));
+  }
+
+  function handleRunTruthDrilldown(
+    filter: "inspection_surface" | "fallback_category" | "manifest_source_of_truth",
+    value: string,
+  ) {
+    const nextFilter: TruthFilterState = createTruthFilterForDimension(filter, value);
+    const focusLabel = formatTruthFilterFocusLabel(filter, value);
+    setRunsOverviewContextHistory((history) => pushOverviewContextHistory(history, {
+      id: `${filter}:${value}`,
+      focusLabel,
+      originLabel: describeOverviewFocusOrigin(focusLabel) ?? "overview drilldown",
+      value,
+      kind: filter,
+    }));
+    void activateRunsLaneFromOverview(buildRunsLaneOverviewOptions({
+      focusLabel,
+      searchPreset: value,
+      truthFilter: nextFilter,
+    }));
+  }
+
+  function handleExecutionInspectionSurfaceDrilldown(value: string) {
+    const focusLabel = formatTruthFilterFocusLabel("inspection_surface", value);
+    setExecutionsOverviewContextHistory((history) => pushOverviewContextHistory(history, {
+      id: `inspection_surface:${value}`,
+      focusLabel,
+      originLabel: "inspection-surface drilldown",
+      value,
+      kind: "inspection_surface",
+    }));
+    activateExecutionLaneFromOverview(buildExecutionLaneOverviewOptions({
+      focusLabel,
+      searchPreset: value,
+      truthFilter: createInspectionSurfaceTruthFilter(value),
+    }));
+  }
+
+  function handleExecutionFallbackCategoryDrilldown(value: string) {
+    const focusLabel = formatTruthFilterFocusLabel("fallback_category", value);
+    setExecutionsOverviewContextHistory((history) => pushOverviewContextHistory(history, {
+      id: `fallback_category:${value}`,
+      focusLabel,
+      originLabel: "fallback-category drilldown",
+      value,
+      kind: "fallback_category",
+    }));
+    activateExecutionLaneFromOverview(buildExecutionLaneOverviewOptions({
+      focusLabel,
+      searchPreset: value,
+      truthFilter: createFallbackCategoryTruthFilter(value),
+    }));
+  }
+
+  function handleExecutionManifestSourceDrilldown(value: string) {
+    const focusLabel = formatTruthFilterFocusLabel("manifest_source_of_truth", value);
+    setExecutionsOverviewContextHistory((history) => pushOverviewContextHistory(history, {
+      id: `manifest_source_of_truth:${value}`,
+      focusLabel,
+      originLabel: "manifest-source-of-truth drilldown",
+      value,
+      kind: "manifest_source_of_truth",
+    }));
+    activateExecutionLaneFromOverview(buildExecutionLaneOverviewOptions({
+      focusLabel,
+      searchPreset: value,
+      truthFilter: createManifestSourceTruthFilter(value),
+    }));
   }
 
   function handleArtifactModeDrilldown(mode: string) {
-    setArtifactsSearchPreset(mode);
-    setArtifactsFocusLabel(`artifact mode = ${mode}`);
-    setActiveFocusedSection("artifacts");
-    setUpdatedFocusedSection(null);
-    setArtifactsSearchVersion((value) => value + 1);
-    scrollToSection(artifactsSectionRef.current);
+    const focusLabel = formatOverviewFocusLabel("artifact mode", mode);
+    setArtifactsOverviewContextHistory((history) => pushOverviewContextHistory(history, {
+      id: `artifact_mode:${mode}`,
+      focusLabel,
+      originLabel: "artifact-mode drilldown",
+      value: mode,
+      kind: "artifact_mode",
+    }));
+    activateArtifactLaneFromOverview(buildArtifactLaneOverviewOptions({
+      focusLabel,
+      searchPreset: mode,
+      artifactFilter: (item) => {
+        if (mode === "simulated") {
+          return item.simulated || item.execution_mode === "simulated";
+        }
+        return item.execution_mode === mode;
+      },
+    }));
+  }
+
+  function handleArtifactInspectionSurfaceDrilldown(value: string) {
+    const focusLabel = formatTruthFilterFocusLabel("inspection_surface", value);
+    setArtifactsOverviewContextHistory((history) => pushOverviewContextHistory(history, {
+      id: `inspection_surface:${value}`,
+      focusLabel,
+      originLabel: "inspection-surface drilldown",
+      value,
+      kind: "inspection_surface",
+    }));
+    activateArtifactLaneFromOverview(buildArtifactLaneOverviewOptions({
+      focusLabel,
+      searchPreset: value,
+      truthFilter: createInspectionSurfaceTruthFilter(value),
+    }));
+  }
+
+  function handleArtifactFallbackCategoryDrilldown(value: string) {
+    const focusLabel = formatTruthFilterFocusLabel("fallback_category", value);
+    setArtifactsOverviewContextHistory((history) => pushOverviewContextHistory(history, {
+      id: `fallback_category:${value}`,
+      focusLabel,
+      originLabel: "fallback-category drilldown",
+      value,
+      kind: "fallback_category",
+    }));
+    activateArtifactLaneFromOverview(buildArtifactLaneOverviewOptions({
+      focusLabel,
+      searchPreset: value,
+      truthFilter: createFallbackCategoryTruthFilter(value),
+    }));
+  }
+
+  function handleArtifactManifestSourceDrilldown(value: string) {
+    const focusLabel = formatTruthFilterFocusLabel("manifest_source_of_truth", value);
+    setArtifactsOverviewContextHistory((history) => pushOverviewContextHistory(history, {
+      id: `manifest_source_of_truth:${value}`,
+      focusLabel,
+      originLabel: "manifest-source-of-truth drilldown",
+      value,
+      kind: "manifest_source_of_truth",
+    }));
+    activateArtifactLaneFromOverview(buildArtifactLaneOverviewOptions({
+      focusLabel,
+      searchPreset: value,
+      truthFilter: createManifestSourceTruthFilter(value),
+    }));
   }
 
   function handleEventSeverityDrilldown(severity: string) {
     setEventsSearchPreset(severity);
-    setEventsFocusLabel(`severity = ${severity}`);
+    setEventsFocusLabel(formatOverviewFocusLabel("severity", severity));
     setActiveFocusedSection("events");
     setUpdatedFocusedSection(null);
     setEventsSearchVersion((value) => value + 1);
@@ -1949,53 +3528,75 @@ export default function App() {
   }
 
   function clearRunsFocus() {
-    setRunsSearchPreset(null);
-    setRunsFocusLabel(null);
-    setUpdatedFocusedSection(null);
-    if (activeFocusedSection === "runs") {
-      setActiveFocusedSection(null);
-    }
-    setRunsSearchVersion((value) => value + 1);
+    resetLaneFocus({
+      activeFocusedSection,
+      section: "runs",
+      setTruthFilter: setRunTruthFilter,
+      setSearchPreset: setRunsSearchPreset,
+      setFocusLabel: setRunsFocusLabel,
+      setActiveFocusedSection,
+      setUpdatedFocusedSection,
+      setSearchVersion: setRunsSearchVersion,
+      reloadLane: (truthFilter) => {
+        void loadRuns(selectedToolFilter, selectedAuditFilter, truthFilter);
+      },
+    });
   }
 
   function clearApprovalsFocus() {
-    setApprovalsSearchPreset(null);
-    setApprovalsFocusLabel(null);
-    setUpdatedFocusedSection(null);
-    if (activeFocusedSection === "approvals") {
-      setActiveFocusedSection(null);
-    }
-    setApprovalsSearchVersion((value) => value + 1);
+    resetPresetLaneFocus({
+      activeFocusedSection,
+      section: "approvals",
+      setSearchPreset: setApprovalsSearchPreset,
+      setFocusLabel: setApprovalsFocusLabel,
+      setActiveFocusedSection,
+      setUpdatedFocusedSection,
+      setSearchVersion: setApprovalsSearchVersion,
+    });
   }
 
   function clearArtifactsFocus() {
-    setArtifactsSearchPreset(null);
-    setArtifactsFocusLabel(null);
-    setUpdatedFocusedSection(null);
-    if (activeFocusedSection === "artifacts") {
-      setActiveFocusedSection(null);
-    }
-    setArtifactsSearchVersion((value) => value + 1);
+    resetLaneFocus({
+      activeFocusedSection,
+      section: "artifacts",
+      setTruthFilter: setArtifactTruthFilter,
+      setSearchPreset: setArtifactsSearchPreset,
+      setFocusLabel: setArtifactsFocusLabel,
+      setActiveFocusedSection,
+      setUpdatedFocusedSection,
+      setSearchVersion: setArtifactsSearchVersion,
+      reloadLane: (truthFilter) => {
+        void loadArtifacts(truthFilter);
+      },
+    });
   }
 
   function clearExecutionsFocus() {
-    setExecutionsSearchPreset(null);
-    setExecutionsFocusLabel(null);
-    setUpdatedFocusedSection(null);
-    if (activeFocusedSection === "executions") {
-      setActiveFocusedSection(null);
-    }
-    setExecutionsSearchVersion((value) => value + 1);
+    resetLaneFocus({
+      activeFocusedSection,
+      section: "executions",
+      setTruthFilter: setExecutionTruthFilter,
+      setSearchPreset: setExecutionsSearchPreset,
+      setFocusLabel: setExecutionsFocusLabel,
+      setActiveFocusedSection,
+      setUpdatedFocusedSection,
+      setSearchVersion: setExecutionsSearchVersion,
+      reloadLane: (truthFilter) => {
+        void loadExecutions(truthFilter);
+      },
+    });
   }
 
   function clearEventsFocus() {
-    setEventsSearchPreset(null);
-    setEventsFocusLabel(null);
-    setUpdatedFocusedSection(null);
-    if (activeFocusedSection === "events") {
-      setActiveFocusedSection(null);
-    }
-    setEventsSearchVersion((value) => value + 1);
+    resetPresetLaneFocus({
+      activeFocusedSection,
+      section: "events",
+      setSearchPreset: setEventsSearchPreset,
+      setFocusLabel: setEventsFocusLabel,
+      setActiveFocusedSection,
+      setUpdatedFocusedSection,
+      setSearchVersion: setEventsSearchVersion,
+    });
   }
 
   const agentsForDisplay = catalogAgents.length > 0
@@ -2098,6 +3699,266 @@ export default function App() {
             },
           },
         ]}
+      />
+
+      <OverviewAttentionPanel
+        entries={attentionRecommendations}
+        onPrimaryAction={(entryId) => {
+          const [, targetId] = entryId.split(":");
+          if (targetId === "runs" && runsOverviewContextPreset) {
+            void replayRunsOverviewContext(runsOverviewContextPreset);
+            return;
+          }
+          if (targetId === "executions") {
+            if (entryId.startsWith("snoozed:") && executionsOverviewContextPreset) {
+              handleTriageSavedExecutionContext();
+              return;
+            }
+            if (executionsOverviewContextPreset) {
+              replayExecutionsOverviewContext(executionsOverviewContextPreset);
+              return;
+            }
+          }
+          if (targetId === "artifacts") {
+            if (entryId.startsWith("snoozed:") && artifactsOverviewContextPreset) {
+              handleTriageSavedArtifactContext();
+              return;
+            }
+            if (artifactsOverviewContextPreset) {
+              replayArtifactsOverviewContext(artifactsOverviewContextPreset);
+            }
+          }
+        }}
+        onSecondaryAction={(entryId) => {
+          const [, targetId] = entryId.split(":");
+          if (targetId === "runs" || targetId === "executions" || targetId === "artifacts") {
+            handleKeepOverviewEntryInQueue(targetId);
+          }
+        }}
+      />
+
+      <OverviewCloseoutReadinessPanel
+        readyCount={overviewReviewSessionSummary.readyCount}
+        pendingCount={overviewReviewSessionSummary.pendingCount}
+        entries={readinessDiagnostics}
+      />
+
+      <OverviewHandoffConfidencePanel
+        confidenceLabel={handoffConfidence.label}
+        confidenceDetail={handoffConfidence.detail}
+        tone={handoffConfidence.tone}
+        staleCount={overviewReviewSessionSummary.staleCount}
+        driftedCount={overviewReviewSessionSummary.driftedCount}
+        excludedCount={handoffPackageExcludedEntries.length}
+        changedSinceSnapshotCount={changedSinceSnapshotCount}
+      />
+
+      <OverviewHandoffPackagePanel
+        includedEntries={handoffPackageIncludedEntries}
+        excludedEntries={handoffPackageExcludedEntries}
+      />
+
+      <OverviewHandoffExportPanel
+        generatedAtLabel={`Generated: ${handoffExportGeneratedAt}`}
+        includedEntries={handoffPackageIncludedEntries}
+        excludedEntries={handoffPackageExcludedEntries}
+        draftText={overviewHandoffExportDraft}
+        statusLabel={laneHandoffSummary?.label ?? null}
+        statusDetail={laneHandoffSummary?.detail ?? null}
+        onCopyDraft={
+          handoffPackageIncludedEntries.length > 0 || handoffPackageExcludedEntries.length > 0
+            ? (() => { void handleCopyOverviewHandoffExportDraft(); })
+            : null
+        }
+      />
+
+      <OverviewReviewSessionPanel
+        inQueueCount={overviewReviewSessionSummary.inQueueCount}
+        snoozedCount={overviewReviewSessionSummary.snoozedCount}
+        reviewedCount={overviewReviewSessionSummary.reviewedCount}
+        staleCount={overviewReviewSessionSummary.staleCount}
+        driftedCount={overviewReviewSessionSummary.driftedCount}
+        longestSnoozedLabel={overviewReviewSessionSummary.longestSnoozedLabel}
+        longestSnoozedDetail={overviewReviewSessionSummary.longestSnoozedDetail}
+        lastSnapshotLabel={overviewReviewSessionSummary.lastSnapshotLabel}
+        compareSummaryLabel={overviewReviewSessionSummary.compareSummaryLabel}
+        onCopySessionSnapshot={
+          overviewContextMemoryEntries.length > 0 || attentionRecommendations.length > 0
+            ? (() => { void handleCopyOverviewReviewSessionSnapshot(); })
+            : null
+        }
+        onReturnAllToQueue={
+          Object.keys(overviewReviewState).length > 0
+            ? (() => {
+                setOverviewReviewState((current) => {
+                  const next = { ...current };
+                  for (const key of Object.keys(next) as Array<"runs" | "executions" | "artifacts">) {
+                    next[key] = {
+                      disposition: "in_queue",
+                      updatedAt: new Date().toISOString(),
+                    };
+                  }
+                  return next;
+                });
+                setLaneHandoffSummary({
+                  label: "handoff: local review queue reset",
+                  detail: "Returned all saved local overview contexts to the in-queue state for this browser session. No backend review state was changed.",
+                });
+              })
+            : null
+        }
+        onResetReviewState={
+          Object.keys(overviewReviewState).length > 0
+            ? (() => {
+                setOverviewReviewState({});
+                setLaneHandoffSummary({
+                  label: "handoff: local review state cleared",
+                  detail: "Cleared all browser-session review outcomes for saved overview contexts. No backend queue or task state was changed.",
+                });
+              })
+            : null
+        }
+      />
+
+      <OverviewReviewQueuePanel
+        entries={overviewReviewQueueEntries}
+        onOpenEntry={(entryId) => {
+          if (entryId === "executions" && executionsOverviewContextPreset) {
+            replayExecutionsOverviewContext(executionsOverviewContextPreset);
+            return;
+          }
+          if (entryId === "artifacts" && artifactsOverviewContextPreset) {
+            replayArtifactsOverviewContext(artifactsOverviewContextPreset);
+          }
+        }}
+        onTriageEntry={(entryId) => {
+          if (entryId === "executions") {
+            handleTriageSavedExecutionContext();
+            return;
+          }
+          if (entryId === "artifacts") {
+            handleTriageSavedArtifactContext();
+          }
+        }}
+        onMarkReviewed={(entryId) => {
+          if (entryId === "executions" || entryId === "artifacts") {
+            handleMarkOverviewEntryReviewed(entryId);
+          }
+        }}
+        onSnoozeEntry={(entryId) => {
+          if (entryId === "executions" || entryId === "artifacts") {
+            handleSnoozeOverviewEntry(entryId);
+          }
+        }}
+        onKeepInQueue={(entryId) => {
+          if (entryId === "executions" || entryId === "artifacts") {
+            handleKeepOverviewEntryInQueue(entryId);
+          }
+        }}
+      />
+
+      <OverviewContextMemoryPanel
+        entries={overviewContextMemoryEntries}
+        onOpenEntry={(entryId) => {
+          if (entryId === "runs" && runsOverviewContextPreset) {
+            void replayRunsOverviewContext(runsOverviewContextPreset);
+            return;
+          }
+          if (entryId === "executions" && executionsOverviewContextPreset) {
+            replayExecutionsOverviewContext(executionsOverviewContextPreset);
+            return;
+          }
+          if (entryId === "artifacts" && artifactsOverviewContextPreset) {
+            replayArtifactsOverviewContext(artifactsOverviewContextPreset);
+          }
+        }}
+        onTriageEntry={(entryId) => {
+          if (entryId === "executions") {
+            handleTriageSavedExecutionContext();
+            return;
+          }
+          if (entryId === "artifacts") {
+            handleTriageSavedArtifactContext();
+          }
+        }}
+        onSaveNote={(entryId, text) => {
+          if (entryId === "runs" || entryId === "executions" || entryId === "artifacts") {
+            handleSaveOverviewContextNote(entryId, text);
+          }
+        }}
+        onMarkReviewed={(entryId) => {
+          if (entryId === "runs" || entryId === "executions" || entryId === "artifacts") {
+            handleMarkOverviewEntryReviewed(entryId);
+          }
+        }}
+        onSnoozeEntry={(entryId) => {
+          if (entryId === "runs" || entryId === "executions" || entryId === "artifacts") {
+            handleSnoozeOverviewEntry(entryId);
+          }
+        }}
+        onKeepInQueue={(entryId) => {
+          if (entryId === "runs" || entryId === "executions" || entryId === "artifacts") {
+            handleKeepOverviewEntryInQueue(entryId);
+          }
+        }}
+        onClearEntry={(entryId) => {
+          if (entryId === "runs") {
+            setRunsOverviewContextPreset(null);
+            setOverviewReviewState((current) => {
+              const next = { ...current };
+              delete next.runs;
+              return next;
+            });
+            setOverviewContextNotes((current) => {
+              const next = { ...current };
+              delete next.runs;
+              return next;
+            });
+            return;
+          }
+          if (entryId === "executions") {
+            setExecutionsOverviewContextPreset(null);
+            setOverviewReviewState((current) => {
+              const next = { ...current };
+              delete next.executions;
+              return next;
+            });
+            setOverviewContextNotes((current) => {
+              const next = { ...current };
+              delete next.executions;
+              return next;
+            });
+            return;
+          }
+          if (entryId === "artifacts") {
+            setArtifactsOverviewContextPreset(null);
+            setOverviewReviewState((current) => {
+              const next = { ...current };
+              delete next.artifacts;
+              return next;
+            });
+            setOverviewContextNotes((current) => {
+              const next = { ...current };
+              delete next.artifacts;
+              return next;
+            });
+          }
+        }}
+        onClearAll={
+          overviewContextMemoryEntries.length > 0
+            ? (() => {
+                setRunsOverviewContextPreset(null);
+                setExecutionsOverviewContextPreset(null);
+                setArtifactsOverviewContextPreset(null);
+                setOverviewReviewState({});
+                setOverviewContextNotes({});
+                setLaneHandoffSummary({
+                  label: "handoff: local context memory cleared",
+                  detail: "Cleared browser-session overview context presets from workspace memory. No backend preset or server persistence was affected.",
+                });
+              })
+            : null
+        }
       />
 
       {catalogError ? <p style={{ color: "crimson" }}>{catalogError}</p> : null}
@@ -2204,10 +4065,25 @@ export default function App() {
         onApplyLanePreset={applyLanePreset}
         onOpenLaneRolloverRecord={pinnedLaneRolloverRecord ? openPinnedLaneRolloverRecord : null}
         onRunStatusSelect={handleRunStatusDrilldown}
+        onRunInspectionSurfaceSelect={(value) => {
+          handleRunTruthDrilldown("inspection_surface", value);
+        }}
+        onRunFallbackCategorySelect={(value) => {
+          handleRunTruthDrilldown("fallback_category", value);
+        }}
+        onRunManifestSourceSelect={(value) => {
+          handleRunTruthDrilldown("manifest_source_of_truth", value);
+        }}
         onPendingApprovalsSelect={handlePendingApprovalsDrilldown}
         onExecutionModeSelect={handleExecutionModeDrilldown}
         onArtifactModeSelect={handleArtifactModeDrilldown}
         onEventSeveritySelect={handleEventSeverityDrilldown}
+        onExecutionInspectionSurfaceSelect={handleExecutionInspectionSurfaceDrilldown}
+        onExecutionFallbackCategorySelect={handleExecutionFallbackCategoryDrilldown}
+        onExecutionManifestSourceSelect={handleExecutionManifestSourceDrilldown}
+        onArtifactInspectionSurfaceSelect={handleArtifactInspectionSurfaceDrilldown}
+        onArtifactFallbackCategorySelect={handleArtifactFallbackCategoryDrilldown}
+        onArtifactManifestSourceSelect={handleArtifactManifestSourceDrilldown}
         onRefresh={() => {
           void refreshDashboardStateForScope("overview");
         }}
@@ -2255,6 +4131,42 @@ export default function App() {
         />
       </div>
       <div ref={artifactsSectionRef}>
+        <OverviewContextStrip
+          laneLabel="Artifacts"
+          focusLabel={artifactsFocusLabel}
+          originLabel={describeOverviewFocusOrigin(artifactsFocusLabel)}
+          autoOpenLabel={describeOverviewAutoOpenOutcome(artifactDetailRefreshHint)}
+          impactLabel={getArtifactsOverviewImpactSummary()?.label ?? null}
+          impactDetail={getArtifactsOverviewImpactSummary()?.detail ?? null}
+          promotedPresetLabel={artifactsOverviewContextPreset?.focusLabel ?? null}
+          promotedPresetDetail={artifactsOverviewContextPreset
+            ? `Saved from ${artifactsOverviewContextPreset.originLabel} at ${new Date(artifactsOverviewContextPreset.savedAt).toLocaleTimeString()}. Browser-session only.`
+            : null}
+          historyEntries={artifactsOverviewContextHistory.map((entry) => ({
+            id: entry.id,
+            focusLabel: entry.focusLabel,
+            originLabel: entry.originLabel,
+          }))}
+          onSelectHistoryEntry={(entryId) => {
+            const entry = artifactsOverviewContextHistory.find((item) => item.id === entryId);
+            if (entry) {
+              replayArtifactsOverviewContext(entry);
+            }
+          }}
+          onClearHistory={
+            artifactsOverviewContextHistory.length > 0
+              ? (() => setArtifactsOverviewContextHistory([]))
+              : null
+          }
+          onPromoteCurrentContext={artifactsFocusLabel ? handlePromoteArtifactsOverviewContextPreset : null}
+          onApplyPromotedPreset={artifactsOverviewContextPreset
+            ? (() => replayArtifactsOverviewContext(artifactsOverviewContextPreset))
+            : null}
+          onClearPromotedPreset={artifactsOverviewContextPreset
+            ? (() => setArtifactsOverviewContextPreset(null))
+            : null}
+          onClearFocus={artifactsFocusLabel ? clearArtifactsFocus : null}
+        />
         <ArtifactsPanel
           key={`artifacts-search-${artifactsSearchVersion}`}
           items={artifacts}
@@ -2274,6 +4186,42 @@ export default function App() {
         />
       </div>
       <div ref={executionsSectionRef}>
+        <OverviewContextStrip
+          laneLabel="Executions"
+          focusLabel={executionsFocusLabel}
+          originLabel={describeOverviewFocusOrigin(executionsFocusLabel)}
+          autoOpenLabel={describeOverviewAutoOpenOutcome(executionDetailRefreshHint)}
+          impactLabel={getExecutionsOverviewImpactSummary()?.label ?? null}
+          impactDetail={getExecutionsOverviewImpactSummary()?.detail ?? null}
+          promotedPresetLabel={executionsOverviewContextPreset?.focusLabel ?? null}
+          promotedPresetDetail={executionsOverviewContextPreset
+            ? `Saved from ${executionsOverviewContextPreset.originLabel} at ${new Date(executionsOverviewContextPreset.savedAt).toLocaleTimeString()}. Browser-session only.`
+            : null}
+          historyEntries={executionsOverviewContextHistory.map((entry) => ({
+            id: entry.id,
+            focusLabel: entry.focusLabel,
+            originLabel: entry.originLabel,
+          }))}
+          onSelectHistoryEntry={(entryId) => {
+            const entry = executionsOverviewContextHistory.find((item) => item.id === entryId);
+            if (entry) {
+              replayExecutionsOverviewContext(entry);
+            }
+          }}
+          onClearHistory={
+            executionsOverviewContextHistory.length > 0
+              ? (() => setExecutionsOverviewContextHistory([]))
+              : null
+          }
+          onPromoteCurrentContext={executionsFocusLabel ? handlePromoteExecutionsOverviewContextPreset : null}
+          onApplyPromotedPreset={executionsOverviewContextPreset
+            ? (() => replayExecutionsOverviewContext(executionsOverviewContextPreset))
+            : null}
+          onClearPromotedPreset={executionsOverviewContextPreset
+            ? (() => setExecutionsOverviewContextPreset(null))
+            : null}
+          onClearFocus={executionsFocusLabel ? clearExecutionsFocus : null}
+        />
         <ExecutionsPanel
           key={`executions-search-${executionsSearchVersion}`}
           items={executions}
@@ -2293,6 +4241,42 @@ export default function App() {
         />
       </div>
       <div ref={runsSectionRef}>
+        <OverviewContextStrip
+          laneLabel="Runs"
+          focusLabel={runsFocusLabel}
+          originLabel={describeOverviewFocusOrigin(runsFocusLabel)}
+          autoOpenLabel={describeOverviewAutoOpenOutcome(runDetailRefreshHint)}
+          impactLabel={getRunsOverviewImpactSummary()?.label ?? null}
+          impactDetail={getRunsOverviewImpactSummary()?.detail ?? null}
+          promotedPresetLabel={runsOverviewContextPreset?.focusLabel ?? null}
+          promotedPresetDetail={runsOverviewContextPreset
+            ? `Saved from ${runsOverviewContextPreset.originLabel} at ${new Date(runsOverviewContextPreset.savedAt).toLocaleTimeString()}. Browser-session only.`
+            : null}
+          historyEntries={runsOverviewContextHistory.map((entry) => ({
+            id: entry.id,
+            focusLabel: entry.focusLabel,
+            originLabel: entry.originLabel,
+          }))}
+          onSelectHistoryEntry={(entryId) => {
+            const entry = runsOverviewContextHistory.find((item) => item.id === entryId);
+            if (entry) {
+              void replayRunsOverviewContext(entry);
+            }
+          }}
+          onClearHistory={
+            runsOverviewContextHistory.length > 0
+              ? (() => setRunsOverviewContextHistory([]))
+              : null
+          }
+          onPromoteCurrentContext={runsFocusLabel ? handlePromoteRunsOverviewContextPreset : null}
+          onApplyPromotedPreset={runsOverviewContextPreset
+            ? (() => { void replayRunsOverviewContext(runsOverviewContextPreset); })
+            : null}
+          onClearPromotedPreset={runsOverviewContextPreset
+            ? (() => setRunsOverviewContextPreset(null))
+            : null}
+          onClearFocus={runsFocusLabel ? clearRunsFocus : null}
+        />
         <RunsPanel
           key={`runs-search-${runsSearchVersion}`}
           items={runs}
@@ -2306,6 +4290,7 @@ export default function App() {
           error={runsError}
           selectedRunId={selectedRunId}
           onSelectRun={openRunDetail}
+          onTruthFilterSelect={handleRunTruthDrilldown}
           searchPreset={runsSearchPreset}
           focusLabel={runsFocusLabel}
           onClearFocus={clearRunsFocus}

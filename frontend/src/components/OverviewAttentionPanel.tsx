@@ -1,0 +1,86 @@
+import {
+  summaryActionButtonStyle,
+  summaryBadgeStyle,
+  summaryMutedTextStyle,
+  summarySectionStyle,
+} from "./summaryPrimitives";
+
+type OverviewAttentionEntry = {
+  id: string;
+  label: string;
+  detail: string;
+  primaryActionLabel: string;
+  secondaryActionLabel?: string | null;
+};
+
+type OverviewAttentionPanelProps = {
+  entries: OverviewAttentionEntry[];
+  onPrimaryAction: (entryId: string) => void;
+  onSecondaryAction?: ((entryId: string) => void) | null;
+};
+
+export default function OverviewAttentionPanel({
+  entries,
+  onPrimaryAction,
+  onSecondaryAction,
+}: OverviewAttentionPanelProps) {
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return (
+    <section
+      style={{
+        ...summarySectionStyle,
+        display: "grid",
+        gap: 12,
+        marginBottom: 24,
+        background: "linear-gradient(135deg, #fff1f2 0%, #f6f8fa 100%)",
+        borderColor: "#d1242f",
+      }}
+    >
+      <div style={{ display: "grid", gap: 4 }}>
+        <strong>Attention recommendations</strong>
+        <p style={summaryMutedTextStyle}>
+          Local dashboard recommendations based on browser-session review state and current persisted records. These recommendations do not come from backend orchestration.
+        </p>
+      </div>
+      <div style={{ display: "grid", gap: 10 }}>
+        {entries.map((entry) => (
+          <div
+            key={entry.id}
+            style={{
+              border: "1px solid #d0d7de",
+              borderRadius: 10,
+              padding: 12,
+              background: "#ffffff",
+              display: "grid",
+              gap: 8,
+            }}
+          >
+            <span style={summaryBadgeStyle}>{entry.label}</span>
+            <p style={summaryMutedTextStyle}>{entry.detail}</p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                style={summaryActionButtonStyle}
+                onClick={() => onPrimaryAction(entry.id)}
+              >
+                {entry.primaryActionLabel}
+              </button>
+              {entry.secondaryActionLabel && onSecondaryAction ? (
+                <button
+                  type="button"
+                  style={summaryActionButtonStyle}
+                  onClick={() => onSecondaryAction(entry.id)}
+                >
+                  {entry.secondaryActionLabel}
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
