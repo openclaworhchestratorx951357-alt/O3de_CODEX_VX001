@@ -13,6 +13,7 @@ import TriageSummaryStrip from "./TriageSummaryStrip";
 import {
   formatSummaryLabeledText,
   formatSummaryTimestamp,
+  summaryActionButtonStyle,
   summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
@@ -39,6 +40,8 @@ type RunDetailPanelProps = {
   onOpenExecution?: (executionId: string) => void;
   refreshHint?: string | null;
   lastRefreshedAt?: string | null;
+  onRefresh?: (() => void) | null;
+  refreshing?: boolean;
 };
 
 function readMutationAudit(
@@ -76,6 +79,8 @@ export default function RunDetailPanel({
   onOpenExecution,
   refreshHint,
   lastRefreshedAt,
+  onRefresh,
+  refreshing = false,
 }: RunDetailPanelProps) {
   const [highlightedSection, setHighlightedSection] = useState<string | null>(null);
   const mutationAudit = readMutationAudit(executionDetails);
@@ -118,6 +123,17 @@ export default function RunDetailPanel({
       error={error}
       emptyMessage="Select a run to inspect its detail."
       hasItems={Boolean(item)}
+      actionHint="Local refresh updates the selected persisted run detail and related execution evidence when available."
+      actions={onRefresh && item ? (
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshing}
+          style={summaryActionButtonStyle}
+        >
+          {refreshing ? "Refreshing..." : "Refresh run detail"}
+        </button>
+      ) : null}
     >
       <div style={summaryTopStackStyle}>
         <RecordLineageStrip

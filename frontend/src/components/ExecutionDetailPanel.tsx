@@ -45,6 +45,8 @@ type ExecutionDetailPanelProps = {
   onOpenArtifact?: (artifactId: string) => void;
   refreshHint?: string | null;
   lastRefreshedAt?: string | null;
+  onRefresh?: (() => void) | null;
+  refreshing?: boolean;
 };
 
 function readProjectInspectDetails(
@@ -68,6 +70,8 @@ export default function ExecutionDetailPanel({
   onOpenArtifact,
   refreshHint,
   lastRefreshedAt,
+  onRefresh,
+  refreshing = false,
 }: ExecutionDetailPanelProps) {
   const [highlightedSection, setHighlightedSection] = useState<string | null>(null);
   const projectInspectDetails = item?.tool === "project.inspect"
@@ -126,6 +130,17 @@ export default function ExecutionDetailPanel({
       error={error}
       emptyMessage="Select an execution to inspect its detail."
       hasItems={Boolean(item)}
+      actionHint="Local refresh updates the selected execution detail and any currently related artifact records."
+      actions={onRefresh && item ? (
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshing}
+          style={summaryActionButtonStyle}
+        >
+          {refreshing ? "Refreshing..." : "Refresh execution detail"}
+        </button>
+      ) : null}
     >
       <div style={summaryTopStackStyle}>
         <RecordLineageStrip

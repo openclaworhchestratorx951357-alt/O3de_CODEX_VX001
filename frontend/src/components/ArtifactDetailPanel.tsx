@@ -5,6 +5,7 @@ import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import {
   formatSummaryTimestamp,
+  summaryActionButtonStyle,
   summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
@@ -23,6 +24,8 @@ type ArtifactDetailPanelProps = {
   onOpenExecution?: (executionId: string) => void;
   refreshHint?: string | null;
   lastRefreshedAt?: string | null;
+  onRefresh?: (() => void) | null;
+  refreshing?: boolean;
 };
 
 function readProjectInspectDetails(
@@ -45,6 +48,8 @@ export default function ArtifactDetailPanel({
   onOpenExecution,
   refreshHint,
   lastRefreshedAt,
+  onRefresh,
+  refreshing = false,
 }: ArtifactDetailPanelProps) {
   const projectInspectDetails = item?.metadata && item.kind === "project_manifest_inspection"
     ? readProjectInspectDetails(item.metadata)
@@ -58,6 +63,17 @@ export default function ArtifactDetailPanel({
       error={error}
       emptyMessage="Select an artifact to inspect its detail."
       hasItems={Boolean(item)}
+      actionHint="Local refresh updates the selected persisted artifact detail without reloading unrelated sections."
+      actions={onRefresh && item ? (
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshing}
+          style={summaryActionButtonStyle}
+        >
+          {refreshing ? "Refreshing..." : "Refresh artifact detail"}
+        </button>
+      ) : null}
     >
       <RecordLineageStrip
         runId={item?.run_id ?? null}

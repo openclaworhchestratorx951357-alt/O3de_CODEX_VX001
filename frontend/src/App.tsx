@@ -131,6 +131,9 @@ export default function App() {
   const [recordsRefreshing, setRecordsRefreshing] = useState(false);
   const [approvalsRefreshing, setApprovalsRefreshing] = useState(false);
   const [eventsRefreshing, setEventsRefreshing] = useState(false);
+  const [runDetailRefreshing, setRunDetailRefreshing] = useState(false);
+  const [executionDetailRefreshing, setExecutionDetailRefreshing] = useState(false);
+  const [artifactDetailRefreshing, setArtifactDetailRefreshing] = useState(false);
   const [runDetailRefreshedAt, setRunDetailRefreshedAt] = useState<string | null>(null);
   const [executionDetailRefreshedAt, setExecutionDetailRefreshedAt] = useState<string | null>(null);
   const [artifactDetailRefreshedAt, setArtifactDetailRefreshedAt] = useState<string | null>(null);
@@ -686,6 +689,64 @@ export default function App() {
     }
   }
 
+  async function refreshRunDetailSection() {
+    if (!selectedRunId) {
+      return;
+    }
+    setRunDetailRefreshing(true);
+    setDashboardRefreshStatus("refreshing run detail");
+    setDashboardRefreshDetail("Refreshing the selected run detail record.");
+    try {
+      await loadRunDetail(selectedRunId);
+      setRunDetailRefreshHint("Run detail refreshed.");
+      setDashboardRefreshedAt(new Date().toISOString());
+      setDashboardRefreshStatus("run detail refresh complete");
+      setDashboardRefreshDetail("Updated selected run detail.");
+    } finally {
+      setRunDetailRefreshing(false);
+    }
+  }
+
+  async function refreshExecutionDetailSection() {
+    if (!selectedExecutionId) {
+      return;
+    }
+    setExecutionDetailRefreshing(true);
+    setDashboardRefreshStatus("refreshing execution detail");
+    setDashboardRefreshDetail("Refreshing the selected execution detail and related artifact records.");
+    try {
+      const nextArtifacts = await loadArtifacts();
+      await loadExecutionDetail(selectedExecutionId);
+      if (nextArtifacts.some((artifact) => artifact.id === selectedArtifactId)) {
+        setArtifactDetailRefreshHint("Artifact detail remains available after execution refresh.");
+      }
+      setExecutionDetailRefreshHint("Execution detail refreshed.");
+      setDashboardRefreshedAt(new Date().toISOString());
+      setDashboardRefreshStatus("execution detail refresh complete");
+      setDashboardRefreshDetail("Updated selected execution detail.");
+    } finally {
+      setExecutionDetailRefreshing(false);
+    }
+  }
+
+  async function refreshArtifactDetailSection() {
+    if (!selectedArtifactId) {
+      return;
+    }
+    setArtifactDetailRefreshing(true);
+    setDashboardRefreshStatus("refreshing artifact detail");
+    setDashboardRefreshDetail("Refreshing the selected artifact detail record.");
+    try {
+      await loadArtifactDetail(selectedArtifactId);
+      setArtifactDetailRefreshHint("Artifact detail refreshed.");
+      setDashboardRefreshedAt(new Date().toISOString());
+      setDashboardRefreshStatus("artifact detail refresh complete");
+      setDashboardRefreshDetail("Updated selected artifact detail.");
+    } finally {
+      setArtifactDetailRefreshing(false);
+    }
+  }
+
   async function refreshDashboardStateForScope(scope: RefreshScope) {
     setDashboardRefreshing(true);
     setOverviewRefreshing(scope === "full" || scope === "overview");
@@ -1143,6 +1204,10 @@ export default function App() {
           onOpenExecution={openExecutionDetail}
           refreshHint={runDetailRefreshHint}
           lastRefreshedAt={runDetailRefreshedAt}
+          onRefresh={() => {
+            void refreshRunDetailSection();
+          }}
+          refreshing={runDetailRefreshing || selectedRunLoading}
         />
       </div>
       <div ref={executionDetailSectionRef}>
@@ -1162,6 +1227,10 @@ export default function App() {
           onOpenArtifact={openArtifactDetail}
           refreshHint={executionDetailRefreshHint}
           lastRefreshedAt={executionDetailRefreshedAt}
+          onRefresh={() => {
+            void refreshExecutionDetailSection();
+          }}
+          refreshing={executionDetailRefreshing || selectedExecutionLoading}
         />
       </div>
       <div ref={artifactDetailSectionRef}>
@@ -1176,6 +1245,10 @@ export default function App() {
           onOpenExecution={openExecutionDetail}
           refreshHint={artifactDetailRefreshHint}
           lastRefreshedAt={artifactDetailRefreshedAt}
+          onRefresh={() => {
+            void refreshArtifactDetailSection();
+          }}
+          refreshing={artifactDetailRefreshing || selectedArtifactLoading}
         />
       </div>
       <LocksPanel
