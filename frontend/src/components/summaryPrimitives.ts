@@ -36,6 +36,12 @@ export const summaryCardGridStyle: CSSProperties = {
   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
 };
 
+export const summaryTopStackStyle: CSSProperties = {
+  display: "grid",
+  gap: 8,
+  marginBottom: 12,
+};
+
 export const summaryCardStyle: CSSProperties = {
   border: "1px solid #d8dee4",
   borderRadius: 10,
@@ -127,14 +133,14 @@ export const summaryFocusBadgeStyle: CSSProperties = {
 
 export const summaryCalloutStyle: CSSProperties = {
   ...summaryMutedTextStyle,
-  marginTop: 8,
+  marginTop: 0,
 };
 
 export const summaryTimestampNoteStyle: CSSProperties = {
   ...summaryMutedTextStyle,
   fontSize: 12,
-  marginTop: 8,
-  marginBottom: 8,
+  marginTop: 0,
+  marginBottom: 0,
 };
 
 export const summaryRefreshBadgeStyle: CSSProperties = {

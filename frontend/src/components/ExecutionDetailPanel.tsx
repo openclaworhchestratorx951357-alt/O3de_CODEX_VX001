@@ -28,6 +28,7 @@ import {
   summaryCardStyle,
   summaryCalloutStyle,
   summaryTimestampNoteStyle,
+  summaryTopStackStyle,
 } from "./summaryPrimitives";
 
 type ExecutionDetailPanelProps = {
@@ -104,45 +105,47 @@ export default function ExecutionDetailPanel({
       emptyMessage="Select an execution to inspect its detail."
       hasItems={Boolean(item)}
     >
-      <RecordLineageStrip
-        runId={item?.run_id ?? null}
-        executionId={item?.id ?? null}
-        executionStatus={item?.status ?? null}
-        executionSummary={item?.result_summary ?? null}
-        artifactId={lineageArtifactId}
-        artifactLabel={lineageArtifact?.label ?? null}
-        artifactKind={lineageArtifact?.kind ?? null}
-        artifactMode={lineageArtifact?.execution_mode ?? null}
-        artifactSimulated={lineageArtifact?.simulated ?? null}
-        executionMode={item?.execution_mode ?? null}
-        executionStartedAt={item?.started_at ?? null}
-        executionWarningCount={item?.warnings.length ?? null}
-        artifactCreatedAt={lineageArtifact?.created_at ?? null}
-        artifactAuditStatus={lineageArtifact?.mutation_audit_status ?? null}
-        selectedRunId={selectedRunId}
-        selectedExecutionId={selectedExecutionId}
-        selectedArtifactId={selectedArtifactId}
-        onOpenRun={onOpenRun}
-        onOpenArtifact={onOpenArtifact}
-      />
-      {refreshHint ? (
-        <div style={summaryCalloutStyle}>{refreshHint}</div>
-      ) : null}
-      {lastRefreshedAt ? (
-        <div style={summaryTimestampNoteStyle}>
-          Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
-        </div>
-      ) : null}
-      <TriageSummaryStrip
-        heading="Operator Triage Summary"
-        subjectLabel={lineageArtifactId ? `Prioritized artifact ${lineageArtifactId}` : null}
-        priorityLabel={lineageArtifactPriority?.label ?? null}
-        priorityDescription={lineageArtifactPriority?.description ?? null}
-        actionLabel={lineageArtifactAction?.label ?? null}
-        actionDescription={lineageArtifactAction?.description ?? null}
-        attentionLabel={lineageArtifactAttention?.label ?? null}
-        attentionDescription={lineageArtifactAttention?.description ?? null}
-      />
+      <div style={summaryTopStackStyle}>
+        <RecordLineageStrip
+          runId={item?.run_id ?? null}
+          executionId={item?.id ?? null}
+          executionStatus={item?.status ?? null}
+          executionSummary={item?.result_summary ?? null}
+          artifactId={lineageArtifactId}
+          artifactLabel={lineageArtifact?.label ?? null}
+          artifactKind={lineageArtifact?.kind ?? null}
+          artifactMode={lineageArtifact?.execution_mode ?? null}
+          artifactSimulated={lineageArtifact?.simulated ?? null}
+          executionMode={item?.execution_mode ?? null}
+          executionStartedAt={item?.started_at ?? null}
+          executionWarningCount={item?.warnings.length ?? null}
+          artifactCreatedAt={lineageArtifact?.created_at ?? null}
+          artifactAuditStatus={lineageArtifact?.mutation_audit_status ?? null}
+          selectedRunId={selectedRunId}
+          selectedExecutionId={selectedExecutionId}
+          selectedArtifactId={selectedArtifactId}
+          onOpenRun={onOpenRun}
+          onOpenArtifact={onOpenArtifact}
+        />
+        {refreshHint ? (
+          <div style={summaryCalloutStyle}>{refreshHint}</div>
+        ) : null}
+        {lastRefreshedAt ? (
+          <div style={summaryTimestampNoteStyle}>
+            Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
+          </div>
+        ) : null}
+        <TriageSummaryStrip
+          heading="Operator Triage Summary"
+          subjectLabel={lineageArtifactId ? `Prioritized artifact ${lineageArtifactId}` : null}
+          priorityLabel={lineageArtifactPriority?.label ?? null}
+          priorityDescription={lineageArtifactPriority?.description ?? null}
+          actionLabel={lineageArtifactAction?.label ?? null}
+          actionDescription={lineageArtifactAction?.description ?? null}
+          attentionLabel={lineageArtifactAttention?.label ?? null}
+          attentionDescription={lineageArtifactAttention?.description ?? null}
+        />
+      </div>
       <div style={summaryCardGridStyle}>
         <article style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Execution Identity</h4>

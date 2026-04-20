@@ -3,6 +3,7 @@ import {
   summaryCardHeadingStyle,
   summaryCardStyle,
   summaryMutedTextStyle,
+  summaryTopStackStyle,
 } from "./summaryPrimitives";
 
 type TriageSummaryStripProps = {
@@ -118,7 +119,7 @@ export default function TriageSummaryStrip({
   }
 
   return (
-    <article style={{ ...summaryCardStyle, marginBottom: 12 }}>
+    <article style={{ ...summaryCardStyle, marginBottom: 0 }}>
       <h4 style={summaryCardHeadingStyle}>{heading}</h4>
       {subjectLabel ? <div style={summaryMutedTextStyle}>{subjectLabel}</div> : null}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -134,7 +135,7 @@ export default function TriageSummaryStrip({
           );
         })}
       </div>
-      <div style={{ display: "grid", gap: 6 }}>
+      <div style={{ ...summaryTopStackStyle, gap: 6, marginBottom: 0 }}>
         {items.map((item) => {
           const tone = getStripTone(item.label);
           return (

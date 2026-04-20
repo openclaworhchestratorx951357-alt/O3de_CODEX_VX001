@@ -16,6 +16,7 @@ import {
   summaryCardStyle,
   summaryCalloutStyle,
   summaryTimestampNoteStyle,
+  summaryTopStackStyle,
 } from "./summaryPrimitives";
 
 type RunDetailPanelProps = {
@@ -110,36 +111,38 @@ export default function RunDetailPanel({
       emptyMessage="Select a run to inspect its detail."
       hasItems={Boolean(item)}
     >
-      <RecordLineageStrip
-        runId={item?.id ?? null}
-        runStatus={item?.status ?? null}
-        runSummary={item?.result_summary ?? null}
-        executionId={relatedExecutionId}
-        executionMode={item?.execution_mode ?? null}
-        runUpdatedAt={item?.updated_at ?? null}
-        runWarningCount={item?.warnings.length ?? null}
-        selectedRunId={selectedRunId}
-        selectedExecutionId={selectedExecutionId}
-        onOpenExecution={onOpenExecution}
-      />
-      {refreshHint ? (
-        <div style={summaryCalloutStyle}>{refreshHint}</div>
-      ) : null}
-      {lastRefreshedAt ? (
-        <div style={summaryTimestampNoteStyle}>
-          Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
-        </div>
-      ) : null}
-      <TriageSummaryStrip
-        heading="Operator Triage Summary"
-        subjectLabel={relatedExecutionId ? `Related execution ${relatedExecutionId}` : null}
-        priorityLabel={relatedExecutionPriorityLabel}
-        priorityDescription={relatedExecutionPriorityDescription}
-        actionLabel={relatedExecutionActionLabel}
-        actionDescription={relatedExecutionActionDescription}
-        attentionLabel={relatedExecutionAttentionLabel}
-        attentionDescription={relatedExecutionAttentionDescription}
-      />
+      <div style={summaryTopStackStyle}>
+        <RecordLineageStrip
+          runId={item?.id ?? null}
+          runStatus={item?.status ?? null}
+          runSummary={item?.result_summary ?? null}
+          executionId={relatedExecutionId}
+          executionMode={item?.execution_mode ?? null}
+          runUpdatedAt={item?.updated_at ?? null}
+          runWarningCount={item?.warnings.length ?? null}
+          selectedRunId={selectedRunId}
+          selectedExecutionId={selectedExecutionId}
+          onOpenExecution={onOpenExecution}
+        />
+        {refreshHint ? (
+          <div style={summaryCalloutStyle}>{refreshHint}</div>
+        ) : null}
+        {lastRefreshedAt ? (
+          <div style={summaryTimestampNoteStyle}>
+            Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
+          </div>
+        ) : null}
+        <TriageSummaryStrip
+          heading="Operator Triage Summary"
+          subjectLabel={relatedExecutionId ? `Related execution ${relatedExecutionId}` : null}
+          priorityLabel={relatedExecutionPriorityLabel}
+          priorityDescription={relatedExecutionPriorityDescription}
+          actionLabel={relatedExecutionActionLabel}
+          actionDescription={relatedExecutionActionDescription}
+          attentionLabel={relatedExecutionAttentionLabel}
+          attentionDescription={relatedExecutionAttentionDescription}
+        />
+      </div>
       <div style={summaryCardGridStyle}>
         <article style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Run Identity</h4>
