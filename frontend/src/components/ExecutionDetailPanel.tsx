@@ -186,36 +186,14 @@ export default function ExecutionDetailPanel({
                   const artifactId = artifact.id;
                   const artifactLabel = artifact?.label ?? "artifact";
                   const artifactKind = artifact?.kind ?? "unknown kind";
-                  const artifactPriority = describeArtifactPriority(
-                    artifact,
-                    relatedArtifacts,
-                    selectedArtifactId,
-                  );
-                  const artifactAction = recommendArtifactAction(
-                    artifact,
-                    selectedArtifactId,
-                  );
-                  const artifactAttention = describeArtifactAttention(
-                    artifact,
-                    selectedArtifactId,
-                  );
                   return (
                     <article key={artifactId} style={summaryCardStyle}>
                       <h5 style={summaryCardHeadingStyle}>{artifactLabel}</h5>
-                      <div style={summaryCalloutStyle}>
-                        {artifactPriority.label}
-                      </div>
-                      <div style={summaryCalloutStyle}>
-                        {artifactAction.label}
-                      </div>
-                      <div style={summaryCalloutStyle}>
-                        {artifactAttention.label}
-                      </div>
+                      <div style={summaryCalloutStyle}>{artifactKind}</div>
                       <SummaryFacts>
                         <SummaryFact label="Artifact ID" copyValue={artifactId}>
                           {artifactId}
                         </SummaryFact>
-                        <SummaryFact label="Kind">{artifactKind}</SummaryFact>
                         <SummaryFact label="Created">
                           {artifact?.created_at
                             ? formatSummaryTimestamp(artifact.created_at)
@@ -225,6 +203,12 @@ export default function ExecutionDetailPanel({
                           <StatusChip
                             label={artifact?.execution_mode ?? "unknown"}
                             tone={getExecutionModeTone(artifact?.execution_mode ?? "unknown")}
+                          />
+                        </SummaryFact>
+                        <SummaryFact label="Simulated">
+                          <StatusChip
+                            label={String(artifact?.simulated ?? false)}
+                            tone={artifact?.simulated ? "warning" : "success"}
                           />
                         </SummaryFact>
                         {artifact?.mutation_audit_status ? (
