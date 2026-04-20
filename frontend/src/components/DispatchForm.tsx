@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
 
 import { dispatchTool } from "../lib/api";
+import {
+  getDispatchExpectedExecutionTruth,
+  getHybridDispatchNote,
+} from "../lib/executionTruth";
 import type {
   AdaptersResponse,
   CatalogAgent,
@@ -71,13 +75,12 @@ export default function DispatchForm({
     && effectiveToolName === "build.configure"
     && selectedFamilyStatus?.supports_real_execution === true;
   const selectedCapabilityStatus = selectedTool?.capability_status ?? "simulated-only";
-  const hybridDispatchNote = hybridModeActive
-    ? selectedToolMayUseRealPath
-      ? "Hybrid mode is active. This tool may use the real read-only project inspection path when its manifest preconditions are satisfied, including explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence; otherwise it will fall back to simulation."
-      : selectedToolMayUseRealPlanOnlyPath
-        ? "Hybrid mode is active. This tool may use the real plan-only build.configure preflight path when dry_run=true and manifest preconditions are satisfied; otherwise it will fall back to simulation."
-        : "Hybrid mode is active, but this selected tool will still remain simulated in this phase."
-    : null;
+  const hybridDispatchNote = getHybridDispatchNote(
+    hybridModeActive,
+    effectiveToolName,
+    selectedToolMayUseRealPath,
+    selectedToolMayUseRealPlanOnlyPath,
+  );
 
   function isLockName(value: string): value is LockName {
     return [
@@ -186,15 +189,11 @@ export default function DispatchForm({
               <div><strong>Risk:</strong> {selectedTool.risk}</div>
               <div>
                 <strong>Expected execution truth:</strong>{" "}
-                {selectedCapabilityStatus === "hybrid-read-only" && selectedToolMayUseRealPath
-                  ? "Possible real read-only project inspection in hybrid mode, including explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence; simulated fallback remains explicit."
-                  : selectedCapabilityStatus === "plan-only" && selectedToolMayUseRealPlanOnlyPath
-                    ? "Possible real plan-only build.configure preflight in hybrid mode when dry_run=true; actual configure mutation is still not real."
-                    : selectedCapabilityStatus === "plan-only"
-                      ? "This tool remains planning/preflight-only in the current phase; simulated fallback remains explicit."
-                    : selectedCapabilityStatus === "mutation-gated"
-                      ? "This tool remains gated and non-real in the current phase."
-                  : "Simulated in the current phase."}
+                {getDispatchExpectedExecutionTruth(
+                  selectedCapabilityStatus,
+                  selectedToolMayUseRealPath,
+                  selectedToolMayUseRealPlanOnlyPath,
+                )}
               </div>
             </div>
           ) : null}

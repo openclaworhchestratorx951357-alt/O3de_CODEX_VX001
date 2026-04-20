@@ -1,5 +1,6 @@
 import type {
   ArtifactListItem,
+  ProjectInspectResult,
   ExecutionListItem,
   RunListItem,
   RunRecord,
@@ -102,4 +103,84 @@ export function getArtifactProvenanceLabel(item: ArtifactListItem): string {
     return "Real project manifest evidence";
   }
   return "Real artifact";
+}
+
+export function getHybridDispatchNote(
+  hybridModeActive: boolean,
+  toolName: string,
+  mayUseRealPath: boolean,
+  mayUseRealPlanOnlyPath: boolean,
+): string | null {
+  if (!hybridModeActive) {
+    return null;
+  }
+  if (toolName === "project.inspect" && mayUseRealPath) {
+    return "Hybrid mode is active. This tool may use the real read-only project inspection path when its manifest preconditions are satisfied, including explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence; otherwise it will fall back to simulation.";
+  }
+  if (toolName === "build.configure" && mayUseRealPlanOnlyPath) {
+    return "Hybrid mode is active. This tool may use the real plan-only build.configure preflight path when dry_run=true and manifest preconditions are satisfied; otherwise it will fall back to simulation.";
+  }
+  return "Hybrid mode is active, but this selected tool will still remain simulated in this phase.";
+}
+
+export function getDispatchExpectedExecutionTruth(
+  capabilityStatus: string,
+  mayUseRealPath: boolean,
+  mayUseRealPlanOnlyPath: boolean,
+): string {
+  if (capabilityStatus === "hybrid-read-only" && mayUseRealPath) {
+    return "Possible real read-only project inspection in hybrid mode, including explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence; simulated fallback remains explicit.";
+  }
+  if (capabilityStatus === "plan-only" && mayUseRealPlanOnlyPath) {
+    return "Possible real plan-only build.configure preflight in hybrid mode when dry_run=true; actual configure mutation is still not real.";
+  }
+  if (capabilityStatus === "plan-only") {
+    return "This tool remains planning/preflight-only in the current phase; simulated fallback remains explicit.";
+  }
+  if (capabilityStatus === "mutation-gated") {
+    return "This tool remains gated and non-real in the current phase.";
+  }
+  return "Simulated in the current phase.";
+}
+
+export function describeExecutionResult(
+  result: Record<string, unknown>,
+): string {
+  const projectInspectResult = result as Partial<ProjectInspectResult>;
+  const executionMode = typeof result.execution_mode === "string"
+    ? result.execution_mode
+    : "unknown";
+  const simulated = typeof result.simulated === "boolean" ? result.simulated : null;
+  const projectInspectTool = projectInspectResult.tool ?? null;
+  const tool = typeof result.tool === "string" ? result.tool : null;
+
+  if (executionMode === "real" && simulated === false && projectInspectTool === "project.inspect") {
+    return "Real read-only project inspection path ran for project.inspect, and it may include explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence.";
+  }
+  if (executionMode === "real" && simulated === false && tool === "build.configure") {
+    return "Real plan-only build.configure preflight ran; no configure command was executed.";
+  }
+  if (executionMode === "real" && simulated === false && tool === "settings.patch") {
+    const message = typeof result.message === "string" ? result.message : "";
+    if (message.startsWith("Real settings.patch mutation completed")) {
+      return "Real settings.patch mutation ran and wrote settings on the fully admitted path.";
+    }
+    if (message.includes("ready for mutation")) {
+      return "Real settings.patch preflight validated a mutation-ready plan, but writes remained intentionally disabled.";
+    }
+    return "Real dry-run-only settings.patch preflight ran; no settings were written.";
+  }
+  if (executionMode === "simulated" && simulated === true && tool === "project.inspect") {
+    return "project.inspect remained simulated for this run, including hybrid fallback cases.";
+  }
+  if (executionMode === "simulated" && simulated === true && tool === "build.configure") {
+    return "build.configure remained on a simulated path for this run, including hybrid fallback from the plan-only preflight path.";
+  }
+  if (executionMode === "simulated" && simulated === true && tool === "settings.patch") {
+    return "settings.patch remained on a simulated path for this run, including hybrid fallback from the dry-run-only preflight path.";
+  }
+  if (executionMode === "simulated" && simulated === true) {
+    return "This dispatch remained on the simulated execution path.";
+  }
+  return `Execution mode reported as ${executionMode}.`;
 }
