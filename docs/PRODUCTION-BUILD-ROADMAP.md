@@ -19,6 +19,7 @@ Read this together with:
 - `docs/README.md`
 - `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`
 - `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
+- `docs/PHASE-6B-REMOTE-EXECUTOR-CONTRACT.md`
 
 ---
 
@@ -383,6 +384,14 @@ automation depends on.
 - isolated workspace lifecycle contract
 - runner environment contract
 - evidence streaming contract
+- policy and admission contract
+- release and conformance plan
+- implementation sequence
+- backend mapping
+- persistence change set
+
+Primary planning source:
+- `docs/PHASE-6B-REMOTE-EXECUTOR-CONTRACT.md`
 
 ## Exit criteria
 - real remote execution has a stable substrate independent of any single tool
