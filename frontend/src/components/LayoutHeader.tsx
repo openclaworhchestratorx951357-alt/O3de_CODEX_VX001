@@ -2,6 +2,7 @@ import {
   formatSummaryTimestamp,
   summaryActionButtonStyle,
   summaryBadgeStyle,
+  summaryMutedTextStyle,
 } from "./summaryPrimitives";
 
 type LayoutHeaderProps = {
@@ -10,6 +11,7 @@ type LayoutHeaderProps = {
   refreshing?: boolean;
   lastRefreshedAt?: string | null;
   refreshStatusLabel?: string | null;
+  refreshStatusDetail?: string | null;
   refreshActions?: Array<{
     label: string;
     onClick: () => void;
@@ -22,6 +24,7 @@ export default function LayoutHeader({
   refreshing = false,
   lastRefreshedAt,
   refreshStatusLabel,
+  refreshStatusDetail,
   refreshActions = [],
 }: LayoutHeaderProps) {
   return (
@@ -44,6 +47,11 @@ export default function LayoutHeader({
         <div>
           <h1 style={{ margin: 0 }}>{title}</h1>
           <p style={{ margin: "8px 0 0 0" }}>{subtitle}</p>
+          {refreshStatusDetail ? (
+            <p style={{ ...summaryMutedTextStyle, margin: "8px 0 0 0" }}>
+              {refreshStatusDetail}
+            </p>
+          ) : null}
         </div>
         <div
           style={{

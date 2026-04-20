@@ -78,10 +78,24 @@ type AuditFilter =
   | "other";
 
 type ToolFilter = "all" | "settings.patch";
+type FocusedSection = "approvals" | "artifacts" | "events" | "executions" | "runs";
+type RefreshScope = "full" | "overview" | "records";
+type RefreshTarget =
+  | "catalog"
+  | "adapters"
+  | "system status"
+  | "operator overview"
+  | "policies"
+  | "approvals"
+  | "events"
+  | "locks"
+  | "runs"
+  | "executions"
+  | "artifacts"
+  | "selected execution detail"
+  | "selected artifact detail";
 
 export default function App() {
-  type FocusedSection = "approvals" | "artifacts" | "events" | "executions" | "runs";
-  type RefreshScope = "full" | "overview" | "records";
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
   const [approvals, setApprovals] = useState<ApprovalListItem[]>([]);
@@ -112,6 +126,7 @@ export default function App() {
   const [operatorOverviewRefreshedAt, setOperatorOverviewRefreshedAt] = useState<string | null>(null);
   const [dashboardRefreshedAt, setDashboardRefreshedAt] = useState<string | null>(null);
   const [dashboardRefreshStatus, setDashboardRefreshStatus] = useState<string | null>(null);
+  const [dashboardRefreshDetail, setDashboardRefreshDetail] = useState<string | null>(null);
   const [runDetailRefreshedAt, setRunDetailRefreshedAt] = useState<string | null>(null);
   const [executionDetailRefreshedAt, setExecutionDetailRefreshedAt] = useState<string | null>(null);
   const [artifactDetailRefreshedAt, setArtifactDetailRefreshedAt] = useState<string | null>(null);
@@ -636,7 +651,10 @@ export default function App() {
   async function refreshDashboardStateForScope(scope: RefreshScope) {
     setDashboardRefreshing(true);
     setDashboardRefreshStatus(`refreshing ${scope} surfaces`);
+    setDashboardRefreshDetail(getRefreshScopePendingDetail(scope));
     try {
+      const refreshedTargets = new Set<RefreshTarget>();
+
       if (scope === "full" || scope === "overview") {
         await Promise.all([
           loadCatalog(),
@@ -645,6 +663,11 @@ export default function App() {
           loadControlPlaneSummary(),
           loadPolicies(),
         ]);
+        refreshedTargets.add("catalog");
+        refreshedTargets.add("adapters");
+        refreshedTargets.add("system status");
+        refreshedTargets.add("operator overview");
+        refreshedTargets.add("policies");
       }
 
       if (scope === "full") {
@@ -653,6 +676,9 @@ export default function App() {
           loadEvents(),
           loadLocks(),
         ]);
+        refreshedTargets.add("approvals");
+        refreshedTargets.add("events");
+        refreshedTargets.add("locks");
       }
 
       if (scope === "full" || scope === "records") {
@@ -666,9 +692,13 @@ export default function App() {
           executionItems: nextExecutions,
           announceSelectionRefresh: announceRunDetailRefreshRef.current,
         });
+        refreshedTargets.add("runs");
+        refreshedTargets.add("executions");
+        refreshedTargets.add("artifacts");
         if (selectedExecutionId && nextExecutions.some((item) => item.id === selectedExecutionId)) {
           await loadExecutionDetail(selectedExecutionId);
           setExecutionDetailRefreshHint("Refresh preserved the selected execution detail.");
+          refreshedTargets.add("selected execution detail");
         } else if (selectedExecutionId) {
           setSelectedExecutionId(null);
           setSelectedExecution(null);
@@ -679,6 +709,7 @@ export default function App() {
         if (selectedArtifactId && nextArtifacts.some((item) => item.id === selectedArtifactId)) {
           await loadArtifactDetail(selectedArtifactId);
           setArtifactDetailRefreshHint("Refresh preserved the selected artifact detail.");
+          refreshedTargets.add("selected artifact detail");
         } else if (selectedArtifactId) {
           setSelectedArtifactId(null);
           setSelectedArtifact(null);
@@ -691,6 +722,7 @@ export default function App() {
       setUpdatedFocusedSection(activeFocusedSection);
       setDashboardRefreshedAt(new Date().toISOString());
       setDashboardRefreshStatus(`${scope} refresh complete`);
+      setDashboardRefreshDetail(describeRefreshTargets(scope, [...refreshedTargets]));
       restoreFocusedSection();
     } finally {
       announceRunDetailRefreshRef.current = false;
@@ -843,6 +875,7 @@ export default function App() {
         refreshing={dashboardRefreshing}
         lastRefreshedAt={dashboardRefreshedAt}
         refreshStatusLabel={dashboardRefreshStatus}
+        refreshStatusDetail={dashboardRefreshDetail}
         refreshActions={[
           {
             label: "Refresh dashboard",
@@ -1091,4 +1124,22 @@ export default function App() {
       />
     </main>
   );
+}
+
+function getRefreshScopePendingDetail(scope: RefreshScope): string {
+  if (scope === "overview") {
+    return "Refreshing catalog, adapter, system status, overview, and policy surfaces.";
+  }
+  if (scope === "records") {
+    return "Refreshing runs, executions, artifacts, and any selected detail records.";
+  }
+  return "Refreshing overview, records, approvals, events, locks, and supporting surfaces.";
+}
+
+function describeRefreshTargets(scope: RefreshScope, targets: RefreshTarget[]): string {
+  const orderedTargets = [...targets].sort((left, right) => left.localeCompare(right));
+  if (orderedTargets.length === 0) {
+    return `No ${scope} surfaces were refreshed.`;
+  }
+  return `Updated ${orderedTargets.join(", ")}.`;
 }
