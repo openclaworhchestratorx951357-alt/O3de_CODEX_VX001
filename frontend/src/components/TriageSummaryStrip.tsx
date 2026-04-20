@@ -21,6 +21,76 @@ type StripItem = {
   description: string;
 };
 
+type StripTone = "default" | "info" | "warning" | "success";
+
+function getStripTone(label: string): StripTone {
+  const normalizedLabel = label.toLowerCase();
+  if (
+    normalizedLabel.includes("simulation") ||
+    normalizedLabel.includes("audit") ||
+    normalizedLabel.includes("live decision")
+  ) {
+    return "warning";
+  }
+  if (
+    normalizedLabel.includes("selected") ||
+    normalizedLabel.includes("current operator focus")
+  ) {
+    return "success";
+  }
+  if (
+    normalizedLabel.includes("real") ||
+    normalizedLabel.includes("provenance") ||
+    normalizedLabel.includes("review") ||
+    normalizedLabel.includes("monitor")
+  ) {
+    return "info";
+  }
+  return "default";
+}
+
+function getBadgeToneStyle(tone: StripTone) {
+  if (tone === "warning") {
+    return {
+      background: "#fff8c5",
+      borderColor: "#9a6700",
+      color: "#7d4e00",
+    };
+  }
+  if (tone === "success") {
+    return {
+      background: "#dafbe1",
+      borderColor: "#1a7f37",
+      color: "#116329",
+    };
+  }
+  if (tone === "info") {
+    return {
+      background: "#ddf4ff",
+      borderColor: "#0969da",
+      color: "#0550ae",
+    };
+  }
+  return {
+    background: summaryBadgeStyle.background,
+    borderColor: "#d0d7de",
+    color: "#24292f",
+  };
+}
+
+function getDescriptionToneStyle(tone: StripTone) {
+  if (tone === "warning") {
+    return { color: "#7d4e00" };
+  }
+  if (tone === "success") {
+    return { color: "#116329" };
+  }
+  if (tone === "info") {
+    return { color: "#0550ae" };
+  }
+  return summaryMutedTextStyle;
+}
+
 export default function TriageSummaryStrip({
   heading,
   subjectLabel,
@@ -52,18 +122,28 @@ export default function TriageSummaryStrip({
       <h4 style={summaryCardHeadingStyle}>{heading}</h4>
       {subjectLabel ? <div style={summaryMutedTextStyle}>{subjectLabel}</div> : null}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        {items.map((item) => (
-          <span key={`${item.label}-${item.description}`} style={summaryBadgeStyle}>
-            {item.label}
-          </span>
-        ))}
+        {items.map((item) => {
+          const tone = getStripTone(item.label);
+          return (
+            <span
+              key={`${item.label}-${item.description}`}
+              style={{ ...summaryBadgeStyle, ...getBadgeToneStyle(tone) }}
+            >
+              {item.label}
+            </span>
+          );
+        })}
       </div>
       <div style={{ display: "grid", gap: 6 }}>
-        {items.map((item) => (
-          <div key={`${item.label}-${item.description}-detail`}>
-            <strong>{item.label}:</strong> <span style={summaryMutedTextStyle}>{item.description}</span>
-          </div>
-        ))}
+        {items.map((item) => {
+          const tone = getStripTone(item.label);
+          return (
+            <div key={`${item.label}-${item.description}-detail`}>
+              <strong>{item.label}:</strong>{" "}
+              <span style={getDescriptionToneStyle(tone)}>{item.description}</span>
+            </div>
+          );
+        })}
       </div>
     </article>
   );
