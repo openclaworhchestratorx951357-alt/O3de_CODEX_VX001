@@ -33,6 +33,8 @@ type ApprovalQueueProps = {
   onClearFocus?: () => void;
   lastRefreshedAt?: string | null;
   updateBadgeLabel?: string | null;
+  onRefresh?: (() => void) | null;
+  refreshing?: boolean;
 };
 
 function formatApprovalTitle(item: ApprovalListItem): string {
@@ -58,6 +60,8 @@ export default function ApprovalQueue({
   onClearFocus,
   lastRefreshedAt,
   updateBadgeLabel,
+  onRefresh,
+  refreshing = false,
 }: ApprovalQueueProps) {
   const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
@@ -75,6 +79,17 @@ export default function ApprovalQueue({
       emptyMessage={normalizedQuery ? "No approvals match the current search." : "No approvals are waiting for a decision."}
       hasItems={filteredItems.length > 0}
       marginTop={0}
+      actionHint="Local refresh updates the decision queue without reloading unrelated overview or records surfaces."
+      actions={onRefresh ? (
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshing}
+          style={summaryInlineActionButtonStyle}
+        >
+          {refreshing ? "Refreshing..." : "Refresh approvals"}
+        </button>
+      ) : null}
     >
       <div style={summaryControlRowStyle}>
         {focusLabel ? (

@@ -129,6 +129,8 @@ export default function App() {
   const [dashboardRefreshDetail, setDashboardRefreshDetail] = useState<string | null>(null);
   const [overviewRefreshing, setOverviewRefreshing] = useState(false);
   const [recordsRefreshing, setRecordsRefreshing] = useState(false);
+  const [approvalsRefreshing, setApprovalsRefreshing] = useState(false);
+  const [eventsRefreshing, setEventsRefreshing] = useState(false);
   const [runDetailRefreshedAt, setRunDetailRefreshedAt] = useState<string | null>(null);
   const [executionDetailRefreshedAt, setExecutionDetailRefreshedAt] = useState<string | null>(null);
   const [artifactDetailRefreshedAt, setArtifactDetailRefreshedAt] = useState<string | null>(null);
@@ -650,6 +652,40 @@ export default function App() {
     await refreshDashboardStateForScope("full");
   }
 
+  async function refreshApprovalsSection() {
+    setApprovalsRefreshing(true);
+    setDashboardRefreshStatus("refreshing approvals section");
+    setDashboardRefreshDetail("Refreshing the approval decision queue.");
+    try {
+      await loadApprovals();
+      setDashboardRefreshedAt(new Date().toISOString());
+      setDashboardRefreshStatus("approvals refresh complete");
+      setDashboardRefreshDetail("Updated approvals.");
+      if (activeFocusedSection === "approvals") {
+        setUpdatedFocusedSection("approvals");
+      }
+    } finally {
+      setApprovalsRefreshing(false);
+    }
+  }
+
+  async function refreshEventsSection() {
+    setEventsRefreshing(true);
+    setDashboardRefreshStatus("refreshing events section");
+    setDashboardRefreshDetail("Refreshing persisted timeline events.");
+    try {
+      await loadEvents();
+      setDashboardRefreshedAt(new Date().toISOString());
+      setDashboardRefreshStatus("events refresh complete");
+      setDashboardRefreshDetail("Updated events.");
+      if (activeFocusedSection === "events") {
+        setUpdatedFocusedSection("events");
+      }
+    } finally {
+      setEventsRefreshing(false);
+    }
+  }
+
   async function refreshDashboardStateForScope(scope: RefreshScope) {
     setDashboardRefreshing(true);
     setOverviewRefreshing(scope === "full" || scope === "overview");
@@ -986,6 +1022,10 @@ export default function App() {
           onClearFocus={clearApprovalsFocus}
           lastRefreshedAt={approvalsRefreshedAt}
           updateBadgeLabel={getFocusedSectionUpdateLabel("approvals")}
+          onRefresh={() => {
+            void refreshApprovalsSection();
+          }}
+          refreshing={approvalsRefreshing}
         />
       </section>
 
@@ -1000,6 +1040,10 @@ export default function App() {
           onClearFocus={clearEventsFocus}
           lastRefreshedAt={eventsRefreshedAt}
           updateBadgeLabel={getFocusedSectionUpdateLabel("events")}
+          onRefresh={() => {
+            void refreshEventsSection();
+          }}
+          refreshing={eventsRefreshing}
         />
       </div>
       <div ref={artifactsSectionRef}>

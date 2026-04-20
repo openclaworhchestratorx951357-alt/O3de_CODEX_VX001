@@ -32,6 +32,8 @@ type TaskTimelineProps = {
   onClearFocus?: () => void;
   lastRefreshedAt?: string | null;
   updateBadgeLabel?: string | null;
+  onRefresh?: (() => void) | null;
+  refreshing?: boolean;
 };
 
 export default function TaskTimeline({
@@ -43,6 +45,8 @@ export default function TaskTimeline({
   onClearFocus,
   lastRefreshedAt,
   updateBadgeLabel,
+  onRefresh,
+  refreshing = false,
 }: TaskTimelineProps) {
   const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
@@ -59,6 +63,17 @@ export default function TaskTimeline({
       error={error}
       emptyMessage={normalizedQuery ? "No timeline events match the current search." : "No timeline events are recorded yet."}
       hasItems={filteredItems.length > 0}
+      actionHint="Local refresh updates persisted timeline events without reloading the full dashboard."
+      actions={onRefresh ? (
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshing}
+          style={summaryInlineActionButtonStyle}
+        >
+          {refreshing ? "Refreshing..." : "Refresh events"}
+        </button>
+      ) : null}
     >
       <div style={summaryControlRowStyle}>
         {focusLabel ? (
