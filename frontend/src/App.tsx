@@ -42,6 +42,7 @@ import {
 import {
   describeExecutionPriority,
   getPreferredExecution,
+  recommendExecutionAction,
 } from "./lib/recordPriority";
 import type {
   ArtifactListItem,
@@ -176,6 +177,9 @@ export default function App() {
   const relatedExecutionPriority = selectedRunId
     ? getPreferredExecutionReasonForRun(selectedRunId)
     : null;
+  const relatedExecutionAction = selectedRunId
+    ? getPreferredExecutionActionForRun(selectedRunId)
+    : null;
 
   function getPreferredExecutionForRun(
     runId: string,
@@ -207,6 +211,17 @@ export default function App() {
       matchingExecutions,
       selectedExecutionId,
     );
+  }
+
+  function getPreferredExecutionActionForRun(
+    runId: string,
+    executionItems: ExecutionListItem[] = executions,
+  ) {
+    const preferredExecution = getPreferredExecutionForRun(runId, executionItems);
+    if (!preferredExecution) {
+      return null;
+    }
+    return recommendExecutionAction(preferredExecution, selectedExecutionId);
   }
 
   async function loadApprovals() {
@@ -939,6 +954,12 @@ export default function App() {
           }
           relatedExecutionPriorityDescription={
             relatedExecutionPriority?.description ?? null
+          }
+          relatedExecutionActionLabel={
+            relatedExecutionAction?.label ?? null
+          }
+          relatedExecutionActionDescription={
+            relatedExecutionAction?.description ?? null
           }
           selectedRunId={selectedRunId}
           selectedExecutionId={selectedExecutionId}

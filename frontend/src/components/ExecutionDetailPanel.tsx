@@ -7,6 +7,7 @@ import {
   compareArtifactPriority,
   describeArtifactPriority,
   getPreferredArtifact,
+  recommendArtifactAction,
 } from "../lib/recordPriority";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
 import RecordLineageStrip from "./RecordLineageStrip";
@@ -85,6 +86,9 @@ export default function ExecutionDetailPanel({
   const lineageArtifactPriority = lineageArtifact
     ? describeArtifactPriority(lineageArtifact, relatedArtifacts, selectedArtifactId)
     : null;
+  const lineageArtifactAction = lineageArtifact
+    ? recommendArtifactAction(lineageArtifact, selectedArtifactId)
+    : null;
 
   return (
     <SummarySection
@@ -127,6 +131,11 @@ export default function ExecutionDetailPanel({
       {lineageArtifactPriority ? (
         <div style={summaryCalloutStyle}>
           {lineageArtifactPriority.label}: {lineageArtifactPriority.description}
+        </div>
+      ) : null}
+      {lineageArtifactAction ? (
+        <div style={summaryCalloutStyle}>
+          {lineageArtifactAction.label}: {lineageArtifactAction.description}
         </div>
       ) : null}
       <div style={summaryCardGridStyle}>
@@ -172,15 +181,23 @@ export default function ExecutionDetailPanel({
                   const artifactId = artifact.id;
                   const artifactLabel = artifact?.label ?? "artifact";
                   const artifactKind = artifact?.kind ?? "unknown kind";
+                  const artifactPriority = describeArtifactPriority(
+                    artifact,
+                    relatedArtifacts,
+                    selectedArtifactId,
+                  );
+                  const artifactAction = recommendArtifactAction(
+                    artifact,
+                    selectedArtifactId,
+                  );
                   return (
                     <article key={artifactId} style={summaryCardStyle}>
                       <h5 style={summaryCardHeadingStyle}>{artifactLabel}</h5>
                       <div style={summaryCalloutStyle}>
-                        {describeArtifactPriority(
-                          artifact,
-                          relatedArtifacts,
-                          selectedArtifactId,
-                        ).label}
+                        {artifactPriority.label}
+                      </div>
+                      <div style={summaryCalloutStyle}>
+                        {artifactAction.label}
                       </div>
                       <SummaryFacts>
                         <SummaryFact label="Artifact ID" copyValue={artifactId}>

@@ -5,6 +5,11 @@ export type PrioritySelectionReason = {
   description: string;
 };
 
+export type PriorityActionRecommendation = {
+  label: string;
+  description: string;
+};
+
 function parseTimestamp(value: string | null | undefined): number {
   if (!value) {
     return 0;
@@ -182,6 +187,40 @@ export function describeExecutionPriority(
   };
 }
 
+export function recommendExecutionAction(
+  execution: ExecutionListItem,
+  selectedExecutionId?: string | null,
+): PriorityActionRecommendation {
+  if (selectedExecutionId && execution.id === selectedExecutionId) {
+    return {
+      label: "Review current execution",
+      description: "Inspect this execution's warnings, status, and linked artifacts before switching context.",
+    };
+  }
+  if (execution.mutation_audit_status) {
+    return {
+      label: "Review audit state",
+      description: "Open this execution detail and verify the persisted mutation-audit outcome before taking follow-up action.",
+    };
+  }
+  if (execution.execution_mode === "simulated") {
+    return {
+      label: "Verify simulation label",
+      description: "Open this execution and confirm the simulated boundary before treating it as real operational evidence.",
+    };
+  }
+  if (execution.status === "running" || execution.status === "waiting_approval") {
+    return {
+      label: "Monitor execution progress",
+      description: "Open this execution to check whether it is still active, waiting on approval, or ready for the next operator decision.",
+    };
+  }
+  return {
+    label: "Open execution detail",
+    description: "Inspect this execution's persisted evidence and linked artifacts to continue operator triage.",
+  };
+}
+
 export function compareArtifactPriority(
   left: ArtifactListItem,
   right: ArtifactListItem,
@@ -308,5 +347,39 @@ export function describeArtifactPriority(
   return {
     label: "Stable preferred artifact",
     description: "Chosen by the shared evidence-priority rules to keep related artifact focus stable.",
+  };
+}
+
+export function recommendArtifactAction(
+  artifact: ArtifactListItem,
+  selectedArtifactId?: string | null,
+): PriorityActionRecommendation {
+  if (selectedArtifactId && artifact.id === selectedArtifactId) {
+    return {
+      label: "Inspect current artifact",
+      description: "Review this artifact's persisted detail, provenance, and simulation label before switching to another record.",
+    };
+  }
+  if (artifact.mutation_audit_status) {
+    return {
+      label: "Check audit-backed artifact",
+      description: "Open this artifact detail and verify the persisted mutation-audit evidence before using it as an operational reference.",
+    };
+  }
+  if (artifact.simulated) {
+    return {
+      label: "Confirm simulated artifact",
+      description: "Open this artifact and confirm that the simulated label is still appropriate before treating it as concrete output.",
+    };
+  }
+  if (artifact.execution_mode === "real" || artifact.inspection_surface) {
+    return {
+      label: "Inspect provenance detail",
+      description: "Open this artifact detail to review its persisted provenance and linked execution context.",
+    };
+  }
+  return {
+    label: "Open artifact detail",
+    description: "Inspect this artifact's detail record to continue operator triage.",
   };
 }
