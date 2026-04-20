@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 
 import type { ArtifactListItem } from "../types/contracts";
+import { describeArtifactAttention } from "../lib/recordPriority";
+import OperatorStatusRail from "./OperatorStatusRail";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import { SummaryList, SummaryListItem } from "./SummaryList";
@@ -96,11 +98,20 @@ export default function ArtifactsPanel({
       <SummaryList>
         {filteredItems.map((item) => {
           const provenanceLabel = getArtifactProvenanceLabel(item);
+          const attentionLabel = describeArtifactAttention(item).label;
           return (
             <SummaryListItem key={item.id} card>
               <strong>{item.label}</strong>
               <SummaryFacts>
                 <SummaryFact label="Kind">{item.kind}</SummaryFact>
+                <SummaryFact label="Operator status">
+                  <OperatorStatusRail
+                    executionMode={item.execution_mode ?? null}
+                    simulated={item.simulated}
+                    auditStatus={item.mutation_audit_status ?? null}
+                    attentionLabel={attentionLabel}
+                  />
+                </SummaryFact>
                 <SummaryFact label="Run ID" copyValue={item.run_id}>{item.run_id}</SummaryFact>
                 <SummaryFact label="Execution ID" copyValue={item.execution_id}>{item.execution_id}</SummaryFact>
                 <SummaryFact label="URI" copyValue={item.uri}>{item.uri}</SummaryFact>

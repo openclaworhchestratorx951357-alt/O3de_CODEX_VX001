@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 
 import type { ExecutionListItem } from "../types/contracts";
+import { describeExecutionAttention } from "../lib/recordPriority";
+import OperatorStatusRail from "./OperatorStatusRail";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import { SummaryList, SummaryListItem } from "./SummaryList";
@@ -98,11 +100,19 @@ export default function ExecutionsPanel({
       <SummaryList>
         {filteredItems.map((item) => {
           const provenanceLabel = getExecutionProvenanceLabel(item);
+          const attentionLabel = describeExecutionAttention(item).label;
           return (
             <SummaryListItem key={item.id} card>
               <strong>{item.tool}</strong>
               <SummaryFacts>
                 <SummaryFact label="Agent">{item.agent}</SummaryFact>
+                <SummaryFact label="Operator status">
+                  <OperatorStatusRail
+                    executionMode={item.execution_mode}
+                    auditStatus={item.mutation_audit_status ?? null}
+                    attentionLabel={attentionLabel}
+                  />
+                </SummaryFact>
                 <SummaryFact label="Status">
                   <StatusChip label={item.status} tone={getExecutionStatusTone(item.status)} />
                 </SummaryFact>
