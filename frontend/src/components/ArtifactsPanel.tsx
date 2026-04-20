@@ -35,6 +35,8 @@ type ArtifactsPanelProps = {
   onClearFocus?: () => void;
   lastRefreshedAt?: string | null;
   updateBadgeLabel?: string | null;
+  onRefresh?: (() => void) | null;
+  refreshing?: boolean;
 };
 
 export default function ArtifactsPanel({
@@ -48,6 +50,8 @@ export default function ArtifactsPanel({
   onClearFocus,
   lastRefreshedAt,
   updateBadgeLabel,
+  onRefresh,
+  refreshing = false,
 }: ArtifactsPanelProps) {
   const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
@@ -64,6 +68,17 @@ export default function ArtifactsPanel({
       error={error}
       emptyMessage={normalizedQuery ? "No artifacts match the current search." : "No artifacts are recorded yet."}
       hasItems={filteredItems.length > 0}
+      actionHint="Local refresh updates persisted artifact records and preserves selected artifact detail when available."
+      actions={onRefresh ? (
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshing}
+          style={summaryInlineActionButtonStyle}
+        >
+          {refreshing ? "Refreshing..." : "Refresh artifacts"}
+        </button>
+      ) : null}
     >
       <div style={summaryControlRowStyle}>
         {focusLabel ? (

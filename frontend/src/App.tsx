@@ -127,6 +127,8 @@ export default function App() {
   const [dashboardRefreshedAt, setDashboardRefreshedAt] = useState<string | null>(null);
   const [dashboardRefreshStatus, setDashboardRefreshStatus] = useState<string | null>(null);
   const [dashboardRefreshDetail, setDashboardRefreshDetail] = useState<string | null>(null);
+  const [overviewRefreshing, setOverviewRefreshing] = useState(false);
+  const [recordsRefreshing, setRecordsRefreshing] = useState(false);
   const [runDetailRefreshedAt, setRunDetailRefreshedAt] = useState<string | null>(null);
   const [executionDetailRefreshedAt, setExecutionDetailRefreshedAt] = useState<string | null>(null);
   const [artifactDetailRefreshedAt, setArtifactDetailRefreshedAt] = useState<string | null>(null);
@@ -650,6 +652,8 @@ export default function App() {
 
   async function refreshDashboardStateForScope(scope: RefreshScope) {
     setDashboardRefreshing(true);
+    setOverviewRefreshing(scope === "full" || scope === "overview");
+    setRecordsRefreshing(scope === "full" || scope === "records");
     setDashboardRefreshStatus(`refreshing ${scope} surfaces`);
     setDashboardRefreshDetail(getRefreshScopePendingDetail(scope));
     try {
@@ -727,6 +731,8 @@ export default function App() {
     } finally {
       announceRunDetailRefreshRef.current = false;
       setDashboardRefreshing(false);
+      setOverviewRefreshing(false);
+      setRecordsRefreshing(false);
     }
   }
 
@@ -958,6 +964,10 @@ export default function App() {
         onExecutionModeSelect={handleExecutionModeDrilldown}
         onArtifactModeSelect={handleArtifactModeDrilldown}
         onEventSeveritySelect={handleEventSeverityDrilldown}
+        onRefresh={() => {
+          void refreshDashboardStateForScope("overview");
+        }}
+        refreshing={overviewRefreshing}
       />
 
       <Phase7CapabilitySummaryPanel agents={catalogAgents} />
@@ -1005,6 +1015,10 @@ export default function App() {
           onClearFocus={clearArtifactsFocus}
           lastRefreshedAt={artifactsRefreshedAt}
           updateBadgeLabel={getFocusedSectionUpdateLabel("artifacts")}
+          onRefresh={() => {
+            void refreshDashboardStateForScope("records");
+          }}
+          refreshing={recordsRefreshing}
         />
       </div>
       <div ref={executionsSectionRef}>
@@ -1020,6 +1034,10 @@ export default function App() {
           onClearFocus={clearExecutionsFocus}
           lastRefreshedAt={executionsRefreshedAt}
           updateBadgeLabel={getFocusedSectionUpdateLabel("executions")}
+          onRefresh={() => {
+            void refreshDashboardStateForScope("records");
+          }}
+          refreshing={recordsRefreshing}
         />
       </div>
       <div ref={runsSectionRef}>
@@ -1041,6 +1059,10 @@ export default function App() {
           onClearFocus={clearRunsFocus}
           lastRefreshedAt={runsRefreshedAt}
           updateBadgeLabel={getFocusedSectionUpdateLabel("runs")}
+          onRefresh={() => {
+            void refreshDashboardStateForScope("records");
+          }}
+          refreshing={recordsRefreshing}
         />
       </div>
       <div ref={runDetailSectionRef}>

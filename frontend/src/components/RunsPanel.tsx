@@ -51,6 +51,8 @@ type RunsPanelProps = {
   onClearFocus?: () => void;
   lastRefreshedAt?: string | null;
   updateBadgeLabel?: string | null;
+  onRefresh?: (() => void) | null;
+  refreshing?: boolean;
 };
 
 type AuditFilter =
@@ -89,6 +91,8 @@ export default function RunsPanel({
   onClearFocus,
   lastRefreshedAt,
   updateBadgeLabel,
+  onRefresh,
+  refreshing = false,
 }: RunsPanelProps) {
   const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const runAuditByRunId = useMemo(
@@ -124,6 +128,17 @@ export default function RunsPanel({
       error={error}
       emptyMessage={normalizedQuery ? "No runs match the current search." : "No runs recorded yet."}
       hasItems={visibleItems.length > 0}
+      actionHint="Local refresh updates the persisted records lane and preserves selected detail context when possible."
+      actions={onRefresh ? (
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshing}
+          style={summaryActionButtonStyle}
+        >
+          {refreshing ? "Refreshing..." : "Refresh runs"}
+        </button>
+      ) : null}
     >
       <div style={summaryControlRowStyle}>
         {focusLabel ? (

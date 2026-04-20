@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
-import { summarySectionStyle } from "./summaryPrimitives";
+import {
+  summarySectionStyle,
+  summaryMutedTextStyle,
+} from "./summaryPrimitives";
 type SummarySectionProps = {
   title: string;
   description: string;
@@ -9,6 +12,8 @@ type SummarySectionProps = {
   hasItems: boolean;
   children: ReactNode;
   marginTop?: number;
+  actions?: ReactNode;
+  actionHint?: string | null;
 };
 
 export default function SummarySection({
@@ -20,6 +25,8 @@ export default function SummarySection({
   hasItems,
   children,
   marginTop = 24,
+  actions,
+  actionHint,
 }: SummarySectionProps) {
   return (
     <section
@@ -28,8 +35,35 @@ export default function SummarySection({
         marginTop,
       }}
     >
-      <h3 style={{ marginTop: 0 }}>{title}</h3>
-      <p style={{ marginTop: 0, color: "#57606a" }}>{description}</p>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          alignItems: "flex-start",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ flex: "1 1 320px" }}>
+          <h3 style={{ marginTop: 0 }}>{title}</h3>
+          <p style={{ marginTop: 0, color: "#57606a" }}>{description}</p>
+          {actionHint ? (
+            <p style={{ ...summaryMutedTextStyle, marginTop: 0 }}>{actionHint}</p>
+          ) : null}
+        </div>
+        {actions ? (
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            {actions}
+          </div>
+        ) : null}
+      </div>
       {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
       {loading ? (
         <p>Loading {title.toLowerCase()}...</p>

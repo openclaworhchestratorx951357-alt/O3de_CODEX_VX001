@@ -23,6 +23,7 @@ import {
 } from "./statusChipTones";
 import {
   formatSummaryTimestamp,
+  summaryActionButtonStyle,
   summaryBadgeStyle,
   summaryCardGridStyle,
   summaryCardHeadingStyle,
@@ -41,6 +42,8 @@ type OperatorOverviewPanelProps = {
   onExecutionModeSelect: (mode: string) => void;
   onArtifactModeSelect: (mode: string) => void;
   onEventSeveritySelect: (severity: string) => void;
+  onRefresh?: (() => void) | null;
+  refreshing?: boolean;
 };
 
 export default function OperatorOverviewPanel({
@@ -53,6 +56,8 @@ export default function OperatorOverviewPanel({
   onExecutionModeSelect,
   onArtifactModeSelect,
   onEventSeveritySelect,
+  onRefresh,
+  refreshing = false,
 }: OperatorOverviewPanelProps) {
   return (
     <SummarySection
@@ -63,6 +68,17 @@ export default function OperatorOverviewPanel({
       emptyMessage="No persisted operator summary is available."
       hasItems={Boolean(summary)}
       marginTop={24}
+      actionHint="Local refresh keeps overview surfaces current without reloading the full records lane."
+      actions={onRefresh ? (
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshing}
+          style={summaryActionButtonStyle}
+        >
+          {refreshing ? "Refreshing..." : "Refresh overview"}
+        </button>
+      ) : null}
     >
       {summary ? (
         <>

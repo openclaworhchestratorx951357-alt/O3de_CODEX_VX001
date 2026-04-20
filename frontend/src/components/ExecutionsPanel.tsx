@@ -36,6 +36,8 @@ type ExecutionsPanelProps = {
   onClearFocus?: () => void;
   lastRefreshedAt?: string | null;
   updateBadgeLabel?: string | null;
+  onRefresh?: (() => void) | null;
+  refreshing?: boolean;
 };
 
 export default function ExecutionsPanel({
@@ -49,6 +51,8 @@ export default function ExecutionsPanel({
   onClearFocus,
   lastRefreshedAt,
   updateBadgeLabel,
+  onRefresh,
+  refreshing = false,
 }: ExecutionsPanelProps) {
   const [searchValue, setSearchValue] = useState(searchPreset ?? "");
   const normalizedQuery = searchValue.trim().toLowerCase();
@@ -66,6 +70,17 @@ export default function ExecutionsPanel({
       error={error}
       emptyMessage={normalizedQuery ? "No executions match the current search." : "No executions are recorded yet."}
       hasItems={filteredItems.length > 0}
+      actionHint="Local refresh updates persisted execution records without reloading the full overview lane."
+      actions={onRefresh ? (
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refreshing}
+          style={summaryInlineActionButtonStyle}
+        >
+          {refreshing ? "Refreshing..." : "Refresh executions"}
+        </button>
+      ) : null}
     >
       <div style={summaryControlRowStyle}>
         {focusLabel ? (
