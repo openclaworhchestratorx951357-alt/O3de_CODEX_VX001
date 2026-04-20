@@ -8,6 +8,8 @@ See these official source files:
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/SLICE-START-CHECKLIST.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
+- `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`
+- `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
 - `docs/PHASE-7-CHECKPOINT.md`
 - `docs/PERSISTED-SCHEMA-COVERAGE-CHECKPOINT.md`
 - `docs/PHASE-7-REAL-ADAPTER-GATE.md`
@@ -30,6 +32,10 @@ Current Phase 7 checkpoint truth:
 - the next safest refinement is still manifest-adjacent and keeps settings/Gem evidence on `project.json`
 - `build.configure` is still only a real plan-only preflight path
 - mutation surfaces remain gated
+- broader real remote automation coverage is still narrow and should now be
+  expanded only through the Phase 6B/6C program defined in
+  `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md` and
+  `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
 - persisted execution-details and artifact-metadata schema coverage now spans 21
   tools across the published catalog
 - fully covered persisted-schema families are now `editor-control`,

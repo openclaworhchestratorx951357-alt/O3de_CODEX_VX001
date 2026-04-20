@@ -18,6 +18,8 @@ See these official source files before making changes:
 - `docs/WORKTREE-STRATEGY.md`
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
+- `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`
+- `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
 - `docs/PHASE-7-CHECKPOINT.md`
 - `docs/PHASE-7-REAL-ADAPTER-GATE.md`
 - `docs/PHASE-7-PROJECT-BUILD-CANDIDATES.md`
@@ -31,10 +33,15 @@ See these official source files before making changes:
 
 Current Phase 7 checkpoint truth:
 - `project.inspect` is the current real read-only path in hybrid mode
-- that path now includes manifest-backed project-config, requested-vs-discovered Gem, requested Gem subset matching, requested settings subset matching, and top-level settings evidence
-- the next safest refinement is still manifest-adjacent and keeps Gem-state evidence on `project.json`
-- `build.configure` remains only a real plan-only preflight path
-- mutation surfaces remain gated
+- that path now includes manifest-backed project-config, requested-vs-discovered Gem, requested Gem subset matching, requested settings subset matching, top-level settings evidence, and explicit real-vs-fallback manifest provenance
+- `build.configure` remains a real plan-only preflight path only when `dry_run=true`, and now also carries explicit real-path and fallback provenance
+- `settings.patch` now includes a narrow admitted manifest-backed preflight path plus a narrow admitted manifest-backed set-only mutation path, both with explicit provenance and fallback categories
+- broader mutation surfaces remain gated
+- broader real remote automation coverage is still narrow and should be widened
+  only through the roadmap-native Phase 6B / 6C program documented in
+  `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md` and
+  `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
+- the admitted real backend paths still stay on `project_root/project.json` as the narrow truthful baseline where documented
 
 Current operator-lane UX truth:
 - the frontend now includes pinned-lane progression, presets, handoff summaries, local operator notes, clipboard copy, and local reset controls
@@ -93,7 +100,7 @@ Default local ports:
 Persistence note:
 - the truthful local-run baseline is still an explicit writable SQLite path
 - the compose baseline uses `/app/runtime/control_plane.sqlite3` inside the backend container and mounts `./runtime` from the repo root
-- real O3DE adapters are still not implemented; execution remains explicitly simulated
+- real O3DE adapters are still not broadly implemented; simulated execution remains explicitly labeled outside the narrow admitted hybrid paths
 
 ## Notes
 

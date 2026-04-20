@@ -9,6 +9,11 @@ It is intentionally short.
 
 It does not authorize broader real-adapter expansion by itself.
 
+For the production completion program that must precede broader real adapter
+expansion, read:
+- `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`
+- `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
+
 ## Current truthful status
 
 As of the current accepted branch state:
@@ -20,6 +25,9 @@ As of the current accepted branch state:
   approval/policy meaning is in place
 - operator visibility now also includes persisted settings.patch audit summary,
   admitted mutation evidence wording, and refresh-preserved run detail context
+- admitted Phase 7 backend evidence now also carries aligned manifest/root
+  provenance and fallback categorization across `project.inspect`,
+  `build.configure`, and `settings.patch`
 
 Real O3DE execution is still narrow.
 
@@ -34,6 +42,10 @@ Current truth:
 - may now capture manifest-backed project-config, requested-vs-discovered Gem,
   requested Gem subset matching, requested settings subset matching, and
   top-level settings evidence from `project_root/project.json` when requested
+- now also persists explicit manifest/root/source-of-truth provenance for the
+  admitted real path
+- now also persists explicit simulated-fallback provenance including expected
+  manifest path and missing-vs-unreadable fallback categorization
 - falls back to simulated when the real manifest path is unavailable
 - remains explicitly labeled as real vs simulated in backend and frontend
 - still does not authorize deeper layered settings discovery or any mutation path
@@ -45,7 +57,11 @@ Current truth:
 Current truth:
 - may use a real plan-only preflight path in `O3DE_ADAPTER_MODE=hybrid`
 - only when `dry_run=true`
-- records real preflight evidence and plan metadata
+- records real preflight evidence, plan metadata, and explicit
+  manifest/root/source-of-truth provenance
+- now also records explicit simulated-fallback provenance including
+  `dry-run-required`, `manifest-missing`, and `manifest-unreadable`
+  categorization when the real preflight path is unavailable
 - does not execute a real configure mutation
 - falls back to simulated when preconditions are not satisfied
 
@@ -58,6 +74,11 @@ Current truth:
 - now also includes the first admitted manifest-backed set-only mutation path
 - keeps backup provenance, rollback outcome evidence, patch-plan evidence, and
   post-write verification explicit
+- now also persists explicit manifest/root/source-of-truth provenance for both
+  the admitted real preflight and admitted real mutation records
+- now also persists explicit simulated-fallback provenance including
+  `manifest-missing`, `manifest-unreadable`, and `mutation-not-admitted`
+  categorization when the admitted real path is unavailable
 - remains approval-gated and tightly bounded rather than broadly mutation-capable
 - falls back to simulated when the admitted real path is unavailable or
   preconditions are not satisfied
@@ -97,6 +118,10 @@ The operator shell now exposes this boundary through:
 - explicit manifest-backed project origin provenance
 - explicit manifest-backed presentation metadata inventory
 - explicit manifest-backed identity and tag inventory
+- explicit expected-manifest fallback provenance and fallback category evidence
+  for admitted real-path failures
+- explicit manifest/root/source-of-truth provenance for admitted real preflight
+  and mutation evidence
 - local operator-lane state, action rails, and detail-panel carry-through for
   pinned-lane navigation
 - explicit preset restore, preset drift, local note, local clipboard, and local
@@ -114,6 +139,8 @@ The operator shell now exposes this boundary through:
   rather than broader layered config discovery
 - broader mutation paths are still not implemented beyond the first admitted
   manifest-backed settings.patch case
+- the admitted `settings.patch` mutation boundary is still narrow and does not
+  imply broad settings mutation support
 - simulated fallback remains part of the truthful accepted behavior
 - default non-container persistence is still not claimed healthy; explicit
   operator-configured persistence remains the truthful baseline for
@@ -128,9 +155,10 @@ Before widening into broader real adapter execution, the next slice should stay
 narrow and truthful.
 
 Recommended next boundary:
-- define the exact contract for the next manifest-adjacent inspection refinement
-  that stays file-read-only on `project_root/project.json`, or
-- begin that next narrow refinement only if it stays on the same
-  project-manifest source of truth, keeps fallback behavior explicit, and does
-  not blur the already-admitted settings.patch mutation boundary into a broader
-  mutation claim
+- complete Phase 6B remote executor substrate and workspace isolation before
+  broader real adapter expansion, and
+- complete Phase 6C automation surface matrix and admission standard before
+  widening real remote automation claims, and
+- define the next narrow admitted backend contract only if it preserves the same
+  explicit real-vs-simulated boundary and does not blur the already-admitted
+  `settings.patch` mutation boundary into a broader mutation claim
