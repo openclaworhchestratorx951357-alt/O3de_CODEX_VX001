@@ -4,6 +4,7 @@ import type {
   RunRecord,
   SettingsPatchMutationAudit,
 } from "../types/contracts";
+import { getRunTruthBoundaryDescription } from "../lib/executionTruth";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
 import RecordLineageStrip from "./RecordLineageStrip";
 import SummarySection from "./SummarySection";
@@ -47,31 +48,6 @@ function readMutationAudit(
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as SettingsPatchMutationAudit)
     : null;
-}
-
-function describeRunTruth(item: RunRecord): string {
-  if (item.execution_mode === "real" && item.tool === "project.inspect") {
-    return "This run used the real read-only project.inspect path and may include explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence.";
-  }
-  if (item.execution_mode === "real" && item.tool === "build.configure") {
-    return "This run used the real plan-only build.configure preflight path.";
-  }
-  if (item.execution_mode === "real" && item.tool === "settings.patch") {
-    if (item.result_summary?.includes("mutation completed")) {
-      return "This run used the first real settings.patch mutation path.";
-    }
-    if (item.result_summary?.includes("mutation-ready")) {
-      return "This run validated a mutation-ready settings.patch plan, but writes remained intentionally disabled.";
-    }
-    return "This run used the real dry-run-only settings.patch preflight path; no settings were written.";
-  }
-  if (item.execution_mode === "simulated" && item.tool === "build.configure") {
-    return "This build.configure run remained on a simulated fallback path.";
-  }
-  if (item.execution_mode === "simulated" && item.tool === "settings.patch") {
-    return "This settings.patch run remained on a simulated path.";
-  }
-  return "This run remained on a simulated execution path.";
 }
 
 function readProjectInspectDetails(
@@ -210,7 +186,7 @@ export default function RunDetailPanel({
         >
           <h4 style={summaryCardHeadingStyle}>Truth Boundary</h4>
           <div style={summaryCalloutStyle}>
-            {item ? formatSummaryLabeledText("Execution truth", describeRunTruth(item)) : null}
+            {item ? formatSummaryLabeledText("Execution truth", getRunTruthBoundaryDescription(item)) : null}
           </div>
           {item?.result_summary ? (
             <div style={{ marginTop: 8 }}>

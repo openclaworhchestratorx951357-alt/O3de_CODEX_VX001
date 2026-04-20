@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import type { ExecutionListItem } from "../types/contracts";
+import { getExecutionProvenanceLabel } from "../lib/executionTruth";
 import { describeExecutionAttention } from "../lib/recordPriority";
 import OperatorStatusRail from "./OperatorStatusRail";
 import SummarySection from "./SummarySection";
@@ -179,32 +180,4 @@ function matchesExecutionSearch(item: ExecutionListItem, query: string): boolean
     item.mutation_audit_summary ?? "",
     item.mutation_audit_status ?? "",
   ].some((value) => value.toLowerCase().includes(query));
-}
-
-function getExecutionProvenanceLabel(item: ExecutionListItem): string {
-  if (item.execution_mode === "real") {
-    if (item.inspection_surface === "build_configure_preflight") {
-      return "Real plan-only build.configure preflight";
-    }
-    if (item.inspection_surface === "settings_patch_mutation") {
-      return "Real settings.patch mutation";
-    }
-    if (item.inspection_surface === "settings_patch_preflight") {
-      return "Real dry-run-only settings.patch preflight";
-    }
-    return "Real read-only project inspection";
-  }
-  if (item.inspection_surface === "project_manifest") {
-    return "Real project manifest provenance recorded";
-  }
-  if (item.inspection_surface === "build_configure_preflight") {
-    return "Real build.configure preflight provenance recorded";
-  }
-  if (item.inspection_surface === "settings_patch_mutation") {
-    return "Real settings.patch mutation provenance recorded";
-  }
-  if (item.inspection_surface === "settings_patch_preflight") {
-    return "Real settings.patch preflight provenance recorded";
-  }
-  return "Simulated execution record";
 }

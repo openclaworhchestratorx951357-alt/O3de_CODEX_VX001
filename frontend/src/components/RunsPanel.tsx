@@ -5,6 +5,7 @@ import type {
   RunAuditRecord,
   SettingsPatchAuditSummary,
 } from "../types/contracts";
+import { getRunExecutionTruthLabel } from "../lib/executionTruth";
 import {
   getRunAttentionLabel,
   getRunAuditStatusLabel,
@@ -290,19 +291,7 @@ function getRunCapabilityLabel(item: RunListItem): string {
 }
 
 function getRunExecutionTruth(item: RunListItem): string {
-  if (item.tool === "build.configure") {
-    return item.execution_mode === "real"
-      ? "Real plan-only preflight path."
-      : "Simulated path or hybrid fallback.";
-  }
-  if (item.tool === "project.inspect") {
-    return item.execution_mode === "real"
-      ? "Real read-only inspection path."
-      : "Simulated path or hybrid fallback.";
-  }
-  return item.execution_mode === "real"
-    ? "Narrow real adapter path."
-    : "Simulated path.";
+  return getRunExecutionTruthLabel(item);
 }
 
 function getAuditStatusLabel(

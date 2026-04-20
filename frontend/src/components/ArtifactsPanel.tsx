@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import type { ArtifactListItem } from "../types/contracts";
+import { getArtifactProvenanceLabel } from "../lib/executionTruth";
 import { describeArtifactAttention } from "../lib/recordPriority";
 import OperatorStatusRail from "./OperatorStatusRail";
 import SummarySection from "./SummarySection";
@@ -183,23 +184,4 @@ function matchesArtifactSearch(item: ArtifactListItem, query: string): boolean {
     item.mutation_audit_summary ?? "",
     item.mutation_audit_status ?? "",
   ].some((value) => value.toLowerCase().includes(query));
-}
-
-function getArtifactProvenanceLabel(item: ArtifactListItem): string {
-  if (item.simulated) {
-    return "Simulated artifact";
-  }
-  if (item.inspection_surface === "build_configure_preflight") {
-    return "Real build.configure preflight evidence";
-  }
-  if (item.inspection_surface === "settings_patch_mutation") {
-    return "Real settings.patch mutation evidence";
-  }
-  if (item.inspection_surface === "settings_patch_preflight") {
-    return "Real settings.patch preflight evidence";
-  }
-  if (item.inspection_surface === "project_manifest") {
-    return "Real project manifest evidence";
-  }
-  return "Real artifact";
 }
