@@ -5,6 +5,7 @@ import type {
   RunAuditRecord,
   SettingsPatchAuditSummary,
 } from "../types/contracts";
+import OperatorStatusRail from "./OperatorStatusRail";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import { SummaryList, SummaryListItem } from "./SummaryList";
@@ -218,6 +219,13 @@ export default function RunsPanel({
                 <strong>{item.tool}</strong>
                 <SummaryFacts>
                   <SummaryFact label="Agent">{item.agent}</SummaryFact>
+                  <SummaryFact label="Operator status">
+                    <OperatorStatusRail
+                      executionMode={item.execution_mode}
+                      auditStatus={auditStatus}
+                      attentionLabel={getRunAttentionLabel(item, audit)}
+                    />
+                  </SummaryFact>
                   <SummaryFact label="Status">
                     <StatusChip label={item.status} tone={getRunStatusTone(item.status)} />
                   </SummaryFact>
@@ -307,6 +315,23 @@ function getAuditStatusLabel(
     return "simulated";
   }
   return "unknown";
+}
+
+function getRunAttentionLabel(
+  item: RunListItem,
+  audit: RunAuditRecord | undefined,
+): string {
+  const auditStatus = getAuditStatusLabel(item, audit);
+  if (item.execution_mode === "simulated") {
+    return "Simulation boundary";
+  }
+  if (auditStatus && auditStatus !== "unknown" && auditStatus !== "simulated") {
+    return "Audit review needed";
+  }
+  if (item.status === "running" || item.status === "waiting_approval" || item.status === "pending") {
+    return "Live decision state";
+  }
+  return "Routine follow-up";
 }
 
 function matchesAuditFilter(
