@@ -15,6 +15,7 @@ import RecordLineageStrip from "./RecordLineageStrip";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import StatusChip from "./StatusChip";
+import TriageSummaryStrip from "./TriageSummaryStrip";
 import {
   getAuditStatusTone,
   getExecutionModeTone,
@@ -132,21 +133,16 @@ export default function ExecutionDetailPanel({
           Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
         </div>
       ) : null}
-      {lineageArtifactPriority ? (
-        <div style={summaryCalloutStyle}>
-          {lineageArtifactPriority.label}: {lineageArtifactPriority.description}
-        </div>
-      ) : null}
-      {lineageArtifactAction ? (
-        <div style={summaryCalloutStyle}>
-          {lineageArtifactAction.label}: {lineageArtifactAction.description}
-        </div>
-      ) : null}
-      {lineageArtifactAttention ? (
-        <div style={summaryCalloutStyle}>
-          {lineageArtifactAttention.label}: {lineageArtifactAttention.description}
-        </div>
-      ) : null}
+      <TriageSummaryStrip
+        heading="Operator Triage Summary"
+        subjectLabel={lineageArtifactId ? `Prioritized artifact ${lineageArtifactId}` : null}
+        priorityLabel={lineageArtifactPriority?.label ?? null}
+        priorityDescription={lineageArtifactPriority?.description ?? null}
+        actionLabel={lineageArtifactAction?.label ?? null}
+        actionDescription={lineageArtifactAction?.description ?? null}
+        attentionLabel={lineageArtifactAttention?.label ?? null}
+        attentionDescription={lineageArtifactAttention?.description ?? null}
+      />
       <div style={summaryCardGridStyle}>
         <article style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Execution</h4>

@@ -7,6 +7,7 @@ import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
 import RecordLineageStrip from "./RecordLineageStrip";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
+import TriageSummaryStrip from "./TriageSummaryStrip";
 import {
   formatSummaryLabeledText,
   formatSummaryTimestamp,
@@ -129,6 +130,16 @@ export default function RunDetailPanel({
           Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
         </div>
       ) : null}
+      <TriageSummaryStrip
+        heading="Operator Triage Summary"
+        subjectLabel={relatedExecutionId ? `Related execution ${relatedExecutionId}` : null}
+        priorityLabel={relatedExecutionPriorityLabel}
+        priorityDescription={relatedExecutionPriorityDescription}
+        actionLabel={relatedExecutionActionLabel}
+        actionDescription={relatedExecutionActionDescription}
+        attentionLabel={relatedExecutionAttentionLabel}
+        attentionDescription={relatedExecutionAttentionDescription}
+      />
       <div style={summaryCardGridStyle}>
         <article style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Identity</h4>
@@ -202,36 +213,6 @@ export default function RunDetailPanel({
         {relatedExecutionId ? (
           <article style={summaryCardStyle}>
             <h4 style={summaryCardHeadingStyle}>Related Records</h4>
-            {relatedExecutionPriorityDescription ? (
-              <div style={summaryCalloutStyle}>
-                {relatedExecutionPriorityLabel
-                  ? formatSummaryLabeledText(
-                    relatedExecutionPriorityLabel,
-                    relatedExecutionPriorityDescription,
-                  )
-                  : relatedExecutionPriorityDescription}
-              </div>
-            ) : null}
-            {relatedExecutionActionDescription ? (
-              <div style={summaryCalloutStyle}>
-                {relatedExecutionActionLabel
-                  ? formatSummaryLabeledText(
-                    relatedExecutionActionLabel,
-                    relatedExecutionActionDescription,
-                  )
-                  : relatedExecutionActionDescription}
-              </div>
-            ) : null}
-            {relatedExecutionAttentionDescription ? (
-              <div style={summaryCalloutStyle}>
-                {relatedExecutionAttentionLabel
-                  ? formatSummaryLabeledText(
-                    relatedExecutionAttentionLabel,
-                    relatedExecutionAttentionDescription,
-                  )
-                  : relatedExecutionAttentionDescription}
-              </div>
-            ) : null}
             <SummaryFacts>
               <SummaryFact label="Execution ID" copyValue={relatedExecutionId}>
                 {relatedExecutionId}
