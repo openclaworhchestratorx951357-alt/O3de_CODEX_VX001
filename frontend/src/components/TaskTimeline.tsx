@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+import { describeTimelineMeaning } from "../lib/capabilityNarrative";
 import type { EventListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -32,25 +33,6 @@ type TaskTimelineProps = {
   lastRefreshedAt?: string | null;
   updateBadgeLabel?: string | null;
 };
-
-function describeTimelineMeaning(item: EventListItem): string | null {
-  const capabilityStatus = item.capability_status ?? null;
-  const adapterMode = item.adapter_mode ?? null;
-  const message = item.message.toLowerCase();
-
-  if (capabilityStatus === "plan-only") {
-    if (adapterMode === "real" || message.includes("plan-only build.configure preflight")) {
-      return "This event reflects the real plan-only build.configure preflight path, not a real configure mutation.";
-    }
-    return "This event reflects plan-only build.configure behavior; simulated fallback still remains possible in this phase.";
-  }
-
-  if (capabilityStatus === "hybrid-read-only") {
-    return "This event reflects the first real read-only project.inspect path or its simulated fallback.";
-  }
-
-  return null;
-}
 
 export default function TaskTimeline({
   items,
@@ -113,7 +95,7 @@ export default function TaskTimeline({
         {filteredItems.map((item) => {
           const capabilityStatus = item.capability_status ?? null;
           const adapterMode = item.adapter_mode ?? null;
-          const meaning = describeTimelineMeaning(item);
+          const meaning = describeTimelineMeaning(capabilityStatus, adapterMode, item.message);
           return (
             <SummaryListItem key={item.id} card>
               <strong>{item.message}</strong>

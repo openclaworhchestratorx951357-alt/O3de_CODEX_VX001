@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
 
+import {
+  describeBuildConfigureMeaning,
+  describeSettingsPatchPolicyMeaning,
+} from "../lib/capabilityNarrative";
 import type { ToolPolicy } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -79,16 +83,12 @@ export default function PoliciesPanel({
                 </SummaryFacts>
               {item.tool === "build.configure" ? (
                 <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
-                  Meaning: In hybrid mode this remains plan-only. Approval can
-                  enable a real preflight path, but not a real configure mutation.
+                  Meaning: {describeBuildConfigureMeaning()}
                 </div>
               ) : null}
               {item.tool === "settings.patch" ? (
                 <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
-                  Meaning: This surface stays tightly mutation-gated in the catalog,
-                  but the admitted hybrid boundary now includes a real preflight path
-                  and the first manifest-backed set-only mutation case with backup,
-                  rollback, and post-write verification evidence.
+                  Meaning: {describeSettingsPatchPolicyMeaning()}
                 </div>
               ) : null}
             </SummaryListItem>

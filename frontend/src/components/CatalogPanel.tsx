@@ -1,3 +1,4 @@
+import { describeCatalogCapability } from "../lib/capabilityNarrative";
 import type { CatalogAgent } from "../types/contracts";
 
 type CatalogPanelProps = {
@@ -5,19 +6,6 @@ type CatalogPanelProps = {
 };
 
 export default function CatalogPanel({ agents }: CatalogPanelProps) {
-  function describeCapability(toolName: string, capabilityStatus?: string): string {
-    if (capabilityStatus === "hybrid-read-only" && toolName === "project.inspect") {
-      return "Real read-only in hybrid mode when manifest preconditions are satisfied, with explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence plus simulated fallback when the real path is unavailable.";
-    }
-    if (capabilityStatus === "plan-only" && toolName === "build.configure") {
-      return "Real only as a plan-only preflight in hybrid mode when dry_run=true; no real configure mutation runs.";
-    }
-    if (capabilityStatus === "mutation-gated") {
-      return "Still blocked from real mutation in the current phase.";
-    }
-    return "Still simulated in the current phase.";
-  }
-
   return (
     <section
       style={{
@@ -44,7 +32,7 @@ export default function CatalogPanel({ agents }: CatalogPanelProps) {
                     <div>Approval: {tool.approval_class}</div>
                     <div>Capability: {tool.capability_status ?? "unspecified"}</div>
                     <div>
-                      Meaning: {describeCapability(tool.name, tool.capability_status)}
+                      Meaning: {describeCatalogCapability(tool.name, tool.capability_status)}
                     </div>
                     <div>Risk: {tool.risk}</div>
                   </li>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+import { describeBuildConfigureMeaning } from "../lib/capabilityNarrative";
 import type { ApprovalListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -40,7 +41,7 @@ function formatApprovalTitle(item: ApprovalListItem): string {
 
 function describeApprovalMeaning(item: ApprovalListItem): string | null {
   if (item.tool === "build.configure") {
-    return "In hybrid mode, this approval may allow the real plan-only build.configure preflight path when dry_run=true. It does not imply a real configure mutation.";
+    return describeBuildConfigureMeaning();
   }
   return null;
 }
