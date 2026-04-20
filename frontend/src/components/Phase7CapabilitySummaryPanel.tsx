@@ -1,6 +1,17 @@
 import type { CSSProperties } from "react";
 
 import type { CatalogAgent } from "../types/contracts";
+import OperatorStatusRail from "./OperatorStatusRail";
+import StatusChip from "./StatusChip";
+import { SummaryFact, SummaryFacts } from "./SummaryFacts";
+import { getCapabilityTone, getExecutionModeTone } from "./statusChipTones";
+import {
+  summaryBadgeStyle,
+  summaryCardGridStyle,
+  summaryCardHeadingStyle,
+  summaryCardStyle,
+  summaryMutedTextStyle,
+} from "./summaryPrimitives";
 
 type Phase7CapabilitySummaryPanelProps = {
   agents: CatalogAgent[];
@@ -10,6 +21,8 @@ type CapabilityBucket = {
   label: string;
   tools: string[];
   description: string;
+  executionMode: string | null;
+  attentionLabel: string;
 };
 
 const CAPABILITY_ORDER = [
@@ -36,6 +49,8 @@ export default function Phase7CapabilitySummaryPanel({
   const buckets = buildBuckets(agents);
   const planOnlyCount = buckets.find((bucket) => bucket.label === "plan-only")?.tools.length ?? 0;
   const hybridCount = buckets.find((bucket) => bucket.label === "hybrid-read-only")?.tools.length ?? 0;
+  const simulatedCount = buckets.find((bucket) => bucket.label === "simulated-only")?.tools.length ?? 0;
+  const mutationGatedCount = buckets.find((bucket) => bucket.label === "mutation-gated")?.tools.length ?? 0;
 
   return (
     <section style={{ marginBottom: 32 }}>
@@ -69,30 +84,51 @@ export default function Phase7CapabilitySummaryPanel({
           <span style={{ ...summaryBadgeStyle, background: "#fff8c5" }}>
             plan-only surfaces: {planOnlyCount}
           </span>
+          <span style={{ ...summaryBadgeStyle, background: "#fbefff" }}>
+            mutation-gated surfaces: {mutationGatedCount}
+          </span>
+          <span style={{ ...summaryBadgeStyle, background: "#fff4e5" }}>
+            simulated-only surfaces: {simulatedCount}
+          </span>
         </div>
       ) : null}
       {buckets.length === 0 ? (
         <p>No capability summary is available until the catalog loads.</p>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gap: 12,
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          }}
-        >
+        <div style={summaryCardGridStyle}>
           {buckets.map((bucket) => (
             <article
               key={bucket.label}
               style={{
                 ...cardStyle,
-                borderColor: bucket.label === "plan-only" ? "#b08800" : "#ddd",
-                background: bucket.label === "plan-only" ? "#fffdf0" : "#fafafa",
+                borderColor: getBucketBorderColor(bucket.label),
+                background: getBucketBackground(bucket.label),
               }}
             >
               <h3 style={headingStyle}>{bucket.label}</h3>
-              <p style={{ marginTop: 0, color: "#57606a" }}>{bucket.description}</p>
-              <p><strong>Count:</strong> {bucket.tools.length}</p>
+              <SummaryFacts>
+                <SummaryFact label="Operator status">
+                  <OperatorStatusRail
+                    executionMode={bucket.executionMode}
+                    simulated={bucket.label === "simulated-only"}
+                    attentionLabel={bucket.attentionLabel}
+                  />
+                </SummaryFact>
+                <SummaryFact label="Capability">
+                  <StatusChip
+                    label={bucket.label}
+                    tone={getCapabilityTone(bucket.label)}
+                  />
+                </SummaryFact>
+                <SummaryFact label="Count">{bucket.tools.length}</SummaryFact>
+                <SummaryFact label="Execution truth">
+                  <StatusChip
+                    label={bucket.executionMode ?? "gated"}
+                    tone={getExecutionModeTone(bucket.executionMode ?? "gated")}
+                  />
+                </SummaryFact>
+              </SummaryFacts>
+              <p style={summaryMutedTextStyle}>{bucket.description}</p>
               <ul style={{ marginBottom: 0 }}>
                 {bucket.tools.map((tool) => (
                   <li key={tool}>{tool}</li>
@@ -123,27 +159,65 @@ function buildBuckets(agents: CatalogAgent[]): CapabilityBucket[] {
       label: status,
       tools: grouped.get(status) ?? [],
       description: CAPABILITY_DESCRIPTIONS[status],
+      executionMode: getBucketExecutionMode(status),
+      attentionLabel: getBucketAttentionLabel(status),
     }))
     .filter((bucket) => bucket.tools.length > 0);
 }
 
 const cardStyle: CSSProperties = {
-  border: "1px solid #ddd",
-  borderRadius: 8,
-  padding: 16,
-  background: "#fafafa",
+  ...summaryCardStyle,
 };
 
 const headingStyle: CSSProperties = {
-  marginTop: 0,
-  marginBottom: 12,
+  ...summaryCardHeadingStyle,
 };
 
-const summaryBadgeStyle: CSSProperties = {
-  border: "1px solid #d0d7de",
-  borderRadius: 999,
-  padding: "6px 10px",
-  background: "#f6f8fa",
-  color: "#24292f",
-  fontSize: 14,
-};
+function getBucketExecutionMode(status: string): string | null {
+  if (status === "hybrid-read-only") {
+    return "real";
+  }
+  if (status === "plan-only" || status === "simulated-only") {
+    return "simulated";
+  }
+  return null;
+}
+
+function getBucketAttentionLabel(status: string): string {
+  if (status === "hybrid-read-only") {
+    return "Operator baseline confirmed";
+  }
+  if (status === "plan-only") {
+    return "Preflight boundary";
+  }
+  if (status === "mutation-gated") {
+    return "Audit review needed";
+  }
+  return "Simulation boundary";
+}
+
+function getBucketBorderColor(status: string): string {
+  if (status === "plan-only") {
+    return "#b08800";
+  }
+  if (status === "mutation-gated") {
+    return "#8250df";
+  }
+  if (status === "simulated-only") {
+    return "#d17b0f";
+  }
+  return "#0969da";
+}
+
+function getBucketBackground(status: string): string {
+  if (status === "plan-only") {
+    return "#fffdf0";
+  }
+  if (status === "mutation-gated") {
+    return "#faf5ff";
+  }
+  if (status === "simulated-only") {
+    return "#fff8f0";
+  }
+  return "#f4faff";
+}
