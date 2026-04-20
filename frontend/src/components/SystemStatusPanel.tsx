@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import type { ReadinessStatus } from "../types/contracts";
+import OperatorStatusRail from "./OperatorStatusRail";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import StatusChip from "./StatusChip";
@@ -43,6 +44,12 @@ export default function SystemStatusPanel(
               <SummaryFact label="Ready">
                 <StatusChip label={readinessData.ok ? "yes" : "no"} tone={readinessData.ok ? "success" : "danger"} />
               </SummaryFact>
+              <SummaryFact label="Operator status">
+                <OperatorStatusRail
+                  executionMode={readinessData.execution_mode}
+                  attentionLabel={readinessData.ok ? "Routine follow-up" : "Audit review needed"}
+                />
+              </SummaryFact>
               <SummaryFact label="Execution mode">
                 <StatusChip label={readinessData.execution_mode} tone={getExecutionModeTone(readinessData.execution_mode)} />
               </SummaryFact>
@@ -57,6 +64,11 @@ export default function SystemStatusPanel(
               <SummaryFact label="Ready">
                 <StatusChip label={readinessData.persistence_ready ? "yes" : "no"} tone={readinessData.persistence_ready ? "success" : "danger"} />
               </SummaryFact>
+              <SummaryFact label="Operator status">
+                <OperatorStatusRail
+                  attentionLabel={getPersistenceAttentionLabel(readinessData)}
+                />
+              </SummaryFact>
               <SummaryFact label="Strategy">{readinessData.database_strategy}</SummaryFact>
               <SummaryFact label="Path">{readinessData.database_path}</SummaryFact>
               <SummaryFact label="Warning">{readinessData.persistence_warning ?? "none"}</SummaryFact>
@@ -65,6 +77,11 @@ export default function SystemStatusPanel(
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Schema Validation</h3>
             <SummaryFacts>
+              <SummaryFact label="Operator status">
+                <OperatorStatusRail
+                  attentionLabel={getSchemaAttentionLabel(readinessData)}
+                />
+              </SummaryFact>
               <SummaryFact label="Mode">
                 <StatusChip label={readinessData.schema_validation.mode} tone={getSchemaModeTone(readinessData.schema_validation.mode)} />
               </SummaryFact>
@@ -89,6 +106,11 @@ export default function SystemStatusPanel(
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Persisted Coverage</h3>
             <SummaryFacts>
+              <SummaryFact label="Operator status">
+                <OperatorStatusRail
+                  attentionLabel={getCoverageAttentionLabel(readinessData)}
+                />
+              </SummaryFact>
               <SummaryFact label="Execution details tools">
                 {readinessData.schema_validation.persisted_execution_details_tool_count}
               </SummaryFact>
@@ -120,6 +142,15 @@ export default function SystemStatusPanel(
           </article>
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Family Rollout</h3>
+            <div style={{ marginBottom: 12 }}>
+              <SummaryFacts>
+                <SummaryFact label="Operator status">
+                  <OperatorStatusRail
+                    attentionLabel={getCoverageAttentionLabel(readinessData)}
+                  />
+                </SummaryFact>
+              </SummaryFacts>
+            </div>
             <ul style={listStyle}>
               {readinessData.schema_validation.persisted_family_coverage.map((family) => (
                 <li key={family.family} style={{ marginBottom: 10 }}>
@@ -143,6 +174,12 @@ export default function SystemStatusPanel(
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Adapter Boundary</h3>
             <SummaryFacts>
+              <SummaryFact label="Operator status">
+                <OperatorStatusRail
+                  executionMode={readinessData.adapter_mode.configured_mode}
+                  attentionLabel={getAdapterAttentionLabel(readinessData)}
+                />
+              </SummaryFact>
               <SummaryFact label="Configured mode">
                 <StatusChip label={readinessData.adapter_mode.configured_mode} tone={getExecutionModeTone(readinessData.adapter_mode.configured_mode)} />
               </SummaryFact>
@@ -162,6 +199,49 @@ export default function SystemStatusPanel(
       ) : null}
     </SummarySection>
   );
+}
+
+function getPersistenceAttentionLabel(readiness: ReadinessStatus): string {
+  if (!readiness.persistence_ready || readiness.persistence_warning) {
+    return "Audit review needed";
+  }
+
+  return "Operator baseline confirmed";
+}
+
+function getSchemaAttentionLabel(readiness: ReadinessStatus): string {
+  if (readiness.schema_validation.active_unsupported_keywords.length > 0) {
+    return "Audit review needed";
+  }
+
+  return "Routine follow-up";
+}
+
+function getCoverageAttentionLabel(readiness: ReadinessStatus): string {
+  const coveredFamilies = readiness.schema_validation.persisted_family_coverage
+    .filter((family) => family.execution_details_tools > 0);
+
+  if (coveredFamilies.length === 0) {
+    return "Audit review needed";
+  }
+
+  if (coveredFamilies.length < readiness.schema_validation.persisted_family_coverage.length) {
+    return "Monitor partial coverage";
+  }
+
+  return "Operator baseline confirmed";
+}
+
+function getAdapterAttentionLabel(readiness: ReadinessStatus): string {
+  if (readiness.adapter_mode.configured_mode === "simulated") {
+    return "Simulation boundary";
+  }
+
+  if (!readiness.adapter_mode.supports_real_execution) {
+    return "Audit review needed";
+  }
+
+  return "Routine follow-up";
 }
 
 const listLabelStyle: CSSProperties = {
