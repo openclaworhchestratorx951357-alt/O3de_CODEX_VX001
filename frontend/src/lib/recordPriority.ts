@@ -10,6 +10,11 @@ export type PriorityActionRecommendation = {
   description: string;
 };
 
+export type AttentionCue = {
+  label: string;
+  description: string;
+};
+
 function parseTimestamp(value: string | null | undefined): number {
   if (!value) {
     return 0;
@@ -221,6 +226,40 @@ export function recommendExecutionAction(
   };
 }
 
+export function describeExecutionAttention(
+  execution: ExecutionListItem,
+  selectedExecutionId?: string | null,
+): AttentionCue {
+  if (selectedExecutionId && execution.id === selectedExecutionId) {
+    return {
+      label: "Current operator focus",
+      description: "This execution is already selected and should remain the current decision lane.",
+    };
+  }
+  if (execution.execution_mode === "simulated") {
+    return {
+      label: "Simulation boundary",
+      description: "This execution needs operator attention because it remains explicitly simulated.",
+    };
+  }
+  if (execution.mutation_audit_status) {
+    return {
+      label: "Audit review needed",
+      description: "This execution carries persisted mutation-audit state that should be reviewed before proceeding.",
+    };
+  }
+  if (execution.status === "running" || execution.status === "waiting_approval") {
+    return {
+      label: "Live decision state",
+      description: "This execution may still require monitoring or approval-adjacent operator action.",
+    };
+  }
+  return {
+    label: "Routine follow-up",
+    description: "This execution can be reviewed as part of normal operator triage.",
+  };
+}
+
 export function compareArtifactPriority(
   left: ArtifactListItem,
   right: ArtifactListItem,
@@ -381,5 +420,39 @@ export function recommendArtifactAction(
   return {
     label: "Open artifact detail",
     description: "Inspect this artifact's detail record to continue operator triage.",
+  };
+}
+
+export function describeArtifactAttention(
+  artifact: ArtifactListItem,
+  selectedArtifactId?: string | null,
+): AttentionCue {
+  if (selectedArtifactId && artifact.id === selectedArtifactId) {
+    return {
+      label: "Current operator focus",
+      description: "This artifact is already selected and should remain in the current decision lane.",
+    };
+  }
+  if (artifact.simulated) {
+    return {
+      label: "Simulation boundary",
+      description: "This artifact needs attention because it remains explicitly simulated.",
+    };
+  }
+  if (artifact.mutation_audit_status) {
+    return {
+      label: "Audit-backed evidence",
+      description: "This artifact carries persisted mutation-audit state that should be reviewed carefully.",
+    };
+  }
+  if (artifact.execution_mode === "real" || artifact.inspection_surface) {
+    return {
+      label: "Provenance check",
+      description: "This artifact deserves attention because it carries stronger persisted provenance.",
+    };
+  }
+  return {
+    label: "Routine follow-up",
+    description: "This artifact can be reviewed during normal operator triage.",
   };
 }

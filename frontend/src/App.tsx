@@ -40,6 +40,7 @@ import {
   rejectApproval,
 } from "./lib/api";
 import {
+  describeExecutionAttention,
   describeExecutionPriority,
   getPreferredExecution,
   recommendExecutionAction,
@@ -180,6 +181,9 @@ export default function App() {
   const relatedExecutionAction = selectedRunId
     ? getPreferredExecutionActionForRun(selectedRunId)
     : null;
+  const relatedExecutionAttention = selectedRunId
+    ? getPreferredExecutionAttentionForRun(selectedRunId)
+    : null;
 
   function getPreferredExecutionForRun(
     runId: string,
@@ -222,6 +226,17 @@ export default function App() {
       return null;
     }
     return recommendExecutionAction(preferredExecution, selectedExecutionId);
+  }
+
+  function getPreferredExecutionAttentionForRun(
+    runId: string,
+    executionItems: ExecutionListItem[] = executions,
+  ) {
+    const preferredExecution = getPreferredExecutionForRun(runId, executionItems);
+    if (!preferredExecution) {
+      return null;
+    }
+    return describeExecutionAttention(preferredExecution, selectedExecutionId);
   }
 
   async function loadApprovals() {
@@ -960,6 +975,12 @@ export default function App() {
           }
           relatedExecutionActionDescription={
             relatedExecutionAction?.description ?? null
+          }
+          relatedExecutionAttentionLabel={
+            relatedExecutionAttention?.label ?? null
+          }
+          relatedExecutionAttentionDescription={
+            relatedExecutionAttention?.description ?? null
           }
           selectedRunId={selectedRunId}
           selectedExecutionId={selectedExecutionId}

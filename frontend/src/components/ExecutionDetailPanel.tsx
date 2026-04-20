@@ -5,6 +5,7 @@ import type {
 } from "../types/contracts";
 import {
   compareArtifactPriority,
+  describeArtifactAttention,
   describeArtifactPriority,
   getPreferredArtifact,
   recommendArtifactAction,
@@ -89,6 +90,9 @@ export default function ExecutionDetailPanel({
   const lineageArtifactAction = lineageArtifact
     ? recommendArtifactAction(lineageArtifact, selectedArtifactId)
     : null;
+  const lineageArtifactAttention = lineageArtifact
+    ? describeArtifactAttention(lineageArtifact, selectedArtifactId)
+    : null;
 
   return (
     <SummarySection
@@ -136,6 +140,11 @@ export default function ExecutionDetailPanel({
       {lineageArtifactAction ? (
         <div style={summaryCalloutStyle}>
           {lineageArtifactAction.label}: {lineageArtifactAction.description}
+        </div>
+      ) : null}
+      {lineageArtifactAttention ? (
+        <div style={summaryCalloutStyle}>
+          {lineageArtifactAttention.label}: {lineageArtifactAttention.description}
         </div>
       ) : null}
       <div style={summaryCardGridStyle}>
@@ -190,6 +199,10 @@ export default function ExecutionDetailPanel({
                     artifact,
                     selectedArtifactId,
                   );
+                  const artifactAttention = describeArtifactAttention(
+                    artifact,
+                    selectedArtifactId,
+                  );
                   return (
                     <article key={artifactId} style={summaryCardStyle}>
                       <h5 style={summaryCardHeadingStyle}>{artifactLabel}</h5>
@@ -198,6 +211,9 @@ export default function ExecutionDetailPanel({
                       </div>
                       <div style={summaryCalloutStyle}>
                         {artifactAction.label}
+                      </div>
+                      <div style={summaryCalloutStyle}>
+                        {artifactAttention.label}
                       </div>
                       <SummaryFacts>
                         <SummaryFact label="Artifact ID" copyValue={artifactId}>

@@ -27,6 +27,8 @@ type RunDetailPanelProps = {
   relatedExecutionPriorityDescription?: string | null;
   relatedExecutionActionLabel?: string | null;
   relatedExecutionActionDescription?: string | null;
+  relatedExecutionAttentionLabel?: string | null;
+  relatedExecutionAttentionDescription?: string | null;
   selectedRunId?: string | null;
   selectedExecutionId?: string | null;
   onOpenExecution?: (executionId: string) => void;
@@ -87,6 +89,8 @@ export default function RunDetailPanel({
   relatedExecutionPriorityDescription,
   relatedExecutionActionLabel,
   relatedExecutionActionDescription,
+  relatedExecutionAttentionLabel,
+  relatedExecutionAttentionDescription,
   selectedRunId,
   selectedExecutionId,
   onOpenExecution,
@@ -216,6 +220,16 @@ export default function RunDetailPanel({
                     relatedExecutionActionDescription,
                   )
                   : relatedExecutionActionDescription}
+              </div>
+            ) : null}
+            {relatedExecutionAttentionDescription ? (
+              <div style={summaryCalloutStyle}>
+                {relatedExecutionAttentionLabel
+                  ? formatSummaryLabeledText(
+                    relatedExecutionAttentionLabel,
+                    relatedExecutionAttentionDescription,
+                  )
+                  : relatedExecutionAttentionDescription}
               </div>
             ) : null}
             <SummaryFacts>
