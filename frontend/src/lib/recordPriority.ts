@@ -1,5 +1,10 @@
 import type { ArtifactListItem, ExecutionListItem } from "../types/contracts";
 
+export type PrioritySelectionReason = {
+  label: string;
+  description: string;
+};
+
 function parseTimestamp(value: string | null | undefined): number {
   if (!value) {
     return 0;
@@ -57,6 +62,13 @@ function compareText(left: string, right: string): number {
   return left.localeCompare(right);
 }
 
+function hasMoreRecentTimestamp(
+  leftValue: string | null | undefined,
+  rightValue: string | null | undefined,
+): boolean {
+  return parseTimestamp(leftValue) > parseTimestamp(rightValue);
+}
+
 export function compareExecutionPriority(
   left: ExecutionListItem,
   right: ExecutionListItem,
@@ -109,6 +121,65 @@ export function getPreferredExecution(
   }
 
   return [...executions].sort(compareExecutionPriority)[0] ?? null;
+}
+
+export function describeExecutionPriority(
+  execution: ExecutionListItem,
+  executions: ExecutionListItem[],
+  selectedExecutionId?: string | null,
+): PrioritySelectionReason {
+  if (selectedExecutionId && execution.id === selectedExecutionId) {
+    return {
+      label: "Selected execution",
+      description: "The operator explicitly selected this execution, so it stays in focus.",
+    };
+  }
+
+  const peerExecutions = executions.filter((candidate) => candidate.id !== execution.id);
+  const hasSimulatedPeer = peerExecutions.some((candidate) => candidate.execution_mode !== "real");
+  if (execution.execution_mode === "real" && hasSimulatedPeer) {
+    return {
+      label: "Preferred real execution",
+      description: "Chosen because this related execution is explicitly real while other candidates are simulated or non-real.",
+    };
+  }
+
+  const statusRank = getExecutionStatusRank(execution.status);
+  if (peerExecutions.some((candidate) => getExecutionStatusRank(candidate.status) < statusRank)) {
+    return {
+      label: "Higher execution status",
+      description: `Chosen because this related execution has the strongest persisted status (${execution.status}).`,
+    };
+  }
+
+  if (execution.mutation_audit_status && peerExecutions.some((candidate) => !candidate.mutation_audit_status)) {
+    return {
+      label: "Audit-backed execution",
+      description: "Chosen because this related execution carries persisted mutation-audit evidence.",
+    };
+  }
+
+  if (peerExecutions.some((candidate) => candidate.artifact_count < execution.artifact_count)) {
+    return {
+      label: "Richer evidence set",
+      description: "Chosen because this related execution links to the largest persisted artifact set.",
+    };
+  }
+
+  if (peerExecutions.some((candidate) => hasMoreRecentTimestamp(
+    execution.finished_at ?? execution.started_at,
+    candidate.finished_at ?? candidate.started_at,
+  ))) {
+    return {
+      label: "Most recent execution",
+      description: "Chosen because this related execution is the newest persisted record.",
+    };
+  }
+
+  return {
+    label: "Stable preferred execution",
+    description: "Chosen by the shared evidence-priority rules to keep related execution focus stable.",
+  };
 }
 
 export function compareArtifactPriority(
@@ -174,4 +245,68 @@ export function getPreferredArtifact(
   }
 
   return [...artifacts].sort(compareArtifactPriority)[0] ?? null;
+}
+
+export function describeArtifactPriority(
+  artifact: ArtifactListItem,
+  artifacts: ArtifactListItem[],
+  selectedArtifactId?: string | null,
+): PrioritySelectionReason {
+  if (selectedArtifactId && artifact.id === selectedArtifactId) {
+    return {
+      label: "Selected artifact",
+      description: "The operator explicitly selected this artifact, so it stays in focus.",
+    };
+  }
+
+  const peerArtifacts = artifacts.filter((candidate) => candidate.id !== artifact.id);
+  const hasSimulatedPeer = peerArtifacts.some((candidate) => candidate.simulated);
+  if (!artifact.simulated && hasSimulatedPeer) {
+    return {
+      label: "Preferred non-simulated artifact",
+      description: "Chosen because this artifact is not simulated while other related artifacts are explicitly simulated.",
+    };
+  }
+
+  const hasNonRealPeer = peerArtifacts.some((candidate) => candidate.execution_mode !== "real");
+  if (artifact.execution_mode === "real" && hasNonRealPeer) {
+    return {
+      label: "Preferred real artifact",
+      description: "Chosen because this artifact came from an explicitly real execution mode.",
+    };
+  }
+
+  const auditRank = getArtifactAuditRank(artifact.mutation_audit_status);
+  if (auditRank > 0 && peerArtifacts.some((candidate) => getArtifactAuditRank(candidate.mutation_audit_status) < auditRank)) {
+    return {
+      label: "Audit-backed artifact",
+      description: "Chosen because this artifact carries the strongest persisted mutation-audit status.",
+    };
+  }
+
+  if (artifact.inspection_surface && peerArtifacts.some((candidate) => !candidate.inspection_surface)) {
+    return {
+      label: "Provenance-rich artifact",
+      description: "Chosen because this artifact includes explicit persisted inspection provenance.",
+    };
+  }
+
+  if (artifact.project_name && peerArtifacts.some((candidate) => !candidate.project_name)) {
+    return {
+      label: "Project-identified artifact",
+      description: "Chosen because this artifact preserves explicit project identity metadata.",
+    };
+  }
+
+  if (peerArtifacts.some((candidate) => hasMoreRecentTimestamp(artifact.created_at, candidate.created_at))) {
+    return {
+      label: "Most recent artifact",
+      description: "Chosen because this artifact is the newest persisted related record.",
+    };
+  }
+
+  return {
+    label: "Stable preferred artifact",
+    description: "Chosen by the shared evidence-priority rules to keep related artifact focus stable.",
+  };
 }

@@ -5,6 +5,7 @@ import type {
 } from "../types/contracts";
 import {
   compareArtifactPriority,
+  describeArtifactPriority,
   getPreferredArtifact,
 } from "../lib/recordPriority";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
@@ -81,6 +82,9 @@ export default function ExecutionDetailPanel({
     ? relatedArtifacts.find((artifact) => artifact.id === selectedArtifactId) ?? null
     : preferredArtifact;
   const lineageArtifactId = lineageArtifact?.id ?? item?.artifact_ids[0] ?? null;
+  const lineageArtifactPriority = lineageArtifact
+    ? describeArtifactPriority(lineageArtifact, relatedArtifacts, selectedArtifactId)
+    : null;
 
   return (
     <SummarySection
@@ -118,6 +122,11 @@ export default function ExecutionDetailPanel({
       {lastRefreshedAt ? (
         <div style={summaryTimestampNoteStyle}>
           Last refreshed: {formatSummaryTimestamp(lastRefreshedAt)}
+        </div>
+      ) : null}
+      {lineageArtifactPriority ? (
+        <div style={summaryCalloutStyle}>
+          {lineageArtifactPriority.label}: {lineageArtifactPriority.description}
         </div>
       ) : null}
       <div style={summaryCardGridStyle}>
@@ -166,6 +175,13 @@ export default function ExecutionDetailPanel({
                   return (
                     <article key={artifactId} style={summaryCardStyle}>
                       <h5 style={summaryCardHeadingStyle}>{artifactLabel}</h5>
+                      <div style={summaryCalloutStyle}>
+                        {describeArtifactPriority(
+                          artifact,
+                          relatedArtifacts,
+                          selectedArtifactId,
+                        ).label}
+                      </div>
                       <SummaryFacts>
                         <SummaryFact label="Artifact ID" copyValue={artifactId}>
                           {artifactId}

@@ -39,7 +39,10 @@ import {
   fetchToolsCatalog,
   rejectApproval,
 } from "./lib/api";
-import { getPreferredExecution } from "./lib/recordPriority";
+import {
+  describeExecutionPriority,
+  getPreferredExecution,
+} from "./lib/recordPriority";
 import type {
   ArtifactListItem,
   ArtifactRecord,
@@ -170,6 +173,9 @@ export default function App() {
   const executionDetailSectionRef = useRef<HTMLDivElement | null>(null);
   const artifactDetailSectionRef = useRef<HTMLDivElement | null>(null);
   const announceRunDetailRefreshRef = useRef(false);
+  const relatedExecutionPriority = selectedRunId
+    ? getPreferredExecutionReasonForRun(selectedRunId)
+    : null;
 
   function getPreferredExecutionForRun(
     runId: string,
@@ -185,6 +191,22 @@ export default function App() {
       }
     }
     return getPreferredExecution(matchingExecutions);
+  }
+
+  function getPreferredExecutionReasonForRun(
+    runId: string,
+    executionItems: ExecutionListItem[] = executions,
+  ) {
+    const matchingExecutions = executionItems.filter((execution) => execution.run_id === runId);
+    const preferredExecution = getPreferredExecutionForRun(runId, executionItems);
+    if (!preferredExecution) {
+      return null;
+    }
+    return describeExecutionPriority(
+      preferredExecution,
+      matchingExecutions,
+      selectedExecutionId,
+    );
   }
 
   async function loadApprovals() {
@@ -911,6 +933,12 @@ export default function App() {
             selectedRunId
               ? getPreferredExecutionForRun(selectedRunId)?.id ?? null
               : null
+          }
+          relatedExecutionPriorityLabel={
+            relatedExecutionPriority?.label ?? null
+          }
+          relatedExecutionPriorityDescription={
+            relatedExecutionPriority?.description ?? null
           }
           selectedRunId={selectedRunId}
           selectedExecutionId={selectedExecutionId}

@@ -23,6 +23,8 @@ type RunDetailPanelProps = {
   error: string | null;
   executionDetails?: Record<string, unknown> | null;
   relatedExecutionId?: string | null;
+  relatedExecutionPriorityLabel?: string | null;
+  relatedExecutionPriorityDescription?: string | null;
   selectedRunId?: string | null;
   selectedExecutionId?: string | null;
   onOpenExecution?: (executionId: string) => void;
@@ -79,6 +81,8 @@ export default function RunDetailPanel({
   error,
   executionDetails,
   relatedExecutionId,
+  relatedExecutionPriorityLabel,
+  relatedExecutionPriorityDescription,
   selectedRunId,
   selectedExecutionId,
   onOpenExecution,
@@ -190,6 +194,16 @@ export default function RunDetailPanel({
         {relatedExecutionId ? (
           <article style={summaryCardStyle}>
             <h4 style={summaryCardHeadingStyle}>Related Records</h4>
+            {relatedExecutionPriorityDescription ? (
+              <div style={summaryCalloutStyle}>
+                {relatedExecutionPriorityLabel
+                  ? formatSummaryLabeledText(
+                    relatedExecutionPriorityLabel,
+                    relatedExecutionPriorityDescription,
+                  )
+                  : relatedExecutionPriorityDescription}
+              </div>
+            ) : null}
             <SummaryFacts>
               <SummaryFact label="Execution ID" copyValue={relatedExecutionId}>
                 {relatedExecutionId}
