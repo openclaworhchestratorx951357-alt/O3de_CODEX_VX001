@@ -43,6 +43,10 @@ vi.mock("./components/AdaptersPanel", () => ({
   default: () => <div>AdaptersPanel stub</div>,
 }));
 
+vi.mock("./components/ApprovalQueue", () => ({
+  default: () => <div>ApprovalQueue stub</div>,
+}));
+
 vi.mock("./components/ArtifactsPanel", () => ({
   default: () => <div>ArtifactsPanel stub</div>,
 }));
@@ -272,6 +276,41 @@ describe("App desktop shell", () => {
     expect(await screen.findByText("Agent Control")).toBeInTheDocument();
   });
 
+  it("restores the command center approvals surface from session storage after remount", async () => {
+    const { unmount } = render(<App />);
+
+    fireEvent.click(getLaunchpadButton(
+      "Catalog browsing, dispatch, approvals, and live timeline control.",
+    ));
+
+    const approvalsSurfaceButton = getDesktopTabButton(
+      "Approvals",
+      "Pending decisions on the control-plane queue.",
+    );
+
+    fireEvent.click(approvalsSurfaceButton);
+
+    expect(screen.getByText("ApprovalQueue stub")).toBeInTheDocument();
+    expect(
+      window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
+    ).toBe("operations");
+    expect(
+      window.sessionStorage.getItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY),
+    ).toBe("approvals");
+    expectDesktopTabActive(approvalsSurfaceButton);
+
+    unmount();
+    render(<App />);
+
+    const restoredApprovalsSurfaceButton = getDesktopTabButton(
+      "Approvals",
+      "Pending decisions on the control-plane queue.",
+    );
+
+    expect(await screen.findByText("ApprovalQueue stub")).toBeInTheDocument();
+    expectDesktopTabActive(restoredApprovalsSurfaceButton);
+  });
+
   it("restores the runtime executors surface from session storage after remount", async () => {
     const { unmount } = render(<App />);
 
@@ -339,6 +378,42 @@ describe("App desktop shell", () => {
     expectDesktopTabActive(restoredGovernanceSurfaceButton);
   });
 
+  it("restores the runtime workspaces surface from session storage after remount", async () => {
+    const { unmount } = render(<App />);
+
+    fireEvent.click(getLaunchpadButton(
+      "Bridge status, executors, workspaces, and governance health.",
+    ));
+
+    const workspacesSurfaceButton = getDesktopTabButton(
+      "Workspaces",
+      "Project surfaces, ownership, and attached activity.",
+    );
+
+    fireEvent.click(workspacesSurfaceButton);
+
+    expect(screen.getByText("Runtime Console")).toBeInTheDocument();
+    expect(screen.getByText("WorkspacesPanel stub")).toBeInTheDocument();
+    expect(
+      window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
+    ).toBe("runtime");
+    expect(
+      window.sessionStorage.getItem(ACTIVE_RUNTIME_SURFACE_SESSION_KEY),
+    ).toBe("workspaces");
+    expectDesktopTabActive(workspacesSurfaceButton);
+
+    unmount();
+    render(<App />);
+
+    const restoredWorkspacesSurfaceButton = getDesktopTabButton(
+      "Workspaces",
+      "Project surfaces, ownership, and attached activity.",
+    );
+
+    expect(await screen.findByText("WorkspacesPanel stub")).toBeInTheDocument();
+    expectDesktopTabActive(restoredWorkspacesSurfaceButton);
+  });
+
   it("restores the prompt workspace from session storage after remount", async () => {
     const { unmount } = render(<App />);
 
@@ -390,6 +465,42 @@ describe("App desktop shell", () => {
     );
 
     expectDesktopTabActive(restoredExecutionsSurfaceButton);
+  });
+
+  it("restores the records artifacts surface from session storage after remount", async () => {
+    const { unmount } = render(<App />);
+
+    fireEvent.click(getLaunchpadButton(
+      "Runs, executions, artifacts, and detail drilldowns in one organized lane.",
+    ));
+
+    const artifactsSurfaceButton = getDesktopTabButton(
+      "Artifacts",
+      "Output inspection and mutation-risk evidence.",
+    );
+
+    fireEvent.click(artifactsSurfaceButton);
+
+    expect(screen.getByText("Records Explorer")).toBeInTheDocument();
+    expect(screen.getByText("ArtifactsPanel stub")).toBeInTheDocument();
+    expect(
+      window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
+    ).toBe("records");
+    expect(
+      window.sessionStorage.getItem(ACTIVE_RECORDS_SURFACE_SESSION_KEY),
+    ).toBe("artifacts");
+    expectDesktopTabActive(artifactsSurfaceButton);
+
+    unmount();
+    render(<App />);
+
+    const restoredArtifactsSurfaceButton = getDesktopTabButton(
+      "Artifacts",
+      "Output inspection and mutation-risk evidence.",
+    );
+
+    expect(await screen.findByText("ArtifactsPanel stub")).toBeInTheDocument();
+    expectDesktopTabActive(restoredArtifactsSurfaceButton);
   });
 
   it.each(PARTIAL_SURFACE_HYDRATION_CASES)(
