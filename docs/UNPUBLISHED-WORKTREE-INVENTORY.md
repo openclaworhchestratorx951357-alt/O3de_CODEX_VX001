@@ -129,19 +129,58 @@ The next publish work should stay narrow and follow this order:
    - keep generated payload/result/state/log/database artifacts out of the next
      commit by default
 
-2. Backend/runtime contract slice
+2. API/test disentangling slice
+   - separate the narrow O3DE target/bridge API glue from the broader
+     prompt/executor/workspace substrate changes currently mixed into tracked
+     files such as `backend/app/models/api.py` and
+     `backend/tests/test_api_routes.py`
+   - prefer focused route/test files or similarly narrow structure over staging
+     mixed tracked files wholesale
+
+3. Backend/runtime contract slice
    - package the coherent backend bridge/runtime files, schemas, and focused
      backend tests that support the admitted-real editor runtime path
    - keep prompt/workspace/executor planning work separate if it is not required
      for that runtime boundary
 
-3. Prompt/workspace/executor substrate slice
+4. Prompt/workspace/executor substrate slice
    - package the prompt, executor, workspace, and planner cohort with its own
      docs/tests
 
-4. Frontend/operator shell slice
+5. Frontend/operator shell slice
    - package the UI surfaces that visualize the new backend contracts after the
      backend slice shape is settled
+
+## Current runtime-contract blocker
+
+The remaining runtime helper cohort is narrow:
+- `backend/runtime/launch_branch_backend_8000.cmd`
+- `backend/runtime/launch_branch_backend_8000.ps1`
+- `backend/runtime/editor_scripts/_control_plane_editor_bridge.py`
+- `backend/runtime/editor_scripts/bridge_invoke.py`
+- `backend/runtime/editor_scripts/session_ensure.py`
+- `backend/runtime/editor_scripts/level_ensure_open_or_create.py`
+- `backend/runtime/editor_scripts/entity_create.py`
+- `backend/app/services/editor_automation_runtime.py`
+- `backend/app/services/o3de_target.py`
+- `backend/app/api/routes/o3de_target.py`
+- `backend/tests/test_editor_automation_runtime.py`
+- `scripts/setup_control_plane_editor_bridge.ps1`
+
+However, the tracked API/test glue currently needed to publish that packet is
+not narrow:
+- `backend/app/main.py` also imports broader untracked `executors`,
+  `workspaces`, and `prompt_control` route surfaces
+- `backend/app/models/api.py` mixes the O3DE target/bridge response models with
+  broader executor/workspace/prompt-oriented additions
+- `backend/tests/test_api_routes.py` mixes the O3DE target/bridge route checks
+  with much broader executor/workspace/prompt and summary coverage
+
+Current reading:
+- a safe runtime-contract publish slice should wait until those tracked glue
+  files are disentangled
+- staging the runtime helper packet right now would over-bundle the branch and
+  blur the next safe commit boundary
 
 ## Standing caution
 
