@@ -139,6 +139,10 @@ describe("DispatchForm", () => {
     });
     expect(screen.getByDisplayValue("C:/src/o3de")).toBeInTheDocument();
     expect(screen.getByText(/Active local target:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Capability:/).parentElement).toHaveTextContent("Capability: hybrid-read-only");
+    expect(screen.getByText(/Expected execution truth:/).parentElement).toHaveTextContent(
+      "Expected execution truth: Possible real read-only project inspection in hybrid mode, including explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence; simulated fallback remains explicit.",
+    );
     expect(screen.getByText("How to use this panel")).toBeInTheDocument();
     expect(
       screen.getByLabelText("Agent"),

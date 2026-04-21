@@ -113,6 +113,30 @@ export function getExecutionTruthTone(simulatedAllowed: boolean): StatusChipTone
   return simulatedAllowed ? "warning" : "success";
 }
 
+export function getDispatchExpectedExecutionTruthTone(
+  capabilityStatus: string,
+  mayUseRealPath: boolean,
+  mayUseRealPlanOnlyPath: boolean,
+): StatusChipTone {
+  if (capabilityStatus === "real-authoring" && mayUseRealPath) {
+    return "success";
+  }
+  if (capabilityStatus === "hybrid-read-only" && mayUseRealPath) {
+    return "info";
+  }
+  if (
+    (capabilityStatus === "runtime-reaching" && mayUseRealPath)
+    || capabilityStatus === "plan-only"
+    || mayUseRealPlanOnlyPath
+  ) {
+    return "warning";
+  }
+  if (capabilityStatus === "mutation-gated") {
+    return "danger";
+  }
+  return "neutral";
+}
+
 export function getAuditStatusTone(status: string): StatusChipTone {
   if (status === "succeeded") {
     return "success";

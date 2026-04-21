@@ -8,6 +8,11 @@ import {
 } from "../lib/executionTruth";
 import { useSettings } from "../lib/settings/hooks";
 import PanelGuideDetails from "./PanelGuideDetails";
+import StatusChip from "./StatusChip";
+import {
+  getCapabilityTone,
+  getDispatchExpectedExecutionTruthTone,
+} from "./statusChipTones";
 import type {
   AdaptersResponse,
   CatalogAgent,
@@ -85,6 +90,11 @@ export default function DispatchForm({
     && effectiveToolName === "build.configure"
     && selectedFamilyStatus?.supports_real_execution === true;
   const selectedCapabilityStatus = selectedTool?.capability_status ?? "simulated-only";
+  const selectedExpectedExecutionTruth = getDispatchExpectedExecutionTruth(
+    selectedCapabilityStatus,
+    selectedToolMayUseRealPath,
+    selectedToolMayUseRealPlanOnlyPath,
+  );
   const hybridDispatchNote = getHybridDispatchNote(
     hybridModeActive,
     effectiveToolName,
@@ -301,15 +311,24 @@ export default function DispatchForm({
               }}
             >
               <div><strong>Approval class:</strong> {selectedTool.approval_class}</div>
-              <div><strong>Capability:</strong> {selectedCapabilityStatus}</div>
+              <div>
+                <strong>Capability:</strong>{" "}
+                <StatusChip
+                  label={selectedCapabilityStatus}
+                  tone={getCapabilityTone(selectedCapabilityStatus)}
+                />
+              </div>
               <div><strong>Risk:</strong> {selectedTool.risk}</div>
               <div>
                 <strong>Expected execution truth:</strong>{" "}
-                {getDispatchExpectedExecutionTruth(
-                  selectedCapabilityStatus,
-                  selectedToolMayUseRealPath,
-                  selectedToolMayUseRealPlanOnlyPath,
-                )}
+                <StatusChip
+                  label={selectedExpectedExecutionTruth}
+                  tone={getDispatchExpectedExecutionTruthTone(
+                    selectedCapabilityStatus,
+                    selectedToolMayUseRealPath,
+                    selectedToolMayUseRealPlanOnlyPath,
+                  )}
+                />
               </div>
             </div>
           ) : null}
