@@ -49,7 +49,9 @@ Current Phase 7 checkpoint truth:
 - `editor.entity.create` remains excluded from the admitted-real set on the
   current tested local targets
 - the operator proof checklist for the admitted editor-runtime boundary lives in
-  `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md`
+  `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` and now names the exact
+  `127.0.0.1:8000` readiness, target, bridge, dispatch, approval, and persisted
+  evidence commands used for operator confirmation
 - the current post-publish dirty-tree classification lives in
   `docs/UNPUBLISHED-WORKTREE-INVENTORY.md`
 - the next safest refinement is still manifest-adjacent and keeps settings/Gem evidence on `project.json`

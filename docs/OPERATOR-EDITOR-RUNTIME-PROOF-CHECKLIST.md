@@ -68,7 +68,22 @@ Truth to confirm in the response body:
 - supported/admitted tool reporting includes the current real editor-runtime
   boundary
 
-## 3. Confirm bridge heartbeat visibility
+## 3. Confirm target wiring
+
+Target endpoint:
+
+```powershell
+Invoke-WebRequest http://127.0.0.1:8000/o3de/target
+```
+
+Truth to confirm in the response body:
+- `project_root` is `C:\Users\topgu\O3DE\Projects\McpSandbox`
+- `engine_root` is `C:\src\o3de`
+- `editor_runner` is
+  `C:\Users\topgu\O3DE\Projects\McpSandbox\build\windows\bin\profile\Editor.exe`
+- target source remains the repo-owned canonical local target path
+
+## 4. Confirm bridge heartbeat visibility
 
 Bridge status endpoint:
 
@@ -88,27 +103,150 @@ Bridge evidence on disk:
 - `C:\Users\topgu\O3DE\Projects\McpSandbox\user\ControlPlaneBridge\logs\control_plane_bridge.log`
 - `C:\Users\topgu\O3DE\Projects\McpSandbox\user\ControlPlaneBridge\heartbeat\status.json`
 
-## 4. Dispatch admitted-real `editor.session.open`
+## 5. Dispatch admitted-real `editor.session.open`
 
 Dispatch a real editor session open through the repo-owned backend.
 
-Minimum truth to confirm in the resulting execution evidence:
+Exact proof commands:
+
+```powershell
+$sessionRequest = @{
+  request_id = "proof-editor-session-open-1"
+  tool = "editor.session.open"
+  agent = "editor-control"
+  project_root = "C:\Users\topgu\O3DE\Projects\McpSandbox"
+  engine_root = "C:\src\o3de"
+  dry_run = $false
+  locks = @("editor_session")
+  timeout_s = 60
+  args = @{
+    session_mode = "open"
+    project_path = "C:\Users\topgu\O3DE\Projects\McpSandbox"
+    level_path = "Levels/Main.level"
+    timeout_s = 60
+  }
+}
+
+$sessionPreflight = Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/tools/dispatch `
+  -ContentType "application/json" `
+  -Body ($sessionRequest | ConvertTo-Json -Depth 6)
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://127.0.0.1:8000/approvals/$($sessionPreflight.approval_id)/approve" `
+  -ContentType "application/json" `
+  -Body "{}"
+
+$sessionRequest.approval_token = $sessionPreflight.error.details.approval_token
+
+$sessionResult = Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/tools/dispatch `
+  -ContentType "application/json" `
+  -Body ($sessionRequest | ConvertTo-Json -Depth 6)
+
+$sessionRun = Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8000/runs/$($sessionResult.operation_id)"
+
+$sessionExecution = (Invoke-RestMethod `
+  -Uri http://127.0.0.1:8000/executions).executions |
+  Where-Object { $_.run_id -eq $sessionResult.operation_id } |
+  Select-Object -First 1
+
+$sessionArtifact = (Invoke-RestMethod `
+  -Uri http://127.0.0.1:8000/artifacts).artifacts |
+  Where-Object { $_.run_id -eq $sessionResult.operation_id } |
+  Select-Object -First 1
+```
+
+Minimum truth to confirm in the response and persisted evidence:
+- `$sessionResult.result.tool = editor.session.open`
+- `$sessionResult.result.execution_mode = real`
+- `$sessionResult.result.simulated = false`
+- `$sessionResult.result.status = real_success`
+- `$sessionRun.status = succeeded`
 - tool name is `editor.session.open`
 - `execution_mode = real`
 - `simulated = false`
-- outcome/result is `real_success`
+- `inspection_surface = editor_session_runtime`
+- `details.prompt_safety.natural_language_status = prompt-ready-approval-gated`
+- `artifact.metadata.tool = editor.session.open`
+- `artifact.metadata.prompt_safety.natural_language_status = prompt-ready-approval-gated`
 
-## 5. Dispatch admitted-real `editor.level.open`
+## 6. Dispatch admitted-real `editor.level.open`
 
 Dispatch a real level open through the repo-owned backend.
 
-Minimum truth to confirm in the resulting execution evidence:
+Exact proof commands:
+
+```powershell
+$levelRequest = @{
+  request_id = "proof-editor-level-open-1"
+  tool = "editor.level.open"
+  agent = "editor-control"
+  project_root = "C:\Users\topgu\O3DE\Projects\McpSandbox"
+  engine_root = "C:\src\o3de"
+  dry_run = $false
+  locks = @("editor_session")
+  timeout_s = 60
+  args = @{
+    level_path = "Levels/Main.level"
+    make_writable = $true
+    focus_viewport = $true
+  }
+}
+
+$levelPreflight = Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/tools/dispatch `
+  -ContentType "application/json" `
+  -Body ($levelRequest | ConvertTo-Json -Depth 6)
+
+Invoke-RestMethod `
+  -Method Post `
+  -Uri "http://127.0.0.1:8000/approvals/$($levelPreflight.approval_id)/approve" `
+  -ContentType "application/json" `
+  -Body "{}"
+
+$levelRequest.approval_token = $levelPreflight.error.details.approval_token
+
+$levelResult = Invoke-RestMethod `
+  -Method Post `
+  -Uri http://127.0.0.1:8000/tools/dispatch `
+  -ContentType "application/json" `
+  -Body ($levelRequest | ConvertTo-Json -Depth 6)
+
+$levelRun = Invoke-RestMethod `
+  -Uri "http://127.0.0.1:8000/runs/$($levelResult.operation_id)"
+
+$levelExecution = (Invoke-RestMethod `
+  -Uri http://127.0.0.1:8000/executions).executions |
+  Where-Object { $_.run_id -eq $levelResult.operation_id } |
+  Select-Object -First 1
+
+$levelArtifact = (Invoke-RestMethod `
+  -Uri http://127.0.0.1:8000/artifacts).artifacts |
+  Where-Object { $_.run_id -eq $levelResult.operation_id } |
+  Select-Object -First 1
+```
+
+Minimum truth to confirm in the response and persisted evidence:
+- `$levelResult.result.tool = editor.level.open`
+- `$levelResult.result.execution_mode = real`
+- `$levelResult.result.simulated = false`
+- `$levelResult.result.status = real_success`
+- `$levelRun.status = succeeded`
 - tool name is `editor.level.open`
 - `execution_mode = real`
 - `simulated = false`
-- outcome/result is `real_success`
+- `inspection_surface` is `editor_level_opened` or `editor_level_created`
+- `details.prompt_safety.natural_language_status = prompt-ready-approval-gated`
+- `artifact.metadata.tool = editor.level.open`
+- `artifact.metadata.prompt_safety.natural_language_status = prompt-ready-approval-gated`
 
-## 6. Confirm bridge-side evidence after dispatch
+## 7. Confirm bridge-side evidence after dispatch
 
 After the admitted-real dispatches, confirm:
 - no new deadletter evidence was introduced for the successful proof run
@@ -127,7 +265,30 @@ Useful on-disk evidence:
 - persisted execution/artifact records in the repo-owned control-plane
   substrate
 
-## 7. What does not count as proof
+## 8. Confirm explicit exclusion for `editor.entity.create`
+
+Exact proof commands:
+
+```powershell
+$entityCapability = (Invoke-RestMethod `
+  -Uri http://127.0.0.1:8000/prompt/capabilities).capabilities |
+  Where-Object { $_.tool_name -eq "editor.entity.create" } |
+  Select-Object -First 1
+
+$entityPolicy = (Invoke-RestMethod `
+  -Uri http://127.0.0.1:8000/policies).policies |
+  Where-Object { $_.tool -eq "editor.entity.create" } |
+  Select-Object -First 1
+```
+
+Truth to confirm:
+- `$entityCapability.capability_maturity = runtime-reaching`
+- `$entityCapability.safety_envelope.natural_language_status = prompt-blocked-pending-admission`
+- `$entityCapability.safety_envelope.natural_language_blocker` explicitly says the
+  surface remains excluded from the admitted-real set
+- `$entityPolicy.real_admission_stage = runtime-reaching-excluded-from-admitted-real`
+
+## 9. What does not count as proof
 
 The following are not sufficient by themselves:
 - a manual editor launch by itself
@@ -140,7 +301,7 @@ The proof path is only complete when the same repo-owned backend that binds
 `127.0.0.1:8000` both observes the bridge heartbeat and records real execution
 evidence for the admitted tools.
 
-## 8. Explicit exclusion
+## 10. Explicit exclusion
 
 `editor.entity.create` remains excluded from the admitted-real set on the
 current tested local targets.
@@ -158,8 +319,11 @@ Do not relabel `editor.entity.create` as admitted real based on:
 This checklist is satisfied only when all of the following are true:
 - canonical repo-owned backend is running on `127.0.0.1:8000`
 - backend readiness reflects the expected hybrid/runtime boundary
+- target endpoint reflects the expected `McpSandbox` wiring
 - bridge heartbeat is fresh and target wiring matches `McpSandbox`
 - `editor.session.open` records admitted-real execution evidence
 - `editor.level.open` records admitted-real execution evidence
+- persisted execution/artifact evidence also carries the expected prompt safety
+  envelope for those admitted-real tools
 - `editor.entity.create` remains explicitly excluded in operator wording and
   docs
