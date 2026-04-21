@@ -1,7 +1,13 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
+import {
+  createPendingPromise,
+  getDesktopNavButton,
+  getLaunchpadButton,
+  setPendingAppApiMocks,
+} from "./test/appDesktopTestUtils";
 
 const apiMocks = vi.hoisted(() => ({
   approveApproval: vi.fn(),
@@ -86,57 +92,12 @@ vi.mock("./components/SystemStatusPanel", () => ({
   default: () => <div>SystemStatusPanel stub</div>,
 }));
 
-function createPendingPromise<T>() {
-  return new Promise<T>(() => {});
-}
-
-function getDesktopNavButton(name: RegExp): HTMLButtonElement {
-  const navRail = screen.getByText("Control surface").closest("aside");
-
-  expect(navRail).not.toBeNull();
-
-  return within(navRail as HTMLElement).getByRole("button", { name }) as HTMLButtonElement;
-}
-
-function getLaunchpadButton(detail: string): HTMLButtonElement {
-  const button = screen.getByText(detail).closest("button");
-
-  expect(button).not.toBeNull();
-
-  return button as HTMLButtonElement;
-}
-
 describe("App desktop smoke", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     vi.clearAllMocks();
 
-    apiMocks.approveApproval.mockImplementation(() => createPendingPromise());
-    apiMocks.cleanupO3deBridgeResults.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchAdapters.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchApprovalCards.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchArtifact.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchArtifactCards.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchArtifactCardsForTruthFilter.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchControlPlaneSummary.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchExecutor.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchExecutors.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchExecution.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchExecutionCards.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchExecutionCardsForTruthFilter.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchEventCards.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchLockCards.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchO3deBridge.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchO3deTarget.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchPolicies.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchReadiness.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchRun.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchRunCards.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchRunsSummaryForFilter.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchToolsCatalog.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchWorkspace.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchWorkspaces.mockImplementation(() => createPendingPromise());
-    apiMocks.rejectApproval.mockImplementation(() => createPendingPromise());
+    setPendingAppApiMocks(apiMocks);
   });
 
   it("renders the home workspace and switches to prompt through the shell nav without blanking", () => {

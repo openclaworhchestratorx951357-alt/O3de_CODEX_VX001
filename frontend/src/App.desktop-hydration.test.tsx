@@ -2,6 +2,13 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
+import {
+  createPendingPromise,
+  expectDesktopTabActive,
+  getDesktopTabButton,
+  getLaunchpadButton,
+  setPendingAppApiMocks,
+} from "./test/appDesktopTestUtils";
 
 const ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY = "o3de-control-app-active-desktop-workspace";
 const ACTIVE_OPERATIONS_SURFACE_SESSION_KEY = "o3de-control-app-active-operations-surface";
@@ -127,35 +134,6 @@ vi.mock("./components/WorkspacesPanel", () => ({
   default: () => <div>WorkspacesPanel stub</div>,
 }));
 
-function createPendingPromise<T>() {
-  return new Promise<T>(() => {});
-}
-
-function getLaunchpadButton(detail: string): HTMLButtonElement {
-  const button = screen.getByText(detail).closest("button");
-
-  expect(button).not.toBeNull();
-
-  return button as HTMLButtonElement;
-}
-
-function getDesktopTabButton(label: string, detail: string): HTMLButtonElement {
-  const button = screen.getAllByRole("button").find((candidate) => (
-    candidate.textContent?.includes(label)
-    && candidate.textContent?.includes(detail)
-  ));
-
-  expect(button).not.toBeUndefined();
-
-  return button as HTMLButtonElement;
-}
-
-function expectDesktopTabActive(button: HTMLButtonElement): void {
-  expect(button).toHaveStyle({
-    boxShadow: "0 14px 28px rgba(41, 83, 165, 0.14)",
-  });
-}
-
 const PARTIAL_SURFACE_HYDRATION_CASES = [
   {
     workspaceId: "operations",
@@ -215,32 +193,7 @@ describe("App desktop hydration", () => {
     window.sessionStorage.clear();
     vi.clearAllMocks();
 
-    apiMocks.approveApproval.mockImplementation(() => createPendingPromise());
-    apiMocks.cleanupO3deBridgeResults.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchAdapters.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchApprovalCards.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchArtifact.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchArtifactCards.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchArtifactCardsForTruthFilter.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchControlPlaneSummary.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchExecutor.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchExecutors.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchExecution.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchExecutionCards.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchExecutionCardsForTruthFilter.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchEventCards.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchLockCards.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchO3deBridge.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchO3deTarget.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchPolicies.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchReadiness.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchRun.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchRunCards.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchRunsSummaryForFilter.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchToolsCatalog.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchWorkspace.mockImplementation(() => createPendingPromise());
-    apiMocks.fetchWorkspaces.mockImplementation(() => createPendingPromise());
-    apiMocks.rejectApproval.mockImplementation(() => createPendingPromise());
+    setPendingAppApiMocks(apiMocks);
   });
 
   it("restores the command center agents surface from session storage after remount", async () => {
