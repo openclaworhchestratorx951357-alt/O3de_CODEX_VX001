@@ -5,6 +5,7 @@ import App from "./App";
 
 const ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY = "o3de-control-app-active-desktop-workspace";
 const ACTIVE_OPERATIONS_SURFACE_SESSION_KEY = "o3de-control-app-active-operations-surface";
+const ACTIVE_RUNTIME_SURFACE_SESSION_KEY = "o3de-control-app-active-runtime-surface";
 
 const apiMocks = vi.hoisted(() => ({
   approveApproval: vi.fn(),
@@ -43,6 +44,10 @@ vi.mock("./components/AdaptersPanel", () => ({
 
 vi.mock("./components/LayoutHeader", () => ({
   default: () => <div>LayoutHeader stub</div>,
+}));
+
+vi.mock("./components/ExecutorsPanel", () => ({
+  default: () => <div>ExecutorsPanel stub</div>,
 }));
 
 vi.mock("./components/OperatorOverviewPanel", () => ({
@@ -87,6 +92,10 @@ vi.mock("./components/PromptControlPanel", () => ({
 
 vi.mock("./components/SystemStatusPanel", () => ({
   default: () => <div>SystemStatusPanel stub</div>,
+}));
+
+vi.mock("./components/WorkspacesPanel", () => ({
+  default: () => <div>WorkspacesPanel stub</div>,
 }));
 
 function createPendingPromise<T>() {
@@ -197,5 +206,38 @@ describe("App desktop shell", () => {
     render(<App />);
 
     expect(await screen.findByText("Agent Control")).toBeInTheDocument();
+  });
+
+  it("restores the runtime executors surface from session storage after remount", async () => {
+    const { unmount } = render(<App />);
+
+    const runtimeShortcut = screen.getByText(
+      "Bridge status, executors, workspaces, and governance health.",
+    ).closest("button");
+
+    expect(runtimeShortcut).not.toBeNull();
+    fireEvent.click(runtimeShortcut as HTMLButtonElement);
+
+    const executorsSurfaceButton = screen.getAllByRole("button").find((button) => (
+      button.textContent?.includes("Executors")
+      && button.textContent?.includes("Execution owners, availability, and related records.")
+    ));
+
+    expect(executorsSurfaceButton).not.toBeUndefined();
+    fireEvent.click(executorsSurfaceButton as HTMLButtonElement);
+
+    expect(screen.getByText("Runtime Console")).toBeInTheDocument();
+    expect(screen.getByText("ExecutorsPanel stub")).toBeInTheDocument();
+    expect(
+      window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
+    ).toBe("runtime");
+    expect(
+      window.sessionStorage.getItem(ACTIVE_RUNTIME_SURFACE_SESSION_KEY),
+    ).toBe("executors");
+
+    unmount();
+    render(<App />);
+
+    expect(await screen.findByText("ExecutorsPanel stub")).toBeInTheDocument();
   });
 });
