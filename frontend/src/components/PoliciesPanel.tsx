@@ -13,6 +13,7 @@ import StatusChip from "./StatusChip";
 import {
   getAdmissionTone,
   getCapabilityTone,
+  getDryRunSupportTone,
   getExecutionModeTone,
 } from "./statusChipTones";
 import {
@@ -65,44 +66,50 @@ export default function PoliciesPanel({
         />
       </div>
       <SummaryList>
-          {filteredItems.map((item) => (
-            <SummaryListItem key={`${item.agent}:${item.tool}`} card>
-              <div title={policiesPanelEntryControlGuide.tooltip}>
-                <strong>{item.tool}</strong>
-                <SummaryFacts>
-                  <SummaryFact label="Agent">{item.agent}</SummaryFact>
-                  <SummaryFact label="Approval class">{item.approval_class}</SummaryFact>
-                  <SummaryFact label="Capability">
-                    <StatusChip label={item.capability_status} tone={getCapabilityTone(item.capability_status)} />
-                  </SummaryFact>
-                  <SummaryFact label="Admission stage">
-                    <StatusChip label={item.real_admission_stage} tone={getAdmissionTone(item.real_admission_stage)} />
-                  </SummaryFact>
-                  <SummaryFact label="Requires approval">
-                    <StatusChip label={String(item.requires_approval)} tone={item.requires_approval ? "warning" : "neutral"} />
-                  </SummaryFact>
-                  <SummaryFact label="Required locks">
-                    {item.required_locks.join(", ") || "none"}
-                  </SummaryFact>
-                  <SummaryFact label="Risk">{item.risk}</SummaryFact>
-                  <SummaryFact label="Execution mode">
-                    <StatusChip label={item.execution_mode} tone={getExecutionModeTone(item.execution_mode)} />
-                  </SummaryFact>
-                  <SummaryFact label="Next requirement">{item.next_real_requirement}</SummaryFact>
-                </SummaryFacts>
-                {item.tool === "build.configure" ? (
-                  <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
-                    Meaning: {describeBuildConfigureMeaning()}
-                  </div>
-                ) : null}
-                {item.tool === "settings.patch" ? (
-                  <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
-                    Meaning: {describeSettingsPatchPolicyMeaning()}
-                  </div>
-                ) : null}
-              </div>
-            </SummaryListItem>
-          ))}
+        {filteredItems.map((item) => (
+          <SummaryListItem key={`${item.agent}:${item.tool}`} card>
+            <div title={policiesPanelEntryControlGuide.tooltip}>
+              <strong>{item.tool}</strong>
+              <SummaryFacts>
+                <SummaryFact label="Agent">{item.agent}</SummaryFact>
+                <SummaryFact label="Approval class">{item.approval_class}</SummaryFact>
+                <SummaryFact label="Capability">
+                  <StatusChip label={item.capability_status} tone={getCapabilityTone(item.capability_status)} />
+                </SummaryFact>
+                <SummaryFact label="Admission stage">
+                  <StatusChip label={item.real_admission_stage} tone={getAdmissionTone(item.real_admission_stage)} />
+                </SummaryFact>
+                <SummaryFact label="Requires approval">
+                  <StatusChip label={String(item.requires_approval)} tone={item.requires_approval ? "warning" : "neutral"} />
+                </SummaryFact>
+                <SummaryFact label="Required locks">
+                  {item.required_locks.join(", ") || "none"}
+                </SummaryFact>
+                <SummaryFact label="Risk">{item.risk}</SummaryFact>
+                <SummaryFact label="Execution mode">
+                  <StatusChip label={item.execution_mode} tone={getExecutionModeTone(item.execution_mode)} />
+                </SummaryFact>
+                <SummaryFact label="Dry run support">
+                  <StatusChip
+                    label={item.supports_dry_run ? "supported" : "not supported"}
+                    tone={getDryRunSupportTone(item.supports_dry_run)}
+                  />
+                </SummaryFact>
+                <SummaryFact label="Next requirement">{item.next_real_requirement}</SummaryFact>
+              </SummaryFacts>
+              {item.tool === "build.configure" ? (
+                <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
+                  Meaning: {describeBuildConfigureMeaning()}
+                </div>
+              ) : null}
+              {item.tool === "settings.patch" ? (
+                <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
+                  Meaning: {describeSettingsPatchPolicyMeaning()}
+                </div>
+              ) : null}
+            </div>
+          </SummaryListItem>
+        ))}
       </SummaryList>
     </SummarySection>
   );
