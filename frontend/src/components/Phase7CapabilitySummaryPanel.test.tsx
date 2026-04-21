@@ -131,17 +131,20 @@ describe("Phase7CapabilitySummaryPanel", () => {
     expect(screen.getByText("runtime-reaching-excluded-from-admitted-real")).toBeInTheDocument();
     expect(screen.getByText("real-read-only-active")).toBeInTheDocument();
 
-    const sessionPolicy = screen.getAllByText("editor.session.open").at(-1)?.closest("article");
-    const entityCreatePolicy = screen.getAllByText("editor.entity.create").at(-1)?.closest("article");
-    const inspectPolicy = screen.getAllByText("project.inspect").at(-1)?.closest("article");
+    const sessionMatches = screen.getAllByText("editor.session.open");
+    const entityCreateMatches = screen.getAllByText("editor.entity.create");
+    const inspectMatches = screen.getAllByText("project.inspect");
+    const sessionPolicy = sessionMatches[sessionMatches.length - 1]?.closest("article");
+    const entityCreatePolicy = entityCreateMatches[entityCreateMatches.length - 1]?.closest("article");
+    const inspectPolicy = inspectMatches[inspectMatches.length - 1]?.closest("article");
 
     expect(sessionPolicy).not.toBeNull();
     expect(entityCreatePolicy).not.toBeNull();
     expect(inspectPolicy).not.toBeNull();
 
-    expect(within(sessionPolicy as HTMLElement).getByText("false")).toBeInTheDocument();
-    expect(within(entityCreatePolicy as HTMLElement).getByText("false")).toBeInTheDocument();
-    expect(within(inspectPolicy as HTMLElement).getByText("true")).toBeInTheDocument();
+    expect(within(sessionPolicy as HTMLElement).getByText("not supported")).toBeInTheDocument();
+    expect(within(entityCreatePolicy as HTMLElement).getByText("not supported")).toBeInTheDocument();
+    expect(within(inspectPolicy as HTMLElement).getByText("supported")).toBeInTheDocument();
   });
 
   it("renders an honest empty state until live policies are available", () => {

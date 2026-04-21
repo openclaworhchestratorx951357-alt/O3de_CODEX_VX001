@@ -9,7 +9,11 @@ import type { ToolPolicy } from "../types/contracts";
 import OperatorStatusRail from "./OperatorStatusRail";
 import StatusChip from "./StatusChip";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
-import { getCapabilityTone, getExecutionModeTone } from "./statusChipTones";
+import {
+  getCapabilityTone,
+  getDryRunSupportTone,
+  getExecutionModeTone,
+} from "./statusChipTones";
 import {
   summaryBadgeStyle,
   summaryCardGridStyle,
@@ -162,7 +166,10 @@ export default function Phase7CapabilitySummaryPanel({
                           {policy.required_locks.join(", ") || "none"}
                         </SummaryFact>
                         <SummaryFact label="Dry run support">
-                          {String(policy.supports_dry_run)}
+                          <StatusChip
+                            label={policy.supports_dry_run ? "supported" : "not supported"}
+                            tone={getDryRunSupportTone(policy.supports_dry_run)}
+                          />
                         </SummaryFact>
                       </SummaryFacts>
                       <p style={summaryMutedTextStyle}>{describePolicyMeaning(policy)}</p>
