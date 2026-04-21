@@ -7,7 +7,6 @@ import ArtifactsPanel from "./components/ArtifactsPanel";
 import ApprovalQueue from "./components/ApprovalQueue";
 import CatalogPanel from "./components/CatalogPanel";
 import DesktopShell from "./components/DesktopShell";
-import DesktopWindow from "./components/DesktopWindow";
 import DispatchForm from "./components/DispatchForm";
 import ExecutorDetailPanel from "./components/ExecutorDetailPanel";
 import ExecutorsPanel from "./components/ExecutorsPanel";
@@ -35,6 +34,7 @@ import SystemStatusPanel from "./components/SystemStatusPanel";
 import TaskTimeline from "./components/TaskTimeline";
 import WorkspaceDetailPanel from "./components/WorkspaceDetailPanel";
 import WorkspacesPanel from "./components/WorkspacesPanel";
+import HomeWorkspaceView from "./components/workspaces/HomeWorkspaceView";
 import OperationsWorkspaceView from "./components/workspaces/OperationsWorkspaceView";
 import PromptWorkspaceView from "./components/workspaces/PromptWorkspaceView";
 import RecordsWorkspaceView from "./components/workspaces/RecordsWorkspaceView";
@@ -4630,6 +4630,526 @@ export default function App() {
       badge: artifacts.length > 0 ? String(artifacts.length) : null,
     },
   ] as const;
+  const homeMissionControlContent = (
+    <LayoutHeader
+      title="O3DE Agent Control App"
+      subtitle="Desktop operator shell for orchestrating O3DE-focused agents, approvals, logs, artifacts, and tool-driven workflows."
+      refreshing={dashboardRefreshing}
+      lastRefreshedAt={dashboardRefreshedAt}
+      refreshStatusLabel={dashboardRefreshStatus}
+      refreshStatusDetail={dashboardRefreshDetail}
+      pinnedRecordLabel={pinnedRecord?.label ?? null}
+      pinnedRecordSummary={pinnedRecord?.summary ?? null}
+      pinnedRecordStatusLabel={pinnedRecordStatus?.label ?? null}
+      pinnedRecordStatusDetail={pinnedRecordStatus?.detail ?? null}
+      onOpenPinnedRecord={pinnedRecord ? openPinnedRecord : null}
+      onRefocusPinnedRecord={pinnedRecord ? openPinnedRecord : null}
+      onClearPinnedRecord={pinnedRecord ? (() => setPinnedRecord(null)) : null}
+      onClearLocalLaneContext={handleClearLocalLaneContext}
+      nextPinnedLaneLabel={nextPinnedLaneRecord?.label ?? null}
+      nextPinnedLaneDetail={nextPinnedLaneRecord?.detail ?? null}
+      onOpenNextPinnedLaneRecord={nextPinnedLaneRecord ? openPinnedLaneQueueRecord : null}
+      laneCompletionLabel={pinnedLaneCompletionState?.label ?? null}
+      laneCompletionDetail={pinnedLaneCompletionState?.detail ?? null}
+      laneRolloverLabel={pinnedLaneRolloverRecord?.label ?? null}
+      laneRolloverDetail={pinnedLaneRolloverRecord?.detail ?? null}
+      laneMetricsLabel={pinnedLaneMetrics?.label ?? null}
+      laneMetricsDetail={pinnedLaneMetrics?.detail ?? null}
+      laneDriverLabel={pinnedLaneMetrics?.driverLabel ?? null}
+      laneDriverDetail={pinnedLaneMetrics?.driverDetail ?? null}
+      laneFilterLabel={getLaneFilterLabel(laneFilterMode)}
+      laneMemoryLabel={laneMemory?.pinnedLabel ?? null}
+      laneMemoryDetail={laneMemory?.detail ?? null}
+      laneHistoryEntries={laneHistory}
+      laneReadinessLabel={laneReadiness?.label ?? null}
+      laneReadinessDetail={laneReadiness?.detail ?? null}
+      laneHistoryStatusLabel={laneHistoryAvailability?.label ?? null}
+      laneHistoryStatusDetail={laneHistoryAvailability?.detail ?? null}
+      laneRecoveryLabel={laneRecoveryAction?.label ?? null}
+      laneHandoffLabel={laneHandoffSummary?.label ?? null}
+      laneHandoffDetail={laneHandoffSummary?.detail ?? null}
+      laneExportLabel={laneExportStatus?.label ?? null}
+      laneExportDetail={laneExportStatus?.detail ?? null}
+      laneOperatorNoteLabel={activeLaneOperatorNote?.label ?? null}
+      laneOperatorNoteDetail={activeLaneOperatorNote?.detail ?? null}
+      laneOperatorNoteDraft={laneOperatorNoteDraft}
+      onLaneOperatorNoteDraftChange={setLaneOperatorNoteDraft}
+      onSaveLaneOperatorNote={pinnedRecord ? handleLaneOperatorNoteSave : null}
+      onClearLaneOperatorNote={pinnedRecord ? handleLaneOperatorNoteClear : null}
+      onCopyLaneContext={pinnedRecord ? (() => { void handleCopyLaneContext(); }) : null}
+      activeLanePresetLabel={lanePresetStatus?.activeLabel ?? null}
+      activeLanePresetDetail={lanePresetStatus?.activeDetail ?? null}
+      lanePresetRestoredLabel={lanePresetStatus?.restoredLabel ?? null}
+      lanePresetRestoredDetail={lanePresetStatus?.restoredDetail ?? null}
+      lanePresetDriftLabel={lanePresetStatus?.driftLabel ?? null}
+      lanePresetDriftDetail={lanePresetStatus?.driftDetail ?? null}
+      lanePresetEntries={lanePresets}
+      onSetLaneFilterMode={pinnedRecord ? handleLaneFilterModeChange : null}
+      onOpenLaneRolloverRecord={pinnedLaneRolloverRecord ? openPinnedLaneRolloverRecord : null}
+      onReturnToLane={laneMemory ? restoreLaneMemory : null}
+      onOpenLaneHistoryEntry={openLaneHistoryEntry}
+      onApplyLaneRecovery={laneRecoveryAction ? handleLaneRecovery : null}
+      onDropStaleLaneHistory={laneHistoryAvailability?.label === "recent returns stale" ? dropStaleLaneHistory : null}
+      onApplyLanePreset={applyLanePreset}
+      refreshActions={[
+        {
+          label: "Refresh dashboard",
+          onClick: () => {
+            void refreshDashboardStateForScope("full");
+          },
+        },
+        {
+          label: "Refresh overview",
+          onClick: () => {
+            void refreshDashboardStateForScope("overview");
+          },
+        },
+        {
+          label: "Refresh records",
+          onClick: () => {
+            void refreshDashboardStateForScope("records");
+          },
+        },
+      ]}
+    />
+  );
+  const homeLaunchpadContent = (
+    <>
+      <div style={desktopLaunchpadGridStyle}>
+        <button
+          type="button"
+          onClick={() => setActiveWorkspaceId("prompt")}
+          style={desktopShortcutCardStyle}
+        >
+          <strong>Prompt Studio</strong>
+          <span style={desktopShortcutMetaStyle}>
+            Natural-language planning and admitted typed execution paths.
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveWorkspaceId("operations");
+            setActiveOperationsSurface("dispatch");
+          }}
+          style={desktopShortcutCardStyle}
+        >
+          <strong>Command Center</strong>
+          <span style={desktopShortcutMetaStyle}>
+            Catalog browsing, dispatch, approvals, and live timeline control.
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveWorkspaceId("runtime");
+            setActiveRuntimeSurface("overview");
+          }}
+          style={desktopShortcutCardStyle}
+        >
+          <strong>Runtime</strong>
+          <span style={desktopShortcutMetaStyle}>
+            Bridge status, executors, workspaces, and governance health.
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveWorkspaceId("records");
+            setActiveRecordsSurface("runs");
+          }}
+          style={desktopShortcutCardStyle}
+        >
+          <strong>Records Explorer</strong>
+          <span style={desktopShortcutMetaStyle}>
+            Runs, executions, artifacts, and detail drilldowns in one organized lane.
+          </span>
+        </button>
+      </div>
+      <div style={desktopSummaryStripStyle}>
+        <div style={desktopMiniStatStyle}>
+          <span style={desktopMiniStatLabelStyle}>Approvals waiting</span>
+          <strong>{pendingApprovalCount}</strong>
+        </div>
+        <div style={desktopMiniStatStyle}>
+          <span style={desktopMiniStatLabelStyle}>Execution warnings</span>
+          <strong>{warningExecutionCount}</strong>
+        </div>
+        <div style={desktopMiniStatStyle}>
+          <span style={desktopMiniStatLabelStyle}>Bridge heartbeat</span>
+          <strong>{bridgeStatusLabel}</strong>
+        </div>
+        <div style={desktopMiniStatStyle}>
+          <span style={desktopMiniStatLabelStyle}>Unresolved runs</span>
+          <strong>{unresolvedRunCount}</strong>
+        </div>
+      </div>
+    </>
+  );
+  const homeOverviewContent = (
+    <>
+      <OverviewAttentionPanel
+        entries={attentionRecommendations}
+        onPrimaryAction={(entryId) => {
+          const [, targetId] = entryId.split(":");
+          if (targetId === "runs" && runsOverviewContextPreset) {
+            void replayRunsOverviewContext(runsOverviewContextPreset);
+            return;
+          }
+          if (targetId === "executions") {
+            if (entryId.startsWith("snoozed:") && executionsOverviewContextPreset) {
+              handleTriageSavedExecutionContext();
+              return;
+            }
+            if (executionsOverviewContextPreset) {
+              replayExecutionsOverviewContext(executionsOverviewContextPreset);
+              return;
+            }
+          }
+          if (targetId === "artifacts") {
+            if (entryId.startsWith("snoozed:") && artifactsOverviewContextPreset) {
+              handleTriageSavedArtifactContext();
+              return;
+            }
+            if (artifactsOverviewContextPreset) {
+              replayArtifactsOverviewContext(artifactsOverviewContextPreset);
+            }
+          }
+        }}
+        onSecondaryAction={(entryId) => {
+          const [, targetId] = entryId.split(":");
+          if (targetId === "runs" || targetId === "executions" || targetId === "artifacts") {
+            handleKeepOverviewEntryInQueue(targetId);
+          }
+        }}
+      />
+
+      <OverviewCloseoutReadinessPanel
+        readyCount={overviewReviewSessionSummary.readyCount}
+        pendingCount={overviewReviewSessionSummary.pendingCount}
+        entries={readinessDiagnostics}
+      />
+
+      <OverviewHandoffConfidencePanel
+        confidenceLabel={handoffConfidence.label}
+        confidenceDetail={handoffConfidence.detail}
+        tone={handoffConfidence.tone}
+        staleCount={overviewReviewSessionSummary.staleCount}
+        driftedCount={overviewReviewSessionSummary.driftedCount}
+        excludedCount={handoffPackageExcludedEntries.length}
+        changedSinceSnapshotCount={changedSinceSnapshotCount}
+      />
+
+      <OverviewHandoffPackagePanel
+        includedEntries={handoffPackageIncludedEntries}
+        excludedEntries={handoffPackageExcludedEntries}
+      />
+
+      <OverviewHandoffExportPanel
+        generatedAtLabel={`Generated: ${handoffExportGeneratedAt}`}
+        includedEntries={handoffPackageIncludedEntries}
+        excludedEntries={handoffPackageExcludedEntries}
+        draftText={overviewHandoffExportDraft}
+        statusLabel={laneHandoffSummary?.label ?? null}
+        statusDetail={laneHandoffSummary?.detail ?? null}
+        onCopyDraft={
+          handoffPackageIncludedEntries.length > 0 || handoffPackageExcludedEntries.length > 0
+            ? (() => { void handleCopyOverviewHandoffExportDraft(); })
+            : null
+        }
+      />
+
+      <OverviewReviewSessionPanel
+        inQueueCount={overviewReviewSessionSummary.inQueueCount}
+        snoozedCount={overviewReviewSessionSummary.snoozedCount}
+        reviewedCount={overviewReviewSessionSummary.reviewedCount}
+        staleCount={overviewReviewSessionSummary.staleCount}
+        driftedCount={overviewReviewSessionSummary.driftedCount}
+        longestSnoozedLabel={overviewReviewSessionSummary.longestSnoozedLabel}
+        longestSnoozedDetail={overviewReviewSessionSummary.longestSnoozedDetail}
+        lastSnapshotLabel={overviewReviewSessionSummary.lastSnapshotLabel}
+        compareSummaryLabel={overviewReviewSessionSummary.compareSummaryLabel}
+        onCopySessionSnapshot={
+          overviewContextMemoryEntries.length > 0 || attentionRecommendations.length > 0
+            ? (() => { void handleCopyOverviewReviewSessionSnapshot(); })
+            : null
+        }
+        onReturnAllToQueue={
+          Object.keys(overviewReviewState).length > 0
+            ? (() => {
+                setOverviewReviewState((current) => {
+                  const next = { ...current };
+                  for (const key of Object.keys(next) as OverviewContextId[]) {
+                    next[key] = {
+                      disposition: "in_queue",
+                      updatedAt: new Date().toISOString(),
+                    };
+                  }
+                  return next;
+                });
+                setLaneHandoffSummary({
+                  label: "handoff: local review queue reset",
+                  detail: "Returned all saved local overview contexts to the in-queue state for this browser session. No backend review state was changed.",
+                });
+              })
+            : null
+        }
+        onResetReviewState={
+          Object.keys(overviewReviewState).length > 0
+            ? (() => {
+                setOverviewReviewState({});
+                setLaneHandoffSummary({
+                  label: "handoff: local review state cleared",
+                  detail: "Cleared all browser-session review outcomes for saved overview contexts. No backend queue or task state was changed.",
+                });
+              })
+            : null
+        }
+      />
+
+      <OverviewReviewQueuePanel
+        entries={overviewReviewQueueEntries}
+        onOpenEntry={(entryId) => {
+          if (entryId === "executions" && executionsOverviewContextPreset) {
+            replayExecutionsOverviewContext(executionsOverviewContextPreset);
+            return;
+          }
+          if (entryId === "artifacts" && artifactsOverviewContextPreset) {
+            replayArtifactsOverviewContext(artifactsOverviewContextPreset);
+            return;
+          }
+          if (entryId === "executors" && executorsOverviewContextPreset) {
+            replayExecutorsOverviewContext(executorsOverviewContextPreset);
+            return;
+          }
+          if (entryId === "workspaces" && workspacesOverviewContextPreset) {
+            replayWorkspacesOverviewContext(workspacesOverviewContextPreset);
+          }
+        }}
+        onTriageEntry={(entryId) => {
+          if (entryId === "executions") {
+            handleTriageSavedExecutionContext();
+            return;
+          }
+          if (entryId === "artifacts") {
+            handleTriageSavedArtifactContext();
+            return;
+          }
+          if (entryId === "executors") {
+            handleTriageSavedExecutorContext();
+            return;
+          }
+          if (entryId === "workspaces") {
+            handleTriageSavedWorkspaceContext();
+          }
+        }}
+        onMarkReviewed={(entryId) => {
+          if (
+            entryId === "executions"
+            || entryId === "artifacts"
+            || entryId === "executors"
+            || entryId === "workspaces"
+          ) {
+            handleMarkOverviewEntryReviewed(entryId);
+          }
+        }}
+        onSnoozeEntry={(entryId) => {
+          if (
+            entryId === "executions"
+            || entryId === "artifacts"
+            || entryId === "executors"
+            || entryId === "workspaces"
+          ) {
+            handleSnoozeOverviewEntry(entryId);
+          }
+        }}
+        onKeepInQueue={(entryId) => {
+          if (
+            entryId === "executions"
+            || entryId === "artifacts"
+            || entryId === "executors"
+            || entryId === "workspaces"
+          ) {
+            handleKeepOverviewEntryInQueue(entryId);
+          }
+        }}
+      />
+
+      <OverviewContextMemoryPanel
+        entries={overviewContextMemoryEntries}
+        onOpenEntry={(entryId) => {
+          if (entryId === "runs" && runsOverviewContextPreset) {
+            void replayRunsOverviewContext(runsOverviewContextPreset);
+            return;
+          }
+          if (entryId === "executions" && executionsOverviewContextPreset) {
+            replayExecutionsOverviewContext(executionsOverviewContextPreset);
+            return;
+          }
+          if (entryId === "artifacts" && artifactsOverviewContextPreset) {
+            replayArtifactsOverviewContext(artifactsOverviewContextPreset);
+            return;
+          }
+          if (entryId === "executors" && executorsOverviewContextPreset) {
+            replayExecutorsOverviewContext(executorsOverviewContextPreset);
+            return;
+          }
+          if (entryId === "workspaces" && workspacesOverviewContextPreset) {
+            replayWorkspacesOverviewContext(workspacesOverviewContextPreset);
+          }
+        }}
+        onTriageEntry={(entryId) => {
+          if (entryId === "executions") {
+            handleTriageSavedExecutionContext();
+            return;
+          }
+          if (entryId === "artifacts") {
+            handleTriageSavedArtifactContext();
+            return;
+          }
+          if (entryId === "executors") {
+            handleTriageSavedExecutorContext();
+            return;
+          }
+          if (entryId === "workspaces") {
+            handleTriageSavedWorkspaceContext();
+          }
+        }}
+        onSaveNote={(entryId, text) => {
+          if (
+            entryId === "runs"
+            || entryId === "executions"
+            || entryId === "artifacts"
+            || entryId === "executors"
+            || entryId === "workspaces"
+          ) {
+            handleSaveOverviewContextNote(entryId, text);
+          }
+        }}
+        onMarkReviewed={(entryId) => {
+          if (
+            entryId === "runs"
+            || entryId === "executions"
+            || entryId === "artifacts"
+            || entryId === "executors"
+            || entryId === "workspaces"
+          ) {
+            handleMarkOverviewEntryReviewed(entryId);
+          }
+        }}
+        onSnoozeEntry={(entryId) => {
+          if (
+            entryId === "runs"
+            || entryId === "executions"
+            || entryId === "artifacts"
+            || entryId === "executors"
+            || entryId === "workspaces"
+          ) {
+            handleSnoozeOverviewEntry(entryId);
+          }
+        }}
+        onKeepInQueue={(entryId) => {
+          if (
+            entryId === "runs"
+            || entryId === "executions"
+            || entryId === "artifacts"
+            || entryId === "executors"
+            || entryId === "workspaces"
+          ) {
+            handleKeepOverviewEntryInQueue(entryId);
+          }
+        }}
+        onClearEntry={(entryId) => {
+          if (entryId === "runs") {
+            setRunsOverviewContextPreset(null);
+            setOverviewReviewState((current) => {
+              const next = { ...current };
+              delete next.runs;
+              return next;
+            });
+            setOverviewContextNotes((current) => {
+              const next = { ...current };
+              delete next.runs;
+              return next;
+            });
+            return;
+          }
+          if (entryId === "executions") {
+            setExecutionsOverviewContextPreset(null);
+            setOverviewReviewState((current) => {
+              const next = { ...current };
+              delete next.executions;
+              return next;
+            });
+            setOverviewContextNotes((current) => {
+              const next = { ...current };
+              delete next.executions;
+              return next;
+            });
+            return;
+          }
+          if (entryId === "artifacts") {
+            setArtifactsOverviewContextPreset(null);
+            setOverviewReviewState((current) => {
+              const next = { ...current };
+              delete next.artifacts;
+              return next;
+            });
+            setOverviewContextNotes((current) => {
+              const next = { ...current };
+              delete next.artifacts;
+              return next;
+            });
+            return;
+          }
+          if (entryId === "executors") {
+            setExecutorsOverviewContextPreset(null);
+            setOverviewReviewState((current) => {
+              const next = { ...current };
+              delete next.executors;
+              return next;
+            });
+            setOverviewContextNotes((current) => {
+              const next = { ...current };
+              delete next.executors;
+              return next;
+            });
+            return;
+          }
+          if (entryId === "workspaces") {
+            setWorkspacesOverviewContextPreset(null);
+            setOverviewReviewState((current) => {
+              const next = { ...current };
+              delete next.workspaces;
+              return next;
+            });
+            setOverviewContextNotes((current) => {
+              const next = { ...current };
+              delete next.workspaces;
+              return next;
+            });
+          }
+        }}
+        onClearAll={
+          overviewContextMemoryEntries.length > 0
+            ? (() => {
+                setRunsOverviewContextPreset(null);
+                setExecutionsOverviewContextPreset(null);
+                setArtifactsOverviewContextPreset(null);
+                setExecutorsOverviewContextPreset(null);
+                setWorkspacesOverviewContextPreset(null);
+                setOverviewReviewState({});
+                setOverviewContextNotes({});
+                setLaneHandoffSummary({
+                  label: "handoff: local context memory cleared",
+                  detail: "Cleared browser-session overview context presets from workspace memory. No backend preset or server persistence was affected.",
+                });
+              })
+            : null
+        }
+      />
+    </>
+  );
   const runtimeOverviewContent = (
     <>
       <AdaptersPanel
@@ -5545,535 +6065,11 @@ export default function App() {
       onSelectWorkspace={(workspaceId) => setActiveWorkspaceId(workspaceId as DesktopWorkspaceId)}
     >
       {activeWorkspaceId === "home" ? (
-        <>
-          <DesktopWindow
-            title="Mission Control"
-            subtitle="High-level operator shell controls, lane memory, and refresh entry points."
-          >
-            <LayoutHeader
-              title="O3DE Agent Control App"
-              subtitle="Desktop operator shell for orchestrating O3DE-focused agents, approvals, logs, artifacts, and tool-driven workflows."
-              refreshing={dashboardRefreshing}
-              lastRefreshedAt={dashboardRefreshedAt}
-              refreshStatusLabel={dashboardRefreshStatus}
-              refreshStatusDetail={dashboardRefreshDetail}
-              pinnedRecordLabel={pinnedRecord?.label ?? null}
-              pinnedRecordSummary={pinnedRecord?.summary ?? null}
-              pinnedRecordStatusLabel={pinnedRecordStatus?.label ?? null}
-              pinnedRecordStatusDetail={pinnedRecordStatus?.detail ?? null}
-              onOpenPinnedRecord={pinnedRecord ? openPinnedRecord : null}
-              onRefocusPinnedRecord={pinnedRecord ? openPinnedRecord : null}
-              onClearPinnedRecord={pinnedRecord ? (() => setPinnedRecord(null)) : null}
-              onClearLocalLaneContext={handleClearLocalLaneContext}
-              nextPinnedLaneLabel={nextPinnedLaneRecord?.label ?? null}
-              nextPinnedLaneDetail={nextPinnedLaneRecord?.detail ?? null}
-              onOpenNextPinnedLaneRecord={nextPinnedLaneRecord ? openPinnedLaneQueueRecord : null}
-              laneCompletionLabel={pinnedLaneCompletionState?.label ?? null}
-              laneCompletionDetail={pinnedLaneCompletionState?.detail ?? null}
-              laneRolloverLabel={pinnedLaneRolloverRecord?.label ?? null}
-              laneRolloverDetail={pinnedLaneRolloverRecord?.detail ?? null}
-              laneMetricsLabel={pinnedLaneMetrics?.label ?? null}
-              laneMetricsDetail={pinnedLaneMetrics?.detail ?? null}
-              laneDriverLabel={pinnedLaneMetrics?.driverLabel ?? null}
-              laneDriverDetail={pinnedLaneMetrics?.driverDetail ?? null}
-              laneFilterLabel={getLaneFilterLabel(laneFilterMode)}
-              laneMemoryLabel={laneMemory?.pinnedLabel ?? null}
-              laneMemoryDetail={laneMemory?.detail ?? null}
-              laneHistoryEntries={laneHistory}
-              laneReadinessLabel={laneReadiness?.label ?? null}
-              laneReadinessDetail={laneReadiness?.detail ?? null}
-              laneHistoryStatusLabel={laneHistoryAvailability?.label ?? null}
-              laneHistoryStatusDetail={laneHistoryAvailability?.detail ?? null}
-              laneRecoveryLabel={laneRecoveryAction?.label ?? null}
-              laneHandoffLabel={laneHandoffSummary?.label ?? null}
-              laneHandoffDetail={laneHandoffSummary?.detail ?? null}
-              laneExportLabel={laneExportStatus?.label ?? null}
-              laneExportDetail={laneExportStatus?.detail ?? null}
-              laneOperatorNoteLabel={activeLaneOperatorNote?.label ?? null}
-              laneOperatorNoteDetail={activeLaneOperatorNote?.detail ?? null}
-              laneOperatorNoteDraft={laneOperatorNoteDraft}
-              onLaneOperatorNoteDraftChange={setLaneOperatorNoteDraft}
-              onSaveLaneOperatorNote={pinnedRecord ? handleLaneOperatorNoteSave : null}
-              onClearLaneOperatorNote={pinnedRecord ? handleLaneOperatorNoteClear : null}
-              onCopyLaneContext={pinnedRecord ? (() => { void handleCopyLaneContext(); }) : null}
-              activeLanePresetLabel={lanePresetStatus?.activeLabel ?? null}
-              activeLanePresetDetail={lanePresetStatus?.activeDetail ?? null}
-              lanePresetRestoredLabel={lanePresetStatus?.restoredLabel ?? null}
-              lanePresetRestoredDetail={lanePresetStatus?.restoredDetail ?? null}
-              lanePresetDriftLabel={lanePresetStatus?.driftLabel ?? null}
-              lanePresetDriftDetail={lanePresetStatus?.driftDetail ?? null}
-              lanePresetEntries={lanePresets}
-              onSetLaneFilterMode={pinnedRecord ? handleLaneFilterModeChange : null}
-              onOpenLaneRolloverRecord={pinnedLaneRolloverRecord ? openPinnedLaneRolloverRecord : null}
-              onReturnToLane={laneMemory ? restoreLaneMemory : null}
-              onOpenLaneHistoryEntry={openLaneHistoryEntry}
-              onApplyLaneRecovery={laneRecoveryAction ? handleLaneRecovery : null}
-              onDropStaleLaneHistory={laneHistoryAvailability?.label === "recent returns stale" ? dropStaleLaneHistory : null}
-              onApplyLanePreset={applyLanePreset}
-              refreshActions={[
-                {
-                  label: "Refresh dashboard",
-                  onClick: () => {
-                    void refreshDashboardStateForScope("full");
-                  },
-                },
-                {
-                  label: "Refresh overview",
-                  onClick: () => {
-                    void refreshDashboardStateForScope("overview");
-                  },
-                },
-                {
-                  label: "Refresh records",
-                  onClick: () => {
-                    void refreshDashboardStateForScope("records");
-                  },
-                },
-              ]}
-            />
-          </DesktopWindow>
-
-          <DesktopWindow
-            title="Launchpad"
-            subtitle="Open focused workspaces instead of hunting through one continuous operator page."
-          >
-            <div style={desktopLaunchpadGridStyle}>
-              <button
-                type="button"
-                onClick={() => setActiveWorkspaceId("prompt")}
-                style={desktopShortcutCardStyle}
-              >
-                <strong>Prompt Studio</strong>
-                <span style={desktopShortcutMetaStyle}>
-                  Natural-language planning and admitted typed execution paths.
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveWorkspaceId("operations");
-                  setActiveOperationsSurface("dispatch");
-                }}
-                style={desktopShortcutCardStyle}
-              >
-                <strong>Command Center</strong>
-                <span style={desktopShortcutMetaStyle}>
-                  Catalog browsing, dispatch, approvals, and live timeline control.
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveWorkspaceId("runtime");
-                  setActiveRuntimeSurface("overview");
-                }}
-                style={desktopShortcutCardStyle}
-              >
-                <strong>Runtime</strong>
-                <span style={desktopShortcutMetaStyle}>
-                  Bridge status, executors, workspaces, and governance health.
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveWorkspaceId("records");
-                  setActiveRecordsSurface("runs");
-                }}
-                style={desktopShortcutCardStyle}
-              >
-                <strong>Records Explorer</strong>
-                <span style={desktopShortcutMetaStyle}>
-                  Runs, executions, artifacts, and detail drilldowns in one organized lane.
-                </span>
-              </button>
-            </div>
-            <div style={desktopSummaryStripStyle}>
-              <div style={desktopMiniStatStyle}>
-                <span style={desktopMiniStatLabelStyle}>Approvals waiting</span>
-                <strong>{pendingApprovalCount}</strong>
-              </div>
-              <div style={desktopMiniStatStyle}>
-                <span style={desktopMiniStatLabelStyle}>Execution warnings</span>
-                <strong>{warningExecutionCount}</strong>
-              </div>
-              <div style={desktopMiniStatStyle}>
-                <span style={desktopMiniStatLabelStyle}>Bridge heartbeat</span>
-                <strong>{bridgeStatusLabel}</strong>
-              </div>
-              <div style={desktopMiniStatStyle}>
-                <span style={desktopMiniStatLabelStyle}>Unresolved runs</span>
-                <strong>{unresolvedRunCount}</strong>
-              </div>
-            </div>
-          </DesktopWindow>
-
-          <DesktopWindow
-            title="Operator Overview"
-            subtitle="Attention queue, handoff posture, and browser-local review memory."
-          >
-            <OverviewAttentionPanel
-        entries={attentionRecommendations}
-        onPrimaryAction={(entryId) => {
-          const [, targetId] = entryId.split(":");
-          if (targetId === "runs" && runsOverviewContextPreset) {
-            void replayRunsOverviewContext(runsOverviewContextPreset);
-            return;
-          }
-          if (targetId === "executions") {
-            if (entryId.startsWith("snoozed:") && executionsOverviewContextPreset) {
-              handleTriageSavedExecutionContext();
-              return;
-            }
-            if (executionsOverviewContextPreset) {
-              replayExecutionsOverviewContext(executionsOverviewContextPreset);
-              return;
-            }
-          }
-          if (targetId === "artifacts") {
-            if (entryId.startsWith("snoozed:") && artifactsOverviewContextPreset) {
-              handleTriageSavedArtifactContext();
-              return;
-            }
-            if (artifactsOverviewContextPreset) {
-              replayArtifactsOverviewContext(artifactsOverviewContextPreset);
-            }
-          }
-        }}
-        onSecondaryAction={(entryId) => {
-          const [, targetId] = entryId.split(":");
-          if (targetId === "runs" || targetId === "executions" || targetId === "artifacts") {
-            handleKeepOverviewEntryInQueue(targetId);
-          }
-        }}
-            />
-
-            <OverviewCloseoutReadinessPanel
-        readyCount={overviewReviewSessionSummary.readyCount}
-        pendingCount={overviewReviewSessionSummary.pendingCount}
-        entries={readinessDiagnostics}
-            />
-
-            <OverviewHandoffConfidencePanel
-        confidenceLabel={handoffConfidence.label}
-        confidenceDetail={handoffConfidence.detail}
-        tone={handoffConfidence.tone}
-        staleCount={overviewReviewSessionSummary.staleCount}
-        driftedCount={overviewReviewSessionSummary.driftedCount}
-        excludedCount={handoffPackageExcludedEntries.length}
-        changedSinceSnapshotCount={changedSinceSnapshotCount}
-            />
-
-            <OverviewHandoffPackagePanel
-        includedEntries={handoffPackageIncludedEntries}
-        excludedEntries={handoffPackageExcludedEntries}
-            />
-
-            <OverviewHandoffExportPanel
-        generatedAtLabel={`Generated: ${handoffExportGeneratedAt}`}
-        includedEntries={handoffPackageIncludedEntries}
-        excludedEntries={handoffPackageExcludedEntries}
-        draftText={overviewHandoffExportDraft}
-        statusLabel={laneHandoffSummary?.label ?? null}
-        statusDetail={laneHandoffSummary?.detail ?? null}
-        onCopyDraft={
-          handoffPackageIncludedEntries.length > 0 || handoffPackageExcludedEntries.length > 0
-            ? (() => { void handleCopyOverviewHandoffExportDraft(); })
-            : null
-        }
-            />
-
-            <OverviewReviewSessionPanel
-        inQueueCount={overviewReviewSessionSummary.inQueueCount}
-        snoozedCount={overviewReviewSessionSummary.snoozedCount}
-        reviewedCount={overviewReviewSessionSummary.reviewedCount}
-        staleCount={overviewReviewSessionSummary.staleCount}
-        driftedCount={overviewReviewSessionSummary.driftedCount}
-        longestSnoozedLabel={overviewReviewSessionSummary.longestSnoozedLabel}
-        longestSnoozedDetail={overviewReviewSessionSummary.longestSnoozedDetail}
-        lastSnapshotLabel={overviewReviewSessionSummary.lastSnapshotLabel}
-        compareSummaryLabel={overviewReviewSessionSummary.compareSummaryLabel}
-        onCopySessionSnapshot={
-          overviewContextMemoryEntries.length > 0 || attentionRecommendations.length > 0
-            ? (() => { void handleCopyOverviewReviewSessionSnapshot(); })
-            : null
-        }
-        onReturnAllToQueue={
-          Object.keys(overviewReviewState).length > 0
-            ? (() => {
-                setOverviewReviewState((current) => {
-                  const next = { ...current };
-                  for (const key of Object.keys(next) as OverviewContextId[]) {
-                    next[key] = {
-                      disposition: "in_queue",
-                      updatedAt: new Date().toISOString(),
-                    };
-                  }
-                  return next;
-                });
-                setLaneHandoffSummary({
-                  label: "handoff: local review queue reset",
-                  detail: "Returned all saved local overview contexts to the in-queue state for this browser session. No backend review state was changed.",
-                });
-              })
-            : null
-        }
-        onResetReviewState={
-          Object.keys(overviewReviewState).length > 0
-            ? (() => {
-                setOverviewReviewState({});
-                setLaneHandoffSummary({
-                  label: "handoff: local review state cleared",
-                  detail: "Cleared all browser-session review outcomes for saved overview contexts. No backend queue or task state was changed.",
-                });
-              })
-            : null
-        }
-            />
-
-            <OverviewReviewQueuePanel
-        entries={overviewReviewQueueEntries}
-        onOpenEntry={(entryId) => {
-          if (entryId === "executions" && executionsOverviewContextPreset) {
-            replayExecutionsOverviewContext(executionsOverviewContextPreset);
-            return;
-          }
-          if (entryId === "artifacts" && artifactsOverviewContextPreset) {
-            replayArtifactsOverviewContext(artifactsOverviewContextPreset);
-            return;
-          }
-          if (entryId === "executors" && executorsOverviewContextPreset) {
-            replayExecutorsOverviewContext(executorsOverviewContextPreset);
-            return;
-          }
-          if (entryId === "workspaces" && workspacesOverviewContextPreset) {
-            replayWorkspacesOverviewContext(workspacesOverviewContextPreset);
-          }
-        }}
-        onTriageEntry={(entryId) => {
-          if (entryId === "executions") {
-            handleTriageSavedExecutionContext();
-            return;
-          }
-          if (entryId === "artifacts") {
-            handleTriageSavedArtifactContext();
-            return;
-          }
-          if (entryId === "executors") {
-            handleTriageSavedExecutorContext();
-            return;
-          }
-          if (entryId === "workspaces") {
-            handleTriageSavedWorkspaceContext();
-          }
-        }}
-        onMarkReviewed={(entryId) => {
-          if (
-            entryId === "executions"
-            || entryId === "artifacts"
-            || entryId === "executors"
-            || entryId === "workspaces"
-          ) {
-            handleMarkOverviewEntryReviewed(entryId);
-          }
-        }}
-        onSnoozeEntry={(entryId) => {
-          if (
-            entryId === "executions"
-            || entryId === "artifacts"
-            || entryId === "executors"
-            || entryId === "workspaces"
-          ) {
-            handleSnoozeOverviewEntry(entryId);
-          }
-        }}
-        onKeepInQueue={(entryId) => {
-          if (
-            entryId === "executions"
-            || entryId === "artifacts"
-            || entryId === "executors"
-            || entryId === "workspaces"
-          ) {
-            handleKeepOverviewEntryInQueue(entryId);
-          }
-        }}
-            />
-
-            <OverviewContextMemoryPanel
-        entries={overviewContextMemoryEntries}
-        onOpenEntry={(entryId) => {
-          if (entryId === "runs" && runsOverviewContextPreset) {
-            void replayRunsOverviewContext(runsOverviewContextPreset);
-            return;
-          }
-          if (entryId === "executions" && executionsOverviewContextPreset) {
-            replayExecutionsOverviewContext(executionsOverviewContextPreset);
-            return;
-          }
-          if (entryId === "artifacts" && artifactsOverviewContextPreset) {
-            replayArtifactsOverviewContext(artifactsOverviewContextPreset);
-            return;
-          }
-          if (entryId === "executors" && executorsOverviewContextPreset) {
-            replayExecutorsOverviewContext(executorsOverviewContextPreset);
-            return;
-          }
-          if (entryId === "workspaces" && workspacesOverviewContextPreset) {
-            replayWorkspacesOverviewContext(workspacesOverviewContextPreset);
-          }
-        }}
-        onTriageEntry={(entryId) => {
-          if (entryId === "executions") {
-            handleTriageSavedExecutionContext();
-            return;
-          }
-          if (entryId === "artifacts") {
-            handleTriageSavedArtifactContext();
-            return;
-          }
-          if (entryId === "executors") {
-            handleTriageSavedExecutorContext();
-            return;
-          }
-          if (entryId === "workspaces") {
-            handleTriageSavedWorkspaceContext();
-          }
-        }}
-        onSaveNote={(entryId, text) => {
-          if (
-            entryId === "runs"
-            || entryId === "executions"
-            || entryId === "artifacts"
-            || entryId === "executors"
-            || entryId === "workspaces"
-          ) {
-            handleSaveOverviewContextNote(entryId, text);
-          }
-        }}
-        onMarkReviewed={(entryId) => {
-          if (
-            entryId === "runs"
-            || entryId === "executions"
-            || entryId === "artifacts"
-            || entryId === "executors"
-            || entryId === "workspaces"
-          ) {
-            handleMarkOverviewEntryReviewed(entryId);
-          }
-        }}
-        onSnoozeEntry={(entryId) => {
-          if (
-            entryId === "runs"
-            || entryId === "executions"
-            || entryId === "artifacts"
-            || entryId === "executors"
-            || entryId === "workspaces"
-          ) {
-            handleSnoozeOverviewEntry(entryId);
-          }
-        }}
-        onKeepInQueue={(entryId) => {
-          if (
-            entryId === "runs"
-            || entryId === "executions"
-            || entryId === "artifacts"
-            || entryId === "executors"
-            || entryId === "workspaces"
-          ) {
-            handleKeepOverviewEntryInQueue(entryId);
-          }
-        }}
-        onClearEntry={(entryId) => {
-          if (entryId === "runs") {
-            setRunsOverviewContextPreset(null);
-            setOverviewReviewState((current) => {
-              const next = { ...current };
-              delete next.runs;
-              return next;
-            });
-            setOverviewContextNotes((current) => {
-              const next = { ...current };
-              delete next.runs;
-              return next;
-            });
-            return;
-          }
-          if (entryId === "executions") {
-            setExecutionsOverviewContextPreset(null);
-            setOverviewReviewState((current) => {
-              const next = { ...current };
-              delete next.executions;
-              return next;
-            });
-            setOverviewContextNotes((current) => {
-              const next = { ...current };
-              delete next.executions;
-              return next;
-            });
-            return;
-          }
-          if (entryId === "artifacts") {
-            setArtifactsOverviewContextPreset(null);
-            setOverviewReviewState((current) => {
-              const next = { ...current };
-              delete next.artifacts;
-              return next;
-            });
-            setOverviewContextNotes((current) => {
-              const next = { ...current };
-              delete next.artifacts;
-              return next;
-            });
-            return;
-          }
-          if (entryId === "executors") {
-            setExecutorsOverviewContextPreset(null);
-            setOverviewReviewState((current) => {
-              const next = { ...current };
-              delete next.executors;
-              return next;
-            });
-            setOverviewContextNotes((current) => {
-              const next = { ...current };
-              delete next.executors;
-              return next;
-            });
-            return;
-          }
-          if (entryId === "workspaces") {
-            setWorkspacesOverviewContextPreset(null);
-            setOverviewReviewState((current) => {
-              const next = { ...current };
-              delete next.workspaces;
-              return next;
-            });
-            setOverviewContextNotes((current) => {
-              const next = { ...current };
-              delete next.workspaces;
-              return next;
-            });
-          }
-        }}
-        onClearAll={
-          overviewContextMemoryEntries.length > 0
-            ? (() => {
-                setRunsOverviewContextPreset(null);
-                setExecutionsOverviewContextPreset(null);
-                setArtifactsOverviewContextPreset(null);
-                setExecutorsOverviewContextPreset(null);
-                setWorkspacesOverviewContextPreset(null);
-                setOverviewReviewState({});
-                setOverviewContextNotes({});
-                setLaneHandoffSummary({
-                  label: "handoff: local context memory cleared",
-                  detail: "Cleared browser-session overview context presets from workspace memory. No backend preset or server persistence was affected.",
-                });
-              })
-            : null
-        }
-            />
-          </DesktopWindow>
-        </>
+        <HomeWorkspaceView
+          missionControlContent={homeMissionControlContent}
+          launchpadContent={homeLaunchpadContent}
+          overviewContent={homeOverviewContent}
+        />
       ) : null}
 
       {activeWorkspaceId === "prompt" ? (
