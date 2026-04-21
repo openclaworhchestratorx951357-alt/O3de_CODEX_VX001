@@ -26,6 +26,8 @@ type CapabilityBucket = {
 };
 
 const CAPABILITY_ORDER = [
+  "real-authoring",
+  "runtime-reaching",
   "hybrid-read-only",
   "plan-only",
   "mutation-gated",
@@ -33,6 +35,10 @@ const CAPABILITY_ORDER = [
 ] as const;
 
 const CAPABILITY_DESCRIPTIONS: Record<string, string> = {
+  "real-authoring":
+    "Admitted real authoring through runtime-owned editor scripts with typed payload/result contracts and explicit preflight rejection. Today this includes the live-validated editor.session.open and editor.level.open paths on McpSandbox.",
+  "runtime-reaching":
+    "Runtime-reaching editor surface that can hit the live editor boundary, but is not yet live-admitted on McpSandbox. Today this is editor.entity.create while its real prefab/entity behavior is being stabilized.",
   "hybrid-read-only":
     "May use a real read-only path in hybrid mode when its preconditions are satisfied. Today that means project.inspect can capture explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence from project.json.",
   "plan-only":
@@ -47,6 +53,8 @@ export default function Phase7CapabilitySummaryPanel({
   agents,
 }: Phase7CapabilitySummaryPanelProps) {
   const buckets = buildBuckets(agents);
+  const realAuthoringCount =
+    buckets.find((bucket) => bucket.label === "real-authoring")?.tools.length ?? 0;
   const planOnlyCount = buckets.find((bucket) => bucket.label === "plan-only")?.tools.length ?? 0;
   const hybridCount = buckets.find((bucket) => bucket.label === "hybrid-read-only")?.tools.length ?? 0;
   const simulatedCount = buckets.find((bucket) => bucket.label === "simulated-only")?.tools.length ?? 0;
@@ -63,11 +71,14 @@ export default function Phase7CapabilitySummaryPanel({
         Current accepted real boundary: <strong>project.inspect</strong> can use
         the real read-only manifest path and expose explicit manifest-backed
         config, Gem, settings, origin, presentation, identity, and tag
-        evidence. <strong>build.configure</strong> remains real only as a plan-only
-        preflight when <code>dry_run=true</code>. <strong>settings.patch</strong>
-        now has an admitted real hybrid boundary for preflight and the first
-        manifest-backed set-only mutation case, while broader mutation surfaces
-        remain gated.
+        evidence. <strong>editor.session.open</strong> and <strong>editor.level.open</strong>{" "}
+        are the currently live-validated admitted real editor paths on McpSandbox,
+        while <strong>editor.entity.create</strong> remains runtime-reaching but not yet
+        live-admitted on McpSandbox. <strong>build.configure</strong>{" "}
+        remains real only as a plan-only preflight when <code>dry_run=true</code>.{" "}
+        <strong>settings.patch</strong> now has an admitted real hybrid boundary
+        for preflight and the first manifest-backed set-only mutation case,
+        while broader mutation surfaces remain gated.
       </p>
       {buckets.length > 0 ? (
         <div
@@ -79,6 +90,12 @@ export default function Phase7CapabilitySummaryPanel({
           }}
         >
           <span style={summaryBadgeStyle}>
+            real-authoring surfaces: {realAuthoringCount}
+          </span>
+          <span style={{ ...summaryBadgeStyle, background: "#fff0f6" }}>
+            runtime-reaching surfaces: {buckets.find((bucket) => bucket.label === "runtime-reaching")?.tools.length ?? 0}
+          </span>
+          <span style={{ ...summaryBadgeStyle, background: "#e6ffec" }}>
             hybrid-read-only surfaces: {hybridCount}
           </span>
           <span style={{ ...summaryBadgeStyle, background: "#fff8c5" }}>
@@ -174,6 +191,12 @@ const headingStyle: CSSProperties = {
 };
 
 function getBucketExecutionMode(status: string): string | null {
+  if (status === "real-authoring") {
+    return "real";
+  }
+  if (status === "runtime-reaching") {
+    return "gated";
+  }
   if (status === "hybrid-read-only") {
     return "real";
   }
@@ -184,6 +207,12 @@ function getBucketExecutionMode(status: string): string | null {
 }
 
 function getBucketAttentionLabel(status: string): string {
+  if (status === "real-authoring") {
+    return "Live-validated real path";
+  }
+  if (status === "runtime-reaching") {
+    return "Live stability pending";
+  }
   if (status === "hybrid-read-only") {
     return "Operator baseline confirmed";
   }
@@ -197,6 +226,12 @@ function getBucketAttentionLabel(status: string): string {
 }
 
 function getBucketBorderColor(status: string): string {
+  if (status === "real-authoring") {
+    return "#1a7f37";
+  }
+  if (status === "runtime-reaching") {
+    return "#bf3989";
+  }
   if (status === "plan-only") {
     return "#b08800";
   }
@@ -210,6 +245,12 @@ function getBucketBorderColor(status: string): string {
 }
 
 function getBucketBackground(status: string): string {
+  if (status === "real-authoring") {
+    return "#effff1";
+  }
+  if (status === "runtime-reaching") {
+    return "#fff5fa";
+  }
   if (status === "plan-only") {
     return "#fffdf0";
   }

@@ -16,6 +16,21 @@ function readRunResultSummary(item: RunTruthSource): string {
 }
 
 export function getRunExecutionTruthLabel(item: RunTruthSource): string {
+  if (item.tool === "editor.level.open") {
+    return item.execution_mode === "real"
+      ? "Live-validated real editor level path."
+      : "Simulated path or explicit runtime rejection.";
+  }
+  if (item.tool === "editor.session.open") {
+    return item.execution_mode === "real"
+      ? "Live-validated real editor session path."
+      : "Simulated path or explicit runtime rejection.";
+  }
+  if (item.tool === "editor.entity.create") {
+    return item.execution_mode === "real"
+      ? "Runtime-reaching editor entity path."
+      : "Simulated path or explicit runtime rejection.";
+  }
   if (item.tool === "build.configure") {
     return item.execution_mode === "real"
       ? "Real plan-only preflight path."
@@ -36,6 +51,15 @@ export function getRunTruthBoundaryDescription(item: RunTruthSource): string {
 
   if (item.execution_mode === "real" && item.tool === "project.inspect") {
     return "This run used the real read-only project.inspect path and may include explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence.";
+  }
+  if (item.execution_mode === "real" && item.tool === "editor.session.open") {
+    return "This run used the admitted real editor session runtime path.";
+  }
+  if (item.execution_mode === "real" && item.tool === "editor.level.open") {
+    return "This run used the admitted real editor level open/create runtime path.";
+  }
+  if (item.execution_mode === "real" && item.tool === "editor.entity.create") {
+    return "This run reached the real editor entity creation runtime path, but live admission remains narrowed until the target editor path is stable.";
   }
   if (item.execution_mode === "real" && item.tool === "build.configure") {
     return "This run used the real plan-only build.configure preflight path.";
@@ -60,6 +84,18 @@ export function getRunTruthBoundaryDescription(item: RunTruthSource): string {
 
 export function getExecutionProvenanceLabel(item: ExecutionListItem): string {
   if (item.execution_mode === "real") {
+    if (item.inspection_surface === "editor_session_runtime") {
+      return "Real editor session runtime";
+    }
+    if (
+      item.inspection_surface === "editor_level_opened" ||
+      item.inspection_surface === "editor_level_created"
+    ) {
+      return "Real editor level runtime";
+    }
+    if (item.inspection_surface === "editor_entity_created") {
+      return "Real editor entity creation";
+    }
     if (item.inspection_surface === "build_configure_preflight") {
       return "Real plan-only build.configure preflight";
     }
@@ -90,6 +126,18 @@ export function getArtifactProvenanceLabel(item: ArtifactListItem): string {
   if (item.simulated) {
     return "Simulated artifact";
   }
+  if (item.inspection_surface === "editor_session_runtime") {
+    return "Real editor session evidence";
+  }
+  if (
+    item.inspection_surface === "editor_level_opened" ||
+    item.inspection_surface === "editor_level_created"
+  ) {
+    return "Real editor level evidence";
+  }
+  if (item.inspection_surface === "editor_entity_created") {
+    return "Real editor entity evidence";
+  }
   if (item.inspection_surface === "build_configure_preflight") {
     return "Real build.configure preflight evidence";
   }
@@ -103,6 +151,44 @@ export function getArtifactProvenanceLabel(item: ArtifactListItem): string {
     return "Real project manifest evidence";
   }
   return "Real artifact";
+}
+
+type TruthMarkerSource = {
+  inspection_surface?: string | null;
+  fallback_category?: string | null;
+  project_manifest_source_of_truth?: string | null;
+};
+
+export function getFallbackCategoryLabel(item: TruthMarkerSource): string {
+  if (!item.fallback_category) {
+    return "none recorded";
+  }
+  return item.fallback_category;
+}
+
+export function getManifestSourceOfTruthLabel(item: TruthMarkerSource): string {
+  if (!item.project_manifest_source_of_truth) {
+    return "none recorded";
+  }
+  return item.project_manifest_source_of_truth;
+}
+
+export function getInspectionSurfaceLabel(item: TruthMarkerSource): string {
+  if (!item.inspection_surface) {
+    return "none recorded";
+  }
+  return item.inspection_surface;
+}
+
+export function readTruthMarkerString(
+  payload: object | null | undefined,
+  key: "inspection_surface" | "fallback_category" | "project_manifest_source_of_truth",
+): string | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+  const value = (payload as Record<string, unknown>)[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
 export function getHybridDispatchNote(
@@ -120,6 +206,20 @@ export function getHybridDispatchNote(
   if (toolName === "build.configure" && mayUseRealPlanOnlyPath) {
     return "Hybrid mode is active. This tool may use the real plan-only build.configure preflight path when dry_run=true and manifest preconditions are satisfied; otherwise it will fall back to simulation.";
   }
+  if (
+    mayUseRealPath &&
+    (toolName === "editor.session.open" ||
+      toolName === "editor.level.open" ||
+      toolName === "editor.entity.create")
+  ) {
+    if (toolName === "editor.level.open") {
+      return "Hybrid mode is active. This tool may use the live-validated admitted real editor runtime path when editor-runtime prechecks are satisfied; otherwise execution is rejected explicitly rather than silently falling back.";
+    }
+    if (toolName === "editor.session.open") {
+      return "Hybrid mode is active. This tool may use the live-validated admitted real editor session path when editor-runtime prechecks are satisfied; otherwise execution is rejected explicitly rather than silently falling back.";
+    }
+    return "Hybrid mode is active. This tool may reach the real editor entity runtime path when editor-runtime prechecks are satisfied, but it remains narrowed until live stability is proven on McpSandbox.";
+  }
   return "Hybrid mode is active, but this selected tool will still remain simulated in this phase.";
 }
 
@@ -130,6 +230,12 @@ export function getDispatchExpectedExecutionTruth(
 ): string {
   if (capabilityStatus === "hybrid-read-only" && mayUseRealPath) {
     return "Possible real read-only project inspection in hybrid mode, including explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence; simulated fallback remains explicit.";
+  }
+  if (capabilityStatus === "real-authoring" && mayUseRealPath) {
+    return "Possible admitted real editor level path in hybrid mode when editor-runtime prechecks pass; failure remains explicit and does not silently fall back.";
+  }
+  if (capabilityStatus === "runtime-reaching" && mayUseRealPath) {
+    return "Possible real editor entity runtime reachability in hybrid mode, but not yet live-admitted on the active target.";
   }
   if (capabilityStatus === "plan-only" && mayUseRealPlanOnlyPath) {
     return "Possible real plan-only build.configure preflight in hybrid mode when dry_run=true; actual configure mutation is still not real.";
@@ -156,6 +262,15 @@ export function describeExecutionResult(
 
   if (executionMode === "real" && simulated === false && projectInspectTool === "project.inspect") {
     return "Real read-only project inspection path ran for project.inspect, and it may include explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence.";
+  }
+  if (executionMode === "real" && simulated === false && tool === "editor.session.open") {
+    return "Real editor session runtime path ran for editor.session.open.";
+  }
+  if (executionMode === "real" && simulated === false && tool === "editor.level.open") {
+    return "Real editor level open/create runtime path ran for editor.level.open.";
+  }
+  if (executionMode === "real" && simulated === false && tool === "editor.entity.create") {
+    return "Real editor entity creation runtime path ran for editor.entity.create, but this surface remains narrowed until live stability is proven.";
   }
   if (executionMode === "real" && simulated === false && tool === "build.configure") {
     return "Real plan-only build.configure preflight ran; no configure command was executed.";

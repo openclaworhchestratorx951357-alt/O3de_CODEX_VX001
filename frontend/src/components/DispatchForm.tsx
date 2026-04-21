@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { dispatchTool } from "../lib/api";
+import { dispatchTool, fetchO3deTarget } from "../lib/api";
 import {
   getDispatchExpectedExecutionTruth,
   getHybridDispatchNote,
@@ -9,6 +9,7 @@ import type {
   AdaptersResponse,
   CatalogAgent,
   LockName,
+  O3DETargetConfig,
   RequestEnvelope,
   ReadinessStatus,
   ResponseEnvelope,
@@ -55,6 +56,7 @@ export default function DispatchForm({
   });
   const [argsText, setArgsText] = useState("{}");
   const [locksText, setLocksText] = useState("project_config");
+  const [targetConfig, setTargetConfig] = useState<O3DETargetConfig | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,6 +83,46 @@ export default function DispatchForm({
     selectedToolMayUseRealPath,
     selectedToolMayUseRealPlanOnlyPath,
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchO3deTarget()
+      .then((target) => {
+        if (cancelled) {
+          return;
+        }
+        setTargetConfig(target);
+        setRequest((current) => ({
+          ...current,
+          project_root: current.project_root === "/path/to/project"
+            ? (target.project_root
+                ?? ((import.meta.env.VITE_O3DE_TARGET_PROJECT_ROOT as string | undefined) ?? current.project_root))
+            : current.project_root,
+          engine_root: current.engine_root === "/path/to/engine"
+            ? (target.engine_root
+                ?? ((import.meta.env.VITE_O3DE_TARGET_ENGINE_ROOT as string | undefined) ?? current.engine_root))
+            : current.engine_root,
+        }));
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+        setRequest((current) => ({
+          ...current,
+          project_root: current.project_root === "/path/to/project"
+            ? ((import.meta.env.VITE_O3DE_TARGET_PROJECT_ROOT as string | undefined) ?? current.project_root)
+            : current.project_root,
+          engine_root: current.engine_root === "/path/to/engine"
+            ? ((import.meta.env.VITE_O3DE_TARGET_ENGINE_ROOT as string | undefined) ?? current.engine_root)
+            : current.engine_root,
+        }));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function isLockName(value: string): value is LockName {
     return [
@@ -134,6 +176,14 @@ export default function DispatchForm({
       <h3 style={{ marginTop: 0 }}>Dispatch Tool Request</h3>
       {hybridDispatchNote ? (
         <p style={{ marginTop: 0, color: "#57606a" }}>{hybridDispatchNote}</p>
+      ) : null}
+      {targetConfig?.project_root || targetConfig?.engine_root ? (
+        <p style={{ marginTop: 0, color: "#57606a" }}>
+          Active local target: <strong>{targetConfig.project_root ?? "project unset"}</strong>
+          {" "}on{" "}
+          <strong>{targetConfig.engine_root ?? "engine unset"}</strong>
+          {" "}via {targetConfig.source_label}.
+        </p>
       ) : null}
       <form onSubmit={handleSubmit}>
         <div style={{ display: "grid", gap: 12 }}>

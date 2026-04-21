@@ -4,7 +4,13 @@ import type {
   RunRecord,
   SettingsPatchMutationAudit,
 } from "../types/contracts";
-import { getRunTruthBoundaryDescription } from "../lib/executionTruth";
+import {
+  getFallbackCategoryLabel,
+  getInspectionSurfaceLabel,
+  getManifestSourceOfTruthLabel,
+  getRunTruthBoundaryDescription,
+  readTruthMarkerString,
+} from "../lib/executionTruth";
 import LaneActionsCard, { type LaneActionEntry } from "./LaneActionsCard";
 import OperatorLaneStateBlock, { type OperatorLaneStateEntry } from "./OperatorLaneStateBlock";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
@@ -182,6 +188,14 @@ export default function RunDetailPanel({
   const [highlightedSection, setHighlightedSection] = useState<string | null>(null);
   const mutationAudit = readMutationAudit(executionDetails);
   const projectInspectDetails = readProjectInspectDetails(executionDetails);
+  const truthMarkers = {
+    inspection_surface: readTruthMarkerString(executionDetails, "inspection_surface"),
+    fallback_category: readTruthMarkerString(executionDetails, "fallback_category"),
+    project_manifest_source_of_truth: readTruthMarkerString(
+      executionDetails,
+      "project_manifest_source_of_truth",
+    ),
+  };
   const isProjectInspectDetail = item?.tool === "project.inspect" && projectInspectDetails;
   const truthBoundaryRef = useRef<HTMLElement | null>(null);
   const mutationAuditRef = useRef<HTMLElement | null>(null);
@@ -470,6 +484,19 @@ export default function RunDetailPanel({
               <strong>Summary:</strong> {item.result_summary}
             </div>
           ) : null}
+          <div style={{ marginTop: 8 }}>
+            <SummaryFacts>
+              <SummaryFact label="Inspection surface">
+                {getInspectionSurfaceLabel(truthMarkers)}
+              </SummaryFact>
+              <SummaryFact label="Fallback category">
+                {getFallbackCategoryLabel(truthMarkers)}
+              </SummaryFact>
+              <SummaryFact label="Manifest source of truth">
+                {getManifestSourceOfTruthLabel(truthMarkers)}
+              </SummaryFact>
+            </SummaryFacts>
+          </div>
         </article>
         <article style={summaryCardStyle}>
           <h4 style={summaryCardHeadingStyle}>Locks And Warnings</h4>

@@ -41,6 +41,15 @@ export function getExecutionModeTone(mode: string): StatusChipTone {
 }
 
 export function getCapabilityTone(capability: string): StatusChipTone {
+  if (capability === "real-authoring") {
+    return "success";
+  }
+  if (capability === "runtime-candidate") {
+    return "info";
+  }
+  if (capability === "runtime-reaching") {
+    return "warning";
+  }
   if (capability === "hybrid-read-only") {
     return "info";
   }

@@ -1,7 +1,11 @@
 import { useMemo, useState } from "react";
 
 import type { ExecutionListItem } from "../types/contracts";
-import { getExecutionProvenanceLabel } from "../lib/executionTruth";
+import {
+  getExecutionProvenanceLabel,
+  getFallbackCategoryLabel,
+  getManifestSourceOfTruthLabel,
+} from "../lib/executionTruth";
 import { describeExecutionAttention } from "../lib/recordPriority";
 import OperatorStatusRail from "./OperatorStatusRail";
 import SummarySection from "./SummarySection";
@@ -145,6 +149,41 @@ export default function ExecutionsPanel({
                     {formatSummaryLabeledText("Provenance", provenanceLabel)}
                   </span>
                 </SummaryFact>
+                <SummaryFact label="Fallback category">
+                  {getFallbackCategoryLabel(item)}
+                </SummaryFact>
+                <SummaryFact label="Manifest source of truth">
+                  {getManifestSourceOfTruthLabel(item)}
+                </SummaryFact>
+                {item.runner_family ? (
+                  <SummaryFact label="Runner family">{item.runner_family}</SummaryFact>
+                ) : null}
+                {item.execution_attempt_state ? (
+                  <SummaryFact label="Attempt state">
+                    <StatusChip
+                      label={item.execution_attempt_state}
+                      tone={getAttemptStateTone(item.execution_attempt_state)}
+                    />
+                  </SummaryFact>
+                ) : null}
+                {item.failure_category ? (
+                  <SummaryFact label="Failure category">
+                    <StatusChip
+                      label={item.failure_category}
+                      tone={getFailureCategoryTone(item.failure_category)}
+                    />
+                  </SummaryFact>
+                ) : null}
+                {item.executor_id ? (
+                  <SummaryFact label="Executor ID" copyValue={item.executor_id}>
+                    {item.executor_id}
+                  </SummaryFact>
+                ) : null}
+                {item.workspace_id ? (
+                  <SummaryFact label="Workspace ID" copyValue={item.workspace_id}>
+                    {item.workspace_id}
+                  </SummaryFact>
+                ) : null}
                 {item.mutation_audit_summary ? (
                   <SummaryFact label="Mutation audit">{item.mutation_audit_summary}</SummaryFact>
                 ) : null}
@@ -192,7 +231,47 @@ function matchesExecutionSearch(item: ExecutionListItem, query: string): boolean
     item.execution_mode,
     item.status,
     item.result_summary ?? "",
+    item.fallback_category ?? "",
+    item.project_manifest_source_of_truth ?? "",
+    item.executor_id ?? "",
+    item.workspace_id ?? "",
+    item.runner_family ?? "",
+    item.execution_attempt_state ?? "",
+    item.failure_category ?? "",
     item.mutation_audit_summary ?? "",
     item.mutation_audit_status ?? "",
   ].some((value) => value.toLowerCase().includes(query));
+}
+
+function getAttemptStateTone(
+  state: string,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (state === "succeeded") {
+    return "success";
+  }
+  if (state === "failed") {
+    return "danger";
+  }
+  if (state.includes("running") || state.includes("started")) {
+    return "info";
+  }
+  if (state.includes("queued") || state.includes("pending") || state.includes("waiting")) {
+    return "warning";
+  }
+  return "neutral";
+}
+
+function getFailureCategoryTone(
+  category: string,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (category === "none") {
+    return "success";
+  }
+  if (category.includes("policy") || category.includes("approval") || category.includes("lock")) {
+    return "warning";
+  }
+  if (category.includes("failed") || category.includes("error") || category.includes("crash")) {
+    return "danger";
+  }
+  return "neutral";
 }

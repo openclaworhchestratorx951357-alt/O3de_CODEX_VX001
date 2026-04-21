@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/bridge/bridge-result.schema.json",
+  "title": "ControlPlaneEditorBridge result envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "bridge_command_id",
+    "request_id",
+    "operation",
+    "success",
+    "status",
+    "bridge_name",
+    "bridge_version",
+    "started_at",
+    "finished_at",
+    "result_summary",
+    "details",
+    "evidence_refs"
+  ],
+  "properties": {
+    "protocol_version": { "type": "string", "const": "v1" },
+    "bridge_command_id": { "type": "string", "minLength": 1 },
+    "request_id": { "type": "string", "minLength": 1 },
+    "operation": { "type": "string", "minLength": 1 },
+    "success": { "type": "boolean" },
+    "status": { "type": "string", "minLength": 1 },
+    "bridge_name": { "type": "string", "minLength": 1 },
+    "bridge_version": { "type": "string", "minLength": 1 },
+    "started_at": { "type": "string", "minLength": 1 },
+    "finished_at": { "type": "string", "minLength": 1 },
+    "result_summary": { "type": "string", "minLength": 1 },
+    "details": { "type": "object" },
+    "error_code": { "type": "string", "minLength": 1 },
+    "evidence_refs": { "type": "array" },
+    "editor_log_path": { "type": "string", "minLength": 1 }
+  }
+}

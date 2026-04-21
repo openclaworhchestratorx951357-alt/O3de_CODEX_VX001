@@ -1,12 +1,13 @@
 import type { CSSProperties } from "react";
 
-import type { ReadinessStatus } from "../types/contracts";
+import type { O3DEBridgeStatus, ReadinessStatus } from "../types/contracts";
 import {
   getAdapterAttentionLabel,
   getCoverageAttentionLabel,
   getPersistenceAttentionLabel,
   getSchemaAttentionLabel,
 } from "../lib/operatorStatus";
+import CopyTextButton from "./CopyTextButton";
 import OperatorStatusRail from "./OperatorStatusRail";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -16,6 +17,7 @@ import {
   getSchemaModeTone,
 } from "./statusChipTones";
 import {
+  summaryActionButtonStyle,
   summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
@@ -23,27 +25,181 @@ import {
 
 type SystemStatusPanelProps = {
   readiness: ReadinessStatus | null;
+  bridgeStatus: O3DEBridgeStatus | null;
   loading: boolean;
   error: string | null;
+  bridgeError?: string | null;
+  bridgeCleanupBusy?: boolean;
+  bridgeCleanupStatus?: string | null;
+  onCleanupBridgeResults?: (() => void) | null;
 };
 
 export default function SystemStatusPanel(
-  { readiness, loading, error }: SystemStatusPanelProps,
+  {
+    readiness,
+    bridgeStatus,
+    loading,
+    error,
+    bridgeError,
+    bridgeCleanupBusy = false,
+    bridgeCleanupStatus,
+    onCleanupBridgeResults,
+  }: SystemStatusPanelProps,
 ) {
   const readinessData = readiness;
+  const bridgeData = bridgeStatus;
+  const heartbeatAt = bridgeData?.heartbeat?.heartbeat_at;
+  const heartbeatProjectRoot = bridgeData?.heartbeat?.project_root;
+  const heartbeatRunning = bridgeData?.heartbeat?.running;
+  const activeLevelPath = bridgeData?.heartbeat?.active_level_path;
+  const lastCleanup = bridgeData?.last_results_cleanup;
+  const deadletterClusterSummary = summarizeBridgeDeadletterCluster(bridgeData);
+  const heartbeatLagNote = buildBridgeHeartbeatLagNote(bridgeData);
+  const recentDeadletterExportText = buildBridgeDeadletterExport(bridgeData);
 
   return (
     <SummarySection
       title="System Status"
-      description="Operator summary of backend readiness, persistence, adapter contract, and schema-validation state. Persisted coverage is a contract signal, not a real-execution claim. Simulated execution remains explicitly labeled and real O3DE adapters are still not implemented."
+      description="Operator summary of backend readiness, persistence, adapter contract, schema-validation state, and live editor bridge health. Persisted coverage and bridge telemetry are control-plane diagnostics only, not broader real-execution claims. Simulated execution remains explicitly labeled and real O3DE adapters remain limited to the currently admitted surfaces."
       loading={loading}
       error={error}
       emptyMessage="No readiness data available."
-      hasItems={Boolean(readinessData)}
+      hasItems={Boolean(readinessData || bridgeData)}
       marginTop={0}
     >
-      {readinessData ? (
+      {readinessData || bridgeData ? (
         <div style={summaryCardGridStyle}>
+          <article style={summaryCardStyle}>
+            <h3 style={summaryCardHeadingStyle}>Editor Bridge</h3>
+            <SummaryFacts>
+              <SummaryFact label="Configured">
+                <StatusChip
+                  label={bridgeData?.configured ? "yes" : "no"}
+                  tone={bridgeData?.configured ? "success" : "warning"}
+                />
+              </SummaryFact>
+              <SummaryFact label="Heartbeat fresh">
+                <StatusChip
+                  label={bridgeData?.heartbeat_fresh ? "yes" : "no"}
+                  tone={bridgeData?.heartbeat_fresh ? "success" : "warning"}
+                />
+              </SummaryFact>
+              <SummaryFact label="Bridge running">
+                <StatusChip
+                  label={heartbeatRunning === true ? "yes" : heartbeatRunning === false ? "no" : "unknown"}
+                  tone={heartbeatRunning === true ? "success" : heartbeatRunning === false ? "danger" : "neutral"}
+                />
+              </SummaryFact>
+              <SummaryFact label="Results queue">
+                {bridgeData?.queue_counts.results ?? 0}
+              </SummaryFact>
+              <SummaryFact label="Deadletters">
+                <StatusChip
+                  label={String(bridgeData?.queue_counts.deadletter ?? 0)}
+                  tone={(bridgeData?.queue_counts.deadletter ?? 0) > 0 ? "warning" : "success"}
+                />
+              </SummaryFact>
+              <SummaryFact label="Last heartbeat">
+                {formatBridgeValue(formatIsoLabel(heartbeatAt))}
+              </SummaryFact>
+              <SummaryFact label="Project root">
+                {formatBridgeValue(heartbeatProjectRoot, "not reported")}
+              </SummaryFact>
+              <SummaryFact label="Active level">
+                {formatBridgeValue(activeLevelPath, "not reported")}
+              </SummaryFact>
+              <SummaryFact label="Last cleanup">
+                {formatBridgeValue(formatIsoLabel(lastCleanup?.attempted_at))}
+              </SummaryFact>
+              <SummaryFact label="Cleanup outcome">
+                {formatBridgeCleanupOutcome(lastCleanup)}
+              </SummaryFact>
+              <SummaryFact
+                label="Deadletter path"
+                copyValue={bridgeData?.deadletter_path ?? undefined}
+              >
+                {formatBridgeValue(bridgeData?.deadletter_path, "not reported")}
+              </SummaryFact>
+              <SummaryFact
+                label="Bridge log path"
+                copyValue={bridgeData?.log_path ?? undefined}
+              >
+                {formatBridgeValue(bridgeData?.log_path, "not reported")}
+              </SummaryFact>
+            </SummaryFacts>
+            <p style={subtleTextStyle}>
+              Bridge telemetry reflects the persistent Gem-backed editor host only. It helps operators distinguish live bridge observation from simulated fallback and does not widen the admitted real editor set.
+            </p>
+            {onCleanupBridgeResults ? (
+              <div style={bridgeActionRowStyle}>
+                <button
+                  type="button"
+                  onClick={onCleanupBridgeResults}
+                  disabled={bridgeCleanupBusy || !bridgeData?.configured}
+                  style={summaryActionButtonStyle}
+                >
+                  {bridgeCleanupBusy ? "Cleaning stale results..." : "Clear stale success results"}
+                </button>
+                <span style={subtleTextStyle}>
+                  Removes stale successful `results/*.json.resp` transport artifacts only. Deadletters remain preserved by default.
+                </span>
+              </div>
+            ) : null}
+            {bridgeCleanupStatus ? (
+              <p style={bridgeStatusNoteStyle}>{bridgeCleanupStatus}</p>
+            ) : null}
+            {lastCleanup ? (
+              <p style={subtleTextStyle}>
+                Last cleanup removed {lastCleanup.deleted_response_count} stale successful
+                response{lastCleanup.deleted_response_count === 1 ? "" : "s"}, retained{" "}
+                {lastCleanup.retained_response_count}, and preserved{" "}
+                {lastCleanup.deadletter_preserved_count} deadletter
+                {lastCleanup.deadletter_preserved_count === 1 ? "" : "s"}.
+              </p>
+            ) : null}
+            {bridgeError ? (
+              <p style={bridgeWarningStyle}>Bridge status fetch error: {bridgeError}</p>
+            ) : null}
+            {heartbeatLagNote ? (
+              <p style={bridgeStatusNoteStyle}>{heartbeatLagNote}</p>
+            ) : null}
+            {bridgeData?.recent_deadletters && bridgeData.recent_deadletters.length > 0 ? (
+              <>
+                {deadletterClusterSummary ? (
+                  <p style={bridgeWarningStyle}>
+                    Repeated deadletter pattern: {deadletterClusterSummary}
+                  </p>
+                ) : null}
+                {recentDeadletterExportText ? (
+                  <div style={bridgeActionRowStyle}>
+                    <span style={subtleTextStyle}>
+                      Copy recent deadletter follow-up draft:
+                    </span>
+                    <CopyTextButton value={recentDeadletterExportText} />
+                    <span style={subtleTextStyle}>
+                      Browser-local clipboard only. No backend export or persistence is performed.
+                    </span>
+                  </div>
+                ) : null}
+                <p style={listLabelStyle}><strong>Recent deadletters</strong></p>
+                <ul style={listStyle}>
+                  {bridgeData.recent_deadletters.map((deadletter) => (
+                    <li key={deadletter.bridge_command_id} style={{ marginBottom: 10 }}>
+                      <strong>{deadletter.operation ?? "unknown operation"}</strong>:{" "}
+                      {deadletter.error_code ?? "no error code"}
+                      <div style={subtleTextStyle}>
+                        {deadletter.result_summary ?? "No summary recorded."}
+                      </div>
+                      <div style={subtleTextStyle}>
+                        Finished: {formatIsoLabel(deadletter.finished_at)}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+          </article>
+          {readinessData ? (
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Backend</h3>
             <SummaryFacts>
@@ -64,7 +220,9 @@ export default function SystemStatusPanel(
               </SummaryFact>
             </SummaryFacts>
           </article>
-          <article style={summaryCardStyle}>
+          ) : null}
+          {readinessData ? (
+            <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Persistence</h3>
             <SummaryFacts>
               <SummaryFact label="Ready">
@@ -80,7 +238,9 @@ export default function SystemStatusPanel(
               <SummaryFact label="Warning">{readinessData.persistence_warning ?? "none"}</SummaryFact>
             </SummaryFacts>
           </article>
-          <article style={summaryCardStyle}>
+          ) : null}
+          {readinessData ? (
+            <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Schema Validation</h3>
             <SummaryFacts>
               <SummaryFact label="Operator status">
@@ -109,7 +269,9 @@ export default function SystemStatusPanel(
               </SummaryFact>
             </SummaryFacts>
           </article>
-          <article style={summaryCardStyle}>
+          ) : null}
+          {readinessData ? (
+            <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Persisted Coverage</h3>
             <SummaryFacts>
               <SummaryFact label="Operator status">
@@ -146,7 +308,9 @@ export default function SystemStatusPanel(
               ))}
             </ul>
           </article>
-          <article style={summaryCardStyle}>
+          ) : null}
+          {readinessData ? (
+            <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Family Rollout</h3>
             <div style={{ marginBottom: 12 }}>
               <SummaryFacts>
@@ -177,7 +341,9 @@ export default function SystemStatusPanel(
               ))}
             </ul>
           </article>
-          <article style={summaryCardStyle}>
+          ) : null}
+          {readinessData ? (
+            <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Adapter Boundary</h3>
             <SummaryFacts>
               <SummaryFact label="Operator status">
@@ -201,10 +367,121 @@ export default function SystemStatusPanel(
               <SummaryFact label="Boundary">{readinessData.adapter_mode.execution_boundary}</SummaryFact>
             </SummaryFacts>
           </article>
+          ) : null}
         </div>
       ) : null}
     </SummarySection>
   );
+}
+
+function formatBridgeValue(value: unknown, fallback = "none") {
+  return typeof value === "string" && value.trim().length > 0 ? value : fallback;
+}
+
+function formatIsoLabel(value: unknown) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return "not reported";
+  }
+
+  const parsedValue = Date.parse(value);
+  if (Number.isNaN(parsedValue)) {
+    return value;
+  }
+
+  return new Date(parsedValue).toLocaleString();
+}
+
+function formatBridgeCleanupOutcome(
+  cleanupStatus: O3DEBridgeStatus["last_results_cleanup"] | null | undefined,
+) {
+  if (!cleanupStatus) {
+    return "not yet run";
+  }
+
+  if (cleanupStatus.outcome === "stale-results-removed") {
+    return "stale results removed";
+  }
+
+  if (cleanupStatus.outcome === "no-stale-results-removed") {
+    return "no stale results removed";
+  }
+
+  return cleanupStatus.outcome;
+}
+
+function buildBridgeDeadletterExport(bridgeData: O3DEBridgeStatus | null): string | null {
+  if (!bridgeData || !bridgeData.recent_deadletters || bridgeData.recent_deadletters.length === 0) {
+    return null;
+  }
+
+  return [
+    "Bridge deadletter follow-up draft (browser-local clipboard only)",
+    "This draft summarizes preserved bridge deadletters for operator follow-up and does not create backend persistence or orchestration-owned state.",
+    `Deadletter path: ${bridgeData.deadletter_path ?? "not reported"}`,
+    `Bridge log path: ${bridgeData.log_path ?? "not reported"}`,
+    `Project root: ${bridgeData.project_root ?? "not reported"}`,
+    `Heartbeat fresh: ${bridgeData.heartbeat_fresh ? "yes" : "no"}`,
+    "",
+    "Recent deadletters:",
+    ...bridgeData.recent_deadletters.map((deadletter) => (
+      `- ${deadletter.operation ?? "unknown operation"} | ${deadletter.error_code ?? "no error code"} | ${deadletter.result_summary ?? "No summary recorded."} | finished: ${formatIsoLabel(deadletter.finished_at)} | result path: ${deadletter.result_path ?? "not recorded"}`
+    )),
+  ].join("\n");
+}
+
+function summarizeBridgeDeadletterCluster(
+  bridgeData: O3DEBridgeStatus | null,
+): string | null {
+  if (!bridgeData?.recent_deadletters || bridgeData.recent_deadletters.length < 2) {
+    return null;
+  }
+
+  const clusteredDeadletters = new Map<string, number>();
+  for (const deadletter of bridgeData.recent_deadletters) {
+    const key = `${deadletter.operation ?? "unknown operation"}|${deadletter.error_code ?? "no error code"}`;
+    clusteredDeadletters.set(key, (clusteredDeadletters.get(key) ?? 0) + 1);
+  }
+
+  let topClusterKey: string | null = null;
+  let topClusterCount = 0;
+  for (const [clusterKey, clusterCount] of clusteredDeadletters.entries()) {
+    if (clusterCount > topClusterCount) {
+      topClusterKey = clusterKey;
+      topClusterCount = clusterCount;
+    }
+  }
+
+  if (!topClusterKey || topClusterCount < 2) {
+    return null;
+  }
+
+  const [operation, errorCode] = topClusterKey.split("|");
+  return `${topClusterCount} recent deadletters for ${operation} with ${errorCode}. This is bridge diagnostics only and does not expand the admitted real editor set.`;
+}
+
+function buildBridgeHeartbeatLagNote(
+  bridgeData: O3DEBridgeStatus | null,
+): string | null {
+  if (!bridgeData?.heartbeat_fresh) {
+    return null;
+  }
+
+  const heartbeat = bridgeData.heartbeat;
+  if (!heartbeat || heartbeat.running !== true) {
+    return null;
+  }
+
+  const activeLevelPath = heartbeat.active_level_path;
+  const inboxCount = bridgeData.queue_counts.inbox ?? 0;
+  if (typeof activeLevelPath === "string" && activeLevelPath.trim().length > 0) {
+    return null;
+  }
+
+  if (inboxCount <= 0) {
+    return null;
+  }
+
+  return "Bridge heartbeat is healthy, but the editor context snapshot may still be catching up after a real editor action. Refresh after the next pulse if active level remains unreported.";
 }
 
 const listLabelStyle: CSSProperties = {
@@ -219,4 +496,23 @@ const listStyle: CSSProperties = {
 const subtleTextStyle: CSSProperties = {
   color: "#555",
   marginTop: 4,
+};
+
+const bridgeWarningStyle: CSSProperties = {
+  color: "#8a4600",
+  marginTop: 12,
+};
+
+const bridgeStatusNoteStyle: CSSProperties = {
+  color: "#0969da",
+  marginTop: 8,
+  marginBottom: 0,
+};
+
+const bridgeActionRowStyle: CSSProperties = {
+  display: "flex",
+  gap: 8,
+  alignItems: "center",
+  flexWrap: "wrap",
+  marginTop: 8,
 };

@@ -1,7 +1,11 @@
 import { useMemo, useState } from "react";
 
 import type { ArtifactListItem } from "../types/contracts";
-import { getArtifactProvenanceLabel } from "../lib/executionTruth";
+import {
+  getArtifactProvenanceLabel,
+  getFallbackCategoryLabel,
+  getManifestSourceOfTruthLabel,
+} from "../lib/executionTruth";
 import { describeArtifactAttention } from "../lib/recordPriority";
 import OperatorStatusRail from "./OperatorStatusRail";
 import SummarySection from "./SummarySection";
@@ -149,6 +153,36 @@ export default function ArtifactsPanel({
                     {formatSummaryLabeledText("Provenance", provenanceLabel)}
                   </span>
                 </SummaryFact>
+                <SummaryFact label="Fallback category">
+                  {getFallbackCategoryLabel(item)}
+                </SummaryFact>
+                <SummaryFact label="Manifest source of truth">
+                  {getManifestSourceOfTruthLabel(item)}
+                </SummaryFact>
+                {item.artifact_role ? (
+                  <SummaryFact label="Artifact role">{item.artifact_role}</SummaryFact>
+                ) : null}
+                {item.evidence_completeness ? (
+                  <SummaryFact label="Evidence completeness">
+                    <StatusChip
+                      label={item.evidence_completeness}
+                      tone={getEvidenceCompletenessTone(item.evidence_completeness)}
+                    />
+                  </SummaryFact>
+                ) : null}
+                {item.retention_class ? (
+                  <SummaryFact label="Retention class">{item.retention_class}</SummaryFact>
+                ) : null}
+                {item.executor_id ? (
+                  <SummaryFact label="Executor ID" copyValue={item.executor_id}>
+                    {item.executor_id}
+                  </SummaryFact>
+                ) : null}
+                {item.workspace_id ? (
+                  <SummaryFact label="Workspace ID" copyValue={item.workspace_id}>
+                    {item.workspace_id}
+                  </SummaryFact>
+                ) : null}
                 {item.project_name ? (
                   <SummaryFact label="Project name">{item.project_name}</SummaryFact>
                 ) : null}
@@ -195,8 +229,30 @@ function matchesArtifactSearch(item: ArtifactListItem, query: string): boolean {
     item.path ?? "",
     item.content_type ?? "",
     item.execution_mode ?? "",
+    item.fallback_category ?? "",
+    item.project_manifest_source_of_truth ?? "",
     item.project_name ?? "",
+    item.artifact_role ?? "",
+    item.executor_id ?? "",
+    item.workspace_id ?? "",
+    item.retention_class ?? "",
+    item.evidence_completeness ?? "",
     item.mutation_audit_summary ?? "",
     item.mutation_audit_status ?? "",
   ].some((value) => value.toLowerCase().includes(query));
+}
+
+function getEvidenceCompletenessTone(
+  value: string,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (value === "complete") {
+    return "success";
+  }
+  if (value === "partial") {
+    return "warning";
+  }
+  if (value === "missing" || value === "failed") {
+    return "danger";
+  }
+  return "neutral";
 }

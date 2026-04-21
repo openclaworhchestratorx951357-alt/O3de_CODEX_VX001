@@ -5,7 +5,12 @@ import type {
   RunAuditRecord,
   SettingsPatchAuditSummary,
 } from "../types/contracts";
-import { getRunExecutionTruthLabel } from "../lib/executionTruth";
+import {
+  getFallbackCategoryLabel,
+  getInspectionSurfaceLabel,
+  getManifestSourceOfTruthLabel,
+  getRunExecutionTruthLabel,
+} from "../lib/executionTruth";
 import {
   getRunAttentionLabel,
   getRunAuditStatusLabel,
@@ -46,6 +51,10 @@ type RunsPanelProps = {
   error: string | null;
   selectedRunId: string | null;
   onSelectRun: (runId: string) => void;
+  onTruthFilterSelect?: (
+    filter: "inspection_surface" | "fallback_category" | "manifest_source_of_truth",
+    value: string,
+  ) => void;
   searchPreset?: string | null;
   focusLabel?: string | null;
   onClearFocus?: () => void;
@@ -86,6 +95,7 @@ export default function RunsPanel({
   error,
   selectedRunId,
   onSelectRun,
+  onTruthFilterSelect,
   searchPreset,
   focusLabel,
   onClearFocus,
@@ -256,6 +266,80 @@ export default function RunsPanel({
                     <StatusChip label={capability} tone={getCapabilityTone(capability)} />
                   </SummaryFact>
                   <SummaryFact label="Execution truth">{executionTruth}</SummaryFact>
+                  {item.inspection_surface ? (
+                    <SummaryFact label="Inspection surface">
+                      {onTruthFilterSelect ? (
+                        <button
+                          type="button"
+                          style={summaryInlineActionButtonStyle}
+                          onClick={() => onTruthFilterSelect("inspection_surface", item.inspection_surface!)}
+                        >
+                          {getInspectionSurfaceLabel(item)}
+                        </button>
+                      ) : (
+                        getInspectionSurfaceLabel(item)
+                      )}
+                    </SummaryFact>
+                  ) : null}
+                  {item.fallback_category ? (
+                    <SummaryFact label="Fallback category">
+                      {onTruthFilterSelect ? (
+                        <button
+                          type="button"
+                          style={summaryInlineActionButtonStyle}
+                          onClick={() => onTruthFilterSelect("fallback_category", item.fallback_category!)}
+                        >
+                          {getFallbackCategoryLabel(item)}
+                        </button>
+                      ) : (
+                        getFallbackCategoryLabel(item)
+                      )}
+                    </SummaryFact>
+                  ) : null}
+                  {item.project_manifest_source_of_truth ? (
+                    <SummaryFact label="Manifest source of truth">
+                      {onTruthFilterSelect ? (
+                        <button
+                          type="button"
+                          style={summaryInlineActionButtonStyle}
+                          onClick={() => onTruthFilterSelect("manifest_source_of_truth", item.project_manifest_source_of_truth!)}
+                        >
+                          {getManifestSourceOfTruthLabel(item)}
+                        </button>
+                      ) : (
+                        getManifestSourceOfTruthLabel(item)
+                      )}
+                    </SummaryFact>
+                  ) : null}
+                  {item.runner_family ? (
+                    <SummaryFact label="Runner family">{item.runner_family}</SummaryFact>
+                  ) : null}
+                  {item.execution_attempt_state ? (
+                    <SummaryFact label="Attempt state">
+                      <StatusChip
+                        label={item.execution_attempt_state}
+                        tone={getAttemptStateTone(item.execution_attempt_state)}
+                      />
+                    </SummaryFact>
+                  ) : null}
+                  {item.executor_id ? (
+                    <SummaryFact label="Executor ID" copyValue={item.executor_id}>
+                      {item.executor_id}
+                    </SummaryFact>
+                  ) : null}
+                  {item.workspace_id ? (
+                    <SummaryFact label="Workspace ID" copyValue={item.workspace_id}>
+                      {item.workspace_id}
+                    </SummaryFact>
+                  ) : null}
+                  {item.workspace_state ? (
+                    <SummaryFact label="Workspace state">
+                      <StatusChip
+                        label={item.workspace_state}
+                        tone={getWorkspaceStateTone(item.workspace_state)}
+                      />
+                    </SummaryFact>
+                  ) : null}
                   {auditStatus ? (
                     <SummaryFact label="Audit status">
                       <StatusChip label={auditStatus} tone={getAuditStatusTone(auditStatus)} />
@@ -293,6 +377,12 @@ export default function RunsPanel({
 }
 
 function getRunCapabilityLabel(item: RunListItem): string {
+  if (item.tool === "editor.session.open" || item.tool === "editor.level.open") {
+    return "real-authoring";
+  }
+  if (item.tool === "editor.entity.create") {
+    return "runtime-reaching";
+  }
   if (item.tool === "project.inspect") {
     return "hybrid-read-only";
   }
@@ -354,10 +444,54 @@ function matchesRunSearch(
     item.status,
     item.execution_mode,
     item.result_summary ?? "",
+    item.inspection_surface ?? "",
+    item.fallback_category ?? "",
+    item.project_manifest_source_of_truth ?? "",
+    item.executor_id ?? "",
+    item.workspace_id ?? "",
+    item.workspace_state ?? "",
+    item.runner_family ?? "",
+    item.execution_attempt_state ?? "",
     audit?.audit_status ?? "",
     audit?.audit_phase ?? "",
     audit?.audit_summary ?? "",
   ].some((value) => value.toLowerCase().includes(query));
+}
+
+function getAttemptStateTone(
+  state: string,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (state === "succeeded") {
+    return "success";
+  }
+  if (state === "failed") {
+    return "danger";
+  }
+  if (state.includes("running") || state.includes("started")) {
+    return "info";
+  }
+  if (state.includes("queued") || state.includes("pending") || state.includes("waiting")) {
+    return "warning";
+  }
+  return "neutral";
+}
+
+function getWorkspaceStateTone(
+  state: string,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (state === "ready") {
+    return "success";
+  }
+  if (state === "failed" || state === "stale") {
+    return "danger";
+  }
+  if (state.includes("preparing") || state.includes("active")) {
+    return "info";
+  }
+  if (state.includes("pending") || state.includes("recycling")) {
+    return "warning";
+  }
+  return "neutral";
 }
 
 function getFilterLabel(filter: AuditFilter): string {

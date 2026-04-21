@@ -6,7 +6,14 @@ export type TruthFilterState = {
   manifestSourceOfTruth: string | null;
 };
 
-export type FocusedSection = "approvals" | "artifacts" | "events" | "executions" | "runs";
+export type FocusedSection =
+  | "approvals"
+  | "artifacts"
+  | "events"
+  | "executions"
+  | "executors"
+  | "runs"
+  | "workspaces";
 
 export function createNeutralTruthFilter(): TruthFilterState {
   return {

@@ -27,6 +27,10 @@ type TaskTimelineProps = {
   items: EventListItem[];
   loading: boolean;
   error: string | null;
+  onOpenRun?: (runId: string) => void;
+  onOpenExecution?: (executionId: string) => void;
+  onOpenExecutor?: (executorId: string) => void;
+  onOpenWorkspace?: (workspaceId: string) => void;
   searchPreset?: string | null;
   focusLabel?: string | null;
   onClearFocus?: () => void;
@@ -40,6 +44,10 @@ export default function TaskTimeline({
   items,
   loading,
   error,
+  onOpenRun,
+  onOpenExecution,
+  onOpenExecutor,
+  onOpenWorkspace,
   searchPreset,
   focusLabel,
   onClearFocus,
@@ -132,7 +140,78 @@ export default function TaskTimeline({
                     <StatusChip label={adapterMode} tone={getAdapterModeTone(adapterMode)} />
                   </SummaryFact>
                 ) : null}
-                {item.run_id ? <SummaryFact label="Run">{item.run_id}</SummaryFact> : null}
+                {item.event_type ? (
+                  <SummaryFact label="Event type">{item.event_type}</SummaryFact>
+                ) : null}
+                {item.previous_state ? (
+                  <SummaryFact label="Previous state">{item.previous_state}</SummaryFact>
+                ) : null}
+                {item.current_state ? (
+                  <SummaryFact label="Current state">{item.current_state}</SummaryFact>
+                ) : null}
+                {item.failure_category ? (
+                  <SummaryFact label="Failure category">{item.failure_category}</SummaryFact>
+                ) : null}
+                {item.run_id ? (
+                  <SummaryFact label="Run">
+                    {onOpenRun ? (
+                      <button
+                        type="button"
+                        style={summaryInlineActionButtonStyle}
+                        onClick={() => onOpenRun(item.run_id!)}
+                      >
+                        {item.run_id}
+                      </button>
+                    ) : (
+                      item.run_id
+                    )}
+                  </SummaryFact>
+                ) : null}
+                {item.execution_id ? (
+                  <SummaryFact label="Execution">
+                    {onOpenExecution ? (
+                      <button
+                        type="button"
+                        style={summaryInlineActionButtonStyle}
+                        onClick={() => onOpenExecution(item.execution_id!)}
+                      >
+                        {item.execution_id}
+                      </button>
+                    ) : (
+                      item.execution_id
+                    )}
+                  </SummaryFact>
+                ) : null}
+                {item.executor_id ? (
+                  <SummaryFact label="Executor">
+                    {onOpenExecutor ? (
+                      <button
+                        type="button"
+                        style={summaryInlineActionButtonStyle}
+                        onClick={() => onOpenExecutor(item.executor_id!)}
+                      >
+                        {item.executor_id}
+                      </button>
+                    ) : (
+                      item.executor_id
+                    )}
+                  </SummaryFact>
+                ) : null}
+                {item.workspace_id ? (
+                  <SummaryFact label="Workspace">
+                    {onOpenWorkspace ? (
+                      <button
+                        type="button"
+                        style={summaryInlineActionButtonStyle}
+                        onClick={() => onOpenWorkspace(item.workspace_id!)}
+                      >
+                        {item.workspace_id}
+                      </button>
+                    ) : (
+                      item.workspace_id
+                    )}
+                  </SummaryFact>
+                ) : null}
                 <SummaryFact label="Created">{formatSummaryTimestamp(item.created_at)}</SummaryFact>
               </SummaryFacts>
               {meaning ? (
@@ -160,6 +239,13 @@ function matchesTimelineSearch(item: EventListItem, query: string): boolean {
     item.severity,
     item.event_state,
     item.run_id ?? "",
+    item.execution_id ?? "",
+    item.executor_id ?? "",
+    item.workspace_id ?? "",
+    item.event_type ?? "",
+    item.previous_state ?? "",
+    item.current_state ?? "",
+    item.failure_category ?? "",
     item.capability_status ?? "",
     item.adapter_mode ?? "",
   ].some((value) => value.toLowerCase().includes(query));

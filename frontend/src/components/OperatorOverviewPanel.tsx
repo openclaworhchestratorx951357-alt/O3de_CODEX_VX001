@@ -94,10 +94,21 @@ type OperatorOverviewPanelProps = {
   onSaveLaneOperatorNote?: (() => void) | null;
   onClearLaneOperatorNote?: (() => void) | null;
   onRunStatusSelect: (status: string) => void;
+  onRunInspectionSurfaceSelect?: (value: string) => void;
+  onRunFallbackCategorySelect?: (value: string) => void;
+  onRunManifestSourceSelect?: (value: string) => void;
   onPendingApprovalsSelect: () => void;
   onExecutionModeSelect: (mode: string) => void;
   onArtifactModeSelect: (mode: string) => void;
   onEventSeveritySelect: (severity: string) => void;
+  onExecutorAvailabilitySelect?: (value: string) => void;
+  onWorkspaceStateSelect?: (value: string) => void;
+  onExecutionInspectionSurfaceSelect?: (value: string) => void;
+  onExecutionFallbackCategorySelect?: (value: string) => void;
+  onExecutionManifestSourceSelect?: (value: string) => void;
+  onArtifactInspectionSurfaceSelect?: (value: string) => void;
+  onArtifactFallbackCategorySelect?: (value: string) => void;
+  onArtifactManifestSourceSelect?: (value: string) => void;
   onRefresh?: (() => void) | null;
   refreshing?: boolean;
 };
@@ -156,10 +167,21 @@ export default function OperatorOverviewPanel({
   onSaveLaneOperatorNote,
   onClearLaneOperatorNote,
   onRunStatusSelect,
+  onRunInspectionSurfaceSelect,
+  onRunFallbackCategorySelect,
+  onRunManifestSourceSelect,
   onPendingApprovalsSelect,
   onExecutionModeSelect,
   onArtifactModeSelect,
   onEventSeveritySelect,
+  onExecutorAvailabilitySelect,
+  onWorkspaceStateSelect,
+  onExecutionInspectionSurfaceSelect,
+  onExecutionFallbackCategorySelect,
+  onExecutionManifestSourceSelect,
+  onArtifactInspectionSurfaceSelect,
+  onArtifactFallbackCategorySelect,
+  onArtifactManifestSourceSelect,
   onRefresh,
   refreshing = false,
 }: OperatorOverviewPanelProps) {
@@ -207,12 +229,15 @@ export default function OperatorOverviewPanel({
             </div>
           ) : null}
           <div style={badgeRowStyle}>
+            <span style={summaryBadgeStyle}>prompt sessions: {summary.prompt_sessions_total}</span>
             <span style={summaryBadgeStyle}>runs: {summary.runs_total}</span>
             <span style={summaryBadgeStyle}>approvals: {summary.approvals_total}</span>
             <span style={summaryBadgeStyle}>executions: {summary.executions_total}</span>
             <span style={summaryBadgeStyle}>artifacts: {summary.artifacts_total}</span>
             <span style={summaryBadgeStyle}>events: {summary.events_total}</span>
             <span style={summaryBadgeStyle}>locks: {summary.locks_total}</span>
+            <span style={summaryBadgeStyle}>executors: {summary.executors_total}</span>
+            <span style={summaryBadgeStyle}>workspaces: {summary.workspaces_total}</span>
             {pinnedRecordLabel ? (
               <span style={summaryBadgeStyle}>pinned: {pinnedRecordLabel}</span>
             ) : null}
@@ -473,6 +498,36 @@ export default function OperatorOverviewPanel({
           ) : null}
           <div style={summaryCardGridStyle}>
             <article style={summaryCardStyle}>
+              <h3 style={summaryCardHeadingStyle}>Prompt Sessions</h3>
+              <SummaryFacts>
+                <SummaryFact label="Total">{summary.prompt_sessions_total}</SummaryFact>
+                <SummaryFact label="Waiting approval">
+                  <StatusChip
+                    label={String(summary.prompt_sessions_waiting_approval)}
+                    tone={getApprovalStatusTone(
+                      summary.prompt_sessions_waiting_approval > 0 ? "pending" : "approved",
+                    )}
+                  />
+                </SummaryFact>
+                <SummaryFact label="Real editor child paths">
+                  <StatusChip
+                    label={String(summary.prompt_sessions_with_real_editor_children)}
+                    tone={summary.prompt_sessions_with_real_editor_children > 0 ? "success" : "neutral"}
+                  />
+                </SummaryFact>
+                <SummaryFact label="Statuses">
+                  <StatusBreakdown
+                    entries={summary.prompt_sessions_by_status}
+                    toneForKey={getPromptSessionStatusTone}
+                    emptyLabel="none"
+                  />
+                </SummaryFact>
+              </SummaryFacts>
+              <p style={summaryMutedTextStyle}>
+                Prompt-session counts summarize the natural-language front door only. They do not bypass tool approvals, locks, or the admitted capability boundary, and real editor child work remains limited to the current real-authoring editor path.
+              </p>
+            </article>
+            <article style={summaryCardStyle}>
               <h3 style={summaryCardHeadingStyle}>Runs</h3>
               <SummaryFacts>
                 <SummaryFact label="Total">{summary.runs_total}</SummaryFact>
@@ -490,6 +545,45 @@ export default function OperatorOverviewPanel({
                   />
                 </SummaryFact>
               </SummaryFacts>
+            </article>
+            <article style={summaryCardStyle}>
+              <h3 style={summaryCardHeadingStyle}>Run Truth</h3>
+              <SummaryFacts>
+                <SummaryFact label="Related execution modes">
+                  <StatusBreakdown
+                    entries={summary.runs_by_related_execution_mode}
+                    toneForKey={getExecutionModeTone}
+                    emptyLabel="none"
+                  />
+                </SummaryFact>
+                <SummaryFact label="Inspection surfaces">
+                  <StatusBreakdown
+                    entries={summary.runs_by_inspection_surface}
+                    toneForKey={getInspectionSurfaceTone}
+                    emptyLabel="none"
+                    onSelect={onRunInspectionSurfaceSelect}
+                  />
+                </SummaryFact>
+                <SummaryFact label="Fallback categories">
+                  <StatusBreakdown
+                    entries={summary.runs_by_fallback_category}
+                    toneForKey={getFallbackCategoryTone}
+                    emptyLabel="none"
+                    onSelect={onRunFallbackCategorySelect}
+                  />
+                </SummaryFact>
+                <SummaryFact label="Manifest source of truth">
+                  <StatusBreakdown
+                    entries={summary.runs_by_manifest_source_of_truth}
+                    toneForKey={getManifestSourceTone}
+                    emptyLabel="none"
+                    onSelect={onRunManifestSourceSelect}
+                  />
+                </SummaryFact>
+              </SummaryFacts>
+              <p style={summaryMutedTextStyle}>
+                Run truth counts summarize each run by its preferred related execution evidence. The related execution mode mix above shows whether those run-truth counts are currently being driven by simulated persisted executions or admitted hybrid real-path evidence, and it does not expand the admitted real O3DE adapter boundary.
+              </p>
             </article>
             <article style={summaryCardStyle}>
               <h3 style={summaryCardHeadingStyle}>Approvals</h3>
@@ -540,7 +634,79 @@ export default function OperatorOverviewPanel({
                     onSelect={onExecutionModeSelect}
                   />
                 </SummaryFact>
+                <SummaryFact label="Attempt states">
+                  <StatusBreakdown
+                    entries={summary.executions_by_attempt_state}
+                    toneForKey={getAttemptStateTone}
+                    emptyLabel="none"
+                  />
+                </SummaryFact>
+                <SummaryFact label="Failure categories">
+                  <StatusBreakdown
+                    entries={summary.executions_by_failure_category}
+                    toneForKey={getFailureCategoryTone}
+                    emptyLabel="none"
+                  />
+                </SummaryFact>
               </SummaryFacts>
+            </article>
+            <article style={summaryCardStyle}>
+              <h3 style={summaryCardHeadingStyle}>Remote Substrate</h3>
+              <SummaryFacts>
+                <SummaryFact label="Executors total">{summary.executors_total}</SummaryFact>
+                <SummaryFact label="Executor availability">
+                  <StatusBreakdown
+                    entries={summary.executors_by_availability_state}
+                    toneForKey={getAvailabilityStateTone}
+                    emptyLabel="none"
+                    onSelect={onExecutorAvailabilitySelect}
+                  />
+                </SummaryFact>
+                <SummaryFact label="Workspaces total">{summary.workspaces_total}</SummaryFact>
+                <SummaryFact label="Workspace states">
+                  <StatusBreakdown
+                    entries={summary.workspaces_by_state}
+                    toneForKey={getWorkspaceStateTone}
+                    emptyLabel="none"
+                    onSelect={onWorkspaceStateSelect}
+                  />
+                </SummaryFact>
+              </SummaryFacts>
+              <p style={summaryMutedTextStyle}>
+                These substrate counts are control-plane bookkeeping for remote executor isolation and workspace lifecycle only. They do not claim broader real O3DE adapter admission beyond the currently admitted surfaces.
+              </p>
+            </article>
+            <article style={summaryCardStyle}>
+              <h3 style={summaryCardHeadingStyle}>Execution Truth</h3>
+              <SummaryFacts>
+                <SummaryFact label="Inspection surfaces">
+                  <StatusBreakdown
+                    entries={summary.executions_by_inspection_surface}
+                    toneForKey={getInspectionSurfaceTone}
+                    emptyLabel="none"
+                    onSelect={onExecutionInspectionSurfaceSelect}
+                  />
+                </SummaryFact>
+                <SummaryFact label="Fallback categories">
+                  <StatusBreakdown
+                    entries={summary.executions_by_fallback_category}
+                    toneForKey={getFallbackCategoryTone}
+                    emptyLabel="none"
+                    onSelect={onExecutionFallbackCategorySelect}
+                  />
+                </SummaryFact>
+                <SummaryFact label="Manifest source of truth">
+                  <StatusBreakdown
+                    entries={summary.executions_by_manifest_source_of_truth}
+                    toneForKey={getManifestSourceTone}
+                    emptyLabel="none"
+                    onSelect={onExecutionManifestSourceSelect}
+                  />
+                </SummaryFact>
+              </SummaryFacts>
+              <p style={summaryMutedTextStyle}>
+                Real-path aggregates here only summarize persisted evidence. Simulated execution remains explicitly labeled, and real O3DE adapters are still not broadly implemented.
+              </p>
             </article>
             <article style={summaryCardStyle}>
               <h3 style={summaryCardHeadingStyle}>Artifacts</h3>
@@ -562,6 +728,38 @@ export default function OperatorOverviewPanel({
                   />
                 </SummaryFact>
               </SummaryFacts>
+            </article>
+            <article style={summaryCardStyle}>
+              <h3 style={summaryCardHeadingStyle}>Artifact Truth</h3>
+              <SummaryFacts>
+                <SummaryFact label="Inspection surfaces">
+                  <StatusBreakdown
+                    entries={summary.artifacts_by_inspection_surface}
+                    toneForKey={getInspectionSurfaceTone}
+                    emptyLabel="none"
+                    onSelect={onArtifactInspectionSurfaceSelect}
+                  />
+                </SummaryFact>
+                <SummaryFact label="Fallback categories">
+                  <StatusBreakdown
+                    entries={summary.artifacts_by_fallback_category}
+                    toneForKey={getFallbackCategoryTone}
+                    emptyLabel="none"
+                    onSelect={onArtifactFallbackCategorySelect}
+                  />
+                </SummaryFact>
+                <SummaryFact label="Manifest source of truth">
+                  <StatusBreakdown
+                    entries={summary.artifacts_by_manifest_source_of_truth}
+                    toneForKey={getManifestSourceTone}
+                    emptyLabel="none"
+                    onSelect={onArtifactManifestSourceSelect}
+                  />
+                </SummaryFact>
+              </SummaryFacts>
+              <p style={summaryMutedTextStyle}>
+                Artifact provenance is an operator-visible audit surface only. It does not imply broader mutation admission outside the currently admitted hybrid paths.
+              </p>
             </article>
             <article style={summaryCardStyle}>
               <h3 style={summaryCardHeadingStyle}>Events</h3>
@@ -640,6 +838,121 @@ function StatusBreakdown({ entries, toneForKey, emptyLabel, onSelect }: StatusBr
       ))}
     </div>
   );
+}
+
+function getInspectionSurfaceTone(
+  key: string,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (key === "simulated") {
+    return "warning";
+  }
+  if (key.includes("mutation")) {
+    return "success";
+  }
+  if (key.includes("preflight") || key === "project_manifest") {
+    return "info";
+  }
+  return "neutral";
+}
+
+function getPromptSessionStatusTone(
+  key: string,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (key === "completed") {
+    return "success";
+  }
+  if (key === "failed" || key === "blocked" || key === "refused") {
+    return "danger";
+  }
+  if (key === "waiting_approval" || key === "running" || key === "planned") {
+    return "warning";
+  }
+  return "neutral";
+}
+
+function getFallbackCategoryTone(
+  key: string,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (key === "mutation-not-admitted" || key === "manifest-unreadable") {
+    return "danger";
+  }
+  if (key === "manifest-missing" || key === "dry-run-required") {
+    return "warning";
+  }
+  return "neutral";
+}
+
+function getManifestSourceTone(): "neutral" | "info" | "success" | "warning" | "danger" {
+  return "info";
+}
+
+function getAttemptStateTone(
+  key: string,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (key === "succeeded") {
+    return "success";
+  }
+  if (key === "failed") {
+    return "danger";
+  }
+  if (key.includes("running") || key.includes("started")) {
+    return "info";
+  }
+  if (key.includes("queued") || key.includes("pending") || key.includes("waiting")) {
+    return "warning";
+  }
+  return "neutral";
+}
+
+function getFailureCategoryTone(
+  key: string,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (key === "none") {
+    return "success";
+  }
+  if (key.includes("approval") || key.includes("policy") || key.includes("lock")) {
+    return "warning";
+  }
+  if (key.includes("error") || key.includes("failed") || key.includes("crash")) {
+    return "danger";
+  }
+  return "neutral";
+}
+
+function getAvailabilityStateTone(
+  key: string,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (key === "available" || key === "ready") {
+    return "success";
+  }
+  if (key === "offline" || key === "failed") {
+    return "danger";
+  }
+  if (key.includes("busy") || key.includes("active")) {
+    return "info";
+  }
+  if (key.includes("draining") || key.includes("pending")) {
+    return "warning";
+  }
+  return "neutral";
+}
+
+function getWorkspaceStateTone(
+  key: string,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (key === "ready") {
+    return "success";
+  }
+  if (key === "failed" || key === "stale") {
+    return "danger";
+  }
+  if (key.includes("active") || key.includes("preparing")) {
+    return "info";
+  }
+  if (key.includes("pending") || key.includes("recycling")) {
+    return "warning";
+  }
+  return "neutral";
 }
 
 const badgeRowStyle: CSSProperties = {

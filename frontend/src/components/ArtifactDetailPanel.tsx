@@ -9,6 +9,12 @@ import {
   describeArtifactPriority,
   recommendArtifactAction,
 } from "../lib/recordPriority";
+import {
+  getFallbackCategoryLabel,
+  getInspectionSurfaceLabel,
+  getManifestSourceOfTruthLabel,
+  readTruthMarkerString,
+} from "../lib/executionTruth";
 import LaneActionsCard, { type LaneActionEntry } from "./LaneActionsCard";
 import OperatorLaneStateBlock, { type OperatorLaneStateEntry } from "./OperatorLaneStateBlock";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
@@ -210,6 +216,14 @@ export default function ArtifactDetailPanel({
   const projectInspectDetails = item?.metadata && item.kind === "project_manifest_inspection"
     ? readProjectInspectDetails(item.metadata)
     : null;
+  const truthMarkers = {
+    inspection_surface: readTruthMarkerString(item?.metadata ?? null, "inspection_surface"),
+    fallback_category: readTruthMarkerString(item?.metadata ?? null, "fallback_category"),
+    project_manifest_source_of_truth: readTruthMarkerString(
+      item?.metadata ?? null,
+      "project_manifest_source_of_truth",
+    ),
+  };
   const selectedArtifactListItem = selectedArtifactId
     ? relatedArtifacts.find((artifact) => artifact.id === selectedArtifactId) ?? null
     : null;
@@ -513,6 +527,20 @@ export default function ArtifactDetailPanel({
             </SummaryFact>
           </SummaryFacts>
         </article>
+        <article style={summaryCardStyle}>
+          <h4 style={summaryCardHeadingStyle}>Artifact Truth Markers</h4>
+          <SummaryFacts>
+            <SummaryFact label="Inspection surface">
+              {getInspectionSurfaceLabel(truthMarkers)}
+            </SummaryFact>
+            <SummaryFact label="Fallback category">
+              {getFallbackCategoryLabel(truthMarkers)}
+            </SummaryFact>
+            <SummaryFact label="Manifest source of truth">
+              {getManifestSourceOfTruthLabel(truthMarkers)}
+            </SummaryFact>
+          </SummaryFacts>
+        </article>
         {item ? (
           <article
             ref={relatedRecordsRef}
@@ -547,6 +575,12 @@ export default function ArtifactDetailPanel({
                       </SummaryFact>
                       <SummaryFact label="Execution mode">
                         {artifact.execution_mode ?? "not recorded"}
+                      </SummaryFact>
+                      <SummaryFact label="Fallback category">
+                        {artifact.fallback_category ?? "none recorded"}
+                      </SummaryFact>
+                      <SummaryFact label="Manifest source of truth">
+                        {artifact.project_manifest_source_of_truth ?? "none recorded"}
                       </SummaryFact>
                       <SummaryFact label="Simulated">
                         {artifact.simulated ? "yes" : "no"}

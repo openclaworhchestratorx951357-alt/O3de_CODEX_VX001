@@ -2,6 +2,17 @@ export function describeCatalogCapability(
   toolName: string,
   capabilityStatus?: string,
 ): string {
+  if (capabilityStatus === "real-authoring") {
+    if (toolName === "editor.session.open") {
+      return "Live-validated real authoring in hybrid mode through the admitted editor session runtime path on McpSandbox, with explicit preflight rejection if the editor runtime or PythonEditorBindings prerequisites are missing.";
+    }
+    if (toolName === "editor.level.open") {
+      return "Live-validated real authoring in hybrid mode through the admitted level open/create runtime path on McpSandbox, with explicit preflight rejection if editor session or level prerequisites are missing.";
+    }
+  }
+  if (capabilityStatus === "runtime-reaching" && toolName === "editor.entity.create") {
+    return "Runtime-reaching in hybrid mode through the typed entity creation path, but not yet live-admitted on McpSandbox until the real editor/prefab behavior is stable.";
+  }
   if (capabilityStatus === "hybrid-read-only" && toolName === "project.inspect") {
     return "Real read-only in hybrid mode when manifest preconditions are satisfied, with explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence plus simulated fallback when the real path is unavailable.";
   }
@@ -38,6 +49,12 @@ export function describeTimelineMeaning(
 
   if (capabilityStatus === "hybrid-read-only") {
     return "This event reflects the first real read-only project.inspect path or its simulated fallback.";
+  }
+  if (capabilityStatus === "real-authoring") {
+    return "This event reflects a live-validated admitted real editor path or a preflight-visible rejection.";
+  }
+  if (capabilityStatus === "runtime-reaching") {
+    return "This event reflects an editor runtime path that reaches the live boundary but remains narrowed until stable on the target editor build.";
   }
 
   return null;

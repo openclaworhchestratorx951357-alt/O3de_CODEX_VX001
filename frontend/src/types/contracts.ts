@@ -24,6 +24,8 @@ export interface RequestEnvelope {
   project_root: string;
   engine_root: string;
   session_id?: string | null;
+  workspace_id?: string | null;
+  executor_id?: string | null;
   dry_run: boolean;
   approval_token?: string | null;
   locks: LockName[];
@@ -58,6 +60,188 @@ export interface ResponseEnvelope {
   timing_ms?: number;
   logs?: string[];
   error?: ResponseError | null;
+}
+
+export interface PromptRequest {
+  prompt_id: string;
+  prompt_text: string;
+  project_root: string;
+  engine_root: string;
+  workspace_id?: string | null;
+  executor_id?: string | null;
+  dry_run: boolean;
+  preferred_domains: string[];
+  operator_note?: string | null;
+}
+
+export interface PromptPlanStep {
+  step_id: string;
+  tool: string;
+  agent: string;
+  args: Record<string, unknown>;
+  approval_class: string;
+  required_locks: string[];
+  capability_status_required: string;
+  workspace_id?: string | null;
+  executor_id?: string | null;
+  simulated_allowed: boolean;
+  depends_on: string[];
+  capability_maturity: string;
+  planner_note?: string | null;
+}
+
+export interface PromptPlan {
+  prompt_id: string;
+  plan_id: string;
+  schema_version: string;
+  admitted: boolean;
+  refusal_reason?: string | null;
+  summary: string;
+  steps: PromptPlanStep[];
+  refused_capabilities: string[];
+  capability_requirements: string[];
+}
+
+export interface PromptCapabilityEntry {
+  tool_name: string;
+  agent_family: string;
+  args_schema: string;
+  result_schema: string;
+  persisted_execution_details_schema?: string | null;
+  persisted_artifact_metadata_schema?: string | null;
+  approval_class: string;
+  default_locks: string[];
+  capability_maturity: string;
+  capability_status: string;
+  real_admission_stage: string;
+  planner_intent_aliases: string[];
+  natural_language_affordances: string[];
+  allowlisted_parameter_surfaces: string[];
+  real_adapter_availability: boolean;
+  dry_run_availability: boolean;
+  simulation_fallback_availability: boolean;
+}
+
+export interface PromptCapabilitiesResponse {
+  capabilities: PromptCapabilityEntry[];
+}
+
+export type PromptSessionStatus =
+  | "planned"
+  | "refused"
+  | "running"
+  | "waiting_approval"
+  | "blocked"
+  | "completed"
+  | "failed";
+
+export interface PromptSessionRecord {
+  prompt_id: string;
+  plan_id: string;
+  status: PromptSessionStatus;
+  prompt_text: string;
+  project_root: string;
+  engine_root: string;
+  dry_run: boolean;
+  preferred_domains: string[];
+  operator_note?: string | null;
+  child_run_ids: string[];
+  child_execution_ids: string[];
+  child_artifact_ids: string[];
+  child_event_ids: string[];
+  workspace_id?: string | null;
+  executor_id?: string | null;
+  plan_summary?: string | null;
+  evidence_summary?: string | null;
+  admitted_capabilities: string[];
+  refused_capabilities: string[];
+  final_result_summary?: string | null;
+  next_step_index: number;
+  current_step_id?: string | null;
+  pending_approval_id?: string | null;
+  pending_approval_token?: string | null;
+  last_error_code?: string | null;
+  last_error_retryable: boolean;
+  step_attempts: Record<string, number>;
+  plan?: PromptPlan | null;
+  latest_child_responses: Record<string, unknown>[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PromptSessionsResponse {
+  sessions: PromptSessionRecord[];
+}
+
+export interface O3DETargetConfig {
+  project_root?: string | null;
+  engine_root?: string | null;
+  editor_runner?: string | null;
+  runtime_runner?: string | null;
+  source_label: string;
+  project_root_exists: boolean;
+  engine_root_exists: boolean;
+  editor_runner_exists: boolean;
+  runtime_runner_exists: boolean;
+}
+
+export interface O3DEBridgeQueueCounts {
+  inbox: number;
+  processing: number;
+  results: number;
+  deadletter: number;
+}
+
+export interface O3DEBridgeDeadletterSummary {
+  bridge_command_id: string;
+  operation?: string | null;
+  error_code?: string | null;
+  result_summary?: string | null;
+  finished_at?: string | null;
+  result_path?: string | null;
+}
+
+export interface O3DEBridgeCleanupStatus {
+  attempted_at?: string | null;
+  outcome: string;
+  min_age_s: number;
+  deleted_response_count: number;
+  retained_response_count: number;
+  deadletter_preserved_count: number;
+}
+
+export interface O3DEBridgeStatus {
+  project_root?: string | null;
+  project_root_exists: boolean;
+  bridge_root?: string | null;
+  inbox_path?: string | null;
+  processing_path?: string | null;
+  results_path?: string | null;
+  deadletter_path?: string | null;
+  heartbeat_path?: string | null;
+  log_path?: string | null;
+  source_label: string;
+  configured: boolean;
+  heartbeat_fresh: boolean;
+  queue_counts: O3DEBridgeQueueCounts;
+  heartbeat?: Record<string, unknown> | null;
+  last_results_cleanup?: O3DEBridgeCleanupStatus | null;
+  recent_deadletters: O3DEBridgeDeadletterSummary[];
+}
+
+export interface O3DEBridgeResultsCleanupResult {
+  project_root?: string | null;
+  results_path?: string | null;
+  deadletter_path?: string | null;
+  source_label: string;
+  configured: boolean;
+  min_age_s: number;
+  queue_counts_before: O3DEBridgeQueueCounts;
+  queue_counts_after: O3DEBridgeQueueCounts;
+  deleted_response_count: number;
+  deleted_response_paths: string[];
+  retained_response_count: number;
+  deadletter_preserved_count: number;
 }
 
 export interface ProjectInspectResult {
@@ -196,11 +380,18 @@ export interface ApprovalsListResponse {
 export interface EventRecord {
   id: string;
   run_id?: string | null;
+  execution_id?: string | null;
+  executor_id?: string | null;
+  workspace_id?: string | null;
   category: string;
+  event_type?: string | null;
   severity: "info" | "warning" | "error";
   message: string;
   created_at: string;
-  details: Record<string, string>;
+  previous_state?: string | null;
+  current_state?: string | null;
+  failure_category?: string | null;
+  details: Record<string, unknown>;
 }
 
 export interface EventsResponse {
@@ -210,10 +401,17 @@ export interface EventsResponse {
 export interface EventListItem {
   id: string;
   run_id?: string | null;
+  execution_id?: string | null;
+  executor_id?: string | null;
+  workspace_id?: string | null;
   category: string;
+  event_type?: string | null;
   severity: string;
   message: string;
   created_at: string;
+  previous_state?: string | null;
+  current_state?: string | null;
+  failure_category?: string | null;
   capability_status?: string | null;
   adapter_mode?: string | null;
   event_state: string;
@@ -256,6 +454,14 @@ export interface RunListItem {
   result_summary?: string | null;
   audit_status?: string | null;
   audit_summary?: string | null;
+  inspection_surface?: string | null;
+  fallback_category?: string | null;
+  project_manifest_source_of_truth?: string | null;
+  executor_id?: string | null;
+  workspace_id?: string | null;
+  workspace_state?: string | null;
+  runner_family?: string | null;
+  execution_attempt_state?: string | null;
 }
 
 export interface RunListResponse {
@@ -362,8 +568,15 @@ export interface ExecutionListItem {
   warning_count: number;
   artifact_count: number;
   inspection_surface?: string | null;
+  fallback_category?: string | null;
+  project_manifest_source_of_truth?: string | null;
   mutation_audit_status?: string | null;
   mutation_audit_summary?: string | null;
+  executor_id?: string | null;
+  workspace_id?: string | null;
+  runner_family?: string | null;
+  execution_attempt_state?: string | null;
+  failure_category?: string | null;
 }
 
 export interface ExecutionListResponse {
@@ -400,14 +613,64 @@ export interface ArtifactListItem {
   simulated: boolean;
   created_at: string;
   inspection_surface?: string | null;
+  fallback_category?: string | null;
+  project_manifest_source_of_truth?: string | null;
   execution_mode?: string | null;
   project_name?: string | null;
   mutation_audit_status?: string | null;
   mutation_audit_summary?: string | null;
+  artifact_role?: string | null;
+  executor_id?: string | null;
+  workspace_id?: string | null;
+  retention_class?: string | null;
+  evidence_completeness?: string | null;
 }
 
 export interface ArtifactListResponse {
   artifacts: ArtifactListItem[];
+}
+
+export interface ExecutorRecord {
+  id: string;
+  executor_kind: string;
+  executor_label: string;
+  executor_host_label: string;
+  execution_mode_class: string;
+  availability_state: string;
+  supported_runner_families: string[];
+  capability_snapshot: Record<string, unknown>;
+  last_heartbeat_at?: string | null;
+  last_failure_summary?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExecutorsResponse {
+  executors: ExecutorRecord[];
+}
+
+export interface WorkspaceRecord {
+  id: string;
+  workspace_kind: string;
+  workspace_root: string;
+  workspace_state: string;
+  cleanup_policy: string;
+  retention_class: string;
+  engine_binding: Record<string, unknown>;
+  project_binding: Record<string, unknown>;
+  runner_family: string;
+  owner_run_id?: string | null;
+  owner_execution_id?: string | null;
+  owner_executor_id?: string | null;
+  created_at: string;
+  activated_at?: string | null;
+  completed_at?: string | null;
+  cleaned_at?: string | null;
+  last_failure_summary?: string | null;
+}
+
+export interface WorkspacesResponse {
+  workspaces: WorkspaceRecord[];
 }
 
 export interface ToolDefinition {
@@ -531,18 +794,38 @@ export interface ReadinessStatus {
 }
 
 export interface ControlPlaneSummaryResponse {
+  prompt_sessions_total: number;
+  prompt_sessions_by_status: Record<string, number>;
+  prompt_sessions_waiting_approval: number;
+  prompt_sessions_with_real_editor_children: number;
   runs_total: number;
   runs_by_status: Record<string, number>;
+  runs_by_related_execution_mode: Record<string, number>;
+  runs_by_inspection_surface: Record<string, number>;
+  runs_by_fallback_category: Record<string, number>;
+  runs_by_manifest_source_of_truth: Record<string, number>;
   approvals_total: number;
   approvals_pending: number;
   approvals_decided: number;
   executions_total: number;
   executions_by_status: Record<string, number>;
   executions_by_mode: Record<string, number>;
+  executions_by_attempt_state: Record<string, number>;
+  executions_by_failure_category: Record<string, number>;
+  executions_by_inspection_surface: Record<string, number>;
+  executions_by_fallback_category: Record<string, number>;
+  executions_by_manifest_source_of_truth: Record<string, number>;
   artifacts_total: number;
   artifacts_by_mode: Record<string, number>;
+  artifacts_by_inspection_surface: Record<string, number>;
+  artifacts_by_fallback_category: Record<string, number>;
+  artifacts_by_manifest_source_of_truth: Record<string, number>;
   events_total: number;
   active_events: number;
   events_by_severity: Record<string, number>;
   locks_total: number;
+  executors_total: number;
+  executors_by_availability_state: Record<string, number>;
+  workspaces_total: number;
+  workspaces_by_state: Record<string, number>;
 }
