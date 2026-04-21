@@ -3,6 +3,8 @@ import type { CSSProperties } from "react";
 import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { PromptCapabilityEntry, PromptSessionRecord } from "../types/contracts";
 import PanelGuideDetails from "./PanelGuideDetails";
+import StatusChip from "./StatusChip";
+import { getAvailabilityTone } from "./statusChipTones";
 
 const promptPlanGuide = getPanelGuide("prompt-plan");
 const promptPlanSummaryControlGuide = getPanelControlGuide("prompt-plan", "plan-summary");
@@ -80,19 +82,22 @@ export default function PromptPlanPanel({
                     <div style={subtleTextStyle}>Capability status: {step.capability_status_required}</div>
                     <div style={subtleTextStyle}>Maturity: {step.capability_maturity}</div>
                     <div style={subtleTextStyle}>
-                      Real adapter availability: {formatAvailability(
+                      Real adapter availability:{" "}
+                      {renderAvailabilityValue(
                         capabilityEntry?.real_adapter_availability,
                         missingAvailabilityDetail,
                       )}
                     </div>
                     <div style={subtleTextStyle}>
-                      Dry-run availability: {formatAvailability(
+                      Dry-run availability:{" "}
+                      {renderAvailabilityValue(
                         capabilityEntry?.dry_run_availability,
                         missingAvailabilityDetail,
                       )}
                     </div>
                     <div style={subtleTextStyle}>
-                      Simulation fallback availability: {formatAvailability(
+                      Simulation fallback availability:{" "}
+                      {renderAvailabilityValue(
                         capabilityEntry?.simulation_fallback_availability,
                         missingAvailabilityDetail,
                       )}
@@ -145,6 +150,22 @@ function formatAvailability(
     return missingAvailabilityDetail;
   }
   return value ? "available" : "not available";
+}
+
+function renderAvailabilityValue(
+  value: boolean | undefined,
+  missingAvailabilityDetail: string,
+) {
+  if (value === undefined) {
+    return missingAvailabilityDetail;
+  }
+
+  return (
+    <StatusChip
+      label={formatAvailability(value, missingAvailabilityDetail)}
+      tone={getAvailabilityTone(value)}
+    />
+  );
 }
 
 const panelStyle = {

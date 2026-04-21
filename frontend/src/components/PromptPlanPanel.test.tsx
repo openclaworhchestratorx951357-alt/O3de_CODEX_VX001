@@ -153,24 +153,24 @@ describe("PromptPlanPanel", () => {
     expect(buildStep).not.toBeNull();
 
     expect(
-      within(levelStep as HTMLElement).getByText("Real adapter availability: available"),
-    ).toBeInTheDocument();
+      within(levelStep as HTMLElement).getByText(/Real adapter availability:/),
+    ).toHaveTextContent("Real adapter availability: available");
     expect(
-      within(levelStep as HTMLElement).getByText("Dry-run availability: not available"),
-    ).toBeInTheDocument();
+      within(levelStep as HTMLElement).getByText(/Dry-run availability:/),
+    ).toHaveTextContent("Dry-run availability: not available");
     expect(
-      within(levelStep as HTMLElement).getByText("Simulation fallback availability: not available"),
-    ).toBeInTheDocument();
+      within(levelStep as HTMLElement).getByText(/Simulation fallback availability:/),
+    ).toHaveTextContent("Simulation fallback availability: not available");
 
     expect(
-      within(buildStep as HTMLElement).getByText("Real adapter availability: not available"),
-    ).toBeInTheDocument();
+      within(buildStep as HTMLElement).getByText(/Real adapter availability:/),
+    ).toHaveTextContent("Real adapter availability: not available");
     expect(
-      within(buildStep as HTMLElement).getByText("Dry-run availability: available"),
-    ).toBeInTheDocument();
+      within(buildStep as HTMLElement).getByText(/Dry-run availability:/),
+    ).toHaveTextContent("Dry-run availability: available");
     expect(
-      within(buildStep as HTMLElement).getByText("Simulation fallback availability: available"),
-    ).toBeInTheDocument();
+      within(buildStep as HTMLElement).getByText(/Simulation fallback availability:/),
+    ).toHaveTextContent("Simulation fallback availability: available");
   });
 
   it("falls back cleanly when no capability registry entry is available for a step", () => {

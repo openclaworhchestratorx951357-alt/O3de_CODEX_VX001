@@ -3,6 +3,8 @@ import type { CSSProperties } from "react";
 import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { PromptCapabilityEntry, PromptSessionRecord } from "../types/contracts";
 import PanelGuideDetails from "./PanelGuideDetails";
+import StatusChip from "./StatusChip";
+import { getAvailabilityTone } from "./statusChipTones";
 
 const promptCapabilitiesGuide = getPanelGuide("prompt-capabilities");
 const promptCapabilitiesEntryControlGuide = getPanelControlGuide("prompt-capabilities", "capability-entry");
@@ -51,13 +53,25 @@ export default function PromptCapabilityPanel({
                 <div style={subtleTextStyle}>Capability status: {capability.capability_status}</div>
                 <div style={subtleTextStyle}>Real admission stage: {capability.real_admission_stage}</div>
                 <div style={subtleTextStyle}>
-                  Real adapter availability: {formatAvailability(capability.real_adapter_availability)}
+                  Real adapter availability:{" "}
+                  <StatusChip
+                    label={formatAvailability(capability.real_adapter_availability)}
+                    tone={getAvailabilityTone(capability.real_adapter_availability)}
+                  />
                 </div>
                 <div style={subtleTextStyle}>
-                  Dry-run availability: {formatAvailability(capability.dry_run_availability)}
+                  Dry-run availability:{" "}
+                  <StatusChip
+                    label={formatAvailability(capability.dry_run_availability)}
+                    tone={getAvailabilityTone(capability.dry_run_availability)}
+                  />
                 </div>
                 <div style={subtleTextStyle}>
-                  Simulation fallback availability: {formatAvailability(capability.simulation_fallback_availability)}
+                  Simulation fallback availability:{" "}
+                  <StatusChip
+                    label={formatAvailability(capability.simulation_fallback_availability)}
+                    tone={getAvailabilityTone(capability.simulation_fallback_availability)}
+                  />
                 </div>
                 <div style={subtleTextStyle}>
                   Natural-language status: {safetyEnvelope?.natural_language_status ?? missingSafetyEnvelopeDetail}

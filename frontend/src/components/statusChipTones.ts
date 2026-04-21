@@ -44,6 +44,10 @@ export function getDryRunSupportTone(supportsDryRun: boolean): StatusChipTone {
   return supportsDryRun ? "success" : "neutral";
 }
 
+export function getAvailabilityTone(isAvailable: boolean): StatusChipTone {
+  return isAvailable ? "success" : "neutral";
+}
+
 export function getCapabilityTone(capability: string): StatusChipTone {
   if (capability === "real-authoring") {
     return "success";

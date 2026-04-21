@@ -106,24 +106,24 @@ describe("PromptCapabilityPanel", () => {
     expect(buildConfigureCapability).not.toBeNull();
 
     expect(
-      within(editorLevelCapability as HTMLElement).getByText("Real adapter availability: available"),
-    ).toBeInTheDocument();
+      within(editorLevelCapability as HTMLElement).getByText(/Real adapter availability:/),
+    ).toHaveTextContent("Real adapter availability: available");
     expect(
-      within(editorLevelCapability as HTMLElement).getByText("Dry-run availability: not available"),
-    ).toBeInTheDocument();
+      within(editorLevelCapability as HTMLElement).getByText(/Dry-run availability:/),
+    ).toHaveTextContent("Dry-run availability: not available");
     expect(
-      within(editorLevelCapability as HTMLElement).getByText("Simulation fallback availability: not available"),
-    ).toBeInTheDocument();
+      within(editorLevelCapability as HTMLElement).getByText(/Simulation fallback availability:/),
+    ).toHaveTextContent("Simulation fallback availability: not available");
 
     expect(
-      within(buildConfigureCapability as HTMLElement).getByText("Real adapter availability: not available"),
-    ).toBeInTheDocument();
+      within(buildConfigureCapability as HTMLElement).getByText(/Real adapter availability:/),
+    ).toHaveTextContent("Real adapter availability: not available");
     expect(
-      within(buildConfigureCapability as HTMLElement).getByText("Dry-run availability: available"),
-    ).toBeInTheDocument();
+      within(buildConfigureCapability as HTMLElement).getByText(/Dry-run availability:/),
+    ).toHaveTextContent("Dry-run availability: available");
     expect(
-      within(buildConfigureCapability as HTMLElement).getByText("Simulation fallback availability: available"),
-    ).toBeInTheDocument();
+      within(buildConfigureCapability as HTMLElement).getByText(/Simulation fallback availability:/),
+    ).toHaveTextContent("Simulation fallback availability: available");
   });
 
   it("shows an honest empty state when the current prompt has no matching capability entries", () => {
