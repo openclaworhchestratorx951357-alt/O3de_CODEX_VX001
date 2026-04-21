@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 
 import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
-import type { PromptSessionRecord } from "../types/contracts";
+import type { PromptCapabilityEntry, PromptSessionRecord } from "../types/contracts";
 import PanelGuideDetails from "./PanelGuideDetails";
 
 const promptPlanGuide = getPanelGuide("prompt-plan");
@@ -11,10 +11,15 @@ const promptPlanArgsControlGuide = getPanelControlGuide("prompt-plan", "args-jso
 
 type PromptPlanPanelProps = {
   session: PromptSessionRecord | null;
+  capabilities?: PromptCapabilityEntry[];
 };
 
-export default function PromptPlanPanel({ session }: PromptPlanPanelProps) {
+export default function PromptPlanPanel({
+  session,
+  capabilities = [],
+}: PromptPlanPanelProps) {
   const missingSafetyEnvelopeDetail = "not reported by current backend";
+  const missingAvailabilityDetail = "not reported by current backend capability registry";
 
   return (
     <section style={panelStyle}>
@@ -62,6 +67,7 @@ export default function PromptPlanPanel({ session }: PromptPlanPanelProps) {
             <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
               {session.plan.steps.map((step) => {
                 const safetyEnvelope = step.safety_envelope;
+                const capabilityEntry = capabilities.find((capability) => capability.tool_name === step.tool);
 
                 return (
                   <article key={step.step_id} title={promptPlanStepControlGuide.tooltip} style={stepCardStyle}>
@@ -73,6 +79,24 @@ export default function PromptPlanPanel({ session }: PromptPlanPanelProps) {
                     <div style={subtleTextStyle}>Approval: {step.approval_class}</div>
                     <div style={subtleTextStyle}>Capability status: {step.capability_status_required}</div>
                     <div style={subtleTextStyle}>Maturity: {step.capability_maturity}</div>
+                    <div style={subtleTextStyle}>
+                      Real adapter availability: {formatAvailability(
+                        capabilityEntry?.real_adapter_availability,
+                        missingAvailabilityDetail,
+                      )}
+                    </div>
+                    <div style={subtleTextStyle}>
+                      Dry-run availability: {formatAvailability(
+                        capabilityEntry?.dry_run_availability,
+                        missingAvailabilityDetail,
+                      )}
+                    </div>
+                    <div style={subtleTextStyle}>
+                      Simulation fallback availability: {formatAvailability(
+                        capabilityEntry?.simulation_fallback_availability,
+                        missingAvailabilityDetail,
+                      )}
+                    </div>
                     <div style={subtleTextStyle}>
                       Natural-language status: {safetyEnvelope?.natural_language_status ?? missingSafetyEnvelopeDetail}
                     </div>
@@ -111,6 +135,16 @@ export default function PromptPlanPanel({ session }: PromptPlanPanelProps) {
       )}
     </section>
   );
+}
+
+function formatAvailability(
+  value: boolean | undefined,
+  missingAvailabilityDetail: string,
+): string {
+  if (value === undefined) {
+    return missingAvailabilityDetail;
+  }
+  return value ? "available" : "not available";
 }
 
 const panelStyle = {

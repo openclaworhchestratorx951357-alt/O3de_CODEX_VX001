@@ -437,7 +437,7 @@ export default function PromptControlPanel({
           selectedPromptId={selectedPromptId}
           onSelect={setSelectedPromptId}
         />
-        <PromptPlanPanel session={selectedSession} />
+        <PromptPlanPanel session={selectedSession} capabilities={capabilities} />
       </div>
       <div style={promptGridStyle}>
         <PromptExecutionTimeline session={selectedSession} />

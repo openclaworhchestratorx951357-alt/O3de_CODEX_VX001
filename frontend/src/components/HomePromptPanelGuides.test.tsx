@@ -242,7 +242,7 @@ describe("home and prompt panel guides", () => {
           selectedPromptId={promptSession.prompt_id}
           onSelect={() => {}}
         />
-        <PromptPlanPanel session={promptSession} />
+        <PromptPlanPanel session={promptSession} capabilities={promptCapabilities} />
         <PromptCapabilityPanel capabilities={promptCapabilities} session={promptSession} />
         <PromptExecutionTimeline session={promptSession} />
       </>,
