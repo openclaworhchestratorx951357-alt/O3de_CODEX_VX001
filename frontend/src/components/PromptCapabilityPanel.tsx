@@ -51,6 +51,15 @@ export default function PromptCapabilityPanel({
                 <div style={subtleTextStyle}>Capability status: {capability.capability_status}</div>
                 <div style={subtleTextStyle}>Real admission stage: {capability.real_admission_stage}</div>
                 <div style={subtleTextStyle}>
+                  Real adapter availability: {formatAvailability(capability.real_adapter_availability)}
+                </div>
+                <div style={subtleTextStyle}>
+                  Dry-run availability: {formatAvailability(capability.dry_run_availability)}
+                </div>
+                <div style={subtleTextStyle}>
+                  Simulation fallback availability: {formatAvailability(capability.simulation_fallback_availability)}
+                </div>
+                <div style={subtleTextStyle}>
                   Natural-language status: {safetyEnvelope?.natural_language_status ?? missingSafetyEnvelopeDetail}
                 </div>
                 <div style={subtleTextStyle}>
@@ -82,6 +91,10 @@ export default function PromptCapabilityPanel({
       )}
     </section>
   );
+}
+
+function formatAvailability(value: boolean): string {
+  return value ? "available" : "not available";
 }
 
 const panelStyle = {
