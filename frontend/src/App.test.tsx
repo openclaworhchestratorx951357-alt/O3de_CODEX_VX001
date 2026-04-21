@@ -115,6 +115,33 @@ function createPendingPromise<T>() {
   return new Promise<T>(() => {});
 }
 
+function getDesktopNavButton(name: RegExp): HTMLButtonElement {
+  const navRail = screen.getByText("Control surface").closest("aside");
+
+  expect(navRail).not.toBeNull();
+
+  return within(navRail as HTMLElement).getByRole("button", { name }) as HTMLButtonElement;
+}
+
+function getLaunchpadButton(detail: string): HTMLButtonElement {
+  const button = screen.getByText(detail).closest("button");
+
+  expect(button).not.toBeNull();
+
+  return button as HTMLButtonElement;
+}
+
+function getDesktopTabButton(label: string, detail: string): HTMLButtonElement {
+  const button = screen.getAllByRole("button").find((candidate) => (
+    candidate.textContent?.includes(label)
+    && candidate.textContent?.includes(detail)
+  ));
+
+  expect(button).not.toBeUndefined();
+
+  return button as HTMLButtonElement;
+}
+
 describe("App desktop shell", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
@@ -156,18 +183,11 @@ describe("App desktop shell", () => {
     expect(screen.getByText("Launchpad")).toBeInTheDocument();
     expect(screen.getByText("LayoutHeader stub")).toBeInTheDocument();
 
-    const navRail = screen.getByText("Control surface").closest("aside");
-    expect(navRail).not.toBeNull();
-
-    fireEvent.click(
-      within(navRail as HTMLElement).getByRole("button", { name: /Prompt Studio/i }),
-    );
+    fireEvent.click(getDesktopNavButton(/Prompt Studio/i));
 
     expect(screen.getByText("PromptControlPanel stub")).toBeInTheDocument();
 
-    fireEvent.click(
-      within(navRail as HTMLElement).getByRole("button", { name: /Home/i }),
-    );
+    fireEvent.click(getDesktopNavButton(/Home/i));
 
     expect(screen.getByText("Mission Control")).toBeInTheDocument();
     expect(screen.getByText("Launchpad")).toBeInTheDocument();
@@ -176,12 +196,9 @@ describe("App desktop shell", () => {
   it("opens the runtime workspace from the home launchpad without leaving a blank shell", () => {
     render(<App />);
 
-    const runtimeShortcut = screen.getByText(
+    fireEvent.click(getLaunchpadButton(
       "Bridge status, executors, workspaces, and governance health.",
-    ).closest("button");
-
-    expect(runtimeShortcut).not.toBeNull();
-    fireEvent.click(runtimeShortcut as HTMLButtonElement);
+    ));
 
     expect(screen.getByText("Runtime Console")).toBeInTheDocument();
     expect(screen.getByText("AdaptersPanel stub")).toBeInTheDocument();
@@ -192,20 +209,13 @@ describe("App desktop shell", () => {
   it("restores the command center agents surface from session storage after remount", async () => {
     const { unmount } = render(<App />);
 
-    const commandCenterShortcut = screen.getByText(
+    fireEvent.click(getLaunchpadButton(
       "Catalog browsing, dispatch, approvals, and live timeline control.",
-    ).closest("button");
-
-    expect(commandCenterShortcut).not.toBeNull();
-    fireEvent.click(commandCenterShortcut as HTMLButtonElement);
-
-    const agentsSurfaceButton = screen.getAllByRole("button").find((button) => (
-      button.textContent?.includes("Agents")
-      && button.textContent?.includes("Available operator families and owned tool lanes.")
     ));
-
-    expect(agentsSurfaceButton).not.toBeUndefined();
-    fireEvent.click(agentsSurfaceButton as HTMLButtonElement);
+    fireEvent.click(getDesktopTabButton(
+      "Agents",
+      "Available operator families and owned tool lanes.",
+    ));
 
     expect(screen.getByText("Agent Control")).toBeInTheDocument();
     expect(
@@ -224,20 +234,13 @@ describe("App desktop shell", () => {
   it("restores the runtime executors surface from session storage after remount", async () => {
     const { unmount } = render(<App />);
 
-    const runtimeShortcut = screen.getByText(
+    fireEvent.click(getLaunchpadButton(
       "Bridge status, executors, workspaces, and governance health.",
-    ).closest("button");
-
-    expect(runtimeShortcut).not.toBeNull();
-    fireEvent.click(runtimeShortcut as HTMLButtonElement);
-
-    const executorsSurfaceButton = screen.getAllByRole("button").find((button) => (
-      button.textContent?.includes("Executors")
-      && button.textContent?.includes("Execution owners, availability, and related records.")
     ));
-
-    expect(executorsSurfaceButton).not.toBeUndefined();
-    fireEvent.click(executorsSurfaceButton as HTMLButtonElement);
+    fireEvent.click(getDesktopTabButton(
+      "Executors",
+      "Execution owners, availability, and related records.",
+    ));
 
     expect(screen.getByText("Runtime Console")).toBeInTheDocument();
     expect(screen.getByText("ExecutorsPanel stub")).toBeInTheDocument();
@@ -254,23 +257,37 @@ describe("App desktop shell", () => {
     expect(await screen.findByText("ExecutorsPanel stub")).toBeInTheDocument();
   });
 
+  it("restores the prompt workspace from session storage after remount", async () => {
+    const { unmount } = render(<App />);
+
+    fireEvent.click(getLaunchpadButton(
+      "Natural-language planning and admitted typed execution paths.",
+    ));
+
+    expect(screen.getByText("PromptControlPanel stub")).toBeInTheDocument();
+    expect(
+      window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
+    ).toBe("prompt");
+
+    unmount();
+    render(<App />);
+
+    expect(await screen.findByText("PromptControlPanel stub")).toBeInTheDocument();
+  });
+
   it("restores the records executions surface from session storage after remount", async () => {
     const { unmount } = render(<App />);
 
-    const recordsShortcut = screen.getByText(
+    fireEvent.click(getLaunchpadButton(
       "Runs, executions, artifacts, and detail drilldowns in one organized lane.",
-    ).closest("button");
-
-    expect(recordsShortcut).not.toBeNull();
-    fireEvent.click(recordsShortcut as HTMLButtonElement);
-
-    const executionsSurfaceButton = screen.getAllByRole("button").find((button) => (
-      button.textContent?.includes("Executions")
-      && button.textContent?.includes("Execution warnings, truth markers, and child evidence.")
     ));
 
-    expect(executionsSurfaceButton).not.toBeUndefined();
-    fireEvent.click(executionsSurfaceButton as HTMLButtonElement);
+    const executionsSurfaceButton = getDesktopTabButton(
+      "Executions",
+      "Execution warnings, truth markers, and child evidence.",
+    );
+
+    fireEvent.click(executionsSurfaceButton);
 
     expect(screen.getByText("Records Explorer")).toBeInTheDocument();
     expect(screen.getByText("ExecutionsPanel stub")).toBeInTheDocument();
@@ -287,14 +304,29 @@ describe("App desktop shell", () => {
     unmount();
     render(<App />);
 
-    const restoredExecutionsSurfaceButton = screen.getAllByRole("button").find((button) => (
-      button.textContent?.includes("Executions")
-      && button.textContent?.includes("Execution warnings, truth markers, and child evidence.")
-    ));
+    const restoredExecutionsSurfaceButton = getDesktopTabButton(
+      "Executions",
+      "Execution warnings, truth markers, and child evidence.",
+    );
 
-    expect(restoredExecutionsSurfaceButton).not.toBeUndefined();
     expect(restoredExecutionsSurfaceButton).toHaveStyle({
       boxShadow: "0 14px 28px rgba(41, 83, 165, 0.14)",
     });
+  });
+
+  it("falls back to default workspace surfaces when persisted session values are invalid", () => {
+    window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "invalid-workspace");
+    window.sessionStorage.setItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY, "invalid-operations");
+    window.sessionStorage.setItem(ACTIVE_RUNTIME_SURFACE_SESSION_KEY, "invalid-runtime");
+    window.sessionStorage.setItem(ACTIVE_RECORDS_SURFACE_SESSION_KEY, "invalid-records");
+
+    render(<App />);
+
+    expect(screen.getByText("Mission Control")).toBeInTheDocument();
+    expect(screen.getByText("Launchpad")).toBeInTheDocument();
+    expect(window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY)).toBe("home");
+    expect(window.sessionStorage.getItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY)).toBe("dispatch");
+    expect(window.sessionStorage.getItem(ACTIVE_RUNTIME_SURFACE_SESSION_KEY)).toBe("overview");
+    expect(window.sessionStorage.getItem(ACTIVE_RECORDS_SURFACE_SESSION_KEY)).toBe("runs");
   });
 });
