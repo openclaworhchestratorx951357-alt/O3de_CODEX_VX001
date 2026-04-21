@@ -354,7 +354,9 @@ const navListStyle = {
 } satisfies CSSProperties;
 
 const navButtonStyle = {
-  border: "1px solid rgba(135, 157, 201, 0.18)",
+  borderWidth: 1,
+  borderStyle: "solid",
+  borderColor: "rgba(135, 157, 201, 0.18)",
   borderRadius: 20,
   padding: "14px 16px",
   background: "rgba(255, 255, 255, 0.75)",
