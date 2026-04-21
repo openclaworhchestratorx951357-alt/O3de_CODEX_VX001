@@ -153,6 +153,12 @@ describe("PromptPlanPanel", () => {
     expect(buildStep).not.toBeNull();
 
     expect(
+      within(levelStep as HTMLElement).getByText(/Capability status:/),
+    ).toHaveTextContent("Capability status: real-authoring");
+    expect(
+      within(levelStep as HTMLElement).getByText(/Real admission stage:/),
+    ).toHaveTextContent("Real admission stage: real-level-authoring-active");
+    expect(
       within(levelStep as HTMLElement).getByText(/Real adapter availability:/),
     ).toHaveTextContent("Real adapter availability: available");
     expect(
@@ -165,6 +171,12 @@ describe("PromptPlanPanel", () => {
     expect(
       within(buildStep as HTMLElement).getByText(/Real adapter availability:/),
     ).toHaveTextContent("Real adapter availability: not available");
+    expect(
+      within(buildStep as HTMLElement).getByText(/Capability status:/),
+    ).toHaveTextContent("Capability status: plan-only");
+    expect(
+      within(buildStep as HTMLElement).getByText(/Real admission stage:/),
+    ).toHaveTextContent("Real admission stage: real-plan-only-active");
     expect(
       within(buildStep as HTMLElement).getByText(/Dry-run availability:/),
     ).toHaveTextContent("Dry-run availability: available");
@@ -179,6 +191,11 @@ describe("PromptPlanPanel", () => {
     expect(
       screen.getAllByText(
         "Real adapter availability: not reported by current backend capability registry",
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText(
+        "Real admission stage: not reported by current backend capability registry",
       ).length,
     ).toBeGreaterThan(0);
     expect(

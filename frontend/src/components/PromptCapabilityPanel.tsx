@@ -4,7 +4,11 @@ import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { PromptCapabilityEntry, PromptSessionRecord } from "../types/contracts";
 import PanelGuideDetails from "./PanelGuideDetails";
 import StatusChip from "./StatusChip";
-import { getAvailabilityTone } from "./statusChipTones";
+import {
+  getAdmissionTone,
+  getAvailabilityTone,
+  getCapabilityTone,
+} from "./statusChipTones";
 
 const promptCapabilitiesGuide = getPanelGuide("prompt-capabilities");
 const promptCapabilitiesEntryControlGuide = getPanelControlGuide("prompt-capabilities", "capability-entry");
@@ -19,6 +23,7 @@ export default function PromptCapabilityPanel({
   session,
 }: PromptCapabilityPanelProps) {
   const missingSafetyEnvelopeDetail = "not reported by current backend";
+  const missingCapabilityDetail = "not reported by current backend";
   const relevantCapabilities = session
     ? capabilities.filter((capability) => (
       session.admitted_capabilities.includes(capability.tool_name)
@@ -50,8 +55,20 @@ export default function PromptCapabilityPanel({
                   <span style={subtleTextStyle}>{capability.agent_family}</span>
                 </div>
                 <div style={subtleTextStyle}>Maturity: {capability.capability_maturity}</div>
-                <div style={subtleTextStyle}>Capability status: {capability.capability_status}</div>
-                <div style={subtleTextStyle}>Real admission stage: {capability.real_admission_stage}</div>
+                <div style={subtleTextStyle}>
+                  Capability status:{" "}
+                  <StatusChip
+                    label={capability.capability_status || missingCapabilityDetail}
+                    tone={getCapabilityTone(capability.capability_status)}
+                  />
+                </div>
+                <div style={subtleTextStyle}>
+                  Real admission stage:{" "}
+                  <StatusChip
+                    label={capability.real_admission_stage || missingCapabilityDetail}
+                    tone={getAdmissionTone(capability.real_admission_stage)}
+                  />
+                </div>
                 <div style={subtleTextStyle}>
                   Real adapter availability:{" "}
                   <StatusChip

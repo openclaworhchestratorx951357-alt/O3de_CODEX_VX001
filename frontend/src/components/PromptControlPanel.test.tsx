@@ -265,7 +265,7 @@ describe("PromptControlPanel", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Maturity: runtime-reaching")).toBeInTheDocument();
     expect(
-      screen.getByText("Real admission stage: runtime-reaching-excluded-from-admitted-real"),
+      screen.getByText("runtime-reaching-excluded-from-admitted-real"),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/Blocker: Excluded from the admitted real set on current tested local targets/i),

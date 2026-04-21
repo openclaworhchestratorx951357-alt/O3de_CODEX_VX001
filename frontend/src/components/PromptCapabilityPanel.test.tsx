@@ -106,6 +106,12 @@ describe("PromptCapabilityPanel", () => {
     expect(buildConfigureCapability).not.toBeNull();
 
     expect(
+      within(editorLevelCapability as HTMLElement).getByText(/Capability status:/),
+    ).toHaveTextContent("Capability status: real-authoring");
+    expect(
+      within(editorLevelCapability as HTMLElement).getByText(/Real admission stage:/),
+    ).toHaveTextContent("Real admission stage: real-level-authoring-active");
+    expect(
       within(editorLevelCapability as HTMLElement).getByText(/Real adapter availability:/),
     ).toHaveTextContent("Real adapter availability: available");
     expect(
@@ -118,6 +124,12 @@ describe("PromptCapabilityPanel", () => {
     expect(
       within(buildConfigureCapability as HTMLElement).getByText(/Real adapter availability:/),
     ).toHaveTextContent("Real adapter availability: not available");
+    expect(
+      within(buildConfigureCapability as HTMLElement).getByText(/Capability status:/),
+    ).toHaveTextContent("Capability status: plan-only");
+    expect(
+      within(buildConfigureCapability as HTMLElement).getByText(/Real admission stage:/),
+    ).toHaveTextContent("Real admission stage: real-plan-only-active");
     expect(
       within(buildConfigureCapability as HTMLElement).getByText(/Dry-run availability:/),
     ).toHaveTextContent("Dry-run availability: available");
