@@ -30,6 +30,22 @@ export function getExecutionStatusTone(status: string): StatusChipTone {
   return getRunStatusTone(status);
 }
 
+export function getPromptSessionStatusTone(status: string): StatusChipTone {
+  if (status === "completed") {
+    return "success";
+  }
+  if (status === "failed" || status === "blocked" || status === "refused") {
+    return "danger";
+  }
+  if (status === "waiting_approval" || status === "running") {
+    return "warning";
+  }
+  if (status === "planned") {
+    return "info";
+  }
+  return "neutral";
+}
+
 export function getExecutionModeTone(mode: string): StatusChipTone {
   if (mode === "real") {
     return "success";

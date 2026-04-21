@@ -3,6 +3,11 @@ import type { CSSProperties } from "react";
 import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { PromptSessionRecord } from "../types/contracts";
 import PanelGuideDetails from "./PanelGuideDetails";
+import StatusChip from "./StatusChip";
+import {
+  getExecutionModeTone,
+  getPromptSessionStatusTone,
+} from "./statusChipTones";
 
 const promptExecutionTimelineGuide = getPanelGuide("prompt-execution-timeline");
 const promptExecutionTimelineSummaryControlGuide = getPanelControlGuide("prompt-execution-timeline", "session-summary");
@@ -16,6 +21,10 @@ type PromptExecutionTimelineProps = {
 export default function PromptExecutionTimeline({
   session,
 }: PromptExecutionTimelineProps) {
+  const childResponseSummaries = session
+    ? session.latest_child_responses.map((response, index) => summarizeChildResponse(response, index))
+    : [];
+
   return (
     <section style={panelStyle}>
       <h3 style={{ marginTop: 0 }}>Prompt Execution Timeline</h3>
@@ -31,7 +40,13 @@ export default function PromptExecutionTimeline({
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
           <div title={promptExecutionTimelineSummaryControlGuide.tooltip} style={summaryCardStyle}>
-            <div><strong>Status:</strong> {session.status}</div>
+            <div>
+              <strong>Status:</strong>{" "}
+              <StatusChip
+                label={session.status}
+                tone={getPromptSessionStatusTone(session.status)}
+              />
+            </div>
             <div><strong>Workspace:</strong> {session.workspace_id ?? "none selected"}</div>
             <div><strong>Executor:</strong> {session.executor_id ?? "none selected"}</div>
             <div><strong>Dry run:</strong> {session.dry_run ? "true" : "false"}</div>
@@ -56,10 +71,41 @@ export default function PromptExecutionTimeline({
               </ul>
             </article>
           ) : null}
-          {session.latest_child_responses.length > 0 ? (
+          {childResponseSummaries.length > 0 ? (
             <article title={promptExecutionTimelineChildLineageControlGuide.tooltip} style={groupStyle}>
               <strong>Latest child responses</strong>
-              <pre style={responseStyle}>{JSON.stringify(session.latest_child_responses, null, 2)}</pre>
+              <div style={childResponseGridStyle}>
+                {childResponseSummaries.map((response) => (
+                  <article key={response.key} style={childResponseCardStyle}>
+                    <div style={childResponseHeaderStyle}>
+                      <strong>{response.label}</strong>
+                      <StatusChip
+                        label={response.outcomeLabel}
+                        tone={response.ok === true ? "success" : response.ok === false ? "danger" : "neutral"}
+                      />
+                    </div>
+                    <div style={subtleTextStyle}>Tool: {response.tool ?? "not reported"}</div>
+                    <div style={subtleTextStyle}>
+                      Execution mode:{" "}
+                      {response.executionMode ? (
+                        <StatusChip
+                          label={response.executionMode}
+                          tone={getExecutionModeTone(response.executionMode)}
+                        />
+                      ) : (
+                        "not reported"
+                      )}
+                    </div>
+                    {typeof response.simulated === "boolean" ? (
+                      <div style={subtleTextStyle}>Simulated: {response.simulated ? "true" : "false"}</div>
+                    ) : null}
+                    {response.errorCode ? (
+                      <div style={subtleTextStyle}>Error code: {response.errorCode}</div>
+                    ) : null}
+                    <pre style={responseStyle}>{JSON.stringify(response.raw, null, 2)}</pre>
+                  </article>
+                ))}
+              </div>
             </article>
           ) : null}
           <div style={gridStyle}>
@@ -72,6 +118,68 @@ export default function PromptExecutionTimeline({
       )}
     </section>
   );
+}
+
+type ChildResponseSummary = {
+  key: string;
+  label: string;
+  raw: Record<string, unknown>;
+  ok?: boolean;
+  outcomeLabel: string;
+  tool?: string;
+  executionMode?: string;
+  simulated?: boolean;
+  errorCode?: string;
+};
+
+function summarizeChildResponse(
+  response: Record<string, unknown>,
+  index: number,
+): ChildResponseSummary {
+  const result = asRecord(response.result);
+  const error = asRecord(response.error);
+  const ok = typeof response.ok === "boolean" ? response.ok : undefined;
+
+  return {
+    key: `child-response-${index}`,
+    label: `Child ${index + 1}`,
+    raw: response,
+    ok,
+    outcomeLabel: ok === true ? "ok" : ok === false ? "error" : "unknown",
+    tool: readString(result, "tool") ?? readString(response, "tool"),
+    executionMode:
+      readString(result, "execution_mode")
+      ?? readString(response, "execution_mode"),
+    simulated:
+      readBoolean(result, "simulated")
+      ?? readBoolean(response, "simulated"),
+    errorCode: readString(error, "code"),
+  };
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+function readString(record: Record<string, unknown> | null, key: string): string | undefined {
+  if (!record) {
+    return undefined;
+  }
+
+  const value = record[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function readBoolean(record: Record<string, unknown> | null, key: string): boolean | undefined {
+  if (!record) {
+    return undefined;
+  }
+
+  const value = record[key];
+  return typeof value === "boolean" ? value : undefined;
 }
 
 function TimelineGroup({ title, values }: { title: string; values: string[] }) {
@@ -119,6 +227,29 @@ const groupStyle = {
   borderRadius: "var(--app-card-radius)",
   padding: 12,
   background: "var(--app-panel-bg)",
+} satisfies CSSProperties;
+
+const childResponseGridStyle = {
+  display: "grid",
+  gap: 8,
+  marginTop: 8,
+} satisfies CSSProperties;
+
+const childResponseCardStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
+  padding: 12,
+  background: "var(--app-panel-bg-muted)",
+  display: "grid",
+  gap: 6,
+} satisfies CSSProperties;
+
+const childResponseHeaderStyle = {
+  display: "flex",
+  gap: 8,
+  justifyContent: "space-between",
+  alignItems: "center",
+  flexWrap: "wrap",
 } satisfies CSSProperties;
 
 const responseStyle = {
