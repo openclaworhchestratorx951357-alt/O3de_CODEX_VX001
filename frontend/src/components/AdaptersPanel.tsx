@@ -1,4 +1,5 @@
 import type { AdaptersResponse } from "../types/contracts";
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import StatusChip from "./StatusChip";
@@ -11,6 +12,11 @@ import {
   summaryCardStyle,
   summaryMutedTextStyle,
 } from "./summaryPrimitives";
+
+const adaptersPanelGuide = getPanelGuide("adapter-registry");
+const adaptersRegistrySummaryControlGuide = getPanelControlGuide("adapter-registry", "registry-summary");
+const adaptersPathRollupControlGuide = getPanelControlGuide("adapter-registry", "path-rollup");
+const adaptersFamilyCardControlGuide = getPanelControlGuide("adapter-registry", "family-card");
 
 type AdaptersPanelProps = {
   adapters: AdaptersResponse | null;
@@ -25,6 +31,8 @@ export default function AdaptersPanel(
     <SummarySection
       title="Adapter Registry"
       description="Read-only adapter registry view. Control-plane bookkeeping is real, but only the named hybrid paths below should be treated as real today. Everything else remains explicitly simulated or plan-only."
+      guideTooltip={adaptersPanelGuide.tooltip}
+      guideChecklist={adaptersPanelGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage="No adapter registry data available."
@@ -33,7 +41,10 @@ export default function AdaptersPanel(
     >
       {adapters ? (
         <div style={summaryCardGridStyle}>
-          <article style={summaryCardStyle}>
+          <article
+            title={adaptersRegistrySummaryControlGuide.tooltip}
+            style={summaryCardStyle}
+          >
             <h4 style={summaryCardHeadingStyle}>Registry Summary</h4>
             <SummaryFacts>
               <SummaryFact label="Configured mode">
@@ -58,7 +69,10 @@ export default function AdaptersPanel(
               <SummaryFact label="Warning">{adapters.warning ?? "none"}</SummaryFact>
             </SummaryFacts>
           </article>
-          <article style={summaryCardStyle}>
+          <article
+            title={adaptersPathRollupControlGuide.tooltip}
+            style={summaryCardStyle}
+          >
             <h4 style={summaryCardHeadingStyle}>Path Rollup</h4>
             <SummaryFacts>
               <SummaryFact label="Real tool paths">
@@ -92,7 +106,11 @@ export default function AdaptersPanel(
             </article>
           ) : (
             adapters.families.map((family) => (
-              <article key={family.family} style={summaryCardStyle}>
+              <article
+                key={family.family}
+                title={adaptersFamilyCardControlGuide.tooltip}
+                style={summaryCardStyle}
+              >
                 <h4 style={summaryCardHeadingStyle}>{family.family}</h4>
                 <SummaryFacts>
                   <SummaryFact label="Mode">

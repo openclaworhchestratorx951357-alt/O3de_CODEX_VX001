@@ -51,6 +51,7 @@ describe("prompt safety detail panels", () => {
 
     render(<ExecutionDetailPanel item={execution} loading={false} error={null} />);
 
+    expect(screen.getByText("How to use this panel")).toBeInTheDocument();
     expect(screen.getByText("Prompt Safety Envelope")).toBeInTheDocument();
     expect(screen.getByText("prompt-blocked-pending-admission")).toBeInTheDocument();
     expect(
@@ -79,6 +80,7 @@ describe("prompt safety detail panels", () => {
 
     render(<ArtifactDetailPanel item={artifact} loading={false} error={null} />);
 
+    expect(screen.getByText("How to use this panel")).toBeInTheDocument();
     expect(screen.getByText("Prompt Safety Envelope")).toBeInTheDocument();
     expect(screen.getByText("prompt-ready-approval-gated")).toBeInTheDocument();
     expect(screen.getByText(approvalGatedSafetyEnvelope.state_scope)).toBeInTheDocument();

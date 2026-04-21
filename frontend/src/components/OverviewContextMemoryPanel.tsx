@@ -1,9 +1,18 @@
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryActionButtonStyle,
   summaryBadgeStyle,
   summaryMutedTextStyle,
   summarySectionStyle,
 } from "./summaryPrimitives";
+
+const overviewContextMemoryGuide = getPanelGuide("overview-context-memory");
+const overviewContextMemoryClearAllControlGuide = getPanelControlGuide("overview-context-memory", "clear-all");
+const overviewContextMemoryOpenControlGuide = getPanelControlGuide("overview-context-memory", "open-context");
+const overviewContextMemoryReviewActionsControlGuide = getPanelControlGuide("overview-context-memory", "local-review-actions");
+const overviewContextMemoryNoteControlGuide = getPanelControlGuide("overview-context-memory", "note-editor");
+const overviewContextMemoryClearEntryControlGuide = getPanelControlGuide("overview-context-memory", "clear-entry");
 
 type OverviewContextMemoryEntry = {
   id: string;
@@ -63,10 +72,15 @@ export default function OverviewContextMemoryPanel({
           <p style={summaryMutedTextStyle}>
             Local overview-context presets saved in this browser session. These do not create backend presets or server persistence.
           </p>
+          <PanelGuideDetails
+            tooltip={overviewContextMemoryGuide.tooltip}
+            checklist={overviewContextMemoryGuide.checklist}
+          />
         </div>
         {onClearAll ? (
           <button
             type="button"
+            title={overviewContextMemoryClearAllControlGuide.tooltip}
             style={summaryActionButtonStyle}
             onClick={onClearAll}
           >
@@ -78,6 +92,7 @@ export default function OverviewContextMemoryPanel({
         {entries.map((entry) => (
           <div
             key={entry.id}
+            title={overviewContextMemoryOpenControlGuide.tooltip}
             style={{
               border: "1px solid #d0d7de",
               borderRadius: 10,
@@ -117,6 +132,7 @@ export default function OverviewContextMemoryPanel({
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button
                 type="button"
+                title={overviewContextMemoryOpenControlGuide.tooltip}
                 style={summaryActionButtonStyle}
                 onClick={() => onOpenEntry(entry.id)}
               >
@@ -125,6 +141,7 @@ export default function OverviewContextMemoryPanel({
               {entry.triageLabel && onTriageEntry ? (
                 <button
                   type="button"
+                  title={overviewContextMemoryReviewActionsControlGuide.tooltip}
                   style={summaryActionButtonStyle}
                   onClick={() => onTriageEntry(entry.id)}
                 >
@@ -134,6 +151,7 @@ export default function OverviewContextMemoryPanel({
               {onMarkReviewed ? (
                 <button
                   type="button"
+                  title={overviewContextMemoryReviewActionsControlGuide.tooltip}
                   style={summaryActionButtonStyle}
                   onClick={() => onMarkReviewed(entry.id)}
                 >
@@ -143,6 +161,7 @@ export default function OverviewContextMemoryPanel({
               {onSnoozeEntry ? (
                 <button
                   type="button"
+                  title={overviewContextMemoryReviewActionsControlGuide.tooltip}
                   style={summaryActionButtonStyle}
                   onClick={() => onSnoozeEntry(entry.id)}
                 >
@@ -152,6 +171,7 @@ export default function OverviewContextMemoryPanel({
               {entry.reviewDisposition !== "in_queue" && onKeepInQueue ? (
                 <button
                   type="button"
+                  title={overviewContextMemoryReviewActionsControlGuide.tooltip}
                   style={summaryActionButtonStyle}
                   onClick={() => onKeepInQueue(entry.id)}
                 >
@@ -160,6 +180,7 @@ export default function OverviewContextMemoryPanel({
               ) : null}
               <button
                 type="button"
+                title={overviewContextMemoryClearEntryControlGuide.tooltip}
                 style={summaryActionButtonStyle}
                 onClick={() => onClearEntry(entry.id)}
               >
@@ -170,6 +191,7 @@ export default function OverviewContextMemoryPanel({
               <div style={{ display: "grid", gap: 8 }}>
                 <textarea
                   key={`${entry.id}:${entry.noteText}`}
+                  title={overviewContextMemoryNoteControlGuide.tooltip}
                   defaultValue={entry.noteText}
                   rows={2}
                   placeholder="Local browser-session note for this saved context."

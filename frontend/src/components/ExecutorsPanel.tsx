@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { ExecutorRecord } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -15,6 +16,11 @@ import {
   summarySearchInputStyle,
   summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
+
+const executorsPanelGuide = getPanelGuide("executors-panel");
+const executorsPanelRefreshControlGuide = getPanelControlGuide("executors-panel", "refresh");
+const executorsPanelSearchControlGuide = getPanelControlGuide("executors-panel", "search");
+const executorsPanelSelectDetailControlGuide = getPanelControlGuide("executors-panel", "select-detail");
 
 type ExecutorsPanelProps = {
   items: ExecutorRecord[];
@@ -56,6 +62,8 @@ export default function ExecutorsPanel({
     <SummarySection
       title="Executors"
       description="Persisted remote substrate bookkeeping for executor inventory. These records describe executor availability and runner-family support only, and do not widen admitted real O3DE automation coverage."
+      guideTooltip={executorsPanelGuide.tooltip}
+      guideChecklist={executorsPanelGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage={normalizedQuery ? "No executors match the current search." : "No executors are recorded yet."}
@@ -65,6 +73,7 @@ export default function ExecutorsPanel({
         <button
           type="button"
           onClick={onRefresh}
+          title={executorsPanelRefreshControlGuide.tooltip}
           disabled={refreshing}
           style={summaryActionButtonStyle}
         >
@@ -86,6 +95,7 @@ export default function ExecutorsPanel({
         {updateBadgeLabel ? <span style={summaryRefreshBadgeStyle}>{updateBadgeLabel}</span> : null}
         <input
           type="search"
+          title={executorsPanelSearchControlGuide.tooltip}
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
           placeholder="Search executors by id, label, host, kind, or runner family"
@@ -125,6 +135,7 @@ export default function ExecutorsPanel({
             {onSelectExecutor ? (
               <button
                 type="button"
+                title={executorsPanelSelectDetailControlGuide.tooltip}
                 style={{ ...summaryActionButtonStyle, marginTop: 8 }}
                 disabled={selectedExecutorId === item.id}
                 onClick={() => onSelectExecutor(item.id)}

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import { describeBuildConfigureMeaning } from "../lib/capabilityNarrative";
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { ApprovalListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -20,6 +21,12 @@ import {
   summarySearchInputStyle,
   summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
+
+const approvalQueueGuide = getPanelGuide("approval-queue");
+const approvalQueueRefreshControlGuide = getPanelControlGuide("approval-queue", "refresh");
+const approvalQueueSearchControlGuide = getPanelControlGuide("approval-queue", "search");
+const approvalQueueApproveControlGuide = getPanelControlGuide("approval-queue", "approve");
+const approvalQueueRejectControlGuide = getPanelControlGuide("approval-queue", "reject");
 
 type ApprovalQueueProps = {
   items: ApprovalListItem[];
@@ -74,6 +81,8 @@ export default function ApprovalQueue({
     <SummarySection
       title="Approval Queue"
       description="Approval decisions resume capability-gated execution. Any real path still remains narrow and explicitly labeled."
+      guideTooltip={approvalQueueGuide.tooltip}
+      guideChecklist={approvalQueueGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage={normalizedQuery ? "No approvals match the current search." : "No approvals are waiting for a decision."}
@@ -84,6 +93,7 @@ export default function ApprovalQueue({
         <button
           type="button"
           onClick={onRefresh}
+          title={approvalQueueRefreshControlGuide.tooltip}
           disabled={refreshing}
           style={summaryInlineActionButtonStyle}
         >
@@ -111,6 +121,7 @@ export default function ApprovalQueue({
         ) : null}
         <input
           type="search"
+          title={approvalQueueSearchControlGuide.tooltip}
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
           placeholder="Search approvals by tool, agent, run, class, or reason"
@@ -147,6 +158,7 @@ export default function ApprovalQueue({
               <div style={summaryActionRowStyle}>
                 <button
                   type="button"
+                  title={approvalQueueApproveControlGuide.tooltip}
                   style={summaryActionButtonStyle}
                   disabled={busyApprovalId === item.id}
                   onClick={() => void onApprove(item.id)}
@@ -155,6 +167,7 @@ export default function ApprovalQueue({
                 </button>
                 <button
                   type="button"
+                  title={approvalQueueRejectControlGuide.tooltip}
                   style={summaryActionButtonStyle}
                   disabled={busyApprovalId === item.id}
                   onClick={() => void onReject(item.id)}

@@ -40,6 +40,56 @@ The current repo root remains the integration lane.
 - purpose: the branch you intend to publish next
 - use for: small coherent slices and accepted follow-on work
 
+## Current branch map
+
+Use the current desktop/operator stream with one integration branch, one stable
+checkpoint branch, and focused follow-on branches that can diverge safely from
+the same published commit.
+
+### Published integration branch
+
+- branch: `codex/control-plane/operator-desktop-next`
+- purpose: the active integration lane for the current desktop-shell,
+  operator-guide, and workspace-performance stream
+- use for:
+  - accepted UI shell slices
+  - verified operator-guide updates
+  - integration-ready performance refinements
+
+### Stable checkpoint branch
+
+- branch: `codex/control-plane/operator-desktop-stable`
+- purpose: a published snapshot of the current accepted desktop/operator
+  baseline
+- use for:
+  - creating new focused branches without branching from an in-flight local
+    worktree
+  - recovering a clean starting point for future slices
+
+### Focused follow-on branches
+
+- branch: `codex/control-plane/home-shell-next`
+  - use for: home workspace shell, launchpad, and summary-surface slices
+- branch: `codex/control-plane/operations-workspace-next`
+  - use for: command-center dispatch, approvals, and timeline slices
+- branch: `codex/control-plane/runtime-workspace-next`
+  - use for: bridge status, executors, workspaces, and governance slices
+- branch: `codex/control-plane/records-workspace-next`
+  - use for: runs, executions, artifacts, and evidence drilldown slices
+- branch: `codex/control-plane/operator-guide-next`
+  - use for: in-app instructions, tooltips, and guide synchronization work
+
+### Current branch rules
+
+- create new focused slices from `codex/control-plane/operator-desktop-stable`
+  unless the work is explicitly intended to extend the active integration lane
+- merge or cherry-pick back into
+  `codex/control-plane/operator-desktop-next` only after local verification
+- keep admitted-real wording explicit:
+  - `editor.session.open` admitted real
+  - `editor.level.open` admitted real
+  - `editor.entity.create` excluded from admitted-real
+
 ### Runtime adapters lane
 
 - branch prefix: `codex/runtime-adapters`

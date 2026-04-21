@@ -1,6 +1,13 @@
 import type { CSSProperties } from "react";
 
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { PromptSessionRecord } from "../types/contracts";
+import PanelGuideDetails from "./PanelGuideDetails";
+
+const promptPlanGuide = getPanelGuide("prompt-plan");
+const promptPlanSummaryControlGuide = getPanelControlGuide("prompt-plan", "plan-summary");
+const promptPlanStepControlGuide = getPanelControlGuide("prompt-plan", "step-card");
+const promptPlanArgsControlGuide = getPanelControlGuide("prompt-plan", "args-json");
 
 type PromptPlanPanelProps = {
   session: PromptSessionRecord | null;
@@ -12,13 +19,20 @@ export default function PromptPlanPanel({ session }: PromptPlanPanelProps) {
   return (
     <section style={panelStyle}>
       <h3 style={{ marginTop: 0 }}>Prompt Plan</h3>
+      <p style={subtleTextStyle}>
+        Inspect the admitted typed plan, refused capabilities, and step-by-step safety posture produced from the selected prompt.
+      </p>
+      <PanelGuideDetails
+        tooltip={promptPlanGuide.tooltip}
+        checklist={promptPlanGuide.checklist}
+      />
       {!session ? (
         <p style={emptyTextStyle}>Select a prompt session to inspect its admitted plan.</p>
       ) : !session.plan ? (
         <p style={emptyTextStyle}>This prompt session does not have a persisted plan.</p>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
-          <div style={summaryCardStyle}>
+          <div title={promptPlanSummaryControlGuide.tooltip} style={summaryCardStyle}>
             <div><strong>Admitted:</strong> {session.plan.admitted ? "yes" : "no"}</div>
             <div><strong>Summary:</strong> {session.plan.summary}</div>
             <div><strong>Refusal reason:</strong> {session.plan.refusal_reason ?? "none"}</div>
@@ -50,7 +64,7 @@ export default function PromptPlanPanel({ session }: PromptPlanPanelProps) {
                 const safetyEnvelope = step.safety_envelope;
 
                 return (
-                  <article key={step.step_id} style={stepCardStyle}>
+                  <article key={step.step_id} title={promptPlanStepControlGuide.tooltip} style={stepCardStyle}>
                     <div style={stepHeaderStyle}>
                       <strong>{step.step_id}</strong>
                       <span>{step.tool}</span>
@@ -87,7 +101,7 @@ export default function PromptPlanPanel({ session }: PromptPlanPanelProps) {
                     {step.depends_on.length > 0 ? (
                       <div style={subtleTextStyle}>Depends on: {step.depends_on.join(", ")}</div>
                     ) : null}
-                    <pre style={argsStyle}>{JSON.stringify(step.args, null, 2)}</pre>
+                    <pre title={promptPlanArgsControlGuide.tooltip} style={argsStyle}>{JSON.stringify(step.args, null, 2)}</pre>
                   </article>
                 );
               })}

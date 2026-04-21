@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
 
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import {
   createPromptSession,
   executePromptSession,
@@ -14,10 +15,24 @@ import type {
   PromptRequest,
   PromptSessionRecord,
 } from "../types/contracts";
+import PanelGuideDetails from "./PanelGuideDetails";
 import PromptCapabilityPanel from "./PromptCapabilityPanel";
 import PromptExecutionTimeline from "./PromptExecutionTimeline";
 import PromptPlanPanel from "./PromptPlanPanel";
 import PromptSessionPanel from "./PromptSessionPanel";
+
+const promptControlGuide = getPanelGuide("prompt-control");
+const promptControlPromptTextGuide = getPanelControlGuide("prompt-control", "prompt-text");
+const promptControlProjectRootGuide = getPanelControlGuide("prompt-control", "project-root");
+const promptControlEngineRootGuide = getPanelControlGuide("prompt-control", "engine-root");
+const promptControlWorkspaceIdGuide = getPanelControlGuide("prompt-control", "workspace-id");
+const promptControlExecutorIdGuide = getPanelControlGuide("prompt-control", "executor-id");
+const promptControlPreferredDomainsGuide = getPanelControlGuide("prompt-control", "preferred-domains");
+const promptControlOperatorNoteGuide = getPanelControlGuide("prompt-control", "operator-note");
+const promptControlDryRunGuide = getPanelControlGuide("prompt-control", "dry-run");
+const promptControlPreviewPlanGuide = getPanelControlGuide("prompt-control", "preview-plan");
+const promptControlRefreshSessionsGuide = getPanelControlGuide("prompt-control", "refresh-sessions");
+const promptControlExecuteSelectedGuide = getPanelControlGuide("prompt-control", "execute-selected");
 
 type PromptControlPanelProps = {
   selectedWorkspaceId?: string | null;
@@ -183,6 +198,10 @@ export default function PromptControlPanel({
       <p style={subtleTextStyle}>
         Each prompt-exposed surface carries an explicit safety envelope for state scope, backup, rollback, verification, retention, and natural-language readiness, so broader authoring can widen without hiding what is still blocked or simulated.
       </p>
+      <PanelGuideDetails
+        tooltip={promptControlGuide.tooltip}
+        checklist={promptControlGuide.checklist}
+      />
       {targetConfig?.project_root || targetConfig?.engine_root ? (
         <p style={subtleTextStyle}>
           Active local target: <strong>{targetConfig.project_root ?? "project unset"}</strong>
@@ -195,6 +214,7 @@ export default function PromptControlPanel({
         <label>
           Prompt text
           <textarea
+            title={promptControlPromptTextGuide.tooltip}
             rows={4}
             style={inputStyle}
             value={promptText}
@@ -206,6 +226,7 @@ export default function PromptControlPanel({
           <label>
             Project root
             <input
+              title={promptControlProjectRootGuide.tooltip}
               style={inputStyle}
               value={projectRoot}
               onChange={(event) => setProjectRoot(event.target.value)}
@@ -215,6 +236,7 @@ export default function PromptControlPanel({
           <label>
             Engine root
             <input
+              title={promptControlEngineRootGuide.tooltip}
               style={inputStyle}
               value={engineRoot}
               onChange={(event) => setEngineRoot(event.target.value)}
@@ -224,6 +246,7 @@ export default function PromptControlPanel({
           <label>
             Workspace id
             <input
+              title={promptControlWorkspaceIdGuide.tooltip}
               style={inputStyle}
               value={workspaceId}
               onChange={(event) => setWorkspaceId(event.target.value)}
@@ -232,6 +255,7 @@ export default function PromptControlPanel({
           <label>
             Executor id
             <input
+              title={promptControlExecutorIdGuide.tooltip}
               style={inputStyle}
               value={executorId}
               onChange={(event) => setExecutorId(event.target.value)}
@@ -242,6 +266,7 @@ export default function PromptControlPanel({
           <label>
             Preferred domains (comma-separated)
             <input
+              title={promptControlPreferredDomainsGuide.tooltip}
               style={inputStyle}
               value={preferredDomainsText}
               onChange={(event) => setPreferredDomainsText(event.target.value)}
@@ -251,6 +276,7 @@ export default function PromptControlPanel({
           <label>
             Operator note
             <input
+              title={promptControlOperatorNoteGuide.tooltip}
               style={inputStyle}
               value={operatorNote}
               onChange={(event) => setOperatorNote(event.target.value)}
@@ -259,6 +285,7 @@ export default function PromptControlPanel({
         </div>
         <label style={checkboxStyle}>
           <input
+            title={promptControlDryRunGuide.tooltip}
             type="checkbox"
             checked={dryRun}
             onChange={(event) => setDryRun(event.target.checked)}
@@ -268,14 +295,25 @@ export default function PromptControlPanel({
         <div style={actionRowStyle}>
           <button
             type="submit"
+            title={promptControlPreviewPlanGuide.tooltip}
             disabled={submitting || !promptText.trim() || !projectRoot.trim() || !engineRoot.trim()}
           >
             {submitting ? "Planning..." : "Preview Prompt Plan"}
           </button>
-          <button type="button" onClick={() => { void loadPromptData(); }} disabled={loading}>
+          <button
+            type="button"
+            title={promptControlRefreshSessionsGuide.tooltip}
+            onClick={() => { void loadPromptData(); }}
+            disabled={loading}
+          >
             Refresh Prompt Sessions
           </button>
-          <button type="button" onClick={() => { void handleExecuteSelectedSession(); }} disabled={executeDisabled || executing}>
+          <button
+            type="button"
+            title={promptControlExecuteSelectedGuide.tooltip}
+            onClick={() => { void handleExecuteSelectedSession(); }}
+            disabled={executeDisabled || executing}
+          >
             {executing ? "Executing..." : executeLabel}
           </button>
         </div>

@@ -3,6 +3,7 @@ type AgentPanelProps = {
   role: string;
   lockLabel: string;
   tools: readonly string[];
+  tooltip?: string;
 };
 
 export default function AgentPanel({
@@ -10,9 +11,11 @@ export default function AgentPanel({
   role,
   lockLabel,
   tools,
+  tooltip,
 }: AgentPanelProps) {
   return (
     <section
+      title={tooltip}
       style={{
         border: "1px solid #d0d7de",
         borderRadius: 12,

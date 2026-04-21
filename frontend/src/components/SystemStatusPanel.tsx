@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import type { O3DEBridgeStatus, ReadinessStatus } from "../types/contracts";
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import {
   getAdapterAttentionLabel,
   getCoverageAttentionLabel,
@@ -22,6 +23,10 @@ import {
   summaryCardHeadingStyle,
   summaryCardStyle,
 } from "./summaryPrimitives";
+
+const systemStatusGuide = getPanelGuide("system-status");
+const systemStatusCleanupControlGuide = getPanelControlGuide("system-status", "cleanup-results");
+const systemStatusCopyDeadlettersControlGuide = getPanelControlGuide("system-status", "copy-deadletters");
 
 type SystemStatusPanelProps = {
   readiness: ReadinessStatus | null;
@@ -61,6 +66,8 @@ export default function SystemStatusPanel(
     <SummarySection
       title="System Status"
       description="Operator summary of backend readiness, persistence, adapter contract, schema-validation state, and live editor bridge health. Persisted coverage and bridge telemetry are control-plane diagnostics only, not broader real-execution claims. Simulated execution remains explicitly labeled and real O3DE adapters remain limited to the currently admitted surfaces."
+      guideTooltip={systemStatusGuide.tooltip}
+      guideChecklist={systemStatusGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage="No readiness data available."
@@ -135,6 +142,7 @@ export default function SystemStatusPanel(
                 <button
                   type="button"
                   onClick={onCleanupBridgeResults}
+                  title={systemStatusCleanupControlGuide.tooltip}
                   disabled={bridgeCleanupBusy || !bridgeData?.configured}
                   style={summaryActionButtonStyle}
                 >
@@ -175,7 +183,11 @@ export default function SystemStatusPanel(
                     <span style={subtleTextStyle}>
                       Copy recent deadletter follow-up draft:
                     </span>
-                    <CopyTextButton value={recentDeadletterExportText} />
+                    <CopyTextButton
+                      value={recentDeadletterExportText}
+                      label="Bridge deadletter follow-up draft (browser-local clipboard only)"
+                      title={systemStatusCopyDeadlettersControlGuide.tooltip}
+                    />
                     <span style={subtleTextStyle}>
                       Browser-local clipboard only. No backend export or persistence is performed.
                     </span>

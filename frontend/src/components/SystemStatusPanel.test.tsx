@@ -155,6 +155,7 @@ describe("SystemStatusPanel", () => {
     );
 
     expect(screen.getByText("Editor Bridge")).toBeInTheDocument();
+    expect(screen.getByText("How to use this panel")).toBeInTheDocument();
     expect(screen.getByText("Heartbeat fresh")).toBeInTheDocument();
     expect(screen.getByText("Recent deadletters")).toBeInTheDocument();
     expect(screen.getByText("Deadletter path")).toBeInTheDocument();
@@ -164,6 +165,12 @@ describe("SystemStatusPanel", () => {
     expect(screen.getByText("stale results removed")).toBeInTheDocument();
     expect(screen.getAllByText("editor.level.open").length).toBeGreaterThan(0);
     expect(screen.getByText("Clear stale success results")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Clear stale success results" }),
+    ).toHaveAttribute(
+      "title",
+      "Use this only to remove stale successful bridge transport artifacts; it does not delete deadletters.",
+    );
     expect(
       screen.getByText(/Deadletters remain preserved by default/i),
     ).toBeInTheDocument();

@@ -1,8 +1,13 @@
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryBadgeStyle,
   summaryMutedTextStyle,
   summarySectionStyle,
 } from "./summaryPrimitives";
+
+const overviewCloseoutReadinessGuide = getPanelGuide("overview-closeout-readiness");
+const overviewCloseoutReadinessEntryControlGuide = getPanelControlGuide("overview-closeout-readiness", "readiness-entry");
 
 type OverviewCloseoutReadinessEntry = {
   id: string;
@@ -44,6 +49,10 @@ export default function OverviewCloseoutReadinessPanel({
         <p style={summaryMutedTextStyle}>
           Local browser-session checklist for whether saved contexts look ready for a human handoff. This is a frontend-only readiness aid and does not imply backend workflow state.
         </p>
+        <PanelGuideDetails
+          tooltip={overviewCloseoutReadinessGuide.tooltip}
+          checklist={overviewCloseoutReadinessGuide.checklist}
+        />
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <span style={summaryBadgeStyle}>ready: {readyCount}</span>
@@ -53,6 +62,7 @@ export default function OverviewCloseoutReadinessPanel({
         {entries.map((entry) => (
           <div
             key={entry.id}
+            title={overviewCloseoutReadinessEntryControlGuide.tooltip}
             style={{
               border: "1px solid #d0d7de",
               borderRadius: 10,

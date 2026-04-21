@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { dispatchTool, fetchO3deTarget } from "../lib/api";
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import {
   getDispatchExpectedExecutionTruth,
   getHybridDispatchNote,
 } from "../lib/executionTruth";
+import PanelGuideDetails from "./PanelGuideDetails";
 import type {
   AdaptersResponse,
   CatalogAgent,
@@ -21,6 +23,17 @@ type DispatchFormProps = {
   readiness: ReadinessStatus | null;
   onResponse: (response: ResponseEnvelope) => void;
 };
+
+const dispatchFormGuide = getPanelGuide("dispatch-form");
+const dispatchAgentControlGuide = getPanelControlGuide("dispatch-form", "agent");
+const dispatchToolControlGuide = getPanelControlGuide("dispatch-form", "tool");
+const dispatchProjectRootControlGuide = getPanelControlGuide("dispatch-form", "project-root");
+const dispatchEngineRootControlGuide = getPanelControlGuide("dispatch-form", "engine-root");
+const dispatchLocksControlGuide = getPanelControlGuide("dispatch-form", "locks");
+const dispatchTimeoutControlGuide = getPanelControlGuide("dispatch-form", "timeout");
+const dispatchArgsControlGuide = getPanelControlGuide("dispatch-form", "args");
+const dispatchDryRunControlGuide = getPanelControlGuide("dispatch-form", "dry-run");
+const dispatchSubmitControlGuide = getPanelControlGuide("dispatch-form", "submit");
 
 export default function DispatchForm({
   agents,
@@ -185,11 +198,16 @@ export default function DispatchForm({
           {" "}via {targetConfig.source_label}.
         </p>
       ) : null}
+      <PanelGuideDetails
+        tooltip={dispatchFormGuide.tooltip}
+        checklist={dispatchFormGuide.checklist}
+      />
       <form onSubmit={handleSubmit}>
         <div style={{ display: "grid", gap: 12 }}>
           <label>
             Agent
             <select
+              title={dispatchAgentControlGuide.tooltip}
               style={{ display: "block", width: "100%", marginTop: 4 }}
               value={effectiveAgent?.id ?? request.agent}
               onChange={(e) => {
@@ -212,6 +230,7 @@ export default function DispatchForm({
           <label>
             Tool
             <select
+              title={dispatchToolControlGuide.tooltip}
               style={{ display: "block", width: "100%", marginTop: 4 }}
               value={effectiveToolName}
               onChange={(e) => setRequest({ ...request, tool: e.target.value })}
@@ -251,6 +270,7 @@ export default function DispatchForm({
           <label>
             Project Root
             <input
+              title={dispatchProjectRootControlGuide.tooltip}
               style={{ display: "block", width: "100%", marginTop: 4 }}
               value={request.project_root}
               onChange={(e) =>
@@ -262,6 +282,7 @@ export default function DispatchForm({
           <label>
             Engine Root
             <input
+              title={dispatchEngineRootControlGuide.tooltip}
               style={{ display: "block", width: "100%", marginTop: 4 }}
               value={request.engine_root}
               onChange={(e) =>
@@ -273,6 +294,7 @@ export default function DispatchForm({
           <label>
             Locks (comma-separated)
             <input
+              title={dispatchLocksControlGuide.tooltip}
               style={{ display: "block", width: "100%", marginTop: 4 }}
               value={locksText}
               onChange={(e) => setLocksText(e.target.value)}
@@ -284,6 +306,7 @@ export default function DispatchForm({
             <input
               type="number"
               min={1}
+              title={dispatchTimeoutControlGuide.tooltip}
               style={{ display: "block", width: "100%", marginTop: 4 }}
               value={request.timeout_s}
               onChange={(e) =>
@@ -296,6 +319,7 @@ export default function DispatchForm({
             Args (JSON)
             <textarea
               rows={6}
+              title={dispatchArgsControlGuide.tooltip}
               style={{ display: "block", width: "100%", marginTop: 4 }}
               value={argsText}
               onChange={(e) => setArgsText(e.target.value)}
@@ -317,6 +341,7 @@ export default function DispatchForm({
             Dry Run
             <input
               type="checkbox"
+              title={dispatchDryRunControlGuide.tooltip}
               style={{ marginLeft: 8 }}
               checked={request.dry_run}
               onChange={(e) =>
@@ -325,7 +350,11 @@ export default function DispatchForm({
             />
           </label>
 
-          <button type="submit" disabled={submitting || agents.length === 0}>
+          <button
+            type="submit"
+            title={dispatchSubmitControlGuide.tooltip}
+            disabled={submitting || agents.length === 0}
+          >
             {submitting ? "Dispatching..." : "Dispatch Request"}
           </button>
 

@@ -1,3 +1,4 @@
+import { getPanelControlGuide } from "../content/operatorGuide";
 import OperatorLaneStateBlock, { type OperatorLaneStateEntry } from "./OperatorLaneStateBlock";
 import { buildOperatorLaneStateEntries } from "./laneViewModel";
 import {
@@ -6,6 +7,59 @@ import {
   summaryBadgeStyle,
   summaryMutedTextStyle,
 } from "./summaryPrimitives";
+
+const layoutHeaderLaneActionsControlGuide = getPanelControlGuide("operator-overview", "lane-actions");
+const layoutHeaderRefreshControlGuide = getPanelControlGuide("operator-overview", "refresh");
+
+function getLayoutHeaderLaneActionTitle(detail: string): string {
+  return `${layoutHeaderLaneActionsControlGuide.tooltip} ${detail}`;
+}
+
+function getLayoutHeaderLaneHistoryTitle(
+  entry: { kind: "run" | "execution" | "artifact"; id: string; label: string; detail: string },
+): string {
+  const detailSuffix = entry.detail ? ` ${entry.detail}` : "";
+  return getLayoutHeaderLaneActionTitle(
+    `Return to recent ${entry.kind} ${entry.label} from browser-local lane history without losing the current operator context.${detailSuffix}`,
+  );
+}
+
+function getLayoutHeaderLaneFilterTitle(
+  filterMode: "all" | "warnings" | "audit_risk" | "simulated_only",
+): string {
+  switch (filterMode) {
+    case "warnings":
+      return getLayoutHeaderLaneActionTitle(
+        "Filter the pinned lane to warning-focused signals when you need the fastest path to follow-up review.",
+      );
+    case "audit_risk":
+      return getLayoutHeaderLaneActionTitle(
+        "Filter the pinned lane to audit-risk signals when mutation or provenance concerns need focused review.",
+      );
+    case "simulated_only":
+      return getLayoutHeaderLaneActionTitle(
+        "Filter the pinned lane to simulated-only signals so admitted-real and simulated wording stays explicit.",
+      );
+    case "all":
+    default:
+      return getLayoutHeaderLaneActionTitle(
+        "Show every available lane signal for the pinned record before narrowing the review posture.",
+      );
+  }
+}
+
+function getLayoutHeaderRefreshActionTitle(label: string): string {
+  switch (label) {
+    case "Refresh dashboard":
+      return `${layoutHeaderRefreshControlGuide.tooltip} Refresh the full desktop shell summary so home, runtime, operations, and records signals stay aligned.`;
+    case "Refresh records":
+      return `${layoutHeaderRefreshControlGuide.tooltip} Refresh the record-backed summary signals sourced from persisted runs, executions, and artifacts.`;
+    case "Refresh overview":
+      return `${layoutHeaderRefreshControlGuide.tooltip} Refresh the home operator overview and mission-control summaries without leaving the current desktop lane.`;
+    default:
+      return `${layoutHeaderRefreshControlGuide.tooltip} Refresh this home header action without leaving the current desktop lane.`;
+  }
+}
 
 type LayoutHeaderProps = {
   title: string;
@@ -76,6 +130,7 @@ type LayoutHeaderProps = {
   refreshActions?: Array<{
     label: string;
     onClick: () => void;
+    title?: string | null;
   }>;
 };
 
@@ -347,6 +402,9 @@ export default function LayoutHeader({
             <button
               type="button"
               onClick={onOpenPinnedRecord}
+              title={getLayoutHeaderLaneActionTitle(
+                "Open the pinned record to continue the current operator lane from the shared home header.",
+              )}
               style={summaryActionButtonStyle}
             >
               Open pinned lane
@@ -356,6 +414,9 @@ export default function LayoutHeader({
             <button
               type="button"
               onClick={onRefocusPinnedRecord}
+              title={getLayoutHeaderLaneActionTitle(
+                "Re-focus the active pinned record after navigating elsewhere in the desktop.",
+              )}
               style={summaryActionButtonStyle}
             >
               Re-focus pinned lane
@@ -365,6 +426,9 @@ export default function LayoutHeader({
             <button
               type="button"
               onClick={onClearPinnedRecord}
+              title={getLayoutHeaderLaneActionTitle(
+                "Clear the pinned lane selection from this browser-local session without mutating persisted records.",
+              )}
               style={summaryActionButtonStyle}
             >
               Clear pinned lane
@@ -374,6 +438,9 @@ export default function LayoutHeader({
             <button
               type="button"
               onClick={onClearLocalLaneContext}
+              title={getLayoutHeaderLaneActionTitle(
+                "Clear browser-local lane memory, recent returns, and notes when you need a clean local review surface.",
+              )}
               style={summaryActionButtonStyle}
             >
               Clear local lane context
@@ -383,6 +450,9 @@ export default function LayoutHeader({
             <button
               type="button"
               onClick={onOpenNextPinnedLaneRecord}
+              title={getLayoutHeaderLaneActionTitle(
+                "Advance from the pinned lane to the next recommended persisted record in the current review flow.",
+              )}
               style={summaryActionButtonStyle}
             >
               Advance pinned lane
@@ -392,6 +462,9 @@ export default function LayoutHeader({
             <button
               type="button"
               onClick={onOpenLaneRolloverRecord}
+              title={getLayoutHeaderLaneActionTitle(
+                "Open the rollover target when the current lane has a stronger follow-up record waiting.",
+              )}
               style={summaryActionButtonStyle}
             >
               Roll over lane
@@ -401,6 +474,9 @@ export default function LayoutHeader({
             <button
               type="button"
               onClick={onReturnToLane}
+              title={getLayoutHeaderLaneActionTitle(
+                "Return to the saved browser-local lane context so you can resume the active review posture.",
+              )}
               style={summaryActionButtonStyle}
             >
               Return to lane
@@ -410,6 +486,9 @@ export default function LayoutHeader({
             <button
               type="button"
               onClick={onCopyLaneContext}
+              title={getLayoutHeaderLaneActionTitle(
+                "Copy the current lane context to the browser-local clipboard for notes, handoff, or follow-up without retyping it.",
+              )}
               style={summaryActionButtonStyle}
             >
               Copy lane context
@@ -421,6 +500,7 @@ export default function LayoutHeader({
                 key={`history-${entry.kind}-${entry.id}`}
                 type="button"
                 onClick={() => onOpenLaneHistoryEntry(entry)}
+                title={getLayoutHeaderLaneHistoryTitle(entry)}
                 style={summaryActionButtonStyle}
               >
                 Recent: {entry.label}
@@ -431,6 +511,9 @@ export default function LayoutHeader({
             <button
               type="button"
               onClick={onApplyLaneRecovery}
+              title={getLayoutHeaderLaneActionTitle(
+                "Apply the current recovery path to restore the most useful browser-local lane context for continued review.",
+              )}
               style={summaryActionButtonStyle}
             >
               {laneRecoveryLabel}
@@ -440,6 +523,9 @@ export default function LayoutHeader({
             <button
               type="button"
               onClick={onDropStaleLaneHistory}
+              title={getLayoutHeaderLaneActionTitle(
+                "Drop stale browser-local recent-return entries that no longer match the active lane context.",
+              )}
               style={summaryActionButtonStyle}
             >
               Drop stale recent returns
@@ -493,6 +579,9 @@ export default function LayoutHeader({
                 <button
                   type="button"
                   onClick={onSaveLaneOperatorNote}
+                  title={getLayoutHeaderLaneActionTitle(
+                    "Save this browser-local operator note so the pinned lane can be resumed with the same local context.",
+                  )}
                   style={summaryActionButtonStyle}
                 >
                   Save lane note
@@ -501,6 +590,9 @@ export default function LayoutHeader({
                   <button
                     type="button"
                     onClick={onClearLaneOperatorNote}
+                    title={getLayoutHeaderLaneActionTitle(
+                      "Clear the browser-local operator note for the pinned lane without changing persisted records.",
+                    )}
                     style={summaryActionButtonStyle}
                   >
                     Clear lane note
@@ -514,6 +606,7 @@ export default function LayoutHeader({
               <button
                 type="button"
                 onClick={() => onSetLaneFilterMode("all")}
+                title={getLayoutHeaderLaneFilterTitle("all")}
                 style={summaryActionButtonStyle}
               >
                 All signals
@@ -521,6 +614,7 @@ export default function LayoutHeader({
               <button
                 type="button"
                 onClick={() => onSetLaneFilterMode("warnings")}
+                title={getLayoutHeaderLaneFilterTitle("warnings")}
                 style={summaryActionButtonStyle}
               >
                 Warnings only
@@ -528,6 +622,7 @@ export default function LayoutHeader({
               <button
                 type="button"
                 onClick={() => onSetLaneFilterMode("audit_risk")}
+                title={getLayoutHeaderLaneFilterTitle("audit_risk")}
                 style={summaryActionButtonStyle}
               >
                 Audit risk
@@ -535,6 +630,7 @@ export default function LayoutHeader({
               <button
                 type="button"
                 onClick={() => onSetLaneFilterMode("simulated_only")}
+                title={getLayoutHeaderLaneFilterTitle("simulated_only")}
                 style={summaryActionButtonStyle}
               >
                 Simulated only
@@ -547,6 +643,7 @@ export default function LayoutHeader({
               type="button"
               onClick={action.onClick}
               disabled={refreshing}
+              title={action.title ?? getLayoutHeaderRefreshActionTitle(action.label)}
               style={summaryActionButtonStyle}
             >
               {refreshing ? "Refreshing..." : action.label}

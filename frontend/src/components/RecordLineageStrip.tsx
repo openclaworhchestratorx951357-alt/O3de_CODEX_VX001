@@ -40,7 +40,25 @@ type RecordLineageStripProps = {
   onOpenRun?: (runId: string) => void;
   onOpenExecution?: (executionId: string) => void;
   onOpenArtifact?: (artifactId: string) => void;
+  runActionTitle?: string | null;
+  executionActionTitle?: string | null;
+  artifactActionTitle?: string | null;
 };
+
+const recordLineageTooltip =
+  "Use Record Lineage to move between related persisted runs, executions, and artifacts without losing the current review context.";
+
+function buildLineageActionTitle(
+  recordType: "run" | "execution" | "artifact",
+  recordId: string,
+  selected: boolean,
+): string {
+  if (selected) {
+    return `Current ${recordType} ${recordId} is already selected in this detail view.`;
+  }
+
+  return `Open ${recordType} ${recordId} to inspect the related persisted ${recordType} record without leaving the current lineage flow.`;
+}
 
 export default function RecordLineageStrip({
   runId,
@@ -67,6 +85,9 @@ export default function RecordLineageStrip({
   onOpenRun,
   onOpenExecution,
   onOpenArtifact,
+  runActionTitle = null,
+  executionActionTitle = null,
+  artifactActionTitle = null,
 }: RecordLineageStripProps) {
   const hasRunSection = Boolean(
     runId ||
@@ -98,7 +119,7 @@ export default function RecordLineageStrip({
   }
 
   return (
-    <article style={{ ...summaryCardStyle, marginBottom: 12 }}>
+    <article style={{ ...summaryCardStyle, marginBottom: 12 }} title={recordLineageTooltip}>
       <h4 style={summaryCardHeadingStyle}>Record Lineage</h4>
       <div style={summaryCardGridStyle}>
         {hasRunSection ? (
@@ -135,6 +156,10 @@ export default function RecordLineageStrip({
               <button
                 type="button"
                 style={summaryActionButtonStyle}
+                title={
+                  runActionTitle
+                  ?? buildLineageActionTitle("run", runId, selectedRunId === runId)
+                }
                 disabled={selectedRunId === runId}
                 onClick={() => onOpenRun(runId)}
               >
@@ -185,6 +210,14 @@ export default function RecordLineageStrip({
               <button
                 type="button"
                 style={summaryActionButtonStyle}
+                title={
+                  executionActionTitle
+                  ?? buildLineageActionTitle(
+                    "execution",
+                    executionId,
+                    selectedExecutionId === executionId,
+                  )
+                }
                 disabled={selectedExecutionId === executionId}
                 onClick={() => onOpenExecution(executionId)}
               >
@@ -240,6 +273,14 @@ export default function RecordLineageStrip({
               <button
                 type="button"
                 style={summaryActionButtonStyle}
+                title={
+                  artifactActionTitle
+                  ?? buildLineageActionTitle(
+                    "artifact",
+                    artifactId,
+                    selectedArtifactId === artifactId,
+                  )
+                }
                 disabled={selectedArtifactId === artifactId}
                 onClick={() => onOpenArtifact(artifactId)}
               >

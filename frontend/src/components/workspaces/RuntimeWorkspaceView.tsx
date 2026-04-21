@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
+import { getWorkspaceWindowGuide } from "../../content/operatorGuide";
 
 type RuntimeSurfaceId =
   | "overview"
@@ -19,6 +20,9 @@ type RuntimeWorkspaceViewProps = {
   governanceContent: ReactNode;
 };
 
+const runtimeConsoleWindow = getWorkspaceWindowGuide("runtime", "runtime-console");
+const governanceDeckWindow = getWorkspaceWindowGuide("runtime", "governance-deck");
+
 export default function RuntimeWorkspaceView({
   activeSurfaceId,
   items,
@@ -28,15 +32,22 @@ export default function RuntimeWorkspaceView({
   workspacesContent,
   governanceContent,
 }: RuntimeWorkspaceViewProps) {
-  const title = activeSurfaceId === "governance" ? "Governance Deck" : "Runtime Console";
-  const subtitle = activeSurfaceId === "governance"
-    ? "Admitted capability posture, lock state, and policy guardrails."
-    : "Monitor live runtime health and move between overview, executors, and workspaces.";
+  const activeWindow = activeSurfaceId === "governance"
+    ? governanceDeckWindow
+    : runtimeConsoleWindow;
+  const activeContent = activeSurfaceId === "overview"
+    ? overviewContent
+    : activeSurfaceId === "executors"
+      ? executorsContent
+      : activeSurfaceId === "workspaces"
+        ? workspacesContent
+        : governanceContent;
 
   return (
     <DesktopWindow
-      title={title}
-      subtitle={subtitle}
+      title={activeWindow.title}
+      subtitle={activeWindow.subtitle}
+      helpTooltip={activeWindow.tooltip}
       toolbar={(
         <DesktopTabStrip
           items={items}
@@ -45,10 +56,7 @@ export default function RuntimeWorkspaceView({
         />
       )}
     >
-      {activeSurfaceId === "overview" ? overviewContent : null}
-      {activeSurfaceId === "executors" ? executorsContent : null}
-      {activeSurfaceId === "workspaces" ? workspacesContent : null}
-      {activeSurfaceId === "governance" ? governanceContent : null}
+      {activeContent}
     </DesktopWindow>
   );
 }

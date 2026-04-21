@@ -20,9 +20,11 @@ export function getDesktopNavButton(name: RegExp): HTMLButtonElement {
 }
 
 export function getLaunchpadButton(detail: string): HTMLButtonElement {
-  const button = screen.getByText(detail).closest("button");
+  const button = screen.getAllByRole("button").find((candidate) => (
+    candidate.textContent?.includes(detail)
+  ));
 
-  expect(button).not.toBeNull();
+  expect(button).not.toBeUndefined();
 
   return button as HTMLButtonElement;
 }

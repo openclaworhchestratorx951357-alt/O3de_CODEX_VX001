@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import PromptControlPanel from "./PromptControlPanel";
@@ -207,6 +207,37 @@ describe("PromptControlPanel", () => {
     expect(screen.getByDisplayValue("C:/Users/topgu/O3DE/Projects/McpSandbox")).toBeInTheDocument();
     expect(screen.getByDisplayValue("C:/src/o3de")).toBeInTheDocument();
     expect(screen.getByText(/Active local target:/i)).toBeInTheDocument();
+    const promptControlSection = screen.getByRole("heading", { name: "Prompt Control" }).closest("section");
+    expect(promptControlSection).not.toBeNull();
+    expect(
+      within(promptControlSection as HTMLElement).getByTitle(
+        "Use Prompt Control to turn natural-language requests into admitted typed plans, select prompt context, and continue eligible prompt sessions without losing truth markers.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Prompt text")).toHaveAttribute(
+      "title",
+      "Describe the intended operator task in natural language while keeping expectations truthful about admitted, refused, or blocked capability.",
+    );
+    expect(screen.getByLabelText("Project root")).toHaveAttribute(
+      "title",
+      "Confirm the project root matches the intended local target before compiling a prompt plan.",
+    );
+    expect(screen.getByLabelText("Engine root")).toHaveAttribute(
+      "title",
+      "Confirm the engine root matches the intended local target before compiling a prompt plan.",
+    );
+    expect(screen.getByRole("checkbox")).toHaveAttribute(
+      "title",
+      "Leave dry run enabled when you want prompt-generated child steps to prefer dry-run where the admitted capability supports it.",
+    );
+    expect(screen.getByRole("button", { name: "Preview Prompt Plan" })).toHaveAttribute(
+      "title",
+      "Use Preview Prompt Plan to compile the natural-language request into a persisted admitted typed plan without immediately continuing execution.",
+    );
+    expect(screen.getByRole("button", { name: "Refresh Prompt Sessions" })).toHaveAttribute(
+      "title",
+      "Refresh Prompt Sessions when the prompt workspace may be stale or another action changed the selected session.",
+    );
 
     fireEvent.change(screen.getByLabelText("Prompt text"), {
       target: { value: plannedSession.prompt_text },

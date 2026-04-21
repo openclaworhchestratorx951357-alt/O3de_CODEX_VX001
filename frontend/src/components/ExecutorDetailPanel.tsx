@@ -6,6 +6,7 @@ import type {
   RunListItem,
   WorkspaceRecord,
 } from "../types/contracts";
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import StatusChip from "./StatusChip";
@@ -16,6 +17,12 @@ import {
   summaryCardHeadingStyle,
   summaryCardStyle,
 } from "./summaryPrimitives";
+
+const executorDetailGuide = getPanelGuide("executor-detail");
+const executorDetailRefreshControlGuide = getPanelControlGuide("executor-detail", "refresh");
+const executorDetailSavedContextControlGuide = getPanelControlGuide("executor-detail", "saved-context");
+const executorDetailLocalReviewActionsControlGuide = getPanelControlGuide("executor-detail", "local-review-actions");
+const executorDetailRelatedRecordOpenControlGuide = getPanelControlGuide("executor-detail", "related-record-open");
 
 type ExecutorDetailPanelProps = {
   item: ExecutorRecord | null;
@@ -92,12 +99,20 @@ export default function ExecutorDetailPanel({
     <SummarySection
       title="Executor Detail"
       description="Executor detail is persisted substrate bookkeeping only. It reflects executor inventory, runner-family support, and health-like metadata, not proof of broader real O3DE adapter admission."
+      guideTooltip={executorDetailGuide.tooltip}
+      guideChecklist={executorDetailGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage="Select an executor to inspect its persisted substrate record."
       hasItems={Boolean(item)}
       actions={onRefresh ? (
-        <button type="button" onClick={onRefresh} disabled={refreshing} style={summaryActionButtonStyle}>
+        <button
+          type="button"
+          title={executorDetailRefreshControlGuide.tooltip}
+          onClick={onRefresh}
+          disabled={refreshing}
+          style={summaryActionButtonStyle}
+        >
           {refreshing ? "Refreshing..." : "Refresh executor detail"}
         </button>
       ) : null}
@@ -145,22 +160,42 @@ export default function ExecutorDetailPanel({
             </SummaryFacts>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {onOpenSavedContext ? (
-                <button type="button" style={summaryActionButtonStyle} onClick={onOpenSavedContext}>
+                <button
+                  type="button"
+                  title={executorDetailSavedContextControlGuide.tooltip}
+                  style={summaryActionButtonStyle}
+                  onClick={onOpenSavedContext}
+                >
                   Open saved context
                 </button>
               ) : null}
               {onMarkLocalReviewed ? (
-                <button type="button" style={summaryActionButtonStyle} onClick={onMarkLocalReviewed}>
+                <button
+                  type="button"
+                  title={executorDetailLocalReviewActionsControlGuide.tooltip}
+                  style={summaryActionButtonStyle}
+                  onClick={onMarkLocalReviewed}
+                >
                   Mark reviewed
                 </button>
               ) : null}
               {onSnoozeLocalReview ? (
-                <button type="button" style={summaryActionButtonStyle} onClick={onSnoozeLocalReview}>
+                <button
+                  type="button"
+                  title={executorDetailLocalReviewActionsControlGuide.tooltip}
+                  style={summaryActionButtonStyle}
+                  onClick={onSnoozeLocalReview}
+                >
                   Snooze
                 </button>
               ) : null}
               {localReviewDisposition !== "in_queue" && onKeepLocalInQueue ? (
-                <button type="button" style={summaryActionButtonStyle} onClick={onKeepLocalInQueue}>
+                <button
+                  type="button"
+                  title={executorDetailLocalReviewActionsControlGuide.tooltip}
+                  style={summaryActionButtonStyle}
+                  onClick={onKeepLocalInQueue}
+                >
                   Return to queue
                 </button>
               ) : null}
@@ -251,7 +286,12 @@ export default function ExecutorDetailPanel({
               )}
             </SummaryFacts>
             {onOpenWorkspace && relatedWorkspaces[0] ? (
-              <button type="button" style={summaryActionButtonStyle} onClick={() => onOpenWorkspace(relatedWorkspaces[0].id)}>
+              <button
+                type="button"
+                title={executorDetailRelatedRecordOpenControlGuide.tooltip}
+                style={summaryActionButtonStyle}
+                onClick={() => onOpenWorkspace(relatedWorkspaces[0].id)}
+              >
                 Open first workspace
               </button>
             ) : null}
@@ -268,7 +308,12 @@ export default function ExecutorDetailPanel({
               )}
             </SummaryFacts>
             {onOpenExecution && relatedExecutions[0] ? (
-              <button type="button" style={summaryActionButtonStyle} onClick={() => onOpenExecution(relatedExecutions[0].id)}>
+              <button
+                type="button"
+                title={executorDetailRelatedRecordOpenControlGuide.tooltip}
+                style={summaryActionButtonStyle}
+                onClick={() => onOpenExecution(relatedExecutions[0].id)}
+              >
                 Open first execution
               </button>
             ) : null}
@@ -285,12 +330,22 @@ export default function ExecutorDetailPanel({
             </SummaryFacts>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {onOpenRun && relatedRuns[0] ? (
-                <button type="button" style={summaryActionButtonStyle} onClick={() => onOpenRun(relatedRuns[0].id)}>
+                <button
+                  type="button"
+                  title={executorDetailRelatedRecordOpenControlGuide.tooltip}
+                  style={summaryActionButtonStyle}
+                  onClick={() => onOpenRun(relatedRuns[0].id)}
+                >
                   Open first run
                 </button>
               ) : null}
               {onOpenArtifact && relatedArtifacts[0] ? (
-                <button type="button" style={summaryActionButtonStyle} onClick={() => onOpenArtifact(relatedArtifacts[0].id)}>
+                <button
+                  type="button"
+                  title={executorDetailRelatedRecordOpenControlGuide.tooltip}
+                  style={summaryActionButtonStyle}
+                  onClick={() => onOpenArtifact(relatedArtifacts[0].id)}
+                >
                   Open first artifact
                 </button>
               ) : null}

@@ -17,6 +17,7 @@ type TriageSummaryStripProps = {
   attentionLabel?: string | null;
   attentionDescription?: string | null;
   jumpLabel?: string | null;
+  jumpTitle?: string | null;
   onJump?: (() => void) | null;
 };
 
@@ -26,6 +27,12 @@ type StripItem = {
 };
 
 type StripTone = "default" | "info" | "warning" | "success";
+
+const triageSummaryTooltip =
+  "Use the operator triage summary to keep the current priority, action, and attention signals visible before jumping to related evidence or records.";
+
+const triageSummaryJumpTooltip =
+  "Jump directly to the related record or evidence highlighted by this operator triage summary.";
 
 function getStripTone(label: string): StripTone {
   const normalizedLabel = label.toLowerCase();
@@ -105,6 +112,7 @@ export default function TriageSummaryStrip({
   attentionLabel,
   attentionDescription,
   jumpLabel,
+  jumpTitle = null,
   onJump,
 }: TriageSummaryStripProps) {
   const items: StripItem[] = [];
@@ -124,13 +132,14 @@ export default function TriageSummaryStrip({
   }
 
   return (
-    <article style={{ ...summaryCardStyle, marginBottom: 0 }}>
+    <article style={{ ...summaryCardStyle, marginBottom: 0 }} title={triageSummaryTooltip}>
       <div style={{ display: "flex", gap: 8, justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
         <h4 style={summaryCardHeadingStyle}>{heading}</h4>
         {jumpLabel && onJump ? (
           <button
             type="button"
             style={summaryInlineActionButtonStyle}
+            title={jumpTitle ?? triageSummaryJumpTooltip}
             onClick={onJump}
           >
             {jumpLabel}
@@ -144,6 +153,7 @@ export default function TriageSummaryStrip({
           return (
             <span
               key={`${item.label}-${item.description}`}
+              title={`${item.label}: ${item.description}`}
               style={{ ...summaryBadgeStyle, ...getBadgeToneStyle(tone) }}
             >
               {item.label}

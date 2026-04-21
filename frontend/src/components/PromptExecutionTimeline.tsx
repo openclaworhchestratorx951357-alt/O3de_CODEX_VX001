@@ -1,6 +1,13 @@
 import type { CSSProperties } from "react";
 
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { PromptSessionRecord } from "../types/contracts";
+import PanelGuideDetails from "./PanelGuideDetails";
+
+const promptExecutionTimelineGuide = getPanelGuide("prompt-execution-timeline");
+const promptExecutionTimelineSummaryControlGuide = getPanelControlGuide("prompt-execution-timeline", "session-summary");
+const promptExecutionTimelineAttemptsControlGuide = getPanelControlGuide("prompt-execution-timeline", "step-attempts");
+const promptExecutionTimelineChildLineageControlGuide = getPanelControlGuide("prompt-execution-timeline", "child-lineage");
 
 type PromptExecutionTimelineProps = {
   session: PromptSessionRecord | null;
@@ -12,11 +19,18 @@ export default function PromptExecutionTimeline({
   return (
     <section style={panelStyle}>
       <h3 style={{ marginTop: 0 }}>Prompt Execution Timeline</h3>
+      <p style={subtleTextStyle}>
+        Inspect prompt-session status, continuation state, child lineage, and latest child response evidence.
+      </p>
+      <PanelGuideDetails
+        tooltip={promptExecutionTimelineGuide.tooltip}
+        checklist={promptExecutionTimelineGuide.checklist}
+      />
       {!session ? (
         <p style={emptyTextStyle}>Select a prompt session to inspect child lineage.</p>
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
-          <div style={summaryCardStyle}>
+          <div title={promptExecutionTimelineSummaryControlGuide.tooltip} style={summaryCardStyle}>
             <div><strong>Status:</strong> {session.status}</div>
             <div><strong>Workspace:</strong> {session.workspace_id ?? "none selected"}</div>
             <div><strong>Executor:</strong> {session.executor_id ?? "none selected"}</div>
@@ -31,7 +45,7 @@ export default function PromptExecutionTimeline({
             <div><strong>Final result:</strong> {session.final_result_summary ?? "none"}</div>
           </div>
           {Object.keys(session.step_attempts).length > 0 ? (
-            <article style={groupStyle}>
+            <article title={promptExecutionTimelineAttemptsControlGuide.tooltip} style={groupStyle}>
               <strong>Step attempts</strong>
               <ul style={listStyle}>
                 {Object.entries(session.step_attempts).map(([stepId, attempts]) => (
@@ -43,7 +57,7 @@ export default function PromptExecutionTimeline({
             </article>
           ) : null}
           {session.latest_child_responses.length > 0 ? (
-            <article style={groupStyle}>
+            <article title={promptExecutionTimelineChildLineageControlGuide.tooltip} style={groupStyle}>
               <strong>Latest child responses</strong>
               <pre style={responseStyle}>{JSON.stringify(session.latest_child_responses, null, 2)}</pre>
             </article>
@@ -62,7 +76,7 @@ export default function PromptExecutionTimeline({
 
 function TimelineGroup({ title, values }: { title: string; values: string[] }) {
   return (
-    <article style={groupStyle}>
+    <article title={promptExecutionTimelineChildLineageControlGuide.tooltip} style={groupStyle}>
       <strong>{title}</strong>
       {values.length === 0 ? (
         <div style={subtleTextStyle}>none</div>

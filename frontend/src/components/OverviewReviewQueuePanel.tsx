@@ -1,9 +1,16 @@
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryActionButtonStyle,
   summaryBadgeStyle,
   summaryMutedTextStyle,
   summarySectionStyle,
 } from "./summaryPrimitives";
+
+const overviewReviewQueueGuide = getPanelGuide("overview-review-queue");
+const overviewReviewQueueEntryControlGuide = getPanelControlGuide("overview-review-queue", "queue-entry");
+const overviewReviewQueueOpenControlGuide = getPanelControlGuide("overview-review-queue", "open-context");
+const overviewReviewQueueTriageControlGuide = getPanelControlGuide("overview-review-queue", "triage-actions");
 
 type OverviewReviewQueueEntry = {
   id: string;
@@ -56,11 +63,16 @@ export default function OverviewReviewQueuePanel({
         <p style={summaryMutedTextStyle}>
           Highest-priority local execution and artifact contexts derived from browser-session workspace memory. This is a frontend review aid only.
         </p>
+        <PanelGuideDetails
+          tooltip={overviewReviewQueueGuide.tooltip}
+          checklist={overviewReviewQueueGuide.checklist}
+        />
       </div>
       <div style={{ display: "grid", gap: 10 }}>
         {entries.map((entry) => (
           <div
             key={entry.id}
+            title={overviewReviewQueueEntryControlGuide.tooltip}
             style={{
               border: "1px solid #d0d7de",
               borderRadius: 10,
@@ -93,6 +105,7 @@ export default function OverviewReviewQueuePanel({
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button
                 type="button"
+                title={overviewReviewQueueOpenControlGuide.tooltip}
                 style={summaryActionButtonStyle}
                 onClick={() => onOpenEntry(entry.id)}
               >
@@ -100,6 +113,7 @@ export default function OverviewReviewQueuePanel({
               </button>
               <button
                 type="button"
+                title={overviewReviewQueueTriageControlGuide.tooltip}
                 style={summaryActionButtonStyle}
                 onClick={() => onTriageEntry(entry.id)}
               >
@@ -107,6 +121,7 @@ export default function OverviewReviewQueuePanel({
               </button>
               <button
                 type="button"
+                title={overviewReviewQueueTriageControlGuide.tooltip}
                 style={summaryActionButtonStyle}
                 onClick={() => onMarkReviewed(entry.id)}
               >
@@ -114,6 +129,7 @@ export default function OverviewReviewQueuePanel({
               </button>
               <button
                 type="button"
+                title={overviewReviewQueueTriageControlGuide.tooltip}
                 style={summaryActionButtonStyle}
                 onClick={() => onSnoozeEntry(entry.id)}
               >
@@ -122,6 +138,7 @@ export default function OverviewReviewQueuePanel({
               {entry.reviewDisposition !== "in_queue" ? (
                 <button
                   type="button"
+                  title={overviewReviewQueueTriageControlGuide.tooltip}
                   style={summaryActionButtonStyle}
                   onClick={() => onKeepInQueue(entry.id)}
                 >

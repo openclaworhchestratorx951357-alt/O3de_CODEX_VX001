@@ -4,6 +4,7 @@ import type {
   RunRecord,
   SettingsPatchMutationAudit,
 } from "../types/contracts";
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import {
   getFallbackCategoryLabel,
   getInspectionSurfaceLabel,
@@ -33,6 +34,23 @@ import {
   summaryTimestampNoteStyle,
   summaryTopStackStyle,
 } from "./summaryPrimitives";
+
+const runDetailGuide = getPanelGuide("run-detail");
+const runDetailRefreshControlGuide = getPanelControlGuide("run-detail", "refresh");
+const runDetailLineageOpenControlGuide = getPanelControlGuide("run-detail", "lineage-open");
+const runDetailJumpControlGuide = getPanelControlGuide("run-detail", "jump");
+const runDetailRecordNavigationControlGuide = getPanelControlGuide("run-detail", "record-navigation");
+
+function getRunDetailShortcutTitle(label: string): string {
+  return `${runDetailRecordNavigationControlGuide.tooltip} Use the ${label} shortcut to reopen the related record from the current run-detail workflow.`;
+}
+
+function getRunDetailLaneHistoryTitle(
+  entry: { kind: "run" | "execution" | "artifact"; id: string; label: string; detail: string },
+): string {
+  const detailSuffix = entry.detail ? ` ${entry.detail}` : "";
+  return `${runDetailRecordNavigationControlGuide.tooltip} Return to recent ${entry.kind} ${entry.label} from the current run-detail lane history.${detailSuffix}`;
+}
 
 type RunDetailPanelProps = {
   item: RunRecord | null;
@@ -267,6 +285,8 @@ export default function RunDetailPanel({
     <SummarySection
       title="Run Detail"
       description="This view shows one persisted run record with explicit execution truth, including simulated runs."
+      guideTooltip={runDetailGuide.tooltip}
+      guideChecklist={runDetailGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage="Select a run to inspect its detail."
@@ -276,6 +296,7 @@ export default function RunDetailPanel({
         <button
           type="button"
           onClick={onRefresh}
+          title={runDetailRefreshControlGuide.tooltip}
           disabled={refreshing}
           style={summaryActionButtonStyle}
         >
@@ -295,6 +316,7 @@ export default function RunDetailPanel({
           selectedRunId={selectedRunId}
           selectedExecutionId={selectedExecutionId}
           onOpenExecution={onOpenExecution}
+          executionActionTitle={runDetailLineageOpenControlGuide.tooltip}
         />
         {refreshHint ? (
           <div style={summaryCalloutStyle}>{refreshHint}</div>
@@ -315,6 +337,7 @@ export default function RunDetailPanel({
           attentionLabel={relatedExecutionAttentionLabel}
           attentionDescription={relatedExecutionAttentionDescription}
           jumpLabel={jumpLabel}
+          jumpTitle={runDetailJumpControlGuide.tooltip}
           onJump={handleJump}
         />
         {priorityShortcutLabel && priorityShortcutDescription && onOpenPriorityRecord ? (
@@ -325,6 +348,7 @@ export default function RunDetailPanel({
               type="button"
               style={summaryActionButtonStyle}
               onClick={onOpenPriorityRecord}
+              title={getRunDetailShortcutTitle(priorityShortcutLabel)}
             >
               {priorityShortcutLabel}
             </button>
@@ -338,6 +362,7 @@ export default function RunDetailPanel({
               type="button"
               style={summaryActionButtonStyle}
               onClick={onOpenWarningRecord}
+              title={getRunDetailShortcutTitle(warningShortcutLabel)}
             >
               {warningShortcutLabel}
             </button>
@@ -365,6 +390,7 @@ export default function RunDetailPanel({
                   type="button"
                   style={summaryActionButtonStyle}
                   onClick={() => onOpenLaneHistoryEntry(entry)}
+                  title={getRunDetailLaneHistoryTitle(entry)}
                 >
                   Recent: {entry.label}
                 </button>
@@ -409,6 +435,7 @@ export default function RunDetailPanel({
                   <button
                     key={`navigate-${breadcrumb.kind}-${breadcrumb.id}`}
                     type="button"
+                    title={runDetailRecordNavigationControlGuide.tooltip}
                     style={summaryActionButtonStyle}
                     disabled={isCurrent}
                     onClick={onClick}
@@ -437,6 +464,7 @@ export default function RunDetailPanel({
             {onOpenArtifact ? (
               <button
                 type="button"
+                title={runDetailRecordNavigationControlGuide.tooltip}
                 style={summaryActionButtonStyle}
                 disabled={selectedArtifactId === originatingArtifactId}
                 onClick={() => onOpenArtifact(originatingArtifactId)}

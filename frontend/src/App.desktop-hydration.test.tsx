@@ -140,6 +140,7 @@ const PARTIAL_SURFACE_HYDRATION_CASES = [
     surfaceSessionKey: ACTIVE_OPERATIONS_SURFACE_SESSION_KEY,
     invalidSurfaceValue: "invalid-operations",
     expectedSurfaceValue: "dispatch",
+    expectedVisibleText: "Catalog, typed dispatch, and latest response envelope.",
     expectedTabLabel: "Dispatch",
     expectedTabDetail: "Catalog, typed dispatch, and latest response envelope.",
   },
@@ -148,6 +149,7 @@ const PARTIAL_SURFACE_HYDRATION_CASES = [
     surfaceSessionKey: ACTIVE_RUNTIME_SURFACE_SESSION_KEY,
     invalidSurfaceValue: "invalid-runtime",
     expectedSurfaceValue: "overview",
+    expectedVisibleText: "SystemStatusPanel stub",
     expectedTabLabel: "Overview",
     expectedTabDetail: "Bridge health, runtime status, and system summaries.",
   },
@@ -156,6 +158,7 @@ const PARTIAL_SURFACE_HYDRATION_CASES = [
     surfaceSessionKey: ACTIVE_RECORDS_SURFACE_SESSION_KEY,
     invalidSurfaceValue: "invalid-records",
     expectedSurfaceValue: "runs",
+    expectedVisibleText: "RunsPanel stub",
     expectedTabLabel: "Runs",
     expectedTabDetail: "Dispatch lineage and run-level audit slices.",
   },
@@ -166,7 +169,7 @@ const EXPLICIT_DEFAULT_SURFACE_RESTORE_CASES = [
     workspaceId: "operations",
     surfaceSessionKey: ACTIVE_OPERATIONS_SURFACE_SESSION_KEY,
     surfaceValue: "dispatch",
-    expectedVisibleText: "Command Center",
+    expectedVisibleText: "Catalog, typed dispatch, and latest response envelope.",
     expectedTabLabel: "Dispatch",
     expectedTabDetail: "Catalog, typed dispatch, and latest response envelope.",
   },
@@ -202,12 +205,14 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Catalog browsing, dispatch, approvals, and live timeline control.",
     ));
+    expect(await screen.findByText("Catalog, typed dispatch, and latest response envelope.")).toBeInTheDocument();
+
     fireEvent.click(getDesktopTabButton(
       "Agents",
       "Available operator families and owned tool lanes.",
     ));
 
-    expect(screen.getByText("Agent Control")).toBeInTheDocument();
+    expect(await screen.findByText("Agent Control")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
     ).toBe("operations");
@@ -227,6 +232,7 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Catalog browsing, dispatch, approvals, and live timeline control.",
     ));
+    expect(await screen.findByText("Catalog, typed dispatch, and latest response envelope.")).toBeInTheDocument();
 
     const approvalsSurfaceButton = getDesktopTabButton(
       "Approvals",
@@ -235,7 +241,7 @@ describe("App desktop hydration", () => {
 
     fireEvent.click(approvalsSurfaceButton);
 
-    expect(screen.getByText("ApprovalQueue stub")).toBeInTheDocument();
+    expect(await screen.findByText("ApprovalQueue stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
     ).toBe("operations");
@@ -247,12 +253,11 @@ describe("App desktop hydration", () => {
     unmount();
     render(<App />);
 
+    expect(await screen.findByText("ApprovalQueue stub")).toBeInTheDocument();
     const restoredApprovalsSurfaceButton = getDesktopTabButton(
       "Approvals",
       "Pending decisions on the control-plane queue.",
     );
-
-    expect(await screen.findByText("ApprovalQueue stub")).toBeInTheDocument();
     expectDesktopTabActive(restoredApprovalsSurfaceButton);
   });
 
@@ -262,6 +267,7 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Catalog browsing, dispatch, approvals, and live timeline control.",
     ));
+    expect(await screen.findByText("Catalog, typed dispatch, and latest response envelope.")).toBeInTheDocument();
 
     const timelineSurfaceButton = getDesktopTabButton(
       "Timeline",
@@ -270,7 +276,7 @@ describe("App desktop hydration", () => {
 
     fireEvent.click(timelineSurfaceButton);
 
-    expect(screen.getByText("TaskTimeline stub")).toBeInTheDocument();
+    expect(await screen.findByText("TaskTimeline stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
     ).toBe("operations");
@@ -282,12 +288,11 @@ describe("App desktop hydration", () => {
     unmount();
     render(<App />);
 
+    expect(await screen.findByText("TaskTimeline stub")).toBeInTheDocument();
     const restoredTimelineSurfaceButton = getDesktopTabButton(
       "Timeline",
       "Cross-record event and task history.",
     );
-
-    expect(await screen.findByText("TaskTimeline stub")).toBeInTheDocument();
     expectDesktopTabActive(restoredTimelineSurfaceButton);
   });
 
@@ -297,13 +302,15 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Bridge status, executors, workspaces, and governance health.",
     ));
+    expect(await screen.findByText("SystemStatusPanel stub")).toBeInTheDocument();
+
     fireEvent.click(getDesktopTabButton(
       "Executors",
       "Execution owners, availability, and related records.",
     ));
 
     expect(screen.getByText("Runtime Console")).toBeInTheDocument();
-    expect(screen.getByText("ExecutorsPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText("ExecutorsPanel stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
     ).toBe("runtime");
@@ -323,6 +330,7 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Bridge status, executors, workspaces, and governance health.",
     ));
+    expect(await screen.findByText("SystemStatusPanel stub")).toBeInTheDocument();
 
     fireEvent.click(getDesktopTabButton(
       "Governance",
@@ -330,7 +338,7 @@ describe("App desktop hydration", () => {
     ));
 
     expect(await screen.findByText("Governance Deck")).toBeInTheDocument();
-    expect(screen.getByText("Phase7CapabilitySummaryPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText("Phase7CapabilitySummaryPanel stub")).toBeInTheDocument();
     expect(screen.getByText("LocksPanel stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
@@ -364,6 +372,7 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Bridge status, executors, workspaces, and governance health.",
     ));
+    expect(await screen.findByText("SystemStatusPanel stub")).toBeInTheDocument();
 
     const workspacesSurfaceButton = getDesktopTabButton(
       "Workspaces",
@@ -373,7 +382,7 @@ describe("App desktop hydration", () => {
     fireEvent.click(workspacesSurfaceButton);
 
     expect(screen.getByText("Runtime Console")).toBeInTheDocument();
-    expect(screen.getByText("WorkspacesPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText("WorkspacesPanel stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
     ).toBe("runtime");
@@ -385,12 +394,11 @@ describe("App desktop hydration", () => {
     unmount();
     render(<App />);
 
+    expect(await screen.findByText("WorkspacesPanel stub")).toBeInTheDocument();
     const restoredWorkspacesSurfaceButton = getDesktopTabButton(
       "Workspaces",
       "Project surfaces, ownership, and attached activity.",
     );
-
-    expect(await screen.findByText("WorkspacesPanel stub")).toBeInTheDocument();
     expectDesktopTabActive(restoredWorkspacesSurfaceButton);
   });
 
@@ -401,7 +409,7 @@ describe("App desktop hydration", () => {
       "Natural-language planning and admitted typed execution paths.",
     ));
 
-    expect(screen.getByText("PromptControlPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText("PromptControlPanel stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
     ).toBe("prompt");
@@ -418,6 +426,7 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Runs, executions, artifacts, and detail drilldowns in one organized lane.",
     ));
+    expect(await screen.findByText("RunsPanel stub")).toBeInTheDocument();
 
     const executionsSurfaceButton = getDesktopTabButton(
       "Executions",
@@ -427,7 +436,7 @@ describe("App desktop hydration", () => {
     fireEvent.click(executionsSurfaceButton);
 
     expect(screen.getByText("Records Explorer")).toBeInTheDocument();
-    expect(screen.getByText("ExecutionsPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText("ExecutionsPanel stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
     ).toBe("records");
@@ -439,11 +448,11 @@ describe("App desktop hydration", () => {
     unmount();
     render(<App />);
 
+    expect(await screen.findByText("ExecutionsPanel stub")).toBeInTheDocument();
     const restoredExecutionsSurfaceButton = getDesktopTabButton(
       "Executions",
       "Execution warnings, truth markers, and child evidence.",
     );
-
     expectDesktopTabActive(restoredExecutionsSurfaceButton);
   });
 
@@ -453,6 +462,7 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Runs, executions, artifacts, and detail drilldowns in one organized lane.",
     ));
+    expect(await screen.findByText("RunsPanel stub")).toBeInTheDocument();
 
     const artifactsSurfaceButton = getDesktopTabButton(
       "Artifacts",
@@ -462,7 +472,7 @@ describe("App desktop hydration", () => {
     fireEvent.click(artifactsSurfaceButton);
 
     expect(screen.getByText("Records Explorer")).toBeInTheDocument();
-    expect(screen.getByText("ArtifactsPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText("ArtifactsPanel stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
     ).toBe("records");
@@ -474,22 +484,22 @@ describe("App desktop hydration", () => {
     unmount();
     render(<App />);
 
+    expect(await screen.findByText("ArtifactsPanel stub")).toBeInTheDocument();
     const restoredArtifactsSurfaceButton = getDesktopTabButton(
       "Artifacts",
       "Output inspection and mutation-risk evidence.",
     );
-
-    expect(await screen.findByText("ArtifactsPanel stub")).toBeInTheDocument();
     expectDesktopTabActive(restoredArtifactsSurfaceButton);
   });
 
   it.each(PARTIAL_SURFACE_HYDRATION_CASES)(
     "restores the $workspaceId workspace and falls back to the default surface when the stored surface is invalid",
-    ({
+    async ({
       workspaceId,
       surfaceSessionKey,
       invalidSurfaceValue,
       expectedSurfaceValue,
+      expectedVisibleText,
       expectedTabLabel,
       expectedTabDetail,
     }) => {
@@ -498,6 +508,7 @@ describe("App desktop hydration", () => {
 
       render(<App />);
 
+      expect(await screen.findByText(expectedVisibleText)).toBeInTheDocument();
       const defaultSurfaceButton = getDesktopTabButton(expectedTabLabel, expectedTabDetail);
 
       expect(window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY)).toBe(workspaceId);
@@ -508,7 +519,7 @@ describe("App desktop hydration", () => {
 
   it.each(EXPLICIT_DEFAULT_SURFACE_RESTORE_CASES)(
     "restores the $workspaceId workspace when the stored surface is the explicit default",
-    ({
+    async ({
       workspaceId,
       surfaceSessionKey,
       surfaceValue,
@@ -521,16 +532,16 @@ describe("App desktop hydration", () => {
 
       render(<App />);
 
+      expect(await screen.findByText(expectedVisibleText)).toBeInTheDocument();
       const defaultSurfaceButton = getDesktopTabButton(expectedTabLabel, expectedTabDetail);
 
-      expect(screen.getAllByText(expectedVisibleText).length).toBeGreaterThan(0);
       expect(window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY)).toBe(workspaceId);
       expect(window.sessionStorage.getItem(surfaceSessionKey)).toBe(surfaceValue);
       expectDesktopTabActive(defaultSurfaceButton);
     },
   );
 
-  it("preserves valid workspace restoration when unrelated surface session values are invalid", () => {
+  it("preserves valid workspace restoration when unrelated surface session values are invalid", async () => {
     window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "prompt");
     window.sessionStorage.setItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY, "invalid-operations");
     window.sessionStorage.setItem(ACTIVE_RUNTIME_SURFACE_SESSION_KEY, "invalid-runtime");
@@ -538,7 +549,7 @@ describe("App desktop hydration", () => {
 
     render(<App />);
 
-    expect(screen.getByText("PromptControlPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText("PromptControlPanel stub")).toBeInTheDocument();
     expect(window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY)).toBe("prompt");
     expect(window.sessionStorage.getItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY)).toBe("dispatch");
     expect(window.sessionStorage.getItem(ACTIVE_RUNTIME_SURFACE_SESSION_KEY)).toBe("overview");
@@ -553,8 +564,8 @@ describe("App desktop hydration", () => {
 
     render(<App />);
 
-    expect(screen.getByText("Mission Control")).toBeInTheDocument();
-    expect(screen.getByText("Launchpad")).toBeInTheDocument();
+    expect(screen.getAllByText("Mission Control").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Launchpad").length).toBeGreaterThan(0);
     expect(window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY)).toBe("home");
     expect(window.sessionStorage.getItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY)).toBe("dispatch");
     expect(window.sessionStorage.getItem(ACTIVE_RUNTIME_SURFACE_SESSION_KEY)).toBe("overview");

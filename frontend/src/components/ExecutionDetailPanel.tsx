@@ -4,6 +4,7 @@ import type {
   ExecutionRecord,
   ProjectInspectEvidenceDetails,
 } from "../types/contracts";
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import {
   compareArtifactPriority,
   describeArtifactAttention,
@@ -43,6 +44,23 @@ import {
   summaryTimestampNoteStyle,
   summaryTopStackStyle,
 } from "./summaryPrimitives";
+
+const executionDetailGuide = getPanelGuide("execution-detail");
+const executionDetailRefreshControlGuide = getPanelControlGuide("execution-detail", "refresh");
+const executionDetailLineageOpenControlGuide = getPanelControlGuide("execution-detail", "lineage-open");
+const executionDetailJumpControlGuide = getPanelControlGuide("execution-detail", "jump");
+const executionDetailRecordNavigationControlGuide = getPanelControlGuide("execution-detail", "record-navigation");
+
+function getExecutionDetailShortcutTitle(label: string): string {
+  return `${executionDetailRecordNavigationControlGuide.tooltip} Use the ${label} shortcut to reopen the related record from the current execution-detail workflow.`;
+}
+
+function getExecutionDetailLaneHistoryTitle(
+  entry: { kind: "run" | "execution" | "artifact"; id: string; label: string; detail: string },
+): string {
+  const detailSuffix = entry.detail ? ` ${entry.detail}` : "";
+  return `${executionDetailRecordNavigationControlGuide.tooltip} Return to recent ${entry.kind} ${entry.label} from the current execution-detail lane history.${detailSuffix}`;
+}
 
 type ExecutionDetailPanelProps = {
   item: ExecutionRecord | null;
@@ -268,6 +286,8 @@ export default function ExecutionDetailPanel({
     <SummarySection
       title="Execution Detail"
       description="This view shows one persisted execution record with provenance and evidence detail when available."
+      guideTooltip={executionDetailGuide.tooltip}
+      guideChecklist={executionDetailGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage="Select an execution to inspect its detail."
@@ -277,6 +297,7 @@ export default function ExecutionDetailPanel({
         <button
           type="button"
           onClick={onRefresh}
+          title={executionDetailRefreshControlGuide.tooltip}
           disabled={refreshing}
           style={summaryActionButtonStyle}
         >
@@ -305,6 +326,8 @@ export default function ExecutionDetailPanel({
           selectedArtifactId={selectedArtifactId}
           onOpenRun={onOpenRun}
           onOpenArtifact={onOpenArtifact}
+          runActionTitle={executionDetailLineageOpenControlGuide.tooltip}
+          artifactActionTitle={executionDetailLineageOpenControlGuide.tooltip}
         />
         {refreshHint ? (
           <div style={summaryCalloutStyle}>{refreshHint}</div>
@@ -325,6 +348,9 @@ export default function ExecutionDetailPanel({
           attentionLabel={lineageArtifactAttention?.label ?? null}
           attentionDescription={lineageArtifactAttention?.description ?? null}
           jumpLabel={projectInspectDetails || relatedArtifacts.length > 0 ? jumpLabel : null}
+          jumpTitle={projectInspectDetails || relatedArtifacts.length > 0
+            ? executionDetailJumpControlGuide.tooltip
+            : null}
           onJump={projectInspectDetails || relatedArtifacts.length > 0 ? handleJump : null}
         />
         {priorityShortcutLabel && priorityShortcutDescription && onOpenPriorityRecord ? (
@@ -335,6 +361,7 @@ export default function ExecutionDetailPanel({
               type="button"
               style={summaryActionButtonStyle}
               onClick={onOpenPriorityRecord}
+              title={getExecutionDetailShortcutTitle(priorityShortcutLabel)}
             >
               {priorityShortcutLabel}
             </button>
@@ -348,6 +375,7 @@ export default function ExecutionDetailPanel({
               type="button"
               style={summaryActionButtonStyle}
               onClick={onOpenWarningRecord}
+              title={getExecutionDetailShortcutTitle(warningShortcutLabel)}
             >
               {warningShortcutLabel}
             </button>
@@ -375,6 +403,7 @@ export default function ExecutionDetailPanel({
                   type="button"
                   style={summaryActionButtonStyle}
                   onClick={() => onOpenLaneHistoryEntry(entry)}
+                  title={getExecutionDetailLaneHistoryTitle(entry)}
                 >
                   Recent: {entry.label}
                 </button>
@@ -419,6 +448,7 @@ export default function ExecutionDetailPanel({
                   <button
                     key={`navigate-${breadcrumb.kind}-${breadcrumb.id}`}
                     type="button"
+                    title={executionDetailRecordNavigationControlGuide.tooltip}
                     style={summaryActionButtonStyle}
                     disabled={isCurrent}
                     onClick={onClick}
@@ -447,6 +477,7 @@ export default function ExecutionDetailPanel({
             {onOpenArtifact ? (
               <button
                 type="button"
+                title={executionDetailRecordNavigationControlGuide.tooltip}
                 style={summaryActionButtonStyle}
                 disabled={selectedArtifactId === lineageArtifactId}
                 onClick={() => onOpenArtifact(lineageArtifactId)}
@@ -558,6 +589,7 @@ export default function ExecutionDetailPanel({
                       </SummaryFacts>
                       <button
                         type="button"
+                        title={executionDetailRecordNavigationControlGuide.tooltip}
                         style={summaryActionButtonStyle}
                         onClick={() => onOpenArtifact(artifactId)}
                       >

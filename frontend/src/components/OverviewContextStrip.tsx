@@ -1,8 +1,15 @@
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryActionButtonStyle,
   summaryMutedTextStyle,
   summarySectionStyle,
 } from "./summaryPrimitives";
+
+const overviewContextStripGuide = getPanelGuide("overview-context-strip");
+const overviewContextStripHistoryControlGuide = getPanelControlGuide("overview-context-strip", "history-entry");
+const overviewContextStripPresetControlGuide = getPanelControlGuide("overview-context-strip", "preset-actions");
+const overviewContextStripClearFocusControlGuide = getPanelControlGuide("overview-context-strip", "clear-focus");
 
 type OverviewContextStripProps = {
   laneLabel: string;
@@ -67,6 +74,10 @@ export default function OverviewContextStrip({
       <p style={summaryMutedTextStyle}>
         {laneLabel} is currently focused from the overview on {focusLabel}.
       </p>
+      <PanelGuideDetails
+        tooltip={overviewContextStripGuide.tooltip}
+        checklist={overviewContextStripGuide.checklist}
+      />
       {originLabel ? (
         <p style={summaryMutedTextStyle}>
           Drilldown source: {originLabel}.
@@ -93,6 +104,7 @@ export default function OverviewContextStrip({
             {onApplyPromotedPreset ? (
               <button
                 type="button"
+                title={overviewContextStripPresetControlGuide.tooltip}
                 style={summaryActionButtonStyle}
                 onClick={onApplyPromotedPreset}
               >
@@ -102,6 +114,7 @@ export default function OverviewContextStrip({
             {onClearPromotedPreset ? (
               <button
                 type="button"
+                title={overviewContextStripPresetControlGuide.tooltip}
                 style={summaryActionButtonStyle}
                 onClick={onClearPromotedPreset}
               >
@@ -119,6 +132,7 @@ export default function OverviewContextStrip({
               <button
                 key={entry.id}
                 type="button"
+                title={overviewContextStripHistoryControlGuide.tooltip}
                 style={summaryActionButtonStyle}
                 onClick={() => onSelectHistoryEntry?.(entry.id)}
               >
@@ -128,6 +142,7 @@ export default function OverviewContextStrip({
             {onClearHistory ? (
               <button
                 type="button"
+                title={overviewContextStripHistoryControlGuide.tooltip}
                 style={summaryActionButtonStyle}
                 onClick={onClearHistory}
               >
@@ -142,6 +157,7 @@ export default function OverviewContextStrip({
           {onPromoteCurrentContext ? (
             <button
               type="button"
+              title={overviewContextStripPresetControlGuide.tooltip}
               style={summaryActionButtonStyle}
               onClick={onPromoteCurrentContext}
             >
@@ -150,6 +166,7 @@ export default function OverviewContextStrip({
           ) : null}
           <button
             type="button"
+            title={overviewContextStripClearFocusControlGuide.tooltip}
             style={summaryActionButtonStyle}
             onClick={onClearFocus}
           >

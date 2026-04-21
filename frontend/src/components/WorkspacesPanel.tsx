@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { WorkspaceRecord } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -15,6 +16,11 @@ import {
   summarySearchInputStyle,
   summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
+
+const workspacesPanelGuide = getPanelGuide("workspaces-panel");
+const workspacesPanelRefreshControlGuide = getPanelControlGuide("workspaces-panel", "refresh");
+const workspacesPanelSearchControlGuide = getPanelControlGuide("workspaces-panel", "search");
+const workspacesPanelSelectDetailControlGuide = getPanelControlGuide("workspaces-panel", "select-detail");
 
 type WorkspacesPanelProps = {
   items: WorkspaceRecord[];
@@ -56,13 +62,21 @@ export default function WorkspacesPanel({
     <SummarySection
       title="Workspaces"
       description="Persisted workspace-isolation bookkeeping for remote substrate planning. Workspace state, ownership, and cleanup policy remain operator-visible inventory only."
+      guideTooltip={workspacesPanelGuide.tooltip}
+      guideChecklist={workspacesPanelGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage={normalizedQuery ? "No workspaces match the current search." : "No workspaces are recorded yet."}
       hasItems={filteredItems.length > 0}
       actionHint="Refresh updates persisted workspace lifecycle records without changing admitted tool capability."
       actions={onRefresh ? (
-        <button type="button" onClick={onRefresh} disabled={refreshing} style={summaryActionButtonStyle}>
+        <button
+          type="button"
+          title={workspacesPanelRefreshControlGuide.tooltip}
+          onClick={onRefresh}
+          disabled={refreshing}
+          style={summaryActionButtonStyle}
+        >
           {refreshing ? "Refreshing..." : "Refresh workspaces"}
         </button>
       ) : null}
@@ -81,6 +95,7 @@ export default function WorkspacesPanel({
         {updateBadgeLabel ? <span style={summaryRefreshBadgeStyle}>{updateBadgeLabel}</span> : null}
         <input
           type="search"
+          title={workspacesPanelSearchControlGuide.tooltip}
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
           placeholder="Search workspaces by id, root, state, runner family, or owner"
@@ -123,6 +138,7 @@ export default function WorkspacesPanel({
             {onSelectWorkspace ? (
               <button
                 type="button"
+                title={workspacesPanelSelectDetailControlGuide.tooltip}
                 style={{ ...summaryActionButtonStyle, marginTop: 8 }}
                 disabled={selectedWorkspaceId === item.id}
                 onClick={() => onSelectWorkspace(item.id)}

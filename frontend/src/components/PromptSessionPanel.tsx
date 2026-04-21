@@ -1,6 +1,11 @@
 import type { CSSProperties } from "react";
 
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { PromptSessionRecord } from "../types/contracts";
+import PanelGuideDetails from "./PanelGuideDetails";
+
+const promptSessionsGuide = getPanelGuide("prompt-sessions");
+const promptSessionsEntryControlGuide = getPanelControlGuide("prompt-sessions", "session-entry");
 
 type PromptSessionPanelProps = {
   sessions: PromptSessionRecord[];
@@ -16,6 +21,13 @@ export default function PromptSessionPanel({
   return (
     <section style={panelStyle}>
       <h3 style={{ marginTop: 0 }}>Prompt Sessions</h3>
+      <p style={subtleTextStyle}>
+        Select the persisted prompt session you want to inspect, continue, or explain across Prompt Studio.
+      </p>
+      <PanelGuideDetails
+        tooltip={promptSessionsGuide.tooltip}
+        checklist={promptSessionsGuide.checklist}
+      />
       {sessions.length === 0 ? (
         <p style={emptyTextStyle}>No prompt sessions have been created yet.</p>
       ) : (
@@ -26,6 +38,7 @@ export default function PromptSessionPanel({
               <button
                 key={session.prompt_id}
                 type="button"
+                title={promptSessionsEntryControlGuide.tooltip}
                 onClick={() => onSelect(session.prompt_id)}
                 style={{
                   ...sessionButtonStyle,

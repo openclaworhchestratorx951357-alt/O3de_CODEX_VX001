@@ -1,9 +1,14 @@
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryActionButtonStyle,
   summaryBadgeStyle,
   summaryMutedTextStyle,
   summarySectionStyle,
 } from "./summaryPrimitives";
+
+const overviewReviewSessionGuide = getPanelGuide("overview-review-session");
+const overviewReviewSessionActionsControlGuide = getPanelControlGuide("overview-review-session", "session-actions");
 
 type OverviewReviewSessionPanelProps = {
   inQueueCount: number;
@@ -55,6 +60,10 @@ export default function OverviewReviewSessionPanel({
         <p style={summaryMutedTextStyle}>
           Local browser-session review state for saved overview contexts. These counts do not reflect backend queue or task-state persistence.
         </p>
+        <PanelGuideDetails
+          tooltip={overviewReviewSessionGuide.tooltip}
+          checklist={overviewReviewSessionGuide.checklist}
+        />
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <span style={summaryBadgeStyle}>in queue: {inQueueCount}</span>
@@ -83,6 +92,7 @@ export default function OverviewReviewSessionPanel({
         {onCopySessionSnapshot ? (
           <button
             type="button"
+            title={overviewReviewSessionActionsControlGuide.tooltip}
             style={summaryActionButtonStyle}
             onClick={onCopySessionSnapshot}
           >
@@ -92,6 +102,7 @@ export default function OverviewReviewSessionPanel({
         {onReturnAllToQueue ? (
           <button
             type="button"
+            title={overviewReviewSessionActionsControlGuide.tooltip}
             style={summaryActionButtonStyle}
             onClick={onReturnAllToQueue}
           >
@@ -101,6 +112,7 @@ export default function OverviewReviewSessionPanel({
         {onResetReviewState ? (
           <button
             type="button"
+            title={overviewReviewSessionActionsControlGuide.tooltip}
             style={summaryActionButtonStyle}
             onClick={onResetReviewState}
           >

@@ -5,6 +5,7 @@ export type DesktopTabStripItem = {
   label: string;
   detail?: string | null;
   badge?: string | null;
+  helpTooltip?: string | null;
 };
 
 type DesktopTabStripProps = {
@@ -27,6 +28,7 @@ export default function DesktopTabStrip({
             key={item.id}
             type="button"
             onClick={() => onSelectItem(item.id)}
+            title={item.helpTooltip ?? undefined}
             style={{
               ...tabButtonStyle,
               ...(active ? activeTabButtonStyle : null),

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
+import { getWorkspaceWindowGuide } from "../../content/operatorGuide";
 
 type OperationsSurfaceId =
   | "dispatch"
@@ -19,6 +20,8 @@ type OperationsWorkspaceViewProps = {
   timelineContent: ReactNode;
 };
 
+const commandCenterWindow = getWorkspaceWindowGuide("operations", "command-center");
+
 export default function OperationsWorkspaceView({
   activeSurfaceId,
   items,
@@ -28,10 +31,19 @@ export default function OperationsWorkspaceView({
   approvalsContent,
   timelineContent,
 }: OperationsWorkspaceViewProps) {
+  const activeContent = activeSurfaceId === "dispatch"
+    ? dispatchContent
+    : activeSurfaceId === "agents"
+      ? agentsContent
+      : activeSurfaceId === "approvals"
+        ? approvalsContent
+        : timelineContent;
+
   return (
     <DesktopWindow
-      title="Command Center"
-      subtitle="Work through dispatch, agents, approvals, and timeline without leaving the operator desktop."
+      title={commandCenterWindow.title}
+      subtitle={commandCenterWindow.subtitle}
+      helpTooltip={commandCenterWindow.tooltip}
       toolbar={(
         <DesktopTabStrip
           items={items}
@@ -40,10 +52,7 @@ export default function OperationsWorkspaceView({
         />
       )}
     >
-      {activeSurfaceId === "dispatch" ? dispatchContent : null}
-      {activeSurfaceId === "agents" ? agentsContent : null}
-      {activeSurfaceId === "approvals" ? approvalsContent : null}
-      {activeSurfaceId === "timeline" ? timelineContent : null}
+      {activeContent}
     </DesktopWindow>
   );
 }

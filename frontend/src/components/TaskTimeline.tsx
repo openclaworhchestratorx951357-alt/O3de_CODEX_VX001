@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import { describeTimelineMeaning } from "../lib/capabilityNarrative";
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { EventListItem } from "../types/contracts";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -22,6 +23,11 @@ import {
   summarySearchInputStyle,
   summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
+
+const taskTimelineGuide = getPanelGuide("task-timeline");
+const taskTimelineRefreshControlGuide = getPanelControlGuide("task-timeline", "refresh");
+const taskTimelineSearchControlGuide = getPanelControlGuide("task-timeline", "search");
+const taskTimelineOpenLinkedRecordControlGuide = getPanelControlGuide("task-timeline", "open-linked-record");
 
 type TaskTimelineProps = {
   items: EventListItem[];
@@ -67,6 +73,8 @@ export default function TaskTimeline({
     <SummarySection
       title="Task Timeline"
       description="This timeline shows persisted control-plane events, including simulated execution activity where applicable."
+      guideTooltip={taskTimelineGuide.tooltip}
+      guideChecklist={taskTimelineGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage={normalizedQuery ? "No timeline events match the current search." : "No timeline events are recorded yet."}
@@ -76,6 +84,7 @@ export default function TaskTimeline({
         <button
           type="button"
           onClick={onRefresh}
+          title={taskTimelineRefreshControlGuide.tooltip}
           disabled={refreshing}
           style={summaryInlineActionButtonStyle}
         >
@@ -103,6 +112,7 @@ export default function TaskTimeline({
         ) : null}
         <input
           type="search"
+          title={taskTimelineSearchControlGuide.tooltip}
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
           placeholder="Search timeline by message, run, category, state, or capability"
@@ -157,6 +167,7 @@ export default function TaskTimeline({
                     {onOpenRun ? (
                       <button
                         type="button"
+                        title={taskTimelineOpenLinkedRecordControlGuide.tooltip}
                         style={summaryInlineActionButtonStyle}
                         onClick={() => onOpenRun(item.run_id!)}
                       >
@@ -172,6 +183,7 @@ export default function TaskTimeline({
                     {onOpenExecution ? (
                       <button
                         type="button"
+                        title={taskTimelineOpenLinkedRecordControlGuide.tooltip}
                         style={summaryInlineActionButtonStyle}
                         onClick={() => onOpenExecution(item.execution_id!)}
                       >
@@ -187,6 +199,7 @@ export default function TaskTimeline({
                     {onOpenExecutor ? (
                       <button
                         type="button"
+                        title={taskTimelineOpenLinkedRecordControlGuide.tooltip}
                         style={summaryInlineActionButtonStyle}
                         onClick={() => onOpenExecutor(item.executor_id!)}
                       >
@@ -202,6 +215,7 @@ export default function TaskTimeline({
                     {onOpenWorkspace ? (
                       <button
                         type="button"
+                        title={taskTimelineOpenLinkedRecordControlGuide.tooltip}
                         style={summaryInlineActionButtonStyle}
                         onClick={() => onOpenWorkspace(item.workspace_id!)}
                       >

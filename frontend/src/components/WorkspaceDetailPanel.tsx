@@ -5,6 +5,7 @@ import type {
   RunListItem,
   WorkspaceRecord,
 } from "../types/contracts";
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import StatusChip from "./StatusChip";
@@ -15,6 +16,12 @@ import {
   summaryCardHeadingStyle,
   summaryCardStyle,
 } from "./summaryPrimitives";
+
+const workspaceDetailGuide = getPanelGuide("workspace-detail");
+const workspaceDetailRefreshControlGuide = getPanelControlGuide("workspace-detail", "refresh");
+const workspaceDetailSavedContextControlGuide = getPanelControlGuide("workspace-detail", "saved-context");
+const workspaceDetailLocalReviewActionsControlGuide = getPanelControlGuide("workspace-detail", "local-review-actions");
+const workspaceDetailRelatedRecordOpenControlGuide = getPanelControlGuide("workspace-detail", "related-record-open");
 
 type WorkspaceDetailPanelProps = {
   item: WorkspaceRecord | null;
@@ -87,12 +94,20 @@ export default function WorkspaceDetailPanel({
     <SummarySection
       title="Workspace Detail"
       description="Workspace detail is persisted substrate bookkeeping for isolation, ownership, and cleanup lifecycle. It does not imply broader mutation admission or remote tool execution beyond currently admitted surfaces."
+      guideTooltip={workspaceDetailGuide.tooltip}
+      guideChecklist={workspaceDetailGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage="Select a workspace to inspect its persisted substrate record."
       hasItems={Boolean(item)}
       actions={onRefresh ? (
-        <button type="button" onClick={onRefresh} disabled={refreshing} style={summaryActionButtonStyle}>
+        <button
+          type="button"
+          title={workspaceDetailRefreshControlGuide.tooltip}
+          onClick={onRefresh}
+          disabled={refreshing}
+          style={summaryActionButtonStyle}
+        >
           {refreshing ? "Refreshing..." : "Refresh workspace detail"}
         </button>
       ) : null}
@@ -140,22 +155,42 @@ export default function WorkspaceDetailPanel({
             </SummaryFacts>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {onOpenSavedContext ? (
-                <button type="button" style={summaryActionButtonStyle} onClick={onOpenSavedContext}>
+                <button
+                  type="button"
+                  title={workspaceDetailSavedContextControlGuide.tooltip}
+                  style={summaryActionButtonStyle}
+                  onClick={onOpenSavedContext}
+                >
                   Open saved context
                 </button>
               ) : null}
               {onMarkLocalReviewed ? (
-                <button type="button" style={summaryActionButtonStyle} onClick={onMarkLocalReviewed}>
+                <button
+                  type="button"
+                  title={workspaceDetailLocalReviewActionsControlGuide.tooltip}
+                  style={summaryActionButtonStyle}
+                  onClick={onMarkLocalReviewed}
+                >
                   Mark reviewed
                 </button>
               ) : null}
               {onSnoozeLocalReview ? (
-                <button type="button" style={summaryActionButtonStyle} onClick={onSnoozeLocalReview}>
+                <button
+                  type="button"
+                  title={workspaceDetailLocalReviewActionsControlGuide.tooltip}
+                  style={summaryActionButtonStyle}
+                  onClick={onSnoozeLocalReview}
+                >
                   Snooze
                 </button>
               ) : null}
               {localReviewDisposition !== "in_queue" && onKeepLocalInQueue ? (
-                <button type="button" style={summaryActionButtonStyle} onClick={onKeepLocalInQueue}>
+                <button
+                  type="button"
+                  title={workspaceDetailLocalReviewActionsControlGuide.tooltip}
+                  style={summaryActionButtonStyle}
+                  onClick={onKeepLocalInQueue}
+                >
                   Return to queue
                 </button>
               ) : null}
@@ -263,7 +298,12 @@ export default function WorkspaceDetailPanel({
               )}
             </SummaryFacts>
             {onOpenExecution && relatedExecutions[0] ? (
-              <button type="button" style={summaryActionButtonStyle} onClick={() => onOpenExecution(relatedExecutions[0].id)}>
+              <button
+                type="button"
+                title={workspaceDetailRelatedRecordOpenControlGuide.tooltip}
+                style={summaryActionButtonStyle}
+                onClick={() => onOpenExecution(relatedExecutions[0].id)}
+              >
                 Open first execution
               </button>
             ) : null}
@@ -280,12 +320,22 @@ export default function WorkspaceDetailPanel({
             </SummaryFacts>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {onOpenRun && relatedRuns[0] ? (
-                <button type="button" style={summaryActionButtonStyle} onClick={() => onOpenRun(relatedRuns[0].id)}>
+                <button
+                  type="button"
+                  title={workspaceDetailRelatedRecordOpenControlGuide.tooltip}
+                  style={summaryActionButtonStyle}
+                  onClick={() => onOpenRun(relatedRuns[0].id)}
+                >
                   Open first run
                 </button>
               ) : null}
               {onOpenArtifact && relatedArtifacts[0] ? (
-                <button type="button" style={summaryActionButtonStyle} onClick={() => onOpenArtifact(relatedArtifacts[0].id)}>
+                <button
+                  type="button"
+                  title={workspaceDetailRelatedRecordOpenControlGuide.tooltip}
+                  style={summaryActionButtonStyle}
+                  onClick={() => onOpenArtifact(relatedArtifacts[0].id)}
+                >
                   Open first artifact
                 </button>
               ) : null}

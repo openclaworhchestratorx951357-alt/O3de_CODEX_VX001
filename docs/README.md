@@ -5,6 +5,7 @@ Architecture, plans, handoffs, and operator-facing documentation for the O3DE ag
 ## Workflow and roadmap
 
 See these official source files:
+- `docs/APP-OPERATOR-GUIDE.md`
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/SLICE-START-CHECKLIST.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`

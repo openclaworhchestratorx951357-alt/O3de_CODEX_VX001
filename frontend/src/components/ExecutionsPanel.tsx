@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import type { ExecutionListItem } from "../types/contracts";
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import {
   getExecutionProvenanceLabel,
   getFallbackCategoryLabel,
@@ -28,6 +29,11 @@ import {
   summarySearchInputStyle,
   summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
+
+const executionsPanelGuide = getPanelGuide("executions-panel");
+const executionsPanelRefreshControlGuide = getPanelControlGuide("executions-panel", "refresh");
+const executionsPanelSearchControlGuide = getPanelControlGuide("executions-panel", "search");
+const executionsPanelSelectDetailControlGuide = getPanelControlGuide("executions-panel", "select-detail");
 
 type ExecutionsPanelProps = {
   items: ExecutionListItem[];
@@ -70,6 +76,8 @@ export default function ExecutionsPanel({
     <SummarySection
       title="Executions"
       description="These are persisted execution records. Execution mode remains explicit, including simulated control-plane runs."
+      guideTooltip={executionsPanelGuide.tooltip}
+      guideChecklist={executionsPanelGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage={normalizedQuery ? "No executions match the current search." : "No executions are recorded yet."}
@@ -79,6 +87,7 @@ export default function ExecutionsPanel({
         <button
           type="button"
           onClick={onRefresh}
+          title={executionsPanelRefreshControlGuide.tooltip}
           disabled={refreshing}
           style={summaryInlineActionButtonStyle}
         >
@@ -106,6 +115,7 @@ export default function ExecutionsPanel({
         ) : null}
         <input
           type="search"
+          title={executionsPanelSearchControlGuide.tooltip}
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
           placeholder="Search executions by tool, agent, run ID, or summary"
@@ -201,6 +211,7 @@ export default function ExecutionsPanel({
                   <SummaryFact label="Detail">
                     <button
                       type="button"
+                      title={executionsPanelSelectDetailControlGuide.tooltip}
                       style={summaryInlineActionButtonStyle}
                       onClick={() => onSelectExecution(item.id)}
                     >

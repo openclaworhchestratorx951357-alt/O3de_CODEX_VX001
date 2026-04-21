@@ -1,9 +1,15 @@
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryActionButtonStyle,
   summaryBadgeStyle,
   summaryMutedTextStyle,
   summarySectionStyle,
 } from "./summaryPrimitives";
+
+const overviewHandoffExportGuide = getPanelGuide("overview-handoff-export");
+const overviewHandoffExportCopyControlGuide = getPanelControlGuide("overview-handoff-export", "copy-draft");
+const overviewHandoffExportPreviewControlGuide = getPanelControlGuide("overview-handoff-export", "draft-preview");
 
 type OverviewHandoffExportEntry = {
   id: string;
@@ -53,6 +59,10 @@ export default function OverviewHandoffExportPanel({
         <p style={summaryMutedTextStyle}>
           Local browser-session export draft for a human operator handoff. This preview is not persisted by the backend and does not represent orchestration-owned handoff state.
         </p>
+        <PanelGuideDetails
+          tooltip={overviewHandoffExportGuide.tooltip}
+          checklist={overviewHandoffExportGuide.checklist}
+        />
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <span style={summaryBadgeStyle}>{generatedAtLabel}</span>
@@ -69,6 +79,7 @@ export default function OverviewHandoffExportPanel({
         {onCopyDraft ? (
           <button
             type="button"
+            title={overviewHandoffExportCopyControlGuide.tooltip}
             style={summaryActionButtonStyle}
             onClick={onCopyDraft}
           >
@@ -77,6 +88,7 @@ export default function OverviewHandoffExportPanel({
         ) : null}
       </div>
       <pre
+        title={overviewHandoffExportPreviewControlGuide.tooltip}
         style={{
           margin: 0,
           padding: 12,

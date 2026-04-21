@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { ControlPlaneSummaryResponse } from "../types/contracts";
 import {
   getDominantMode,
@@ -33,6 +34,11 @@ import {
   summaryMutedTextStyle,
   summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
+
+const operatorOverviewGuide = getPanelGuide("operator-overview");
+const operatorOverviewRefreshControlGuide = getPanelControlGuide("operator-overview", "refresh");
+const operatorOverviewStatusFiltersControlGuide = getPanelControlGuide("operator-overview", "status-filters");
+const operatorOverviewLaneActionsControlGuide = getPanelControlGuide("operator-overview", "lane-actions");
 
 type OperatorOverviewPanelProps = {
   summary: ControlPlaneSummaryResponse | null;
@@ -204,6 +210,8 @@ export default function OperatorOverviewPanel({
     <SummarySection
       title="Operator Overview"
       description="Compact persisted snapshot of run volume, approvals, execution modes, artifacts, event pressure, and lock occupancy. This is an operator aggregate only: simulated execution must remain explicitly labeled, and these counts do not expand the admitted real O3DE adapter boundary."
+      guideTooltip={operatorOverviewGuide.tooltip}
+      guideChecklist={operatorOverviewGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage="No persisted operator summary is available."
@@ -213,6 +221,7 @@ export default function OperatorOverviewPanel({
       actions={onRefresh ? (
         <button
           type="button"
+          title={operatorOverviewRefreshControlGuide.tooltip}
           onClick={onRefresh}
           disabled={refreshing}
           style={summaryActionButtonStyle}
@@ -281,6 +290,7 @@ export default function OperatorOverviewPanel({
                 {onOpenPinnedRecord ? (
                   <button
                     type="button"
+                    title={operatorOverviewLaneActionsControlGuide.tooltip}
                     onClick={onOpenPinnedRecord}
                     style={summaryActionButtonStyle}
                   >
@@ -290,6 +300,7 @@ export default function OperatorOverviewPanel({
                 {onRefocusPinnedRecord ? (
                   <button
                     type="button"
+                    title={operatorOverviewLaneActionsControlGuide.tooltip}
                     onClick={onRefocusPinnedRecord}
                     style={summaryActionButtonStyle}
                   >
@@ -299,6 +310,7 @@ export default function OperatorOverviewPanel({
                 {onClearPinnedRecord ? (
                   <button
                     type="button"
+                    title={operatorOverviewLaneActionsControlGuide.tooltip}
                     onClick={onClearPinnedRecord}
                     style={summaryActionButtonStyle}
                   >
@@ -308,6 +320,7 @@ export default function OperatorOverviewPanel({
                 {onClearLocalLaneContext ? (
                   <button
                     type="button"
+                    title={operatorOverviewLaneActionsControlGuide.tooltip}
                     onClick={onClearLocalLaneContext}
                     style={summaryActionButtonStyle}
                   >
@@ -317,6 +330,7 @@ export default function OperatorOverviewPanel({
                 {nextPinnedLaneLabel && onOpenNextPinnedLaneRecord ? (
                   <button
                     type="button"
+                    title={operatorOverviewLaneActionsControlGuide.tooltip}
                     onClick={onOpenNextPinnedLaneRecord}
                     style={summaryActionButtonStyle}
                   >
@@ -326,6 +340,7 @@ export default function OperatorOverviewPanel({
                 {laneRolloverLabel && onOpenLaneRolloverRecord ? (
                   <button
                     type="button"
+                    title={operatorOverviewLaneActionsControlGuide.tooltip}
                     onClick={onOpenLaneRolloverRecord}
                     style={summaryActionButtonStyle}
                   >
@@ -373,6 +388,7 @@ export default function OperatorOverviewPanel({
                 {laneRecoveryLabel && onApplyLaneRecovery ? (
                   <button
                     type="button"
+                    title={operatorOverviewLaneActionsControlGuide.tooltip}
                     onClick={onApplyLaneRecovery}
                     style={summaryActionButtonStyle}
                   >
@@ -382,6 +398,7 @@ export default function OperatorOverviewPanel({
                 {pinnedRecordLabel && onCopyLaneContext ? (
                   <button
                     type="button"
+                    title={operatorOverviewLaneActionsControlGuide.tooltip}
                     onClick={onCopyLaneContext}
                     style={summaryActionButtonStyle}
                   >
@@ -391,6 +408,7 @@ export default function OperatorOverviewPanel({
                 {laneHistoryStatusLabel === "recent returns stale" && onDropStaleLaneHistory ? (
                   <button
                     type="button"
+                    title={operatorOverviewLaneActionsControlGuide.tooltip}
                     onClick={onDropStaleLaneHistory}
                     style={summaryActionButtonStyle}
                   >
@@ -424,6 +442,7 @@ export default function OperatorOverviewPanel({
                     <label style={summaryMutedTextStyle}>
                       Operator note
                       <textarea
+                        title={operatorOverviewLaneActionsControlGuide.tooltip}
                         value={laneOperatorNoteDraft}
                         onChange={(event) => onLaneOperatorNoteDraftChange(event.target.value)}
                         rows={3}
@@ -444,6 +463,7 @@ export default function OperatorOverviewPanel({
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                       <button
                         type="button"
+                        title={operatorOverviewLaneActionsControlGuide.tooltip}
                         onClick={onSaveLaneOperatorNote}
                         style={summaryActionButtonStyle}
                       >
@@ -452,6 +472,7 @@ export default function OperatorOverviewPanel({
                       {onClearLaneOperatorNote ? (
                         <button
                           type="button"
+                          title={operatorOverviewLaneActionsControlGuide.tooltip}
                           onClick={onClearLaneOperatorNote}
                           style={summaryActionButtonStyle}
                         >
@@ -465,6 +486,7 @@ export default function OperatorOverviewPanel({
                   <>
                     <button
                       type="button"
+                      title={operatorOverviewLaneActionsControlGuide.tooltip}
                       onClick={() => onSetLaneFilterMode("all")}
                       style={summaryActionButtonStyle}
                     >
@@ -472,6 +494,7 @@ export default function OperatorOverviewPanel({
                     </button>
                     <button
                       type="button"
+                      title={operatorOverviewLaneActionsControlGuide.tooltip}
                       onClick={() => onSetLaneFilterMode("warnings")}
                       style={summaryActionButtonStyle}
                     >
@@ -479,6 +502,7 @@ export default function OperatorOverviewPanel({
                     </button>
                     <button
                       type="button"
+                      title={operatorOverviewLaneActionsControlGuide.tooltip}
                       onClick={() => onSetLaneFilterMode("audit_risk")}
                       style={summaryActionButtonStyle}
                     >
@@ -486,6 +510,7 @@ export default function OperatorOverviewPanel({
                     </button>
                     <button
                       type="button"
+                      title={operatorOverviewLaneActionsControlGuide.tooltip}
                       onClick={() => onSetLaneFilterMode("simulated_only")}
                       style={summaryActionButtonStyle}
                     >
@@ -520,6 +545,7 @@ export default function OperatorOverviewPanel({
                     entries={summary.prompt_sessions_by_status}
                     toneForKey={getPromptSessionStatusTone}
                     emptyLabel="none"
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
               </SummaryFacts>
@@ -542,6 +568,7 @@ export default function OperatorOverviewPanel({
                     toneForKey={getRunStatusTone}
                     emptyLabel="none"
                     onSelect={onRunStatusSelect}
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
               </SummaryFacts>
@@ -554,6 +581,7 @@ export default function OperatorOverviewPanel({
                     entries={summary.runs_by_related_execution_mode}
                     toneForKey={getExecutionModeTone}
                     emptyLabel="none"
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
                 <SummaryFact label="Inspection surfaces">
@@ -562,6 +590,7 @@ export default function OperatorOverviewPanel({
                     toneForKey={getInspectionSurfaceTone}
                     emptyLabel="none"
                     onSelect={onRunInspectionSurfaceSelect}
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
                 <SummaryFact label="Fallback categories">
@@ -570,6 +599,7 @@ export default function OperatorOverviewPanel({
                     toneForKey={getFallbackCategoryTone}
                     emptyLabel="none"
                     onSelect={onRunFallbackCategorySelect}
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
                 <SummaryFact label="Manifest source of truth">
@@ -578,6 +608,7 @@ export default function OperatorOverviewPanel({
                     toneForKey={getManifestSourceTone}
                     emptyLabel="none"
                     onSelect={onRunManifestSourceSelect}
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
               </SummaryFacts>
@@ -597,6 +628,7 @@ export default function OperatorOverviewPanel({
                 <SummaryFact label="Pending">
                   <button
                     type="button"
+                    title={operatorOverviewStatusFiltersControlGuide.tooltip}
                     onClick={onPendingApprovalsSelect}
                     style={chipButtonStyle}
                   >
@@ -624,6 +656,7 @@ export default function OperatorOverviewPanel({
                     entries={summary.executions_by_status}
                     toneForKey={getExecutionStatusTone}
                     emptyLabel="none"
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
                 <SummaryFact label="Modes">
@@ -632,6 +665,7 @@ export default function OperatorOverviewPanel({
                     toneForKey={getExecutionModeTone}
                     emptyLabel="none"
                     onSelect={onExecutionModeSelect}
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
                 <SummaryFact label="Attempt states">
@@ -639,6 +673,7 @@ export default function OperatorOverviewPanel({
                     entries={summary.executions_by_attempt_state}
                     toneForKey={getAttemptStateTone}
                     emptyLabel="none"
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
                 <SummaryFact label="Failure categories">
@@ -646,6 +681,7 @@ export default function OperatorOverviewPanel({
                     entries={summary.executions_by_failure_category}
                     toneForKey={getFailureCategoryTone}
                     emptyLabel="none"
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
               </SummaryFacts>
@@ -660,6 +696,7 @@ export default function OperatorOverviewPanel({
                     toneForKey={getAvailabilityStateTone}
                     emptyLabel="none"
                     onSelect={onExecutorAvailabilitySelect}
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
                 <SummaryFact label="Workspaces total">{summary.workspaces_total}</SummaryFact>
@@ -669,6 +706,7 @@ export default function OperatorOverviewPanel({
                     toneForKey={getWorkspaceStateTone}
                     emptyLabel="none"
                     onSelect={onWorkspaceStateSelect}
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
               </SummaryFacts>
@@ -685,6 +723,7 @@ export default function OperatorOverviewPanel({
                     toneForKey={getInspectionSurfaceTone}
                     emptyLabel="none"
                     onSelect={onExecutionInspectionSurfaceSelect}
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
                 <SummaryFact label="Fallback categories">
@@ -693,6 +732,7 @@ export default function OperatorOverviewPanel({
                     toneForKey={getFallbackCategoryTone}
                     emptyLabel="none"
                     onSelect={onExecutionFallbackCategorySelect}
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
                 <SummaryFact label="Manifest source of truth">
@@ -701,6 +741,7 @@ export default function OperatorOverviewPanel({
                     toneForKey={getManifestSourceTone}
                     emptyLabel="none"
                     onSelect={onExecutionManifestSourceSelect}
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
               </SummaryFacts>
@@ -725,6 +766,7 @@ export default function OperatorOverviewPanel({
                     toneForKey={getExecutionModeTone}
                     emptyLabel="none"
                     onSelect={onArtifactModeSelect}
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
               </SummaryFacts>
@@ -738,6 +780,7 @@ export default function OperatorOverviewPanel({
                     toneForKey={getInspectionSurfaceTone}
                     emptyLabel="none"
                     onSelect={onArtifactInspectionSurfaceSelect}
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
                 <SummaryFact label="Fallback categories">
@@ -746,6 +789,7 @@ export default function OperatorOverviewPanel({
                     toneForKey={getFallbackCategoryTone}
                     emptyLabel="none"
                     onSelect={onArtifactFallbackCategorySelect}
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
                 <SummaryFact label="Manifest source of truth">
@@ -754,6 +798,7 @@ export default function OperatorOverviewPanel({
                     toneForKey={getManifestSourceTone}
                     emptyLabel="none"
                     onSelect={onArtifactManifestSourceSelect}
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
               </SummaryFacts>
@@ -782,6 +827,7 @@ export default function OperatorOverviewPanel({
                     toneForKey={getSeverityTone}
                     emptyLabel="none"
                     onSelect={onEventSeveritySelect}
+                    buttonTitle={operatorOverviewStatusFiltersControlGuide.tooltip}
                   />
                 </SummaryFact>
               </SummaryFacts>
@@ -812,9 +858,16 @@ type StatusBreakdownProps = {
   toneForKey: (key: string) => "neutral" | "info" | "success" | "warning" | "danger";
   emptyLabel: string;
   onSelect?: (key: string) => void;
+  buttonTitle?: string;
 };
 
-function StatusBreakdown({ entries, toneForKey, emptyLabel, onSelect }: StatusBreakdownProps) {
+function StatusBreakdown({
+  entries,
+  toneForKey,
+  emptyLabel,
+  onSelect,
+  buttonTitle,
+}: StatusBreakdownProps) {
   const sortedEntries = Object.entries(entries).sort(([left], [right]) => left.localeCompare(right));
 
   if (sortedEntries.length === 0) {
@@ -827,6 +880,7 @@ function StatusBreakdown({ entries, toneForKey, emptyLabel, onSelect }: StatusBr
         <button
           key={key}
           type="button"
+          title={buttonTitle}
           onClick={onSelect ? () => onSelect(key) : undefined}
           style={chipButtonStyle}
         >

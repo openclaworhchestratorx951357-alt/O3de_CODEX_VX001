@@ -139,5 +139,18 @@ describe("DispatchForm", () => {
     });
     expect(screen.getByDisplayValue("C:/src/o3de")).toBeInTheDocument();
     expect(screen.getByText(/Active local target:/i)).toBeInTheDocument();
+    expect(screen.getByText("How to use this panel")).toBeInTheDocument();
+    expect(
+      screen.getByLabelText("Agent"),
+    ).toHaveAttribute(
+      "title",
+      "Choose the owning agent family before selecting a tool or dispatching the request.",
+    );
+    expect(
+      screen.getByRole("button", { name: "Dispatch Request" }),
+    ).toHaveAttribute(
+      "title",
+      "Submit the typed request after agent, tool, target, locks, timeout, and args all match the intended action.",
+    );
   });
 });

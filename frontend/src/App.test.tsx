@@ -100,34 +100,34 @@ describe("App desktop smoke", () => {
     setPendingAppApiMocks(apiMocks);
   });
 
-  it("renders the home workspace and switches to prompt through the shell nav without blanking", () => {
+  it("renders the home workspace and switches to prompt through the shell nav without blanking", async () => {
     render(<App />);
 
     expect(screen.getByText("Control surface")).toBeInTheDocument();
-    expect(screen.getByText("Mission Control")).toBeInTheDocument();
-    expect(screen.getByText("Launchpad")).toBeInTheDocument();
+    expect(screen.getAllByText("Mission Control").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Launchpad").length).toBeGreaterThan(0);
     expect(screen.getByText("LayoutHeader stub")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Prompt Studio/i));
 
-    expect(screen.getByText("PromptControlPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText("PromptControlPanel stub")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Home/i));
 
-    expect(screen.getByText("Mission Control")).toBeInTheDocument();
-    expect(screen.getByText("Launchpad")).toBeInTheDocument();
+    expect(screen.getAllByText("Mission Control").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Launchpad").length).toBeGreaterThan(0);
   });
 
-  it("opens the runtime workspace from the home launchpad without leaving a blank shell", () => {
+  it("opens the runtime workspace from the home launchpad without leaving a blank shell", async () => {
     render(<App />);
 
     fireEvent.click(getLaunchpadButton(
       "Bridge status, executors, workspaces, and governance health.",
     ));
 
+    expect(await screen.findByText("SystemStatusPanel stub")).toBeInTheDocument();
     expect(screen.getByText("Runtime Console")).toBeInTheDocument();
     expect(screen.getByText("AdaptersPanel stub")).toBeInTheDocument();
-    expect(screen.getByText("SystemStatusPanel stub")).toBeInTheDocument();
     expect(screen.getByText("OperatorOverviewPanel stub")).toBeInTheDocument();
   });
 });

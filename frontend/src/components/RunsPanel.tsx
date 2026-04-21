@@ -5,6 +5,7 @@ import type {
   RunAuditRecord,
   SettingsPatchAuditSummary,
 } from "../types/contracts";
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import {
   getFallbackCategoryLabel,
   getInspectionSurfaceLabel,
@@ -83,6 +84,13 @@ const DEFAULT_AUDIT_FILTERS: AuditFilter[] = [
   "other",
 ];
 
+const runsPanelGuide = getPanelGuide("runs-panel");
+const runsPanelRefreshControlGuide = getPanelControlGuide("runs-panel", "refresh");
+const runsPanelSearchControlGuide = getPanelControlGuide("runs-panel", "search");
+const runsPanelToolFilterControlGuide = getPanelControlGuide("runs-panel", "tool-filter");
+const runsPanelAuditFilterControlGuide = getPanelControlGuide("runs-panel", "audit-filter");
+const runsPanelSelectDetailControlGuide = getPanelControlGuide("runs-panel", "select-detail");
+
 export default function RunsPanel({
   items,
   runAudits,
@@ -134,6 +142,8 @@ export default function RunsPanel({
     <SummarySection
       title="Runs"
       description="Runs reflect persisted control-plane bookkeeping. Execution mode remains explicitly labeled, including simulated flows."
+      guideTooltip={runsPanelGuide.tooltip}
+      guideChecklist={runsPanelGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage={normalizedQuery ? "No runs match the current search." : "No runs recorded yet."}
@@ -143,6 +153,7 @@ export default function RunsPanel({
         <button
           type="button"
           onClick={onRefresh}
+          title={runsPanelRefreshControlGuide.tooltip}
           disabled={refreshing}
           style={summaryActionButtonStyle}
         >
@@ -172,6 +183,7 @@ export default function RunsPanel({
           <button
             key={value}
             type="button"
+            title={runsPanelToolFilterControlGuide.tooltip}
             onClick={() => onToolFilterChange(value)}
             style={{
               ...summaryFilterButtonStyle,
@@ -211,6 +223,7 @@ export default function RunsPanel({
             <button
               key={value}
               type="button"
+              title={runsPanelAuditFilterControlGuide.tooltip}
               onClick={() => onAuditFilterChange(value)}
               style={{
                 ...summaryFilterButtonStyle,
@@ -226,6 +239,7 @@ export default function RunsPanel({
       <div style={summaryControlRowStyle}>
         <input
           type="search"
+          title={runsPanelSearchControlGuide.tooltip}
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
           placeholder="Search runs by tool, agent, run ID, or summary"
@@ -359,6 +373,7 @@ export default function RunsPanel({
                 </SummaryFacts>
                 <button
                   type="button"
+                  title={runsPanelSelectDetailControlGuide.tooltip}
                   style={{
                     ...summaryActionButtonStyle,
                     marginTop: 8,

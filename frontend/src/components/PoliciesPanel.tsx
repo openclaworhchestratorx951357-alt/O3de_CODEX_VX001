@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import {
   describeBuildConfigureMeaning,
   describeSettingsPatchPolicyMeaning,
@@ -19,6 +20,10 @@ import {
   summaryControlRowStyle,
   summarySearchInputStyle,
 } from "./summaryPrimitives";
+
+const policiesPanelGuide = getPanelGuide("policies-panel");
+const policiesPanelSearchControlGuide = getPanelControlGuide("policies-panel", "search");
+const policiesPanelEntryControlGuide = getPanelControlGuide("policies-panel", "policy-entry");
 
 type PoliciesPanelProps = {
   items: ToolPolicy[];
@@ -42,6 +47,8 @@ export default function PoliciesPanel({
     <SummarySection
       title="Policies"
       description="These policy records describe approval, lock, and execution guardrails. Execution mode and capability status remain explicitly labeled, including simulated, plan-only, and mutation-candidate tool surfaces."
+      guideTooltip={policiesPanelGuide.tooltip}
+      guideChecklist={policiesPanelGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage={normalizedQuery ? "No policies match the current search." : "No policies published yet."}
@@ -50,6 +57,7 @@ export default function PoliciesPanel({
       <div style={summaryControlRowStyle}>
         <input
           type="search"
+          title={policiesPanelSearchControlGuide.tooltip}
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
           placeholder="Search policies by tool, agent, capability, risk, or locks"
@@ -59,6 +67,7 @@ export default function PoliciesPanel({
       <SummaryList>
           {filteredItems.map((item) => (
             <SummaryListItem key={`${item.agent}:${item.tool}`} card>
+              <div title={policiesPanelEntryControlGuide.tooltip}>
                 <strong>{item.tool}</strong>
                 <SummaryFacts>
                   <SummaryFact label="Agent">{item.agent}</SummaryFact>
@@ -81,16 +90,17 @@ export default function PoliciesPanel({
                   </SummaryFact>
                   <SummaryFact label="Next requirement">{item.next_real_requirement}</SummaryFact>
                 </SummaryFacts>
-              {item.tool === "build.configure" ? (
-                <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
-                  Meaning: {describeBuildConfigureMeaning()}
-                </div>
-              ) : null}
-              {item.tool === "settings.patch" ? (
-                <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
-                  Meaning: {describeSettingsPatchPolicyMeaning()}
-                </div>
-              ) : null}
+                {item.tool === "build.configure" ? (
+                  <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
+                    Meaning: {describeBuildConfigureMeaning()}
+                  </div>
+                ) : null}
+                {item.tool === "settings.patch" ? (
+                  <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
+                    Meaning: {describeSettingsPatchPolicyMeaning()}
+                  </div>
+                ) : null}
+              </div>
             </SummaryListItem>
           ))}
       </SummaryList>

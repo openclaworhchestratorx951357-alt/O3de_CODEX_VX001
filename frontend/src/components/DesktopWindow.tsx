@@ -3,6 +3,7 @@ import type { CSSProperties, ReactNode } from "react";
 type DesktopWindowProps = {
   title: string;
   subtitle?: string | null;
+  helpTooltip?: string | null;
   toolbar?: ReactNode;
   children: ReactNode;
 };
@@ -10,6 +11,7 @@ type DesktopWindowProps = {
 export default function DesktopWindow({
   title,
   subtitle = null,
+  helpTooltip = null,
   toolbar = null,
   children,
 }: DesktopWindowProps) {
@@ -29,8 +31,19 @@ export default function DesktopWindow({
             ) : null}
           </div>
         </div>
-        {toolbar ? (
-          <div style={windowToolbarStyle}>{toolbar}</div>
+        {toolbar || helpTooltip ? (
+          <div style={windowToolbarStyle}>
+            {helpTooltip ? (
+              <span
+                aria-label={`${title} guide`}
+                title={helpTooltip}
+                style={windowHelpBadgeStyle}
+              >
+                How to use
+              </span>
+            ) : null}
+            {toolbar}
+          </div>
         ) : null}
       </div>
       <div style={windowBodyStyle}>
@@ -95,6 +108,17 @@ const windowToolbarStyle = {
   gap: 8,
   alignItems: "center",
   flexWrap: "wrap",
+} satisfies CSSProperties;
+
+const windowHelpBadgeStyle = {
+  border: "1px solid rgba(25, 118, 210, 0.24)",
+  borderRadius: 999,
+  padding: "6px 10px",
+  background: "rgba(224, 241, 255, 0.82)",
+  color: "#0e4c92",
+  fontSize: 12,
+  fontWeight: 700,
+  whiteSpace: "nowrap" as const,
 } satisfies CSSProperties;
 
 const windowBodyStyle = {

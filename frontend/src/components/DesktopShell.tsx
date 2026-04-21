@@ -8,12 +8,14 @@ export type DesktopShellNavItem = {
   subtitle: string;
   badge?: string | null;
   tone?: DesktopShellTone;
+  helpTooltip?: string | null;
 };
 
 export type DesktopShellQuickStat = {
   label: string;
   value: string;
   tone?: DesktopShellTone;
+  helpTooltip?: string | null;
 };
 
 type DesktopShellProps = {
@@ -120,6 +122,7 @@ export default function DesktopShell({
                   key={item.id}
                   type="button"
                   onClick={() => onSelectWorkspace(item.id)}
+                  title={item.helpTooltip ?? undefined}
                   style={{
                     ...navButtonStyle,
                     ...(active ? activeNavButtonStyle : null),
@@ -146,6 +149,7 @@ export default function DesktopShell({
                 {quickStats.map((item) => (
                   <div
                     key={`${item.label}-${item.value}`}
+                    title={item.helpTooltip ?? undefined}
                     style={{
                       ...quickStatCardStyle,
                       ...toneStyles[item.tone ?? "neutral"],
@@ -180,6 +184,7 @@ export default function DesktopShell({
                 {quickStats.map((item) => (
                   <span
                     key={`workspace-${item.label}-${item.value}`}
+                    title={item.helpTooltip ?? undefined}
                     style={{
                       ...workspaceQuickStatPillStyle,
                       ...toneStyles[item.tone ?? "neutral"],

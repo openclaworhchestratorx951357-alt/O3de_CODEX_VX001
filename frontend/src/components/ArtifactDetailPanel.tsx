@@ -4,6 +4,7 @@ import type {
   ArtifactRecord,
   ProjectInspectEvidenceDetails,
 } from "../types/contracts";
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import {
   describeArtifactAttention,
   describeArtifactPriority,
@@ -37,6 +38,24 @@ import {
   summaryTimestampNoteStyle,
   summaryTopStackStyle,
 } from "./summaryPrimitives";
+
+const artifactDetailGuide = getPanelGuide("artifact-detail");
+const artifactDetailRefreshControlGuide = getPanelControlGuide("artifact-detail", "refresh");
+const artifactDetailLineageOpenControlGuide = getPanelControlGuide("artifact-detail", "lineage-open");
+const artifactDetailJumpControlGuide = getPanelControlGuide("artifact-detail", "jump");
+const artifactDetailNextHopControlGuide = getPanelControlGuide("artifact-detail", "next-hop");
+const artifactDetailRecordNavigationControlGuide = getPanelControlGuide("artifact-detail", "record-navigation");
+
+function getArtifactDetailShortcutTitle(label: string): string {
+  return `${artifactDetailRecordNavigationControlGuide.tooltip} Use the ${label} shortcut to reopen the related record from the current artifact-detail workflow.`;
+}
+
+function getArtifactDetailLaneHistoryTitle(
+  entry: { kind: "run" | "execution" | "artifact"; id: string; label: string; detail: string },
+): string {
+  const detailSuffix = entry.detail ? ` ${entry.detail}` : "";
+  return `${artifactDetailRecordNavigationControlGuide.tooltip} Return to recent ${entry.kind} ${entry.label} from the current artifact-detail lane history.${detailSuffix}`;
+}
 
 type ArtifactDetailPanelProps = {
   item: ArtifactRecord | null;
@@ -303,6 +322,8 @@ export default function ArtifactDetailPanel({
     <SummarySection
       title="Artifact Detail"
       description="This view shows one persisted artifact record with provenance and evidence detail when available."
+      guideTooltip={artifactDetailGuide.tooltip}
+      guideChecklist={artifactDetailGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage="Select an artifact to inspect its detail."
@@ -312,6 +333,7 @@ export default function ArtifactDetailPanel({
         <button
           type="button"
           onClick={onRefresh}
+          title={artifactDetailRefreshControlGuide.tooltip}
           disabled={refreshing}
           style={summaryActionButtonStyle}
         >
@@ -341,6 +363,9 @@ export default function ArtifactDetailPanel({
           onOpenRun={onOpenRun}
           onOpenExecution={onOpenExecution}
           onOpenArtifact={onOpenArtifact}
+          runActionTitle={artifactDetailLineageOpenControlGuide.tooltip}
+          executionActionTitle={artifactDetailLineageOpenControlGuide.tooltip}
+          artifactActionTitle={artifactDetailLineageOpenControlGuide.tooltip}
         />
         {refreshHint ? (
           <div style={summaryCalloutStyle}>{refreshHint}</div>
@@ -361,6 +386,9 @@ export default function ArtifactDetailPanel({
           attentionLabel={artifactAttention?.label ?? null}
           attentionDescription={artifactAttention?.description ?? null}
           jumpLabel={projectInspectDetails || siblingArtifacts.length > 0 ? jumpLabel : null}
+          jumpTitle={projectInspectDetails || siblingArtifacts.length > 0
+            ? artifactDetailJumpControlGuide.tooltip
+            : null}
           onJump={projectInspectDetails || siblingArtifacts.length > 0 ? handleJump : null}
         />
         {priorityShortcutLabel && priorityShortcutDescription && onOpenPriorityRecord ? (
@@ -371,6 +399,7 @@ export default function ArtifactDetailPanel({
               type="button"
               style={summaryActionButtonStyle}
               onClick={onOpenPriorityRecord}
+              title={getArtifactDetailShortcutTitle(priorityShortcutLabel)}
             >
               {priorityShortcutLabel}
             </button>
@@ -384,6 +413,7 @@ export default function ArtifactDetailPanel({
               type="button"
               style={summaryActionButtonStyle}
               onClick={onOpenWarningRecord}
+              title={getArtifactDetailShortcutTitle(warningShortcutLabel)}
             >
               {warningShortcutLabel}
             </button>
@@ -411,6 +441,7 @@ export default function ArtifactDetailPanel({
                   type="button"
                   style={summaryActionButtonStyle}
                   onClick={() => onOpenLaneHistoryEntry(entry)}
+                  title={getArtifactDetailLaneHistoryTitle(entry)}
                 >
                   Recent: {entry.label}
                 </button>
@@ -437,6 +468,7 @@ export default function ArtifactDetailPanel({
               {item.execution_id && onOpenExecution ? (
                 <button
                   type="button"
+                  title={artifactDetailNextHopControlGuide.tooltip}
                   style={summaryActionButtonStyle}
                   disabled={selectedExecutionId === item.execution_id}
                   onClick={() => onOpenExecution(item.execution_id)}
@@ -449,6 +481,7 @@ export default function ArtifactDetailPanel({
               {item.run_id && onOpenRun ? (
                 <button
                   type="button"
+                  title={artifactDetailNextHopControlGuide.tooltip}
                   style={summaryActionButtonStyle}
                   disabled={selectedRunId === item.run_id}
                   onClick={() => onOpenRun(item.run_id)}
@@ -498,6 +531,7 @@ export default function ArtifactDetailPanel({
                   <button
                     key={`navigate-${breadcrumb.kind}-${breadcrumb.id}`}
                     type="button"
+                    title={artifactDetailRecordNavigationControlGuide.tooltip}
                     style={summaryActionButtonStyle}
                     disabled={isCurrent}
                     onClick={onClick}
@@ -592,6 +626,7 @@ export default function ArtifactDetailPanel({
                     </SummaryFacts>
                     <button
                       type="button"
+                      title={artifactDetailRecordNavigationControlGuide.tooltip}
                       style={summaryActionButtonStyle}
                       onClick={() => onOpenArtifact(artifact.id)}
                     >

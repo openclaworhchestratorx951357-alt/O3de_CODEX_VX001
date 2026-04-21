@@ -1,8 +1,13 @@
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryBadgeStyle,
   summaryMutedTextStyle,
   summarySectionStyle,
 } from "./summaryPrimitives";
+
+const overviewHandoffPackageGuide = getPanelGuide("overview-handoff-package");
+const overviewHandoffPackageEntryControlGuide = getPanelControlGuide("overview-handoff-package", "package-entry");
 
 type OverviewHandoffPackageEntry = {
   id: string;
@@ -22,6 +27,7 @@ function renderEntry(entry: OverviewHandoffPackageEntry, accentColor: string, ac
   return (
     <div
       key={entry.id}
+      title={overviewHandoffPackageEntryControlGuide.tooltip}
       style={{
         border: "1px solid #d0d7de",
         borderRadius: 10,
@@ -77,6 +83,10 @@ export default function OverviewHandoffPackagePanel({
         <p style={summaryMutedTextStyle}>
           Browser-session preview of which saved contexts would be included in a strong local handoff package right now. This does not create backend persistence or imply operator handoff storage.
         </p>
+        <PanelGuideDetails
+          tooltip={overviewHandoffPackageGuide.tooltip}
+          checklist={overviewHandoffPackageGuide.checklist}
+        />
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <span style={summaryBadgeStyle}>included: {includedEntries.length}</span>

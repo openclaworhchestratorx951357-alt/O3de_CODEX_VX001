@@ -65,6 +65,7 @@ describe("OperatorOverviewPanel", () => {
         summary={summary}
         loading={false}
         error={null}
+        onRefresh={() => {}}
         onRunStatusSelect={() => {}}
         onPendingApprovalsSelect={() => {}}
         onExecutionModeSelect={() => {}}
@@ -74,8 +75,17 @@ describe("OperatorOverviewPanel", () => {
     );
 
     expect(screen.getByText("Prompt Sessions")).toBeInTheDocument();
+    expect(screen.getByText("How to use this panel")).toBeInTheDocument();
     expect(screen.getByText("prompt sessions: 3")).toBeInTheDocument();
     expect(screen.getByText("Real editor child paths")).toBeInTheDocument();
     expect(screen.getAllByText("waiting_approval: 2").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Refresh overview" })).toHaveAttribute(
+      "title",
+      "Refresh the home overview when the persisted aggregate may be stale.",
+    );
+    expect(screen.getByRole("button", { name: "1" })).toHaveAttribute(
+      "title",
+      "Use the status chips to jump into the matching run, approval, execution, artifact, event, executor, or workspace lane.",
+    );
   });
 });

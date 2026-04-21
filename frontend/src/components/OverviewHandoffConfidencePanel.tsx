@@ -1,8 +1,13 @@
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryBadgeStyle,
   summaryMutedTextStyle,
   summarySectionStyle,
 } from "./summaryPrimitives";
+
+const overviewHandoffConfidenceGuide = getPanelGuide("overview-handoff-confidence");
+const overviewHandoffConfidenceSummaryControlGuide = getPanelControlGuide("overview-handoff-confidence", "confidence-summary");
 
 type OverviewHandoffConfidencePanelProps = {
   confidenceLabel: string;
@@ -57,8 +62,12 @@ export default function OverviewHandoffConfidencePanel({
         <p style={summaryMutedTextStyle}>
           Local browser-session confidence cue for the current handoff draft. This is a frontend-only risk summary and does not represent backend policy, approval, or orchestration state.
         </p>
+        <PanelGuideDetails
+          tooltip={overviewHandoffConfidenceGuide.tooltip}
+          checklist={overviewHandoffConfidenceGuide.checklist}
+        />
       </div>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div title={overviewHandoffConfidenceSummaryControlGuide.tooltip} style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <span
           style={{
             ...summaryBadgeStyle,

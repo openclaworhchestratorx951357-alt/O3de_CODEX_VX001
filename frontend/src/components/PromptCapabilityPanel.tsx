@@ -1,6 +1,11 @@
 import type { CSSProperties } from "react";
 
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { PromptCapabilityEntry, PromptSessionRecord } from "../types/contracts";
+import PanelGuideDetails from "./PanelGuideDetails";
+
+const promptCapabilitiesGuide = getPanelGuide("prompt-capabilities");
+const promptCapabilitiesEntryControlGuide = getPanelControlGuide("prompt-capabilities", "capability-entry");
 
 type PromptCapabilityPanelProps = {
   capabilities: PromptCapabilityEntry[];
@@ -25,6 +30,10 @@ export default function PromptCapabilityPanel({
       <p style={subtleTextStyle}>
         The prompt front door can resolve only to admitted catalog capabilities. These entries define the typed tool surface, maturity label, and planning affordances.
       </p>
+      <PanelGuideDetails
+        tooltip={promptCapabilitiesGuide.tooltip}
+        checklist={promptCapabilitiesGuide.checklist}
+      />
       {relevantCapabilities.length === 0 ? (
         <p style={emptyTextStyle}>No capability entries are relevant to the current prompt selection.</p>
       ) : (
@@ -33,7 +42,7 @@ export default function PromptCapabilityPanel({
             const safetyEnvelope = capability.safety_envelope;
 
             return (
-              <article key={capability.tool_name} style={capabilityCardStyle}>
+              <article key={capability.tool_name} title={promptCapabilitiesEntryControlGuide.tooltip} style={capabilityCardStyle}>
                 <div style={capabilityHeaderStyle}>
                   <strong>{capability.tool_name}</strong>
                   <span style={subtleTextStyle}>{capability.agent_family}</span>

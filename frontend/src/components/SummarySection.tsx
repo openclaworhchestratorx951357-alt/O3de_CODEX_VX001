@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summarySectionStyle,
   summaryMutedTextStyle,
@@ -14,6 +15,9 @@ type SummarySectionProps = {
   marginTop?: number;
   actions?: ReactNode;
   actionHint?: string | null;
+  guideTitle?: string;
+  guideTooltip?: string | null;
+  guideChecklist?: readonly string[];
 };
 
 export default function SummarySection({
@@ -27,6 +31,9 @@ export default function SummarySection({
   marginTop = 24,
   actions,
   actionHint,
+  guideTitle,
+  guideTooltip,
+  guideChecklist = [],
 }: SummarySectionProps) {
   return (
     <section
@@ -50,6 +57,11 @@ export default function SummarySection({
           {actionHint ? (
             <p style={{ ...summaryMutedTextStyle, marginTop: 0 }}>{actionHint}</p>
           ) : null}
+          <PanelGuideDetails
+            title={guideTitle}
+            tooltip={guideTooltip}
+            checklist={guideChecklist}
+          />
         </div>
         {actions ? (
           <div

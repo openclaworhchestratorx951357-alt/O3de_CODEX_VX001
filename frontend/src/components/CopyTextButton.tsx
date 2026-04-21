@@ -3,10 +3,29 @@ import { summaryInlineActionButtonStyle } from "./summaryPrimitives";
 
 type CopyTextButtonProps = {
   value: string;
+  label?: string | null;
+  title?: string | null;
 };
 
-export default function CopyTextButton({ value }: CopyTextButtonProps) {
+function buildCopyTitle(label: string | null, title: string | null): string {
+  if (title && title.trim().length > 0) {
+    return title;
+  }
+
+  if (label) {
+    return `Copy ${label} to the browser-local clipboard so you can reuse the exact persisted value in notes, handoff, or follow-up without retyping it.`;
+  }
+
+  return "Copy this exact value to the browser-local clipboard so you can reuse it in notes, handoff, or follow-up without retyping it.";
+}
+
+export default function CopyTextButton({
+  value,
+  label = null,
+  title = null,
+}: CopyTextButtonProps) {
   const [copied, setCopied] = useState(false);
+  const normalizedLabel = label && label.trim().length > 0 ? label : null;
 
   useEffect(() => {
     if (!copied) {
@@ -34,7 +53,8 @@ export default function CopyTextButton({ value }: CopyTextButtonProps) {
       type="button"
       style={summaryInlineActionButtonStyle}
       onClick={() => void handleCopy()}
-      aria-label={`Copy ${value}`}
+      aria-label={`Copy ${normalizedLabel ?? value}`}
+      title={buildCopyTitle(normalizedLabel, title)}
     >
       {copied ? "Copied" : "Copy"}
     </button>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import type { ArtifactListItem } from "../types/contracts";
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import {
   getArtifactProvenanceLabel,
   getFallbackCategoryLabel,
@@ -27,6 +28,11 @@ import {
   summarySearchInputStyle,
   summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
+
+const artifactsPanelGuide = getPanelGuide("artifacts-panel");
+const artifactsPanelRefreshControlGuide = getPanelControlGuide("artifacts-panel", "refresh");
+const artifactsPanelSearchControlGuide = getPanelControlGuide("artifacts-panel", "search");
+const artifactsPanelSelectDetailControlGuide = getPanelControlGuide("artifacts-panel", "select-detail");
 
 type ArtifactsPanelProps = {
   items: ArtifactListItem[];
@@ -68,6 +74,8 @@ export default function ArtifactsPanel({
     <SummarySection
       title="Artifacts"
       description="These are persisted artifact records. Simulated artifacts stay explicitly labeled as simulated."
+      guideTooltip={artifactsPanelGuide.tooltip}
+      guideChecklist={artifactsPanelGuide.checklist}
       loading={loading}
       error={error}
       emptyMessage={normalizedQuery ? "No artifacts match the current search." : "No artifacts are recorded yet."}
@@ -77,6 +85,7 @@ export default function ArtifactsPanel({
         <button
           type="button"
           onClick={onRefresh}
+          title={artifactsPanelRefreshControlGuide.tooltip}
           disabled={refreshing}
           style={summaryInlineActionButtonStyle}
         >
@@ -104,6 +113,7 @@ export default function ArtifactsPanel({
         ) : null}
         <input
           type="search"
+          title={artifactsPanelSearchControlGuide.tooltip}
           value={searchValue}
           onChange={(event) => setSearchValue(event.target.value)}
           placeholder="Search artifacts by label, kind, ID, path, URI, or project"
@@ -198,6 +208,7 @@ export default function ArtifactsPanel({
                   <SummaryFact label="Detail">
                     <button
                       type="button"
+                      title={artifactsPanelSelectDetailControlGuide.tooltip}
                       style={summaryInlineActionButtonStyle}
                       onClick={() => onSelectArtifact(item.id)}
                     >

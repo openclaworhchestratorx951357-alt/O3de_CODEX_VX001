@@ -1,5 +1,15 @@
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import { describeExecutionResult } from "../lib/executionTruth";
 import type { ResponseEnvelope } from "../types/contracts";
+import PanelGuideDetails from "./PanelGuideDetails";
+
+const responseEnvelopeGuide = getPanelGuide("response-envelope");
+const responseEnvelopeStatusBadgeGuide = getPanelControlGuide("response-envelope", "status-badge");
+const responseEnvelopeRequestSummaryGuide = getPanelControlGuide("response-envelope", "request-summary");
+const responseEnvelopeResultPayloadGuide = getPanelControlGuide("response-envelope", "result-payload");
+const responseEnvelopeErrorPayloadGuide = getPanelControlGuide("response-envelope", "error-payload");
+const responseEnvelopeStateFlagsGuide = getPanelControlGuide("response-envelope", "state-flags");
+const responseEnvelopeEvidenceListsGuide = getPanelControlGuide("response-envelope", "evidence-lists");
 
 type ResponseEnvelopeViewProps = {
   response: ResponseEnvelope | null;
@@ -28,6 +38,7 @@ export default function ResponseEnvelopeView({
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
         <h3 style={{ margin: 0 }}>Last Dispatch Response</h3>
         <span
+          title={responseEnvelopeStatusBadgeGuide.tooltip}
           style={{
             background: statusColor,
             color: "white",
@@ -40,12 +51,16 @@ export default function ResponseEnvelopeView({
           {statusLabel}
         </span>
       </div>
+      <PanelGuideDetails
+        tooltip={responseEnvelopeGuide.tooltip}
+        checklist={responseEnvelopeGuide.checklist}
+      />
 
       {!response ? (
         <p>No response received yet.</p>
       ) : (
         <div style={{ display: "grid", gap: 16 }}>
-          <section>
+          <section title={responseEnvelopeRequestSummaryGuide.tooltip}>
             <strong>Request</strong>
             <div>Request ID: {response.request_id}</div>
             <div>Timing: {response.timing_ms ?? 0} ms</div>
@@ -55,7 +70,7 @@ export default function ResponseEnvelopeView({
           </section>
 
           {response.result ? (
-            <section>
+            <section title={responseEnvelopeResultPayloadGuide.tooltip}>
               <strong>Result</strong>
               <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", margin: 0 }}>
                 {JSON.stringify(response.result, null, 2)}
@@ -64,7 +79,7 @@ export default function ResponseEnvelopeView({
           ) : null}
 
           {response.error ? (
-            <section>
+            <section title={responseEnvelopeErrorPayloadGuide.tooltip}>
               <strong>Error</strong>
               <div>Code: {response.error.code}</div>
               <div>Message: {response.error.message}</div>
@@ -78,7 +93,7 @@ export default function ResponseEnvelopeView({
           ) : null}
 
           {response.state ? (
-            <section>
+            <section title={responseEnvelopeStateFlagsGuide.tooltip}>
               <strong>State</strong>
               <ul>
                 <li>dirty: {String(response.state.dirty)}</li>
@@ -91,7 +106,7 @@ export default function ResponseEnvelopeView({
           ) : null}
 
           {response.warnings && response.warnings.length > 0 ? (
-            <section>
+            <section title={responseEnvelopeEvidenceListsGuide.tooltip}>
               <strong>Warnings</strong>
               <ul>
                 {response.warnings.map((warning) => (
@@ -102,7 +117,7 @@ export default function ResponseEnvelopeView({
           ) : null}
 
           {response.logs && response.logs.length > 0 ? (
-            <section>
+            <section title={responseEnvelopeEvidenceListsGuide.tooltip}>
               <strong>Logs</strong>
               <ul>
                 {response.logs.map((log) => (
@@ -113,7 +128,7 @@ export default function ResponseEnvelopeView({
           ) : null}
 
           {response.artifacts && response.artifacts.length > 0 ? (
-            <section>
+            <section title={responseEnvelopeEvidenceListsGuide.tooltip}>
               <strong>Artifacts</strong>
               <ul>
                 {response.artifacts.map((artifact) => (

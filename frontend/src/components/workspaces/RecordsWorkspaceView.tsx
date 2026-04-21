@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
+import { getWorkspaceWindowGuide } from "../../content/operatorGuide";
 
 type RecordsSurfaceId =
   | "runs"
@@ -17,6 +18,8 @@ type RecordsWorkspaceViewProps = {
   artifactsContent: ReactNode;
 };
 
+const recordsExplorerWindow = getWorkspaceWindowGuide("records", "records-explorer");
+
 export default function RecordsWorkspaceView({
   activeSurfaceId,
   items,
@@ -25,10 +28,17 @@ export default function RecordsWorkspaceView({
   executionsContent,
   artifactsContent,
 }: RecordsWorkspaceViewProps) {
+  const activeContent = activeSurfaceId === "artifacts"
+    ? artifactsContent
+    : activeSurfaceId === "executions"
+      ? executionsContent
+      : runsContent;
+
   return (
     <DesktopWindow
-      title="Records Explorer"
-      subtitle="Inspect persisted runs, executions, and artifacts in a dedicated workspace."
+      title={recordsExplorerWindow.title}
+      subtitle={recordsExplorerWindow.subtitle}
+      helpTooltip={recordsExplorerWindow.tooltip}
       toolbar={(
         <DesktopTabStrip
           items={items}
@@ -37,9 +47,7 @@ export default function RecordsWorkspaceView({
         />
       )}
     >
-      {artifactsContent}
-      {executionsContent}
-      {runsContent}
+      {activeContent}
     </DesktopWindow>
   );
 }

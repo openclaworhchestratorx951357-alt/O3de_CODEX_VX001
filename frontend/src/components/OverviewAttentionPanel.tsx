@@ -1,9 +1,15 @@
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryActionButtonStyle,
   summaryBadgeStyle,
   summaryMutedTextStyle,
   summarySectionStyle,
 } from "./summaryPrimitives";
+
+const overviewAttentionGuide = getPanelGuide("overview-attention");
+const overviewAttentionCardControlGuide = getPanelControlGuide("overview-attention", "recommendation-card");
+const overviewAttentionActionControlGuide = getPanelControlGuide("overview-attention", "action-buttons");
 
 type OverviewAttentionEntry = {
   id: string;
@@ -44,11 +50,16 @@ export default function OverviewAttentionPanel({
         <p style={summaryMutedTextStyle}>
           Local dashboard recommendations based on browser-session review state and current persisted records. These recommendations do not come from backend orchestration.
         </p>
+        <PanelGuideDetails
+          tooltip={overviewAttentionGuide.tooltip}
+          checklist={overviewAttentionGuide.checklist}
+        />
       </div>
       <div style={{ display: "grid", gap: 10 }}>
         {entries.map((entry) => (
           <div
             key={entry.id}
+            title={overviewAttentionCardControlGuide.tooltip}
             style={{
               border: "1px solid #d0d7de",
               borderRadius: 10,
@@ -63,6 +74,7 @@ export default function OverviewAttentionPanel({
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button
                 type="button"
+                title={overviewAttentionActionControlGuide.tooltip}
                 style={summaryActionButtonStyle}
                 onClick={() => onPrimaryAction(entry.id)}
               >
@@ -71,6 +83,7 @@ export default function OverviewAttentionPanel({
               {entry.secondaryActionLabel && onSecondaryAction ? (
                 <button
                   type="button"
+                  title={overviewAttentionActionControlGuide.tooltip}
                   style={summaryActionButtonStyle}
                   onClick={() => onSecondaryAction(entry.id)}
                 >
