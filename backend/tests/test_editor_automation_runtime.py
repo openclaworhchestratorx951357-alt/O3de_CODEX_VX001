@@ -274,6 +274,133 @@ def test_execute_session_open_relaunches_when_existing_heartbeat_has_no_live_pul
         assert isinstance(captured.get("command"), dict)
 
 
+def test_execute_session_open_uses_existing_runner_when_stale_heartbeat_recovers() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project with recovering heartbeat"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+        ensure_bridge_bootstrap(project_root)
+        write_heartbeat(project_root)
+
+        heartbeat_path = editor_automation_runtime_service._bridge_paths(str(project_root))[  # noqa: SLF001
+            "heartbeat_file"
+        ]
+        stale_payload = json.loads(heartbeat_path.read_text(encoding="utf-8"))
+        stale_payload["heartbeat_epoch_s"] = time.time() - 60
+        stale_payload["heartbeat_at"] = "2026-04-21T04:00:00Z"
+        heartbeat_path.write_text(json.dumps(stale_payload), encoding="utf-8")
+
+        captured: dict[str, object] = {}
+        responder = spawn_bridge_responder(
+            project_root=project_root,
+            expected_operation="editor.session.open",
+            response_details={
+                "active_level_path": "Levels/Main.level",
+                "selected_entity_count": 0,
+            },
+            captured=captured,
+        )
+
+        def refresh_heartbeat() -> None:
+            time.sleep(0.5)
+            write_heartbeat(project_root)
+
+        heartbeat_refresher = threading.Thread(target=refresh_heartbeat, daemon=True)
+        heartbeat_refresher.start()
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_runner_process_is_active",
+                    return_value=True,
+                ):
+                    with patch(
+                        "subprocess.Popen",
+                        return_value=FakePersistentEditorProcess(),
+                    ) as popen:
+                        payload = editor_automation_runtime_service.execute_session_open(
+                            request_id="req-session-recovering-heartbeat",
+                            session_id="session-1",
+                            workspace_id="workspace-editor-project",
+                            executor_id="executor-editor-control-real-local",
+                            project_root=str(project_root),
+                            engine_root="C:/src/o3de",
+                            dry_run=False,
+                            args={
+                                "session_mode": "open",
+                                "project_path": str(project_root),
+                                "level_path": "Levels/Main.level",
+                                "timeout_s": 5,
+                            },
+                            locks_acquired=["editor_session"],
+                        )
+
+        responder.join(timeout=5)
+        heartbeat_refresher.join(timeout=5)
+        assert not responder.is_alive()
+        assert not popen.called
+        runtime_result = payload["runtime_result"]
+        assert runtime_result["editor_transport"] == "bridge"
+        assert runtime_result["bridge_available"] is True
+        assert runtime_result["bridge_command_id"]
+        assert isinstance(captured.get("command"), dict)
+
+
+def test_invoke_bridge_command_accepts_response_found_on_final_timeout_boundary_check() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        paths = editor_automation_runtime_service._ensure_bridge_dirs(str(project_root))  # noqa: SLF001
+
+        response_payload = {
+            "protocol_version": "v1",
+            "bridge_command_id": "boundary-command",
+            "request_id": "req-boundary-1",
+            "operation": "editor.session.open",
+            "success": True,
+            "status": "ok",
+            "bridge_name": "ControlPlaneEditorBridge",
+            "bridge_version": "0.1.0",
+            "started_at": "2026-04-21T00:00:00Z",
+            "finished_at": "2026-04-21T00:00:01Z",
+            "result_summary": "editor.session.open completed through bridge transport.",
+            "details": {"active_level_path": "Levels/Main.level"},
+            "evidence_refs": [],
+        }
+
+        with patch.object(
+            editor_automation_runtime_service,
+            "_consume_bridge_command_response_if_ready",
+            side_effect=[None, response_payload],
+        ) as consume_response:
+            with patch("app.services.editor_automation_runtime.time.monotonic", side_effect=[0.0, 0.0, 1.0]):
+                with patch("app.services.editor_automation_runtime.time.sleep", return_value=None):
+                    payload = editor_automation_runtime_service._invoke_bridge_command(  # noqa: SLF001
+                        tool="editor.session.open",
+                        operation="editor.session.open",
+                        project_root=str(project_root),
+                        engine_root="C:/src/o3de",
+                        request_id="req-boundary-1",
+                        session_id="session-1",
+                        workspace_id="workspace-editor-project",
+                        executor_id="executor-editor-control-real-local",
+                        args={"session_mode": "attach", "project_path": str(project_root)},
+                        timeout_s=0.5,
+                    )
+
+        assert payload == response_payload
+        assert consume_response.call_count == 2
+        command_files = list(paths["inbox"].glob("*.json"))
+        assert len(command_files) == 1
+
+
 def test_execute_level_open_queues_bridge_command_with_workspace_and_executor_lineage() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir) / "project"

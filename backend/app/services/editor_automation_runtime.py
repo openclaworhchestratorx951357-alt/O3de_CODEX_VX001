@@ -24,6 +24,7 @@ BRIDGE_CONTRACT_VERSION = "v0.1"
 BRIDGE_QUEUE_MODE = "filesystem-inbox"
 BRIDGE_HEARTBEAT_MAX_AGE_S = 15.0
 BRIDGE_HEARTBEAT_PULSE_WAIT_S = 1.0
+BRIDGE_HEARTBEAT_RECOVERY_WAIT_S = 3.0
 BRIDGE_LAUNCH_LOG_TAIL_LINES = 40
 BRIDGE_DEADLETTER_DIAGNOSTIC_LIMIT = 5
 BRIDGE_PROVENANCE_KEYS = (
@@ -698,6 +699,19 @@ class EditorAutomationRuntimeService:
             return False
         return (time.time() - float(heartbeat_epoch)) <= BRIDGE_HEARTBEAT_MAX_AGE_S
 
+    def _bridge_wait_for_fresh_heartbeat(
+        self,
+        project_root: str,
+        *,
+        wait_s: float = BRIDGE_HEARTBEAT_RECOVERY_WAIT_S,
+    ) -> bool:
+        deadline = time.monotonic() + max(wait_s, self._bridge_poll_interval_s)
+        while time.monotonic() < deadline:
+            if self._bridge_is_healthy(project_root):
+                return True
+            time.sleep(self._bridge_poll_interval_s)
+        return self._bridge_is_healthy(project_root)
+
     def _bridge_has_live_pulse(self, project_root: str) -> bool:
         heartbeat = self._read_bridge_heartbeat(project_root)
         if heartbeat is None:
@@ -732,11 +746,17 @@ class EditorAutomationRuntimeService:
         heartbeat_epoch = heartbeat.get("heartbeat_epoch_s")
         if not isinstance(heartbeat_epoch, (int, float)):
             return False
+        heartbeat_running = bool(heartbeat.get("running"))
+        runner_process_active = heartbeat_running and self._bridge_runner_process_is_active(
+            runner_command
+        )
         if (time.time() - float(heartbeat_epoch)) > BRIDGE_HEARTBEAT_MAX_AGE_S:
+            if runner_process_active:
+                return self._bridge_wait_for_fresh_heartbeat(project_root)
             return False
         if self._bridge_has_live_pulse(project_root):
             return True
-        return bool(heartbeat.get("running")) and self._bridge_runner_process_is_active(runner_command)
+        return runner_process_active
 
     def _bridge_runner_process_is_active(self, runner_command: list[str]) -> bool:
         if not runner_command:
@@ -939,54 +959,25 @@ class EditorAutomationRuntimeService:
 
         deadline = time.monotonic() + timeout_s
         while time.monotonic() < deadline:
-            if result_path.is_file():
-                response_payload = self._load_bridge_response_payload(
-                    result_path=result_path,
-                    tool=tool,
-                    project_root=project_root,
-                )
-                if response_payload.get("success") is not True:
-                    self._reject_preflight(
-                        tool=tool,
-                        project_root=project_root,
-                        reason=str(response_payload.get("error_code", "bridge-command-failed")),
-                        message=str(
-                            response_payload.get(
-                                "result_summary",
-                                "The persistent bridge reported a command failure.",
-                            )
-                        ),
-                        extra_details={
-                            "bridge_response": response_payload,
-                            **self._bridge_result_metadata(response_payload),
-                        },
-                    )
-                result_path.unlink(missing_ok=True)
+            response_payload = self._consume_bridge_command_response_if_ready(
+                tool=tool,
+                project_root=project_root,
+                result_path=result_path,
+                deadletter_result_path=deadletter_result_path,
+            )
+            if response_payload is not None:
                 return response_payload
 
-            if deadletter_result_path.is_file():
-                response_payload = self._load_bridge_response_payload(
-                    result_path=deadletter_result_path,
-                    tool=tool,
-                    project_root=project_root,
-                )
-                self._reject_preflight(
-                    tool=tool,
-                    project_root=project_root,
-                    reason=str(response_payload.get("error_code", "bridge-command-deadlettered")),
-                    message=str(
-                        response_payload.get(
-                            "result_summary",
-                            "The persistent bridge moved the command to deadletter.",
-                        )
-                    ),
-                    extra_details={
-                        "bridge_response": response_payload,
-                        **self._bridge_result_metadata(response_payload),
-                    },
-                )
-
             time.sleep(0.25)
+
+        response_payload = self._consume_bridge_command_response_if_ready(
+            tool=tool,
+            project_root=project_root,
+            result_path=result_path,
+            deadletter_result_path=deadletter_result_path,
+        )
+        if response_payload is not None:
+            return response_payload
 
         heartbeat = self._read_bridge_heartbeat(project_root)
         queue_counts = self._bridge_queue_counts(project_root)
@@ -1004,6 +995,63 @@ class EditorAutomationRuntimeService:
                 **self._collect_editor_log_diagnostics(project_root),
             },
         )
+
+    def _consume_bridge_command_response_if_ready(
+        self,
+        *,
+        tool: str,
+        project_root: str,
+        result_path: Path,
+        deadletter_result_path: Path,
+    ) -> dict[str, Any] | None:
+        if result_path.is_file():
+            response_payload = self._load_bridge_response_payload(
+                result_path=result_path,
+                tool=tool,
+                project_root=project_root,
+            )
+            if response_payload.get("success") is not True:
+                self._reject_preflight(
+                    tool=tool,
+                    project_root=project_root,
+                    reason=str(response_payload.get("error_code", "bridge-command-failed")),
+                    message=str(
+                        response_payload.get(
+                            "result_summary",
+                            "The persistent bridge reported a command failure.",
+                        )
+                    ),
+                    extra_details={
+                        "bridge_response": response_payload,
+                        **self._bridge_result_metadata(response_payload),
+                    },
+                )
+            result_path.unlink(missing_ok=True)
+            return response_payload
+
+        if deadletter_result_path.is_file():
+            response_payload = self._load_bridge_response_payload(
+                result_path=deadletter_result_path,
+                tool=tool,
+                project_root=project_root,
+            )
+            self._reject_preflight(
+                tool=tool,
+                project_root=project_root,
+                reason=str(response_payload.get("error_code", "bridge-command-deadlettered")),
+                message=str(
+                    response_payload.get(
+                        "result_summary",
+                        "The persistent bridge moved the command to deadletter.",
+                    )
+                ),
+                extra_details={
+                    "bridge_response": response_payload,
+                    **self._bridge_result_metadata(response_payload),
+                },
+            )
+
+        return None
 
     def _load_bridge_response_payload(
         self,
