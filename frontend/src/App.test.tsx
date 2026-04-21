@@ -134,6 +134,19 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("OperatorOverviewPanel stub")).toBeInTheDocument();
   });
 
+  it("shows a truthful empty catalog state instead of fallback agent data when live catalog data is unavailable", async () => {
+    render(<App />);
+
+    fireEvent.click(getLaunchpadButton(
+      "Catalog browsing, dispatch, approvals, and live timeline control.",
+    ));
+
+    expect(await screen.findByText("No live tools catalog has been returned yet.")).toBeInTheDocument();
+    expect(screen.getByText("Dispatch is disabled until the live tools catalog is available.")).toBeInTheDocument();
+    expect(screen.queryByText("Fallback catalog entry")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dispatch Request" })).toBeDisabled();
+  });
+
   it("applies the saved settings profile to the initial shell workspace and telemetry visibility", async () => {
     window.localStorage.setItem(
       SETTINGS_PROFILE_STORAGE_KEY,

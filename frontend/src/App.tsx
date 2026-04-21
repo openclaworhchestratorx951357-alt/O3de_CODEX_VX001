@@ -18,7 +18,6 @@ import {
   getWorkspaceSurfaceGuide,
   operatorGuideCatalog,
 } from "./content/operatorGuide";
-import { mockAgents } from "./data/mockAgents";
 import {
   approveApproval,
   fetchAdapters,
@@ -4462,7 +4461,7 @@ export default function App() {
           : ["project_config"],
         owned_tools: agent.tools.map((tool) => tool.name),
       }))
-    : mockAgents;
+    : [];
   const pendingApprovalCount = approvals.length;
   const warningExecutionCount = executions.filter((execution) => execution.warning_count > 0).length;
   const unresolvedRunCount = runs.filter(isUnresolvedRun).length;
@@ -5532,7 +5531,9 @@ export default function App() {
 
   const runtimeGovernanceProps = {
     phase7: {
-      agents: catalogAgents,
+      items: policies,
+      loading: policiesLoading,
+      error: policiesError,
     },
     locks: {
       items: locks,

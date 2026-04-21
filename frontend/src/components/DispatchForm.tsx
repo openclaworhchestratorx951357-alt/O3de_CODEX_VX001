@@ -44,24 +44,15 @@ export default function DispatchForm({
   onResponse,
 }: DispatchFormProps) {
   const { settings } = useSettings();
-  const firstAgent = agents[0]?.id ?? "project-build";
-  const toolsForSelectedAgent = useMemo(() => {
-    return (
-      agents.find((agent) => agent.id === firstAgent)?.tools ?? [{
-        name: "project.inspect",
-        description: "Inspect project manifest and override state.",
-        approval_class: "read_only",
-        default_locks: ["project_config"],
-        default_timeout_s: 30,
-        risk: "low",
-        tags: ["project", "inspect"],
-      }]
-    );
-  }, [agents, firstAgent]);
+  const firstAgent = agents[0]?.id ?? "";
+  const toolsForSelectedAgent = useMemo(
+    () => agents.find((agent) => agent.id === firstAgent)?.tools ?? [],
+    [agents, firstAgent],
+  );
 
   const [request, setRequest] = useState<RequestEnvelope>(() => ({
     request_id: crypto.randomUUID(),
-    tool: toolsForSelectedAgent[0]?.name ?? "project.inspect",
+    tool: toolsForSelectedAgent[0]?.name ?? "",
     agent: firstAgent,
     project_root: settings.operatorDefaults.projectRoot || "/path/to/project",
     engine_root: settings.operatorDefaults.engineRoot || "/path/to/engine",
@@ -81,7 +72,7 @@ export default function DispatchForm({
   const effectiveAgent = selectedAgent ?? agents[0] ?? null;
   const availableTools = effectiveAgent?.tools ?? [];
   const selectedTool = availableTools.find((tool) => tool.name === request.tool);
-  const effectiveToolName = selectedTool?.name ?? availableTools[0]?.name ?? request.tool;
+  const effectiveToolName = selectedTool?.name ?? availableTools[0]?.name ?? "";
   const hybridModeActive = readiness?.adapter_mode.active_mode === "hybrid";
   const selectedFamily = selectedTool?.adapter_family ?? effectiveAgent?.id ?? request.agent;
   const selectedFamilyStatus = adapters?.families.find(
@@ -188,6 +179,10 @@ export default function DispatchForm({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!effectiveAgent || !effectiveToolName) {
+      setError("The live tools catalog is not available yet, so dispatch is still disabled.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
 
@@ -241,6 +236,11 @@ export default function DispatchForm({
         tooltip={dispatchFormGuide.tooltip}
         checklist={dispatchFormGuide.checklist}
       />
+      {agents.length === 0 ? (
+        <p style={{ marginTop: 0, color: "var(--app-warning-text)" }}>
+          Dispatch is disabled until the live tools catalog is available.
+        </p>
+      ) : null}
       <form onSubmit={handleSubmit}>
         <div style={{ display: "grid", gap: 12 }}>
           <label>
@@ -249,6 +249,7 @@ export default function DispatchForm({
               title={dispatchAgentControlGuide.tooltip}
               style={{ display: "block", width: "100%", marginTop: 4 }}
               value={effectiveAgent?.id ?? request.agent}
+              disabled={agents.length === 0}
               onChange={(e) => {
                 const nextAgent = agents.find((agent) => agent.id === e.target.value);
                 setRequest({
@@ -258,6 +259,9 @@ export default function DispatchForm({
                 });
               }}
             >
+              {agents.length === 0 ? (
+                <option value="">No live agents available</option>
+              ) : null}
               {agents.map((agent) => (
                 <option key={agent.id} value={agent.id}>
                   {agent.name}
@@ -272,8 +276,12 @@ export default function DispatchForm({
               title={dispatchToolControlGuide.tooltip}
               style={{ display: "block", width: "100%", marginTop: 4 }}
               value={effectiveToolName}
+              disabled={!effectiveAgent || availableTools.length === 0}
               onChange={(e) => setRequest({ ...request, tool: e.target.value })}
             >
+              {availableTools.length === 0 ? (
+                <option value="">No live tools available</option>
+              ) : null}
               {availableTools.map((tool) => (
                 <option key={tool.name} value={tool.name}>
                   {tool.name}
@@ -392,7 +400,7 @@ export default function DispatchForm({
           <button
             type="submit"
             title={dispatchSubmitControlGuide.tooltip}
-            disabled={submitting || agents.length === 0}
+            disabled={submitting || !effectiveAgent || !effectiveToolName}
           >
             {submitting ? "Dispatching..." : "Dispatch Request"}
           </button>

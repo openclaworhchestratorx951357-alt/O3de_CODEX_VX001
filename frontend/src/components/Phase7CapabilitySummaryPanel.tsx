@@ -1,6 +1,11 @@
 import type { CSSProperties } from "react";
 
-import type { CatalogAgent } from "../types/contracts";
+import {
+  describeBuildConfigureMeaning,
+  describeCatalogCapability,
+  describeSettingsPatchPolicyMeaning,
+} from "../lib/capabilityNarrative";
+import type { ToolPolicy } from "../types/contracts";
 import OperatorStatusRail from "./OperatorStatusRail";
 import StatusChip from "./StatusChip";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -14,14 +19,16 @@ import {
 } from "./summaryPrimitives";
 
 type Phase7CapabilitySummaryPanelProps = {
-  agents: CatalogAgent[];
+  items: ToolPolicy[];
+  loading: boolean;
+  error: string | null;
 };
 
 type CapabilityBucket = {
   label: string;
-  tools: string[];
+  items: ToolPolicy[];
   description: string;
-  executionMode: string | null;
+  executionMode: string;
   attentionLabel: string;
 };
 
@@ -34,152 +41,183 @@ const CAPABILITY_ORDER = [
   "simulated-only",
 ] as const;
 
+const HIGHLIGHT_TOOL_ORDER = [
+  "project.inspect",
+  "editor.session.open",
+  "editor.level.open",
+  "editor.entity.create",
+  "build.configure",
+  "settings.patch",
+] as const;
+
 const CAPABILITY_DESCRIPTIONS: Record<string, string> = {
   "real-authoring":
-    "Admitted real authoring through runtime-owned editor scripts with typed payload/result contracts and explicit preflight rejection. Today this includes the live-validated editor.session.open and editor.level.open paths on McpSandbox.",
+    "Admitted real authoring through runtime-owned editor contracts with explicit preflight-visible rejection. This bucket should stay narrow and evidence-backed.",
   "runtime-reaching":
-    "Runtime-reaching editor surface that can hit the live editor boundary, but is not yet live-admitted on McpSandbox. Today this is editor.entity.create while its real prefab/entity behavior is being stabilized.",
+    "Runtime-reaching surfaces can touch the live boundary, but they are not admitted real on the current tested McpSandbox target until stability and recovery proof is complete.",
   "hybrid-read-only":
-    "May use a real read-only path in hybrid mode when its preconditions are satisfied. Today that means project.inspect can capture explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence from project.json.",
+    "Hybrid read-only surfaces can use a real evidence path when preconditions are satisfied while keeping simulated fallback explicit.",
   "plan-only":
-    "Real only as planning or preflight-oriented evidence. Today build.configure can run a real preflight when dry_run=true, but it still does not execute a real configure mutation.",
+    "Plan-only surfaces may produce real preflight evidence, but they do not imply a live mutation path.",
   "mutation-gated":
-    "Still guarded behind stricter approval and recovery boundaries. Today settings.patch remains tightly gated in the catalog, but the admitted hybrid boundary includes a real preflight path and the first manifest-backed set-only mutation case.",
+    "Mutation-gated surfaces remain under tighter approval, rollback, and verification expectations even when some preflight or narrow mutation proof exists.",
   "simulated-only":
-    "Still fully simulated in the current phase.",
+    "These surfaces still remain explicitly simulated in the current phase.",
 };
 
 export default function Phase7CapabilitySummaryPanel({
-  agents,
+  items,
+  loading,
+  error,
 }: Phase7CapabilitySummaryPanelProps) {
-  const buckets = buildBuckets(agents);
-  const realAuthoringCount =
-    buckets.find((bucket) => bucket.label === "real-authoring")?.tools.length ?? 0;
-  const planOnlyCount = buckets.find((bucket) => bucket.label === "plan-only")?.tools.length ?? 0;
-  const hybridCount = buckets.find((bucket) => bucket.label === "hybrid-read-only")?.tools.length ?? 0;
-  const simulatedCount = buckets.find((bucket) => bucket.label === "simulated-only")?.tools.length ?? 0;
-  const mutationGatedCount = buckets.find((bucket) => bucket.label === "mutation-gated")?.tools.length ?? 0;
+  const buckets = buildBuckets(items);
+  const highlights = getHighlightPolicies(items);
 
   return (
     <section style={{ marginBottom: 32 }}>
       <h2>Phase 7 Capability Summary</h2>
       <p style={{ marginTop: 0, color: "var(--app-muted-color)" }}>
-        Current operator summary of which tool surfaces are real-capable,
-        hybrid-only, planning-only, mutation-gated, or still simulated.
+        Current operator summary from the live policy registry. This view groups
+        published <code>/policies</code> records by capability status so
+        admitted-real, plan-only, gated, and simulated wording stays explicit.
       </p>
-      <p style={{ marginTop: 0, color: "var(--app-muted-color)" }}>
-        Current accepted real boundary: <strong>project.inspect</strong> can use
-        the real read-only manifest path and expose explicit manifest-backed
-        config, Gem, settings, origin, presentation, identity, and tag
-        evidence. <strong>editor.session.open</strong> and <strong>editor.level.open</strong>{" "}
-        are the currently live-validated admitted real editor paths on McpSandbox,
-        while <strong>editor.entity.create</strong> remains runtime-reaching but not yet
-        live-admitted on McpSandbox. <strong>build.configure</strong>{" "}
-        remains real only as a plan-only preflight when <code>dry_run=true</code>.{" "}
-        <strong>settings.patch</strong> now has an admitted real hybrid boundary
-        for preflight and the first manifest-backed set-only mutation case,
-        while broader mutation surfaces remain gated.
-      </p>
-      {buckets.length > 0 ? (
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            flexWrap: "wrap",
-            marginBottom: 12,
-          }}
-        >
-          <span style={summaryBadgeStyle}>
-            real-authoring surfaces: {realAuthoringCount}
-          </span>
-          <span style={{ ...summaryBadgeStyle, ...runtimeBadgeStyle }}>
-            runtime-reaching surfaces: {buckets.find((bucket) => bucket.label === "runtime-reaching")?.tools.length ?? 0}
-          </span>
-          <span style={{ ...summaryBadgeStyle, ...hybridBadgeStyle }}>
-            hybrid-read-only surfaces: {hybridCount}
-          </span>
-          <span style={{ ...summaryBadgeStyle, ...planOnlyBadgeStyle }}>
-            plan-only surfaces: {planOnlyCount}
-          </span>
-          <span style={{ ...summaryBadgeStyle, ...mutationBadgeStyle }}>
-            mutation-gated surfaces: {mutationGatedCount}
-          </span>
-          <span style={{ ...summaryBadgeStyle, ...simulatedBadgeStyle }}>
-            simulated-only surfaces: {simulatedCount}
-          </span>
-        </div>
-      ) : null}
-      {buckets.length === 0 ? (
-        <p>No capability summary is available until the catalog loads.</p>
-      ) : (
-        <div style={summaryCardGridStyle}>
-          {buckets.map((bucket) => (
-            <article
-              key={bucket.label}
-              style={{
-                ...cardStyle,
-                borderColor: getBucketBorderColor(bucket.label),
-                background: getBucketBackground(bucket.label),
-              }}
-            >
-              <h3 style={headingStyle}>{bucket.label}</h3>
-              <SummaryFacts>
-                <SummaryFact label="Operator status">
-                  <OperatorStatusRail
-                    executionMode={bucket.executionMode}
-                    simulated={bucket.label === "simulated-only"}
-                    attentionLabel={bucket.attentionLabel}
-                  />
-                </SummaryFact>
-                <SummaryFact label="Capability">
-                  <StatusChip
-                    label={bucket.label}
-                    tone={getCapabilityTone(bucket.label)}
-                  />
-                </SummaryFact>
-                <SummaryFact label="Count">{bucket.tools.length}</SummaryFact>
-                <SummaryFact label="Execution truth">
-                  <StatusChip
-                    label={bucket.executionMode ?? "gated"}
-                    tone={getExecutionModeTone(bucket.executionMode ?? "gated")}
-                  />
-                </SummaryFact>
-              </SummaryFacts>
-              <p style={summaryMutedTextStyle}>{bucket.description}</p>
-              <ul style={{ marginBottom: 0 }}>
-                {bucket.tools.map((tool) => (
-                  <li key={tool}>{tool}</li>
-                ))}
-              </ul>
-            </article>
+      {highlights.length > 0 ? (
+        <div style={highlightRowStyle}>
+          {highlights.map((policy) => (
+            <span key={policy.tool} style={getHighlightBadgeStyle(policy.capability_status)}>
+              <strong>{policy.tool}</strong>: {policy.capability_status} / {policy.real_admission_stage}
+            </span>
           ))}
         </div>
+      ) : null}
+      {error ? <p style={{ color: "var(--app-danger-text)" }}>{error}</p> : null}
+      {loading ? (
+        <p>Loading phase 7 capability summary...</p>
+      ) : buckets.length === 0 ? (
+        <p>No capability summary is available until live policies load.</p>
+      ) : (
+        <>
+          <div style={countBadgeRowStyle}>
+            {CAPABILITY_ORDER.map((label) => {
+              const count = buckets.find((bucket) => bucket.label === label)?.items.length ?? 0;
+              if (count === 0) {
+                return null;
+              }
+
+              return (
+                <span key={label} style={getHighlightBadgeStyle(label)}>
+                  {label} surfaces: {count}
+                </span>
+              );
+            })}
+          </div>
+          <div style={summaryCardGridStyle}>
+            {buckets.map((bucket) => (
+              <article
+                key={bucket.label}
+                style={{
+                  ...cardStyle,
+                  borderColor: getBucketBorderColor(bucket.label),
+                  background: getBucketBackground(bucket.label),
+                }}
+              >
+                <h3 style={headingStyle}>{bucket.label}</h3>
+                <SummaryFacts>
+                  <SummaryFact label="Operator status">
+                    <OperatorStatusRail
+                      executionMode={bucket.executionMode}
+                      simulated={bucket.label === "simulated-only"}
+                      attentionLabel={bucket.attentionLabel}
+                    />
+                  </SummaryFact>
+                  <SummaryFact label="Capability">
+                    <StatusChip
+                      label={bucket.label}
+                      tone={getCapabilityTone(bucket.label)}
+                    />
+                  </SummaryFact>
+                  <SummaryFact label="Count">{bucket.items.length}</SummaryFact>
+                  <SummaryFact label="Execution truth">
+                    <StatusChip
+                      label={bucket.executionMode}
+                      tone={getExecutionModeTone(bucket.executionMode)}
+                    />
+                  </SummaryFact>
+                </SummaryFacts>
+                <p style={summaryMutedTextStyle}>{bucket.description}</p>
+                <div style={toolCardGridStyle}>
+                  {bucket.items.map((policy) => (
+                    <article key={policy.tool} style={toolCardStyle}>
+                      <div style={toolHeadingRowStyle}>
+                        <strong>{policy.tool}</strong>
+                        <StatusChip
+                          label={policy.real_admission_stage}
+                          tone={getExecutionModeTone(getPolicyExecutionTruth(policy))}
+                        />
+                      </div>
+                      <SummaryFacts>
+                        <SummaryFact label="Agent">{policy.agent}</SummaryFact>
+                        <SummaryFact label="Approval class">{policy.approval_class}</SummaryFact>
+                        <SummaryFact label="Required locks">
+                          {policy.required_locks.join(", ") || "none"}
+                        </SummaryFact>
+                        <SummaryFact label="Dry run support">
+                          {String(policy.supports_dry_run)}
+                        </SummaryFact>
+                      </SummaryFacts>
+                      <p style={summaryMutedTextStyle}>{describePolicyMeaning(policy)}</p>
+                      <p style={{ ...summaryMutedTextStyle, marginBottom: 0 }}>
+                        Next requirement: {policy.next_real_requirement}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              </article>
+            ))}
+          </div>
+        </>
       )}
     </section>
   );
 }
 
-function buildBuckets(agents: CatalogAgent[]): CapabilityBucket[] {
-  const grouped = new Map<string, string[]>();
+function buildBuckets(items: ToolPolicy[]): CapabilityBucket[] {
+  const grouped = new Map<string, ToolPolicy[]>();
 
-  for (const agent of agents) {
-    for (const tool of agent.tools) {
-      const status = tool.capability_status ?? "simulated-only";
-      const tools = grouped.get(status) ?? [];
-      tools.push(tool.name);
-      grouped.set(status, tools);
-    }
+  for (const item of items) {
+    const status = item.capability_status || "simulated-only";
+    const bucketItems = grouped.get(status) ?? [];
+    bucketItems.push(item);
+    grouped.set(status, bucketItems);
   }
 
   return CAPABILITY_ORDER
     .map((status) => ({
       label: status,
-      tools: grouped.get(status) ?? [],
+      items: (grouped.get(status) ?? []).slice().sort((left, right) => left.tool.localeCompare(right.tool)),
       description: CAPABILITY_DESCRIPTIONS[status],
       executionMode: getBucketExecutionMode(status),
       attentionLabel: getBucketAttentionLabel(status),
     }))
-    .filter((bucket) => bucket.tools.length > 0);
+    .filter((bucket) => bucket.items.length > 0);
+}
+
+function getHighlightPolicies(items: ToolPolicy[]): ToolPolicy[] {
+  const policiesByTool = new Map(items.map((item) => [item.tool, item]));
+
+  return HIGHLIGHT_TOOL_ORDER.map((tool) => policiesByTool.get(tool)).filter(
+    (policy): policy is ToolPolicy => Boolean(policy),
+  );
+}
+
+function describePolicyMeaning(policy: ToolPolicy): string {
+  if (policy.tool === "build.configure") {
+    return describeBuildConfigureMeaning();
+  }
+  if (policy.tool === "settings.patch") {
+    return describeSettingsPatchPolicyMeaning();
+  }
+  return describeCatalogCapability(policy.tool, policy.capability_status);
 }
 
 const cardStyle: CSSProperties = {
@@ -190,20 +228,72 @@ const headingStyle: CSSProperties = {
   ...summaryCardHeadingStyle,
 };
 
-function getBucketExecutionMode(status: string): string | null {
-  if (status === "real-authoring") {
+const countBadgeRowStyle: CSSProperties = {
+  display: "flex",
+  gap: 12,
+  flexWrap: "wrap",
+  marginBottom: 12,
+};
+
+const highlightRowStyle: CSSProperties = {
+  ...countBadgeRowStyle,
+  marginBottom: 16,
+};
+
+const toolCardGridStyle: CSSProperties = {
+  display: "grid",
+  gap: 8,
+};
+
+const toolCardStyle: CSSProperties = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
+  padding: 12,
+  background: "var(--app-panel-bg)",
+  display: "grid",
+  gap: 8,
+};
+
+const toolHeadingRowStyle: CSSProperties = {
+  display: "flex",
+  gap: 8,
+  justifyContent: "space-between",
+  alignItems: "center",
+  flexWrap: "wrap",
+};
+
+function getBucketExecutionMode(status: string): string {
+  if (status === "real-authoring" || status === "hybrid-read-only") {
     return "real";
   }
-  if (status === "runtime-reaching") {
+  if (status === "plan-only") {
+    return "plan-only";
+  }
+  if (status === "runtime-reaching" || status === "mutation-gated") {
     return "gated";
   }
-  if (status === "hybrid-read-only") {
+  return "simulated";
+}
+
+function getPolicyExecutionTruth(policy: ToolPolicy): string {
+  if (policy.real_admission_stage.includes("real-editor-authoring-active")) {
     return "real";
   }
-  if (status === "plan-only" || status === "simulated-only") {
-    return "simulated";
+  if (policy.real_admission_stage.includes("real-read-only-active")) {
+    return "real";
   }
-  return null;
+  if (policy.real_admission_stage.includes("real-plan-only-active")) {
+    return "plan-only";
+  }
+  if (
+    policy.real_admission_stage.includes("runtime-reaching")
+    || policy.real_admission_stage.includes("candidate")
+    || policy.real_admission_stage.includes("preflight")
+    || policy.real_admission_stage.includes("deferred")
+  ) {
+    return "gated";
+  }
+  return "simulated";
 }
 
 function getBucketAttentionLabel(status: string): string {
@@ -211,7 +301,7 @@ function getBucketAttentionLabel(status: string): string {
     return "Live-validated real path";
   }
   if (status === "runtime-reaching") {
-    return "Live stability pending";
+    return "Explicitly excluded from admitted real";
   }
   if (status === "hybrid-read-only") {
     return "Operator baseline confirmed";
@@ -220,7 +310,7 @@ function getBucketAttentionLabel(status: string): string {
     return "Preflight boundary";
   }
   if (status === "mutation-gated") {
-    return "Audit review needed";
+    return "Tighter mutation gate";
   }
   return "Simulation boundary";
 }
@@ -262,6 +352,34 @@ function getBucketBackground(status: string): string {
   }
   return "var(--app-info-bg)";
 }
+
+function getHighlightBadgeStyle(status: string): CSSProperties {
+  if (status === "runtime-reaching") {
+    return { ...summaryBadgeStyle, ...runtimeBadgeStyle };
+  }
+  if (status === "hybrid-read-only") {
+    return { ...summaryBadgeStyle, ...hybridBadgeStyle };
+  }
+  if (status === "plan-only") {
+    return { ...summaryBadgeStyle, ...planOnlyBadgeStyle };
+  }
+  if (status === "mutation-gated") {
+    return { ...summaryBadgeStyle, ...mutationBadgeStyle };
+  }
+  if (status === "simulated-only") {
+    return { ...summaryBadgeStyle, ...simulatedBadgeStyle };
+  }
+  if (status === "real-authoring") {
+    return { ...summaryBadgeStyle, ...realBadgeStyle };
+  }
+  return summaryBadgeStyle;
+}
+
+const realBadgeStyle: CSSProperties = {
+  background: "var(--app-success-bg)",
+  borderColor: "var(--app-success-border)",
+  color: "var(--app-success-text)",
+};
 
 const runtimeBadgeStyle: CSSProperties = {
   background: "var(--app-runtime-bg)",

@@ -2,90 +2,116 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import Phase7CapabilitySummaryPanel from "./Phase7CapabilitySummaryPanel";
-import type { CatalogAgent } from "../types/contracts";
+import type { ToolPolicy } from "../types/contracts";
 
-const agents: CatalogAgent[] = [
+const policies: ToolPolicy[] = [
   {
-    id: "editor-control",
-    name: "Editor Control",
-    role: "Editor authoring actions",
-    summary: "Editor runtime and authoring surfaces.",
-    tools: [
-      {
-        name: "editor.session.open",
-        description: "Attach to the live editor session.",
-        approval_class: "project_write",
-        default_locks: ["editor_session"],
-        default_timeout_s: 60,
-        risk: "medium",
-        tags: ["editor", "session"],
-        capability_status: "real-authoring",
-      },
-      {
-        name: "editor.entity.create",
-        description: "Create an entity in the live editor.",
-        approval_class: "content_write",
-        default_locks: ["editor_session"],
-        default_timeout_s: 60,
-        risk: "high",
-        tags: ["editor", "entity"],
-        capability_status: "runtime-reaching",
-      },
-    ],
+    agent: "editor-control",
+    tool: "editor.session.open",
+    approval_class: "project_write",
+    adapter_family: "editor-control",
+    capability_status: "real-authoring",
+    real_admission_stage: "real-editor-authoring-active",
+    next_real_requirement: "Keep the admitted real path limited to runtime-owned session attachment.",
+    args_schema: "EditorSessionOpenArgs",
+    result_schema: "EditorSessionOpenResult",
+    required_locks: ["editor_session"],
+    risk: "medium",
+    requires_approval: true,
+    supports_dry_run: true,
+    execution_mode: "real",
   },
   {
-    id: "project-build",
-    name: "Project Build",
-    role: "Project inspection and build actions",
-    summary: "Manifest and configure surfaces.",
-    tools: [
-      {
-        name: "project.inspect",
-        description: "Inspect project state.",
-        approval_class: "read_only",
-        default_locks: ["project_config"],
-        default_timeout_s: 30,
-        risk: "low",
-        tags: ["project", "inspect"],
-        capability_status: "hybrid-read-only",
-      },
-      {
-        name: "build.configure",
-        description: "Configure the build tree.",
-        approval_class: "project_write",
-        default_locks: ["build_tree"],
-        default_timeout_s: 120,
-        risk: "medium",
-        tags: ["build", "configure"],
-        capability_status: "plan-only",
-      },
-      {
-        name: "settings.patch",
-        description: "Patch project settings.",
-        approval_class: "project_write",
-        default_locks: ["project_config"],
-        default_timeout_s: 60,
-        risk: "high",
-        tags: ["settings", "mutation"],
-        capability_status: "mutation-gated",
-      },
-      {
-        name: "asset.reimport",
-        description: "Simulated asset reimport action.",
-        approval_class: "content_write",
-        default_locks: ["asset_pipeline"],
-        default_timeout_s: 90,
-        risk: "medium",
-        tags: ["asset", "simulate"],
-        capability_status: "simulated-only",
-      },
-    ],
+    agent: "editor-control",
+    tool: "editor.entity.create",
+    approval_class: "content_write",
+    adapter_family: "editor-control",
+    capability_status: "runtime-reaching",
+    real_admission_stage: "runtime-reaching-excluded-from-admitted-real",
+    next_real_requirement: "Keep editor.entity.create explicitly labeled as runtime-reaching and excluded.",
+    args_schema: "EditorEntityCreateArgs",
+    result_schema: "EditorEntityCreateResult",
+    required_locks: ["editor_session"],
+    risk: "high",
+    requires_approval: true,
+    supports_dry_run: true,
+    execution_mode: "simulated",
+  },
+  {
+    agent: "project-build",
+    tool: "project.inspect",
+    approval_class: "read_only",
+    adapter_family: "project-build",
+    capability_status: "hybrid-read-only",
+    real_admission_stage: "real-read-only-active",
+    next_real_requirement: "Keep manifest-backed read-only evidence truthful.",
+    args_schema: "ProjectInspectArgs",
+    result_schema: "ProjectInspectResult",
+    required_locks: ["project_config"],
+    risk: "low",
+    requires_approval: false,
+    supports_dry_run: true,
+    execution_mode: "real",
+  },
+  {
+    agent: "project-build",
+    tool: "build.configure",
+    approval_class: "project_write",
+    adapter_family: "project-build",
+    capability_status: "plan-only",
+    real_admission_stage: "real-plan-only-active",
+    next_real_requirement: "Keep real execution limited to dry-run preflight.",
+    args_schema: "BuildConfigureArgs",
+    result_schema: "BuildConfigureResult",
+    required_locks: ["build_tree"],
+    risk: "medium",
+    requires_approval: true,
+    supports_dry_run: true,
+    execution_mode: "simulated",
+  },
+  {
+    agent: "project-build",
+    tool: "settings.patch",
+    approval_class: "project_write",
+    adapter_family: "project-build",
+    capability_status: "mutation-gated",
+    real_admission_stage: "real-mutation-preflight-active",
+    next_real_requirement: "Keep real execution tightly limited to the admitted manifest-backed path.",
+    args_schema: "SettingsPatchArgs",
+    result_schema: "SettingsPatchResult",
+    required_locks: ["project_config"],
+    risk: "high",
+    requires_approval: true,
+    supports_dry_run: true,
+    execution_mode: "simulated",
+  },
+  {
+    agent: "asset-control",
+    tool: "asset.reimport",
+    approval_class: "content_write",
+    adapter_family: "asset-control",
+    capability_status: "simulated-only",
+    real_admission_stage: "simulated-only",
+    next_real_requirement: "Remain simulated until a tool-specific real adapter gate is admitted.",
+    args_schema: "AssetReimportArgs",
+    result_schema: "AssetReimportResult",
+    required_locks: ["asset_pipeline"],
+    risk: "medium",
+    requires_approval: true,
+    supports_dry_run: true,
+    execution_mode: "simulated",
   },
 ];
 
 describe("Phase7CapabilitySummaryPanel", () => {
-  it("renders grouped capability buckets and tool counts", () => {
-    render(<Phase7CapabilitySummaryPanel agents={agents} />);
+  it("renders grouped capability buckets from live policy records", () => {
+    render(
+      <Phase7CapabilitySummaryPanel
+        items={policies}
+        loading={false}
+        error={null}
+      />,
+    );
 
     expect(screen.getByText("Phase 7 Capability Summary")).toBeInTheDocument();
     expect(screen.getByText("real-authoring surfaces: 1")).toBeInTheDocument();
@@ -100,5 +126,22 @@ describe("Phase7CapabilitySummaryPanel", () => {
     expect(screen.getAllByText("build.configure").length).toBeGreaterThan(0);
     expect(screen.getAllByText("settings.patch").length).toBeGreaterThan(0);
     expect(screen.getByText("asset.reimport")).toBeInTheDocument();
+    expect(screen.getByText("real-editor-authoring-active")).toBeInTheDocument();
+    expect(screen.getByText("runtime-reaching-excluded-from-admitted-real")).toBeInTheDocument();
+    expect(screen.getByText("real-read-only-active")).toBeInTheDocument();
+  });
+
+  it("renders an honest empty state until live policies are available", () => {
+    render(
+      <Phase7CapabilitySummaryPanel
+        items={[]}
+        loading={false}
+        error={null}
+      />,
+    );
+
+    expect(
+      screen.getByText("No capability summary is available until live policies load."),
+    ).toBeInTheDocument();
   });
 });

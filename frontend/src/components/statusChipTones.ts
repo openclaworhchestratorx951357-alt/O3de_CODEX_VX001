@@ -34,7 +34,7 @@ export function getExecutionModeTone(mode: string): StatusChipTone {
   if (mode === "real") {
     return "success";
   }
-  if (mode === "simulated") {
+  if (mode === "simulated" || mode === "plan-only" || mode === "gated") {
     return "warning";
   }
   return "neutral";

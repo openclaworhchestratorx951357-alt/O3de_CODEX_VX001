@@ -153,4 +153,25 @@ describe("DispatchForm", () => {
       "Submit the typed request after agent, tool, target, locks, timeout, and args all match the intended action.",
     );
   });
+
+  it("keeps dispatch controls honest when the live tools catalog is unavailable", async () => {
+    render(
+      <DispatchForm
+        agents={[]}
+        adapters={adapters}
+        readiness={readiness}
+        onResponse={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Dispatch is disabled until the live tools catalog is available.")).toBeInTheDocument();
+    });
+
+    expect(screen.getByRole("combobox", { name: "Agent" })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Tool" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Dispatch Request" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "No live agents available" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "No live tools available" })).toBeInTheDocument();
+  });
 });

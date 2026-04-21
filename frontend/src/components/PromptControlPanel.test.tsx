@@ -403,6 +403,44 @@ const waitingSession: PromptSessionRecord = {
     ).toBeInTheDocument();
   });
 
+  it("shows a truthful manual target hint when live target detection is unavailable", async () => {
+    apiMocks.fetchO3deTarget.mockResolvedValue(null);
+
+    render(<PromptControlPanel />);
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(
+      screen.getByText(/Live target detection is not available yet/i),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Project root")).toHaveAttribute(
+      "placeholder",
+      "Saved default or detected local target project root",
+    );
+    expect(screen.getByLabelText("Engine root")).toHaveAttribute(
+      "placeholder",
+      "Saved default or detected local target engine root",
+    );
+  });
+
+  it("derives preferred domain guidance from the live capability registry", async () => {
+    apiMocks.fetchPromptCapabilities.mockResolvedValue([
+      makeCapability("editor.session.open"),
+      {
+        ...makeCapability("editor.level.open"),
+        agent_family: "project-build",
+      },
+      makeCapability("editor.entity.create"),
+    ]);
+
+    render(<PromptControlPanel />);
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(screen.getByLabelText("Preferred domains (comma-separated)")).toHaveAttribute(
+      "placeholder",
+      "editor-control, project-build",
+    );
+  });
+
   it("prefills prompt roots and dry-run from the saved operator defaults profile", async () => {
     window.localStorage.setItem(
       SETTINGS_PROFILE_STORAGE_KEY,

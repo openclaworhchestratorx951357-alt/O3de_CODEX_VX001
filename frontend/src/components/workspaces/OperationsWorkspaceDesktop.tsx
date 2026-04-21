@@ -31,22 +31,6 @@ type OperationsWorkspaceDesktopProps = {
   timelineSectionRef: RefObject<HTMLDivElement>;
 };
 
-const fallbackCatalogAgents: ComponentProps<typeof CatalogPanel>["agents"] = [{
-  id: "project-build",
-  name: "Project / Build Agent",
-  role: "Fallback catalog entry",
-  summary: "Fallback catalog entry",
-  tools: [{
-    name: "project.inspect",
-    description: "Inspect project manifest and override state.",
-    approval_class: "read_only",
-    default_locks: ["project_config"],
-    default_timeout_s: 30,
-      risk: "low",
-      tags: ["project", "inspect"],
-  }],
-}];
-
 export default function OperationsWorkspaceDesktop({
   activeSurfaceId,
   items,
@@ -66,12 +50,12 @@ export default function OperationsWorkspaceDesktop({
       dispatchContent={(
         <>
           {dispatch.catalogError ? <p style={{ color: "var(--app-danger-text)" }}>{dispatch.catalogError}</p> : null}
-          <CatalogPanel agents={dispatch.catalogAgents.length > 0 ? dispatch.catalogAgents : fallbackCatalogAgents} />
+          <CatalogPanel agents={dispatch.catalogAgents} />
           <DispatchForm
             adapters={dispatch.adapters}
             readiness={dispatch.readiness}
             onResponse={dispatch.onResponse}
-            agents={dispatch.catalogAgents.length > 0 ? dispatch.catalogAgents : fallbackCatalogAgents}
+            agents={dispatch.catalogAgents}
           />
           <ResponseEnvelopeView response={dispatch.lastResponse} />
         </>

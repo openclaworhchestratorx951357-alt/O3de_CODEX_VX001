@@ -20,7 +20,7 @@ export default function CatalogPanel({ agents }: CatalogPanelProps) {
       guideChecklist={catalogPanelGuide.checklist}
       loading={false}
       error={null}
-      emptyMessage="Catalog not loaded yet."
+      emptyMessage="No live tools catalog has been returned yet."
       hasItems={agents.length > 0}
       marginTop={0}
     >

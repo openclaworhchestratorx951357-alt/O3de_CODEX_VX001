@@ -76,6 +76,14 @@ export default function PromptControlPanel({
   const initialEngineRootRef = useRef(engineRoot);
   const effectiveWorkspaceId = workspaceIdEdited ? workspaceId : (selectedWorkspaceId ?? "");
   const effectiveExecutorId = executorIdEdited ? executorId : (selectedExecutorId ?? "");
+  const preferredDomainSuggestions = Array.from(new Set(
+    capabilities
+      .map((capability) => capability.agent_family.trim())
+      .filter(Boolean),
+  ));
+  const preferredDomainsPlaceholder = preferredDomainSuggestions.length > 0
+    ? preferredDomainSuggestions.join(", ")
+    : "Leave blank to allow the planner to choose from admitted domains.";
   const projectRootEnv = (import.meta.env.VITE_O3DE_TARGET_PROJECT_ROOT as string | undefined) ?? "";
   const engineRootEnv = (import.meta.env.VITE_O3DE_TARGET_ENGINE_ROOT as string | undefined) ?? "";
 
@@ -301,7 +309,12 @@ export default function PromptControlPanel({
           <strong>{targetConfig.engine_root ?? "engine unset"}</strong>
           {" "}via {targetConfig.source_label}.
         </p>
-      ) : null}
+      ) : (
+        <p style={subtleTextStyle}>
+          Live target detection is not available yet. Confirm the project root and
+          engine root manually before previewing a prompt plan.
+        </p>
+      )}
       <form onSubmit={handlePreviewPlan} style={{ display: "grid", gap: 12 }}>
         <label>
           Prompt text
@@ -322,7 +335,7 @@ export default function PromptControlPanel({
               style={inputStyle}
               value={projectRoot}
               onChange={(event) => setProjectRoot(event.target.value)}
-              placeholder="C:\\Users\\operator\\O3DE\\MyProject"
+              placeholder="Saved default or detected local target project root"
             />
           </label>
           <label>
@@ -332,7 +345,7 @@ export default function PromptControlPanel({
               style={inputStyle}
               value={engineRoot}
               onChange={(event) => setEngineRoot(event.target.value)}
-              placeholder="C:\\O3DE\\engine"
+              placeholder="Saved default or detected local target engine root"
             />
           </label>
           <label>
@@ -368,7 +381,7 @@ export default function PromptControlPanel({
               style={inputStyle}
               value={preferredDomainsText}
               onChange={(event) => setPreferredDomainsText(event.target.value)}
-              placeholder="project-build, render-lookdev"
+              placeholder={preferredDomainsPlaceholder}
             />
           </label>
           <label>
