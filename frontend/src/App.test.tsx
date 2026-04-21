@@ -119,6 +119,10 @@ vi.mock("./components/SystemStatusPanel", () => ({
   default: () => <div>SystemStatusPanel stub</div>,
 }));
 
+vi.mock("./components/TaskTimeline", () => ({
+  default: () => <div>TaskTimeline stub</div>,
+}));
+
 vi.mock("./components/WorkspacesPanel", () => ({
   default: () => <div>WorkspacesPanel stub</div>,
 }));
@@ -182,6 +186,33 @@ const PARTIAL_SURFACE_HYDRATION_CASES = [
     surfaceSessionKey: ACTIVE_RECORDS_SURFACE_SESSION_KEY,
     invalidSurfaceValue: "invalid-records",
     expectedSurfaceValue: "runs",
+    expectedTabLabel: "Runs",
+    expectedTabDetail: "Dispatch lineage and run-level audit slices.",
+  },
+] as const;
+
+const EXPLICIT_DEFAULT_SURFACE_RESTORE_CASES = [
+  {
+    workspaceId: "operations",
+    surfaceSessionKey: ACTIVE_OPERATIONS_SURFACE_SESSION_KEY,
+    surfaceValue: "dispatch",
+    expectedVisibleText: "Command Center",
+    expectedTabLabel: "Dispatch",
+    expectedTabDetail: "Catalog, typed dispatch, and latest response envelope.",
+  },
+  {
+    workspaceId: "runtime",
+    surfaceSessionKey: ACTIVE_RUNTIME_SURFACE_SESSION_KEY,
+    surfaceValue: "overview",
+    expectedVisibleText: "SystemStatusPanel stub",
+    expectedTabLabel: "Overview",
+    expectedTabDetail: "Bridge health, runtime status, and system summaries.",
+  },
+  {
+    workspaceId: "records",
+    surfaceSessionKey: ACTIVE_RECORDS_SURFACE_SESSION_KEY,
+    surfaceValue: "runs",
+    expectedVisibleText: "RunsPanel stub",
     expectedTabLabel: "Runs",
     expectedTabDetail: "Dispatch lineage and run-level audit slices.",
   },
@@ -309,6 +340,41 @@ describe("App desktop shell", () => {
 
     expect(await screen.findByText("ApprovalQueue stub")).toBeInTheDocument();
     expectDesktopTabActive(restoredApprovalsSurfaceButton);
+  });
+
+  it("restores the command center timeline surface from session storage after remount", async () => {
+    const { unmount } = render(<App />);
+
+    fireEvent.click(getLaunchpadButton(
+      "Catalog browsing, dispatch, approvals, and live timeline control.",
+    ));
+
+    const timelineSurfaceButton = getDesktopTabButton(
+      "Timeline",
+      "Cross-record event and task history.",
+    );
+
+    fireEvent.click(timelineSurfaceButton);
+
+    expect(screen.getByText("TaskTimeline stub")).toBeInTheDocument();
+    expect(
+      window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
+    ).toBe("operations");
+    expect(
+      window.sessionStorage.getItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY),
+    ).toBe("timeline");
+    expectDesktopTabActive(timelineSurfaceButton);
+
+    unmount();
+    render(<App />);
+
+    const restoredTimelineSurfaceButton = getDesktopTabButton(
+      "Timeline",
+      "Cross-record event and task history.",
+    );
+
+    expect(await screen.findByText("TaskTimeline stub")).toBeInTheDocument();
+    expectDesktopTabActive(restoredTimelineSurfaceButton);
   });
 
   it("restores the runtime executors surface from session storage after remount", async () => {
@@ -522,6 +588,30 @@ describe("App desktop shell", () => {
 
       expect(window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY)).toBe(workspaceId);
       expect(window.sessionStorage.getItem(surfaceSessionKey)).toBe(expectedSurfaceValue);
+      expectDesktopTabActive(defaultSurfaceButton);
+    },
+  );
+
+  it.each(EXPLICIT_DEFAULT_SURFACE_RESTORE_CASES)(
+    "restores the $workspaceId workspace when the stored surface is the explicit default",
+    ({
+      workspaceId,
+      surfaceSessionKey,
+      surfaceValue,
+      expectedVisibleText,
+      expectedTabLabel,
+      expectedTabDetail,
+    }) => {
+      window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, workspaceId);
+      window.sessionStorage.setItem(surfaceSessionKey, surfaceValue);
+
+      render(<App />);
+
+      const defaultSurfaceButton = getDesktopTabButton(expectedTabLabel, expectedTabDetail);
+
+      expect(screen.getAllByText(expectedVisibleText).length).toBeGreaterThan(0);
+      expect(window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY)).toBe(workspaceId);
+      expect(window.sessionStorage.getItem(surfaceSessionKey)).toBe(surfaceValue);
       expectDesktopTabActive(defaultSurfaceButton);
     },
   );
