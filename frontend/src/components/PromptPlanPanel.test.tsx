@@ -146,6 +146,8 @@ describe("PromptPlanPanel", () => {
   it("renders step execution availability truth from the capability registry", () => {
     render(<PromptPlanPanel session={session} capabilities={capabilities} />);
 
+    expect(screen.getByText(/Admitted:/).parentElement).toHaveTextContent("Admitted: yes");
+
     const levelStep = screen.getByText("step-level-open").closest("article");
     const buildStep = screen.getByText("step-build-configure").closest("article");
 
@@ -220,5 +222,28 @@ describe("PromptPlanPanel", () => {
         "Simulation fallback availability: not reported by current backend capability registry",
       ).length,
     ).toBeGreaterThan(0);
+  });
+
+  it("chips a refused prompt plan summary truthfully", () => {
+    render(
+      <PromptPlanPanel
+        session={{
+          ...session,
+          plan: {
+            ...session.plan!,
+            admitted: false,
+            refusal_reason: "entity creation remains excluded from the admitted real set",
+          },
+        }}
+        capabilities={capabilities}
+      />,
+    );
+
+    expect(screen.getByText(/Admitted:/).parentElement).toHaveTextContent("Admitted: no");
+    expect(
+      screen.getByText(/Refusal reason:/).parentElement,
+    ).toHaveTextContent(
+      "Refusal reason: entity creation remains excluded from the admitted real set",
+    );
   });
 });

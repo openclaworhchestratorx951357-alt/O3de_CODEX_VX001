@@ -7,6 +7,7 @@ import StatusChip from "./StatusChip";
 import {
   getAdmissionTone,
   getAvailabilityTone,
+  getBooleanFlagTone,
   getCapabilityTone,
   getExecutionTruthTone,
   getNaturalLanguageStatusTone,
@@ -47,7 +48,13 @@ export default function PromptPlanPanel({
       ) : (
         <div style={{ display: "grid", gap: 12 }}>
           <div title={promptPlanSummaryControlGuide.tooltip} style={summaryCardStyle}>
-            <div><strong>Admitted:</strong> {session.plan.admitted ? "yes" : "no"}</div>
+            <div>
+              <strong>Admitted:</strong>{" "}
+              <StatusChip
+                label={session.plan.admitted ? "yes" : "no"}
+                tone={getBooleanFlagTone(session.plan.admitted, { falseTone: "danger" })}
+              />
+            </div>
             <div><strong>Summary:</strong> {session.plan.summary}</div>
             <div><strong>Refusal reason:</strong> {session.plan.refusal_reason ?? "none"}</div>
           </div>
