@@ -3,6 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 
+const ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY = "o3de-control-app-active-desktop-workspace";
+const ACTIVE_OPERATIONS_SURFACE_SESSION_KEY = "o3de-control-app-active-operations-surface";
+
 const apiMocks = vi.hoisted(() => ({
   approveApproval: vi.fn(),
   cleanupO3deBridgeResults: vi.fn(),
@@ -20,6 +23,7 @@ const apiMocks = vi.hoisted(() => ({
   fetchEventCards: vi.fn(),
   fetchLockCards: vi.fn(),
   fetchO3deBridge: vi.fn(),
+  fetchO3deTarget: vi.fn(),
   fetchPolicies: vi.fn(),
   fetchReadiness: vi.fn(),
   fetchRun: vi.fn(),
@@ -110,6 +114,7 @@ describe("App desktop shell", () => {
     apiMocks.fetchEventCards.mockImplementation(() => createPendingPromise());
     apiMocks.fetchLockCards.mockImplementation(() => createPendingPromise());
     apiMocks.fetchO3deBridge.mockImplementation(() => createPendingPromise());
+    apiMocks.fetchO3deTarget.mockImplementation(() => createPendingPromise());
     apiMocks.fetchPolicies.mockImplementation(() => createPendingPromise());
     apiMocks.fetchReadiness.mockImplementation(() => createPendingPromise());
     apiMocks.fetchRun.mockImplementation(() => createPendingPromise());
@@ -160,5 +165,37 @@ describe("App desktop shell", () => {
     expect(screen.getByText("AdaptersPanel stub")).toBeInTheDocument();
     expect(screen.getByText("SystemStatusPanel stub")).toBeInTheDocument();
     expect(screen.getByText("OperatorOverviewPanel stub")).toBeInTheDocument();
+  });
+
+  it("restores the command center agents surface from session storage after remount", async () => {
+    const { unmount } = render(<App />);
+
+    const commandCenterShortcut = screen.getByText(
+      "Catalog browsing, dispatch, approvals, and live timeline control.",
+    ).closest("button");
+
+    expect(commandCenterShortcut).not.toBeNull();
+    fireEvent.click(commandCenterShortcut as HTMLButtonElement);
+
+    const agentsSurfaceButton = screen.getAllByRole("button").find((button) => (
+      button.textContent?.includes("Agents")
+      && button.textContent?.includes("Available operator families and owned tool lanes.")
+    ));
+
+    expect(agentsSurfaceButton).not.toBeUndefined();
+    fireEvent.click(agentsSurfaceButton as HTMLButtonElement);
+
+    expect(screen.getByText("Agent Control")).toBeInTheDocument();
+    expect(
+      window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
+    ).toBe("operations");
+    expect(
+      window.sessionStorage.getItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY),
+    ).toBe("agents");
+
+    unmount();
+    render(<App />);
+
+    expect(await screen.findByText("Agent Control")).toBeInTheDocument();
   });
 });
