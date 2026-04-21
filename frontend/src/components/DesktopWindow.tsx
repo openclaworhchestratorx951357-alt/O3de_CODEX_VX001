@@ -20,9 +20,9 @@ export default function DesktopWindow({
       <div style={windowHeaderStyle}>
         <div style={windowTitleGroupStyle}>
           <div style={windowControlsStyle}>
-            <span style={{ ...windowControlStyle, background: "#ffbd44" }} />
-            <span style={{ ...windowControlStyle, background: "#00ca56" }} />
-            <span style={{ ...windowControlStyle, background: "#ff605c" }} />
+            <span style={{ ...windowControlStyle, background: "var(--app-window-control-minimize)" }} />
+            <span style={{ ...windowControlStyle, background: "var(--app-window-control-maximize)" }} />
+            <span style={{ ...windowControlStyle, background: "var(--app-window-control-close)" }} />
           </div>
           <div style={{ display: "grid", gap: 4 }}>
             <strong style={windowTitleStyle}>{title}</strong>
@@ -56,11 +56,11 @@ export default function DesktopWindow({
 const windowStyle = {
   display: "grid",
   gap: 16,
-  padding: 18,
-  borderRadius: 28,
-  background: "rgba(251, 253, 255, 0.88)",
-  border: "1px solid rgba(137, 156, 196, 0.22)",
-  boxShadow: "0 24px 48px rgba(58, 84, 136, 0.12)",
+  padding: "var(--app-panel-padding)",
+  borderRadius: "var(--app-window-radius)",
+  background: "var(--app-panel-bg-alt)",
+  border: "1px solid var(--app-panel-border)",
+  boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
 const windowHeaderStyle = {
@@ -88,17 +88,17 @@ const windowControlStyle = {
   width: 10,
   height: 10,
   borderRadius: "50%",
-  boxShadow: "0 1px 3px rgba(18, 32, 51, 0.18)",
+  boxShadow: "var(--app-window-control-shadow)",
 } satisfies CSSProperties;
 
 const windowTitleStyle = {
   fontSize: 19,
   lineHeight: 1.1,
-  color: "#142238",
+  color: "var(--app-text-color)",
 } satisfies CSSProperties;
 
 const windowSubtitleStyle = {
-  color: "#5a7198",
+  color: "var(--app-muted-color)",
   fontSize: 13,
   lineHeight: 1.45,
 } satisfies CSSProperties;
@@ -111,11 +111,11 @@ const windowToolbarStyle = {
 } satisfies CSSProperties;
 
 const windowHelpBadgeStyle = {
-  border: "1px solid rgba(25, 118, 210, 0.24)",
-  borderRadius: 999,
+  border: "1px solid var(--app-accent-strong)",
+  borderRadius: "var(--app-pill-radius)",
   padding: "6px 10px",
-  background: "rgba(224, 241, 255, 0.82)",
-  color: "#0e4c92",
+  background: "var(--app-accent-soft)",
+  color: "var(--app-text-color)",
   fontSize: 12,
   fontWeight: 700,
   whiteSpace: "nowrap" as const,

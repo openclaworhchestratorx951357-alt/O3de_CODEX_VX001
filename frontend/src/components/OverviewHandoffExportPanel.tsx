@@ -50,8 +50,8 @@ export default function OverviewHandoffExportPanel({
         display: "grid",
         gap: 12,
         marginBottom: 24,
-        background: "linear-gradient(135deg, #fff7ed 0%, #f6f8fa 100%)",
-        borderColor: "#bc4c00",
+        background: "linear-gradient(135deg, var(--app-simulated-bg) 0%, var(--app-panel-bg-muted) 100%)",
+        borderColor: "var(--app-simulated-border)",
       }}
     >
       <div style={{ display: "grid", gap: 4 }}>
@@ -93,8 +93,8 @@ export default function OverviewHandoffExportPanel({
           margin: 0,
           padding: 12,
           borderRadius: 10,
-          border: "1px solid #d0d7de",
-          background: "#ffffff",
+          border: "1px solid var(--app-panel-border)",
+          background: "var(--app-panel-bg)",
           overflowX: "auto",
           whiteSpace: "pre-wrap",
           wordBreak: "break-word",

@@ -41,8 +41,8 @@ export default function OverviewAttentionPanel({
         display: "grid",
         gap: 12,
         marginBottom: 24,
-        background: "linear-gradient(135deg, #fff1f2 0%, #f6f8fa 100%)",
-        borderColor: "#d1242f",
+        background: "linear-gradient(135deg, var(--app-danger-bg) 0%, var(--app-panel-bg-muted) 100%)",
+        borderColor: "var(--app-danger-border)",
       }}
     >
       <div style={{ display: "grid", gap: 4 }}>
@@ -61,10 +61,10 @@ export default function OverviewAttentionPanel({
             key={entry.id}
             title={overviewAttentionCardControlGuide.tooltip}
             style={{
-              border: "1px solid #d0d7de",
+              border: "1px solid var(--app-panel-border)",
               borderRadius: 10,
               padding: 12,
-              background: "#ffffff",
+              background: "var(--app-panel-bg)",
               display: "grid",
               gap: 8,
             }}

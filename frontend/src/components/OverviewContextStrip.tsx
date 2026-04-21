@@ -38,8 +38,9 @@ const stripStyle = {
   display: "grid",
   gap: 8,
   marginBottom: 12,
-  background: "linear-gradient(135deg, #eff8ff 0%, #f6f8fa 100%)",
-  borderColor: "#0969da",
+  background: "linear-gradient(135deg, var(--app-accent-soft) 0%, var(--app-panel-bg-muted) 100%)",
+  borderColor: "var(--app-accent)",
+  boxShadow: "var(--app-shadow-soft)",
 };
 
 const titleStyle = {

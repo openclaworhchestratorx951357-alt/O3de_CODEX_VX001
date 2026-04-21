@@ -19,19 +19,20 @@ export default function ResponseEnvelopeView({
   response,
 }: ResponseEnvelopeViewProps) {
   const statusLabel = response ? (response.ok ? "success" : "failure") : "idle";
-  const statusColor =
-    statusLabel === "success"
-      ? "#1a7f37"
-      : statusLabel === "failure"
-        ? "#cf222e"
-        : "#6e7781";
+  const statusBadgeStyle = statusLabel === "success"
+    ? successStatusBadgeStyle
+    : statusLabel === "failure"
+      ? failureStatusBadgeStyle
+      : idleStatusBadgeStyle;
 
   return (
     <section
       style={{
-        border: "1px solid #d0d7de",
-        borderRadius: 12,
-        padding: 16,
+        border: "1px solid var(--app-panel-border)",
+        borderRadius: "var(--app-panel-radius)",
+        padding: "var(--app-panel-padding)",
+        background: "var(--app-panel-bg-muted)",
+        boxShadow: "var(--app-shadow-soft)",
         marginBottom: 24,
       }}
     >
@@ -40,9 +41,9 @@ export default function ResponseEnvelopeView({
         <span
           title={responseEnvelopeStatusBadgeGuide.tooltip}
           style={{
-            background: statusColor,
-            color: "white",
-            borderRadius: 999,
+            ...statusBadgeBaseStyle,
+            ...statusBadgeStyle,
+            borderRadius: "var(--app-pill-radius)",
             padding: "4px 10px",
             fontSize: 12,
             textTransform: "uppercase",
@@ -142,3 +143,25 @@ export default function ResponseEnvelopeView({
     </section>
   );
 }
+
+const statusBadgeBaseStyle = {
+  border: "1px solid transparent",
+} as const;
+
+const idleStatusBadgeStyle = {
+  background: "var(--app-panel-bg-alt)",
+  borderColor: "var(--app-panel-border)",
+  color: "var(--app-muted-color)",
+} as const;
+
+const successStatusBadgeStyle = {
+  background: "var(--app-success-bg)",
+  borderColor: "var(--app-success-border)",
+  color: "var(--app-success-text)",
+} as const;
+
+const failureStatusBadgeStyle = {
+  background: "var(--app-danger-bg)",
+  borderColor: "var(--app-danger-border)",
+  color: "var(--app-danger-text)",
+} as const;

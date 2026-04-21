@@ -30,20 +30,23 @@ export default function OverviewHandoffConfidencePanel({
 }: OverviewHandoffConfidencePanelProps) {
   const toneStyles = tone === "high"
     ? {
-        borderColor: "#1a7f37",
-        background: "linear-gradient(135deg, #ecfdf3 0%, #f6f8fa 100%)",
-        badgeBackground: "#dafbe1",
+        borderColor: "var(--app-success-border)",
+        background: "linear-gradient(135deg, var(--app-success-bg) 0%, var(--app-panel-bg-muted) 100%)",
+        badgeBackground: "var(--app-success-bg)",
+        badgeText: "var(--app-success-text)",
       }
     : tone === "caution"
       ? {
-          borderColor: "#bf8700",
-          background: "linear-gradient(135deg, #fff8c5 0%, #f6f8fa 100%)",
-          badgeBackground: "#fff8c5",
+          borderColor: "var(--app-warning-border)",
+          background: "linear-gradient(135deg, var(--app-warning-bg) 0%, var(--app-panel-bg-muted) 100%)",
+          badgeBackground: "var(--app-warning-bg)",
+          badgeText: "var(--app-warning-text)",
         }
       : {
-          borderColor: "#d1242f",
-          background: "linear-gradient(135deg, #fff1f2 0%, #f6f8fa 100%)",
-          badgeBackground: "#ffebe9",
+          borderColor: "var(--app-danger-border)",
+          background: "linear-gradient(135deg, var(--app-danger-bg) 0%, var(--app-panel-bg-muted) 100%)",
+          badgeBackground: "var(--app-danger-bg)",
+          badgeText: "var(--app-danger-text)",
         };
 
   return (
@@ -73,6 +76,7 @@ export default function OverviewHandoffConfidencePanel({
             ...summaryBadgeStyle,
             background: toneStyles.badgeBackground,
             borderColor: toneStyles.borderColor,
+            color: toneStyles.badgeText,
           }}
         >
           {confidenceLabel}

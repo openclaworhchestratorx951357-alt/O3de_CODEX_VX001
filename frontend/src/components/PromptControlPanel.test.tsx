@@ -1,6 +1,9 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { SettingsProvider } from "../lib/settings/context";
+import { createSettingsProfile, DEFAULT_ACCENT_COLOR } from "../lib/settings/defaults";
+import { SETTINGS_PROFILE_STORAGE_KEY } from "../types/settings";
 import PromptControlPanel from "./PromptControlPanel";
 import type {
   PromptCapabilityEntry,
@@ -169,6 +172,7 @@ function makePlannedSession(): PromptSessionRecord {
 describe("PromptControlPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     apiMocks.fetchO3deTarget.mockResolvedValue({
       project_root: "C:/Users/topgu/O3DE/Projects/McpSandbox",
       engine_root: "C:/src/o3de",
@@ -267,8 +271,9 @@ describe("PromptControlPanel", () => {
       screen.getByText(/Blocker: Excluded from the admitted real set on current tested local targets/i),
     ).toBeInTheDocument();
     expect(screen.getAllByText(/Execution truth: real path preferred/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Workspace: workspace-editor-project/i)).toBeInTheDocument();
-    expect(screen.getByText(/Executor: executor-editor-control-real-local/i)).toBeInTheDocument();
+    const sessionButton = screen.getByRole("button", { name: /prompt-editor-1/i });
+    expect(sessionButton).toHaveTextContent("Workspace: workspace-editor-project");
+    expect(sessionButton).toHaveTextContent("Executor: executor-editor-control-real-local");
   });
 
   it("shows approval pause continuity and child lineage after executing a selected prompt", async () => {
@@ -396,5 +401,44 @@ const waitingSession: PromptSessionRecord = {
     expect(
       screen.getByText(/prompt-plan detail for this step is incomplete/i),
     ).toBeInTheDocument();
+  });
+
+  it("prefills prompt roots and dry-run from the saved operator defaults profile", async () => {
+    window.localStorage.setItem(
+      SETTINGS_PROFILE_STORAGE_KEY,
+      JSON.stringify(createSettingsProfile({
+        appearance: {
+          themeMode: "system",
+          accentColor: DEFAULT_ACCENT_COLOR,
+          density: "comfortable",
+          contentMaxWidth: "wide",
+          cardRadius: "rounded",
+          reducedMotion: false,
+          fontScale: 1,
+        },
+        layout: {
+          preferredLandingSection: "prompt",
+          showDesktopTelemetry: true,
+        },
+        operatorDefaults: {
+          projectRoot: "C:/saved-project",
+          engineRoot: "C:/saved-engine",
+          dryRun: false,
+          timeoutSeconds: 30,
+          locks: ["project_config"],
+        },
+      })),
+    );
+
+    render(
+      <SettingsProvider>
+        <PromptControlPanel />
+      </SettingsProvider>,
+    );
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(screen.getByDisplayValue("C:/saved-project")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("C:/saved-engine")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox")).not.toBeChecked();
   });
 });

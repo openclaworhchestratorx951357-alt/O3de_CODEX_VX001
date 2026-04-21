@@ -51,8 +51,8 @@ export default function OverviewReviewSessionPanel({
         display: "grid",
         gap: 12,
         marginBottom: 24,
-        background: "linear-gradient(135deg, #eef2ff 0%, #f6f8fa 100%)",
-        borderColor: "#4c6ef5",
+        background: "linear-gradient(135deg, var(--app-info-bg) 0%, var(--app-panel-bg-muted) 100%)",
+        borderColor: "var(--app-info-border)",
       }}
     >
       <div style={{ display: "grid", gap: 4 }}>

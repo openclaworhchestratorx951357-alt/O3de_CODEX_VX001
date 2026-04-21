@@ -40,27 +40,27 @@ export default function PanelGuideDetails({
 const detailsStyle = {
   marginTop: 10,
   padding: "10px 12px",
-  borderRadius: 10,
-  border: "1px solid #d8dee4",
-  background: "#f6f8fa",
+  borderRadius: "var(--app-card-radius)",
+  border: "1px solid var(--app-panel-border)",
+  background: "var(--app-panel-bg)",
 } satisfies CSSProperties;
 
 const summaryStyle = {
   cursor: "pointer",
   fontWeight: 700,
-  color: "#173055",
+  color: "var(--app-text-color)",
 } satisfies CSSProperties;
 
 const bodyStyle = {
   marginTop: 10,
   marginBottom: 8,
-  color: "#57606a",
+  color: "var(--app-muted-color)",
   lineHeight: 1.5,
 } satisfies CSSProperties;
 
 const listStyle = {
   margin: 0,
   paddingLeft: 18,
-  color: "#57606a",
+  color: "var(--app-muted-color)",
   lineHeight: 1.55,
 } satisfies CSSProperties;

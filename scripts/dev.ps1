@@ -8,11 +8,19 @@ param(
         "backend-test",
         "frontend-lint",
         "frontend-build",
+        "frontend-dev",
+        "frontend-smoke",
         "compose-up",
         "compose-build",
         "checks"
     )]
-    [string]$Task = "checks"
+    [string]$Task = "checks",
+    [string]$FrontendHost = "127.0.0.1",
+    [ValidateRange(1, 65535)]
+    [int]$FrontendPort = 4173,
+    [string]$ApiBaseUrl = "http://127.0.0.1:8000",
+    [ValidateRange(5, 120)]
+    [int]$FrontendStartupTimeoutSeconds = 20
 )
 
 Set-StrictMode -Version Latest
@@ -277,6 +285,100 @@ function Invoke-FrontendBuild {
     }
 }
 
+function Invoke-FrontendDev {
+    Ensure-LocalFrontendNodeModules
+
+    Write-Host ""
+    Write-Host "=== Frontend Dev Server ==="
+    Write-Host "frontend_dir: $FrontendDir"
+    Write-Host "api_base_url: $ApiBaseUrl"
+    Write-Host "frontend_url: http://${FrontendHost}:$FrontendPort"
+    Write-Host "stop_hint: press Ctrl+C in this shell when you are done."
+
+    Invoke-RepoProcess `
+        -WorkingDirectory $FrontendDir `
+        -FilePath (Get-NpmExecutable) `
+        -ArgumentList @("run", "dev", "--", "--host", $FrontendHost, "--port", "$FrontendPort") `
+        -Environment @{ VITE_API_BASE_URL = $ApiBaseUrl }
+}
+
+function Invoke-FrontendSmoke {
+    Ensure-LocalFrontendNodeModules
+
+    $frontendUrl = "http://${FrontendHost}:$FrontendPort"
+    $scriptPath = Join-Path $RepoRoot "scripts\dev.ps1"
+    $startupDeadline = (Get-Date).AddSeconds($FrontendStartupTimeoutSeconds)
+
+    Write-Host ""
+    Write-Host "=== Frontend Smoke Check ==="
+    Write-Host "frontend_dir: $FrontendDir"
+    Write-Host "api_base_url: $ApiBaseUrl"
+    Write-Host "frontend_url: $frontendUrl"
+    Write-Host "startup_timeout_seconds: $FrontendStartupTimeoutSeconds"
+
+    $job = Start-Job -Name "frontend-smoke" -ScriptBlock {
+        param(
+            [string]$ScriptPath,
+            [string]$HostName,
+            [int]$Port,
+            [string]$BackendApiBaseUrl
+        )
+
+        & $ScriptPath frontend-dev -FrontendHost $HostName -FrontendPort $Port -ApiBaseUrl $BackendApiBaseUrl
+    } -ArgumentList $scriptPath, $FrontendHost, $FrontendPort, $ApiBaseUrl
+
+    try {
+        $response = $null
+        while ((Get-Date) -lt $startupDeadline) {
+            if ($job.State -in @("Failed", "Stopped", "Completed")) {
+                break
+            }
+
+            try {
+                $response = Invoke-WebRequest -Uri $frontendUrl -UseBasicParsing
+                break
+            }
+            catch {
+                Start-Sleep -Seconds 1
+            }
+        }
+
+        if ($null -eq $response) {
+            $jobOutput = Receive-Job -Job $job -Keep -ErrorAction SilentlyContinue | Out-String
+            throw (
+                "Timed out waiting for the frontend dev server at ${frontendUrl}. " +
+                "Job state: $($job.State). Output:`n$jobOutput"
+            )
+        }
+
+        if ($response.StatusCode -ne 200) {
+            throw "Frontend smoke check expected HTTP 200 from ${frontendUrl} but received $($response.StatusCode)."
+        }
+
+        if ($response.Content -notmatch '<div id="root"></div>') {
+            throw "Frontend smoke check did not find the root mount node in the served HTML."
+        }
+
+        if ($response.Content -notmatch '/src/main.tsx') {
+            throw "Frontend smoke check did not find the Vite main entrypoint in the served HTML."
+        }
+
+        Write-Host "smoke_result=ok"
+        Write-Host "smoke_status_code=$($response.StatusCode)"
+        Write-Host "smoke_root_mount=true"
+        Write-Host "smoke_vite_entrypoint=true"
+        Write-Host "smoke_verified_url=$frontendUrl"
+    }
+    finally {
+        if ($job.State -eq "Running") {
+            Stop-Job -Job $job -ErrorAction SilentlyContinue | Out-Null
+        }
+
+        Receive-Job -Job $job -ErrorAction SilentlyContinue | Out-Null
+        Remove-Job -Job $job -Force -ErrorAction SilentlyContinue | Out-Null
+    }
+}
+
 function Invoke-ComposeBuild {
     Invoke-RepoProcess -WorkingDirectory $RepoRoot -FilePath "docker" -ArgumentList @("compose", "build")
 }
@@ -292,6 +394,8 @@ switch ($Task) {
     "backend-test" { Invoke-BackendTests }
     "frontend-lint" { Invoke-FrontendLint }
     "frontend-build" { Invoke-FrontendBuild }
+    "frontend-dev" { Invoke-FrontendDev }
+    "frontend-smoke" { Invoke-FrontendSmoke }
     "compose-build" { Invoke-ComposeBuild }
     "compose-up" { Invoke-ComposeUp }
     "checks" {

@@ -255,10 +255,10 @@ const heroCardStyle = {
   display: "grid",
   gap: 18,
   padding: 22,
-  borderRadius: 24,
-  background: "linear-gradient(140deg, rgba(229, 239, 255, 0.98) 0%, rgba(248, 251, 255, 0.96) 100%)",
-  border: "1px solid rgba(103, 132, 184, 0.22)",
-  boxShadow: "0 20px 44px rgba(45, 76, 133, 0.12)",
+  borderRadius: "var(--app-window-radius)",
+  background: "linear-gradient(140deg, var(--app-accent-soft) 0%, var(--app-panel-bg-alt) 100%)",
+  border: "1px solid var(--app-panel-border-strong)",
+  boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
 const heroHeaderStyle = {
@@ -267,7 +267,7 @@ const heroHeaderStyle = {
 } satisfies CSSProperties;
 
 const eyebrowStyle = {
-  color: "#55719f",
+  color: "var(--app-subtle-color)",
   fontSize: 11,
   fontWeight: 700,
   letterSpacing: "0.08em",
@@ -278,12 +278,12 @@ const heroTitleStyle = {
   margin: 0,
   fontSize: 28,
   lineHeight: 1.1,
-  color: "#10203a",
+  color: "var(--app-text-color)",
 } satisfies CSSProperties;
 
 const heroBodyStyle = {
   margin: 0,
-  color: "#48617f",
+  color: "var(--app-muted-color)",
   lineHeight: 1.6,
   fontSize: 14,
 } satisfies CSSProperties;
@@ -297,10 +297,10 @@ const workspaceCardStyle = {
   display: "grid",
   gap: 16,
   padding: 18,
-  borderRadius: 22,
-  background: "rgba(252, 253, 255, 0.94)",
-  border: "1px solid rgba(135, 157, 201, 0.18)",
-  boxShadow: "0 16px 32px rgba(58, 84, 136, 0.08)",
+  borderRadius: "var(--app-window-radius)",
+  background: "var(--app-panel-bg-alt)",
+  border: "1px solid var(--app-panel-border)",
+  boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
 const workspaceHeaderStyle = {
@@ -312,12 +312,12 @@ const workspaceTitleStyle = {
   margin: 0,
   fontSize: 21,
   lineHeight: 1.15,
-  color: "#13233c",
+  color: "var(--app-text-color)",
 } satisfies CSSProperties;
 
 const workspaceSummaryStyle = {
   margin: 0,
-  color: "#4d6588",
+  color: "var(--app-muted-color)",
   lineHeight: 1.6,
 } satisfies CSSProperties;
 
@@ -327,7 +327,7 @@ const workspaceSectionStyle = {
 } satisfies CSSProperties;
 
 const sectionTitleStyle = {
-  color: "#193055",
+  color: "var(--app-text-color)",
   fontSize: 14,
 } satisfies CSSProperties;
 
@@ -335,31 +335,33 @@ const guideGridStyle = {
   display: "grid",
   gap: 14,
   gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  alignItems: "start",
 } satisfies CSSProperties;
 
 const workspaceGridStyle = {
   display: "grid",
   gap: 14,
   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  alignItems: "start",
 } satisfies CSSProperties;
 
 const miniCardStyle = {
   display: "grid",
   gap: 10,
   padding: 16,
-  borderRadius: 18,
-  background: "rgba(242, 247, 255, 0.9)",
-  border: "1px solid rgba(137, 156, 196, 0.18)",
+  borderRadius: "var(--app-panel-radius)",
+  background: "var(--app-panel-bg-muted)",
+  border: "1px solid var(--app-panel-border)",
 } satisfies CSSProperties;
 
 const miniCardTitleStyle = {
-  color: "#173055",
+  color: "var(--app-text-color)",
   fontSize: 15,
 } satisfies CSSProperties;
 
 const miniCardBodyStyle = {
   margin: 0,
-  color: "#526987",
+  color: "var(--app-muted-color)",
   lineHeight: 1.55,
   fontSize: 13,
 } satisfies CSSProperties;
@@ -368,25 +370,26 @@ const surfaceCardStyle = {
   display: "grid",
   gap: 8,
   padding: 16,
-  borderRadius: 18,
-  background: "rgba(248, 251, 255, 0.96)",
-  border: "1px solid rgba(135, 157, 201, 0.18)",
+  borderRadius: "var(--app-panel-radius)",
+  background: "var(--app-panel-bg)",
+  border: "1px solid var(--app-panel-border)",
+  alignSelf: "start",
 } satisfies CSSProperties;
 
 const surfaceTitleStyle = {
-  color: "#153056",
+  color: "var(--app-text-color)",
   fontSize: 15,
 } satisfies CSSProperties;
 
 const surfaceSubtitleStyle = {
-  color: "#56719a",
+  color: "var(--app-muted-color)",
   lineHeight: 1.45,
   fontSize: 13,
 } satisfies CSSProperties;
 
 const surfaceTooltipStyle = {
   margin: 0,
-  color: "#233c61",
+  color: "var(--app-text-color)",
   lineHeight: 1.55,
   fontSize: 13,
 } satisfies CSSProperties;
@@ -402,40 +405,42 @@ const pillStyle = {
   alignItems: "center",
   gap: 6,
   padding: "7px 11px",
-  borderRadius: 999,
-  border: "1px solid rgba(117, 128, 154, 0.18)",
+  borderRadius: "var(--app-pill-radius)",
+  border: "1px solid var(--app-panel-border)",
   fontSize: 12,
   lineHeight: 1.4,
 } satisfies CSSProperties;
 
 const neutralPillStyle = {
   ...pillStyle,
-  background: "rgba(242, 247, 255, 0.84)",
-  color: "#304565",
+  background: "var(--app-panel-bg-muted)",
+  color: "var(--app-text-color)",
 } satisfies CSSProperties;
 
 const infoPillStyle = {
   ...pillStyle,
-  background: "rgba(224, 241, 255, 0.82)",
-  color: "#0e4c92",
+  background: "var(--app-accent-soft)",
+  color: "var(--app-text-color)",
 } satisfies CSSProperties;
 
 const successPillStyle = {
   ...pillStyle,
-  background: "rgba(227, 248, 239, 0.84)",
-  color: "#0f6b47",
+  background: "var(--app-success-bg)",
+  color: "var(--app-success-text)",
+  borderColor: "var(--app-success-border)",
 } satisfies CSSProperties;
 
 const warningPillStyle = {
   ...pillStyle,
-  background: "rgba(255, 244, 224, 0.88)",
-  color: "#8a4d00",
+  background: "var(--app-warning-bg)",
+  color: "var(--app-warning-text)",
+  borderColor: "var(--app-warning-border)",
 } satisfies CSSProperties;
 
 const listStyle = {
   margin: 0,
   paddingLeft: 18,
-  color: "#415a79",
+  color: "var(--app-muted-color)",
   lineHeight: 1.6,
   fontSize: 13,
 } satisfies CSSProperties;
@@ -453,9 +458,9 @@ const commandStackStyle = {
 const commandBlockStyle = {
   margin: 0,
   padding: 12,
-  borderRadius: 14,
-  background: "#10203a",
-  color: "#e7f0ff",
+  borderRadius: "var(--app-card-radius)",
+  background: "var(--app-command-bg)",
+  color: "var(--app-command-text)",
   fontSize: 12,
   lineHeight: 1.5,
   whiteSpace: "pre-wrap" as const,

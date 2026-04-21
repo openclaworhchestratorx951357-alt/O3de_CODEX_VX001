@@ -1,9 +1,11 @@
 import type { CSSProperties } from "react";
 
 export const summarySectionStyle: CSSProperties = {
-  border: "1px solid #d0d7de",
-  borderRadius: 12,
-  padding: 16,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-panel-radius)",
+  padding: "var(--app-panel-padding)",
+  background: "var(--app-panel-bg-muted)",
+  boxShadow: "var(--app-shadow-soft)",
 };
 
 export const summaryItemStyle: CSSProperties = {
@@ -43,17 +45,17 @@ export const summaryTopStackStyle: CSSProperties = {
 };
 
 export const summaryCardStyle: CSSProperties = {
-  border: "1px solid #d8dee4",
-  borderRadius: 10,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
   padding: 12,
-  background: "#f6f8fa",
+  background: "var(--app-panel-bg)",
   display: "grid",
   gap: 8,
 };
 
 export const summaryHighlightedCardStyle: CSSProperties = {
-  boxShadow: "0 0 0 3px rgba(9, 105, 218, 0.18)",
-  borderColor: "#0969da",
+  boxShadow: "0 0 0 3px var(--app-accent-soft)",
+  borderColor: "var(--app-accent)",
 };
 
 export const summaryFactsGridStyle: CSSProperties = {
@@ -67,7 +69,7 @@ export const summaryFactRowStyle: CSSProperties = {
 };
 
 export const summaryFactLabelStyle: CSSProperties = {
-  color: "#57606a",
+  color: "var(--app-muted-color)",
   fontSize: 12,
   fontWeight: 600,
 };
@@ -84,45 +86,51 @@ export const summaryCardHeadingStyle: CSSProperties = {
 };
 
 export const summaryMutedTextStyle: CSSProperties = {
-  color: "#57606a",
+  color: "var(--app-muted-color)",
 };
 
 export const summaryBadgeStyle: CSSProperties = {
-  border: "1px solid #d0d7de",
-  borderRadius: 999,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
   padding: "6px 10px",
-  background: "#f6f8fa",
+  background: "var(--app-panel-bg)",
+  color: "var(--app-text-color)",
   fontSize: 12,
 };
 
 export const summaryFilterButtonStyle: CSSProperties = {
-  border: "1px solid #d0d7de",
-  borderRadius: 999,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
   padding: "6px 12px",
   cursor: "pointer",
+  background: "var(--app-panel-bg)",
+  color: "var(--app-text-color)",
 };
 
 export const summarySearchInputStyle: CSSProperties = {
-  border: "1px solid #d0d7de",
-  borderRadius: 8,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
   padding: "6px 10px",
   minWidth: 220,
-  background: "#ffffff",
+  background: "var(--app-input-bg)",
+  color: "var(--app-text-color)",
 };
 
 export const summaryActionButtonStyle: CSSProperties = {
-  border: "1px solid #d0d7de",
-  borderRadius: 8,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
   padding: "6px 12px",
-  background: "#f6f8fa",
+  background: "var(--app-panel-bg)",
+  color: "var(--app-text-color)",
   cursor: "pointer",
 };
 
 export const summaryInlineActionButtonStyle: CSSProperties = {
-  border: "1px solid #d0d7de",
-  borderRadius: 6,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
   padding: "2px 8px",
-  background: "#f6f8fa",
+  background: "var(--app-panel-bg)",
+  color: "var(--app-text-color)",
   cursor: "pointer",
   fontSize: 12,
 };
@@ -132,8 +140,8 @@ export const summaryFocusBadgeStyle: CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   gap: 8,
-  background: "#ddf4ff",
-  borderColor: "#0969da",
+  background: "var(--app-accent-soft)",
+  borderColor: "var(--app-accent)",
 };
 
 export const summaryCalloutStyle: CSSProperties = {
@@ -150,8 +158,9 @@ export const summaryTimestampNoteStyle: CSSProperties = {
 
 export const summaryRefreshBadgeStyle: CSSProperties = {
   ...summaryBadgeStyle,
-  background: "#dafbe1",
-  borderColor: "#1a7f37",
+  background: "var(--app-success-bg)",
+  borderColor: "var(--app-success-border)",
+  color: "var(--app-success-text)",
 };
 
 export function formatSummaryLabeledText(label: string, value: string): string {

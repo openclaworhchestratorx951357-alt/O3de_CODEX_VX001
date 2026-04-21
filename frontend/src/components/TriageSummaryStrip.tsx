@@ -63,41 +63,41 @@ function getStripTone(label: string): StripTone {
 function getBadgeToneStyle(tone: StripTone) {
   if (tone === "warning") {
     return {
-      background: "#fff8c5",
-      borderColor: "#9a6700",
-      color: "#7d4e00",
+      background: "var(--app-warning-bg)",
+      borderColor: "var(--app-warning-border)",
+      color: "var(--app-warning-text)",
     };
   }
   if (tone === "success") {
     return {
-      background: "#dafbe1",
-      borderColor: "#1a7f37",
-      color: "#116329",
+      background: "var(--app-success-bg)",
+      borderColor: "var(--app-success-border)",
+      color: "var(--app-success-text)",
     };
   }
   if (tone === "info") {
     return {
-      background: "#ddf4ff",
-      borderColor: "#0969da",
-      color: "#0550ae",
+      background: "var(--app-info-bg)",
+      borderColor: "var(--app-info-border)",
+      color: "var(--app-info-text)",
     };
   }
   return {
     background: summaryBadgeStyle.background,
-    borderColor: "#d0d7de",
-    color: "#24292f",
+    borderColor: "var(--app-panel-border)",
+    color: "var(--app-text-color)",
   };
 }
 
 function getDescriptionToneStyle(tone: StripTone) {
   if (tone === "warning") {
-    return { color: "#7d4e00" };
+    return { color: "var(--app-warning-text)" };
   }
   if (tone === "success") {
-    return { color: "#116329" };
+    return { color: "var(--app-success-text)" };
   }
   if (tone === "info") {
-    return { color: "#0550ae" };
+    return { color: "var(--app-info-text)" };
   }
   return summaryMutedTextStyle;
 }

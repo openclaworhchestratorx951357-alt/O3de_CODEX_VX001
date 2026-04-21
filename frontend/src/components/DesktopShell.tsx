@@ -1,5 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 
+import { useThemeTokens } from "../lib/settings/hooks";
+
 export type DesktopShellTone = "neutral" | "info" | "success" | "warning";
 
 export type DesktopShellNavItem = {
@@ -28,30 +30,31 @@ type DesktopShellProps = {
   quickStats?: readonly DesktopShellQuickStat[];
   utilityLabel?: string | null;
   utilityDetail?: string | null;
+  utilityActions?: ReactNode;
   onSelectWorkspace: (workspaceId: string) => void;
   children: ReactNode;
 };
 
 const toneStyles: Record<DesktopShellTone, CSSProperties> = {
   neutral: {
-    background: "rgba(240, 244, 252, 0.7)",
-    borderColor: "rgba(117, 128, 154, 0.2)",
-    color: "#20304d",
+    background: "var(--app-panel-bg-muted)",
+    borderColor: "var(--app-panel-border)",
+    color: "var(--app-text-color)",
   },
   info: {
-    background: "rgba(224, 241, 255, 0.78)",
-    borderColor: "rgba(25, 118, 210, 0.28)",
-    color: "#0e4c92",
+    background: "var(--app-accent-soft)",
+    borderColor: "var(--app-accent-strong)",
+    color: "var(--app-text-color)",
   },
   success: {
-    background: "rgba(227, 248, 239, 0.82)",
-    borderColor: "rgba(24, 136, 91, 0.28)",
-    color: "#0f6b47",
+    background: "var(--app-success-bg)",
+    borderColor: "var(--app-success-border)",
+    color: "var(--app-success-text)",
   },
   warning: {
-    background: "rgba(255, 244, 224, 0.84)",
-    borderColor: "rgba(193, 126, 17, 0.28)",
-    color: "#8a4d00",
+    background: "var(--app-warning-bg)",
+    borderColor: "var(--app-warning-border)",
+    color: "var(--app-warning-text)",
   },
 };
 
@@ -65,9 +68,11 @@ export default function DesktopShell({
   quickStats = [],
   utilityLabel,
   utilityDetail,
+  utilityActions,
   onSelectWorkspace,
   children,
 }: DesktopShellProps) {
+  const themeTokens = useThemeTokens();
   const timestampLabel = new Date().toLocaleString([], {
     hour: "numeric",
     minute: "2-digit",
@@ -76,7 +81,12 @@ export default function DesktopShell({
   });
 
   return (
-    <div style={shellStyle}>
+    <div
+      style={{
+        ...shellStyle,
+        transition: "var(--app-transition)",
+      }}
+    >
       <div style={wallpaperGlowTopStyle} />
       <div style={wallpaperGlowBottomStyle} />
       <div style={taskbarStyle}>
@@ -88,6 +98,7 @@ export default function DesktopShell({
           </div>
         </div>
         <div style={taskbarMetaGroupStyle}>
+          {utilityActions}
           {utilityLabel ? (
             <span
               style={{
@@ -103,7 +114,15 @@ export default function DesktopShell({
         </div>
       </div>
 
-      <div style={desktopSurfaceStyle}>
+      <div
+        style={{
+          ...desktopSurfaceStyle,
+          padding: themeTokens.compactDensity ? 18 : 24,
+          width: "min(100%, var(--app-shell-max-width))",
+          margin: "0 auto",
+          boxSizing: "border-box",
+        }}
+      >
         <aside style={navRailStyle}>
           <div style={navSectionHeaderStyle}>
             <span style={navSectionEyebrowStyle}>Workspace switcher</span>
@@ -168,9 +187,9 @@ export default function DesktopShell({
           <div style={workspaceChromeStyle}>
             <div style={workspaceChromeMetaStyle}>
               <div style={windowControlsStyle}>
-                <span style={{ ...windowControlDotStyle, background: "#ffbd44" }} />
-                <span style={{ ...windowControlDotStyle, background: "#00ca56" }} />
-                <span style={{ ...windowControlDotStyle, background: "#ff605c" }} />
+                <span style={{ ...windowControlDotStyle, background: "var(--app-window-control-minimize)" }} />
+                <span style={{ ...windowControlDotStyle, background: "var(--app-window-control-maximize)" }} />
+                <span style={{ ...windowControlDotStyle, background: "var(--app-window-control-close)" }} />
               </div>
               <div style={{ display: "grid", gap: 4 }}>
                 <span style={navSectionEyebrowStyle}>Active workspace</span>
@@ -208,9 +227,8 @@ export default function DesktopShell({
 
 const shellStyle = {
   minHeight: "100vh",
-  background:
-    "radial-gradient(circle at top left, rgba(111, 178, 255, 0.34), transparent 28%), radial-gradient(circle at bottom right, rgba(22, 121, 255, 0.24), transparent 32%), linear-gradient(160deg, #dce8ff 0%, #edf3ff 44%, #f7faff 100%)",
-  color: "#122033",
+  background: "var(--app-shell-bg)",
+  color: "var(--app-text-color)",
   fontFamily: '"Segoe UI Variable", "Segoe UI", "Trebuchet MS", sans-serif',
   position: "relative",
   overflow: "hidden",
@@ -247,8 +265,8 @@ const taskbarStyle = {
   alignItems: "center",
   gap: 16,
   padding: "14px 20px",
-  background: "rgba(247, 250, 255, 0.7)",
-  borderBottom: "1px solid rgba(137, 156, 196, 0.22)",
+  background: "var(--app-panel-bg)",
+  borderBottom: "1px solid var(--app-panel-border)",
   backdropFilter: "blur(18px)",
 } satisfies CSSProperties;
 
@@ -262,12 +280,12 @@ const taskbarBrandGroupStyle = {
 const startBadgeStyle = {
   width: 42,
   height: 42,
-  borderRadius: 14,
+  borderRadius: "var(--app-card-radius)",
   display: "grid",
   placeItems: "center",
-  color: "#f8fbff",
-  background: "linear-gradient(145deg, #3b82f6 0%, #2157c9 100%)",
-  boxShadow: "0 14px 28px rgba(28, 75, 167, 0.22)",
+  color: "var(--app-accent-contrast)",
+  background: "linear-gradient(145deg, var(--app-accent) 0%, rgba(24, 70, 166, 0.96) 100%)",
+  boxShadow: "var(--app-shadow-soft)",
   fontWeight: 700,
   letterSpacing: "0.08em",
 } satisfies CSSProperties;
@@ -278,7 +296,7 @@ const taskbarTitleStyle = {
 } satisfies CSSProperties;
 
 const taskbarSubtitleStyle = {
-  color: "#4d6286",
+  color: "var(--app-muted-color)",
   fontSize: 12,
 } satisfies CSSProperties;
 
@@ -291,18 +309,18 @@ const taskbarMetaGroupStyle = {
 } satisfies CSSProperties;
 
 const taskbarUtilityBadgeStyle = {
-  border: "1px solid rgba(117, 128, 154, 0.2)",
-  borderRadius: 999,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
   padding: "7px 11px",
   fontSize: 12,
 } satisfies CSSProperties;
 
 const taskbarClockStyle = {
-  border: "1px solid rgba(137, 156, 196, 0.24)",
-  borderRadius: 999,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
   padding: "7px 12px",
-  background: "rgba(255, 255, 255, 0.72)",
-  boxShadow: "0 10px 20px rgba(49, 81, 139, 0.08)",
+  background: "var(--app-panel-bg-alt)",
+  boxShadow: "var(--app-shadow-soft)",
   fontSize: 12,
 } satisfies CSSProperties;
 
@@ -323,10 +341,10 @@ const navRailStyle = {
   display: "grid",
   gap: 18,
   padding: 20,
-  background: "rgba(248, 251, 255, 0.74)",
-  border: "1px solid rgba(137, 156, 196, 0.24)",
-  borderRadius: 28,
-  boxShadow: "0 24px 60px rgba(58, 84, 136, 0.16)",
+  background: "var(--app-panel-bg)",
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-window-radius)",
+  boxShadow: "var(--app-shadow-strong)",
   backdropFilter: "blur(20px)",
 } satisfies CSSProperties;
 
@@ -336,7 +354,7 @@ const navSectionHeaderStyle = {
 } satisfies CSSProperties;
 
 const navSectionEyebrowStyle = {
-  color: "#56719f",
+  color: "var(--app-subtle-color)",
   fontSize: 11,
   fontWeight: 700,
   textTransform: "uppercase",
@@ -348,7 +366,7 @@ const navSectionTitleStyle = {
 } satisfies CSSProperties;
 
 const navSectionDetailStyle = {
-  color: "#4d6286",
+  color: "var(--app-muted-color)",
   fontSize: 13,
   lineHeight: 1.45,
 } satisfies CSSProperties;
@@ -361,22 +379,22 @@ const navListStyle = {
 const navButtonStyle = {
   borderWidth: 1,
   borderStyle: "solid",
-  borderColor: "rgba(135, 157, 201, 0.18)",
-  borderRadius: 20,
+  borderColor: "var(--app-panel-border)",
+  borderRadius: "var(--app-panel-radius)",
   padding: "14px 16px",
-  background: "rgba(255, 255, 255, 0.75)",
+  background: "var(--app-panel-bg-alt)",
   cursor: "pointer",
   textAlign: "left",
   display: "grid",
   gap: 6,
-  color: "#193055",
-  boxShadow: "0 10px 24px rgba(58, 84, 136, 0.08)",
+  color: "var(--app-text-color)",
+  boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
 const activeNavButtonStyle = {
-  borderColor: "rgba(33, 87, 201, 0.34)",
-  background: "linear-gradient(145deg, rgba(222, 237, 255, 0.95) 0%, rgba(248, 251, 255, 0.92) 100%)",
-  boxShadow: "0 18px 32px rgba(41, 83, 165, 0.18)",
+  borderColor: "var(--app-accent-strong)",
+  background: "linear-gradient(145deg, var(--app-accent-soft) 0%, var(--app-panel-bg-alt) 100%)",
+  boxShadow: "var(--app-shadow-strong)",
   transform: "translateY(-1px)",
 } satisfies CSSProperties;
 
@@ -388,14 +406,14 @@ const navButtonHeaderStyle = {
 } satisfies CSSProperties;
 
 const navButtonSubtitleStyle = {
-  color: "#587096",
+  color: "var(--app-muted-color)",
   fontSize: 12,
   lineHeight: 1.45,
 } satisfies CSSProperties;
 
 const navBadgeStyle = {
-  border: "1px solid rgba(117, 128, 154, 0.2)",
-  borderRadius: 999,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
   padding: "4px 8px",
   fontSize: 11,
   fontWeight: 700,
@@ -414,8 +432,8 @@ const quickStatsGridStyle = {
 } satisfies CSSProperties;
 
 const quickStatCardStyle = {
-  border: "1px solid rgba(117, 128, 154, 0.2)",
-  borderRadius: 18,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-panel-radius)",
   padding: "12px 14px",
   display: "grid",
   gap: 6,
@@ -434,20 +452,20 @@ const workspaceShellStyle = {
   display: "grid",
   gap: 16,
   padding: 20,
-  background: "rgba(248, 251, 255, 0.74)",
-  border: "1px solid rgba(137, 156, 196, 0.24)",
-  borderRadius: 32,
-  boxShadow: "0 30px 74px rgba(58, 84, 136, 0.16)",
+  background: "var(--app-panel-bg)",
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-window-radius)",
+  boxShadow: "var(--app-shadow-strong)",
   backdropFilter: "blur(20px)",
 } satisfies CSSProperties;
 
 const workspaceChromeStyle = {
   display: "grid",
   gap: 14,
-  padding: 18,
-  borderRadius: 24,
-  background: "linear-gradient(135deg, rgba(235, 243, 255, 0.95) 0%, rgba(255, 255, 255, 0.9) 100%)",
-  border: "1px solid rgba(137, 156, 196, 0.22)",
+  padding: "var(--app-panel-padding)",
+  borderRadius: "var(--app-panel-radius)",
+  background: "linear-gradient(135deg, var(--app-accent-soft) 0%, var(--app-panel-bg-alt) 100%)",
+  border: "1px solid var(--app-panel-border)",
 } satisfies CSSProperties;
 
 const workspaceChromeMetaStyle = {
@@ -464,7 +482,7 @@ const workspaceTitleStyle = {
 } satisfies CSSProperties;
 
 const workspaceSubtitleStyle = {
-  color: "#4d6286",
+  color: "var(--app-muted-color)",
   lineHeight: 1.5,
 } satisfies CSSProperties;
 
@@ -475,8 +493,8 @@ const workspaceQuickStatsRowStyle = {
 } satisfies CSSProperties;
 
 const workspaceQuickStatPillStyle = {
-  border: "1px solid rgba(117, 128, 154, 0.2)",
-  borderRadius: 999,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
   padding: "8px 12px",
   fontSize: 12,
 } satisfies CSSProperties;
@@ -491,7 +509,7 @@ const windowControlDotStyle = {
   width: 11,
   height: 11,
   borderRadius: "50%",
-  boxShadow: "0 1px 3px rgba(18, 32, 51, 0.18)",
+  boxShadow: "var(--app-window-control-shadow)",
 } satisfies CSSProperties;
 
 const workspaceCanvasStyle = {

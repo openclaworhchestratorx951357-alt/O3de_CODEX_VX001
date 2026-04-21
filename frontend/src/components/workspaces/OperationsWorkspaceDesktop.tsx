@@ -65,7 +65,7 @@ export default function OperationsWorkspaceDesktop({
       onSelectSurface={onSelectSurface}
       dispatchContent={(
         <>
-          {dispatch.catalogError ? <p style={{ color: "crimson" }}>{dispatch.catalogError}</p> : null}
+          {dispatch.catalogError ? <p style={{ color: "var(--app-danger-text)" }}>{dispatch.catalogError}</p> : null}
           <CatalogPanel agents={dispatch.catalogAgents.length > 0 ? dispatch.catalogAgents : fallbackCatalogAgents} />
           <DispatchForm
             adapters={dispatch.adapters}

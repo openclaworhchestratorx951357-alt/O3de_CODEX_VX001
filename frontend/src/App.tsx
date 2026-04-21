@@ -11,6 +11,7 @@ import OverviewAttentionPanel from "./components/OverviewAttentionPanel";
 import OverviewReviewQueuePanel from "./components/OverviewReviewQueuePanel";
 import OverviewReviewSessionPanel from "./components/OverviewReviewSessionPanel";
 import HomeWorkspaceView from "./components/workspaces/HomeWorkspaceView";
+import SettingsPanel from "./components/SettingsPanel";
 import {
   getQuickStatGuide,
   getWorkspaceGuide,
@@ -69,6 +70,7 @@ import {
   resetLaneFocus,
   resetPresetLaneFocus,
 } from "./lib/laneController";
+import { useSettings } from "./lib/settings/hooks";
 import type { FocusedSection, TruthFilterState } from "./lib/laneController";
 import type {
   ArtifactListItem,
@@ -384,6 +386,7 @@ const ACTIVE_RUNTIME_SURFACE_SESSION_KEY = "o3de-control-app-active-runtime-surf
 const ACTIVE_RECORDS_SURFACE_SESSION_KEY = "o3de-control-app-active-records-surface";
 
 export default function App() {
+  const { settings } = useSettings();
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
   const [approvals, setApprovals] = useState<ApprovalListItem[]>([]);
@@ -456,7 +459,9 @@ export default function App() {
   const [laneOperatorNotes, setLaneOperatorNotes] = useState<Record<string, LaneOperatorNoteEntry>>({});
   const [laneOperatorNoteDraft, setLaneOperatorNoteDraft] = useState("");
   const [laneExportStatus, setLaneExportStatus] = useState<LaneExportStatus | null>(null);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<DesktopWorkspaceId>("home");
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<DesktopWorkspaceId>(
+    settings.layout.preferredLandingSection as DesktopWorkspaceId,
+  );
   const [activeOperationsSurface, setActiveOperationsSurface] =
     useState<OperationsSurfaceId>("dispatch");
   const [activeRuntimeSurface, setActiveRuntimeSurface] =
@@ -6074,9 +6079,10 @@ export default function App() {
       workspaceSubtitle={activeWorkspaceMeta.subtitle}
       activeWorkspaceId={activeWorkspaceId}
       navItems={desktopNavItems}
-      quickStats={desktopQuickStats}
+      quickStats={settings.layout.showDesktopTelemetry ? desktopQuickStats : []}
       utilityLabel={dashboardRefreshStatus ?? "desktop shell live"}
       utilityDetail={dashboardRefreshDetail}
+      utilityActions={<SettingsPanel />}
       onSelectWorkspace={(workspaceId) => setActiveWorkspaceId(workspaceId as DesktopWorkspaceId)}
     >
       {activeWorkspaceId === "home" ? (
@@ -6129,20 +6135,20 @@ const desktopLaunchpadGridStyle = {
 } satisfies CSSProperties;
 
 const desktopShortcutCardStyle = {
-  border: "1px solid rgba(137, 156, 196, 0.22)",
-  borderRadius: 20,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-panel-radius)",
   padding: "16px 18px",
-  background: "linear-gradient(145deg, rgba(226, 238, 255, 0.94) 0%, rgba(248, 251, 255, 0.96) 100%)",
-  color: "#173055",
+  background: "linear-gradient(145deg, var(--app-accent-soft) 0%, var(--app-panel-bg-alt) 100%)",
+  color: "var(--app-text-color)",
   cursor: "pointer",
   textAlign: "left",
   display: "grid",
   gap: 8,
-  boxShadow: "0 16px 30px rgba(41, 83, 165, 0.12)",
+  boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
 const desktopShortcutMetaStyle = {
-  color: "#55719b",
+  color: "var(--app-muted-color)",
   fontSize: 13,
   lineHeight: 1.45,
 } satisfies CSSProperties;
@@ -6154,16 +6160,16 @@ const desktopSummaryStripStyle = {
 } satisfies CSSProperties;
 
 const desktopMiniStatStyle = {
-  border: "1px solid rgba(137, 156, 196, 0.2)",
-  borderRadius: 16,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-panel-radius)",
   padding: "12px 14px",
-  background: "rgba(247, 250, 255, 0.8)",
+  background: "var(--app-panel-bg)",
   display: "grid",
   gap: 6,
 } satisfies CSSProperties;
 
 const desktopMiniStatLabelStyle = {
-  color: "#56719f",
+  color: "var(--app-subtle-color)",
   fontSize: 11,
   fontWeight: 700,
   textTransform: "uppercase",
@@ -6171,17 +6177,17 @@ const desktopMiniStatLabelStyle = {
 } satisfies CSSProperties;
 
 const desktopWorkspaceLoadingCardStyle = {
-  border: "1px solid rgba(137, 156, 196, 0.24)",
-  borderRadius: 22,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-window-radius)",
   padding: "24px 26px",
-  background: "linear-gradient(155deg, rgba(234, 241, 255, 0.95) 0%, rgba(248, 251, 255, 0.98) 100%)",
+  background: "linear-gradient(155deg, var(--app-accent-soft) 0%, var(--app-panel-bg-alt) 100%)",
   display: "grid",
   gap: 8,
-  boxShadow: "0 18px 34px rgba(41, 83, 165, 0.14)",
+  boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
 const desktopWorkspaceLoadingEyebrowStyle = {
-  color: "#5a739d",
+  color: "var(--app-subtle-color)",
   fontSize: 11,
   fontWeight: 700,
   letterSpacing: "0.08em",
@@ -6189,14 +6195,14 @@ const desktopWorkspaceLoadingEyebrowStyle = {
 } satisfies CSSProperties;
 
 const desktopWorkspaceLoadingTitleStyle = {
-  color: "#173055",
+  color: "var(--app-text-color)",
   fontSize: 18,
   fontWeight: 700,
 } satisfies CSSProperties;
 
 const desktopWorkspaceLoadingDetailStyle = {
   margin: 0,
-  color: "#4a638d",
+  color: "var(--app-muted-color)",
   fontSize: 14,
   lineHeight: 1.5,
 } satisfies CSSProperties;

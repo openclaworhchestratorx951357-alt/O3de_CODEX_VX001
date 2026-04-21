@@ -52,8 +52,8 @@ export default function SummarySection({
         }}
       >
         <div style={{ flex: "1 1 320px" }}>
-          <h3 style={{ marginTop: 0 }}>{title}</h3>
-          <p style={{ marginTop: 0, color: "#57606a" }}>{description}</p>
+          <h3 style={{ marginTop: 0, color: "var(--app-text-color)" }}>{title}</h3>
+          <p style={{ marginTop: 0, color: "var(--app-muted-color)" }}>{description}</p>
           {actionHint ? (
             <p style={{ ...summaryMutedTextStyle, marginTop: 0 }}>{actionHint}</p>
           ) : null}
@@ -76,7 +76,7 @@ export default function SummarySection({
           </div>
         ) : null}
       </div>
-      {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
+      {error ? <p style={{ color: "var(--app-danger-text)" }}>{error}</p> : null}
       {loading ? (
         <p>Loading {title.toLowerCase()}...</p>
       ) : !hasItems ? (

@@ -63,11 +63,11 @@ export default function Phase7CapabilitySummaryPanel({
   return (
     <section style={{ marginBottom: 32 }}>
       <h2>Phase 7 Capability Summary</h2>
-      <p style={{ marginTop: 0, color: "#555" }}>
+      <p style={{ marginTop: 0, color: "var(--app-muted-color)" }}>
         Current operator summary of which tool surfaces are real-capable,
         hybrid-only, planning-only, mutation-gated, or still simulated.
       </p>
-      <p style={{ marginTop: 0, color: "#57606a" }}>
+      <p style={{ marginTop: 0, color: "var(--app-muted-color)" }}>
         Current accepted real boundary: <strong>project.inspect</strong> can use
         the real read-only manifest path and expose explicit manifest-backed
         config, Gem, settings, origin, presentation, identity, and tag
@@ -92,19 +92,19 @@ export default function Phase7CapabilitySummaryPanel({
           <span style={summaryBadgeStyle}>
             real-authoring surfaces: {realAuthoringCount}
           </span>
-          <span style={{ ...summaryBadgeStyle, background: "#fff0f6" }}>
+          <span style={{ ...summaryBadgeStyle, ...runtimeBadgeStyle }}>
             runtime-reaching surfaces: {buckets.find((bucket) => bucket.label === "runtime-reaching")?.tools.length ?? 0}
           </span>
-          <span style={{ ...summaryBadgeStyle, background: "#e6ffec" }}>
+          <span style={{ ...summaryBadgeStyle, ...hybridBadgeStyle }}>
             hybrid-read-only surfaces: {hybridCount}
           </span>
-          <span style={{ ...summaryBadgeStyle, background: "#fff8c5" }}>
+          <span style={{ ...summaryBadgeStyle, ...planOnlyBadgeStyle }}>
             plan-only surfaces: {planOnlyCount}
           </span>
-          <span style={{ ...summaryBadgeStyle, background: "#fbefff" }}>
+          <span style={{ ...summaryBadgeStyle, ...mutationBadgeStyle }}>
             mutation-gated surfaces: {mutationGatedCount}
           </span>
-          <span style={{ ...summaryBadgeStyle, background: "#fff4e5" }}>
+          <span style={{ ...summaryBadgeStyle, ...simulatedBadgeStyle }}>
             simulated-only surfaces: {simulatedCount}
           </span>
         </div>
@@ -227,38 +227,68 @@ function getBucketAttentionLabel(status: string): string {
 
 function getBucketBorderColor(status: string): string {
   if (status === "real-authoring") {
-    return "#1a7f37";
+    return "var(--app-success-border)";
   }
   if (status === "runtime-reaching") {
-    return "#bf3989";
+    return "var(--app-runtime-border)";
   }
   if (status === "plan-only") {
-    return "#b08800";
+    return "var(--app-warning-border)";
   }
   if (status === "mutation-gated") {
-    return "#8250df";
+    return "var(--app-mutation-border)";
   }
   if (status === "simulated-only") {
-    return "#d17b0f";
+    return "var(--app-simulated-border)";
   }
-  return "#0969da";
+  return "var(--app-info-border)";
 }
 
 function getBucketBackground(status: string): string {
   if (status === "real-authoring") {
-    return "#effff1";
+    return "var(--app-success-bg)";
   }
   if (status === "runtime-reaching") {
-    return "#fff5fa";
+    return "var(--app-runtime-bg)";
   }
   if (status === "plan-only") {
-    return "#fffdf0";
+    return "var(--app-warning-bg)";
   }
   if (status === "mutation-gated") {
-    return "#faf5ff";
+    return "var(--app-mutation-bg)";
   }
   if (status === "simulated-only") {
-    return "#fff8f0";
+    return "var(--app-simulated-bg)";
   }
-  return "#f4faff";
+  return "var(--app-info-bg)";
 }
+
+const runtimeBadgeStyle: CSSProperties = {
+  background: "var(--app-runtime-bg)",
+  borderColor: "var(--app-runtime-border)",
+  color: "var(--app-runtime-text)",
+};
+
+const hybridBadgeStyle: CSSProperties = {
+  background: "var(--app-info-bg)",
+  borderColor: "var(--app-info-border)",
+  color: "var(--app-info-text)",
+};
+
+const planOnlyBadgeStyle: CSSProperties = {
+  background: "var(--app-warning-bg)",
+  borderColor: "var(--app-warning-border)",
+  color: "var(--app-warning-text)",
+};
+
+const mutationBadgeStyle: CSSProperties = {
+  background: "var(--app-mutation-bg)",
+  borderColor: "var(--app-mutation-border)",
+  color: "var(--app-mutation-text)",
+};
+
+const simulatedBadgeStyle: CSSProperties = {
+  background: "var(--app-simulated-bg)",
+  borderColor: "var(--app-simulated-border)",
+  color: "var(--app-simulated-text)",
+};

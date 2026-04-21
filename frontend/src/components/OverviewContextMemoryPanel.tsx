@@ -62,8 +62,8 @@ export default function OverviewContextMemoryPanel({
         display: "grid",
         gap: 12,
         marginBottom: 24,
-        background: "linear-gradient(135deg, #fff8e1 0%, #f6f8fa 100%)",
-        borderColor: "#bf8700",
+        background: "linear-gradient(135deg, var(--app-warning-bg) 0%, var(--app-panel-bg-muted) 100%)",
+        borderColor: "var(--app-warning-border)",
       }}
     >
       <div style={{ display: "flex", gap: 8, justifyContent: "space-between", flexWrap: "wrap" }}>
@@ -94,10 +94,10 @@ export default function OverviewContextMemoryPanel({
             key={entry.id}
             title={overviewContextMemoryOpenControlGuide.tooltip}
             style={{
-              border: "1px solid #d0d7de",
+              border: "1px solid var(--app-panel-border)",
               borderRadius: 10,
               padding: 12,
-              background: "#ffffff",
+              background: "var(--app-panel-bg)",
               display: "grid",
               gap: 8,
             }}
@@ -198,12 +198,12 @@ export default function OverviewContextMemoryPanel({
                   style={{
                     width: "100%",
                     resize: "vertical",
-                    border: "1px solid #d0d7de",
+                    border: "1px solid var(--app-panel-border)",
                     borderRadius: 6,
                     padding: 8,
                     font: "inherit",
-                    color: "#1f2328",
-                    backgroundColor: "#ffffff",
+                    color: "var(--app-text-color)",
+                    backgroundColor: "var(--app-input-bg)",
                   }}
                   onBlur={(event) => onSaveNote(entry.id, event.target.value)}
                 />

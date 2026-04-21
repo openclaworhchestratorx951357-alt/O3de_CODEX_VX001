@@ -506,17 +506,17 @@ const listStyle: CSSProperties = {
 };
 
 const subtleTextStyle: CSSProperties = {
-  color: "#555",
+  color: "var(--app-muted-color)",
   marginTop: 4,
 };
 
 const bridgeWarningStyle: CSSProperties = {
-  color: "#8a4600",
+  color: "var(--app-warning-text)",
   marginTop: 12,
 };
 
 const bridgeStatusNoteStyle: CSSProperties = {
-  color: "#0969da",
+  color: "var(--app-info-text)",
   marginTop: 8,
   marginBottom: 0,
 };

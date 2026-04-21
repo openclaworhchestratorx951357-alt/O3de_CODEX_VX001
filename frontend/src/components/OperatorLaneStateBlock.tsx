@@ -28,9 +28,9 @@ export default function OperatorLaneStateBlock({
         marginTop: compact ? 8 : 0,
         marginBottom: compact ? 12 : 0,
         padding: "10px 12px",
-        border: "1px solid #d0d7de",
+        border: "1px solid var(--app-panel-border)",
         borderRadius: 8,
-        backgroundColor: "#f6f8fa",
+        backgroundColor: "var(--app-panel-bg-muted)",
       }}
     >
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
@@ -43,7 +43,7 @@ export default function OperatorLaneStateBlock({
             ...(compact ? summaryMutedTextStyle : summaryCalloutStyle),
             margin: "8px 0 0 0",
             color: entry.tone === "warning"
-              ? "#8a4600"
+              ? "var(--app-warning-text)"
               : compact
                 ? summaryMutedTextStyle.color
                 : summaryCalloutStyle.color,

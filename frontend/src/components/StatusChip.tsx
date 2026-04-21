@@ -14,29 +14,29 @@ type StatusChipProps = {
 
 const toneStyles: Record<StatusChipTone, CSSProperties> = {
   neutral: {
-    background: "#f6f8fa",
-    borderColor: "#d0d7de",
-    color: "#24292f",
+    background: "var(--app-panel-bg-muted)",
+    borderColor: "var(--app-panel-border)",
+    color: "var(--app-text-color)",
   },
   info: {
-    background: "#ddf4ff",
-    borderColor: "#54aeff",
-    color: "#0a3069",
+    background: "var(--app-accent-soft)",
+    borderColor: "var(--app-accent-strong)",
+    color: "var(--app-text-color)",
   },
   success: {
-    background: "#dafbe1",
-    borderColor: "#4ac26b",
-    color: "#116329",
+    background: "var(--app-success-bg)",
+    borderColor: "var(--app-success-border)",
+    color: "var(--app-success-text)",
   },
   warning: {
-    background: "#fff8c5",
-    borderColor: "#d4a72c",
-    color: "#7d4e00",
+    background: "var(--app-warning-bg)",
+    borderColor: "var(--app-warning-border)",
+    color: "var(--app-warning-text)",
   },
   danger: {
-    background: "#ffebe9",
-    borderColor: "#ff8182",
-    color: "#cf222e",
+    background: "var(--app-danger-bg)",
+    borderColor: "var(--app-danger-border)",
+    color: "var(--app-danger-text)",
   },
 };
 

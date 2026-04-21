@@ -16,3 +16,7 @@ frontend/dist/
 frontend/*.tsbuildinfo
 frontend/vite-dev.err.log
 frontend/vite-dev.out.log
+frontend/vite.dev.err.log
+frontend/vite.dev.out.log
+frontend/vite.qa.err.log
+frontend/vite.qa.out.log

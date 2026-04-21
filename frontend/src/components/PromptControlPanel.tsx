@@ -1,4 +1,11 @@
-import { useEffect, useState, type CSSProperties, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+} from "react";
 
 import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import {
@@ -15,6 +22,7 @@ import type {
   PromptRequest,
   PromptSessionRecord,
 } from "../types/contracts";
+import { useSettings } from "../lib/settings/hooks";
 import PanelGuideDetails from "./PanelGuideDetails";
 import PromptCapabilityPanel from "./PromptCapabilityPanel";
 import PromptExecutionTimeline from "./PromptExecutionTimeline";
@@ -43,14 +51,17 @@ export default function PromptControlPanel({
   selectedWorkspaceId = null,
   selectedExecutorId = null,
 }: PromptControlPanelProps) {
+  const { settings } = useSettings();
   const [promptText, setPromptText] = useState("");
-  const [projectRoot, setProjectRoot] = useState("");
-  const [engineRoot, setEngineRoot] = useState("");
+  const [projectRoot, setProjectRoot] = useState(settings.operatorDefaults.projectRoot);
+  const [engineRoot, setEngineRoot] = useState(settings.operatorDefaults.engineRoot);
   const [workspaceId, setWorkspaceId] = useState("");
+  const [workspaceIdEdited, setWorkspaceIdEdited] = useState(false);
   const [executorId, setExecutorId] = useState("");
+  const [executorIdEdited, setExecutorIdEdited] = useState(false);
   const [preferredDomainsText, setPreferredDomainsText] = useState("");
   const [operatorNote, setOperatorNote] = useState("");
-  const [dryRun, setDryRun] = useState(true);
+  const [dryRun, setDryRun] = useState(settings.operatorDefaults.dryRun);
   const [sessions, setSessions] = useState<PromptSessionRecord[]>([]);
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
   const [selectedSession, setSelectedSession] = useState<PromptSessionRecord | null>(null);
@@ -60,32 +71,27 @@ export default function PromptControlPanel({
   const [submitting, setSubmitting] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const previousOperatorDefaultsRef = useRef(settings.operatorDefaults);
+  const initialProjectRootRef = useRef(projectRoot);
+  const initialEngineRootRef = useRef(engineRoot);
+  const effectiveWorkspaceId = workspaceIdEdited ? workspaceId : (selectedWorkspaceId ?? "");
+  const effectiveExecutorId = executorIdEdited ? executorId : (selectedExecutorId ?? "");
+  const projectRootEnv = (import.meta.env.VITE_O3DE_TARGET_PROJECT_ROOT as string | undefined) ?? "";
+  const engineRootEnv = (import.meta.env.VITE_O3DE_TARGET_ENGINE_ROOT as string | undefined) ?? "";
 
-  useEffect(() => {
-    void loadPromptData();
-  }, []);
+  const getDefaultProjectRoot = useCallback((nextTarget: O3DETargetConfig | null): string => (
+    settings.operatorDefaults.projectRoot
+      || nextTarget?.project_root
+      || projectRootEnv
+  ), [projectRootEnv, settings.operatorDefaults.projectRoot]);
 
-  useEffect(() => {
-    if (!workspaceId.trim() && selectedWorkspaceId) {
-      setWorkspaceId(selectedWorkspaceId);
-    }
-  }, [selectedWorkspaceId, workspaceId]);
+  const getDefaultEngineRoot = useCallback((nextTarget: O3DETargetConfig | null): string => (
+    settings.operatorDefaults.engineRoot
+      || nextTarget?.engine_root
+      || engineRootEnv
+  ), [engineRootEnv, settings.operatorDefaults.engineRoot]);
 
-  useEffect(() => {
-    if (!executorId.trim() && selectedExecutorId) {
-      setExecutorId(selectedExecutorId);
-    }
-  }, [selectedExecutorId, executorId]);
-
-  useEffect(() => {
-    if (!selectedPromptId) {
-      setSelectedSession(null);
-      return;
-    }
-    void loadSelectedSession(selectedPromptId);
-  }, [selectedPromptId]);
-
-  async function loadPromptData() {
+  const loadPromptData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -96,16 +102,10 @@ export default function PromptControlPanel({
       ]);
       setTargetConfig(nextTarget);
       if (!projectRoot.trim()) {
-        setProjectRoot(
-          nextTarget?.project_root
-          ?? ((import.meta.env.VITE_O3DE_TARGET_PROJECT_ROOT as string | undefined) ?? ""),
-        );
+        setProjectRoot(getDefaultProjectRoot(nextTarget));
       }
       if (!engineRoot.trim()) {
-        setEngineRoot(
-          nextTarget?.engine_root
-          ?? ((import.meta.env.VITE_O3DE_TARGET_ENGINE_ROOT as string | undefined) ?? ""),
-        );
+        setEngineRoot(getDefaultEngineRoot(nextTarget));
       }
       setCapabilities(capabilityList);
       setSessions(sessionList);
@@ -117,19 +117,111 @@ export default function PromptControlPanel({
     } finally {
       setLoading(false);
     }
-  }
+  }, [
+    engineRoot,
+    getDefaultEngineRoot,
+    getDefaultProjectRoot,
+    projectRoot,
+    selectedPromptId,
+  ]);
 
-  async function loadSelectedSession(promptId: string) {
-    try {
-      const session = await fetchPromptSession(promptId);
-      setSelectedSession(session);
-      setSessions((current) => current.map((entry) => (
-        entry.prompt_id === session.prompt_id ? session : entry
-      )));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Prompt session detail load failed");
+  useEffect(() => {
+    const initialProjectRoot = initialProjectRootRef.current;
+    const initialEngineRoot = initialEngineRootRef.current;
+    let cancelled = false;
+    void Promise.all([
+      fetchO3deTarget().catch(() => null),
+      fetchPromptCapabilities(),
+      fetchPromptSessions(),
+    ])
+      .then(([nextTarget, capabilityList, sessionList]) => {
+        if (cancelled) {
+          return;
+        }
+        setTargetConfig(nextTarget);
+        if (!initialProjectRoot.trim()) {
+          setProjectRoot(nextTarget?.project_root || projectRootEnv);
+        }
+        if (!initialEngineRoot.trim()) {
+          setEngineRoot(nextTarget?.engine_root || engineRootEnv);
+        }
+        setCapabilities(capabilityList);
+        setSessions(sessionList);
+        if (sessionList[0]) {
+          setSelectedPromptId(sessionList[0].prompt_id);
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Unknown prompt-panel error");
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [engineRootEnv, projectRootEnv]);
+
+  useEffect(() => {
+    if (!selectedPromptId) {
+      return;
     }
-  }
+    let cancelled = false;
+    void fetchPromptSession(selectedPromptId)
+      .then((session) => {
+        if (cancelled) {
+          return;
+        }
+        setSelectedSession(session);
+        setSessions((current) => current.map((entry) => (
+          entry.prompt_id === session.prompt_id ? session : entry
+        )));
+      })
+      .catch((err: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Prompt session detail load failed");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedPromptId]);
+
+  useEffect(() => {
+    const previousDefaults = previousOperatorDefaultsRef.current;
+    const previousProjectRoot = previousDefaults.projectRoot;
+    const previousEngineRoot = previousDefaults.engineRoot;
+    const nextProjectRoot = getDefaultProjectRoot(targetConfig);
+    const nextEngineRoot = getDefaultEngineRoot(targetConfig);
+
+    if (projectRoot === previousProjectRoot || (!projectRoot && !previousProjectRoot)) {
+      setProjectRoot(nextProjectRoot);
+    }
+    if (engineRoot === previousEngineRoot || (!engineRoot && !previousEngineRoot)) {
+      setEngineRoot(nextEngineRoot);
+    }
+    if (dryRun === previousDefaults.dryRun) {
+      setDryRun(settings.operatorDefaults.dryRun);
+    }
+
+    previousOperatorDefaultsRef.current = settings.operatorDefaults;
+  }, [
+    dryRun,
+    engineRoot,
+    getDefaultEngineRoot,
+    getDefaultProjectRoot,
+    projectRoot,
+    settings.operatorDefaults,
+    targetConfig,
+  ]);
 
   async function handlePreviewPlan(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -141,8 +233,8 @@ export default function PromptControlPanel({
         prompt_text: promptText,
         project_root: projectRoot,
         engine_root: engineRoot,
-        workspace_id: workspaceId.trim() || null,
-        executor_id: executorId.trim() || null,
+        workspace_id: effectiveWorkspaceId.trim() || null,
+        executor_id: effectiveExecutorId.trim() || null,
         dry_run: dryRun,
         preferred_domains: preferredDomainsText
           .split(",")
@@ -248,8 +340,11 @@ export default function PromptControlPanel({
             <input
               title={promptControlWorkspaceIdGuide.tooltip}
               style={inputStyle}
-              value={workspaceId}
-              onChange={(event) => setWorkspaceId(event.target.value)}
+              value={effectiveWorkspaceId}
+              onChange={(event) => {
+                setWorkspaceIdEdited(true);
+                setWorkspaceId(event.target.value);
+              }}
             />
           </label>
           <label>
@@ -257,8 +352,11 @@ export default function PromptControlPanel({
             <input
               title={promptControlExecutorIdGuide.tooltip}
               style={inputStyle}
-              value={executorId}
-              onChange={(event) => setExecutorId(event.target.value)}
+              value={effectiveExecutorId}
+              onChange={(event) => {
+                setExecutorIdEdited(true);
+                setExecutorId(event.target.value);
+              }}
             />
           </label>
         </div>
@@ -337,11 +435,12 @@ export default function PromptControlPanel({
 }
 
 const panelStyle = {
-  border: "1px solid #d0d7de",
-  borderRadius: 12,
-  padding: 16,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-panel-radius)",
+  padding: "var(--app-panel-padding)",
   marginBottom: 24,
-  background: "#ffffff",
+  background: "var(--app-panel-bg-muted)",
+  boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
 const inputStyle = {
@@ -349,8 +448,11 @@ const inputStyle = {
   width: "100%",
   marginTop: 4,
   padding: 8,
-  borderRadius: 8,
-  border: "1px solid #d0d7de",
+  borderRadius: "var(--app-card-radius)",
+  border: "1px solid var(--app-panel-border)",
+  background: "var(--app-input-bg)",
+  color: "var(--app-text-color)",
+  font: "inherit",
 } satisfies CSSProperties;
 
 const twoColumnGridStyle = {
@@ -376,13 +478,13 @@ const checkboxStyle = {
   display: "flex",
   gap: 8,
   alignItems: "center",
-  color: "#57606a",
+  color: "var(--app-muted-color)",
 } satisfies CSSProperties;
 
 const subtleTextStyle = {
-  color: "#57606a",
+  color: "var(--app-muted-color)",
 } satisfies CSSProperties;
 
 const errorStyle = {
-  color: "#cf222e",
+  color: "var(--app-danger-text)",
 } satisfies CSSProperties;

@@ -92,17 +92,18 @@ function TimelineGroup({ title, values }: { title: string; values: string[] }) {
 }
 
 const panelStyle = {
-  border: "1px solid #d0d7de",
-  borderRadius: 12,
-  padding: 16,
-  background: "#ffffff",
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-panel-radius)",
+  padding: "var(--app-panel-padding)",
+  background: "var(--app-panel-bg-muted)",
+  boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
 const summaryCardStyle = {
-  border: "1px solid #d8dee4",
-  borderRadius: 10,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
   padding: 12,
-  background: "#f6f8fa",
+  background: "var(--app-panel-bg)",
   display: "grid",
   gap: 6,
 } satisfies CSSProperties;
@@ -114,16 +115,18 @@ const gridStyle = {
 } satisfies CSSProperties;
 
 const groupStyle = {
-  border: "1px solid #d8dee4",
-  borderRadius: 10,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
   padding: 12,
+  background: "var(--app-panel-bg)",
 } satisfies CSSProperties;
 
 const responseStyle = {
   margin: "8px 0 0 0",
   padding: 12,
-  borderRadius: 8,
-  background: "#f6f8fa",
+  borderRadius: "var(--app-card-radius)",
+  background: "var(--app-command-bg)",
+  color: "var(--app-command-text)",
   overflowX: "auto",
   fontSize: 12,
   whiteSpace: "pre-wrap",
@@ -132,14 +135,15 @@ const responseStyle = {
 const listStyle = {
   margin: "8px 0 0 0",
   paddingLeft: 18,
+  color: "var(--app-muted-color)",
 } satisfies CSSProperties;
 
 const subtleTextStyle = {
-  color: "#57606a",
+  color: "var(--app-muted-color)",
   fontSize: 13,
 } satisfies CSSProperties;
 
 const emptyTextStyle = {
   margin: 0,
-  color: "#57606a",
+  color: "var(--app-muted-color)",
 } satisfies CSSProperties;

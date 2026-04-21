@@ -59,21 +59,22 @@ const tabStripStyle = {
 const tabButtonStyle = {
   borderWidth: 1,
   borderStyle: "solid",
-  borderColor: "rgba(137, 156, 196, 0.2)",
-  borderRadius: 18,
+  borderColor: "var(--app-panel-border)",
+  borderRadius: "var(--app-panel-radius)",
   padding: "12px 14px",
-  background: "rgba(244, 248, 255, 0.78)",
-  color: "#1b3256",
+  background: "var(--app-panel-bg)",
+  color: "var(--app-text-color)",
   cursor: "pointer",
   textAlign: "left",
   display: "grid",
   gap: 6,
+  boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
 const activeTabButtonStyle = {
-  borderColor: "rgba(33, 87, 201, 0.32)",
-  background: "linear-gradient(145deg, rgba(222, 237, 255, 0.96) 0%, rgba(247, 250, 255, 0.94) 100%)",
-  boxShadow: "0 14px 28px rgba(41, 83, 165, 0.14)",
+  borderColor: "var(--app-accent-strong)",
+  background: "linear-gradient(145deg, var(--app-accent-soft) 0%, var(--app-panel-bg-alt) 100%)",
+  boxShadow: "var(--app-shadow-strong)",
 } satisfies CSSProperties;
 
 const tabHeaderStyle = {
@@ -84,17 +85,17 @@ const tabHeaderStyle = {
 } satisfies CSSProperties;
 
 const tabBadgeStyle = {
-  border: "1px solid rgba(25, 118, 210, 0.24)",
-  borderRadius: 999,
+  border: "1px solid var(--app-accent-strong)",
+  borderRadius: "var(--app-pill-radius)",
   padding: "4px 8px",
-  background: "rgba(224, 241, 255, 0.84)",
-  color: "#0e4c92",
+  background: "var(--app-accent-soft)",
+  color: "var(--app-text-color)",
   fontSize: 11,
   fontWeight: 700,
 } satisfies CSSProperties;
 
 const tabDetailStyle = {
-  color: "#597199",
+  color: "var(--app-muted-color)",
   fontSize: 12,
   lineHeight: 1.4,
 } satisfies CSSProperties;

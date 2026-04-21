@@ -1,9 +1,32 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { SettingsProvider } from "../lib/settings/context";
+import { createSettingsProfile, DEFAULT_ACCENT_COLOR } from "../lib/settings/defaults";
+import { SETTINGS_PROFILE_STORAGE_KEY } from "../types/settings";
 import DesktopShell from "./DesktopShell";
 
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
 describe("DesktopShell", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    document.documentElement.style.colorScheme = "";
+    vi.clearAllMocks();
+  });
+
   it("renders workspace navigation and forwards selection events", () => {
     const onSelectWorkspace = vi.fn();
 
@@ -64,5 +87,81 @@ describe("DesktopShell", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /records/i }));
     expect(onSelectWorkspace).toHaveBeenCalledWith("records");
+  });
+
+  it("consumes saved shell settings for dark compact desktop layout", () => {
+    window.localStorage.setItem(
+      SETTINGS_PROFILE_STORAGE_KEY,
+      JSON.stringify(createSettingsProfile({
+        appearance: {
+          themeMode: "dark",
+          accentColor: DEFAULT_ACCENT_COLOR,
+          density: "compact",
+          contentMaxWidth: "focused",
+          cardRadius: "rounded",
+          reducedMotion: true,
+          fontScale: 1,
+        },
+        layout: {
+          preferredLandingSection: "home",
+          showDesktopTelemetry: true,
+        },
+        operatorDefaults: {
+          projectRoot: "",
+          engineRoot: "",
+          dryRun: true,
+          timeoutSeconds: 30,
+          locks: ["project_config"],
+        },
+      })),
+    );
+
+    const { container } = render(
+      <SettingsProvider>
+        <DesktopShell
+          appTitle="O3DE Agent Control App"
+          appSubtitle="Desktop operator shell"
+          workspaceTitle="Runtime Console"
+          workspaceSubtitle="Bridge status, executors, workspaces, and governance health."
+          activeWorkspaceId="runtime"
+          navItems={[
+            {
+              id: "home",
+              label: "Home",
+              subtitle: "Overview and launch surface",
+            },
+            {
+              id: "runtime",
+              label: "Runtime",
+              subtitle: "Bridge status and workspace health",
+              badge: "live",
+              tone: "success",
+            },
+          ]}
+          quickStats={[
+            {
+              label: "Bridge",
+              value: "fresh",
+              tone: "success",
+            },
+          ]}
+          utilityLabel="bridge live"
+          utilityDetail="Heartbeat is fresh."
+          onSelectWorkspace={vi.fn()}
+        >
+          <div>Runtime workspace body</div>
+        </DesktopShell>
+      </SettingsProvider>,
+    );
+
+    const providerRoot = container.firstElementChild as HTMLElement;
+    const desktopSurface = screen.getByText("Control surface").closest("aside")?.parentElement as HTMLElement;
+
+    expect(document.documentElement.style.colorScheme).toBe("dark");
+    expect(screen.getByText("Runtime workspace body")).toBeInTheDocument();
+    expect(providerRoot.getAttribute("style")).toContain("--app-shell-max-width: 1240px");
+    expect(providerRoot.getAttribute("style")).toContain("--app-transition: none");
+    expect(desktopSurface).toHaveStyle("padding: 18px");
+    expect(desktopSurface).toHaveStyle("width: min(100%, var(--app-shell-max-width))");
   });
 });

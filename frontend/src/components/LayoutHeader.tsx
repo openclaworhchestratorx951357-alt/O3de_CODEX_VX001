@@ -214,7 +214,7 @@ export default function LayoutHeader({
   return (
     <header
       style={{
-        borderBottom: "1px solid #d0d7de",
+        borderBottom: "1px solid var(--app-panel-border)",
         paddingBottom: 16,
         marginBottom: 24,
       }}
@@ -394,7 +394,14 @@ export default function LayoutHeader({
             <span style={summaryBadgeStyle}>{lanePresetRestoredLabel}</span>
           ) : null}
           {lanePresetDriftLabel ? (
-            <span style={{ ...summaryBadgeStyle, color: "#8a4600", borderColor: "#f0b429" }}>
+            <span
+              style={{
+                ...summaryBadgeStyle,
+                color: "var(--app-warning-text)",
+                borderColor: "var(--app-warning-border)",
+                background: "var(--app-warning-bg)",
+              }}
+            >
               {lanePresetDriftLabel}
             </span>
           ) : null}
@@ -557,7 +564,7 @@ export default function LayoutHeader({
             >
               <label style={summaryMutedTextStyle}>
                 Operator note
-                <textarea
+          <textarea
                   value={laneOperatorNoteDraft}
                   onChange={(event) => onLaneOperatorNoteDraftChange(event.target.value)}
                   rows={3}
@@ -566,12 +573,12 @@ export default function LayoutHeader({
                     marginTop: 6,
                     width: "100%",
                     resize: "vertical",
-                    border: "1px solid #d0d7de",
-                    borderRadius: 6,
+                    border: "1px solid var(--app-panel-border)",
+                    borderRadius: "var(--app-card-radius)",
                     padding: 8,
                     font: "inherit",
-                    color: "#1f2328",
-                    backgroundColor: "#ffffff",
+                    color: "var(--app-text-color)",
+                    backgroundColor: "var(--app-input-bg)",
                   }}
                 />
               </label>

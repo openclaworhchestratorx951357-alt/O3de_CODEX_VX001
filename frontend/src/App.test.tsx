@@ -2,12 +2,14 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
+import { SettingsProvider } from "./lib/settings/context";
+import { createSettingsProfile, DEFAULT_ACCENT_COLOR } from "./lib/settings/defaults";
 import {
-  createPendingPromise,
   getDesktopNavButton,
   getLaunchpadButton,
   setPendingAppApiMocks,
 } from "./test/appDesktopTestUtils";
+import { SETTINGS_PROFILE_STORAGE_KEY } from "./types/settings";
 
 const apiMocks = vi.hoisted(() => ({
   approveApproval: vi.fn(),
@@ -95,6 +97,7 @@ vi.mock("./components/SystemStatusPanel", () => ({
 describe("App desktop smoke", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+    window.localStorage.clear();
     vi.clearAllMocks();
 
     setPendingAppApiMocks(apiMocks);
@@ -129,5 +132,43 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("Runtime Console")).toBeInTheDocument();
     expect(screen.getByText("AdaptersPanel stub")).toBeInTheDocument();
     expect(screen.getByText("OperatorOverviewPanel stub")).toBeInTheDocument();
+  });
+
+  it("applies the saved settings profile to the initial shell workspace and telemetry visibility", async () => {
+    window.localStorage.setItem(
+      SETTINGS_PROFILE_STORAGE_KEY,
+      JSON.stringify(createSettingsProfile({
+        appearance: {
+          themeMode: "dark",
+          accentColor: DEFAULT_ACCENT_COLOR,
+          density: "compact",
+          contentMaxWidth: "focused",
+          cardRadius: "rounded",
+          reducedMotion: true,
+          fontScale: 1,
+        },
+        layout: {
+          preferredLandingSection: "prompt",
+          showDesktopTelemetry: false,
+        },
+        operatorDefaults: {
+          projectRoot: "",
+          engineRoot: "",
+          dryRun: true,
+          timeoutSeconds: 30,
+          locks: ["project_config"],
+        },
+      })),
+    );
+
+    render(
+      <SettingsProvider>
+        <App />
+      </SettingsProvider>,
+    );
+
+    expect(await screen.findByText("PromptControlPanel stub")).toBeInTheDocument();
+    expect(screen.getAllByText("Prompt Studio").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Desktop telemetry")).not.toBeInTheDocument();
   });
 });

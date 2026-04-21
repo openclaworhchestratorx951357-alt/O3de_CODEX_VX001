@@ -187,8 +187,9 @@ export default function RunsPanel({
             onClick={() => onToolFilterChange(value)}
             style={{
               ...summaryFilterButtonStyle,
-              background: selectedToolFilter === value ? "#ddf4ff" : "#f6f8fa",
-              borderColor: selectedToolFilter === value ? "#0969da" : "#d0d7de",
+              background: selectedToolFilter === value ? "var(--app-info-bg)" : "var(--app-panel-bg-muted)",
+              borderColor: selectedToolFilter === value ? "var(--app-info-border)" : "var(--app-panel-border)",
+              color: selectedToolFilter === value ? "var(--app-info-text)" : "var(--app-text-color)",
             }}
           >
             {value === "all" ? "All tools" : "settings.patch only"}
@@ -227,8 +228,9 @@ export default function RunsPanel({
               onClick={() => onAuditFilterChange(value)}
               style={{
                 ...summaryFilterButtonStyle,
-                background: selectedAuditFilter === value ? "#ddf4ff" : "#f6f8fa",
-                borderColor: selectedAuditFilter === value ? "#0969da" : "#d0d7de",
+                background: selectedAuditFilter === value ? "var(--app-info-bg)" : "var(--app-panel-bg-muted)",
+                borderColor: selectedAuditFilter === value ? "var(--app-info-border)" : "var(--app-panel-border)",
+                color: selectedAuditFilter === value ? "var(--app-info-text)" : "var(--app-text-color)",
               }}
             >
               {getFilterLabel(value)}

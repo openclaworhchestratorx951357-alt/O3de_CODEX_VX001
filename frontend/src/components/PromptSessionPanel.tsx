@@ -42,8 +42,8 @@ export default function PromptSessionPanel({
                 onClick={() => onSelect(session.prompt_id)}
                 style={{
                   ...sessionButtonStyle,
-                  borderColor: active ? "#0969da" : "#d0d7de",
-                  background: active ? "#eff6ff" : "#ffffff",
+                  borderColor: active ? "var(--app-accent)" : "var(--app-panel-border)",
+                  background: active ? "var(--app-accent-soft)" : "var(--app-panel-bg)",
                 }}
               >
                 <div style={sessionHeaderStyle}>
@@ -67,10 +67,11 @@ export default function PromptSessionPanel({
 }
 
 const panelStyle = {
-  border: "1px solid #d0d7de",
-  borderRadius: 12,
-  padding: 16,
-  background: "#ffffff",
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-panel-radius)",
+  padding: "var(--app-panel-padding)",
+  background: "var(--app-panel-bg-muted)",
+  boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
 const sessionButtonStyle = {
@@ -79,9 +80,10 @@ const sessionButtonStyle = {
   width: "100%",
   textAlign: "left" as const,
   padding: 12,
-  borderRadius: 10,
-  border: "1px solid #d0d7de",
+  borderRadius: "var(--app-card-radius)",
+  border: "1px solid var(--app-panel-border)",
   cursor: "pointer",
+  color: "var(--app-text-color)",
 } satisfies CSSProperties;
 
 const sessionHeaderStyle = {
@@ -91,20 +93,20 @@ const sessionHeaderStyle = {
 } satisfies CSSProperties;
 
 const statusStyle = {
-  color: "#57606a",
+  color: "var(--app-muted-color)",
   textTransform: "capitalize" as const,
 } satisfies CSSProperties;
 
 const promptTextPreviewStyle = {
-  color: "#24292f",
+  color: "var(--app-text-color)",
 } satisfies CSSProperties;
 
 const subtleTextStyle = {
-  color: "#57606a",
+  color: "var(--app-muted-color)",
   fontSize: 13,
 } satisfies CSSProperties;
 
 const emptyTextStyle = {
   margin: 0,
-  color: "#57606a",
+  color: "var(--app-muted-color)",
 } satisfies CSSProperties;

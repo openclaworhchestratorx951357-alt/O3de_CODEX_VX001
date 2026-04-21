@@ -23,16 +23,16 @@ type OverviewHandoffPackagePanelProps = {
   excludedEntries: OverviewHandoffPackageEntry[];
 };
 
-function renderEntry(entry: OverviewHandoffPackageEntry, accentColor: string, accentBackground: string) {
+function renderEntry(entry: OverviewHandoffPackageEntry, included: boolean) {
   return (
     <div
       key={entry.id}
       title={overviewHandoffPackageEntryControlGuide.tooltip}
       style={{
-        border: "1px solid #d0d7de",
-        borderRadius: 10,
+        border: "1px solid var(--app-panel-border)",
+        borderRadius: "var(--app-card-radius)",
         padding: 12,
-        background: "#ffffff",
+        background: "var(--app-panel-bg)",
         display: "grid",
         gap: 6,
       }}
@@ -42,11 +42,12 @@ function renderEntry(entry: OverviewHandoffPackageEntry, accentColor: string, ac
         <span
           style={{
             ...summaryBadgeStyle,
-            borderColor: accentColor,
-            background: accentBackground,
+            borderColor: included ? "var(--app-success-border)" : "var(--app-warning-border)",
+            background: included ? "var(--app-success-bg)" : "var(--app-warning-bg)",
+            color: included ? "var(--app-success-text)" : "var(--app-warning-text)",
           }}
         >
-          {accentColor === "#1a7f37" ? "included" : "excluded"}
+          {included ? "included" : "excluded"}
         </span>
       </div>
       <strong>{entry.focusLabel}</strong>
@@ -74,8 +75,8 @@ export default function OverviewHandoffPackagePanel({
         display: "grid",
         gap: 12,
         marginBottom: 24,
-        background: "linear-gradient(135deg, #eef7ff 0%, #f6f8fa 100%)",
-        borderColor: "#0969da",
+        background: "linear-gradient(135deg, var(--app-accent-soft) 0%, var(--app-panel-bg-muted) 100%)",
+        borderColor: "var(--app-accent-strong)",
       }}
     >
       <div style={{ display: "grid", gap: 4 }}>
@@ -101,7 +102,7 @@ export default function OverviewHandoffPackagePanel({
       >
         <div style={{ display: "grid", gap: 10 }}>
           <strong>Included now</strong>
-          {includedEntries.length > 0 ? includedEntries.map((entry) => renderEntry(entry, "#1a7f37", "#dafbe1")) : (
+          {includedEntries.length > 0 ? includedEntries.map((entry) => renderEntry(entry, true)) : (
             <p style={summaryMutedTextStyle}>
               No saved contexts currently meet the local readiness checks for inclusion.
             </p>
@@ -109,7 +110,7 @@ export default function OverviewHandoffPackagePanel({
         </div>
         <div style={{ display: "grid", gap: 10 }}>
           <strong>Excluded for follow-up</strong>
-          {excludedEntries.length > 0 ? excludedEntries.map((entry) => renderEntry(entry, "#bf8700", "#fff8c5")) : (
+          {excludedEntries.length > 0 ? excludedEntries.map((entry) => renderEntry(entry, false)) : (
             <p style={summaryMutedTextStyle}>
               Nothing is currently excluded by the local browser-session readiness checks.
             </p>

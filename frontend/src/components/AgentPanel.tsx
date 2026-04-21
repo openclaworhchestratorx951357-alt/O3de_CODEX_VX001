@@ -17,10 +17,11 @@ export default function AgentPanel({
     <section
       title={tooltip}
       style={{
-        border: "1px solid #d0d7de",
+        border: "1px solid var(--app-panel-border)",
         borderRadius: 12,
         padding: 16,
         marginBottom: 16,
+        background: "var(--app-panel-bg)",
       }}
     >
       <header style={{ marginBottom: 12 }}>

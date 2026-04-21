@@ -54,8 +54,8 @@ export default function OverviewReviewQueuePanel({
         display: "grid",
         gap: 12,
         marginBottom: 24,
-        background: "linear-gradient(135deg, #e9fef3 0%, #f6f8fa 100%)",
-        borderColor: "#1a7f37",
+        background: "linear-gradient(135deg, var(--app-success-bg) 0%, var(--app-panel-bg-muted) 100%)",
+        borderColor: "var(--app-success-border)",
       }}
     >
       <div style={{ display: "grid", gap: 4 }}>
@@ -74,10 +74,10 @@ export default function OverviewReviewQueuePanel({
             key={entry.id}
             title={overviewReviewQueueEntryControlGuide.tooltip}
             style={{
-              border: "1px solid #d0d7de",
-              borderRadius: 10,
+              border: "1px solid var(--app-panel-border)",
+              borderRadius: "var(--app-card-radius)",
               padding: 12,
-              background: "#ffffff",
+              background: "var(--app-panel-bg)",
               display: "grid",
               gap: 8,
             }}

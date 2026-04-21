@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { dispatchTool, fetchO3deTarget } from "../lib/api";
 import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
@@ -6,6 +6,7 @@ import {
   getDispatchExpectedExecutionTruth,
   getHybridDispatchNote,
 } from "../lib/executionTruth";
+import { useSettings } from "../lib/settings/hooks";
 import PanelGuideDetails from "./PanelGuideDetails";
 import type {
   AdaptersResponse,
@@ -16,6 +17,7 @@ import type {
   ReadinessStatus,
   ResponseEnvelope,
 } from "../types/contracts";
+import { LOCK_NAME_VALUES } from "../types/settings";
 
 type DispatchFormProps = {
   agents: CatalogAgent[];
@@ -41,6 +43,7 @@ export default function DispatchForm({
   readiness,
   onResponse,
 }: DispatchFormProps) {
+  const { settings } = useSettings();
   const firstAgent = agents[0]?.id ?? "project-build";
   const toolsForSelectedAgent = useMemo(() => {
     return (
@@ -56,22 +59,23 @@ export default function DispatchForm({
     );
   }, [agents, firstAgent]);
 
-  const [request, setRequest] = useState<RequestEnvelope>({
+  const [request, setRequest] = useState<RequestEnvelope>(() => ({
     request_id: crypto.randomUUID(),
     tool: toolsForSelectedAgent[0]?.name ?? "project.inspect",
     agent: firstAgent,
-    project_root: "/path/to/project",
-    engine_root: "/path/to/engine",
-    dry_run: true,
-    locks: ["project_config"],
-    timeout_s: 30,
+    project_root: settings.operatorDefaults.projectRoot || "/path/to/project",
+    engine_root: settings.operatorDefaults.engineRoot || "/path/to/engine",
+    dry_run: settings.operatorDefaults.dryRun,
+    locks: settings.operatorDefaults.locks,
+    timeout_s: settings.operatorDefaults.timeoutSeconds,
     args: {},
-  });
+  }));
   const [argsText, setArgsText] = useState("{}");
-  const [locksText, setLocksText] = useState("project_config");
+  const [locksText, setLocksText] = useState(settings.operatorDefaults.locks.join(", "));
   const [targetConfig, setTargetConfig] = useState<O3DETargetConfig | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const previousOperatorDefaultsRef = useRef(settings.operatorDefaults);
 
   const selectedAgent = agents.find((agent) => agent.id === request.agent);
   const effectiveAgent = selectedAgent ?? agents[0] ?? null;
@@ -97,6 +101,18 @@ export default function DispatchForm({
     selectedToolMayUseRealPlanOnlyPath,
   );
 
+  const getDefaultProjectRoot = useCallback((target: O3DETargetConfig | null): string => {
+    return settings.operatorDefaults.projectRoot
+      || target?.project_root
+      || ((import.meta.env.VITE_O3DE_TARGET_PROJECT_ROOT as string | undefined) ?? "/path/to/project");
+  }, [settings.operatorDefaults.projectRoot]);
+
+  const getDefaultEngineRoot = useCallback((target: O3DETargetConfig | null): string => {
+    return settings.operatorDefaults.engineRoot
+      || target?.engine_root
+      || ((import.meta.env.VITE_O3DE_TARGET_ENGINE_ROOT as string | undefined) ?? "/path/to/engine");
+  }, [settings.operatorDefaults.engineRoot]);
+
   useEffect(() => {
     let cancelled = false;
     void fetchO3deTarget()
@@ -108,12 +124,10 @@ export default function DispatchForm({
         setRequest((current) => ({
           ...current,
           project_root: current.project_root === "/path/to/project"
-            ? (target.project_root
-                ?? ((import.meta.env.VITE_O3DE_TARGET_PROJECT_ROOT as string | undefined) ?? current.project_root))
+            ? getDefaultProjectRoot(target)
             : current.project_root,
           engine_root: current.engine_root === "/path/to/engine"
-            ? (target.engine_root
-                ?? ((import.meta.env.VITE_O3DE_TARGET_ENGINE_ROOT as string | undefined) ?? current.engine_root))
+            ? getDefaultEngineRoot(target)
             : current.engine_root,
         }));
       })
@@ -124,10 +138,10 @@ export default function DispatchForm({
         setRequest((current) => ({
           ...current,
           project_root: current.project_root === "/path/to/project"
-            ? ((import.meta.env.VITE_O3DE_TARGET_PROJECT_ROOT as string | undefined) ?? current.project_root)
+            ? getDefaultProjectRoot(null)
             : current.project_root,
           engine_root: current.engine_root === "/path/to/engine"
-            ? ((import.meta.env.VITE_O3DE_TARGET_ENGINE_ROOT as string | undefined) ?? current.engine_root)
+            ? getDefaultEngineRoot(null)
             : current.engine_root,
         }));
       });
@@ -135,18 +149,41 @@ export default function DispatchForm({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [getDefaultEngineRoot, getDefaultProjectRoot]);
+
+  useEffect(() => {
+    const previousDefaults = previousOperatorDefaultsRef.current;
+    const previousProjectRoot = previousDefaults.projectRoot || "/path/to/project";
+    const previousEngineRoot = previousDefaults.engineRoot || "/path/to/engine";
+    const nextProjectRoot = getDefaultProjectRoot(targetConfig);
+    const nextEngineRoot = getDefaultEngineRoot(targetConfig);
+
+    setRequest((current) => ({
+      ...current,
+      project_root: current.project_root === previousProjectRoot || current.project_root === "/path/to/project"
+        ? nextProjectRoot
+        : current.project_root,
+      engine_root: current.engine_root === previousEngineRoot || current.engine_root === "/path/to/engine"
+        ? nextEngineRoot
+        : current.engine_root,
+      dry_run: current.dry_run === previousDefaults.dryRun ? settings.operatorDefaults.dryRun : current.dry_run,
+      timeout_s: current.timeout_s === previousDefaults.timeoutSeconds
+        ? settings.operatorDefaults.timeoutSeconds
+        : current.timeout_s,
+      locks: current.locks.join(",") === previousDefaults.locks.join(",")
+        ? settings.operatorDefaults.locks
+        : current.locks,
+    }));
+
+    if (locksText === previousDefaults.locks.join(", ")) {
+      setLocksText(settings.operatorDefaults.locks.join(", "));
+    }
+
+    previousOperatorDefaultsRef.current = settings.operatorDefaults;
+  }, [getDefaultEngineRoot, getDefaultProjectRoot, locksText, settings.operatorDefaults, targetConfig]);
 
   function isLockName(value: string): value is LockName {
-    return [
-      "editor_session",
-      "project_config",
-      "asset_pipeline",
-      "render_pipeline",
-      "build_tree",
-      "engine_source",
-      "test_runtime",
-    ].includes(value);
+    return LOCK_NAME_VALUES.includes(value as LockName);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -180,18 +217,20 @@ export default function DispatchForm({
   return (
     <section
       style={{
-        border: "1px solid #d0d7de",
-        borderRadius: 12,
-        padding: 16,
+        border: "1px solid var(--app-panel-border)",
+        borderRadius: "var(--app-panel-radius)",
+        padding: "var(--app-panel-padding)",
+        background: "var(--app-panel-bg-muted)",
+        boxShadow: "var(--app-shadow-soft)",
         marginBottom: 24,
       }}
     >
       <h3 style={{ marginTop: 0 }}>Dispatch Tool Request</h3>
       {hybridDispatchNote ? (
-        <p style={{ marginTop: 0, color: "#57606a" }}>{hybridDispatchNote}</p>
+        <p style={{ marginTop: 0, color: "var(--app-muted-color)" }}>{hybridDispatchNote}</p>
       ) : null}
       {targetConfig?.project_root || targetConfig?.engine_root ? (
-        <p style={{ marginTop: 0, color: "#57606a" }}>
+        <p style={{ marginTop: 0, color: "var(--app-muted-color)" }}>
           Active local target: <strong>{targetConfig.project_root ?? "project unset"}</strong>
           {" "}on{" "}
           <strong>{targetConfig.engine_root ?? "engine unset"}</strong>
@@ -246,11 +285,11 @@ export default function DispatchForm({
           {selectedTool ? (
             <div
               style={{
-                border: "1px solid #d8dee4",
-                borderRadius: 8,
+                border: "1px solid var(--app-panel-border)",
+                borderRadius: "var(--app-card-radius)",
                 padding: 12,
-                background: "#f6f8fa",
-                color: "#57606a",
+                background: "var(--app-panel-bg)",
+                color: "var(--app-muted-color)",
               }}
             >
               <div><strong>Approval class:</strong> {selectedTool.approval_class}</div>
@@ -326,7 +365,7 @@ export default function DispatchForm({
             />
           </label>
           {effectiveToolName === "project.inspect" ? (
-            <p style={{ margin: 0, color: "#57606a" }}>
+            <p style={{ margin: 0, color: "var(--app-muted-color)" }}>
               Tip: set <code>include_project_config</code>, <code>include_gems</code>,
               optional <code>requested_gem_names</code>, <code>include_settings</code>,
               and optional <code>requested_settings_keys</code> in args JSON to
@@ -358,7 +397,7 @@ export default function DispatchForm({
             {submitting ? "Dispatching..." : "Dispatch Request"}
           </button>
 
-          {error ? <p style={{ color: "crimson" }}>{error}</p> : null}
+          {error ? <p style={{ color: "var(--app-danger-text)" }}>{error}</p> : null}
         </div>
       </form>
     </section>

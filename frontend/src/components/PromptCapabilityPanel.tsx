@@ -85,18 +85,20 @@ export default function PromptCapabilityPanel({
 }
 
 const panelStyle = {
-  border: "1px solid #d0d7de",
-  borderRadius: 12,
-  padding: 16,
-  background: "#ffffff",
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-panel-radius)",
+  padding: "var(--app-panel-padding)",
+  background: "var(--app-panel-bg-muted)",
+  boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
 const capabilityCardStyle = {
-  border: "1px solid #d8dee4",
-  borderRadius: 10,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
   padding: 12,
   display: "grid",
   gap: 6,
+  background: "var(--app-panel-bg)",
 } satisfies CSSProperties;
 
 const capabilityHeaderStyle = {
@@ -106,16 +108,16 @@ const capabilityHeaderStyle = {
 } satisfies CSSProperties;
 
 const subtleTextStyle = {
-  color: "#57606a",
+  color: "var(--app-muted-color)",
   fontSize: 13,
 } satisfies CSSProperties;
 
 const blockerTextStyle = {
-  color: "#9a6700",
+  color: "var(--app-warning-text)",
   fontSize: 13,
 } satisfies CSSProperties;
 
 const emptyTextStyle = {
   margin: 0,
-  color: "#57606a",
+  color: "var(--app-muted-color)",
 } satisfies CSSProperties;
