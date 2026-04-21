@@ -8,12 +8,20 @@ from typing import Any
 from app.models.api import AdapterFamilyStatus, AdapterModeStatus, AdaptersResponse
 from app.models.response_envelope import DispatchResult
 from app.services.catalog import catalog_service
+from app.services.editor_automation_runtime import (
+    EDITOR_RUNTIME_BOUNDARY,
+    editor_automation_runtime_service,
+)
 
 SUPPORTED_ADAPTER_MODES = {"hybrid", "simulated"}
 ADAPTER_CONTRACT_VERSION = "v0.1"
 REAL_TOOL_PATHS_BY_MODE = {
     "simulated": [],
-    "hybrid": ["project.inspect"],
+    "hybrid": [
+        "editor.session.open",
+        "editor.level.open",
+        "project.inspect",
+    ],
 }
 PLAN_ONLY_TOOL_PATHS_BY_MODE = {
     "simulated": [],
@@ -24,9 +32,13 @@ ADAPTER_EXECUTION_BOUNDARY = (
 )
 HYBRID_EXECUTION_BOUNDARY = (
     "Control-plane bookkeeping is real. In hybrid mode, project.inspect may use a "
-    "real read-only project-manifest path, build.configure may use a real plan-only "
-    "preflight path, settings.patch may use a real dry-run-only preflight path, "
-    "and all other tools remain simulated."
+    "real read-only project-manifest path, editor.level.open may use the "
+    "live-validated admitted real editor runtime path on McpSandbox, "
+    "editor.session.open may use the live-validated admitted real editor session path, "
+    "editor.entity.create may reach the runtime boundary but remain explicitly narrowed "
+    "until its live validation is stable, "
+    "build.configure may use a real plan-only preflight path, settings.patch may "
+    "use a real dry-run-only preflight path, and all other tools remain simulated."
 )
 MANIFEST_SETTINGS_KEYS = (
     "project_id",
@@ -98,6 +110,10 @@ class ToolExecutionAdapter(ABC):
     def execute(
         self,
         *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
         tool: str,
         agent: str,
         project_root: str,
@@ -114,6 +130,10 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
     def execute(
         self,
         *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
         tool: str,
         agent: str,
         project_root: str,
@@ -229,6 +249,263 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
         )
 
 
+class EditorControlHybridAdapter(ToolExecutionAdapter):
+    def __init__(self, *, family: str, mode: str) -> None:
+        super().__init__(family=family, mode=mode)
+        self._simulated = SimulatedToolExecutionAdapter(family=family, mode=mode)
+
+    def execute(
+        self,
+        *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        if tool == "editor.session.open":
+            runtime_payload = editor_automation_runtime_service.execute_session_open(
+                request_id=request_id,
+                session_id=session_id,
+                workspace_id=workspace_id,
+                executor_id=executor_id,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                locks_acquired=locks_acquired,
+            )
+            return self._build_real_editor_report(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                runtime_payload=runtime_payload,
+                inspection_surface="editor_session_runtime",
+                message="Real editor.session.open completed through the admitted editor runtime path.",
+                result_summary="Real editor session runtime completed successfully.",
+                artifact_label="Real editor session evidence",
+                artifact_kind="editor_runtime_result",
+                artifact_uri="editor-runtime://runs/{run_id}/executions/{execution_id}/session",
+                runtime_script="session_ensure.py",
+            )
+        if tool == "editor.level.open":
+            runtime_payload = editor_automation_runtime_service.execute_level_open(
+                request_id=request_id,
+                session_id=session_id,
+                workspace_id=workspace_id,
+                executor_id=executor_id,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                locks_acquired=locks_acquired,
+            )
+            created_level = bool(runtime_payload["runtime_result"].get("created_level", False))
+            return self._build_real_editor_report(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                runtime_payload=runtime_payload,
+                inspection_surface=(
+                    "editor_level_created" if created_level else "editor_level_opened"
+                ),
+                message=(
+                    "Real editor.level.open created the requested level through the admitted editor runtime path."
+                    if created_level
+                    else "Real editor.level.open opened the requested level through the admitted editor runtime path."
+                ),
+                result_summary="Real editor level create/open runtime completed successfully.",
+                artifact_label="Real editor level evidence",
+                artifact_kind="editor_runtime_result",
+                artifact_uri="editor-runtime://runs/{run_id}/executions/{execution_id}/level",
+                runtime_script="level_ensure_open_or_create.py",
+            )
+        if tool == "editor.entity.create":
+            runtime_payload = editor_automation_runtime_service.execute_entity_create(
+                request_id=request_id,
+                session_id=session_id,
+                workspace_id=workspace_id,
+                executor_id=executor_id,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                locks_acquired=locks_acquired,
+            )
+            return self._build_real_editor_report(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                runtime_payload=runtime_payload,
+                inspection_surface="editor_entity_created",
+                message=(
+                    "Runtime-reaching editor.entity.create completed through the "
+                    "explicit editor runtime path; this path remains excluded "
+                    "from the admitted real set on McpSandbox."
+                ),
+                result_summary=(
+                    "Runtime-reaching editor entity creation call completed; "
+                    "admitted real editor scope remains limited to session/level."
+                ),
+                artifact_label="Runtime-reaching editor entity evidence",
+                artifact_kind="editor_runtime_result",
+                artifact_uri="editor-runtime://runs/{run_id}/executions/{execution_id}/entity",
+                runtime_script="entity_create.py",
+            )
+
+        simulated = self._simulated.execute(
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+        )
+        simulated.warnings.append(
+            "Hybrid adapter mode is active, but this editor tool still runs through "
+            "the simulated path in this phase."
+        )
+        simulated.logs.append(
+            "Hybrid mode did not change execution for this editor tool; the "
+            "simulated adapter path remained in use."
+        )
+        simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        return simulated
+
+    def _build_real_editor_report(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        approval_class: str,
+        locks_acquired: list[str],
+        runtime_payload: dict[str, Any],
+        inspection_surface: str,
+        message: str,
+        result_summary: str,
+        artifact_label: str,
+        artifact_kind: str,
+        artifact_uri: str,
+        runtime_script: str,
+    ) -> AdapterExecutionReport:
+        runtime_result = runtime_payload["runtime_result"]
+        runner_command = runtime_payload["runner_command"]
+        runtime_script_name = str(runtime_payload.get("runtime_script") or runtime_script)
+        exact_editor_apis = runtime_result.get("exact_editor_apis")
+        logs = [
+            "Real editor runtime preflight succeeded.",
+            f"Runtime script executed: {runtime_script_name}",
+        ]
+        if isinstance(exact_editor_apis, list) and exact_editor_apis:
+            logs.append(
+                "Exact editor APIs used: " + ", ".join(str(item) for item in exact_editor_apis)
+            )
+        result = DispatchResult(
+            status="real_success",
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=False,
+            simulated=False,
+            execution_mode="real",
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+            message=message,
+        )
+        details = {
+            "inspection_surface": inspection_surface,
+            "execution_boundary": EDITOR_RUNTIME_BOUNDARY,
+            "simulated": False,
+            "adapter_family": self.family,
+            "adapter_mode": self.mode,
+            "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+            "real_path_available": True,
+            "python_editor_bindings_enabled": True,
+            "editor_runtime_available": True,
+            "runner_family": "editor-python-bindings",
+            "runtime_script": runtime_script_name,
+            "project_root_path": str(Path(project_root).expanduser().resolve()),
+            "engine_root_path": str(Path(engine_root).expanduser().resolve()),
+            "configured_runner_command": runner_command,
+            "exact_editor_apis": exact_editor_apis if isinstance(exact_editor_apis, list) else [],
+            "refused_operations": [],
+        }
+        for key in (
+            "editor_session_id",
+            "loaded_level_path",
+            "created_level",
+            "entity_id",
+            "entity_name",
+            "modified_entities",
+            "entity_id_source",
+            "direct_return_entity_id",
+            "notification_entity_ids",
+            "selected_entity_count_before_create",
+            "level_path",
+            "name_mutation_ran",
+            "name_mutation_succeeded",
+            "bridge_name",
+            "bridge_version",
+            "bridge_available",
+            "bridge_operation",
+            "bridge_contract_version",
+            "bridge_command_id",
+            "bridge_result_summary",
+            "bridge_error_code",
+            "bridge_heartbeat_seen_at",
+            "bridge_queue_mode",
+            "bridge_selected_entity_count",
+            "bridge_prefab_context_notes",
+            "editor_transport",
+            "editor_log_path",
+        ):
+            if key in runtime_result and runtime_result[key] is not None:
+                details[key] = runtime_result[key]
+        return AdapterExecutionReport(
+            execution_mode="real",
+            result=result,
+            warnings=[],
+            logs=logs,
+            artifact_label=artifact_label,
+            artifact_kind=artifact_kind,
+            artifact_uri=artifact_uri,
+            artifact_metadata={
+                "tool": tool,
+                "agent": agent,
+                "execution_mode": "real",
+                **details,
+            },
+            execution_details=details,
+            result_summary=result_summary,
+        )
+
+
 class ProjectBuildHybridAdapter(ToolExecutionAdapter):
     def __init__(self, *, family: str, mode: str) -> None:
         super().__init__(family=family, mode=mode)
@@ -237,6 +514,10 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
     def execute(
         self,
         *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
         tool: str,
         agent: str,
         project_root: str,
@@ -280,6 +561,10 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 locks_acquired=locks_acquired,
             )
         simulated = self._simulated.execute(
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
             tool=tool,
             agent=agent,
             project_root=project_root,
@@ -314,6 +599,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         locks_acquired: list[str],
     ) -> AdapterExecutionReport:
         manifest_path = Path(project_root).expanduser().resolve() / "project.json"
+        resolved_project_root = Path(project_root).expanduser().resolve()
         if not manifest_path.is_file():
             return self._fallback_project_inspect(
                 tool=tool,
@@ -328,6 +614,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "Real project inspection was unavailable because "
                     f"'{manifest_path}' was not found."
                 ),
+                fallback_category="manifest-missing",
             )
 
         try:
@@ -346,6 +633,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "Real project inspection was unavailable because the project "
                     f"manifest could not be read cleanly: {exc}"
                 ),
+                fallback_category="manifest-unreadable",
             )
 
         project_name = manifest.get("project_name")
@@ -356,6 +644,12 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "include_settings": bool(args.get("include_settings", False)),
             "include_build_state": bool(args.get("include_build_state", False)),
         }
+        manifest_path_relative_to_project_root = (
+            str(manifest_path.relative_to(resolved_project_root))
+            if manifest_path.is_relative_to(resolved_project_root)
+            else None
+        )
+        manifest_path_within_project_root = manifest_path_relative_to_project_root is not None
         manifest_keys = sorted(str(key) for key in manifest.keys())
         inspection_evidence: list[str] = ["project_manifest"]
         project_config_keys = self._normalized_string_list(args.get("project_config_keys"))
@@ -494,6 +788,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             len(missing_requested_settings_keys)
             if inspection_flags["include_settings"]
             else 0
+        )
+        requested_build_state_evidence = (
+            ["build_state_request", "build_state_unavailable"]
+            if inspection_flags["include_build_state"]
+            else []
         )
         message = "Read-only project manifest inspection completed against real project files."
         if isinstance(project_name, str) and project_name.strip():
@@ -680,6 +979,12 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     else "Requested settings subset matching resolved against manifest-backed "
                     f"settings fields with {len(matched_requested_settings_keys)} matches."
                 ),
+                (
+                    "Build-state inspection was not requested."
+                    if not inspection_flags["include_build_state"]
+                    else "Build-state inspection was requested, but no real build-state "
+                    "adapter path was used; the request remained explicitly simulated."
+                ),
             ],
             artifact_label="Real project manifest inspection evidence",
             artifact_kind="project_manifest_inspection",
@@ -695,6 +1000,12 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "inspection_surface": "project_manifest",
                 "inspection_evidence": inspection_evidence,
                 "project_manifest_path": str(manifest_path),
+                "project_root_path": str(resolved_project_root),
+                "project_manifest_relative_path": manifest_path_relative_to_project_root,
+                "project_manifest_read_mode": "read-only",
+                "project_manifest_source_of_truth": "project_root/project.json",
+                "project_manifest_workspace_local": manifest_path_within_project_root,
+                "project_manifest_within_project_root": manifest_path_within_project_root,
                 "manifest_keys": manifest_keys,
                 "project_name": project_name,
                 "include_flags": inspection_flags,
@@ -837,6 +1148,19 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     if inspection_flags["include_settings"]
                     else []
                 ),
+                "requested_build_state_evidence": requested_build_state_evidence,
+                "build_state_evidence_source": (
+                    "simulated_unavailable"
+                    if inspection_flags["include_build_state"]
+                    else "not-requested"
+                ),
+                "build_state_selection_mode": (
+                    "requested-unavailable"
+                    if inspection_flags["include_build_state"]
+                    else "not-requested"
+                ),
+                "build_state_real_path_available": False,
+                "requested_build_state_subset_present": False,
                 "requested_settings_subset_present": (
                     len(matched_requested_settings_keys) > 0
                     if inspection_flags["include_settings"] and requested_settings_keys
@@ -857,6 +1181,12 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "inspection_surface": "project_manifest",
                 "inspection_evidence": inspection_evidence,
                 "project_manifest_path": str(manifest_path),
+                "project_root_path": str(resolved_project_root),
+                "project_manifest_relative_path": manifest_path_relative_to_project_root,
+                "project_manifest_read_mode": "read-only",
+                "project_manifest_source_of_truth": "project_root/project.json",
+                "project_manifest_workspace_local": manifest_path_within_project_root,
+                "project_manifest_within_project_root": manifest_path_within_project_root,
                 "manifest_keys": manifest_keys,
                 "project_name": project_name,
                 "include_flags": inspection_flags,
@@ -999,6 +1329,19 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     if inspection_flags["include_settings"]
                     else []
                 ),
+                "requested_build_state_evidence": requested_build_state_evidence,
+                "build_state_evidence_source": (
+                    "simulated_unavailable"
+                    if inspection_flags["include_build_state"]
+                    else "not-requested"
+                ),
+                "build_state_selection_mode": (
+                    "requested-unavailable"
+                    if inspection_flags["include_build_state"]
+                    else "not-requested"
+                ),
+                "build_state_real_path_available": False,
+                "requested_build_state_subset_present": False,
                 "requested_settings_subset_present": (
                     len(matched_requested_settings_keys) > 0
                     if inspection_flags["include_settings"] and requested_settings_keys
@@ -1025,8 +1368,14 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         approval_class: str,
         locks_acquired: list[str],
     ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        manifest_path = resolved_project_root / "project.json"
         if not dry_run:
             simulated = self._simulated.execute(
+                request_id="",
+                session_id=None,
+                workspace_id=None,
+                executor_id=None,
                 tool=tool,
                 agent=agent,
                 project_root=project_root,
@@ -1046,18 +1395,35 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             )
             simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
             simulated.artifact_metadata["real_path_available"] = False
+            simulated.artifact_metadata["fallback_category"] = "dry-run-required"
             simulated.artifact_metadata["fallback_reason"] = (
                 "Real build.configure preflight requires dry_run=true."
             )
+            simulated.artifact_metadata["project_root_path"] = str(resolved_project_root)
+            simulated.artifact_metadata["expected_project_manifest_path"] = str(manifest_path)
+            simulated.artifact_metadata["expected_project_manifest_relative_path"] = (
+                "project.json"
+            )
+            simulated.artifact_metadata["project_manifest_source_of_truth"] = (
+                "project_root/project.json"
+            )
             simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
             simulated.execution_details["real_path_available"] = False
+            simulated.execution_details["fallback_category"] = "dry-run-required"
             simulated.execution_details["fallback_reason"] = (
                 "Real build.configure preflight requires dry_run=true."
+            )
+            simulated.execution_details["project_root_path"] = str(resolved_project_root)
+            simulated.execution_details["expected_project_manifest_path"] = str(manifest_path)
+            simulated.execution_details["expected_project_manifest_relative_path"] = (
+                "project.json"
+            )
+            simulated.execution_details["project_manifest_source_of_truth"] = (
+                "project_root/project.json"
             )
             simulated.result_summary = "build.configure fell back to the simulated path."
             return simulated
 
-        manifest_path = Path(project_root).expanduser().resolve() / "project.json"
         if not manifest_path.is_file():
             return self._fallback_build_configure(
                 tool=tool,
@@ -1072,6 +1438,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "Real build.configure preflight was unavailable because "
                     f"'{manifest_path}' was not found."
                 ),
+                fallback_category="manifest-missing",
             )
 
         try:
@@ -1090,6 +1457,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "Real build.configure preflight was unavailable because the project "
                     f"manifest could not be read cleanly: {exc}"
                 ),
+                fallback_category="manifest-unreadable",
             )
 
         project_name = manifest.get("project_name")
@@ -1098,7 +1466,13 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         config = str(args.get("config", "")).strip() or "unspecified"
         clean_requested = bool(args.get("clean", False))
         manifest_keys = sorted(str(key) for key in manifest.keys())
-        build_dir = Path(project_root).expanduser().resolve() / "build" / preset
+        manifest_path_relative_to_project_root = (
+            str(manifest_path.relative_to(resolved_project_root))
+            if manifest_path.is_relative_to(resolved_project_root)
+            else None
+        )
+        manifest_path_within_project_root = manifest_path_relative_to_project_root is not None
+        build_dir = resolved_project_root / "build" / preset
         engine_root_exists = Path(engine_root).expanduser().resolve().exists()
         plan_details = {
             "preset": preset,
@@ -1167,7 +1541,14 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
                 "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
                 "inspection_surface": "build_configure_preflight",
+                "project_root_path": str(resolved_project_root),
                 "project_manifest_path": str(manifest_path),
+                "project_manifest_relative_path": manifest_path_relative_to_project_root,
+                "project_manifest_read_mode": "read-only",
+                "project_manifest_source_of_truth": "project_root/project.json",
+                "project_manifest_workspace_local": manifest_path_within_project_root,
+                "project_manifest_within_project_root": manifest_path_within_project_root,
+                "preflight_execution_mode": "plan-only",
                 "manifest_keys": manifest_keys,
                 "project_name": project_name,
                 "plan_details": plan_details,
@@ -1179,7 +1560,14 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
                 "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
                 "inspection_surface": "build_configure_preflight",
+                "project_root_path": str(resolved_project_root),
                 "project_manifest_path": str(manifest_path),
+                "project_manifest_relative_path": manifest_path_relative_to_project_root,
+                "project_manifest_read_mode": "read-only",
+                "project_manifest_source_of_truth": "project_root/project.json",
+                "project_manifest_workspace_local": manifest_path_within_project_root,
+                "project_manifest_within_project_root": manifest_path_within_project_root,
+                "preflight_execution_mode": "plan-only",
                 "manifest_keys": manifest_keys,
                 "project_name": project_name,
                 "plan_details": plan_details,
@@ -1199,7 +1587,8 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         approval_class: str,
         locks_acquired: list[str],
     ) -> AdapterExecutionReport:
-        manifest_path = Path(project_root).expanduser().resolve() / "project.json"
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        manifest_path = resolved_project_root / "project.json"
         if not manifest_path.is_file():
             return self._fallback_settings_patch(
                 tool=tool,
@@ -1214,6 +1603,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "Real settings.patch preflight was unavailable because "
                     f"'{manifest_path}' was not found."
                 ),
+                fallback_category="manifest-missing",
             )
 
         try:
@@ -1232,6 +1622,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "Real settings.patch preflight was unavailable because the project "
                     f"manifest could not be read cleanly: {exc}"
                 ),
+                fallback_category="manifest-unreadable",
             )
 
         project_name = manifest.get("project_name")
@@ -1284,7 +1675,14 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     "Real settings.patch mutation remains limited to the fully admitted "
                     "manifest-backed set-only path in this slice."
                 ),
+                fallback_category="mutation-not-admitted",
             )
+        manifest_path_relative_to_project_root = (
+            str(manifest_path.relative_to(resolved_project_root))
+            if manifest_path.is_relative_to(resolved_project_root)
+            else None
+        )
+        manifest_path_within_project_root = manifest_path_relative_to_project_root is not None
         backup_target = manifest_path.with_suffix(f"{manifest_path.suffix}.bak")
         backup_source_path = str(manifest_path)
         backup_created = False
@@ -1985,8 +2383,22 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "agent": agent,
                 "execution_mode": "real",
                 **details,
+                "project_root_path": str(resolved_project_root),
+                "project_manifest_relative_path": manifest_path_relative_to_project_root,
+                "project_manifest_read_mode": "read-only",
+                "project_manifest_source_of_truth": "project_root/project.json",
+                "project_manifest_workspace_local": manifest_path_within_project_root,
+                "project_manifest_within_project_root": manifest_path_within_project_root,
             },
-            execution_details=details,
+            execution_details={
+                **details,
+                "project_root_path": str(resolved_project_root),
+                "project_manifest_relative_path": manifest_path_relative_to_project_root,
+                "project_manifest_read_mode": "read-only",
+                "project_manifest_source_of_truth": "project_root/project.json",
+                "project_manifest_workspace_local": manifest_path_within_project_root,
+                "project_manifest_within_project_root": manifest_path_within_project_root,
+            },
             result_summary=(
                 "Real settings.patch mutation completed successfully."
                 if mutation_applied
@@ -2006,8 +2418,15 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         approval_class: str,
         locks_acquired: list[str],
         reason: str,
+        fallback_category: str = "unavailable",
     ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        expected_manifest_path = resolved_project_root / "project.json"
         simulated = self._simulated.execute(
+            request_id="",
+            session_id=None,
+            workspace_id=None,
+            executor_id=None,
             tool=tool,
             agent=agent,
             project_root=project_root,
@@ -2025,9 +2444,31 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
         simulated.artifact_metadata["real_path_available"] = False
         simulated.artifact_metadata["fallback_reason"] = reason
+        simulated.artifact_metadata["fallback_category"] = fallback_category
+        simulated.artifact_metadata["project_root_path"] = str(resolved_project_root)
+        simulated.artifact_metadata["expected_project_manifest_path"] = str(
+            expected_manifest_path
+        )
+        simulated.artifact_metadata["expected_project_manifest_relative_path"] = (
+            "project.json"
+        )
+        simulated.artifact_metadata["project_manifest_source_of_truth"] = (
+            "project_root/project.json"
+        )
         simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
         simulated.execution_details["real_path_available"] = False
         simulated.execution_details["fallback_reason"] = reason
+        simulated.execution_details["fallback_category"] = fallback_category
+        simulated.execution_details["project_root_path"] = str(resolved_project_root)
+        simulated.execution_details["expected_project_manifest_path"] = str(
+            expected_manifest_path
+        )
+        simulated.execution_details["expected_project_manifest_relative_path"] = (
+            "project.json"
+        )
+        simulated.execution_details["project_manifest_source_of_truth"] = (
+            "project_root/project.json"
+        )
         simulated.result_summary = "Project inspection fell back to the simulated path."
         return simulated
 
@@ -2043,8 +2484,15 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         approval_class: str,
         locks_acquired: list[str],
         reason: str,
+        fallback_category: str = "unavailable",
     ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        expected_manifest_path = resolved_project_root / "project.json"
         simulated = self._simulated.execute(
+            request_id="",
+            session_id=None,
+            workspace_id=None,
+            executor_id=None,
             tool=tool,
             agent=agent,
             project_root=project_root,
@@ -2061,10 +2509,32 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         )
         simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
         simulated.artifact_metadata["real_path_available"] = False
+        simulated.artifact_metadata["fallback_category"] = fallback_category
         simulated.artifact_metadata["fallback_reason"] = reason
+        simulated.artifact_metadata["project_root_path"] = str(resolved_project_root)
+        simulated.artifact_metadata["expected_project_manifest_path"] = str(
+            expected_manifest_path
+        )
+        simulated.artifact_metadata["expected_project_manifest_relative_path"] = (
+            "project.json"
+        )
+        simulated.artifact_metadata["project_manifest_source_of_truth"] = (
+            "project_root/project.json"
+        )
         simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
         simulated.execution_details["real_path_available"] = False
+        simulated.execution_details["fallback_category"] = fallback_category
         simulated.execution_details["fallback_reason"] = reason
+        simulated.execution_details["project_root_path"] = str(resolved_project_root)
+        simulated.execution_details["expected_project_manifest_path"] = str(
+            expected_manifest_path
+        )
+        simulated.execution_details["expected_project_manifest_relative_path"] = (
+            "project.json"
+        )
+        simulated.execution_details["project_manifest_source_of_truth"] = (
+            "project_root/project.json"
+        )
         simulated.result_summary = "build.configure fell back to the simulated path."
         return simulated
 
@@ -2080,8 +2550,15 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         approval_class: str,
         locks_acquired: list[str],
         reason: str,
+        fallback_category: str = "unavailable",
     ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        expected_manifest_path = resolved_project_root / "project.json"
         simulated = self._simulated.execute(
+            request_id="",
+            session_id=None,
+            workspace_id=None,
+            executor_id=None,
             tool=tool,
             agent=agent,
             project_root=project_root,
@@ -2098,10 +2575,32 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         )
         simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
         simulated.artifact_metadata["real_path_available"] = False
+        simulated.artifact_metadata["fallback_category"] = fallback_category
         simulated.artifact_metadata["fallback_reason"] = reason
+        simulated.artifact_metadata["project_root_path"] = str(resolved_project_root)
+        simulated.artifact_metadata["expected_project_manifest_path"] = str(
+            expected_manifest_path
+        )
+        simulated.artifact_metadata["expected_project_manifest_relative_path"] = (
+            "project.json"
+        )
+        simulated.artifact_metadata["project_manifest_source_of_truth"] = (
+            "project_root/project.json"
+        )
         simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
         simulated.execution_details["real_path_available"] = False
+        simulated.execution_details["fallback_category"] = fallback_category
         simulated.execution_details["fallback_reason"] = reason
+        simulated.execution_details["project_root_path"] = str(resolved_project_root)
+        simulated.execution_details["expected_project_manifest_path"] = str(
+            expected_manifest_path
+        )
+        simulated.execution_details["expected_project_manifest_relative_path"] = (
+            "project.json"
+        )
+        simulated.execution_details["project_manifest_source_of_truth"] = (
+            "project_root/project.json"
+        )
         simulated.result_summary = "settings.patch fell back to the simulated path."
         return simulated
 
@@ -2230,8 +2729,18 @@ class AdapterService:
         family_real = set()
         family_plan_only = set()
         if active_mode == "hybrid" and family == "project-build":
-            family_real = set(self._real_tool_paths_for_mode(active_mode))
+            family_real = {
+                tool_name
+                for tool_name in self._real_tool_paths_for_mode(active_mode)
+                if tool_name.startswith(("project.", "build.", "settings.", "gem."))
+            }
             family_plan_only = set(self._plan_only_tool_paths_for_mode(active_mode))
+        if active_mode == "hybrid" and family == "editor-control":
+            family_real = {
+                tool_name
+                for tool_name in self._real_tool_paths_for_mode(active_mode)
+                if tool_name.startswith("editor.")
+            }
         return sorted(
             tool_name
             for tool_name in tool_names
@@ -2249,6 +2758,11 @@ class AdapterService:
         for agent in catalog_service.get_catalog_model().agents:
             if configured_mode == "hybrid" and agent.id == "project-build":
                 registry[agent.id] = ProjectBuildHybridAdapter(
+                    family=agent.id,
+                    mode=configured_mode,
+                )
+            elif configured_mode == "hybrid" and agent.id == "editor-control":
+                registry[agent.id] = EditorControlHybridAdapter(
                     family=agent.id,
                     mode=configured_mode,
                 )
@@ -2284,8 +2798,11 @@ class AdapterService:
                     "Adapter mode selection is now config-driven.",
                     "Real O3DE adapters are not yet implemented.",
                     "Hybrid mode currently enables a real read-only project.inspect "
-                    "path, a real plan-only build.configure preflight path, and a "
-                    "real dry-run-only settings.patch preflight path.",
+                    "path, admitted real editor session/level runtime paths, "
+                    "a runtime-reaching but non-admitted editor.entity.create path "
+                    "on McpSandbox, "
+                    "a real plan-only build.configure preflight path, and a real "
+                    "dry-run-only settings.patch preflight path.",
                 ],
             )
         if configured_mode == "hybrid":
@@ -2314,6 +2831,12 @@ class AdapterService:
                     "Adapter mode selection is now config-driven.",
                     "Hybrid mode enables a real read-only project.inspect path when its "
                     "manifest preconditions are satisfied.",
+                    "Hybrid mode also enables admitted real editor runtime paths for "
+                    "editor.session.open and editor.level.open when editor preflight "
+                    "requirements are satisfied.",
+                    "editor.entity.create may still reach the real runtime boundary, "
+                    "but it remains excluded from the admitted real set on "
+                    "McpSandbox while its prefab-safe create contract is unproven.",
                     "Hybrid mode also enables a real plan-only build.configure "
                     "preflight path when dry_run=true and manifest preconditions are "
                     "satisfied.",
@@ -2351,6 +2874,10 @@ class AdapterService:
     def execute(
         self,
         *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
         tool: str,
         agent: str,
         project_root: str,
@@ -2370,6 +2897,10 @@ class AdapterService:
                 f"'{agent}' in mode '{runtime_status.active_mode}'."
             )
         return adapter.execute(
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
             tool=tool,
             agent=agent,
             project_root=project_root,
@@ -2385,15 +2916,28 @@ class AdapterService:
         families: list[AdapterFamilyStatus] = []
         for family in runtime_status.available_families:
             family_supports_real = (
-                runtime_status.active_mode == "hybrid" and family == "project-build"
+                runtime_status.active_mode == "hybrid"
+                and family in {"project-build", "editor-control"}
             )
             family_real_tool_paths = (
-                list(runtime_status.real_tool_paths)
+                [
+                    tool_name
+                    for tool_name in runtime_status.real_tool_paths
+                    if (
+                        family == "project-build"
+                        and tool_name.startswith(("project.", "build.", "settings.", "gem."))
+                    )
+                    or (family == "editor-control" and tool_name.startswith("editor."))
+                ]
                 if family_supports_real
                 else []
             )
             family_plan_only_tool_paths = (
-                list(runtime_status.plan_only_tool_paths)
+                [
+                    tool_name
+                    for tool_name in runtime_status.plan_only_tool_paths
+                    if family == "project-build"
+                ]
                 if family_supports_real
                 else []
             )
@@ -2403,11 +2947,22 @@ class AdapterService:
             )
             family_notes = list(runtime_status.notes)
             if family_supports_real:
-                family_notes.append(
-                    "project.inspect currently has a real read-only path and "
-                    "build.configure and settings.patch currently have real "
-                    "preflight-only paths in this family."
-                )
+                if family == "project-build":
+                    family_notes.append(
+                        "project.inspect currently has a real read-only path and "
+                        "build.configure and settings.patch currently have real "
+                        "preflight-only paths in this family."
+                    )
+                if family == "editor-control":
+                    family_notes.append(
+                        "editor.session.open and editor.level.open currently have "
+                        "admitted real runtime-owned editor paths in this family."
+                    )
+                    family_notes.append(
+                        "editor.entity.create remains runtime-reaching but excluded "
+                        "from the admitted real set on McpSandbox because its "
+                        "prefab-safe create contract is not yet proven."
+                    )
             elif runtime_status.active_mode == "hybrid":
                 family_notes.append(
                     "This family remains simulated even while hybrid mode is active."

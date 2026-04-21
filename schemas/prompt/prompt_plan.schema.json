@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/prompt/prompt_plan.schema.json",
+  "title": "PromptPlan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "prompt_id",
+    "plan_id",
+    "schema_version",
+    "admitted",
+    "summary",
+    "steps",
+    "refused_capabilities",
+    "capability_requirements"
+  ],
+  "properties": {
+    "prompt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "admitted": {
+      "type": "boolean"
+    },
+    "refusal_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/prompt_plan_step"
+      }
+    },
+    "refused_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "capability_requirements": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "prompt_plan_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step_id",
+        "tool",
+        "agent",
+        "args",
+        "approval_class",
+        "required_locks",
+        "capability_status_required",
+        "simulated_allowed",
+        "depends_on",
+        "capability_maturity"
+      ],
+      "properties": {
+        "step_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "approval_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_locks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "capability_status_required": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workspace_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "executor_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "simulated_allowed": {
+          "type": "boolean"
+        },
+        "depends_on": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "capability_maturity": {
+          "type": "string",
+          "enum": [
+            "simulated-only",
+            "plan-only",
+            "hybrid-read-only",
+            "hybrid-mutation",
+            "real-authoring",
+            "real-build",
+            "real-pipeline",
+            "real-render",
+            "real-validation"
+          ]
+        },
+        "planner_note": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

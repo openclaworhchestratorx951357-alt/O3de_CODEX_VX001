@@ -18,8 +18,21 @@
     "adapter_mode": { "type": "string", "minLength": 1 },
     "adapter_contract_version": { "type": "string", "minLength": 1 },
     "real_path_available": { "type": "boolean" },
+    "fallback_category": { "type": "string", "minLength": 1 },
     "fallback_reason": { "type": "string", "minLength": 1 },
+    "project_root_path": { "type": "string", "minLength": 1 },
+    "expected_project_manifest_path": { "type": "string", "minLength": 1 },
+    "expected_project_manifest_relative_path": { "type": "string", "minLength": 1 },
     "project_manifest_path": { "type": "string", "minLength": 1 },
+    "project_manifest_relative_path": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "project_manifest_read_mode": { "type": "string", "minLength": 1 },
+    "project_manifest_source_of_truth": { "type": "string", "minLength": 1 },
+    "project_manifest_workspace_local": { "type": "boolean" },
+    "project_manifest_within_project_root": { "type": "boolean" },
+    "preflight_execution_mode": { "type": "string", "minLength": 1 },
     "manifest_keys": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 }

@@ -5,6 +5,13 @@ from app.services.catalog import catalog_service
 def tool_real_admission_stage(tool_name: str) -> str:
     if tool_name == "project.inspect":
         return "real-read-only-active"
+    if tool_name in {
+        "editor.session.open",
+        "editor.level.open",
+    }:
+        return "real-editor-authoring-active"
+    if tool_name == "editor.entity.create":
+        return "runtime-reaching-excluded-from-admitted-real"
     if tool_name == "build.configure":
         return "real-plan-only-active"
     if tool_name == "settings.patch":
@@ -21,6 +28,23 @@ def tool_next_real_requirement(tool_name: str) -> str:
         return (
             "Keep manifest-backed read-only evidence truthful; do not widen into "
             "mutation from this path."
+        )
+    if tool_name == "editor.session.open":
+        return (
+            "Keep the admitted real path limited to runtime-owned session "
+            "attachment with explicit editor-runtime and PythonEditorBindings "
+            "preflight rejection."
+        )
+    if tool_name == "editor.level.open":
+        return (
+            "Keep the admitted real path limited to explicit level open/create "
+            "through the runtime-owned editor script contract."
+        )
+    if tool_name == "editor.entity.create":
+        return (
+            "Keep editor.entity.create explicitly labeled as runtime-reaching "
+            "and excluded from the admitted real set on current tested local "
+            "targets until a stable prefab-safe create contract is proven."
         )
     if tool_name == "build.configure":
         return (

@@ -9,8 +9,8 @@
       "properties": {
         "tool": { "const": "editor.entity.create" },
         "approval_class": { "const": "content_write" },
-        "execution_mode": { "const": "simulated" },
-        "simulated": { "const": true }
+        "execution_mode": { "enum": ["simulated", "real"] },
+        "simulated": { "type": "boolean" }
       }
     }
   ]

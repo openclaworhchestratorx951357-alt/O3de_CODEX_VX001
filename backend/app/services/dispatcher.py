@@ -1,8 +1,12 @@
+from datetime import datetime, timezone
+from pathlib import Path
 from app.models.control_plane import (
     ApprovalStatus,
     EventSeverity,
+    ExecutorRecord,
     ExecutionStatus,
     RunStatus,
+    WorkspaceRecord,
 )
 from app.models.request_envelope import RequestEnvelope
 from app.models.response_envelope import ResponseEnvelope, ResponseError
@@ -16,10 +20,12 @@ from app.services.artifacts import artifacts_service
 from app.services.catalog import catalog_service
 from app.services.events import events_service
 from app.services.executions import executions_service
+from app.services.executors import executors_service
 from app.services.locks import locks_service
 from app.services.policy import policy_service
 from app.services.runs import runs_service
 from app.services.schema_validation import schema_validation_service
+from app.services.workspaces import workspaces_service
 
 
 class DispatcherService:
@@ -45,11 +51,15 @@ class DispatcherService:
             tool=request.tool,
             execution_mode=adapter_status.active_mode,
             status=ExecutionStatus.PENDING,
+            executor_id=request.executor_id,
+            workspace_id=request.workspace_id,
             details={
                 "requested_locks": requested_locks,
                 "adapter_family": request.agent,
                 "adapter_contract_version": adapter_status.contract_version,
                 "execution_boundary": adapter_status.execution_boundary,
+                "requested_workspace_id": request.workspace_id,
+                "requested_executor_id": request.executor_id,
             },
             logs=["Dispatch request received."],
             result_summary="Execution record opened for this dispatch attempt.",
@@ -294,6 +304,10 @@ class DispatcherService:
         )
         try:
             adapter_report = adapter_service.execute(
+                request_id=request.request_id,
+                session_id=request.session_id,
+                workspace_id=request.workspace_id,
+                executor_id=request.executor_id,
                 tool=request.tool,
                 agent=request.agent,
                 project_root=request.project_root,
@@ -410,6 +424,8 @@ class DispatcherService:
         running_execution_details = {
             "requested_locks": requested_locks,
             "granted_locks": [lock.name for lock in acquired_locks],
+            "requested_workspace_id": request.workspace_id,
+            "requested_executor_id": request.executor_id,
             **adapter_report.execution_details,
         }
         executions_service.update_execution(
@@ -490,6 +506,18 @@ class DispatcherService:
                 payload_kind="artifact metadata",
             )
 
+        substrate_assignment = self._persist_substrate_assignment(
+            request=request,
+            run_id=run.id,
+            execution_id=execution.id,
+            adapter_report=adapter_report,
+        )
+        resolved_executor_id = (
+            substrate_assignment["executor_id"] or request.executor_id
+        )
+        resolved_workspace_id = (
+            substrate_assignment["workspace_id"] or request.workspace_id
+        )
         artifact = artifacts_service.create_artifact(
             run_id=run.id,
             execution_id=execution.id,
@@ -498,7 +526,16 @@ class DispatcherService:
             uri=adapter_report.artifact_uri.format(run_id=run.id, execution_id=execution.id),
             content_type="application/json",
             simulated=result.simulated,
-            metadata=adapter_report.artifact_metadata,
+            metadata={
+                **adapter_report.artifact_metadata,
+                "requested_workspace_id": request.workspace_id,
+                "requested_executor_id": request.executor_id,
+            },
+            artifact_role=substrate_assignment["artifact_role"],
+            executor_id=resolved_executor_id,
+            workspace_id=resolved_workspace_id,
+            retention_class=substrate_assignment["retention_class"],
+            evidence_completeness=substrate_assignment["evidence_completeness"],
         )
 
         locks_service.release(run.id)
@@ -510,6 +547,8 @@ class DispatcherService:
         succeeded_execution_details = {
             "result": result.model_dump(),
             "artifact_id": artifact.id,
+            "requested_workspace_id": request.workspace_id,
+            "requested_executor_id": request.executor_id,
             **adapter_report.execution_details,
         }
         executions_service.update_execution(
@@ -521,6 +560,13 @@ class DispatcherService:
             details=succeeded_execution_details,
             result_summary=adapter_report.result_summary,
             finished=True,
+            executor_id=resolved_executor_id,
+            workspace_id=resolved_workspace_id,
+            runner_family=substrate_assignment["runner_family"],
+            execution_attempt_state=substrate_assignment["execution_attempt_state"],
+            backup_class=substrate_assignment["backup_class"],
+            rollback_class=substrate_assignment["rollback_class"],
+            retention_class=substrate_assignment["retention_class"],
         )
         events_service.record(
             category="dispatch",
@@ -537,23 +583,7 @@ class DispatcherService:
             },
         )
 
-        result_warning = (
-            "Underlying O3DE execution remains simulated in this phase."
-            if result.simulated
-            else (
-                "This run used the first real read-only project inspection path."
-                if request.tool == "project.inspect"
-                else "This run used the real plan-only build.configure preflight path."
-                if request.tool == "build.configure"
-                else (
-                    "This run used the first real settings.patch mutation path."
-                    if isinstance(result.message, str)
-                    and result.message.startswith("Real settings.patch mutation completed")
-                    else "This run used the real plan-only settings.patch preflight path; "
-                    "no settings were written."
-                )
-            )
-        )
+        result_warning = self._result_warning(request, result)
         return ResponseEnvelope(
             request_id=request.request_id,
             ok=True,
@@ -588,6 +618,222 @@ class DispatcherService:
                 combined.append(lock_name)
                 seen.add(lock_name)
         return combined
+
+    def _persist_substrate_assignment(
+        self,
+        *,
+        request: RequestEnvelope,
+        run_id: str,
+        execution_id: str,
+        adapter_report,
+    ) -> dict[str, str | None]:
+        if adapter_report.execution_mode != "real":
+            return {
+                "executor_id": None,
+                "workspace_id": None,
+                "runner_family": None,
+                "execution_attempt_state": None,
+                "artifact_role": None,
+                "retention_class": None,
+                "evidence_completeness": None,
+                "backup_class": None,
+                "rollback_class": None,
+            }
+
+        inspection_surface = adapter_report.execution_details.get("inspection_surface")
+        resolved_project_root = Path(request.project_root).expanduser().resolve()
+        resolved_engine_root = Path(request.engine_root).expanduser().resolve()
+        if request.tool == "project.inspect" and inspection_surface == "project_manifest":
+            executor_id = "executor-project-build-hybrid-readonly-local"
+            executor_kind = "local-admitted-readonly"
+            executor_label = "Admitted local read-only substrate executor"
+            executor_host_label = "local-project-manifest"
+            workspace_kind = "admitted-readonly-project-root"
+            cleanup_policy = "operator-managed-readonly"
+            artifact_role = "inspection-evidence"
+            evidence_completeness = "inspection-backed"
+            execution_boundary = "read-only local manifest inspection"
+            workspace_id = f"workspace-project-inspect-{execution_id}"
+            admitted_tools = ["project.inspect", "build.configure"]
+            backup_class = None
+            rollback_class = None
+        elif (
+            request.tool == "build.configure"
+            and inspection_surface == "build_configure_preflight"
+        ):
+            executor_id = "executor-project-build-hybrid-readonly-local"
+            executor_kind = "local-admitted-readonly"
+            executor_label = "Admitted local read-only substrate executor"
+            executor_host_label = "local-project-manifest"
+            workspace_kind = "admitted-plan-only-project-root"
+            cleanup_policy = "operator-managed-preflight"
+            artifact_role = "plan-evidence"
+            evidence_completeness = "plan-backed"
+            execution_boundary = "plan-only local configure preflight"
+            workspace_id = f"workspace-build-configure-{execution_id}"
+            admitted_tools = ["project.inspect", "build.configure"]
+            backup_class = None
+            rollback_class = None
+        elif request.tool == "settings.patch" and inspection_surface in {
+            "settings_patch_preflight",
+            "settings_patch_mutation",
+        }:
+            executor_id = "executor-project-build-hybrid-mutation-gated-local"
+            executor_kind = "local-admitted-mutation-gated"
+            executor_label = "Admitted local mutation-gated substrate executor"
+            executor_host_label = "local-project-manifest-mutation"
+            workspace_kind = "admitted-mutation-gated-project-root"
+            cleanup_policy = "operator-managed-backup-rollback"
+            artifact_role = (
+                "mutation-evidence"
+                if inspection_surface == "settings_patch_mutation"
+                else "mutation-preflight-evidence"
+            )
+            evidence_completeness = (
+                "mutation-backed"
+                if inspection_surface == "settings_patch_mutation"
+                else "backup-and-plan-backed"
+            )
+            execution_boundary = (
+                "mutation-gated local manifest patch with backup and rollback boundary"
+            )
+            workspace_id = f"workspace-settings-patch-{execution_id}"
+            admitted_tools = ["settings.patch"]
+            backup_class = "project-manifest-backup"
+            rollback_class = "project-manifest-restore"
+        elif request.tool in {
+            "editor.session.open",
+            "editor.level.open",
+        } and inspection_surface in {
+            "editor_session_runtime",
+            "editor_level_opened",
+            "editor_level_created",
+        }:
+            executor_id = "executor-editor-control-real-local"
+            executor_kind = "local-admitted-editor-authoring"
+            executor_label = "Admitted local editor automation executor"
+            executor_host_label = "local-editor-python-bindings"
+            workspace_kind = "admitted-editor-session-project-root"
+            cleanup_policy = "operator-managed-editor-session"
+            artifact_role = "editor-automation-evidence"
+            evidence_completeness = "editor-runtime-backed"
+            execution_boundary = (
+                "real editor automation through runtime-owned Python Editor Bindings scripts"
+            )
+            workspace_id = f"workspace-editor-{resolved_project_root.name.lower()}"
+            admitted_tools = [
+                "editor.session.open",
+                "editor.level.open",
+            ]
+            backup_class = None
+            rollback_class = None
+        elif (
+            request.tool == "editor.entity.create"
+            and inspection_surface == "editor_entity_created"
+        ):
+            executor_id = "executor-editor-control-runtime-reaching-local"
+            executor_kind = "local-runtime-reaching-editor-authoring"
+            executor_label = "Runtime-reaching local editor automation executor"
+            executor_host_label = "local-editor-python-bindings"
+            workspace_kind = "runtime-reaching-editor-session-project-root"
+            cleanup_policy = "operator-managed-editor-session"
+            artifact_role = "editor-automation-evidence"
+            evidence_completeness = "editor-runtime-backed"
+            execution_boundary = (
+                "runtime-reaching editor automation through runtime-owned Python "
+                "Editor Bindings scripts; excluded from the admitted real set on "
+                "McpSandbox"
+            )
+            workspace_id = (
+                f"workspace-editor-runtime-reaching-{resolved_project_root.name.lower()}"
+            )
+            admitted_tools = []
+            backup_class = None
+            rollback_class = None
+        else:
+            return {
+                "executor_id": None,
+                "workspace_id": None,
+                "runner_family": None,
+                "execution_attempt_state": None,
+                "artifact_role": None,
+                "retention_class": None,
+                "evidence_completeness": None,
+                "backup_class": None,
+                "rollback_class": None,
+            }
+
+        now = datetime.now(timezone.utc)
+        runner_family = (
+            "editor-python-bindings"
+            if request.tool.startswith("editor.")
+            and inspection_surface
+            in {
+                "editor_session_runtime",
+                "editor_level_opened",
+                "editor_level_created",
+                "editor_entity_created",
+            }
+            else "cli"
+        )
+
+        executors_service.upsert_executor(
+            ExecutorRecord(
+                id=executor_id,
+                executor_kind=executor_kind,
+                executor_label=executor_label,
+                executor_host_label=executor_host_label,
+                execution_mode_class="real",
+                availability_state="available",
+                supported_runner_families=[runner_family],
+                capability_snapshot={
+                    "admitted_tools": admitted_tools,
+                    **(
+                        {"runtime_reaching_tools": ["editor.entity.create"]}
+                        if request.tool == "editor.entity.create"
+                        and inspection_surface == "editor_entity_created"
+                        else {}
+                    ),
+                    "execution_boundary": execution_boundary,
+                    "engine_root": str(resolved_engine_root),
+                },
+                last_heartbeat_at=now,
+                last_failure_summary=None,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        workspaces_service.upsert_workspace(
+            WorkspaceRecord(
+                id=workspace_id,
+                workspace_kind=workspace_kind,
+                workspace_root=str(resolved_project_root),
+                workspace_state="ready",
+                cleanup_policy=cleanup_policy,
+                retention_class="operator-configured",
+                engine_binding={"engine_root": str(resolved_engine_root)},
+                project_binding={"project_root": str(resolved_project_root)},
+                runner_family=runner_family,
+                owner_run_id=run_id,
+                owner_execution_id=execution_id,
+                owner_executor_id=executor_id,
+                created_at=now,
+                activated_at=now,
+                completed_at=now,
+                last_failure_summary=None,
+            )
+        )
+        return {
+            "executor_id": executor_id,
+            "workspace_id": workspace_id,
+            "runner_family": runner_family,
+            "execution_attempt_state": "completed",
+            "artifact_role": artifact_role,
+            "retention_class": "operator-configured",
+            "evidence_completeness": evidence_completeness,
+            "backup_class": backup_class,
+            "rollback_class": rollback_class,
+        }
 
     def _check_approval(
         self,
@@ -916,6 +1162,33 @@ class DispatcherService:
         if request.tool == "project.inspect" and capability == "hybrid-read-only":
             return "hybrid-read-only project.inspect path"
         return f"{capability} dispatch"
+
+    def _result_warning(self, request: RequestEnvelope, result) -> str:
+        if result.simulated:
+            return "Underlying O3DE execution remains simulated in this phase."
+        if request.tool == "project.inspect":
+            return "This run used the first real read-only project inspection path."
+        if request.tool == "build.configure":
+            return "This run used the real plan-only build.configure preflight path."
+        if request.tool == "settings.patch":
+            if isinstance(result.message, str) and result.message.startswith(
+                "Real settings.patch mutation completed"
+            ):
+                return "This run used the first real settings.patch mutation path."
+            return (
+                "This run used the real plan-only settings.patch preflight path; "
+                "no settings were written."
+            )
+        if request.tool == "editor.session.open":
+            return "This run used the admitted real editor.session.open runtime path."
+        if request.tool == "editor.level.open":
+            return "This run used the admitted real editor.level.open runtime path."
+        if request.tool == "editor.entity.create":
+            return (
+                "This run used a runtime-reaching editor.entity.create path that "
+                "remains excluded from the admitted real set on McpSandbox."
+            )
+        return "This run used a real non-simulated control-plane path."
 
 
 dispatcher_service = DispatcherService()

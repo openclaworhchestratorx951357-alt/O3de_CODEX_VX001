@@ -19,7 +19,7 @@
       "properties": {
         "tool": { "const": "editor.level.open" },
         "agent": { "const": "editor-control" },
-        "execution_mode": { "const": "simulated" }
+        "execution_mode": { "enum": ["simulated", "real"] }
       }
     }
   ]

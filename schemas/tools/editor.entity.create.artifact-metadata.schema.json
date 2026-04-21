@@ -19,7 +19,7 @@
       "properties": {
         "tool": { "const": "editor.entity.create" },
         "agent": { "const": "editor-control" },
-        "execution_mode": { "const": "simulated" }
+        "execution_mode": { "enum": ["simulated", "real"] }
       }
     }
   ]

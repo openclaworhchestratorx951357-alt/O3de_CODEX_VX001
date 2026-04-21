@@ -10,6 +10,8 @@ class RequestEnvelope(BaseModel):
     project_root: str = Field(..., min_length=1)
     engine_root: str = Field(..., min_length=1)
     session_id: str | None = None
+    workspace_id: str | None = None
+    executor_id: str | None = None
     dry_run: bool = False
     approval_token: str | None = None
     locks: list[str] = Field(default_factory=list)

@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/prompt/prompt_request.schema.json",
+  "title": "PromptRequest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "prompt_id",
+    "prompt_text",
+    "project_root",
+    "engine_root",
+    "dry_run",
+    "preferred_domains"
+  ],
+  "properties": {
+    "prompt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "prompt_text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "engine_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workspace_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "executor_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "preferred_domains": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "operator_note": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

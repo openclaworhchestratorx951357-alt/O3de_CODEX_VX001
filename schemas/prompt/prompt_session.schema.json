@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/prompt/prompt_session.schema.json",
+  "title": "PromptSessionRecord",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "prompt_id",
+    "plan_id",
+    "status",
+    "prompt_text",
+    "project_root",
+    "engine_root",
+    "dry_run",
+    "preferred_domains",
+    "child_run_ids",
+    "child_execution_ids",
+    "child_artifact_ids",
+    "child_event_ids",
+    "admitted_capabilities",
+    "refused_capabilities",
+    "next_step_index",
+    "last_error_retryable",
+    "step_attempts",
+    "latest_child_responses",
+    "created_at",
+    "updated_at"
+  ],
+  "properties": {
+    "prompt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "refused",
+        "running",
+        "waiting_approval",
+        "blocked",
+        "completed",
+        "failed"
+      ]
+    },
+    "prompt_text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "project_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "engine_root": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "preferred_domains": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "operator_note": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "child_run_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "child_execution_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "child_artifact_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "child_event_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "workspace_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "executor_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "plan_summary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "evidence_summary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "admitted_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "refused_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "final_result_summary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "next_step_index": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "current_step_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "pending_approval_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "pending_approval_token": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "last_error_code": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "last_error_retryable": {
+      "type": "boolean"
+    },
+    "step_attempts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "plan": {
+      "anyOf": [
+        {
+          "$ref": "./prompt_plan.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "latest_child_responses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}
