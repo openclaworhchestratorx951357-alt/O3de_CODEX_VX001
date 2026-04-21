@@ -143,6 +143,38 @@ def test_prompt_session_execute_creates_child_lineage_and_pauses_for_approval() 
                 assert stored_payload["child_run_ids"] == payload["child_run_ids"]
                 assert stored_payload["pending_approval_id"] == payload["pending_approval_id"]
 
+                executions_response = client.get("/executions")
+                assert executions_response.status_code == 200
+                executions_by_tool = {
+                    execution["tool"]: execution
+                    for execution in executions_response.json()["executions"]
+                }
+                assert (
+                    executions_by_tool["project.inspect"]["details"]["prompt_safety"][
+                        "natural_language_status"
+                    ]
+                    == "prompt-ready-read-only"
+                )
+                assert (
+                    executions_by_tool["gem.enable"]["details"]["prompt_safety"][
+                        "natural_language_status"
+                    ]
+                    == "prompt-ready-simulated"
+                )
+
+                artifacts_response = client.get("/artifacts")
+                assert artifacts_response.status_code == 200
+                artifacts_by_tool = {
+                    artifact["metadata"]["tool"]: artifact
+                    for artifact in artifacts_response.json()["artifacts"]
+                }
+                assert (
+                    artifacts_by_tool["project.inspect"]["metadata"]["prompt_safety"][
+                        "natural_language_status"
+                    ]
+                    == "prompt-ready-read-only"
+                )
+
 
 def test_prompt_session_execute_resumes_after_approval_without_losing_lineage() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
@@ -525,3 +557,44 @@ def test_prompt_session_executes_admitted_real_editor_session_and_level_through_
                         assert stored_payload["child_run_ids"] == payload_3["child_run_ids"]
                         assert stored_payload["child_execution_ids"] == payload_3["child_execution_ids"]
                         assert stored_payload["child_artifact_ids"] == payload_3["child_artifact_ids"]
+
+                        executions_response = client.get("/executions")
+                        assert executions_response.status_code == 200
+                        executions_by_tool = {
+                            execution["tool"]: execution
+                            for execution in executions_response.json()["executions"]
+                            if execution["tool"] in {"editor.session.open", "editor.level.open"}
+                        }
+                        assert (
+                            executions_by_tool["editor.session.open"]["details"][
+                                "prompt_safety"
+                            ]["natural_language_status"]
+                            == "prompt-ready-approval-gated"
+                        )
+                        assert (
+                            executions_by_tool["editor.level.open"]["details"][
+                                "prompt_safety"
+                            ]["natural_language_status"]
+                            == "prompt-ready-approval-gated"
+                        )
+
+                        artifacts_response = client.get("/artifacts")
+                        assert artifacts_response.status_code == 200
+                        artifacts_by_tool = {
+                            artifact["metadata"]["tool"]: artifact
+                            for artifact in artifacts_response.json()["artifacts"]
+                            if artifact["metadata"]["tool"]
+                            in {"editor.session.open", "editor.level.open"}
+                        }
+                        assert (
+                            artifacts_by_tool["editor.session.open"]["metadata"][
+                                "prompt_safety"
+                            ]["natural_language_status"]
+                            == "prompt-ready-approval-gated"
+                        )
+                        assert (
+                            artifacts_by_tool["editor.level.open"]["metadata"][
+                                "prompt_safety"
+                            ]["natural_language_status"]
+                            == "prompt-ready-approval-gated"
+                        )

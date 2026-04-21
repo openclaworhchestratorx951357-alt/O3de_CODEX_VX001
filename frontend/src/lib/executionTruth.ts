@@ -2,6 +2,7 @@ import type {
   ArtifactListItem,
   ProjectInspectResult,
   ExecutionListItem,
+  PromptSafetyEnvelope,
   RunListItem,
   RunRecord,
 } from "../types/contracts";
@@ -189,6 +190,61 @@ export function readTruthMarkerString(
   }
   const value = (payload as Record<string, unknown>)[key];
   return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+export function readPromptSafetyEnvelope(
+  payload: object | null | undefined,
+): PromptSafetyEnvelope | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+  const value = (payload as Record<string, unknown>).prompt_safety;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  const candidate = value as Record<string, unknown>;
+  if (
+    typeof candidate.state_scope !== "string"
+    || typeof candidate.backup_class !== "string"
+    || typeof candidate.rollback_class !== "string"
+    || typeof candidate.verification_class !== "string"
+    || typeof candidate.retention_class !== "string"
+    || typeof candidate.natural_language_status !== "string"
+  ) {
+    return null;
+  }
+  return {
+    state_scope: candidate.state_scope,
+    backup_class: candidate.backup_class,
+    rollback_class: candidate.rollback_class,
+    verification_class: candidate.verification_class,
+    retention_class: candidate.retention_class,
+    natural_language_status: candidate.natural_language_status,
+    natural_language_blocker: typeof candidate.natural_language_blocker === "string"
+      ? candidate.natural_language_blocker
+      : null,
+  };
+}
+
+export function getPromptSafetyTone(
+  status: string,
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (status === "prompt-ready-read-only") {
+    return "success";
+  }
+  if (status === "prompt-ready-plan-only") {
+    return "info";
+  }
+  if (
+    status === "prompt-ready-approval-gated"
+    || status === "prompt-ready-simulated"
+  ) {
+    return "warning";
+  }
+  if (status === "prompt-blocked-pending-admission") {
+    return "danger";
+  }
+  return "neutral";
 }
 
 export function getHybridDispatchNote(

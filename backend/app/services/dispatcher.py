@@ -17,6 +17,7 @@ from app.services.adapters import (
 )
 from app.services.approvals import approvals_service
 from app.services.artifacts import artifacts_service
+from app.services.capability_registry import capability_registry_service
 from app.services.catalog import catalog_service
 from app.services.events import events_service
 from app.services.executions import executions_service
@@ -53,14 +54,17 @@ class DispatcherService:
             status=ExecutionStatus.PENDING,
             executor_id=request.executor_id,
             workspace_id=request.workspace_id,
-            details={
-                "requested_locks": requested_locks,
-                "adapter_family": request.agent,
-                "adapter_contract_version": adapter_status.contract_version,
-                "execution_boundary": adapter_status.execution_boundary,
-                "requested_workspace_id": request.workspace_id,
-                "requested_executor_id": request.executor_id,
-            },
+            details=self._with_prompt_safety(
+                tool_name=request.tool,
+                payload={
+                    "requested_locks": requested_locks,
+                    "adapter_family": request.agent,
+                    "adapter_contract_version": adapter_status.contract_version,
+                    "execution_boundary": adapter_status.execution_boundary,
+                    "requested_workspace_id": request.workspace_id,
+                    "requested_executor_id": request.executor_id,
+                },
+            ),
             logs=["Dispatch request received."],
             result_summary="Execution record opened for this dispatch attempt.",
         )
@@ -188,12 +192,15 @@ class DispatcherService:
                 execution.id,
                 status=ExecutionStatus.FAILED,
                 logs=["Configured adapter mode is not ready."],
-                details={
-                    "configured_mode": adapter_status.configured_mode,
-                    "adapter_family": policy.adapter_family,
-                    "adapter_contract_version": adapter_status.contract_version,
-                    "execution_boundary": adapter_status.execution_boundary,
-                },
+                details=self._with_prompt_safety(
+                    tool_name=request.tool,
+                    payload={
+                        "configured_mode": adapter_status.configured_mode,
+                        "adapter_family": policy.adapter_family,
+                        "adapter_contract_version": adapter_status.contract_version,
+                        "execution_boundary": adapter_status.execution_boundary,
+                    },
+                ),
                 result_summary="Rejected because the configured adapter mode is not ready.",
                 finished=True,
             )
@@ -262,7 +269,10 @@ class DispatcherService:
                 execution.id,
                 status=ExecutionStatus.BLOCKED,
                 logs=[f"Blocked by locks: {', '.join(lock.name for lock in conflicts)}."],
-                details={"conflicts": serialized_conflicts},
+                details=self._with_prompt_safety(
+                    tool_name=request.tool,
+                    payload={"conflicts": serialized_conflicts},
+                ),
                 result_summary="Blocked by an active lock.",
                 finished=True,
             )
@@ -329,14 +339,17 @@ class DispatcherService:
                 status=ExecutionStatus.FAILED,
                 warnings=adapter_status.notes,
                 logs=["Control-plane prechecks passed.", str(exc)],
-                details={
-                    "requested_locks": requested_locks,
-                    "granted_locks": [lock.name for lock in acquired_locks],
-                    "configured_mode": adapter_status.configured_mode,
-                    "adapter_family": policy.adapter_family,
-                    "adapter_contract_version": adapter_status.contract_version,
-                    "execution_boundary": adapter_status.execution_boundary,
-                },
+                details=self._with_prompt_safety(
+                    tool_name=request.tool,
+                    payload={
+                        "requested_locks": requested_locks,
+                        "granted_locks": [lock.name for lock in acquired_locks],
+                        "configured_mode": adapter_status.configured_mode,
+                        "adapter_family": policy.adapter_family,
+                        "adapter_contract_version": adapter_status.contract_version,
+                        "execution_boundary": adapter_status.execution_boundary,
+                    },
+                ),
                 result_summary="Adapter execution could not start with the current configuration.",
                 finished=True,
             )
@@ -382,11 +395,14 @@ class DispatcherService:
                 status=ExecutionStatus.FAILED,
                 warnings=exc.warnings,
                 logs=["Control-plane prechecks passed.", *exc.logs],
-                details={
-                    "requested_locks": requested_locks,
-                    "granted_locks": [lock.name for lock in acquired_locks],
-                    **exc.details,
-                },
+                details=self._with_prompt_safety(
+                    tool_name=request.tool,
+                    payload={
+                        "requested_locks": requested_locks,
+                        "granted_locks": [lock.name for lock in acquired_locks],
+                        **exc.details,
+                    },
+                ),
                 result_summary=result_summary,
                 finished=True,
             )
@@ -421,13 +437,16 @@ class DispatcherService:
                 logs=["Control-plane prechecks passed.", *exc.logs],
             )
 
-        running_execution_details = {
-            "requested_locks": requested_locks,
-            "granted_locks": [lock.name for lock in acquired_locks],
-            "requested_workspace_id": request.workspace_id,
-            "requested_executor_id": request.executor_id,
-            **adapter_report.execution_details,
-        }
+        running_execution_details = self._with_prompt_safety(
+            tool_name=request.tool,
+            payload={
+                "requested_locks": requested_locks,
+                "granted_locks": [lock.name for lock in acquired_locks],
+                "requested_workspace_id": request.workspace_id,
+                "requested_executor_id": request.executor_id,
+                **adapter_report.execution_details,
+            },
+        )
         executions_service.update_execution(
             execution.id,
             status=ExecutionStatus.RUNNING,
@@ -526,11 +545,14 @@ class DispatcherService:
             uri=adapter_report.artifact_uri.format(run_id=run.id, execution_id=execution.id),
             content_type="application/json",
             simulated=result.simulated,
-            metadata={
-                **adapter_report.artifact_metadata,
-                "requested_workspace_id": request.workspace_id,
-                "requested_executor_id": request.executor_id,
-            },
+            metadata=self._with_prompt_safety(
+                tool_name=request.tool,
+                payload={
+                    **adapter_report.artifact_metadata,
+                    "requested_workspace_id": request.workspace_id,
+                    "requested_executor_id": request.executor_id,
+                },
+            ),
             artifact_role=substrate_assignment["artifact_role"],
             executor_id=resolved_executor_id,
             workspace_id=resolved_workspace_id,
@@ -544,13 +566,16 @@ class DispatcherService:
             status=RunStatus.SUCCEEDED,
             result_summary=adapter_report.result_summary,
         )
-        succeeded_execution_details = {
-            "result": result.model_dump(),
-            "artifact_id": artifact.id,
-            "requested_workspace_id": request.workspace_id,
-            "requested_executor_id": request.executor_id,
-            **adapter_report.execution_details,
-        }
+        succeeded_execution_details = self._with_prompt_safety(
+            tool_name=request.tool,
+            payload={
+                "result": result.model_dump(),
+                "artifact_id": artifact.id,
+                "requested_workspace_id": request.workspace_id,
+                "requested_executor_id": request.executor_id,
+                **adapter_report.execution_details,
+            },
+        )
         executions_service.update_execution(
             execution.id,
             status=ExecutionStatus.SUCCEEDED,
@@ -865,7 +890,10 @@ class DispatcherService:
                 execution_id,
                 status=ExecutionStatus.WAITING_APPROVAL,
                 logs=["Waiting for explicit approval before tool execution."],
-                details={"approval_class": approval_class},
+                details=self._with_prompt_safety(
+                    tool_name=request.tool,
+                    payload={"approval_class": approval_class},
+                ),
                 result_summary="Waiting for approval before tool execution.",
                 finished=True,
             )
@@ -910,7 +938,10 @@ class DispatcherService:
                 execution_id,
                 status=ExecutionStatus.REJECTED,
                 logs=["Approval token validation failed."],
-                details={"approval_token": request.approval_token},
+                details=self._with_prompt_safety(
+                    tool_name=request.tool,
+                    payload={"approval_token": request.approval_token},
+                ),
                 result_summary="Rejected due to invalid approval token.",
                 finished=True,
             )
@@ -946,7 +977,10 @@ class DispatcherService:
                 execution_id,
                 status=ExecutionStatus.WAITING_APPROVAL,
                 logs=["Approval token exists but approval has not been granted yet."],
-                details={"approval_id": approval.id, "status": approval.status.value},
+                details=self._with_prompt_safety(
+                    tool_name=request.tool,
+                    payload={"approval_id": approval.id, "status": approval.status.value},
+                ),
                 result_summary="Approval token exists but has not been approved yet.",
                 finished=True,
             )
@@ -990,10 +1024,13 @@ class DispatcherService:
             execution_id,
             status=ExecutionStatus.FAILED,
             logs=["Tool argument validation failed before tool execution."],
-            details={
-                "args_schema_ref": schema_ref,
-                "arg_validation_errors": validation_errors,
-            },
+            details=self._with_prompt_safety(
+                tool_name=request.tool,
+                payload={
+                    "args_schema_ref": schema_ref,
+                    "arg_validation_errors": validation_errors,
+                },
+            ),
             result_summary="Rejected due to invalid tool arguments.",
             finished=True,
         )
@@ -1042,10 +1079,13 @@ class DispatcherService:
             execution_id,
             status=ExecutionStatus.FAILED,
             logs=["Adapter result validation failed before completion was reported."],
-            details={
-                "result_schema_ref": schema_ref,
-                "result_validation_errors": validation_errors,
-            },
+            details=self._with_prompt_safety(
+                tool_name=request.tool,
+                payload={
+                    "result_schema_ref": schema_ref,
+                    "result_validation_errors": validation_errors,
+                },
+            ),
             result_summary="Rejected because the adapter result failed schema conformance.",
             finished=True,
         )
@@ -1095,11 +1135,14 @@ class DispatcherService:
             execution_id,
             status=ExecutionStatus.FAILED,
             logs=[f"Persisted {payload_kind} validation failed before completion was reported."],
-            details={
-                "persisted_schema_ref": schema_ref,
-                "persisted_payload_kind": payload_kind,
-                "persisted_validation_errors": validation_errors,
-            },
+            details=self._with_prompt_safety(
+                tool_name=request.tool,
+                payload={
+                    "persisted_schema_ref": schema_ref,
+                    "persisted_payload_kind": payload_kind,
+                    "persisted_validation_errors": validation_errors,
+                },
+            ),
             result_summary=f"Rejected because persisted {payload_kind} failed schema conformance.",
             finished=True,
         )
@@ -1138,6 +1181,22 @@ class DispatcherService:
     def _request_capability_status(self, request: RequestEnvelope) -> str:
         policy = policy_service.get_policy(request.agent, request.tool)
         return policy.capability_status if policy is not None else "unknown"
+
+    def _with_prompt_safety(
+        self,
+        *,
+        tool_name: str,
+        payload: dict[str, object],
+    ) -> dict[str, object]:
+        merged_payload = dict(payload)
+        capability = capability_registry_service.get_capability(tool_name)
+        if capability is None:
+            return merged_payload
+        merged_payload.setdefault(
+            "prompt_safety",
+            capability.safety_envelope.model_dump(mode="json"),
+        )
+        return merged_payload
 
     def _approval_capability_label(self, tool_name: str) -> str:
         tool = catalog_service.get_tool_definition("project-build", tool_name)

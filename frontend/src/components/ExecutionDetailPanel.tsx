@@ -15,10 +15,12 @@ import {
   getFallbackCategoryLabel,
   getInspectionSurfaceLabel,
   getManifestSourceOfTruthLabel,
+  readPromptSafetyEnvelope,
   readTruthMarkerString,
 } from "../lib/executionTruth";
 import LaneActionsCard, { type LaneActionEntry } from "./LaneActionsCard";
 import OperatorLaneStateBlock, { type OperatorLaneStateEntry } from "./OperatorLaneStateBlock";
+import PromptSafetySummaryCard from "./PromptSafetySummaryCard";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
 import RecordLineageStrip from "./RecordLineageStrip";
 import SummarySection from "./SummarySection";
@@ -174,6 +176,7 @@ export default function ExecutionDetailPanel({
   const projectInspectDetails = item?.tool === "project.inspect"
     ? readProjectInspectDetails(item.details)
     : null;
+  const promptSafetyEnvelope = readPromptSafetyEnvelope(item?.details ?? null);
   const truthMarkers = {
     inspection_surface: readTruthMarkerString(item?.details ?? null, "inspection_surface"),
     fallback_category: readTruthMarkerString(item?.details ?? null, "fallback_category"),
@@ -488,6 +491,7 @@ export default function ExecutionDetailPanel({
             </SummaryFact>
           </SummaryFacts>
         </article>
+        <PromptSafetySummaryCard safetyEnvelope={promptSafetyEnvelope} />
         {item ? (
           <article
             ref={relatedRecordsRef}

@@ -13,10 +13,12 @@ import {
   getFallbackCategoryLabel,
   getInspectionSurfaceLabel,
   getManifestSourceOfTruthLabel,
+  readPromptSafetyEnvelope,
   readTruthMarkerString,
 } from "../lib/executionTruth";
 import LaneActionsCard, { type LaneActionEntry } from "./LaneActionsCard";
 import OperatorLaneStateBlock, { type OperatorLaneStateEntry } from "./OperatorLaneStateBlock";
+import PromptSafetySummaryCard from "./PromptSafetySummaryCard";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
 import RecordLineageStrip from "./RecordLineageStrip";
 import SummarySection from "./SummarySection";
@@ -216,6 +218,7 @@ export default function ArtifactDetailPanel({
   const projectInspectDetails = item?.metadata && item.kind === "project_manifest_inspection"
     ? readProjectInspectDetails(item.metadata)
     : null;
+  const promptSafetyEnvelope = readPromptSafetyEnvelope(item?.metadata ?? null);
   const truthMarkers = {
     inspection_surface: readTruthMarkerString(item?.metadata ?? null, "inspection_surface"),
     fallback_category: readTruthMarkerString(item?.metadata ?? null, "fallback_category"),
@@ -541,6 +544,7 @@ export default function ArtifactDetailPanel({
             </SummaryFact>
           </SummaryFacts>
         </article>
+        <PromptSafetySummaryCard safetyEnvelope={promptSafetyEnvelope} />
         {item ? (
           <article
             ref={relatedRecordsRef}

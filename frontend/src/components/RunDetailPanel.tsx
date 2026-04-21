@@ -9,10 +9,12 @@ import {
   getInspectionSurfaceLabel,
   getManifestSourceOfTruthLabel,
   getRunTruthBoundaryDescription,
+  readPromptSafetyEnvelope,
   readTruthMarkerString,
 } from "../lib/executionTruth";
 import LaneActionsCard, { type LaneActionEntry } from "./LaneActionsCard";
 import OperatorLaneStateBlock, { type OperatorLaneStateEntry } from "./OperatorLaneStateBlock";
+import PromptSafetySummaryCard from "./PromptSafetySummaryCard";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
 import RecordLineageStrip from "./RecordLineageStrip";
 import SummarySection from "./SummarySection";
@@ -188,6 +190,7 @@ export default function RunDetailPanel({
   const [highlightedSection, setHighlightedSection] = useState<string | null>(null);
   const mutationAudit = readMutationAudit(executionDetails);
   const projectInspectDetails = readProjectInspectDetails(executionDetails);
+  const promptSafetyEnvelope = readPromptSafetyEnvelope(executionDetails);
   const truthMarkers = {
     inspection_surface: readTruthMarkerString(executionDetails, "inspection_surface"),
     fallback_category: readTruthMarkerString(executionDetails, "fallback_category"),
@@ -512,6 +515,7 @@ export default function RunDetailPanel({
             </SummaryFact>
           </SummaryFacts>
         </article>
+        <PromptSafetySummaryCard safetyEnvelope={promptSafetyEnvelope} />
         {item?.tool === "settings.patch" && mutationAudit ? (
           <article
             ref={mutationAuditRef}
