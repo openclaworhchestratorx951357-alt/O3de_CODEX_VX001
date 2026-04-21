@@ -97,7 +97,7 @@ export interface PromptPlanStep {
   simulated_allowed: boolean;
   depends_on: string[];
   capability_maturity: string;
-  safety_envelope: PromptSafetyEnvelope;
+  safety_envelope?: PromptSafetyEnvelope | null;
   planner_note?: string | null;
 }
 
@@ -128,7 +128,7 @@ export interface PromptCapabilityEntry {
   planner_intent_aliases: string[];
   natural_language_affordances: string[];
   allowlisted_parameter_surfaces: string[];
-  safety_envelope: PromptSafetyEnvelope;
+  safety_envelope?: PromptSafetyEnvelope | null;
   real_adapter_availability: boolean;
   dry_run_availability: boolean;
   simulation_fallback_availability: boolean;

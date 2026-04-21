@@ -11,6 +11,7 @@ export default function PromptCapabilityPanel({
   capabilities,
   session,
 }: PromptCapabilityPanelProps) {
+  const missingSafetyEnvelopeDetail = "not reported by current backend";
   const relevantCapabilities = session
     ? capabilities.filter((capability) => (
       session.admitted_capabilities.includes(capability.tool_name)
@@ -28,37 +29,46 @@ export default function PromptCapabilityPanel({
         <p style={emptyTextStyle}>No capability entries are relevant to the current prompt selection.</p>
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
-          {relevantCapabilities.map((capability) => (
-            <article key={capability.tool_name} style={capabilityCardStyle}>
-              <div style={capabilityHeaderStyle}>
-                <strong>{capability.tool_name}</strong>
-                <span style={subtleTextStyle}>{capability.agent_family}</span>
-              </div>
-              <div style={subtleTextStyle}>Maturity: {capability.capability_maturity}</div>
-              <div style={subtleTextStyle}>Capability status: {capability.capability_status}</div>
-              <div style={subtleTextStyle}>Real admission stage: {capability.real_admission_stage}</div>
-              <div style={subtleTextStyle}>
-                Natural-language status: {capability.safety_envelope.natural_language_status}
-              </div>
-              <div style={subtleTextStyle}>
-                State scope: {capability.safety_envelope.state_scope}
-              </div>
-              <div style={subtleTextStyle}>
-                Backup / rollback: {capability.safety_envelope.backup_class} / {capability.safety_envelope.rollback_class}
-              </div>
-              <div style={subtleTextStyle}>
-                Verification / retention: {capability.safety_envelope.verification_class} / {capability.safety_envelope.retention_class}
-              </div>
-              {capability.safety_envelope.natural_language_blocker ? (
-                <div style={blockerTextStyle}>
-                  Blocker: {capability.safety_envelope.natural_language_blocker}
+          {relevantCapabilities.map((capability) => {
+            const safetyEnvelope = capability.safety_envelope;
+
+            return (
+              <article key={capability.tool_name} style={capabilityCardStyle}>
+                <div style={capabilityHeaderStyle}>
+                  <strong>{capability.tool_name}</strong>
+                  <span style={subtleTextStyle}>{capability.agent_family}</span>
                 </div>
-              ) : null}
-              <div style={subtleTextStyle}>
-                Allowlisted params: {capability.allowlisted_parameter_surfaces.join(", ") || "none"}
-              </div>
-            </article>
-          ))}
+                <div style={subtleTextStyle}>Maturity: {capability.capability_maturity}</div>
+                <div style={subtleTextStyle}>Capability status: {capability.capability_status}</div>
+                <div style={subtleTextStyle}>Real admission stage: {capability.real_admission_stage}</div>
+                <div style={subtleTextStyle}>
+                  Natural-language status: {safetyEnvelope?.natural_language_status ?? missingSafetyEnvelopeDetail}
+                </div>
+                <div style={subtleTextStyle}>
+                  State scope: {safetyEnvelope?.state_scope ?? missingSafetyEnvelopeDetail}
+                </div>
+                <div style={subtleTextStyle}>
+                  Backup / rollback: {safetyEnvelope?.backup_class ?? missingSafetyEnvelopeDetail} / {safetyEnvelope?.rollback_class ?? missingSafetyEnvelopeDetail}
+                </div>
+                <div style={subtleTextStyle}>
+                  Verification / retention: {safetyEnvelope?.verification_class ?? missingSafetyEnvelopeDetail} / {safetyEnvelope?.retention_class ?? missingSafetyEnvelopeDetail}
+                </div>
+                {!safetyEnvelope ? (
+                  <div style={blockerTextStyle}>
+                    Safety envelope metadata is missing from the current backend payload; prompt-control detail for this capability is incomplete.
+                  </div>
+                ) : null}
+                {safetyEnvelope?.natural_language_blocker ? (
+                  <div style={blockerTextStyle}>
+                    Blocker: {safetyEnvelope.natural_language_blocker}
+                  </div>
+                ) : null}
+                <div style={subtleTextStyle}>
+                  Allowlisted params: {capability.allowlisted_parameter_surfaces.join(", ") || "none"}
+                </div>
+              </article>
+            );
+          })}
         </div>
       )}
     </section>

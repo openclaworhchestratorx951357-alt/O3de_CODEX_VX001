@@ -7,6 +7,8 @@ type PromptPlanPanelProps = {
 };
 
 export default function PromptPlanPanel({ session }: PromptPlanPanelProps) {
+  const missingSafetyEnvelopeDetail = "not reported by current backend";
+
   return (
     <section style={panelStyle}>
       <h3 style={{ marginTop: 0 }}>Prompt Plan</h3>
@@ -44,42 +46,51 @@ export default function PromptPlanPanel({ session }: PromptPlanPanelProps) {
           <div>
             <strong>Typed steps</strong>
             <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
-              {session.plan.steps.map((step) => (
-                <article key={step.step_id} style={stepCardStyle}>
-                  <div style={stepHeaderStyle}>
-                    <strong>{step.step_id}</strong>
-                    <span>{step.tool}</span>
-                  </div>
-                  <div style={subtleTextStyle}>Agent: {step.agent}</div>
-                  <div style={subtleTextStyle}>Approval: {step.approval_class}</div>
-                  <div style={subtleTextStyle}>Capability status: {step.capability_status_required}</div>
-                  <div style={subtleTextStyle}>Maturity: {step.capability_maturity}</div>
-                  <div style={subtleTextStyle}>
-                    Natural-language status: {step.safety_envelope.natural_language_status}
-                  </div>
-                  <div style={subtleTextStyle}>
-                    State scope: {step.safety_envelope.state_scope}
-                  </div>
-                  <div style={subtleTextStyle}>
-                    Backup / rollback: {step.safety_envelope.backup_class} / {step.safety_envelope.rollback_class}
-                  </div>
-                  <div style={subtleTextStyle}>
-                    Verification / retention: {step.safety_envelope.verification_class} / {step.safety_envelope.retention_class}
-                  </div>
-                  {step.safety_envelope.natural_language_blocker ? (
-                    <div style={blockerTextStyle}>
-                      Blocker: {step.safety_envelope.natural_language_blocker}
+              {session.plan.steps.map((step) => {
+                const safetyEnvelope = step.safety_envelope;
+
+                return (
+                  <article key={step.step_id} style={stepCardStyle}>
+                    <div style={stepHeaderStyle}>
+                      <strong>{step.step_id}</strong>
+                      <span>{step.tool}</span>
                     </div>
-                  ) : null}
-                  <div style={subtleTextStyle}>
-                    Execution truth: {step.simulated_allowed ? "simulated allowed" : "real path preferred"}
-                  </div>
-                  {step.depends_on.length > 0 ? (
-                    <div style={subtleTextStyle}>Depends on: {step.depends_on.join(", ")}</div>
-                  ) : null}
-                  <pre style={argsStyle}>{JSON.stringify(step.args, null, 2)}</pre>
-                </article>
-              ))}
+                    <div style={subtleTextStyle}>Agent: {step.agent}</div>
+                    <div style={subtleTextStyle}>Approval: {step.approval_class}</div>
+                    <div style={subtleTextStyle}>Capability status: {step.capability_status_required}</div>
+                    <div style={subtleTextStyle}>Maturity: {step.capability_maturity}</div>
+                    <div style={subtleTextStyle}>
+                      Natural-language status: {safetyEnvelope?.natural_language_status ?? missingSafetyEnvelopeDetail}
+                    </div>
+                    <div style={subtleTextStyle}>
+                      State scope: {safetyEnvelope?.state_scope ?? missingSafetyEnvelopeDetail}
+                    </div>
+                    <div style={subtleTextStyle}>
+                      Backup / rollback: {safetyEnvelope?.backup_class ?? missingSafetyEnvelopeDetail} / {safetyEnvelope?.rollback_class ?? missingSafetyEnvelopeDetail}
+                    </div>
+                    <div style={subtleTextStyle}>
+                      Verification / retention: {safetyEnvelope?.verification_class ?? missingSafetyEnvelopeDetail} / {safetyEnvelope?.retention_class ?? missingSafetyEnvelopeDetail}
+                    </div>
+                    {!safetyEnvelope ? (
+                      <div style={blockerTextStyle}>
+                        Safety envelope metadata is missing from the current backend payload; prompt-plan detail for this step is incomplete.
+                      </div>
+                    ) : null}
+                    {safetyEnvelope?.natural_language_blocker ? (
+                      <div style={blockerTextStyle}>
+                        Blocker: {safetyEnvelope.natural_language_blocker}
+                      </div>
+                    ) : null}
+                    <div style={subtleTextStyle}>
+                      Execution truth: {step.simulated_allowed ? "simulated allowed" : "real path preferred"}
+                    </div>
+                    {step.depends_on.length > 0 ? (
+                      <div style={subtleTextStyle}>Depends on: {step.depends_on.join(", ")}</div>
+                    ) : null}
+                    <pre style={argsStyle}>{JSON.stringify(step.args, null, 2)}</pre>
+                  </article>
+                );
+              })}
             </div>
           </div>
         </div>

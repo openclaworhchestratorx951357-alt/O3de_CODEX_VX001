@@ -311,4 +311,59 @@ const waitingSession: PromptSessionRecord = {
     expect(screen.getByText("exec-1")).toBeInTheDocument();
     expect(screen.getByText(/execution_mode/i)).toBeInTheDocument();
   });
+
+  it("keeps the prompt UI rendered when the live backend omits capability safety envelopes", async () => {
+    apiMocks.fetchPromptCapabilities.mockResolvedValue([
+      {
+        ...makeCapability("editor.session.open"),
+        safety_envelope: undefined,
+      },
+    ]);
+
+    render(<PromptControlPanel />);
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(
+      screen.getByText("Natural-language status: not reported by current backend"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Safety envelope metadata is missing from the current backend payload/i),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the prompt plan rendered when a persisted step omits its safety envelope", async () => {
+    const plannedSession = makePlannedSession();
+    const plan = plannedSession.plan!;
+    plan.steps = [
+      {
+        ...plan.steps[0],
+        safety_envelope: undefined,
+      },
+      ...plan.steps.slice(1),
+    ];
+    apiMocks.createPromptSession.mockResolvedValue(plannedSession);
+    apiMocks.fetchPromptSession.mockResolvedValue(plannedSession);
+
+    render(<PromptControlPanel />);
+
+    await screen.findByText("Prompt Capability Registry");
+    fireEvent.change(screen.getByLabelText("Prompt text"), {
+      target: { value: plannedSession.prompt_text },
+    });
+    fireEvent.change(screen.getByLabelText("Project root"), {
+      target: { value: plannedSession.project_root },
+    });
+    fireEvent.change(screen.getByLabelText("Engine root"), {
+      target: { value: plannedSession.engine_root },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Preview Prompt Plan" }));
+
+    await screen.findByText("Prompt Plan");
+    expect(
+      screen.getAllByText("Natural-language status: not reported by current backend").length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByText(/prompt-plan detail for this step is incomplete/i),
+    ).toBeInTheDocument();
+  });
 });
