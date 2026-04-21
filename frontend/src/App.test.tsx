@@ -6,6 +6,7 @@ import App from "./App";
 const ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY = "o3de-control-app-active-desktop-workspace";
 const ACTIVE_OPERATIONS_SURFACE_SESSION_KEY = "o3de-control-app-active-operations-surface";
 const ACTIVE_RUNTIME_SURFACE_SESSION_KEY = "o3de-control-app-active-runtime-surface";
+const ACTIVE_RECORDS_SURFACE_SESSION_KEY = "o3de-control-app-active-records-surface";
 
 const apiMocks = vi.hoisted(() => ({
   approveApproval: vi.fn(),
@@ -40,6 +41,14 @@ vi.mock("./lib/api", () => apiMocks);
 
 vi.mock("./components/AdaptersPanel", () => ({
   default: () => <div>AdaptersPanel stub</div>,
+}));
+
+vi.mock("./components/ArtifactsPanel", () => ({
+  default: () => <div>ArtifactsPanel stub</div>,
+}));
+
+vi.mock("./components/ExecutionsPanel", () => ({
+  default: () => <div>ExecutionsPanel stub</div>,
 }));
 
 vi.mock("./components/LayoutHeader", () => ({
@@ -88,6 +97,10 @@ vi.mock("./components/OverviewReviewSessionPanel", () => ({
 
 vi.mock("./components/PromptControlPanel", () => ({
   default: () => <div>PromptControlPanel stub</div>,
+}));
+
+vi.mock("./components/RunsPanel", () => ({
+  default: () => <div>RunsPanel stub</div>,
 }));
 
 vi.mock("./components/SystemStatusPanel", () => ({
@@ -239,5 +252,49 @@ describe("App desktop shell", () => {
     render(<App />);
 
     expect(await screen.findByText("ExecutorsPanel stub")).toBeInTheDocument();
+  });
+
+  it("restores the records executions surface from session storage after remount", async () => {
+    const { unmount } = render(<App />);
+
+    const recordsShortcut = screen.getByText(
+      "Runs, executions, artifacts, and detail drilldowns in one organized lane.",
+    ).closest("button");
+
+    expect(recordsShortcut).not.toBeNull();
+    fireEvent.click(recordsShortcut as HTMLButtonElement);
+
+    const executionsSurfaceButton = screen.getAllByRole("button").find((button) => (
+      button.textContent?.includes("Executions")
+      && button.textContent?.includes("Execution warnings, truth markers, and child evidence.")
+    ));
+
+    expect(executionsSurfaceButton).not.toBeUndefined();
+    fireEvent.click(executionsSurfaceButton as HTMLButtonElement);
+
+    expect(screen.getByText("Records Explorer")).toBeInTheDocument();
+    expect(screen.getByText("ExecutionsPanel stub")).toBeInTheDocument();
+    expect(
+      window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
+    ).toBe("records");
+    expect(
+      window.sessionStorage.getItem(ACTIVE_RECORDS_SURFACE_SESSION_KEY),
+    ).toBe("executions");
+    expect(executionsSurfaceButton).toHaveStyle({
+      boxShadow: "0 14px 28px rgba(41, 83, 165, 0.14)",
+    });
+
+    unmount();
+    render(<App />);
+
+    const restoredExecutionsSurfaceButton = screen.getAllByRole("button").find((button) => (
+      button.textContent?.includes("Executions")
+      && button.textContent?.includes("Execution warnings, truth markers, and child evidence.")
+    ));
+
+    expect(restoredExecutionsSurfaceButton).not.toBeUndefined();
+    expect(restoredExecutionsSurfaceButton).toHaveStyle({
+      boxShadow: "0 14px 28px rgba(41, 83, 165, 0.14)",
+    });
   });
 });
