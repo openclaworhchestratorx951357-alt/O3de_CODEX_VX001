@@ -59,6 +59,10 @@ vi.mock("./components/ExecutorsPanel", () => ({
   default: () => <div>ExecutorsPanel stub</div>,
 }));
 
+vi.mock("./components/LocksPanel", () => ({
+  default: () => <div>LocksPanel stub</div>,
+}));
+
 vi.mock("./components/OperatorOverviewPanel", () => ({
   default: () => <div>OperatorOverviewPanel stub</div>,
 }));
@@ -93,6 +97,10 @@ vi.mock("./components/OverviewReviewQueuePanel", () => ({
 
 vi.mock("./components/OverviewReviewSessionPanel", () => ({
   default: () => <div>OverviewReviewSessionPanel stub</div>,
+}));
+
+vi.mock("./components/Phase7CapabilitySummaryPanel", () => ({
+  default: () => <div>Phase7CapabilitySummaryPanel stub</div>,
 }));
 
 vi.mock("./components/PromptControlPanel", () => ({
@@ -141,6 +149,39 @@ function getDesktopTabButton(label: string, detail: string): HTMLButtonElement {
 
   return button as HTMLButtonElement;
 }
+
+function expectDesktopTabActive(button: HTMLButtonElement): void {
+  expect(button).toHaveStyle({
+    boxShadow: "0 14px 28px rgba(41, 83, 165, 0.14)",
+  });
+}
+
+const PARTIAL_SURFACE_HYDRATION_CASES = [
+  {
+    workspaceId: "operations",
+    surfaceSessionKey: ACTIVE_OPERATIONS_SURFACE_SESSION_KEY,
+    invalidSurfaceValue: "invalid-operations",
+    expectedSurfaceValue: "dispatch",
+    expectedTabLabel: "Dispatch",
+    expectedTabDetail: "Catalog, typed dispatch, and latest response envelope.",
+  },
+  {
+    workspaceId: "runtime",
+    surfaceSessionKey: ACTIVE_RUNTIME_SURFACE_SESSION_KEY,
+    invalidSurfaceValue: "invalid-runtime",
+    expectedSurfaceValue: "overview",
+    expectedTabLabel: "Overview",
+    expectedTabDetail: "Bridge health, runtime status, and system summaries.",
+  },
+  {
+    workspaceId: "records",
+    surfaceSessionKey: ACTIVE_RECORDS_SURFACE_SESSION_KEY,
+    invalidSurfaceValue: "invalid-records",
+    expectedSurfaceValue: "runs",
+    expectedTabLabel: "Runs",
+    expectedTabDetail: "Dispatch lineage and run-level audit slices.",
+  },
+] as const;
 
 describe("App desktop shell", () => {
   beforeEach(() => {
@@ -257,6 +298,47 @@ describe("App desktop shell", () => {
     expect(await screen.findByText("ExecutorsPanel stub")).toBeInTheDocument();
   });
 
+  it("restores the runtime governance surface from session storage after remount", async () => {
+    const { unmount } = render(<App />);
+
+    fireEvent.click(getLaunchpadButton(
+      "Bridge status, executors, workspaces, and governance health.",
+    ));
+
+    fireEvent.click(getDesktopTabButton(
+      "Governance",
+      "Policies, locks, and admitted capability posture.",
+    ));
+
+    expect(await screen.findByText("Governance Deck")).toBeInTheDocument();
+    expect(screen.getByText("Phase7CapabilitySummaryPanel stub")).toBeInTheDocument();
+    expect(screen.getByText("LocksPanel stub")).toBeInTheDocument();
+    expect(
+      window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
+    ).toBe("runtime");
+    expect(
+      window.sessionStorage.getItem(ACTIVE_RUNTIME_SURFACE_SESSION_KEY),
+    ).toBe("governance");
+    expectDesktopTabActive(getDesktopTabButton(
+      "Governance",
+      "Policies, locks, and admitted capability posture.",
+    ));
+
+    unmount();
+    render(<App />);
+
+    expect(await screen.findByText("Governance Deck")).toBeInTheDocument();
+
+    const restoredGovernanceSurfaceButton = getDesktopTabButton(
+      "Governance",
+      "Policies, locks, and admitted capability posture.",
+    );
+
+    expect(screen.getByText("Phase7CapabilitySummaryPanel stub")).toBeInTheDocument();
+    expect(screen.getByText("LocksPanel stub")).toBeInTheDocument();
+    expectDesktopTabActive(restoredGovernanceSurfaceButton);
+  });
+
   it("restores the prompt workspace from session storage after remount", async () => {
     const { unmount } = render(<App />);
 
@@ -297,9 +379,7 @@ describe("App desktop shell", () => {
     expect(
       window.sessionStorage.getItem(ACTIVE_RECORDS_SURFACE_SESSION_KEY),
     ).toBe("executions");
-    expect(executionsSurfaceButton).toHaveStyle({
-      boxShadow: "0 14px 28px rgba(41, 83, 165, 0.14)",
-    });
+    expectDesktopTabActive(executionsSurfaceButton);
 
     unmount();
     render(<App />);
@@ -309,9 +389,45 @@ describe("App desktop shell", () => {
       "Execution warnings, truth markers, and child evidence.",
     );
 
-    expect(restoredExecutionsSurfaceButton).toHaveStyle({
-      boxShadow: "0 14px 28px rgba(41, 83, 165, 0.14)",
-    });
+    expectDesktopTabActive(restoredExecutionsSurfaceButton);
+  });
+
+  it.each(PARTIAL_SURFACE_HYDRATION_CASES)(
+    "restores the $workspaceId workspace and falls back to the default surface when the stored surface is invalid",
+    ({
+      workspaceId,
+      surfaceSessionKey,
+      invalidSurfaceValue,
+      expectedSurfaceValue,
+      expectedTabLabel,
+      expectedTabDetail,
+    }) => {
+      window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, workspaceId);
+      window.sessionStorage.setItem(surfaceSessionKey, invalidSurfaceValue);
+
+      render(<App />);
+
+      const defaultSurfaceButton = getDesktopTabButton(expectedTabLabel, expectedTabDetail);
+
+      expect(window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY)).toBe(workspaceId);
+      expect(window.sessionStorage.getItem(surfaceSessionKey)).toBe(expectedSurfaceValue);
+      expectDesktopTabActive(defaultSurfaceButton);
+    },
+  );
+
+  it("preserves valid workspace restoration when unrelated surface session values are invalid", () => {
+    window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "prompt");
+    window.sessionStorage.setItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY, "invalid-operations");
+    window.sessionStorage.setItem(ACTIVE_RUNTIME_SURFACE_SESSION_KEY, "invalid-runtime");
+    window.sessionStorage.setItem(ACTIVE_RECORDS_SURFACE_SESSION_KEY, "invalid-records");
+
+    render(<App />);
+
+    expect(screen.getByText("PromptControlPanel stub")).toBeInTheDocument();
+    expect(window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY)).toBe("prompt");
+    expect(window.sessionStorage.getItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY)).toBe("dispatch");
+    expect(window.sessionStorage.getItem(ACTIVE_RUNTIME_SURFACE_SESSION_KEY)).toBe("overview");
+    expect(window.sessionStorage.getItem(ACTIVE_RECORDS_SURFACE_SESSION_KEY)).toBe("runs");
   });
 
   it("falls back to default workspace surfaces when persisted session values are invalid", () => {
