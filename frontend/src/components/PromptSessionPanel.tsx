@@ -3,6 +3,8 @@ import type { CSSProperties } from "react";
 import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { PromptSessionRecord } from "../types/contracts";
 import PanelGuideDetails from "./PanelGuideDetails";
+import StatusChip from "./StatusChip";
+import { getPromptSessionStatusTone } from "./statusChipTones";
 
 const promptSessionsGuide = getPanelGuide("prompt-sessions");
 const promptSessionsEntryControlGuide = getPanelControlGuide("prompt-sessions", "session-entry");
@@ -48,7 +50,10 @@ export default function PromptSessionPanel({
               >
                 <div style={sessionHeaderStyle}>
                   <strong>{session.prompt_id}</strong>
-                  <span style={statusStyle}>{session.status}</span>
+                  <StatusChip
+                    label={session.status}
+                    tone={getPromptSessionStatusTone(session.status)}
+                  />
                 </div>
                 <div style={promptTextPreviewStyle}>{session.prompt_text}</div>
                 <div style={subtleTextStyle}>
@@ -90,11 +95,6 @@ const sessionHeaderStyle = {
   display: "flex",
   justifyContent: "space-between",
   gap: 12,
-} satisfies CSSProperties;
-
-const statusStyle = {
-  color: "var(--app-muted-color)",
-  textTransform: "capitalize" as const,
 } satisfies CSSProperties;
 
 const promptTextPreviewStyle = {
