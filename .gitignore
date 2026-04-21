@@ -14,3 +14,5 @@ backend/backend/runtime/
 frontend/node_modules/
 frontend/dist/
 frontend/*.tsbuildinfo
+frontend/vite-dev.err.log
+frontend/vite-dev.out.log
