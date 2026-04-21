@@ -5,6 +5,12 @@ backend/.vendor_tools/
 /.runtime/
 /runtime/
 backend/.runtime/
+backend/runtime/editor_payloads/
+backend/runtime/editor_results/
+backend/runtime/editor_state/
+backend/runtime/*.sqlite3
+backend/runtime/*.log
+backend/backend/runtime/
 frontend/node_modules/
 frontend/dist/
 frontend/*.tsbuildinfo

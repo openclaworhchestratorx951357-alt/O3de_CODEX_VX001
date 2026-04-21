@@ -20,6 +20,7 @@ See these official source files:
 - `docs/PHASE-6B-PERSISTENCE-CHANGESET.md`
 - `docs/PHASE-7-CHECKPOINT.md`
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md`
+- `docs/UNPUBLISHED-WORKTREE-INVENTORY.md`
 - `docs/PERSISTED-SCHEMA-COVERAGE-CHECKPOINT.md`
 - `docs/PHASE-7-REAL-ADAPTER-GATE.md`
 - `docs/PHASE-7-FIRST-MUTATION-CANDIDATE.md`
@@ -48,6 +49,8 @@ Current Phase 7 checkpoint truth:
   current tested local targets
 - the operator proof checklist for the admitted editor-runtime boundary lives in
   `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md`
+- the current post-publish dirty-tree classification lives in
+  `docs/UNPUBLISHED-WORKTREE-INVENTORY.md`
 - the next safest refinement is still manifest-adjacent and keeps settings/Gem evidence on `project.json`
 - `build.configure` is still only a real plan-only preflight path
 - mutation surfaces remain gated
