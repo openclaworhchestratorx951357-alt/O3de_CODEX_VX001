@@ -55,7 +55,9 @@ const tabStripStyle = {
 } satisfies CSSProperties;
 
 const tabButtonStyle = {
-  border: "1px solid rgba(137, 156, 196, 0.2)",
+  borderWidth: 1,
+  borderStyle: "solid",
+  borderColor: "rgba(137, 156, 196, 0.2)",
   borderRadius: 18,
   padding: "12px 14px",
   background: "rgba(244, 248, 255, 0.78)",
