@@ -82,6 +82,8 @@ class O3DEBridgeStatus(BaseModel):
     source_label: str = Field(..., min_length=1)
     configured: bool = False
     heartbeat_fresh: bool = False
+    heartbeat_age_s: float | None = None
+    runner_process_active: bool = False
     queue_counts: O3DEBridgeQueueCounts = Field(default_factory=O3DEBridgeQueueCounts)
     heartbeat: dict[str, Any] | None = None
     last_results_cleanup: O3DEBridgeCleanupStatus | None = None

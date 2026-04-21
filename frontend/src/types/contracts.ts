@@ -235,6 +235,8 @@ export interface O3DEBridgeStatus {
   source_label: string;
   configured: boolean;
   heartbeat_fresh: boolean;
+  heartbeat_age_s?: number | null;
+  runner_process_active: boolean;
   queue_counts: O3DEBridgeQueueCounts;
   heartbeat?: Record<string, unknown> | null;
   last_results_cleanup?: O3DEBridgeCleanupStatus | null;

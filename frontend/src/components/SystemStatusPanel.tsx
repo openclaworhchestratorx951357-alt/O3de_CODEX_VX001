@@ -97,6 +97,12 @@ export default function SystemStatusPanel(
                   tone={heartbeatRunning === true ? "success" : heartbeatRunning === false ? "danger" : "neutral"}
                 />
               </SummaryFact>
+              <SummaryFact label="Editor process active">
+                <StatusChip
+                  label={bridgeData?.runner_process_active ? "yes" : "no"}
+                  tone={bridgeData?.runner_process_active ? "success" : "warning"}
+                />
+              </SummaryFact>
               <SummaryFact label="Results queue">
                 {bridgeData?.queue_counts.results ?? 0}
               </SummaryFact>
@@ -108,6 +114,9 @@ export default function SystemStatusPanel(
               </SummaryFact>
               <SummaryFact label="Last heartbeat">
                 {formatBridgeValue(formatIsoLabel(heartbeatAt))}
+              </SummaryFact>
+              <SummaryFact label="Heartbeat age">
+                {formatHeartbeatAge(bridgeData?.heartbeat_age_s)}
               </SummaryFact>
               <SummaryFact label="Project root">
                 {formatBridgeValue(heartbeatProjectRoot, "not reported")}
@@ -421,6 +430,14 @@ function formatBridgeCleanupOutcome(
   return cleanupStatus.outcome;
 }
 
+function formatHeartbeatAge(value: number | null | undefined) {
+  if (typeof value !== "number" || Number.isNaN(value) || value < 0) {
+    return "not reported";
+  }
+
+  return `${Math.round(value)}s`;
+}
+
 function buildBridgeDeadletterExport(bridgeData: O3DEBridgeStatus | null): string | null {
   if (!bridgeData || !bridgeData.recent_deadletters || bridgeData.recent_deadletters.length === 0) {
     return null;
@@ -474,6 +491,16 @@ function summarizeBridgeDeadletterCluster(
 function buildBridgeHeartbeatLagNote(
   bridgeData: O3DEBridgeStatus | null,
 ): string | null {
+  if (
+    bridgeData
+    && !bridgeData.heartbeat_fresh
+    && bridgeData.runner_process_active
+    && bridgeData.heartbeat
+    && bridgeData.heartbeat.running === true
+  ) {
+    return "Bridge heartbeat is stale even though the editor process is still active. This usually means the persistent bridge loop is no longer advancing, so backend bridge checks may retry or time out until heartbeat pulses resume or the host is restarted.";
+  }
+
   if (!bridgeData?.heartbeat_fresh) {
     return null;
   }

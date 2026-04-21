@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -35,6 +36,22 @@ def _path_is_file(value: str | None) -> bool:
     return Path(value).expanduser().is_file()
 
 
+def _read_runner_command() -> list[str]:
+    raw_runner = _read_env("O3DE_TARGET_EDITOR_RUNNER") or _read_env("O3DE_EDITOR_SCRIPT_RUNNER")
+    if not raw_runner:
+        return []
+    return shlex.split(raw_runner, posix=os.name != "nt")
+
+
+def _read_heartbeat_age_s(heartbeat: dict[str, object] | None) -> float | None:
+    if heartbeat is None:
+        return None
+    heartbeat_epoch = heartbeat.get("heartbeat_epoch_s")
+    if not isinstance(heartbeat_epoch, (int, float)):
+        return None
+    return max(0.0, time.time() - float(heartbeat_epoch))
+
+
 class O3DETargetService:
     def __init__(self) -> None:
         self._last_results_cleanup_by_project_root: dict[str, O3DEBridgeCleanupStatus] = {}
@@ -63,6 +80,8 @@ class O3DETargetService:
             return O3DEBridgeStatus(source_label=BRIDGE_STATUS_SOURCE_LABEL)
 
         bridge_paths = editor_automation_runtime_service._bridge_paths(project_root)  # noqa: SLF001
+        heartbeat = editor_automation_runtime_service._read_bridge_heartbeat(project_root)  # noqa: SLF001
+        runner_command = _read_runner_command()
         return O3DEBridgeStatus(
             project_root=project_root,
             project_root_exists=_path_exists(project_root),
@@ -76,10 +95,16 @@ class O3DETargetService:
             source_label=BRIDGE_STATUS_SOURCE_LABEL,
             configured=True,
             heartbeat_fresh=editor_automation_runtime_service._bridge_is_healthy(project_root),  # noqa: SLF001
+            heartbeat_age_s=_read_heartbeat_age_s(heartbeat),
+            runner_process_active=(
+                editor_automation_runtime_service._bridge_runner_process_is_active(runner_command)  # noqa: SLF001
+                if runner_command
+                else False
+            ),
             queue_counts=O3DEBridgeQueueCounts(
                 **editor_automation_runtime_service._bridge_queue_counts(project_root)  # noqa: SLF001
             ),
-            heartbeat=editor_automation_runtime_service._read_bridge_heartbeat(project_root),  # noqa: SLF001
+            heartbeat=heartbeat,
             last_results_cleanup=self._last_results_cleanup_by_project_root.get(project_root),
             recent_deadletters=editor_automation_runtime_service._recent_bridge_deadletters(project_root),  # noqa: SLF001
         )

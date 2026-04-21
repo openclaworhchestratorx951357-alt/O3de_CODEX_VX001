@@ -96,6 +96,8 @@ const bridgeStatus: O3DEBridgeStatus = {
   source_label: "project-local-control-plane-editor-bridge",
   configured: true,
   heartbeat_fresh: true,
+  heartbeat_age_s: 2,
+  runner_process_active: true,
   queue_counts: {
     inbox: 0,
     processing: 0,
@@ -157,6 +159,8 @@ describe("SystemStatusPanel", () => {
     expect(screen.getByText("Editor Bridge")).toBeInTheDocument();
     expect(screen.getByText("How to use this panel")).toBeInTheDocument();
     expect(screen.getByText("Heartbeat fresh")).toBeInTheDocument();
+    expect(screen.getByText("Editor process active")).toBeInTheDocument();
+    expect(screen.getByText("Heartbeat age")).toBeInTheDocument();
     expect(screen.getByText("Recent deadletters")).toBeInTheDocument();
     expect(screen.getByText("Deadletter path")).toBeInTheDocument();
     expect(screen.getByText("Bridge log path")).toBeInTheDocument();
@@ -192,6 +196,7 @@ describe("SystemStatusPanel", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText("Backend")).toBeInTheDocument();
+    expect(screen.getByText("2s")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Clear stale success results" }));
     expect(handleCleanupBridgeResults).toHaveBeenCalledTimes(1);
@@ -265,5 +270,34 @@ describe("SystemStatusPanel", () => {
     expect(
       screen.getByText(/Bridge heartbeat is healthy, but the editor context snapshot may still be catching up after a real editor action\./i),
     ).toBeInTheDocument();
+  });
+
+  it("renders a stale-heartbeat note when the editor process is still alive", () => {
+    render(
+      <SystemStatusPanel
+        readiness={readiness}
+        bridgeStatus={{
+          ...bridgeStatus,
+          heartbeat_fresh: false,
+          heartbeat_age_s: 47,
+          runner_process_active: true,
+          heartbeat: {
+            ...bridgeStatus.heartbeat,
+            running: true,
+          },
+        }}
+        loading={false}
+        error={null}
+        bridgeError={null}
+        bridgeCleanupBusy={false}
+        bridgeCleanupStatus={null}
+        onCleanupBridgeResults={null}
+      />,
+    );
+
+    expect(
+      screen.getByText(/Bridge heartbeat is stale even though the editor process is still active\./i),
+    ).toBeInTheDocument();
+    expect(screen.getByText("47s")).toBeInTheDocument();
   });
 });

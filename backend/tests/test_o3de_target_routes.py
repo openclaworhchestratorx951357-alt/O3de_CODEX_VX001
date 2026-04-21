@@ -118,6 +118,9 @@ def test_o3de_bridge_route_exposes_transport_diagnostics() -> None:
                 assert payload["log_path"] == str(bridge_root / "logs" / "control_plane_bridge.log")
                 assert payload["source_label"] == "project-local-control-plane-editor-bridge"
                 assert payload["heartbeat_fresh"] is True
+                assert isinstance(payload["heartbeat_age_s"], float)
+                assert payload["heartbeat_age_s"] >= 0
+                assert payload["runner_process_active"] is False
                 assert payload["queue_counts"] == {
                     "inbox": 0,
                     "processing": 0,
