@@ -46,6 +46,16 @@ export function getPromptSessionStatusTone(status: string): StatusChipTone {
   return "neutral";
 }
 
+export function getBooleanFlagTone(
+  value: boolean,
+  options: {
+    trueTone?: StatusChipTone;
+    falseTone?: StatusChipTone;
+  } = {},
+): StatusChipTone {
+  return value ? (options.trueTone ?? "success") : (options.falseTone ?? "neutral");
+}
+
 export function getExecutionModeTone(mode: string): StatusChipTone {
   if (mode === "real") {
     return "success";

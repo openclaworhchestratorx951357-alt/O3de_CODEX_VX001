@@ -5,6 +5,7 @@ import type { PromptSessionRecord } from "../types/contracts";
 import PanelGuideDetails from "./PanelGuideDetails";
 import StatusChip from "./StatusChip";
 import {
+  getBooleanFlagTone,
   getExecutionModeTone,
   getPromptSessionStatusTone,
 } from "./statusChipTones";
@@ -49,12 +50,24 @@ export default function PromptExecutionTimeline({
             </div>
             <div><strong>Workspace:</strong> {session.workspace_id ?? "none selected"}</div>
             <div><strong>Executor:</strong> {session.executor_id ?? "none selected"}</div>
-            <div><strong>Dry run:</strong> {session.dry_run ? "true" : "false"}</div>
+            <div>
+              <strong>Dry run:</strong>{" "}
+              <StatusChip
+                label={session.dry_run ? "enabled" : "disabled"}
+                tone={getBooleanFlagTone(session.dry_run, { trueTone: "warning" })}
+              />
+            </div>
             <div><strong>Next step index:</strong> {session.next_step_index}</div>
             <div><strong>Current step:</strong> {session.current_step_id ?? "none"}</div>
             <div><strong>Pending approval:</strong> {session.pending_approval_id ?? "none"}</div>
             <div><strong>Last error:</strong> {session.last_error_code ?? "none"}</div>
-            <div><strong>Retryable:</strong> {session.last_error_retryable ? "true" : "false"}</div>
+            <div>
+              <strong>Retryable:</strong>{" "}
+              <StatusChip
+                label={session.last_error_retryable ? "yes" : "no"}
+                tone={getBooleanFlagTone(session.last_error_retryable, { trueTone: "warning" })}
+              />
+            </div>
             <div><strong>Plan summary:</strong> {session.plan_summary ?? "none"}</div>
             <div><strong>Evidence summary:</strong> {session.evidence_summary ?? "none"}</div>
             <div><strong>Final result:</strong> {session.final_result_summary ?? "none"}</div>
@@ -97,7 +110,13 @@ export default function PromptExecutionTimeline({
                       )}
                     </div>
                     {typeof response.simulated === "boolean" ? (
-                      <div style={subtleTextStyle}>Simulated: {response.simulated ? "true" : "false"}</div>
+                      <div style={subtleTextStyle}>
+                        Simulated:{" "}
+                        <StatusChip
+                          label={response.simulated ? "yes" : "no"}
+                          tone={getBooleanFlagTone(response.simulated, { trueTone: "warning" })}
+                        />
+                      </div>
                     ) : null}
                     {response.errorCode ? (
                       <div style={subtleTextStyle}>Error code: {response.errorCode}</div>

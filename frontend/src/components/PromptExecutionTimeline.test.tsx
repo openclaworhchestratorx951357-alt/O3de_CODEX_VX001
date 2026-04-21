@@ -69,6 +69,8 @@ describe("PromptExecutionTimeline", () => {
     expect(secondChildResponse).not.toBeNull();
 
     expect(screen.getByText("waiting_approval")).toBeInTheDocument();
+    expect(screen.getByText("disabled")).toBeInTheDocument();
+    expect(screen.getByText("yes")).toBeInTheDocument();
     expect(screen.getByText("approval-2")).toBeInTheDocument();
 
     expect(within(firstChildResponse as HTMLElement).getByText("ok")).toBeInTheDocument();
@@ -76,7 +78,7 @@ describe("PromptExecutionTimeline", () => {
       within(firstChildResponse as HTMLElement).getByText(/Tool:/),
     ).toHaveTextContent("Tool: editor.session.open");
     expect(within(firstChildResponse as HTMLElement).getByText("real")).toBeInTheDocument();
-    expect(within(firstChildResponse as HTMLElement).getByText("Simulated: false")).toBeInTheDocument();
+    expect(within(firstChildResponse as HTMLElement).getByText(/Simulated:/)).toHaveTextContent("Simulated: no");
 
     expect(within(secondChildResponse as HTMLElement).getByText("error")).toBeInTheDocument();
     expect(within(secondChildResponse as HTMLElement).getByText("Execution mode: not reported")).toBeInTheDocument();
