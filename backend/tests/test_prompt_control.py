@@ -68,6 +68,22 @@ def test_prompt_session_preview_compiles_typed_steps_across_families() -> None:
             "render-lookdev",
             "validation",
         }
+        project_inspect = next(
+            item for item in capabilities if item["tool_name"] == "project.inspect"
+        )
+        assert project_inspect["safety_envelope"]["natural_language_status"] == (
+            "prompt-ready-read-only"
+        )
+        assert project_inspect["safety_envelope"]["backup_class"] == "none"
+        editor_entity_create = next(
+            item for item in capabilities if item["tool_name"] == "editor.entity.create"
+        )
+        assert editor_entity_create["safety_envelope"]["natural_language_status"] == (
+            "prompt-blocked-pending-admission"
+        )
+        assert "Excluded from the admitted real set" in (
+            editor_entity_create["safety_envelope"]["natural_language_blocker"]
+        )
 
 
 def test_prompt_session_execute_creates_child_lineage_and_pauses_for_approval() -> None:
@@ -431,6 +447,11 @@ def test_prompt_session_executes_admitted_real_editor_session_and_level_through_
                         ]
                         assert all(
                             step["capability_maturity"] == "real-authoring"
+                            for step in create_payload["plan"]["steps"]
+                        )
+                        assert all(
+                            step["safety_envelope"]["natural_language_status"]
+                            == "prompt-ready-approval-gated"
                             for step in create_payload["plan"]["steps"]
                         )
                         assert all(

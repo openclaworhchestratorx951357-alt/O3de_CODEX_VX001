@@ -2,7 +2,11 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import PromptControlPanel from "./PromptControlPanel";
-import type { PromptCapabilityEntry, PromptSessionRecord } from "../types/contracts";
+import type {
+  PromptCapabilityEntry,
+  PromptSafetyEnvelope,
+  PromptSessionRecord,
+} from "../types/contracts";
 
 const apiMocks = vi.hoisted(() => ({
   createPromptSession: vi.fn(),
@@ -20,6 +24,34 @@ function makeCapability(toolName: string): PromptCapabilityEntry {
   const realAdmissionStage = toolName === "editor.entity.create"
     ? "runtime-reaching-excluded-from-admitted-real"
     : "real-editor-authoring-active";
+  const safetyEnvelope: PromptSafetyEnvelope = toolName === "editor.entity.create"
+    ? {
+        state_scope: "Explicit entity creation within the currently loaded level.",
+        backup_class: "operator-managed-level-snapshot-before-entity-mutation",
+        rollback_class: "manual-level-restore-or-explicit-entity-removal",
+        verification_class: "entity-readback-and-level-context verification",
+        retention_class: "runtime-reaching-editor-evidence",
+        natural_language_status: "prompt-blocked-pending-admission",
+        natural_language_blocker:
+          "Excluded from the admitted real set on current tested local targets until prefab-safe entity creation is proven stable.",
+      }
+    : {
+        state_scope: toolName === "editor.session.open"
+          ? "Editor-session attachment scoped to the active project target."
+          : "Explicit level open/create within the current editor project context.",
+        backup_class: toolName === "editor.session.open"
+          ? "none"
+          : "operator-managed-level-snapshot-when-creating-or-overwriting",
+        rollback_class: toolName === "editor.session.open"
+          ? "none"
+          : "manual-level-restore-or-level-delete",
+        verification_class: toolName === "editor.session.open"
+          ? "editor-session heartbeat and runtime context verification"
+          : "loaded-level-context verification",
+        retention_class: "editor-runtime-evidence",
+        natural_language_status: "prompt-ready-approval-gated",
+        natural_language_blocker: null,
+      };
   return {
     tool_name: toolName,
     agent_family: "editor-control",
@@ -35,6 +67,7 @@ function makeCapability(toolName: string): PromptCapabilityEntry {
     planner_intent_aliases: [],
     natural_language_affordances: [],
     allowlisted_parameter_surfaces: toolName === "editor.entity.create" ? ["entity_name", "level_path"] : [],
+    safety_envelope: safetyEnvelope,
     real_adapter_availability: true,
     dry_run_availability: false,
     simulation_fallback_availability: false,
@@ -98,6 +131,7 @@ function makePlannedSession(): PromptSessionRecord {
           simulated_allowed: false,
           depends_on: [],
           capability_maturity: "real-authoring",
+          safety_envelope: makeCapability("editor.session.open").safety_envelope,
           planner_note: "Prompt-driven editor flows always begin from an attached editor session request.",
         },
         {
@@ -117,6 +151,7 @@ function makePlannedSession(): PromptSessionRecord {
           simulated_allowed: false,
           depends_on: ["editor-session-1"],
           capability_maturity: "real-authoring",
+          safety_envelope: makeCapability("editor.level.open").safety_envelope,
           planner_note: null,
         },
       ],
@@ -187,9 +222,18 @@ describe("PromptControlPanel", () => {
     await screen.findByText("Prompt Plan");
     expect(apiMocks.createPromptSession).toHaveBeenCalledTimes(1);
     expect(screen.getAllByText("Maturity: real-authoring").length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("Natural-language status: prompt-ready-approval-gated").length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByText("Natural-language status: prompt-blocked-pending-admission"),
+    ).toBeInTheDocument();
     expect(screen.getByText("Maturity: runtime-reaching")).toBeInTheDocument();
     expect(
       screen.getByText("Real admission stage: runtime-reaching-excluded-from-admitted-real"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Blocker: Excluded from the admitted real set on current tested local targets/i),
     ).toBeInTheDocument();
     expect(screen.getAllByText(/Execution truth: real path preferred/i).length).toBeGreaterThan(0);
     expect(screen.getByText(/Workspace: workspace-editor-project/i)).toBeInTheDocument();

@@ -180,6 +180,9 @@ export default function PromptControlPanel({
       <p style={subtleTextStyle}>
         Natural-language prompts compile into admitted typed control-plane steps only. The prompt layer never runs arbitrary shell, Python, or editor commands directly.
       </p>
+      <p style={subtleTextStyle}>
+        Each prompt-exposed surface carries an explicit safety envelope for state scope, backup, rollback, verification, retention, and natural-language readiness, so broader authoring can widen without hiding what is still blocked or simulated.
+      </p>
       {targetConfig?.project_root || targetConfig?.engine_root ? (
         <p style={subtleTextStyle}>
           Active local target: <strong>{targetConfig.project_root ?? "project unset"}</strong>

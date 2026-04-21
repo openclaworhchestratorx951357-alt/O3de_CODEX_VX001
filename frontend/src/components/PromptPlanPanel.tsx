@@ -55,6 +55,23 @@ export default function PromptPlanPanel({ session }: PromptPlanPanelProps) {
                   <div style={subtleTextStyle}>Capability status: {step.capability_status_required}</div>
                   <div style={subtleTextStyle}>Maturity: {step.capability_maturity}</div>
                   <div style={subtleTextStyle}>
+                    Natural-language status: {step.safety_envelope.natural_language_status}
+                  </div>
+                  <div style={subtleTextStyle}>
+                    State scope: {step.safety_envelope.state_scope}
+                  </div>
+                  <div style={subtleTextStyle}>
+                    Backup / rollback: {step.safety_envelope.backup_class} / {step.safety_envelope.rollback_class}
+                  </div>
+                  <div style={subtleTextStyle}>
+                    Verification / retention: {step.safety_envelope.verification_class} / {step.safety_envelope.retention_class}
+                  </div>
+                  {step.safety_envelope.natural_language_blocker ? (
+                    <div style={blockerTextStyle}>
+                      Blocker: {step.safety_envelope.natural_language_blocker}
+                    </div>
+                  ) : null}
+                  <div style={subtleTextStyle}>
                     Execution truth: {step.simulated_allowed ? "simulated allowed" : "real path preferred"}
                   </div>
                   {step.depends_on.length > 0 ? (
@@ -112,6 +129,11 @@ const argsStyle = {
 
 const subtleTextStyle = {
   color: "#57606a",
+  fontSize: 13,
+} satisfies CSSProperties;
+
+const blockerTextStyle = {
+  color: "#9a6700",
   fontSize: 13,
 } satisfies CSSProperties;
 

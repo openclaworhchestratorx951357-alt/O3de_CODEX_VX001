@@ -74,6 +74,16 @@ export interface PromptRequest {
   operator_note?: string | null;
 }
 
+export interface PromptSafetyEnvelope {
+  state_scope: string;
+  backup_class: string;
+  rollback_class: string;
+  verification_class: string;
+  retention_class: string;
+  natural_language_status: string;
+  natural_language_blocker?: string | null;
+}
+
 export interface PromptPlanStep {
   step_id: string;
   tool: string;
@@ -87,6 +97,7 @@ export interface PromptPlanStep {
   simulated_allowed: boolean;
   depends_on: string[];
   capability_maturity: string;
+  safety_envelope: PromptSafetyEnvelope;
   planner_note?: string | null;
 }
 
@@ -117,6 +128,7 @@ export interface PromptCapabilityEntry {
   planner_intent_aliases: string[];
   natural_language_affordances: string[];
   allowlisted_parameter_surfaces: string[];
+  safety_envelope: PromptSafetyEnvelope;
   real_adapter_availability: boolean;
   dry_run_availability: boolean;
   simulation_fallback_availability: boolean;

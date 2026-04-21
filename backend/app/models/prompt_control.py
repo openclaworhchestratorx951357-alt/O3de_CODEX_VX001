@@ -5,6 +5,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from app.models.prompt_plan import PromptPlan
+from app.models.prompt_safety import PromptSafetyEnvelope
 
 
 def prompt_utc_now() -> datetime:
@@ -48,6 +49,7 @@ class PromptCapabilityEntry(BaseModel):
     planner_intent_aliases: list[str] = Field(default_factory=list)
     natural_language_affordances: list[str] = Field(default_factory=list)
     allowlisted_parameter_surfaces: list[str] = Field(default_factory=list)
+    safety_envelope: PromptSafetyEnvelope
     real_adapter_availability: bool
     dry_run_availability: bool
     simulation_fallback_availability: bool

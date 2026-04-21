@@ -77,6 +77,8 @@ def extract_position(prompt_text: str) -> dict[str, float] | None:
 
 
 def capability_requirement_note(capability: PromptCapabilityEntry) -> str | None:
+    if capability.safety_envelope.natural_language_blocker:
+        return capability.safety_envelope.natural_language_blocker
     if capability.capability_maturity == "real-authoring":
         return (
             f"{capability.tool_name} currently resolves through an admitted real-authoring "
@@ -131,5 +133,6 @@ def make_step(
         ),
         depends_on=depends_on or [],
         capability_maturity=capability.capability_maturity,
+        safety_envelope=capability.safety_envelope,
         planner_note=planner_note,
     )

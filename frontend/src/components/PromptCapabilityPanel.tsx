@@ -38,6 +38,23 @@ export default function PromptCapabilityPanel({
               <div style={subtleTextStyle}>Capability status: {capability.capability_status}</div>
               <div style={subtleTextStyle}>Real admission stage: {capability.real_admission_stage}</div>
               <div style={subtleTextStyle}>
+                Natural-language status: {capability.safety_envelope.natural_language_status}
+              </div>
+              <div style={subtleTextStyle}>
+                State scope: {capability.safety_envelope.state_scope}
+              </div>
+              <div style={subtleTextStyle}>
+                Backup / rollback: {capability.safety_envelope.backup_class} / {capability.safety_envelope.rollback_class}
+              </div>
+              <div style={subtleTextStyle}>
+                Verification / retention: {capability.safety_envelope.verification_class} / {capability.safety_envelope.retention_class}
+              </div>
+              {capability.safety_envelope.natural_language_blocker ? (
+                <div style={blockerTextStyle}>
+                  Blocker: {capability.safety_envelope.natural_language_blocker}
+                </div>
+              ) : null}
+              <div style={subtleTextStyle}>
                 Allowlisted params: {capability.allowlisted_parameter_surfaces.join(", ") || "none"}
               </div>
             </article>
@@ -71,6 +88,11 @@ const capabilityHeaderStyle = {
 
 const subtleTextStyle = {
   color: "#57606a",
+  fontSize: 13,
+} satisfies CSSProperties;
+
+const blockerTextStyle = {
+  color: "#9a6700",
   fontSize: 13,
 } satisfies CSSProperties;
 

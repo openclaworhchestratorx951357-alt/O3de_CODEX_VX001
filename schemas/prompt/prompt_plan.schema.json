@@ -65,18 +65,19 @@
     "prompt_plan_step": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "step_id",
-        "tool",
-        "agent",
-        "args",
-        "approval_class",
-        "required_locks",
-        "capability_status_required",
-        "simulated_allowed",
-        "depends_on",
-        "capability_maturity"
-      ],
+        "required": [
+          "step_id",
+          "tool",
+          "agent",
+          "args",
+          "approval_class",
+          "required_locks",
+          "capability_status_required",
+          "simulated_allowed",
+          "depends_on",
+          "capability_maturity",
+          "safety_envelope"
+        ],
       "properties": {
         "step_id": {
           "type": "string",
@@ -138,12 +139,57 @@
             "plan-only",
             "hybrid-read-only",
             "hybrid-mutation",
+            "runtime-reaching",
             "real-authoring",
             "real-build",
             "real-pipeline",
             "real-render",
             "real-validation"
           ]
+        },
+        "safety_envelope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state_scope",
+            "backup_class",
+            "rollback_class",
+            "verification_class",
+            "retention_class",
+            "natural_language_status"
+          ],
+          "properties": {
+            "state_scope": {
+              "type": "string",
+              "minLength": 1
+            },
+            "backup_class": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rollback_class": {
+              "type": "string",
+              "minLength": 1
+            },
+            "verification_class": {
+              "type": "string",
+              "minLength": 1
+            },
+            "retention_class": {
+              "type": "string",
+              "minLength": 1
+            },
+            "natural_language_status": {
+              "type": "string",
+              "minLength": 1
+            },
+            "natural_language_blocker": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
         },
         "planner_note": {
           "type": [

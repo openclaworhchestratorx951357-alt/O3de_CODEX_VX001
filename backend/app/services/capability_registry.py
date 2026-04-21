@@ -3,8 +3,206 @@ from __future__ import annotations
 from typing import Any
 
 from app.models.prompt_control import PromptCapabilitiesResponse, PromptCapabilityEntry
+from app.models.prompt_safety import PromptSafetyEnvelope
 from app.services.policy import policy_service
 from app.services.schema_validation import schema_validation_service
+
+
+def _build_safety_envelope(
+    *,
+    state_scope: str,
+    backup_class: str,
+    rollback_class: str,
+    verification_class: str,
+    retention_class: str,
+    natural_language_status: str,
+    natural_language_blocker: str | None = None,
+) -> PromptSafetyEnvelope:
+    return PromptSafetyEnvelope(
+        state_scope=state_scope,
+        backup_class=backup_class,
+        rollback_class=rollback_class,
+        verification_class=verification_class,
+        retention_class=retention_class,
+        natural_language_status=natural_language_status,
+        natural_language_blocker=natural_language_blocker,
+    )
+
+
+def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
+    if tool_name == "editor.session.open":
+        return _build_safety_envelope(
+            state_scope="Editor-session attachment scoped to the active project target.",
+            backup_class="none",
+            rollback_class="none",
+            verification_class="editor-session heartbeat and runtime context verification",
+            retention_class="editor-runtime-evidence",
+            natural_language_status="prompt-ready-approval-gated",
+        )
+    if tool_name == "editor.level.open":
+        return _build_safety_envelope(
+            state_scope="Explicit level open/create within the current editor project context.",
+            backup_class="operator-managed-level-snapshot-when-creating-or-overwriting",
+            rollback_class="manual-level-restore-or-level-delete",
+            verification_class="loaded-level-context verification",
+            retention_class="editor-runtime-evidence",
+            natural_language_status="prompt-ready-approval-gated",
+        )
+    if tool_name == "editor.entity.create":
+        return _build_safety_envelope(
+            state_scope="Explicit entity creation within the currently loaded level.",
+            backup_class="operator-managed-level-snapshot-before-entity-mutation",
+            rollback_class="manual-level-restore-or-explicit-entity-removal",
+            verification_class="entity-readback-and-level-context verification",
+            retention_class="runtime-reaching-editor-evidence",
+            natural_language_status="prompt-blocked-pending-admission",
+            natural_language_blocker=(
+                "Excluded from the admitted real set on current tested local targets "
+                "until prefab-safe entity creation is proven stable."
+            ),
+        )
+    if tool_name == "editor.component.add":
+        return _build_safety_envelope(
+            state_scope="Explicit component attachment on an explicit entity target.",
+            backup_class="operator-managed-level-snapshot-before-component-mutation",
+            rollback_class="manual-component-removal-or-level-restore",
+            verification_class="entity-component readback verification",
+            retention_class="simulated-mutation-evidence",
+            natural_language_status="prompt-ready-simulated",
+        )
+    if tool_name == "project.inspect":
+        return _build_safety_envelope(
+            state_scope="Manifest-backed project/config/settings/gem read scope.",
+            backup_class="none",
+            rollback_class="none",
+            verification_class="manifest readback and provenance verification",
+            retention_class="manifest-inspection-evidence",
+            natural_language_status="prompt-ready-read-only",
+        )
+    if tool_name == "settings.patch":
+        return _build_safety_envelope(
+            state_scope="Manifest-backed admitted settings mutation subset.",
+            backup_class="manifest-snapshot",
+            rollback_class="restore-backed-file",
+            verification_class="post-write manifest readback verification",
+            retention_class="mutation-verification-evidence",
+            natural_language_status="prompt-ready-approval-gated",
+        )
+    if tool_name == "build.configure":
+        return _build_safety_envelope(
+            state_scope="Workspace-local configure plan or configure runner boundary.",
+            backup_class="none",
+            rollback_class="none",
+            verification_class="configure plan and target-root validation",
+            retention_class="configure-plan-evidence",
+            natural_language_status="prompt-ready-plan-only",
+        )
+    if tool_name == "asset.move.safe":
+        return _build_safety_envelope(
+            state_scope="Explicit source-to-destination asset identity corridor.",
+            backup_class="workspace-diff-bundle",
+            rollback_class="source-path-restore-and-reference-repair",
+            verification_class="reference-graph and destination readback verification",
+            retention_class="asset-mutation-evidence",
+            natural_language_status="prompt-ready-simulated",
+        )
+    if tool_name == "gem.enable":
+        return _build_safety_envelope(
+            state_scope="Project gem enablement and related build-facing project config.",
+            backup_class="manifest-snapshot-and-build-state-note",
+            rollback_class="restore-manifest-and-gem-config",
+            verification_class="manifest and project build config readback verification",
+            retention_class="mutation-plan-evidence",
+            natural_language_status="prompt-ready-simulated",
+        )
+    if tool_name == "build.compile":
+        return _build_safety_envelope(
+            state_scope="Workspace-local explicit target build set.",
+            backup_class="workspace-snapshot-preferred",
+            rollback_class="workspace-clean-or-rebuild",
+            verification_class="exit-status and target-output verification",
+            retention_class="build-log-evidence",
+            natural_language_status="prompt-ready-simulated",
+        )
+    if tool_name == "render.material.patch":
+        return _build_safety_envelope(
+            state_scope="Single material property override scope.",
+            backup_class="material-backup-or-source-control-checkpoint",
+            rollback_class="restore-material-from-backup",
+            verification_class="material property readback verification",
+            retention_class="render-mutation-evidence",
+            natural_language_status="prompt-ready-simulated",
+        )
+    if tool_name in {
+        "asset.processor.status",
+        "asset.source.inspect",
+        "asset.batch.process",
+        "render.material.inspect",
+        "render.shader.rebuild",
+        "render.capture.viewport",
+        "test.run.gtest",
+        "test.run.editor_python",
+        "test.tiaf.sequence",
+        "test.visual.diff",
+    }:
+        scope_by_tool = {
+            "asset.processor.status": "Project asset processor status query.",
+            "asset.source.inspect": "Single source-asset identity and dependency read scope.",
+            "asset.batch.process": "Explicit source batch and platform set within the current project.",
+            "render.material.inspect": "Single material inspection scope.",
+            "render.shader.rebuild": "Explicit shader target rebuild scope.",
+            "render.capture.viewport": "Explicit viewport capture request.",
+            "test.run.gtest": "Explicit native test target set.",
+            "test.run.editor_python": "Explicit editor Python test module set.",
+            "test.tiaf.sequence": "Explicit TIAF sequence and platform scope.",
+            "test.visual.diff": "Explicit baseline-versus-candidate visual comparison scope.",
+        }
+        verification_by_tool = {
+            "asset.processor.status": "processor-status readback",
+            "asset.source.inspect": "asset metadata readback",
+            "asset.batch.process": "job summary and platform output coverage verification",
+            "render.material.inspect": "material readback verification",
+            "render.shader.rebuild": "shader output and log verification",
+            "render.capture.viewport": "capture artifact existence and metadata verification",
+            "test.run.gtest": "exit-status and result-file verification",
+            "test.run.editor_python": "exit-status and structured test artifact verification",
+            "test.tiaf.sequence": "sequence result and artifact verification",
+            "test.visual.diff": "diff artifact and threshold verification",
+        }
+        retention_by_tool = {
+            "asset.processor.status": "operator-summary-evidence",
+            "asset.source.inspect": "inspection-evidence",
+            "asset.batch.process": "pipeline-log-evidence",
+            "render.material.inspect": "inspection-evidence",
+            "render.shader.rebuild": "render-log-evidence",
+            "render.capture.viewport": "capture-evidence",
+            "test.run.gtest": "test-log-evidence",
+            "test.run.editor_python": "test-log-evidence",
+            "test.tiaf.sequence": "test-log-evidence",
+            "test.visual.diff": "visual-diff-evidence",
+        }
+        rollback_by_tool = {
+            "render.shader.rebuild": "workspace-clean-or-shader-cache-reset",
+            "test.run.gtest": "environment-cleanup-only",
+            "test.run.editor_python": "environment-cleanup-only",
+            "test.tiaf.sequence": "environment-cleanup-only",
+        }
+        return _build_safety_envelope(
+            state_scope=scope_by_tool[tool_name],
+            backup_class="none",
+            rollback_class=rollback_by_tool.get(tool_name, "none"),
+            verification_class=verification_by_tool[tool_name],
+            retention_class=retention_by_tool[tool_name],
+            natural_language_status="prompt-ready-simulated",
+        )
+    return _build_safety_envelope(
+        state_scope="Typed control-plane surface with explicitly bounded state scope.",
+        backup_class="unspecified",
+        rollback_class="unspecified",
+        verification_class="unspecified",
+        retention_class="operator-summary-evidence",
+        natural_language_status="prompt-ready-simulated",
+    )
 
 
 _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
@@ -244,6 +442,7 @@ class CapabilityRegistryService:
                     planner_intent_aliases=metadata.get("planner_intent_aliases", []),
                     natural_language_affordances=metadata.get("natural_language_affordances", []),
                     allowlisted_parameter_surfaces=metadata.get("allowlisted_parameter_surfaces", []),
+                    safety_envelope=_default_safety_envelope_for_tool(policy.tool),
                     real_adapter_availability=bool(metadata.get("real_adapter_availability", False)),
                     dry_run_availability=bool(metadata.get("dry_run_availability", True)),
                     simulation_fallback_availability=bool(
