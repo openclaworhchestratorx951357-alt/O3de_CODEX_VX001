@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import AgentPanel from "./components/AgentPanel";
 import AdaptersPanel from "./components/AdaptersPanel";
@@ -6,6 +6,8 @@ import ArtifactDetailPanel from "./components/ArtifactDetailPanel";
 import ArtifactsPanel from "./components/ArtifactsPanel";
 import ApprovalQueue from "./components/ApprovalQueue";
 import CatalogPanel from "./components/CatalogPanel";
+import DesktopShell from "./components/DesktopShell";
+import DesktopWindow from "./components/DesktopWindow";
 import DispatchForm from "./components/DispatchForm";
 import ExecutorDetailPanel from "./components/ExecutorDetailPanel";
 import ExecutorsPanel from "./components/ExecutorsPanel";
@@ -33,6 +35,10 @@ import SystemStatusPanel from "./components/SystemStatusPanel";
 import TaskTimeline from "./components/TaskTimeline";
 import WorkspaceDetailPanel from "./components/WorkspaceDetailPanel";
 import WorkspacesPanel from "./components/WorkspacesPanel";
+import OperationsWorkspaceView from "./components/workspaces/OperationsWorkspaceView";
+import PromptWorkspaceView from "./components/workspaces/PromptWorkspaceView";
+import RecordsWorkspaceView from "./components/workspaces/RecordsWorkspaceView";
+import RuntimeWorkspaceView from "./components/workspaces/RuntimeWorkspaceView";
 import { mockAgents } from "./data/mockAgents";
 import {
   approveApproval,
@@ -223,6 +229,30 @@ type LanePresetStatus = {
 
 type LanePresetSource = "manual" | "session";
 
+type DesktopWorkspaceId =
+  | "home"
+  | "prompt"
+  | "operations"
+  | "runtime"
+  | "records";
+
+type OperationsSurfaceId =
+  | "dispatch"
+  | "agents"
+  | "approvals"
+  | "timeline";
+
+type RuntimeSurfaceId =
+  | "overview"
+  | "executors"
+  | "workspaces"
+  | "governance";
+
+type RecordsSurfaceId =
+  | "runs"
+  | "executions"
+  | "artifacts";
+
 type AuditFilter =
   | "all"
   | "preflight"
@@ -364,6 +394,10 @@ const OVERVIEW_CONTEXT_PRESETS_SESSION_KEY = "o3de-control-app-overview-context-
 const OVERVIEW_REVIEW_STATE_SESSION_KEY = "o3de-control-app-overview-review-state";
 const OVERVIEW_CONTEXT_NOTES_SESSION_KEY = "o3de-control-app-overview-context-notes";
 const OVERVIEW_SESSION_SNAPSHOT_BASELINE_SESSION_KEY = "o3de-control-app-overview-session-snapshot-baseline";
+const ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY = "o3de-control-app-active-desktop-workspace";
+const ACTIVE_OPERATIONS_SURFACE_SESSION_KEY = "o3de-control-app-active-operations-surface";
+const ACTIVE_RUNTIME_SURFACE_SESSION_KEY = "o3de-control-app-active-runtime-surface";
+const ACTIVE_RECORDS_SURFACE_SESSION_KEY = "o3de-control-app-active-records-surface";
 
 export default function App() {
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
@@ -438,6 +472,13 @@ export default function App() {
   const [laneOperatorNotes, setLaneOperatorNotes] = useState<Record<string, LaneOperatorNoteEntry>>({});
   const [laneOperatorNoteDraft, setLaneOperatorNoteDraft] = useState("");
   const [laneExportStatus, setLaneExportStatus] = useState<LaneExportStatus | null>(null);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<DesktopWorkspaceId>("home");
+  const [activeOperationsSurface, setActiveOperationsSurface] =
+    useState<OperationsSurfaceId>("dispatch");
+  const [activeRuntimeSurface, setActiveRuntimeSurface] =
+    useState<RuntimeSurfaceId>("overview");
+  const [activeRecordsSurface, setActiveRecordsSurface] =
+    useState<RecordsSurfaceId>("runs");
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
   const [adaptersError, setAdaptersError] = useState<string | null>(null);
@@ -2103,6 +2144,129 @@ export default function App() {
       JSON.stringify(laneOperatorNotes),
     );
   }, [laneOperatorNotes]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const storedWorkspace = window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY);
+    if (
+      storedWorkspace === "home"
+      || storedWorkspace === "prompt"
+      || storedWorkspace === "operations"
+      || storedWorkspace === "runtime"
+      || storedWorkspace === "records"
+    ) {
+      setActiveWorkspaceId(storedWorkspace);
+    }
+
+    const storedOperationsSurface = window.sessionStorage.getItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY);
+    if (
+      storedOperationsSurface === "dispatch"
+      || storedOperationsSurface === "agents"
+      || storedOperationsSurface === "approvals"
+      || storedOperationsSurface === "timeline"
+    ) {
+      setActiveOperationsSurface(storedOperationsSurface);
+    }
+
+    const storedRuntimeSurface = window.sessionStorage.getItem(ACTIVE_RUNTIME_SURFACE_SESSION_KEY);
+    if (
+      storedRuntimeSurface === "overview"
+      || storedRuntimeSurface === "executors"
+      || storedRuntimeSurface === "workspaces"
+      || storedRuntimeSurface === "governance"
+    ) {
+      setActiveRuntimeSurface(storedRuntimeSurface);
+    }
+
+    const storedRecordsSurface = window.sessionStorage.getItem(ACTIVE_RECORDS_SURFACE_SESSION_KEY);
+    if (
+      storedRecordsSurface === "runs"
+      || storedRecordsSurface === "executions"
+      || storedRecordsSurface === "artifacts"
+    ) {
+      setActiveRecordsSurface(storedRecordsSurface);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, activeWorkspaceId);
+  }, [activeWorkspaceId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.sessionStorage.setItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY, activeOperationsSurface);
+  }, [activeOperationsSurface]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.sessionStorage.setItem(ACTIVE_RUNTIME_SURFACE_SESSION_KEY, activeRuntimeSurface);
+  }, [activeRuntimeSurface]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.sessionStorage.setItem(ACTIVE_RECORDS_SURFACE_SESSION_KEY, activeRecordsSurface);
+  }, [activeRecordsSurface]);
+
+  useEffect(() => {
+    if (!selectedRunId) {
+      return;
+    }
+
+    setActiveWorkspaceId("records");
+    setActiveRecordsSurface("runs");
+  }, [selectedRunId]);
+
+  useEffect(() => {
+    if (!selectedExecutionId) {
+      return;
+    }
+
+    setActiveWorkspaceId("records");
+    setActiveRecordsSurface("executions");
+  }, [selectedExecutionId]);
+
+  useEffect(() => {
+    if (!selectedArtifactId) {
+      return;
+    }
+
+    setActiveWorkspaceId("records");
+    setActiveRecordsSurface("artifacts");
+  }, [selectedArtifactId]);
+
+  useEffect(() => {
+    if (!selectedExecutorId) {
+      return;
+    }
+
+    setActiveWorkspaceId("runtime");
+    setActiveRuntimeSurface("executors");
+  }, [selectedExecutorId]);
+
+  useEffect(() => {
+    if (!selectedWorkspaceId) {
+      return;
+    }
+
+    setActiveWorkspaceId("runtime");
+    setActiveRuntimeSurface("workspaces");
+  }, [selectedWorkspaceId]);
 
   useEffect(() => {
     if (!pendingLanePresetRestoreId || activeLanePresetId) {
@@ -4310,22 +4474,188 @@ export default function App() {
         owned_tools: agent.tools.map((tool) => tool.name),
       }))
     : mockAgents;
-  return (
-    <main
-      style={{
-        fontFamily: "sans-serif",
-        padding: 24,
-        maxWidth: 1200,
-        margin: "0 auto",
-      }}
-    >
-      <LayoutHeader
-        title="O3DE Agent Control App"
-        subtitle="Early operator shell for orchestrating O3DE-focused agents, approvals, logs, artifacts, and tool-driven workflows."
-        refreshing={dashboardRefreshing}
-        lastRefreshedAt={dashboardRefreshedAt}
-        refreshStatusLabel={dashboardRefreshStatus}
-        refreshStatusDetail={dashboardRefreshDetail}
+  const pendingApprovalCount = approvals.length;
+  const warningExecutionCount = executions.filter((execution) => execution.warning_count > 0).length;
+  const unresolvedRunCount = runs.filter(isUnresolvedRun).length;
+  const bridgeStatusLabel = o3deBridgeStatus?.heartbeat_fresh ? "fresh" : "check";
+  const workspaceMeta: Record<DesktopWorkspaceId, { title: string; subtitle: string }> = {
+    home: {
+      title: "Home",
+      subtitle: "Mission control, review memory, and high-priority operator cues.",
+    },
+    prompt: {
+      title: "Prompt Studio",
+      subtitle: "Natural-language entry point with explicit admitted-surface guardrails.",
+    },
+    operations: {
+      title: "Command Center",
+      subtitle: "Catalog browsing, dispatch, approvals, timeline, and agent coordination.",
+    },
+    runtime: {
+      title: "Runtime",
+      subtitle: "Bridge health, system status, executors, workspaces, and governance lanes.",
+    },
+    records: {
+      title: "Records",
+      subtitle: "Runs, executions, and artifacts arranged into focused inspection surfaces.",
+    },
+  };
+  const activeWorkspaceMeta = workspaceMeta[activeWorkspaceId];
+  const desktopNavItems = [
+    {
+      id: "home",
+      label: "Home",
+      subtitle: "Overview and launchpad",
+      badge: attentionRecommendations.length > 0 ? String(attentionRecommendations.length) : null,
+      tone: attentionRecommendations.length > 0 ? "warning" : "info",
+    },
+    {
+      id: "prompt",
+      label: "Prompt Studio",
+      subtitle: "Natural-language control",
+      badge: null,
+      tone: "info",
+    },
+    {
+      id: "operations",
+      label: "Command Center",
+      subtitle: "Dispatch, agents, approvals",
+      badge: pendingApprovalCount > 0 ? String(pendingApprovalCount) : null,
+      tone: pendingApprovalCount > 0 ? "warning" : "neutral",
+    },
+    {
+      id: "runtime",
+      label: "Runtime",
+      subtitle: "Bridge, executors, workspaces",
+      badge: bridgeStatusLabel,
+      tone: o3deBridgeStatus?.heartbeat_fresh ? "success" : "warning",
+    },
+    {
+      id: "records",
+      label: "Records",
+      subtitle: "Runs, executions, artifacts",
+      badge: unresolvedRunCount + warningExecutionCount > 0
+        ? String(unresolvedRunCount + warningExecutionCount)
+        : null,
+      tone: unresolvedRunCount + warningExecutionCount > 0 ? "warning" : "neutral",
+    },
+  ] as const;
+  const desktopQuickStats = [
+    {
+      label: "Approvals",
+      value: pendingApprovalCount === 0 ? "clear" : String(pendingApprovalCount),
+      tone: pendingApprovalCount === 0 ? "success" : "warning",
+    },
+    {
+      label: "Bridge",
+      value: bridgeStatusLabel,
+      tone: o3deBridgeStatus?.heartbeat_fresh ? "success" : "warning",
+    },
+    {
+      label: "Warnings",
+      value: warningExecutionCount === 0 ? "0" : String(warningExecutionCount),
+      tone: warningExecutionCount === 0 ? "neutral" : "warning",
+    },
+    {
+      label: "Runs",
+      value: unresolvedRunCount === 0 ? "clear" : String(unresolvedRunCount),
+      tone: unresolvedRunCount === 0 ? "success" : "warning",
+    },
+  ] as const;
+  const operationsSurfaceItems = [
+    {
+      id: "dispatch",
+      label: "Dispatch",
+      detail: "Catalog, typed dispatch, and latest response envelope.",
+    },
+    {
+      id: "agents",
+      label: "Agents",
+      detail: "Available operator families and owned tool lanes.",
+    },
+    {
+      id: "approvals",
+      label: "Approvals",
+      detail: "Pending decisions on the control-plane queue.",
+      badge: pendingApprovalCount > 0 ? String(pendingApprovalCount) : null,
+    },
+    {
+      id: "timeline",
+      label: "Timeline",
+      detail: "Cross-record event and task history.",
+    },
+  ] as const;
+  const runtimeSurfaceItems = [
+    {
+      id: "overview",
+      label: "Overview",
+      detail: "Bridge health, runtime status, and system summaries.",
+      badge: bridgeStatusLabel,
+    },
+    {
+      id: "executors",
+      label: "Executors",
+      detail: "Execution owners, availability, and related records.",
+      badge: executors.length > 0 ? String(executors.length) : null,
+    },
+    {
+      id: "workspaces",
+      label: "Workspaces",
+      detail: "Project surfaces, ownership, and attached activity.",
+      badge: workspaces.length > 0 ? String(workspaces.length) : null,
+    },
+    {
+      id: "governance",
+      label: "Governance",
+      detail: "Policies, locks, and admitted capability posture.",
+    },
+  ] as const;
+  const recordsSurfaceItems = [
+    {
+      id: "runs",
+      label: "Runs",
+      detail: "Dispatch lineage and run-level audit slices.",
+      badge: runs.length > 0 ? String(runs.length) : null,
+    },
+    {
+      id: "executions",
+      label: "Executions",
+      detail: "Execution warnings, truth markers, and child evidence.",
+      badge: warningExecutionCount > 0 ? String(warningExecutionCount) : null,
+    },
+    {
+      id: "artifacts",
+      label: "Artifacts",
+      detail: "Output inspection and mutation-risk evidence.",
+      badge: artifacts.length > 0 ? String(artifacts.length) : null,
+    },
+  ] as const;
+  const runtimeOverviewContent = (
+    <>
+      <AdaptersPanel
+        adapters={adapters}
+        loading={adaptersLoading}
+        error={adaptersError}
+      />
+
+      <SystemStatusPanel
+        readiness={readiness}
+        bridgeStatus={o3deBridgeStatus}
+        loading={readinessLoading || o3deBridgeLoading}
+        error={readinessError}
+        bridgeError={o3deBridgeError}
+        bridgeCleanupBusy={o3deBridgeCleanupBusy}
+        bridgeCleanupStatus={o3deBridgeCleanupStatus}
+        onCleanupBridgeResults={() => {
+          void handleCleanupO3deBridgeResults();
+        }}
+      />
+
+      <OperatorOverviewPanel
+        summary={controlPlaneSummary}
+        loading={controlPlaneSummaryLoading}
+        error={controlPlaneSummaryError}
+        lastRefreshedAt={operatorOverviewRefreshedAt}
         pinnedRecordLabel={pinnedRecord?.label ?? null}
         pinnedRecordSummary={pinnedRecord?.summary ?? null}
         pinnedRecordStatusLabel={pinnedRecordStatus?.label ?? null}
@@ -4346,9 +4676,6 @@ export default function App() {
         laneDriverLabel={pinnedLaneMetrics?.driverLabel ?? null}
         laneDriverDetail={pinnedLaneMetrics?.driverDetail ?? null}
         laneFilterLabel={getLaneFilterLabel(laneFilterMode)}
-        laneMemoryLabel={laneMemory?.pinnedLabel ?? null}
-        laneMemoryDetail={laneMemory?.detail ?? null}
-        laneHistoryEntries={laneHistory}
         laneReadinessLabel={laneReadiness?.label ?? null}
         laneReadinessDetail={laneReadiness?.detail ?? null}
         laneHistoryStatusLabel={laneHistoryAvailability?.label ?? null}
@@ -4373,40 +4700,1019 @@ export default function App() {
         lanePresetDriftDetail={lanePresetStatus?.driftDetail ?? null}
         lanePresetEntries={lanePresets}
         onSetLaneFilterMode={pinnedRecord ? handleLaneFilterModeChange : null}
-        onOpenLaneRolloverRecord={pinnedLaneRolloverRecord ? openPinnedLaneRolloverRecord : null}
-        onReturnToLane={laneMemory ? restoreLaneMemory : null}
-        onOpenLaneHistoryEntry={openLaneHistoryEntry}
         onApplyLaneRecovery={laneRecoveryAction ? handleLaneRecovery : null}
         onDropStaleLaneHistory={laneHistoryAvailability?.label === "recent returns stale" ? dropStaleLaneHistory : null}
         onApplyLanePreset={applyLanePreset}
-        refreshActions={[
-          {
-            label: "Refresh dashboard",
-            onClick: () => {
-              void refreshDashboardStateForScope("full");
-            },
-          },
-          {
-            label: "Refresh overview",
-            onClick: () => {
-              void refreshDashboardStateForScope("overview");
-            },
-          },
-          {
-            label: "Refresh records",
-            onClick: () => {
-              void refreshDashboardStateForScope("records");
-            },
-          },
-        ]}
+        onOpenLaneRolloverRecord={pinnedLaneRolloverRecord ? openPinnedLaneRolloverRecord : null}
+        onRunStatusSelect={handleRunStatusDrilldown}
+        onRunInspectionSurfaceSelect={(value) => {
+          handleRunTruthDrilldown("inspection_surface", value);
+        }}
+        onRunFallbackCategorySelect={(value) => {
+          handleRunTruthDrilldown("fallback_category", value);
+        }}
+        onRunManifestSourceSelect={(value) => {
+          handleRunTruthDrilldown("manifest_source_of_truth", value);
+        }}
+        onPendingApprovalsSelect={handlePendingApprovalsDrilldown}
+        onExecutionModeSelect={handleExecutionModeDrilldown}
+        onArtifactModeSelect={handleArtifactModeDrilldown}
+        onEventSeveritySelect={handleEventSeverityDrilldown}
+        onExecutorAvailabilitySelect={handleExecutorAvailabilityDrilldown}
+        onWorkspaceStateSelect={handleWorkspaceStateDrilldown}
+        onExecutionInspectionSurfaceSelect={handleExecutionInspectionSurfaceDrilldown}
+        onExecutionFallbackCategorySelect={handleExecutionFallbackCategoryDrilldown}
+        onExecutionManifestSourceSelect={handleExecutionManifestSourceDrilldown}
+        onArtifactInspectionSurfaceSelect={handleArtifactInspectionSurfaceDrilldown}
+        onArtifactFallbackCategorySelect={handleArtifactFallbackCategoryDrilldown}
+        onArtifactManifestSourceSelect={handleArtifactManifestSourceDrilldown}
+        onRefresh={() => {
+          void refreshDashboardStateForScope("overview");
+        }}
+        refreshing={overviewRefreshing}
       />
-
-      <PromptControlPanel
-        selectedWorkspaceId={selectedWorkspaceId}
-        selectedExecutorId={selectedExecutorId}
+    </>
+  );
+  const runtimeExecutorsContent = (
+    <>
+      <div ref={executorsSectionRef}>
+        <OverviewContextStrip
+          laneLabel="Executors"
+          focusLabel={executorsFocusLabel}
+          originLabel={describeOverviewFocusOrigin(executorsFocusLabel)}
+          impactLabel={getExecutorsOverviewImpactSummary()?.label ?? null}
+          impactDetail={getExecutorsOverviewImpactSummary()?.detail ?? null}
+          promotedPresetLabel={executorsOverviewContextPreset?.focusLabel ?? null}
+          promotedPresetDetail={executorsOverviewContextPreset
+            ? `Saved from ${executorsOverviewContextPreset.originLabel} at ${new Date(executorsOverviewContextPreset.savedAt).toLocaleTimeString()}. Browser-session only.`
+            : null}
+          historyEntries={executorsOverviewContextHistory.map((entry) => ({
+            id: entry.id,
+            focusLabel: entry.focusLabel,
+            originLabel: entry.originLabel,
+          }))}
+          onSelectHistoryEntry={(entryId) => {
+            const entry = executorsOverviewContextHistory.find((item) => item.id === entryId);
+            if (entry) {
+              replayExecutorsOverviewContext(entry);
+            }
+          }}
+          onClearHistory={
+            executorsOverviewContextHistory.length > 0
+              ? (() => setExecutorsOverviewContextHistory([]))
+              : null
+          }
+          onPromoteCurrentContext={executorsFocusLabel ? handlePromoteExecutorsOverviewContextPreset : null}
+          onApplyPromotedPreset={executorsOverviewContextPreset
+            ? (() => replayExecutorsOverviewContext(executorsOverviewContextPreset))
+            : null}
+          onClearPromotedPreset={executorsOverviewContextPreset
+            ? (() => setExecutorsOverviewContextPreset(null))
+            : null}
+          onClearFocus={executorsFocusLabel ? clearExecutorsFocus : null}
+        />
+        <ExecutorsPanel
+          key={`executors-search-${executorsSearchVersion}`}
+          items={executors}
+          loading={executorsLoading}
+          error={executorsError}
+          selectedExecutorId={selectedExecutorId}
+          onSelectExecutor={openExecutorDetail}
+          searchPreset={executorsSearchPreset}
+          focusLabel={executorsFocusLabel}
+          onClearFocus={clearExecutorsFocus}
+          lastRefreshedAt={executorsRefreshedAt}
+          updateBadgeLabel={null}
+          onRefresh={() => {
+            void refreshDashboardStateForScope("records");
+          }}
+          refreshing={recordsRefreshing}
+        />
+      </div>
+      <div ref={executorDetailSectionRef}>
+        <ExecutorDetailPanel
+          item={selectedExecutor}
+          loading={selectedExecutorLoading}
+          error={selectedExecutorError}
+          localReviewDisposition={overviewReviewState.executors?.disposition ?? null}
+          localReviewUpdatedAt={overviewReviewState.executors?.updatedAt ?? null}
+          localContextFocusLabel={executorsOverviewContextPreset?.focusLabel ?? null}
+          localContextSavedAt={executorsOverviewContextPreset?.savedAt ?? null}
+          localContextNote={overviewContextNotes.executors?.text ?? null}
+          localReadinessLabel={readinessDiagnosticsById.executors?.summaryLabel ?? null}
+          localReadinessDetail={readinessDiagnosticsById.executors?.detail ?? null}
+          localHasDrift={overviewReviewDiagnosticsById.executors?.hasDrift ?? false}
+          onOpenSavedContext={executorsOverviewContextPreset ? handleTriageSavedExecutorContext : null}
+          onMarkLocalReviewed={executorsOverviewContextPreset ? (() => handleMarkOverviewEntryReviewed("executors")) : null}
+          onSnoozeLocalReview={executorsOverviewContextPreset ? (() => handleSnoozeOverviewEntry("executors")) : null}
+          onKeepLocalInQueue={executorsOverviewContextPreset ? (() => handleKeepOverviewEntryInQueue("executors")) : null}
+          attentionExecutionLabel={selectedExecutorPreferredExecution
+            ? describeExecutionAttention(
+                selectedExecutorPreferredExecution,
+                selectedExecutionId,
+              ).label
+            : null}
+          attentionExecutionDetail={selectedExecutorPreferredExecution
+            ? `${describeExecutionAttention(
+                selectedExecutorPreferredExecution,
+                selectedExecutionId,
+              ).description} ${recommendExecutionAction(
+                selectedExecutorPreferredExecution,
+                selectedExecutionId,
+              ).description}`
+            : null}
+          attentionArtifactLabel={selectedExecutorPreferredArtifact
+            ? describeArtifactPriority(
+                selectedExecutorPreferredArtifact,
+                artifacts.filter((artifact) => artifact.executor_id === selectedExecutorPreferredArtifact.executor_id),
+                selectedArtifactId,
+              ).label
+            : null}
+          attentionArtifactDetail={selectedExecutorPreferredArtifact
+            ? describeArtifactPriority(
+                selectedExecutorPreferredArtifact,
+                artifacts.filter((artifact) => artifact.executor_id === selectedExecutorPreferredArtifact.executor_id),
+                selectedArtifactId,
+              ).description
+            : null}
+          attentionRunLabel={selectedExecutor
+            ? `${runs.filter((run) => run.executor_id === selectedExecutor.id).length} linked run${runs.filter((run) => run.executor_id === selectedExecutor.id).length === 1 ? "" : "s"}`
+            : null}
+          attentionRunDetail={selectedExecutor
+            ? (() => {
+                const linkedRuns = runs.filter((run) => run.executor_id === selectedExecutor.id);
+                const unresolvedRuns = linkedRuns.filter((run) =>
+                  run.status === "running"
+                  || run.status === "waiting_approval"
+                  || run.status === "blocked"
+                  || run.status === "failed",
+                );
+                if (unresolvedRuns.length > 0) {
+                  return `${unresolvedRuns.length} linked run${unresolvedRuns.length === 1 ? " remains" : "s remain"} in an unresolved persisted status for this executor bookkeeping slice.`;
+                }
+                return linkedRuns.length > 0
+                  ? "Linked runs exist, but none currently stand out as unresolved persisted follow-up."
+                  : "No linked runs are currently attached to this executor.";
+              })()
+            : null}
+          relatedWorkspaces={
+            selectedExecutor
+              ? workspaces.filter((workspace) => workspace.owner_executor_id === selectedExecutor.id)
+              : []
+          }
+          relatedExecutions={
+            selectedExecutor
+              ? executions.filter((execution) => execution.executor_id === selectedExecutor.id)
+              : []
+          }
+          relatedRuns={
+            selectedExecutor
+              ? runs.filter((run) => run.executor_id === selectedExecutor.id)
+              : []
+          }
+          relatedArtifacts={
+            selectedExecutor
+              ? artifacts.filter((artifact) => artifact.executor_id === selectedExecutor.id)
+              : []
+          }
+          relatedEvents={
+            selectedExecutor
+              ? events.filter((event) => event.executor_id === selectedExecutor.id)
+              : []
+          }
+          onOpenWorkspace={openWorkspaceDetail}
+          onOpenExecution={openExecutionDetail}
+          onOpenRun={openRunDetail}
+          onOpenArtifact={openArtifactDetail}
+          lastRefreshedAt={executorDetailRefreshedAt}
+          onRefresh={() => {
+            void refreshExecutorDetailSection();
+          }}
+          refreshing={executorDetailRefreshing || selectedExecutorLoading}
+        />
+      </div>
+    </>
+  );
+  const runtimeWorkspacesContent = (
+    <>
+      <div ref={workspacesSectionRef}>
+        <OverviewContextStrip
+          laneLabel="Workspaces"
+          focusLabel={workspacesFocusLabel}
+          originLabel={describeOverviewFocusOrigin(workspacesFocusLabel)}
+          impactLabel={getWorkspacesOverviewImpactSummary()?.label ?? null}
+          impactDetail={getWorkspacesOverviewImpactSummary()?.detail ?? null}
+          promotedPresetLabel={workspacesOverviewContextPreset?.focusLabel ?? null}
+          promotedPresetDetail={workspacesOverviewContextPreset
+            ? `Saved from ${workspacesOverviewContextPreset.originLabel} at ${new Date(workspacesOverviewContextPreset.savedAt).toLocaleTimeString()}. Browser-session only.`
+            : null}
+          historyEntries={workspacesOverviewContextHistory.map((entry) => ({
+            id: entry.id,
+            focusLabel: entry.focusLabel,
+            originLabel: entry.originLabel,
+          }))}
+          onSelectHistoryEntry={(entryId) => {
+            const entry = workspacesOverviewContextHistory.find((item) => item.id === entryId);
+            if (entry) {
+              replayWorkspacesOverviewContext(entry);
+            }
+          }}
+          onClearHistory={
+            workspacesOverviewContextHistory.length > 0
+              ? (() => setWorkspacesOverviewContextHistory([]))
+              : null
+          }
+          onPromoteCurrentContext={workspacesFocusLabel ? handlePromoteWorkspacesOverviewContextPreset : null}
+          onApplyPromotedPreset={workspacesOverviewContextPreset
+            ? (() => replayWorkspacesOverviewContext(workspacesOverviewContextPreset))
+            : null}
+          onClearPromotedPreset={workspacesOverviewContextPreset
+            ? (() => setWorkspacesOverviewContextPreset(null))
+            : null}
+          onClearFocus={workspacesFocusLabel ? clearWorkspacesFocus : null}
+        />
+        <WorkspacesPanel
+          key={`workspaces-search-${workspacesSearchVersion}`}
+          items={workspaces}
+          loading={workspacesLoading}
+          error={workspacesError}
+          selectedWorkspaceId={selectedWorkspaceId}
+          onSelectWorkspace={openWorkspaceDetail}
+          searchPreset={workspacesSearchPreset}
+          focusLabel={workspacesFocusLabel}
+          onClearFocus={clearWorkspacesFocus}
+          lastRefreshedAt={workspacesRefreshedAt}
+          updateBadgeLabel={null}
+          onRefresh={() => {
+            void refreshDashboardStateForScope("records");
+          }}
+          refreshing={recordsRefreshing}
+        />
+      </div>
+      <div ref={workspaceDetailSectionRef}>
+        <WorkspaceDetailPanel
+          item={selectedWorkspace}
+          loading={selectedWorkspaceLoading}
+          error={selectedWorkspaceError}
+          localReviewDisposition={overviewReviewState.workspaces?.disposition ?? null}
+          localReviewUpdatedAt={overviewReviewState.workspaces?.updatedAt ?? null}
+          localContextFocusLabel={workspacesOverviewContextPreset?.focusLabel ?? null}
+          localContextSavedAt={workspacesOverviewContextPreset?.savedAt ?? null}
+          localContextNote={overviewContextNotes.workspaces?.text ?? null}
+          localReadinessLabel={readinessDiagnosticsById.workspaces?.summaryLabel ?? null}
+          localReadinessDetail={readinessDiagnosticsById.workspaces?.detail ?? null}
+          localHasDrift={overviewReviewDiagnosticsById.workspaces?.hasDrift ?? false}
+          onOpenSavedContext={workspacesOverviewContextPreset ? handleTriageSavedWorkspaceContext : null}
+          onMarkLocalReviewed={workspacesOverviewContextPreset ? (() => handleMarkOverviewEntryReviewed("workspaces")) : null}
+          onSnoozeLocalReview={workspacesOverviewContextPreset ? (() => handleSnoozeOverviewEntry("workspaces")) : null}
+          onKeepLocalInQueue={workspacesOverviewContextPreset ? (() => handleKeepOverviewEntryInQueue("workspaces")) : null}
+          attentionExecutionLabel={selectedWorkspacePreferredExecution
+            ? describeExecutionAttention(
+                selectedWorkspacePreferredExecution,
+                selectedExecutionId,
+              ).label
+            : null}
+          attentionExecutionDetail={selectedWorkspacePreferredExecution
+            ? `${describeExecutionAttention(
+                selectedWorkspacePreferredExecution,
+                selectedExecutionId,
+              ).description} ${recommendExecutionAction(
+                selectedWorkspacePreferredExecution,
+                selectedExecutionId,
+              ).description}`
+            : null}
+          attentionArtifactLabel={selectedWorkspacePreferredArtifact
+            ? describeArtifactPriority(
+                selectedWorkspacePreferredArtifact,
+                artifacts.filter((artifact) => artifact.workspace_id === selectedWorkspacePreferredArtifact.workspace_id),
+                selectedArtifactId,
+              ).label
+            : null}
+          attentionArtifactDetail={selectedWorkspacePreferredArtifact
+            ? describeArtifactPriority(
+                selectedWorkspacePreferredArtifact,
+                artifacts.filter((artifact) => artifact.workspace_id === selectedWorkspacePreferredArtifact.workspace_id),
+                selectedArtifactId,
+              ).description
+            : null}
+          attentionRunLabel={selectedWorkspace
+            ? `${runs.filter((run) => run.workspace_id === selectedWorkspace.id).length} linked run${runs.filter((run) => run.workspace_id === selectedWorkspace.id).length === 1 ? "" : "s"}`
+            : null}
+          attentionRunDetail={selectedWorkspace
+            ? (() => {
+                const linkedRuns = runs.filter((run) => run.workspace_id === selectedWorkspace.id);
+                const unresolvedRuns = linkedRuns.filter((run) =>
+                  run.status === "running"
+                  || run.status === "waiting_approval"
+                  || run.status === "blocked"
+                  || run.status === "failed",
+                );
+                if (unresolvedRuns.length > 0) {
+                  return `${unresolvedRuns.length} linked run${unresolvedRuns.length === 1 ? " remains" : "s remain"} in an unresolved persisted status for this workspace bookkeeping slice.`;
+                }
+                return linkedRuns.length > 0
+                  ? "Linked runs exist, but none currently stand out as unresolved persisted follow-up."
+                  : "No linked runs are currently attached to this workspace.";
+              })()
+            : null}
+          relatedExecutions={
+            selectedWorkspace
+              ? executions.filter((execution) => execution.workspace_id === selectedWorkspace.id)
+              : []
+          }
+          relatedRuns={
+            selectedWorkspace
+              ? runs.filter((run) => run.workspace_id === selectedWorkspace.id)
+              : []
+          }
+          relatedArtifacts={
+            selectedWorkspace
+              ? artifacts.filter((artifact) => artifact.workspace_id === selectedWorkspace.id)
+              : []
+          }
+          relatedEvents={
+            selectedWorkspace
+              ? events.filter((event) => event.workspace_id === selectedWorkspace.id)
+              : []
+          }
+          onOpenExecution={openExecutionDetail}
+          onOpenRun={openRunDetail}
+          onOpenArtifact={openArtifactDetail}
+          lastRefreshedAt={workspaceDetailRefreshedAt}
+          onRefresh={() => {
+            void refreshWorkspaceDetailSection();
+          }}
+          refreshing={workspaceDetailRefreshing || selectedWorkspaceLoading}
+        />
+      </div>
+    </>
+  );
+  const runtimeGovernanceContent = (
+    <>
+      <Phase7CapabilitySummaryPanel agents={catalogAgents} />
+      <LocksPanel
+        items={locks}
+        loading={locksLoading}
+        error={locksError}
       />
+      <PoliciesPanel
+        items={policies}
+        loading={policiesLoading}
+        error={policiesError}
+      />
+    </>
+  );
+  const recordsArtifactsContent = (
+    <>
+      <div
+        ref={artifactsSectionRef}
+        style={activeRecordsSurface === "artifacts" ? undefined : desktopHiddenSectionStyle}
+      >
+        <OverviewContextStrip
+          laneLabel="Artifacts"
+          focusLabel={artifactsFocusLabel}
+          originLabel={describeOverviewFocusOrigin(artifactsFocusLabel)}
+          autoOpenLabel={describeOverviewAutoOpenOutcome(artifactDetailRefreshHint)}
+          impactLabel={getArtifactsOverviewImpactSummary()?.label ?? null}
+          impactDetail={getArtifactsOverviewImpactSummary()?.detail ?? null}
+          promotedPresetLabel={artifactsOverviewContextPreset?.focusLabel ?? null}
+          promotedPresetDetail={artifactsOverviewContextPreset
+            ? `Saved from ${artifactsOverviewContextPreset.originLabel} at ${new Date(artifactsOverviewContextPreset.savedAt).toLocaleTimeString()}. Browser-session only.`
+            : null}
+          historyEntries={artifactsOverviewContextHistory.map((entry) => ({
+            id: entry.id,
+            focusLabel: entry.focusLabel,
+            originLabel: entry.originLabel,
+          }))}
+          onSelectHistoryEntry={(entryId) => {
+            const entry = artifactsOverviewContextHistory.find((item) => item.id === entryId);
+            if (entry) {
+              replayArtifactsOverviewContext(entry);
+            }
+          }}
+          onClearHistory={
+            artifactsOverviewContextHistory.length > 0
+              ? (() => setArtifactsOverviewContextHistory([]))
+              : null
+          }
+          onPromoteCurrentContext={artifactsFocusLabel ? handlePromoteArtifactsOverviewContextPreset : null}
+          onApplyPromotedPreset={artifactsOverviewContextPreset
+            ? (() => replayArtifactsOverviewContext(artifactsOverviewContextPreset))
+            : null}
+          onClearPromotedPreset={artifactsOverviewContextPreset
+            ? (() => setArtifactsOverviewContextPreset(null))
+            : null}
+          onClearFocus={artifactsFocusLabel ? clearArtifactsFocus : null}
+        />
+        <ArtifactsPanel
+          key={`artifacts-search-${artifactsSearchVersion}`}
+          items={artifacts}
+          loading={artifactsLoading}
+          error={artifactsError}
+          selectedArtifactId={selectedArtifactId}
+          onSelectArtifact={openArtifactDetail}
+          searchPreset={artifactsSearchPreset}
+          focusLabel={artifactsFocusLabel}
+          onClearFocus={clearArtifactsFocus}
+          lastRefreshedAt={artifactsRefreshedAt}
+          updateBadgeLabel={getFocusedSectionUpdateLabel("artifacts")}
+          onRefresh={() => {
+            void refreshDashboardStateForScope("records");
+          }}
+          refreshing={recordsRefreshing}
+        />
+      </div>
+      <div
+        ref={artifactDetailSectionRef}
+        style={activeRecordsSurface === "artifacts" ? undefined : desktopHiddenSectionStyle}
+      >
+        <ArtifactDetailPanel
+          item={selectedArtifact}
+          loading={selectedArtifactLoading}
+          error={selectedArtifactError}
+          breadcrumbs={artifactDetailBreadcrumbs}
+          selectedRunId={selectedRunId}
+          selectedExecutionId={selectedExecutionId}
+          selectedArtifactId={selectedArtifactId}
+          pinnedRecordId={pinnedRecord?.kind === "artifact" ? pinnedRecord.id : null}
+          pinnedRecordStatusLabel={pinnedRecord?.kind === "artifact" ? pinnedRecordStatus?.label ?? null : null}
+          pinnedRecordStatusDetail={pinnedRecord?.kind === "artifact" ? pinnedRecordStatus?.detail ?? null : null}
+          laneQueueLabel={pinnedRecord?.kind === "artifact" ? nextPinnedLaneRecord?.label ?? null : null}
+          laneQueueDetail={pinnedRecord?.kind === "artifact" ? nextPinnedLaneRecord?.detail ?? null : null}
+          laneCompletionLabel={pinnedRecord?.kind === "artifact" ? pinnedLaneCompletionState?.label ?? null : null}
+          laneCompletionDetail={pinnedRecord?.kind === "artifact" ? pinnedLaneCompletionState?.detail ?? null : null}
+          laneRolloverLabel={pinnedRecord?.kind === "artifact" ? pinnedLaneRolloverRecord?.label ?? null : null}
+          laneRolloverDetail={pinnedRecord?.kind === "artifact" ? pinnedLaneRolloverRecord?.detail ?? null : null}
+          laneMetricsLabel={pinnedRecord?.kind === "artifact" ? pinnedLaneMetrics?.label ?? null : null}
+          laneMetricsDetail={pinnedRecord?.kind === "artifact" ? pinnedLaneMetrics?.detail ?? null : null}
+          laneDriverLabel={pinnedRecord?.kind === "artifact" ? pinnedLaneMetrics?.driverLabel ?? null : null}
+          laneDriverDetail={pinnedRecord?.kind === "artifact" ? pinnedLaneMetrics?.driverDetail ?? null : null}
+          laneMemoryLabel={pinnedRecord?.kind !== "artifact" ? laneMemory?.pinnedLabel ?? null : null}
+          laneMemoryDetail={pinnedRecord?.kind !== "artifact" ? laneMemory?.detail ?? null : null}
+          laneHistoryEntries={pinnedRecord?.kind !== "artifact" ? laneHistory : []}
+          laneHandoffLabel={laneHandoffSummary?.label ?? null}
+          laneHandoffDetail={laneHandoffSummary?.detail ?? null}
+          laneExportLabel={laneExportStatus?.label ?? null}
+          laneExportDetail={laneExportStatus?.detail ?? null}
+          laneOperatorNoteLabel={activeLaneOperatorNote?.label ?? null}
+          laneOperatorNoteDetail={activeLaneOperatorNote?.detail ?? null}
+          activeLanePresetLabel={lanePresetStatus?.activeLabel ?? null}
+          activeLanePresetDetail={lanePresetStatus?.activeDetail ?? null}
+          lanePresetRestoredLabel={lanePresetStatus?.restoredLabel ?? null}
+          lanePresetRestoredDetail={lanePresetStatus?.restoredDetail ?? null}
+          lanePresetDriftLabel={lanePresetStatus?.driftLabel ?? null}
+          lanePresetDriftDetail={lanePresetStatus?.driftDetail ?? null}
+          priorityShortcutLabel={selectedArtifactSiblingPriority ? "Open highest-priority sibling artifact" : null}
+          priorityShortcutDescription={selectedArtifactSiblingPriority
+            ? `Jump directly to ${describeArtifactPriority(
+              selectedArtifactSiblingPriority,
+              artifacts.filter((artifact) => artifact.execution_id === selectedArtifactSiblingPriority.execution_id),
+              selectedArtifactId,
+            ).description}`
+            : null}
+          warningShortcutLabel={selectedArtifactHighestRiskSibling ? "Open highest-risk sibling artifact" : null}
+          warningShortcutDescription={selectedArtifactHighestRiskSibling
+            ? "Jump directly to the sibling artifact with the strongest persisted risk markers, such as simulated output or mutation-audit rollback or failure state."
+            : null}
+          relatedArtifacts={
+            selectedArtifact
+              ? artifacts.filter((artifact) => artifact.execution_id === selectedArtifact.execution_id)
+              : []
+          }
+          relatedRunStatus={relatedArtifactRun?.status ?? null}
+          relatedRunSummary={relatedArtifactRun?.result_summary ?? null}
+          relatedExecutionStatus={relatedArtifactExecution?.status ?? null}
+          relatedExecutionSummary={relatedArtifactExecution?.result_summary ?? null}
+          relatedExecutionMode={relatedArtifactExecution?.execution_mode ?? null}
+          relatedExecutionStartedAt={relatedArtifactExecution?.started_at ?? null}
+          relatedExecutionWarningCount={relatedArtifactExecution?.warning_count ?? null}
+          onOpenRun={openRunDetail}
+          onOpenExecution={openExecutionDetail}
+          onOpenArtifact={openArtifactDetail}
+          onOpenPriorityRecord={selectedArtifactSiblingPriority
+            ? () => openArtifactDetail(selectedArtifactSiblingPriority.id)
+            : null}
+          onOpenWarningRecord={selectedArtifactHighestRiskSibling
+            ? () => openArtifactDetail(selectedArtifactHighestRiskSibling.id)
+            : null}
+          onPinRecord={() => pinArtifactRecord(selectedArtifact)}
+          onUnpinRecord={pinnedRecord?.kind === "artifact" && selectedArtifact?.id === pinnedRecord.id
+            ? () => setPinnedRecord(null)
+            : null}
+          onRefocusPinnedRecord={pinnedRecord?.kind === "artifact" ? openPinnedRecord : null}
+          onOpenNextLaneRecord={pinnedRecord?.kind === "artifact" && nextPinnedLaneRecord ? openPinnedLaneQueueRecord : null}
+          onOpenLaneRolloverRecord={pinnedRecord?.kind === "artifact" && pinnedLaneRolloverRecord ? openPinnedLaneRolloverRecord : null}
+          onReturnToLane={pinnedRecord?.kind !== "artifact" && laneMemory ? restoreLaneMemory : null}
+          onOpenLaneHistoryEntry={pinnedRecord?.kind !== "artifact" ? openLaneHistoryEntry : null}
+          refreshHint={artifactDetailRefreshHint}
+          lastRefreshedAt={artifactDetailRefreshedAt}
+          onRefresh={() => {
+            void refreshArtifactDetailSection();
+          }}
+          refreshing={artifactDetailRefreshing || selectedArtifactLoading}
+        />
+      </div>
+    </>
+  );
+  const recordsExecutionsContent = (
+    <>
+      <div
+        ref={executionsSectionRef}
+        style={activeRecordsSurface === "executions" ? undefined : desktopHiddenSectionStyle}
+      >
+        <OverviewContextStrip
+          laneLabel="Executions"
+          focusLabel={executionsFocusLabel}
+          originLabel={describeOverviewFocusOrigin(executionsFocusLabel)}
+          autoOpenLabel={describeOverviewAutoOpenOutcome(executionDetailRefreshHint)}
+          impactLabel={getExecutionsOverviewImpactSummary()?.label ?? null}
+          impactDetail={getExecutionsOverviewImpactSummary()?.detail ?? null}
+          promotedPresetLabel={executionsOverviewContextPreset?.focusLabel ?? null}
+          promotedPresetDetail={executionsOverviewContextPreset
+            ? `Saved from ${executionsOverviewContextPreset.originLabel} at ${new Date(executionsOverviewContextPreset.savedAt).toLocaleTimeString()}. Browser-session only.`
+            : null}
+          historyEntries={executionsOverviewContextHistory.map((entry) => ({
+            id: entry.id,
+            focusLabel: entry.focusLabel,
+            originLabel: entry.originLabel,
+          }))}
+          onSelectHistoryEntry={(entryId) => {
+            const entry = executionsOverviewContextHistory.find((item) => item.id === entryId);
+            if (entry) {
+              replayExecutionsOverviewContext(entry);
+            }
+          }}
+          onClearHistory={
+            executionsOverviewContextHistory.length > 0
+              ? (() => setExecutionsOverviewContextHistory([]))
+              : null
+          }
+          onPromoteCurrentContext={executionsFocusLabel ? handlePromoteExecutionsOverviewContextPreset : null}
+          onApplyPromotedPreset={executionsOverviewContextPreset
+            ? (() => replayExecutionsOverviewContext(executionsOverviewContextPreset))
+            : null}
+          onClearPromotedPreset={executionsOverviewContextPreset
+            ? (() => setExecutionsOverviewContextPreset(null))
+            : null}
+          onClearFocus={executionsFocusLabel ? clearExecutionsFocus : null}
+        />
+        <ExecutionsPanel
+          key={`executions-search-${executionsSearchVersion}`}
+          items={executions}
+          loading={executionsLoading}
+          error={executionsError}
+          selectedExecutionId={selectedExecutionId}
+          onSelectExecution={openExecutionDetail}
+          searchPreset={executionsSearchPreset}
+          focusLabel={executionsFocusLabel}
+          onClearFocus={clearExecutionsFocus}
+          lastRefreshedAt={executionsRefreshedAt}
+          updateBadgeLabel={getFocusedSectionUpdateLabel("executions")}
+          onRefresh={() => {
+            void refreshDashboardStateForScope("records");
+          }}
+          refreshing={recordsRefreshing}
+        />
+      </div>
+      <div
+        ref={executionDetailSectionRef}
+        style={activeRecordsSurface === "executions" ? undefined : desktopHiddenSectionStyle}
+      >
+        <ExecutionDetailPanel
+          item={selectedExecution}
+          loading={selectedExecutionLoading}
+          error={selectedExecutionError}
+          breadcrumbs={executionDetailBreadcrumbs}
+          selectedRunId={selectedRunId}
+          selectedExecutionId={selectedExecutionId}
+          selectedArtifactId={selectedArtifactId}
+          pinnedRecordId={pinnedRecord?.kind === "execution" ? pinnedRecord.id : null}
+          pinnedRecordStatusLabel={pinnedRecord?.kind === "execution" ? pinnedRecordStatus?.label ?? null : null}
+          pinnedRecordStatusDetail={pinnedRecord?.kind === "execution" ? pinnedRecordStatus?.detail ?? null : null}
+          laneQueueLabel={pinnedRecord?.kind === "execution" ? nextPinnedLaneRecord?.label ?? null : null}
+          laneQueueDetail={pinnedRecord?.kind === "execution" ? nextPinnedLaneRecord?.detail ?? null : null}
+          laneCompletionLabel={pinnedRecord?.kind === "execution" ? pinnedLaneCompletionState?.label ?? null : null}
+          laneCompletionDetail={pinnedRecord?.kind === "execution" ? pinnedLaneCompletionState?.detail ?? null : null}
+          laneRolloverLabel={pinnedRecord?.kind === "execution" ? pinnedLaneRolloverRecord?.label ?? null : null}
+          laneRolloverDetail={pinnedRecord?.kind === "execution" ? pinnedLaneRolloverRecord?.detail ?? null : null}
+          laneMetricsLabel={pinnedRecord?.kind === "execution" ? pinnedLaneMetrics?.label ?? null : null}
+          laneMetricsDetail={pinnedRecord?.kind === "execution" ? pinnedLaneMetrics?.detail ?? null : null}
+          laneDriverLabel={pinnedRecord?.kind === "execution" ? pinnedLaneMetrics?.driverLabel ?? null : null}
+          laneDriverDetail={pinnedRecord?.kind === "execution" ? pinnedLaneMetrics?.driverDetail ?? null : null}
+          laneMemoryLabel={pinnedRecord?.kind !== "execution" ? laneMemory?.pinnedLabel ?? null : null}
+          laneMemoryDetail={pinnedRecord?.kind !== "execution" ? laneMemory?.detail ?? null : null}
+          laneHistoryEntries={pinnedRecord?.kind !== "execution" ? laneHistory : []}
+          laneHandoffLabel={laneHandoffSummary?.label ?? null}
+          laneHandoffDetail={laneHandoffSummary?.detail ?? null}
+          laneExportLabel={laneExportStatus?.label ?? null}
+          laneExportDetail={laneExportStatus?.detail ?? null}
+          laneOperatorNoteLabel={activeLaneOperatorNote?.label ?? null}
+          laneOperatorNoteDetail={activeLaneOperatorNote?.detail ?? null}
+          activeLanePresetLabel={lanePresetStatus?.activeLabel ?? null}
+          activeLanePresetDetail={lanePresetStatus?.activeDetail ?? null}
+          lanePresetRestoredLabel={lanePresetStatus?.restoredLabel ?? null}
+          lanePresetRestoredDetail={lanePresetStatus?.restoredDetail ?? null}
+          lanePresetDriftLabel={lanePresetStatus?.driftLabel ?? null}
+          lanePresetDriftDetail={lanePresetStatus?.driftDetail ?? null}
+          priorityShortcutLabel={selectedExecutionPreferredArtifact ? "Open highest-priority artifact" : null}
+          priorityShortcutDescription={selectedExecutionPreferredArtifact
+            ? `Jump directly to ${describeArtifactPriority(
+              selectedExecutionPreferredArtifact,
+              artifacts.filter((artifact) => artifact.execution_id === selectedExecutionPreferredArtifact.execution_id),
+              selectedArtifactId,
+            ).description}`
+            : null}
+          warningShortcutLabel={selectedExecutionHighestRiskArtifact ? "Open highest-risk related artifact" : null}
+          warningShortcutDescription={selectedExecutionHighestRiskArtifact
+            ? "Jump directly to the related artifact with the strongest persisted risk markers, such as simulated output or mutation-audit failure state."
+            : null}
+          relatedArtifacts={
+            selectedExecution
+              ? artifacts.filter((artifact) => artifact.execution_id === selectedExecution.id)
+              : []
+          }
+          originatingArtifactLabel={executionOriginArtifact?.label ?? null}
+          originatingArtifactKind={executionOriginArtifact?.kind ?? null}
+          onOpenRun={openRunDetail}
+          onOpenArtifact={openArtifactDetail}
+          onOpenPriorityRecord={selectedExecutionPreferredArtifact
+            ? () => openArtifactDetail(selectedExecutionPreferredArtifact.id)
+            : null}
+          onOpenWarningRecord={selectedExecutionHighestRiskArtifact
+            ? () => openArtifactDetail(selectedExecutionHighestRiskArtifact.id)
+            : null}
+          onPinRecord={() => pinExecutionRecord(selectedExecution)}
+          onUnpinRecord={pinnedRecord?.kind === "execution" && selectedExecution?.id === pinnedRecord.id
+            ? () => setPinnedRecord(null)
+            : null}
+          onRefocusPinnedRecord={pinnedRecord?.kind === "execution" ? openPinnedRecord : null}
+          onOpenNextLaneRecord={pinnedRecord?.kind === "execution" && nextPinnedLaneRecord ? openPinnedLaneQueueRecord : null}
+          onOpenLaneRolloverRecord={pinnedRecord?.kind === "execution" && pinnedLaneRolloverRecord ? openPinnedLaneRolloverRecord : null}
+          onReturnToLane={pinnedRecord?.kind !== "execution" && laneMemory ? restoreLaneMemory : null}
+          onOpenLaneHistoryEntry={pinnedRecord?.kind !== "execution" ? openLaneHistoryEntry : null}
+          refreshHint={executionDetailRefreshHint}
+          lastRefreshedAt={executionDetailRefreshedAt}
+          onRefresh={() => {
+            void refreshExecutionDetailSection();
+          }}
+          refreshing={executionDetailRefreshing || selectedExecutionLoading}
+        />
+      </div>
+    </>
+  );
+  const recordsRunsContent = (
+    <>
+      <div
+        ref={runsSectionRef}
+        style={activeRecordsSurface === "runs" ? undefined : desktopHiddenSectionStyle}
+      >
+        <OverviewContextStrip
+          laneLabel="Runs"
+          focusLabel={runsFocusLabel}
+          originLabel={describeOverviewFocusOrigin(runsFocusLabel)}
+          autoOpenLabel={describeOverviewAutoOpenOutcome(runDetailRefreshHint)}
+          impactLabel={getRunsOverviewImpactSummary()?.label ?? null}
+          impactDetail={getRunsOverviewImpactSummary()?.detail ?? null}
+          promotedPresetLabel={runsOverviewContextPreset?.focusLabel ?? null}
+          promotedPresetDetail={runsOverviewContextPreset
+            ? `Saved from ${runsOverviewContextPreset.originLabel} at ${new Date(runsOverviewContextPreset.savedAt).toLocaleTimeString()}. Browser-session only.`
+            : null}
+          historyEntries={runsOverviewContextHistory.map((entry) => ({
+            id: entry.id,
+            focusLabel: entry.focusLabel,
+            originLabel: entry.originLabel,
+          }))}
+          onSelectHistoryEntry={(entryId) => {
+            const entry = runsOverviewContextHistory.find((item) => item.id === entryId);
+            if (entry) {
+              void replayRunsOverviewContext(entry);
+            }
+          }}
+          onClearHistory={
+            runsOverviewContextHistory.length > 0
+              ? (() => setRunsOverviewContextHistory([]))
+              : null
+          }
+          onPromoteCurrentContext={runsFocusLabel ? handlePromoteRunsOverviewContextPreset : null}
+          onApplyPromotedPreset={runsOverviewContextPreset
+            ? (() => { void replayRunsOverviewContext(runsOverviewContextPreset); })
+            : null}
+          onClearPromotedPreset={runsOverviewContextPreset
+            ? (() => setRunsOverviewContextPreset(null))
+            : null}
+          onClearFocus={runsFocusLabel ? clearRunsFocus : null}
+        />
+        <RunsPanel
+          key={`runs-search-${runsSearchVersion}`}
+          items={runs}
+          runAudits={runAudits}
+          settingsPatchAuditSummary={settingsPatchAuditSummary}
+          selectedToolFilter={selectedToolFilter}
+          onToolFilterChange={handleToolFilterChange}
+          selectedAuditFilter={selectedAuditFilter}
+          onAuditFilterChange={handleAuditFilterChange}
+          loading={runsLoading}
+          error={runsError}
+          selectedRunId={selectedRunId}
+          onSelectRun={openRunDetail}
+          onTruthFilterSelect={handleRunTruthDrilldown}
+          searchPreset={runsSearchPreset}
+          focusLabel={runsFocusLabel}
+          onClearFocus={clearRunsFocus}
+          lastRefreshedAt={runsRefreshedAt}
+          updateBadgeLabel={getFocusedSectionUpdateLabel("runs")}
+          onRefresh={() => {
+            void refreshDashboardStateForScope("records");
+          }}
+          refreshing={recordsRefreshing}
+        />
+      </div>
+      <div
+        ref={runDetailSectionRef}
+        style={activeRecordsSurface === "runs" ? undefined : desktopHiddenSectionStyle}
+      >
+        <RunDetailPanel
+          item={selectedRun}
+          loading={selectedRunLoading}
+          error={selectedRunError}
+          breadcrumbs={runDetailBreadcrumbs}
+          executionDetails={selectedExecutionDetails}
+          relatedExecutionId={
+            selectedRunPreferredExecution?.id ?? null
+          }
+          relatedExecutionPriorityLabel={
+            relatedExecutionPriority?.label ?? null
+          }
+          relatedExecutionPriorityDescription={
+            relatedExecutionPriority?.description ?? null
+          }
+          relatedExecutionActionLabel={
+            relatedExecutionAction?.label ?? null
+          }
+          relatedExecutionActionDescription={
+            relatedExecutionAction?.description ?? null
+          }
+          relatedExecutionAttentionLabel={
+            relatedExecutionAttention?.label ?? null
+          }
+          relatedExecutionAttentionDescription={
+            relatedExecutionAttention?.description ?? null
+          }
+          priorityShortcutLabel={selectedRunPreferredExecution ? "Open highest-priority execution" : null}
+          priorityShortcutDescription={selectedRunPreferredExecution
+            ? `Jump directly to ${describeExecutionPriority(
+              selectedRunPreferredExecution,
+              executions.filter((execution) => execution.run_id === selectedRunPreferredExecution.run_id),
+              selectedExecutionId,
+            ).description}`
+            : null}
+          warningShortcutLabel={selectedRunWarningExecution ? "Open next warning-bearing execution" : null}
+          warningShortcutDescription={selectedRunWarningExecution
+            ? `Jump directly to the related execution carrying ${selectedRunWarningExecution.warning_count} persisted warning${selectedRunWarningExecution.warning_count === 1 ? "" : "s"}.`
+            : null}
+          originatingArtifactId={runOriginArtifact?.id ?? null}
+          originatingArtifactLabel={runOriginArtifact?.label ?? null}
+          originatingArtifactKind={runOriginArtifact?.kind ?? null}
+          selectedRunId={selectedRunId}
+          selectedExecutionId={selectedExecutionId}
+          selectedArtifactId={selectedArtifactId}
+          pinnedRecordId={pinnedRecord?.kind === "run" ? pinnedRecord.id : null}
+          pinnedRecordStatusLabel={pinnedRecord?.kind === "run" ? pinnedRecordStatus?.label ?? null : null}
+          pinnedRecordStatusDetail={pinnedRecord?.kind === "run" ? pinnedRecordStatus?.detail ?? null : null}
+          laneQueueLabel={pinnedRecord?.kind === "run" ? nextPinnedLaneRecord?.label ?? null : null}
+          laneQueueDetail={pinnedRecord?.kind === "run" ? nextPinnedLaneRecord?.detail ?? null : null}
+          laneCompletionLabel={pinnedRecord?.kind === "run" ? pinnedLaneCompletionState?.label ?? null : null}
+          laneCompletionDetail={pinnedRecord?.kind === "run" ? pinnedLaneCompletionState?.detail ?? null : null}
+          laneRolloverLabel={pinnedRecord?.kind === "run" ? pinnedLaneRolloverRecord?.label ?? null : null}
+          laneRolloverDetail={pinnedRecord?.kind === "run" ? pinnedLaneRolloverRecord?.detail ?? null : null}
+          laneMetricsLabel={pinnedRecord?.kind === "run" ? pinnedLaneMetrics?.label ?? null : null}
+          laneMetricsDetail={pinnedRecord?.kind === "run" ? pinnedLaneMetrics?.detail ?? null : null}
+          laneDriverLabel={pinnedRecord?.kind === "run" ? pinnedLaneMetrics?.driverLabel ?? null : null}
+          laneDriverDetail={pinnedRecord?.kind === "run" ? pinnedLaneMetrics?.driverDetail ?? null : null}
+          laneMemoryLabel={pinnedRecord?.kind !== "run" ? laneMemory?.pinnedLabel ?? null : null}
+          laneMemoryDetail={pinnedRecord?.kind !== "run" ? laneMemory?.detail ?? null : null}
+          laneHistoryEntries={pinnedRecord?.kind !== "run" ? laneHistory : []}
+          laneHandoffLabel={laneHandoffSummary?.label ?? null}
+          laneHandoffDetail={laneHandoffSummary?.detail ?? null}
+          laneExportLabel={laneExportStatus?.label ?? null}
+          laneExportDetail={laneExportStatus?.detail ?? null}
+          laneOperatorNoteLabel={activeLaneOperatorNote?.label ?? null}
+          laneOperatorNoteDetail={activeLaneOperatorNote?.detail ?? null}
+          activeLanePresetLabel={lanePresetStatus?.activeLabel ?? null}
+          activeLanePresetDetail={lanePresetStatus?.activeDetail ?? null}
+          lanePresetRestoredLabel={lanePresetStatus?.restoredLabel ?? null}
+          lanePresetRestoredDetail={lanePresetStatus?.restoredDetail ?? null}
+          lanePresetDriftLabel={lanePresetStatus?.driftLabel ?? null}
+          lanePresetDriftDetail={lanePresetStatus?.driftDetail ?? null}
+          onOpenExecution={openExecutionDetail}
+          onOpenArtifact={openArtifactDetail}
+          onOpenPriorityRecord={selectedRunPreferredExecution
+            ? () => openExecutionDetail(selectedRunPreferredExecution.id)
+            : null}
+          onOpenWarningRecord={selectedRunWarningExecution
+            ? () => openExecutionDetail(selectedRunWarningExecution.id)
+            : null}
+          onPinRecord={() => pinRunRecord(selectedRun)}
+          onUnpinRecord={pinnedRecord?.kind === "run" && selectedRun?.id === pinnedRecord.id
+            ? () => setPinnedRecord(null)
+            : null}
+          onRefocusPinnedRecord={pinnedRecord?.kind === "run" ? openPinnedRecord : null}
+          onOpenNextLaneRecord={pinnedRecord?.kind === "run" && nextPinnedLaneRecord ? openPinnedLaneQueueRecord : null}
+          onOpenLaneRolloverRecord={pinnedRecord?.kind === "run" && pinnedLaneRolloverRecord ? openPinnedLaneRolloverRecord : null}
+          onReturnToLane={pinnedRecord?.kind !== "run" && laneMemory ? restoreLaneMemory : null}
+          onOpenLaneHistoryEntry={pinnedRecord?.kind !== "run" ? openLaneHistoryEntry : null}
+          refreshHint={runDetailRefreshHint}
+          lastRefreshedAt={runDetailRefreshedAt}
+          onRefresh={() => {
+            void refreshRunDetailSection();
+          }}
+          refreshing={runDetailRefreshing || selectedRunLoading}
+        />
+      </div>
+    </>
+  );
+  return (
+    <DesktopShell
+      appTitle="O3DE Agent Control App"
+      appSubtitle="Windows-style control-plane workspace for O3DE operators"
+      workspaceTitle={activeWorkspaceMeta.title}
+      workspaceSubtitle={activeWorkspaceMeta.subtitle}
+      activeWorkspaceId={activeWorkspaceId}
+      navItems={desktopNavItems}
+      quickStats={desktopQuickStats}
+      utilityLabel={dashboardRefreshStatus ?? "desktop shell live"}
+      utilityDetail={dashboardRefreshDetail}
+      onSelectWorkspace={(workspaceId) => setActiveWorkspaceId(workspaceId as DesktopWorkspaceId)}
+    >
+      {activeWorkspaceId === "home" ? (
+        <>
+          <DesktopWindow
+            title="Mission Control"
+            subtitle="High-level operator shell controls, lane memory, and refresh entry points."
+          >
+            <LayoutHeader
+              title="O3DE Agent Control App"
+              subtitle="Desktop operator shell for orchestrating O3DE-focused agents, approvals, logs, artifacts, and tool-driven workflows."
+              refreshing={dashboardRefreshing}
+              lastRefreshedAt={dashboardRefreshedAt}
+              refreshStatusLabel={dashboardRefreshStatus}
+              refreshStatusDetail={dashboardRefreshDetail}
+              pinnedRecordLabel={pinnedRecord?.label ?? null}
+              pinnedRecordSummary={pinnedRecord?.summary ?? null}
+              pinnedRecordStatusLabel={pinnedRecordStatus?.label ?? null}
+              pinnedRecordStatusDetail={pinnedRecordStatus?.detail ?? null}
+              onOpenPinnedRecord={pinnedRecord ? openPinnedRecord : null}
+              onRefocusPinnedRecord={pinnedRecord ? openPinnedRecord : null}
+              onClearPinnedRecord={pinnedRecord ? (() => setPinnedRecord(null)) : null}
+              onClearLocalLaneContext={handleClearLocalLaneContext}
+              nextPinnedLaneLabel={nextPinnedLaneRecord?.label ?? null}
+              nextPinnedLaneDetail={nextPinnedLaneRecord?.detail ?? null}
+              onOpenNextPinnedLaneRecord={nextPinnedLaneRecord ? openPinnedLaneQueueRecord : null}
+              laneCompletionLabel={pinnedLaneCompletionState?.label ?? null}
+              laneCompletionDetail={pinnedLaneCompletionState?.detail ?? null}
+              laneRolloverLabel={pinnedLaneRolloverRecord?.label ?? null}
+              laneRolloverDetail={pinnedLaneRolloverRecord?.detail ?? null}
+              laneMetricsLabel={pinnedLaneMetrics?.label ?? null}
+              laneMetricsDetail={pinnedLaneMetrics?.detail ?? null}
+              laneDriverLabel={pinnedLaneMetrics?.driverLabel ?? null}
+              laneDriverDetail={pinnedLaneMetrics?.driverDetail ?? null}
+              laneFilterLabel={getLaneFilterLabel(laneFilterMode)}
+              laneMemoryLabel={laneMemory?.pinnedLabel ?? null}
+              laneMemoryDetail={laneMemory?.detail ?? null}
+              laneHistoryEntries={laneHistory}
+              laneReadinessLabel={laneReadiness?.label ?? null}
+              laneReadinessDetail={laneReadiness?.detail ?? null}
+              laneHistoryStatusLabel={laneHistoryAvailability?.label ?? null}
+              laneHistoryStatusDetail={laneHistoryAvailability?.detail ?? null}
+              laneRecoveryLabel={laneRecoveryAction?.label ?? null}
+              laneHandoffLabel={laneHandoffSummary?.label ?? null}
+              laneHandoffDetail={laneHandoffSummary?.detail ?? null}
+              laneExportLabel={laneExportStatus?.label ?? null}
+              laneExportDetail={laneExportStatus?.detail ?? null}
+              laneOperatorNoteLabel={activeLaneOperatorNote?.label ?? null}
+              laneOperatorNoteDetail={activeLaneOperatorNote?.detail ?? null}
+              laneOperatorNoteDraft={laneOperatorNoteDraft}
+              onLaneOperatorNoteDraftChange={setLaneOperatorNoteDraft}
+              onSaveLaneOperatorNote={pinnedRecord ? handleLaneOperatorNoteSave : null}
+              onClearLaneOperatorNote={pinnedRecord ? handleLaneOperatorNoteClear : null}
+              onCopyLaneContext={pinnedRecord ? (() => { void handleCopyLaneContext(); }) : null}
+              activeLanePresetLabel={lanePresetStatus?.activeLabel ?? null}
+              activeLanePresetDetail={lanePresetStatus?.activeDetail ?? null}
+              lanePresetRestoredLabel={lanePresetStatus?.restoredLabel ?? null}
+              lanePresetRestoredDetail={lanePresetStatus?.restoredDetail ?? null}
+              lanePresetDriftLabel={lanePresetStatus?.driftLabel ?? null}
+              lanePresetDriftDetail={lanePresetStatus?.driftDetail ?? null}
+              lanePresetEntries={lanePresets}
+              onSetLaneFilterMode={pinnedRecord ? handleLaneFilterModeChange : null}
+              onOpenLaneRolloverRecord={pinnedLaneRolloverRecord ? openPinnedLaneRolloverRecord : null}
+              onReturnToLane={laneMemory ? restoreLaneMemory : null}
+              onOpenLaneHistoryEntry={openLaneHistoryEntry}
+              onApplyLaneRecovery={laneRecoveryAction ? handleLaneRecovery : null}
+              onDropStaleLaneHistory={laneHistoryAvailability?.label === "recent returns stale" ? dropStaleLaneHistory : null}
+              onApplyLanePreset={applyLanePreset}
+              refreshActions={[
+                {
+                  label: "Refresh dashboard",
+                  onClick: () => {
+                    void refreshDashboardStateForScope("full");
+                  },
+                },
+                {
+                  label: "Refresh overview",
+                  onClick: () => {
+                    void refreshDashboardStateForScope("overview");
+                  },
+                },
+                {
+                  label: "Refresh records",
+                  onClick: () => {
+                    void refreshDashboardStateForScope("records");
+                  },
+                },
+              ]}
+            />
+          </DesktopWindow>
 
-      <OverviewAttentionPanel
+          <DesktopWindow
+            title="Launchpad"
+            subtitle="Open focused workspaces instead of hunting through one continuous operator page."
+          >
+            <div style={desktopLaunchpadGridStyle}>
+              <button
+                type="button"
+                onClick={() => setActiveWorkspaceId("prompt")}
+                style={desktopShortcutCardStyle}
+              >
+                <strong>Prompt Studio</strong>
+                <span style={desktopShortcutMetaStyle}>
+                  Natural-language planning and admitted typed execution paths.
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveWorkspaceId("operations");
+                  setActiveOperationsSurface("dispatch");
+                }}
+                style={desktopShortcutCardStyle}
+              >
+                <strong>Command Center</strong>
+                <span style={desktopShortcutMetaStyle}>
+                  Catalog browsing, dispatch, approvals, and live timeline control.
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveWorkspaceId("runtime");
+                  setActiveRuntimeSurface("overview");
+                }}
+                style={desktopShortcutCardStyle}
+              >
+                <strong>Runtime</strong>
+                <span style={desktopShortcutMetaStyle}>
+                  Bridge status, executors, workspaces, and governance health.
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveWorkspaceId("records");
+                  setActiveRecordsSurface("runs");
+                }}
+                style={desktopShortcutCardStyle}
+              >
+                <strong>Records Explorer</strong>
+                <span style={desktopShortcutMetaStyle}>
+                  Runs, executions, artifacts, and detail drilldowns in one organized lane.
+                </span>
+              </button>
+            </div>
+            <div style={desktopSummaryStripStyle}>
+              <div style={desktopMiniStatStyle}>
+                <span style={desktopMiniStatLabelStyle}>Approvals waiting</span>
+                <strong>{pendingApprovalCount}</strong>
+              </div>
+              <div style={desktopMiniStatStyle}>
+                <span style={desktopMiniStatLabelStyle}>Execution warnings</span>
+                <strong>{warningExecutionCount}</strong>
+              </div>
+              <div style={desktopMiniStatStyle}>
+                <span style={desktopMiniStatLabelStyle}>Bridge heartbeat</span>
+                <strong>{bridgeStatusLabel}</strong>
+              </div>
+              <div style={desktopMiniStatStyle}>
+                <span style={desktopMiniStatLabelStyle}>Unresolved runs</span>
+                <strong>{unresolvedRunCount}</strong>
+              </div>
+            </div>
+          </DesktopWindow>
+
+          <DesktopWindow
+            title="Operator Overview"
+            subtitle="Attention queue, handoff posture, and browser-local review memory."
+          >
+            <OverviewAttentionPanel
         entries={attentionRecommendations}
         onPrimaryAction={(entryId) => {
           const [, targetId] = entryId.split(":");
@@ -4440,15 +5746,15 @@ export default function App() {
             handleKeepOverviewEntryInQueue(targetId);
           }
         }}
-      />
+            />
 
-      <OverviewCloseoutReadinessPanel
+            <OverviewCloseoutReadinessPanel
         readyCount={overviewReviewSessionSummary.readyCount}
         pendingCount={overviewReviewSessionSummary.pendingCount}
         entries={readinessDiagnostics}
-      />
+            />
 
-      <OverviewHandoffConfidencePanel
+            <OverviewHandoffConfidencePanel
         confidenceLabel={handoffConfidence.label}
         confidenceDetail={handoffConfidence.detail}
         tone={handoffConfidence.tone}
@@ -4456,14 +5762,14 @@ export default function App() {
         driftedCount={overviewReviewSessionSummary.driftedCount}
         excludedCount={handoffPackageExcludedEntries.length}
         changedSinceSnapshotCount={changedSinceSnapshotCount}
-      />
+            />
 
-      <OverviewHandoffPackagePanel
+            <OverviewHandoffPackagePanel
         includedEntries={handoffPackageIncludedEntries}
         excludedEntries={handoffPackageExcludedEntries}
-      />
+            />
 
-      <OverviewHandoffExportPanel
+            <OverviewHandoffExportPanel
         generatedAtLabel={`Generated: ${handoffExportGeneratedAt}`}
         includedEntries={handoffPackageIncludedEntries}
         excludedEntries={handoffPackageExcludedEntries}
@@ -4475,9 +5781,9 @@ export default function App() {
             ? (() => { void handleCopyOverviewHandoffExportDraft(); })
             : null
         }
-      />
+            />
 
-      <OverviewReviewSessionPanel
+            <OverviewReviewSessionPanel
         inQueueCount={overviewReviewSessionSummary.inQueueCount}
         snoozedCount={overviewReviewSessionSummary.snoozedCount}
         reviewedCount={overviewReviewSessionSummary.reviewedCount}
@@ -4523,9 +5829,9 @@ export default function App() {
               })
             : null
         }
-      />
+            />
 
-      <OverviewReviewQueuePanel
+            <OverviewReviewQueuePanel
         entries={overviewReviewQueueEntries}
         onOpenEntry={(entryId) => {
           if (entryId === "executions" && executionsOverviewContextPreset) {
@@ -4591,9 +5897,9 @@ export default function App() {
             handleKeepOverviewEntryInQueue(entryId);
           }
         }}
-      />
+            />
 
-      <OverviewContextMemoryPanel
+            <OverviewContextMemoryPanel
         entries={overviewContextMemoryEntries}
         onOpenEntry={(entryId) => {
           if (entryId === "runs" && runsOverviewContextPreset) {
@@ -4765,949 +6071,213 @@ export default function App() {
               })
             : null
         }
-      />
+            />
+          </DesktopWindow>
+        </>
+      ) : null}
 
-      {catalogError ? <p style={{ color: "crimson" }}>{catalogError}</p> : null}
+      {activeWorkspaceId === "prompt" ? (
+        <PromptWorkspaceView
+          content={(
+            <PromptControlPanel
+              selectedWorkspaceId={selectedWorkspaceId}
+              selectedExecutorId={selectedExecutorId}
+            />
+          )}
+        />
+      ) : null}
 
-      <CatalogPanel agents={catalogAgents} />
-      <DispatchForm
-        agents={catalogAgents.length > 0 ? catalogAgents : [{
-          id: "project-build",
-          name: "Project / Build Agent",
-          role: "Fallback catalog entry",
-          summary: "Fallback catalog entry",
-          tools: [{
-            name: "project.inspect",
-            description: "Inspect project manifest and override state.",
-            approval_class: "read_only",
-            default_locks: ["project_config"],
-            default_timeout_s: 30,
-            risk: "low",
-            tags: ["project", "inspect"],
-          }],
-        }]}
-        adapters={adapters}
-        readiness={readiness}
-        onResponse={handleDispatchResponse}
-      />
-      <ResponseEnvelopeView response={lastResponse} />
+      {activeWorkspaceId === "operations" ? (
+        <OperationsWorkspaceView
+          activeSurfaceId={activeOperationsSurface}
+          items={operationsSurfaceItems}
+          onSelectSurface={(surfaceId) => setActiveOperationsSurface(surfaceId)}
+          dispatchContent={(
+            <>
+              {catalogError ? <p style={{ color: "crimson" }}>{catalogError}</p> : null}
 
-      <section style={{ marginBottom: 32 }}>
-        <h2>Agent Control</h2>
-        {agentsForDisplay.map((agent) => (
-          <AgentPanel
-            key={agent.id}
-            name={agent.name}
-            role={agent.role}
-            lockLabel={agent.locks.join(", ")}
-            tools={agent.owned_tools}
-          />
-        ))}
-      </section>
+              <CatalogPanel agents={catalogAgents} />
+              <DispatchForm
+                agents={catalogAgents.length > 0 ? catalogAgents : [{
+                  id: "project-build",
+                  name: "Project / Build Agent",
+                  role: "Fallback catalog entry",
+                  summary: "Fallback catalog entry",
+                  tools: [{
+                    name: "project.inspect",
+                    description: "Inspect project manifest and override state.",
+                    approval_class: "read_only",
+                    default_locks: ["project_config"],
+                    default_timeout_s: 30,
+                    risk: "low",
+                    tags: ["project", "inspect"],
+                  }],
+                }]}
+                adapters={adapters}
+                readiness={readiness}
+                onResponse={handleDispatchResponse}
+              />
+              <ResponseEnvelopeView response={lastResponse} />
+            </>
+          )}
+          agentsContent={(
+            <section style={{ marginBottom: 8 }}>
+              <h2 style={{ marginTop: 0 }}>Agent Control</h2>
+              <div style={desktopStackStyle}>
+                {agentsForDisplay.map((agent) => (
+                  <AgentPanel
+                    key={agent.id}
+                    name={agent.name}
+                    role={agent.role}
+                    lockLabel={agent.locks.join(", ")}
+                    tools={agent.owned_tools}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+          approvalsContent={(
+            <section ref={approvalsSectionRef}>
+              <ApprovalQueue
+                key={`approvals-search-${approvalsSearchVersion}`}
+                items={approvals}
+                loading={approvalsLoading}
+                error={approvalsError}
+                busyApprovalId={busyApprovalId}
+                onApprove={(approvalId) => handleApprovalDecision(approvalId, "approve")}
+                onReject={(approvalId) => handleApprovalDecision(approvalId, "reject")}
+                searchPreset={approvalsSearchPreset}
+                focusLabel={approvalsFocusLabel}
+                onClearFocus={clearApprovalsFocus}
+                lastRefreshedAt={approvalsRefreshedAt}
+                updateBadgeLabel={getFocusedSectionUpdateLabel("approvals")}
+                onRefresh={() => {
+                  void refreshApprovalsSection();
+                }}
+                refreshing={approvalsRefreshing}
+              />
+            </section>
+          )}
+          timelineContent={(
+            <div ref={eventsSectionRef}>
+              <TaskTimeline
+                key={`events-search-${eventsSearchVersion}`}
+                items={events}
+                loading={eventsLoading}
+                error={eventsError}
+                onOpenRun={openRunDetail}
+                onOpenExecution={openExecutionDetail}
+                onOpenExecutor={openExecutorDetail}
+                onOpenWorkspace={openWorkspaceDetail}
+                searchPreset={eventsSearchPreset}
+                focusLabel={eventsFocusLabel}
+                onClearFocus={clearEventsFocus}
+                lastRefreshedAt={eventsRefreshedAt}
+                updateBadgeLabel={getFocusedSectionUpdateLabel("events")}
+                onRefresh={() => {
+                  void refreshEventsSection();
+                }}
+                refreshing={eventsRefreshing}
+              />
+            </div>
+          )}
+        />
+      ) : null}
 
-      <AdaptersPanel
-        adapters={adapters}
-        loading={adaptersLoading}
-        error={adaptersError}
-      />
+      {activeWorkspaceId === "runtime" && activeRuntimeSurface !== "governance" ? (
+        <RuntimeWorkspaceView
+          activeSurfaceId={activeRuntimeSurface}
+          items={runtimeSurfaceItems}
+          onSelectSurface={(surfaceId) => setActiveRuntimeSurface(surfaceId)}
+          overviewContent={runtimeOverviewContent}
+          executorsContent={runtimeExecutorsContent}
+          workspacesContent={runtimeWorkspacesContent}
+          governanceContent={null}
+        />
+      ) : null}
 
-      <SystemStatusPanel
-        readiness={readiness}
-        bridgeStatus={o3deBridgeStatus}
-        loading={readinessLoading || o3deBridgeLoading}
-        error={readinessError}
-        bridgeError={o3deBridgeError}
-        bridgeCleanupBusy={o3deBridgeCleanupBusy}
-        bridgeCleanupStatus={o3deBridgeCleanupStatus}
-        onCleanupBridgeResults={() => {
-          void handleCleanupO3deBridgeResults();
-        }}
-      />
+      {activeWorkspaceId === "records" ? (
+        <RecordsWorkspaceView
+          activeSurfaceId={activeRecordsSurface}
+          items={recordsSurfaceItems}
+          onSelectSurface={(surfaceId) => setActiveRecordsSurface(surfaceId)}
+          runsContent={recordsRunsContent}
+          executionsContent={recordsExecutionsContent}
+          artifactsContent={recordsArtifactsContent}
+        />
+      ) : null}
 
-      <OperatorOverviewPanel
-        summary={controlPlaneSummary}
-        loading={controlPlaneSummaryLoading}
-        error={controlPlaneSummaryError}
-        lastRefreshedAt={operatorOverviewRefreshedAt}
-        pinnedRecordLabel={pinnedRecord?.label ?? null}
-        pinnedRecordSummary={pinnedRecord?.summary ?? null}
-        pinnedRecordStatusLabel={pinnedRecordStatus?.label ?? null}
-        pinnedRecordStatusDetail={pinnedRecordStatus?.detail ?? null}
-        onOpenPinnedRecord={pinnedRecord ? openPinnedRecord : null}
-        onRefocusPinnedRecord={pinnedRecord ? openPinnedRecord : null}
-        onClearPinnedRecord={pinnedRecord ? (() => setPinnedRecord(null)) : null}
-        onClearLocalLaneContext={handleClearLocalLaneContext}
-        nextPinnedLaneLabel={nextPinnedLaneRecord?.label ?? null}
-        nextPinnedLaneDetail={nextPinnedLaneRecord?.detail ?? null}
-        onOpenNextPinnedLaneRecord={nextPinnedLaneRecord ? openPinnedLaneQueueRecord : null}
-        laneCompletionLabel={pinnedLaneCompletionState?.label ?? null}
-        laneCompletionDetail={pinnedLaneCompletionState?.detail ?? null}
-        laneRolloverLabel={pinnedLaneRolloverRecord?.label ?? null}
-        laneRolloverDetail={pinnedLaneRolloverRecord?.detail ?? null}
-        laneMetricsLabel={pinnedLaneMetrics?.label ?? null}
-        laneMetricsDetail={pinnedLaneMetrics?.detail ?? null}
-        laneDriverLabel={pinnedLaneMetrics?.driverLabel ?? null}
-        laneDriverDetail={pinnedLaneMetrics?.driverDetail ?? null}
-        laneFilterLabel={getLaneFilterLabel(laneFilterMode)}
-        laneReadinessLabel={laneReadiness?.label ?? null}
-        laneReadinessDetail={laneReadiness?.detail ?? null}
-        laneHistoryStatusLabel={laneHistoryAvailability?.label ?? null}
-        laneHistoryStatusDetail={laneHistoryAvailability?.detail ?? null}
-        laneRecoveryLabel={laneRecoveryAction?.label ?? null}
-        laneHandoffLabel={laneHandoffSummary?.label ?? null}
-        laneHandoffDetail={laneHandoffSummary?.detail ?? null}
-        laneExportLabel={laneExportStatus?.label ?? null}
-        laneExportDetail={laneExportStatus?.detail ?? null}
-        laneOperatorNoteLabel={activeLaneOperatorNote?.label ?? null}
-        laneOperatorNoteDetail={activeLaneOperatorNote?.detail ?? null}
-        laneOperatorNoteDraft={laneOperatorNoteDraft}
-        onLaneOperatorNoteDraftChange={setLaneOperatorNoteDraft}
-        onSaveLaneOperatorNote={pinnedRecord ? handleLaneOperatorNoteSave : null}
-        onClearLaneOperatorNote={pinnedRecord ? handleLaneOperatorNoteClear : null}
-        onCopyLaneContext={pinnedRecord ? (() => { void handleCopyLaneContext(); }) : null}
-        activeLanePresetLabel={lanePresetStatus?.activeLabel ?? null}
-        activeLanePresetDetail={lanePresetStatus?.activeDetail ?? null}
-        lanePresetRestoredLabel={lanePresetStatus?.restoredLabel ?? null}
-        lanePresetRestoredDetail={lanePresetStatus?.restoredDetail ?? null}
-        lanePresetDriftLabel={lanePresetStatus?.driftLabel ?? null}
-        lanePresetDriftDetail={lanePresetStatus?.driftDetail ?? null}
-        lanePresetEntries={lanePresets}
-        onSetLaneFilterMode={pinnedRecord ? handleLaneFilterModeChange : null}
-        onApplyLaneRecovery={laneRecoveryAction ? handleLaneRecovery : null}
-        onDropStaleLaneHistory={laneHistoryAvailability?.label === "recent returns stale" ? dropStaleLaneHistory : null}
-        onApplyLanePreset={applyLanePreset}
-        onOpenLaneRolloverRecord={pinnedLaneRolloverRecord ? openPinnedLaneRolloverRecord : null}
-        onRunStatusSelect={handleRunStatusDrilldown}
-        onRunInspectionSurfaceSelect={(value) => {
-          handleRunTruthDrilldown("inspection_surface", value);
-        }}
-        onRunFallbackCategorySelect={(value) => {
-          handleRunTruthDrilldown("fallback_category", value);
-        }}
-        onRunManifestSourceSelect={(value) => {
-          handleRunTruthDrilldown("manifest_source_of_truth", value);
-        }}
-        onPendingApprovalsSelect={handlePendingApprovalsDrilldown}
-        onExecutionModeSelect={handleExecutionModeDrilldown}
-        onArtifactModeSelect={handleArtifactModeDrilldown}
-        onEventSeveritySelect={handleEventSeverityDrilldown}
-        onExecutorAvailabilitySelect={handleExecutorAvailabilityDrilldown}
-        onWorkspaceStateSelect={handleWorkspaceStateDrilldown}
-        onExecutionInspectionSurfaceSelect={handleExecutionInspectionSurfaceDrilldown}
-        onExecutionFallbackCategorySelect={handleExecutionFallbackCategoryDrilldown}
-        onExecutionManifestSourceSelect={handleExecutionManifestSourceDrilldown}
-        onArtifactInspectionSurfaceSelect={handleArtifactInspectionSurfaceDrilldown}
-        onArtifactFallbackCategorySelect={handleArtifactFallbackCategoryDrilldown}
-        onArtifactManifestSourceSelect={handleArtifactManifestSourceDrilldown}
-        onRefresh={() => {
-          void refreshDashboardStateForScope("overview");
-        }}
-        refreshing={overviewRefreshing}
-      />
-
-      <div ref={executorsSectionRef}>
-        <OverviewContextStrip
-          laneLabel="Executors"
-          focusLabel={executorsFocusLabel}
-          originLabel={describeOverviewFocusOrigin(executorsFocusLabel)}
-          impactLabel={getExecutorsOverviewImpactSummary()?.label ?? null}
-          impactDetail={getExecutorsOverviewImpactSummary()?.detail ?? null}
-          promotedPresetLabel={executorsOverviewContextPreset?.focusLabel ?? null}
-          promotedPresetDetail={executorsOverviewContextPreset
-            ? `Saved from ${executorsOverviewContextPreset.originLabel} at ${new Date(executorsOverviewContextPreset.savedAt).toLocaleTimeString()}. Browser-session only.`
-            : null}
-          historyEntries={executorsOverviewContextHistory.map((entry) => ({
-            id: entry.id,
-            focusLabel: entry.focusLabel,
-            originLabel: entry.originLabel,
-          }))}
-          onSelectHistoryEntry={(entryId) => {
-            const entry = executorsOverviewContextHistory.find((item) => item.id === entryId);
-            if (entry) {
-              replayExecutorsOverviewContext(entry);
-            }
-          }}
-          onClearHistory={
-            executorsOverviewContextHistory.length > 0
-              ? (() => setExecutorsOverviewContextHistory([]))
-              : null
-          }
-          onPromoteCurrentContext={executorsFocusLabel ? handlePromoteExecutorsOverviewContextPreset : null}
-          onApplyPromotedPreset={executorsOverviewContextPreset
-            ? (() => replayExecutorsOverviewContext(executorsOverviewContextPreset))
-            : null}
-          onClearPromotedPreset={executorsOverviewContextPreset
-            ? (() => setExecutorsOverviewContextPreset(null))
-            : null}
-          onClearFocus={executorsFocusLabel ? clearExecutorsFocus : null}
+      {activeWorkspaceId === "runtime" && activeRuntimeSurface === "governance" ? (
+        <RuntimeWorkspaceView
+          activeSurfaceId={activeRuntimeSurface}
+          items={runtimeSurfaceItems}
+          onSelectSurface={(surfaceId) => setActiveRuntimeSurface(surfaceId)}
+          overviewContent={null}
+          executorsContent={null}
+          workspacesContent={null}
+          governanceContent={runtimeGovernanceContent}
         />
-        <ExecutorsPanel
-          key={`executors-search-${executorsSearchVersion}`}
-          items={executors}
-          loading={executorsLoading}
-          error={executorsError}
-          selectedExecutorId={selectedExecutorId}
-          onSelectExecutor={openExecutorDetail}
-          searchPreset={executorsSearchPreset}
-          focusLabel={executorsFocusLabel}
-          onClearFocus={clearExecutorsFocus}
-          lastRefreshedAt={executorsRefreshedAt}
-          updateBadgeLabel={null}
-          onRefresh={() => {
-            void refreshDashboardStateForScope("records");
-          }}
-          refreshing={recordsRefreshing}
-        />
-      </div>
-      <div ref={executorDetailSectionRef}>
-        <ExecutorDetailPanel
-          item={selectedExecutor}
-          loading={selectedExecutorLoading}
-          error={selectedExecutorError}
-          localReviewDisposition={overviewReviewState.executors?.disposition ?? null}
-          localReviewUpdatedAt={overviewReviewState.executors?.updatedAt ?? null}
-          localContextFocusLabel={executorsOverviewContextPreset?.focusLabel ?? null}
-          localContextSavedAt={executorsOverviewContextPreset?.savedAt ?? null}
-          localContextNote={overviewContextNotes.executors?.text ?? null}
-          localReadinessLabel={readinessDiagnosticsById.executors?.summaryLabel ?? null}
-          localReadinessDetail={readinessDiagnosticsById.executors?.detail ?? null}
-          localHasDrift={overviewReviewDiagnosticsById.executors?.hasDrift ?? false}
-          onOpenSavedContext={executorsOverviewContextPreset ? handleTriageSavedExecutorContext : null}
-          onMarkLocalReviewed={executorsOverviewContextPreset ? (() => handleMarkOverviewEntryReviewed("executors")) : null}
-          onSnoozeLocalReview={executorsOverviewContextPreset ? (() => handleSnoozeOverviewEntry("executors")) : null}
-          onKeepLocalInQueue={executorsOverviewContextPreset ? (() => handleKeepOverviewEntryInQueue("executors")) : null}
-          attentionExecutionLabel={selectedExecutorPreferredExecution
-            ? describeExecutionAttention(
-                selectedExecutorPreferredExecution,
-                selectedExecutionId,
-              ).label
-            : null}
-          attentionExecutionDetail={selectedExecutorPreferredExecution
-            ? `${describeExecutionAttention(
-                selectedExecutorPreferredExecution,
-                selectedExecutionId,
-              ).description} ${recommendExecutionAction(
-                selectedExecutorPreferredExecution,
-                selectedExecutionId,
-              ).description}`
-            : null}
-          attentionArtifactLabel={selectedExecutorPreferredArtifact
-            ? describeArtifactPriority(
-                selectedExecutorPreferredArtifact,
-                artifacts.filter((artifact) => artifact.executor_id === selectedExecutorPreferredArtifact.executor_id),
-                selectedArtifactId,
-              ).label
-            : null}
-          attentionArtifactDetail={selectedExecutorPreferredArtifact
-            ? describeArtifactPriority(
-                selectedExecutorPreferredArtifact,
-                artifacts.filter((artifact) => artifact.executor_id === selectedExecutorPreferredArtifact.executor_id),
-                selectedArtifactId,
-              ).description
-            : null}
-          attentionRunLabel={selectedExecutor
-            ? `${runs.filter((run) => run.executor_id === selectedExecutor.id).length} linked run${runs.filter((run) => run.executor_id === selectedExecutor.id).length === 1 ? "" : "s"}`
-            : null}
-          attentionRunDetail={selectedExecutor
-            ? (() => {
-                const linkedRuns = runs.filter((run) => run.executor_id === selectedExecutor.id);
-                const unresolvedRuns = linkedRuns.filter((run) =>
-                  run.status === "running"
-                  || run.status === "waiting_approval"
-                  || run.status === "blocked"
-                  || run.status === "failed",
-                );
-                if (unresolvedRuns.length > 0) {
-                  return `${unresolvedRuns.length} linked run${unresolvedRuns.length === 1 ? " remains" : "s remain"} in an unresolved persisted status for this executor bookkeeping slice.`;
-                }
-                return linkedRuns.length > 0
-                  ? "Linked runs exist, but none currently stand out as unresolved persisted follow-up."
-                  : "No linked runs are currently attached to this executor.";
-              })()
-            : null}
-          relatedWorkspaces={
-            selectedExecutor
-              ? workspaces.filter((workspace) => workspace.owner_executor_id === selectedExecutor.id)
-              : []
-          }
-          relatedExecutions={
-            selectedExecutor
-              ? executions.filter((execution) => execution.executor_id === selectedExecutor.id)
-              : []
-          }
-          relatedRuns={
-            selectedExecutor
-              ? runs.filter((run) => run.executor_id === selectedExecutor.id)
-              : []
-          }
-          relatedArtifacts={
-            selectedExecutor
-              ? artifacts.filter((artifact) => artifact.executor_id === selectedExecutor.id)
-              : []
-          }
-          relatedEvents={
-            selectedExecutor
-              ? events.filter((event) => event.executor_id === selectedExecutor.id)
-              : []
-          }
-          onOpenWorkspace={openWorkspaceDetail}
-          onOpenExecution={openExecutionDetail}
-          onOpenRun={openRunDetail}
-          onOpenArtifact={openArtifactDetail}
-          lastRefreshedAt={executorDetailRefreshedAt}
-          onRefresh={() => {
-            void refreshExecutorDetailSection();
-          }}
-          refreshing={executorDetailRefreshing || selectedExecutorLoading}
-        />
-      </div>
-      <div ref={workspacesSectionRef}>
-        <OverviewContextStrip
-          laneLabel="Workspaces"
-          focusLabel={workspacesFocusLabel}
-          originLabel={describeOverviewFocusOrigin(workspacesFocusLabel)}
-          impactLabel={getWorkspacesOverviewImpactSummary()?.label ?? null}
-          impactDetail={getWorkspacesOverviewImpactSummary()?.detail ?? null}
-          promotedPresetLabel={workspacesOverviewContextPreset?.focusLabel ?? null}
-          promotedPresetDetail={workspacesOverviewContextPreset
-            ? `Saved from ${workspacesOverviewContextPreset.originLabel} at ${new Date(workspacesOverviewContextPreset.savedAt).toLocaleTimeString()}. Browser-session only.`
-            : null}
-          historyEntries={workspacesOverviewContextHistory.map((entry) => ({
-            id: entry.id,
-            focusLabel: entry.focusLabel,
-            originLabel: entry.originLabel,
-          }))}
-          onSelectHistoryEntry={(entryId) => {
-            const entry = workspacesOverviewContextHistory.find((item) => item.id === entryId);
-            if (entry) {
-              replayWorkspacesOverviewContext(entry);
-            }
-          }}
-          onClearHistory={
-            workspacesOverviewContextHistory.length > 0
-              ? (() => setWorkspacesOverviewContextHistory([]))
-              : null
-          }
-          onPromoteCurrentContext={workspacesFocusLabel ? handlePromoteWorkspacesOverviewContextPreset : null}
-          onApplyPromotedPreset={workspacesOverviewContextPreset
-            ? (() => replayWorkspacesOverviewContext(workspacesOverviewContextPreset))
-            : null}
-          onClearPromotedPreset={workspacesOverviewContextPreset
-            ? (() => setWorkspacesOverviewContextPreset(null))
-            : null}
-          onClearFocus={workspacesFocusLabel ? clearWorkspacesFocus : null}
-        />
-        <WorkspacesPanel
-          key={`workspaces-search-${workspacesSearchVersion}`}
-          items={workspaces}
-          loading={workspacesLoading}
-          error={workspacesError}
-          selectedWorkspaceId={selectedWorkspaceId}
-          onSelectWorkspace={openWorkspaceDetail}
-          searchPreset={workspacesSearchPreset}
-          focusLabel={workspacesFocusLabel}
-          onClearFocus={clearWorkspacesFocus}
-          lastRefreshedAt={workspacesRefreshedAt}
-          updateBadgeLabel={null}
-          onRefresh={() => {
-            void refreshDashboardStateForScope("records");
-          }}
-          refreshing={recordsRefreshing}
-        />
-      </div>
-      <div ref={workspaceDetailSectionRef}>
-        <WorkspaceDetailPanel
-          item={selectedWorkspace}
-          loading={selectedWorkspaceLoading}
-          error={selectedWorkspaceError}
-          localReviewDisposition={overviewReviewState.workspaces?.disposition ?? null}
-          localReviewUpdatedAt={overviewReviewState.workspaces?.updatedAt ?? null}
-          localContextFocusLabel={workspacesOverviewContextPreset?.focusLabel ?? null}
-          localContextSavedAt={workspacesOverviewContextPreset?.savedAt ?? null}
-          localContextNote={overviewContextNotes.workspaces?.text ?? null}
-          localReadinessLabel={readinessDiagnosticsById.workspaces?.summaryLabel ?? null}
-          localReadinessDetail={readinessDiagnosticsById.workspaces?.detail ?? null}
-          localHasDrift={overviewReviewDiagnosticsById.workspaces?.hasDrift ?? false}
-          onOpenSavedContext={workspacesOverviewContextPreset ? handleTriageSavedWorkspaceContext : null}
-          onMarkLocalReviewed={workspacesOverviewContextPreset ? (() => handleMarkOverviewEntryReviewed("workspaces")) : null}
-          onSnoozeLocalReview={workspacesOverviewContextPreset ? (() => handleSnoozeOverviewEntry("workspaces")) : null}
-          onKeepLocalInQueue={workspacesOverviewContextPreset ? (() => handleKeepOverviewEntryInQueue("workspaces")) : null}
-          attentionExecutionLabel={selectedWorkspacePreferredExecution
-            ? describeExecutionAttention(
-                selectedWorkspacePreferredExecution,
-                selectedExecutionId,
-              ).label
-            : null}
-          attentionExecutionDetail={selectedWorkspacePreferredExecution
-            ? `${describeExecutionAttention(
-                selectedWorkspacePreferredExecution,
-                selectedExecutionId,
-              ).description} ${recommendExecutionAction(
-                selectedWorkspacePreferredExecution,
-                selectedExecutionId,
-              ).description}`
-            : null}
-          attentionArtifactLabel={selectedWorkspacePreferredArtifact
-            ? describeArtifactPriority(
-                selectedWorkspacePreferredArtifact,
-                artifacts.filter((artifact) => artifact.workspace_id === selectedWorkspacePreferredArtifact.workspace_id),
-                selectedArtifactId,
-              ).label
-            : null}
-          attentionArtifactDetail={selectedWorkspacePreferredArtifact
-            ? describeArtifactPriority(
-                selectedWorkspacePreferredArtifact,
-                artifacts.filter((artifact) => artifact.workspace_id === selectedWorkspacePreferredArtifact.workspace_id),
-                selectedArtifactId,
-              ).description
-            : null}
-          attentionRunLabel={selectedWorkspace
-            ? `${runs.filter((run) => run.workspace_id === selectedWorkspace.id).length} linked run${runs.filter((run) => run.workspace_id === selectedWorkspace.id).length === 1 ? "" : "s"}`
-            : null}
-          attentionRunDetail={selectedWorkspace
-            ? (() => {
-                const linkedRuns = runs.filter((run) => run.workspace_id === selectedWorkspace.id);
-                const unresolvedRuns = linkedRuns.filter((run) =>
-                  run.status === "running"
-                  || run.status === "waiting_approval"
-                  || run.status === "blocked"
-                  || run.status === "failed",
-                );
-                if (unresolvedRuns.length > 0) {
-                  return `${unresolvedRuns.length} linked run${unresolvedRuns.length === 1 ? " remains" : "s remain"} in an unresolved persisted status for this workspace bookkeeping slice.`;
-                }
-                return linkedRuns.length > 0
-                  ? "Linked runs exist, but none currently stand out as unresolved persisted follow-up."
-                  : "No linked runs are currently attached to this workspace.";
-              })()
-            : null}
-          relatedExecutions={
-            selectedWorkspace
-              ? executions.filter((execution) => execution.workspace_id === selectedWorkspace.id)
-              : []
-          }
-          relatedRuns={
-            selectedWorkspace
-              ? runs.filter((run) => run.workspace_id === selectedWorkspace.id)
-              : []
-          }
-          relatedArtifacts={
-            selectedWorkspace
-              ? artifacts.filter((artifact) => artifact.workspace_id === selectedWorkspace.id)
-              : []
-          }
-          relatedEvents={
-            selectedWorkspace
-              ? events.filter((event) => event.workspace_id === selectedWorkspace.id)
-              : []
-          }
-          onOpenExecution={openExecutionDetail}
-          onOpenRun={openRunDetail}
-          onOpenArtifact={openArtifactDetail}
-          lastRefreshedAt={workspaceDetailRefreshedAt}
-          onRefresh={() => {
-            void refreshWorkspaceDetailSection();
-          }}
-          refreshing={workspaceDetailRefreshing || selectedWorkspaceLoading}
-        />
-      </div>
-
-      <Phase7CapabilitySummaryPanel agents={catalogAgents} />
-
-      <section ref={approvalsSectionRef}>
-        <ApprovalQueue
-          key={`approvals-search-${approvalsSearchVersion}`}
-          items={approvals}
-          loading={approvalsLoading}
-          error={approvalsError}
-          busyApprovalId={busyApprovalId}
-          onApprove={(approvalId) => handleApprovalDecision(approvalId, "approve")}
-          onReject={(approvalId) => handleApprovalDecision(approvalId, "reject")}
-          searchPreset={approvalsSearchPreset}
-          focusLabel={approvalsFocusLabel}
-          onClearFocus={clearApprovalsFocus}
-          lastRefreshedAt={approvalsRefreshedAt}
-          updateBadgeLabel={getFocusedSectionUpdateLabel("approvals")}
-          onRefresh={() => {
-            void refreshApprovalsSection();
-          }}
-          refreshing={approvalsRefreshing}
-        />
-      </section>
-
-      <div ref={eventsSectionRef}>
-        <TaskTimeline
-          key={`events-search-${eventsSearchVersion}`}
-          items={events}
-          loading={eventsLoading}
-          error={eventsError}
-          onOpenRun={openRunDetail}
-          onOpenExecution={openExecutionDetail}
-          onOpenExecutor={openExecutorDetail}
-          onOpenWorkspace={openWorkspaceDetail}
-          searchPreset={eventsSearchPreset}
-          focusLabel={eventsFocusLabel}
-          onClearFocus={clearEventsFocus}
-          lastRefreshedAt={eventsRefreshedAt}
-          updateBadgeLabel={getFocusedSectionUpdateLabel("events")}
-          onRefresh={() => {
-            void refreshEventsSection();
-          }}
-          refreshing={eventsRefreshing}
-        />
-      </div>
-      <div ref={artifactsSectionRef}>
-        <OverviewContextStrip
-          laneLabel="Artifacts"
-          focusLabel={artifactsFocusLabel}
-          originLabel={describeOverviewFocusOrigin(artifactsFocusLabel)}
-          autoOpenLabel={describeOverviewAutoOpenOutcome(artifactDetailRefreshHint)}
-          impactLabel={getArtifactsOverviewImpactSummary()?.label ?? null}
-          impactDetail={getArtifactsOverviewImpactSummary()?.detail ?? null}
-          promotedPresetLabel={artifactsOverviewContextPreset?.focusLabel ?? null}
-          promotedPresetDetail={artifactsOverviewContextPreset
-            ? `Saved from ${artifactsOverviewContextPreset.originLabel} at ${new Date(artifactsOverviewContextPreset.savedAt).toLocaleTimeString()}. Browser-session only.`
-            : null}
-          historyEntries={artifactsOverviewContextHistory.map((entry) => ({
-            id: entry.id,
-            focusLabel: entry.focusLabel,
-            originLabel: entry.originLabel,
-          }))}
-          onSelectHistoryEntry={(entryId) => {
-            const entry = artifactsOverviewContextHistory.find((item) => item.id === entryId);
-            if (entry) {
-              replayArtifactsOverviewContext(entry);
-            }
-          }}
-          onClearHistory={
-            artifactsOverviewContextHistory.length > 0
-              ? (() => setArtifactsOverviewContextHistory([]))
-              : null
-          }
-          onPromoteCurrentContext={artifactsFocusLabel ? handlePromoteArtifactsOverviewContextPreset : null}
-          onApplyPromotedPreset={artifactsOverviewContextPreset
-            ? (() => replayArtifactsOverviewContext(artifactsOverviewContextPreset))
-            : null}
-          onClearPromotedPreset={artifactsOverviewContextPreset
-            ? (() => setArtifactsOverviewContextPreset(null))
-            : null}
-          onClearFocus={artifactsFocusLabel ? clearArtifactsFocus : null}
-        />
-        <ArtifactsPanel
-          key={`artifacts-search-${artifactsSearchVersion}`}
-          items={artifacts}
-          loading={artifactsLoading}
-          error={artifactsError}
-          selectedArtifactId={selectedArtifactId}
-          onSelectArtifact={openArtifactDetail}
-          searchPreset={artifactsSearchPreset}
-          focusLabel={artifactsFocusLabel}
-          onClearFocus={clearArtifactsFocus}
-          lastRefreshedAt={artifactsRefreshedAt}
-          updateBadgeLabel={getFocusedSectionUpdateLabel("artifacts")}
-          onRefresh={() => {
-            void refreshDashboardStateForScope("records");
-          }}
-          refreshing={recordsRefreshing}
-        />
-      </div>
-      <div ref={executionsSectionRef}>
-        <OverviewContextStrip
-          laneLabel="Executions"
-          focusLabel={executionsFocusLabel}
-          originLabel={describeOverviewFocusOrigin(executionsFocusLabel)}
-          autoOpenLabel={describeOverviewAutoOpenOutcome(executionDetailRefreshHint)}
-          impactLabel={getExecutionsOverviewImpactSummary()?.label ?? null}
-          impactDetail={getExecutionsOverviewImpactSummary()?.detail ?? null}
-          promotedPresetLabel={executionsOverviewContextPreset?.focusLabel ?? null}
-          promotedPresetDetail={executionsOverviewContextPreset
-            ? `Saved from ${executionsOverviewContextPreset.originLabel} at ${new Date(executionsOverviewContextPreset.savedAt).toLocaleTimeString()}. Browser-session only.`
-            : null}
-          historyEntries={executionsOverviewContextHistory.map((entry) => ({
-            id: entry.id,
-            focusLabel: entry.focusLabel,
-            originLabel: entry.originLabel,
-          }))}
-          onSelectHistoryEntry={(entryId) => {
-            const entry = executionsOverviewContextHistory.find((item) => item.id === entryId);
-            if (entry) {
-              replayExecutionsOverviewContext(entry);
-            }
-          }}
-          onClearHistory={
-            executionsOverviewContextHistory.length > 0
-              ? (() => setExecutionsOverviewContextHistory([]))
-              : null
-          }
-          onPromoteCurrentContext={executionsFocusLabel ? handlePromoteExecutionsOverviewContextPreset : null}
-          onApplyPromotedPreset={executionsOverviewContextPreset
-            ? (() => replayExecutionsOverviewContext(executionsOverviewContextPreset))
-            : null}
-          onClearPromotedPreset={executionsOverviewContextPreset
-            ? (() => setExecutionsOverviewContextPreset(null))
-            : null}
-          onClearFocus={executionsFocusLabel ? clearExecutionsFocus : null}
-        />
-        <ExecutionsPanel
-          key={`executions-search-${executionsSearchVersion}`}
-          items={executions}
-          loading={executionsLoading}
-          error={executionsError}
-          selectedExecutionId={selectedExecutionId}
-          onSelectExecution={openExecutionDetail}
-          searchPreset={executionsSearchPreset}
-          focusLabel={executionsFocusLabel}
-          onClearFocus={clearExecutionsFocus}
-          lastRefreshedAt={executionsRefreshedAt}
-          updateBadgeLabel={getFocusedSectionUpdateLabel("executions")}
-          onRefresh={() => {
-            void refreshDashboardStateForScope("records");
-          }}
-          refreshing={recordsRefreshing}
-        />
-      </div>
-      <div ref={runsSectionRef}>
-        <OverviewContextStrip
-          laneLabel="Runs"
-          focusLabel={runsFocusLabel}
-          originLabel={describeOverviewFocusOrigin(runsFocusLabel)}
-          autoOpenLabel={describeOverviewAutoOpenOutcome(runDetailRefreshHint)}
-          impactLabel={getRunsOverviewImpactSummary()?.label ?? null}
-          impactDetail={getRunsOverviewImpactSummary()?.detail ?? null}
-          promotedPresetLabel={runsOverviewContextPreset?.focusLabel ?? null}
-          promotedPresetDetail={runsOverviewContextPreset
-            ? `Saved from ${runsOverviewContextPreset.originLabel} at ${new Date(runsOverviewContextPreset.savedAt).toLocaleTimeString()}. Browser-session only.`
-            : null}
-          historyEntries={runsOverviewContextHistory.map((entry) => ({
-            id: entry.id,
-            focusLabel: entry.focusLabel,
-            originLabel: entry.originLabel,
-          }))}
-          onSelectHistoryEntry={(entryId) => {
-            const entry = runsOverviewContextHistory.find((item) => item.id === entryId);
-            if (entry) {
-              void replayRunsOverviewContext(entry);
-            }
-          }}
-          onClearHistory={
-            runsOverviewContextHistory.length > 0
-              ? (() => setRunsOverviewContextHistory([]))
-              : null
-          }
-          onPromoteCurrentContext={runsFocusLabel ? handlePromoteRunsOverviewContextPreset : null}
-          onApplyPromotedPreset={runsOverviewContextPreset
-            ? (() => { void replayRunsOverviewContext(runsOverviewContextPreset); })
-            : null}
-          onClearPromotedPreset={runsOverviewContextPreset
-            ? (() => setRunsOverviewContextPreset(null))
-            : null}
-          onClearFocus={runsFocusLabel ? clearRunsFocus : null}
-        />
-        <RunsPanel
-          key={`runs-search-${runsSearchVersion}`}
-          items={runs}
-          runAudits={runAudits}
-          settingsPatchAuditSummary={settingsPatchAuditSummary}
-          selectedToolFilter={selectedToolFilter}
-          onToolFilterChange={handleToolFilterChange}
-          selectedAuditFilter={selectedAuditFilter}
-          onAuditFilterChange={handleAuditFilterChange}
-          loading={runsLoading}
-          error={runsError}
-          selectedRunId={selectedRunId}
-          onSelectRun={openRunDetail}
-          onTruthFilterSelect={handleRunTruthDrilldown}
-          searchPreset={runsSearchPreset}
-          focusLabel={runsFocusLabel}
-          onClearFocus={clearRunsFocus}
-          lastRefreshedAt={runsRefreshedAt}
-          updateBadgeLabel={getFocusedSectionUpdateLabel("runs")}
-          onRefresh={() => {
-            void refreshDashboardStateForScope("records");
-          }}
-          refreshing={recordsRefreshing}
-        />
-      </div>
-      <div ref={runDetailSectionRef}>
-        <RunDetailPanel
-          item={selectedRun}
-          loading={selectedRunLoading}
-          error={selectedRunError}
-          breadcrumbs={runDetailBreadcrumbs}
-          executionDetails={selectedExecutionDetails}
-          relatedExecutionId={
-            selectedRunPreferredExecution?.id ?? null
-          }
-          relatedExecutionPriorityLabel={
-            relatedExecutionPriority?.label ?? null
-          }
-          relatedExecutionPriorityDescription={
-            relatedExecutionPriority?.description ?? null
-          }
-          relatedExecutionActionLabel={
-            relatedExecutionAction?.label ?? null
-          }
-          relatedExecutionActionDescription={
-            relatedExecutionAction?.description ?? null
-          }
-          relatedExecutionAttentionLabel={
-            relatedExecutionAttention?.label ?? null
-          }
-          relatedExecutionAttentionDescription={
-            relatedExecutionAttention?.description ?? null
-          }
-          priorityShortcutLabel={selectedRunPreferredExecution ? "Open highest-priority execution" : null}
-          priorityShortcutDescription={selectedRunPreferredExecution
-            ? `Jump directly to ${describeExecutionPriority(
-              selectedRunPreferredExecution,
-              executions.filter((execution) => execution.run_id === selectedRunPreferredExecution.run_id),
-              selectedExecutionId,
-            ).description}`
-            : null}
-          warningShortcutLabel={selectedRunWarningExecution ? "Open next warning-bearing execution" : null}
-          warningShortcutDescription={selectedRunWarningExecution
-            ? `Jump directly to the related execution carrying ${selectedRunWarningExecution.warning_count} persisted warning${selectedRunWarningExecution.warning_count === 1 ? "" : "s"}.`
-            : null}
-          originatingArtifactId={runOriginArtifact?.id ?? null}
-          originatingArtifactLabel={runOriginArtifact?.label ?? null}
-          originatingArtifactKind={runOriginArtifact?.kind ?? null}
-          selectedRunId={selectedRunId}
-          selectedExecutionId={selectedExecutionId}
-          selectedArtifactId={selectedArtifactId}
-          pinnedRecordId={pinnedRecord?.kind === "run" ? pinnedRecord.id : null}
-          pinnedRecordStatusLabel={pinnedRecord?.kind === "run" ? pinnedRecordStatus?.label ?? null : null}
-          pinnedRecordStatusDetail={pinnedRecord?.kind === "run" ? pinnedRecordStatus?.detail ?? null : null}
-          laneQueueLabel={pinnedRecord?.kind === "run" ? nextPinnedLaneRecord?.label ?? null : null}
-          laneQueueDetail={pinnedRecord?.kind === "run" ? nextPinnedLaneRecord?.detail ?? null : null}
-          laneCompletionLabel={pinnedRecord?.kind === "run" ? pinnedLaneCompletionState?.label ?? null : null}
-          laneCompletionDetail={pinnedRecord?.kind === "run" ? pinnedLaneCompletionState?.detail ?? null : null}
-          laneRolloverLabel={pinnedRecord?.kind === "run" ? pinnedLaneRolloverRecord?.label ?? null : null}
-          laneRolloverDetail={pinnedRecord?.kind === "run" ? pinnedLaneRolloverRecord?.detail ?? null : null}
-          laneMetricsLabel={pinnedRecord?.kind === "run" ? pinnedLaneMetrics?.label ?? null : null}
-          laneMetricsDetail={pinnedRecord?.kind === "run" ? pinnedLaneMetrics?.detail ?? null : null}
-          laneDriverLabel={pinnedRecord?.kind === "run" ? pinnedLaneMetrics?.driverLabel ?? null : null}
-          laneDriverDetail={pinnedRecord?.kind === "run" ? pinnedLaneMetrics?.driverDetail ?? null : null}
-          laneMemoryLabel={pinnedRecord?.kind !== "run" ? laneMemory?.pinnedLabel ?? null : null}
-          laneMemoryDetail={pinnedRecord?.kind !== "run" ? laneMemory?.detail ?? null : null}
-          laneHistoryEntries={pinnedRecord?.kind !== "run" ? laneHistory : []}
-          laneHandoffLabel={laneHandoffSummary?.label ?? null}
-          laneHandoffDetail={laneHandoffSummary?.detail ?? null}
-          laneExportLabel={laneExportStatus?.label ?? null}
-          laneExportDetail={laneExportStatus?.detail ?? null}
-          laneOperatorNoteLabel={activeLaneOperatorNote?.label ?? null}
-          laneOperatorNoteDetail={activeLaneOperatorNote?.detail ?? null}
-          activeLanePresetLabel={lanePresetStatus?.activeLabel ?? null}
-          activeLanePresetDetail={lanePresetStatus?.activeDetail ?? null}
-          lanePresetRestoredLabel={lanePresetStatus?.restoredLabel ?? null}
-          lanePresetRestoredDetail={lanePresetStatus?.restoredDetail ?? null}
-          lanePresetDriftLabel={lanePresetStatus?.driftLabel ?? null}
-          lanePresetDriftDetail={lanePresetStatus?.driftDetail ?? null}
-          onOpenExecution={openExecutionDetail}
-          onOpenArtifact={openArtifactDetail}
-          onOpenPriorityRecord={selectedRunPreferredExecution
-            ? () => openExecutionDetail(selectedRunPreferredExecution.id)
-            : null}
-          onOpenWarningRecord={selectedRunWarningExecution
-            ? () => openExecutionDetail(selectedRunWarningExecution.id)
-            : null}
-          onPinRecord={() => pinRunRecord(selectedRun)}
-          onUnpinRecord={pinnedRecord?.kind === "run" && selectedRun?.id === pinnedRecord.id
-            ? () => setPinnedRecord(null)
-            : null}
-          onRefocusPinnedRecord={pinnedRecord?.kind === "run" ? openPinnedRecord : null}
-          onOpenNextLaneRecord={pinnedRecord?.kind === "run" && nextPinnedLaneRecord ? openPinnedLaneQueueRecord : null}
-          onOpenLaneRolloverRecord={pinnedRecord?.kind === "run" && pinnedLaneRolloverRecord ? openPinnedLaneRolloverRecord : null}
-          onReturnToLane={pinnedRecord?.kind !== "run" && laneMemory ? restoreLaneMemory : null}
-          onOpenLaneHistoryEntry={pinnedRecord?.kind !== "run" ? openLaneHistoryEntry : null}
-          refreshHint={runDetailRefreshHint}
-          lastRefreshedAt={runDetailRefreshedAt}
-          onRefresh={() => {
-            void refreshRunDetailSection();
-          }}
-          refreshing={runDetailRefreshing || selectedRunLoading}
-        />
-      </div>
-      <div ref={executionDetailSectionRef}>
-        <ExecutionDetailPanel
-          item={selectedExecution}
-          loading={selectedExecutionLoading}
-          error={selectedExecutionError}
-          breadcrumbs={executionDetailBreadcrumbs}
-          selectedRunId={selectedRunId}
-          selectedExecutionId={selectedExecutionId}
-          selectedArtifactId={selectedArtifactId}
-          pinnedRecordId={pinnedRecord?.kind === "execution" ? pinnedRecord.id : null}
-          pinnedRecordStatusLabel={pinnedRecord?.kind === "execution" ? pinnedRecordStatus?.label ?? null : null}
-          pinnedRecordStatusDetail={pinnedRecord?.kind === "execution" ? pinnedRecordStatus?.detail ?? null : null}
-          laneQueueLabel={pinnedRecord?.kind === "execution" ? nextPinnedLaneRecord?.label ?? null : null}
-          laneQueueDetail={pinnedRecord?.kind === "execution" ? nextPinnedLaneRecord?.detail ?? null : null}
-          laneCompletionLabel={pinnedRecord?.kind === "execution" ? pinnedLaneCompletionState?.label ?? null : null}
-          laneCompletionDetail={pinnedRecord?.kind === "execution" ? pinnedLaneCompletionState?.detail ?? null : null}
-          laneRolloverLabel={pinnedRecord?.kind === "execution" ? pinnedLaneRolloverRecord?.label ?? null : null}
-          laneRolloverDetail={pinnedRecord?.kind === "execution" ? pinnedLaneRolloverRecord?.detail ?? null : null}
-          laneMetricsLabel={pinnedRecord?.kind === "execution" ? pinnedLaneMetrics?.label ?? null : null}
-          laneMetricsDetail={pinnedRecord?.kind === "execution" ? pinnedLaneMetrics?.detail ?? null : null}
-          laneDriverLabel={pinnedRecord?.kind === "execution" ? pinnedLaneMetrics?.driverLabel ?? null : null}
-          laneDriverDetail={pinnedRecord?.kind === "execution" ? pinnedLaneMetrics?.driverDetail ?? null : null}
-          laneMemoryLabel={pinnedRecord?.kind !== "execution" ? laneMemory?.pinnedLabel ?? null : null}
-          laneMemoryDetail={pinnedRecord?.kind !== "execution" ? laneMemory?.detail ?? null : null}
-          laneHistoryEntries={pinnedRecord?.kind !== "execution" ? laneHistory : []}
-          laneHandoffLabel={laneHandoffSummary?.label ?? null}
-          laneHandoffDetail={laneHandoffSummary?.detail ?? null}
-          laneExportLabel={laneExportStatus?.label ?? null}
-          laneExportDetail={laneExportStatus?.detail ?? null}
-          laneOperatorNoteLabel={activeLaneOperatorNote?.label ?? null}
-          laneOperatorNoteDetail={activeLaneOperatorNote?.detail ?? null}
-          activeLanePresetLabel={lanePresetStatus?.activeLabel ?? null}
-          activeLanePresetDetail={lanePresetStatus?.activeDetail ?? null}
-          lanePresetRestoredLabel={lanePresetStatus?.restoredLabel ?? null}
-          lanePresetRestoredDetail={lanePresetStatus?.restoredDetail ?? null}
-          lanePresetDriftLabel={lanePresetStatus?.driftLabel ?? null}
-          lanePresetDriftDetail={lanePresetStatus?.driftDetail ?? null}
-          priorityShortcutLabel={selectedExecutionPreferredArtifact ? "Open highest-priority artifact" : null}
-          priorityShortcutDescription={selectedExecutionPreferredArtifact
-            ? `Jump directly to ${describeArtifactPriority(
-              selectedExecutionPreferredArtifact,
-              artifacts.filter((artifact) => artifact.execution_id === selectedExecutionPreferredArtifact.execution_id),
-              selectedArtifactId,
-            ).description}`
-            : null}
-          warningShortcutLabel={selectedExecutionHighestRiskArtifact ? "Open highest-risk related artifact" : null}
-          warningShortcutDescription={selectedExecutionHighestRiskArtifact
-            ? "Jump directly to the related artifact with the strongest persisted risk markers, such as simulated output or mutation-audit failure state."
-            : null}
-          relatedArtifacts={
-            selectedExecution
-              ? artifacts.filter((artifact) => artifact.execution_id === selectedExecution.id)
-              : []
-          }
-          originatingArtifactLabel={executionOriginArtifact?.label ?? null}
-          originatingArtifactKind={executionOriginArtifact?.kind ?? null}
-          onOpenRun={openRunDetail}
-          onOpenArtifact={openArtifactDetail}
-          onOpenPriorityRecord={selectedExecutionPreferredArtifact
-            ? () => openArtifactDetail(selectedExecutionPreferredArtifact.id)
-            : null}
-          onOpenWarningRecord={selectedExecutionHighestRiskArtifact
-            ? () => openArtifactDetail(selectedExecutionHighestRiskArtifact.id)
-            : null}
-          onPinRecord={() => pinExecutionRecord(selectedExecution)}
-          onUnpinRecord={pinnedRecord?.kind === "execution" && selectedExecution?.id === pinnedRecord.id
-            ? () => setPinnedRecord(null)
-            : null}
-          onRefocusPinnedRecord={pinnedRecord?.kind === "execution" ? openPinnedRecord : null}
-          onOpenNextLaneRecord={pinnedRecord?.kind === "execution" && nextPinnedLaneRecord ? openPinnedLaneQueueRecord : null}
-          onOpenLaneRolloverRecord={pinnedRecord?.kind === "execution" && pinnedLaneRolloverRecord ? openPinnedLaneRolloverRecord : null}
-          onReturnToLane={pinnedRecord?.kind !== "execution" && laneMemory ? restoreLaneMemory : null}
-          onOpenLaneHistoryEntry={pinnedRecord?.kind !== "execution" ? openLaneHistoryEntry : null}
-          refreshHint={executionDetailRefreshHint}
-          lastRefreshedAt={executionDetailRefreshedAt}
-          onRefresh={() => {
-            void refreshExecutionDetailSection();
-          }}
-          refreshing={executionDetailRefreshing || selectedExecutionLoading}
-        />
-      </div>
-      <div ref={artifactDetailSectionRef}>
-        <ArtifactDetailPanel
-          item={selectedArtifact}
-          loading={selectedArtifactLoading}
-          error={selectedArtifactError}
-          breadcrumbs={artifactDetailBreadcrumbs}
-          selectedRunId={selectedRunId}
-          selectedExecutionId={selectedExecutionId}
-          selectedArtifactId={selectedArtifactId}
-          pinnedRecordId={pinnedRecord?.kind === "artifact" ? pinnedRecord.id : null}
-          pinnedRecordStatusLabel={pinnedRecord?.kind === "artifact" ? pinnedRecordStatus?.label ?? null : null}
-          pinnedRecordStatusDetail={pinnedRecord?.kind === "artifact" ? pinnedRecordStatus?.detail ?? null : null}
-          laneQueueLabel={pinnedRecord?.kind === "artifact" ? nextPinnedLaneRecord?.label ?? null : null}
-          laneQueueDetail={pinnedRecord?.kind === "artifact" ? nextPinnedLaneRecord?.detail ?? null : null}
-          laneCompletionLabel={pinnedRecord?.kind === "artifact" ? pinnedLaneCompletionState?.label ?? null : null}
-          laneCompletionDetail={pinnedRecord?.kind === "artifact" ? pinnedLaneCompletionState?.detail ?? null : null}
-          laneRolloverLabel={pinnedRecord?.kind === "artifact" ? pinnedLaneRolloverRecord?.label ?? null : null}
-          laneRolloverDetail={pinnedRecord?.kind === "artifact" ? pinnedLaneRolloverRecord?.detail ?? null : null}
-          laneMetricsLabel={pinnedRecord?.kind === "artifact" ? pinnedLaneMetrics?.label ?? null : null}
-          laneMetricsDetail={pinnedRecord?.kind === "artifact" ? pinnedLaneMetrics?.detail ?? null : null}
-          laneDriverLabel={pinnedRecord?.kind === "artifact" ? pinnedLaneMetrics?.driverLabel ?? null : null}
-          laneDriverDetail={pinnedRecord?.kind === "artifact" ? pinnedLaneMetrics?.driverDetail ?? null : null}
-          laneMemoryLabel={pinnedRecord?.kind !== "artifact" ? laneMemory?.pinnedLabel ?? null : null}
-          laneMemoryDetail={pinnedRecord?.kind !== "artifact" ? laneMemory?.detail ?? null : null}
-          laneHistoryEntries={pinnedRecord?.kind !== "artifact" ? laneHistory : []}
-          laneHandoffLabel={laneHandoffSummary?.label ?? null}
-          laneHandoffDetail={laneHandoffSummary?.detail ?? null}
-          laneExportLabel={laneExportStatus?.label ?? null}
-          laneExportDetail={laneExportStatus?.detail ?? null}
-          laneOperatorNoteLabel={activeLaneOperatorNote?.label ?? null}
-          laneOperatorNoteDetail={activeLaneOperatorNote?.detail ?? null}
-          activeLanePresetLabel={lanePresetStatus?.activeLabel ?? null}
-          activeLanePresetDetail={lanePresetStatus?.activeDetail ?? null}
-          lanePresetRestoredLabel={lanePresetStatus?.restoredLabel ?? null}
-          lanePresetRestoredDetail={lanePresetStatus?.restoredDetail ?? null}
-          lanePresetDriftLabel={lanePresetStatus?.driftLabel ?? null}
-          lanePresetDriftDetail={lanePresetStatus?.driftDetail ?? null}
-          priorityShortcutLabel={selectedArtifactSiblingPriority ? "Open highest-priority sibling artifact" : null}
-          priorityShortcutDescription={selectedArtifactSiblingPriority
-            ? `Jump directly to ${describeArtifactPriority(
-              selectedArtifactSiblingPriority,
-              artifacts.filter((artifact) => artifact.execution_id === selectedArtifactSiblingPriority.execution_id),
-              selectedArtifactId,
-            ).description}`
-            : null}
-          warningShortcutLabel={selectedArtifactHighestRiskSibling ? "Open highest-risk sibling artifact" : null}
-          warningShortcutDescription={selectedArtifactHighestRiskSibling
-            ? "Jump directly to the sibling artifact with the strongest persisted risk markers, such as simulated output or mutation-audit rollback or failure state."
-            : null}
-          relatedArtifacts={
-            selectedArtifact
-              ? artifacts.filter((artifact) => artifact.execution_id === selectedArtifact.execution_id)
-              : []
-          }
-          relatedRunStatus={relatedArtifactRun?.status ?? null}
-          relatedRunSummary={relatedArtifactRun?.result_summary ?? null}
-          relatedExecutionStatus={relatedArtifactExecution?.status ?? null}
-          relatedExecutionSummary={relatedArtifactExecution?.result_summary ?? null}
-          relatedExecutionMode={relatedArtifactExecution?.execution_mode ?? null}
-          relatedExecutionStartedAt={relatedArtifactExecution?.started_at ?? null}
-          relatedExecutionWarningCount={relatedArtifactExecution?.warning_count ?? null}
-          onOpenRun={openRunDetail}
-          onOpenExecution={openExecutionDetail}
-          onOpenArtifact={openArtifactDetail}
-          onOpenPriorityRecord={selectedArtifactSiblingPriority
-            ? () => openArtifactDetail(selectedArtifactSiblingPriority.id)
-            : null}
-          onOpenWarningRecord={selectedArtifactHighestRiskSibling
-            ? () => openArtifactDetail(selectedArtifactHighestRiskSibling.id)
-            : null}
-          onPinRecord={() => pinArtifactRecord(selectedArtifact)}
-          onUnpinRecord={pinnedRecord?.kind === "artifact" && selectedArtifact?.id === pinnedRecord.id
-            ? () => setPinnedRecord(null)
-            : null}
-          onRefocusPinnedRecord={pinnedRecord?.kind === "artifact" ? openPinnedRecord : null}
-          onOpenNextLaneRecord={pinnedRecord?.kind === "artifact" && nextPinnedLaneRecord ? openPinnedLaneQueueRecord : null}
-          onOpenLaneRolloverRecord={pinnedRecord?.kind === "artifact" && pinnedLaneRolloverRecord ? openPinnedLaneRolloverRecord : null}
-          onReturnToLane={pinnedRecord?.kind !== "artifact" && laneMemory ? restoreLaneMemory : null}
-          onOpenLaneHistoryEntry={pinnedRecord?.kind !== "artifact" ? openLaneHistoryEntry : null}
-          refreshHint={artifactDetailRefreshHint}
-          lastRefreshedAt={artifactDetailRefreshedAt}
-          onRefresh={() => {
-            void refreshArtifactDetailSection();
-          }}
-          refreshing={artifactDetailRefreshing || selectedArtifactLoading}
-        />
-      </div>
-      <LocksPanel
-        items={locks}
-        loading={locksLoading}
-        error={locksError}
-      />
-      <PoliciesPanel
-        items={policies}
-        loading={policiesLoading}
-        error={policiesError}
-      />
-    </main>
+      ) : null}
+    </DesktopShell>
   );
 }
+
+const desktopStackStyle = {
+  display: "grid",
+  gap: 14,
+} satisfies CSSProperties;
+
+const desktopLaunchpadGridStyle = {
+  display: "grid",
+  gap: 14,
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+} satisfies CSSProperties;
+
+const desktopShortcutCardStyle = {
+  border: "1px solid rgba(137, 156, 196, 0.22)",
+  borderRadius: 20,
+  padding: "16px 18px",
+  background: "linear-gradient(145deg, rgba(226, 238, 255, 0.94) 0%, rgba(248, 251, 255, 0.96) 100%)",
+  color: "#173055",
+  cursor: "pointer",
+  textAlign: "left",
+  display: "grid",
+  gap: 8,
+  boxShadow: "0 16px 30px rgba(41, 83, 165, 0.12)",
+} satisfies CSSProperties;
+
+const desktopShortcutMetaStyle = {
+  color: "#55719b",
+  fontSize: 13,
+  lineHeight: 1.45,
+} satisfies CSSProperties;
+
+const desktopSummaryStripStyle = {
+  display: "grid",
+  gap: 12,
+  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+} satisfies CSSProperties;
+
+const desktopMiniStatStyle = {
+  border: "1px solid rgba(137, 156, 196, 0.2)",
+  borderRadius: 16,
+  padding: "12px 14px",
+  background: "rgba(247, 250, 255, 0.8)",
+  display: "grid",
+  gap: 6,
+} satisfies CSSProperties;
+
+const desktopMiniStatLabelStyle = {
+  color: "#56719f",
+  fontSize: 11,
+  fontWeight: 700,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+} satisfies CSSProperties;
+
+const desktopHiddenSectionStyle = {
+  display: "none",
+} satisfies CSSProperties;
 
 function getRefreshScopePendingDetail(scope: RefreshScope): string {
   if (scope === "overview") {
