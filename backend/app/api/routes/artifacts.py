@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from app.models.api import ArtifactListResponse, ArtifactsResponse
 from app.models.control_plane import ArtifactRecord
@@ -13,8 +13,16 @@ def list_artifacts() -> ArtifactsResponse:
 
 
 @router.get("/artifacts/cards", response_model=ArtifactListResponse)
-def list_artifact_cards() -> ArtifactListResponse:
-    return artifacts_service.list_artifact_cards()
+def list_artifact_cards(
+    inspection_surface: str | None = Query(default=None),
+    fallback_category: str | None = Query(default=None),
+    manifest_source_of_truth: str | None = Query(default=None),
+) -> ArtifactListResponse:
+    return artifacts_service.list_artifact_cards(
+        requested_inspection_surface=inspection_surface,
+        requested_fallback_category=fallback_category,
+        requested_manifest_source_of_truth=manifest_source_of_truth,
+    )
 
 
 @router.get("/artifacts/{artifact_id}", response_model=ArtifactRecord)

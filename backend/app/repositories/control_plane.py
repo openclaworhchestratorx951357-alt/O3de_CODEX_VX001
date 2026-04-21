@@ -1,11 +1,14 @@
 from app.models.control_plane import (
     ApprovalRecord,
     ArtifactRecord,
+    ExecutorRecord,
     EventRecord,
     ExecutionRecord,
     LockRecord,
     RunRecord,
+    WorkspaceRecord,
 )
+from app.models.prompt_control import PromptSessionRecord
 from app.services.db import connection, decode_json, encode_json
 
 
@@ -199,16 +202,25 @@ class ControlPlaneRepository:
             conn.execute(
                 """
                 INSERT INTO events (
-                    id, run_id, category, severity, message, created_at, details
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    id, run_id, execution_id, executor_id, workspace_id, category,
+                    event_type, severity, message, created_at, previous_state,
+                    current_state, failure_category, details
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     event.id,
                     event.run_id,
+                    event.execution_id,
+                    event.executor_id,
+                    event.workspace_id,
                     event.category,
+                    event.event_type,
                     event.severity.value,
                     event.message,
                     event.created_at.isoformat(),
+                    event.previous_state,
+                    event.current_state,
+                    event.failure_category,
                     encode_json(event.details),
                 ),
             )
@@ -235,8 +247,12 @@ class ControlPlaneRepository:
                 """
                 INSERT INTO executions (
                     id, run_id, request_id, agent, tool, execution_mode, status,
-                    started_at, finished_at, warnings, logs, artifact_ids, details, result_summary
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    started_at, finished_at, warnings, logs, artifact_ids,
+                    executor_id, workspace_id, runner_family,
+                    execution_attempt_state, failure_category, failure_stage,
+                    approval_class, lock_scope, backup_class, rollback_class,
+                    retention_class, details, result_summary
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     execution.id,
@@ -251,6 +267,17 @@ class ControlPlaneRepository:
                     encode_json(execution.warnings),
                     encode_json(execution.logs),
                     encode_json(execution.artifact_ids),
+                    execution.executor_id,
+                    execution.workspace_id,
+                    execution.runner_family,
+                    execution.execution_attempt_state,
+                    execution.failure_category,
+                    execution.failure_stage,
+                    execution.approval_class,
+                    execution.lock_scope,
+                    execution.backup_class,
+                    execution.rollback_class,
+                    execution.retention_class,
                     encode_json(execution.details),
                     execution.result_summary,
                 ),
@@ -278,7 +305,10 @@ class ControlPlaneRepository:
                 """
                 UPDATE executions
                 SET status = ?, finished_at = ?, warnings = ?, logs = ?, artifact_ids = ?,
-                    details = ?, result_summary = ?
+                    executor_id = ?, workspace_id = ?, runner_family = ?,
+                    execution_attempt_state = ?, failure_category = ?, failure_stage = ?,
+                    approval_class = ?, lock_scope = ?, backup_class = ?, rollback_class = ?,
+                    retention_class = ?, details = ?, result_summary = ?
                 WHERE id = ?
                 """,
                 (
@@ -287,6 +317,17 @@ class ControlPlaneRepository:
                     encode_json(execution.warnings),
                     encode_json(execution.logs),
                     encode_json(execution.artifact_ids),
+                    execution.executor_id,
+                    execution.workspace_id,
+                    execution.runner_family,
+                    execution.execution_attempt_state,
+                    execution.failure_category,
+                    execution.failure_stage,
+                    execution.approval_class,
+                    execution.lock_scope,
+                    execution.backup_class,
+                    execution.rollback_class,
+                    execution.retention_class,
                     encode_json(execution.details),
                     execution.result_summary,
                     execution.id,
@@ -300,8 +341,9 @@ class ControlPlaneRepository:
                 """
                 INSERT INTO artifacts (
                     id, run_id, execution_id, label, kind, uri, path, content_type,
-                    simulated, created_at, metadata
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    simulated, created_at, artifact_role, executor_id, workspace_id,
+                    retention_class, evidence_completeness, metadata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     artifact.id,
@@ -314,6 +356,11 @@ class ControlPlaneRepository:
                     artifact.content_type,
                     int(artifact.simulated),
                     artifact.created_at.isoformat(),
+                    artifact.artifact_role,
+                    artifact.executor_id,
+                    artifact.workspace_id,
+                    artifact.retention_class,
+                    artifact.evidence_completeness,
                     encode_json(artifact.metadata),
                 ),
             )
@@ -333,6 +380,279 @@ class ControlPlaneRepository:
                 (artifact_id,),
             ).fetchone()
         return self._row_to_artifact(row) if row else None
+
+    def create_executor(self, executor: ExecutorRecord) -> ExecutorRecord:
+        with connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO executors (
+                    id, executor_kind, executor_label, executor_host_label,
+                    execution_mode_class, availability_state,
+                    supported_runner_families, capability_snapshot,
+                    last_heartbeat_at, last_failure_summary, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    executor.id,
+                    executor.executor_kind,
+                    executor.executor_label,
+                    executor.executor_host_label,
+                    executor.execution_mode_class,
+                    executor.availability_state,
+                    encode_json(executor.supported_runner_families),
+                    encode_json(executor.capability_snapshot),
+                    executor.last_heartbeat_at.isoformat()
+                    if executor.last_heartbeat_at
+                    else None,
+                    executor.last_failure_summary,
+                    executor.created_at.isoformat(),
+                    executor.updated_at.isoformat(),
+                ),
+            )
+        return executor
+
+    def list_executors(self) -> list[ExecutorRecord]:
+        with connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM executors ORDER BY updated_at DESC, id DESC"
+            ).fetchall()
+        return [self._row_to_executor(row) for row in rows]
+
+    def get_executor(self, executor_id: str) -> ExecutorRecord | None:
+        with connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM executors WHERE id = ?",
+                (executor_id,),
+            ).fetchone()
+        return self._row_to_executor(row) if row else None
+
+    def update_executor(self, executor: ExecutorRecord) -> ExecutorRecord:
+        with connection() as conn:
+            conn.execute(
+                """
+                UPDATE executors
+                SET executor_kind = ?, executor_label = ?, executor_host_label = ?,
+                    execution_mode_class = ?, availability_state = ?,
+                    supported_runner_families = ?, capability_snapshot = ?,
+                    last_heartbeat_at = ?, last_failure_summary = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    executor.executor_kind,
+                    executor.executor_label,
+                    executor.executor_host_label,
+                    executor.execution_mode_class,
+                    executor.availability_state,
+                    encode_json(executor.supported_runner_families),
+                    encode_json(executor.capability_snapshot),
+                    executor.last_heartbeat_at.isoformat()
+                    if executor.last_heartbeat_at
+                    else None,
+                    executor.last_failure_summary,
+                    executor.updated_at.isoformat(),
+                    executor.id,
+                ),
+            )
+        return executor
+
+    def create_workspace(self, workspace: WorkspaceRecord) -> WorkspaceRecord:
+        with connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO workspaces (
+                    id, workspace_kind, workspace_root, workspace_state,
+                    cleanup_policy, retention_class, engine_binding, project_binding,
+                    runner_family, owner_run_id, owner_execution_id, owner_executor_id,
+                    created_at, activated_at, completed_at, cleaned_at,
+                    last_failure_summary
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    workspace.id,
+                    workspace.workspace_kind,
+                    workspace.workspace_root,
+                    workspace.workspace_state,
+                    workspace.cleanup_policy,
+                    workspace.retention_class,
+                    encode_json(workspace.engine_binding),
+                    encode_json(workspace.project_binding),
+                    workspace.runner_family,
+                    workspace.owner_run_id,
+                    workspace.owner_execution_id,
+                    workspace.owner_executor_id,
+                    workspace.created_at.isoformat(),
+                    workspace.activated_at.isoformat() if workspace.activated_at else None,
+                    workspace.completed_at.isoformat() if workspace.completed_at else None,
+                    workspace.cleaned_at.isoformat() if workspace.cleaned_at else None,
+                    workspace.last_failure_summary,
+                ),
+            )
+        return workspace
+
+    def create_prompt_session(self, session: PromptSessionRecord) -> PromptSessionRecord:
+        with connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO prompt_sessions (
+                    prompt_id, plan_id, status, prompt_text, project_root, engine_root,
+                    dry_run, preferred_domains, operator_note, child_run_ids,
+                    child_execution_ids, child_artifact_ids, child_event_ids,
+                    workspace_id, executor_id, plan_summary, evidence_summary,
+                    admitted_capabilities, refused_capabilities, final_result_summary,
+                    next_step_index, current_step_id, pending_approval_id,
+                    pending_approval_token, last_error_code, last_error_retryable,
+                    step_attempts,
+                    plan_json, latest_child_responses, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    session.prompt_id,
+                    session.plan_id,
+                    session.status.value,
+                    session.prompt_text,
+                    session.project_root,
+                    session.engine_root,
+                    int(session.dry_run),
+                    encode_json(session.preferred_domains),
+                    session.operator_note,
+                    encode_json(session.child_run_ids),
+                    encode_json(session.child_execution_ids),
+                    encode_json(session.child_artifact_ids),
+                    encode_json(session.child_event_ids),
+                    session.workspace_id,
+                    session.executor_id,
+                    session.plan_summary,
+                    session.evidence_summary,
+                    encode_json(session.admitted_capabilities),
+                    encode_json(session.refused_capabilities),
+                    session.final_result_summary,
+                    session.next_step_index,
+                    session.current_step_id,
+                    session.pending_approval_id,
+                    session.pending_approval_token,
+                    session.last_error_code,
+                    int(session.last_error_retryable),
+                    encode_json(session.step_attempts),
+                    encode_json(session.plan.model_dump(mode="json")) if session.plan else None,
+                    encode_json(session.latest_child_responses),
+                    session.created_at.isoformat(),
+                    session.updated_at.isoformat(),
+                ),
+            )
+        return session
+
+    def list_prompt_sessions(self) -> list[PromptSessionRecord]:
+        with connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM prompt_sessions ORDER BY updated_at DESC, prompt_id DESC"
+            ).fetchall()
+        return [self._row_to_prompt_session(row) for row in rows]
+
+    def get_prompt_session(self, prompt_id: str) -> PromptSessionRecord | None:
+        with connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM prompt_sessions WHERE prompt_id = ?",
+                (prompt_id,),
+            ).fetchone()
+        return self._row_to_prompt_session(row) if row else None
+
+    def update_prompt_session(self, session: PromptSessionRecord) -> PromptSessionRecord:
+        with connection() as conn:
+            conn.execute(
+                """
+                UPDATE prompt_sessions
+                SET plan_id = ?, status = ?, prompt_text = ?, project_root = ?, engine_root = ?,
+                    dry_run = ?, preferred_domains = ?, operator_note = ?, child_run_ids = ?,
+                    child_execution_ids = ?, child_artifact_ids = ?, child_event_ids = ?,
+                    workspace_id = ?, executor_id = ?, plan_summary = ?, evidence_summary = ?,
+                    admitted_capabilities = ?, refused_capabilities = ?, final_result_summary = ?,
+                    next_step_index = ?, current_step_id = ?, pending_approval_id = ?,
+                    pending_approval_token = ?, last_error_code = ?, last_error_retryable = ?,
+                    step_attempts = ?, plan_json = ?, latest_child_responses = ?, updated_at = ?
+                WHERE prompt_id = ?
+                """,
+                (
+                    session.plan_id,
+                    session.status.value,
+                    session.prompt_text,
+                    session.project_root,
+                    session.engine_root,
+                    int(session.dry_run),
+                    encode_json(session.preferred_domains),
+                    session.operator_note,
+                    encode_json(session.child_run_ids),
+                    encode_json(session.child_execution_ids),
+                    encode_json(session.child_artifact_ids),
+                    encode_json(session.child_event_ids),
+                    session.workspace_id,
+                    session.executor_id,
+                    session.plan_summary,
+                    session.evidence_summary,
+                    encode_json(session.admitted_capabilities),
+                    encode_json(session.refused_capabilities),
+                    session.final_result_summary,
+                    session.next_step_index,
+                    session.current_step_id,
+                    session.pending_approval_id,
+                    session.pending_approval_token,
+                    session.last_error_code,
+                    int(session.last_error_retryable),
+                    encode_json(session.step_attempts),
+                    encode_json(session.plan.model_dump(mode="json")) if session.plan else None,
+                    encode_json(session.latest_child_responses),
+                    session.updated_at.isoformat(),
+                    session.prompt_id,
+                ),
+            )
+        return session
+
+    def list_workspaces(self) -> list[WorkspaceRecord]:
+        with connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM workspaces ORDER BY created_at DESC, id DESC"
+            ).fetchall()
+        return [self._row_to_workspace(row) for row in rows]
+
+    def get_workspace(self, workspace_id: str) -> WorkspaceRecord | None:
+        with connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM workspaces WHERE id = ?",
+                (workspace_id,),
+            ).fetchone()
+        return self._row_to_workspace(row) if row else None
+
+    def update_workspace(self, workspace: WorkspaceRecord) -> WorkspaceRecord:
+        with connection() as conn:
+            conn.execute(
+                """
+                UPDATE workspaces
+                SET workspace_kind = ?, workspace_root = ?, workspace_state = ?,
+                    cleanup_policy = ?, retention_class = ?, engine_binding = ?,
+                    project_binding = ?, runner_family = ?, owner_run_id = ?,
+                    owner_execution_id = ?, owner_executor_id = ?, activated_at = ?,
+                    completed_at = ?, cleaned_at = ?, last_failure_summary = ?
+                WHERE id = ?
+                """,
+                (
+                    workspace.workspace_kind,
+                    workspace.workspace_root,
+                    workspace.workspace_state,
+                    workspace.cleanup_policy,
+                    workspace.retention_class,
+                    encode_json(workspace.engine_binding),
+                    encode_json(workspace.project_binding),
+                    workspace.runner_family,
+                    workspace.owner_run_id,
+                    workspace.owner_execution_id,
+                    workspace.owner_executor_id,
+                    workspace.activated_at.isoformat() if workspace.activated_at else None,
+                    workspace.completed_at.isoformat() if workspace.completed_at else None,
+                    workspace.cleaned_at.isoformat() if workspace.cleaned_at else None,
+                    workspace.last_failure_summary,
+                    workspace.id,
+                ),
+            )
+        return workspace
 
     def _row_to_run(self, row: object) -> RunRecord:
         mapping = dict(row)
@@ -359,6 +679,17 @@ class ControlPlaneRepository:
                 "logs": decode_json(mapping["logs"], []),
                 "artifact_ids": decode_json(mapping["artifact_ids"], []),
                 "details": decode_json(mapping["details"], {}),
+                "executor_id": mapping.get("executor_id"),
+                "workspace_id": mapping.get("workspace_id"),
+                "runner_family": mapping.get("runner_family"),
+                "execution_attempt_state": mapping.get("execution_attempt_state"),
+                "failure_category": mapping.get("failure_category"),
+                "failure_stage": mapping.get("failure_stage"),
+                "approval_class": mapping.get("approval_class"),
+                "lock_scope": mapping.get("lock_scope"),
+                "backup_class": mapping.get("backup_class"),
+                "rollback_class": mapping.get("rollback_class"),
+                "retention_class": mapping.get("retention_class"),
             }
         )
 
@@ -368,7 +699,63 @@ class ControlPlaneRepository:
             {
                 **mapping,
                 "simulated": bool(mapping["simulated"]),
+                "artifact_role": mapping.get("artifact_role"),
+                "executor_id": mapping.get("executor_id"),
+                "workspace_id": mapping.get("workspace_id"),
+                "retention_class": mapping.get("retention_class"),
+                "evidence_completeness": mapping.get("evidence_completeness"),
                 "metadata": decode_json(mapping["metadata"], {}),
+            }
+        )
+
+    def _row_to_executor(self, row: object) -> ExecutorRecord:
+        mapping = dict(row)
+        return ExecutorRecord.model_validate(
+            {
+                **mapping,
+                "supported_runner_families": decode_json(
+                    mapping["supported_runner_families"], []
+                ),
+                "capability_snapshot": decode_json(mapping["capability_snapshot"], {}),
+            }
+        )
+
+    def _row_to_workspace(self, row: object) -> WorkspaceRecord:
+        mapping = dict(row)
+        return WorkspaceRecord.model_validate(
+            {
+                **mapping,
+                "engine_binding": decode_json(mapping["engine_binding"], {}),
+                "project_binding": decode_json(mapping["project_binding"], {}),
+            }
+        )
+
+    def _row_to_prompt_session(self, row: object) -> PromptSessionRecord:
+        mapping = dict(row)
+        plan_payload = decode_json(mapping.get("plan_json"), None)
+        return PromptSessionRecord.model_validate(
+            {
+                **mapping,
+                "dry_run": bool(mapping["dry_run"]),
+                "preferred_domains": decode_json(mapping["preferred_domains"], []),
+                "child_run_ids": decode_json(mapping["child_run_ids"], []),
+                "child_execution_ids": decode_json(mapping["child_execution_ids"], []),
+                "child_artifact_ids": decode_json(mapping["child_artifact_ids"], []),
+                "child_event_ids": decode_json(mapping["child_event_ids"], []),
+                "admitted_capabilities": decode_json(mapping["admitted_capabilities"], []),
+                "refused_capabilities": decode_json(mapping["refused_capabilities"], []),
+                "next_step_index": mapping.get("next_step_index", 0),
+                "current_step_id": mapping.get("current_step_id"),
+                "pending_approval_id": mapping.get("pending_approval_id"),
+                "pending_approval_token": mapping.get("pending_approval_token"),
+                "last_error_code": mapping.get("last_error_code"),
+                "last_error_retryable": bool(mapping.get("last_error_retryable", 0)),
+                "step_attempts": decode_json(mapping.get("step_attempts"), {}),
+                "latest_child_responses": decode_json(
+                    mapping["latest_child_responses"],
+                    [],
+                ),
+                "plan": plan_payload,
             }
         )
 

@@ -99,11 +99,18 @@ class LockRecord(BaseModel):
 class EventRecord(BaseModel):
     id: str = Field(..., min_length=1)
     run_id: str | None = None
+    execution_id: str | None = None
+    executor_id: str | None = None
+    workspace_id: str | None = None
     category: str = Field(..., min_length=1)
+    event_type: str | None = None
     severity: EventSeverity
     message: str = Field(..., min_length=1)
     created_at: datetime = Field(default_factory=utc_now)
-    details: dict[str, str] = Field(default_factory=dict)
+    previous_state: str | None = None
+    current_state: str | None = None
+    failure_category: str | None = None
+    details: dict[str, Any] = Field(default_factory=dict)
 
 
 class ExecutionRecord(BaseModel):
@@ -119,6 +126,17 @@ class ExecutionRecord(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     logs: list[str] = Field(default_factory=list)
     artifact_ids: list[str] = Field(default_factory=list)
+    executor_id: str | None = None
+    workspace_id: str | None = None
+    runner_family: str | None = None
+    execution_attempt_state: str | None = None
+    failure_category: str | None = None
+    failure_stage: str | None = None
+    approval_class: str | None = None
+    lock_scope: str | None = None
+    backup_class: str | None = None
+    rollback_class: str | None = None
+    retention_class: str | None = None
     details: dict[str, Any] = Field(default_factory=dict)
     result_summary: str | None = None
 
@@ -134,4 +152,44 @@ class ArtifactRecord(BaseModel):
     content_type: str | None = None
     simulated: bool = True
     created_at: datetime = Field(default_factory=utc_now)
+    artifact_role: str | None = None
+    executor_id: str | None = None
+    workspace_id: str | None = None
+    retention_class: str | None = None
+    evidence_completeness: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ExecutorRecord(BaseModel):
+    id: str = Field(..., min_length=1)
+    executor_kind: str = Field(..., min_length=1)
+    executor_label: str = Field(..., min_length=1)
+    executor_host_label: str = Field(..., min_length=1)
+    execution_mode_class: str = Field(..., min_length=1)
+    availability_state: str = Field(..., min_length=1)
+    supported_runner_families: list[str] = Field(default_factory=list)
+    capability_snapshot: dict[str, Any] = Field(default_factory=dict)
+    last_heartbeat_at: datetime | None = None
+    last_failure_summary: str | None = None
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+
+class WorkspaceRecord(BaseModel):
+    id: str = Field(..., min_length=1)
+    workspace_kind: str = Field(..., min_length=1)
+    workspace_root: str = Field(..., min_length=1)
+    workspace_state: str = Field(..., min_length=1)
+    cleanup_policy: str = Field(..., min_length=1)
+    retention_class: str = Field(..., min_length=1)
+    engine_binding: dict[str, Any] = Field(default_factory=dict)
+    project_binding: dict[str, Any] = Field(default_factory=dict)
+    runner_family: str = Field(..., min_length=1)
+    owner_run_id: str | None = None
+    owner_execution_id: str | None = None
+    owner_executor_id: str | None = None
+    created_at: datetime = Field(default_factory=utc_now)
+    activated_at: datetime | None = None
+    completed_at: datetime | None = None
+    cleaned_at: datetime | None = None
+    last_failure_summary: str | None = None

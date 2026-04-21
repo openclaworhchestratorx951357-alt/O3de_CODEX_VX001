@@ -24,10 +24,16 @@ def list_runs(
 def list_run_cards(
     tool: str | None = Query(default=None),
     audit_status: str | None = Query(default=None),
+    inspection_surface: str | None = Query(default=None),
+    fallback_category: str | None = Query(default=None),
+    manifest_source_of_truth: str | None = Query(default=None),
 ) -> RunListResponse:
     return runs_service.list_run_cards(
         requested_tool=tool,
         requested_audit_status=audit_status,
+        requested_inspection_surface=inspection_surface,
+        requested_fallback_category=fallback_category,
+        requested_manifest_source_of_truth=manifest_source_of_truth,
     )
 
 

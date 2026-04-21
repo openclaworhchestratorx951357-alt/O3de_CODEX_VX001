@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from app.models.api import ExecutionListResponse, ExecutionsResponse
 from app.models.control_plane import ExecutionRecord
@@ -13,8 +13,16 @@ def list_executions() -> ExecutionsResponse:
 
 
 @router.get("/executions/cards", response_model=ExecutionListResponse)
-def list_execution_cards() -> ExecutionListResponse:
-    return executions_service.list_execution_cards()
+def list_execution_cards(
+    inspection_surface: str | None = Query(default=None),
+    fallback_category: str | None = Query(default=None),
+    manifest_source_of_truth: str | None = Query(default=None),
+) -> ExecutionListResponse:
+    return executions_service.list_execution_cards(
+        requested_inspection_surface=inspection_surface,
+        requested_fallback_category=fallback_category,
+        requested_manifest_source_of_truth=manifest_source_of_truth,
+    )
 
 
 @router.get("/executions/{execution_id}", response_model=ExecutionRecord)

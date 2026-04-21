@@ -9,9 +9,10 @@ from app.models.api import (
     RunsSummaryResponse,
     SettingsPatchAuditSummary,
 )
-from app.models.control_plane import RunRecord, RunStatus
+from app.models.control_plane import ExecutionRecord, RunRecord, RunStatus
 from app.models.request_envelope import RequestEnvelope
 from app.repositories.control_plane import control_plane_repository
+from app.services.card_utils import read_string_value
 
 
 class RunsService:
@@ -42,6 +43,9 @@ class RunsService:
         *,
         requested_tool: str | None = None,
         requested_audit_status: str | None = None,
+        requested_inspection_surface: str | None = None,
+        requested_fallback_category: str | None = None,
+        requested_manifest_source_of_truth: str | None = None,
     ) -> RunListResponse:
         run_audits = self._list_settings_patch_run_audits(
             requested_tool=requested_tool,
@@ -51,6 +55,10 @@ class RunsService:
             requested_tool=requested_tool,
             requested_audit_status=requested_audit_status,
         )
+        preferred_executions_by_run_id = self._preferred_executions_by_run_id()
+        workspaces_by_id = {
+            workspace.id: workspace for workspace in control_plane_repository.list_workspaces()
+        }
         run_audits_by_id = {audit.run_id: audit for audit in run_audits}
         return RunListResponse(
             runs=[
@@ -69,8 +77,67 @@ class RunsService:
                     audit_summary=run_audits_by_id.get(run.id).audit_summary
                     if run.id in run_audits_by_id
                     else None,
+                    inspection_surface=read_string_value(
+                        preferred_executions_by_run_id.get(run.id).details
+                        if run.id in preferred_executions_by_run_id
+                        else None,
+                        "inspection_surface",
+                    ),
+                    fallback_category=read_string_value(
+                        preferred_executions_by_run_id.get(run.id).details
+                        if run.id in preferred_executions_by_run_id
+                        else None,
+                        "fallback_category",
+                    ),
+                    project_manifest_source_of_truth=read_string_value(
+                        preferred_executions_by_run_id.get(run.id).details
+                        if run.id in preferred_executions_by_run_id
+                        else None,
+                        "project_manifest_source_of_truth",
+                    ),
+                    executor_id=preferred_executions_by_run_id.get(run.id).executor_id
+                    if run.id in preferred_executions_by_run_id
+                    else None,
+                    workspace_id=preferred_executions_by_run_id.get(run.id).workspace_id
+                    if run.id in preferred_executions_by_run_id
+                    else None,
+                    workspace_state=workspaces_by_id.get(
+                        preferred_executions_by_run_id.get(run.id).workspace_id
+                        if run.id in preferred_executions_by_run_id
+                        else None
+                    ).workspace_state
+                    if (
+                        run.id in preferred_executions_by_run_id
+                        and preferred_executions_by_run_id.get(run.id).workspace_id
+                        in workspaces_by_id
+                    )
+                    else None,
+                    runner_family=preferred_executions_by_run_id.get(run.id).runner_family
+                    if run.id in preferred_executions_by_run_id
+                    else None,
+                    execution_attempt_state=preferred_executions_by_run_id.get(
+                        run.id
+                    ).execution_attempt_state
+                    if run.id in preferred_executions_by_run_id
+                    else None,
+                    backup_class=preferred_executions_by_run_id.get(run.id).backup_class
+                    if run.id in preferred_executions_by_run_id
+                    else None,
+                    rollback_class=preferred_executions_by_run_id.get(run.id).rollback_class
+                    if run.id in preferred_executions_by_run_id
+                    else None,
+                    retention_class=preferred_executions_by_run_id.get(run.id).retention_class
+                    if run.id in preferred_executions_by_run_id
+                    else None,
                 )
                 for run in runs
+                if self._matches_execution_truth_filters(
+                    run_id=run.id,
+                    preferred_execution=preferred_executions_by_run_id.get(run.id),
+                    requested_inspection_surface=requested_inspection_surface,
+                    requested_fallback_category=requested_fallback_category,
+                    requested_manifest_source_of_truth=requested_manifest_source_of_truth,
+                )
             ]
         )
 
@@ -299,6 +366,84 @@ class RunsService:
             run_audits=run_audits,
             requested_audit_status=requested_audit_status,
         )
+
+    def _preferred_executions_by_run_id(self) -> dict[str, ExecutionRecord]:
+        preferred_by_run_id: dict[str, ExecutionRecord] = {}
+        for execution in control_plane_repository.list_executions():
+            preferred = preferred_by_run_id.get(execution.run_id)
+            if preferred is None or self._is_preferred_execution_candidate(
+                candidate=execution,
+                current=preferred,
+            ):
+                preferred_by_run_id[execution.run_id] = execution
+        return preferred_by_run_id
+
+    def _is_preferred_execution_candidate(
+        self,
+        *,
+        candidate: ExecutionRecord,
+        current: ExecutionRecord,
+    ) -> bool:
+        candidate_finished = candidate.finished_at or candidate.started_at
+        current_finished = current.finished_at or current.started_at
+        if candidate_finished != current_finished:
+            return candidate_finished > current_finished
+        if candidate.started_at != current.started_at:
+            return candidate.started_at > current.started_at
+        return candidate.id > current.id
+
+    def _matches_execution_truth_filters(
+        self,
+        *,
+        run_id: str,
+        preferred_execution: ExecutionRecord | None,
+        requested_inspection_surface: str | None,
+        requested_fallback_category: str | None,
+        requested_manifest_source_of_truth: str | None,
+    ) -> bool:
+        if not any(
+            [
+                requested_inspection_surface,
+                requested_fallback_category,
+                requested_manifest_source_of_truth,
+            ]
+        ):
+            return True
+
+        matching_executions = [
+            execution
+            for execution in control_plane_repository.list_executions()
+            if execution.run_id == run_id
+        ]
+        if preferred_execution and all(
+            execution.id != preferred_execution.id for execution in matching_executions
+        ):
+            matching_executions.append(preferred_execution)
+
+        for execution in matching_executions:
+            if (
+                requested_inspection_surface
+                and read_string_value(execution.details, "inspection_surface")
+                != requested_inspection_surface
+            ):
+                continue
+            if (
+                requested_fallback_category
+                and read_string_value(execution.details, "fallback_category")
+                != requested_fallback_category
+            ):
+                continue
+            if (
+                requested_manifest_source_of_truth
+                and read_string_value(
+                    execution.details,
+                    "project_manifest_source_of_truth",
+                )
+                != requested_manifest_source_of_truth
+            ):
+                continue
+            return True
+        return False
 
 
 runs_service = RunsService()

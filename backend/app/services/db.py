@@ -180,10 +180,17 @@ def _initialize_database_file(db_path: Path) -> None:
             CREATE TABLE IF NOT EXISTS events (
                 id TEXT PRIMARY KEY,
                 run_id TEXT,
+                execution_id TEXT,
+                executor_id TEXT,
+                workspace_id TEXT,
                 category TEXT NOT NULL,
+                event_type TEXT,
                 severity TEXT NOT NULL,
                 message TEXT NOT NULL,
                 created_at TEXT NOT NULL,
+                previous_state TEXT,
+                current_state TEXT,
+                failure_category TEXT,
                 details TEXT NOT NULL,
                 FOREIGN KEY(run_id) REFERENCES runs(id)
             );
@@ -201,6 +208,17 @@ def _initialize_database_file(db_path: Path) -> None:
                 warnings TEXT NOT NULL,
                 logs TEXT NOT NULL,
                 artifact_ids TEXT NOT NULL,
+                executor_id TEXT,
+                workspace_id TEXT,
+                runner_family TEXT,
+                execution_attempt_state TEXT,
+                failure_category TEXT,
+                failure_stage TEXT,
+                approval_class TEXT,
+                lock_scope TEXT,
+                backup_class TEXT,
+                rollback_class TEXT,
+                retention_class TEXT,
                 details TEXT NOT NULL,
                 result_summary TEXT,
                 FOREIGN KEY(run_id) REFERENCES runs(id)
@@ -217,9 +235,83 @@ def _initialize_database_file(db_path: Path) -> None:
                 content_type TEXT,
                 simulated INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
+                artifact_role TEXT,
+                executor_id TEXT,
+                workspace_id TEXT,
+                retention_class TEXT,
+                evidence_completeness TEXT,
                 metadata TEXT NOT NULL,
                 FOREIGN KEY(run_id) REFERENCES runs(id),
                 FOREIGN KEY(execution_id) REFERENCES executions(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS executors (
+                id TEXT PRIMARY KEY,
+                executor_kind TEXT NOT NULL,
+                executor_label TEXT NOT NULL,
+                executor_host_label TEXT NOT NULL,
+                execution_mode_class TEXT NOT NULL,
+                availability_state TEXT NOT NULL,
+                supported_runner_families TEXT NOT NULL,
+                capability_snapshot TEXT NOT NULL,
+                last_heartbeat_at TEXT,
+                last_failure_summary TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS workspaces (
+                id TEXT PRIMARY KEY,
+                workspace_kind TEXT NOT NULL,
+                workspace_root TEXT NOT NULL,
+                workspace_state TEXT NOT NULL,
+                cleanup_policy TEXT NOT NULL,
+                retention_class TEXT NOT NULL,
+                engine_binding TEXT NOT NULL,
+                project_binding TEXT NOT NULL,
+                runner_family TEXT NOT NULL,
+                owner_run_id TEXT,
+                owner_execution_id TEXT,
+                owner_executor_id TEXT,
+                created_at TEXT NOT NULL,
+                activated_at TEXT,
+                completed_at TEXT,
+                cleaned_at TEXT,
+                last_failure_summary TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS prompt_sessions (
+                prompt_id TEXT PRIMARY KEY,
+                plan_id TEXT NOT NULL,
+                status TEXT NOT NULL,
+                prompt_text TEXT NOT NULL,
+                project_root TEXT NOT NULL,
+                engine_root TEXT NOT NULL,
+                dry_run INTEGER NOT NULL,
+                preferred_domains TEXT NOT NULL,
+                operator_note TEXT,
+                child_run_ids TEXT NOT NULL,
+                child_execution_ids TEXT NOT NULL,
+                child_artifact_ids TEXT NOT NULL,
+                child_event_ids TEXT NOT NULL,
+                workspace_id TEXT,
+                executor_id TEXT,
+                plan_summary TEXT,
+                evidence_summary TEXT,
+                admitted_capabilities TEXT NOT NULL,
+                refused_capabilities TEXT NOT NULL,
+                final_result_summary TEXT,
+                next_step_index INTEGER NOT NULL DEFAULT 0,
+                current_step_id TEXT,
+                pending_approval_id TEXT,
+                pending_approval_token TEXT,
+                last_error_code TEXT,
+                last_error_retryable INTEGER NOT NULL DEFAULT 0,
+                step_attempts TEXT NOT NULL DEFAULT '{}',
+                plan_json TEXT,
+                latest_child_responses TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
             );
 
             CREATE INDEX IF NOT EXISTS idx_runs_created_at ON runs(created_at DESC);
@@ -227,12 +319,76 @@ def _initialize_database_file(db_path: Path) -> None:
             CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_executions_run_id ON executions(run_id, started_at DESC);
             CREATE INDEX IF NOT EXISTS idx_artifacts_run_id ON artifacts(run_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_executions_executor_id ON executions(executor_id, started_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_executions_workspace_id ON executions(workspace_id, started_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_events_execution_id ON events(execution_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_events_workspace_id ON events(workspace_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_artifacts_execution_role ON artifacts(execution_id, artifact_role, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_workspaces_owner_run_id ON workspaces(owner_run_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_workspaces_state ON workspaces(workspace_state, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_executors_availability_state ON executors(availability_state, updated_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_prompt_sessions_status ON prompt_sessions(status, updated_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_prompt_sessions_created_at ON prompt_sessions(created_at DESC);
 
             CREATE TABLE IF NOT EXISTS db_write_probe (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 marker TEXT NOT NULL
             );
             """
+        )
+        _ensure_table_columns(
+            connection,
+            "prompt_sessions",
+            {
+                "next_step_index": "INTEGER NOT NULL DEFAULT 0",
+                "current_step_id": "TEXT",
+                "pending_approval_id": "TEXT",
+                "pending_approval_token": "TEXT",
+                "last_error_code": "TEXT",
+                "last_error_retryable": "INTEGER NOT NULL DEFAULT 0",
+                "step_attempts": "TEXT NOT NULL DEFAULT '{}'",
+            },
+        )
+        _ensure_table_columns(
+            connection,
+            "executions",
+            {
+                "executor_id": "TEXT",
+                "workspace_id": "TEXT",
+                "runner_family": "TEXT",
+                "execution_attempt_state": "TEXT",
+                "failure_category": "TEXT",
+                "failure_stage": "TEXT",
+                "approval_class": "TEXT",
+                "lock_scope": "TEXT",
+                "backup_class": "TEXT",
+                "rollback_class": "TEXT",
+                "retention_class": "TEXT",
+            },
+        )
+        _ensure_table_columns(
+            connection,
+            "events",
+            {
+                "execution_id": "TEXT",
+                "executor_id": "TEXT",
+                "workspace_id": "TEXT",
+                "event_type": "TEXT",
+                "previous_state": "TEXT",
+                "current_state": "TEXT",
+                "failure_category": "TEXT",
+            },
+        )
+        _ensure_table_columns(
+            connection,
+            "artifacts",
+            {
+                "artifact_role": "TEXT",
+                "executor_id": "TEXT",
+                "workspace_id": "TEXT",
+                "retention_class": "TEXT",
+                "evidence_completeness": "TEXT",
+            },
         )
         cursor = connection.execute(
             "INSERT INTO db_write_probe (marker) VALUES (?)",
@@ -243,6 +399,23 @@ def _initialize_database_file(db_path: Path) -> None:
             (cursor.lastrowid,),
         )
         connection.commit()
+
+
+def _ensure_table_columns(
+    connection: sqlite3.Connection,
+    table_name: str,
+    columns: dict[str, str],
+) -> None:
+    existing_columns = {
+        row[1]
+        for row in connection.execute(f"PRAGMA table_info({table_name})").fetchall()
+    }
+    for column_name, column_type in columns.items():
+        if column_name in existing_columns:
+            continue
+        connection.execute(
+            f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}"
+        )
 
 
 def get_database_runtime_status(*, force_refresh: bool = False) -> DatabaseRuntimeStatus:
@@ -319,6 +492,9 @@ def reset_database() -> None:
     with connection() as conn:
         conn.execute("DELETE FROM artifacts")
         conn.execute("DELETE FROM executions")
+        conn.execute("DELETE FROM workspaces")
+        conn.execute("DELETE FROM executors")
+        conn.execute("DELETE FROM prompt_sessions")
         conn.execute("DELETE FROM approvals")
         conn.execute("DELETE FROM locks")
         conn.execute("DELETE FROM events")

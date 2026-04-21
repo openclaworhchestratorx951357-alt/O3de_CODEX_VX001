@@ -1,8 +1,21 @@
+from datetime import datetime, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import app.services.db as db
+from app.models.control_plane import (
+    ArtifactRecord,
+    EventRecord,
+    EventSeverity,
+    ExecutionRecord,
+    ExecutionStatus,
+    ExecutorRecord,
+    RunRecord,
+    RunStatus,
+    WorkspaceRecord,
+)
+from app.repositories.control_plane import control_plane_repository
 from app.services.schema_validation import schema_validation_service
 
 
@@ -155,6 +168,12 @@ def test_schema_validation_service_accepts_real_project_inspect_execution_detail
                 "manifest_settings"
             ],
             "project_manifest_path": "/tmp/project/project.json",
+            "project_root_path": "/tmp/project",
+            "project_manifest_relative_path": "project.json",
+            "project_manifest_read_mode": "read-only",
+            "project_manifest_source_of_truth": "project_root/project.json",
+            "project_manifest_workspace_local": True,
+            "project_manifest_within_project_root": True,
             "manifest_keys": ["project_name", "version", "gem_names"],
             "project_name": "SchemaProject",
             "include_flags": {
@@ -225,6 +244,11 @@ def test_schema_validation_service_accepts_real_project_inspect_execution_detail
             "requested_gem_subset_present": True,
             "manifest_settings": {"version": "1.0.0"},
             "manifest_settings_keys": ["version"],
+            "requested_build_state_evidence": [],
+            "build_state_evidence_source": "not-requested",
+            "build_state_selection_mode": "not-requested",
+            "build_state_real_path_available": False,
+            "requested_build_state_subset_present": False,
             "requested_settings_subset_present": True
         },
     )
@@ -244,7 +268,122 @@ def test_schema_validation_service_accepts_simulated_project_inspect_execution_d
             "adapter_mode": "hybrid",
             "adapter_contract_version": "v0.1",
             "real_path_available": False,
+            "fallback_category": "manifest-missing",
             "fallback_reason": "Manifest file was not found."
+            ,
+            "project_root_path": "/tmp/project",
+            "expected_project_manifest_path": "/tmp/project/project.json",
+            "expected_project_manifest_relative_path": "project.json",
+            "project_manifest_source_of_truth": "project_root/project.json"
+        },
+    )
+
+    assert errors == []
+
+
+def test_schema_validation_service_accepts_real_build_configure_execution_details() -> None:
+    errors = schema_validation_service.validate_tool_args(
+        schema_ref="schemas/tools/build.configure.execution-details.schema.json",
+        payload={
+            "inspection_surface": "build_configure_preflight",
+            "execution_boundary": "Hybrid mode enabled a real plan-only preflight path.",
+            "adapter_family": "project-build",
+            "adapter_mode": "hybrid",
+            "adapter_contract_version": "v0.1",
+            "project_root_path": "/tmp/project",
+            "project_manifest_path": "/tmp/project/project.json",
+            "project_manifest_relative_path": "project.json",
+            "project_manifest_read_mode": "read-only",
+            "project_manifest_source_of_truth": "project_root/project.json",
+            "project_manifest_workspace_local": True,
+            "project_manifest_within_project_root": True,
+            "preflight_execution_mode": "plan-only",
+            "manifest_keys": ["project_name"],
+            "project_name": "ConfigureProject",
+            "plan_details": {"preset": "profile"},
+        },
+    )
+
+    assert errors == []
+
+
+def test_schema_validation_service_accepts_simulated_build_configure_fallback_details() -> None:
+    errors = schema_validation_service.validate_tool_args(
+        schema_ref="schemas/tools/build.configure.execution-details.schema.json",
+        payload={
+            "inspection_surface": "simulated",
+            "execution_boundary": (
+                "Execution mode is simulated until real O3DE adapters are implemented."
+            ),
+            "adapter_family": "project-build",
+            "adapter_mode": "hybrid",
+            "adapter_contract_version": "v0.1",
+            "real_path_available": False,
+            "fallback_category": "dry-run-required",
+            "fallback_reason": "Real build.configure preflight requires dry_run=true.",
+            "project_root_path": "/tmp/project",
+            "expected_project_manifest_path": "/tmp/project/project.json",
+            "expected_project_manifest_relative_path": "project.json",
+            "project_manifest_source_of_truth": "project_root/project.json",
+        },
+    )
+
+    assert errors == []
+
+
+def test_schema_validation_service_accepts_real_settings_patch_execution_details() -> None:
+    errors = schema_validation_service.validate_tool_args(
+        schema_ref="schemas/tools/settings.patch.execution-details.schema.json",
+        payload={
+            "inspection_surface": "settings_patch_preflight",
+            "execution_boundary": "Hybrid mode enabled a real settings.patch preflight path.",
+            "simulated": False,
+            "adapter_family": "project-build",
+            "adapter_mode": "hybrid",
+            "adapter_contract_version": "v0.1",
+            "project_root_path": "/tmp/project",
+            "project_manifest_path": "/tmp/project/project.json",
+            "project_manifest_relative_path": "project.json",
+            "project_manifest_read_mode": "read-only",
+            "project_manifest_source_of_truth": "project_root/project.json",
+            "project_manifest_workspace_local": True,
+            "project_manifest_within_project_root": True,
+            "project_name": "SettingsProject",
+            "registry_path": "/O3DE/Settings",
+            "operation_count": 1,
+            "supported_operation_count": 1,
+            "unsupported_operation_count": 0,
+            "admitted_registry_path": "/O3DE/Settings",
+            "admitted_manifest_paths": ["/version"],
+            "backup_target": "/tmp/project/project.json.bak",
+            "backup_created": True,
+            "mutation_ready": True,
+            "plan_details": {"patch_plan_valid": True},
+        },
+    )
+
+    assert errors == []
+
+
+def test_schema_validation_service_accepts_simulated_settings_patch_fallback_details() -> None:
+    errors = schema_validation_service.validate_tool_args(
+        schema_ref="schemas/tools/settings.patch.execution-details.schema.json",
+        payload={
+            "inspection_surface": "simulated",
+            "execution_boundary": (
+                "Execution mode is simulated until real O3DE adapters are implemented."
+            ),
+            "simulated": True,
+            "adapter_family": "project-build",
+            "adapter_mode": "hybrid",
+            "adapter_contract_version": "v0.1",
+            "real_path_available": False,
+            "fallback_category": "manifest-missing",
+            "fallback_reason": "Manifest file was not found.",
+            "project_root_path": "/tmp/project",
+            "expected_project_manifest_path": "/tmp/project/project.json",
+            "expected_project_manifest_relative_path": "project.json",
+            "project_manifest_source_of_truth": "project_root/project.json",
         },
     )
 
@@ -270,6 +409,12 @@ def test_schema_validation_service_accepts_real_project_inspect_artifact_metadat
                 "manifest_settings"
             ],
             "project_manifest_path": "/tmp/project/project.json",
+            "project_root_path": "/tmp/project",
+            "project_manifest_relative_path": "project.json",
+            "project_manifest_read_mode": "read-only",
+            "project_manifest_source_of_truth": "project_root/project.json",
+            "project_manifest_workspace_local": True,
+            "project_manifest_within_project_root": True,
             "manifest_keys": ["project_name", "version", "gem_names"],
             "project_name": "SchemaProject",
             "include_flags": {
@@ -340,6 +485,11 @@ def test_schema_validation_service_accepts_real_project_inspect_artifact_metadat
             "requested_gem_subset_present": True,
             "manifest_settings": {"version": "1.0.0"},
             "manifest_settings_keys": ["version"],
+            "requested_build_state_evidence": [],
+            "build_state_evidence_source": "not-requested",
+            "build_state_selection_mode": "not-requested",
+            "build_state_real_path_available": False,
+            "requested_build_state_subset_present": False,
             "requested_settings_subset_present": True
         },
     )
@@ -518,3 +668,311 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
         "Persisted payload coverage is reported separately" in note
         for note in capability.notes
     )
+
+
+def test_database_initialization_adds_phase_6b_tables_and_columns() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        db_path = Path(temp_dir) / "phase-6b.sqlite3"
+        db.configure_database(db_path)
+        initialized_path = db.initialize_database()
+
+        assert initialized_path == db_path.resolve()
+
+        with db.connection() as conn:
+            execution_columns = {
+                row["name"]
+                for row in conn.execute("PRAGMA table_info(executions)").fetchall()
+            }
+            event_columns = {
+                row["name"] for row in conn.execute("PRAGMA table_info(events)").fetchall()
+            }
+            artifact_columns = {
+                row["name"]
+                for row in conn.execute("PRAGMA table_info(artifacts)").fetchall()
+            }
+            executor_table = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'executors'"
+            ).fetchone()
+            workspace_table = conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'workspaces'"
+            ).fetchone()
+
+        assert {
+            "executor_id",
+            "workspace_id",
+            "runner_family",
+            "execution_attempt_state",
+            "failure_category",
+            "failure_stage",
+            "approval_class",
+            "lock_scope",
+            "backup_class",
+            "rollback_class",
+            "retention_class",
+        }.issubset(execution_columns)
+        assert {
+            "execution_id",
+            "executor_id",
+            "workspace_id",
+            "event_type",
+            "previous_state",
+            "current_state",
+            "failure_category",
+        }.issubset(event_columns)
+        assert {
+            "artifact_role",
+            "executor_id",
+            "workspace_id",
+            "retention_class",
+            "evidence_completeness",
+        }.issubset(artifact_columns)
+        assert executor_table is not None
+        assert workspace_table is not None
+
+
+def test_repository_round_trip_supports_phase_6b_substrate_records() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        db.configure_database(Path(temp_dir) / "phase-6b-roundtrip.sqlite3")
+        db.reset_database()
+
+        now = datetime(2026, 4, 20, 12, 0, tzinfo=timezone.utc)
+        control_plane_repository.create_run(
+            RunRecord(
+                id="run-1",
+                request_id="request-1",
+                agent="project-build",
+                tool="build.configure",
+                status=RunStatus.SUCCEEDED,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        executor = control_plane_repository.create_executor(
+            ExecutorRecord(
+                id="executor-1",
+                executor_kind="container-backed",
+                executor_label="Primary Executor",
+                executor_host_label="docker-local",
+                execution_mode_class="simulated",
+                availability_state="available",
+                supported_runner_families=["cli", "file-manifest"],
+                capability_snapshot={"docker": True},
+                last_heartbeat_at=now,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+        workspace = control_plane_repository.create_workspace(
+            WorkspaceRecord(
+                id="workspace-1",
+                workspace_kind="ephemeral-local",
+                workspace_root="/tmp/workspace-1",
+                workspace_state="ready",
+                cleanup_policy="cleanup-after-run",
+                retention_class="ephemeral-success",
+                engine_binding={"engine_root": "/tmp/engine"},
+                project_binding={"project_root": "/tmp/project"},
+                runner_family="cli",
+                owner_run_id="run-1",
+                owner_execution_id="exe-1",
+                owner_executor_id=executor.id,
+                created_at=now,
+                activated_at=now,
+            )
+        )
+        execution = control_plane_repository.create_execution(
+            ExecutionRecord(
+                id="exe-1",
+                run_id="run-1",
+                request_id="request-1",
+                agent="project-build",
+                tool="build.configure",
+                execution_mode="simulated",
+                status=ExecutionStatus.SUCCEEDED,
+                started_at=now,
+                finished_at=now,
+                executor_id=executor.id,
+                workspace_id=workspace.id,
+                runner_family="cli",
+                execution_attempt_state="completed",
+                approval_class="plan-sensitive",
+                lock_scope="workspace",
+                backup_class="none",
+                rollback_class="none",
+                retention_class="ephemeral-success",
+                details={"inspection_surface": "simulated"},
+            )
+        )
+        artifact = control_plane_repository.create_artifact(
+            ArtifactRecord(
+                id="art-1",
+                run_id="run-1",
+                execution_id=execution.id,
+                label="execution-summary",
+                kind="summary",
+                uri="memory://art-1",
+                simulated=True,
+                created_at=now,
+                artifact_role="summary",
+                executor_id=executor.id,
+                workspace_id=workspace.id,
+                retention_class="ephemeral-success",
+                evidence_completeness="summary-only",
+                metadata={"execution_mode": "simulated"},
+            )
+        )
+        event = control_plane_repository.create_event(
+            EventRecord(
+                id="evt-1",
+                run_id="run-1",
+                execution_id=execution.id,
+                executor_id=executor.id,
+                workspace_id=workspace.id,
+                category="execution",
+                event_type="runner.completed",
+                severity=EventSeverity.INFO,
+                message="Runner completed.",
+                created_at=now,
+                previous_state="running",
+                current_state="completed",
+                details={"summary": "completed"},
+            )
+        )
+
+        stored_executor = control_plane_repository.get_executor(executor.id)
+        stored_workspace = control_plane_repository.get_workspace(workspace.id)
+        stored_execution = control_plane_repository.get_execution(execution.id)
+        stored_artifact = control_plane_repository.get_artifact(artifact.id)
+        stored_event = next(
+            item for item in control_plane_repository.list_events() if item.id == event.id
+        )
+
+        assert stored_executor is not None
+        assert stored_executor.supported_runner_families == ["cli", "file-manifest"]
+        assert stored_executor.capability_snapshot == {"docker": True}
+        assert stored_workspace is not None
+        assert stored_workspace.owner_executor_id == executor.id
+        assert stored_workspace.engine_binding == {"engine_root": "/tmp/engine"}
+        assert stored_execution is not None
+        assert stored_execution.executor_id == executor.id
+        assert stored_execution.workspace_id == workspace.id
+        assert stored_execution.execution_attempt_state == "completed"
+        assert stored_execution.lock_scope == "workspace"
+        assert stored_artifact is not None
+        assert stored_artifact.artifact_role == "summary"
+        assert stored_artifact.executor_id == executor.id
+        assert stored_artifact.evidence_completeness == "summary-only"
+        assert stored_event.execution_id == execution.id
+        assert stored_event.event_type == "runner.completed"
+        assert stored_event.current_state == "completed"
+
+
+def test_repository_reads_legacy_phase_6b_null_columns_without_breaking() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        db.configure_database(Path(temp_dir) / "phase-6b-legacy.sqlite3")
+        db.reset_database()
+
+        with db.connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO runs (
+                    id, request_id, agent, tool, status, created_at, updated_at,
+                    dry_run, approval_id, approval_token, requested_locks,
+                    granted_locks, warnings, execution_mode, result_summary
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "run-legacy",
+                    "request-legacy",
+                    "project-build",
+                    "project.inspect",
+                    "succeeded",
+                    datetime(2026, 4, 20, 12, 0, tzinfo=timezone.utc).isoformat(),
+                    datetime(2026, 4, 20, 12, 0, tzinfo=timezone.utc).isoformat(),
+                    1,
+                    None,
+                    None,
+                    db.encode_json([]),
+                    db.encode_json([]),
+                    db.encode_json([]),
+                    "simulated",
+                    "legacy run",
+                ),
+            )
+            conn.execute(
+                """
+                INSERT INTO executions (
+                    id, run_id, request_id, agent, tool, execution_mode, status,
+                    started_at, finished_at, warnings, logs, artifact_ids, details, result_summary
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "exe-legacy",
+                    "run-legacy",
+                    "request-legacy",
+                    "project-build",
+                    "project.inspect",
+                    "simulated",
+                    "succeeded",
+                    datetime(2026, 4, 20, 12, 0, tzinfo=timezone.utc).isoformat(),
+                    None,
+                    db.encode_json([]),
+                    db.encode_json([]),
+                    db.encode_json([]),
+                    db.encode_json({"inspection_surface": "simulated"}),
+                    "legacy execution",
+                ),
+            )
+            conn.execute(
+                """
+                INSERT INTO artifacts (
+                    id, run_id, execution_id, label, kind, uri, path, content_type,
+                    simulated, created_at, metadata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "art-legacy",
+                    "run-legacy",
+                    "exe-legacy",
+                    "legacy artifact",
+                    "summary",
+                    "memory://art-legacy",
+                    None,
+                    None,
+                    1,
+                    datetime(2026, 4, 20, 12, 0, tzinfo=timezone.utc).isoformat(),
+                    db.encode_json({"execution_mode": "simulated"}),
+                ),
+            )
+            conn.execute(
+                """
+                INSERT INTO events (
+                    id, run_id, category, severity, message, created_at, details
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "evt-legacy",
+                    "run-legacy",
+                    "execution",
+                    "info",
+                    "legacy event",
+                    datetime(2026, 4, 20, 12, 0, tzinfo=timezone.utc).isoformat(),
+                    db.encode_json({"summary": "legacy"}),
+                ),
+            )
+
+        execution = control_plane_repository.get_execution("exe-legacy")
+        artifact = control_plane_repository.get_artifact("art-legacy")
+        event = next(
+            item for item in control_plane_repository.list_events() if item.id == "evt-legacy"
+        )
+
+        assert execution is not None
+        assert execution.executor_id is None
+        assert execution.workspace_id is None
+        assert execution.execution_attempt_state is None
+        assert artifact is not None
+        assert artifact.artifact_role is None
+        assert artifact.executor_id is None
+        assert event.execution_id is None
+        assert event.event_type is None

@@ -1,4 +1,7 @@
+import hashlib
 import json
+import subprocess
+from collections import deque
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -7,6 +10,7 @@ from unittest.mock import patch
 from app.models.request_envelope import RequestEnvelope
 from app.services.approvals import approvals_service
 from app.services.artifacts import artifacts_service
+from app.services.editor_automation_runtime import editor_automation_runtime_service
 from app.services.db import configure_database, initialize_database, reset_database
 from app.services.dispatcher import dispatcher_service
 from app.services.events import events_service
@@ -351,11 +355,6 @@ def make_editor_entity_create_request() -> RequestEnvelope:
     request.args = {
         "entity_name": "ExampleEntity",
         "level_path": "Levels/Main.level",
-        "position": {
-            "x": 1,
-            "y": 2,
-            "z": 3,
-        },
     }
     return request
 
@@ -403,6 +402,101 @@ def isolated_database() -> Path:
             yield db_path
         finally:
             configure_database(None)
+
+
+def write_editor_project_manifest(project_root: Path) -> None:
+    (project_root / "project.json").write_text(
+        json.dumps(
+            {
+                "project_name": "EditorRuntimeProject",
+                "gem_names": ["PythonEditorBindings"],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
+def editor_state_path_for(project_root: Path) -> Path:
+    return (
+        Path(__file__).resolve().parents[1]
+        / "runtime"
+        / "editor_state"
+        / f"{hashlib.sha1(str(project_root.resolve()).encode('utf-8')).hexdigest()[:16]}.json"
+    )
+
+
+def make_editor_runtime_subprocess(expected_runtime_result: dict[str, object]):
+    def _subprocess_run(
+        command: list[str],
+        *,
+        capture_output: bool,
+        text: bool,
+        timeout: int,
+        check: bool,
+    ) -> subprocess.CompletedProcess[str]:
+        assert "--result" in command
+        result_path = Path(command[command.index("--result") + 1])
+        result_path.write_text(json.dumps(expected_runtime_result), encoding="utf-8")
+        return subprocess.CompletedProcess(
+            args=command,
+            returncode=0,
+            stdout="",
+            stderr="",
+        )
+
+    return _subprocess_run
+
+
+class FakeEditorRuntimeProcess:
+    def __init__(
+        self,
+        *,
+        command: list[str],
+        expected_runtime_result: dict[str, object],
+        returncode: int = 0,
+    ) -> None:
+        self.args = command
+        self.returncode: int | None = None
+        self._final_returncode = returncode
+        self._stdout = ""
+        self._stderr = ""
+        self._poll_sequence = deque([None, None])
+        runpythonargs = command[command.index("--runpythonargs") + 1]
+        result_arg = runpythonargs.split("--result ", 1)[1].strip()
+        self._result_path = Path(result_arg)
+        self._result_path.write_text(json.dumps(expected_runtime_result), encoding="utf-8")
+
+    def poll(self) -> int | None:
+        if self._poll_sequence:
+            return self._poll_sequence.popleft()
+        return self.returncode
+
+    def communicate(self, timeout: int | None = None) -> tuple[str, str]:
+        self.returncode = self._final_returncode
+        return self._stdout, self._stderr
+
+    def terminate(self) -> None:
+        self.returncode = self._final_returncode
+
+    def kill(self) -> None:
+        self.returncode = self._final_returncode
+
+
+def make_editor_runtime_popen(expected_runtime_result: dict[str, object]):
+    def _popen(
+        command: list[str],
+        *,
+        stdout: int | None,
+        stderr: int | None,
+    ) -> FakeEditorRuntimeProcess:
+        assert stdout == subprocess.DEVNULL
+        assert stderr == subprocess.DEVNULL
+        return FakeEditorRuntimeProcess(
+            command=command,
+            expected_runtime_result=expected_runtime_result,
+        )
+
+    return _popen
 
 
 def test_dispatch_accepts_valid_agent_and_tool() -> None:
@@ -1929,11 +2023,144 @@ def test_project_inspect_falls_back_to_simulated_when_manifest_is_missing_in_hyb
         assert response.result.execution_mode == "simulated"
         execution = executions_service.list_executions()[0]
         assert execution.details["real_path_available"] is False
+        assert execution.details["fallback_category"] == "manifest-missing"
         assert "fallback_reason" in execution.details
+        assert execution.details["project_root_path"] == str(Path(temp_dir).resolve())
+        assert execution.details["expected_project_manifest_relative_path"] == "project.json"
+        assert (
+            execution.details["expected_project_manifest_path"]
+            == str((Path(temp_dir).resolve() / "project.json"))
+        )
+        assert (
+            execution.details["project_manifest_source_of_truth"]
+            == "project_root/project.json"
+        )
         assert (
             schema_validation_service.validate_execution_details(
                 tool_name="project.inspect",
                 payload=execution.details,
+            )
+            == []
+        )
+
+
+def test_project_inspect_fallback_records_unreadable_manifest_category_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        manifest_path = project_root / "project.json"
+        manifest_path.write_text("{not-json", encoding="utf-8")
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                make_request(
+                    "project-build",
+                    "project.inspect",
+                    project_root=str(project_root),
+                )
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is True
+        execution = executions_service.list_executions()[0]
+        assert execution.details["real_path_available"] is False
+        assert execution.details["fallback_category"] == "manifest-unreadable"
+        assert "could not be read cleanly" in execution.details["fallback_reason"]
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert artifact is not None
+        assert artifact.metadata["fallback_category"] == "manifest-unreadable"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="project.inspect",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="project.inspect",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_project_inspect_records_requested_build_state_as_explicitly_unavailable_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        manifest_path = project_root / "project.json"
+        manifest_path.write_text(
+            json.dumps(
+                {
+                    "project_name": "Phase7BuildStateProject",
+                    "version": "7.1.0",
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            request = make_request(
+                "project-build",
+                "project.inspect",
+                project_root=str(project_root),
+            )
+            request.args = {
+                "include_project_config": True,
+                "project_config_keys": ["project_name"],
+                "include_build_state": True,
+            }
+            response = dispatcher_service.dispatch(request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["project_root_path"] == str(project_root.resolve())
+        assert execution.details["project_manifest_relative_path"] == "project.json"
+        assert execution.details["project_manifest_read_mode"] == "read-only"
+        assert (
+            execution.details["project_manifest_source_of_truth"]
+            == "project_root/project.json"
+        )
+        assert execution.details["project_manifest_workspace_local"] is True
+        assert execution.details["project_manifest_within_project_root"] is True
+        assert execution.details["requested_build_state_evidence"] == [
+            "build_state_request",
+            "build_state_unavailable",
+        ]
+        assert execution.details["build_state_evidence_source"] == "simulated_unavailable"
+        assert execution.details["build_state_selection_mode"] == "requested-unavailable"
+        assert execution.details["build_state_real_path_available"] is False
+        assert execution.details["requested_build_state_subset_present"] is False
+        assert any(
+            "Build-state inspection remains simulated in this slice" in warning
+            for warning in execution.warnings
+        )
+        assert artifact is not None
+        assert artifact.metadata["project_root_path"] == str(project_root.resolve())
+        assert artifact.metadata["project_manifest_relative_path"] == "project.json"
+        assert artifact.metadata["requested_build_state_evidence"] == [
+            "build_state_request",
+            "build_state_unavailable",
+        ]
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="project.inspect",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="project.inspect",
+                payload=artifact.metadata,
             )
             == []
         )
@@ -1982,10 +2209,22 @@ def test_build_configure_uses_real_preflight_path_in_hybrid_mode() -> None:
         )
         artifact = artifacts_service.get_artifact(response.artifacts[0])
         assert execution.details["inspection_surface"] == "build_configure_preflight"
+        assert execution.details["project_root_path"] == str(project_root.resolve())
+        assert execution.details["project_manifest_relative_path"] == "project.json"
+        assert execution.details["project_manifest_read_mode"] == "read-only"
+        assert (
+            execution.details["project_manifest_source_of_truth"]
+            == "project_root/project.json"
+        )
+        assert execution.details["project_manifest_workspace_local"] is True
+        assert execution.details["project_manifest_within_project_root"] is True
+        assert execution.details["preflight_execution_mode"] == "plan-only"
         assert execution.details["plan_details"]["preset"] == "profile"
         assert execution.details["plan_details"]["generator"] == "Ninja"
         assert artifact is not None
         assert artifact.simulated is False
+        assert artifact.metadata["project_root_path"] == str(project_root.resolve())
+        assert artifact.metadata["project_manifest_relative_path"] == "project.json"
         assert artifact.metadata["plan_details"]["preset"] == "profile"
         assert (
             schema_validation_service.validate_execution_details(
@@ -2039,7 +2278,10 @@ def test_build_configure_falls_back_to_simulated_when_not_dry_run_in_hybrid_mode
             if execution.run_id == run_id
         )
         assert execution.details["real_path_available"] is False
+        assert execution.details["fallback_category"] == "dry-run-required"
         assert "dry_run=true" in execution.details["fallback_reason"]
+        assert execution.details["project_root_path"] == str(project_root.resolve())
+        assert execution.details["expected_project_manifest_relative_path"] == "project.json"
         artifact = artifacts_service.get_artifact(response.artifacts[0])
         assert artifact is not None
         assert (
@@ -2049,6 +2291,48 @@ def test_build_configure_falls_back_to_simulated_when_not_dry_run_in_hybrid_mode
             )
             == []
         )
+
+
+def test_build_configure_fallback_records_unreadable_manifest_category_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text("{not-json", encoding="utf-8")
+        first = dispatcher_service.dispatch(
+            make_request(
+                "project-build",
+                "build.configure",
+                project_root=str(project_root),
+            )
+        )
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            approved_request = make_request(
+                "project-build",
+                "build.configure",
+                project_root=str(project_root),
+            )
+            approved_request.approval_token = approval.token
+            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["real_path_available"] is False
+        assert execution.details["fallback_category"] == "manifest-unreadable"
+        assert "could not be read cleanly" in execution.details["fallback_reason"]
+        assert artifact is not None
+        assert artifact.metadata["fallback_category"] == "manifest-unreadable"
         assert (
             schema_validation_service.validate_artifact_metadata(
                 tool_name="build.configure",
@@ -2108,6 +2392,15 @@ def test_settings_patch_uses_real_preflight_path_in_hybrid_mode() -> None:
         )
         artifact = artifacts_service.get_artifact(response.artifacts[0])
         assert execution.details["inspection_surface"] == "settings_patch_preflight"
+        assert execution.details["project_root_path"] == str(project_root.resolve())
+        assert execution.details["project_manifest_relative_path"] == "project.json"
+        assert execution.details["project_manifest_read_mode"] == "read-only"
+        assert (
+            execution.details["project_manifest_source_of_truth"]
+            == "project_root/project.json"
+        )
+        assert execution.details["project_manifest_workspace_local"] is True
+        assert execution.details["project_manifest_within_project_root"] is True
         assert execution.details["project_name"] == "Phase7SettingsProject"
         assert execution.details["registry_path"] == "/O3DE/Settings"
         assert execution.details["operation_count"] == 2
@@ -2146,6 +2439,8 @@ def test_settings_patch_uses_real_preflight_path_in_hybrid_mode() -> None:
         assert artifact.simulated is False
         assert artifact.metadata["execution_mode"] == "real"
         assert artifact.metadata["inspection_surface"] == "settings_patch_preflight"
+        assert artifact.metadata["project_root_path"] == str(project_root.resolve())
+        assert artifact.metadata["project_manifest_relative_path"] == "project.json"
         assert artifact.metadata["mutation_audit"]["phase"] == "preflight"
         assert artifact.metadata["plan_details"]["supported_operation_count"] == 1
         assert artifact.metadata["plan_details"]["unsupported_operation_count"] == 1
@@ -2202,10 +2497,13 @@ def test_settings_patch_falls_back_to_simulated_when_not_dry_run_in_hybrid_mode(
         )
         artifact = artifacts_service.get_artifact(response.artifacts[0])
         assert execution.details["real_path_available"] is False
+        assert execution.details["fallback_category"] == "mutation-not-admitted"
         assert (
             "fully admitted manifest-backed set-only path"
             in execution.details["fallback_reason"]
         )
+        assert execution.details["project_root_path"] == str(project_root.resolve())
+        assert execution.details["expected_project_manifest_relative_path"] == "project.json"
         assert artifact is not None
         assert (
             schema_validation_service.validate_execution_details(
@@ -2221,6 +2519,48 @@ def test_settings_patch_falls_back_to_simulated_when_not_dry_run_in_hybrid_mode(
             )
             == []
         )
+
+
+def test_settings_patch_fallback_records_unreadable_manifest_category_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text("{not-json", encoding="utf-8")
+        initial_request = make_settings_patch_request()
+        initial_request.project_root = str(project_root)
+        first = dispatcher_service.dispatch(initial_request)
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            approved_request = make_request(
+                "project-build",
+                "settings.patch",
+                project_root=str(project_root),
+            )
+            approved_request.approval_token = approval.token
+            approved_request.args = {
+                "registry_path": "/O3DE/Settings",
+                "operations": [{"op": "set", "path": "/version", "value": "1.2.4"}],
+            }
+            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["real_path_available"] is False
+        assert execution.details["fallback_category"] == "manifest-unreadable"
+        assert "could not be read cleanly" in execution.details["fallback_reason"]
+        assert artifact is not None
+        assert artifact.metadata["fallback_category"] == "manifest-unreadable"
 
 
 def test_settings_patch_reports_fully_valid_patch_plan_when_all_operations_are_admitted() -> None:
@@ -2628,6 +2968,311 @@ def test_settings_patch_events_use_plan_only_wording_in_hybrid_mode() -> None:
         )
         assert "plan-only settings.patch preflight" in dispatch_event.message
         assert "plan-only settings.patch preflight" in locks_event.message
+
+
+def test_editor_session_open_uses_real_runtime_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        write_editor_project_manifest(project_root)
+
+        first_request = make_editor_session_open_request()
+        first_request.project_root = str(project_root)
+        first_request.args["project_path"] = str(project_root)
+        first = dispatcher_service.dispatch(first_request)
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        approved_request = make_editor_session_open_request()
+        approved_request.project_root = str(project_root)
+        approved_request.dry_run = False
+        approved_request.approval_token = approval.token
+        approved_request.args["project_path"] = str(project_root)
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_is_healthy",
+                    return_value=False,
+                ):
+                    with patch.object(
+                        editor_automation_runtime_service,
+                        "_launch_bridge_host",
+                        return_value=None,
+                    ):
+                        with patch.object(
+                            editor_automation_runtime_service,
+                            "_invoke_bridge_command",
+                            return_value={
+                                "protocol_version": "v1",
+                                "bridge_command_id": "bridge-command-1",
+                                "request_id": approved_request.request_id,
+                                "operation": "editor.session.open",
+                                "success": True,
+                                "status": "ok",
+                                "bridge_name": "ControlPlaneEditorBridge",
+                                "bridge_version": "0.1.0",
+                                "started_at": "2026-04-20T00:00:00Z",
+                                "finished_at": "2026-04-20T00:00:01Z",
+                                "result_summary": "Persistent bridge editor session is available.",
+                                "details": {
+                                    "active_level_path": "Levels/Main.level",
+                                    "selected_entity_count": 0,
+                                },
+                                "evidence_refs": [],
+                            },
+                        ):
+                            response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.execution_mode == "real"
+        assert response.result.simulated is False
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "editor_session_runtime"
+        assert execution.details["runner_family"] == "editor-python-bindings"
+        assert execution.details["editor_transport"] == "bridge"
+        assert execution.details["bridge_command_id"] == "bridge-command-1"
+        assert execution.executor_id == "executor-editor-control-real-local"
+        assert execution.workspace_id == f"workspace-editor-{project_root.name.lower()}"
+        assert artifact is not None
+        assert artifact.simulated is False
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "editor_session_runtime"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="editor.session.open",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="editor.session.open",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_editor_level_open_rejects_without_admitted_editor_session() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        write_editor_project_manifest(project_root)
+
+        first_request = make_editor_level_open_request()
+        first_request.project_root = str(project_root)
+        first = dispatcher_service.dispatch(first_request)
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        approved_request = make_editor_level_open_request()
+        approved_request.project_root = str(project_root)
+        approved_request.dry_run = False
+        approved_request.approval_token = approval.token
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_is_healthy",
+                    return_value=False,
+                ):
+                    response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "ADAPTER_PRECHECK_FAILED"
+        assert response.error.details is not None
+        assert response.error.details["inspection_surface"] == "editor_runtime_preflight"
+        assert response.error.details["preflight_reason"] == "editor-session-not-ensured"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        assert execution.details["preflight_reason"] == "editor-session-not-ensured"
+        assert execution.executor_id is None
+        assert execution.workspace_id is None
+
+
+def test_editor_entity_create_rejects_without_loaded_level() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        write_editor_project_manifest(project_root)
+
+        first_request = make_editor_entity_create_request()
+        first_request.project_root = str(project_root)
+        first = dispatcher_service.dispatch(first_request)
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        approved_request = make_editor_entity_create_request()
+        approved_request.project_root = str(project_root)
+        approved_request.dry_run = False
+        approved_request.approval_token = approval.token
+
+        session_state_path = editor_state_path_for(project_root)
+        session_state_path.parent.mkdir(parents=True, exist_ok=True)
+        session_state_path.write_text(
+            json.dumps({"session_active": True}),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+                "O3DE_EDITOR_SCRIPT_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "ADAPTER_PRECHECK_FAILED"
+        assert response.error.details is not None
+        assert response.error.details["preflight_reason"] == "level-not-loaded"
+
+
+def test_editor_entity_create_uses_real_runtime_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        write_editor_project_manifest(project_root)
+
+        first_request = make_editor_entity_create_request()
+        first_request.project_root = str(project_root)
+        first = dispatcher_service.dispatch(first_request)
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        approved_request = make_editor_entity_create_request()
+        approved_request.project_root = str(project_root)
+        approved_request.dry_run = False
+        approved_request.approval_token = approval.token
+
+        session_state_path = editor_state_path_for(project_root)
+        session_state_path.parent.mkdir(parents=True, exist_ok=True)
+        session_state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch(
+                    "subprocess.Popen",
+                    side_effect=make_editor_runtime_popen(
+                        {
+                            "ok": True,
+                            "entity_id": 101,
+                            "entity_name": "ExampleEntity",
+                            "modified_entities": [101],
+                            "exact_editor_apis": [
+                                "azlmbr.legacy.general.open_level_no_prompt",
+                                "azlmbr.legacy.general.idle_wait",
+                                "azlmbr.legacy.general.idle_wait_frames",
+                                "azlmbr.editor.ToolsApplicationRequestBus(..., 'GetCurrentLevelEntityId')",
+                                "azlmbr.editor.ToolsApplicationRequestBus(..., 'GetSelectedEntities')",
+                                "azlmbr.editor.ToolsApplicationRequestBus(..., 'SetSelectedEntities', [])",
+                                "azlmbr.bus.NotificationHandler('EditorEntityContextNotificationBus')",
+                                "azlmbr.editor.ToolsApplicationRequestBus(..., 'CreateNewEntity', ...)",
+                                "azlmbr.editor.EditorEntityAPIBus(..., 'SetName', ...)",
+                                "azlmbr.editor.EditorEntityInfoRequestBus(..., 'GetName', ...)",
+                            ],
+                            "entity_id_source": "create_return",
+                            "direct_return_entity_id": "101",
+                            "notification_entity_ids": ["101"],
+                            "selected_entity_count_before_create": 0,
+                            "level_path": "Levels/Main.level",
+                            "name_mutation_ran": True,
+                            "name_mutation_succeeded": True,
+                        }
+                    ),
+                ):
+                    response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.execution_mode == "real"
+        assert response.result.simulated is False
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "editor_entity_created"
+        assert execution.details["entity_name"] == "ExampleEntity"
+        assert execution.details["entity_id"] == 101
+        assert execution.details["entity_id_source"] == "create_return"
+        assert execution.details["selected_entity_count_before_create"] == 0
+        assert execution.details["name_mutation_succeeded"] is True
+        assert execution.executor_id == "executor-editor-control-runtime-reaching-local"
+        assert (
+            execution.workspace_id
+            == f"workspace-editor-runtime-reaching-{project_root.name.lower()}"
+        )
+        assert artifact is not None
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "editor_entity_created"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="editor.entity.create",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="editor.entity.create",
+                payload=artifact.metadata,
+            )
+            == []
+        )
 
 
 def test_settings_patch_simulated_persisted_payloads_match_published_schemas() -> None:
