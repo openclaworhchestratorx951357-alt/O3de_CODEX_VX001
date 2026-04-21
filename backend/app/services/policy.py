@@ -70,6 +70,35 @@ def tool_next_real_requirement(tool_name: str) -> str:
     return "Remain simulated until a tool-specific real adapter gate is admitted."
 
 
+def tool_supports_dry_run(tool_name: str) -> bool:
+    if tool_name in {
+        "editor.session.open",
+        "editor.level.open",
+        "editor.entity.create",
+    }:
+        return False
+    return True
+
+
+def tool_policy_execution_mode(tool_name: str) -> str:
+    admission_stage = tool_real_admission_stage(tool_name)
+    if admission_stage in {
+        "real-read-only-active",
+        "real-editor-authoring-active",
+    }:
+        return "real"
+    if admission_stage == "real-plan-only-active":
+        return "plan-only"
+    if admission_stage in {
+        "runtime-reaching-excluded-from-admitted-real",
+        "real-mutation-preflight-active",
+        "mutation-candidate-after-gate",
+        "deferred-high-risk-mutation",
+    }:
+        return "gated"
+    return "simulated"
+
+
 class PolicyService:
     def list_policies(self) -> list[ToolPolicy]:
         policies: list[ToolPolicy] = []
@@ -89,6 +118,8 @@ class PolicyService:
                         required_locks=tool.default_locks,
                         risk=tool.risk,
                         requires_approval=tool.approval_class != "read_only",
+                        supports_dry_run=tool_supports_dry_run(tool.name),
+                        execution_mode=tool_policy_execution_mode(tool.name),
                     )
                 )
         return sorted(policies, key=lambda policy: (policy.agent, policy.tool))
@@ -110,6 +141,8 @@ class PolicyService:
             required_locks=tool.default_locks,
             risk=tool.risk,
             requires_approval=tool.approval_class != "read_only",
+            supports_dry_run=tool_supports_dry_run(tool_name),
+            execution_mode=tool_policy_execution_mode(tool_name),
         )
 
 

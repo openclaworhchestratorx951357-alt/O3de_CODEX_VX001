@@ -748,6 +748,33 @@ def test_policies_route_marks_settings_patch_as_real_mutation_preflight_active()
         assert "set-only mutation path" in settings_patch["next_real_requirement"].lower()
 
 
+def test_policies_route_exposes_truthful_execution_mode_and_dry_run_support() -> None:
+    with isolated_client() as client:
+        response = client.get("/policies")
+        assert response.status_code == 200
+        policies_by_tool = {
+            policy["tool"]: policy for policy in response.json()["policies"]
+        }
+
+        assert policies_by_tool["editor.session.open"]["execution_mode"] == "real"
+        assert policies_by_tool["editor.session.open"]["supports_dry_run"] is False
+
+        assert policies_by_tool["editor.level.open"]["execution_mode"] == "real"
+        assert policies_by_tool["editor.level.open"]["supports_dry_run"] is False
+
+        assert policies_by_tool["project.inspect"]["execution_mode"] == "real"
+        assert policies_by_tool["project.inspect"]["supports_dry_run"] is True
+
+        assert policies_by_tool["build.configure"]["execution_mode"] == "plan-only"
+        assert policies_by_tool["build.configure"]["supports_dry_run"] is True
+
+        assert policies_by_tool["editor.entity.create"]["execution_mode"] == "gated"
+        assert policies_by_tool["editor.entity.create"]["supports_dry_run"] is False
+
+        assert policies_by_tool["settings.patch"]["execution_mode"] == "gated"
+        assert policies_by_tool["settings.patch"]["supports_dry_run"] is True
+
+
 def test_runs_endpoint_reflects_dispatch_attempt() -> None:
     with isolated_client() as client:
         dispatch = client.post(
