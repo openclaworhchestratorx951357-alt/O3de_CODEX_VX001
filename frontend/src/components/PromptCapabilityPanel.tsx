@@ -8,6 +8,7 @@ import {
   getAdmissionTone,
   getAvailabilityTone,
   getCapabilityTone,
+  getNaturalLanguageStatusTone,
 } from "./statusChipTones";
 
 const promptCapabilitiesGuide = getPanelGuide("prompt-capabilities");
@@ -91,7 +92,11 @@ export default function PromptCapabilityPanel({
                   />
                 </div>
                 <div style={subtleTextStyle}>
-                  Natural-language status: {safetyEnvelope?.natural_language_status ?? missingSafetyEnvelopeDetail}
+                  Natural-language status:{" "}
+                  <StatusChip
+                    label={safetyEnvelope?.natural_language_status ?? missingSafetyEnvelopeDetail}
+                    tone={getNaturalLanguageStatusTone(safetyEnvelope?.natural_language_status ?? "")}
+                  />
                 </div>
                 <div style={subtleTextStyle}>
                   State scope: {safetyEnvelope?.state_scope ?? missingSafetyEnvelopeDetail}

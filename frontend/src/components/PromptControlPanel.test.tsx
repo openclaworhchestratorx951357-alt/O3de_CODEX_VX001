@@ -258,10 +258,10 @@ describe("PromptControlPanel", () => {
     expect(apiMocks.createPromptSession).toHaveBeenCalledTimes(1);
     expect(screen.getAllByText("Maturity: real-authoring").length).toBeGreaterThan(0);
     expect(
-      screen.getAllByText("Natural-language status: prompt-ready-approval-gated").length,
+      screen.getAllByText("prompt-ready-approval-gated").length,
     ).toBeGreaterThan(0);
     expect(
-      screen.getByText("Natural-language status: prompt-blocked-pending-admission"),
+      screen.getByText("prompt-blocked-pending-admission"),
     ).toBeInTheDocument();
     expect(screen.getByText("Maturity: runtime-reaching")).toBeInTheDocument();
     expect(
@@ -270,7 +270,7 @@ describe("PromptControlPanel", () => {
     expect(
       screen.getByText(/Blocker: Excluded from the admitted real set on current tested local targets/i),
     ).toBeInTheDocument();
-    expect(screen.getAllByText(/Execution truth: real path preferred/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("real path preferred").length).toBeGreaterThan(0);
     const sessionButton = screen.getByRole("button", { name: /prompt-editor-1/i });
     expect(sessionButton).toHaveTextContent("Workspace: workspace-editor-project");
     expect(sessionButton).toHaveTextContent("Executor: executor-editor-control-real-local");
@@ -360,7 +360,7 @@ const waitingSession: PromptSessionRecord = {
 
     await screen.findByText("Prompt Capability Registry");
     expect(
-      screen.getByText("Natural-language status: not reported by current backend"),
+      screen.getByText("not reported by current backend"),
     ).toBeInTheDocument();
     expect(
       screen.getByText(/Safety envelope metadata is missing from the current backend payload/i),
@@ -396,7 +396,7 @@ const waitingSession: PromptSessionRecord = {
 
     await screen.findByText("Prompt Plan");
     expect(
-      screen.getAllByText("Natural-language status: not reported by current backend").length,
+      screen.getAllByText("not reported by current backend").length,
     ).toBeGreaterThan(0);
     expect(
       screen.getByText(/prompt-plan detail for this step is incomplete/i),

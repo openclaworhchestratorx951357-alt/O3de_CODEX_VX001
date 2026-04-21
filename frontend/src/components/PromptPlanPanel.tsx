@@ -8,6 +8,8 @@ import {
   getAdmissionTone,
   getAvailabilityTone,
   getCapabilityTone,
+  getExecutionTruthTone,
+  getNaturalLanguageStatusTone,
 } from "./statusChipTones";
 
 const promptPlanGuide = getPanelGuide("prompt-plan");
@@ -125,7 +127,11 @@ export default function PromptPlanPanel({
                       )}
                     </div>
                     <div style={subtleTextStyle}>
-                      Natural-language status: {safetyEnvelope?.natural_language_status ?? missingSafetyEnvelopeDetail}
+                      Natural-language status:{" "}
+                      <StatusChip
+                        label={safetyEnvelope?.natural_language_status ?? missingSafetyEnvelopeDetail}
+                        tone={getNaturalLanguageStatusTone(safetyEnvelope?.natural_language_status ?? "")}
+                      />
                     </div>
                     <div style={subtleTextStyle}>
                       State scope: {safetyEnvelope?.state_scope ?? missingSafetyEnvelopeDetail}
@@ -147,7 +153,11 @@ export default function PromptPlanPanel({
                       </div>
                     ) : null}
                     <div style={subtleTextStyle}>
-                      Execution truth: {step.simulated_allowed ? "simulated allowed" : "real path preferred"}
+                      Execution truth:{" "}
+                      <StatusChip
+                        label={step.simulated_allowed ? "simulated allowed" : "real path preferred"}
+                        tone={getExecutionTruthTone(step.simulated_allowed)}
+                      />
                     </div>
                     {step.depends_on.length > 0 ? (
                       <div style={subtleTextStyle}>Depends on: {step.depends_on.join(", ")}</div>

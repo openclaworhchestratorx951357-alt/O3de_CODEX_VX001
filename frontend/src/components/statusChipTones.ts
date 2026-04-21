@@ -96,6 +96,23 @@ export function getCapabilityTone(capability: string): StatusChipTone {
   return "neutral";
 }
 
+export function getNaturalLanguageStatusTone(status: string): StatusChipTone {
+  if (status.includes("blocked") || status.includes("excluded")) {
+    return "danger";
+  }
+  if (status.includes("approval-gated") || status.includes("pending")) {
+    return "warning";
+  }
+  if (status.includes("ready")) {
+    return "info";
+  }
+  return "neutral";
+}
+
+export function getExecutionTruthTone(simulatedAllowed: boolean): StatusChipTone {
+  return simulatedAllowed ? "warning" : "success";
+}
+
 export function getAuditStatusTone(status: string): StatusChipTone {
   if (status === "succeeded") {
     return "success";

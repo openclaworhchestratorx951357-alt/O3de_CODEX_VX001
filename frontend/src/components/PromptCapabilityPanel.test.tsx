@@ -120,6 +120,9 @@ describe("PromptCapabilityPanel", () => {
     expect(
       within(editorLevelCapability as HTMLElement).getByText(/Simulation fallback availability:/),
     ).toHaveTextContent("Simulation fallback availability: not available");
+    expect(
+      within(editorLevelCapability as HTMLElement).getByText(/Natural-language status:/),
+    ).toHaveTextContent("Natural-language status: prompt-ready-approval-gated");
 
     expect(
       within(buildConfigureCapability as HTMLElement).getByText(/Real adapter availability:/),
@@ -136,6 +139,9 @@ describe("PromptCapabilityPanel", () => {
     expect(
       within(buildConfigureCapability as HTMLElement).getByText(/Simulation fallback availability:/),
     ).toHaveTextContent("Simulation fallback availability: available");
+    expect(
+      within(buildConfigureCapability as HTMLElement).getByText(/Natural-language status:/),
+    ).toHaveTextContent("Natural-language status: prompt-ready-approval-gated");
   });
 
   it("shows an honest empty state when the current prompt has no matching capability entries", () => {

@@ -167,6 +167,12 @@ describe("PromptPlanPanel", () => {
     expect(
       within(levelStep as HTMLElement).getByText(/Simulation fallback availability:/),
     ).toHaveTextContent("Simulation fallback availability: not available");
+    expect(
+      within(levelStep as HTMLElement).getByText(/Natural-language status:/),
+    ).toHaveTextContent("Natural-language status: prompt-ready-approval-gated");
+    expect(
+      within(levelStep as HTMLElement).getByText(/Execution truth:/),
+    ).toHaveTextContent("Execution truth: real path preferred");
 
     expect(
       within(buildStep as HTMLElement).getByText(/Real adapter availability:/),
@@ -183,6 +189,12 @@ describe("PromptPlanPanel", () => {
     expect(
       within(buildStep as HTMLElement).getByText(/Simulation fallback availability:/),
     ).toHaveTextContent("Simulation fallback availability: available");
+    expect(
+      within(buildStep as HTMLElement).getByText(/Natural-language status:/),
+    ).toHaveTextContent("Natural-language status: prompt-ready-approval-gated");
+    expect(
+      within(buildStep as HTMLElement).getByText(/Execution truth:/),
+    ).toHaveTextContent("Execution truth: simulated allowed");
   });
 
   it("falls back cleanly when no capability registry entry is available for a step", () => {
