@@ -19,6 +19,7 @@ See these official source files:
 - `docs/PHASE-6B-BACKEND-MAPPING.md`
 - `docs/PHASE-6B-PERSISTENCE-CHANGESET.md`
 - `docs/PHASE-7-CHECKPOINT.md`
+- `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md`
 - `docs/PERSISTED-SCHEMA-COVERAGE-CHECKPOINT.md`
 - `docs/PHASE-7-REAL-ADAPTER-GATE.md`
 - `docs/PHASE-7-FIRST-MUTATION-CANDIDATE.md`
@@ -37,6 +38,16 @@ Current Phase 7 checkpoint truth:
 - `project.inspect` is the current real read-only path in hybrid mode
 - that path now includes manifest-backed project-config subset matching, manifest-backed Gem subset/source evidence with explicit source/count visibility, and manifest-backed top-level settings subset evidence with explicit source/count visibility
 - `settings.patch` is still the first recommended mutation-capable candidate and now has a real hybrid path for both dry-run preflight and the first fully admitted manifest-backed set-only mutation case, with backup provenance, rollback outcome evidence, patch-plan evidence, and post-write verification
+- `editor.session.open` and `editor.level.open` are admitted real on the
+  verified `McpSandbox` target wiring through the persistent bridge-backed
+  runtime path
+- the canonical local verification path for that admitted editor-runtime
+  boundary is the repo-owned backend on `127.0.0.1:8000`, launched via
+  `backend/runtime/launch_branch_backend_8000.cmd`
+- `editor.entity.create` remains excluded from the admitted-real set on the
+  current tested local targets
+- the operator proof checklist for the admitted editor-runtime boundary lives in
+  `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md`
 - the next safest refinement is still manifest-adjacent and keeps settings/Gem evidence on `project.json`
 - `build.configure` is still only a real plan-only preflight path
 - mutation surfaces remain gated

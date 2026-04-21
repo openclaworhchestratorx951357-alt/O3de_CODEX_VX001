@@ -24,6 +24,28 @@ source .venv/bin/activate
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+For the current `feature/production-baseline-v1` local O3DE target, prefer the
+repo-owned canonical Windows launcher instead of an ad hoc shell session:
+
+```powershell
+.\backend\runtime\launch_branch_backend_8000.cmd
+```
+
+That launcher pins the currently verified local target wiring:
+- `O3DE_TARGET_PROJECT_ROOT=C:\Users\topgu\O3DE\Projects\McpSandbox`
+- `O3DE_TARGET_ENGINE_ROOT=C:\src\o3de`
+- `O3DE_TARGET_EDITOR_RUNNER=C:\Users\topgu\O3DE\Projects\McpSandbox\build\windows\bin\profile\Editor.exe`
+- `O3DE_CONTROL_PLANE_DB_PATH=C:\Users\topgu\OneDrive\Documents\GitHub\O3de_CODEX_VX001\backend\runtime\live-verify-control-plane.sqlite3`
+- `O3DE_ADAPTER_MODE=hybrid`
+
+Why this launcher is the truthful local baseline:
+- it avoids accidental drift between manual shell variables and the backend
+  process that actually binds `127.0.0.1:8000`
+- it is the path that was used to restore the canonical `8000` local backend
+  after a stray non-repo `uvicorn` process had been occupying that port
+- it is the local path under which admitted-real `editor.session.open` and
+  admitted-real `editor.level.open` were re-verified against `McpSandbox`
+
 ## Docker
 
 The backend now has a Phase 5 baseline container image:
@@ -90,7 +112,24 @@ Current truth:
 - that real `project.inspect` path can now also persist manifest-backed Gem and top-level settings inspection evidence when those flags are requested
 - that same real `project.inspect` path can now also persist a file-read-only manifest-backed project-config snapshot and inspected-key evidence when explicitly requested
 - that same real `project.inspect` path can now also distinguish requested Gem evidence from actually discovered Gem entries while staying on the same manifest-backed source of truth
+- when `include_build_state=true`, that same real `project.inspect` path now persists explicit "requested but still simulated" build-state evidence so operators can see that build-state inspection was asked for without implying a real adapter path
+- that same real `project.inspect` path now also persists explicit manifest provenance showing the read stayed on `project_root/project.json`, remained read-only, and stayed workspace-local to the declared project root
+- when the real `project.inspect` manifest path is unavailable, the simulated fallback now also persists explicit fallback provenance for the declared project root, expected manifest path, and unavailability category such as missing versus unreadable manifest
 - `hybrid` also enables a real `build.configure` plan-only preflight path when `dry_run=true` and the same project-manifest preconditions are satisfied
+- that same real `build.configure` preflight path now also persists explicit manifest/root provenance and plan-only execution labeling so operators can see the preflight stayed read-only and manifest-adjacent
+- when the real `build.configure` preflight path is unavailable, the simulated fallback now also persists explicit fallback provenance including dry-run-required versus manifest-unavailable categories
+- the real `settings.patch` preflight and admitted mutation paths now also persist explicit manifest/root provenance so operators can distinguish manifest-adjacent execution evidence from simulated fallback
+- when the real `settings.patch` path is unavailable or the requested mutation leaves the admitted manifest-backed boundary, the simulated fallback now also persists explicit fallback categories and expected-manifest provenance
+- `hybrid` also admits a real `editor.session.open` runtime path on
+  `McpSandbox` when the target wiring resolves to the verified local editor
+  runner and the live bridge heartbeat is observable
+- `hybrid` also admits a real `editor.level.open` runtime path on
+  `McpSandbox` under that same verified local bridge/runtime boundary
+- those admitted-real editor paths were re-verified on the canonical local
+  backend bound to `127.0.0.1:8000`
+- `editor.entity.create` remains out of the admitted-real set on the current
+  tested local targets and must continue to be reported as excluded rather than
+  implied-real
 - actual configure mutation still remains simulated in this phase
 - every other tool still remains simulated in this phase
 - broad real O3DE adapters are still not implemented

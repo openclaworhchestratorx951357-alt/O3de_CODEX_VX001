@@ -23,8 +23,19 @@ As of the current accepted branch state:
 - adapter-family provenance is persisted
 - `project.inspect` is the current real read-only hybrid path when manifest
   preconditions are satisfied
+- `editor.session.open` is an admitted real editor-session path on
+  `McpSandbox`
+- `editor.level.open` is an admitted real level-open path on `McpSandbox`
+- `editor.entity.create` is still runtime-reaching but not admitted real on
+  `McpSandbox` because a stable prefab-safe create contract has not yet been
+  proven on this build; the latest `CreateNewEntity(EntityId())` recovery pass
+  still failed on both `Levels/DefaultLevel` and a fresh diagnostic level, so
+  the exclusion is currently target/build-wide rather than a single-level issue
 - `build.configure` is the current real plan-only hybrid preflight path when
   `dry_run=true` and manifest preconditions are satisfied
+- `settings.patch` now includes a narrow admitted manifest-backed hybrid
+  preflight path plus a narrow admitted manifest-backed set-only mutation path
+  when its admission criteria are satisfied
 - all remaining published tools still execute through explicitly simulated paths
 
 That means a tool is only eligible for "real" status when the adapter behind it
@@ -71,6 +82,8 @@ following:
 If those checks fail, the system must:
 - reject the attempt before real execution, or
 - fall back to a clearly labeled simulated or unavailable status
+- persist enough fallback provenance that operators can tell which admitted
+  manifest/root boundary was expected and why the real path did not run
 
 ## First real slice constraints
 
@@ -115,3 +128,20 @@ A first real adapter slice is only complete when:
 
 Until those criteria are met for a tool family, keep the family and its tools
 explicitly labeled as simulated.
+
+The current admitted exceptions remain narrow:
+- `project.inspect` real read-only manifest-backed inspection
+- `editor.session.open` admitted real editor-session runtime on `McpSandbox`
+- `editor.level.open` admitted real level-open runtime on `McpSandbox`
+- `editor.entity.create` excluded from the admitted real set on `McpSandbox`
+  after repeated live failures, including a fresh-level diagnostic rerun
+- `build.configure` real plan-only manifest-backed preflight
+- `settings.patch` narrow manifest-backed preflight plus narrow admitted
+  manifest-backed set-only mutation
+
+The current canonical local verification path for the editor-session/runtime
+admissions is the repo-owned backend on `127.0.0.1:8000` launched via
+`backend/runtime/launch_branch_backend_8000.cmd` against the verified
+`McpSandbox` target wiring.
+
+Those exceptions do not imply broad real O3DE adapter coverage.

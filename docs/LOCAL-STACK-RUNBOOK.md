@@ -122,7 +122,12 @@ However:
 - control-plane bookkeeping is real
 - approvals, runs, locks, events, executions, and artifacts are real control-plane records
 - many O3DE execution paths are still explicitly simulated
-- real O3DE adapters are still not implemented
+- admitted-real O3DE execution is still narrow and target-specific:
+  `project.inspect`, `build.configure` preflight, admitted `settings.patch`
+  slices, `editor.session.open`, and `editor.level.open`
+- `editor.entity.create` remains excluded from the admitted-real set on the
+  current tested local targets
+- broad real O3DE adapter coverage is still not implemented
 
 UI, API responses, and docs must continue to label simulated execution as simulated.
 
@@ -138,6 +143,9 @@ The local compose stack should be considered healthy only when all of these are 
 ## Known limitations
 
 - Docker validation is now locally verified on this machine, but other machines may still need Docker setup first.
-- Real O3DE adapters are still not implemented.
+- Real O3DE execution is still narrow and must not be generalized beyond the
+  admitted-real set.
+- `editor.entity.create` is still not admitted real on the current tested local
+  targets.
 - Non-container local persistence still requires truthful operator configuration unless separately re-verified.
 - Simulated execution must remain explicitly labeled.

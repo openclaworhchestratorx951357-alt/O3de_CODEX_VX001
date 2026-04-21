@@ -17,6 +17,7 @@ This runbook complements:
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/SLICE-START-CHECKLIST.md`
 - `docs/LOCAL-STACK-RUNBOOK.md`
+- `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md`
 - `docs/WORKTREE-STRATEGY.md`
 
 ## Standing truths that must not drift

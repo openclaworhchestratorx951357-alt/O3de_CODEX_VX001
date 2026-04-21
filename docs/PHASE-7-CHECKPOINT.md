@@ -83,6 +83,31 @@ Current truth:
 - falls back to simulated when the admitted real path is unavailable or
   preconditions are not satisfied
 
+### Real editor-runtime
+
+- `editor.session.open`
+- `editor.level.open`
+
+Current truth:
+- are admitted real only on the verified `McpSandbox` target wiring
+- depend on the persistent project-local bridge publishing an observable
+  heartbeat from a live editor launch
+- were re-verified through the canonical repo-owned backend bound to
+  `127.0.0.1:8000`
+- remain explicitly labeled real vs simulated in backend and frontend evidence
+- do not imply a broad real editor-control family beyond the admitted tools
+
+### Editor-runtime excluded from admitted real
+
+- `editor.entity.create`
+
+Current truth:
+- remains excluded from the admitted-real set on the current tested local
+  targets
+- must continue to be described as excluded rather than partially-real or
+  implied-real
+- should not be widened until a stable prefab-safe create contract is proven
+
 ### Mutation candidates after the current gate
 
 - `gem.enable`
@@ -122,6 +147,8 @@ The operator shell now exposes this boundary through:
   for admitted real-path failures
 - explicit manifest/root/source-of-truth provenance for admitted real preflight
   and mutation evidence
+- explicit bridge heartbeat, queue, cleanup history, and lag-note visibility
+  for the admitted editor-runtime boundary
 - local operator-lane state, action rails, and detail-panel carry-through for
   pinned-lane navigation
 - explicit preset restore, preset drift, local note, local clipboard, and local
@@ -130,6 +157,10 @@ The operator shell now exposes this boundary through:
 ## What remains intentionally limited
 
 - broad real O3DE adapters are still not implemented
+- admitted real editor-runtime remains limited to `editor.session.open` and
+  `editor.level.open` on the verified `McpSandbox` target wiring
+- `editor.entity.create` remains excluded from the admitted-real set on the
+  current tested local targets
 - `build.configure` is not a real configure execution path
 - `project.inspect` real evidence is still limited to manifest-backed
   project-config, requested-vs-discovered Gem, requested Gem subset matching,
@@ -145,6 +176,9 @@ The operator shell now exposes this boundary through:
 - default non-container persistence is still not claimed healthy; explicit
   operator-configured persistence remains the truthful baseline for
   non-container local runs
+- the canonical local backend verification path for the admitted editor-runtime
+  boundary is `backend/runtime/launch_branch_backend_8000.cmd` on
+  `127.0.0.1:8000`
 - operator-lane notes, preset restore memory, handoff summaries, clipboard copy,
   and local reset remain frontend browser-session helpers rather than backend
   persistence or shared operator records
