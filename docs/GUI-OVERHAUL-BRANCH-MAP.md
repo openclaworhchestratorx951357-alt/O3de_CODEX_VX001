@@ -1,0 +1,102 @@
+# GUI Overhaul Branch Map
+
+This document defines the safe branch layout for a full GUI simplification pass while preserving the current feature-complete build.
+
+## Why this overhaul exists
+
+The current desktop shell is powerful, but it asks inexperienced users to parse too many expert surfaces at once.
+
+Grounded repo observations:
+
+- `frontend/src/App.tsx` mounts multiple desktop workspaces and high-density operator data flows at the shell level.
+- `frontend/src/components/workspaces/HomeWorkspaceView.tsx` renders four top-level windows immediately.
+- `frontend/src/components/workspaces/BuilderWorkspaceView.tsx` renders seven top-level windows immediately.
+- `frontend/src/components/LayoutHeader.tsx` exposes a dense operator-state header with advanced lane context that is useful for experts but heavy for first-time users.
+
+## Overhaul goal
+
+Make the app feel approachable for inexperienced operators without removing features.
+
+That means:
+
+- keep every existing capability available
+- reduce what is shown by default
+- move expert controls behind progressive disclosure
+- replace dense screen-scanning with guided task flows
+- keep admitted-real vs simulated wording explicit
+
+## Design principles
+
+1. Progressive disclosure first.
+Only show the next useful action by default. Advanced controls should live behind drawers, tabs, "More", or "Advanced" sections.
+
+2. Task-first navigation.
+The shell should answer "What do you want to do?" before it asks users to understand every subsystem.
+
+3. Beginner-safe defaults.
+New users should land on guided flows, not raw control-plane density.
+
+4. Expert escape hatches stay intact.
+No capability should be removed. Advanced users should still be able to reach the full mission-control surfaces.
+
+5. Workspace reduction, not capability reduction.
+The overhaul should simplify the entry path and grouping, not delete important operational tooling.
+
+## Recommended target shell
+
+The overhaul should move toward:
+
+- a simpler home screen with clear "Start here" actions
+- role/task cards such as "Launch O3DE work", "Run Builder tasks", "Review records", and "Inspect runtime state"
+- guided flows/wizards for common operations
+- an "Advanced mode" or expandable panels for expert-only controls
+- per-workspace summaries that lead with status, next action, and risk
+- a calmer visual hierarchy with fewer equally prominent windows on first load
+
+## Branch map
+
+### Safety baseline
+
+- `codex/control-plane/gui-safe-baseline-2026-04-22`
+  - frozen preservation branch for the current accepted working UI
+  - use this when a known-good fallback is needed
+
+### Integration branch
+
+- `codex/control-plane/gui-overhaul-integration`
+  - main integration lane for the overhaul
+  - use this to merge tested slices together
+
+### Focused side branches
+
+- `codex/control-plane/gui-overhaul-information-architecture`
+  - redesign information grouping, entry points, naming, and workspace hierarchy
+
+- `codex/control-plane/gui-overhaul-navigation-shell`
+  - redesign shell navigation, desktop chrome, section switching, and global layout
+
+- `codex/control-plane/gui-overhaul-guided-flows`
+  - add beginner-friendly guided flows, "Start here" actions, quickstarts, and progressive disclosure
+
+- `codex/control-plane/gui-overhaul-workspace-simplification`
+  - reduce default on-screen density inside Builder, Home, Operations, Runtime, and Records without deleting features
+
+- `codex/control-plane/gui-overhaul-polish-validation`
+  - final consistency pass, responsive cleanup, copy/tooltips, and test validation
+
+## Suggested implementation order
+
+1. Information architecture
+2. Navigation shell
+3. Guided flows
+4. Workspace simplification
+5. Polish and validation
+6. Merge into `codex/control-plane/gui-overhaul-integration`
+
+## Guardrails
+
+- Do not weaken backend or admitted-real truthfulness for the sake of a cleaner UI.
+- Do not remove expert surfaces; hide or regroup them.
+- Keep operator-facing language explicit where real vs simulated matters.
+- Prefer reusable shell patterns over one-off workspace rewrites.
+- Validate desktop and mobile behavior before merging back to integration.
