@@ -39,6 +39,21 @@ describe("shared evidence surfaces", () => {
     expect(copyButton).toHaveTextContent("Copied");
   });
 
+  it("lays out summary facts as a responsive desktop grid instead of a single narrow stack", () => {
+    render(
+      <SummaryFacts>
+        <SummaryFact label="Run ID">run-123</SummaryFact>
+        <SummaryFact label="Execution ID">exec-456</SummaryFact>
+      </SummaryFacts>,
+    );
+
+    const factsGrid = screen.getByText("Run ID").closest("div")?.parentElement?.parentElement;
+    expect(factsGrid).toHaveStyle({
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+    });
+  });
+
   it("adds default lineage guidance to persisted record navigation", async () => {
     const openRun = vi.fn();
     const openExecution = vi.fn();
