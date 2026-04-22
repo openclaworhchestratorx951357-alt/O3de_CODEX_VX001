@@ -3332,9 +3332,9 @@ export default function BuilderWorkspaceDesktop() {
           <span>Selected worker terminals: {selectedWorkerTerminals.length}</span>
           <span>Active managed terminal: <code>{selectedActiveTerminal?.session_id ?? "none"}</code></span>
           <span>
-            These are repo-launched worker processes with captured logs. They are observable and stoppable from Builder,
-            but they do not automatically control arbitrary Codex chat threads unless those threads choose to work through
-            this managed surface.
+            These sessions stay tracked in mission control. On Windows they launch as real terminal windows you can use
+            directly, while still writing observable logs back into Builder. They do not automatically control arbitrary
+            Codex chat threads unless those threads choose to work through this managed surface.
           </span>
         </div>
       </article>
@@ -3343,8 +3343,8 @@ export default function BuilderWorkspaceDesktop() {
         <article style={summaryCardStyle}>
           <strong>Launch a managed terminal</strong>
           <p style={mutedParagraphStyle}>
-            Start one log-backed worker process for the selected lane so the app, operators, and other threads can see
-            what that lane is running without relying on private local terminals.
+            Start one mission-controlled worker terminal for the selected lane. On Windows this opens a real console
+            window, while Builder keeps the session observable, stoppable, and tied back to the selected worker lane.
           </p>
         </article>
 

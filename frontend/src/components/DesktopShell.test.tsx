@@ -37,22 +37,36 @@ describe("DesktopShell", () => {
         workspaceTitle="Home"
         workspaceSubtitle="Overview and launch surface"
         activeWorkspaceId="home"
-        navItems={[
+        navSections={[
           {
-            id: "home",
-            label: "Home",
-            subtitle: "Overview and launch surface",
-            badge: "2",
-            tone: "info",
-            helpTooltip: "Start here to orient the operator desktop.",
+            id: "start",
+            label: "Start",
+            detail: "Begin with a calmer orientation surface.",
+            items: [
+              {
+                id: "home",
+                label: "Home",
+                subtitle: "Overview and launch surface",
+                badge: "2",
+                tone: "info",
+                helpTooltip: "Start here to orient the operator desktop.",
+              },
+            ],
           },
           {
-            id: "records",
-            label: "Records",
-            subtitle: "Runs, executions, artifacts",
-            badge: "9",
-            tone: "warning",
-            helpTooltip: "Inspect persisted evidence and warnings.",
+            id: "inspect",
+            label: "Inspect",
+            detail: "Review persisted evidence and warnings.",
+            items: [
+              {
+                id: "records",
+                label: "Records",
+                subtitle: "Runs, executions, artifacts",
+                badge: "9",
+                tone: "warning",
+                helpTooltip: "Inspect persisted evidence and warnings.",
+              },
+            ],
           },
         ]}
         quickStats={[
@@ -78,6 +92,9 @@ describe("DesktopShell", () => {
     );
 
     expect(screen.getByText("Control surface")).toBeInTheDocument();
+    expect(screen.getByText("Now open")).toBeInTheDocument();
+    expect(screen.getByText("Start")).toBeInTheDocument();
+    expect(screen.getByText("Inspect")).toBeInTheDocument();
     expect(screen.getByText("Active workspace")).toBeInTheDocument();
     expect(screen.getByText("Workspace body")).toBeInTheDocument();
     expect(
@@ -124,18 +141,32 @@ describe("DesktopShell", () => {
           workspaceTitle="Runtime Console"
           workspaceSubtitle="Bridge status, executors, workspaces, and governance health."
           activeWorkspaceId="runtime"
-          navItems={[
+          navSections={[
             {
-              id: "home",
-              label: "Home",
-              subtitle: "Overview and launch surface",
+              id: "start",
+              label: "Start",
+              detail: "Begin with the overview shell.",
+              items: [
+                {
+                  id: "home",
+                  label: "Home",
+                  subtitle: "Overview and launch surface",
+                },
+              ],
             },
             {
-              id: "runtime",
-              label: "Runtime",
-              subtitle: "Bridge status and workspace health",
-              badge: "live",
-              tone: "success",
+              id: "operate",
+              label: "Operate",
+              detail: "Watch bridge status and workspace health.",
+              items: [
+                {
+                  id: "runtime",
+                  label: "Runtime",
+                  subtitle: "Bridge status and workspace health",
+                  badge: "live",
+                  tone: "success",
+                },
+              ],
             },
           ]}
           quickStats={[

@@ -175,7 +175,13 @@ describe("App desktop smoke", () => {
       "Catalog browsing, dispatch, approvals, and live timeline control.",
     ));
 
-    expect(await screen.findByText("No live tools catalog has been returned yet.")).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        "No live tools catalog has been returned yet.",
+        {},
+        { timeout: 3000 },
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText("Dispatch is disabled until the live tools catalog is available.")).toBeInTheDocument();
     expect(screen.queryByText("Fallback catalog entry")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Dispatch Request" })).toBeDisabled();

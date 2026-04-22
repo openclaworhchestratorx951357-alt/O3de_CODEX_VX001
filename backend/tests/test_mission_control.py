@@ -181,7 +181,7 @@ def test_create_notification_records_refresh_request(tmp_path):
         assert notification["status"] == "unread"
 
 
-def test_launch_terminal_session_records_managed_terminal(tmp_path, monkeypatch):
+def test_launch_terminal_session_records_managed_terminal_on_windows(tmp_path, monkeypatch):
     module = load_mission_control_module()
     context = make_context(module, tmp_path)
 
@@ -193,9 +193,76 @@ def test_launch_terminal_session_records_managed_terminal(tmp_path, monkeypatch)
     def fake_popen(command, **kwargs):
         launched["command"] = command
         launched["cwd"] = kwargs.get("cwd")
+        launched["creationflags"] = kwargs.get("creationflags")
         return FakeProcess()
 
     monkeypatch.setattr(module.subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(module, "is_windows", lambda: True)
+
+    with module.connect_db(context) as conn:
+        module.ensure_schema(conn)
+        module.upsert_worker(
+            conn,
+            worker_id="beta",
+            display_name="Beta",
+            branch_name="codex/worker/beta",
+            worktree_path=str(tmp_path / "beta"),
+            base_branch=module.DEFAULT_BASE_BRANCH,
+            status="active",
+            summary="Running Builder lane.",
+        )
+        conn.commit()
+
+        session = module.launch_terminal_session(
+            conn,
+            context,
+            worker_id="beta",
+            label="Builder dev server",
+            command=["python", "-m", "http.server", "9000"],
+            cwd=str(tmp_path),
+            task_id=None,
+        )
+        conn.commit()
+
+        assert launched["command"][0] == "powershell.exe"
+        assert "-NoExit" in launched["command"]
+        assert launched["command"][-2] == "-File"
+        assert launched["cwd"] == str(tmp_path)
+        assert launched["creationflags"] == (
+            module.WINDOWS_CREATE_NEW_CONSOLE | module.WINDOWS_CREATE_NEW_PROCESS_GROUP
+        )
+        assert session["worker_id"] == "beta"
+        assert session["status"] == "running"
+        assert session["pid"] == 4242
+        assert session["log_path"].endswith(".log")
+        assert session["tail_preview"][0].startswith("[")
+        launcher_path = Path(launched["command"][-1])
+        assert launcher_path.exists()
+        launcher_text = launcher_path.read_text(encoding="utf-8")
+        assert "powershell" not in launcher_path.name.lower()
+        assert "Command exited with code $exitCode" in launcher_text
+        assert "[command] python -m http.server 9000" in launcher_text
+
+
+def test_launch_terminal_session_records_managed_terminal_on_non_windows(tmp_path, monkeypatch):
+    module = load_mission_control_module()
+    context = make_context(module, tmp_path)
+
+    launched: dict[str, object] = {}
+
+    class FakeProcess:
+        pid = 4343
+
+    def fake_popen(command, **kwargs):
+        launched["command"] = command
+        launched["cwd"] = kwargs.get("cwd")
+        launched["start_new_session"] = kwargs.get("start_new_session")
+        stdout_handle = kwargs.get("stdout")
+        launched["stdout_name"] = getattr(stdout_handle, "name", None)
+        return FakeProcess()
+
+    monkeypatch.setattr(module.subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(module, "is_windows", lambda: False)
 
     with module.connect_db(context) as conn:
         module.ensure_schema(conn)
@@ -224,9 +291,11 @@ def test_launch_terminal_session_records_managed_terminal(tmp_path, monkeypatch)
 
         assert launched["command"] == ["python", "-m", "http.server", "9000"]
         assert launched["cwd"] == str(tmp_path)
+        assert launched["start_new_session"] is True
+        assert str(launched["stdout_name"]).endswith(".log")
         assert session["worker_id"] == "beta"
         assert session["status"] == "running"
-        assert session["pid"] == 4242
+        assert session["pid"] == 4343
         assert session["log_path"].endswith(".log")
         assert session["tail_preview"][0].startswith("[")
 

@@ -13,6 +13,13 @@ export type DesktopShellNavItem = {
   helpTooltip?: string | null;
 };
 
+export type DesktopShellNavSection = {
+  id: string;
+  label: string;
+  detail: string;
+  items: readonly DesktopShellNavItem[];
+};
+
 export type DesktopShellQuickStat = {
   label: string;
   value: string;
@@ -26,7 +33,7 @@ type DesktopShellProps = {
   workspaceTitle: string;
   workspaceSubtitle: string;
   activeWorkspaceId: string;
-  navItems: readonly DesktopShellNavItem[];
+  navSections: readonly DesktopShellNavSection[];
   quickStats?: readonly DesktopShellQuickStat[];
   utilityLabel?: string | null;
   utilityDetail?: string | null;
@@ -64,7 +71,7 @@ export default function DesktopShell({
   workspaceTitle,
   workspaceSubtitle,
   activeWorkspaceId,
-  navItems,
+  navSections,
   quickStats = [],
   utilityLabel,
   utilityDetail,
@@ -73,6 +80,9 @@ export default function DesktopShell({
   children,
 }: DesktopShellProps) {
   const themeTokens = useThemeTokens();
+  const activeNavItem = navSections
+    .flatMap((section) => section.items)
+    .find((item) => item.id === activeWorkspaceId);
   const timestampLabel = new Date().toLocaleString([], {
     hour: "numeric",
     minute: "2-digit",
@@ -128,59 +138,75 @@ export default function DesktopShell({
             <span style={navSectionEyebrowStyle}>Workspace switcher</span>
             <strong style={navSectionTitleStyle}>Control surface</strong>
             <span style={navSectionDetailStyle}>
-              Move through the project like a desktop shell instead of one continuous operator page.
+              Move through the project in shallow grouped sections instead of one intimidating continuous page.
             </span>
           </div>
 
-          <div style={navListStyle}>
-            {navItems.map((item) => {
-              const active = item.id === activeWorkspaceId;
-              const tone = toneStyles[item.tone ?? "neutral"];
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => onSelectWorkspace(item.id)}
-                  title={item.helpTooltip ?? undefined}
-                  style={{
-                    ...navButtonStyle,
-                    ...(active ? activeNavButtonStyle : null),
-                  }}
-                >
-                  <div style={navButtonHeaderStyle}>
-                    <strong>{item.label}</strong>
-                    {item.badge ? (
-                      <span style={{ ...navBadgeStyle, ...tone }}>
-                        {item.badge}
-                      </span>
-                    ) : null}
-                  </div>
-                  <span style={navButtonSubtitleStyle}>{item.subtitle}</span>
-                </button>
-              );
-            })}
+          <div style={currentWorkspaceCardStyle}>
+            <span style={navSectionEyebrowStyle}>Now open</span>
+            <strong style={currentWorkspaceTitleStyle}>{activeNavItem?.label ?? workspaceTitle}</strong>
+            <span style={navSectionDetailStyle}>{activeNavItem?.subtitle ?? workspaceSubtitle}</span>
           </div>
 
-          {quickStats.length > 0 ? (
-            <div style={quickStatsRailStyle}>
-              <span style={navSectionEyebrowStyle}>Desktop telemetry</span>
-              <div style={quickStatsGridStyle}>
-                {quickStats.map((item) => (
-                  <div
-                    key={`${item.label}-${item.value}`}
-                    title={item.helpTooltip ?? undefined}
-                    style={{
-                      ...quickStatCardStyle,
-                      ...toneStyles[item.tone ?? "neutral"],
-                    }}
-                  >
-                    <span style={quickStatLabelStyle}>{item.label}</span>
-                    <strong>{item.value}</strong>
-                  </div>
-                ))}
+          <div style={navScrollableRegionStyle}>
+            {navSections.map((section) => (
+              <section key={section.id} style={navGroupStyle}>
+                <div style={navGroupHeaderStyle}>
+                  <strong style={navGroupTitleStyle}>{section.label}</strong>
+                  <span style={navGroupDetailStyle}>{section.detail}</span>
+                </div>
+                <div style={navListStyle}>
+                  {section.items.map((item) => {
+                    const active = item.id === activeWorkspaceId;
+                    const tone = toneStyles[item.tone ?? "neutral"];
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => onSelectWorkspace(item.id)}
+                        title={item.helpTooltip ?? undefined}
+                        style={{
+                          ...navButtonStyle,
+                          ...(active ? activeNavButtonStyle : null),
+                        }}
+                      >
+                        <div style={navButtonHeaderStyle}>
+                          <strong>{item.label}</strong>
+                          {item.badge ? (
+                            <span style={{ ...navBadgeStyle, ...tone }}>
+                              {item.badge}
+                            </span>
+                          ) : null}
+                        </div>
+                        <span style={navButtonSubtitleStyle}>{item.subtitle}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+
+            {quickStats.length > 0 ? (
+              <div style={quickStatsRailStyle}>
+                <span style={navSectionEyebrowStyle}>Desktop telemetry</span>
+                <div style={quickStatsGridStyle}>
+                  {quickStats.map((item) => (
+                    <div
+                      key={`${item.label}-${item.value}`}
+                      title={item.helpTooltip ?? undefined}
+                      style={{
+                        ...quickStatCardStyle,
+                        ...toneStyles[item.tone ?? "neutral"],
+                      }}
+                    >
+                      <span style={quickStatLabelStyle}>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </aside>
 
         <section style={workspaceShellStyle}>
@@ -227,6 +253,9 @@ export default function DesktopShell({
 
 const shellStyle = {
   minHeight: "100vh",
+  height: "100vh",
+  display: "grid",
+  gridTemplateRows: "auto minmax(0, 1fr)",
   background: "var(--app-shell-bg)",
   color: "var(--app-text-color)",
   fontFamily: '"Segoe UI Variable", "Segoe UI", "Trebuchet MS", sans-serif',
@@ -330,7 +359,9 @@ const desktopSurfaceStyle = {
   display: "flex",
   flexWrap: "wrap",
   gap: 24,
-  alignItems: "flex-start",
+  alignItems: "stretch",
+  minHeight: 0,
+  overflow: "hidden",
   padding: 24,
 } satisfies CSSProperties;
 
@@ -340,12 +371,14 @@ const navRailStyle = {
   maxWidth: 320,
   display: "grid",
   gap: 18,
+  gridTemplateRows: "auto auto minmax(0, 1fr)",
   padding: 20,
   background: "var(--app-panel-bg)",
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-window-radius)",
   boxShadow: "var(--app-shadow-strong)",
   backdropFilter: "blur(20px)",
+  minHeight: 0,
 } satisfies CSSProperties;
 
 const navSectionHeaderStyle = {
@@ -374,6 +407,56 @@ const navSectionDetailStyle = {
 const navListStyle = {
   display: "grid",
   gap: 10,
+} satisfies CSSProperties;
+
+const currentWorkspaceCardStyle = {
+  display: "grid",
+  gap: 6,
+  padding: "14px 16px",
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-panel-radius)",
+  background: "linear-gradient(145deg, var(--app-accent-soft) 0%, var(--app-panel-bg-alt) 100%)",
+  boxShadow: "var(--app-shadow-soft)",
+} satisfies CSSProperties;
+
+const currentWorkspaceTitleStyle = {
+  fontSize: 16,
+  lineHeight: 1.15,
+} satisfies CSSProperties;
+
+const navScrollableRegionStyle = {
+  display: "grid",
+  gap: 18,
+  minHeight: 0,
+  overflowY: "auto",
+  overflowX: "hidden",
+  overscrollBehavior: "contain",
+  scrollbarGutter: "stable",
+  paddingRight: 4,
+} satisfies CSSProperties;
+
+const navGroupStyle = {
+  display: "grid",
+  gap: 10,
+} satisfies CSSProperties;
+
+const navGroupHeaderStyle = {
+  display: "grid",
+  gap: 4,
+} satisfies CSSProperties;
+
+const navGroupTitleStyle = {
+  fontSize: 13,
+  lineHeight: 1.15,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "var(--app-subtle-color)",
+} satisfies CSSProperties;
+
+const navGroupDetailStyle = {
+  color: "var(--app-muted-color)",
+  fontSize: 12,
+  lineHeight: 1.45,
 } satisfies CSSProperties;
 
 const navButtonStyle = {
@@ -451,12 +534,14 @@ const workspaceShellStyle = {
   minWidth: 0,
   display: "grid",
   gap: 16,
+  gridTemplateRows: "auto minmax(0, 1fr)",
   padding: 20,
   background: "var(--app-panel-bg)",
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-window-radius)",
   boxShadow: "var(--app-shadow-strong)",
   backdropFilter: "blur(20px)",
+  minHeight: 0,
 } satisfies CSSProperties;
 
 const workspaceChromeStyle = {
@@ -515,4 +600,11 @@ const windowControlDotStyle = {
 const workspaceCanvasStyle = {
   display: "grid",
   gap: 20,
+  minHeight: 0,
+  overflowY: "auto",
+  overflowX: "hidden",
+  overscrollBehavior: "contain",
+  scrollbarGutter: "stable",
+  paddingRight: 4,
+  alignContent: "start",
 } satisfies CSSProperties;

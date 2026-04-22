@@ -4506,56 +4506,84 @@ export default function App() {
     },
   };
   const activeWorkspaceMeta = workspaceMeta[activeWorkspaceId];
-  const desktopNavItems = [
+  const desktopNavSections = [
     {
-      id: "home",
-      label: homeWorkspaceGuide.navLabel,
-      subtitle: homeWorkspaceGuide.navSubtitle,
-      badge: attentionRecommendations.length > 0 ? String(attentionRecommendations.length) : null,
-      tone: attentionRecommendations.length > 0 ? "warning" : "info",
-      helpTooltip: homeWorkspaceGuide.tooltip,
+      id: "start",
+      label: "Start",
+      detail: "Orient yourself first and keep the first decision surface calm.",
+      items: [
+        {
+          id: "home",
+          label: homeWorkspaceGuide.navLabel,
+          subtitle: homeWorkspaceGuide.navSubtitle,
+          badge: attentionRecommendations.length > 0 ? String(attentionRecommendations.length) : null,
+          tone: attentionRecommendations.length > 0 ? "warning" : "info",
+          helpTooltip: homeWorkspaceGuide.tooltip,
+        },
+      ],
     },
     {
-      id: "prompt",
-      label: promptWorkspaceGuide.navLabel,
-      subtitle: promptWorkspaceGuide.navSubtitle,
-      badge: null,
-      tone: "info",
-      helpTooltip: promptWorkspaceGuide.tooltip,
+      id: "create",
+      label: "Create",
+      detail: "Use natural-language or mission-control surfaces to start and shape work.",
+      items: [
+        {
+          id: "prompt",
+          label: promptWorkspaceGuide.navLabel,
+          subtitle: promptWorkspaceGuide.navSubtitle,
+          badge: null,
+          tone: "info",
+          helpTooltip: promptWorkspaceGuide.tooltip,
+        },
+        {
+          id: "builder",
+          label: builderWorkspaceGuide.navLabel,
+          subtitle: builderWorkspaceGuide.navSubtitle,
+          badge: null,
+          tone: "info",
+          helpTooltip: builderWorkspaceGuide.tooltip,
+        },
+      ],
     },
     {
-      id: "builder",
-      label: builderWorkspaceGuide.navLabel,
-      subtitle: builderWorkspaceGuide.navSubtitle,
-      badge: null,
-      tone: "info",
-      helpTooltip: builderWorkspaceGuide.tooltip,
+      id: "operate",
+      label: "Operate",
+      detail: "Coordinate approvals, live runtime status, and editor health without leaving the shell.",
+      items: [
+        {
+          id: "operations",
+          label: operationsWorkspaceGuide.navLabel,
+          subtitle: operationsWorkspaceGuide.navSubtitle,
+          badge: pendingApprovalCount > 0 ? String(pendingApprovalCount) : null,
+          tone: pendingApprovalCount > 0 ? "warning" : "neutral",
+          helpTooltip: operationsWorkspaceGuide.tooltip,
+        },
+        {
+          id: "runtime",
+          label: runtimeWorkspaceGuide.navLabel,
+          subtitle: runtimeWorkspaceGuide.navSubtitle,
+          badge: bridgeStatusLabel,
+          tone: o3deBridgeStatus?.heartbeat_fresh ? "success" : "warning",
+          helpTooltip: runtimeWorkspaceGuide.tooltip,
+        },
+      ],
     },
     {
-      id: "operations",
-      label: operationsWorkspaceGuide.navLabel,
-      subtitle: operationsWorkspaceGuide.navSubtitle,
-      badge: pendingApprovalCount > 0 ? String(pendingApprovalCount) : null,
-      tone: pendingApprovalCount > 0 ? "warning" : "neutral",
-      helpTooltip: operationsWorkspaceGuide.tooltip,
-    },
-    {
-      id: "runtime",
-      label: runtimeWorkspaceGuide.navLabel,
-      subtitle: runtimeWorkspaceGuide.navSubtitle,
-      badge: bridgeStatusLabel,
-      tone: o3deBridgeStatus?.heartbeat_fresh ? "success" : "warning",
-      helpTooltip: runtimeWorkspaceGuide.tooltip,
-    },
-    {
-      id: "records",
-      label: recordsWorkspaceGuide.navLabel,
-      subtitle: recordsWorkspaceGuide.navSubtitle,
-      badge: unresolvedRunCount + warningExecutionCount > 0
-        ? String(unresolvedRunCount + warningExecutionCount)
-        : null,
-      tone: unresolvedRunCount + warningExecutionCount > 0 ? "warning" : "neutral",
-      helpTooltip: recordsWorkspaceGuide.tooltip,
+      id: "inspect",
+      label: "Inspect",
+      detail: "Review persisted runs, executions, and artifacts once work has moved or completed.",
+      items: [
+        {
+          id: "records",
+          label: recordsWorkspaceGuide.navLabel,
+          subtitle: recordsWorkspaceGuide.navSubtitle,
+          badge: unresolvedRunCount + warningExecutionCount > 0
+            ? String(unresolvedRunCount + warningExecutionCount)
+            : null,
+          tone: unresolvedRunCount + warningExecutionCount > 0 ? "warning" : "neutral",
+          helpTooltip: recordsWorkspaceGuide.tooltip,
+        },
+      ],
     },
   ] as const;
   const desktopQuickStats = [
@@ -6107,7 +6135,7 @@ export default function App() {
       workspaceTitle={activeWorkspaceMeta.title}
       workspaceSubtitle={activeWorkspaceMeta.subtitle}
       activeWorkspaceId={activeWorkspaceId}
-      navItems={desktopNavItems}
+      navSections={desktopNavSections}
       quickStats={settings.layout.showDesktopTelemetry ? desktopQuickStats : []}
       utilityLabel={dashboardRefreshStatus ?? "desktop shell live"}
       utilityDetail={dashboardRefreshDetail}

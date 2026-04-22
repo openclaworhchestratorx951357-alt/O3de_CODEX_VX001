@@ -30,6 +30,8 @@ NOTIFICATION_STATUSES = {"unread", "read"}
 WORKER_STATUSES = {"idle", "active", "blocked", "review"}
 TASK_STATUSES = {"pending", "in_progress", "blocked", "review", "completed"}
 TERMINAL_SESSION_STATUSES = {"running", "stopping", "stopped", "exited", "failed"}
+WINDOWS_CREATE_NEW_CONSOLE = 0x00000010
+WINDOWS_CREATE_NEW_PROCESS_GROUP = 0x00000200
 
 
 class MissionControlError(RuntimeError):
@@ -49,6 +51,10 @@ class Context:
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def is_windows() -> bool:
+    return os.name == "nt"
 
 
 def slugify(value: str) -> str:
@@ -274,11 +280,57 @@ def read_log_tail(log_path: Path, *, max_lines: int = 12) -> list[str]:
     return lines[-max_lines:]
 
 
+def quote_powershell_literal(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
+def render_powershell_array(values: Iterable[str]) -> str:
+    return "@(" + ", ".join(quote_powershell_literal(value) for value in values) + ")"
+
+
+def write_windows_terminal_launcher(
+    *,
+    launcher_path: Path,
+    session_id: str,
+    label: str,
+    cwd: Path,
+    command: list[str],
+    log_path: Path,
+) -> None:
+    command_preview = " ".join(command)
+    launcher_lines = [
+        "$ErrorActionPreference = 'Continue'",
+        "$ProgressPreference = 'SilentlyContinue'",
+        f"$sessionId = {quote_powershell_literal(session_id)}",
+        f"$logPath = {quote_powershell_literal(str(log_path))}",
+        f"$command = {render_powershell_array(command)}",
+        f"$host.UI.RawUI.WindowTitle = {quote_powershell_literal(label)}",
+        f"Set-Location -LiteralPath {quote_powershell_literal(str(cwd))}",
+        "try {",
+        "  Start-Transcript -Path $logPath -Append -Force | Out-Null",
+        "} catch {",
+        '  Write-Host "Transcript unavailable: $($_.Exception.Message)"',
+        "}",
+        f'Write-Host "[managed terminal] {session_id}"',
+        f'Write-Host "[cwd] {cwd}"',
+        f'Write-Host "[command] {command_preview}"',
+        "if ($command.Length -gt 1) {",
+        "  & $command[0] @($command[1..($command.Length - 1)])",
+        "} else {",
+        "  & $command[0]",
+        "}",
+        "$exitCode = if ($null -ne $LASTEXITCODE) { $LASTEXITCODE } else { 0 }",
+        'Write-Host ""',
+        'Write-Host "Command exited with code $exitCode. This worker terminal will stay open until you close it."',
+    ]
+    launcher_path.write_text("\n".join(launcher_lines) + "\n", encoding="utf-8")
+
+
 def process_exists(pid: int | None) -> bool:
     if pid is None or pid <= 0:
         return False
 
-    if os.name == "nt":
+    if is_windows():
         process_handle = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)
         if not process_handle:
             return False
@@ -301,7 +353,7 @@ def terminate_process(pid: int | None, *, force: bool) -> bool:
     if pid is None or pid <= 0:
         return False
 
-    if os.name == "nt":
+    if is_windows():
         process_handle = ctypes.windll.kernel32.OpenProcess(0x0001, False, pid)
         if not process_handle:
             return False
@@ -709,25 +761,50 @@ def launch_terminal_session(
     log_path = terminal_logs_dir / f"{session_id}.log"
     now = utc_now()
 
-    popen_kwargs: dict[str, Any] = {
-        "cwd": str(command_cwd),
-        "stdin": subprocess.DEVNULL,
-        "stderr": subprocess.STDOUT,
-        "text": True,
-    }
-    if os.name == "nt":
-        popen_kwargs["creationflags"] = 0x00000008 | 0x00000200
+    process_command = command
+    popen_kwargs: dict[str, Any] = {"cwd": str(command_cwd)}
+    if is_windows():
+        launcher_path = terminal_logs_dir / f"{session_id}.ps1"
+        write_windows_terminal_launcher(
+            launcher_path=launcher_path,
+            session_id=session_id,
+            label=label,
+            cwd=command_cwd,
+            command=command,
+            log_path=log_path,
+        )
+        process_command = [
+            "powershell.exe",
+            "-NoLogo",
+            "-NoExit",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(launcher_path),
+        ]
+        popen_kwargs["creationflags"] = WINDOWS_CREATE_NEW_CONSOLE | WINDOWS_CREATE_NEW_PROCESS_GROUP
     else:
+        popen_kwargs.update({
+            "stdin": subprocess.DEVNULL,
+            "stderr": subprocess.STDOUT,
+            "text": True,
+        })
         popen_kwargs["start_new_session"] = True
 
-    with log_path.open("a", encoding="utf-8") as log_file:
-        log_file.write(f"[{now}] Launching managed terminal {session_id}: {' '.join(command)}\n")
-        log_file.flush()
-        process = subprocess.Popen(
-            command,
-            stdout=log_file,
-            **popen_kwargs,
-        )
+    log_path.write_text(
+        f"[{now}] Launching managed terminal {session_id}: {' '.join(command)}\n",
+        encoding="utf-8",
+    )
+
+    if is_windows():
+        process = subprocess.Popen(process_command, **popen_kwargs)
+    else:
+        with log_path.open("a", encoding="utf-8") as log_file:
+            process = subprocess.Popen(
+                process_command,
+                stdout=log_file,
+                **popen_kwargs,
+            )
 
     conn.execute(
         """
