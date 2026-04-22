@@ -5,6 +5,8 @@ Architecture, plans, handoffs, and operator-facing documentation for the O3DE ag
 ## Workflow and roadmap
 
 See these official source files:
+- `AGENTS.md`
+- `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`
 - `docs/APP-OPERATOR-GUIDE.md`
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/SLICE-START-CHECKLIST.md`
@@ -37,6 +39,12 @@ See these official source files:
 - `docs/LOCAL-STACK-RUNBOOK.md`
 - `docs/MISSION-CONTROL-RUNBOOK.md`
 - `CONTRIBUTING.md`
+
+Default guidance note:
+- `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md` is the stable evergreen reference
+  for future Codex work packets unless the user explicitly supersedes it
+- packet-by-packet status should evolve in normal slice outputs and proof docs,
+  not by constantly rewriting the charter
 
 Current Phase 7 checkpoint truth:
 - `project.inspect` is the current real read-only path in hybrid mode

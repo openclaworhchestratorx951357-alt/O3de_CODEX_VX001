@@ -14,6 +14,8 @@ Agent control app for O3DE-focused orchestration, tooling, approvals, and operat
 ## Development workflow
 
 See these official source files before making changes:
+- `AGENTS.md`
+- `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`
 - `docs/CODEX-OPERATING-RUNBOOK.md`
 - `docs/WORKTREE-STRATEGY.md`
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
@@ -38,6 +40,12 @@ See these official source files before making changes:
 - `docs/PHASE-7-SETTINGS-GEM-CANDIDATES.md`
 - `CONTRIBUTING.md`
 - `docs/LOCAL-STACK-RUNBOOK.md`
+
+Default repo-wide guidance:
+- use `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md` as the stable execution charter
+  for deciding what to build next until the user explicitly chooses a different model
+- use code, tests, and observed runtime behavior as truth over stale docs
+- keep work packets narrow, verifiable, and explicit about capability deltas
 
 Current Phase 7 checkpoint truth:
 - `project.inspect` is the current real read-only path in hybrid mode
