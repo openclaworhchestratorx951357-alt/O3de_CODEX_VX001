@@ -253,14 +253,13 @@ export default function DesktopShell({
 
 const shellStyle = {
   minHeight: "100vh",
-  height: "100vh",
   display: "grid",
-  gridTemplateRows: "auto minmax(0, 1fr)",
+  gridTemplateRows: "auto 1fr",
   background: "var(--app-shell-bg)",
   color: "var(--app-text-color)",
   fontFamily: '"Segoe UI Variable", "Segoe UI", "Trebuchet MS", sans-serif',
   position: "relative",
-  overflow: "hidden",
+  overflow: "visible",
 } satisfies CSSProperties;
 
 const wallpaperGlowTopStyle = {
@@ -361,7 +360,7 @@ const desktopSurfaceStyle = {
   gap: 24,
   alignItems: "stretch",
   minHeight: 0,
-  overflow: "hidden",
+  overflow: "visible",
   padding: 24,
 } satisfies CSSProperties;
 
@@ -371,7 +370,7 @@ const navRailStyle = {
   maxWidth: 320,
   display: "grid",
   gap: 18,
-  gridTemplateRows: "auto auto minmax(0, 1fr)",
+  gridTemplateRows: "auto auto auto",
   padding: 20,
   background: "var(--app-panel-bg)",
   border: "1px solid var(--app-panel-border)",
@@ -427,12 +426,8 @@ const currentWorkspaceTitleStyle = {
 const navScrollableRegionStyle = {
   display: "grid",
   gap: 18,
-  minHeight: 0,
-  overflowY: "auto",
-  overflowX: "hidden",
-  overscrollBehavior: "contain",
-  scrollbarGutter: "stable",
-  paddingRight: 4,
+  minHeight: "auto",
+  overflow: "visible",
 } satisfies CSSProperties;
 
 const navGroupStyle = {
@@ -534,7 +529,7 @@ const workspaceShellStyle = {
   minWidth: 0,
   display: "grid",
   gap: 16,
-  gridTemplateRows: "auto minmax(0, 1fr)",
+  gridTemplateRows: "auto auto",
   padding: 20,
   background: "var(--app-panel-bg)",
   border: "1px solid var(--app-panel-border)",
@@ -575,13 +570,21 @@ const workspaceQuickStatsRowStyle = {
   display: "flex",
   flexWrap: "wrap",
   gap: 10,
+  alignItems: "flex-start",
 } satisfies CSSProperties;
 
 const workspaceQuickStatPillStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  alignSelf: "flex-start",
+  flex: "0 0 auto",
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-pill-radius)",
   padding: "8px 12px",
   fontSize: 12,
+  lineHeight: 1.35,
+  whiteSpace: "nowrap" as const,
 } satisfies CSSProperties;
 
 const windowControlsStyle = {
@@ -600,11 +603,7 @@ const windowControlDotStyle = {
 const workspaceCanvasStyle = {
   display: "grid",
   gap: 20,
-  minHeight: 0,
-  overflowY: "auto",
-  overflowX: "hidden",
-  overscrollBehavior: "contain",
-  scrollbarGutter: "stable",
-  paddingRight: 4,
+  minHeight: "auto",
+  overflow: "visible",
   alignContent: "start",
 } satisfies CSSProperties;

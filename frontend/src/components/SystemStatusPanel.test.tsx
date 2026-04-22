@@ -167,7 +167,6 @@ describe("SystemStatusPanel", () => {
     expect(screen.getByText("Last cleanup")).toBeInTheDocument();
     expect(screen.getByText("Cleanup outcome")).toBeInTheDocument();
     expect(screen.getByText("stale results removed")).toBeInTheDocument();
-    expect(screen.getAllByText("editor.level.open").length).toBeGreaterThan(0);
     expect(screen.getByText("Clear stale success results")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Clear stale success results" }),
@@ -197,6 +196,9 @@ describe("SystemStatusPanel", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Backend")).toBeInTheDocument();
     expect(screen.getByText("2s")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText("Recent deadletters"));
+    expect(screen.getAllByText("editor.level.open").length).toBeGreaterThan(0);
 
     await userEvent.click(screen.getByRole("button", { name: "Clear stale success results" }));
     expect(handleCleanupBridgeResults).toHaveBeenCalledTimes(1);

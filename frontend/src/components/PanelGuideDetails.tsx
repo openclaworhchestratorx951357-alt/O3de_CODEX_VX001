@@ -21,7 +21,10 @@ export default function PanelGuideDetails({
         title={tooltip ?? undefined}
         style={summaryStyle}
       >
-        {title}
+        <span style={summaryTextStyle}>
+          <span aria-hidden="true" style={infoMarkerStyle}>i</span>
+          <span>{title}</span>
+        </span>
       </summary>
       {tooltip ? (
         <p style={bodyStyle}>{tooltip}</p>
@@ -49,6 +52,27 @@ const summaryStyle = {
   cursor: "pointer",
   fontWeight: 700,
   color: "var(--app-text-color)",
+} satisfies CSSProperties;
+
+const summaryTextStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+} satisfies CSSProperties;
+
+const infoMarkerStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 18,
+  height: 18,
+  borderRadius: "50%",
+  border: "1px solid var(--app-accent-strong)",
+  background: "var(--app-accent-soft)",
+  color: "var(--app-text-color)",
+  fontSize: 12,
+  fontWeight: 700,
+  lineHeight: 1,
 } satisfies CSSProperties;
 
 const bodyStyle = {

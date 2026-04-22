@@ -45,7 +45,8 @@ export default function DesktopWindow({
                 title={helpTooltip}
                 style={windowHelpBadgeStyle}
               >
-                How to use
+                <span aria-hidden="true" style={windowHelpIconStyle}>i</span>
+                <span>Guide</span>
               </span>
             ) : null}
             {toolbar}
@@ -146,6 +147,9 @@ const nestedWindowToolbarStyle = {
 } satisfies CSSProperties;
 
 const windowHelpBadgeStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
   border: "1px solid var(--app-accent-strong)",
   borderRadius: "var(--app-pill-radius)",
   padding: "6px 10px",
@@ -154,6 +158,19 @@ const windowHelpBadgeStyle = {
   fontSize: 12,
   fontWeight: 700,
   whiteSpace: "nowrap" as const,
+} satisfies CSSProperties;
+
+const windowHelpIconStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 18,
+  height: 18,
+  borderRadius: "50%",
+  border: "1px solid var(--app-accent-strong)",
+  background: "var(--app-panel-bg)",
+  fontSize: 12,
+  lineHeight: 1,
 } satisfies CSSProperties;
 
 const windowBodyStyle = {

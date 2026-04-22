@@ -9,6 +9,7 @@ import {
   getSchemaAttentionLabel,
 } from "../lib/operatorStatus";
 import CopyTextButton from "./CopyTextButton";
+import ExpandablePanelSection from "./ExpandablePanelSection";
 import OperatorStatusRail from "./OperatorStatusRail";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -19,7 +20,6 @@ import {
 } from "./statusChipTones";
 import {
   summaryActionButtonStyle,
-  summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
 } from "./summaryPrimitives";
@@ -75,7 +75,7 @@ export default function SystemStatusPanel(
       marginTop={0}
     >
       {readinessData || bridgeData ? (
-        <div style={summaryCardGridStyle}>
+        <div style={runtimeStatusGridStyle}>
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Editor Bridge</h3>
             <SummaryFacts>
@@ -202,21 +202,25 @@ export default function SystemStatusPanel(
                     </span>
                   </div>
                 ) : null}
-                <p style={listLabelStyle}><strong>Recent deadletters</strong></p>
-                <ul style={listStyle}>
-                  {bridgeData.recent_deadletters.map((deadletter) => (
-                    <li key={deadletter.bridge_command_id} style={{ marginBottom: 10 }}>
-                      <strong>{deadletter.operation ?? "unknown operation"}</strong>:{" "}
-                      {deadletter.error_code ?? "no error code"}
-                      <div style={subtleTextStyle}>
-                        {deadletter.result_summary ?? "No summary recorded."}
-                      </div>
-                      <div style={subtleTextStyle}>
-                        Finished: {formatIsoLabel(deadletter.finished_at)}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <ExpandablePanelSection
+                  title="Recent deadletters"
+                  preview={`${bridgeData.recent_deadletters.length} preserved bridge failure${bridgeData.recent_deadletters.length === 1 ? "" : "s"}`}
+                >
+                  <ul style={listStyle}>
+                    {bridgeData.recent_deadletters.map((deadletter) => (
+                      <li key={deadletter.bridge_command_id} style={{ marginBottom: 10 }}>
+                        <strong>{deadletter.operation ?? "unknown operation"}</strong>:{" "}
+                        {deadletter.error_code ?? "no error code"}
+                        <div style={subtleTextStyle}>
+                          {deadletter.result_summary ?? "No summary recorded."}
+                        </div>
+                        <div style={subtleTextStyle}>
+                          Finished: {formatIsoLabel(deadletter.finished_at)}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </ExpandablePanelSection>
               </>
             ) : null}
           </article>
@@ -527,25 +531,36 @@ const listLabelStyle: CSSProperties = {
   marginBottom: 8,
 };
 
+const runtimeStatusGridStyle: CSSProperties = {
+  display: "grid",
+  gap: 12,
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
+  alignItems: "start",
+};
+
 const listStyle: CSSProperties = {
   margin: 0,
   paddingLeft: 18,
+  overflowWrap: "anywhere",
 };
 
 const subtleTextStyle: CSSProperties = {
   color: "var(--app-muted-color)",
   marginTop: 4,
+  overflowWrap: "anywhere",
 };
 
 const bridgeWarningStyle: CSSProperties = {
   color: "var(--app-warning-text)",
   marginTop: 12,
+  overflowWrap: "anywhere",
 };
 
 const bridgeStatusNoteStyle: CSSProperties = {
   color: "var(--app-info-text)",
   marginTop: 8,
   marginBottom: 0,
+  overflowWrap: "anywhere",
 };
 
 const bridgeActionRowStyle: CSSProperties = {

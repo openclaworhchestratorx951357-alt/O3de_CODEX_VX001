@@ -30,7 +30,7 @@ describe("DesktopShell", () => {
   it("renders workspace navigation and forwards selection events", () => {
     const onSelectWorkspace = vi.fn();
 
-    render(
+    const { container } = render(
       <DesktopShell
         appTitle="O3DE Agent Control App"
         appSubtitle="Desktop operator shell"
@@ -91,6 +91,8 @@ describe("DesktopShell", () => {
       </DesktopShell>,
     );
 
+    const shellRoot = container.firstElementChild as HTMLElement;
+
     expect(screen.getByText("Control surface")).toBeInTheDocument();
     expect(screen.getByText("Now open")).toBeInTheDocument();
     expect(screen.getByText("Start")).toBeInTheDocument();
@@ -101,6 +103,9 @@ describe("DesktopShell", () => {
       screen.getByRole("button", { name: /records/i }),
     ).toHaveAttribute("title", "Inspect persisted evidence and warnings.");
     expect(screen.getByText("Bridge").closest("div")).toHaveAttribute("title", "Heartbeat is currently fresh.");
+    expect(shellRoot).toHaveStyle("min-height: 100vh");
+    expect(shellRoot).toHaveStyle("overflow: visible");
+    expect(shellRoot).not.toHaveStyle("height: 100vh");
 
     fireEvent.click(screen.getByRole("button", { name: /records/i }));
     expect(onSelectWorkspace).toHaveBeenCalledWith("records");

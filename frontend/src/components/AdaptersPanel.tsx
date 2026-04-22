@@ -1,5 +1,8 @@
+import type { CSSProperties } from "react";
+
 import type { AdaptersResponse } from "../types/contracts";
 import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import ExpandablePanelSection from "./ExpandablePanelSection";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import StatusChip from "./StatusChip";
@@ -7,7 +10,6 @@ import {
   getAdapterModeTone,
 } from "./statusChipTones";
 import {
-  summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
   summaryMutedTextStyle,
@@ -40,7 +42,7 @@ export default function AdaptersPanel(
       marginTop={24}
     >
       {adapters ? (
-        <div style={summaryCardGridStyle}>
+        <div style={runtimeOverviewGridStyle}>
           <article
             title={adaptersRegistrySummaryControlGuide.tooltip}
             style={summaryCardStyle}
@@ -63,11 +65,21 @@ export default function AdaptersPanel(
                   tone={adapters.supports_real_execution ? "success" : "warning"}
                 />
               </SummaryFact>
-              <SummaryFact label="Boundary">
-                {adapters.families[0]?.execution_boundary ?? "No adapter boundary reported."}
+              <SummaryFact label="Boundary summary">
+                {summarizeParagraphPreview(
+                  adapters.families[0]?.execution_boundary ?? "No adapter boundary reported.",
+                )}
               </SummaryFact>
               <SummaryFact label="Warning">{adapters.warning ?? "none"}</SummaryFact>
             </SummaryFacts>
+            <ExpandablePanelSection
+              title="Execution boundary"
+              preview={summarizeParagraphPreview(adapters.families[0]?.execution_boundary ?? "No adapter boundary reported.")}
+            >
+              <p style={panelParagraphStyle}>
+                {adapters.families[0]?.execution_boundary ?? "No adapter boundary reported."}
+              </p>
+            </ExpandablePanelSection>
           </article>
           <article
             title={adaptersPathRollupControlGuide.tooltip}
@@ -75,28 +87,48 @@ export default function AdaptersPanel(
           >
             <h4 style={summaryCardHeadingStyle}>Path Rollup</h4>
             <SummaryFacts>
-              <SummaryFact label="Real tool paths">
-                {adapters.real_tool_paths.join(", ") || "none"}
+              <SummaryFact label="Real tool count">
+                {adapters.real_tool_paths.length}
               </SummaryFact>
-              <SummaryFact label="Plan-only tool paths">
-                {adapters.plan_only_tool_paths.join(", ") || "none"}
+              <SummaryFact label="Plan-only count">
+                {adapters.plan_only_tool_paths.length}
               </SummaryFact>
-              <SummaryFact label="Still simulated">
+              <SummaryFact label="Simulated count">
                 {adapters.simulated_tool_paths.length}
               </SummaryFact>
-              <SummaryFact label="Simulated paths">
-                {adapters.simulated_tool_paths.join(", ") || "none"}
-              </SummaryFact>
             </SummaryFacts>
+            <ExpandablePanelSection
+              title="Real tool paths"
+              preview={summarizeListPreview(adapters.real_tool_paths)}
+            >
+              <PathList paths={adapters.real_tool_paths} />
+            </ExpandablePanelSection>
+            <ExpandablePanelSection
+              title="Plan-only tool paths"
+              preview={summarizeListPreview(adapters.plan_only_tool_paths)}
+            >
+              <PathList paths={adapters.plan_only_tool_paths} />
+            </ExpandablePanelSection>
+            <ExpandablePanelSection
+              title="Simulated paths"
+              preview={summarizeListPreview(adapters.simulated_tool_paths)}
+            >
+              <PathList paths={adapters.simulated_tool_paths} />
+            </ExpandablePanelSection>
           </article>
           {adapters.notes.length > 0 ? (
             <article style={summaryCardStyle}>
               <h4 style={summaryCardHeadingStyle}>Notes</h4>
-              <ul>
-                {adapters.notes.map((note) => (
-                  <li key={note}>{note}</li>
-                ))}
-              </ul>
+              <ExpandablePanelSection
+                title="Registry notes"
+                preview={`${adapters.notes.length} note${adapters.notes.length === 1 ? "" : "s"}`}
+              >
+                <ul style={runtimeListStyle}>
+                  {adapters.notes.map((note) => (
+                    <li key={note}>{note}</li>
+                  ))}
+                </ul>
+              </ExpandablePanelSection>
             </article>
           ) : null}
           {adapters.families.length === 0 ? (
@@ -130,16 +162,42 @@ export default function AdaptersPanel(
                   </SummaryFact>
                   <SummaryFact label="Contract">{family.contract_version}</SummaryFact>
                   <SummaryFact label="Real paths">
-                    {family.real_tool_paths.join(", ") || "none"}
+                    {family.real_tool_paths.length}
                   </SummaryFact>
                   <SummaryFact label="Plan-only">
-                    {family.plan_only_tool_paths.join(", ") || "none"}
+                    {family.plan_only_tool_paths.length}
                   </SummaryFact>
                   <SummaryFact label="Simulated paths">
-                    {family.simulated_tool_paths.join(", ") || "none"}
+                    {family.simulated_tool_paths.length}
                   </SummaryFact>
-                  <SummaryFact label="Boundary">{family.execution_boundary}</SummaryFact>
+                  <SummaryFact label="Boundary summary">
+                    {summarizeParagraphPreview(family.execution_boundary)}
+                  </SummaryFact>
                 </SummaryFacts>
+                <ExpandablePanelSection
+                  title="Real paths"
+                  preview={summarizeListPreview(family.real_tool_paths)}
+                >
+                  <PathList paths={family.real_tool_paths} />
+                </ExpandablePanelSection>
+                <ExpandablePanelSection
+                  title="Plan-only paths"
+                  preview={summarizeListPreview(family.plan_only_tool_paths)}
+                >
+                  <PathList paths={family.plan_only_tool_paths} />
+                </ExpandablePanelSection>
+                <ExpandablePanelSection
+                  title="Simulated paths"
+                  preview={summarizeListPreview(family.simulated_tool_paths)}
+                >
+                  <PathList paths={family.simulated_tool_paths} />
+                </ExpandablePanelSection>
+                <ExpandablePanelSection
+                  title="Execution boundary"
+                  preview={summarizeParagraphPreview(family.execution_boundary)}
+                >
+                  <p style={panelParagraphStyle}>{family.execution_boundary}</p>
+                </ExpandablePanelSection>
               </article>
             ))
           )}
@@ -148,3 +206,59 @@ export default function AdaptersPanel(
     </SummarySection>
   );
 }
+
+function PathList({ paths }: { paths: readonly string[] }) {
+  if (paths.length === 0) {
+    return <p style={panelParagraphStyle}>none</p>;
+  }
+
+  return (
+    <ul style={runtimeListStyle}>
+      {paths.map((path) => (
+        <li key={path}>
+          <code>{path}</code>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function summarizeListPreview(entries: readonly string[], maxVisible = 3): string {
+  if (entries.length === 0) {
+    return "none";
+  }
+
+  const preview = entries.slice(0, maxVisible).join(", ");
+  const remainder = entries.length - maxVisible;
+  return remainder > 0 ? `${preview}, +${remainder} more` : preview;
+}
+
+function summarizeParagraphPreview(value: string, maxLength = 96): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, maxLength).trimEnd()}...`;
+}
+
+const runtimeOverviewGridStyle = {
+  display: "grid",
+  gap: 12,
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
+  alignItems: "start",
+} satisfies CSSProperties;
+
+const runtimeListStyle = {
+  margin: 0,
+  paddingLeft: 18,
+  color: "var(--app-muted-color)",
+  lineHeight: 1.6,
+  overflowWrap: "anywhere",
+} satisfies CSSProperties;
+
+const panelParagraphStyle = {
+  ...summaryMutedTextStyle,
+  margin: 0,
+  overflowWrap: "anywhere",
+} satisfies CSSProperties;

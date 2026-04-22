@@ -83,6 +83,9 @@ export const summaryFactValueStyle: CSSProperties = {
   alignItems: "center",
   gap: 6,
   flexWrap: "wrap",
+  minWidth: 0,
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
 };
 
 export const summaryCardHeadingStyle: CSSProperties = {

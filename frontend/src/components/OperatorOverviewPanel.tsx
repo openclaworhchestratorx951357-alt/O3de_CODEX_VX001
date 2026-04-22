@@ -28,7 +28,6 @@ import {
   formatSummaryTimestamp,
   summaryActionButtonStyle,
   summaryBadgeStyle,
-  summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
   summaryMutedTextStyle,
@@ -527,7 +526,7 @@ export default function OperatorOverviewPanel({
               </div>
             </article>
           ) : null}
-          <div style={summaryCardGridStyle}>
+          <div style={runtimeOverviewMetricsGridStyle}>
             <article style={summaryCardStyle}>
               <h3 style={summaryCardHeadingStyle}>Prompt Sessions</h3>
               <SummaryFacts>
@@ -1020,6 +1019,13 @@ const badgeRowStyle: CSSProperties = {
   gap: 8,
   flexWrap: "wrap",
   marginBottom: 12,
+};
+
+const runtimeOverviewMetricsGridStyle: CSSProperties = {
+  display: "grid",
+  gap: 12,
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
+  alignItems: "start",
 };
 
 const chipWrapStyle: CSSProperties = {

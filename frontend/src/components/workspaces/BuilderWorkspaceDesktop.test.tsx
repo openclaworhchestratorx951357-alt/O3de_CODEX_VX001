@@ -436,6 +436,25 @@ describe("BuilderWorkspaceDesktop", () => {
     ).toBeInTheDocument();
   });
 
+  it("loads a practical recommendation into the autonomy objective and job templates", async () => {
+    render(<BuilderWorkspaceDesktop />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Load Improve runtime readability and inline guidance" }),
+    );
+
+    expect(await screen.findByDisplayValue("builder-runtime-guidance")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Improve runtime readability and inline guidance")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("job-audit-runtime-guidance")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("ui-runtime-review")).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue("Audit runtime surfaces and load readability fixes"),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("Loaded recommended drafts for Improve runtime readability and inline guidance."),
+    ).toBeInTheDocument();
+  });
+
   it("records an observation and healing action when Builder promotion fails", async () => {
     apiMocks.createCodexControlTask.mockRejectedValueOnce(new Error("mission control unavailable"));
     apiMocks.updateAutonomyJob.mockResolvedValueOnce({

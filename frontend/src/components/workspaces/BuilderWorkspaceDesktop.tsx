@@ -152,6 +152,14 @@ type AutonomyJobAttentionSignal = {
   detail: string;
 };
 
+type AutonomyDraftRecommendation = {
+  id: string;
+  label: string;
+  detail: string;
+  objective: AutonomyObjectiveDraft;
+  job: AutonomyJobDraft;
+};
+
 const INITIAL_LANE_DRAFT: LaneDraft = {
   workerId: "",
   displayName: "",
@@ -582,6 +590,184 @@ function buildAutonomyThreadPrompt(
   );
 
   return lines.join("\n");
+}
+
+function buildAutonomyDraftRecommendations({
+  selectedWorkerId,
+  unreadNotifications,
+  staleBlockedJobCount,
+  staleWorkerJobCount,
+  refreshPendingJobCount,
+  objectiveCount,
+  queuedJobCount,
+}: {
+  selectedWorkerId: string | null;
+  unreadNotifications: number;
+  staleBlockedJobCount: number;
+  staleWorkerJobCount: number;
+  refreshPendingJobCount: number;
+  objectiveCount: number;
+  queuedJobCount: number;
+}): AutonomyDraftRecommendation[] {
+  const assignedLane = selectedWorkerId ?? "builder";
+  const recommendations: AutonomyDraftRecommendation[] = [
+    {
+      id: "runtime-readability",
+      label: "Improve runtime readability and inline guidance",
+      detail: "Use this when runtime cards feel dense, long evidence text should stay collapsed by default, or new operators still need clearer step-by-step help affordances.",
+      objective: {
+        id: "builder-runtime-guidance",
+        title: "Improve runtime readability and inline guidance",
+        description: "Reduce dense runtime inspector walls, keep long evidence collapsed until requested, and make panel/window help markers obvious for inexperienced operators.",
+        status: "active",
+        priority: 180,
+        targetScopes: "frontend/src/components, frontend/src/content, docs/APP-OPERATOR-GUIDE.md",
+        successCriteria: "Runtime panels stay readable without overflow, long evidence is collapsed behind explicit dropdown disclosures, and visible info markers guide operators at the point of use.",
+        ownerKind: "builder",
+        metadataJson: JSON.stringify(
+          {
+            focus: "runtime-readability",
+            requestedBy: "operator",
+            selectedLane: assignedLane,
+          },
+          null,
+          2,
+        ),
+      },
+      job: {
+        id: "job-audit-runtime-guidance",
+        objectiveId: "builder-runtime-guidance",
+        jobKind: "ui-runtime-review",
+        title: "Audit runtime surfaces and load readability fixes",
+        summary: "Inspect runtime overview and governance panels for overflow, missing inline guidance, and long text that should default to a collapsed disclosure.",
+        status: "queued",
+        assignedLane,
+        resourceKeys: "runtime-overview, operator-guidance",
+        dependsOn: "",
+        inputPayloadJson: JSON.stringify(
+          {
+            focus: "runtime-readability",
+            scope_paths: [
+              "frontend/src/components",
+              "frontend/src/content",
+              "docs/APP-OPERATOR-GUIDE.md",
+            ],
+            recommended_checks: [
+              "runtime overview overflow",
+              "guide marker visibility",
+              "collapsible long-form evidence",
+            ],
+          },
+          null,
+          2,
+        ),
+        maxRetries: 1,
+      },
+    },
+  ];
+
+  if (staleBlockedJobCount > 0 || staleWorkerJobCount > 0 || refreshPendingJobCount > 0) {
+    recommendations.unshift({
+      id: "coordination-recovery",
+      label: "Recover stuck Builder coordination",
+      detail: `Use current Builder signals to unblock stale work. Stale blockers: ${staleBlockedJobCount}, stale worker heartbeats: ${staleWorkerJobCount}, pending refresh requests: ${refreshPendingJobCount}.`,
+      objective: {
+        id: "builder-recover-stuck-coordination",
+        title: "Recover stuck Builder coordination",
+        description: "Clear stale blockers, refresh waiting lanes, and requeue helper work without duplicating scopes or losing current mission-control ownership.",
+        status: "active",
+        priority: 220,
+        targetScopes: "frontend/src/components/workspaces, scripts/mission_control.py",
+        successCriteria: "Blocked Builder jobs are either released, refreshed, or requeued with an explicit owner and the stale-thread signals return to a routine level.",
+        ownerKind: "builder",
+        metadataJson: JSON.stringify(
+          {
+            focus: "coordination-recovery",
+            staleBlockedJobCount,
+            staleWorkerJobCount,
+            refreshPendingJobCount,
+            selectedLane: assignedLane,
+          },
+          null,
+          2,
+        ),
+      },
+      job: {
+        id: "job-recover-stuck-builder-coordination",
+        objectiveId: "builder-recover-stuck-coordination",
+        jobKind: "coordination-recovery",
+        title: "Review stale Builder blockers and recover the next safe lane",
+        summary: "Inspect stale blockers, pending refresh requests, and stale worker heartbeats, then choose whether to wait, ping refresh, or requeue the linked job.",
+        status: "queued",
+        assignedLane,
+        resourceKeys: "builder-inbox, mission-board, worker-lifecycle",
+        dependsOn: "",
+        inputPayloadJson: JSON.stringify(
+          {
+            focus: "coordination-recovery",
+            stale_blockers: staleBlockedJobCount,
+            stale_worker_heartbeats: staleWorkerJobCount,
+            refresh_pending: refreshPendingJobCount,
+          },
+          null,
+          2,
+        ),
+        maxRetries: 2,
+      },
+    });
+  }
+
+  if (objectiveCount === 0 || queuedJobCount === 0 || unreadNotifications > 0) {
+    recommendations.push({
+      id: "builder-baseline",
+      label: "Seed Builder inbox baseline",
+      detail: unreadNotifications > 0
+        ? `There are ${unreadNotifications} unread worker notification${unreadNotifications === 1 ? "" : "s"} and the inbox may need a clearer next-step objective.`
+        : "Use this when Builder needs a clean baseline objective and a safe manual-thread check job instead of ad hoc prompts.",
+      objective: {
+        id: "builder-inbox-baseline",
+        title: "Keep Builder inbox coordinated and operator-friendly",
+        description: "Maintain a clean Builder inbox with bounded jobs, explicit ownership, and thread prompts that let new helper threads contribute safely.",
+        status: "active",
+        priority: 140,
+        targetScopes: "frontend/src/components/workspaces, docs/APP-OPERATOR-GUIDE.md",
+        successCriteria: "Builder shows at least one durable objective, the next helper job is ready to claim safely, and unread coordination follow-ups are acknowledged.",
+        ownerKind: "builder",
+        metadataJson: JSON.stringify(
+          {
+            focus: "builder-baseline",
+            unreadNotifications,
+            selectedLane: assignedLane,
+          },
+          null,
+          2,
+        ),
+      },
+      job: {
+        id: "job-check-builder-inbox-baseline",
+        objectiveId: "builder-inbox-baseline",
+        jobKind: "manual-thread-check",
+        title: "Check Builder inbox and claim the next safe slice",
+        summary: "Open Builder, read the inbox and mission board, acknowledge unread coordination signals, and claim only the next safe scope for the selected lane.",
+        status: "queued",
+        assignedLane,
+        resourceKeys: "builder-inbox, worker-lifecycle",
+        dependsOn: "",
+        inputPayloadJson: JSON.stringify(
+          {
+            focus: "builder-baseline",
+            selected_lane: assignedLane,
+            respect_existing_ownership: true,
+          },
+          null,
+          2,
+        ),
+        maxRetries: 0,
+      },
+    });
+  }
+
+  return recommendations;
 }
 
 function parseStringArray(value: unknown): string[] {
@@ -1138,6 +1324,16 @@ export default function BuilderWorkspaceDesktop() {
   const staleWorkerJobCount = autonomyJobEntries.filter((entry) => (
     entry.attentionSignals.some((signal) => signal.id === "worker-stale")
   )).length;
+  const queuedAutonomyJobCount = autonomyJobs.filter((job) => job.status === "queued").length;
+  const autonomyDraftRecommendations = buildAutonomyDraftRecommendations({
+    selectedWorkerId,
+    unreadNotifications,
+    staleBlockedJobCount,
+    staleWorkerJobCount,
+    refreshPendingJobCount,
+    objectiveCount: autonomyObjectives.length,
+    queuedJobCount: queuedAutonomyJobCount,
+  });
 
   async function refreshStatus() {
     setLoading(true);
@@ -1726,6 +1922,14 @@ export default function BuilderWorkspaceDesktop() {
     } finally {
       setAutonomyBusyLabel(null);
     }
+  }
+
+  function handleLoadAutonomyRecommendation(recommendation: AutonomyDraftRecommendation) {
+    setAutonomyError(null);
+    setAutonomyPromptMessage(null);
+    setObjectiveDraft(recommendation.objective);
+    setJobDraft(recommendation.job);
+    setAutonomyMessage(`Loaded recommended drafts for ${recommendation.label}.`);
   }
 
   async function handleCopyAutonomyThreadPrompt() {
@@ -3553,6 +3757,44 @@ export default function BuilderWorkspaceDesktop() {
           <p style={mutedParagraphStyle}>{autonomyError}</p>
         </article>
       ) : null}
+
+      <article style={summaryCardStyle}>
+        <div style={rowBetweenStyle}>
+          <div style={stackStyle}>
+            <strong>Codex draft recommendations</strong>
+            <p style={mutedParagraphStyle}>
+              Load practical objective and inbox-job drafts from current Builder state instead of
+              starting from blank templates. These are browser-local suggestions only until you edit
+              and save them.
+            </p>
+          </div>
+          <span style={{ ...pillStyle, ...toneStyle("info") }}>
+            {autonomyDraftRecommendations.length} ready
+          </span>
+        </div>
+        <div style={summaryGridStyle}>
+          {autonomyDraftRecommendations.map((recommendation) => (
+            <article key={recommendation.id} style={listCardStyle}>
+              <strong>{recommendation.label}</strong>
+              <p style={mutedParagraphStyle}>{recommendation.detail}</p>
+              <div style={metaStackStyle}>
+                <span>Objective: {recommendation.objective.title}</span>
+                <span>Job: {recommendation.job.title}</span>
+                <span>Lane: {recommendation.job.assignedLane || "builder"}</span>
+              </div>
+              <div style={actionRowStyle}>
+                <button
+                  type="button"
+                  style={secondaryButtonStyle}
+                  onClick={() => handleLoadAutonomyRecommendation(recommendation)}
+                >
+                  Load {recommendation.label}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </article>
 
       <div style={summaryGridStyle}>
         <form onSubmit={(event) => void handleAutonomyObjectiveSubmit(event)} style={stackStyle}>
