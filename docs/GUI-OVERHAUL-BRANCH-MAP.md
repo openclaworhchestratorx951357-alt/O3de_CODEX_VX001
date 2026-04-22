@@ -50,6 +50,8 @@ The overhaul should move toward:
 - role/task cards such as "Launch O3DE work", "Run Builder tasks", "Review records", and "Inspect runtime state"
 - guided flows/wizards for common operations
 - clickable contextual help affordances, including small circled `i` controls beside major titles, forms, and actions
+- professional nested-window composition with clear pane hierarchy instead of stacked visual clutter
+- disciplined scrollbar behavior that avoids multiple competing scroll regions unless the nested surface truly needs one
 - an "Advanced mode" or expandable panels for expert-only controls
 - per-workspace summaries that lead with status, next action, and risk
 - a calmer visual hierarchy with fewer equally prominent windows on first load
@@ -74,7 +76,7 @@ The overhaul should move toward:
   - redesign information grouping, entry points, naming, and workspace hierarchy
 
 - `codex/control-plane/gui-overhaul-navigation-shell`
-  - redesign shell navigation, desktop chrome, section switching, and global layout
+  - redesign shell navigation, desktop chrome, section switching, global layout, nested window hierarchy, and scrollbar behavior
 
 - `codex/control-plane/gui-overhaul-guided-flows`
   - add beginner-friendly guided flows, "Start here" actions, quickstarts, and progressive disclosure
@@ -104,5 +106,6 @@ The overhaul should move toward:
 - Do not remove expert surfaces; hide or regroup them.
 - Keep operator-facing language explicit where real vs simulated matters.
 - Keep help text practical: every help surface should explain what this is, when to use it, a safe next step, and one concrete example.
+- Do not create scrollbar soup. Favor one primary scroll container per workspace view and reserve nested scrolling for isolated lists, logs, inspectors, or code/artifact panels that genuinely need it.
 - Prefer reusable shell patterns over one-off workspace rewrites.
 - Validate desktop and mobile behavior before merging back to integration.
