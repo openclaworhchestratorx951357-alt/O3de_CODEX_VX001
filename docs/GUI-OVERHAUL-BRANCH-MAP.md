@@ -49,6 +49,7 @@ The overhaul should move toward:
 - a simpler home screen with clear "Start here" actions
 - role/task cards such as "Launch O3DE work", "Run Builder tasks", "Review records", and "Inspect runtime state"
 - guided flows/wizards for common operations
+- clickable contextual help affordances, including small circled `i` controls beside major titles, forms, and actions
 - an "Advanced mode" or expandable panels for expert-only controls
 - per-workspace summaries that lead with status, next action, and risk
 - a calmer visual hierarchy with fewer equally prominent windows on first load
@@ -78,6 +79,9 @@ The overhaul should move toward:
 - `codex/control-plane/gui-overhaul-guided-flows`
   - add beginner-friendly guided flows, "Start here" actions, quickstarts, and progressive disclosure
 
+- `codex/control-plane/gui-overhaul-contextual-help`
+  - add clickable step-by-step help, circled `i` affordances, example actions, and inline explanation patterns across the shell
+
 - `codex/control-plane/gui-overhaul-workspace-simplification`
   - reduce default on-screen density inside Builder, Home, Operations, Runtime, and Records without deleting features
 
@@ -89,14 +93,16 @@ The overhaul should move toward:
 1. Information architecture
 2. Navigation shell
 3. Guided flows
-4. Workspace simplification
-5. Polish and validation
-6. Merge into `codex/control-plane/gui-overhaul-integration`
+4. Contextual help system
+5. Workspace simplification
+6. Polish and validation
+7. Merge into `codex/control-plane/gui-overhaul-integration`
 
 ## Guardrails
 
 - Do not weaken backend or admitted-real truthfulness for the sake of a cleaner UI.
 - Do not remove expert surfaces; hide or regroup them.
 - Keep operator-facing language explicit where real vs simulated matters.
+- Keep help text practical: every help surface should explain what this is, when to use it, a safe next step, and one concrete example.
 - Prefer reusable shell patterns over one-off workspace rewrites.
 - Validate desktop and mobile behavior before merging back to integration.
