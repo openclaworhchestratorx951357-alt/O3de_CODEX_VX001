@@ -36,6 +36,9 @@ describe("RecordsWorkspaceView", () => {
     );
 
     expect(screen.getByText("Executions content")).toBeInTheDocument();
+    expect(screen.getByText("How to use this workspace")).toBeInTheDocument();
+    expect(screen.getByText(/Treat this workspace as the closeout and handoff evidence source/i)).toBeInTheDocument();
+    expect(screen.getByText(/Use this tab when warnings or truth labels need review/i)).toBeInTheDocument();
     expect(screen.queryByText("Runs content")).not.toBeInTheDocument();
     expect(screen.queryByText("Artifacts content")).not.toBeInTheDocument();
   });

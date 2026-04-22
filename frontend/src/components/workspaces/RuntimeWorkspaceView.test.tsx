@@ -43,6 +43,9 @@ describe("RuntimeWorkspaceView", () => {
     );
 
     expect(screen.getByText("Workspaces content")).toBeInTheDocument();
+    expect(screen.getByText("How to use this workspace")).toBeInTheDocument();
+    expect(screen.getByText(/Use Runtime Console for health and ownership checks/i)).toBeInTheDocument();
+    expect(screen.getByText(/Check workspace ownership here when the active project context is unclear/i)).toBeInTheDocument();
     expect(screen.queryByText("Overview content")).not.toBeInTheDocument();
     expect(screen.queryByText("Executors content")).not.toBeInTheDocument();
     expect(screen.queryByText("Governance content")).not.toBeInTheDocument();

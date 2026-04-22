@@ -2,7 +2,11 @@ import type { ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
-import { getWorkspaceWindowGuide } from "../../content/operatorGuide";
+import {
+  getWorkspaceSurfaceGuide,
+  getWorkspaceWindowGuide,
+  mergeGuideChecklists,
+} from "../../content/operatorGuide";
 
 type RecordsSurfaceId =
   | "runs"
@@ -28,6 +32,7 @@ export default function RecordsWorkspaceView({
   executionsContent,
   artifactsContent,
 }: RecordsWorkspaceViewProps) {
+  const activeSurfaceGuide = getWorkspaceSurfaceGuide("records", activeSurfaceId);
   const activeContent = activeSurfaceId === "artifacts"
     ? artifactsContent
     : activeSurfaceId === "executions"
@@ -39,6 +44,11 @@ export default function RecordsWorkspaceView({
       title={recordsExplorerWindow.title}
       subtitle={recordsExplorerWindow.subtitle}
       helpTooltip={recordsExplorerWindow.tooltip}
+      guideTitle="How to use this workspace"
+      guideChecklist={mergeGuideChecklists(
+        recordsExplorerWindow.instructions,
+        activeSurfaceGuide.instructions,
+      )}
       toolbar={(
         <DesktopTabStrip
           items={items}

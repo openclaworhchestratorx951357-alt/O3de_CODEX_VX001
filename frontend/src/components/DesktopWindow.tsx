@@ -1,9 +1,13 @@
 import type { CSSProperties, ReactNode } from "react";
 
+import PanelGuideDetails from "./PanelGuideDetails";
+
 type DesktopWindowProps = {
   title: string;
   subtitle?: string | null;
   helpTooltip?: string | null;
+  guideTitle?: string | null;
+  guideChecklist?: readonly string[];
   toolbar?: ReactNode;
   variant?: "primary" | "nested";
   children: ReactNode;
@@ -13,6 +17,8 @@ export default function DesktopWindow({
   title,
   subtitle = null,
   helpTooltip = null,
+  guideTitle = null,
+  guideChecklist = [],
   toolbar = null,
   variant = "primary",
   children,
@@ -54,6 +60,13 @@ export default function DesktopWindow({
           ) : null}
       </div>
       <div style={{ ...windowBodyStyle, ...(nested ? nestedWindowBodyStyle : null) }}>
+        {guideChecklist.length > 0 ? (
+          <PanelGuideDetails
+            title={guideTitle ?? undefined}
+            tooltip={helpTooltip}
+            checklist={guideChecklist}
+          />
+        ) : null}
         {children}
       </div>
     </section>

@@ -2,7 +2,11 @@ import type { ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
-import { getWorkspaceWindowGuide } from "../../content/operatorGuide";
+import {
+  getWorkspaceSurfaceGuide,
+  getWorkspaceWindowGuide,
+  mergeGuideChecklists,
+} from "../../content/operatorGuide";
 
 type OperationsSurfaceId =
   | "dispatch"
@@ -31,6 +35,7 @@ export default function OperationsWorkspaceView({
   approvalsContent,
   timelineContent,
 }: OperationsWorkspaceViewProps) {
+  const activeSurfaceGuide = getWorkspaceSurfaceGuide("operations", activeSurfaceId);
   const activeContent = activeSurfaceId === "dispatch"
     ? dispatchContent
     : activeSurfaceId === "agents"
@@ -44,6 +49,11 @@ export default function OperationsWorkspaceView({
       title={commandCenterWindow.title}
       subtitle={commandCenterWindow.subtitle}
       helpTooltip={commandCenterWindow.tooltip}
+      guideTitle="How to use this workspace"
+      guideChecklist={mergeGuideChecklists(
+        commandCenterWindow.instructions,
+        activeSurfaceGuide.instructions,
+      )}
       toolbar={(
         <DesktopTabStrip
           items={items}

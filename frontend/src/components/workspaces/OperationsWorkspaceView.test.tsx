@@ -43,6 +43,9 @@ describe("OperationsWorkspaceView", () => {
     );
 
     expect(screen.getByText("Approvals content")).toBeInTheDocument();
+    expect(screen.getByText("How to use this workspace")).toBeInTheDocument();
+    expect(screen.getByText(/Treat Command Center as the queue-and-control lane for operator action/i)).toBeInTheDocument();
+    expect(screen.getByText(/Use this tab whenever the approvals counter is non-zero/i)).toBeInTheDocument();
     expect(screen.queryByText("Dispatch content")).not.toBeInTheDocument();
     expect(screen.queryByText("Agents content")).not.toBeInTheDocument();
     expect(screen.queryByText("Timeline content")).not.toBeInTheDocument();

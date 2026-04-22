@@ -2,7 +2,11 @@ import type { ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
-import { getWorkspaceWindowGuide } from "../../content/operatorGuide";
+import {
+  getWorkspaceSurfaceGuide,
+  getWorkspaceWindowGuide,
+  mergeGuideChecklists,
+} from "../../content/operatorGuide";
 
 type RuntimeSurfaceId =
   | "overview"
@@ -32,6 +36,7 @@ export default function RuntimeWorkspaceView({
   workspacesContent,
   governanceContent,
 }: RuntimeWorkspaceViewProps) {
+  const activeSurfaceGuide = getWorkspaceSurfaceGuide("runtime", activeSurfaceId);
   const activeWindow = activeSurfaceId === "governance"
     ? governanceDeckWindow
     : runtimeConsoleWindow;
@@ -48,6 +53,11 @@ export default function RuntimeWorkspaceView({
       title={activeWindow.title}
       subtitle={activeWindow.subtitle}
       helpTooltip={activeWindow.tooltip}
+      guideTitle="How to use this workspace"
+      guideChecklist={mergeGuideChecklists(
+        activeWindow.instructions,
+        activeSurfaceGuide.instructions,
+      )}
       toolbar={(
         <DesktopTabStrip
           items={items}

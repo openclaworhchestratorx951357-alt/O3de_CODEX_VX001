@@ -2,7 +2,11 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
-import { getWorkspaceWindowGuide } from "../../content/operatorGuide";
+import {
+  getWorkspaceGuide,
+  getWorkspaceWindowGuide,
+  mergeGuideChecklists,
+} from "../../content/operatorGuide";
 
 type BuilderSurfaceId = "start" | "mission-control" | "active-lane" | "autonomy";
 
@@ -23,6 +27,7 @@ const laneCreateWindow = getWorkspaceWindowGuide("builder", "lane-create");
 const workerLifecycleWindow = getWorkspaceWindowGuide("builder", "worker-lifecycle");
 const workerTerminalsWindow = getWorkspaceWindowGuide("builder", "worker-terminals");
 const autonomyInboxWindow = getWorkspaceWindowGuide("builder", "autonomy-inbox");
+const builderWorkspace = getWorkspaceGuide("builder");
 
 const items: DesktopTabStripItem[] = [
   {
@@ -65,13 +70,22 @@ export default function BuilderWorkspaceView({
   const activeSurface = activeSurfaceId === "mission-control"
     ? missionBoardWindow
     : activeSurfaceId === "active-lane"
-      ? workerLifecycleWindow
+      ? {
+          title: "Active Lane",
+          subtitle: "Worker lifecycle controls and managed terminals for the selected lane.",
+          tooltip: "Use Active Lane to keep worker lifecycle actions and managed process visibility together while you work one lane at a time.",
+          instructions: mergeGuideChecklists(
+            workerLifecycleWindow.instructions,
+            workerTerminalsWindow.instructions,
+          ),
+        }
       : activeSurfaceId === "autonomy"
         ? autonomyInboxWindow
         : {
             title: "Builder start here",
             subtitle: "Begin with lane setup and current state before drilling into coordination or worker-specific tools.",
             tooltip: "This guided Builder surface groups overview, lane creation, and worktree visibility into a calmer first stop.",
+            instructions: builderWorkspace.operatorChecklist,
           };
 
   return (
@@ -79,6 +93,8 @@ export default function BuilderWorkspaceView({
       title={activeSurface.title}
       subtitle={activeSurface.subtitle}
       helpTooltip={activeSurface.tooltip}
+      guideTitle="How to use this workspace"
+      guideChecklist={activeSurface.instructions}
       toolbar={(
         <DesktopTabStrip
           items={items}
@@ -95,6 +111,8 @@ export default function BuilderWorkspaceView({
               title={overviewWindow.title}
               subtitle={overviewWindow.subtitle}
               helpTooltip={overviewWindow.tooltip}
+              guideTitle="How to use this window"
+              guideChecklist={overviewWindow.instructions}
             >
               {overviewContent}
             </DesktopWindow>
@@ -103,6 +121,8 @@ export default function BuilderWorkspaceView({
               title={laneCreateWindow.title}
               subtitle={laneCreateWindow.subtitle}
               helpTooltip={laneCreateWindow.tooltip}
+              guideTitle="How to use this window"
+              guideChecklist={laneCreateWindow.instructions}
             >
               {laneCreateContent}
             </DesktopWindow>
@@ -112,6 +132,8 @@ export default function BuilderWorkspaceView({
             title={worktreesWindow.title}
             subtitle={worktreesWindow.subtitle}
             helpTooltip={worktreesWindow.tooltip}
+            guideTitle="How to use this window"
+            guideChecklist={worktreesWindow.instructions}
           >
             {worktreesContent}
           </DesktopWindow>
@@ -132,6 +154,8 @@ export default function BuilderWorkspaceView({
             title={workerLifecycleWindow.title}
             subtitle={workerLifecycleWindow.subtitle}
             helpTooltip={workerLifecycleWindow.tooltip}
+            guideTitle="How to use this window"
+            guideChecklist={workerLifecycleWindow.instructions}
           >
             {workerLifecycleContent}
           </DesktopWindow>
@@ -140,6 +164,8 @@ export default function BuilderWorkspaceView({
             title={workerTerminalsWindow.title}
             subtitle={workerTerminalsWindow.subtitle}
             helpTooltip={workerTerminalsWindow.tooltip}
+            guideTitle="How to use this window"
+            guideChecklist={workerTerminalsWindow.instructions}
           >
             {terminalsContent}
           </DesktopWindow>

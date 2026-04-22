@@ -17,6 +17,8 @@ export default function PromptWorkspaceView({
       title={promptStudioWindow.title}
       subtitle={promptStudioWindow.subtitle}
       helpTooltip={promptStudioWindow.tooltip}
+      guideTitle="How to use this workspace"
+      guideChecklist={promptStudioWindow.instructions}
     >
       {content}
     </DesktopWindow>

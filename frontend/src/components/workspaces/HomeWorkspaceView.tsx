@@ -2,7 +2,7 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
-import { getWorkspaceWindowGuide } from "../../content/operatorGuide";
+import { getWorkspaceGuide, getWorkspaceWindowGuide } from "../../content/operatorGuide";
 
 type HomeSurfaceId = "start" | "mission-control" | "guidebook";
 
@@ -17,6 +17,7 @@ const missionControlWindow = getWorkspaceWindowGuide("home", "mission-control");
 const launchpadWindow = getWorkspaceWindowGuide("home", "launchpad");
 const overviewWindow = getWorkspaceWindowGuide("home", "operator-overview");
 const guidebookWindow = getWorkspaceWindowGuide("home", "guidebook");
+const homeWorkspace = getWorkspaceGuide("home");
 
 const items: DesktopTabStripItem[] = [
   {
@@ -55,6 +56,7 @@ export default function HomeWorkspaceView({
           title: "Home start here",
           subtitle: "Use a calmer launch surface first, then switch into coordination or reference when you need it.",
           tooltip: "This guided home surface groups launchpad and overview content into one beginner-safe destination.",
+          instructions: homeWorkspace.operatorChecklist,
         };
 
   return (
@@ -62,6 +64,8 @@ export default function HomeWorkspaceView({
       title={activeSurface.title}
       subtitle={activeSurface.subtitle}
       helpTooltip={activeSurface.tooltip}
+      guideTitle="How to use this workspace"
+      guideChecklist={activeSurface.instructions}
       toolbar={(
         <DesktopTabStrip
           items={items}
@@ -72,20 +76,24 @@ export default function HomeWorkspaceView({
     >
       {activeSurfaceId === "start" ? (
         <div style={guidedShellStyle}>
-          <DesktopWindow
-            variant="nested"
-            title={missionControlWindow.title}
-            subtitle="Keep the current coordination header visible while Start Here narrows the rest of the screen."
-            helpTooltip={missionControlWindow.tooltip}
-          >
-            {missionControlContent}
-          </DesktopWindow>
+            <DesktopWindow
+              variant="nested"
+              title={missionControlWindow.title}
+              subtitle="Keep the current coordination header visible while Start Here narrows the rest of the screen."
+              helpTooltip={missionControlWindow.tooltip}
+              guideTitle="How to use this window"
+              guideChecklist={missionControlWindow.instructions}
+            >
+              {missionControlContent}
+            </DesktopWindow>
           <div style={guidedGridStyle}>
             <DesktopWindow
               variant="nested"
               title={launchpadWindow.title}
               subtitle={launchpadWindow.subtitle}
               helpTooltip={launchpadWindow.tooltip}
+              guideTitle="How to use this window"
+              guideChecklist={launchpadWindow.instructions}
             >
               {launchpadContent}
             </DesktopWindow>
@@ -94,6 +102,8 @@ export default function HomeWorkspaceView({
               title={overviewWindow.title}
               subtitle={overviewWindow.subtitle}
               helpTooltip={overviewWindow.tooltip}
+              guideTitle="How to use this window"
+              guideChecklist={overviewWindow.instructions}
             >
               {overviewContent}
             </DesktopWindow>
