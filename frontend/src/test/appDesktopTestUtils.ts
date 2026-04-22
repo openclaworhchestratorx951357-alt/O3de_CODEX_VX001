@@ -42,6 +42,7 @@ export function getDesktopTabButton(label: string, detail: string): HTMLButtonEl
 
 export function expectDesktopTabActive(button: HTMLButtonElement): void {
   expect(button).toHaveStyle({
-    boxShadow: "0 14px 28px rgba(41, 83, 165, 0.14)",
+    borderColor: "var(--app-accent-strong)",
+    boxShadow: "var(--app-shadow-strong)",
   });
 }

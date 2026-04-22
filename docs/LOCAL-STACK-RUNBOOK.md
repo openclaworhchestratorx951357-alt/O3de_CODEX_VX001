@@ -14,6 +14,7 @@ This runbook complements:
 - `README.md`
 - `CONTRIBUTING.md`
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
+- `docs/MISSION-CONTROL-RUNBOOK.md`
 - `docs/SLICE-START-CHECKLIST.md`
 
 ## Current verified local state
@@ -84,6 +85,18 @@ Operational intent:
 - `live-proof` currently restarts the backend and then runs the repo-owned live
   proof helper. That proof still requires a fresh bridge heartbeat and will
   fail fast if the editor-side bridge is not already live.
+
+When multiple worktrees or Codex threads are active, claim these
+mission-control scopes before running the canonical live backend or proof flow:
+- `resource/port-8000`
+- `resource/o3de-editor`
+- `resource/mcpsandbox-bridge`
+
+Use the shared board before touching the live stack:
+
+```powershell
+pwsh -File .\scripts\dev.ps1 mission-control board
+```
 
 ## Inspect the stack
 

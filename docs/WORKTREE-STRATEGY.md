@@ -18,6 +18,27 @@ Create separate worktrees only for:
 - experiments that may fail
 - concurrent backend and frontend lanes
 
+## Current parallel-thread baseline
+
+Use the current O3DE control-plane stream with:
+- integration lane:
+  `codex/control-plane/o3de-real-integration`
+- stable launchpad branch for new threads:
+  `codex/control-plane/o3de-thread-launchpad-stable`
+- one worker branch per active thread, created from the launchpad branch
+- one shared mission-control board described in
+  `docs/MISSION-CONTROL-RUNBOOK.md`
+
+Mission Control keeps the coordination state under the Git common directory so
+all attached worktrees see the same task claims, waiters, and notifications
+without writing tracked board files into the repository.
+
+Preferred entry point:
+
+```powershell
+pwsh -File .\scripts\dev.ps1 mission-control board
+```
+
 ## Recommended base layout
 
 Recommended local structure:
@@ -81,14 +102,16 @@ the same published commit.
 
 ### Current branch rules
 
-- create new focused slices from `codex/control-plane/operator-desktop-stable`
-  unless the work is explicitly intended to extend the active integration lane
+- create new focused slices from
+  `codex/control-plane/o3de-thread-launchpad-stable` unless the work is
+  explicitly intended to extend the active integration lane
 - merge or cherry-pick back into
-  `codex/control-plane/operator-desktop-next` only after local verification
+  `codex/control-plane/o3de-real-integration` only after local verification
 - keep admitted-real wording explicit:
   - `editor.session.open` admitted real
   - `editor.level.open` admitted real
-  - `editor.entity.create` excluded from admitted-real
+  - `editor.entity.create` admitted real only for the current narrow
+    root-level named entity-create slice on the loaded/current level
 
 ### Runtime adapters lane
 
@@ -191,6 +214,14 @@ Do not:
 - use two worktrees on the same branch for active edits
 - leave ambiguous unstaged drift across multiple worktrees
 - merge lane branches mentally without an explicit review pass
+
+When multiple threads are active, also:
+- register each worktree as a worker lane in Mission Control
+- claim file scopes before editing shared backend/frontend paths
+- claim `resource/port-8000`, `resource/o3de-editor`, and
+  `resource/mcpsandbox-bridge` before touching the canonical live stack
+- use waiters and notifications instead of guessing when a blocked resource is
+  free
 
 ## Recommended usage pattern
 

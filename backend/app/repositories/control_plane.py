@@ -1,6 +1,11 @@
 from app.models.control_plane import (
     ApprovalRecord,
     ArtifactRecord,
+    AutonomyHealingActionRecord,
+    AutonomyJobRecord,
+    AutonomyMemoryRecord,
+    AutonomyObjectiveRecord,
+    AutonomyObservationRecord,
     ExecutorRecord,
     EventRecord,
     ExecutionRecord,
@@ -654,6 +659,294 @@ class ControlPlaneRepository:
             )
         return workspace
 
+    def create_autonomy_objective(
+        self,
+        objective: AutonomyObjectiveRecord,
+    ) -> AutonomyObjectiveRecord:
+        with connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO autonomy_objectives (
+                    id, title, description, status, priority, target_scopes,
+                    success_criteria, owner_kind, metadata, created_at,
+                    updated_at, last_reviewed_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    objective.id,
+                    objective.title,
+                    objective.description,
+                    objective.status.value,
+                    objective.priority,
+                    encode_json(objective.target_scopes),
+                    encode_json(objective.success_criteria),
+                    objective.owner_kind,
+                    encode_json(objective.metadata),
+                    objective.created_at.isoformat(),
+                    objective.updated_at.isoformat(),
+                    objective.last_reviewed_at.isoformat()
+                    if objective.last_reviewed_at
+                    else None,
+                ),
+            )
+        return objective
+
+    def list_autonomy_objectives(self) -> list[AutonomyObjectiveRecord]:
+        with connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM autonomy_objectives ORDER BY priority DESC, updated_at DESC, id DESC"
+            ).fetchall()
+        return [self._row_to_autonomy_objective(row) for row in rows]
+
+    def create_autonomy_job(self, job: AutonomyJobRecord) -> AutonomyJobRecord:
+        with connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO autonomy_jobs (
+                    id, objective_id, job_kind, title, summary, status,
+                    assigned_lane, resource_keys, depends_on, input_payload,
+                    output_payload, retry_count, max_retries, last_error,
+                    created_at, updated_at, started_at, finished_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    job.id,
+                    job.objective_id,
+                    job.job_kind,
+                    job.title,
+                    job.summary,
+                    job.status.value,
+                    job.assigned_lane,
+                    encode_json(job.resource_keys),
+                    encode_json(job.depends_on),
+                    encode_json(job.input_payload),
+                    encode_json(job.output_payload),
+                    job.retry_count,
+                    job.max_retries,
+                    job.last_error,
+                    job.created_at.isoformat(),
+                    job.updated_at.isoformat(),
+                    job.started_at.isoformat() if job.started_at else None,
+                    job.finished_at.isoformat() if job.finished_at else None,
+                ),
+            )
+        return job
+
+    def get_autonomy_job(self, job_id: str) -> AutonomyJobRecord | None:
+        with connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM autonomy_jobs WHERE id = ?",
+                (job_id,),
+            ).fetchone()
+        return self._row_to_autonomy_job(row) if row else None
+
+    def list_autonomy_jobs(self) -> list[AutonomyJobRecord]:
+        with connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM autonomy_jobs ORDER BY created_at DESC, id DESC"
+            ).fetchall()
+        return [self._row_to_autonomy_job(row) for row in rows]
+
+    def update_autonomy_job(self, job: AutonomyJobRecord) -> AutonomyJobRecord:
+        with connection() as conn:
+            conn.execute(
+                """
+                UPDATE autonomy_jobs
+                SET objective_id = ?, job_kind = ?, title = ?, summary = ?, status = ?,
+                    assigned_lane = ?, resource_keys = ?, depends_on = ?, input_payload = ?,
+                    output_payload = ?, retry_count = ?, max_retries = ?, last_error = ?,
+                    updated_at = ?, started_at = ?, finished_at = ?
+                WHERE id = ?
+                """,
+                (
+                    job.objective_id,
+                    job.job_kind,
+                    job.title,
+                    job.summary,
+                    job.status.value,
+                    job.assigned_lane,
+                    encode_json(job.resource_keys),
+                    encode_json(job.depends_on),
+                    encode_json(job.input_payload),
+                    encode_json(job.output_payload),
+                    job.retry_count,
+                    job.max_retries,
+                    job.last_error,
+                    job.updated_at.isoformat(),
+                    job.started_at.isoformat() if job.started_at else None,
+                    job.finished_at.isoformat() if job.finished_at else None,
+                    job.id,
+                ),
+            )
+        return job
+
+    def create_autonomy_observation(
+        self,
+        observation: AutonomyObservationRecord,
+    ) -> AutonomyObservationRecord:
+        with connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO autonomy_observations (
+                    id, source_kind, source_ref, category, severity, message,
+                    details, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    observation.id,
+                    observation.source_kind,
+                    observation.source_ref,
+                    observation.category,
+                    observation.severity.value,
+                    observation.message,
+                    encode_json(observation.details),
+                    observation.created_at.isoformat(),
+                ),
+            )
+        return observation
+
+    def list_autonomy_observations(self) -> list[AutonomyObservationRecord]:
+        with connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM autonomy_observations ORDER BY created_at DESC, id DESC"
+            ).fetchall()
+        return [self._row_to_autonomy_observation(row) for row in rows]
+
+    def get_autonomy_observation(self, observation_id: str) -> AutonomyObservationRecord | None:
+        with connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM autonomy_observations WHERE id = ?",
+                (observation_id,),
+            ).fetchone()
+        return self._row_to_autonomy_observation(row) if row else None
+
+    def update_autonomy_observation(
+        self,
+        observation: AutonomyObservationRecord,
+    ) -> AutonomyObservationRecord:
+        with connection() as conn:
+            conn.execute(
+                """
+                UPDATE autonomy_observations
+                SET source_kind = ?, source_ref = ?, category = ?, severity = ?,
+                    message = ?, details = ?, created_at = ?
+                WHERE id = ?
+                """,
+                (
+                    observation.source_kind,
+                    observation.source_ref,
+                    observation.category,
+                    observation.severity.value,
+                    observation.message,
+                    encode_json(observation.details),
+                    observation.created_at.isoformat(),
+                    observation.id,
+                ),
+            )
+        return observation
+
+    def create_autonomy_healing_action(
+        self,
+        action: AutonomyHealingActionRecord,
+    ) -> AutonomyHealingActionRecord:
+        with connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO autonomy_healing_actions (
+                    id, observation_id, job_id, action_kind, summary, status,
+                    details, created_at, updated_at, resolved_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    action.id,
+                    action.observation_id,
+                    action.job_id,
+                    action.action_kind,
+                    action.summary,
+                    action.status.value,
+                    encode_json(action.details),
+                    action.created_at.isoformat(),
+                    action.updated_at.isoformat(),
+                    action.resolved_at.isoformat() if action.resolved_at else None,
+                ),
+            )
+        return action
+
+    def list_autonomy_healing_actions(self) -> list[AutonomyHealingActionRecord]:
+        with connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM autonomy_healing_actions ORDER BY created_at DESC, id DESC"
+            ).fetchall()
+        return [self._row_to_autonomy_healing_action(row) for row in rows]
+
+    def get_autonomy_healing_action(
+        self,
+        action_id: str,
+    ) -> AutonomyHealingActionRecord | None:
+        with connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM autonomy_healing_actions WHERE id = ?",
+                (action_id,),
+            ).fetchone()
+        return self._row_to_autonomy_healing_action(row) if row else None
+
+    def update_autonomy_healing_action(
+        self,
+        action: AutonomyHealingActionRecord,
+    ) -> AutonomyHealingActionRecord:
+        with connection() as conn:
+            conn.execute(
+                """
+                UPDATE autonomy_healing_actions
+                SET observation_id = ?, job_id = ?, action_kind = ?, summary = ?, status = ?,
+                    details = ?, created_at = ?, updated_at = ?, resolved_at = ?
+                WHERE id = ?
+                """,
+                (
+                    action.observation_id,
+                    action.job_id,
+                    action.action_kind,
+                    action.summary,
+                    action.status.value,
+                    encode_json(action.details),
+                    action.created_at.isoformat(),
+                    action.updated_at.isoformat(),
+                    action.resolved_at.isoformat() if action.resolved_at else None,
+                    action.id,
+                ),
+            )
+        return action
+
+    def create_autonomy_memory(self, memory: AutonomyMemoryRecord) -> AutonomyMemoryRecord:
+        with connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO autonomy_memories (
+                    id, memory_kind, title, content, tags, confidence,
+                    source_refs, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    memory.id,
+                    memory.memory_kind,
+                    memory.title,
+                    memory.content,
+                    encode_json(memory.tags),
+                    memory.confidence,
+                    encode_json(memory.source_refs),
+                    memory.created_at.isoformat(),
+                    memory.updated_at.isoformat(),
+                ),
+            )
+        return memory
+
+    def list_autonomy_memories(self) -> list[AutonomyMemoryRecord]:
+        with connection() as conn:
+            rows = conn.execute(
+                "SELECT * FROM autonomy_memories ORDER BY updated_at DESC, id DESC"
+            ).fetchall()
+        return [self._row_to_autonomy_memory(row) for row in rows]
+
     def _row_to_run(self, row: object) -> RunRecord:
         mapping = dict(row)
         return RunRecord.model_validate(
@@ -727,6 +1020,57 @@ class ControlPlaneRepository:
                 **mapping,
                 "engine_binding": decode_json(mapping["engine_binding"], {}),
                 "project_binding": decode_json(mapping["project_binding"], {}),
+            }
+        )
+
+    def _row_to_autonomy_objective(self, row: object) -> AutonomyObjectiveRecord:
+        mapping = dict(row)
+        return AutonomyObjectiveRecord.model_validate(
+            {
+                **mapping,
+                "target_scopes": decode_json(mapping["target_scopes"], []),
+                "success_criteria": decode_json(mapping["success_criteria"], []),
+                "metadata": decode_json(mapping["metadata"], {}),
+            }
+        )
+
+    def _row_to_autonomy_job(self, row: object) -> AutonomyJobRecord:
+        mapping = dict(row)
+        return AutonomyJobRecord.model_validate(
+            {
+                **mapping,
+                "resource_keys": decode_json(mapping["resource_keys"], []),
+                "depends_on": decode_json(mapping["depends_on"], []),
+                "input_payload": decode_json(mapping["input_payload"], {}),
+                "output_payload": decode_json(mapping["output_payload"], {}),
+            }
+        )
+
+    def _row_to_autonomy_observation(self, row: object) -> AutonomyObservationRecord:
+        mapping = dict(row)
+        return AutonomyObservationRecord.model_validate(
+            {
+                **mapping,
+                "details": decode_json(mapping["details"], {}),
+            }
+        )
+
+    def _row_to_autonomy_healing_action(self, row: object) -> AutonomyHealingActionRecord:
+        mapping = dict(row)
+        return AutonomyHealingActionRecord.model_validate(
+            {
+                **mapping,
+                "details": decode_json(mapping["details"], {}),
+            }
+        )
+
+    def _row_to_autonomy_memory(self, row: object) -> AutonomyMemoryRecord:
+        mapping = dict(row)
+        return AutonomyMemoryRecord.model_validate(
+            {
+                **mapping,
+                "tags": decode_json(mapping["tags"], []),
+                "source_refs": decode_json(mapping["source_refs"], []),
             }
         )
 

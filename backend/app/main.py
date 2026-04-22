@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes.adapters import router as adapters_router
 from app.api.routes.approvals import router as approvals_router
 from app.api.routes.artifacts import router as artifacts_router
+from app.api.routes.autonomy import router as autonomy_router
+from app.api.routes.codex_control import router as codex_control_router
 from app.api.routes.events import router as events_router
 from app.api.routes.executions import router as executions_router
 from app.api.routes.health import router as health_router
@@ -73,6 +75,8 @@ app.include_router(events_router)
 app.include_router(policies_router)
 app.include_router(executions_router)
 app.include_router(artifacts_router)
+app.include_router(autonomy_router)
+app.include_router(codex_control_router)
 if executors_router is not None:
     app.include_router(executors_router)
 if workspaces_router is not None:
@@ -108,6 +112,25 @@ def root() -> RootStatus:
         "/executions/cards",
         "/artifacts",
         "/artifacts/cards",
+        "/autonomy",
+        "/autonomy/objectives",
+        "/autonomy/jobs",
+        "/autonomy/observations",
+        "/autonomy/healing-actions",
+        "/autonomy/memories",
+        "/codex/control",
+        "/codex/control/lanes",
+        "/codex/control/workers/sync",
+        "/codex/control/workers/{worker_id}/heartbeat",
+        "/codex/control/tasks",
+        "/codex/control/tasks/{task_id}/claim",
+        "/codex/control/tasks/{task_id}/release",
+        "/codex/control/tasks/{task_id}/complete",
+        "/codex/control/tasks/{task_id}/supersede",
+        "/codex/control/tasks/{task_id}/wait",
+        "/codex/control/workers/next-task",
+        "/codex/control/workers/{worker_id}/notifications",
+        "/codex/control/workers/{worker_id}/notifications/mark-read",
     ]
     if executors_router is not None:
         routes.append("/executors")

@@ -314,6 +314,81 @@ def _initialize_database_file(db_path: Path) -> None:
                 updated_at TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS autonomy_objectives (
+                id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                description TEXT NOT NULL,
+                status TEXT NOT NULL,
+                priority INTEGER NOT NULL,
+                target_scopes TEXT NOT NULL,
+                success_criteria TEXT NOT NULL,
+                owner_kind TEXT NOT NULL,
+                metadata TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                last_reviewed_at TEXT
+            );
+
+            CREATE TABLE IF NOT EXISTS autonomy_jobs (
+                id TEXT PRIMARY KEY,
+                objective_id TEXT,
+                job_kind TEXT NOT NULL,
+                title TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                status TEXT NOT NULL,
+                assigned_lane TEXT,
+                resource_keys TEXT NOT NULL,
+                depends_on TEXT NOT NULL,
+                input_payload TEXT NOT NULL,
+                output_payload TEXT NOT NULL,
+                retry_count INTEGER NOT NULL,
+                max_retries INTEGER NOT NULL,
+                last_error TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                started_at TEXT,
+                finished_at TEXT,
+                FOREIGN KEY(objective_id) REFERENCES autonomy_objectives(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS autonomy_observations (
+                id TEXT PRIMARY KEY,
+                source_kind TEXT NOT NULL,
+                source_ref TEXT,
+                category TEXT NOT NULL,
+                severity TEXT NOT NULL,
+                message TEXT NOT NULL,
+                details TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS autonomy_healing_actions (
+                id TEXT PRIMARY KEY,
+                observation_id TEXT,
+                job_id TEXT,
+                action_kind TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                status TEXT NOT NULL,
+                details TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                resolved_at TEXT,
+                FOREIGN KEY(observation_id) REFERENCES autonomy_observations(id),
+                FOREIGN KEY(job_id) REFERENCES autonomy_jobs(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS autonomy_memories (
+                id TEXT PRIMARY KEY,
+                memory_kind TEXT NOT NULL,
+                title TEXT NOT NULL,
+                content TEXT NOT NULL,
+                tags TEXT NOT NULL,
+                confidence REAL,
+                source_refs TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
             CREATE INDEX IF NOT EXISTS idx_runs_created_at ON runs(created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_approvals_created_at ON approvals(created_at DESC);
             CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at DESC);
@@ -329,6 +404,12 @@ def _initialize_database_file(db_path: Path) -> None:
             CREATE INDEX IF NOT EXISTS idx_executors_availability_state ON executors(availability_state, updated_at DESC);
             CREATE INDEX IF NOT EXISTS idx_prompt_sessions_status ON prompt_sessions(status, updated_at DESC);
             CREATE INDEX IF NOT EXISTS idx_prompt_sessions_created_at ON prompt_sessions(created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_autonomy_objectives_status ON autonomy_objectives(status, priority DESC, updated_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_autonomy_jobs_status ON autonomy_jobs(status, updated_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_autonomy_jobs_objective ON autonomy_jobs(objective_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_autonomy_observations_severity ON autonomy_observations(severity, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_autonomy_healing_status ON autonomy_healing_actions(status, updated_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_autonomy_memories_kind ON autonomy_memories(memory_kind, updated_at DESC);
 
             CREATE TABLE IF NOT EXISTS db_write_probe (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -490,6 +571,11 @@ def connection() -> Iterator[sqlite3.Connection]:
 def reset_database() -> None:
     initialize_database()
     with connection() as conn:
+        conn.execute("DELETE FROM autonomy_healing_actions")
+        conn.execute("DELETE FROM autonomy_observations")
+        conn.execute("DELETE FROM autonomy_jobs")
+        conn.execute("DELETE FROM autonomy_objectives")
+        conn.execute("DELETE FROM autonomy_memories")
         conn.execute("DELETE FROM artifacts")
         conn.execute("DELETE FROM executions")
         conn.execute("DELETE FROM workspaces")

@@ -1,6 +1,19 @@
 import type {
   AdaptersEnvelope,
   AdaptersResponse,
+  AutonomyHealingActionCreateRequest,
+  AutonomyHealingActionUpdateRequest,
+  AutonomyHealingActionsResponse,
+  AutonomyJobCreateRequest,
+  AutonomyJobUpdateRequest,
+  AutonomyJobsResponse,
+  AutonomyMemoriesResponse,
+  AutonomyObservationCreateRequest,
+  AutonomyObservationUpdateRequest,
+  AutonomyObjectiveCreateRequest,
+  AutonomyObjectivesResponse,
+  AutonomyObservationsResponse,
+  AutonomySummaryResponse,
   ArtifactListItem,
   ArtifactListResponse,
   ArtifactRecord,
@@ -9,6 +22,26 @@ import type {
   ApprovalsListResponse,
   ApprovalRecord,
   ApprovalsResponse,
+  CodexControlLaneCreateRequest,
+  CodexControlLaneCreateResponse,
+  CodexControlNextTaskRequest,
+  CodexControlNextTaskResponse,
+  CodexControlNotificationCreateRequest,
+  CodexControlNotificationsResponse,
+  CodexControlStatusResponse,
+  CodexControlTerminalLaunchRequest,
+  CodexControlTerminalSessionResponse,
+  CodexControlTerminalStopRequest,
+  CodexControlTaskActionRequest,
+  CodexControlTaskCreateRequest,
+  CodexControlTaskSupersedeRequest,
+  CodexControlTaskSupersedeResponse,
+  CodexControlTaskResponse,
+  CodexControlTaskWaitRequest,
+  CodexControlWaiterResponse,
+  CodexControlWorkerHeartbeatRequest,
+  CodexControlWorkerResponse,
+  CodexControlWorkerSyncRequest,
   ExecutorRecord,
   ExecutorsResponse,
   EventListItem,
@@ -60,6 +93,26 @@ async function getJson<T>(path: string, errorPrefix: string): Promise<T> {
   return (await response.json()) as T;
 }
 
+async function postJson<TRequest, TResponse>(
+  path: string,
+  request: TRequest,
+  errorPrefix: string,
+): Promise<TResponse> {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(`${errorPrefix} failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as TResponse;
+}
+
 export async function dispatchTool(
   request: RequestEnvelope,
 ): Promise<ResponseEnvelope> {
@@ -80,6 +133,156 @@ export async function dispatchTool(
 
 export async function fetchToolsCatalog(): Promise<unknown> {
   return getJson("/tools/catalog", "Catalog fetch");
+}
+
+export async function fetchAutonomySummary(): Promise<AutonomySummaryResponse> {
+  return getJson<AutonomySummaryResponse>("/autonomy", "Autonomy summary fetch");
+}
+
+export async function fetchAutonomyObjectives() {
+  const payload = await getJson<AutonomyObjectivesResponse>(
+    "/autonomy/objectives",
+    "Autonomy objectives fetch",
+  );
+  return payload.objectives ?? [];
+}
+
+export async function createAutonomyObjective(
+  request: AutonomyObjectiveCreateRequest,
+) {
+  return postJson<AutonomyObjectiveCreateRequest, AutonomyObjectivesResponse["objectives"][number]>(
+    "/autonomy/objectives",
+    request,
+    "Autonomy objective creation",
+  );
+}
+
+export async function fetchAutonomyJobs() {
+  const payload = await getJson<AutonomyJobsResponse>(
+    "/autonomy/jobs",
+    "Autonomy jobs fetch",
+  );
+  return payload.jobs ?? [];
+}
+
+export async function createAutonomyJob(
+  request: AutonomyJobCreateRequest,
+) {
+  return postJson<AutonomyJobCreateRequest, AutonomyJobsResponse["jobs"][number]>(
+    "/autonomy/jobs",
+    request,
+    "Autonomy job creation",
+  );
+}
+
+export async function updateAutonomyJob(
+  jobId: string,
+  request: AutonomyJobUpdateRequest,
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/autonomy/jobs/${encodeURIComponent(jobId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Autonomy job update failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as AutonomyJobsResponse["jobs"][number];
+}
+
+export async function fetchAutonomyObservations() {
+  const payload = await getJson<AutonomyObservationsResponse>(
+    "/autonomy/observations",
+    "Autonomy observations fetch",
+  );
+  return payload.observations ?? [];
+}
+
+export async function createAutonomyObservation(
+  request: AutonomyObservationCreateRequest,
+) {
+  return postJson<AutonomyObservationCreateRequest, AutonomyObservationsResponse["observations"][number]>(
+    "/autonomy/observations",
+    request,
+    "Autonomy observation creation",
+  );
+}
+
+export async function updateAutonomyObservation(
+  observationId: string,
+  request: AutonomyObservationUpdateRequest,
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/autonomy/observations/${encodeURIComponent(observationId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Autonomy observation update failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as AutonomyObservationsResponse["observations"][number];
+}
+
+export async function fetchAutonomyHealingActions() {
+  const payload = await getJson<AutonomyHealingActionsResponse>(
+    "/autonomy/healing-actions",
+    "Autonomy healing actions fetch",
+  );
+  return payload.healing_actions ?? [];
+}
+
+export async function createAutonomyHealingAction(
+  request: AutonomyHealingActionCreateRequest,
+) {
+  return postJson<AutonomyHealingActionCreateRequest, AutonomyHealingActionsResponse["healing_actions"][number]>(
+    "/autonomy/healing-actions",
+    request,
+    "Autonomy healing action creation",
+  );
+}
+
+export async function updateAutonomyHealingAction(
+  actionId: string,
+  request: AutonomyHealingActionUpdateRequest,
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/autonomy/healing-actions/${encodeURIComponent(actionId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Autonomy healing action update failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as AutonomyHealingActionsResponse["healing_actions"][number];
+}
+
+export async function fetchAutonomyMemories() {
+  const payload = await getJson<AutonomyMemoriesResponse>(
+    "/autonomy/memories",
+    "Autonomy memories fetch",
+  );
+  return payload.memories ?? [];
 }
 
 export async function fetchO3deTarget(): Promise<O3DETargetConfig> {
@@ -105,6 +308,277 @@ export async function cleanupO3deBridgeResults(
   }
 
   return (await response.json()) as O3DEBridgeResultsCleanupResult;
+}
+
+export async function fetchCodexControlStatus(): Promise<CodexControlStatusResponse> {
+  return getJson<CodexControlStatusResponse>("/codex/control", "Codex control fetch");
+}
+
+export async function createCodexControlLane(
+  request: CodexControlLaneCreateRequest,
+): Promise<CodexControlLaneCreateResponse> {
+  const response = await fetch(`${API_BASE_URL}/codex/control/lanes`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Codex lane creation failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as CodexControlLaneCreateResponse;
+}
+
+export async function syncCodexControlWorker(
+  request: CodexControlWorkerSyncRequest,
+): Promise<CodexControlWorkerResponse> {
+  const response = await fetch(`${API_BASE_URL}/codex/control/workers/sync`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Codex worker sync failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as CodexControlWorkerResponse;
+}
+
+export async function heartbeatCodexControlWorker(
+  workerId: string,
+  request: CodexControlWorkerHeartbeatRequest,
+): Promise<CodexControlWorkerResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/codex/control/workers/${encodeURIComponent(workerId)}/heartbeat`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Codex worker heartbeat failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as CodexControlWorkerResponse;
+}
+
+export async function createCodexControlTask(
+  request: CodexControlTaskCreateRequest,
+): Promise<CodexControlTaskResponse> {
+  const response = await fetch(`${API_BASE_URL}/codex/control/tasks`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Codex task creation failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as CodexControlTaskResponse;
+}
+
+async function postCodexControlTaskAction(
+  taskId: string,
+  pathSuffix: "claim" | "release" | "complete",
+  request: CodexControlTaskActionRequest,
+): Promise<CodexControlTaskResponse> {
+  const response = await fetch(`${API_BASE_URL}/codex/control/tasks/${encodeURIComponent(taskId)}/${pathSuffix}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Codex task ${pathSuffix} failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as CodexControlTaskResponse;
+}
+
+export async function claimCodexControlTask(
+  taskId: string,
+  request: CodexControlTaskActionRequest,
+): Promise<CodexControlTaskResponse> {
+  return postCodexControlTaskAction(taskId, "claim", request);
+}
+
+export async function releaseCodexControlTask(
+  taskId: string,
+  request: CodexControlTaskActionRequest,
+): Promise<CodexControlTaskResponse> {
+  return postCodexControlTaskAction(taskId, "release", request);
+}
+
+export async function completeCodexControlTask(
+  taskId: string,
+  request: CodexControlTaskActionRequest,
+): Promise<CodexControlTaskResponse> {
+  return postCodexControlTaskAction(taskId, "complete", request);
+}
+
+export async function supersedeCodexControlTask(
+  taskId: string,
+  request: CodexControlTaskSupersedeRequest,
+): Promise<CodexControlTaskSupersedeResponse> {
+  const response = await fetch(`${API_BASE_URL}/codex/control/tasks/${encodeURIComponent(taskId)}/supersede`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Codex task supersede failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as CodexControlTaskSupersedeResponse;
+}
+
+export async function waitForCodexControlTask(
+  taskId: string,
+  request: CodexControlTaskWaitRequest,
+): Promise<CodexControlWaiterResponse> {
+  const response = await fetch(`${API_BASE_URL}/codex/control/tasks/${encodeURIComponent(taskId)}/wait`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Codex task wait registration failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as CodexControlWaiterResponse;
+}
+
+export async function fetchCodexControlNextTask(
+  request: CodexControlNextTaskRequest,
+): Promise<CodexControlNextTaskResponse> {
+  const response = await fetch(`${API_BASE_URL}/codex/control/workers/next-task`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Codex next-task fetch failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as CodexControlNextTaskResponse;
+}
+
+export async function fetchCodexControlNotifications(
+  workerId: string,
+  includeAll = false,
+): Promise<CodexControlNotificationsResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/codex/control/workers/${encodeURIComponent(workerId)}/notifications?include_all=${includeAll ? "true" : "false"}`,
+  );
+
+  if (!response.ok) {
+    throw new Error(`Codex notifications fetch failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as CodexControlNotificationsResponse;
+}
+
+export async function createCodexControlNotification(
+  workerId: string,
+  request: CodexControlNotificationCreateRequest,
+): Promise<CodexControlNotificationsResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/codex/control/workers/${encodeURIComponent(workerId)}/notify`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Codex notification creation failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as CodexControlNotificationsResponse;
+}
+
+export async function launchCodexControlTerminal(
+  request: CodexControlTerminalLaunchRequest,
+): Promise<CodexControlTerminalSessionResponse> {
+  const response = await fetch(`${API_BASE_URL}/codex/control/terminals`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Codex terminal launch failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as CodexControlTerminalSessionResponse;
+}
+
+export async function stopCodexControlTerminal(
+  sessionId: string,
+  request: CodexControlTerminalStopRequest,
+): Promise<CodexControlTerminalSessionResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/codex/control/terminals/${encodeURIComponent(sessionId)}/stop`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Codex terminal stop failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as CodexControlTerminalSessionResponse;
+}
+
+export async function markCodexControlNotificationsRead(
+  workerId: string,
+): Promise<CodexControlNotificationsResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/codex/control/workers/${encodeURIComponent(workerId)}/notifications/mark-read`,
+    {
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Codex notification mark-read failed with status ${response.status}`);
+  }
+
+  return (await response.json()) as CodexControlNotificationsResponse;
 }
 
 export async function createPromptSession(

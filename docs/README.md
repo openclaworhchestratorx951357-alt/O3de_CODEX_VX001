@@ -35,6 +35,7 @@ See these official source files:
 - `docs/PHASE-0-REPO-AUDIT.md`
 - `docs/PHASE-3-CHECKPOINT.md`
 - `docs/LOCAL-STACK-RUNBOOK.md`
+- `docs/MISSION-CONTROL-RUNBOOK.md`
 - `CONTRIBUTING.md`
 
 Current Phase 7 checkpoint truth:

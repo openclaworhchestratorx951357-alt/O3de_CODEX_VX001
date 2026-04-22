@@ -258,6 +258,446 @@ export interface O3DEBridgeResultsCleanupResult {
   deadletter_preserved_count: number;
 }
 
+export interface CodexHarnessStatus {
+  harness_id: string;
+  label: string;
+  configured: boolean;
+  status: string;
+  detail: string;
+  notes: string[];
+}
+
+export interface CodexControlWorktree {
+  path: string;
+  branch_name?: string | null;
+  head?: string | null;
+  bare: boolean;
+  detached: boolean;
+  locked: boolean;
+  prunable: boolean;
+  is_current_repo: boolean;
+}
+
+export interface CodexControlWorker {
+  worker_id: string;
+  display_name: string;
+  branch_name?: string | null;
+  worktree_path?: string | null;
+  base_branch?: string | null;
+  status: string;
+  current_task_id?: string | null;
+  summary?: string | null;
+  updated_at?: string | null;
+  last_seen_at?: string | null;
+}
+
+export interface CodexControlTask {
+  task_id: string;
+  title: string;
+  summary: string;
+  priority: number;
+  status: string;
+  scope_paths: string[];
+  recommended_branch_prefix?: string | null;
+  claimed_by_worker_id?: string | null;
+  blockers: string[];
+  claimed_at?: string | null;
+  updated_at?: string | null;
+  completed_at?: string | null;
+  superseded_by_task_id?: string | null;
+  superseded_at?: string | null;
+  supersede_reason?: string | null;
+}
+
+export interface CodexControlWaiter {
+  waiter_id: number;
+  worker_id: string;
+  task_id: string;
+  reason: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  notified_at?: string | null;
+}
+
+export interface CodexControlNotification {
+  notification_id: number;
+  worker_id: string;
+  task_id?: string | null;
+  kind: string;
+  status: string;
+  message: string;
+  created_at: string;
+  read_at?: string | null;
+}
+
+export interface CodexControlTerminalSession {
+  session_id: string;
+  worker_id: string;
+  task_id?: string | null;
+  label: string;
+  cwd: string;
+  command: string[];
+  status: string;
+  pid?: number | null;
+  log_path: string;
+  created_at: string;
+  started_at: string;
+  updated_at: string;
+  exited_at?: string | null;
+  stop_requested_at?: string | null;
+  stop_requested_by?: string | null;
+  stop_reason?: string | null;
+  tail_preview: string[];
+}
+
+export interface CodexControlBoardStatus {
+  available: boolean;
+  generated_at?: string | null;
+  repo_root?: string | null;
+  state_dir?: string | null;
+  board_json_path?: string | null;
+  board_text_path?: string | null;
+  workers: CodexControlWorker[];
+  tasks: CodexControlTask[];
+  waiters: CodexControlWaiter[];
+  notifications: CodexControlNotification[];
+  terminal_sessions: CodexControlTerminalSession[];
+}
+
+export interface CodexControlStatusResponse {
+  repo_root: string;
+  git_common_dir: string;
+  current_branch?: string | null;
+  mission_control_script_path: string;
+  mission_control_wrapper_path?: string | null;
+  mission_control_available: boolean;
+  recommended_base_branch: string;
+  board: CodexControlBoardStatus;
+  worktrees: CodexControlWorktree[];
+  harnesses: CodexHarnessStatus[];
+  notes: string[];
+}
+
+export interface CodexControlLaneCreateRequest {
+  worker_id: string;
+  display_name?: string | null;
+  branch_name?: string | null;
+  worktree_path?: string | null;
+  base_branch?: string | null;
+  bootstrap: boolean;
+}
+
+export interface CodexControlLaneCreateResponse {
+  status: string;
+  worker: CodexControlWorker;
+  worktree_path: string;
+  board_json_path?: string | null;
+  board_text_path?: string | null;
+}
+
+export interface CodexControlWorkerSyncRequest {
+  worker_id: string;
+  display_name?: string | null;
+  branch_name?: string | null;
+  worktree_path?: string | null;
+  base_branch?: string | null;
+  status: string;
+  summary?: string | null;
+}
+
+export interface CodexControlWorkerHeartbeatRequest {
+  status?: string | null;
+  summary?: string | null;
+  current_task_id?: string | null;
+  branch_name?: string | null;
+  worktree_path?: string | null;
+  base_branch?: string | null;
+}
+
+export interface CodexControlWorkerResponse {
+  status: string;
+  worker: CodexControlWorker;
+  board_json_path?: string | null;
+  board_text_path?: string | null;
+}
+
+export interface CodexControlTaskCreateRequest {
+  title: string;
+  summary: string;
+  priority: number;
+  branch_prefix?: string | null;
+  scope_paths: string[];
+}
+
+export interface CodexControlTaskActionRequest {
+  worker_id: string;
+}
+
+export interface CodexControlTaskSupersedeRequest {
+  worker_id: string;
+  replacement_title: string;
+  replacement_summary: string;
+  replacement_priority: number;
+  replacement_scope_paths: string[];
+  replacement_branch_prefix?: string | null;
+  replacement_task_id?: string | null;
+  supersede_reason: string;
+  requested_by?: string | null;
+  stop_active_terminal: boolean;
+}
+
+export interface CodexControlNotificationCreateRequest {
+  kind: string;
+  message: string;
+  task_id?: string | null;
+}
+
+export interface CodexControlTerminalLaunchRequest {
+  worker_id: string;
+  label: string;
+  command: string[];
+  cwd?: string | null;
+  task_id?: string | null;
+}
+
+export interface CodexControlTerminalStopRequest {
+  requested_by?: string | null;
+  reason?: string | null;
+  force: boolean;
+}
+
+export interface CodexControlTaskWaitRequest {
+  worker_id: string;
+  reason: string;
+}
+
+export interface CodexControlNextTaskRequest {
+  worker_id: string;
+  claim: boolean;
+  wait: boolean;
+  wait_reason?: string | null;
+}
+
+export interface CodexControlTaskResponse {
+  status: string;
+  task: CodexControlTask;
+  board_json_path?: string | null;
+  board_text_path?: string | null;
+}
+
+export interface CodexControlTaskSupersedeResponse {
+  status: string;
+  superseded_task: CodexControlTask;
+  replacement_task: CodexControlTask;
+  stopped_terminal_session?: CodexControlTerminalSession | null;
+  notified_workers: string[];
+  board_json_path?: string | null;
+  board_text_path?: string | null;
+}
+
+export interface CodexControlWaiterResponse {
+  status: string;
+  waiter: CodexControlWaiter;
+  board_json_path?: string | null;
+  board_text_path?: string | null;
+}
+
+export interface CodexControlNextTaskResponse {
+  status: string;
+  decision: string;
+  task?: CodexControlTask | null;
+  blockers: CodexControlTask[];
+  waiter?: CodexControlWaiter | null;
+  board_json_path?: string | null;
+  board_text_path?: string | null;
+}
+
+export interface CodexControlNotificationsResponse {
+  status: string;
+  notifications: CodexControlNotification[];
+  board_json_path?: string | null;
+  board_text_path?: string | null;
+}
+
+export interface CodexControlTerminalSessionResponse {
+  status: string;
+  terminal_session: CodexControlTerminalSession;
+  board_json_path?: string | null;
+  board_text_path?: string | null;
+}
+
+export interface AutonomySummaryResponse {
+  objectives_total: number;
+  objectives_by_status: Record<string, number>;
+  jobs_total: number;
+  jobs_by_status: Record<string, number>;
+  observations_total: number;
+  observations_by_severity: Record<string, number>;
+  healing_actions_total: number;
+  healing_actions_by_status: Record<string, number>;
+  memories_total: number;
+}
+
+export interface AutonomyObjectiveRecord {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: number;
+  target_scopes: string[];
+  success_criteria: string[];
+  owner_kind: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  last_reviewed_at?: string | null;
+}
+
+export interface AutonomyObjectivesResponse {
+  objectives: AutonomyObjectiveRecord[];
+}
+
+export interface AutonomyObjectiveCreateRequest {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: number;
+  target_scopes: string[];
+  success_criteria: string[];
+  owner_kind: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface AutonomyJobRecord {
+  id: string;
+  objective_id?: string | null;
+  job_kind: string;
+  title: string;
+  summary: string;
+  status: string;
+  assigned_lane?: string | null;
+  resource_keys: string[];
+  depends_on: string[];
+  input_payload: Record<string, unknown>;
+  output_payload: Record<string, unknown>;
+  retry_count: number;
+  max_retries: number;
+  last_error?: string | null;
+  created_at: string;
+  updated_at: string;
+  started_at?: string | null;
+  finished_at?: string | null;
+}
+
+export interface AutonomyJobsResponse {
+  jobs: AutonomyJobRecord[];
+}
+
+export interface AutonomyJobCreateRequest {
+  id: string;
+  objective_id?: string | null;
+  job_kind: string;
+  title: string;
+  summary: string;
+  status: string;
+  assigned_lane?: string | null;
+  resource_keys: string[];
+  depends_on: string[];
+  input_payload: Record<string, unknown>;
+  output_payload: Record<string, unknown>;
+  retry_count: number;
+  max_retries: number;
+  last_error?: string | null;
+}
+
+export interface AutonomyJobUpdateRequest {
+  status?: string | null;
+  assigned_lane?: string | null;
+  output_payload?: Record<string, unknown> | null;
+  retry_count?: number | null;
+  last_error?: string | null;
+}
+
+export interface AutonomyObservationCreateRequest {
+  id: string;
+  source_kind: string;
+  source_ref?: string | null;
+  category: string;
+  severity: string;
+  message: string;
+  details: Record<string, unknown>;
+}
+
+export interface AutonomyObservationUpdateRequest {
+  message?: string | null;
+  details?: Record<string, unknown> | null;
+}
+
+export interface AutonomyObservationRecord {
+  id: string;
+  source_kind: string;
+  source_ref?: string | null;
+  category: string;
+  severity: string;
+  message: string;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface AutonomyObservationsResponse {
+  observations: AutonomyObservationRecord[];
+}
+
+export interface AutonomyHealingActionCreateRequest {
+  id: string;
+  observation_id?: string | null;
+  job_id?: string | null;
+  action_kind: string;
+  summary: string;
+  status: string;
+  details: Record<string, unknown>;
+}
+
+export interface AutonomyHealingActionUpdateRequest {
+  status?: string | null;
+  details?: Record<string, unknown> | null;
+}
+
+export interface AutonomyHealingActionRecord {
+  id: string;
+  observation_id?: string | null;
+  job_id?: string | null;
+  action_kind: string;
+  summary: string;
+  status: string;
+  details: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  resolved_at?: string | null;
+}
+
+export interface AutonomyHealingActionsResponse {
+  healing_actions: AutonomyHealingActionRecord[];
+}
+
+export interface AutonomyMemoryRecord {
+  id: string;
+  memory_kind: string;
+  title: string;
+  content: string;
+  tags: string[];
+  confidence?: number | null;
+  source_refs: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AutonomyMemoriesResponse {
+  memories: AutonomyMemoryRecord[];
+}
+
 export interface ProjectInspectResult {
   status: "simulated_success" | "real_success";
   tool: "project.inspect";
@@ -693,6 +1133,7 @@ export interface ToolDefinition {
   approval_class: ApprovalClass;
   adapter_family?: string;
   capability_status?: string;
+  real_adapter_availability?: boolean;
   default_locks: LockName[];
   default_timeout_s: number;
   risk: string;

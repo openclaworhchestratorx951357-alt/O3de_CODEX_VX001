@@ -14,11 +14,26 @@ import { SETTINGS_PROFILE_STORAGE_KEY } from "./types/settings";
 const apiMocks = vi.hoisted(() => ({
   approveApproval: vi.fn(),
   cleanupO3deBridgeResults: vi.fn(),
+  createCodexControlNotification: vi.fn(),
+  createAutonomyHealingAction: vi.fn(),
+  createAutonomyJob: vi.fn(),
+  createAutonomyObservation: vi.fn(),
+  createAutonomyObjective: vi.fn(),
+  launchCodexControlTerminal: vi.fn(),
   fetchAdapters: vi.fn(),
+  fetchAutonomyHealingActions: vi.fn(),
+  fetchAutonomyJobs: vi.fn(),
+  fetchAutonomyMemories: vi.fn(),
+  fetchAutonomyObjectives: vi.fn(),
+  fetchAutonomyObservations: vi.fn(),
+  fetchAutonomySummary: vi.fn(),
   fetchApprovalCards: vi.fn(),
   fetchArtifact: vi.fn(),
   fetchArtifactCards: vi.fn(),
   fetchArtifactCardsForTruthFilter: vi.fn(),
+  fetchCodexControlNextTask: vi.fn(),
+  fetchCodexControlNotifications: vi.fn(),
+  fetchCodexControlStatus: vi.fn(),
   fetchControlPlaneSummary: vi.fn(),
   fetchExecutor: vi.fn(),
   fetchExecutors: vi.fn(),
@@ -37,7 +52,21 @@ const apiMocks = vi.hoisted(() => ({
   fetchToolsCatalog: vi.fn(),
   fetchWorkspace: vi.fn(),
   fetchWorkspaces: vi.fn(),
+  heartbeatCodexControlWorker: vi.fn(),
+  markCodexControlNotificationsRead: vi.fn(),
   rejectApproval: vi.fn(),
+  claimCodexControlTask: vi.fn(),
+  completeCodexControlTask: vi.fn(),
+  createCodexControlLane: vi.fn(),
+  createCodexControlTask: vi.fn(),
+  releaseCodexControlTask: vi.fn(),
+  stopCodexControlTerminal: vi.fn(),
+  supersedeCodexControlTask: vi.fn(),
+  syncCodexControlWorker: vi.fn(),
+  updateAutonomyHealingAction: vi.fn(),
+  updateAutonomyJob: vi.fn(),
+  updateAutonomyObservation: vi.fn(),
+  waitForCodexControlTask: vi.fn(),
 }));
 
 vi.mock("./lib/api", () => apiMocks);
@@ -90,6 +119,10 @@ vi.mock("./components/PromptControlPanel", () => ({
   default: () => <div>PromptControlPanel stub</div>,
 }));
 
+vi.mock("./components/workspaces/PromptWorkspaceDesktop", () => ({
+  default: () => <div>PromptWorkspaceDesktop stub</div>,
+}));
+
 vi.mock("./components/SystemStatusPanel", () => ({
   default: () => <div>SystemStatusPanel stub</div>,
 }));
@@ -113,7 +146,7 @@ describe("App desktop smoke", () => {
 
     fireEvent.click(getDesktopNavButton(/Prompt Studio/i));
 
-    expect(await screen.findByText("PromptControlPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Home/i));
 
@@ -135,6 +168,7 @@ describe("App desktop smoke", () => {
   });
 
   it("shows a truthful empty catalog state instead of fallback agent data when live catalog data is unavailable", async () => {
+    apiMocks.fetchToolsCatalog.mockResolvedValueOnce({ agents: [] });
     render(<App />);
 
     fireEvent.click(getLaunchpadButton(
@@ -180,7 +214,7 @@ describe("App desktop smoke", () => {
       </SettingsProvider>,
     );
 
-    expect(await screen.findByText("PromptControlPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
     expect(screen.getAllByText("Prompt Studio").length).toBeGreaterThan(0);
     expect(screen.queryByText("Desktop telemetry")).not.toBeInTheDocument();
   });

@@ -10,6 +10,7 @@ export const CARD_RADIUS_VALUES = ["soft", "rounded", "pillowed"] as const;
 export const LANDING_SECTION_VALUES = [
   "home",
   "prompt",
+  "builder",
   "operations",
   "runtime",
   "records",

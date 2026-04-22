@@ -24,6 +24,7 @@ const agents: CatalogAgent[] = [
         approval_class: "read_only",
         adapter_family: "project-build",
         capability_status: "hybrid-read-only",
+        real_adapter_availability: true,
         default_locks: ["project_config"],
         default_timeout_s: 30,
         risk: "low",

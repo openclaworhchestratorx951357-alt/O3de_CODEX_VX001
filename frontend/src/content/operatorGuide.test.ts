@@ -29,6 +29,7 @@ describe("operatorGuide catalog", () => {
     expect(operatorGuideCatalog.workspaces.map((entry) => entry.id)).toEqual([
       "home",
       "prompt",
+      "builder",
       "operations",
       "runtime",
       "records",
@@ -80,6 +81,15 @@ describe("operatorGuide catalog", () => {
     ]);
     expect(getWorkspaceGuide("prompt").windows.map((entry) => entry.id)).toEqual([
       "prompt-studio",
+    ]);
+    expect(getWorkspaceGuide("builder").windows.map((entry) => entry.id)).toEqual([
+      "builder-overview",
+      "worktree-lanes",
+      "mission-board",
+      "lane-create",
+      "worker-lifecycle",
+      "worker-terminals",
+      "autonomy-inbox",
     ]);
     expect(getWorkspaceGuide("operations").windows.map((entry) => entry.id)).toEqual([
       "command-center",

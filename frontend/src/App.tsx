@@ -96,6 +96,7 @@ import type {
 
 const OperationsWorkspaceDesktop = lazy(() => import("./components/workspaces/OperationsWorkspaceDesktop"));
 const OperatorGuidePanel = lazy(() => import("./components/OperatorGuidePanel"));
+const BuilderWorkspaceDesktop = lazy(() => import("./components/workspaces/BuilderWorkspaceDesktop"));
 const PromptWorkspaceDesktop = lazy(() => import("./components/workspaces/PromptWorkspaceDesktop"));
 const RecordsWorkspaceDesktop = lazy(() => import("./components/workspaces/RecordsWorkspaceDesktop"));
 const RuntimeWorkspaceDesktop = lazy(() => import("./components/workspaces/RuntimeWorkspaceDesktop"));
@@ -217,6 +218,7 @@ type LanePresetSource = "manual" | "session";
 type DesktopWorkspaceId =
   | "home"
   | "prompt"
+  | "builder"
   | "operations"
   | "runtime"
   | "records";
@@ -2142,6 +2144,7 @@ export default function App() {
     if (
       storedWorkspace === "home"
       || storedWorkspace === "prompt"
+      || storedWorkspace === "builder"
       || storedWorkspace === "operations"
       || storedWorkspace === "runtime"
       || storedWorkspace === "records"
@@ -4468,6 +4471,7 @@ export default function App() {
   const bridgeStatusLabel = o3deBridgeStatus?.heartbeat_fresh ? "fresh" : "check";
   const homeWorkspaceGuide = getWorkspaceGuide("home");
   const promptWorkspaceGuide = getWorkspaceGuide("prompt");
+  const builderWorkspaceGuide = getWorkspaceGuide("builder");
   const operationsWorkspaceGuide = getWorkspaceGuide("operations");
   const runtimeWorkspaceGuide = getWorkspaceGuide("runtime");
   const recordsWorkspaceGuide = getWorkspaceGuide("records");
@@ -4483,6 +4487,10 @@ export default function App() {
     prompt: {
       title: promptWorkspaceGuide.workspaceTitle,
       subtitle: promptWorkspaceGuide.workspaceSubtitle,
+    },
+    builder: {
+      title: builderWorkspaceGuide.workspaceTitle,
+      subtitle: builderWorkspaceGuide.workspaceSubtitle,
     },
     operations: {
       title: operationsWorkspaceGuide.workspaceTitle,
@@ -4514,6 +4522,14 @@ export default function App() {
       badge: null,
       tone: "info",
       helpTooltip: promptWorkspaceGuide.tooltip,
+    },
+    {
+      id: "builder",
+      label: builderWorkspaceGuide.navLabel,
+      subtitle: builderWorkspaceGuide.navSubtitle,
+      badge: null,
+      tone: "info",
+      helpTooltip: builderWorkspaceGuide.tooltip,
     },
     {
       id: "operations",
@@ -4709,6 +4725,7 @@ export default function App() {
     />
   );
   const promptLaunchpad = promptWorkspaceGuide.launchpad!;
+  const builderLaunchpad = builderWorkspaceGuide.launchpad!;
   const operationsLaunchpad = operationsWorkspaceGuide.launchpad!;
   const runtimeLaunchpad = runtimeWorkspaceGuide.launchpad!;
   const recordsLaunchpad = recordsWorkspaceGuide.launchpad!;
@@ -4724,6 +4741,17 @@ export default function App() {
           <strong>{promptLaunchpad.label}</strong>
           <span style={desktopShortcutMetaStyle}>
             {promptLaunchpad.description}
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveWorkspaceId("builder")}
+          title={builderLaunchpad.tooltip}
+          style={desktopShortcutCardStyle}
+        >
+          <strong>{builderLaunchpad.label}</strong>
+          <span style={desktopShortcutMetaStyle}>
+            {builderLaunchpad.description}
           </span>
         </button>
         <button
@@ -6106,6 +6134,17 @@ export default function App() {
             selectedWorkspaceId={selectedWorkspaceId}
             selectedExecutorId={selectedExecutorId}
           />
+        </Suspense>
+      ) : null}
+
+      {activeWorkspaceId === "builder" ? (
+        <Suspense
+          fallback={renderWorkspaceLoadingFallback(
+            "Builder",
+            "Loading worktree lanes, mission-control visibility, and Codex handoff scaffolding.",
+          )}
+        >
+          <BuilderWorkspaceDesktop />
         </Suspense>
       ) : null}
 

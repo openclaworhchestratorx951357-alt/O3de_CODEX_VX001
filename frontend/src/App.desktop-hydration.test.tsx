@@ -14,15 +14,35 @@ const ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY = "o3de-control-app-active-desktop-wo
 const ACTIVE_OPERATIONS_SURFACE_SESSION_KEY = "o3de-control-app-active-operations-surface";
 const ACTIVE_RUNTIME_SURFACE_SESSION_KEY = "o3de-control-app-active-runtime-surface";
 const ACTIVE_RECORDS_SURFACE_SESSION_KEY = "o3de-control-app-active-records-surface";
+const LAZY_SURFACE_TIMEOUT_MS = 5000;
 
 const apiMocks = vi.hoisted(() => ({
+  claimCodexControlTask: vi.fn(),
   approveApproval: vi.fn(),
   cleanupO3deBridgeResults: vi.fn(),
+  completeCodexControlTask: vi.fn(),
+  createCodexControlNotification: vi.fn(),
+  createAutonomyHealingAction: vi.fn(),
+  createAutonomyJob: vi.fn(),
+  createAutonomyObservation: vi.fn(),
+  createAutonomyObjective: vi.fn(),
+  createCodexControlLane: vi.fn(),
+  createCodexControlTask: vi.fn(),
+  launchCodexControlTerminal: vi.fn(),
   fetchAdapters: vi.fn(),
+  fetchAutonomyHealingActions: vi.fn(),
+  fetchAutonomyJobs: vi.fn(),
+  fetchAutonomyMemories: vi.fn(),
+  fetchAutonomyObjectives: vi.fn(),
+  fetchAutonomyObservations: vi.fn(),
+  fetchAutonomySummary: vi.fn(),
   fetchApprovalCards: vi.fn(),
   fetchArtifact: vi.fn(),
   fetchArtifactCards: vi.fn(),
   fetchArtifactCardsForTruthFilter: vi.fn(),
+  fetchCodexControlNextTask: vi.fn(),
+  fetchCodexControlNotifications: vi.fn(),
+  fetchCodexControlStatus: vi.fn(),
   fetchControlPlaneSummary: vi.fn(),
   fetchExecutor: vi.fn(),
   fetchExecutors: vi.fn(),
@@ -41,7 +61,17 @@ const apiMocks = vi.hoisted(() => ({
   fetchToolsCatalog: vi.fn(),
   fetchWorkspace: vi.fn(),
   fetchWorkspaces: vi.fn(),
+  heartbeatCodexControlWorker: vi.fn(),
+  markCodexControlNotificationsRead: vi.fn(),
   rejectApproval: vi.fn(),
+  releaseCodexControlTask: vi.fn(),
+  stopCodexControlTerminal: vi.fn(),
+  supersedeCodexControlTask: vi.fn(),
+  syncCodexControlWorker: vi.fn(),
+  updateAutonomyHealingAction: vi.fn(),
+  updateAutonomyJob: vi.fn(),
+  updateAutonomyObservation: vi.fn(),
+  waitForCodexControlTask: vi.fn(),
 }));
 
 vi.mock("./lib/api", () => apiMocks);
@@ -194,6 +224,7 @@ const EXPLICIT_DEFAULT_SURFACE_RESTORE_CASES = [
 describe("App desktop hydration", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
+    window.localStorage.clear();
     vi.clearAllMocks();
 
     setPendingAppApiMocks(apiMocks);
@@ -205,7 +236,11 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Catalog browsing, dispatch, approvals, and live timeline control.",
     ));
-    expect(await screen.findByText("Catalog, typed dispatch, and latest response envelope.")).toBeInTheDocument();
+    expect(await screen.findByText(
+      "Catalog, typed dispatch, and latest response envelope.",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
 
     fireEvent.click(getDesktopTabButton(
       "Agents",
@@ -232,7 +267,11 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Catalog browsing, dispatch, approvals, and live timeline control.",
     ));
-    expect(await screen.findByText("Catalog, typed dispatch, and latest response envelope.")).toBeInTheDocument();
+    expect(await screen.findByText(
+      "Catalog, typed dispatch, and latest response envelope.",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
 
     const approvalsSurfaceButton = getDesktopTabButton(
       "Approvals",
@@ -267,7 +306,11 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Catalog browsing, dispatch, approvals, and live timeline control.",
     ));
-    expect(await screen.findByText("Catalog, typed dispatch, and latest response envelope.")).toBeInTheDocument();
+    expect(await screen.findByText(
+      "Catalog, typed dispatch, and latest response envelope.",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
 
     const timelineSurfaceButton = getDesktopTabButton(
       "Timeline",
@@ -302,7 +345,11 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Bridge status, executors, workspaces, and governance health.",
     ));
-    expect(await screen.findByText("SystemStatusPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText(
+      "SystemStatusPanel stub",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
 
     fireEvent.click(getDesktopTabButton(
       "Executors",
@@ -330,7 +377,11 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Bridge status, executors, workspaces, and governance health.",
     ));
-    expect(await screen.findByText("SystemStatusPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText(
+      "SystemStatusPanel stub",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
 
     fireEvent.click(getDesktopTabButton(
       "Governance",
@@ -372,7 +423,11 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Bridge status, executors, workspaces, and governance health.",
     ));
-    expect(await screen.findByText("SystemStatusPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText(
+      "SystemStatusPanel stub",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
 
     const workspacesSurfaceButton = getDesktopTabButton(
       "Workspaces",
@@ -426,7 +481,11 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Runs, executions, artifacts, and detail drilldowns in one organized lane.",
     ));
-    expect(await screen.findByText("RunsPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText(
+      "RunsPanel stub",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
 
     const executionsSurfaceButton = getDesktopTabButton(
       "Executions",
@@ -462,7 +521,11 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Runs, executions, artifacts, and detail drilldowns in one organized lane.",
     ));
-    expect(await screen.findByText("RunsPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText(
+      "RunsPanel stub",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
 
     const artifactsSurfaceButton = getDesktopTabButton(
       "Artifacts",

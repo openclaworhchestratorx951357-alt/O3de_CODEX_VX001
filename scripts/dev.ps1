@@ -6,6 +6,7 @@ param(
         "runner-diagnostics",
         "backend-lint",
         "backend-test",
+        "mission-control",
         "live-status",
         "live-start",
         "live-stop",
@@ -25,7 +26,9 @@ param(
     [int]$FrontendPort = 4173,
     [string]$ApiBaseUrl = "http://127.0.0.1:8000",
     [ValidateRange(5, 120)]
-    [int]$FrontendStartupTimeoutSeconds = 20
+    [int]$FrontendStartupTimeoutSeconds = 20,
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$TaskArgs = @()
 )
 
 Set-StrictMode -Version Latest
@@ -38,6 +41,7 @@ $VendorTools = Join-Path $BackendDir ".vendor_tools"
 $BackendPythonPath = "$VendorTools;$BackendDir"
 $BackendVenvPython = Join-Path $BackendDir ".venv\Scripts\python.exe"
 $LiveRuntimeControlScript = Join-Path $BackendDir "runtime\live_verify_control.ps1"
+$MissionControlScript = Join-Path $RepoRoot "scripts\mission_control.ps1"
 
 function Get-PrimaryRepoRoot {
     Push-Location $RepoRoot
@@ -290,6 +294,24 @@ function Invoke-LiveRuntimeControl {
     }
 }
 
+function Invoke-MissionControl {
+    if (-not (Test-Path $MissionControlScript)) {
+        throw "Expected mission-control wrapper at $MissionControlScript"
+    }
+
+    if ($TaskArgs.Count -eq 0) {
+        & $MissionControlScript board
+    }
+    else {
+        & $MissionControlScript @TaskArgs
+    }
+
+    $exitCode = if (Test-Path variable:LASTEXITCODE) { $LASTEXITCODE } else { 0 }
+    if ($exitCode -ne 0) {
+        exit $exitCode
+    }
+}
+
 function Invoke-FrontendLint {
     Invoke-RepoProcess -WorkingDirectory $FrontendDir -FilePath (Get-NpmExecutable) -ArgumentList @("run", "lint")
 }
@@ -415,6 +437,7 @@ switch ($Task) {
     "runner-diagnostics" { Invoke-RunnerDiagnostics }
     "backend-lint" { Invoke-BackendLint }
     "backend-test" { Invoke-BackendTests }
+    "mission-control" { Invoke-MissionControl }
     "live-status" { Invoke-LiveRuntimeControl -Action "status" }
     "live-start" { Invoke-LiveRuntimeControl -Action "start" }
     "live-stop" { Invoke-LiveRuntimeControl -Action "stop-all" }

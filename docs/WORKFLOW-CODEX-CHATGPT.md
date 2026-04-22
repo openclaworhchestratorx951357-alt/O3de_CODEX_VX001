@@ -151,6 +151,33 @@ git status --short
 git fetch origin --prune
 ```
 
+## Parallel Thread Coordination
+
+When multiple Codex threads are active at the same time, do not place them on
+the same live-edit branch.
+
+Use this pattern instead:
+- stable launchpad branch:
+  `codex/control-plane/o3de-thread-launchpad-stable`
+- one worker branch/worktree per active thread
+- one shared mission-control board under the Git common directory
+
+Mission Control is the repo-owned coordination layer for:
+- worker registration
+- task claims
+- file-scope collision checks
+- exclusive runtime resource claims such as `resource/port-8000`,
+  `resource/o3de-editor`, and `resource/mcpsandbox-bridge`
+- wait queues and notifications when blocked work becomes safe again
+
+Preferred entry point:
+
+```powershell
+pwsh -File .\scripts\dev.ps1 mission-control board
+```
+
+See `docs/MISSION-CONTROL-RUNBOOK.md` for the operating flow.
+
 ### Required slice-start sync rule
 
 Every new implementation slice must also apply this rule:

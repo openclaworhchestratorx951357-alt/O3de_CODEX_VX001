@@ -16,9 +16,10 @@ Operate the control-plane through focused desktop workspaces instead of one over
 
 1. Start on Home to refresh the dashboard and orient yourself before dispatching work.
 2. Use Prompt Studio for natural-language requests, while keeping simulated versus admitted-real wording explicit.
-3. Use Command Center when you need dispatch, approvals, timeline, or agent ownership detail.
-4. Use Runtime to validate bridge health, executors, workspaces, and governance posture before claiming real-editor progress.
-5. Use Records to inspect runs, executions, artifacts, and evidence before handoff or closeout.
+3. Use Builder when you need repo-native worktree lanes, mission-control visibility, or a clean branch/worktree before handing execution to Codex Desktop.
+4. Use Command Center when you need dispatch, approvals, timeline, or agent ownership detail.
+5. Use Runtime to validate bridge health, executors, workspaces, and governance posture before claiming real-editor progress.
+6. Use Records to inspect runs, executions, artifacts, and evidence before handoff or closeout.
 
 ## Tooltip coverage
 
@@ -678,9 +679,9 @@ Home is the orientation and launch surface. Use it whenever you need the broades
 - Save lane notes here when you need continuity between sessions or handoffs.
 #### Launchpad
 - Open focused workspaces instead of hunting through one continuous operator page.
-- Quick tip: Jump directly into Prompt Studio, Command Center, Runtime, or Records with the workspace preselected for the intended task.
+- Quick tip: Jump directly into Prompt Studio, Builder, Command Center, Runtime, or Records with the workspace preselected for the intended task.
 - Use Launchpad as the fastest route into a specific workflow.
-- Pick Prompt Studio for natural-language requests, Command Center for dispatch and approvals, Runtime for bridge health, and Records for evidence review.
+- Pick Prompt Studio for natural-language requests, Builder for worktree lanes and mission control, Command Center for dispatch and approvals, Runtime for bridge health, and Records for evidence review.
 - Treat Launchpad as navigation, not as a substitute for the deeper workspace itself.
 #### Operator Overview
 - Attention queue, handoff posture, and browser-local review memory.
@@ -712,6 +713,76 @@ Prompt Studio is the operator-facing natural-language front door. It is where pl
 - Use this workspace for natural-language task entry and controlled dispatch.
 - Keep simulated versus admitted-real wording explicit in both the request and your interpretation of the result.
 - Open related runs, executions, and artifacts afterward in Records when you need persisted evidence.
+## Builder
+Builder is the app-native branch, worktree, mission-control, and inbox workspace. Use it when you need to spin up a clean lane, seed shared coordination tasks, sync worker state, publish heartbeats, review app-owned objectives/jobs/observations, check what other threads own, or prepare a stable handoff into Codex Desktop without colliding on ports or stale local state.
+### Operator checklist
+- Check the harness and repo status first so you know whether the workspace is in manual-handoff mode or missing mission-control wiring.
+- Inspect worktrees and mission-control ownership before creating a new lane for another thread.
+- Use lane creation and task seeding here instead of ad hoc worktree commands so the shared board stays truthful.
+- Use task claim, wait, and notification controls here before assigning overlapping scope to another thread.
+- Refresh worker status and copy the handoff package here before moving work into a new Codex thread.
+- Use the Autonomy Inbox window to review queued helper jobs and copy a manual inbox-check prompt for the next thread.
+### Launchpad shortcut
+
+- **Builder**: Worktree lanes, branch creation, and mission-control visibility for Codex Desktop handoffs.
+- Open Builder when you need a clean branch/worktree lane or want to see whether another thread already owns the scope.
+
+### Windows
+#### Builder Overview
+- Repo root, current branch, harness readiness, and manual-handoff truth.
+- Quick tip: Use this window to confirm what builder surfaces are ready now and what still remains a future automation phase.
+- Read the manual-handoff note before assuming the app is already driving Codex Desktop autonomously.
+- Confirm repo root, git common dir, and current branch before launching new worktree lanes.
+- Use the notes here as the truth source for what this builder slice does and does not automate yet.
+#### Worktree Lanes
+- Current git worktrees, attached branches, and lock/collision posture.
+- Quick tip: Inspect every attached worktree here before assigning new work so threads do not pile onto the same checkout.
+- Check which branch is already attached to each worktree before starting another thread.
+- Use the current-repo marker to distinguish the main checkout from side lanes.
+- Treat locked or detached worktrees as signals to inspect first instead of reusing blindly.
+#### Mission Board
+- Shared workers, tasks, waiters, and notifications from the repo mission-control state.
+- Quick tip: Use the live board snapshot to see who owns what, who is waiting on blocked scope, and when an urgent supersede should replace the selected lane's current task.
+- Check worker ownership before you tell another thread to start on a file or scope.
+- Use task claim, release, complete, and wait controls here instead of relying on private shell notes.
+- Use Supersede current task here when higher-priority work must replace the selected lane's active task, optionally stop its managed terminal, and publish the override on the shared board in one repo-owned step.
+- Use notifications and waiters to spot queued work instead of duplicating effort.
+- If the board is missing, seed or refresh a lane before relying on multi-thread coordination.
+#### Create Lane
+- Launch a new branch/worktree lane and seed coordination tasks from the in-app control surface.
+- Quick tip: Use the lane and task forms to create a clean branch/worktree pair and register shared scope on the mission-control board in one step.
+- Keep worker ID short and stable so lane ownership is readable in the board snapshot.
+- Leave optional paths blank unless you need a specific branch name or worktree location.
+- Seed shared tasks here when a follow-on thread needs an explicit scope claim before starting work.
+- Refresh the board after creation and hand the new lane to the next Codex thread instead of reusing the current checkout.
+#### Worker Lifecycle
+- Sync worker lanes, publish heartbeats, and generate copy-ready handoff packages.
+- Quick tip: Use this window to keep the shared board truthful for each worker lane and prepare a stable handoff package for the next Codex thread.
+- Use worker sync when a lane exists but its branch, worktree, status, or summary needs to be refreshed on the shared board.
+- Use heartbeat when you need to publish a current worker state update without creating a new lane.
+- Generate and copy the handoff package here before switching threads so the next operator starts from the same board truth.
+- Treat this as coordination scaffolding for Codex Desktop, not as a self-prompting autonomous loop.
+#### Worker Terminals
+- Managed worker processes with captured logs, stop controls, and urgent interrupt actions.
+- Quick tip: Use this window when a worker lane needs one observable repo-launched process with log capture and an operator-visible stop path.
+- Launch only repo-owned commands here so the app can capture logs, show status, and stop the process again safely.
+- Treat these as managed worker processes, not as proof that the app can directly control arbitrary Codex chat threads.
+- Use Interrupt selected worker here when higher-priority work must preempt a lane and the selected managed terminal should stop immediately.
+- Use the Mission Board supersede flow when you need the task reassignment itself to happen in the same repo-owned step as the interrupt, instead of only broadcasting that the lane should stop.
+#### Autonomy Inbox
+- Manual helper-thread queue for Builder objectives, jobs, observations, and reusable memory.
+- Quick tip: Use this window to keep a durable Builder inbox inside the app and generate a copy-ready prompt telling the next thread exactly how to check it.
+- Use the inbox summary cards to see whether there are active objectives, queued jobs, or warning observations before assigning another thread.
+- Seed new objectives and jobs here when you want work to stay visible in the app instead of living only in ad hoc chat history.
+- Promote or claim an inbox job here when it is ready to become a concrete mission-board task for a selected worker lane.
+- Mark inbox jobs running, blocked, or succeeded here so Builder status stays aligned with the mission board.
+- Use Wait on linked task or Release linked task here when a Builder inbox job is blocked on ownership or needs to go back to the shared queue without leaving the app.
+- If a promote or claim step fails here, Builder now records an observation and a proposed healing action so the next thread can see the blocker immediately.
+- Mark observations handled and resolve healing actions here to close the loop when a stuck-thread blocker has been reviewed or cleared.
+- Watch the stuck-thread signal pills here for stale blockers, stale worker heartbeats, retry exhaustion, and already-pending refresh requests before sending more traffic.
+- Use the refresh ping from Builder when one lane needs another thread to re-check its worktree, mission-board task, or blocker state without resorting to constant polling.
+- Copy the inbox prompt here when you want the next Codex thread to inspect Builder, respect mission-board ownership, and help manually.
+- Treat this as operator-guided coordination and memory, not as proof of autonomous self-prompting behavior.
 ## Command Center
 Command Center is the operational workbench. Use it when a task requires structured dispatch, approvals, or a read on ownership and event flow.
 ### Operator checklist

@@ -41,6 +41,31 @@ class ExecutionStatus(str, Enum):
     FAILED = "failed"
 
 
+class AutonomyObjectiveStatus(str, Enum):
+    PROPOSED = "proposed"
+    ACTIVE = "active"
+    BLOCKED = "blocked"
+    ACHIEVED = "achieved"
+    ARCHIVED = "archived"
+
+
+class AutonomyJobStatus(str, Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    BLOCKED = "blocked"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class AutonomyHealingStatus(str, Enum):
+    PROPOSED = "proposed"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    ABANDONED = "abandoned"
+
+
 class ToolPolicy(BaseModel):
     agent: str = Field(..., min_length=1)
     tool: str = Field(..., min_length=1)
@@ -193,3 +218,75 @@ class WorkspaceRecord(BaseModel):
     completed_at: datetime | None = None
     cleaned_at: datetime | None = None
     last_failure_summary: str | None = None
+
+
+class AutonomyObjectiveRecord(BaseModel):
+    id: str = Field(..., min_length=1)
+    title: str = Field(..., min_length=1)
+    description: str = Field(..., min_length=1)
+    status: AutonomyObjectiveStatus = AutonomyObjectiveStatus.PROPOSED
+    priority: int = 100
+    target_scopes: list[str] = Field(default_factory=list)
+    success_criteria: list[str] = Field(default_factory=list)
+    owner_kind: str = Field(default="builder", min_length=1)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+    last_reviewed_at: datetime | None = None
+
+
+class AutonomyJobRecord(BaseModel):
+    id: str = Field(..., min_length=1)
+    objective_id: str | None = None
+    job_kind: str = Field(..., min_length=1)
+    title: str = Field(..., min_length=1)
+    summary: str = Field(..., min_length=1)
+    status: AutonomyJobStatus = AutonomyJobStatus.QUEUED
+    assigned_lane: str | None = None
+    resource_keys: list[str] = Field(default_factory=list)
+    depends_on: list[str] = Field(default_factory=list)
+    input_payload: dict[str, Any] = Field(default_factory=dict)
+    output_payload: dict[str, Any] = Field(default_factory=dict)
+    retry_count: int = 0
+    max_retries: int = 0
+    last_error: str | None = None
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+
+
+class AutonomyObservationRecord(BaseModel):
+    id: str = Field(..., min_length=1)
+    source_kind: str = Field(..., min_length=1)
+    source_ref: str | None = None
+    category: str = Field(..., min_length=1)
+    severity: EventSeverity = EventSeverity.INFO
+    message: str = Field(..., min_length=1)
+    details: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=utc_now)
+
+
+class AutonomyHealingActionRecord(BaseModel):
+    id: str = Field(..., min_length=1)
+    observation_id: str | None = None
+    job_id: str | None = None
+    action_kind: str = Field(..., min_length=1)
+    summary: str = Field(..., min_length=1)
+    status: AutonomyHealingStatus = AutonomyHealingStatus.PROPOSED
+    details: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+    resolved_at: datetime | None = None
+
+
+class AutonomyMemoryRecord(BaseModel):
+    id: str = Field(..., min_length=1)
+    memory_kind: str = Field(..., min_length=1)
+    title: str = Field(..., min_length=1)
+    content: str = Field(..., min_length=1)
+    tags: list[str] = Field(default_factory=list)
+    confidence: float | None = None
+    source_refs: list[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
