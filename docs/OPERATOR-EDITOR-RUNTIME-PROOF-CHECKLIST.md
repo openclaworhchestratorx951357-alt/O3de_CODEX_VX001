@@ -36,6 +36,153 @@ Canonical local backend proof path:
 - launcher:
   `backend/runtime/launch_branch_backend_8000.cmd`
 
+## Latest verified live evidence
+
+Latest post-restart verification on `2026-04-21` against the canonical backend
+bound to `127.0.0.1:8000`:
+- live catalog reported `editor.session.open.default_timeout_s = 180`
+- live prompt planning for prompt id
+  `proof-prompt-timeout-alignment-002` emitted
+  `editor-session-1.args.timeout_s = 180`
+- direct admitted-real `editor.session.open` request id
+  `proof-session-open-default-timeout-002` returned real success after approval
+- approval id: `apr-5beb8b95fabc`
+- run id: `run-a062e4bbc48e`
+- execution id: `exe-5f6d33e04cf8`
+- artifact id: `art-340a8370934d`
+- bridge command id: `1c7514a041f14f2986e678b4be935d18`
+- execution finished at: `2026-04-21T23:10:34.254580Z`
+- persisted execution/artifact evidence reported:
+  `execution_mode = real`
+- persisted execution/artifact evidence reported:
+  `inspection_surface = editor_session_runtime`
+- persisted execution/artifact evidence reported loaded level path:
+  `C:/Users/topgu/O3DE/Projects/McpSandbox/Levels/BridgeLevel01_probe_b`
+- bridge status remained:
+  `heartbeat_fresh = true`
+- bridge queue counts after the proof run returned to:
+  `inbox = 0`, `processing = 0`, `results = 0`, `deadletter = 6`
+
+Latest prompt-gated `editor.level.open` verification on `2026-04-22` against
+the same canonical backend:
+- prompt id: `proof-prompt-editor-level-postrestart-001`
+- plan id: `plan-3933c47bc58d`
+- prompt plan remained admitted and emitted
+  `editor-session-1.args.timeout_s = 180`
+- prompt plan targeted level path:
+  `Levels/BridgeLevel01_probe_b`
+- first approval id for `editor.session.open`:
+  `apr-ff713de0dcb7`
+- second approval id for `editor.level.open`:
+  `apr-ecc5c6dd462e`
+- real `editor.session.open` run id:
+  `run-c04943025a95`
+- real `editor.session.open` execution id:
+  `exe-9659c941dd04`
+- real `editor.session.open` artifact id:
+  `art-bf12737d370b`
+- real `editor.session.open` bridge command id:
+  `53c3a3597ae345cd8d0d48084b5f360e`
+- real `editor.level.open` run id:
+  `run-f8be94d7f5ab`
+- real `editor.level.open` execution id:
+  `exe-d7264d4cfd60`
+- real `editor.level.open` artifact id:
+  `art-c124925b2c45`
+- real `editor.level.open` bridge command id:
+  `d58fb2c70e63472486df183d690cb19c`
+- prompt session completed with child run lineage:
+  `run-1d7735e1c6a0`, `run-c04943025a95`, `run-a0eea7101225`,
+  `run-f8be94d7f5ab`
+- persisted real `editor.level.open` execution finished at:
+  `2026-04-22T00:12:45.388149Z`
+- persisted real `editor.level.open` evidence reported:
+  `execution_mode = real`
+- persisted real `editor.level.open` evidence reported:
+  `inspection_surface = editor_level_opened`
+- persisted real `editor.level.open` evidence reported loaded level path:
+  `C:/Users/topgu/O3DE/Projects/McpSandbox/Levels/BridgeLevel01_probe_b`
+- bridge result summary for the post-restart level proof was:
+  `Requested level is already open in the persistent bridge session.`
+- bridge status remained:
+  `heartbeat_fresh = true`
+- bridge queue counts returned to:
+  `inbox = 0`, `processing = 0`, `results = 0`, `deadletter = 6`
+
+Latest direct level-transition verification on `2026-04-22` against the same
+canonical backend:
+- direct request id:
+  `proof-editor-level-transition-defaultlevel-001`
+- approval id:
+  `apr-cd50a945296f`
+- before the direct proof run, bridge heartbeat reported active level path:
+  `C:/Users/topgu/O3DE/Projects/McpSandbox/Levels/BridgeLevel01_probe_b`
+- direct real `editor.level.open` run id:
+  `run-1a8099e071c9`
+- direct real `editor.level.open` execution id:
+  `exe-7d041db334b5`
+- direct real `editor.level.open` artifact id:
+  `art-dd32a26bf58c`
+- direct real `editor.level.open` bridge command id:
+  `30b8af82bdf3419883bad79cdf20f036`
+- direct real `editor.level.open` execution finished at:
+  `2026-04-22T00:15:24.965119Z`
+- persisted direct `editor.level.open` evidence reported:
+  `execution_mode = real`
+- persisted direct `editor.level.open` evidence reported:
+  `inspection_surface = editor_level_opened`
+- persisted direct `editor.level.open` evidence reported level path:
+  `C:/Users/topgu/O3DE/Projects/McpSandbox/Levels/DefaultLevel`
+- the first bridge read taken immediately after the successful dispatch still
+  showed the prior active level and a stale nested queue snapshot
+- by bridge heartbeat timestamp `2026-04-22T00:15:39.382005Z`, the canonical
+  `/o3de/bridge` endpoint reported:
+  `active_level_name = DefaultLevel`
+- by bridge heartbeat timestamp `2026-04-22T00:15:39.382005Z`, the canonical
+  `/o3de/bridge` endpoint reported:
+  `active_level_path = C:/Users/topgu/O3DE/Projects/McpSandbox/Levels/DefaultLevel`
+- after heartbeat convergence, bridge queue counts were:
+  `inbox = 0`, `processing = 0`, `results = 0`, `deadletter = 6`
+
+Authoritative note:
+- an earlier same-day no-override session-open request succeeded before the
+  canonical backend restart, but the live catalog and live prompt planner still
+  exposed the stale `30`/`60` timeout surfaces
+- the verification bullets above are the authoritative post-restart proof for
+  the updated repo state
+- the `2026-04-22` prompt-gated `editor.level.open` proof confirms admitted-real
+  prompt lineage and persisted real evidence on the canonical backend, but it
+  targeted a level that was already active in the bridge session
+- the `2026-04-22` direct `editor.level.open` proof confirmed an actual level
+  transition from `BridgeLevel01_probe_b` to `DefaultLevel`
+- operators should treat persisted execution/artifact evidence as authoritative
+  first, then allow a short bridge-heartbeat convergence window before treating
+  an immediate post-dispatch `/o3de/bridge` sample as a mismatch
+
+Latest post-restart exclusion verification for `editor.entity.create` on
+`2026-04-22` against the same canonical backend:
+- prompt capability registry still reported:
+  `capability_maturity = runtime-reaching`
+- prompt capability registry still reported:
+  `real_admission_stage = runtime-reaching-excluded-from-admitted-real`
+- prompt capability registry still reported:
+  `safety_envelope.natural_language_status = prompt-blocked-pending-admission`
+- prompt capability registry still reported blocker text:
+  `Excluded from the admitted real set on current tested local targets until prefab-safe entity creation is proven stable.`
+- policy registry still reported:
+  `real_admission_stage = runtime-reaching-excluded-from-admitted-real`
+- refusal prompt id:
+  `proof-prompt-editor-entity-exclusion-postrestart-001`
+- refusal plan id:
+  `plan-31e55053a2a1`
+- refusal prompt status:
+  `refused`
+- refusal prompt listed:
+  `refused_capabilities = ["editor.entity.create"]`
+- refusal prompt final result summary explicitly stated that
+  `editor.entity.create` remains runtime-reaching and excluded from the
+  admitted real set on current tested local targets
+
 ## Preconditions
 
 Before using this checklist, confirm all of the following:
@@ -107,6 +254,9 @@ Bridge evidence on disk:
 
 Dispatch a real editor session open through the repo-owned backend.
 
+For the currently admitted-real bridge-backed session-open path, use a
+`180` second timeout rather than the shorter generic request defaults.
+
 Exact proof commands:
 
 ```powershell
@@ -118,12 +268,11 @@ $sessionRequest = @{
   engine_root = "C:\src\o3de"
   dry_run = $false
   locks = @("editor_session")
-  timeout_s = 60
+  timeout_s = 180
   args = @{
-    session_mode = "open"
+    session_mode = "attach"
     project_path = "C:\Users\topgu\O3DE\Projects\McpSandbox"
-    level_path = "Levels/Main.level"
-    timeout_s = 60
+    timeout_s = 180
   }
 }
 
@@ -190,9 +339,9 @@ $levelRequest = @{
   engine_root = "C:\src\o3de"
   dry_run = $false
   locks = @("editor_session")
-  timeout_s = 60
+  timeout_s = 120
   args = @{
-    level_path = "Levels/Main.level"
+    level_path = "Levels/DefaultLevel"
     make_writable = $true
     focus_viewport = $true
   }
@@ -252,6 +401,9 @@ After the admitted-real dispatches, confirm:
 - no new deadletter evidence was introduced for the successful proof run
 - bridge heartbeat remains fresh
 - bridge log shows command processing for the proof run
+- after `editor.level.open`, if the first immediate bridge sample still reports
+  the previous active level, poll `/o3de/bridge` briefly until the heartbeat
+  converges to the persisted execution `loaded_level_path`
 
 Useful endpoint:
 

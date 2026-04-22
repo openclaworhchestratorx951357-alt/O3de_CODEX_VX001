@@ -12,6 +12,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from app.services.editor_runtime_defaults import EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S
+
 EDITOR_RUNTIME_BOUNDARY = (
     "Real editor automation through typed Python Editor Bindings contracts, "
     "preferring the persistent ControlPlaneEditorBridge filesystem inbox transport "
@@ -45,6 +47,14 @@ BRIDGE_PROVENANCE_KEYS = (
 )
 
 
+def _coerce_positive_timeout_s(value: Any, *, default: int) -> int:
+    try:
+        timeout_s = int(value)
+    except (TypeError, ValueError):
+        return default
+    return timeout_s if timeout_s > 0 else default
+
+
 class EditorAutomationRuntimeService:
     def __init__(self) -> None:
         runtime_root = Path(__file__).resolve().parents[2] / "runtime"
@@ -69,6 +79,10 @@ class EditorAutomationRuntimeService:
     ) -> dict[str, Any]:
         manifest = self._load_project_manifest(project_root)
         self._ensure_python_editor_bindings_enabled(manifest, project_root=project_root)
+        session_timeout_s = _coerce_positive_timeout_s(
+            args.get("timeout_s"),
+            default=EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S,
+        )
         if dry_run:
             self._reject_preflight(
                 tool="editor.session.open",
@@ -99,7 +113,7 @@ class EditorAutomationRuntimeService:
                 project_root=project_root,
                 engine_root=engine_root,
                 runner_command=runner_command,
-                timeout_s=int(args.get("timeout_s", 60)),
+                timeout_s=session_timeout_s,
             )
         bridge_response = self._invoke_bridge_command(
             tool="editor.session.open",
@@ -114,9 +128,9 @@ class EditorAutomationRuntimeService:
                 "session_mode": args.get("session_mode", "attach"),
                 "project_path": project_root,
                 "level_path": args.get("level_path"),
-                "timeout_s": args.get("timeout_s", 60),
+                "timeout_s": session_timeout_s,
             },
-            timeout_s=int(args.get("timeout_s", 60)),
+            timeout_s=session_timeout_s,
         )
         bridge_details = self._bridge_response_details(bridge_response)
         runtime_result = {

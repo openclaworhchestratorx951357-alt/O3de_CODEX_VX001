@@ -1,4 +1,5 @@
 from app.models.catalog import CatalogAgent, ToolDefinition, ToolsCatalog
+from app.services.editor_runtime_defaults import EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S
 
 
 def tool_args_schema(tool_name: str) -> str:
@@ -39,6 +40,7 @@ CATALOG = ToolsCatalog(
                     args_schema=tool_args_schema("editor.session.open"),
                     result_schema=tool_result_schema("editor.session.open"),
                     default_locks=["editor_session"],
+                    default_timeout_s=EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S,
                     risk="medium",
                     tags=["editor", "session"],
                 ),

@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from app.services.editor_automation_runtime import editor_automation_runtime_service
+from app.services.editor_runtime_defaults import EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S
 
 
 def write_editor_project_manifest(project_root: Path) -> None:
@@ -351,6 +352,80 @@ def test_execute_session_open_uses_existing_runner_when_stale_heartbeat_recovers
         assert runtime_result["bridge_available"] is True
         assert runtime_result["bridge_command_id"]
         assert isinstance(captured.get("command"), dict)
+
+
+def test_execute_session_open_uses_extended_default_timeout_when_timeout_arg_missing() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+        ensure_bridge_bootstrap(project_root)
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_host_available",
+                    return_value=False,
+                ):
+                    with patch.object(
+                        editor_automation_runtime_service,
+                        "_launch_bridge_host",
+                    ) as launch_bridge_host:
+                        with patch.object(
+                            editor_automation_runtime_service,
+                            "_invoke_bridge_command",
+                            return_value={
+                                "operation": "editor.session.open",
+                                "bridge_command_id": "bridge-session-default-timeout",
+                                "success": True,
+                                "bridge_name": "ControlPlaneEditorBridge",
+                                "bridge_version": "0.1.0",
+                                "finished_at": "2026-04-21T00:00:01Z",
+                                "result_summary": "editor.session.open completed.",
+                                "details": {
+                                    "active_level_path": "Levels/Main.level",
+                                },
+                            },
+                        ) as invoke_bridge_command:
+                            payload = editor_automation_runtime_service.execute_session_open(
+                                request_id="req-session-default-timeout",
+                                session_id="session-1",
+                                workspace_id="workspace-editor-project",
+                                executor_id="executor-editor-control-real-local",
+                                project_root=str(project_root),
+                                engine_root="C:/src/o3de",
+                                dry_run=False,
+                                args={
+                                    "session_mode": "attach",
+                                    "project_path": str(project_root),
+                                    "level_path": "Levels/Main.level",
+                                },
+                                locks_acquired=["editor_session"],
+                            )
+
+        runtime_result = payload["runtime_result"]
+        assert runtime_result["editor_transport"] == "bridge"
+        launch_bridge_host.assert_called_once()
+        assert (
+            launch_bridge_host.call_args.kwargs["timeout_s"]
+            == EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S
+        )
+        invoke_bridge_command.assert_called_once()
+        assert (
+            invoke_bridge_command.call_args.kwargs["timeout_s"]
+            == EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S
+        )
+        assert (
+            invoke_bridge_command.call_args.kwargs["args"]["timeout_s"]
+            == EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S
+        )
 
 
 def test_invoke_bridge_command_accepts_response_found_on_final_timeout_boundary_check() -> None:

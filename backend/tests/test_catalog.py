@@ -1,4 +1,5 @@
 from app.services.catalog import catalog_service
+from app.services.editor_runtime_defaults import EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S
 
 
 def test_catalog_contains_agents() -> None:
@@ -43,3 +44,9 @@ def test_project_inspect_is_classified_as_hybrid_read_only() -> None:
     tool = catalog_service.get_tool_definition("project-build", "project.inspect")
     assert tool is not None
     assert tool.capability_status == "hybrid-read-only"
+
+
+def test_editor_session_open_catalog_timeout_matches_runtime_default() -> None:
+    tool = catalog_service.get_tool_definition("editor-control", "editor.session.open")
+    assert tool is not None
+    assert tool.default_timeout_s == EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S

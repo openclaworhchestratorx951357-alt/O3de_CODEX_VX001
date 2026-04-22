@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.models.response_envelope import ResponseEnvelope, ResponseError
+from app.services.editor_runtime_defaults import EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S
 from app.services.db import configure_database, initialize_database, reset_database
 
 
@@ -477,6 +478,9 @@ def test_prompt_session_executes_admitted_real_editor_session_and_level_through_
                             "editor.session.open",
                             "editor.level.open",
                         ]
+                        assert create_payload["plan"]["steps"][0]["args"]["timeout_s"] == (
+                            EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S
+                        )
                         assert all(
                             step["capability_maturity"] == "real-authoring"
                             for step in create_payload["plan"]["steps"]

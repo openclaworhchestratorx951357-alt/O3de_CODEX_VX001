@@ -5,6 +5,7 @@ import re
 from app.models.prompt_control import PromptRequest
 from app.models.prompt_step import PromptPlanStep
 from app.services.capability_registry import capability_registry_service
+from app.services.editor_runtime_defaults import EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S
 from app.services.planners._common import (
     capability_requirement_note,
     contains_any,
@@ -63,7 +64,7 @@ def plan_editor_prompt(
                 args={
                     "session_mode": "attach",
                     "project_path": request.project_root,
-                    "timeout_s": 60,
+                    "timeout_s": EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S,
                 },
                 planner_note="Prompt-driven editor flows always begin from an attached editor session request.",
             )

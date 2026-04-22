@@ -8,6 +8,11 @@
     "session_mode": { "type": "string", "enum": ["attach", "open"] },
     "project_path": { "type": "string", "minLength": 1 },
     "level_path": { "type": "string", "minLength": 1 },
-    "timeout_s": { "type": "integer", "minimum": 1 }
+    "timeout_s": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 180,
+      "description": "Session-open timeout for the persistent bridge-backed admitted-real path."
+    }
   }
 }
