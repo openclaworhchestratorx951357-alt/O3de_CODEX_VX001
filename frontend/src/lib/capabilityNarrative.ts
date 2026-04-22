@@ -9,6 +9,9 @@ export function describeCatalogCapability(
     if (toolName === "editor.level.open") {
       return "Live-validated real authoring in hybrid mode through the admitted level open/create runtime path on McpSandbox, with explicit preflight rejection if editor session or level prerequisites are missing.";
     }
+    if (toolName === "editor.entity.create") {
+      return "Live-validated real authoring in hybrid mode through the admitted bridge-backed root-level named entity creation path on McpSandbox, with explicit rejection of parent, prefab, and transform mutation fields.";
+    }
   }
   if (capabilityStatus === "runtime-reaching" && toolName === "editor.entity.create") {
     return "Runtime-reaching in hybrid mode through the typed entity creation path, but not yet live-admitted on McpSandbox until the real editor/prefab behavior is stable.";

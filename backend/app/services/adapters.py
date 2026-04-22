@@ -20,6 +20,8 @@ REAL_TOOL_PATHS_BY_MODE = {
     "hybrid": [
         "editor.session.open",
         "editor.level.open",
+        "editor.entity.create",
+        "editor.component.add",
         "project.inspect",
     ],
 }
@@ -35,8 +37,9 @@ HYBRID_EXECUTION_BOUNDARY = (
     "real read-only project-manifest path, editor.level.open may use the "
     "live-validated admitted real editor runtime path on McpSandbox, "
     "editor.session.open may use the live-validated admitted real editor session path, "
-    "editor.entity.create may reach the runtime boundary but remain explicitly narrowed "
-    "until its live validation is stable, "
+    "editor.entity.create may use the live-validated admitted real root-level "
+    "entity creation path on McpSandbox, editor.component.add may use the "
+    "allowlist-bound bridge-backed real component attachment path on McpSandbox, "
     "build.configure may use a real plan-only preflight path, settings.patch may "
     "use a real dry-run-only preflight path, and all other tools remain simulated."
 )
@@ -355,18 +358,51 @@ class EditorControlHybridAdapter(ToolExecutionAdapter):
                 runtime_payload=runtime_payload,
                 inspection_surface="editor_entity_created",
                 message=(
-                    "Runtime-reaching editor.entity.create completed through the "
-                    "explicit editor runtime path; this path remains excluded "
-                    "from the admitted real set on McpSandbox."
+                    "Real editor.entity.create completed through the admitted "
+                    "bridge-backed editor authoring path."
                 ),
                 result_summary=(
-                    "Runtime-reaching editor entity creation call completed; "
-                    "admitted real editor scope remains limited to session/level."
+                    "Real editor entity creation completed successfully through "
+                    "the admitted bridge-backed path."
                 ),
-                artifact_label="Runtime-reaching editor entity evidence",
+                artifact_label="Real editor entity evidence",
                 artifact_kind="editor_runtime_result",
                 artifact_uri="editor-runtime://runs/{run_id}/executions/{execution_id}/entity",
-                runtime_script="entity_create.py",
+                runtime_script="ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+            )
+        if tool == "editor.component.add":
+            runtime_payload = editor_automation_runtime_service.execute_component_add(
+                request_id=request_id,
+                session_id=session_id,
+                workspace_id=workspace_id,
+                executor_id=executor_id,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                locks_acquired=locks_acquired,
+            )
+            return self._build_real_editor_report(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                runtime_payload=runtime_payload,
+                inspection_surface="editor_component_added",
+                message=(
+                    "Real editor.component.add completed through the admitted "
+                    "bridge-backed editor authoring path."
+                ),
+                result_summary=(
+                    "Real editor component attachment completed successfully through "
+                    "the admitted bridge-backed path."
+                ),
+                artifact_label="Real editor component evidence",
+                artifact_kind="editor_runtime_result",
+                artifact_uri="editor-runtime://runs/{run_id}/executions/{execution_id}/component",
+                runtime_script="ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
             )
 
         simulated = self._simulated.execute(
@@ -462,6 +498,8 @@ class EditorControlHybridAdapter(ToolExecutionAdapter):
             "created_level",
             "entity_id",
             "entity_name",
+            "added_components",
+            "rejected_components",
             "modified_entities",
             "entity_id_source",
             "direct_return_entity_id",
@@ -2796,11 +2834,12 @@ class AdapterService:
                 ),
                 notes=[
                     "Adapter mode selection is now config-driven.",
-                    "Real O3DE adapters are not yet implemented.",
+                    "Hybrid mode now includes a narrow admitted subset of real O3DE adapters.",
                     "Hybrid mode currently enables a real read-only project.inspect "
                     "path, admitted real editor session/level runtime paths, "
-                    "a runtime-reaching but non-admitted editor.entity.create path "
-                    "on McpSandbox, "
+                    "an admitted real root-level editor.entity.create path on "
+                    "McpSandbox, and an admitted allowlist-bound editor.component.add "
+                    "path on McpSandbox, "
                     "a real plan-only build.configure preflight path, and a real "
                     "dry-run-only settings.patch preflight path.",
                 ],
@@ -2832,11 +2871,9 @@ class AdapterService:
                     "Hybrid mode enables a real read-only project.inspect path when its "
                     "manifest preconditions are satisfied.",
                     "Hybrid mode also enables admitted real editor runtime paths for "
-                    "editor.session.open and editor.level.open when editor preflight "
-                    "requirements are satisfied.",
-                    "editor.entity.create may still reach the real runtime boundary, "
-                    "but it remains excluded from the admitted real set on "
-                    "McpSandbox while its prefab-safe create contract is unproven.",
+                    "editor.session.open, editor.level.open, editor.entity.create, "
+                    "and the allowlist-bound editor.component.add path when editor "
+                    "preflight requirements are satisfied.",
                     "Hybrid mode also enables a real plan-only build.configure "
                     "preflight path when dry_run=true and manifest preconditions are "
                     "satisfied.",
@@ -2844,7 +2881,7 @@ class AdapterService:
                     "preflight path when manifest-backed settings admission criteria "
                     "are satisfied.",
                     "All other tools remain simulated in this phase.",
-                    "Real mutating O3DE adapters are not yet implemented.",
+                    "Wider O3DE mutation surfaces remain explicitly out of scope in this phase.",
                 ],
             )
         return AdapterModeStatus(
@@ -2955,13 +2992,9 @@ class AdapterService:
                     )
                 if family == "editor-control":
                     family_notes.append(
-                        "editor.session.open and editor.level.open currently have "
+                        "editor.session.open, editor.level.open, "
+                        "editor.entity.create, and editor.component.add currently have "
                         "admitted real runtime-owned editor paths in this family."
-                    )
-                    family_notes.append(
-                        "editor.entity.create remains runtime-reaching but excluded "
-                        "from the admitted real set on McpSandbox because its "
-                        "prefab-safe create contract is not yet proven."
                     )
             elif runtime_status.active_mode == "hybrid":
                 family_notes.append(

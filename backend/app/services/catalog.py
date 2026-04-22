@@ -13,10 +13,13 @@ def tool_result_schema(tool_name: str) -> str:
 def tool_capability_status(tool_name: str) -> str:
     if tool_name == "project.inspect":
         return "hybrid-read-only"
-    if tool_name in {"editor.session.open", "editor.level.open"}:
+    if tool_name in {
+        "editor.session.open",
+        "editor.level.open",
+        "editor.entity.create",
+        "editor.component.add",
+    }:
         return "real-authoring"
-    if tool_name == "editor.entity.create":
-        return "runtime-reaching"
     if tool_name == "build.configure":
         return "plan-only"
     if tool_name in {"settings.patch", "gem.enable", "build.compile"}:

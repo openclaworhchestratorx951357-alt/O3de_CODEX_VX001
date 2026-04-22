@@ -6,7 +6,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+import pytest
+
+from app.services.adapters import AdapterExecutionRejected
 from app.services.editor_automation_runtime import (
+    EDITOR_COMPONENT_ADD_ALLOWLIST,
     RUNTIME_HOST_IS_WINDOWS,
     _normalize_engine_root_path,
     editor_automation_runtime_service,
@@ -67,6 +71,9 @@ def spawn_bridge_responder(
     response_details: dict[str, object],
     captured: dict[str, object],
     write_initial_heartbeat: bool = False,
+    response_success: bool = True,
+    response_error_code: str | None = None,
+    response_result_summary: str | None = None,
 ) -> threading.Thread:
     def _runner() -> None:
         paths = editor_automation_runtime_service._bridge_paths(str(project_root))  # noqa: SLF001
@@ -92,15 +99,17 @@ def spawn_bridge_responder(
                             "bridge_command_id": command_payload["bridge_command_id"],
                             "request_id": command_payload["request_id"],
                             "operation": expected_operation,
-                            "success": True,
-                            "status": "ok",
+                            "success": response_success,
+                            "status": "ok" if response_success else "failed",
                             "bridge_name": "ControlPlaneEditorBridge",
                             "bridge_version": "0.1.0",
                             "started_at": "2026-04-20T00:00:00Z",
                             "finished_at": "2026-04-20T00:00:01Z",
-                            "result_summary": f"{expected_operation} completed through bridge transport.",
+                            "result_summary": response_result_summary
+                            or f"{expected_operation} completed through bridge transport.",
                             "details": response_details,
                             "evidence_refs": [],
+                            "error_code": response_error_code,
                         }
                     ),
                     encoding="utf-8",
@@ -629,6 +638,892 @@ def test_execute_level_open_queues_bridge_command_with_workspace_and_executor_li
         assert command_payload["workspace_id"] == "workspace-editor-project"
         assert command_payload["executor_id"] == "executor-editor-control-real-local"
         assert command_payload["args"]["level_path"] == "Levels/Main.level"
+
+
+def test_execute_entity_create_queues_bridge_command_and_persists_created_entity_state() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+        write_heartbeat(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        captured: dict[str, object] = {}
+        responder = spawn_bridge_responder(
+            project_root=project_root,
+            expected_operation="editor.entity.create",
+            response_details={
+                "entity_id": "101",
+                "entity_name": "Hero",
+                "entity_id_source": "editor_entity_context_create",
+                "direct_return_entity_id": "101",
+                "notification_entity_ids": [],
+                "selected_entity_count": 0,
+                "selected_entity_count_before_create": 0,
+                "level_path": "Levels/Main.level",
+                "active_level_path": "Levels/Main.level",
+                "name_mutation_ran": False,
+                "name_mutation_succeeded": True,
+                "prefab_context_notes": (
+                    "Selection was cleared before create to avoid selected-entity or prefab ownership ambiguity."
+                ),
+            },
+            captured=captured,
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_runner_process_is_active",
+                    return_value=False,
+                ):
+                    with patch.object(
+                        editor_automation_runtime_service,
+                        "_bridge_has_live_pulse",
+                        return_value=True,
+                    ):
+                        with patch(
+                            "subprocess.Popen",
+                            side_effect=AssertionError(
+                                "editor.entity.create should not launch a one-shot editor process when the bridge is healthy."
+                            ),
+                        ):
+                            payload = editor_automation_runtime_service.execute_entity_create(
+                                request_id="req-entity-1",
+                                session_id="session-1",
+                                workspace_id="workspace-editor-project",
+                                executor_id="executor-editor-control-real-local",
+                                project_root=str(project_root),
+                                engine_root="C:/src/o3de",
+                                dry_run=False,
+                                args={
+                                    "entity_name": "Hero",
+                                    "level_path": "Levels/Main.level",
+                                },
+                                locks_acquired=["editor_session"],
+                            )
+
+        responder.join(timeout=5)
+        assert not responder.is_alive()
+        runtime_result = payload["runtime_result"]
+        assert runtime_result["editor_transport"] == "bridge"
+        assert runtime_result["bridge_available"] is True
+        assert runtime_result["bridge_operation"] == "editor.entity.create"
+        assert runtime_result["bridge_queue_mode"] == "filesystem-inbox"
+        assert runtime_result["bridge_command_id"]
+        assert runtime_result["entity_id"] == "101"
+        assert runtime_result["entity_name"] == "Hero"
+        assert runtime_result["level_path"] == "Levels/Main.level"
+        assert runtime_result["loaded_level_path"] == "Levels/Main.level"
+        assert runtime_result["entity_id_source"] == "editor_entity_context_create"
+        assert runtime_result["direct_return_entity_id"] == "101"
+        assert runtime_result["selected_entity_count_before_create"] == 0
+        assert runtime_result["name_mutation_ran"] is False
+        assert runtime_result["name_mutation_succeeded"] is True
+        assert "editor.entity.create" in runtime_result["exact_editor_apis"]
+        assert payload["runtime_script"].endswith("control_plane_bridge_poller.py")
+
+        bridge_paths = editor_automation_runtime_service._bridge_paths(str(project_root))  # noqa: SLF001
+        consumed_result_path = (
+            bridge_paths["results"] / f"{runtime_result['bridge_command_id']}.json.resp"
+        )
+        assert not consumed_result_path.exists()
+
+        command_payload = captured["command"]
+        assert isinstance(command_payload, dict)
+        assert command_payload["operation"] == "editor.entity.create"
+        assert command_payload["request_id"] == "req-entity-1"
+        assert command_payload["session_id"] == "session-1"
+        assert command_payload["workspace_id"] == "workspace-editor-project"
+        assert command_payload["executor_id"] == "executor-editor-control-real-local"
+        assert command_payload["args"]["entity_name"] == "Hero"
+        assert command_payload["args"]["level_path"] == "Levels/Main.level"
+
+        saved_state = json.loads(state_path.read_text(encoding="utf-8"))
+        assert saved_state["last_created_entity_id"] == "101"
+        assert saved_state["last_created_entity_name"] == "Hero"
+        assert saved_state["editor_transport"] == "bridge"
+        assert saved_state["bridge_heartbeat_seen_at"] == runtime_result["bridge_heartbeat_seen_at"]
+
+
+@pytest.mark.parametrize(
+    ("field_name", "field_value"),
+    [
+        ("parent_entity_id", "entity-parent-1"),
+        ("prefab_asset", "Prefabs/Hero.prefab"),
+        ("position", {"x": 1.0, "y": 2.0, "z": 3.0}),
+    ],
+)
+def test_execute_entity_create_rejects_unsupported_mutation_fields(
+    field_name: str,
+    field_value: object,
+) -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                try:
+                    editor_automation_runtime_service.execute_entity_create(
+                        request_id="req-entity-unsupported",
+                        session_id="session-1",
+                        workspace_id="workspace-editor-project",
+                        executor_id="executor-editor-control-real-local",
+                        project_root=str(project_root),
+                        engine_root="C:/src/o3de",
+                        dry_run=False,
+                        args={
+                            "entity_name": "Hero",
+                            "level_path": "Levels/Main.level",
+                            field_name: field_value,
+                        },
+                        locks_acquired=["editor_session"],
+                    )
+                except AdapterExecutionRejected as exc:
+                    assert exc.details["preflight_reason"] == "unsupported-entity-mutation-surface"
+                    assert exc.details["unsupported_fields"] == [field_name]
+                else:
+                    raise AssertionError(
+                        "editor.entity.create should reject unsupported mutation fields."
+                    )
+
+
+def test_execute_entity_create_rejects_without_admitted_editor_session() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                try:
+                    editor_automation_runtime_service.execute_entity_create(
+                        request_id="req-entity-no-session",
+                        session_id="session-1",
+                        workspace_id="workspace-editor-project",
+                        executor_id="executor-editor-control-real-local",
+                        project_root=str(project_root),
+                        engine_root="C:/src/o3de",
+                        dry_run=False,
+                        args={
+                            "entity_name": "Hero",
+                            "level_path": "Levels/Main.level",
+                        },
+                        locks_acquired=["editor_session"],
+                    )
+                except AdapterExecutionRejected as exc:
+                    assert exc.details["preflight_reason"] == "editor-session-not-ensured"
+                else:
+                    raise AssertionError(
+                        "editor.entity.create should require an admitted editor session."
+                    )
+
+
+def test_execute_entity_create_rejects_when_requested_level_does_not_match_loaded_level() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                try:
+                    editor_automation_runtime_service.execute_entity_create(
+                        request_id="req-entity-level-mismatch",
+                        session_id="session-1",
+                        workspace_id="workspace-editor-project",
+                        executor_id="executor-editor-control-real-local",
+                        project_root=str(project_root),
+                        engine_root="C:/src/o3de",
+                        dry_run=False,
+                        args={
+                            "entity_name": "Hero",
+                            "level_path": "Levels/Other.level",
+                        },
+                        locks_acquired=["editor_session"],
+                    )
+                except AdapterExecutionRejected as exc:
+                    assert exc.details["preflight_reason"] == "loaded-level-mismatch"
+                    assert exc.details["loaded_level_path"] == "Levels/Main.level"
+                    assert exc.details["requested_level_path"] == "Levels/Other.level"
+                else:
+                    raise AssertionError(
+                        "editor.entity.create should reject level paths that do not match the loaded level."
+                    )
+
+
+def test_execute_component_add_queues_bridge_command_and_returns_bridge_metadata() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+        write_heartbeat(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        captured: dict[str, object] = {}
+        responder = spawn_bridge_responder(
+            project_root=project_root,
+            expected_operation="editor.component.add",
+            response_details={
+                "entity_id": "101",
+                "entity_name": "Hero",
+                "added_components": ["Mesh"],
+                "rejected_components": [],
+                "modified_entities": ["101"],
+                "level_path": "Levels/Main.level",
+                "loaded_level_path": "Levels/Main.level",
+                "active_level_path": "Levels/Main.level",
+                "selected_entity_count": 0,
+            },
+            captured=captured,
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_runner_process_is_active",
+                    return_value=False,
+                ):
+                    with patch.object(
+                        editor_automation_runtime_service,
+                        "_bridge_has_live_pulse",
+                        return_value=True,
+                    ):
+                        with patch(
+                            "subprocess.Popen",
+                            side_effect=AssertionError(
+                                "editor.component.add should not launch a one-shot editor process when the bridge is healthy."
+                            ),
+                        ):
+                            payload = editor_automation_runtime_service.execute_component_add(
+                                request_id="req-component-1",
+                                session_id="session-1",
+                                workspace_id="workspace-editor-project",
+                                executor_id="executor-editor-control-real-local",
+                                project_root=str(project_root),
+                                engine_root="C:/src/o3de",
+                                dry_run=False,
+                                args={
+                                    "entity_id": "101",
+                                    "components": ["mesh"],
+                                    "level_path": "Levels/Main.level",
+                                },
+                                locks_acquired=["editor_session"],
+                            )
+
+        responder.join(timeout=5)
+        assert not responder.is_alive()
+        runtime_result = payload["runtime_result"]
+        assert runtime_result["editor_transport"] == "bridge"
+        assert runtime_result["bridge_available"] is True
+        assert runtime_result["bridge_operation"] == "editor.component.add"
+        assert runtime_result["bridge_queue_mode"] == "filesystem-inbox"
+        assert runtime_result["bridge_command_id"]
+        assert runtime_result["entity_id"] == "101"
+        assert runtime_result["entity_name"] == "Hero"
+        assert runtime_result["added_components"] == ["Mesh"]
+        assert runtime_result["rejected_components"] == []
+        assert runtime_result["modified_entities"] == ["101"]
+        assert runtime_result["level_path"] == "Levels/Main.level"
+        assert runtime_result["loaded_level_path"] == "Levels/Main.level"
+        assert "editor.component.add" in runtime_result["exact_editor_apis"]
+        assert payload["runtime_script"].endswith("control_plane_bridge_poller.py")
+
+        bridge_paths = editor_automation_runtime_service._bridge_paths(str(project_root))  # noqa: SLF001
+        consumed_result_path = (
+            bridge_paths["results"] / f"{runtime_result['bridge_command_id']}.json.resp"
+        )
+        assert not consumed_result_path.exists()
+
+        command_payload = captured["command"]
+        assert isinstance(command_payload, dict)
+        assert command_payload["operation"] == "editor.component.add"
+        assert command_payload["request_id"] == "req-component-1"
+        assert command_payload["session_id"] == "session-1"
+        assert command_payload["workspace_id"] == "workspace-editor-project"
+        assert command_payload["executor_id"] == "executor-editor-control-real-local"
+        assert command_payload["requires_loaded_level"] is True
+        assert command_payload["args"]["entity_id"] == "101"
+        assert command_payload["args"]["components"] == ["Mesh"]
+        assert command_payload["args"]["level_path"] == "Levels/Main.level"
+
+        saved_state = json.loads(state_path.read_text(encoding="utf-8"))
+        assert saved_state["editor_transport"] == "bridge"
+        assert saved_state["bridge_heartbeat_seen_at"] == runtime_result["bridge_heartbeat_seen_at"]
+
+
+def test_execute_component_add_normalizes_bracketed_entity_ids() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+        write_heartbeat(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        captured: dict[str, object] = {}
+        responder = spawn_bridge_responder(
+            project_root=project_root,
+            expected_operation="editor.component.add",
+            response_details={
+                "entity_id": "101",
+                "entity_name": "Hero",
+                "added_components": ["Comment"],
+                "rejected_components": [],
+                "modified_entities": ["101"],
+                "level_path": "Levels/Main.level",
+                "loaded_level_path": "Levels/Main.level",
+            },
+            captured=captured,
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_runner_process_is_active",
+                    return_value=False,
+                ):
+                    with patch.object(
+                        editor_automation_runtime_service,
+                        "_bridge_has_live_pulse",
+                        return_value=True,
+                    ):
+                        payload = editor_automation_runtime_service.execute_component_add(
+                            request_id="req-component-bracketed-entity-id",
+                            session_id="session-1",
+                            workspace_id="workspace-editor-project",
+                            executor_id="executor-editor-control-real-local",
+                            project_root=str(project_root),
+                            engine_root="C:/src/o3de",
+                            dry_run=False,
+                            args={
+                                "entity_id": "[101]",
+                                "components": ["comment"],
+                                "level_path": "Levels/Main.level",
+                            },
+                            locks_acquired=["editor_session"],
+                        )
+
+        responder.join(timeout=5)
+        assert not responder.is_alive()
+        runtime_result = payload["runtime_result"]
+        assert runtime_result["entity_id"] == "101"
+
+        command_payload = captured["command"]
+        assert isinstance(command_payload, dict)
+        assert command_payload["args"]["entity_id"] == "101"
+        assert command_payload["args"]["components"] == ["Comment"]
+
+
+def test_execute_component_add_passes_last_created_entity_name_hint_for_matching_entity_id() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+        write_heartbeat(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                    "last_created_entity_id": "[101]",
+                    "last_created_entity_name": "CodexHintEntity",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        captured: dict[str, object] = {}
+        responder = spawn_bridge_responder(
+            project_root=project_root,
+            expected_operation="editor.component.add",
+            response_details={
+                "entity_id": "101",
+                "entity_name": "CodexHintEntity",
+                "added_components": ["Comment"],
+                "rejected_components": [],
+                "modified_entities": ["101"],
+                "level_path": "Levels/Main.level",
+                "loaded_level_path": "Levels/Main.level",
+            },
+            captured=captured,
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_runner_process_is_active",
+                    return_value=False,
+                ):
+                    with patch.object(
+                        editor_automation_runtime_service,
+                        "_bridge_has_live_pulse",
+                        return_value=True,
+                    ):
+                        payload = editor_automation_runtime_service.execute_component_add(
+                            request_id="req-component-name-hint",
+                            session_id="session-1",
+                            workspace_id="workspace-editor-project",
+                            executor_id="executor-editor-control-real-local",
+                            project_root=str(project_root),
+                            engine_root="C:/src/o3de",
+                            dry_run=False,
+                            args={
+                                "entity_id": "101",
+                                "components": ["comment"],
+                                "level_path": "Levels/Main.level",
+                            },
+                            locks_acquired=["editor_session"],
+                        )
+
+        responder.join(timeout=5)
+        assert not responder.is_alive()
+        runtime_result = payload["runtime_result"]
+        assert runtime_result["entity_id"] == "101"
+        assert runtime_result["entity_name"] == "CodexHintEntity"
+
+        command_payload = captured["command"]
+        assert isinstance(command_payload, dict)
+        assert command_payload["args"]["entity_id"] == "101"
+        assert command_payload["args"]["entity_name_hint"] == "CodexHintEntity"
+
+
+def test_execute_component_add_rejects_without_admitted_editor_session() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                try:
+                    editor_automation_runtime_service.execute_component_add(
+                        request_id="req-component-no-session",
+                        session_id="session-1",
+                        workspace_id="workspace-editor-project",
+                        executor_id="executor-editor-control-real-local",
+                        project_root=str(project_root),
+                        engine_root="C:/src/o3de",
+                        dry_run=False,
+                        args={
+                            "entity_id": "101",
+                            "components": ["Mesh"],
+                            "level_path": "Levels/Main.level",
+                        },
+                        locks_acquired=["editor_session"],
+                    )
+                except AdapterExecutionRejected as exc:
+                    assert exc.details["preflight_reason"] == "editor-session-not-ensured"
+                else:
+                    raise AssertionError(
+                        "editor.component.add should require an admitted editor session."
+                    )
+
+
+def test_execute_component_add_rejects_without_loaded_level() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps({"session_active": True}),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                try:
+                    editor_automation_runtime_service.execute_component_add(
+                        request_id="req-component-no-level",
+                        session_id="session-1",
+                        workspace_id="workspace-editor-project",
+                        executor_id="executor-editor-control-real-local",
+                        project_root=str(project_root),
+                        engine_root="C:/src/o3de",
+                        dry_run=False,
+                        args={
+                            "entity_id": "101",
+                            "components": ["Mesh"],
+                            "level_path": "Levels/Main.level",
+                        },
+                        locks_acquired=["editor_session"],
+                    )
+                except AdapterExecutionRejected as exc:
+                    assert exc.details["preflight_reason"] == "level-not-loaded"
+                else:
+                    raise AssertionError(
+                        "editor.component.add should require a loaded level."
+                    )
+
+
+def test_execute_component_add_rejects_when_requested_level_does_not_match_loaded_level() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                try:
+                    editor_automation_runtime_service.execute_component_add(
+                        request_id="req-component-level-mismatch",
+                        session_id="session-1",
+                        workspace_id="workspace-editor-project",
+                        executor_id="executor-editor-control-real-local",
+                        project_root=str(project_root),
+                        engine_root="C:/src/o3de",
+                        dry_run=False,
+                        args={
+                            "entity_id": "101",
+                            "components": ["Mesh"],
+                            "level_path": "Levels/Other.level",
+                        },
+                        locks_acquired=["editor_session"],
+                    )
+                except AdapterExecutionRejected as exc:
+                    assert exc.details["preflight_reason"] == "loaded-level-mismatch"
+                    assert exc.details["loaded_level_path"] == "Levels/Main.level"
+                    assert exc.details["requested_level_path"] == "Levels/Other.level"
+                else:
+                    raise AssertionError(
+                        "editor.component.add should reject level paths that do not match the loaded level."
+                    )
+
+
+def test_execute_component_add_rejects_without_entity_id() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_host_available",
+                    return_value=True,
+                ):
+                    try:
+                        editor_automation_runtime_service.execute_component_add(
+                            request_id="req-component-no-entity-id",
+                            session_id="session-1",
+                            workspace_id="workspace-editor-project",
+                            executor_id="executor-editor-control-real-local",
+                            project_root=str(project_root),
+                            engine_root="C:/src/o3de",
+                            dry_run=False,
+                            args={
+                                "components": ["Mesh"],
+                                "level_path": "Levels/Main.level",
+                            },
+                            locks_acquired=["editor_session"],
+                        )
+                    except AdapterExecutionRejected as exc:
+                        assert exc.details["preflight_reason"] == "entity-id-invalid"
+                    else:
+                        raise AssertionError(
+                            "editor.component.add should require an explicit entity id."
+                        )
+
+
+def test_execute_component_add_rejects_unsupported_components() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_host_available",
+                    return_value=True,
+                ):
+                    try:
+                        editor_automation_runtime_service.execute_component_add(
+                            request_id="req-component-unsupported",
+                            session_id="session-1",
+                            workspace_id="workspace-editor-project",
+                            executor_id="executor-editor-control-real-local",
+                            project_root=str(project_root),
+                            engine_root="C:/src/o3de",
+                            dry_run=False,
+                            args={
+                                "entity_id": "101",
+                                "components": ["Transform"],
+                                "level_path": "Levels/Main.level",
+                            },
+                            locks_acquired=["editor_session"],
+                        )
+                    except AdapterExecutionRejected as exc:
+                        assert exc.details["preflight_reason"] == "unsupported-component-surface"
+                        assert exc.details["unsupported_components"] == ["Transform"]
+                        assert exc.details["allowlisted_components"] == list(
+                            EDITOR_COMPONENT_ADD_ALLOWLIST
+                        )
+                    else:
+                        raise AssertionError(
+                            "editor.component.add should reject unsupported component names."
+                        )
+
+
+def test_execute_component_add_rejects_when_bridge_reports_entity_not_found() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+        write_heartbeat(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        captured: dict[str, object] = {}
+        responder = spawn_bridge_responder(
+            project_root=project_root,
+            expected_operation="editor.component.add",
+            response_details={
+                "entity_id": "404",
+                "level_path": "Levels/Main.level",
+                "loaded_level_path": "Levels/Main.level",
+            },
+            captured=captured,
+            response_success=False,
+            response_error_code="ENTITY_NOT_FOUND",
+            response_result_summary="editor.component.add could not resolve the requested entity in the loaded level.",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_runner_process_is_active",
+                    return_value=False,
+                ):
+                    with patch.object(
+                        editor_automation_runtime_service,
+                        "_bridge_has_live_pulse",
+                        return_value=True,
+                    ):
+                        try:
+                            editor_automation_runtime_service.execute_component_add(
+                                request_id="req-component-missing-entity",
+                                session_id="session-1",
+                                workspace_id="workspace-editor-project",
+                                executor_id="executor-editor-control-real-local",
+                                project_root=str(project_root),
+                                engine_root="C:/src/o3de",
+                                dry_run=False,
+                                args={
+                                    "entity_id": "404",
+                                    "components": ["Mesh"],
+                                    "level_path": "Levels/Main.level",
+                                },
+                                locks_acquired=["editor_session"],
+                            )
+                        except AdapterExecutionRejected as exc:
+                            assert exc.details["preflight_reason"] == "ENTITY_NOT_FOUND"
+                            assert exc.details["bridge_operation"] == "editor.component.add"
+                        else:
+                            raise AssertionError(
+                                "editor.component.add should surface bridge-side entity lookup failures."
+                            )
+
+        responder.join(timeout=5)
+        assert not responder.is_alive()
+        command_payload = captured["command"]
+        assert isinstance(command_payload, dict)
+        assert command_payload["operation"] == "editor.component.add"
 
 
 def test_bridge_queue_counts_use_unique_command_ids_per_queue() -> None:

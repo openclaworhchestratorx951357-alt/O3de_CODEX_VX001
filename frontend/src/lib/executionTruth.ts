@@ -29,7 +29,7 @@ export function getRunExecutionTruthLabel(item: RunTruthSource): string {
   }
   if (item.tool === "editor.entity.create") {
     return item.execution_mode === "real"
-      ? "Runtime-reaching editor entity path."
+      ? "Live-validated real editor entity-create path."
       : "Simulated path or explicit runtime rejection.";
   }
   if (item.tool === "build.configure") {
@@ -60,7 +60,7 @@ export function getRunTruthBoundaryDescription(item: RunTruthSource): string {
     return "This run used the admitted real editor level open/create runtime path.";
   }
   if (item.execution_mode === "real" && item.tool === "editor.entity.create") {
-    return "This run reached the real editor entity creation runtime path, but live admission remains narrowed until the target editor path is stable.";
+    return "This run used the admitted bridge-backed real editor entity creation path for root-level named entity creation on the loaded/current level.";
   }
   if (item.execution_mode === "real" && item.tool === "build.configure") {
     return "This run used the real plan-only build.configure preflight path.";
@@ -274,12 +274,13 @@ export function getHybridDispatchNote(
     if (toolName === "editor.session.open") {
       return "Hybrid mode is active. This tool may use the live-validated admitted real editor session path when editor-runtime prechecks are satisfied; otherwise execution is rejected explicitly rather than silently falling back.";
     }
-    return "Hybrid mode is active. This tool may reach the real editor entity runtime path when editor-runtime prechecks are satisfied, but it remains narrowed until live stability is proven on McpSandbox.";
+    return "Hybrid mode is active. This tool may use the admitted bridge-backed real entity creation path for root-level named entity creation on the loaded/current level; parent, prefab, and transform mutation fields still reject explicitly.";
   }
   return "Hybrid mode is active, but this selected tool will still remain simulated in this phase.";
 }
 
 export function getDispatchExpectedExecutionTruth(
+  toolName: string,
   capabilityStatus: string,
   mayUseRealPath: boolean,
   mayUseRealPlanOnlyPath: boolean,
@@ -288,7 +289,10 @@ export function getDispatchExpectedExecutionTruth(
     return "Possible real read-only project inspection in hybrid mode, including explicit manifest-backed config, Gem, settings, origin, presentation, identity, and tag evidence; simulated fallback remains explicit.";
   }
   if (capabilityStatus === "real-authoring" && mayUseRealPath) {
-    return "Possible admitted real editor level path in hybrid mode when editor-runtime prechecks pass; failure remains explicit and does not silently fall back.";
+    if (toolName === "editor.entity.create") {
+      return "Possible admitted real bridge-backed entity creation in hybrid mode for root-level named entity creation on the loaded/current level; unsupported mutation fields reject explicitly.";
+    }
+    return "Possible admitted real editor path in hybrid mode when editor-runtime prechecks pass; failure remains explicit and does not silently fall back.";
   }
   if (capabilityStatus === "runtime-reaching" && mayUseRealPath) {
     return "Possible real editor entity runtime reachability in hybrid mode, but not yet live-admitted on the active target.";
@@ -326,7 +330,7 @@ export function describeExecutionResult(
     return "Real editor level open/create runtime path ran for editor.level.open.";
   }
   if (executionMode === "real" && simulated === false && tool === "editor.entity.create") {
-    return "Real editor entity creation runtime path ran for editor.entity.create, but this surface remains narrowed until live stability is proven.";
+    return "Real bridge-backed editor entity creation ran for editor.entity.create on the admitted root-level named entity path.";
   }
   if (executionMode === "real" && simulated === false && tool === "build.configure") {
     return "Real plan-only build.configure preflight ran; no configure command was executed.";

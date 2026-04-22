@@ -5,15 +5,14 @@ import ArtifactDetailPanel from "./ArtifactDetailPanel";
 import ExecutionDetailPanel from "./ExecutionDetailPanel";
 import type { ArtifactRecord, ExecutionRecord, PromptSafetyEnvelope } from "../types/contracts";
 
-const blockedSafetyEnvelope: PromptSafetyEnvelope = {
+const entityCreateSafetyEnvelope: PromptSafetyEnvelope = {
   state_scope: "Explicit entity creation within the currently loaded level.",
   backup_class: "operator-managed-level-snapshot-before-entity-mutation",
   rollback_class: "manual-level-restore-or-explicit-entity-removal",
   verification_class: "entity-readback-and-level-context verification",
-  retention_class: "runtime-reaching-editor-evidence",
-  natural_language_status: "prompt-blocked-pending-admission",
-  natural_language_blocker:
-    "Excluded from the admitted real set on current tested local targets until prefab-safe entity creation is proven stable.",
+  retention_class: "editor-runtime-evidence",
+  natural_language_status: "prompt-ready-approval-gated",
+  natural_language_blocker: null,
 };
 
 const approvalGatedSafetyEnvelope: PromptSafetyEnvelope = {
@@ -43,21 +42,21 @@ describe("prompt safety detail panels", () => {
       artifact_ids: ["art-entity-1"],
       details: {
         inspection_surface: "editor_entity_created",
-        prompt_safety: blockedSafetyEnvelope,
+        prompt_safety: entityCreateSafetyEnvelope,
       },
       result_summary:
-        "This run used a runtime-reaching editor.entity.create path that remains excluded from the admitted real set on McpSandbox.",
+        "This run used the admitted bridge-backed real editor entity creation path for root-level named entity creation on the loaded/current level.",
     };
 
     render(<ExecutionDetailPanel item={execution} loading={false} error={null} />);
 
     expect(screen.getByText("How to use this panel")).toBeInTheDocument();
     expect(screen.getByText("Prompt Safety Envelope")).toBeInTheDocument();
-    expect(screen.getByText("prompt-blocked-pending-admission")).toBeInTheDocument();
+    expect(screen.getByText("prompt-ready-approval-gated")).toBeInTheDocument();
     expect(
-      screen.getByText(/Excluded from the admitted real set on current tested local targets/i),
-    ).toBeInTheDocument();
-    expect(screen.getByText(blockedSafetyEnvelope.state_scope)).toBeInTheDocument();
+      screen.queryByText(/Excluded from the admitted real set on current tested local targets/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(entityCreateSafetyEnvelope.state_scope)).toBeInTheDocument();
   });
 
   it("renders persisted prompt safety evidence in artifact detail", () => {

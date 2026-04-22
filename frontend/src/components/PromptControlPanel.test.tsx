@@ -23,38 +23,37 @@ const apiMocks = vi.hoisted(() => ({
 vi.mock("../lib/api", () => apiMocks);
 
 function makeCapability(toolName: string): PromptCapabilityEntry {
-  const capabilityMaturity = toolName === "editor.entity.create" ? "runtime-reaching" : "real-authoring";
-  const realAdmissionStage = toolName === "editor.entity.create"
-    ? "runtime-reaching-excluded-from-admitted-real"
-    : "real-editor-authoring-active";
-  const safetyEnvelope: PromptSafetyEnvelope = toolName === "editor.entity.create"
+  const capabilityMaturity = "real-authoring";
+  const realAdmissionStage = "real-editor-authoring-active";
+  const safetyEnvelope: PromptSafetyEnvelope = toolName === "editor.session.open"
     ? {
-        state_scope: "Explicit entity creation within the currently loaded level.",
-        backup_class: "operator-managed-level-snapshot-before-entity-mutation",
-        rollback_class: "manual-level-restore-or-explicit-entity-removal",
-        verification_class: "entity-readback-and-level-context verification",
-        retention_class: "runtime-reaching-editor-evidence",
-        natural_language_status: "prompt-blocked-pending-admission",
-        natural_language_blocker:
-          "Excluded from the admitted real set on current tested local targets until prefab-safe entity creation is proven stable.",
-      }
-    : {
-        state_scope: toolName === "editor.session.open"
-          ? "Editor-session attachment scoped to the active project target."
-          : "Explicit level open/create within the current editor project context.",
-        backup_class: toolName === "editor.session.open"
-          ? "none"
-          : "operator-managed-level-snapshot-when-creating-or-overwriting",
-        rollback_class: toolName === "editor.session.open"
-          ? "none"
-          : "manual-level-restore-or-level-delete",
-        verification_class: toolName === "editor.session.open"
-          ? "editor-session heartbeat and runtime context verification"
-          : "loaded-level-context verification",
+        state_scope: "Editor-session attachment scoped to the active project target.",
+        backup_class: "none",
+        rollback_class: "none",
+        verification_class: "editor-session heartbeat and runtime context verification",
         retention_class: "editor-runtime-evidence",
         natural_language_status: "prompt-ready-approval-gated",
         natural_language_blocker: null,
-      };
+      }
+    : toolName === "editor.level.open"
+      ? {
+          state_scope: "Explicit level open/create within the current editor project context.",
+          backup_class: "operator-managed-level-snapshot-when-creating-or-overwriting",
+          rollback_class: "manual-level-restore-or-level-delete",
+          verification_class: "loaded-level-context verification",
+          retention_class: "editor-runtime-evidence",
+          natural_language_status: "prompt-ready-approval-gated",
+          natural_language_blocker: null,
+        }
+      : {
+          state_scope: "Explicit entity creation within the currently loaded level.",
+          backup_class: "operator-managed-level-snapshot-before-entity-mutation",
+          rollback_class: "manual-level-restore-or-explicit-entity-removal",
+          verification_class: "entity-readback-and-level-context verification",
+          retention_class: "editor-runtime-evidence",
+          natural_language_status: "prompt-ready-approval-gated",
+          natural_language_blocker: null,
+        };
   return {
     tool_name: toolName,
     agent_family: "editor-control",
@@ -82,7 +81,7 @@ function makePlannedSession(): PromptSessionRecord {
     prompt_id: "prompt-editor-1",
     plan_id: "plan-editor-1",
     status: "planned",
-    prompt_text: 'Open level "Levels/Main.level" in the editor.',
+    prompt_text: 'Open level "Levels/Main.level" in the editor and create entity named "Hero".',
     project_root: "C:/project",
     engine_root: "C:/engine",
     dry_run: false,
@@ -94,14 +93,15 @@ function makePlannedSession(): PromptSessionRecord {
     child_event_ids: [],
     workspace_id: "workspace-editor-project",
     executor_id: "executor-editor-control-real-local",
-    plan_summary: "Compiled 2 typed step(s) from the prompt across 1 capability domain(s).",
+    plan_summary: "Compiled 3 typed step(s) from the prompt across 1 capability domain(s).",
     evidence_summary: null,
     admitted_capabilities: [
+      "editor.entity.create",
       "editor.level.open",
       "editor.session.open",
     ],
-    refused_capabilities: ["editor.entity.create"],
-    final_result_summary: "Plan preview ready with 2 typed child step(s).",
+    refused_capabilities: [],
+    final_result_summary: "Plan preview ready with 3 typed child step(s).",
     next_step_index: 0,
     current_step_id: null,
     pending_approval_id: null,
@@ -115,7 +115,7 @@ function makePlannedSession(): PromptSessionRecord {
       schema_version: "v0.1",
       admitted: true,
       refusal_reason: null,
-      summary: "Compiled 2 typed step(s) from the prompt across 1 capability domain(s).",
+      summary: "Compiled 3 typed step(s) from the prompt across 1 capability domain(s).",
       steps: [
         {
           step_id: "editor-session-1",
@@ -124,7 +124,8 @@ function makePlannedSession(): PromptSessionRecord {
           args: {
             session_mode: "attach",
             project_path: "C:/project",
-            timeout_s: 60,
+            level_path: "Levels/Main.level",
+            timeout_s: 180,
           },
           approval_class: "project_write",
           required_locks: ["editor_session"],
@@ -157,10 +158,31 @@ function makePlannedSession(): PromptSessionRecord {
           safety_envelope: makeCapability("editor.level.open").safety_envelope,
           planner_note: null,
         },
+        {
+          step_id: "editor-entity-1",
+          tool: "editor.entity.create",
+          agent: "editor-control",
+          args: {
+            entity_name: "Hero",
+            level_path: "Levels/Main.level",
+          },
+          approval_class: "content_write",
+          required_locks: ["editor_session"],
+          capability_status_required: "real-authoring",
+          workspace_id: "workspace-editor-project",
+          executor_id: "executor-editor-control-real-local",
+          simulated_allowed: false,
+          depends_on: ["editor-level-1"],
+          capability_maturity: "real-authoring",
+          safety_envelope: makeCapability("editor.entity.create").safety_envelope,
+          planner_note:
+            "Entity creation remains limited to root-level named entities on the loaded/current level.",
+        },
       ],
-      refused_capabilities: ["editor.entity.create"],
+      refused_capabilities: [],
       capability_requirements: [
         "editor.session.open currently resolves through an admitted real-authoring path when editor-runtime prechecks are satisfied; unsupported mutation surfaces remain explicitly non-admitted.",
+        "editor.entity.create remains admitted only for root-level named entity creation on the loaded/current level.",
       ],
     },
     latest_child_responses: [],
@@ -260,16 +282,18 @@ describe("PromptControlPanel", () => {
     expect(
       screen.getAllByText("prompt-ready-approval-gated").length,
     ).toBeGreaterThan(0);
+    expect(screen.getAllByText("real-editor-authoring-active").length).toBeGreaterThan(0);
     expect(
-      screen.getByText("prompt-blocked-pending-admission"),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Maturity: runtime-reaching")).toBeInTheDocument();
+      screen.queryByText("prompt-blocked-pending-admission"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Maturity: runtime-reaching")).not.toBeInTheDocument();
     expect(
-      screen.getByText("runtime-reaching-excluded-from-admitted-real"),
-    ).toBeInTheDocument();
+      screen.queryByText("runtime-reaching-excluded-from-admitted-real"),
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByText(/Blocker: Excluded from the admitted real set on current tested local targets/i),
-    ).toBeInTheDocument();
+      screen.queryByText(/Blocker: Excluded from the admitted real set on current tested local targets/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/Allowlisted params: entity_name, level_path/i)).toBeInTheDocument();
     expect(screen.getAllByText("real path preferred").length).toBeGreaterThan(0);
     const sessionButton = screen.getByRole("button", { name: /prompt-editor-1/i });
     expect(sessionButton).toHaveTextContent("Workspace: workspace-editor-project");

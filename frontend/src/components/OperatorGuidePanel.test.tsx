@@ -11,14 +11,20 @@ describe("OperatorGuidePanel", () => {
       screen.getByText("Use the desktop with the UI and docs in sync"),
     ).toBeInTheDocument();
     expect(screen.getByText(/Canonical backend: http:\/\/127\.0\.0\.1:8000/i)).toBeInTheDocument();
-    expect(screen.getByText(/Admitted real: editor\.session\.open, editor\.level\.open/i)).toBeInTheDocument();
-    expect(screen.getByText(/Excluded: editor\.entity\.create/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Admitted real: editor\.session\.open, editor\.level\.open, editor\.entity\.create/i),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Still simulated: editor\.component\.add/i)).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Operator proof checklist for canonical 127.0.0.1:8000" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Confirm canonical target wiring")).toBeInTheDocument();
     expect(screen.getByText("Invoke-RestMethod 'http://127.0.0.1:8000/o3de/target'")).toBeInTheDocument();
-    expect(screen.getByText("Prove that editor.entity.create remains excluded")).toBeInTheDocument();
+    expect(screen.getByText("Run the repo-owned live proof command")).toBeInTheDocument();
+    expect(
+      screen.getByText("Keep editor.entity.create inside the admitted narrow boundary"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(".\\backend\\runtime\\prove_live_editor_authoring.cmd")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Command Center" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Runtime" })).toBeInTheDocument();
     expect(

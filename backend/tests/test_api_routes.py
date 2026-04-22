@@ -610,6 +610,8 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
             assert payload["adapter_mode"]["real_tool_paths"] == [
                 "editor.session.open",
                 "editor.level.open",
+                "editor.entity.create",
+                "editor.component.add",
                 "project.inspect",
             ]
             assert payload["adapter_mode"]["plan_only_tool_paths"] == [
@@ -655,6 +657,8 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
             assert payload["real_tool_paths"] == [
                 "editor.session.open",
                 "editor.level.open",
+                "editor.entity.create",
+                "editor.component.add",
                 "project.inspect",
             ]
             assert payload["plan_only_tool_paths"] == ["build.configure", "settings.patch"]
@@ -678,14 +682,13 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
             assert editor_control["real_tool_paths"] == [
                 "editor.session.open",
                 "editor.level.open",
+                "editor.entity.create",
+                "editor.component.add",
             ]
             assert editor_control["plan_only_tool_paths"] == []
-            assert editor_control["simulated_tool_paths"] == [
-                "editor.component.add",
-                "editor.entity.create",
-            ]
+            assert editor_control["simulated_tool_paths"] == []
             assert any(
-                "excluded from the admitted real set" in note
+                "editor.component.add currently have admitted real runtime-owned editor paths" in note
                 for note in editor_control["notes"]
             )
 
@@ -771,8 +774,11 @@ def test_policies_route_exposes_truthful_execution_mode_and_dry_run_support() ->
         assert policies_by_tool["build.configure"]["execution_mode"] == "plan-only"
         assert policies_by_tool["build.configure"]["supports_dry_run"] is True
 
-        assert policies_by_tool["editor.entity.create"]["execution_mode"] == "gated"
+        assert policies_by_tool["editor.entity.create"]["execution_mode"] == "real"
         assert policies_by_tool["editor.entity.create"]["supports_dry_run"] is False
+
+        assert policies_by_tool["editor.component.add"]["execution_mode"] == "real"
+        assert policies_by_tool["editor.component.add"]["supports_dry_run"] is False
 
         assert policies_by_tool["settings.patch"]["execution_mode"] == "gated"
         assert policies_by_tool["settings.patch"]["supports_dry_run"] is True

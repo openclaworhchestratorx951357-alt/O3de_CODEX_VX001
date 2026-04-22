@@ -20,7 +20,7 @@ export default function OperatorGuidePanel() {
               Admitted real: {operatorGuideCatalog.app.admittedRealTools.join(", ")}
             </span>
             <span style={warningPillStyle}>
-              Excluded: {operatorGuideCatalog.app.excludedTools.join(", ")}
+              Still simulated: {operatorGuideCatalog.app.simulatedOnlyFocusTools.join(", ")}
             </span>
           </div>
         </div>
@@ -56,9 +56,9 @@ export default function OperatorGuidePanel() {
               <span style={eyebrowStyle}>Admitted Real Proof</span>
               <h3 style={workspaceTitleStyle}>Operator proof checklist for canonical 127.0.0.1:8000</h3>
               <p style={workspaceSummaryStyle}>
-                Use these exact commands, endpoints, and evidence checks to confirm admitted-real
-                editor.session.open and editor.level.open while keeping editor.entity.create
-                explicitly excluded.
+                Use this repo-owned proof flow and its evidence checks to confirm admitted-real
+                editor.session.open, editor.level.open, and narrow editor.entity.create on the
+                canonical backend while keeping editor.component.add simulated-only.
               </p>
             </div>
           </div>

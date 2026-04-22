@@ -9,7 +9,13 @@ backend/runtime/editor_payloads/
 backend/runtime/editor_results/
 backend/runtime/editor_state/
 backend/runtime/*.sqlite3
+backend/runtime/*.sqlite3-*
+backend/runtime/live_editor_authoring_proof_*.json
+backend/runtime/live_component_add_validation_*.json
 backend/runtime/*.log
+backend/runtime/*.pid
+backend/runtime/live-verify-launch.json
+backend/runtime/live-verify-workspace-db.launch.json
 backend/backend/runtime/
 frontend/node_modules/
 frontend/dist/

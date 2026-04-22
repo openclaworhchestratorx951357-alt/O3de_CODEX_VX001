@@ -729,10 +729,14 @@ class DispatcherService:
         elif request.tool in {
             "editor.session.open",
             "editor.level.open",
+            "editor.entity.create",
+            "editor.component.add",
         } and inspection_surface in {
             "editor_session_runtime",
             "editor_level_opened",
             "editor_level_created",
+            "editor_entity_created",
+            "editor_component_added",
         }:
             executor_id = "executor-editor-control-real-local"
             executor_kind = "local-admitted-editor-authoring"
@@ -749,30 +753,9 @@ class DispatcherService:
             admitted_tools = [
                 "editor.session.open",
                 "editor.level.open",
+                "editor.entity.create",
+                "editor.component.add",
             ]
-            backup_class = None
-            rollback_class = None
-        elif (
-            request.tool == "editor.entity.create"
-            and inspection_surface == "editor_entity_created"
-        ):
-            executor_id = "executor-editor-control-runtime-reaching-local"
-            executor_kind = "local-runtime-reaching-editor-authoring"
-            executor_label = "Runtime-reaching local editor automation executor"
-            executor_host_label = "local-editor-python-bindings"
-            workspace_kind = "runtime-reaching-editor-session-project-root"
-            cleanup_policy = "operator-managed-editor-session"
-            artifact_role = "editor-automation-evidence"
-            evidence_completeness = "editor-runtime-backed"
-            execution_boundary = (
-                "runtime-reaching editor automation through runtime-owned Python "
-                "Editor Bindings scripts; excluded from the admitted real set on "
-                "McpSandbox"
-            )
-            workspace_id = (
-                f"workspace-editor-runtime-reaching-{resolved_project_root.name.lower()}"
-            )
-            admitted_tools = []
             backup_class = None
             rollback_class = None
         else:
@@ -798,6 +781,7 @@ class DispatcherService:
                 "editor_level_opened",
                 "editor_level_created",
                 "editor_entity_created",
+                "editor_component_added",
             }
             else "cli"
         )
@@ -813,12 +797,6 @@ class DispatcherService:
                 supported_runner_families=[runner_family],
                 capability_snapshot={
                     "admitted_tools": admitted_tools,
-                    **(
-                        {"runtime_reaching_tools": ["editor.entity.create"]}
-                        if request.tool == "editor.entity.create"
-                        and inspection_surface == "editor_entity_created"
-                        else {}
-                    ),
                     "execution_boundary": execution_boundary,
                     "engine_root": str(resolved_engine_root),
                 },
@@ -1243,10 +1221,9 @@ class DispatcherService:
         if request.tool == "editor.level.open":
             return "This run used the admitted real editor.level.open runtime path."
         if request.tool == "editor.entity.create":
-            return (
-                "This run used a runtime-reaching editor.entity.create path that "
-                "remains excluded from the admitted real set on McpSandbox."
-            )
+            return "This run used the admitted real editor.entity.create bridge-backed path."
+        if request.tool == "editor.component.add":
+            return "This run used the admitted real editor.component.add bridge-backed path."
         return "This run used a real non-simulated control-plane path."
 
 

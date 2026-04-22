@@ -124,9 +124,13 @@ However:
 - many O3DE execution paths are still explicitly simulated
 - admitted-real O3DE execution is still narrow and target-specific:
   `project.inspect`, `build.configure` preflight, admitted `settings.patch`
-  slices, `editor.session.open`, and `editor.level.open`
-- `editor.entity.create` remains excluded from the admitted-real set on the
-  current tested local targets
+  slices, `editor.session.open`, `editor.level.open`, and narrow
+  `editor.entity.create`
+- `editor.entity.create` is admitted real-authoring only for root-level named
+  entity creation on the loaded/current level through the persistent bridge
+  path; `parent_entity_id`, `prefab_asset`, and `position` remain rejected
+- `editor.component.add` remains simulated-only on the current tested local
+  target until its own admitted real proof slice lands
 - broad real O3DE adapter coverage is still not implemented
 
 UI, API responses, and docs must continue to label simulated execution as simulated.
@@ -145,7 +149,9 @@ The local compose stack should be considered healthy only when all of these are 
 - Docker validation is now locally verified on this machine, but other machines may still need Docker setup first.
 - Real O3DE execution is still narrow and must not be generalized beyond the
   admitted-real set.
-- `editor.entity.create` is still not admitted real on the current tested local
-  targets.
+- `editor.entity.create` is admitted real only for the current narrow
+  root-level named entity-create slice on McpSandbox.
+- `editor.component.add` is still not admitted real on the current tested local
+  target.
 - Non-container local persistence still requires truthful operator configuration unless separately re-verified.
 - Simulated execution must remain explicitly labeled.

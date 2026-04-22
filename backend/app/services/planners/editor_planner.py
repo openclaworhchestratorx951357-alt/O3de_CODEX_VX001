@@ -45,15 +45,6 @@ def plan_editor_prompt(
     if not wants_editor:
         return steps, refusals, requirements
 
-    if wants_entity_create:
-        refusals.append("editor.entity.create")
-        requirements.append(
-            "editor.entity.create remains runtime-reaching and excluded from the "
-            "admitted real set on current tested local targets, so prompt-driven "
-            "editor plans stop before entity mutation in this phase."
-        )
-        return steps, refusals, requirements
-
     session_capability = capabilities["editor.session.open"]
     if session_capability is not None:
         steps.append(

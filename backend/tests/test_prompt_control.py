@@ -80,10 +80,15 @@ def test_prompt_session_preview_compiles_typed_steps_across_families() -> None:
             item for item in capabilities if item["tool_name"] == "editor.entity.create"
         )
         assert editor_entity_create["safety_envelope"]["natural_language_status"] == (
-            "prompt-blocked-pending-admission"
+            "prompt-ready-approval-gated"
         )
-        assert "Excluded from the admitted real set" in (
-            editor_entity_create["safety_envelope"]["natural_language_blocker"]
+        assert editor_entity_create["safety_envelope"]["natural_language_blocker"] is None
+        editor_component_add = next(
+            item for item in capabilities if item["tool_name"] == "editor.component.add"
+        )
+        assert editor_component_add["capability_maturity"] == "real-authoring"
+        assert editor_component_add["safety_envelope"]["natural_language_status"] == (
+            "prompt-ready-approval-gated"
         )
 
 
@@ -341,7 +346,7 @@ def test_prompt_session_refuses_arbitrary_command_execution() -> None:
         assert payload["refused_capabilities"] == ["arbitrary-command-execution"]
 
 
-def test_prompt_session_refuses_editor_entity_create_until_admitted() -> None:
+def test_prompt_session_plans_admitted_real_editor_entity_create() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)
         (project_root / "project.json").write_text(
@@ -377,13 +382,36 @@ def test_prompt_session_refuses_editor_entity_create_until_admitted() -> None:
                 )
                 assert create_response.status_code == 200
                 create_payload = create_response.json()
-                assert create_payload["status"] == "refused"
-                assert create_payload["plan"]["steps"] == []
-                assert create_payload["admitted_capabilities"] == []
-                assert create_payload["refused_capabilities"] == ["editor.entity.create"]
-                assert "excluded from the admitted real set" in create_payload["plan"][
-                    "refusal_reason"
+                assert create_payload["status"] == "planned"
+                assert create_payload["plan"]["refusal_reason"] is None
+                assert create_payload["admitted_capabilities"] == [
+                    "editor.entity.create",
+                    "editor.level.open",
+                    "editor.session.open",
                 ]
+                assert create_payload["refused_capabilities"] == []
+                assert [step["tool"] for step in create_payload["plan"]["steps"]] == [
+                    "editor.session.open",
+                    "editor.level.open",
+                    "editor.entity.create",
+                ]
+                assert create_payload["plan"]["steps"][2]["args"] == {
+                    "entity_name": "Hero",
+                    "level_path": "Levels/Main.level",
+                }
+                assert all(
+                    step["capability_maturity"] == "real-authoring"
+                    for step in create_payload["plan"]["steps"]
+                )
+                assert all(
+                    step["safety_envelope"]["natural_language_status"]
+                    == "prompt-ready-approval-gated"
+                    for step in create_payload["plan"]["steps"]
+                )
+                assert all(
+                    step["simulated_allowed"] is False
+                    for step in create_payload["plan"]["steps"]
+                )
 
 
 def test_prompt_session_executes_admitted_real_editor_session_and_level_through_prompt_lineage() -> None:

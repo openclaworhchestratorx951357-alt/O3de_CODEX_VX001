@@ -84,13 +84,14 @@ export default function DispatchForm({
     (family) => family.family === selectedFamily,
   );
   const selectedToolMayUseRealPath = hybridModeActive
-    && effectiveToolName === "project.inspect"
-    && selectedFamilyStatus?.supports_real_execution === true;
+    && selectedFamilyStatus?.supports_real_execution === true
+    && selectedTool?.real_adapter_availability === true;
   const selectedToolMayUseRealPlanOnlyPath = hybridModeActive
     && effectiveToolName === "build.configure"
     && selectedFamilyStatus?.supports_real_execution === true;
   const selectedCapabilityStatus = selectedTool?.capability_status ?? "simulated-only";
   const selectedExpectedExecutionTruth = getDispatchExpectedExecutionTruth(
+    effectiveToolName,
     selectedCapabilityStatus,
     selectedToolMayUseRealPath,
     selectedToolMayUseRealPlanOnlyPath,

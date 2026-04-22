@@ -9,8 +9,8 @@ Operate the control-plane through focused desktop workspaces instead of one over
 - App title: O3DE Agent Control App
 - App subtitle: Windows-style control-plane workspace for O3DE operators
 - Canonical backend: http://127.0.0.1:8000
-- Admitted real: editor.session.open, editor.level.open
-- Excluded: editor.entity.create
+- Admitted real: editor.session.open, editor.level.open, editor.entity.create
+- Still simulated: editor.component.add
 
 ## How to move through the app
 
@@ -78,7 +78,7 @@ Invoke-RestMethod 'http://127.0.0.1:8000/o3de/bridge'
 
 ### Read the admitted-real capability map first
 
-Use the prompt capability registry to confirm what is admitted real, what is approval-gated, and what remains explicitly excluded before running any operator proof flow.
+Use the prompt capability registry to confirm that editor.session.open, editor.level.open, and editor.entity.create are admitted real-authoring on the canonical backend while editor.component.add remains simulated-only.
 
 #### Endpoints
 
@@ -94,96 +94,72 @@ Invoke-RestMethod 'http://127.0.0.1:8000/prompt/capabilities'
 
 - editor.session.open.real_admission_stage = real-editor-authoring-active
 - editor.level.open.real_admission_stage = real-editor-authoring-active
+- editor.entity.create.real_admission_stage = real-editor-authoring-active
 - editor.session.open.safety_envelope.natural_language_status = prompt-ready-approval-gated
 - editor.level.open.safety_envelope.natural_language_status = prompt-ready-approval-gated
-- editor.entity.create.safety_envelope.natural_language_status = prompt-blocked-pending-admission
-- editor.entity.create.safety_envelope.natural_language_blocker states that the tool remains excluded from the admitted real set on current tested local targets.
+- editor.entity.create.capability_maturity = real-authoring and editor.entity.create.safety_envelope.natural_language_status = prompt-ready-approval-gated
+- editor.entity.create.allowlisted_parameter_surfaces = ["entity_name", "level_path"] and editor.component.add.capability_maturity = simulated-only
 
-### Run the admitted-real prompt proof path
+### Run the repo-owned live proof command
 
-Use the natural-language prompt front door on the canonical backend, then advance the approval-gated steps until both admitted-real editor actions have persisted lineage.
+Use one repo-owned command to dispatch editor.session.open, editor.level.open, and editor.entity.create against the canonical backend and write one JSON evidence bundle under backend/runtime.
 
 #### Endpoints
 
-- POST /prompt/sessions
-- POST /prompt/sessions/{prompt_id}/execute
+- GET /ready
+- GET /o3de/target
+- GET /o3de/bridge
+- POST /tools/dispatch
 - POST /approvals/{approval_id}/approve
-- GET /prompt/sessions/{prompt_id}
-- GET /executions
-- GET /artifacts
+- GET /runs/{run_id}
+- GET /executions/{execution_id}
+- GET /artifacts/{artifact_id}
 
 #### Commands
 
 ```powershell
-$createBody = @{
-  prompt_id = 'proof-editor-real-001'
-  prompt_text = 'Open level "Levels/Main.level" in the editor.'
-  project_root = 'C:\Users\topgu\O3DE\Projects\McpSandbox'
-  engine_root = 'C:\src\o3de'
-  dry_run = $false
-  preferred_domains = @('editor-control')
-} | ConvertTo-Json
-$create = Invoke-RestMethod -Method Post 'http://127.0.0.1:8000/prompt/sessions' -ContentType 'application/json' -Body $createBody
-```
-
-```powershell
-$step1 = Invoke-RestMethod -Method Post 'http://127.0.0.1:8000/prompt/sessions/proof-editor-real-001/execute'
-Invoke-RestMethod -Method Post ('http://127.0.0.1:8000/approvals/{0}/approve' -f $step1.pending_approval_id) -ContentType 'application/json' -Body '{}'
-```
-
-```powershell
-$step2 = Invoke-RestMethod -Method Post 'http://127.0.0.1:8000/prompt/sessions/proof-editor-real-001/execute'
-Invoke-RestMethod -Method Post ('http://127.0.0.1:8000/approvals/{0}/approve' -f $step2.pending_approval_id) -ContentType 'application/json' -Body '{}'
-$final = Invoke-RestMethod -Method Post 'http://127.0.0.1:8000/prompt/sessions/proof-editor-real-001/execute'
-Invoke-RestMethod 'http://127.0.0.1:8000/prompt/sessions/proof-editor-real-001'
-Invoke-RestMethod 'http://127.0.0.1:8000/executions'
-Invoke-RestMethod 'http://127.0.0.1:8000/artifacts'
+.\backend\runtime\prove_live_editor_authoring.cmd
 ```
 
 #### Evidence to confirm
 
-- The created prompt session returns status = planned.
-- The created prompt session admits exactly editor.session.open and editor.level.open for this proof path.
-- The first execute call returns status = waiting_approval with current_step_id = editor-session-1.
-- After approving and executing again, the latest child response for editor.session.open reports execution_mode = real.
-- After approving the second step and executing again, the final child response for editor.level.open reports execution_mode = real and the prompt session status = completed.
-- Persisted executions and artifacts on /executions and /artifacts carry prompt safety that remains prompt-ready-approval-gated for both admitted-real editor tools.
+- The command writes backend\runtime\live_editor_authoring_proof_<timestamp>.json.
+- summary.succeeded = true and summary.bridge_transport_confirmed = true.
+- summary.records.approval_ids, run_ids, execution_ids, and artifact_ids are populated for editor.session.open, editor.level.open, and editor.entity.create.
+- summary.bridge_command_ids captures the persistent bridge command ids for all three admitted-real editor steps.
+- summary.entity_name, summary.entity_id, and summary.level_path capture the created root-level entity and loaded level context.
 
-### Prove that editor.entity.create remains excluded
+### Keep editor.entity.create inside the admitted narrow boundary
 
-Close the proof loop by showing that the natural-language path still refuses entity creation instead of silently widening the admitted-real set.
+Treat the live proof as evidence only for the current admitted mutation slice: root-level named entity creation through the persistent bridge on the loaded/current level.
 
 #### Endpoints
 
-- POST /prompt/sessions
+- GET /prompt/capabilities
+- GET /policies
 
 #### Commands
 
 ```powershell
-$refusalBody = @{
-  prompt_id = 'proof-editor-entity-create-refused-001'
-  prompt_text = 'Open level "Levels/Main.level" in the editor and create entity named "Hero".'
-  project_root = 'C:\Users\topgu\O3DE\Projects\McpSandbox'
-  engine_root = 'C:\src\o3de'
-  dry_run = $false
-  preferred_domains = @('editor-control')
-} | ConvertTo-Json
-Invoke-RestMethod -Method Post 'http://127.0.0.1:8000/prompt/sessions' -ContentType 'application/json' -Body $refusalBody
+Invoke-RestMethod 'http://127.0.0.1:8000/prompt/capabilities'
+Invoke-RestMethod 'http://127.0.0.1:8000/policies'
 ```
 
 #### Evidence to confirm
 
-- The prompt session returns status = refused.
-- refused_capabilities = ["editor.entity.create"]
-- plan.steps = []
-- plan.refusal_reason explicitly says editor.entity.create remains excluded from the admitted real set on current tested local targets.
+- editor.entity.create is admitted real-authoring through the persistent bridge-backed path on McpSandbox.
+- The admitted slice still requires an admitted editor session and a loaded/current level match.
+- Only root-level named entity creation is admitted in this slice.
+- parent_entity_id, prefab_asset, and position remain rejected on the admitted real path.
+- editor.component.add remains simulated-only until its own bridge-backed proof slice lands.
 
 
 ## Capability posture
 
 - Simulated versus real wording must remain explicit in both prompts and operator evidence.
 - The control-plane repo remains the single orchestration and governance substrate.
-- Current admitted-real editor proof remains anchored to the canonical local backend on 127.0.0.1:8000.
+- Current admitted-real editor proof remains anchored to the canonical local backend on 127.0.0.1:8000 and the repo-owned backend/runtime/prove_live_editor_authoring.cmd command.
+- Live bridge success currently depends on the project-local ControlPlaneEditorBridge handler path on the active McpSandbox target.
 
 ## Key panels
 
@@ -896,4 +872,5 @@ Records is the evidence workspace. When you need persisted truth, this is where 
 
 - Edit this catalog when desktop labels, workflows, or supported surfaces change.
 - Run npm run guide:sync in frontend to regenerate docs/APP-OPERATOR-GUIDE.md from the same source.
+- Re-run .\backend\runtime\prove_live_editor_authoring.cmd when the admitted real editor boundary changes so the latest evidence bundle stays fresh.
 - Frontend tests run a guide drift check so catalog changes are not silently shipped without synced docs.

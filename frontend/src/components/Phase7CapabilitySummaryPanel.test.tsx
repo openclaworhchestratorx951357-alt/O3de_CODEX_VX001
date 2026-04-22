@@ -27,16 +27,17 @@ const policies: ToolPolicy[] = [
     tool: "editor.entity.create",
     approval_class: "content_write",
     adapter_family: "editor-control",
-    capability_status: "runtime-reaching",
-    real_admission_stage: "runtime-reaching-excluded-from-admitted-real",
-    next_real_requirement: "Keep editor.entity.create explicitly labeled as runtime-reaching and excluded.",
+    capability_status: "real-authoring",
+    real_admission_stage: "real-editor-authoring-active",
+    next_real_requirement:
+      "Keep the admitted real path limited to root-level named entity creation on the currently loaded level, without parenting, prefab instantiation, or transform placement.",
     args_schema: "EditorEntityCreateArgs",
     result_schema: "EditorEntityCreateResult",
     required_locks: ["editor_session"],
     risk: "high",
     requires_approval: true,
     supports_dry_run: false,
-    execution_mode: "simulated",
+    execution_mode: "real",
   },
   {
     agent: "project-build",
@@ -115,8 +116,8 @@ describe("Phase7CapabilitySummaryPanel", () => {
     );
 
     expect(screen.getByText("Phase 7 Capability Summary")).toBeInTheDocument();
-    expect(screen.getByText("real-authoring surfaces: 1")).toBeInTheDocument();
-    expect(screen.getByText("runtime-reaching surfaces: 1")).toBeInTheDocument();
+    expect(screen.getByText("real-authoring surfaces: 2")).toBeInTheDocument();
+    expect(screen.queryByText("runtime-reaching surfaces: 1")).not.toBeInTheDocument();
     expect(screen.getByText("hybrid-read-only surfaces: 1")).toBeInTheDocument();
     expect(screen.getByText("plan-only surfaces: 1")).toBeInTheDocument();
     expect(screen.getByText("mutation-gated surfaces: 1")).toBeInTheDocument();
@@ -127,8 +128,8 @@ describe("Phase7CapabilitySummaryPanel", () => {
     expect(screen.getAllByText("build.configure").length).toBeGreaterThan(0);
     expect(screen.getAllByText("settings.patch").length).toBeGreaterThan(0);
     expect(screen.getByText("asset.reimport")).toBeInTheDocument();
-    expect(screen.getByText("real-editor-authoring-active")).toBeInTheDocument();
-    expect(screen.getByText("runtime-reaching-excluded-from-admitted-real")).toBeInTheDocument();
+    expect(screen.getAllByText("real-editor-authoring-active").length).toBeGreaterThan(0);
+    expect(screen.queryByText("runtime-reaching-excluded-from-admitted-real")).not.toBeInTheDocument();
     expect(screen.getByText("real-read-only-active")).toBeInTheDocument();
 
     const sessionMatches = screen.getAllByText("editor.session.open");

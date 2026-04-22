@@ -8,7 +8,7 @@ export type OperatorGuideApp = {
   operatorFlow: string[];
   canonicalBackend: string;
   admittedRealTools: string[];
-  excludedTools: string[];
+  simulatedOnlyFocusTools: string[];
   truthNotes: string[];
   maintenance: string[];
 };

@@ -8,10 +8,10 @@ def tool_real_admission_stage(tool_name: str) -> str:
     if tool_name in {
         "editor.session.open",
         "editor.level.open",
+        "editor.entity.create",
+        "editor.component.add",
     }:
         return "real-editor-authoring-active"
-    if tool_name == "editor.entity.create":
-        return "runtime-reaching-excluded-from-admitted-real"
     if tool_name == "build.configure":
         return "real-plan-only-active"
     if tool_name == "settings.patch":
@@ -42,9 +42,16 @@ def tool_next_real_requirement(tool_name: str) -> str:
         )
     if tool_name == "editor.entity.create":
         return (
-            "Keep editor.entity.create explicitly labeled as runtime-reaching "
-            "and excluded from the admitted real set on current tested local "
-            "targets until a stable prefab-safe create contract is proven."
+            "Keep the admitted real path limited to root-level named entity "
+            "creation on the currently loaded level, without parenting, prefab "
+            "instantiation, or transform placement."
+        )
+    if tool_name == "editor.component.add":
+        return (
+            "Keep the admitted real path limited to allowlist-bound component "
+            "attachment on an explicit existing entity in the currently loaded "
+            "level, without property mutation, removal, parenting, prefab work, "
+            "or transform placement."
         )
     if tool_name == "build.configure":
         return (
@@ -75,6 +82,7 @@ def tool_supports_dry_run(tool_name: str) -> bool:
         "editor.session.open",
         "editor.level.open",
         "editor.entity.create",
+        "editor.component.add",
     }:
         return False
     return True
@@ -90,7 +98,6 @@ def tool_policy_execution_mode(tool_name: str) -> str:
     if admission_stage == "real-plan-only-active":
         return "plan-only"
     if admission_stage in {
-        "runtime-reaching-excluded-from-admitted-real",
         "real-mutation-preflight-active",
         "mutation-candidate-after-gate",
         "deferred-high-risk-mutation",

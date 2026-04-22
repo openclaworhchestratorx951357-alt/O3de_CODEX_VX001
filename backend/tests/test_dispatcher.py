@@ -373,8 +373,8 @@ def approve_editor_entity_create_request() -> RequestEnvelope:
 def make_editor_component_add_request() -> RequestEnvelope:
     request = make_request("editor-control", "editor.component.add")
     request.args = {
-        "entity_id": "entity-001",
-        "components": ["Mesh", "Transform"],
+        "entity_id": "101",
+        "components": ["Mesh"],
         "level_path": "Levels/Main.level",
     }
     return request
@@ -3200,37 +3200,46 @@ def test_editor_entity_create_uses_real_runtime_in_hybrid_mode() -> None:
             },
             clear=False,
         ):
-            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
-                with patch(
-                    "subprocess.Popen",
-                    side_effect=make_editor_runtime_popen(
-                        {
-                            "ok": True,
-                            "entity_id": 101,
-                            "entity_name": "ExampleEntity",
-                            "modified_entities": [101],
-                            "exact_editor_apis": [
-                                "azlmbr.legacy.general.open_level_no_prompt",
-                                "azlmbr.legacy.general.idle_wait",
-                                "azlmbr.legacy.general.idle_wait_frames",
-                                "azlmbr.editor.ToolsApplicationRequestBus(..., 'GetCurrentLevelEntityId')",
-                                "azlmbr.editor.ToolsApplicationRequestBus(..., 'GetSelectedEntities')",
-                                "azlmbr.editor.ToolsApplicationRequestBus(..., 'SetSelectedEntities', [])",
-                                "azlmbr.bus.NotificationHandler('EditorEntityContextNotificationBus')",
-                                "azlmbr.editor.ToolsApplicationRequestBus(..., 'CreateNewEntity', ...)",
-                                "azlmbr.editor.EditorEntityAPIBus(..., 'SetName', ...)",
-                                "azlmbr.editor.EditorEntityInfoRequestBus(..., 'GetName', ...)",
-                            ],
-                            "entity_id_source": "create_return",
-                            "direct_return_entity_id": "101",
-                            "notification_entity_ids": ["101"],
-                            "selected_entity_count_before_create": 0,
-                            "level_path": "Levels/Main.level",
-                            "name_mutation_ran": True,
-                            "name_mutation_succeeded": True,
-                        }
-                    ),
-                ):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_entity_create",
+                return_value={
+                    "runtime_result": {
+                        "ok": True,
+                        "entity_id": "101",
+                        "entity_name": "ExampleEntity",
+                        "modified_entities": ["101"],
+                        "exact_editor_apis": [
+                            "ControlPlaneEditorBridge filesystem inbox",
+                            "editor.entity.create",
+                        ],
+                        "entity_id_source": "editor_entity_context_create",
+                        "direct_return_entity_id": "101",
+                        "notification_entity_ids": [],
+                        "selected_entity_count_before_create": 0,
+                        "level_path": "Levels/Main.level",
+                        "loaded_level_path": "Levels/Main.level",
+                        "name_mutation_ran": False,
+                        "name_mutation_succeeded": True,
+                        "bridge_available": True,
+                        "bridge_name": "ControlPlaneEditorBridge",
+                        "bridge_version": "0.1.0",
+                        "bridge_operation": "editor.entity.create",
+                        "bridge_contract_version": "v1",
+                        "bridge_command_id": "bridge-entity-1",
+                        "bridge_result_summary": "editor.entity.create completed.",
+                        "bridge_heartbeat_seen_at": "2026-04-21T00:00:01Z",
+                        "bridge_queue_mode": "filesystem-inbox",
+                        "bridge_selected_entity_count": 0,
+                        "bridge_prefab_context_notes": (
+                            "Selection was cleared before create to avoid selected-entity or prefab ownership ambiguity."
+                        ),
+                        "editor_transport": "bridge",
+                    },
+                    "runner_command": ["fake-editor-runner"],
+                    "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+                },
+            ):
+                with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
                     response = dispatcher_service.dispatch(approved_request)
 
         assert response.ok is True
@@ -3247,15 +3256,14 @@ def test_editor_entity_create_uses_real_runtime_in_hybrid_mode() -> None:
         artifact = artifacts_service.get_artifact(response.artifacts[0])
         assert execution.details["inspection_surface"] == "editor_entity_created"
         assert execution.details["entity_name"] == "ExampleEntity"
-        assert execution.details["entity_id"] == 101
-        assert execution.details["entity_id_source"] == "create_return"
+        assert execution.details["entity_id"] == "101"
+        assert execution.details["entity_id_source"] == "editor_entity_context_create"
         assert execution.details["selected_entity_count_before_create"] == 0
         assert execution.details["name_mutation_succeeded"] is True
-        assert execution.executor_id == "executor-editor-control-runtime-reaching-local"
-        assert (
-            execution.workspace_id
-            == f"workspace-editor-runtime-reaching-{project_root.name.lower()}"
-        )
+        assert execution.details["bridge_available"] is True
+        assert execution.details["bridge_operation"] == "editor.entity.create"
+        assert execution.executor_id == "executor-editor-control-real-local"
+        assert execution.workspace_id == f"workspace-editor-{project_root.name.lower()}"
         assert artifact is not None
         assert artifact.metadata["execution_mode"] == "real"
         assert artifact.metadata["inspection_surface"] == "editor_entity_created"
@@ -3269,6 +3277,118 @@ def test_editor_entity_create_uses_real_runtime_in_hybrid_mode() -> None:
         assert (
             schema_validation_service.validate_artifact_metadata(
                 tool_name="editor.entity.create",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_editor_component_add_uses_real_runtime_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        write_editor_project_manifest(project_root)
+
+        first_request = make_editor_component_add_request()
+        first_request.project_root = str(project_root)
+        first = dispatcher_service.dispatch(first_request)
+        approval = approvals_service.get_approval(first.approval_id or "")
+        assert approval is not None
+        approvals_service.approve(approval.id)
+
+        approved_request = make_editor_component_add_request()
+        approved_request.project_root = str(project_root)
+        approved_request.dry_run = False
+        approved_request.approval_token = approval.token
+
+        session_state_path = editor_state_path_for(project_root)
+        session_state_path.parent.mkdir(parents=True, exist_ok=True)
+        session_state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_component_add",
+                return_value={
+                    "runtime_result": {
+                        "ok": True,
+                        "entity_id": "101",
+                        "entity_name": "ExampleEntity",
+                        "added_components": ["Mesh"],
+                        "rejected_components": [],
+                        "modified_entities": ["101"],
+                        "level_path": "Levels/Main.level",
+                        "loaded_level_path": "Levels/Main.level",
+                        "exact_editor_apis": [
+                            "ControlPlaneEditorBridge filesystem inbox",
+                            "editor.component.add",
+                        ],
+                        "bridge_available": True,
+                        "bridge_name": "ControlPlaneEditorBridge",
+                        "bridge_version": "0.1.0",
+                        "bridge_operation": "editor.component.add",
+                        "bridge_contract_version": "v1",
+                        "bridge_command_id": "bridge-component-1",
+                        "bridge_result_summary": "editor.component.add completed.",
+                        "bridge_heartbeat_seen_at": "2026-04-22T00:00:01Z",
+                        "bridge_queue_mode": "filesystem-inbox",
+                        "bridge_selected_entity_count": 0,
+                        "editor_transport": "bridge",
+                    },
+                    "runner_command": ["fake-editor-runner"],
+                    "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+                },
+            ):
+                with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                    response = dispatcher_service.dispatch(approved_request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.execution_mode == "real"
+        assert response.result.simulated is False
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "editor_component_added"
+        assert execution.details["entity_id"] == "101"
+        assert execution.details["entity_name"] == "ExampleEntity"
+        assert execution.details["added_components"] == ["Mesh"]
+        assert execution.details["rejected_components"] == []
+        assert execution.details["bridge_available"] is True
+        assert execution.details["bridge_operation"] == "editor.component.add"
+        assert execution.executor_id == "executor-editor-control-real-local"
+        assert execution.workspace_id == f"workspace-editor-{project_root.name.lower()}"
+        assert artifact is not None
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "editor_component_added"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="editor.component.add",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="editor.component.add",
                 payload=artifact.metadata,
             )
             == []

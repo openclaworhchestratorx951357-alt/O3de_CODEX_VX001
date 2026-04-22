@@ -394,11 +394,12 @@ export default function RunsPanel({
 }
 
 function getRunCapabilityLabel(item: RunListItem): string {
-  if (item.tool === "editor.session.open" || item.tool === "editor.level.open") {
+  if (
+    item.tool === "editor.session.open"
+    || item.tool === "editor.level.open"
+    || item.tool === "editor.entity.create"
+  ) {
     return "real-authoring";
-  }
-  if (item.tool === "editor.entity.create") {
-    return "runtime-reaching";
   }
   if (item.tool === "project.inspect") {
     return "hybrid-read-only";

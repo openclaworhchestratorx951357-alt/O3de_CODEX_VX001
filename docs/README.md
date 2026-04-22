@@ -44,15 +44,16 @@ Current Phase 7 checkpoint truth:
 - `editor.session.open` and `editor.level.open` are admitted real on the
   verified `McpSandbox` target wiring through the persistent bridge-backed
   runtime path
+- `editor.entity.create` is now admitted real-authoring on the same verified
+  `McpSandbox` target wiring, but only for root-level named entity creation on
+  the loaded/current level
 - the canonical local verification path for that admitted editor-runtime
   boundary is the repo-owned backend on `127.0.0.1:8000`, launched via
-  `backend/runtime/launch_branch_backend_8000.cmd`
-- `editor.entity.create` remains excluded from the admitted-real set on the
-  current tested local targets
+  `backend/runtime/launch_branch_backend_8000.cmd`, with the repeatable proof
+  command at `backend/runtime/prove_live_editor_authoring.cmd`
 - the operator proof checklist for the admitted editor-runtime boundary lives in
-  `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` and now names the exact
-  `127.0.0.1:8000` readiness, target, bridge, dispatch, approval, and persisted
-  evidence commands used for operator confirmation
+  `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` and now points operators to
+  the repo-owned proof command plus the generated evidence bundle path
 - the current post-publish dirty-tree classification lives in
   `docs/UNPUBLISHED-WORKTREE-INVENTORY.md`
 - the next safest refinement is still manifest-adjacent and keeps settings/Gem evidence on `project.json`

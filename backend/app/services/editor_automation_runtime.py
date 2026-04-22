@@ -64,6 +64,67 @@ def _normalize_engine_root_path(engine_root: str) -> str:
     return str(Path(candidate).expanduser().resolve())
 
 
+EDITOR_COMPONENT_ADD_ALLOWLIST = ("Camera", "Comment", "Mesh")
+EDITOR_COMPONENT_ADD_ALLOWLIST_LOOKUP = {
+    component_name.casefold(): component_name
+    for component_name in EDITOR_COMPONENT_ADD_ALLOWLIST
+}
+
+
+def _canonicalize_component_add_components(
+    components: Any,
+) -> tuple[list[str], list[str], list[str]]:
+    if not isinstance(components, list):
+        return [], [], []
+
+    canonical_components: list[str] = []
+    unsupported_components: list[str] = []
+    duplicate_components: list[str] = []
+    seen_components: set[str] = set()
+
+    for component_value in components:
+        if not isinstance(component_value, str):
+            unsupported_components.append(str(component_value))
+            continue
+
+        normalized_component = component_value.strip()
+        if not normalized_component:
+            unsupported_components.append(normalized_component)
+            continue
+
+        canonical_component = EDITOR_COMPONENT_ADD_ALLOWLIST_LOOKUP.get(
+            normalized_component.casefold()
+        )
+        if canonical_component is None:
+            unsupported_components.append(normalized_component)
+            continue
+
+        if canonical_component in seen_components:
+            duplicate_components.append(canonical_component)
+            continue
+
+        seen_components.add(canonical_component)
+        canonical_components.append(canonical_component)
+
+    return canonical_components, unsupported_components, duplicate_components
+
+
+def _normalize_editor_entity_id(value: Any) -> str | None:
+    if isinstance(value, int):
+        return str(value)
+    if not isinstance(value, str):
+        return None
+
+    candidate = value.strip()
+    if candidate.startswith("EntityId(") and candidate.endswith(")"):
+        candidate = candidate[len("EntityId(") : -1].strip()
+    if candidate.startswith("[") and candidate.endswith("]"):
+        candidate = candidate[1:-1].strip()
+    if not candidate or not candidate.isdigit():
+        return None
+    return candidate
+
+
 class EditorAutomationRuntimeService:
     def __init__(self) -> None:
         runtime_root = Path(__file__).resolve().parents[2] / "runtime"
@@ -293,7 +354,7 @@ class EditorAutomationRuntimeService:
                 message="editor.entity.create currently requires dry_run=false on the admitted real path.",
                 extra_details={"python_editor_bindings_enabled": True},
             )
-        runner_command = self._resolve_runner()
+        runner_command = self._resolve_bridge_runner()
         state = self._load_editor_state(project_root)
         if not state.get("session_active"):
             self._reject_preflight(
@@ -346,6 +407,17 @@ class EditorAutomationRuntimeService:
                     "loaded_level_path": loaded_level_path,
                 },
             )
+        if not self._bridge_host_available(project_root, runner_command=runner_command):
+            self._reject_preflight(
+                tool="editor.entity.create",
+                project_root=project_root,
+                reason="bridge-not-running",
+                message="editor.entity.create requires an active ControlPlaneEditorBridge session; run editor.session.open first.",
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                },
+            )
 
         entity_name = args.get("entity_name")
         if not isinstance(entity_name, str) or not entity_name.strip():
@@ -360,32 +432,255 @@ class EditorAutomationRuntimeService:
                 },
             )
 
-        payload = {
-            "tool": "editor.entity.create",
-            "project_root": project_root,
-            "engine_root": normalized_engine_root,
-            "locks_acquired": locks_acquired,
-            "args": {
+        bridge_response = self._invoke_bridge_command(
+            tool="editor.entity.create",
+            operation="editor.entity.create",
+            project_root=project_root,
+            engine_root=normalized_engine_root,
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
+            args={
                 "entity_name": entity_name,
                 "level_path": loaded_level_path,
             },
-        }
-        runtime_result = self._invoke_runtime_script(
-            script_name="entity_create.py",
-            payload=payload,
-            runner_command=runner_command,
             timeout_s=90,
-            tool="editor.entity.create",
-            project_root=project_root,
         )
+        bridge_details = self._bridge_response_details(bridge_response)
+        created_entity_id = bridge_details.get("entity_id")
+        created_entity_name = bridge_details.get("entity_name", entity_name)
+        created_level_path = bridge_details.get("level_path", loaded_level_path)
+        modified_entities = (
+            [str(created_entity_id)] if created_entity_id is not None else []
+        )
+        runtime_result = {
+            "ok": True,
+            "message": "Entity was created through the persistent bridge-backed admitted editor authoring path.",
+            "entity_id": created_entity_id,
+            "entity_name": created_entity_name,
+            "modified_entities": modified_entities,
+            "level_path": created_level_path,
+            "loaded_level_path": created_level_path,
+            "entity_id_source": bridge_details.get("entity_id_source"),
+            "direct_return_entity_id": bridge_details.get("direct_return_entity_id"),
+            "notification_entity_ids": bridge_details.get("notification_entity_ids", []),
+            "selected_entity_count_before_create": bridge_details.get(
+                "selected_entity_count_before_create",
+                bridge_details.get("selected_entity_count"),
+            ),
+            "name_mutation_ran": bridge_details.get("name_mutation_ran"),
+            "name_mutation_succeeded": bridge_details.get("name_mutation_succeeded"),
+            "exact_editor_apis": [
+                "ControlPlaneEditorBridge filesystem inbox",
+                "editor.entity.create",
+            ],
+            "editor_transport": "bridge",
+            **self._bridge_result_metadata(bridge_response),
+        }
         state["last_created_entity_id"] = runtime_result.get("entity_id")
         state["last_created_entity_name"] = runtime_result.get("entity_name")
+        state["editor_transport"] = "bridge"
+        state["bridge_heartbeat_seen_at"] = runtime_result.get("bridge_heartbeat_seen_at")
         self._save_editor_state(project_root, state)
         return {
             "runtime_result": runtime_result,
             "runner_command": runner_command,
             "manifest": manifest,
-            "runtime_script": "entity_create.py",
+            "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+        }
+
+    def execute_component_add(
+        self,
+        *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        locks_acquired: list[str],
+    ) -> dict[str, Any]:
+        manifest = self._load_project_manifest(project_root)
+        self._ensure_python_editor_bindings_enabled(manifest, project_root=project_root)
+        normalized_engine_root = _normalize_engine_root_path(engine_root)
+        if dry_run:
+            self._reject_preflight(
+                tool="editor.component.add",
+                project_root=project_root,
+                reason="editor-component-add-dry-run-not-admitted",
+                message="editor.component.add currently requires dry_run=false on the admitted real path.",
+                extra_details={"python_editor_bindings_enabled": True},
+            )
+        runner_command = self._resolve_bridge_runner()
+        state = self._load_editor_state(project_root)
+        if not state.get("session_active"):
+            self._reject_preflight(
+                tool="editor.component.add",
+                project_root=project_root,
+                reason="editor-session-not-ensured",
+                message="editor.component.add requires an admitted editor session before component mutation can proceed.",
+                extra_details={"python_editor_bindings_enabled": True},
+            )
+        loaded_level_path = state.get("loaded_level_path")
+        requested_level_path = args.get("level_path")
+        if not isinstance(loaded_level_path, str) or not loaded_level_path:
+            self._reject_preflight(
+                tool="editor.component.add",
+                project_root=project_root,
+                reason="level-not-loaded",
+                message="editor.component.add requires a loaded level before component APIs can be used.",
+                extra_details={"python_editor_bindings_enabled": True},
+            )
+        if (
+            isinstance(requested_level_path, str)
+            and requested_level_path
+            and requested_level_path != loaded_level_path
+        ):
+            self._reject_preflight(
+                tool="editor.component.add",
+                project_root=project_root,
+                reason="loaded-level-mismatch",
+                message="editor.component.add level_path must match the currently loaded level on the admitted real path.",
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "requested_level_path": requested_level_path,
+                },
+            )
+        if not self._bridge_host_available(project_root, runner_command=runner_command):
+            self._reject_preflight(
+                tool="editor.component.add",
+                project_root=project_root,
+                reason="bridge-not-running",
+                message="editor.component.add requires an active ControlPlaneEditorBridge session; run editor.session.open first.",
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                },
+            )
+
+        raw_entity_id = args.get("entity_id")
+        normalized_entity_id = _normalize_editor_entity_id(raw_entity_id)
+        if normalized_entity_id is None:
+            self._reject_preflight(
+                tool="editor.component.add",
+                project_root=project_root,
+                reason="entity-id-invalid",
+                message="editor.component.add requires a valid explicit entity_id on the admitted real path.",
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "provided_entity_id": raw_entity_id,
+                },
+            )
+
+        canonical_components, unsupported_components, duplicate_components = (
+            _canonicalize_component_add_components(args.get("components"))
+        )
+        if not canonical_components and not unsupported_components and not duplicate_components:
+            self._reject_preflight(
+                tool="editor.component.add",
+                project_root=project_root,
+                reason="components-missing",
+                message="editor.component.add requires at least one allowlisted component name on the admitted real path.",
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "allowlisted_components": list(EDITOR_COMPONENT_ADD_ALLOWLIST),
+                },
+            )
+        if unsupported_components:
+            self._reject_preflight(
+                tool="editor.component.add",
+                project_root=project_root,
+                reason="unsupported-component-surface",
+                message="editor.component.add currently admits only the explicit allowlisted component set on the real path.",
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "unsupported_components": unsupported_components,
+                    "allowlisted_components": list(EDITOR_COMPONENT_ADD_ALLOWLIST),
+                },
+            )
+        if duplicate_components:
+            self._reject_preflight(
+                tool="editor.component.add",
+                project_root=project_root,
+                reason="duplicate-component-request",
+                message="editor.component.add requires each requested allowlisted component to appear at most once per call.",
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "duplicate_components": duplicate_components,
+                    "allowlisted_components": list(EDITOR_COMPONENT_ADD_ALLOWLIST),
+                },
+            )
+
+        entity_name_hint: str | None = None
+        last_created_entity_id = _normalize_editor_entity_id(state.get("last_created_entity_id"))
+        last_created_entity_name = state.get("last_created_entity_name")
+        if (
+            last_created_entity_id == normalized_entity_id
+            and isinstance(last_created_entity_name, str)
+            and last_created_entity_name
+        ):
+            entity_name_hint = last_created_entity_name
+
+        bridge_args = {
+            "entity_id": normalized_entity_id,
+            "components": canonical_components,
+            "level_path": loaded_level_path,
+        }
+        if entity_name_hint is not None:
+            bridge_args["entity_name_hint"] = entity_name_hint
+
+        bridge_response = self._invoke_bridge_command(
+            tool="editor.component.add",
+            operation="editor.component.add",
+            project_root=project_root,
+            engine_root=normalized_engine_root,
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
+            args=bridge_args,
+            timeout_s=90,
+        )
+        bridge_details = self._bridge_response_details(bridge_response)
+        runtime_result = {
+            "ok": True,
+            "message": "Components were processed through the persistent bridge-backed admitted editor authoring path.",
+            "entity_id": bridge_details.get("entity_id", normalized_entity_id),
+            "entity_name": bridge_details.get("entity_name"),
+            "added_components": bridge_details.get("added_components", canonical_components),
+            "rejected_components": bridge_details.get("rejected_components", []),
+            "modified_entities": bridge_details.get(
+                "modified_entities",
+                [normalized_entity_id],
+            ),
+            "level_path": bridge_details.get("level_path", loaded_level_path),
+            "loaded_level_path": bridge_details.get(
+                "loaded_level_path",
+                bridge_details.get("level_path", loaded_level_path),
+            ),
+            "exact_editor_apis": [
+                "ControlPlaneEditorBridge filesystem inbox",
+                "editor.component.add",
+            ],
+            "editor_transport": "bridge",
+            **self._bridge_result_metadata(bridge_response),
+        }
+        state["editor_transport"] = "bridge"
+        state["bridge_heartbeat_seen_at"] = runtime_result.get("bridge_heartbeat_seen_at")
+        self._save_editor_state(project_root, state)
+        return {
+            "runtime_result": runtime_result,
+            "runner_command": runner_command,
+            "manifest": manifest,
+            "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
         }
 
     def _invoke_runtime_script(
@@ -965,7 +1260,12 @@ class EditorAutomationRuntimeService:
             "engine_root": _normalize_engine_root_path(engine_root),
             "created_at": self._utc_now(),
             "ttl_s": timeout_s,
-            "requires_loaded_level": operation in {"editor.entity.create", "editor.entity.create.probe"},
+            "requires_loaded_level": operation
+            in {
+                "editor.component.add",
+                "editor.entity.create",
+                "editor.entity.create.probe",
+            },
             "args": args,
         }
         if session_id:

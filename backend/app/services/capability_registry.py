@@ -54,21 +54,17 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             backup_class="operator-managed-level-snapshot-before-entity-mutation",
             rollback_class="manual-level-restore-or-explicit-entity-removal",
             verification_class="entity-readback-and-level-context verification",
-            retention_class="runtime-reaching-editor-evidence",
-            natural_language_status="prompt-blocked-pending-admission",
-            natural_language_blocker=(
-                "Excluded from the admitted real set on current tested local targets "
-                "until prefab-safe entity creation is proven stable."
-            ),
+            retention_class="editor-runtime-evidence",
+            natural_language_status="prompt-ready-approval-gated",
         )
     if tool_name == "editor.component.add":
         return _build_safety_envelope(
-            state_scope="Explicit component attachment on an explicit entity target.",
+            state_scope="Explicit allowlisted component attachment on an existing entity in the currently loaded level.",
             backup_class="operator-managed-level-snapshot-before-component-mutation",
             rollback_class="manual-component-removal-or-level-restore",
             verification_class="entity-component readback verification",
-            retention_class="simulated-mutation-evidence",
-            natural_language_status="prompt-ready-simulated",
+            retention_class="editor-runtime-evidence",
+            natural_language_status="prompt-ready-approval-gated",
         )
     if tool_name == "project.inspect":
         return _build_safety_envelope(
@@ -232,10 +228,10 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": False,
     },
     "editor.entity.create": {
-        "capability_maturity": "runtime-reaching",
+        "capability_maturity": "real-authoring",
         "planner_intent_aliases": ["create entity", "spawn entity", "add entity"],
         "natural_language_affordances": [
-            "Reach the typed root-level entity creation runtime boundary with explicit level targeting, while live admission remains narrowed until the real editor path is stable."
+            "Create a root-level named entity in the currently loaded level through the admitted real editor path."
         ],
         "allowlisted_parameter_surfaces": ["entity_name", "level_path"],
         "real_adapter_availability": True,
@@ -243,13 +239,15 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": False,
     },
     "editor.component.add": {
-        "capability_maturity": "simulated-only",
+        "capability_maturity": "real-authoring",
         "planner_intent_aliases": ["add component", "attach component", "component on entity"],
-        "natural_language_affordances": ["Attach explicit components to an explicit entity id."],
+        "natural_language_affordances": [
+            "Attach allowlisted components to an explicit existing entity id in the currently loaded level through the admitted real editor path."
+        ],
         "allowlisted_parameter_surfaces": ["entity_id", "components", "level_path"],
-        "real_adapter_availability": False,
-        "dry_run_availability": True,
-        "simulation_fallback_availability": True,
+        "real_adapter_availability": True,
+        "dry_run_availability": False,
+        "simulation_fallback_availability": False,
     },
     "asset.processor.status": {
         "capability_maturity": "simulated-only",
