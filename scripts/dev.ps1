@@ -12,6 +12,11 @@ param(
         "live-stop",
         "live-restart",
         "live-proof",
+        "desktop-status",
+        "desktop-start",
+        "desktop-stop",
+        "desktop-restart",
+        "desktop-shortcut",
         "frontend-lint",
         "frontend-build",
         "frontend-dev",
@@ -42,6 +47,7 @@ $BackendPythonPath = "$VendorTools;$BackendDir"
 $BackendVenvPython = Join-Path $BackendDir ".venv\Scripts\python.exe"
 $LiveRuntimeControlScript = Join-Path $BackendDir "runtime\live_verify_control.ps1"
 $MissionControlScript = Join-Path $RepoRoot "scripts\mission_control.ps1"
+$DesktopAppControlScript = Join-Path $RepoRoot "scripts\desktop_app_control.ps1"
 
 function Get-PrimaryRepoRoot {
     Push-Location $RepoRoot
@@ -312,6 +318,23 @@ function Invoke-MissionControl {
     }
 }
 
+function Invoke-DesktopAppControl {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$DesktopAction
+    )
+
+    if (-not (Test-Path $DesktopAppControlScript)) {
+        throw "Expected desktop app control script at $DesktopAppControlScript"
+    }
+
+    & powershell -ExecutionPolicy Bypass -File $DesktopAppControlScript $DesktopAction -ApiBaseUrl $ApiBaseUrl -FrontendHost $FrontendHost -FrontendPort $FrontendPort
+    $exitCode = if (Test-Path variable:LASTEXITCODE) { $LASTEXITCODE } else { 0 }
+    if ($exitCode -ne 0) {
+        exit $exitCode
+    }
+}
+
 function Invoke-FrontendLint {
     Invoke-RepoProcess -WorkingDirectory $FrontendDir -FilePath (Get-NpmExecutable) -ArgumentList @("run", "lint")
 }
@@ -443,6 +466,11 @@ switch ($Task) {
     "live-stop" { Invoke-LiveRuntimeControl -Action "stop-all" }
     "live-restart" { Invoke-LiveRuntimeControl -Action "restart" }
     "live-proof" { Invoke-LiveRuntimeControl -Action "proof" }
+    "desktop-status" { Invoke-DesktopAppControl -DesktopAction "status" }
+    "desktop-start" { Invoke-DesktopAppControl -DesktopAction "start" }
+    "desktop-stop" { Invoke-DesktopAppControl -DesktopAction "stop" }
+    "desktop-restart" { Invoke-DesktopAppControl -DesktopAction "restart" }
+    "desktop-shortcut" { Invoke-DesktopAppControl -DesktopAction "install-shortcut" }
     "frontend-lint" { Invoke-FrontendLint }
     "frontend-build" { Invoke-FrontendBuild }
     "frontend-dev" { Invoke-FrontendDev }

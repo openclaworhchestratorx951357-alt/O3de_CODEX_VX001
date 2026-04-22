@@ -98,6 +98,38 @@ Use the shared board before touching the live stack:
 pwsh -File .\scripts\dev.ps1 mission-control board
 ```
 
+## Desktop app launcher
+
+For the repo-owned desktop launcher that opens the current app state from this
+checkout, use:
+
+```powershell
+pwsh -File .\scripts\dev.ps1 desktop-start
+pwsh -File .\scripts\dev.ps1 desktop-status
+pwsh -File .\scripts\dev.ps1 desktop-stop
+pwsh -File .\scripts\dev.ps1 desktop-restart
+pwsh -File .\scripts\dev.ps1 desktop-shortcut
+```
+
+Operational intent:
+- `desktop-start` bootstraps the current worktree if needed, starts or reuses
+  the canonical backend on `127.0.0.1:8000`, starts or reuses the frontend app
+  on `127.0.0.1:4173`, updates the desktop shortcut, and opens the app URL in a
+  browser.
+- `desktop-status` reports frontend readiness, backend readiness, and whether
+  the desktop shortcut exists.
+- `desktop-stop` shuts down the repo-managed frontend process and then clears
+  the canonical backend/editor path through the existing live runtime control.
+- `desktop-restart` performs a clean repo-managed relaunch of both sides.
+- `desktop-shortcut` recreates the Windows desktop shortcut so it points at the
+  current repo checkout.
+
+The installed Windows shortcut is:
+- `%USERPROFILE%\Desktop\O3DE Codex VX001 App.lnk`
+
+That shortcut points at the repo-owned launcher script, so future launcher
+improvements on this branch update behavior without needing a new shortcut file.
+
 ## Inspect the stack
 
 Render the compose config:
