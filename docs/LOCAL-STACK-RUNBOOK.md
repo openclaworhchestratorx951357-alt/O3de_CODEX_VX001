@@ -58,6 +58,33 @@ Detached mode:
 docker compose up -d
 ```
 
+## Canonical live backend lifecycle
+
+For the non-container canonical live backend on `127.0.0.1:8000`, prefer the
+repo-owned lifecycle commands instead of manual `uvicorn` shells:
+
+```powershell
+pwsh -File .\scripts\dev.ps1 live-start
+pwsh -File .\scripts\dev.ps1 live-status
+pwsh -File .\scripts\dev.ps1 live-stop
+pwsh -File .\scripts\dev.ps1 live-restart
+pwsh -File .\scripts\dev.ps1 live-proof
+```
+
+Operational intent:
+- `live-start` starts only the canonical backend with the verified McpSandbox
+  target env and the operator fallback SQLite path under `%LOCALAPPDATA%`.
+- `live-status` reports the current `8000` listener, canonical editor process
+  state, target wiring, bridge state, and recent backend logs.
+- `live-stop` clears both the backend listener on `8000` and the canonical
+  McpSandbox `Editor.exe` so stale editor sessions do not bleed into later test
+  runs.
+- `live-restart` gives operators one clean relaunch path when port collisions or
+  stale backend state are suspected.
+- `live-proof` currently restarts the backend and then runs the repo-owned live
+  proof helper. That proof still requires a fresh bridge heartbeat and will
+  fail fast if the editor-side bridge is not already live.
+
 ## Inspect the stack
 
 Render the compose config:

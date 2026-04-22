@@ -6,6 +6,11 @@ param(
         "runner-diagnostics",
         "backend-lint",
         "backend-test",
+        "live-status",
+        "live-start",
+        "live-stop",
+        "live-restart",
+        "live-proof",
         "frontend-lint",
         "frontend-build",
         "frontend-dev",
@@ -32,6 +37,7 @@ $FrontendDir = Join-Path $RepoRoot "frontend"
 $VendorTools = Join-Path $BackendDir ".vendor_tools"
 $BackendPythonPath = "$VendorTools;$BackendDir"
 $BackendVenvPython = Join-Path $BackendDir ".venv\Scripts\python.exe"
+$LiveRuntimeControlScript = Join-Path $BackendDir "runtime\live_verify_control.ps1"
 
 function Get-PrimaryRepoRoot {
     Push-Location $RepoRoot
@@ -267,6 +273,23 @@ function Invoke-BackendTests {
         -Environment @{ PYTHONPATH = $BackendPythonPath }
 }
 
+function Invoke-LiveRuntimeControl {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Action
+    )
+
+    if (-not (Test-Path $LiveRuntimeControlScript)) {
+        throw "Expected live runtime control script at $LiveRuntimeControlScript"
+    }
+
+    & $LiveRuntimeControlScript $Action
+    $exitCode = if (Test-Path variable:LASTEXITCODE) { $LASTEXITCODE } else { 0 }
+    if ($exitCode -ne 0) {
+        exit $exitCode
+    }
+}
+
 function Invoke-FrontendLint {
     Invoke-RepoProcess -WorkingDirectory $FrontendDir -FilePath (Get-NpmExecutable) -ArgumentList @("run", "lint")
 }
@@ -392,6 +415,11 @@ switch ($Task) {
     "runner-diagnostics" { Invoke-RunnerDiagnostics }
     "backend-lint" { Invoke-BackendLint }
     "backend-test" { Invoke-BackendTests }
+    "live-status" { Invoke-LiveRuntimeControl -Action "status" }
+    "live-start" { Invoke-LiveRuntimeControl -Action "start" }
+    "live-stop" { Invoke-LiveRuntimeControl -Action "stop-all" }
+    "live-restart" { Invoke-LiveRuntimeControl -Action "restart" }
+    "live-proof" { Invoke-LiveRuntimeControl -Action "proof" }
     "frontend-lint" { Invoke-FrontendLint }
     "frontend-build" { Invoke-FrontendBuild }
     "frontend-dev" { Invoke-FrontendDev }

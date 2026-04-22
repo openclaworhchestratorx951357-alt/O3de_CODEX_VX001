@@ -24,25 +24,49 @@ source .venv/bin/activate
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-For the current `feature/production-baseline-v1` local O3DE target, prefer the
-repo-owned canonical Windows launcher instead of an ad hoc shell session:
+For the current `codex/control-plane/o3de-real-integration` local O3DE target,
+prefer the repo-owned lifecycle commands instead of ad hoc shell sessions.
+
+From the repo root:
 
 ```powershell
-.\backend\runtime\launch_branch_backend_8000.cmd
+pwsh -File .\scripts\dev.ps1 live-start
+pwsh -File .\scripts\dev.ps1 live-status
+pwsh -File .\scripts\dev.ps1 live-stop
+pwsh -File .\scripts\dev.ps1 live-restart
+pwsh -File .\scripts\dev.ps1 live-proof
 ```
 
-That launcher pins the currently verified local target wiring:
+What each command does:
+- `live-start` brings up the canonical backend on `127.0.0.1:8000` with the
+  verified McpSandbox target wiring and the repo-owned non-OneDrive operator DB
+  fallback path.
+- `live-status` reports the current listener on `8000`, canonical editor
+  processes, target wiring, bridge state, and recent stdout/stderr log lines.
+- `live-stop` clears the listener on `8000` and also shuts down the canonical
+  McpSandbox `Editor.exe` so stale editor sessions do not linger between runs.
+- `live-restart` forces a clean backend relaunch without requiring ad hoc port
+  cleanup.
+- `live-proof` currently performs a clean backend relaunch before running the
+  repo-owned live proof helper. That proof still expects a fresh bridge
+  heartbeat, so it will fail fast and truthfully if the editor-side bridge is
+  not already live.
+
+Those commands pin the currently verified local target wiring:
 - `O3DE_TARGET_PROJECT_ROOT=C:\Users\topgu\O3DE\Projects\McpSandbox`
 - `O3DE_TARGET_ENGINE_ROOT=C:\src\o3de`
 - `O3DE_TARGET_EDITOR_RUNNER=C:\Users\topgu\O3DE\Projects\McpSandbox\build\windows\bin\profile\Editor.exe`
-- `O3DE_CONTROL_PLANE_DB_PATH=C:\Users\topgu\OneDrive\Documents\GitHub\O3de_CODEX_VX001\backend\runtime\live-verify-control-plane.sqlite3`
+- `O3DE_CONTROL_PLANE_DB_STRATEGY=operator`
+- `O3DE_CONTROL_PLANE_DB_FALLBACK_DIR=%LOCALAPPDATA%\O3DE_CODEX_VX001\live-verify-db`
 - `O3DE_ADAPTER_MODE=hybrid`
 
-Why this launcher is the truthful local baseline:
+Why this lifecycle path is the truthful local baseline:
 - it avoids accidental drift between manual shell variables and the backend
   process that actually binds `127.0.0.1:8000`
-- it is the path that was used to restore the canonical `8000` local backend
-  after a stray non-repo `uvicorn` process had been occupying that port
+- it avoids stale `8000` listener collisions by using one repo-owned clean
+  start/stop/restart path
+- it avoids leaving the canonical McpSandbox editor open when it is no longer
+  needed for local verification
 - it is the local path under which admitted-real `editor.session.open` and
   admitted-real `editor.level.open` were re-verified against `McpSandbox`
 
