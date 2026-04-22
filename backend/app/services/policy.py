@@ -5,6 +5,8 @@ from app.services.catalog import catalog_service
 def tool_real_admission_stage(tool_name: str) -> str:
     if tool_name == "project.inspect":
         return "real-read-only-active"
+    if tool_name == "editor.component.property.get":
+        return "real-read-only-active"
     if tool_name in {
         "editor.session.open",
         "editor.level.open",
@@ -53,6 +55,13 @@ def tool_next_real_requirement(tool_name: str) -> str:
             "level, without property mutation, removal, parenting, prefab work, "
             "or transform placement."
         )
+    if tool_name == "editor.component.property.get":
+        return (
+            "Keep the admitted real path limited to explicit component-id and "
+            "property-path readback on the currently loaded level, without "
+            "property mutation, container edits, or component discovery "
+            "broadening."
+        )
     if tool_name == "build.configure":
         return (
             "Keep real execution limited to dry-run preflight until configure "
@@ -83,6 +92,7 @@ def tool_supports_dry_run(tool_name: str) -> bool:
         "editor.level.open",
         "editor.entity.create",
         "editor.component.add",
+        "editor.component.property.get",
     }:
         return False
     return True

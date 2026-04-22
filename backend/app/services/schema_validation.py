@@ -369,6 +369,12 @@ class SchemaValidationService:
             ("editor.component.add", "artifact-metadata"): (
                 "schemas/tools/editor.component.add.artifact-metadata.schema.json"
             ),
+            ("editor.component.property.get", "execution-details"): (
+                "schemas/tools/editor.component.property.get.execution-details.schema.json"
+            ),
+            ("editor.component.property.get", "artifact-metadata"): (
+                "schemas/tools/editor.component.property.get.artifact-metadata.schema.json"
+            ),
             ("editor.entity.create", "execution-details"): (
                 "schemas/tools/editor.entity.create.execution-details.schema.json"
             ),

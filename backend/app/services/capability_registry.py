@@ -66,6 +66,15 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             retention_class="editor-runtime-evidence",
             natural_language_status="prompt-ready-approval-gated",
         )
+    if tool_name == "editor.component.property.get":
+        return _build_safety_envelope(
+            state_scope="Explicit component property readback on an existing component in the currently loaded level.",
+            backup_class="none",
+            rollback_class="none",
+            verification_class="component-property readback verification",
+            retention_class="editor-runtime-evidence",
+            natural_language_status="prompt-ready-read-only",
+        )
     if tool_name == "project.inspect":
         return _build_safety_envelope(
             state_scope="Manifest-backed project/config/settings/gem read scope.",
@@ -245,6 +254,21 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
             "Attach allowlisted components to an explicit existing entity id in the currently loaded level through the admitted real editor path."
         ],
         "allowlisted_parameter_surfaces": ["entity_id", "components", "level_path"],
+        "real_adapter_availability": True,
+        "dry_run_availability": False,
+        "simulation_fallback_availability": False,
+    },
+    "editor.component.property.get": {
+        "capability_maturity": "hybrid-read-only",
+        "planner_intent_aliases": [
+            "get component property",
+            "read component property",
+            "inspect component property",
+        ],
+        "natural_language_affordances": [
+            "Read an explicit component property from an explicit component id in the currently loaded level through the admitted real editor path."
+        ],
+        "allowlisted_parameter_surfaces": ["component_id", "property_path", "level_path"],
         "real_adapter_availability": True,
         "dry_run_availability": False,
         "simulation_fallback_availability": False,

@@ -22,6 +22,7 @@ REAL_TOOL_PATHS_BY_MODE = {
         "editor.level.open",
         "editor.entity.create",
         "editor.component.add",
+        "editor.component.property.get",
         "project.inspect",
     ],
 }
@@ -40,6 +41,8 @@ HYBRID_EXECUTION_BOUNDARY = (
     "editor.entity.create may use the live-validated admitted real root-level "
     "entity creation path on McpSandbox, editor.component.add may use the "
     "allowlist-bound bridge-backed real component attachment path on McpSandbox, "
+    "editor.component.property.get may use the explicit bridge-backed real "
+    "component property read path on McpSandbox, "
     "build.configure may use a real plan-only preflight path, settings.patch may "
     "use a real dry-run-only preflight path, and all other tools remain simulated."
 )
@@ -189,6 +192,7 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                     if tool
                     in {
                         "editor.component.add",
+                        "editor.component.property.get",
                         "editor.entity.create",
                         "editor.level.open",
                         "editor.session.open",
@@ -224,6 +228,7 @@ class SimulatedToolExecutionAdapter(ToolExecutionAdapter):
                     if tool
                     in {
                         "editor.component.add",
+                        "editor.component.property.get",
                         "editor.entity.create",
                         "editor.level.open",
                         "editor.session.open",
@@ -404,6 +409,40 @@ class EditorControlHybridAdapter(ToolExecutionAdapter):
                 artifact_uri="editor-runtime://runs/{run_id}/executions/{execution_id}/component",
                 runtime_script="ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
             )
+        if tool == "editor.component.property.get":
+            runtime_payload = editor_automation_runtime_service.execute_component_property_get(
+                request_id=request_id,
+                session_id=session_id,
+                workspace_id=workspace_id,
+                executor_id=executor_id,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                locks_acquired=locks_acquired,
+            )
+            return self._build_real_editor_report(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                runtime_payload=runtime_payload,
+                inspection_surface="editor_component_property_read",
+                message=(
+                    "Real editor.component.property.get completed through the admitted "
+                    "bridge-backed editor read-only path."
+                ),
+                result_summary=(
+                    "Real editor component property read completed successfully through "
+                    "the admitted bridge-backed path."
+                ),
+                artifact_label="Real editor component property evidence",
+                artifact_kind="editor_runtime_result",
+                artifact_uri="editor-runtime://runs/{run_id}/executions/{execution_id}/component-property",
+                runtime_script="ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+            )
 
         simulated = self._simulated.execute(
             request_id=request_id,
@@ -498,7 +537,12 @@ class EditorControlHybridAdapter(ToolExecutionAdapter):
             "created_level",
             "entity_id",
             "entity_name",
+            "component_id",
+            "property_path",
+            "value",
+            "value_type",
             "added_components",
+            "added_component_refs",
             "rejected_components",
             "modified_entities",
             "entity_id_source",
@@ -2838,8 +2882,9 @@ class AdapterService:
                     "Hybrid mode currently enables a real read-only project.inspect "
                     "path, admitted real editor session/level runtime paths, "
                     "an admitted real root-level editor.entity.create path on "
-                    "McpSandbox, and an admitted allowlist-bound editor.component.add "
-                    "path on McpSandbox, "
+                    "McpSandbox, an admitted allowlist-bound editor.component.add "
+                    "path on McpSandbox, and an admitted explicit "
+                    "editor.component.property.get read path on McpSandbox, "
                     "a real plan-only build.configure preflight path, and a real "
                     "dry-run-only settings.patch preflight path.",
                 ],
@@ -2872,8 +2917,9 @@ class AdapterService:
                     "manifest preconditions are satisfied.",
                     "Hybrid mode also enables admitted real editor runtime paths for "
                     "editor.session.open, editor.level.open, editor.entity.create, "
-                    "and the allowlist-bound editor.component.add path when editor "
-                    "preflight requirements are satisfied.",
+                    "the allowlist-bound editor.component.add path, and the explicit "
+                    "editor.component.property.get read path when editor preflight "
+                    "requirements are satisfied.",
                     "Hybrid mode also enables a real plan-only build.configure "
                     "preflight path when dry_run=true and manifest preconditions are "
                     "satisfied.",
@@ -2993,8 +3039,9 @@ class AdapterService:
                 if family == "editor-control":
                     family_notes.append(
                         "editor.session.open, editor.level.open, "
-                        "editor.entity.create, and editor.component.add currently have "
-                        "admitted real runtime-owned editor paths in this family."
+                        "editor.entity.create, editor.component.add, and "
+                        "editor.component.property.get currently have admitted real "
+                        "runtime-owned editor paths in this family."
                     )
             elif runtime_status.active_mode == "hybrid":
                 family_notes.append(

@@ -731,12 +731,14 @@ class DispatcherService:
             "editor.level.open",
             "editor.entity.create",
             "editor.component.add",
+            "editor.component.property.get",
         } and inspection_surface in {
             "editor_session_runtime",
             "editor_level_opened",
             "editor_level_created",
             "editor_entity_created",
             "editor_component_added",
+            "editor_component_property_read",
         }:
             executor_id = "executor-editor-control-real-local"
             executor_kind = "local-admitted-editor-authoring"
@@ -755,6 +757,7 @@ class DispatcherService:
                 "editor.level.open",
                 "editor.entity.create",
                 "editor.component.add",
+                "editor.component.property.get",
             ]
             backup_class = None
             rollback_class = None
@@ -782,6 +785,7 @@ class DispatcherService:
                 "editor_level_created",
                 "editor_entity_created",
                 "editor_component_added",
+                "editor_component_property_read",
             }
             else "cli"
         )
@@ -1224,6 +1228,11 @@ class DispatcherService:
             return "This run used the admitted real editor.entity.create bridge-backed path."
         if request.tool == "editor.component.add":
             return "This run used the admitted real editor.component.add bridge-backed path."
+        if request.tool == "editor.component.property.get":
+            return (
+                "This run used the admitted real editor.component.property.get "
+                "bridge-backed path."
+            )
         return "This run used a real non-simulated control-plane path."
 
 

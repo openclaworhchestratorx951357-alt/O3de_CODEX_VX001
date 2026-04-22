@@ -90,6 +90,15 @@ def test_prompt_session_preview_compiles_typed_steps_across_families() -> None:
         assert editor_component_add["safety_envelope"]["natural_language_status"] == (
             "prompt-ready-approval-gated"
         )
+        editor_component_property_get = next(
+            item
+            for item in capabilities
+            if item["tool_name"] == "editor.component.property.get"
+        )
+        assert editor_component_property_get["capability_maturity"] == "hybrid-read-only"
+        assert editor_component_property_get["safety_envelope"][
+            "natural_language_status"
+        ] == "prompt-ready-read-only"
 
 
 def test_prompt_session_execute_creates_child_lineage_and_pauses_for_approval() -> None:

@@ -656,6 +656,7 @@ class EditorAutomationRuntimeService:
             "entity_id": bridge_details.get("entity_id", normalized_entity_id),
             "entity_name": bridge_details.get("entity_name"),
             "added_components": bridge_details.get("added_components", canonical_components),
+            "added_component_refs": bridge_details.get("added_component_refs", []),
             "rejected_components": bridge_details.get("rejected_components", []),
             "modified_entities": bridge_details.get(
                 "modified_entities",
@@ -669,6 +670,180 @@ class EditorAutomationRuntimeService:
             "exact_editor_apis": [
                 "ControlPlaneEditorBridge filesystem inbox",
                 "editor.component.add",
+            ],
+            "editor_transport": "bridge",
+            **self._bridge_result_metadata(bridge_response),
+        }
+        state["editor_transport"] = "bridge"
+        state["bridge_heartbeat_seen_at"] = runtime_result.get("bridge_heartbeat_seen_at")
+        self._save_editor_state(project_root, state)
+        return {
+            "runtime_result": runtime_result,
+            "runner_command": runner_command,
+            "manifest": manifest,
+            "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+        }
+
+    def execute_component_property_get(
+        self,
+        *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        locks_acquired: list[str],
+    ) -> dict[str, Any]:
+        manifest = self._load_project_manifest(project_root)
+        self._ensure_python_editor_bindings_enabled(manifest, project_root=project_root)
+        normalized_engine_root = _normalize_engine_root_path(engine_root)
+        if dry_run:
+            self._reject_preflight(
+                tool="editor.component.property.get",
+                project_root=project_root,
+                reason="editor-component-property-get-dry-run-not-admitted",
+                message=(
+                    "editor.component.property.get currently requires dry_run=false "
+                    "on the admitted real path."
+                ),
+                extra_details={"python_editor_bindings_enabled": True},
+            )
+        runner_command = self._resolve_bridge_runner()
+        state = self._load_editor_state(project_root)
+        if not state.get("session_active"):
+            self._reject_preflight(
+                tool="editor.component.property.get",
+                project_root=project_root,
+                reason="editor-session-not-ensured",
+                message=(
+                    "editor.component.property.get requires an admitted editor "
+                    "session before component property reads can proceed."
+                ),
+                extra_details={"python_editor_bindings_enabled": True},
+            )
+        loaded_level_path = state.get("loaded_level_path")
+        requested_level_path = args.get("level_path")
+        if not isinstance(loaded_level_path, str) or not loaded_level_path:
+            self._reject_preflight(
+                tool="editor.component.property.get",
+                project_root=project_root,
+                reason="level-not-loaded",
+                message=(
+                    "editor.component.property.get requires a loaded level before "
+                    "component properties can be read."
+                ),
+                extra_details={"python_editor_bindings_enabled": True},
+            )
+        if (
+            isinstance(requested_level_path, str)
+            and requested_level_path
+            and requested_level_path != loaded_level_path
+        ):
+            self._reject_preflight(
+                tool="editor.component.property.get",
+                project_root=project_root,
+                reason="loaded-level-mismatch",
+                message=(
+                    "editor.component.property.get level_path must match the "
+                    "currently loaded level on the admitted real path."
+                ),
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "requested_level_path": requested_level_path,
+                },
+            )
+        if not self._bridge_host_available(project_root, runner_command=runner_command):
+            self._reject_preflight(
+                tool="editor.component.property.get",
+                project_root=project_root,
+                reason="bridge-not-running",
+                message=(
+                    "editor.component.property.get requires an active "
+                    "ControlPlaneEditorBridge session; run editor.session.open first."
+                ),
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                },
+            )
+
+        raw_component_id = args.get("component_id")
+        if not isinstance(raw_component_id, str) or not raw_component_id.strip():
+            self._reject_preflight(
+                tool="editor.component.property.get",
+                project_root=project_root,
+                reason="component-id-missing",
+                message=(
+                    "editor.component.property.get requires an explicit non-empty "
+                    "component_id on the admitted real path."
+                ),
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "provided_component_id": raw_component_id,
+                },
+            )
+        component_id = raw_component_id.strip()
+
+        raw_property_path = args.get("property_path")
+        if not isinstance(raw_property_path, str) or not raw_property_path.strip():
+            self._reject_preflight(
+                tool="editor.component.property.get",
+                project_root=project_root,
+                reason="property-path-missing",
+                message=(
+                    "editor.component.property.get requires an explicit non-empty "
+                    "property_path on the admitted real path."
+                ),
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "component_id": component_id,
+                    "provided_property_path": raw_property_path,
+                },
+            )
+        property_path = raw_property_path.strip()
+
+        bridge_response = self._invoke_bridge_command(
+            tool="editor.component.property.get",
+            operation="editor.component.property.get",
+            project_root=project_root,
+            engine_root=normalized_engine_root,
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
+            args={
+                "component_id": component_id,
+                "property_path": property_path,
+                "level_path": loaded_level_path,
+            },
+            timeout_s=90,
+        )
+        bridge_details = self._bridge_response_details(bridge_response)
+        runtime_result = {
+            "ok": True,
+            "message": (
+                "Component property was read through the persistent bridge-backed "
+                "admitted editor path."
+            ),
+            "component_id": bridge_details.get("component_id", component_id),
+            "property_path": bridge_details.get("property_path", property_path),
+            "value": bridge_details.get("value"),
+            "value_type": bridge_details.get("value_type"),
+            "entity_id": bridge_details.get("entity_id"),
+            "level_path": bridge_details.get("level_path", loaded_level_path),
+            "loaded_level_path": bridge_details.get(
+                "loaded_level_path",
+                bridge_details.get("level_path", loaded_level_path),
+            ),
+            "exact_editor_apis": [
+                "ControlPlaneEditorBridge filesystem inbox",
+                "editor.component.property.get",
             ],
             "editor_transport": "bridge",
             **self._bridge_result_metadata(bridge_response),
@@ -1263,6 +1438,7 @@ class EditorAutomationRuntimeService:
             "requires_loaded_level": operation
             in {
                 "editor.component.add",
+                "editor.component.property.get",
                 "editor.entity.create",
                 "editor.entity.create.probe",
             },

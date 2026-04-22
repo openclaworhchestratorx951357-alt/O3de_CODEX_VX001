@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.com/schemas/tools/editor.component.add.execution-details.schema.json",
-  "title": "editor.component.add execution details",
+  "$id": "https://example.com/schemas/tools/editor.component.property.get.execution-details.schema.json",
+  "title": "editor.component.property.get execution details",
   "type": "object",
   "additionalProperties": true,
   "required": [
@@ -12,7 +12,7 @@
   "properties": {
     "inspection_surface": {
       "type": "string",
-      "enum": ["simulated", "editor_component_added"]
+      "enum": ["simulated", "editor_component_property_read"]
     },
     "execution_boundary": { "type": "string", "minLength": 1 },
     "simulated": { "type": "boolean" },
@@ -25,14 +25,13 @@
     "editor_transport": { "type": "string", "enum": ["bridge", "oneshot"] },
     "runner_family": { "type": "string", "minLength": 1 },
     "runtime_script": { "type": "string", "minLength": 1 },
+    "component_id": { "type": "string", "minLength": 1 },
+    "property_path": { "type": "string", "minLength": 1 },
+    "value": {},
+    "value_type": { "type": "string", "minLength": 1 },
+    "entity_id": { "type": ["string", "integer"] },
     "loaded_level_path": { "type": "string", "minLength": 1 },
     "level_path": { "type": "string", "minLength": 1 },
-    "entity_id": { "type": ["string", "integer"] },
-    "entity_name": { "type": "string", "minLength": 1 },
-    "added_components": { "type": "array" },
-    "added_component_refs": { "type": "array" },
-    "rejected_components": { "type": "array" },
-    "modified_entities": { "type": "array" },
     "bridge_name": { "type": "string", "minLength": 1 },
     "bridge_version": { "type": "string", "minLength": 1 },
     "bridge_available": { "type": "boolean" },

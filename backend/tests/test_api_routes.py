@@ -463,8 +463,8 @@ def test_ready_reports_database_status_details() -> None:
         assert "$schema" in payload["schema_validation"]["active_metadata_keywords"]
         assert "allOf" in payload["schema_validation"]["supported_keywords"]
         assert "oneOf" in payload["schema_validation"]["unsupported_keywords"]
-        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 21
-        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 21
+        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 22
+        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 22
         assert payload["schema_validation"]["persisted_execution_details_tools"] == [
             "asset.batch.process",
             "asset.move.safe",
@@ -473,6 +473,7 @@ def test_ready_reports_database_status_details() -> None:
             "build.compile",
             "build.configure",
             "editor.component.add",
+            "editor.component.property.get",
             "editor.entity.create",
             "editor.level.open",
             "editor.session.open",
@@ -496,6 +497,7 @@ def test_ready_reports_database_status_details() -> None:
             "build.compile",
             "build.configure",
             "editor.component.add",
+            "editor.component.property.get",
             "editor.entity.create",
             "editor.level.open",
             "editor.session.open",
@@ -514,11 +516,12 @@ def test_ready_reports_database_status_details() -> None:
         assert payload["schema_validation"]["persisted_family_coverage"] == [
             {
                 "family": "editor-control",
-                "total_tools": 4,
-                "execution_details_tools": 4,
-                "artifact_metadata_tools": 4,
+                "total_tools": 5,
+                "execution_details_tools": 5,
+                "artifact_metadata_tools": 5,
                 "covered_tools": [
                     "editor.component.add",
+                    "editor.component.property.get",
                     "editor.entity.create",
                     "editor.level.open",
                     "editor.session.open",
@@ -612,6 +615,7 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
                 "editor.level.open",
                 "editor.entity.create",
                 "editor.component.add",
+                "editor.component.property.get",
                 "project.inspect",
             ]
             assert payload["adapter_mode"]["plan_only_tool_paths"] == [
@@ -659,6 +663,7 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "editor.level.open",
                 "editor.entity.create",
                 "editor.component.add",
+                "editor.component.property.get",
                 "project.inspect",
             ]
             assert payload["plan_only_tool_paths"] == ["build.configure", "settings.patch"]
@@ -684,11 +689,12 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "editor.level.open",
                 "editor.entity.create",
                 "editor.component.add",
+                "editor.component.property.get",
             ]
             assert editor_control["plan_only_tool_paths"] == []
             assert editor_control["simulated_tool_paths"] == []
             assert any(
-                "editor.component.add currently have admitted real runtime-owned editor paths" in note
+                "editor.component.property.get" in note
                 for note in editor_control["notes"]
             )
 
@@ -779,6 +785,9 @@ def test_policies_route_exposes_truthful_execution_mode_and_dry_run_support() ->
 
         assert policies_by_tool["editor.component.add"]["execution_mode"] == "real"
         assert policies_by_tool["editor.component.add"]["supports_dry_run"] is False
+
+        assert policies_by_tool["editor.component.property.get"]["execution_mode"] == "real"
+        assert policies_by_tool["editor.component.property.get"]["supports_dry_run"] is False
 
         assert policies_by_tool["settings.patch"]["execution_mode"] == "gated"
         assert policies_by_tool["settings.patch"]["supports_dry_run"] is True

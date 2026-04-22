@@ -13,6 +13,8 @@ def tool_result_schema(tool_name: str) -> str:
 def tool_capability_status(tool_name: str) -> str:
     if tool_name == "project.inspect":
         return "hybrid-read-only"
+    if tool_name == "editor.component.property.get":
+        return "hybrid-read-only"
     if tool_name in {
         "editor.session.open",
         "editor.level.open",
@@ -82,6 +84,18 @@ CATALOG = ToolsCatalog(
                     default_locks=["editor_session"],
                     risk="medium",
                     tags=["editor", "component"],
+                ),
+                ToolDefinition(
+                    name="editor.component.property.get",
+                    description="Read a component property from an explicit component id.",
+                    approval_class="read_only",
+                    adapter_family="editor-control",
+                    capability_status=tool_capability_status("editor.component.property.get"),
+                    args_schema=tool_args_schema("editor.component.property.get"),
+                    result_schema=tool_result_schema("editor.component.property.get"),
+                    default_locks=["editor_session"],
+                    risk="low",
+                    tags=["editor", "component", "property", "read"],
                 ),
             ],
         ),

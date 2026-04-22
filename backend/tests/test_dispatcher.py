@@ -391,6 +391,16 @@ def approve_editor_component_add_request() -> RequestEnvelope:
     return approved_request
 
 
+def make_editor_component_property_get_request() -> RequestEnvelope:
+    request = make_request("editor-control", "editor.component.property.get")
+    request.args = {
+        "component_id": "EntityComponentIdPair(EntityId(101), 201)",
+        "property_path": "Controller|Configuration|Model Asset",
+        "level_path": "Levels/Main.level",
+    }
+    return request
+
+
 @contextmanager
 def isolated_database() -> Path:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
@@ -3328,6 +3338,13 @@ def test_editor_component_add_uses_real_runtime_in_hybrid_mode() -> None:
                         "entity_id": "101",
                         "entity_name": "ExampleEntity",
                         "added_components": ["Mesh"],
+                        "added_component_refs": [
+                            {
+                                "component": "Mesh",
+                                "component_id": "EntityComponentIdPair(EntityId(101), 201)",
+                                "entity_id": "101",
+                            }
+                        ],
                         "rejected_components": [],
                         "modified_entities": ["101"],
                         "level_path": "Levels/Main.level",
@@ -3371,6 +3388,13 @@ def test_editor_component_add_uses_real_runtime_in_hybrid_mode() -> None:
         assert execution.details["entity_id"] == "101"
         assert execution.details["entity_name"] == "ExampleEntity"
         assert execution.details["added_components"] == ["Mesh"]
+        assert execution.details["added_component_refs"] == [
+            {
+                "component": "Mesh",
+                "component_id": "EntityComponentIdPair(EntityId(101), 201)",
+                "entity_id": "101",
+            }
+        ]
         assert execution.details["rejected_components"] == []
         assert execution.details["bridge_available"] is True
         assert execution.details["bridge_operation"] == "editor.component.add"
@@ -3389,6 +3413,110 @@ def test_editor_component_add_uses_real_runtime_in_hybrid_mode() -> None:
         assert (
             schema_validation_service.validate_artifact_metadata(
                 tool_name="editor.component.add",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_editor_component_property_get_uses_real_runtime_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        write_editor_project_manifest(project_root)
+
+        request = make_editor_component_property_get_request()
+        request.project_root = str(project_root)
+        request.dry_run = False
+
+        session_state_path = editor_state_path_for(project_root)
+        session_state_path.parent.mkdir(parents=True, exist_ok=True)
+        session_state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_component_property_get",
+                return_value={
+                    "runtime_result": {
+                        "ok": True,
+                        "component_id": "EntityComponentIdPair(EntityId(101), 201)",
+                        "property_path": "Controller|Configuration|Model Asset",
+                        "value": "objects/example.azmodel",
+                        "value_type": "AZ::Data::Asset<AZ::Data::AssetData>",
+                        "entity_id": "101",
+                        "level_path": "Levels/Main.level",
+                        "loaded_level_path": "Levels/Main.level",
+                        "exact_editor_apis": [
+                            "ControlPlaneEditorBridge filesystem inbox",
+                            "editor.component.property.get",
+                        ],
+                        "bridge_available": True,
+                        "bridge_name": "ControlPlaneEditorBridge",
+                        "bridge_version": "0.1.0",
+                        "bridge_operation": "editor.component.property.get",
+                        "bridge_contract_version": "v1",
+                        "bridge_command_id": "bridge-component-property-1",
+                        "bridge_result_summary": "editor.component.property.get completed.",
+                        "bridge_heartbeat_seen_at": "2026-04-22T00:00:01Z",
+                        "bridge_queue_mode": "filesystem-inbox",
+                        "editor_transport": "bridge",
+                    },
+                    "runner_command": ["fake-editor-runner"],
+                    "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+                },
+            ):
+                with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                    response = dispatcher_service.dispatch(request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.execution_mode == "real"
+        assert response.result.simulated is False
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "editor_component_property_read"
+        assert execution.details["component_id"] == "EntityComponentIdPair(EntityId(101), 201)"
+        assert execution.details["property_path"] == "Controller|Configuration|Model Asset"
+        assert execution.details["value"] == "objects/example.azmodel"
+        assert execution.details["value_type"] == "AZ::Data::Asset<AZ::Data::AssetData>"
+        assert execution.details["entity_id"] == "101"
+        assert execution.details["bridge_available"] is True
+        assert execution.details["bridge_operation"] == "editor.component.property.get"
+        assert execution.executor_id == "executor-editor-control-real-local"
+        assert execution.workspace_id == f"workspace-editor-{project_root.name.lower()}"
+        assert artifact is not None
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "editor_component_property_read"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="editor.component.property.get",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="editor.component.property.get",
                 payload=artifact.metadata,
             )
             == []
@@ -4104,6 +4232,44 @@ def test_editor_component_add_simulated_persisted_payloads_match_published_schem
         assert (
             schema_validation_service.validate_artifact_metadata(
                 tool_name="editor.component.add",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_editor_component_property_get_simulated_persisted_payloads_match_published_schemas(
+    ) -> None:
+    with isolated_database():
+        response = dispatcher_service.dispatch(make_editor_component_property_get_request())
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "simulated"
+        assert execution.details["simulated"] is True
+        assert artifact is not None
+        assert artifact.simulated is True
+        assert artifact.metadata["execution_mode"] == "simulated"
+        assert artifact.metadata["inspection_surface"] == "simulated"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="editor.component.property.get",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="editor.component.property.get",
                 payload=artifact.metadata,
             )
             == []
