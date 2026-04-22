@@ -8,7 +8,7 @@ import shutil
 import subprocess
 import time
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 from uuid import uuid4
 
@@ -29,6 +29,7 @@ BRIDGE_HEARTBEAT_PULSE_WAIT_S = 1.0
 BRIDGE_HEARTBEAT_RECOVERY_WAIT_S = 3.0
 BRIDGE_LAUNCH_LOG_TAIL_LINES = 40
 BRIDGE_DEADLETTER_DIAGNOSTIC_LIMIT = 5
+RUNTIME_HOST_IS_WINDOWS = os.name == "nt"
 BRIDGE_PROVENANCE_KEYS = (
     "editor_transport",
     "bridge_name",
@@ -55,6 +56,14 @@ def _coerce_positive_timeout_s(value: Any, *, default: int) -> int:
     return timeout_s if timeout_s > 0 else default
 
 
+def _normalize_engine_root_path(engine_root: str) -> str:
+    candidate = engine_root.strip()
+    windows_path = PureWindowsPath(candidate)
+    if not RUNTIME_HOST_IS_WINDOWS and windows_path.is_absolute():
+        return str(windows_path).replace("\\", "/")
+    return str(Path(candidate).expanduser().resolve())
+
+
 class EditorAutomationRuntimeService:
     def __init__(self) -> None:
         runtime_root = Path(__file__).resolve().parents[2] / "runtime"
@@ -79,6 +88,7 @@ class EditorAutomationRuntimeService:
     ) -> dict[str, Any]:
         manifest = self._load_project_manifest(project_root)
         self._ensure_python_editor_bindings_enabled(manifest, project_root=project_root)
+        normalized_engine_root = _normalize_engine_root_path(engine_root)
         session_timeout_s = _coerce_positive_timeout_s(
             args.get("timeout_s"),
             default=EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S,
@@ -111,7 +121,7 @@ class EditorAutomationRuntimeService:
         if not self._bridge_host_available(project_root, runner_command=runner_command):
             self._launch_bridge_host(
                 project_root=project_root,
-                engine_root=engine_root,
+                engine_root=normalized_engine_root,
                 runner_command=runner_command,
                 timeout_s=session_timeout_s,
             )
@@ -119,7 +129,7 @@ class EditorAutomationRuntimeService:
             tool="editor.session.open",
             operation="editor.session.open",
             project_root=project_root,
-            engine_root=engine_root,
+            engine_root=normalized_engine_root,
             request_id=request_id,
             session_id=session_id,
             workspace_id=workspace_id,
@@ -179,6 +189,7 @@ class EditorAutomationRuntimeService:
     ) -> dict[str, Any]:
         manifest = self._load_project_manifest(project_root)
         self._ensure_python_editor_bindings_enabled(manifest, project_root=project_root)
+        normalized_engine_root = _normalize_engine_root_path(engine_root)
         if dry_run:
             self._reject_preflight(
                 tool="editor.level.open",
@@ -220,7 +231,7 @@ class EditorAutomationRuntimeService:
             tool="editor.level.open",
             operation="editor.level.open",
             project_root=project_root,
-            engine_root=engine_root,
+            engine_root=normalized_engine_root,
             request_id=request_id,
             session_id=session_id,
             workspace_id=workspace_id,
@@ -273,6 +284,7 @@ class EditorAutomationRuntimeService:
     ) -> dict[str, Any]:
         manifest = self._load_project_manifest(project_root)
         self._ensure_python_editor_bindings_enabled(manifest, project_root=project_root)
+        normalized_engine_root = _normalize_engine_root_path(engine_root)
         if dry_run:
             self._reject_preflight(
                 tool="editor.entity.create",
@@ -351,7 +363,7 @@ class EditorAutomationRuntimeService:
         payload = {
             "tool": "editor.entity.create",
             "project_root": project_root,
-            "engine_root": engine_root,
+            "engine_root": normalized_engine_root,
             "locks_acquired": locks_acquired,
             "args": {
                 "entity_name": entity_name,
@@ -396,7 +408,7 @@ class EditorAutomationRuntimeService:
         command = [
             *runner_command,
             f"--project-path={str(Path(project_root).expanduser().resolve())}",
-            f"--engine-path={str(Path(payload['engine_root']).expanduser().resolve())}",
+            f"--engine-path={_normalize_engine_root_path(str(payload['engine_root']))}",
             "--skipWelcomeScreenDialog",
             "--autotest_mode",
             "-BatchMode",
@@ -851,7 +863,7 @@ class EditorAutomationRuntimeService:
         command = [
             *runner_command,
             f"--project-path={str(Path(project_root).expanduser().resolve())}",
-            f"--engine-path={str(Path(engine_root).expanduser().resolve())}",
+            f"--engine-path={_normalize_engine_root_path(engine_root)}",
             "--skipWelcomeScreenDialog",
             "--runpython",
             str(bootstrap_script),
@@ -950,7 +962,7 @@ class EditorAutomationRuntimeService:
             "tool": tool,
             "operation": operation,
             "project_root": str(Path(project_root).expanduser().resolve()),
-            "engine_root": str(Path(engine_root).expanduser().resolve()),
+            "engine_root": _normalize_engine_root_path(engine_root),
             "created_at": self._utc_now(),
             "ttl_s": timeout_s,
             "requires_loaded_level": operation in {"editor.entity.create", "editor.entity.create.probe"},
@@ -1203,7 +1215,7 @@ class EditorAutomationRuntimeService:
         request_path = paths["root"] / "bootstrap_request.json"
         request_payload = {
             "project_root": str(Path(project_root).expanduser().resolve()),
-            "engine_root": str(Path(engine_root).expanduser().resolve()),
+            "engine_root": _normalize_engine_root_path(engine_root),
             "poll_interval": self._bridge_poll_interval_s,
         }
         request_path.write_text(

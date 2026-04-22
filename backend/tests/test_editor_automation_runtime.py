@@ -6,7 +6,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from app.services.editor_automation_runtime import editor_automation_runtime_service
+from app.services.editor_automation_runtime import (
+    RUNTIME_HOST_IS_WINDOWS,
+    _normalize_engine_root_path,
+    editor_automation_runtime_service,
+)
 from app.services.editor_runtime_defaults import EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S
 
 
@@ -210,6 +214,76 @@ def test_execute_session_open_bootstraps_bridge_and_returns_bridge_metadata() ->
         assert command_payload["workspace_id"] == "workspace-editor-project"
         assert command_payload["executor_id"] == "executor-editor-control-real-local"
         assert command_payload["request_id"] == "req-session-1"
+
+
+def test_engine_root_normalization_preserves_windows_absolute_paths_on_posix() -> None:
+    assert RUNTIME_HOST_IS_WINDOWS is True
+    with patch("app.services.editor_automation_runtime.RUNTIME_HOST_IS_WINDOWS", False):
+        assert _normalize_engine_root_path("C:/src/o3de") == "C:/src/o3de"
+        assert _normalize_engine_root_path(r"C:\src\o3de") == "C:/src/o3de"
+
+
+def test_execute_session_open_preserves_windows_engine_root_in_payloads_on_posix() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project with spaces"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+        ensure_bridge_bootstrap(project_root)
+
+        captured: dict[str, object] = {}
+        responder = spawn_bridge_responder(
+            project_root=project_root,
+            expected_operation="editor.session.open",
+            response_details={
+                "active_level_path": "Levels/Main.level",
+                "selected_entity_count": 0,
+            },
+            captured=captured,
+            write_initial_heartbeat=True,
+        )
+
+        with patch("app.services.editor_automation_runtime.RUNTIME_HOST_IS_WINDOWS", False):
+            with patch.dict(
+                "os.environ",
+                {
+                    "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+                },
+                clear=False,
+            ):
+                with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                    with patch(
+                        "subprocess.Popen",
+                        return_value=FakePersistentEditorProcess(),
+                    ) as popen:
+                        payload = editor_automation_runtime_service.execute_session_open(
+                            request_id="req-session-posix-engine-root",
+                            session_id="session-1",
+                            workspace_id="workspace-editor-project",
+                            executor_id="executor-editor-control-real-local",
+                            project_root=str(project_root),
+                            engine_root="C:/src/o3de",
+                            dry_run=False,
+                            args={
+                                "session_mode": "open",
+                                "project_path": str(project_root),
+                                "level_path": "Levels/Main.level",
+                                "timeout_s": 5,
+                            },
+                            locks_acquired=["editor_session"],
+                        )
+
+        responder.join(timeout=5)
+        assert not responder.is_alive()
+        runtime_result = payload["runtime_result"]
+        assert runtime_result["editor_transport"] == "bridge"
+        launch_command = popen.call_args.args[0]
+        assert "--engine-path=C:/src/o3de" in launch_command
+        runpythonargs = launch_command[launch_command.index("--runpythonargs") + 1]
+        bootstrap_request = json.loads(Path(runpythonargs).read_text(encoding="utf-8"))
+        assert bootstrap_request["engine_root"] == "C:/src/o3de"
+        command_payload = captured["command"]
+        assert isinstance(command_payload, dict)
+        assert command_payload["engine_root"] == "C:/src/o3de"
 
 
 def test_execute_session_open_relaunches_when_existing_heartbeat_has_no_live_pulse() -> None:
