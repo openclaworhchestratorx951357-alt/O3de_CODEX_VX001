@@ -91,6 +91,21 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert "/o3de/bridge" in payload["routes"]
 
 
+def test_codex_control_lane_preflight_allows_desktop_frontend_origin() -> None:
+    with isolated_client() as client:
+        response = client.options(
+            "/codex/control/lanes",
+            headers={
+                "Origin": "http://127.0.0.1:4173",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        assert response.status_code == 200
+        assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:4173"
+        assert "POST" in response.headers["access-control-allow-methods"]
+
+
 def test_o3de_target_route_exposes_repo_configured_local_target() -> None:
     with patch.dict(
         "os.environ",

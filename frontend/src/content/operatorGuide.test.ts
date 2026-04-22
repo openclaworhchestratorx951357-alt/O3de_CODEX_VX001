@@ -23,7 +23,7 @@ describe("operatorGuide catalog", () => {
       "bridge-heartbeat",
       "capability-admission",
       "repo-proof-command",
-      "entity-create-boundary",
+      "editor-boundaries",
     ]);
 
     expect(operatorGuideCatalog.workspaces.map((entry) => entry.id)).toEqual([
@@ -127,7 +127,8 @@ describe("operatorGuide catalog", () => {
       "Invoke-RestMethod 'http://127.0.0.1:8000/o3de/target'",
     );
     expect(operatorGuideCatalog.proofChecklist[4]?.evidence[3]).toMatch(/position remain rejected/i);
-    expect(operatorGuideCatalog.proofChecklist[4]?.evidence[4]).toMatch(/editor\.component\.add remains simulated-only/i);
+    expect(operatorGuideCatalog.proofChecklist[4]?.evidence[4]).toMatch(/editor\.component\.add is admitted real-authoring/i);
+    expect(operatorGuideCatalog.proofChecklist[4]?.evidence[6]).toMatch(/editor\.component\.property\.get is admitted hybrid read-only/i);
 
     expect(getPanelControlGuide("dispatch-form", "submit").tooltip).toMatch(/Submit the typed request/i);
     expect(getPanelControlGuide("response-envelope", "status-badge").tooltip).toMatch(/immediate dispatch outcome/i);

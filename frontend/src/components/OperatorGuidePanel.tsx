@@ -19,9 +19,11 @@ export default function OperatorGuidePanel() {
             <span style={successPillStyle}>
               Admitted real: {operatorGuideCatalog.app.admittedRealTools.join(", ")}
             </span>
-            <span style={warningPillStyle}>
-              Still simulated: {operatorGuideCatalog.app.simulatedOnlyFocusTools.join(", ")}
-            </span>
+            {operatorGuideCatalog.app.simulatedOnlyFocusTools.length > 0 ? (
+              <span style={warningPillStyle}>
+                Still simulated: {operatorGuideCatalog.app.simulatedOnlyFocusTools.join(", ")}
+              </span>
+            ) : null}
           </div>
         </div>
 
@@ -58,7 +60,8 @@ export default function OperatorGuidePanel() {
               <p style={workspaceSummaryStyle}>
                 Use this repo-owned proof flow and its evidence checks to confirm admitted-real
                 editor.session.open, editor.level.open, and narrow editor.entity.create on the
-                canonical backend while keeping editor.component.add simulated-only.
+                canonical backend while checking the current admitted boundaries for
+                editor.component.add and editor.component.property.get.
               </p>
             </div>
           </div>
@@ -249,11 +252,13 @@ export default function OperatorGuidePanel() {
 const panelStyle = {
   display: "grid",
   gap: 18,
+  minWidth: 0,
 } satisfies CSSProperties;
 
 const heroCardStyle = {
   display: "grid",
   gap: 18,
+  minWidth: 0,
   padding: 22,
   borderRadius: "var(--app-window-radius)",
   background: "linear-gradient(140deg, var(--app-accent-soft) 0%, var(--app-panel-bg-alt) 100%)",
@@ -264,6 +269,7 @@ const heroCardStyle = {
 const heroHeaderStyle = {
   display: "grid",
   gap: 14,
+  minWidth: 0,
 } satisfies CSSProperties;
 
 const eyebrowStyle = {
@@ -286,16 +292,19 @@ const heroBodyStyle = {
   color: "var(--app-muted-color)",
   lineHeight: 1.6,
   fontSize: 14,
+  overflowWrap: "anywhere",
 } satisfies CSSProperties;
 
 const stackStyle = {
   display: "grid",
   gap: 16,
+  minWidth: 0,
 } satisfies CSSProperties;
 
 const workspaceCardStyle = {
   display: "grid",
   gap: 16,
+  minWidth: 0,
   padding: 18,
   borderRadius: "var(--app-window-radius)",
   background: "var(--app-panel-bg-alt)",
@@ -306,6 +315,7 @@ const workspaceCardStyle = {
 const workspaceHeaderStyle = {
   display: "grid",
   gap: 12,
+  minWidth: 0,
 } satisfies CSSProperties;
 
 const workspaceTitleStyle = {
@@ -319,11 +329,13 @@ const workspaceSummaryStyle = {
   margin: 0,
   color: "var(--app-muted-color)",
   lineHeight: 1.6,
+  overflowWrap: "anywhere",
 } satisfies CSSProperties;
 
 const workspaceSectionStyle = {
   display: "grid",
   gap: 12,
+  minWidth: 0,
 } satisfies CSSProperties;
 
 const sectionTitleStyle = {
@@ -334,20 +346,23 @@ const sectionTitleStyle = {
 const guideGridStyle = {
   display: "grid",
   gap: 14,
-  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  minWidth: 0,
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))",
   alignItems: "start",
 } satisfies CSSProperties;
 
 const workspaceGridStyle = {
   display: "grid",
   gap: 14,
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  minWidth: 0,
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))",
   alignItems: "start",
 } satisfies CSSProperties;
 
 const miniCardStyle = {
   display: "grid",
   gap: 10,
+  minWidth: 0,
   padding: 16,
   borderRadius: "var(--app-panel-radius)",
   background: "var(--app-panel-bg-muted)",
@@ -364,11 +379,13 @@ const miniCardBodyStyle = {
   color: "var(--app-muted-color)",
   lineHeight: 1.55,
   fontSize: 13,
+  overflowWrap: "anywhere",
 } satisfies CSSProperties;
 
 const surfaceCardStyle = {
   display: "grid",
   gap: 8,
+  minWidth: 0,
   padding: 16,
   borderRadius: "var(--app-panel-radius)",
   background: "var(--app-panel-bg)",
@@ -392,6 +409,7 @@ const surfaceTooltipStyle = {
   color: "var(--app-text-color)",
   lineHeight: 1.55,
   fontSize: 13,
+  overflowWrap: "anywhere",
 } satisfies CSSProperties;
 
 const pillClusterStyle = {
@@ -443,6 +461,8 @@ const listStyle = {
   color: "var(--app-muted-color)",
   lineHeight: 1.6,
   fontSize: 13,
+  minWidth: 0,
+  overflowWrap: "anywhere",
 } satisfies CSSProperties;
 
 const orderedListStyle = {
@@ -453,10 +473,13 @@ const orderedListStyle = {
 const commandStackStyle = {
   display: "grid",
   gap: 8,
+  minWidth: 0,
 } satisfies CSSProperties;
 
 const commandBlockStyle = {
   margin: 0,
+  minWidth: 0,
+  maxWidth: "100%",
   padding: 12,
   borderRadius: "var(--app-card-radius)",
   background: "var(--app-command-bg)",
@@ -465,4 +488,7 @@ const commandBlockStyle = {
   lineHeight: 1.5,
   whiteSpace: "pre-wrap" as const,
   wordBreak: "break-word" as const,
+  overflowWrap: "anywhere",
+  overflowX: "auto",
+  boxSizing: "border-box",
 } satisfies CSSProperties;

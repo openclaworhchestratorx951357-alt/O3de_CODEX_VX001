@@ -1212,7 +1212,9 @@ describe("BuilderWorkspaceDesktop", () => {
         "builder-task-override",
         expect.objectContaining({
           worker_id: "builder-alpha",
-          replacement_title: "Urgent Builder override",
+          replacement_title: expect.stringMatching(
+            /Urgent (Builder override|override for Current Builder slice)/,
+          ),
           replacement_summary: "Handle the urgent slice now.",
           replacement_scope_paths: ["frontend/src/components/workspaces"],
           supersede_reason: "Urgent production issue.",

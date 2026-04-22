@@ -56,6 +56,7 @@ export default function DesktopWindow({
 const windowStyle = {
   display: "grid",
   gap: 16,
+  minWidth: 0,
   padding: "var(--app-panel-padding)",
   borderRadius: "var(--app-window-radius)",
   background: "var(--app-panel-bg-alt)",
@@ -66,6 +67,7 @@ const windowStyle = {
 const windowHeaderStyle = {
   display: "flex",
   gap: 16,
+  minWidth: 0,
   alignItems: "flex-start",
   justifyContent: "space-between",
   flexWrap: "wrap",
@@ -74,6 +76,7 @@ const windowHeaderStyle = {
 const windowTitleGroupStyle = {
   display: "flex",
   gap: 14,
+  minWidth: 0,
   alignItems: "flex-start",
 } satisfies CSSProperties;
 
@@ -106,6 +109,7 @@ const windowSubtitleStyle = {
 const windowToolbarStyle = {
   display: "flex",
   gap: 8,
+  minWidth: 0,
   alignItems: "center",
   flexWrap: "wrap",
 } satisfies CSSProperties;
@@ -124,4 +128,5 @@ const windowHelpBadgeStyle = {
 const windowBodyStyle = {
   display: "grid",
   gap: 16,
+  minWidth: 0,
 } satisfies CSSProperties;
