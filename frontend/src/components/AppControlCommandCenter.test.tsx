@@ -150,4 +150,25 @@ describe("AppControlCommandCenter", () => {
     expect(await screen.findByText("No safe app-control operation was generated.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Approve and run script" })).toBeDisabled();
   });
+
+  it("closes the App OS panel when clicking outside or pressing Escape", () => {
+    render(
+      <SettingsProvider>
+        <button type="button">Outside app surface</button>
+        <AppControlCommandCenter activeWorkspaceId="home" onSelectWorkspace={vi.fn()} />
+      </SettingsProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "App OS" }));
+    expect(screen.getByRole("dialog", { name: "App control command center" })).toBeInTheDocument();
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Outside app surface" }));
+    expect(screen.queryByRole("dialog", { name: "App control command center" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "App OS" }));
+    expect(screen.getByRole("dialog", { name: "App control command center" })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog", { name: "App control command center" })).not.toBeInTheDocument();
+  });
 });

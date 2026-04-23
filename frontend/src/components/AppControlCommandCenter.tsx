@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type FormEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
 
 import { previewAppControlScript } from "../lib/api";
 import { useSettings } from "../lib/settings/hooks";
@@ -87,6 +87,7 @@ export default function AppControlCommandCenter({
   onSelectWorkspace,
 }: AppControlCommandCenterProps) {
   const { profile, settings, saveSettings } = useSettings();
+  const launcherRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
   const [instruction, setInstruction] = useState("");
   const [actorName, setActorName] = useState("");
@@ -94,6 +95,34 @@ export default function AppControlCommandCenter({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [status, setStatus] = useState("Ask for a safe app setting or navigation change.");
   const [lastBackup, setLastBackup] = useState<AppControlBackup | null>(() => loadLastBackup());
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+
+    function closeWhenOutside(event: PointerEvent) {
+      const targetNode = event.target;
+      if (!(targetNode instanceof Node) || launcherRef.current?.contains(targetNode)) {
+        return;
+      }
+
+      setOpen(false);
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", closeWhenOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeWhenOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
 
   async function previewScript(event?: FormEvent<HTMLFormElement>) {
     event?.preventDefault();
@@ -166,7 +195,7 @@ export default function AppControlCommandCenter({
   }
 
   return (
-    <div style={launcherWrapperStyle}>
+    <div ref={launcherRef} style={launcherWrapperStyle}>
       <button
         type="button"
         onClick={() => setOpen((nextOpen) => !nextOpen)}
