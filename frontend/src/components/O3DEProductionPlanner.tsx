@@ -533,9 +533,9 @@ export default function O3DEProductionPlanner({
           </p>
         </div>
         <div style={contextGridStyle}>
-          <span><strong>Viewport</strong>{viewportLabel}</span>
-          <span><strong>Selected tool area</strong>{activeToolLabel}</span>
-          <span><strong>Project profile</strong>{profileName}</span>
+          <span style={contextItemStyle}><strong>Viewport</strong><span>{viewportLabel}</span></span>
+          <span style={contextItemStyle}><strong>Selected tool area</strong><span>{activeToolLabel}</span></span>
+          <span style={contextItemStyle}><strong>Project profile</strong><span>{profileName}</span></span>
         </div>
       </div>
 
@@ -784,6 +784,13 @@ const contextGridStyle = {
   lineHeight: 1.45,
 } satisfies CSSProperties;
 
+const contextItemStyle = {
+  display: "grid",
+  gap: 3,
+  minWidth: 0,
+  overflowWrap: "anywhere",
+} satisfies CSSProperties;
+
 const sourcePanelStyle = {
   display: "grid",
   gap: 10,
@@ -960,10 +967,13 @@ const scopePillStyle = {
 } satisfies CSSProperties;
 
 const eyebrowStyle = {
+  display: "block",
+  marginBottom: 4,
   color: "var(--app-subtle-color)",
   fontSize: 10,
   fontWeight: 800,
   letterSpacing: "0.08em",
+  lineHeight: 1.2,
   textTransform: "uppercase",
 } satisfies CSSProperties;
 

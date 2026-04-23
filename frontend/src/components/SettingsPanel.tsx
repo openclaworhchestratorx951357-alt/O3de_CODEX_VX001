@@ -721,11 +721,14 @@ const panelHeaderStyle = {
 } satisfies CSSProperties;
 
 const eyebrowStyle = {
+  display: "block",
+  marginBottom: 4,
   color: "var(--app-subtle-color)",
   fontSize: 11,
   fontWeight: 700,
   textTransform: "uppercase" as const,
   letterSpacing: "0.08em",
+  lineHeight: 1.2,
 } satisfies CSSProperties;
 
 const panelTitleStyle = {

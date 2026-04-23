@@ -567,10 +567,13 @@ const toolGuideGridStyle = {
 } satisfies CSSProperties;
 
 const eyebrowStyle = {
+  display: "block",
+  marginBottom: 4,
   color: "var(--app-subtle-color)",
   fontSize: 10,
   fontWeight: 800,
   letterSpacing: "0.08em",
+  lineHeight: 1.2,
   textTransform: "uppercase",
 } satisfies CSSProperties;
 

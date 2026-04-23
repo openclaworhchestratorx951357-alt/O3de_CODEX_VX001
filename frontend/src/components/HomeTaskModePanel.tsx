@@ -571,10 +571,13 @@ const headerStyle = {
 } satisfies CSSProperties;
 
 const eyebrowStyle = {
+  display: "block",
+  marginBottom: 4,
   color: "var(--app-subtle-color)",
   fontSize: 11,
   fontWeight: 800,
   letterSpacing: "0.1em",
+  lineHeight: 1.2,
   textTransform: "uppercase",
 } satisfies CSSProperties;
 
