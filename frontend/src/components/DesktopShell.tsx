@@ -396,8 +396,8 @@ export default function DesktopShell({
               placeholder="Tell the agent what to inspect, change, or prepare..."
               style={agentChatInputStyle}
             />
-            <button type="submit" style={agentChatSendButtonStyle}>
-              Send
+            <button type="submit" aria-label="Send agent message" style={agentChatSendButtonStyle}>
+              ↑
             </button>
           </form>
         </div>
@@ -921,12 +921,13 @@ const agentChatDockStyle = {
   zIndex: 7,
   display: "grid",
   gap: 10,
-  padding: 14,
-  border: "1px solid var(--app-panel-border)",
-  borderRadius: "var(--app-window-radius)",
-  background: "var(--app-panel-bg)",
-  boxShadow: "var(--app-shadow-strong)",
-  backdropFilter: "blur(24px)",
+  padding: "16px 18px",
+  border: "1px solid rgba(255, 255, 255, 0.12)",
+  borderRadius: 28,
+  background: "#343638",
+  color: "#f4f4f5",
+  boxShadow: "0 24px 70px rgba(0, 0, 0, 0.46)",
+  backdropFilter: "blur(26px)",
 } satisfies CSSProperties;
 
 const agentChatDockHeaderStyle = {
@@ -934,15 +935,15 @@ const agentChatDockHeaderStyle = {
   justifyContent: "space-between",
   gap: 14,
   alignItems: "flex-start",
-  color: "var(--app-text-color)",
+  color: "#f4f4f5",
 } satisfies CSSProperties;
 
 const agentChatCloseButtonStyle = {
-  border: "1px solid var(--app-panel-border)",
+  border: "1px solid rgba(255, 255, 255, 0.16)",
   borderRadius: "var(--app-pill-radius)",
-  padding: "7px 10px",
-  background: "var(--app-panel-bg-alt)",
-  color: "var(--app-text-color)",
+  padding: "7px 12px",
+  background: "rgba(255, 255, 255, 0.07)",
+  color: "#f4f4f5",
   cursor: "pointer",
 } satisfies CSSProperties;
 
@@ -953,11 +954,11 @@ const agentChatFeatureRowStyle = {
 } satisfies CSSProperties;
 
 const agentChatFeatureButtonStyle = {
-  border: "1px solid var(--app-panel-border)",
+  border: "1px solid rgba(255, 255, 255, 0.12)",
   borderRadius: "var(--app-pill-radius)",
-  padding: "7px 10px",
-  background: "var(--app-panel-bg-alt)",
-  color: "var(--app-text-color)",
+  padding: "8px 12px",
+  background: "rgba(255, 255, 255, 0.08)",
+  color: "#f4f4f5",
   cursor: "pointer",
   fontSize: 12,
   fontWeight: 700,
@@ -965,25 +966,33 @@ const agentChatFeatureButtonStyle = {
 
 const agentChatInputRowStyle = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gridTemplateColumns: "minmax(0, 1fr) 50px",
   gap: 10,
+  alignItems: "center",
 } satisfies CSSProperties;
 
 const agentChatInputStyle = {
   minWidth: 0,
-  border: "1px solid var(--app-panel-border)",
-  borderRadius: "var(--app-pill-radius)",
-  padding: "11px 14px",
-  background: "var(--app-panel-bg-alt)",
-  color: "var(--app-text-color)",
+  border: "1px solid rgba(255, 255, 255, 0.12)",
+  borderRadius: 24,
+  padding: "15px 18px",
+  background: "#2d2f31",
+  color: "#f8fafc",
+  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+  outline: "none",
 } satisfies CSSProperties;
 
 const agentChatSendButtonStyle = {
-  border: "1px solid var(--app-accent-strong)",
-  borderRadius: "var(--app-pill-radius)",
-  padding: "10px 16px",
-  background: "var(--app-accent)",
-  color: "var(--app-accent-contrast)",
+  width: 46,
+  height: 46,
+  display: "grid",
+  placeItems: "center",
+  border: 0,
+  borderRadius: "50%",
+  padding: 0,
+  background: "#f8fafc",
+  color: "#111315",
   cursor: "pointer",
   fontWeight: 800,
+  boxShadow: "0 10px 22px rgba(0, 0, 0, 0.24)",
 } satisfies CSSProperties;
