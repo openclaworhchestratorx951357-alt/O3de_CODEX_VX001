@@ -1,9 +1,13 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import HomeWorkspaceView from "./HomeWorkspaceView";
 
 describe("HomeWorkspaceView", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it("defaults to the calmer start-here layout and switches surfaces on demand", () => {
     render(
       <HomeWorkspaceView
@@ -59,6 +63,7 @@ describe("HomeWorkspaceView", () => {
     expect(screen.getByText("O3DE game creation desk")).toBeInTheDocument();
     expect(screen.getByLabelText("Game viewport control surface")).toBeInTheDocument();
     expect(screen.getByText("Component Palette")).toBeInTheDocument();
+    expect(screen.getByText("McpSandbox canonical target")).toBeInTheDocument();
     expect(screen.getByText(/this is a generated control-surface shell/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Create with natural language/i }));
@@ -77,8 +82,18 @@ describe("HomeWorkspaceView", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: /Load Project/i }));
 
-    expect(screen.getByText("Load or reconnect a project")).toBeInTheDocument();
-    expect(screen.getByText("Project library")).toBeInTheDocument();
-    expect(screen.getByText(/McpSandbox remains the current canonical live target/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Active O3DE project profile")).toBeInTheDocument();
+    expect(screen.getByText("Saved project profiles")).toBeInTheDocument();
+    expect(screen.getByText("Add or update a project profile")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Profile name"), { target: { value: "Training Project" } });
+    fireEvent.change(screen.getByLabelText("Project root"), {
+      target: { value: "C:\\Users\\topgu\\O3DE\\Projects\\TrainingProject" },
+    });
+    fireEvent.change(screen.getByLabelText("Engine root"), { target: { value: "C:\\src\\o3de" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save project profile" }));
+
+    expect(screen.getByText("Training Project was saved and selected.")).toBeInTheDocument();
+    expect(screen.getAllByText("Training Project").length).toBeGreaterThan(0);
   });
 });

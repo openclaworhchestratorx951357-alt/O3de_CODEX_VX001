@@ -1,11 +1,14 @@
 import type { CSSProperties } from "react";
 
+import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
+
 type O3DECreationDeskProps = {
   title: string;
   subtitle: string;
   viewportLabel: string;
   intentLabel: string;
   checklist: string[];
+  projectProfile?: O3DEProjectProfile;
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenBuilder?: () => void;
@@ -17,6 +20,7 @@ export default function O3DECreationDesk({
   viewportLabel,
   intentLabel,
   checklist,
+  projectProfile,
   onOpenPromptStudio,
   onOpenRuntimeOverview,
   onOpenBuilder,
@@ -95,12 +99,20 @@ export default function O3DECreationDesk({
         <aside style={inspectorStyle} aria-label="O3DE inspector tools">
           <strong>{intentLabel}</strong>
           <label style={fieldLabelStyle}>
-            Project
-            <span style={readonlyFieldStyle}>McpSandbox or selected project</span>
+            Project profile
+            <span style={readonlyFieldStyle}>{projectProfile?.name ?? "No selected project profile"}</span>
           </label>
           <label style={fieldLabelStyle}>
-            Level
-            <span style={readonlyFieldStyle}>Current loaded level</span>
+            Project root
+            <span style={readonlyFieldStyle}>{projectProfile?.projectRoot ?? "Select or save a project first"}</span>
+          </label>
+          <label style={fieldLabelStyle}>
+            Engine root
+            <span style={readonlyFieldStyle}>{projectProfile?.engineRoot ?? "Select or save an engine first"}</span>
+          </label>
+          <label style={fieldLabelStyle}>
+            Editor runner
+            <span style={readonlyFieldStyle}>{projectProfile?.editorRunner || "Not stored for this profile"}</span>
           </label>
           <label style={fieldLabelStyle}>
             Edit queue

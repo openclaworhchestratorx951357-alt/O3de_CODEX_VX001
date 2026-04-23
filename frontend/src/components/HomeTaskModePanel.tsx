@@ -1,6 +1,17 @@
-import { useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import O3DECreationDesk from "./O3DECreationDesk";
+import { fetchO3deTarget } from "../lib/api";
+import {
+  createO3DEProjectProfile,
+  getActiveO3DEProjectProfile,
+  loadO3DEProjectProfilesStore,
+  saveO3DEProjectProfilesStore,
+  selectO3DEProjectProfile,
+  upsertO3DEProjectProfile,
+} from "../lib/o3deProjectProfiles";
+import { useSettings } from "../lib/settings/hooks";
+import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 
 type HomeTaskModeId = "app" | "o3de-game" | "o3de-cinematic" | "load-project";
 
@@ -49,13 +60,122 @@ type HomeTaskModePanelProps = {
   onOpenBuilder?: () => void;
 };
 
+type O3DEProjectProfileDraft = {
+  name: string;
+  projectRoot: string;
+  engineRoot: string;
+  editorRunner: string;
+};
+
+function profileToDraft(profile: O3DEProjectProfile): O3DEProjectProfileDraft {
+  return {
+    name: profile.name,
+    projectRoot: profile.projectRoot,
+    engineRoot: profile.engineRoot,
+    editorRunner: profile.editorRunner,
+  };
+}
+
 export default function HomeTaskModePanel({
   onOpenPromptStudio,
   onOpenRuntimeOverview,
   onOpenBuilder,
 }: HomeTaskModePanelProps) {
+  const { settings, saveSettings } = useSettings();
   const [activeModeId, setActiveModeId] = useState<HomeTaskModeId>("app");
+  const [profileStore, setProfileStore] = useState(() => loadO3DEProjectProfilesStore());
+  const activeProjectProfile = useMemo(
+    () => getActiveO3DEProjectProfile(profileStore),
+    [profileStore],
+  );
+  const [profileDraft, setProfileDraft] = useState<O3DEProjectProfileDraft>(() => (
+    profileToDraft(getActiveO3DEProjectProfile(loadO3DEProjectProfilesStore()))
+  ));
+  const [profileStatus, setProfileStatus] = useState<string | null>(null);
+  const [backendTargetLoading, setBackendTargetLoading] = useState(false);
   const activeMode = taskModes.find((mode) => mode.id === activeModeId) ?? taskModes[0];
+
+  useEffect(() => {
+    setProfileDraft(profileToDraft(activeProjectProfile));
+  }, [activeProjectProfile]);
+
+  function syncSettingsToProfile(profile: O3DEProjectProfile): void {
+    saveSettings({
+      ...settings,
+      operatorDefaults: {
+        ...settings.operatorDefaults,
+        projectRoot: profile.projectRoot,
+        engineRoot: profile.engineRoot,
+      },
+    });
+  }
+
+  function selectProjectProfile(profile: O3DEProjectProfile): void {
+    const nextStore = saveO3DEProjectProfilesStore(
+      selectO3DEProjectProfile(profileStore, profile.id),
+    );
+    setProfileStore(nextStore);
+    syncSettingsToProfile(profile);
+    setProfileStatus(`${profile.name} is now selected for O3DE creation defaults.`);
+  }
+
+  function saveProjectProfile(): void {
+    if (!profileDraft.name.trim() || !profileDraft.projectRoot.trim() || !profileDraft.engineRoot.trim()) {
+      setProfileStatus("Project profile needs a name, project root, and engine root before saving.");
+      return;
+    }
+
+    const profile = createO3DEProjectProfile({
+      id: activeProjectProfile.kind === "saved" ? activeProjectProfile.id : undefined,
+      name: profileDraft.name,
+      kind: "saved",
+      projectRoot: profileDraft.projectRoot,
+      engineRoot: profileDraft.engineRoot,
+      editorRunner: profileDraft.editorRunner,
+      sourceLabel: "operator-saved-project-profile",
+    });
+    const nextStore = saveO3DEProjectProfilesStore(
+      selectO3DEProjectProfile(upsertO3DEProjectProfile(profileStore, profile), profile.id),
+    );
+
+    setProfileStore(nextStore);
+    syncSettingsToProfile(profile);
+    setProfileStatus(`${profile.name} was saved and selected.`);
+  }
+
+  async function captureBackendTarget(): Promise<void> {
+    setBackendTargetLoading(true);
+    setProfileStatus("Checking the backend O3DE target...");
+
+    try {
+      const target = await fetchO3deTarget();
+      if (!target.project_root || !target.engine_root) {
+        setProfileStatus("Backend target is not configured yet. Open Runtime and fix /o3de/target first.");
+        return;
+      }
+
+      const profile = createO3DEProjectProfile({
+        id: "live-backend-target",
+        name: "Live backend target",
+        kind: "backend",
+        projectRoot: target.project_root,
+        engineRoot: target.engine_root,
+        editorRunner: target.editor_runner ?? "",
+        sourceLabel: target.source_label,
+      });
+      const nextStore = saveO3DEProjectProfilesStore(
+        selectO3DEProjectProfile(upsertO3DEProjectProfile(profileStore, profile), profile.id),
+      );
+
+      setProfileStore(nextStore);
+      syncSettingsToProfile(profile);
+      setProfileStatus("Live backend target was captured and selected.");
+    } catch (error) {
+      setProfileStatus(error instanceof Error ? error.message : "Backend target check failed.");
+    } finally {
+      setBackendTargetLoading(false);
+    }
+  }
 
   return (
     <section aria-label="Home task modes" style={panelStyle}>
@@ -105,6 +225,7 @@ export default function HomeTaskModePanel({
             subtitle="Generated viewport and editor control surface for gameplay work."
             viewportLabel="Game viewport control surface"
             intentLabel="Gameplay authoring intent"
+            projectProfile={activeProjectProfile}
             onOpenPromptStudio={onOpenPromptStudio}
             onOpenRuntimeOverview={onOpenRuntimeOverview}
             onOpenBuilder={onOpenBuilder}
@@ -121,6 +242,7 @@ export default function HomeTaskModePanel({
             subtitle="Generated viewport and editor control surface for movie, trailer, and previs work."
             viewportLabel="Cinematic viewport control surface"
             intentLabel="Cinematic authoring intent"
+            projectProfile={activeProjectProfile}
             onOpenPromptStudio={onOpenPromptStudio}
             onOpenRuntimeOverview={onOpenRuntimeOverview}
             onOpenBuilder={onOpenBuilder}
@@ -131,7 +253,21 @@ export default function HomeTaskModePanel({
             ]}
           />
         ) : null}
-        {activeMode.id === "load-project" ? <LoadProjectMode /> : null}
+        {activeMode.id === "load-project" ? (
+          <LoadProjectMode
+            activeProjectProfile={activeProjectProfile}
+            profiles={profileStore.profiles}
+            profileDraft={profileDraft}
+            profileStatus={profileStatus}
+            backendTargetLoading={backendTargetLoading}
+            onProfileDraftChange={setProfileDraft}
+            onSelectProjectProfile={selectProjectProfile}
+            onSaveProjectProfile={saveProjectProfile}
+            onCaptureBackendTarget={() => void captureBackendTarget()}
+            onOpenPromptStudio={onOpenPromptStudio}
+            onOpenRuntimeOverview={onOpenRuntimeOverview}
+          />
+        ) : null}
       </div>
     </section>
   );
@@ -171,36 +307,158 @@ function AppDevelopmentMode() {
   );
 }
 
-function LoadProjectMode() {
+function LoadProjectMode({
+  activeProjectProfile,
+  profiles,
+  profileDraft,
+  profileStatus,
+  backendTargetLoading,
+  onProfileDraftChange,
+  onSelectProjectProfile,
+  onSaveProjectProfile,
+  onCaptureBackendTarget,
+  onOpenPromptStudio,
+  onOpenRuntimeOverview,
+}: {
+  activeProjectProfile: O3DEProjectProfile;
+  profiles: O3DEProjectProfile[];
+  profileDraft: O3DEProjectProfileDraft;
+  profileStatus: string | null;
+  backendTargetLoading: boolean;
+  onProfileDraftChange: (draft: O3DEProjectProfileDraft) => void;
+  onSelectProjectProfile: (profile: O3DEProjectProfile) => void;
+  onSaveProjectProfile: () => void;
+  onCaptureBackendTarget: () => void;
+  onOpenPromptStudio?: () => void;
+  onOpenRuntimeOverview?: () => void;
+}) {
   return (
-    <div style={appModeGridStyle}>
-      <ModeCard
-        title="Load or reconnect a project"
-        detail="Use this path when the project already exists and you want to continue without losing bridge truth or stale-port safety."
-        items={[
-          "Confirm project root, engine root, and editor runner.",
-          "Check bridge heartbeat before claiming real editor control.",
-          "Review existing mission-control tasks before starting new work.",
-        ]}
-      />
-      <ModeCard
-        title="Project library"
-        detail="This is the future home for saved O3DE project profiles and recent workspaces."
-        items={[
-          "McpSandbox remains the current canonical live target.",
-          "Additional projects should get explicit target profiles.",
-          "Loading a project should not silently widen admitted tool scope.",
-        ]}
-      />
-      <ModeCard
-        title="Reconnect checklist"
-        detail="After a laptop restart or O3DE crash, reconnect through verification instead of guessing."
-        items={[
-          "Check backend readiness.",
-          "Check bridge status.",
-          "Run a narrow proof before live authoring.",
-        ]}
-      />
+    <div style={profileShellStyle}>
+      <section style={profileSummaryStyle} aria-label="Active O3DE project profile">
+        <div>
+          <span style={eyebrowStyle}>Active Project Profile</span>
+          <h4 style={profileTitleStyle}>{activeProjectProfile.name}</h4>
+          <p style={mutedParagraphStyle}>
+            This selection updates the app-local O3DE project profile and syncs project/engine roots into
+            operator defaults. It does not change backend target env vars by itself.
+          </p>
+        </div>
+        <div style={profilePathGridStyle}>
+          <span><strong>Project</strong>{activeProjectProfile.projectRoot}</span>
+          <span><strong>Engine</strong>{activeProjectProfile.engineRoot}</span>
+          <span><strong>Editor</strong>{activeProjectProfile.editorRunner || "Not stored for this profile"}</span>
+          <span><strong>Source</strong>{activeProjectProfile.sourceLabel}</span>
+        </div>
+      </section>
+
+      <div style={profileGridStyle}>
+        <section style={modeCardStyle}>
+          <strong>Saved project profiles</strong>
+          <p style={mutedParagraphStyle}>
+            Choose the intended project before sending natural-language O3DE work. Profiles are local,
+            versioned browser data, not backend runtime evidence.
+          </p>
+          <div style={profileListStyle}>
+            {profiles.map((profile) => {
+              const selected = profile.id === activeProjectProfile.id;
+              return (
+                <button
+                  key={profile.id}
+                  type="button"
+                  onClick={() => onSelectProjectProfile(profile)}
+                  aria-pressed={selected}
+                  style={{
+                    ...profileSelectButtonStyle,
+                    ...(selected ? profileSelectButtonActiveStyle : null),
+                  }}
+                >
+                  <strong>{profile.name}</strong>
+                  <span>{profile.projectRoot}</span>
+                  <small>{profile.kind}</small>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section style={modeCardStyle}>
+          <strong>Add or update a project profile</strong>
+          <p style={mutedParagraphStyle}>
+            Save explicit target paths for a project you already started. Selecting a profile only changes
+            UI/default wiring; Runtime still verifies the live backend and bridge.
+          </p>
+          <label style={formFieldStyle}>
+            Profile name
+            <input
+              value={profileDraft.name}
+              onChange={(event) => onProfileDraftChange({ ...profileDraft, name: event.target.value })}
+              style={inputStyle}
+            />
+          </label>
+          <label style={formFieldStyle}>
+            Project root
+            <input
+              value={profileDraft.projectRoot}
+              onChange={(event) => onProfileDraftChange({ ...profileDraft, projectRoot: event.target.value })}
+              style={inputStyle}
+            />
+          </label>
+          <label style={formFieldStyle}>
+            Engine root
+            <input
+              value={profileDraft.engineRoot}
+              onChange={(event) => onProfileDraftChange({ ...profileDraft, engineRoot: event.target.value })}
+              style={inputStyle}
+            />
+          </label>
+          <label style={formFieldStyle}>
+            Editor runner
+            <input
+              value={profileDraft.editorRunner}
+              onChange={(event) => onProfileDraftChange({ ...profileDraft, editorRunner: event.target.value })}
+              style={inputStyle}
+            />
+          </label>
+          <div style={buttonRowStyle}>
+            <button type="button" onClick={onSaveProjectProfile} style={primaryActionButtonStyle}>
+              Save project profile
+            </button>
+            <button
+              type="button"
+              onClick={onCaptureBackendTarget}
+              disabled={backendTargetLoading}
+              style={secondaryActionButtonStyle}
+            >
+              {backendTargetLoading ? "Checking backend..." : "Capture backend target"}
+            </button>
+          </div>
+          {profileStatus ? <p role="status" style={statusTextStyle}>{profileStatus}</p> : null}
+        </section>
+
+        <section style={modeCardStyle}>
+          <strong>Reconnect checklist</strong>
+          <p style={mutedParagraphStyle}>
+            After a laptop restart or O3DE crash, reconnect through verification instead of guessing.
+          </p>
+          <ul style={checklistStyle}>
+            <li>Confirm project root, engine root, and editor runner.</li>
+            <li>Open Runtime and check backend readiness plus bridge heartbeat.</li>
+            <li>Use Prompt Studio only after the active profile matches the intended project.</li>
+          </ul>
+          <div style={buttonRowStyle}>
+            {onOpenRuntimeOverview ? (
+              <button type="button" onClick={onOpenRuntimeOverview} style={secondaryActionButtonStyle}>
+                Open Runtime
+              </button>
+            ) : null}
+            {onOpenPromptStudio ? (
+              <button type="button" onClick={onOpenPromptStudio} style={secondaryActionButtonStyle}>
+                Open Prompt Studio
+              </button>
+            ) : null}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
@@ -351,4 +609,115 @@ const checklistStyle = {
   paddingLeft: 18,
   color: "var(--app-muted-color)",
   lineHeight: 1.45,
+} satisfies CSSProperties;
+
+const profileShellStyle = {
+  display: "grid",
+  gap: 14,
+} satisfies CSSProperties;
+
+const profileSummaryStyle = {
+  display: "grid",
+  gap: 12,
+  padding: 16,
+  border: "1px solid var(--app-info-border)",
+  borderRadius: "var(--app-card-radius)",
+  background: "linear-gradient(135deg, var(--app-info-bg) 0%, var(--app-panel-bg) 100%)",
+} satisfies CSSProperties;
+
+const profileTitleStyle = {
+  margin: "4px 0",
+  fontSize: 22,
+  lineHeight: 1.1,
+} satisfies CSSProperties;
+
+const profilePathGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 10,
+} satisfies CSSProperties;
+
+const profileGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+  gap: 12,
+  alignItems: "start",
+} satisfies CSSProperties;
+
+const profileListStyle = {
+  display: "grid",
+  gap: 8,
+} satisfies CSSProperties;
+
+const profileSelectButtonStyle = {
+  display: "grid",
+  gap: 4,
+  textAlign: "left",
+  padding: 12,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
+  background: "var(--app-panel-bg-muted)",
+  color: "var(--app-text-color)",
+  cursor: "pointer",
+} satisfies CSSProperties;
+
+const profileSelectButtonActiveStyle = {
+  border: "1px solid var(--app-success-border)",
+  background: "var(--app-success-bg)",
+  color: "var(--app-success-text)",
+} satisfies CSSProperties;
+
+const formFieldStyle = {
+  display: "grid",
+  gap: 5,
+  color: "var(--app-muted-color)",
+  fontSize: 13,
+  fontWeight: 700,
+} satisfies CSSProperties;
+
+const inputStyle = {
+  width: "100%",
+  boxSizing: "border-box",
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
+  padding: "9px 10px",
+  background: "var(--app-input-bg)",
+  color: "var(--app-text-color)",
+  font: "inherit",
+} satisfies CSSProperties;
+
+const buttonRowStyle = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+} satisfies CSSProperties;
+
+const primaryActionButtonStyle = {
+  border: "1px solid var(--app-accent-strong)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "8px 12px",
+  background: "var(--app-accent)",
+  color: "var(--app-accent-contrast)",
+  cursor: "pointer",
+  fontWeight: 800,
+} satisfies CSSProperties;
+
+const secondaryActionButtonStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "8px 12px",
+  background: "var(--app-panel-bg-muted)",
+  color: "var(--app-text-color)",
+  cursor: "pointer",
+  fontWeight: 700,
+} satisfies CSSProperties;
+
+const statusTextStyle = {
+  margin: 0,
+  padding: 10,
+  border: "1px solid var(--app-warning-border)",
+  borderRadius: "var(--app-card-radius)",
+  background: "var(--app-warning-bg)",
+  color: "var(--app-warning-text)",
+  lineHeight: 1.4,
 } satisfies CSSProperties;
