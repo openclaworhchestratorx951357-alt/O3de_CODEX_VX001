@@ -17,6 +17,8 @@ describe("HomeWorkspaceView", () => {
     expect(screen.getByText("Mission control content")).toBeInTheDocument();
     expect(screen.getByText("Launchpad content")).toBeInTheDocument();
     expect(screen.getByText("Overview content")).toBeInTheDocument();
+    expect(screen.getByText("Choose what you are building")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Develop the App/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getAllByText("How to use this workspace")).toHaveLength(1);
     expect(screen.getAllByText("How to use this window")).toHaveLength(3);
     expect(screen.getByText(/Refresh the dashboard when you need a current top-level read/i)).toBeInTheDocument();
@@ -33,5 +35,35 @@ describe("HomeWorkspaceView", () => {
     expect(screen.getByText("Guide content")).toBeInTheDocument();
     expect(screen.getByText(/Use the guidebook while onboarding or after layout changes/i)).toBeInTheDocument();
     expect(screen.queryByText("Mission control content")).not.toBeInTheDocument();
+  });
+
+  it("switches Home task modes into O3DE creation and project loading desks", () => {
+    render(
+      <HomeWorkspaceView
+        missionControlContent={<div>Mission control content</div>}
+        launchpadContent={<div>Launchpad content</div>}
+        overviewContent={<div>Overview content</div>}
+        guideContent={<div>Guide content</div>}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: /O3DE Game/i }));
+
+    expect(screen.getByText("O3DE game creation desk")).toBeInTheDocument();
+    expect(screen.getByLabelText("Game viewport control surface")).toBeInTheDocument();
+    expect(screen.getByText("Component Palette")).toBeInTheDocument();
+    expect(screen.getByText(/this is a generated control-surface shell/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: /O3DE Movie/i }));
+
+    expect(screen.getByText("O3DE cinematic creation desk")).toBeInTheDocument();
+    expect(screen.getByLabelText("Cinematic viewport control surface")).toBeInTheDocument();
+    expect(screen.getByText("Cinematic authoring intent")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: /Load Project/i }));
+
+    expect(screen.getByText("Load or reconnect a project")).toBeInTheDocument();
+    expect(screen.getByText("Project library")).toBeInTheDocument();
+    expect(screen.getByText(/McpSandbox remains the current canonical live target/i)).toBeInTheDocument();
   });
 });

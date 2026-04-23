@@ -2,6 +2,7 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
+import HomeTaskModePanel from "../HomeTaskModePanel";
 import { getWorkspaceGuide, getWorkspaceWindowGuide } from "../../content/operatorGuide";
 
 type HomeSurfaceId = "start" | "mission-control" | "guidebook";
@@ -76,16 +77,17 @@ export default function HomeWorkspaceView({
     >
       {activeSurfaceId === "start" ? (
         <div style={guidedShellStyle}>
-            <DesktopWindow
-              variant="nested"
-              title={missionControlWindow.title}
-              subtitle="Keep the current coordination header visible while Start Here narrows the rest of the screen."
-              helpTooltip={missionControlWindow.tooltip}
-              guideTitle="How to use this window"
-              guideChecklist={missionControlWindow.instructions}
-            >
-              {missionControlContent}
-            </DesktopWindow>
+          <HomeTaskModePanel />
+          <DesktopWindow
+            variant="nested"
+            title={missionControlWindow.title}
+            subtitle="Keep the current coordination header visible while Start Here narrows the rest of the screen."
+            helpTooltip={missionControlWindow.tooltip}
+            guideTitle="How to use this window"
+            guideChecklist={missionControlWindow.instructions}
+          >
+            {missionControlContent}
+          </DesktopWindow>
           <div style={guidedGridStyle}>
             <DesktopWindow
               variant="nested"
