@@ -4679,6 +4679,8 @@ export default function App() {
     supportsRealExecution: adapters?.supports_real_execution ?? false,
   }).map((entry) => ({
     ...entry,
+    suggestedBecause: entry.detail,
+    opensLabel: getHomeRecommendationOpensLabel(entry.actionId),
     onAction: () => {
       handleHomeRecommendationAction(entry.actionId);
     },
@@ -4707,6 +4709,21 @@ export default function App() {
         setActiveWorkspaceId("operations");
         setActiveOperationsSurface("approvals");
         return;
+    }
+  }
+
+  function getHomeRecommendationOpensLabel(actionId: HomeRecommendationActionId): string {
+    switch (actionId) {
+      case "open_prompt":
+        return "Prompt Studio workspace";
+      case "open_builder":
+        return "Builder workspace";
+      case "open_runtime_overview":
+        return "Runtime > Overview window";
+      case "open_records_runs":
+        return "Records > Runs window";
+      case "open_operations_approvals":
+        return "Operations > Approvals window";
     }
   }
 

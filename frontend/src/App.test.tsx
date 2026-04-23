@@ -143,6 +143,10 @@ describe("App desktop smoke", () => {
     expect(screen.getAllByText("Mission Control").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Launchpad").length).toBeGreaterThan(0);
     expect(screen.getByText("Recommended next steps")).toBeInTheDocument();
+    expect(screen.getAllByText(/Review why this recommendation appears/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Suggested because:/i).length).toBeGreaterThan(0);
+    expect(screen.getByText("Runtime > Overview window")).toBeInTheDocument();
+    expect(screen.getByText("Prompt Studio workspace")).toBeInTheDocument();
     expect(screen.getByText("LayoutHeader stub")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Prompt Studio/i));
