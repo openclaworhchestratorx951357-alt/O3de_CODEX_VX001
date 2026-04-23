@@ -219,6 +219,10 @@ function groupPromptDraftRecommendations(
   return groups.filter((group) => group.entries.length > 0);
 }
 
+function getPromptRecommendationGroupLabel(group: PromptDraftRecommendation["group"]): string {
+  return group === "admitted-real" ? "Admitted-real editor actions" : "Beginner-safe starters";
+}
+
 export default function PromptControlPanel({
   selectedWorkspaceId = null,
   selectedExecutorId = null,
@@ -244,6 +248,8 @@ export default function PromptControlPanel({
   const [executing, setExecuting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [promptRecommendationMessage, setPromptRecommendationMessage] = useState<string | null>(null);
+  const [loadedPromptRecommendation, setLoadedPromptRecommendation] =
+    useState<PromptDraftRecommendation | null>(null);
   const previousOperatorDefaultsRef = useRef(settings.operatorDefaults);
   const initialProjectRootRef = useRef(projectRoot);
   const initialEngineRootRef = useRef(engineRoot);
@@ -464,6 +470,7 @@ export default function PromptControlPanel({
     setPreferredDomainsText(recommendation.preferredDomainsText);
     setOperatorNote(recommendation.operatorNote);
     setDryRun(recommendation.dryRun);
+    setLoadedPromptRecommendation(recommendation);
     setPromptRecommendationMessage(`Loaded recommended prompt template: ${recommendation.label}.`);
   }
 
@@ -553,6 +560,42 @@ export default function PromptControlPanel({
           <p style={subtleTextStyle}>{promptRecommendationMessage}</p>
         ) : null}
       </article>
+      {loadedPromptRecommendation ? (
+        <article style={loadedTemplateReviewStyle} aria-label="Loaded template review">
+          <div style={loadedTemplateHeaderStyle}>
+            <div style={loadedTemplateTitleGroupStyle}>
+              <span style={loadedTemplateEyebrowStyle}>Loaded template review</span>
+              <strong>{loadedPromptRecommendation.label}</strong>
+              <span style={subtleTextStyle}>
+                Review these template-filled values, edit anything you need, then preview the prompt plan.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setLoadedPromptRecommendation(null);
+                setPromptRecommendationMessage(null);
+              }}
+            >
+              Clear review
+            </button>
+          </div>
+          <div style={loadedTemplateGridStyle}>
+            <span>
+              Group: <strong>{getPromptRecommendationGroupLabel(loadedPromptRecommendation.group)}</strong>
+            </span>
+            <span>
+              Changed fields: <strong>Prompt text, preferred domains, operator note, dry run</strong>
+            </span>
+            <span>
+              Domains: <strong>{loadedPromptRecommendation.preferredDomainsText || "planner choice"}</strong>
+            </span>
+            <span>
+              Dry run: <strong>{loadedPromptRecommendation.dryRun ? "preferred" : "off for admitted real path"}</strong>
+            </span>
+          </div>
+        </article>
+      ) : null}
       <form onSubmit={handlePreviewPlan} style={{ display: "grid", gap: 12 }}>
         <label>
           Prompt text
@@ -829,6 +872,47 @@ const recommendationMetaStyle = {
   gap: 4,
   color: "var(--app-muted-color)",
   fontSize: 12,
+} satisfies CSSProperties;
+
+const loadedTemplateReviewStyle = {
+  display: "grid",
+  gap: 12,
+  marginBottom: 16,
+  padding: "12px 14px",
+  borderRadius: "var(--app-card-radius)",
+  border: "1px solid var(--app-success-border)",
+  background: "var(--app-success-bg)",
+  color: "var(--app-success-text)",
+} satisfies CSSProperties;
+
+const loadedTemplateHeaderStyle = {
+  display: "flex",
+  gap: 12,
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  flexWrap: "wrap",
+} satisfies CSSProperties;
+
+const loadedTemplateTitleGroupStyle = {
+  display: "grid",
+  gap: 4,
+  flex: "1 1 260px",
+  minWidth: 0,
+} satisfies CSSProperties;
+
+const loadedTemplateEyebrowStyle = {
+  color: "var(--app-muted-color)",
+  fontSize: 12,
+  fontWeight: 800,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+} satisfies CSSProperties;
+
+const loadedTemplateGridStyle = {
+  display: "grid",
+  gap: 8,
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  color: "var(--app-text-color)",
 } satisfies CSSProperties;
 
 const checkboxStyle = {

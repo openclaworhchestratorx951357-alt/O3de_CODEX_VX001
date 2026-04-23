@@ -324,6 +324,16 @@ describe("PromptControlPanel", () => {
     expect(
       screen.getByText("Loaded recommended prompt template: Open current editor session safely."),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("Loaded template review")).toBeInTheDocument();
+    expect(screen.getByText("Changed fields:")).toBeInTheDocument();
+    expect(screen.getByText("Prompt text, preferred domains, operator note, dry run")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear review" }));
+
+    expect(screen.queryByLabelText("Loaded template review")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Prompt text")).toHaveValue(
+      "Open an editor session for the current McpSandbox target and report the real editor-session evidence. Do not open a level or mutate content in this prompt.",
+    );
   });
 
   it("shows approval pause continuity and child lineage after executing a selected prompt", async () => {
