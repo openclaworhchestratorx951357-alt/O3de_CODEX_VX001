@@ -18,6 +18,7 @@ import OverviewReviewSessionPanel from "./components/OverviewReviewSessionPanel"
 import RecommendedActionsPanel from "./components/RecommendedActionsPanel";
 import AppControlCommandCenter from "./components/AppControlCommandCenter";
 import HomeWorkspaceView from "./components/workspaces/HomeWorkspaceView";
+import type { HomeTaskModeId } from "./components/HomeTaskModePanel";
 import SettingsPanel from "./components/SettingsPanel";
 import {
   getQuickStatGuide,
@@ -230,6 +231,12 @@ type DesktopWorkspaceId =
   | "operations"
   | "runtime"
   | "records";
+
+type DesktopNavItemId =
+  | DesktopWorkspaceId
+  | "home-o3de-game"
+  | "home-o3de-cinematic"
+  | "home-load-project";
 
 type OperationsSurfaceId =
   | "dispatch"
@@ -518,6 +525,7 @@ export default function App() {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<DesktopWorkspaceId>(
     settings.layout.preferredLandingSection as DesktopWorkspaceId,
   );
+  const [homeTaskModeId, setHomeTaskModeId] = useState<HomeTaskModeId>("app");
   const [visitedWorkspaceIds, setVisitedWorkspaceIds] = useState<DesktopWorkspaceId[]>([
     settings.layout.preferredLandingSection as DesktopWorkspaceId,
   ]);
@@ -2251,6 +2259,37 @@ export default function App() {
 
     window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, activeWorkspaceId);
   }, [activeWorkspaceId]);
+
+  function selectDesktopNavigation(navItemId: string): void {
+    switch (navItemId as DesktopNavItemId) {
+      case "home":
+        setHomeTaskModeId("app");
+        setActiveWorkspaceId("home");
+        return;
+      case "home-o3de-game":
+        setHomeTaskModeId("o3de-game");
+        setActiveWorkspaceId("home");
+        return;
+      case "home-o3de-cinematic":
+        setHomeTaskModeId("o3de-cinematic");
+        setActiveWorkspaceId("home");
+        return;
+      case "home-load-project":
+        setHomeTaskModeId("load-project");
+        setActiveWorkspaceId("home");
+        return;
+      case "prompt":
+      case "builder":
+      case "operations":
+      case "runtime":
+      case "records":
+        setActiveWorkspaceId(navItemId as DesktopWorkspaceId);
+        return;
+      default:
+        setHomeTaskModeId("app");
+        setActiveWorkspaceId("home");
+    }
+  }
 
   useEffect(() => {
     setVisitedWorkspaceIds((currentWorkspaceIds) => (
@@ -4587,6 +4626,15 @@ export default function App() {
     },
   };
   const activeWorkspaceMeta = workspaceMeta[activeWorkspaceId];
+  const activeDesktopNavItemId: DesktopNavItemId = activeWorkspaceId === "home"
+    ? homeTaskModeId === "o3de-game"
+      ? "home-o3de-game"
+      : homeTaskModeId === "o3de-cinematic"
+        ? "home-o3de-cinematic"
+        : homeTaskModeId === "load-project"
+          ? "home-load-project"
+          : "home"
+    : activeWorkspaceId;
   const desktopNavSections = [
     {
       id: "start",
@@ -4608,6 +4656,30 @@ export default function App() {
       label: "Create",
       detail: "Use natural-language or mission-control surfaces to start and shape work.",
       items: [
+        {
+          id: "home-o3de-game",
+          label: "Create Game",
+          subtitle: "Open the O3DE game creation desk",
+          badge: null,
+          tone: "success",
+          helpTooltip: "Open Home directly into the O3DE game creation desk with scenario guidance and tool dock context.",
+        },
+        {
+          id: "home-o3de-cinematic",
+          label: "Create Movie",
+          subtitle: "Open the O3DE cinematic desk",
+          badge: null,
+          tone: "info",
+          helpTooltip: "Open Home directly into the O3DE cinematic creation desk for trailer, previs, and short-film guidance.",
+        },
+        {
+          id: "home-load-project",
+          label: "Load Project",
+          subtitle: "Reconnect an existing O3DE project",
+          badge: null,
+          tone: "neutral",
+          helpTooltip: "Open Home directly into the guided O3DE project loading surface for existing projects.",
+        },
         {
           id: "prompt",
           label: promptWorkspaceGuide.navLabel,
@@ -6773,6 +6845,7 @@ export default function App() {
         workspaceTitle={activeWorkspaceMeta.title}
         workspaceSubtitle={activeWorkspaceMeta.subtitle}
         activeWorkspaceId={activeWorkspaceId}
+        activeNavItemId={activeDesktopNavItemId}
         navSections={desktopNavSections}
         quickStats={settings.layout.showDesktopTelemetry ? desktopQuickStats : []}
         agentCallItems={agentsForDisplay.slice(0, 5).map((agent) => ({
@@ -6787,12 +6860,12 @@ export default function App() {
           <>
             <AppControlCommandCenter
               activeWorkspaceId={activeWorkspaceId}
-              onSelectWorkspace={(workspaceId) => setActiveWorkspaceId(workspaceId as DesktopWorkspaceId)}
+              onSelectWorkspace={selectDesktopNavigation}
             />
             <SettingsPanel compactLauncher />
           </>
         )}
-        onSelectWorkspace={(workspaceId) => setActiveWorkspaceId(workspaceId as DesktopWorkspaceId)}
+        onSelectWorkspace={selectDesktopNavigation}
       >
         {workspaceNextStepEntries.length > 0 ? (
           <WorkspaceNextStepsPanel
@@ -6816,9 +6889,11 @@ export default function App() {
               launchpadContent={homeLaunchpadContent}
               overviewContent={homeOverviewContent}
               guideContent={homeGuideContent}
+              activeTaskModeId={homeTaskModeId}
               onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
               onOpenRuntimeOverview={openRuntimeOverview}
               onOpenBuilder={() => setActiveWorkspaceId("builder")}
+              onActiveTaskModeChange={setHomeTaskModeId}
             />
           </div>
         ) : null}
@@ -6889,7 +6964,7 @@ export default function App() {
       {settings.layout.guidedMode && !settings.layout.guidedTourCompleted ? (
         <FirstRunTour
           activeWorkspaceId={activeWorkspaceId}
-          onSelectWorkspace={(workspaceId) => setActiveWorkspaceId(workspaceId as DesktopWorkspaceId)}
+          onSelectWorkspace={selectDesktopNavigation}
           onComplete={completeFirstRunTour}
         />
       ) : null}

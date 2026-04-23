@@ -2,7 +2,7 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
-import HomeTaskModePanel from "../HomeTaskModePanel";
+import HomeTaskModePanel, { type HomeTaskModeId } from "../HomeTaskModePanel";
 import { getWorkspaceGuide, getWorkspaceWindowGuide } from "../../content/operatorGuide";
 
 type HomeSurfaceId = "start" | "mission-control" | "guidebook";
@@ -12,9 +12,11 @@ type HomeWorkspaceViewProps = {
   launchpadContent: ReactNode;
   overviewContent: ReactNode;
   guideContent: ReactNode;
+  activeTaskModeId?: HomeTaskModeId;
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenBuilder?: () => void;
+  onActiveTaskModeChange?: (modeId: HomeTaskModeId) => void;
 };
 
 const missionControlWindow = getWorkspaceWindowGuide("home", "mission-control");
@@ -49,9 +51,11 @@ export default function HomeWorkspaceView({
   launchpadContent,
   overviewContent,
   guideContent,
+  activeTaskModeId,
   onOpenPromptStudio,
   onOpenRuntimeOverview,
   onOpenBuilder,
+  onActiveTaskModeChange,
 }: HomeWorkspaceViewProps) {
   const [activeSurfaceId, setActiveSurfaceId] = useState<HomeSurfaceId>("start");
 
@@ -84,9 +88,11 @@ export default function HomeWorkspaceView({
       {activeSurfaceId === "start" ? (
         <div style={guidedShellStyle}>
           <HomeTaskModePanel
+            activeModeId={activeTaskModeId}
             onOpenPromptStudio={onOpenPromptStudio}
             onOpenRuntimeOverview={onOpenRuntimeOverview}
             onOpenBuilder={onOpenBuilder}
+            onActiveModeChange={onActiveTaskModeChange}
           />
           <DesktopWindow
             variant="nested"

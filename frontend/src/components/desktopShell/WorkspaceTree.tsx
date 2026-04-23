@@ -5,6 +5,7 @@ import type { DesktopShellNavSection } from "./types";
 
 type WorkspaceTreeProps = {
   activeWorkspaceId: string;
+  activeNavItemId?: string;
   navSections: readonly DesktopShellNavSection[];
   workspaceTitle: string;
   onSelectWorkspace: (workspaceId: string) => void;
@@ -12,15 +13,17 @@ type WorkspaceTreeProps = {
 
 export default function WorkspaceTree({
   activeWorkspaceId,
+  activeNavItemId,
   navSections,
   workspaceTitle,
   onSelectWorkspace,
 }: WorkspaceTreeProps) {
+  const currentNavItemId = activeNavItemId ?? activeWorkspaceId;
   const activeNavItem = navSections
     .flatMap((section) => section.items)
-    .find((item) => item.id === activeWorkspaceId);
+    .find((item) => item.id === currentNavItemId);
   const activeNavSection = navSections.find((section) => (
-    section.items.some((item) => item.id === activeWorkspaceId)
+    section.items.some((item) => item.id === currentNavItemId)
   ));
   const activeNavSectionId = activeNavSection?.id ?? "start";
   const [expandedSectionId, setExpandedSectionId] = useState(activeNavSectionId);
@@ -77,7 +80,7 @@ export default function WorkspaceTree({
               {sectionExpanded ? (
                 <div style={navListStyle}>
                   {section.items.map((item) => {
-                    const active = item.id === activeWorkspaceId;
+                    const active = item.id === currentNavItemId;
                     const tone = toneStyles[item.tone ?? "neutral"];
                     return (
                       <button

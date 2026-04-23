@@ -13,7 +13,7 @@ import {
 import { useSettings } from "../lib/settings/hooks";
 import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 
-type HomeTaskModeId = "app" | "o3de-game" | "o3de-cinematic" | "load-project";
+export type HomeTaskModeId = "app" | "o3de-game" | "o3de-cinematic" | "load-project";
 
 type HomeTaskMode = {
   id: HomeTaskModeId;
@@ -55,9 +55,11 @@ const taskModes: HomeTaskMode[] = [
 ];
 
 type HomeTaskModePanelProps = {
+  activeModeId?: HomeTaskModeId;
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenBuilder?: () => void;
+  onActiveModeChange?: (modeId: HomeTaskModeId) => void;
 };
 
 type O3DEProjectProfileDraft = {
@@ -77,12 +79,14 @@ function profileToDraft(profile: O3DEProjectProfile): O3DEProjectProfileDraft {
 }
 
 export default function HomeTaskModePanel({
+  activeModeId: controlledActiveModeId,
   onOpenPromptStudio,
   onOpenRuntimeOverview,
   onOpenBuilder,
+  onActiveModeChange,
 }: HomeTaskModePanelProps) {
   const { settings, saveSettings } = useSettings();
-  const [activeModeId, setActiveModeId] = useState<HomeTaskModeId>("app");
+  const [internalActiveModeId, setInternalActiveModeId] = useState<HomeTaskModeId>("app");
   const [profileStore, setProfileStore] = useState(() => loadO3DEProjectProfilesStore());
   const activeProjectProfile = useMemo(
     () => getActiveO3DEProjectProfile(profileStore),
@@ -93,7 +97,13 @@ export default function HomeTaskModePanel({
   ));
   const [profileStatus, setProfileStatus] = useState<string | null>(null);
   const [backendTargetLoading, setBackendTargetLoading] = useState(false);
+  const activeModeId = controlledActiveModeId ?? internalActiveModeId;
   const activeMode = taskModes.find((mode) => mode.id === activeModeId) ?? taskModes[0];
+
+  function selectTaskMode(modeId: HomeTaskModeId): void {
+    setInternalActiveModeId(modeId);
+    onActiveModeChange?.(modeId);
+  }
 
   function syncSettingsToProfile(profile: O3DEProjectProfile): void {
     saveSettings({
@@ -198,7 +208,7 @@ export default function HomeTaskModePanel({
               type="button"
               role="tab"
               aria-selected={isActive}
-              onClick={() => setActiveModeId(mode.id)}
+              onClick={() => selectTaskMode(mode.id)}
               title={mode.help}
               style={{
                 ...tabButtonStyle,

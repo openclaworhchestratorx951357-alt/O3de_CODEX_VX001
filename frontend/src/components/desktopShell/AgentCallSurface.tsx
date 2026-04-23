@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
 import type { DesktopShellAgentCallItem } from "./types";
@@ -13,6 +13,13 @@ export default function AgentCallSurface({
   const [agentCallOpen, setAgentCallOpen] = useState(false);
   const [agentChatOpen, setAgentChatOpen] = useState(false);
   const [agentChatDraft, setAgentChatDraft] = useState("");
+  const [agentCallPopoverPosition, setAgentCallPopoverPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const popoverRef = useRef<HTMLDivElement | null>(null);
   const visibleAgentCallItems = agentCallItems.length > 0
     ? agentCallItems
     : fallbackAgentCallItems;
@@ -24,6 +31,107 @@ export default function AgentCallSurface({
 
   const agentChatPortalTarget = typeof document !== "undefined"
     ? document.querySelector<HTMLElement>("[data-app-theme-root='true']") ?? document.body
+    : null;
+
+  useEffect(() => {
+    if (!agentCallOpen || typeof window === "undefined") {
+      return;
+    }
+
+    function updatePopoverPosition() {
+      const buttonBounds = buttonRef.current?.getBoundingClientRect();
+      if (!buttonBounds) {
+        return;
+      }
+
+      const width = Math.min(320, Math.max(window.innerWidth - 36, 240));
+      const left = Math.min(
+        window.innerWidth - width - 18,
+        Math.max(18, buttonBounds.right - width),
+      );
+
+      setAgentCallPopoverPosition({
+        top: buttonBounds.bottom + 10,
+        left,
+        width,
+      });
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (buttonRef.current?.contains(target) || popoverRef.current?.contains(target)) {
+        return;
+      }
+
+      setAgentCallOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setAgentCallOpen(false);
+      }
+    }
+
+    updatePopoverPosition();
+    window.addEventListener("resize", updatePopoverPosition);
+    window.addEventListener("scroll", updatePopoverPosition, true);
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("resize", updatePopoverPosition);
+      window.removeEventListener("scroll", updatePopoverPosition, true);
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [agentCallOpen]);
+
+  const agentCallPopover = agentCallOpen && agentChatPortalTarget && agentCallPopoverPosition
+    ? createPortal(
+        <div
+          ref={popoverRef}
+          role="dialog"
+          aria-label="Agent call menu"
+          style={{
+            ...agentCallPopoverStyle,
+            top: agentCallPopoverPosition.top,
+            left: agentCallPopoverPosition.left,
+            width: agentCallPopoverPosition.width,
+          }}
+        >
+          <div style={agentCallPopoverHeaderStyle}>
+            <strong>Call an agent</strong>
+            <span>Pick an active helper or start a new chat dock.</span>
+          </div>
+          <div style={agentCallListStyle}>
+            {visibleAgentCallItems.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={openChatDock}
+                style={agentCallListButtonStyle}
+              >
+                <strong>{item.label}</strong>
+                <span>{item.detail}</span>
+                {item.status ? (
+                  <small>{item.status}</small>
+                ) : null}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={openChatDock}
+            style={agentCallNewChatButtonStyle}
+          >
+            Start new chat
+          </button>
+        </div>,
+        agentChatPortalTarget,
+      )
     : null;
 
   const agentChatDock = agentChatOpen ? (
@@ -71,6 +179,7 @@ export default function AgentCallSurface({
     <>
       <div style={agentCallAnchorStyle}>
         <button
+          ref={buttonRef}
           type="button"
           aria-label="Call an agent"
           aria-expanded={agentCallOpen}
@@ -80,39 +189,9 @@ export default function AgentCallSurface({
         >
           <span aria-hidden="true">{"\u260E"}</span>
         </button>
-        {agentCallOpen ? (
-          <div style={agentCallPopoverStyle} role="dialog" aria-label="Agent call menu">
-            <div style={agentCallPopoverHeaderStyle}>
-              <strong>Call an agent</strong>
-              <span>Pick an active helper or start a new chat dock.</span>
-            </div>
-            <div style={agentCallListStyle}>
-              {visibleAgentCallItems.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={openChatDock}
-                  style={agentCallListButtonStyle}
-                >
-                  <strong>{item.label}</strong>
-                  <span>{item.detail}</span>
-                  {item.status ? (
-                    <small>{item.status}</small>
-                  ) : null}
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={openChatDock}
-              style={agentCallNewChatButtonStyle}
-            >
-              Start new chat
-            </button>
-          </div>
-        ) : null}
       </div>
 
+      {agentCallPopover}
       {agentChatDock && agentChatPortalTarget
         ? createPortal(agentChatDock, agentChatPortalTarget)
         : agentChatDock}
@@ -156,11 +235,8 @@ const agentCallButtonStyle = {
 } satisfies CSSProperties;
 
 const agentCallPopoverStyle = {
-  position: "absolute",
-  top: "calc(100% + 10px)",
-  right: 0,
-  zIndex: 8,
-  width: 320,
+  position: "fixed",
+  zIndex: 40,
   display: "grid",
   gap: 12,
   padding: 14,

@@ -72,9 +72,12 @@ describe("HomeWorkspaceView", () => {
     expect(await screen.findByLabelText("O3DE production planner")).toBeInTheDocument();
     expect(await screen.findByText("What type of game are you building?")).toBeInTheDocument();
     expect(screen.getAllByText("First-person adventure").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /Open world/i })).toBeInTheDocument();
+    expect(screen.getByText("Choose a sub-genre emphasis")).toBeInTheDocument();
     expect(screen.getByText("Step 1 of 5")).toBeInTheDocument();
     expect(screen.getByLabelText("Current viewport guidance context")).toHaveTextContent("Game viewport control surface");
     expect(screen.getByLabelText("Current viewport guidance context")).toHaveTextContent("Entity Tools");
+    expect(screen.getByLabelText("Current viewport guidance context")).toHaveTextContent("Narrative mystery");
     expect(screen.getByText(/Create a one-page first-person adventure brief/i)).toBeInTheDocument();
     expect(screen.queryByText(/Create a production lane plan for first-person adventure content/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText("Source context upload")).toBeInTheDocument();
@@ -86,6 +89,11 @@ describe("HomeWorkspaceView", () => {
     expect(screen.getAllByText(/Source context \(operator notes\): Use a lighthouse puzzle/i).length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole("button", { name: "Choose local file" }));
     expect(screen.getByLabelText("Upload source context file")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Open world/i }));
+    expect(screen.getByText(/Create an open-world game brief/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Survival crafting/i }));
+    expect(screen.getByLabelText("Current viewport guidance context")).toHaveTextContent("Survival crafting");
 
     fireEvent.click(screen.getByRole("button", { name: /Puzzle exploration/i }));
     expect(screen.getByText(/Create a puzzle exploration brief/i)).toBeInTheDocument();

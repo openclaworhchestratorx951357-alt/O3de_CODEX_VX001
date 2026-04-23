@@ -22,6 +22,7 @@ export default function DesktopShell({
   workspaceTitle,
   workspaceSubtitle,
   activeWorkspaceId,
+  activeNavItemId,
   navSections,
   quickStats = [],
   utilityLabel,
@@ -32,8 +33,9 @@ export default function DesktopShell({
   children,
 }: DesktopShellProps) {
   const themeTokens = useThemeTokens();
+  const currentNavItemId = activeNavItemId ?? activeWorkspaceId;
   const activeNavSection = navSections.find((section) => (
-    section.items.some((item) => item.id === activeWorkspaceId)
+    section.items.some((item) => item.id === currentNavItemId)
   ));
   const timestampLabel = new Date().toLocaleString([], {
     hour: "numeric",
@@ -60,7 +62,7 @@ export default function DesktopShell({
           </div>
         </div>
         <QuickAccessBar
-          activeWorkspaceId={activeWorkspaceId}
+          activeWorkspaceId={currentNavItemId}
           navSections={navSections}
           onSelectWorkspace={onSelectWorkspace}
         />
@@ -93,6 +95,7 @@ export default function DesktopShell({
       >
         <WorkspaceTree
           activeWorkspaceId={activeWorkspaceId}
+          activeNavItemId={currentNavItemId}
           navSections={navSections}
           workspaceTitle={workspaceTitle}
           onSelectWorkspace={onSelectWorkspace}
@@ -103,6 +106,7 @@ export default function DesktopShell({
             workspaceTitle={workspaceTitle}
             workspaceSubtitle={workspaceSubtitle}
             activeWorkspaceId={activeWorkspaceId}
+            activeNavItemId={currentNavItemId}
             activeNavSection={activeNavSection}
             quickStats={quickStats}
             onSelectWorkspace={onSelectWorkspace}

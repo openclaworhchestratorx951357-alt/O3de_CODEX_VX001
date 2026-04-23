@@ -262,29 +262,37 @@ export default function SettingsPanel({
           {buttonLabel}
         </button>
 
+        <div
+          style={{
+            ...launcherThemeRowStyle,
+            ...(compactLauncher ? launcherThemeRowCompactStyle : null),
+          }}
+          role="group"
+          aria-label="Theme mode quick toggle"
+        >
+          {THEME_MODE_VALUES.map((value) => {
+            const active = settings.appearance.themeMode === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => handleQuickThemeChange(value)}
+                aria-pressed={active}
+                title={`Apply ${formatThemeToggleLabel(value)} theme without opening the full settings panel.`}
+                style={{
+                  ...launcherThemeButtonStyle,
+                  ...(compactLauncher ? launcherThemeButtonCompactStyle : null),
+                  ...(active ? launcherThemeButtonActiveStyle : null),
+                }}
+              >
+                {formatThemeToggleLabel(value)}
+              </button>
+            );
+          })}
+        </div>
+
         {compactLauncher ? null : (
           <>
-            <div style={launcherThemeRowStyle} role="group" aria-label="Theme mode quick toggle">
-              {THEME_MODE_VALUES.map((value) => {
-                const active = settings.appearance.themeMode === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => handleQuickThemeChange(value)}
-                    aria-pressed={active}
-                    title={`Apply ${formatThemeToggleLabel(value)} theme without opening the full settings panel.`}
-                    style={{
-                      ...launcherThemeButtonStyle,
-                      ...(active ? launcherThemeButtonActiveStyle : null),
-                    }}
-                  >
-                    {formatThemeToggleLabel(value)}
-                  </button>
-                );
-              })}
-            </div>
-
             <div style={launcherThemeRowStyle} role="group" aria-label="Guidance mode quick toggle">
               {[true, false].map((value) => {
                 const active = settings.layout.guidedMode === value;
@@ -676,6 +684,11 @@ const launcherThemeRowStyle = {
   boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
+const launcherThemeRowCompactStyle = {
+  gap: 4,
+  padding: 3,
+} satisfies CSSProperties;
+
 const launcherThemeButtonStyle = {
   borderWidth: 1,
   borderStyle: "solid",
@@ -686,6 +699,11 @@ const launcherThemeButtonStyle = {
   color: "var(--app-text-color)",
   cursor: "pointer",
   fontSize: 12,
+} satisfies CSSProperties;
+
+const launcherThemeButtonCompactStyle = {
+  padding: "6px 9px",
+  fontSize: 11,
 } satisfies CSSProperties;
 
 const launcherThemeButtonActiveStyle = {

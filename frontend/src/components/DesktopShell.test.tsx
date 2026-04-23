@@ -122,6 +122,11 @@ describe("DesktopShell", () => {
     expect(onSelectWorkspace).toHaveBeenCalledWith("records");
     onSelectWorkspace.mockClear();
 
+    fireEvent.change(quickAccessInput, { target: { value: "record" } });
+    expect(screen.getByRole("listbox", { name: "Quick access results" })).toBeInTheDocument();
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole("listbox", { name: "Quick access results" })).not.toBeInTheDocument();
+
     fireEvent.focus(quickAccessInput);
     fireEvent.change(quickAccessInput, { target: { value: "home" } });
     fireEvent.keyDown(quickAccessInput, { key: "Enter" });
@@ -130,6 +135,13 @@ describe("DesktopShell", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /records/i }));
     expect(onSelectWorkspace).toHaveBeenCalledWith("records");
+
+    fireEvent.click(screen.getByRole("button", { name: /call an agent/i }));
+    const agentCallMenu = screen.getByRole("dialog", { name: "Agent call menu" });
+    expect(agentCallMenu).toBeInTheDocument();
+    expect(agentCallMenu.parentElement).toBe(document.body);
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole("dialog", { name: "Agent call menu" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /call an agent/i }));
     expect(screen.getByRole("dialog", { name: "Agent call menu" })).toBeInTheDocument();

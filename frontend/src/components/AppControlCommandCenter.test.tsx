@@ -171,4 +171,21 @@ describe("AppControlCommandCenter", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("dialog", { name: "App control command center" })).not.toBeInTheDocument();
   });
+
+  it("renders the App OS panel in a portal so taskbar nowrap styles do not stretch it", () => {
+    render(
+      <SettingsProvider>
+        <div style={{ whiteSpace: "nowrap" }}>
+          <AppControlCommandCenter activeWorkspaceId="home" onSelectWorkspace={vi.fn()} />
+        </div>
+      </SettingsProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "App OS" }));
+
+    const dialog = screen.getByRole("dialog", { name: "App control command center" });
+    expect(dialog).toBeInTheDocument();
+    expect(dialog.parentElement).toHaveAttribute("data-app-theme-root", "true");
+    expect(dialog).toHaveStyle({ position: "fixed", whiteSpace: "normal" });
+  });
 });

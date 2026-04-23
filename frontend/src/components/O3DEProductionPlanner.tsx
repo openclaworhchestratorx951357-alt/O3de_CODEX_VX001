@@ -14,10 +14,18 @@ type ProductionStage = {
   avoid: string;
 };
 
+type ProductionSubGenre = {
+  id: string;
+  label: string;
+  description: string;
+  promptLead: string;
+};
+
 type ProductionScenario = {
   id: string;
   label: string;
   description: string;
+  subGenres?: ProductionSubGenre[];
   stages: ProductionStage[];
 };
 
@@ -41,6 +49,8 @@ type SourceMode = "paste" | "file";
 
 const SOURCE_CONTEXT_CHAR_LIMIT = 6000;
 const SOURCE_CONTEXT_PROMPT_LIMIT = 800;
+const LOCAL_SHORTCUT_STATUS =
+  "Local quick prompts are ready. Refresh backend shortcuts when the live backend is running.";
 
 const workFocuses: WorkFocus[] = [
   {
@@ -68,6 +78,26 @@ const gameScenarios: ProductionScenario[] = [
     id: "first-person-adventure",
     label: "First-person adventure",
     description: "Use this for exploration, interactables, traversal, readable spaces, and a strong player loop.",
+    subGenres: [
+      {
+        id: "narrative-mystery",
+        label: "Narrative mystery",
+        description: "Story-first exploration, readable clues, and guided environmental payoff.",
+        promptLead: "Keep the moment-to-moment loop centered on mystery discovery, clue payoff, and story pacing.",
+      },
+      {
+        id: "immersive-sim",
+        label: "Immersive sim",
+        description: "Multiple solutions, systemic interactions, and layered world rules.",
+        promptLead: "Bias recommendations toward systemic affordances, alternate solutions, and readable simulation rules.",
+      },
+      {
+        id: "survival-exploration",
+        label: "Survival exploration",
+        description: "Resource pressure, atmosphere, and route planning through dangerous spaces.",
+        promptLead: "Emphasize atmosphere, limited resources, and route-planning tension in the first playable slice.",
+      },
+    ],
     stages: [
       {
         id: "brief",
@@ -115,6 +145,26 @@ const gameScenarios: ProductionScenario[] = [
     id: "puzzle-exploration",
     label: "Puzzle exploration",
     description: "Use this for room-by-room logic, readable goals, object interaction, clues, and validation-heavy playtests.",
+    subGenres: [
+      {
+        id: "escape-room",
+        label: "Escape room",
+        description: "Contained spaces, chained clues, and strong reset/readability requirements.",
+        promptLead: "Favor tightly scoped rooms, explicit reset behavior, and clear clue chaining.",
+      },
+      {
+        id: "metroidbrainia",
+        label: "Metroidbrainia",
+        description: "Knowledge-gated progression with revisits, unlocks, and aha moments.",
+        promptLead: "Favor knowledge-gated progression, revisits, and puzzle dependencies that reward player understanding.",
+      },
+      {
+        id: "atmospheric-logic",
+        label: "Atmospheric logic",
+        description: "Mood-heavy puzzles where presentation supports comprehension and pacing.",
+        promptLead: "Favor mood, visual readability, and puzzle pacing that supports comprehension without explicit tutorials.",
+      },
+    ],
     stages: [
       {
         id: "brief",
@@ -162,6 +212,26 @@ const gameScenarios: ProductionScenario[] = [
     id: "third-person-action",
     label: "Third-person action",
     description: "Use this for camera, movement feel, combat arenas, readable targets, and repeated encounter testing.",
+    subGenres: [
+      {
+        id: "character-action",
+        label: "Character action",
+        description: "Expressive movement, stylish combat beats, and encounter readability.",
+        promptLead: "Prioritize responsive movement, expressive combat pacing, and highly readable encounter framing.",
+      },
+      {
+        id: "stealth-action",
+        label: "Stealth action",
+        description: "Sightlines, patrol spaces, layered affordances, and recovery states.",
+        promptLead: "Prioritize stealth readability, patrol space design, detection recovery, and layered affordances.",
+      },
+      {
+        id: "action-rpg",
+        label: "Action RPG",
+        description: "Ability progression, combat loops, and authored exploration with build identity.",
+        promptLead: "Favor ability progression hooks, authored combat loops, and build identity without widening scope too early.",
+      },
+    ],
     stages: [
       {
         id: "brief",
@@ -209,6 +279,26 @@ const gameScenarios: ProductionScenario[] = [
     id: "multiplayer-prototype",
     label: "Multiplayer prototype",
     description: "Use this for network-risk discovery, replication plans, tiny test maps, and staged technical validation.",
+    subGenres: [
+      {
+        id: "co-op-mission",
+        label: "Co-op mission",
+        description: "Shared objectives, role clarity, and revive/failure recovery checks.",
+        promptLead: "Focus the slice on co-op objectives, team readability, and recovery when one player fails or disconnects.",
+      },
+      {
+        id: "extraction-loop",
+        label: "Extraction loop",
+        description: "Enter-loot-extract tension, persistence risk, and recoverable failures.",
+        promptLead: "Bias the prototype toward enter-loot-extract tension, recoverable failures, and deterministic session cleanup.",
+      },
+      {
+        id: "arena-skirmish",
+        label: "Arena skirmish",
+        description: "Fast joins, tight arenas, repeated sync checks, and visible match state.",
+        promptLead: "Bias recommendations toward fast joins, repeated match-state validation, and tightly scoped arenas.",
+      },
+    ],
     stages: [
       {
         id: "brief",
@@ -249,6 +339,73 @@ const gameScenarios: ProductionScenario[] = [
         prompt: "Create a multiplayer release checklist for latency, reconnect, crash recovery, packaging, and support.",
         evidence: "Network smoke tests, packaged build, incident plan, and rollback path.",
         avoid: "Do not ship if join/leave, reconnect, or desync recovery is unproven.",
+      },
+    ],
+  },
+  {
+    id: "open-world",
+    label: "Open world",
+    description: "Use this for traversal scale, biome slices, systemic encounters, streaming risks, and world-level production lanes.",
+    subGenres: [
+      {
+        id: "survival-crafting",
+        label: "Survival crafting",
+        description: "Resource gathering, route planning, shelter loops, and biome pressure.",
+        promptLead: "Emphasize survival pressure, crafting progression, and biome-to-biome route planning in the first slice.",
+      },
+      {
+        id: "open-world-rpg",
+        label: "Open-world RPG",
+        description: "Quest hubs, progression, authored encounters, and systemic travel.",
+        promptLead: "Emphasize quest scaffolding, authored encounter loops, progression, and world readability for long sessions.",
+      },
+      {
+        id: "sandbox-systems",
+        label: "Sandbox systems",
+        description: "Emergent systems, player-created goals, and tool-driven experimentation.",
+        promptLead: "Emphasize systemic interactions, player-driven goals, and flexible world rules that create emergent play.",
+      },
+    ],
+    stages: [
+      {
+        id: "brief",
+        label: "World brief",
+        outcome: "Define traversal fantasy, world scale, biome count, systemic pillars, and performance/streaming risks.",
+        prompt: "Create an open-world game brief with traversal fantasy, biome plan, world rules, streaming risks, and first playable milestone.",
+        evidence: "World brief, biome map sketch, risk register, and a named first-slice objective.",
+        avoid: "Do not promise a giant map before one traversal loop and one biome slice are proven.",
+      },
+      {
+        id: "prototype",
+        label: "Traversal slice",
+        outcome: "Graybox one traversal corridor, one point of interest, one encounter, and one recoverable return path.",
+        prompt: "Plan a graybox open-world traversal slice with one point of interest, one encounter, and streaming/performance checks.",
+        evidence: "Graybox objective, traversal notes, validation checklist, and bridge-backed editing evidence when admitted tools are used.",
+        avoid: "Do not build many biomes or quest lines before traversal and scale feel right.",
+      },
+      {
+        id: "vertical-slice",
+        label: "Biome slice",
+        outcome: "Finish one representative biome loop with traversal, encounter, objective, reward, and performance target.",
+        prompt: "Create a vertical-slice backlog for one open-world biome with traversal, encounter, objective, and performance gates.",
+        evidence: "Biome-slice tasks, world validation notes, Records artifacts, and known-risk list.",
+        avoid: "Do not widen the world map before one biome proves quality, pacing, and streaming stability.",
+      },
+      {
+        id: "production",
+        label: "World production",
+        outcome: "Split world composition, quest/content, traversal, streaming, build, and QA into trackable lanes.",
+        prompt: "Create an open-world production lane plan with biome ownership, quest lanes, streaming checks, and weekly milestones.",
+        evidence: "Lane ownership, source-control commits, world checklist, and recurring validation runs.",
+        avoid: "Do not let natural-language world changes bypass ownership, review, or rollback notes.",
+      },
+      {
+        id: "release",
+        label: "Release readiness",
+        outcome: "Verify traversal, streaming, spawn safety, save/load recovery, packaging, and support runbooks.",
+        prompt: "Create an open-world release checklist for traversal, streaming, save/load recovery, packaging, and QA gates.",
+        evidence: "Packaged smoke tests, performance captures, world-state recovery notes, and rollback path.",
+        avoid: "Do not call the slice ready if travel, save/load, or streaming recovery is unproven.",
       },
     ],
   },
@@ -372,6 +529,9 @@ export default function O3DEProductionPlanner({
 }: O3DEProductionPlannerProps) {
   const scenarios = mode === "cinematic" ? cinematicScenarios : gameScenarios;
   const [activeScenarioId, setActiveScenarioId] = useState(scenarios[0].id);
+  const [activeSubGenreId, setActiveSubGenreId] = useState<string | null>(
+    scenarios[0]?.subGenres?.[0]?.id ?? null,
+  );
   const [activeStageIndex, setActiveStageIndex] = useState(0);
   const [activeFocusId, setActiveFocusId] = useState(workFocuses[0].id);
   const [sourceMode, setSourceMode] = useState<SourceMode>("paste");
@@ -379,10 +539,11 @@ export default function O3DEProductionPlanner({
   const [sourceContext, setSourceContext] = useState("");
   const [sourceStatus, setSourceStatus] = useState("No source context attached yet.");
   const [backendShortcuts, setBackendShortcuts] = useState<PromptShortcutOption[]>([]);
-  const [shortcutStatus, setShortcutStatus] = useState(
-    "Local quick prompts are ready. Refresh backend shortcuts when the live backend is running.",
-  );
+  const [shortcutStatus, setShortcutStatus] = useState(LOCAL_SHORTCUT_STATUS);
   const activeScenario = scenarios.find((scenario) => scenario.id === activeScenarioId) ?? scenarios[0];
+  const activeSubGenre = activeScenario.subGenres?.find((subGenre) => subGenre.id === activeSubGenreId)
+    ?? activeScenario.subGenres?.[0]
+    ?? null;
   const activeStage = activeScenario.stages[Math.min(activeStageIndex, activeScenario.stages.length - 1)];
   const activeFocus = workFocuses.find((focus) => focus.id === activeFocusId) ?? workFocuses[0];
   const canMoveBack = activeStageIndex > 0;
@@ -392,13 +553,17 @@ export default function O3DEProductionPlanner({
     : "What type of game are you building?";
   const profileName = projectProfileName?.trim() || "No selected profile";
   const sourceSummary = summarizeSourceContext(sourceContext, sourceContextName);
+  const subGenreSummary = activeSubGenre
+    ? ` Sub-genre emphasis: ${activeSubGenre.label}. ${activeSubGenre.promptLead}`
+    : "";
   const localShortcutPrompt = (
     `Analyze the current O3DE viewport/context, identify what is visible or selected, then recommend `
-    + `the next safe production step. Do not mutate the project yet. Scenario: ${activeScenario.label}. `
+    + `the next safe production step. Do not mutate the project yet. Scenario: ${activeScenario.label}.`
+    + `${subGenreSummary} `
     + `Stage: ${activeStage.label}. Viewport: ${viewportLabel}. Tool area: ${activeToolLabel}. `
     + `Project profile: ${profileName}.${sourceSummary}`
   );
-  const contextAwarePrompt = `${activeFocus.promptLead} ${activeStage.prompt} Current context: ${viewportLabel}; selected tool area: ${activeToolLabel}; project profile: ${profileName}.${sourceSummary}`;
+  const contextAwarePrompt = `${activeFocus.promptLead} ${activeStage.prompt}${subGenreSummary} Current context: ${viewportLabel}; selected tool area: ${activeToolLabel}; project profile: ${profileName}.${sourceSummary}`;
   const displayedShortcuts = backendShortcuts.length > 0
     ? backendShortcuts
     : [
@@ -414,11 +579,16 @@ export default function O3DEProductionPlanner({
         },
       ];
 
+  function resetShortcutRecommendations(): void {
+    setBackendShortcuts([]);
+    setShortcutStatus(LOCAL_SHORTCUT_STATUS);
+  }
+
   function updateSourceContext(nextContext: string, nextName = sourceContextName) {
     const limitedContext = nextContext.slice(0, SOURCE_CONTEXT_CHAR_LIMIT);
     setSourceContext(limitedContext);
     setSourceContextName(nextName);
-    setBackendShortcuts([]);
+    resetShortcutRecommendations();
     setSourceStatus(
       limitedContext.trim()
         ? `Attached ${limitedContext.length} characters from ${nextName || "operator-provided source"}.`
@@ -477,7 +647,7 @@ export default function O3DEProductionPlanner({
           <span style={eyebrowStyle}>Adaptive production roadmap</span>
           <strong>{question}</strong>
           <p style={mutedParagraphStyle}>
-            Choose the closest scenario. The app then guides the work from brief to release-ready checks
+            Choose the closest scenario{mode === "game" ? " and a sub-genre emphasis" : ""}. The app then guides the work from brief to release-ready checks
             while keeping O3DE edits behind Runtime, Prompt Studio, Builder, and Records evidence.
           </p>
         </div>
@@ -493,7 +663,9 @@ export default function O3DEProductionPlanner({
               type="button"
               onClick={() => {
                 setActiveScenarioId(scenario.id);
+                setActiveSubGenreId(scenario.subGenres?.[0]?.id ?? null);
                 setActiveStageIndex(0);
+                resetShortcutRecommendations();
               }}
               aria-pressed={selected}
               style={{
@@ -524,6 +696,42 @@ export default function O3DEProductionPlanner({
         </details>
       </div>
 
+      {mode === "game" && activeScenario.subGenres?.length ? (
+        <div style={subGenrePanelStyle} aria-label="Game sub-genre choice">
+          <div>
+            <span style={eyebrowStyle}>Sub-genre emphasis</span>
+            <strong>Choose a sub-genre emphasis</strong>
+            <p style={mutedParagraphStyle}>
+              Narrow the current game path so the prompts, milestones, and quick recommendations match the kind
+              of game you actually want to build.
+            </p>
+          </div>
+          <div style={subGenreGridStyle}>
+            {activeScenario.subGenres.map((subGenre) => {
+              const selected = subGenre.id === activeSubGenre?.id;
+              return (
+                <button
+                  key={subGenre.id}
+                  type="button"
+                  onClick={() => {
+                    setActiveSubGenreId(subGenre.id);
+                    resetShortcutRecommendations();
+                  }}
+                  aria-pressed={selected}
+                  style={{
+                    ...subGenreButtonStyle,
+                    ...(selected ? activeSubGenreButtonStyle : null),
+                  }}
+                >
+                  <strong>{subGenre.label}</strong>
+                  <span>{subGenre.description}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
       <div style={contextPanelStyle} aria-label="Current viewport guidance context">
         <div>
           <span style={eyebrowStyle}>Current context</span>
@@ -536,6 +744,9 @@ export default function O3DEProductionPlanner({
           <span style={contextItemStyle}><strong>Viewport</strong><span>{viewportLabel}</span></span>
           <span style={contextItemStyle}><strong>Selected tool area</strong><span>{activeToolLabel}</span></span>
           <span style={contextItemStyle}><strong>Project profile</strong><span>{profileName}</span></span>
+          {activeSubGenre ? (
+            <span style={contextItemStyle}><strong>Sub-genre emphasis</strong><span>{activeSubGenre.label}</span></span>
+          ) : null}
         </div>
       </div>
 
@@ -572,7 +783,7 @@ export default function O3DEProductionPlanner({
             value={sourceContextName}
             onChange={(event) => {
               setSourceContextName(event.currentTarget.value);
-              setBackendShortcuts([]);
+              resetShortcutRecommendations();
             }}
             style={textInputStyle}
             placeholder="design brief, screenshot notes, task handoff, or local path"
@@ -618,7 +829,10 @@ export default function O3DEProductionPlanner({
               <button
                 key={focus.id}
                 type="button"
-                onClick={() => setActiveFocusId(focus.id)}
+                onClick={() => {
+                  setActiveFocusId(focus.id);
+                  resetShortcutRecommendations();
+                }}
                 aria-pressed={selected}
                 style={{
                   ...focusButtonStyle,
@@ -685,7 +899,10 @@ export default function O3DEProductionPlanner({
         <div style={buttonRowStyle}>
           <button
             type="button"
-            onClick={() => setActiveStageIndex((index) => Math.max(index - 1, 0))}
+            onClick={() => {
+              setActiveStageIndex((index) => Math.max(index - 1, 0));
+              resetShortcutRecommendations();
+            }}
             disabled={!canMoveBack}
             style={secondaryButtonStyle}
           >
@@ -693,7 +910,10 @@ export default function O3DEProductionPlanner({
           </button>
           <button
             type="button"
-            onClick={() => setActiveStageIndex((index) => Math.min(index + 1, activeScenario.stages.length - 1))}
+            onClick={() => {
+              setActiveStageIndex((index) => Math.min(index + 1, activeScenario.stages.length - 1));
+              resetShortcutRecommendations();
+            }}
             disabled={!canMoveForward}
             style={primaryButtonStyle}
           >
@@ -765,6 +985,27 @@ const selectedScenarioStyle = {
   border: "1px solid rgba(255, 255, 255, 0.12)",
   borderRadius: "var(--app-card-radius)",
   background: "rgba(255, 255, 255, 0.05)",
+} satisfies CSSProperties;
+
+const subGenrePanelStyle = {
+  ...selectedScenarioStyle,
+} satisfies CSSProperties;
+
+const subGenreGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+  gap: 8,
+} satisfies CSSProperties;
+
+const subGenreButtonStyle = {
+  ...scenarioButtonStyle,
+  minHeight: 86,
+} satisfies CSSProperties;
+
+const activeSubGenreButtonStyle = {
+  border: "1px solid rgba(255, 205, 103, 0.7)",
+  background: "rgba(255, 205, 103, 0.12)",
+  boxShadow: "0 0 0 1px rgba(255, 205, 103, 0.22), var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
 const contextPanelStyle = {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 
 import { previewAppControlScript } from "../lib/api";
 import { useSettings } from "../lib/settings/hooks";
@@ -88,22 +89,58 @@ export default function AppControlCommandCenter({
 }: AppControlCommandCenterProps) {
   const { profile, settings, saveSettings } = useSettings();
   const launcherRef = useRef<HTMLDivElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const panelRef = useRef<HTMLElement | null>(null);
   const [open, setOpen] = useState(false);
+  const [panelPosition, setPanelPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
   const [instruction, setInstruction] = useState("");
   const [actorName, setActorName] = useState("");
   const [preview, setPreview] = useState<AppControlScriptPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [status, setStatus] = useState("Ask for a safe app setting or navigation change.");
   const [lastBackup, setLastBackup] = useState<AppControlBackup | null>(() => loadLastBackup());
+  const overlayTarget = typeof document !== "undefined"
+    ? document.querySelector<HTMLElement>("[data-app-theme-root='true']") ?? document.body
+    : null;
 
   useEffect(() => {
     if (!open) {
       return undefined;
     }
 
+    function updatePanelPosition() {
+      const buttonBounds = buttonRef.current?.getBoundingClientRect();
+      if (!buttonBounds || typeof window === "undefined") {
+        return;
+      }
+
+      const width = Math.min(560, Math.max(window.innerWidth - 24, 320));
+      const left = Math.min(
+        window.innerWidth - width - 12,
+        Math.max(12, buttonBounds.right - width),
+      );
+
+      setPanelPosition({
+        top: buttonBounds.bottom + 10,
+        left,
+        width,
+      });
+    }
+
     function closeWhenOutside(event: PointerEvent) {
       const targetNode = event.target;
-      if (!(targetNode instanceof Node) || launcherRef.current?.contains(targetNode)) {
+      if (!(targetNode instanceof Node)) {
+        return;
+      }
+
+      if (
+        launcherRef.current?.contains(targetNode)
+        || panelRef.current?.contains(targetNode)
+      ) {
         return;
       }
 
@@ -116,9 +153,14 @@ export default function AppControlCommandCenter({
       }
     }
 
+    updatePanelPosition();
+    window.addEventListener("resize", updatePanelPosition);
+    window.addEventListener("scroll", updatePanelPosition, true);
     document.addEventListener("pointerdown", closeWhenOutside);
     document.addEventListener("keydown", closeOnEscape);
     return () => {
+      window.removeEventListener("resize", updatePanelPosition);
+      window.removeEventListener("scroll", updatePanelPosition, true);
       document.removeEventListener("pointerdown", closeWhenOutside);
       document.removeEventListener("keydown", closeOnEscape);
     };
@@ -194,20 +236,20 @@ export default function AppControlCommandCenter({
     setStatus(`Reverted script ${lastBackup.scriptId}.`);
   }
 
-  return (
-    <div ref={launcherRef} style={launcherWrapperStyle}>
-      <button
-        type="button"
-        onClick={() => setOpen((nextOpen) => !nextOpen)}
-        aria-expanded={open}
-        aria-controls="app-control-command-center"
-        style={launcherButtonStyle}
-      >
-        App OS
-      </button>
-
-      {open ? (
-        <section id="app-control-command-center" role="dialog" aria-label="App control command center" style={panelStyle}>
+  const panel = open && overlayTarget && panelPosition
+    ? createPortal(
+        <section
+          id="app-control-command-center"
+          ref={panelRef}
+          role="dialog"
+          aria-label="App control command center"
+          style={{
+            ...panelStyle,
+            top: panelPosition.top,
+            left: panelPosition.left,
+            width: panelPosition.width,
+          }}
+        >
           <form onSubmit={(event) => void previewScript(event)} style={formStyle}>
             <div>
               <span style={eyebrowStyle}>LLM App OS</span>
@@ -299,8 +341,24 @@ export default function AppControlCommandCenter({
               </div>
             </div>
           ) : null}
-        </section>
-      ) : null}
+        </section>,
+        overlayTarget,
+      )
+    : null;
+
+  return (
+    <div ref={launcherRef} style={launcherWrapperStyle}>
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={() => setOpen((nextOpen) => !nextOpen)}
+        aria-expanded={open}
+        aria-controls="app-control-command-center"
+        style={launcherButtonStyle}
+      >
+        App OS
+      </button>
+      {panel}
     </div>
   );
 }
@@ -321,18 +379,19 @@ const launcherButtonStyle = {
 } satisfies CSSProperties;
 
 const panelStyle = {
-  position: "absolute",
-  top: "calc(100% + 10px)",
-  right: 0,
+  position: "fixed",
   zIndex: 80,
-  width: "min(92vw, 560px)",
+  maxWidth: "calc(100vw - 24px)",
   display: "grid",
   gap: 12,
   padding: 14,
-  border: "1px solid var(--app-panel-border)",
+  border: "1px solid color-mix(in srgb, var(--app-panel-border-strong) 88%, var(--app-text-color) 12%)",
   borderRadius: "var(--app-card-radius)",
-  background: "var(--app-panel-bg)",
-  boxShadow: "0 24px 70px rgba(0, 0, 0, 0.28)",
+  background: "linear-gradient(180deg, color-mix(in srgb, var(--app-panel-bg-alt) 96%, var(--app-page-bg) 4%) 0%, color-mix(in srgb, var(--app-panel-bg) 98%, var(--app-page-bg) 2%) 100%)",
+  boxShadow: "0 28px 80px rgba(0, 0, 0, 0.36), 0 0 0 1px rgba(255, 255, 255, 0.04) inset",
+  backdropFilter: "blur(22px) saturate(115%)",
+  whiteSpace: "normal",
+  overflowWrap: "anywhere",
 } satisfies CSSProperties;
 
 const formStyle = {
@@ -351,14 +410,15 @@ const fieldStyle = {
 const textAreaStyle = {
   width: "100%",
   boxSizing: "border-box",
-  border: "1px solid var(--app-panel-border)",
+  border: "1px solid color-mix(in srgb, var(--app-panel-border-strong) 84%, transparent)",
   borderRadius: "var(--app-card-radius)",
   padding: 10,
-  background: "var(--app-panel-bg-muted)",
+  background: "color-mix(in srgb, var(--app-panel-bg-alt) 94%, var(--app-page-bg) 6%)",
   color: "var(--app-text-color)",
   font: "inherit",
   resize: "vertical",
   lineHeight: 1.45,
+  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.06)",
 } satisfies CSSProperties;
 
 const inputStyle = {
@@ -394,7 +454,7 @@ const secondaryButtonStyle = {
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-pill-radius)",
   padding: "8px 12px",
-  background: "var(--app-panel-bg-muted)",
+  background: "color-mix(in srgb, var(--app-panel-bg-alt) 90%, var(--app-page-bg) 10%)",
   color: "var(--app-text-color)",
   cursor: "pointer",
   fontWeight: 700,

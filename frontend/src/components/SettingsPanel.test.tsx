@@ -52,6 +52,29 @@ describe("SettingsPanel", () => {
     expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"guidedMode":false');
   });
 
+  it("keeps the quick theme toggle visible in compact launcher mode", () => {
+    render(
+      <SettingsProvider>
+        <SettingsPanel compactLauncher />
+      </SettingsProvider>,
+    );
+
+    const lightButton = screen.getByRole("button", { name: "Light" });
+    const darkButton = screen.getByRole("button", { name: "Dark" });
+    const systemButton = screen.getByRole("button", { name: "System" });
+
+    expect(lightButton).toBeInTheDocument();
+    expect(darkButton).toBeInTheDocument();
+    expect(systemButton).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Guided" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Advanced" })).not.toBeInTheDocument();
+
+    fireEvent.click(darkButton);
+
+    expect(darkButton).toHaveAttribute("aria-pressed", "true");
+    expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"themeMode":"dark"');
+  });
+
   it("toggles the settings dialog from the launcher button", () => {
     render(
       <SettingsProvider>

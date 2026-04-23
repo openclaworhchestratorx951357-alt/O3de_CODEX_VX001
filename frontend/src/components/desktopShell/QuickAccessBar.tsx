@@ -25,6 +25,7 @@ export default function QuickAccessBar({
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const shellRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const entries = useMemo(
@@ -61,6 +62,36 @@ export default function QuickAccessBar({
   useEffect(() => {
     setHighlightedIndex(0);
   }, [query]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function closeIfOutside(target: EventTarget | null) {
+      if (!shellRef.current || !target || shellRef.current.contains(target as Node)) {
+        return;
+      }
+
+      setOpen(false);
+      setHighlightedIndex(0);
+    }
+
+    function handleMouseDown(event: MouseEvent) {
+      closeIfOutside(event.target);
+    }
+
+    function handleFocusIn(event: FocusEvent) {
+      closeIfOutside(event.target);
+    }
+
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("focusin", handleFocusIn);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("focusin", handleFocusIn);
+    };
+  }, [open]);
 
   function selectEntry(entry: QuickAccessEntry) {
     onSelectWorkspace(entry.id);
@@ -102,7 +133,7 @@ export default function QuickAccessBar({
   }
 
   return (
-    <div style={quickAccessShellStyle}>
+    <div ref={shellRef} style={quickAccessShellStyle}>
       <label style={quickAccessLabelStyle}>
         <span style={quickAccessIconStyle} aria-hidden="true">{"\u2318"}</span>
         <input
@@ -114,7 +145,11 @@ export default function QuickAccessBar({
           aria-activedescendant={activeDescendantId}
           autoComplete="off"
           value={query}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            if (query.trim()) {
+              setOpen(true);
+            }
+          }}
           onChange={(event) => {
             setQuery(event.target.value);
             setOpen(true);

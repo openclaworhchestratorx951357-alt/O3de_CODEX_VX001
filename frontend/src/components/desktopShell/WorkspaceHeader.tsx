@@ -7,6 +7,7 @@ type WorkspaceHeaderProps = {
   workspaceTitle: string;
   workspaceSubtitle: string;
   activeWorkspaceId: string;
+  activeNavItemId?: string;
   activeNavSection?: DesktopShellNavSection;
   quickStats: readonly DesktopShellQuickStat[];
   onSelectWorkspace: (workspaceId: string) => void;
@@ -16,10 +17,13 @@ export default function WorkspaceHeader({
   workspaceTitle,
   workspaceSubtitle,
   activeWorkspaceId,
+  activeNavItemId,
   activeNavSection,
   quickStats,
   onSelectWorkspace,
 }: WorkspaceHeaderProps) {
+  const currentNavItemId = activeNavItemId ?? activeWorkspaceId;
+
   return (
     <div style={workspaceChromeStyle}>
       <div style={workspaceChromeMetaStyle}>
@@ -40,7 +44,7 @@ export default function WorkspaceHeader({
               {activeNavSection.label}
             </span>
             {activeNavSection.items.map((item) => {
-              const active = item.id === activeWorkspaceId;
+              const active = item.id === currentNavItemId;
               return (
                 <button
                   key={`peer-${item.id}`}
@@ -153,7 +157,9 @@ const workspacePeerNavPillStyle = {
   display: "inline-flex",
   alignItems: "center",
   gap: 7,
-  border: "1px solid color-mix(in srgb, var(--app-panel-border) 86%, transparent)",
+  borderWidth: 1,
+  borderStyle: "solid",
+  borderColor: "color-mix(in srgb, var(--app-panel-border) 86%, transparent)",
   borderRadius: "var(--app-pill-radius)",
   padding: "6px 11px",
   background: "linear-gradient(180deg, color-mix(in srgb, var(--app-panel-bg-alt) 92%, white 8%) 0%, var(--app-panel-bg-alt) 100%)",

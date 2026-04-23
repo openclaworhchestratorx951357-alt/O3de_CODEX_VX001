@@ -233,16 +233,20 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("OperatorOverviewPanel stub")).toBeInTheDocument();
   });
 
-  it("opens real app workspaces from the Home O3DE creation desk actions", async () => {
+  it("opens the Home O3DE creation desks from shell nav and reaches real app workspaces from their actions", async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole("tab", { name: /O3DE Game/i }));
+    fireEvent.click(getDesktopNavButton(/Create Game/i));
+
+    expect(await screen.findByText("O3DE game creation desk")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Create with natural language/i }));
 
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Home/i));
-    fireEvent.click(screen.getByRole("tab", { name: /O3DE Game/i }));
+    fireEvent.click(getDesktopNavButton(/Create Movie/i));
+    expect(await screen.findByText("O3DE cinematic creation desk")).toBeInTheDocument();
+    fireEvent.click(getDesktopNavButton(/Create Game/i));
     fireEvent.click(screen.getByRole("button", { name: /Check bridge\/runtime/i }));
 
     expect(await screen.findByText("SystemStatusPanel stub")).toBeInTheDocument();
