@@ -35,6 +35,7 @@ type WorkspaceNextStepsPanelProps = {
   entries: readonly WorkspaceNextStepEntry[];
   recentActions?: readonly WorkspaceNextStepRecentAction[];
   onClearRecentActions?: () => void;
+  onReplayRecentAction?: (entry: WorkspaceNextStepRecentAction) => void;
 };
 
 const toneStyles: Record<RecommendationTone, CSSProperties> = {
@@ -59,6 +60,7 @@ export default function WorkspaceNextStepsPanel({
   entries,
   recentActions = [],
   onClearRecentActions,
+  onReplayRecentAction,
 }: WorkspaceNextStepsPanelProps) {
   if (entries.length === 0) {
     return null;
@@ -126,6 +128,15 @@ export default function WorkspaceNextStepsPanel({
                 <span style={recentTimeStyle}>
                   from {entry.workspaceLabel} at {formatRecentActionTime(entry.usedAt)}
                 </span>
+                {onReplayRecentAction ? (
+                  <button
+                    type="button"
+                    onClick={() => onReplayRecentAction(entry)}
+                    style={recentJumpButtonStyle}
+                  >
+                    Jump again
+                  </button>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -293,4 +304,15 @@ const recentTimeStyle = {
   color: "var(--app-subtle-color)",
   fontSize: 12,
   textAlign: "right",
+} satisfies CSSProperties;
+
+const recentJumpButtonStyle = {
+  border: "1px solid var(--app-info-border)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "5px 10px",
+  background: "var(--app-info-bg)",
+  color: "var(--app-info-text)",
+  cursor: "pointer",
+  fontSize: 12,
+  fontWeight: 700,
 } satisfies CSSProperties;

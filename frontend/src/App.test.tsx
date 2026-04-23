@@ -170,6 +170,31 @@ describe("App desktop smoke", () => {
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
   });
 
+  it("replays a recent guided jump", async () => {
+    render(<App />);
+
+    fireEvent.click(getDesktopNavButton(/Prompt Studio/i));
+
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open dispatch" }));
+
+    expect(
+      await screen.findByText(
+        "Catalog, typed dispatch, and latest response envelope.",
+        {},
+        { timeout: 3000 },
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Use typed dispatch when needed")).toBeInTheDocument();
+    expect(screen.getByText("Action: Open dispatch")).toBeInTheDocument();
+    expect(screen.getByText("Opens: Operations > Dispatch window")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Jump again" }));
+
+    expect(screen.getByText("Catalog, typed dispatch, and latest response envelope.")).toBeInTheDocument();
+  });
+
   it("opens the runtime workspace from the home launchpad without leaving a blank shell", async () => {
     render(<App />);
 

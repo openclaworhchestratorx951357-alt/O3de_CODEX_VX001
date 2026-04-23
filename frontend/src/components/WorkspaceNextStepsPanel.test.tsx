@@ -39,6 +39,7 @@ describe("WorkspaceNextStepsPanel", () => {
 
   it("shows and clears recent guided jumps", () => {
     const onClearRecentActions = vi.fn();
+    const onReplayRecentAction = vi.fn();
 
     render(
       <WorkspaceNextStepsPanel
@@ -66,6 +67,7 @@ describe("WorkspaceNextStepsPanel", () => {
           },
         ]}
         onClearRecentActions={onClearRecentActions}
+        onReplayRecentAction={onReplayRecentAction}
       />,
     );
 
@@ -74,6 +76,12 @@ describe("WorkspaceNextStepsPanel", () => {
     expect(screen.getByText("Action: Open runtime")).toBeInTheDocument();
     expect(screen.getByText("Opens: Runtime > Overview window")).toBeInTheDocument();
     expect(screen.getByText(/from Builder at/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Jump again" }));
+    expect(onReplayRecentAction).toHaveBeenCalledWith(expect.objectContaining({
+      stepId: "runtime-health",
+      actionLabel: "Open runtime",
+    }));
 
     fireEvent.click(screen.getByRole("button", { name: "Clear" }));
 

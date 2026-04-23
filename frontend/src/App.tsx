@@ -4795,6 +4795,73 @@ export default function App() {
     setWorkspaceNextStepRecentActions([]);
   }
 
+  function replayWorkspaceNextStepAction(entry: WorkspaceNextStepRecentAction): void {
+    if (!runWorkspaceNextStepActionById(entry.stepId)) {
+      return;
+    }
+
+    const replayedAction: WorkspaceNextStepRecentAction = {
+      ...entry,
+      id: `${Date.now()}-${entry.stepId}`,
+      opensLabel: entry.opensLabel ?? getWorkspaceNextStepOpensLabel(entry.stepId, entry.actionLabel),
+      workspaceId: activeWorkspaceId,
+      workspaceLabel: activeWorkspaceMeta.title,
+      usedAt: new Date().toISOString(),
+    };
+
+    setWorkspaceNextStepRecentActions((previousActions) => [
+      replayedAction,
+      ...previousActions.filter((action) => action.stepId !== entry.stepId),
+    ].slice(0, MAX_WORKSPACE_NEXT_STEP_RECENT_ACTIONS));
+  }
+
+  function runWorkspaceNextStepActionById(stepId: string): boolean {
+    switch (stepId) {
+      case "approvals-waiting":
+        openOperationsApprovals();
+        return true;
+      case "runtime-health":
+      case "runtime-overview":
+        openRuntimeOverview();
+        return true;
+      case "warning-executions":
+      case "records-executions":
+        openRecordsExecutions();
+        return true;
+      case "unresolved-runs":
+      case "operations-to-records":
+      case "records-runs":
+        openRecordsRuns();
+        return true;
+      case "prompt-to-builder":
+        setActiveWorkspaceId("builder");
+        return true;
+      case "prompt-to-dispatch":
+      case "operations-catalog-empty":
+        openOperationsDispatch();
+        return true;
+      case "builder-to-prompt":
+      case "fallback-prompt":
+        setActiveWorkspaceId("prompt");
+        return true;
+      case "builder-to-runtime":
+      case "runtime-governance":
+        openRuntimeGovernance();
+        return true;
+      case "runtime-executors":
+        openRuntimeExecutors();
+        return true;
+      case "runtime-workspaces":
+        openRuntimeWorkspaces();
+        return true;
+      case "records-artifacts":
+        openRecordsArtifacts();
+        return true;
+      default:
+        return false;
+    }
+  }
+
   function buildWorkspaceNextStepEntries(): WorkspaceNextStepEntry[] {
     const runtimeHealthy = readiness?.persistence_ready === true
       && o3deBridgeStatus?.configured === true
@@ -6681,6 +6748,7 @@ export default function App() {
             entries={workspaceNextStepEntries}
             recentActions={workspaceNextStepRecentActions}
             onClearRecentActions={clearWorkspaceNextStepRecentActions}
+            onReplayRecentAction={replayWorkspaceNextStepAction}
           />
         ) : null}
 
