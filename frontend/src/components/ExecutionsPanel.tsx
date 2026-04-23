@@ -99,6 +99,7 @@ export default function ExecutionsPanel({
       emptyGuideExample={normalizedQuery
         ? "Try editor.component.add, real, warning, executor ID, or the first few characters of a run ID."
         : "A bridge-backed editor.component.add proof creates an execution record that should show real mode and bridge provenance."}
+      renderChildrenWhenEmpty
       actionHint="Local refresh updates persisted execution records without reloading the full overview lane."
       actions={onRefresh ? (
         <button

@@ -85,6 +85,7 @@ export default function ExecutorsPanel({
       emptyGuideExample={normalizedQuery
         ? "Try codex, local, worker, available, or a runner family name."
         : "A safe helper thread should have its own worktree lane, clear task ownership, and a recorded executor/workspace trail."}
+      renderChildrenWhenEmpty
       actionHint="Refresh updates persisted executor inventory and availability state without changing the current admitted adapter boundary."
       actions={onRefresh ? (
         <button

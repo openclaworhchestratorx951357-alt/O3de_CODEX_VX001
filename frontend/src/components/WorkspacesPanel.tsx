@@ -85,6 +85,7 @@ export default function WorkspacesPanel({
       emptyGuideExample={normalizedQuery
         ? "Try ready, active, gui-overhaul, editor-control, or part of the worktree path."
         : "A GUI-overhaul thread should work from its own worktree branch and avoid touching O3DE live bridge scripts unless that slice explicitly owns them."}
+      renderChildrenWhenEmpty
       actionHint="Refresh updates persisted workspace lifecycle records without changing admitted tool capability."
       actions={onRefresh ? (
         <button

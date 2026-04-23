@@ -97,6 +97,7 @@ export default function ArtifactsPanel({
       emptyGuideExample={normalizedQuery
         ? "Try request, response, proof, McpSandbox, or the first few characters of an execution ID."
         : "The repo-owned live editor authoring proof writes a JSON evidence bundle and linked backend artifacts."}
+      renderChildrenWhenEmpty
       actionHint="Local refresh updates persisted artifact records and preserves selected artifact detail when available."
       actions={onRefresh ? (
         <button

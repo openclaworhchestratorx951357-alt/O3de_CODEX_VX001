@@ -28,6 +28,7 @@ type SummarySectionProps = {
   emptyGuideSteps?: readonly string[];
   emptyGuideExampleTitle?: string;
   emptyGuideExample?: string | null;
+  renderChildrenWhenEmpty?: boolean;
 };
 
 export default function SummarySection({
@@ -52,6 +53,7 @@ export default function SummarySection({
   emptyGuideSteps = [],
   emptyGuideExampleTitle,
   emptyGuideExample = null,
+  renderChildrenWhenEmpty = false,
 }: SummarySectionProps) {
   const quickStartItemSet = new Set(
     quickStartItems.map((item) => item.trim()).filter(Boolean),
@@ -110,17 +112,20 @@ export default function SummarySection({
       {error ? <p style={{ color: "var(--app-danger-text)" }}>{error}</p> : null}
       {loading ? (
         <p>Loading {title.toLowerCase()}...</p>
-      ) : !hasItems ? (
-        <GuidedEmptyState
-          message={emptyMessage}
-          title={emptyGuideTitle}
-          description={emptyGuideDescription}
-          steps={emptyGuideSteps}
-          exampleTitle={emptyGuideExampleTitle}
-          exampleBody={emptyGuideExample}
-        />
       ) : (
-        children
+        <>
+          {!hasItems ? (
+            <GuidedEmptyState
+              message={emptyMessage}
+              title={emptyGuideTitle}
+              description={emptyGuideDescription}
+              steps={emptyGuideSteps}
+              exampleTitle={emptyGuideExampleTitle}
+              exampleBody={emptyGuideExample}
+            />
+          ) : null}
+          {hasItems || renderChildrenWhenEmpty ? children : null}
+        </>
       )}
     </section>
   );

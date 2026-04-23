@@ -165,6 +165,7 @@ export default function RunsPanel({
       emptyGuideExample={normalizedQuery
         ? "Try editor.entity.create, real-authoring, workspace ID, or the first few characters of a run ID."
         : "A successful editor.session.open or editor.level.open dispatch creates a run record with real-authoring evidence."}
+      renderChildrenWhenEmpty
       actionHint="Local refresh updates the persisted records lane and preserves selected detail context when possible."
       actions={onRefresh ? (
         <button
