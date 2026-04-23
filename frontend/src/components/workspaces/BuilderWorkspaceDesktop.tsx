@@ -62,6 +62,7 @@ import type {
   CodexControlWorker,
   CodexControlWorktree,
 } from "../../types/contracts";
+import ActionReviewCard from "./ActionReviewCard";
 import BuilderWorkspaceView from "./BuilderWorkspaceView";
 
 type LaneDraft = {
@@ -2987,33 +2988,25 @@ export default function BuilderWorkspaceDesktop() {
             Stop the selected worker's active managed terminal as part of the override
           </label>
 
-          <article aria-label="Task supersede review" style={listCardStyle}>
-            <div style={rowBetweenStyle}>
-              <div style={stackStyle}>
-                <span style={{ ...pillStyle, ...toneStyle(selectedWorkerTask ? "warning" : "neutral"), width: "fit-content" }}>
-                  Override review
-                </span>
-                <strong>Review before superseding the current task</strong>
-                <p style={mutedParagraphStyle}>
-                  No task is superseded yet. This summarizes the replacement task, stop behavior, and notification target
-                  before the urgent action runs.
-                </p>
-              </div>
-              <span style={{ ...pillStyle, ...toneStyle(selectedWorkerTask ? "warning" : "neutral") }}>
-                {selectedWorkerTask ? "manual trigger" : "select active task"}
-              </span>
-            </div>
-            <div style={metaStackStyle}>
-              <span>Worker: {selectedWorkerId || "none selected"}</span>
-              <span>Current task: {selectedWorkerTask?.task_id ?? "none"}</span>
-              <span>Replacement title: {taskSupersedeDraft.replacementTitle.trim() || "not set"}</span>
-              <span>Replacement priority: {taskSupersedeDraft.replacementPriority}</span>
-              <span>Replacement scopes: {taskSupersedeScopeReview}</span>
-              <span>Replacement branch prefix: {taskSupersedeBranchReview}</span>
-              <span>Stop active terminal: {taskSupersedeStopReview}</span>
-              <span>Reason: {taskSupersedeReasonReview}</span>
-            </div>
-          </article>
+          <ActionReviewCard
+            ariaLabel="Task supersede review"
+            eyebrow="Override review"
+            eyebrowTone={selectedWorkerTask ? "warning" : "neutral"}
+            title="Review before superseding the current task"
+            description="No task is superseded yet. This summarizes the replacement task, stop behavior, and notification target before the urgent action runs."
+            statusLabel={selectedWorkerTask ? "manual trigger" : "select active task"}
+            statusTone={selectedWorkerTask ? "warning" : "neutral"}
+            details={[
+              { label: "Worker", value: selectedWorkerId || "none selected" },
+              { label: "Current task", value: selectedWorkerTask?.task_id ?? "none" },
+              { label: "Replacement title", value: taskSupersedeDraft.replacementTitle.trim() || "not set" },
+              { label: "Replacement priority", value: taskSupersedeDraft.replacementPriority },
+              { label: "Replacement scopes", value: taskSupersedeScopeReview },
+              { label: "Replacement branch prefix", value: taskSupersedeBranchReview },
+              { label: "Stop active terminal", value: taskSupersedeStopReview },
+              { label: "Reason", value: taskSupersedeReasonReview },
+            ]}
+          />
 
           <div style={actionRowStyle}>
             <button
@@ -3598,15 +3591,13 @@ export default function BuilderWorkspaceDesktop() {
       </form>
 
       {loadedWorkerDraftReview ? (
-        <article aria-label="Loaded worker draft review" style={listCardStyle}>
-          <div style={rowBetweenStyle}>
-            <div style={stackStyle}>
-              <span style={{ ...pillStyle, ...toneStyle("info"), width: "fit-content" }}>
-                Loaded worker draft review
-              </span>
-              <strong>{loadedWorkerDraftReview.label}</strong>
-              <p style={mutedParagraphStyle}>{loadedWorkerDraftReview.safeMessage}</p>
-            </div>
+        <ActionReviewCard
+          ariaLabel="Loaded worker draft review"
+          eyebrow="Loaded worker draft review"
+          eyebrowTone="info"
+          title={loadedWorkerDraftReview.label}
+          description={loadedWorkerDraftReview.safeMessage}
+          action={(
             <button
               type="button"
               style={secondaryButtonStyle}
@@ -3614,22 +3605,20 @@ export default function BuilderWorkspaceDesktop() {
             >
               Clear worker review
             </button>
-          </div>
-          <div style={metaStackStyle}>
-            <span>
-              <strong>Changed fields:</strong> {loadedWorkerDraftReview.changedFields}
-            </span>
-            <span>Worker: {loadedWorkerDraftReview.workerId}</span>
-            <span>Status: {loadedWorkerDraftReview.status}</span>
-            <span>Branch: {loadedWorkerDraftReview.branchName}</span>
-            <span>Worktree: {loadedWorkerDraftReview.worktreePath}</span>
-            <span>Base branch: {loadedWorkerDraftReview.baseBranch}</span>
-            {loadedWorkerDraftReview.currentTaskId ? (
-              <span>Current task: {loadedWorkerDraftReview.currentTaskId}</span>
-            ) : null}
-            <span>Summary: {loadedWorkerDraftReview.summary}</span>
-          </div>
-        </article>
+          )}
+          details={[
+            { label: "Changed fields", value: loadedWorkerDraftReview.changedFields },
+            { label: "Worker", value: loadedWorkerDraftReview.workerId },
+            { label: "Status", value: loadedWorkerDraftReview.status },
+            { label: "Branch", value: loadedWorkerDraftReview.branchName },
+            { label: "Worktree", value: loadedWorkerDraftReview.worktreePath },
+            { label: "Base branch", value: loadedWorkerDraftReview.baseBranch },
+            ...(loadedWorkerDraftReview.currentTaskId
+              ? [{ label: "Current task", value: loadedWorkerDraftReview.currentTaskId }]
+              : []),
+            { label: "Summary", value: loadedWorkerDraftReview.summary },
+          ]}
+        />
       ) : null}
 
       {workerMessage ? (
@@ -3753,59 +3742,44 @@ export default function BuilderWorkspaceDesktop() {
           </label>
         </div>
 
-        <article aria-label="Managed terminal launch review" style={listCardStyle}>
-          <div style={rowBetweenStyle}>
-            <div style={stackStyle}>
-              <span style={{ ...pillStyle, ...toneStyle(selectedWorkerId ? "warning" : "neutral"), width: "fit-content" }}>
-                Launch review
-              </span>
-              <strong>Review before opening a real terminal</strong>
-              <p style={mutedParagraphStyle}>
-                Nothing has launched yet. On Windows, the next button opens a real terminal window tied to this
-                worker lane and records the session in mission control.
-              </p>
-            </div>
-            <span style={{ ...pillStyle, ...toneStyle(selectedWorkerId ? "info" : "warning") }}>
-              {selectedWorkerId ? "ready to review" : "select worker first"}
-            </span>
-          </div>
-          <div style={metaStackStyle}>
-            <span>Worker: {selectedWorkerId || "none selected"}</span>
-            <span>Label: {terminalLaunchLabel}</span>
-            <span>Linked task: {terminalLaunchTaskId}</span>
-            <span>CWD: {terminalLaunchCwd}</span>
-            <span>Command JSON: <code>{terminalLaunchCommandJson}</code></span>
-          </div>
-        </article>
+        <ActionReviewCard
+          ariaLabel="Managed terminal launch review"
+          eyebrow="Launch review"
+          eyebrowTone={selectedWorkerId ? "warning" : "neutral"}
+          title="Review before opening a real terminal"
+          description="Nothing has launched yet. On Windows, the next button opens a real terminal window tied to this worker lane and records the session in mission control."
+          statusLabel={selectedWorkerId ? "ready to review" : "select worker first"}
+          statusTone={selectedWorkerId ? "info" : "warning"}
+          details={[
+            { label: "Worker", value: selectedWorkerId || "none selected" },
+            { label: "Label", value: terminalLaunchLabel },
+            { label: "Linked task", value: terminalLaunchTaskId },
+            { label: "CWD", value: terminalLaunchCwd },
+            { label: "Command JSON", value: <code>{terminalLaunchCommandJson}</code> },
+          ]}
+        />
 
-        <article aria-label="Urgent interrupt review" style={listCardStyle}>
-          <div style={rowBetweenStyle}>
-            <div style={stackStyle}>
-              <span style={{ ...pillStyle, ...toneStyle(selectedActiveTerminal ? "warning" : "info"), width: "fit-content" }}>
-                Urgent review
-              </span>
-              <strong>Review before interrupting this worker</strong>
-              <p style={mutedParagraphStyle}>
-                Nothing is interrupted yet. This action is for urgent overrides when a worker should stop,
-                refresh, and avoid continuing stale work.
-              </p>
-            </div>
-            <span style={{ ...pillStyle, ...toneStyle(selectedWorkerId ? "warning" : "neutral") }}>
-              {selectedWorkerId ? "manual trigger" : "select worker first"}
-            </span>
-          </div>
-          <div style={metaStackStyle}>
-            <span>Worker: {urgentInterruptWorkerReview}</span>
-            <span>Current task: {urgentInterruptTaskReview}</span>
-            <span>Active terminal: {urgentInterruptTerminalReview}</span>
-            <span>Stop behavior: {urgentInterruptStopReview}</span>
-            <span>
-              Notification: {selectedWorkerId
+        <ActionReviewCard
+          ariaLabel="Urgent interrupt review"
+          eyebrow="Urgent review"
+          eyebrowTone={selectedActiveTerminal ? "warning" : "info"}
+          title="Review before interrupting this worker"
+          description="Nothing is interrupted yet. This action is for urgent overrides when a worker should stop, refresh, and avoid continuing stale work."
+          statusLabel={selectedWorkerId ? "manual trigger" : "select worker first"}
+          statusTone={selectedWorkerId ? "warning" : "neutral"}
+          details={[
+            { label: "Worker", value: urgentInterruptWorkerReview },
+            { label: "Current task", value: urgentInterruptTaskReview },
+            { label: "Active terminal", value: urgentInterruptTerminalReview },
+            { label: "Stop behavior", value: urgentInterruptStopReview },
+            {
+              label: "Notification",
+              value: selectedWorkerId
                 ? `send interrupt request to ${selectedWorkerId}`
-                : "select a worker before sending a notification"}
-            </span>
-          </div>
-        </article>
+                : "select a worker before sending a notification",
+            },
+          ]}
+        />
 
         <div style={actionRowStyle}>
           <button type="submit" style={buttonStyle} disabled={!selectedWorkerId || terminalBusyLabel !== null}>
