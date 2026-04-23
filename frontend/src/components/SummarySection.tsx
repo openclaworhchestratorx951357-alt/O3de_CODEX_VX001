@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import GuidedEmptyState from "./GuidedEmptyState";
 import PanelActionStrip from "./PanelActionStrip";
 import PanelGuideDetails from "./PanelGuideDetails";
 import {
@@ -22,6 +23,11 @@ type SummarySectionProps = {
   quickStartTitle?: string;
   quickStartDescription?: string | null;
   quickStartItems?: readonly string[];
+  emptyGuideTitle?: string;
+  emptyGuideDescription?: string | null;
+  emptyGuideSteps?: readonly string[];
+  emptyGuideExampleTitle?: string;
+  emptyGuideExample?: string | null;
 };
 
 export default function SummarySection({
@@ -41,6 +47,11 @@ export default function SummarySection({
   quickStartTitle,
   quickStartDescription,
   quickStartItems = [],
+  emptyGuideTitle,
+  emptyGuideDescription = null,
+  emptyGuideSteps = [],
+  emptyGuideExampleTitle,
+  emptyGuideExample = null,
 }: SummarySectionProps) {
   const quickStartItemSet = new Set(
     quickStartItems.map((item) => item.trim()).filter(Boolean),
@@ -100,7 +111,14 @@ export default function SummarySection({
       {loading ? (
         <p>Loading {title.toLowerCase()}...</p>
       ) : !hasItems ? (
-        <p>{emptyMessage}</p>
+        <GuidedEmptyState
+          message={emptyMessage}
+          title={emptyGuideTitle}
+          description={emptyGuideDescription}
+          steps={emptyGuideSteps}
+          exampleTitle={emptyGuideExampleTitle}
+          exampleBody={emptyGuideExample}
+        />
       ) : (
         children
       )}

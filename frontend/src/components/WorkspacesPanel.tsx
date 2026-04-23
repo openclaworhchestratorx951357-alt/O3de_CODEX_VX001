@@ -68,6 +68,23 @@ export default function WorkspacesPanel({
       error={error}
       emptyMessage={normalizedQuery ? "No workspaces match the current search." : "No workspaces are recorded yet."}
       hasItems={filteredItems.length > 0}
+      emptyGuideTitle={normalizedQuery ? "Widen the workspace search" : "Create a safe workspace lane"}
+      emptyGuideDescription={normalizedQuery
+        ? "The current search hides all workspace records. Workspace inventory is easiest to find by root path, state, runner family, or owner ID."
+        : "Workspace records show isolation and ownership. They help threads avoid colliding while the app stays on the same protected branch baseline."}
+      emptyGuideSteps={normalizedQuery ? [
+        "Clear the search or try the workspace state, runner family, owner executor ID, or part of the path.",
+        "Refresh workspaces if a lane was just created or recycled.",
+        "Open detail when you need cleanup policy, retention, or linked run ownership.",
+      ] : [
+        "Use Builder to create a dedicated worktree lane before assigning parallel work.",
+        "Keep each lane focused on a narrow file or capability scope.",
+        "Return here to confirm root path, owner, state, and cleanup policy.",
+      ]}
+      emptyGuideExampleTitle={normalizedQuery ? "Search examples" : "Safe workspace example"}
+      emptyGuideExample={normalizedQuery
+        ? "Try ready, active, gui-overhaul, editor-control, or part of the worktree path."
+        : "A GUI-overhaul thread should work from its own worktree branch and avoid touching O3DE live bridge scripts unless that slice explicitly owns them."}
       actionHint="Refresh updates persisted workspace lifecycle records without changing admitted tool capability."
       actions={onRefresh ? (
         <button

@@ -28,6 +28,15 @@ export default function CatalogPanel({ agents }: CatalogPanelProps) {
       error={null}
       emptyMessage="No live tools catalog has been returned yet."
       hasItems={agents.length > 0}
+      emptyGuideTitle="Load the live catalog first"
+      emptyGuideDescription="The catalog is the app's source of truth for which tools exist, which ones are real, and which ones are still simulated."
+      emptyGuideSteps={[
+        "Confirm the local backend is running on http://127.0.0.1:8000.",
+        "Refresh the app after the backend starts so the catalog can hydrate.",
+        "Only submit typed dispatch once the relevant tool family appears here.",
+      ]}
+      emptyGuideExampleTitle="Safe first check"
+      emptyGuideExample="Look for editor-control before trying editor.session.open, editor.level.open, entity create, or component work."
       marginTop={0}
       quickStartTitle="Dispatch first steps"
       quickStartItems={catalogPanelGuide.checklist}

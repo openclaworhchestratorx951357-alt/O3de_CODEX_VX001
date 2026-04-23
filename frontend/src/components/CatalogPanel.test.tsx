@@ -5,6 +5,15 @@ import { describe, expect, it } from "vitest";
 import CatalogPanel from "./CatalogPanel";
 
 describe("CatalogPanel", () => {
+  it("guides beginners when the live catalog has not loaded yet", () => {
+    render(<CatalogPanel agents={[]} />);
+
+    expect(screen.getByText("No live tools catalog has been returned yet.")).toBeInTheDocument();
+    expect(screen.getByText("Load the live catalog first")).toBeInTheDocument();
+    expect(screen.getByText(/Confirm the local backend is running on http:\/\/127\.0\.0\.1:8000/i)).toBeInTheDocument();
+    expect(screen.getByText("Safe first check")).toBeInTheDocument();
+  });
+
   it("renders quick-start guidance and keeps tool details behind disclosures", async () => {
     render(
       <CatalogPanel
