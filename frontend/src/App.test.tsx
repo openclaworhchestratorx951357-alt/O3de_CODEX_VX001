@@ -195,6 +195,30 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("Catalog, typed dispatch, and latest response envelope.")).toBeInTheDocument();
   });
 
+  it("hides guided next steps for the current browser session and restores them", async () => {
+    const { unmount } = render(<App />);
+
+    fireEvent.click(getDesktopNavButton(/Prompt Studio/i));
+
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide for now" }));
+
+    expect(screen.getByText("Guided next steps hidden for now")).toBeInTheDocument();
+    expect(screen.queryByText("What should I do next?")).not.toBeInTheDocument();
+
+    unmount();
+    render(<App />);
+
+    fireEvent.click(getDesktopNavButton(/Prompt Studio/i));
+
+    expect(await screen.findByText("Guided next steps hidden for now")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show guided next steps" }));
+
+    expect(screen.getByText("What should I do next?")).toBeInTheDocument();
+  });
+
   it("opens the runtime workspace from the home launchpad without leaving a blank shell", async () => {
     render(<App />);
 

@@ -393,6 +393,7 @@ const ACTIVE_OPERATIONS_SURFACE_SESSION_KEY = "o3de-control-app-active-operation
 const ACTIVE_RUNTIME_SURFACE_SESSION_KEY = "o3de-control-app-active-runtime-surface";
 const ACTIVE_RECORDS_SURFACE_SESSION_KEY = "o3de-control-app-active-records-surface";
 const WORKSPACE_NEXT_STEP_RECENT_ACTIONS_SESSION_KEY = "o3de-control-app-workspace-next-step-recent-actions";
+const WORKSPACE_NEXT_STEPS_COLLAPSED_SESSION_KEY = "o3de-control-app-workspace-next-steps-collapsed";
 const MAX_WORKSPACE_NEXT_STEP_RECENT_ACTIONS = 4;
 
 function isWorkspaceNextStepRecentAction(value: unknown): value is WorkspaceNextStepRecentAction {
@@ -429,6 +430,14 @@ function loadWorkspaceNextStepRecentActions(): WorkspaceNextStepRecentAction[] {
   } catch {
     return [];
   }
+}
+
+function loadWorkspaceNextStepsCollapsed(): boolean {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return window.sessionStorage.getItem(WORKSPACE_NEXT_STEPS_COLLAPSED_SESSION_KEY) === "true";
 }
 
 export default function App() {
@@ -516,6 +525,8 @@ export default function App() {
     useState<RecordsSurfaceId>("runs");
   const [workspaceNextStepRecentActions, setWorkspaceNextStepRecentActions] =
     useState<WorkspaceNextStepRecentAction[]>(() => loadWorkspaceNextStepRecentActions());
+  const [workspaceNextStepsCollapsed, setWorkspaceNextStepsCollapsed] =
+    useState(() => loadWorkspaceNextStepsCollapsed());
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
   const [adaptersError, setAdaptersError] = useState<string | null>(null);
@@ -4795,6 +4806,20 @@ export default function App() {
     setWorkspaceNextStepRecentActions([]);
   }
 
+  function collapseWorkspaceNextSteps(): void {
+    setWorkspaceNextStepsCollapsed(true);
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(WORKSPACE_NEXT_STEPS_COLLAPSED_SESSION_KEY, "true");
+    }
+  }
+
+  function expandWorkspaceNextSteps(): void {
+    setWorkspaceNextStepsCollapsed(false);
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(WORKSPACE_NEXT_STEPS_COLLAPSED_SESSION_KEY);
+    }
+  }
+
   function replayWorkspaceNextStepAction(entry: WorkspaceNextStepRecentAction): void {
     if (!runWorkspaceNextStepActionById(entry.stepId)) {
       return;
@@ -6747,7 +6772,10 @@ export default function App() {
           <WorkspaceNextStepsPanel
             entries={workspaceNextStepEntries}
             recentActions={workspaceNextStepRecentActions}
+            collapsed={workspaceNextStepsCollapsed}
             onClearRecentActions={clearWorkspaceNextStepRecentActions}
+            onCollapse={collapseWorkspaceNextSteps}
+            onExpand={expandWorkspaceNextSteps}
             onReplayRecentAction={replayWorkspaceNextStepAction}
           />
         ) : null}

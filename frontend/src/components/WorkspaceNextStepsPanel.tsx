@@ -34,7 +34,10 @@ export type WorkspaceNextStepRecentAction = {
 type WorkspaceNextStepsPanelProps = {
   entries: readonly WorkspaceNextStepEntry[];
   recentActions?: readonly WorkspaceNextStepRecentAction[];
+  collapsed?: boolean;
   onClearRecentActions?: () => void;
+  onCollapse?: () => void;
+  onExpand?: () => void;
   onReplayRecentAction?: (entry: WorkspaceNextStepRecentAction) => void;
 };
 
@@ -59,17 +62,47 @@ const toneStyles: Record<RecommendationTone, CSSProperties> = {
 export default function WorkspaceNextStepsPanel({
   entries,
   recentActions = [],
+  collapsed = false,
   onClearRecentActions,
+  onCollapse,
+  onExpand,
   onReplayRecentAction,
 }: WorkspaceNextStepsPanelProps) {
   if (entries.length === 0) {
     return null;
   }
 
+  if (collapsed) {
+    return (
+      <section aria-label="Workspace next steps" style={collapsedPanelStyle}>
+        <div style={headerStyle}>
+          <span style={eyebrowStyle}>Guided next step</span>
+          <strong>Guided next steps hidden for now</strong>
+          <p style={descriptionStyle}>
+            The helper is hidden only for this browser session. Guided mode and all workspace controls
+            remain available.
+          </p>
+        </div>
+        {onExpand ? (
+          <button type="button" onClick={onExpand} style={summaryActionButtonStyle}>
+            Show guided next steps
+          </button>
+        ) : null}
+      </section>
+    );
+  }
+
   return (
     <section aria-label="Workspace next steps" style={panelStyle}>
       <div style={headerStyle}>
-        <span style={eyebrowStyle}>Guided next step</span>
+        <div style={headerRowStyle}>
+          <span style={eyebrowStyle}>Guided next step</span>
+          {onCollapse ? (
+            <button type="button" onClick={onCollapse} style={hideButtonStyle}>
+              Hide for now
+            </button>
+          ) : null}
+        </div>
         <strong>What should I do next?</strong>
         <p style={descriptionStyle}>
           These buttons use current app state to point you toward the safest next panel without hiding
@@ -160,9 +193,27 @@ const panelStyle = {
   background: "linear-gradient(135deg, var(--app-panel-bg-muted) 0%, var(--app-accent-soft) 100%)",
 } satisfies CSSProperties;
 
+const collapsedPanelStyle = {
+  ...summarySectionStyle,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  flexWrap: "wrap",
+  background: "var(--app-panel-bg-muted)",
+} satisfies CSSProperties;
+
 const headerStyle = {
   display: "grid",
   gap: 4,
+} satisfies CSSProperties;
+
+const headerRowStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 10,
+  flexWrap: "wrap",
 } satisfies CSSProperties;
 
 const eyebrowStyle = {
@@ -177,6 +228,16 @@ const descriptionStyle = {
   ...summaryMutedTextStyle,
   margin: 0,
   lineHeight: 1.45,
+} satisfies CSSProperties;
+
+const hideButtonStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "5px 10px",
+  background: "var(--app-panel-bg)",
+  color: "var(--app-muted-color)",
+  cursor: "pointer",
+  fontSize: 12,
 } satisfies CSSProperties;
 
 const entryGridStyle = {
