@@ -32,6 +32,8 @@ describe("DesktopTabStrip", () => {
     expect(
       screen.getByRole("button", { name: /overview/i }),
     ).toHaveAttribute("title", "Start here for heartbeat freshness and runtime status.");
+    expect(screen.getByRole("button", { name: /overview/i })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /governance/i })).toHaveAttribute("aria-pressed", "false");
 
     fireEvent.click(screen.getByRole("button", { name: /governance/i }));
     expect(onSelectItem).toHaveBeenCalledWith("governance");
