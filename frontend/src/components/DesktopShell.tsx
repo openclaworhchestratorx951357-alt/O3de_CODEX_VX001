@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 
 import { useThemeTokens } from "../lib/settings/hooks";
 import AgentCallSurface from "./desktopShell/AgentCallSurface";
+import QuickAccessBar from "./desktopShell/QuickAccessBar";
 import { toneStyles } from "./desktopShell/sharedStyles";
 import type { DesktopShellProps } from "./desktopShell/types";
 import WorkspaceHeader from "./desktopShell/WorkspaceHeader";
@@ -58,6 +59,11 @@ export default function DesktopShell({
             <span style={taskbarSubtitleStyle}>{appSubtitle}</span>
           </div>
         </div>
+        <QuickAccessBar
+          activeWorkspaceId={activeWorkspaceId}
+          navSections={navSections}
+          onSelectWorkspace={onSelectWorkspace}
+        />
         <div style={taskbarMetaGroupStyle}>
           <AgentCallSurface agentCallItems={agentCallItems} />
           {utilityActions}
@@ -148,8 +154,8 @@ const wallpaperGlowBottomStyle = {
 const taskbarStyle = {
   position: "relative",
   zIndex: 2,
-  display: "flex",
-  justifyContent: "space-between",
+  display: "grid",
+  gridTemplateColumns: "minmax(220px, 1fr) minmax(260px, 620px) minmax(220px, 1fr)",
   alignItems: "center",
   gap: 16,
   padding: "14px 20px",
@@ -163,6 +169,7 @@ const taskbarBrandGroupStyle = {
   alignItems: "center",
   gap: 14,
   minWidth: 0,
+  justifySelf: "start",
 } satisfies CSSProperties;
 
 const startBadgeStyle = {
@@ -194,6 +201,8 @@ const taskbarMetaGroupStyle = {
   justifyContent: "flex-end",
   flexWrap: "wrap",
   gap: 10,
+  minWidth: 0,
+  justifySelf: "end",
 } satisfies CSSProperties;
 
 const taskbarUtilityBadgeStyle = {

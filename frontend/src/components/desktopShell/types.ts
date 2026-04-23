@@ -9,12 +9,14 @@ export type DesktopShellNavItem = {
   badge?: string | null;
   tone?: DesktopShellTone;
   helpTooltip?: string | null;
+  keywords?: readonly string[];
 };
 
 export type DesktopShellNavSection = {
   id: string;
   label: string;
   detail: string;
+  keywords?: readonly string[];
   items: readonly DesktopShellNavItem[];
 };
 

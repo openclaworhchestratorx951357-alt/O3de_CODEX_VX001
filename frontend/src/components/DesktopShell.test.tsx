@@ -109,6 +109,21 @@ describe("DesktopShell", () => {
     expect(shellRoot).toHaveStyle("height: 100vh");
     expect(shellRoot).toHaveStyle("overflow: hidden");
 
+    const quickAccessInput = screen.getByRole("combobox", { name: "Quick access app explorer" });
+    fireEvent.focus(quickAccessInput);
+    fireEvent.change(quickAccessInput, { target: { value: "record" } });
+    expect(screen.getByRole("listbox", { name: "Quick access results" })).toBeInTheDocument();
+    expect(screen.getByText("Type a workspace, tool, or help topic. Use arrows and Enter to jump.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("option", { name: /records/i }));
+    expect(onSelectWorkspace).toHaveBeenCalledWith("records");
+    onSelectWorkspace.mockClear();
+
+    fireEvent.focus(quickAccessInput);
+    fireEvent.change(quickAccessInput, { target: { value: "home" } });
+    fireEvent.keyDown(quickAccessInput, { key: "Enter" });
+    expect(onSelectWorkspace).toHaveBeenCalledWith("home");
+    onSelectWorkspace.mockClear();
+
     fireEvent.click(screen.getByRole("button", { name: /records/i }));
     expect(onSelectWorkspace).toHaveBeenCalledWith("records");
 
