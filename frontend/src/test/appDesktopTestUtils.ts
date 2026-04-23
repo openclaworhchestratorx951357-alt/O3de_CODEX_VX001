@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { expect, type Mock } from "vitest";
 
 export function createPendingPromise<T>() {
@@ -16,7 +16,21 @@ export function getDesktopNavButton(name: RegExp): HTMLButtonElement {
 
   expect(navRail).not.toBeNull();
 
-  return within(navRail as HTMLElement).getByRole("button", { name }) as HTMLButtonElement;
+  const navScope = within(navRail as HTMLElement);
+  const visibleButton = navScope.queryByRole("button", { name }) as HTMLButtonElement | null;
+  if (visibleButton) {
+    return visibleButton;
+  }
+
+  navScope.getAllByRole("button")
+    .filter((button) => button.hasAttribute("aria-expanded"))
+    .forEach((button) => {
+      if (button.getAttribute("aria-expanded") === "false") {
+        fireEvent.click(button);
+      }
+    });
+
+  return navScope.getByRole("button", { name }) as HTMLButtonElement;
 }
 
 export function getLaunchpadButton(detail: string): HTMLButtonElement {

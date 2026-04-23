@@ -495,7 +495,7 @@ describe("App desktop hydration", () => {
 
     fireEvent.click(executionsSurfaceButton);
 
-    expect(screen.getByText("Records Explorer")).toBeInTheDocument();
+    expect(screen.getAllByText("Records Explorer").length).toBeGreaterThan(0);
     expect(await screen.findByText("ExecutionsPanel stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
@@ -535,7 +535,7 @@ describe("App desktop hydration", () => {
 
     fireEvent.click(artifactsSurfaceButton);
 
-    expect(screen.getByText("Records Explorer")).toBeInTheDocument();
+    expect(screen.getAllByText("Records Explorer").length).toBeGreaterThan(0);
     expect(await screen.findByText("ArtifactsPanel stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),

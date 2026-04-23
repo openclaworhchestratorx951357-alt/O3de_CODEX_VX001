@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 
 import { useThemeTokens } from "../lib/settings/hooks";
 
@@ -27,6 +27,13 @@ export type DesktopShellQuickStat = {
   helpTooltip?: string | null;
 };
 
+export type DesktopShellAgentCallItem = {
+  id: string;
+  label: string;
+  detail: string;
+  status?: string | null;
+};
+
 type DesktopShellProps = {
   appTitle: string;
   appSubtitle: string;
@@ -38,6 +45,7 @@ type DesktopShellProps = {
   utilityLabel?: string | null;
   utilityDetail?: string | null;
   utilityActions?: ReactNode;
+  agentCallItems?: readonly DesktopShellAgentCallItem[];
   onSelectWorkspace: (workspaceId: string) => void;
   children: ReactNode;
 };
@@ -76,19 +84,44 @@ export default function DesktopShell({
   utilityLabel,
   utilityDetail,
   utilityActions,
+  agentCallItems = [],
   onSelectWorkspace,
   children,
 }: DesktopShellProps) {
   const themeTokens = useThemeTokens();
+  const [agentCallOpen, setAgentCallOpen] = useState(false);
+  const [agentChatOpen, setAgentChatOpen] = useState(false);
+  const [agentChatDraft, setAgentChatDraft] = useState("");
   const activeNavItem = navSections
     .flatMap((section) => section.items)
     .find((item) => item.id === activeWorkspaceId);
+  const activeNavSection = navSections.find((section) => (
+    section.items.some((item) => item.id === activeWorkspaceId)
+  ));
+  const [expandedSectionIds, setExpandedSectionIds] = useState<readonly string[]>(["start"]);
+  const expandedSectionIdSet = new Set([
+    ...expandedSectionIds,
+    activeNavSection?.id ?? "start",
+  ]);
   const timestampLabel = new Date().toLocaleString([], {
     hour: "numeric",
     minute: "2-digit",
     month: "short",
     day: "numeric",
   });
+  const visibleAgentCallItems = agentCallItems.length > 0
+    ? agentCallItems
+    : fallbackAgentCallItems;
+
+  function toggleNavSection(sectionId: string) {
+    setExpandedSectionIds((currentSectionIds) => {
+      if (currentSectionIds.includes(sectionId)) {
+        return currentSectionIds.filter((currentSectionId) => currentSectionId !== sectionId);
+      }
+
+      return [...currentSectionIds, sectionId];
+    });
+  }
 
   return (
     <div
@@ -108,6 +141,55 @@ export default function DesktopShell({
           </div>
         </div>
         <div style={taskbarMetaGroupStyle}>
+          <div style={agentCallAnchorStyle}>
+            <button
+              type="button"
+              aria-label="Call an agent"
+              aria-expanded={agentCallOpen}
+              onClick={() => setAgentCallOpen((open) => !open)}
+              style={agentCallButtonStyle}
+              title="Call an active agent, resume a thread, or start a new chat."
+            >
+              <span aria-hidden="true">☎</span>
+            </button>
+            {agentCallOpen ? (
+              <div style={agentCallPopoverStyle} role="dialog" aria-label="Agent call menu">
+                <div style={agentCallPopoverHeaderStyle}>
+                  <strong>Call an agent</strong>
+                  <span>Pick an active helper or start a new chat dock.</span>
+                </div>
+                <div style={agentCallListStyle}>
+                  {visibleAgentCallItems.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setAgentChatOpen(true);
+                        setAgentCallOpen(false);
+                      }}
+                      style={agentCallListButtonStyle}
+                    >
+                      <strong>{item.label}</strong>
+                      <span>{item.detail}</span>
+                      {item.status ? (
+                        <small>{item.status}</small>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAgentChatOpen(true);
+                    setAgentCallOpen(false);
+                  }}
+                  style={agentCallNewChatButtonStyle}
+                >
+                  Start new chat
+                </button>
+              </div>
+            ) : null}
+          </div>
           {utilityActions}
           {utilityLabel ? (
             <span
@@ -149,72 +231,64 @@ export default function DesktopShell({
           <div style={navScrollableRegionStyle}>
             {navSections.map((section) => {
               const sectionActive = section.items.some((item) => item.id === activeWorkspaceId);
+              const sectionExpanded = expandedSectionIdSet.has(section.id);
               return (
-                <details
+                <section
                   key={section.id}
-                  open={sectionActive || section.id === "start"}
                   style={navGroupStyle}
                 >
-                  <summary style={navGroupSummaryStyle} title={section.detail}>
+                  <button
+                    type="button"
+                    aria-expanded={sectionExpanded}
+                    onClick={() => toggleNavSection(section.id)}
+                    style={navGroupSummaryStyle}
+                    title={section.detail}
+                  >
                     <span style={navGroupSummaryLabelStyle}>{section.label}</span>
-                    {sectionActive ? (
-                      <span style={{ ...navBadgeStyle, ...toneStyles.info }}>
-                        open
+                    <span style={navGroupMetaStyle}>
+                      {sectionActive ? (
+                        <span style={{ ...navBadgeStyle, ...toneStyles.info }}>
+                          open
+                        </span>
+                      ) : null}
+                      <span aria-hidden="true" style={navGroupChevronStyle}>
+                        {sectionExpanded ? "v" : ">"}
                       </span>
-                    ) : null}
-                  </summary>
-                  <div style={navListStyle}>
-                    {section.items.map((item) => {
-                      const active = item.id === activeWorkspaceId;
-                      const tone = toneStyles[item.tone ?? "neutral"];
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => onSelectWorkspace(item.id)}
-                          title={item.helpTooltip ?? undefined}
-                          style={{
-                            ...navButtonStyle,
-                            ...(active ? activeNavButtonStyle : null),
-                          }}
-                        >
-                          <div style={navButtonHeaderStyle}>
-                            <strong>{item.label}</strong>
-                            {item.badge ? (
-                              <span style={{ ...navBadgeStyle, ...tone }}>
-                                {item.badge}
-                              </span>
-                            ) : null}
-                          </div>
-                          <span style={navButtonSubtitleStyle}>{item.subtitle}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </details>
+                    </span>
+                  </button>
+                  {sectionExpanded ? (
+                    <div style={navListStyle}>
+                      {section.items.map((item) => {
+                        const active = item.id === activeWorkspaceId;
+                        const tone = toneStyles[item.tone ?? "neutral"];
+                        return (
+                          <button
+                            key={item.id}
+                            type="button"
+                            onClick={() => onSelectWorkspace(item.id)}
+                            title={item.helpTooltip ?? undefined}
+                            style={{
+                              ...navButtonStyle,
+                              ...(active ? activeNavButtonStyle : null),
+                            }}
+                          >
+                            <div style={navButtonHeaderStyle}>
+                              <strong>{item.label}</strong>
+                              {item.badge ? (
+                                <span style={{ ...navBadgeStyle, ...tone }}>
+                                  {item.badge}
+                                </span>
+                              ) : null}
+                            </div>
+                            <span style={navButtonSubtitleStyle}>{item.subtitle}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </section>
               );
             })}
-
-            {quickStats.length > 0 ? (
-              <div style={quickStatsRailStyle}>
-                <span style={navSectionEyebrowStyle}>Status</span>
-                <div style={quickStatsGridStyle}>
-                  {quickStats.map((item) => (
-                    <div
-                      key={`${item.label}-${item.value}`}
-                      title={item.helpTooltip ?? undefined}
-                      style={{
-                        ...quickStatCardStyle,
-                        ...toneStyles[item.tone ?? "neutral"],
-                      }}
-                    >
-                      <span style={quickStatLabelStyle}>{item.label}</span>
-                      <strong>{item.value}</strong>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
           </div>
         </aside>
 
@@ -232,6 +306,37 @@ export default function DesktopShell({
                 <span style={workspaceSubtitleStyle}>{workspaceSubtitle}</span>
               </div>
             </div>
+
+            {activeNavSection ? (
+              <div
+                aria-label={`${activeNavSection.label} workspace sections`}
+                style={workspacePeerNavStyle}
+              >
+                <span style={workspacePeerNavLabelStyle}>
+                  {activeNavSection.label}
+                </span>
+                {activeNavSection.items.map((item) => {
+                  const active = item.id === activeWorkspaceId;
+                  return (
+                    <button
+                      key={`peer-${item.id}`}
+                      type="button"
+                      onClick={() => onSelectWorkspace(item.id)}
+                      title={item.helpTooltip ?? item.subtitle}
+                      style={{
+                        ...workspacePeerNavPillStyle,
+                        ...(active ? activeWorkspacePeerNavPillStyle : null),
+                      }}
+                    >
+                      {item.label}
+                      {item.badge ? (
+                        <span style={workspacePeerNavBadgeStyle}>{item.badge}</span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
 
             {quickStats.length > 0 ? (
               <div style={workspaceQuickStatsRowStyle}>
@@ -256,9 +361,65 @@ export default function DesktopShell({
           </div>
         </section>
       </div>
+
+      {agentChatOpen ? (
+        <div style={agentChatDockStyle} role="region" aria-label="Agent chat dock">
+          <div style={agentChatDockHeaderStyle}>
+            <div>
+              <strong>Agent chat</strong>
+              <span>Ask an agent to help with the current app workspace.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAgentChatOpen(false)}
+              style={agentChatCloseButtonStyle}
+            >
+              Close
+            </button>
+          </div>
+          <div style={agentChatFeatureRowStyle} aria-label="Agent feature shortcuts">
+            <button type="button" style={agentChatFeatureButtonStyle}>Attach source</button>
+            <button type="button" style={agentChatFeatureButtonStyle}>Use current panel</button>
+            <button type="button" style={agentChatFeatureButtonStyle}>Open App OS</button>
+            <button type="button" style={agentChatFeatureButtonStyle}>Ask O3DE</button>
+          </div>
+          <form
+            style={agentChatInputRowStyle}
+            onSubmit={(event) => {
+              event.preventDefault();
+              setAgentChatDraft("");
+            }}
+          >
+            <input
+              value={agentChatDraft}
+              onChange={(event) => setAgentChatDraft(event.target.value)}
+              placeholder="Tell the agent what to inspect, change, or prepare..."
+              style={agentChatInputStyle}
+            />
+            <button type="submit" style={agentChatSendButtonStyle}>
+              Send
+            </button>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 }
+
+const fallbackAgentCallItems = [
+  {
+    id: "mission-control",
+    label: "Mission Control",
+    detail: "Coordinate tasks, handoffs, and active workspaces.",
+    status: "ready",
+  },
+  {
+    id: "operator-guide",
+    label: "Guide Agent",
+    detail: "Explain the current panel and recommend the next safe step.",
+    status: "available",
+  },
+] satisfies DesktopShellAgentCallItem[];
 
 const shellStyle = {
   minHeight: "100vh",
@@ -361,6 +522,75 @@ const taskbarClockStyle = {
   fontSize: 12,
 } satisfies CSSProperties;
 
+const agentCallAnchorStyle = {
+  position: "relative",
+  display: "inline-flex",
+} satisfies CSSProperties;
+
+const agentCallButtonStyle = {
+  width: 42,
+  height: 42,
+  display: "grid",
+  placeItems: "center",
+  border: "1px solid rgba(255, 130, 130, 0.85)",
+  borderRadius: "50%",
+  background: "linear-gradient(145deg, #ef4444 0%, #991b1b 100%)",
+  color: "#fff7ed",
+  boxShadow: "0 14px 34px rgba(153, 27, 27, 0.32)",
+  cursor: "pointer",
+  fontSize: 20,
+  lineHeight: 1,
+} satisfies CSSProperties;
+
+const agentCallPopoverStyle = {
+  position: "absolute",
+  top: "calc(100% + 10px)",
+  right: 0,
+  zIndex: 8,
+  width: 320,
+  display: "grid",
+  gap: 12,
+  padding: 14,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-window-radius)",
+  background: "var(--app-panel-bg)",
+  boxShadow: "var(--app-shadow-strong)",
+  backdropFilter: "blur(22px)",
+} satisfies CSSProperties;
+
+const agentCallPopoverHeaderStyle = {
+  display: "grid",
+  gap: 4,
+  color: "var(--app-text-color)",
+} satisfies CSSProperties;
+
+const agentCallListStyle = {
+  display: "grid",
+  gap: 8,
+} satisfies CSSProperties;
+
+const agentCallListButtonStyle = {
+  display: "grid",
+  gap: 4,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-panel-radius)",
+  padding: "10px 12px",
+  background: "var(--app-panel-bg-alt)",
+  color: "var(--app-text-color)",
+  textAlign: "left",
+  cursor: "pointer",
+} satisfies CSSProperties;
+
+const agentCallNewChatButtonStyle = {
+  border: "1px solid var(--app-accent-strong)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "9px 12px",
+  background: "var(--app-accent-soft)",
+  color: "var(--app-text-color)",
+  cursor: "pointer",
+  fontWeight: 800,
+} satisfies CSSProperties;
+
 const desktopSurfaceStyle = {
   position: "relative",
   zIndex: 1,
@@ -368,7 +598,7 @@ const desktopSurfaceStyle = {
   flexWrap: "wrap",
   gap: 18,
   alignItems: "flex-start",
-  minHeight: 0,
+  minHeight: "calc(100vh - 72px)",
   overflow: "visible",
   padding: 24,
 } satisfies CSSProperties;
@@ -461,9 +691,13 @@ const navGroupSummaryStyle = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: 8,
+  width: "100%",
+  border: 0,
   padding: "10px 12px",
   cursor: "pointer",
-  listStyle: "revert",
+  background: "transparent",
+  color: "var(--app-text-color)",
+  textAlign: "left",
 } satisfies CSSProperties;
 
 const navGroupSummaryLabelStyle = {
@@ -473,6 +707,20 @@ const navGroupSummaryLabelStyle = {
   letterSpacing: "0.08em",
   color: "var(--app-subtle-color)",
   fontWeight: 800,
+} satisfies CSSProperties;
+
+const navGroupMetaStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  flex: "0 0 auto",
+} satisfies CSSProperties;
+
+const navGroupChevronStyle = {
+  color: "var(--app-muted-color)",
+  fontSize: 12,
+  fontWeight: 800,
+  lineHeight: 1,
 } satisfies CSSProperties;
 
 const navButtonStyle = {
@@ -502,12 +750,16 @@ const navButtonHeaderStyle = {
   justifyContent: "space-between",
   alignItems: "center",
   gap: 10,
+  minWidth: 0,
 } satisfies CSSProperties;
 
 const navButtonSubtitleStyle = {
   color: "var(--app-muted-color)",
   fontSize: 11,
   lineHeight: 1.35,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap" as const,
 } satisfies CSSProperties;
 
 const navBadgeStyle = {
@@ -519,45 +771,22 @@ const navBadgeStyle = {
   whiteSpace: "nowrap" as const,
 } satisfies CSSProperties;
 
-const quickStatsRailStyle = {
-  display: "grid",
-  gap: 8,
-} satisfies CSSProperties;
-
-const quickStatsGridStyle = {
-  display: "grid",
-  gap: 8,
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-} satisfies CSSProperties;
-
-const quickStatCardStyle = {
-  border: "1px solid var(--app-panel-border)",
-  borderRadius: "calc(var(--app-panel-radius) - 4px)",
-  padding: "9px 10px",
-  display: "grid",
-  gap: 4,
-} satisfies CSSProperties;
-
-const quickStatLabelStyle = {
-  fontSize: 11,
-  fontWeight: 700,
-  textTransform: "uppercase",
-  letterSpacing: "0.08em",
-} satisfies CSSProperties;
-
 const workspaceShellStyle = {
   flex: "1 1 820px",
+  alignSelf: "stretch",
   minWidth: 0,
   display: "grid",
   gap: 16,
-  gridTemplateRows: "auto auto",
-  padding: 20,
+  gridTemplateRows: "auto minmax(0, 1fr)",
+  padding: 16,
   background: "var(--app-panel-bg)",
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-window-radius)",
   boxShadow: "var(--app-shadow-strong)",
   backdropFilter: "blur(20px)",
-  minHeight: 0,
+  minHeight: "calc(100vh - 126px)",
+  maxHeight: "calc(100vh - 126px)",
+  overflow: "hidden",
 } satisfies CSSProperties;
 
 const workspaceChromeStyle = {
@@ -575,6 +804,58 @@ const workspaceChromeMetaStyle = {
   alignItems: "flex-start",
   justifyContent: "space-between",
   flexWrap: "wrap",
+} satisfies CSSProperties;
+
+const workspacePeerNavStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  minWidth: 0,
+  overflowX: "auto",
+  padding: "8px",
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
+  background: "color-mix(in srgb, var(--app-panel-bg) 70%, transparent)",
+} satisfies CSSProperties;
+
+const workspacePeerNavLabelStyle = {
+  flex: "0 0 auto",
+  color: "var(--app-subtle-color)",
+  fontSize: 11,
+  fontWeight: 800,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  paddingInline: 4,
+} satisfies CSSProperties;
+
+const workspacePeerNavPillStyle = {
+  flex: "0 0 auto",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 7,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "8px 12px",
+  background: "var(--app-panel-bg-alt)",
+  color: "var(--app-text-color)",
+  cursor: "pointer",
+  fontSize: 12,
+  fontWeight: 700,
+  whiteSpace: "nowrap" as const,
+} satisfies CSSProperties;
+
+const activeWorkspacePeerNavPillStyle = {
+  borderColor: "var(--app-accent-strong)",
+  background: "var(--app-accent-soft)",
+  boxShadow: "var(--app-shadow-soft)",
+} satisfies CSSProperties;
+
+const workspacePeerNavBadgeStyle = {
+  border: "1px solid var(--app-accent-strong)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "2px 6px",
+  background: "var(--app-panel-bg)",
+  fontSize: 10,
 } satisfies CSSProperties;
 
 const workspaceTitleStyle = {
@@ -624,7 +905,83 @@ const windowControlDotStyle = {
 const workspaceCanvasStyle = {
   display: "grid",
   gap: 20,
-  minHeight: "auto",
-  overflow: "visible",
+  minHeight: 0,
+  overflow: "auto",
   alignContent: "start",
+  paddingRight: 4,
+} satisfies CSSProperties;
+
+const agentChatDockStyle = {
+  position: "fixed",
+  left: "max(18px, calc((100vw - var(--app-shell-max-width)) / 2 + 18px))",
+  right: "max(18px, calc((100vw - var(--app-shell-max-width)) / 2 + 18px))",
+  bottom: 18,
+  zIndex: 7,
+  display: "grid",
+  gap: 10,
+  padding: 14,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-window-radius)",
+  background: "var(--app-panel-bg)",
+  boxShadow: "var(--app-shadow-strong)",
+  backdropFilter: "blur(24px)",
+} satisfies CSSProperties;
+
+const agentChatDockHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 14,
+  alignItems: "flex-start",
+  color: "var(--app-text-color)",
+} satisfies CSSProperties;
+
+const agentChatCloseButtonStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "7px 10px",
+  background: "var(--app-panel-bg-alt)",
+  color: "var(--app-text-color)",
+  cursor: "pointer",
+} satisfies CSSProperties;
+
+const agentChatFeatureRowStyle = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+} satisfies CSSProperties;
+
+const agentChatFeatureButtonStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "7px 10px",
+  background: "var(--app-panel-bg-alt)",
+  color: "var(--app-text-color)",
+  cursor: "pointer",
+  fontSize: 12,
+  fontWeight: 700,
+} satisfies CSSProperties;
+
+const agentChatInputRowStyle = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gap: 10,
+} satisfies CSSProperties;
+
+const agentChatInputStyle = {
+  minWidth: 0,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "11px 14px",
+  background: "var(--app-panel-bg-alt)",
+  color: "var(--app-text-color)",
+} satisfies CSSProperties;
+
+const agentChatSendButtonStyle = {
+  border: "1px solid var(--app-accent-strong)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "10px 16px",
+  background: "var(--app-accent)",
+  color: "var(--app-accent-contrast)",
+  cursor: "pointer",
+  fontWeight: 800,
 } satisfies CSSProperties;

@@ -95,20 +95,31 @@ describe("DesktopShell", () => {
 
     expect(screen.getByText("Control surface")).toBeInTheDocument();
     expect(screen.getByText("Now open")).toBeInTheDocument();
-    expect(screen.getByText("Start")).toBeInTheDocument();
+    expect(screen.getAllByText("Start").length).toBeGreaterThan(0);
     expect(screen.getByText("Inspect")).toBeInTheDocument();
     expect(screen.getByText("Active workspace")).toBeInTheDocument();
     expect(screen.getByText("Workspace body")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /inspect/i }));
+
     expect(
       screen.getByRole("button", { name: /records/i }),
     ).toHaveAttribute("title", "Inspect persisted evidence and warnings.");
-    expect(screen.getByText("Bridge").closest("div")).toHaveAttribute("title", "Heartbeat is currently fresh.");
+    expect(screen.getByText("Bridge: fresh")).toHaveAttribute("title", "Heartbeat is currently fresh.");
     expect(shellRoot).toHaveStyle("min-height: 100vh");
     expect(shellRoot).toHaveStyle("overflow: visible");
     expect(shellRoot).not.toHaveStyle("height: 100vh");
 
     fireEvent.click(screen.getByRole("button", { name: /records/i }));
     expect(onSelectWorkspace).toHaveBeenCalledWith("records");
+
+    fireEvent.click(screen.getByRole("button", { name: /call an agent/i }));
+    expect(screen.getByRole("dialog", { name: "Agent call menu" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Start new chat" }));
+    expect(screen.getByRole("region", { name: "Agent chat dock" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Attach source" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("region", { name: "Agent chat dock" })).not.toBeInTheDocument();
   });
 
   it("consumes saved shell settings for dark compact desktop layout", () => {

@@ -154,7 +154,7 @@ describe("App desktop smoke", () => {
 
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
     expect(screen.getByText("What should I do next?")).toBeInTheDocument();
-    expect(screen.getByText("Builder workspace")).toBeInTheDocument();
+    expect(screen.getAllByText("Builder workspace").length).toBeGreaterThan(0);
     expect(screen.getByText("Operations > Dispatch window")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Home/i));

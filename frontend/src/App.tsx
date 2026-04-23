@@ -518,6 +518,9 @@ export default function App() {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<DesktopWorkspaceId>(
     settings.layout.preferredLandingSection as DesktopWorkspaceId,
   );
+  const [visitedWorkspaceIds, setVisitedWorkspaceIds] = useState<DesktopWorkspaceId[]>([
+    settings.layout.preferredLandingSection as DesktopWorkspaceId,
+  ]);
   const [activeOperationsSurface, setActiveOperationsSurface] =
     useState<OperationsSurfaceId>("dispatch");
   const [activeRuntimeSurface, setActiveRuntimeSurface] =
@@ -2247,6 +2250,14 @@ export default function App() {
     }
 
     window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, activeWorkspaceId);
+  }, [activeWorkspaceId]);
+
+  useEffect(() => {
+    setVisitedWorkspaceIds((currentWorkspaceIds) => (
+      currentWorkspaceIds.includes(activeWorkspaceId)
+        ? currentWorkspaceIds
+        : [...currentWorkspaceIds, activeWorkspaceId]
+    ));
   }, [activeWorkspaceId]);
 
   useEffect(() => {
@@ -6764,6 +6775,12 @@ export default function App() {
         activeWorkspaceId={activeWorkspaceId}
         navSections={desktopNavSections}
         quickStats={settings.layout.showDesktopTelemetry ? desktopQuickStats : []}
+        agentCallItems={agentsForDisplay.slice(0, 5).map((agent) => ({
+          id: agent.id,
+          label: agent.name,
+          detail: `${agent.role} agent with ${agent.owned_tools.length} tool lanes available.`,
+          status: agent.locks.length > 0 ? `locks: ${agent.locks.join(", ")}` : "ready",
+        }))}
         utilityLabel={dashboardRefreshStatus ?? "desktop shell live"}
         utilityDetail={dashboardRefreshDetail}
         utilityActions={(
@@ -6789,53 +6806,83 @@ export default function App() {
           />
         ) : null}
 
-        {activeWorkspaceId === "home" ? (
-          <HomeWorkspaceView
-            missionControlContent={homeMissionControlContent}
-            launchpadContent={homeLaunchpadContent}
-            overviewContent={homeOverviewContent}
-            guideContent={homeGuideContent}
-            onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
-            onOpenRuntimeOverview={openRuntimeOverview}
-            onOpenBuilder={() => setActiveWorkspaceId("builder")}
-          />
-        ) : null}
-
-        {activeWorkspaceId === "prompt" ? (
-          <Suspense
-            fallback={renderWorkspaceLoadingFallback(
-              "Prompt Studio",
-              "Loading natural-language planning and admitted execution controls.",
-            )}
+        {visitedWorkspaceIds.includes("home") ? (
+          <div
+            aria-hidden={activeWorkspaceId !== "home"}
+            style={activeWorkspaceId === "home" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
           >
-            <PromptWorkspaceDesktop
-              selectedWorkspaceId={selectedWorkspaceId}
-              selectedExecutorId={selectedExecutorId}
+            <HomeWorkspaceView
+              missionControlContent={homeMissionControlContent}
+              launchpadContent={homeLaunchpadContent}
+              overviewContent={homeOverviewContent}
+              guideContent={homeGuideContent}
+              onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
+              onOpenRuntimeOverview={openRuntimeOverview}
+              onOpenBuilder={() => setActiveWorkspaceId("builder")}
             />
-          </Suspense>
+          </div>
         ) : null}
 
-        {activeWorkspaceId === "builder" ? (
-          <Suspense
-            fallback={renderWorkspaceLoadingFallback(
-              "Builder",
-              "Loading worktree lanes, mission-control visibility, and Codex handoff scaffolding.",
-            )}
+        {visitedWorkspaceIds.includes("prompt") ? (
+          <div
+            aria-hidden={activeWorkspaceId !== "prompt"}
+            style={activeWorkspaceId === "prompt" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
           >
-            <BuilderWorkspaceDesktop />
-          </Suspense>
+            <Suspense
+              fallback={renderWorkspaceLoadingFallback(
+                "Prompt Studio",
+                "Loading natural-language planning and admitted execution controls.",
+              )}
+            >
+              <PromptWorkspaceDesktop
+                selectedWorkspaceId={selectedWorkspaceId}
+                selectedExecutorId={selectedExecutorId}
+              />
+            </Suspense>
+          </div>
         ) : null}
 
-        {activeWorkspaceId === "operations" ? (
-          renderOperationsWorkspace()
+        {visitedWorkspaceIds.includes("builder") ? (
+          <div
+            aria-hidden={activeWorkspaceId !== "builder"}
+            style={activeWorkspaceId === "builder" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
+          >
+            <Suspense
+              fallback={renderWorkspaceLoadingFallback(
+                "Builder",
+                "Loading worktree lanes, mission-control visibility, and Codex handoff scaffolding.",
+              )}
+            >
+              <BuilderWorkspaceDesktop />
+            </Suspense>
+          </div>
         ) : null}
 
-        {activeWorkspaceId === "runtime" ? (
-          renderRuntimeWorkspace()
+        {visitedWorkspaceIds.includes("operations") ? (
+          <div
+            aria-hidden={activeWorkspaceId !== "operations"}
+            style={activeWorkspaceId === "operations" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
+          >
+            {renderOperationsWorkspace()}
+          </div>
         ) : null}
 
-        {activeWorkspaceId === "records" ? (
-          renderRecordsWorkspace()
+        {visitedWorkspaceIds.includes("runtime") ? (
+          <div
+            aria-hidden={activeWorkspaceId !== "runtime"}
+            style={activeWorkspaceId === "runtime" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
+          >
+            {renderRuntimeWorkspace()}
+          </div>
+        ) : null}
+
+        {visitedWorkspaceIds.includes("records") ? (
+          <div
+            aria-hidden={activeWorkspaceId !== "records"}
+            style={activeWorkspaceId === "records" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
+          >
+            {renderRecordsWorkspace()}
+          </div>
         ) : null}
       </DesktopShell>
 
@@ -6853,6 +6900,15 @@ export default function App() {
 const desktopStackStyle = {
   display: "grid",
   gap: 14,
+} satisfies CSSProperties;
+
+const activeWorkspacePaneStyle = {
+  display: "grid",
+  minWidth: 0,
+} satisfies CSSProperties;
+
+const hiddenWorkspacePaneStyle = {
+  display: "none",
 } satisfies CSSProperties;
 
 const desktopLaunchpadGridStyle = {
