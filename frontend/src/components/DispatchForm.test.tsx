@@ -2,6 +2,13 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import DispatchForm from "./DispatchForm";
+import {
+  createDefaultO3DEProjectProfilesStore,
+  createO3DEProjectProfile,
+  saveO3DEProjectProfilesStore,
+  selectO3DEProjectProfile,
+  upsertO3DEProjectProfile,
+} from "../lib/o3deProjectProfiles";
 import type { AdaptersResponse, CatalogAgent, ReadinessStatus } from "../types/contracts";
 
 const apiMocks = vi.hoisted(() => ({
@@ -112,6 +119,7 @@ const readiness: ReadinessStatus = {
 describe("DispatchForm", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     apiMocks.fetchO3deTarget.mockResolvedValue({
       project_root: "C:/Users/topgu/O3DE/Projects/McpSandbox",
       engine_root: "C:/src/o3de",
@@ -136,9 +144,10 @@ describe("DispatchForm", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue("C:/Users/topgu/O3DE/Projects/McpSandbox")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("C:\\Users\\topgu\\O3DE\\Projects\\McpSandbox")).toBeInTheDocument();
     });
-    expect(screen.getByDisplayValue("C:/src/o3de")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("C:\\src\\o3de")).toBeInTheDocument();
+    expect(screen.getByText(/Selected project profile:/i)).toHaveTextContent("McpSandbox canonical target");
     expect(screen.getByText(/Active local target:/i)).toBeInTheDocument();
     expect(screen.getByText(/Capability:/).parentElement).toHaveTextContent("Capability: hybrid-read-only");
     expect(screen.getByText(/Expected execution truth:/).parentElement).toHaveTextContent(
@@ -157,6 +166,39 @@ describe("DispatchForm", () => {
       "title",
       "Submit the typed request after agent, tool, target, locks, timeout, and args all match the intended action.",
     );
+  });
+
+  it("prefills from the selected O3DE project profile before backend target fallbacks", async () => {
+    const profile = createO3DEProjectProfile({
+      id: "profile-training-project",
+      name: "Training Project",
+      projectRoot: "D:/O3DE/Projects/TrainingProject",
+      engineRoot: "D:/o3de",
+      editorRunner: "D:/O3DE/Projects/TrainingProject/build/windows/bin/profile/Editor.exe",
+    });
+    saveO3DEProjectProfilesStore(
+      selectO3DEProjectProfile(
+        upsertO3DEProjectProfile(createDefaultO3DEProjectProfilesStore(), profile),
+        profile.id,
+      ),
+      window.localStorage,
+    );
+
+    render(
+      <DispatchForm
+        agents={agents}
+        adapters={adapters}
+        readiness={readiness}
+        onResponse={() => {}}
+      />,
+    );
+
+    expect(screen.getByText(/Selected project profile:/i)).toHaveTextContent("Training Project");
+    expect(screen.getByDisplayValue("D:/O3DE/Projects/TrainingProject")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("D:/o3de")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Active local target:/i)).toBeInTheDocument();
+    });
   });
 
   it("keeps dispatch controls honest when the live tools catalog is unavailable", async () => {

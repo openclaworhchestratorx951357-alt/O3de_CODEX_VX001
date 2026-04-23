@@ -247,3 +247,9 @@ export function getActiveO3DEProjectProfile(store: O3DEProjectProfilesStore): O3
     ?? createCanonicalMcpSandboxProfile()
   );
 }
+
+export function loadActiveO3DEProjectProfile(
+  storage: StorageLike | null = getStorage(),
+): O3DEProjectProfile {
+  return getActiveO3DEProjectProfile(loadO3DEProjectProfilesStore(storage));
+}

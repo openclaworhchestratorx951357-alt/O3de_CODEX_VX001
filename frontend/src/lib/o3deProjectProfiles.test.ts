@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createO3DEProjectProfile,
   getActiveO3DEProjectProfile,
+  loadActiveO3DEProjectProfile,
   loadO3DEProjectProfilesStore,
   saveO3DEProjectProfilesStore,
   selectO3DEProjectProfile,
@@ -44,6 +45,7 @@ describe("O3DE project profile storage", () => {
     expect(getActiveO3DEProjectProfile(nextStore).name).toBe("Custom Game");
     expect(getActiveO3DEProjectProfile(reloadedStore).projectRoot).toBe("D:\\O3DE\\Projects\\CustomGame");
     expect(reloadedStore.profiles.some((profile) => profile.name === "McpSandbox canonical target")).toBe(true);
+    expect(loadActiveO3DEProjectProfile(window.localStorage).name).toBe("Custom Game");
   });
 
   it("falls back to defaults when project profile storage is corrupted", () => {

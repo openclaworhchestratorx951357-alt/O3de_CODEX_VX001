@@ -64,6 +64,9 @@ describe("HomeWorkspaceView", () => {
     expect(screen.getByLabelText("Game viewport control surface")).toBeInTheDocument();
     expect(screen.getByText("Component Palette")).toBeInTheDocument();
     expect(screen.getByText("McpSandbox canonical target")).toBeInTheDocument();
+    expect(screen.getByLabelText("O3DE companion layout guidance")).toHaveTextContent(
+      "O3DE Editor full-size",
+    );
     expect(screen.getByText(/this is a generated control-surface shell/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Create with natural language/i }));

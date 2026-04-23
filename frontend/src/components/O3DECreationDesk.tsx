@@ -49,8 +49,18 @@ export default function O3DECreationDesk({
         <div>
           <strong>{title}</strong>
           <p style={mutedParagraphStyle}>{subtitle}</p>
+          <p style={companionTextStyle}>
+            O3DE stays the full-size editor and viewport. This app adds a companion command deck for
+            prompts, project profiles, bridge checks, tasks, evidence, and safe automation.
+          </p>
         </div>
         <span style={statusPillStyle}>Bridge-backed edits only when admitted</span>
+      </div>
+
+      <div aria-label="O3DE companion layout guidance" style={companionGridStyle}>
+        <span><strong>Primary viewport:</strong> keep O3DE Editor full-size or snapped beside this app.</span>
+        <span><strong>Control plane:</strong> use this app for prompts, approvals, bridge truth, and work planning.</span>
+        <span><strong>No shrink-wrap:</strong> the browser shell should augment O3DE tools, not replace the editor UI.</span>
       </div>
 
       {actions.length > 0 ? (
@@ -177,6 +187,24 @@ const statusPillStyle = {
   color: "var(--app-success-text)",
   fontSize: 12,
   fontWeight: 700,
+} satisfies CSSProperties;
+
+const companionTextStyle = {
+  margin: "6px 0 0",
+  color: "#dbe8ff",
+  lineHeight: 1.45,
+} satisfies CSSProperties;
+
+const companionGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 8,
+  padding: 10,
+  border: "1px solid rgba(124, 175, 255, 0.3)",
+  borderRadius: "var(--app-card-radius)",
+  background: "rgba(124, 175, 255, 0.1)",
+  color: "#dbe8ff",
+  lineHeight: 1.45,
 } satisfies CSSProperties;
 
 const actionBarStyle = {

@@ -16,12 +16,14 @@ import {
   fetchPromptSession,
   fetchPromptSessions,
 } from "../lib/api";
+import { loadActiveO3DEProjectProfile } from "../lib/o3deProjectProfiles";
 import type {
   O3DETargetConfig,
   PromptCapabilityEntry,
   PromptRequest,
   PromptSessionRecord,
 } from "../types/contracts";
+import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 import { useSettings } from "../lib/settings/hooks";
 import PanelGuideDetails from "./PanelGuideDetails";
 import PromptCapabilityPanel from "./PromptCapabilityPanel";
@@ -74,27 +76,44 @@ function hasPromptCapability(
   return capabilities.some((capability) => capability.tool_name === toolName);
 }
 
-function getTargetProjectLabel(targetConfig: O3DETargetConfig | null): string {
+function getProjectNameFromRoot(projectRoot: string): string | null {
+  return projectRoot.split(/[\\/]/).filter(Boolean).pop() ?? null;
+}
+
+function getTargetProjectLabel(
+  targetConfig: O3DETargetConfig | null,
+  activeProjectProfile: O3DEProjectProfile,
+): string {
+  const profileProjectRoot = activeProjectProfile.projectRoot.trim();
+  if (profileProjectRoot) {
+    const projectName = getProjectNameFromRoot(profileProjectRoot);
+    return projectName
+      ? `the selected ${projectName} project profile`
+      : "the selected O3DE project profile";
+  }
+
   const projectRoot = targetConfig?.project_root?.trim();
   if (!projectRoot) {
     return "the selected O3DE target";
   }
 
-  const projectName = projectRoot.split(/[\\/]/).filter(Boolean).pop();
+  const projectName = getProjectNameFromRoot(projectRoot);
   return projectName ? `the current ${projectName} target` : "the current configured O3DE target";
 }
 
 function buildPromptDraftRecommendations({
   capabilities,
+  activeProjectProfile,
   targetConfig,
   sessionCount,
 }: {
   capabilities: readonly PromptCapabilityEntry[];
+  activeProjectProfile: O3DEProjectProfile;
   targetConfig: O3DETargetConfig | null;
   sessionCount: number;
 }): PromptDraftRecommendation[] {
   const recommendations: PromptDraftRecommendation[] = [];
-  const targetLabel = getTargetProjectLabel(targetConfig);
+  const targetLabel = getTargetProjectLabel(targetConfig, activeProjectProfile);
 
   if (hasPromptCapability(capabilities, "project.inspect")) {
     recommendations.push({
@@ -228,9 +247,14 @@ export default function PromptControlPanel({
   selectedExecutorId = null,
 }: PromptControlPanelProps) {
   const { settings } = useSettings();
+  const [activeProjectProfile] = useState(() => loadActiveO3DEProjectProfile());
   const [promptText, setPromptText] = useState("");
-  const [projectRoot, setProjectRoot] = useState(settings.operatorDefaults.projectRoot);
-  const [engineRoot, setEngineRoot] = useState(settings.operatorDefaults.engineRoot);
+  const [projectRoot, setProjectRoot] = useState(
+    settings.operatorDefaults.projectRoot || activeProjectProfile.projectRoot,
+  );
+  const [engineRoot, setEngineRoot] = useState(
+    settings.operatorDefaults.engineRoot || activeProjectProfile.engineRoot,
+  );
   const [workspaceId, setWorkspaceId] = useState("");
   const [workspaceIdEdited, setWorkspaceIdEdited] = useState(false);
   const [executorId, setExecutorId] = useState("");
@@ -267,6 +291,7 @@ export default function PromptControlPanel({
   const engineRootEnv = (import.meta.env.VITE_O3DE_TARGET_ENGINE_ROOT as string | undefined) ?? "";
   const promptDraftRecommendations = buildPromptDraftRecommendations({
     capabilities,
+    activeProjectProfile,
     targetConfig,
     sessionCount: sessions.length,
   });
@@ -274,15 +299,17 @@ export default function PromptControlPanel({
 
   const getDefaultProjectRoot = useCallback((nextTarget: O3DETargetConfig | null): string => (
     settings.operatorDefaults.projectRoot
+      || activeProjectProfile.projectRoot
       || nextTarget?.project_root
       || projectRootEnv
-  ), [projectRootEnv, settings.operatorDefaults.projectRoot]);
+  ), [activeProjectProfile.projectRoot, projectRootEnv, settings.operatorDefaults.projectRoot]);
 
   const getDefaultEngineRoot = useCallback((nextTarget: O3DETargetConfig | null): string => (
     settings.operatorDefaults.engineRoot
+      || activeProjectProfile.engineRoot
       || nextTarget?.engine_root
       || engineRootEnv
-  ), [engineRootEnv, settings.operatorDefaults.engineRoot]);
+  ), [activeProjectProfile.engineRoot, engineRootEnv, settings.operatorDefaults.engineRoot]);
 
   const loadPromptData = useCallback(async () => {
     setLoading(true);
@@ -333,10 +360,10 @@ export default function PromptControlPanel({
         }
         setTargetConfig(nextTarget);
         if (!initialProjectRoot.trim()) {
-          setProjectRoot(nextTarget?.project_root || projectRootEnv);
+          setProjectRoot(getDefaultProjectRoot(nextTarget));
         }
         if (!initialEngineRoot.trim()) {
-          setEngineRoot(nextTarget?.engine_root || engineRootEnv);
+          setEngineRoot(getDefaultEngineRoot(nextTarget));
         }
         setCapabilities(capabilityList);
         setSessions(sessionList);
@@ -359,7 +386,7 @@ export default function PromptControlPanel({
     return () => {
       cancelled = true;
     };
-  }, [engineRootEnv, projectRootEnv]);
+  }, [getDefaultEngineRoot, getDefaultProjectRoot]);
 
   useEffect(() => {
     if (!selectedPromptId) {
@@ -496,6 +523,11 @@ export default function PromptControlPanel({
         tooltip={promptControlGuide.tooltip}
         checklist={promptControlGuide.checklist}
       />
+      <p style={subtleTextStyle}>
+        Selected project profile: <strong>{activeProjectProfile.name}</strong>
+        {" "}using <strong>{activeProjectProfile.projectRoot}</strong>
+        {" "}on <strong>{activeProjectProfile.engineRoot}</strong>.
+      </p>
       {targetConfig?.project_root || targetConfig?.engine_root ? (
         <p style={subtleTextStyle}>
           Active local target: <strong>{targetConfig.project_root ?? "project unset"}</strong>
