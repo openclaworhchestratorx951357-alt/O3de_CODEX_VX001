@@ -92,9 +92,18 @@ describe("HomeWorkspaceView", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: /Load Project/i }));
 
+    expect(screen.getByLabelText("Load Project guided setup")).toBeInTheDocument();
+    expect(screen.getByText("Load an O3DE project safely")).toBeInTheDocument();
+    expect(screen.getByText("Choose the project profile")).toBeInTheDocument();
+    expect(screen.getByText("Capture the live backend target")).toBeInTheDocument();
+    expect(screen.getByText("Verify runtime and bridge")).toBeInTheDocument();
+    expect(screen.getByText("Start natural-language work")).toBeInTheDocument();
     expect(screen.getByLabelText("Active O3DE project profile")).toBeInTheDocument();
     expect(screen.getByText("Saved project profiles")).toBeInTheDocument();
     expect(screen.getByText("Add or update a project profile")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Runtime checklist" }));
+    expect(openRuntimeOverview).toHaveBeenCalledTimes(2);
 
     fireEvent.change(screen.getByLabelText("Profile name"), { target: { value: "Training Project" } });
     fireEvent.change(screen.getByLabelText("Project root"), {

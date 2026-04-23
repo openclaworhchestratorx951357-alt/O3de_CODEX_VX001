@@ -332,8 +332,75 @@ function LoadProjectMode({
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
 }) {
+  const guidedSteps = [
+    {
+      number: "1",
+      title: "Choose the project profile",
+      detail: "Confirm the project root, engine root, and editor runner before sending any O3DE prompt.",
+      status: activeProjectProfile.name,
+    },
+    {
+      number: "2",
+      title: "Capture the live backend target",
+      detail: "Use the backend target only after it reports a configured project and engine.",
+      status: backendTargetLoading ? "Checking backend now" : "Ready when backend is running",
+      actionLabel: backendTargetLoading ? "Checking backend..." : "Capture live target",
+      onAction: onCaptureBackendTarget,
+      disabled: backendTargetLoading,
+    },
+    {
+      number: "3",
+      title: "Verify runtime and bridge",
+      detail: "Open Runtime and confirm backend readiness plus bridge heartbeat before authoring.",
+      status: "Do this after startup or crashes",
+      actionLabel: "Open Runtime checklist",
+      onAction: onOpenRuntimeOverview,
+    },
+    {
+      number: "4",
+      title: "Start natural-language work",
+      detail: "Move into Prompt Studio only after the selected profile matches the live target.",
+      status: "Use admitted real tools only",
+      actionLabel: "Open Prompt Studio",
+      onAction: onOpenPromptStudio,
+    },
+  ];
+
   return (
     <div style={profileShellStyle}>
+      <section style={guidedReconnectStyle} aria-label="Load Project guided setup">
+        <div>
+          <span style={eyebrowStyle}>Guided reconnect path</span>
+          <h4 style={profileTitleStyle}>Load an O3DE project safely</h4>
+          <p style={mutedParagraphStyle}>
+            Follow these steps after choosing an existing project, restarting the laptop, or reopening O3DE.
+            The app profile helps fill defaults, while Runtime proves what is actually live.
+          </p>
+        </div>
+        <div style={guidedStepGridStyle}>
+          {guidedSteps.map((step) => (
+            <article key={step.number} style={guidedStepCardStyle}>
+              <span style={stepNumberStyle}>{step.number}</span>
+              <div style={guidedStepBodyStyle}>
+                <strong>{step.title}</strong>
+                <p style={mutedParagraphStyle}>{step.detail}</p>
+                <span style={stepStatusStyle}>{step.status}</span>
+                {step.actionLabel && step.onAction ? (
+                  <button
+                    type="button"
+                    onClick={step.onAction}
+                    disabled={step.disabled}
+                    style={secondaryActionButtonStyle}
+                  >
+                    {step.actionLabel}
+                  </button>
+                ) : null}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section style={profileSummaryStyle} aria-label="Active O3DE project profile">
         <div>
           <span style={eyebrowStyle}>Active Project Profile</span>
@@ -614,6 +681,67 @@ const checklistStyle = {
 const profileShellStyle = {
   display: "grid",
   gap: 14,
+} satisfies CSSProperties;
+
+const guidedReconnectStyle = {
+  display: "grid",
+  gap: 14,
+  padding: 16,
+  border: "1px solid var(--app-accent-strong)",
+  borderRadius: "var(--app-card-radius)",
+  background: "linear-gradient(135deg, var(--app-accent-soft) 0%, var(--app-panel-bg) 100%)",
+  boxShadow: "var(--app-shadow-soft)",
+} satisfies CSSProperties;
+
+const guidedStepGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 10,
+} satisfies CSSProperties;
+
+const guidedStepCardStyle = {
+  display: "grid",
+  gridTemplateColumns: "auto 1fr",
+  gap: 10,
+  minWidth: 0,
+  padding: 12,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
+  background: "var(--app-panel-bg)",
+} satisfies CSSProperties;
+
+const stepNumberStyle = {
+  display: "inline-grid",
+  placeItems: "center",
+  width: 28,
+  height: 28,
+  border: "1px solid var(--app-accent-strong)",
+  borderRadius: "50%",
+  background: "var(--app-accent)",
+  color: "var(--app-accent-contrast)",
+  fontSize: 13,
+  fontWeight: 900,
+} satisfies CSSProperties;
+
+const guidedStepBodyStyle = {
+  display: "grid",
+  gap: 7,
+  minWidth: 0,
+  alignContent: "start",
+} satisfies CSSProperties;
+
+const stepStatusStyle = {
+  display: "inline-flex",
+  width: "fit-content",
+  maxWidth: "100%",
+  padding: "5px 8px",
+  border: "1px solid var(--app-info-border)",
+  borderRadius: "var(--app-pill-radius)",
+  background: "var(--app-info-bg)",
+  color: "var(--app-info-text)",
+  fontSize: 12,
+  fontWeight: 700,
+  overflowWrap: "anywhere",
 } satisfies CSSProperties;
 
 const profileSummaryStyle = {
