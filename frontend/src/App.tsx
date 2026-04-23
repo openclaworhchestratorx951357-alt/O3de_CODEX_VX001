@@ -405,6 +405,7 @@ function isWorkspaceNextStepRecentAction(value: unknown): value is WorkspaceNext
     && typeof candidate.stepId === "string"
     && typeof candidate.label === "string"
     && typeof candidate.actionLabel === "string"
+    && (candidate.opensLabel === undefined || typeof candidate.opensLabel === "string")
     && typeof candidate.workspaceId === "string"
     && typeof candidate.workspaceLabel === "string"
     && typeof candidate.usedAt === "string";
@@ -4778,6 +4779,7 @@ export default function App() {
       stepId: entry.id,
       label: entry.label,
       actionLabel: entry.actionLabel,
+      opensLabel: entry.opensLabel ?? getWorkspaceNextStepOpensLabel(entry.id, entry.actionLabel),
       workspaceId: activeWorkspaceId,
       workspaceLabel: activeWorkspaceMeta.title,
       usedAt: new Date().toISOString(),

@@ -25,6 +25,7 @@ export type WorkspaceNextStepRecentAction = {
   stepId: string;
   label: string;
   actionLabel: string;
+  opensLabel?: string;
   workspaceId: string;
   workspaceLabel: string;
   usedAt: string;
@@ -115,12 +116,15 @@ export default function WorkspaceNextStepsPanel({
           <ul style={recentListStyle}>
             {recentActions.map((entry) => (
               <li key={entry.id} style={recentItemStyle}>
-                <span>{entry.label}</span>
-                <span style={recentMetaStyle}>
-                  from {entry.workspaceLabel} at {new Date(entry.usedAt).toLocaleTimeString([], {
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
+                <span style={recentSummaryStyle}>
+                  <strong>{entry.label}</strong>
+                  <span style={recentMetaStyle}>Action: {entry.actionLabel}</span>
+                  {entry.opensLabel ? (
+                    <span style={recentMetaStyle}>Opens: {entry.opensLabel}</span>
+                  ) : null}
+                </span>
+                <span style={recentTimeStyle}>
+                  from {entry.workspaceLabel} at {formatRecentActionTime(entry.usedAt)}
                 </span>
               </li>
             ))}
@@ -129,6 +133,13 @@ export default function WorkspaceNextStepsPanel({
       ) : null}
     </section>
   );
+}
+
+function formatRecentActionTime(usedAt: string): string {
+  return new Date(usedAt).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 const panelStyle = {
@@ -261,12 +272,25 @@ const recentListStyle = {
 const recentItemStyle = {
   display: "flex",
   justifyContent: "space-between",
+  alignItems: "flex-start",
   gap: 10,
   flexWrap: "wrap",
   color: "var(--app-text-color)",
 } satisfies CSSProperties;
 
+const recentSummaryStyle = {
+  display: "grid",
+  gap: 3,
+  minWidth: 220,
+} satisfies CSSProperties;
+
 const recentMetaStyle = {
   color: "var(--app-muted-color)",
   fontSize: 12,
+} satisfies CSSProperties;
+
+const recentTimeStyle = {
+  color: "var(--app-subtle-color)",
+  fontSize: 12,
+  textAlign: "right",
 } satisfies CSSProperties;

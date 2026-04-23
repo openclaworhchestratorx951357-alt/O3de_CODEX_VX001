@@ -59,6 +59,7 @@ describe("WorkspaceNextStepsPanel", () => {
             stepId: "runtime-health",
             label: "Verify runtime health",
             actionLabel: "Open runtime",
+            opensLabel: "Runtime > Overview window",
             workspaceId: "builder",
             workspaceLabel: "Builder",
             usedAt: "2026-04-23T12:00:00.000Z",
@@ -70,6 +71,8 @@ describe("WorkspaceNextStepsPanel", () => {
 
     expect(screen.getByLabelText("Recently used next-step actions")).toBeInTheDocument();
     expect(screen.getByText("Verify runtime health")).toBeInTheDocument();
+    expect(screen.getByText("Action: Open runtime")).toBeInTheDocument();
+    expect(screen.getByText("Opens: Runtime > Overview window")).toBeInTheDocument();
     expect(screen.getByText(/from Builder at/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Clear" }));
