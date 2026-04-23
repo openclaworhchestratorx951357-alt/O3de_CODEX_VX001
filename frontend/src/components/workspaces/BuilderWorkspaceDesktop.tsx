@@ -1316,6 +1316,20 @@ export default function BuilderWorkspaceDesktop() {
   const terminalLaunchCwd = terminalDraft.cwd.trim() || selectedWorker?.worktree_path || status?.repo_root || "not set";
   const terminalLaunchTaskId = terminalDraft.taskId.trim() || "not linked";
   const terminalLaunchCommandJson = terminalDraft.commandJson.trim() || "[]";
+  const urgentInterruptWorkerReview = selectedWorkerId || "none selected";
+  const urgentInterruptTaskReview = selectedWorkerTask?.task_id ?? "none";
+  const urgentInterruptTerminalReview = selectedActiveTerminal?.session_id ?? "none";
+  const urgentInterruptStopReview = selectedActiveTerminal
+    ? `force-stop ${selectedActiveTerminal.session_id}`
+    : "no active managed terminal to stop";
+  const taskSupersedeScopeReview = taskSupersedeDraft.replacementScopePaths.trim() || "not set";
+  const taskSupersedeBranchReview = taskSupersedeDraft.replacementBranchPrefix.trim() || "not set";
+  const taskSupersedeReasonReview = taskSupersedeDraft.supersedeReason.trim() || "not set";
+  const taskSupersedeStopReview = taskSupersedeDraft.stopActiveTerminal
+    ? selectedActiveTerminal
+      ? `yes (${selectedActiveTerminal.session_id})`
+      : "yes (no active managed terminal selected)"
+    : "no";
   const handoffPackage = buildWorkerHandoffPackage(
     status,
     selectedWorker,
@@ -2973,6 +2987,34 @@ export default function BuilderWorkspaceDesktop() {
             Stop the selected worker's active managed terminal as part of the override
           </label>
 
+          <article aria-label="Task supersede review" style={listCardStyle}>
+            <div style={rowBetweenStyle}>
+              <div style={stackStyle}>
+                <span style={{ ...pillStyle, ...toneStyle(selectedWorkerTask ? "warning" : "neutral"), width: "fit-content" }}>
+                  Override review
+                </span>
+                <strong>Review before superseding the current task</strong>
+                <p style={mutedParagraphStyle}>
+                  No task is superseded yet. This summarizes the replacement task, stop behavior, and notification target
+                  before the urgent action runs.
+                </p>
+              </div>
+              <span style={{ ...pillStyle, ...toneStyle(selectedWorkerTask ? "warning" : "neutral") }}>
+                {selectedWorkerTask ? "manual trigger" : "select active task"}
+              </span>
+            </div>
+            <div style={metaStackStyle}>
+              <span>Worker: {selectedWorkerId || "none selected"}</span>
+              <span>Current task: {selectedWorkerTask?.task_id ?? "none"}</span>
+              <span>Replacement title: {taskSupersedeDraft.replacementTitle.trim() || "not set"}</span>
+              <span>Replacement priority: {taskSupersedeDraft.replacementPriority}</span>
+              <span>Replacement scopes: {taskSupersedeScopeReview}</span>
+              <span>Replacement branch prefix: {taskSupersedeBranchReview}</span>
+              <span>Stop active terminal: {taskSupersedeStopReview}</span>
+              <span>Reason: {taskSupersedeReasonReview}</span>
+            </div>
+          </article>
+
           <div style={actionRowStyle}>
             <button
               type="submit"
@@ -3733,6 +3775,35 @@ export default function BuilderWorkspaceDesktop() {
             <span>Linked task: {terminalLaunchTaskId}</span>
             <span>CWD: {terminalLaunchCwd}</span>
             <span>Command JSON: <code>{terminalLaunchCommandJson}</code></span>
+          </div>
+        </article>
+
+        <article aria-label="Urgent interrupt review" style={listCardStyle}>
+          <div style={rowBetweenStyle}>
+            <div style={stackStyle}>
+              <span style={{ ...pillStyle, ...toneStyle(selectedActiveTerminal ? "warning" : "info"), width: "fit-content" }}>
+                Urgent review
+              </span>
+              <strong>Review before interrupting this worker</strong>
+              <p style={mutedParagraphStyle}>
+                Nothing is interrupted yet. This action is for urgent overrides when a worker should stop,
+                refresh, and avoid continuing stale work.
+              </p>
+            </div>
+            <span style={{ ...pillStyle, ...toneStyle(selectedWorkerId ? "warning" : "neutral") }}>
+              {selectedWorkerId ? "manual trigger" : "select worker first"}
+            </span>
+          </div>
+          <div style={metaStackStyle}>
+            <span>Worker: {urgentInterruptWorkerReview}</span>
+            <span>Current task: {urgentInterruptTaskReview}</span>
+            <span>Active terminal: {urgentInterruptTerminalReview}</span>
+            <span>Stop behavior: {urgentInterruptStopReview}</span>
+            <span>
+              Notification: {selectedWorkerId
+                ? `send interrupt request to ${selectedWorkerId}`
+                : "select a worker before sending a notification"}
+            </span>
           </div>
         </article>
 

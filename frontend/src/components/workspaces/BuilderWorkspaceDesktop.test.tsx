@@ -1165,6 +1165,14 @@ describe("BuilderWorkspaceDesktop", () => {
 
     render(<BuilderWorkspaceDesktop />);
 
+    const interruptReview = await screen.findByLabelText("Urgent interrupt review");
+    expect(interruptReview).toHaveTextContent("Worker: builder-alpha");
+    expect(interruptReview).toHaveTextContent("Current task: builder-task-override");
+    expect(interruptReview).toHaveTextContent("Active terminal: terminal-builder-alpha-001");
+    expect(interruptReview).toHaveTextContent("Stop behavior: force-stop terminal-builder-alpha-001");
+    expect(interruptReview).toHaveTextContent("Notification: send interrupt request to builder-alpha");
+    expect(apiMocks.stopCodexControlTerminal).not.toHaveBeenCalled();
+
     fireEvent.click(await screen.findByRole("button", { name: "Interrupt selected worker" }));
 
     await waitFor(() => {
@@ -1287,6 +1295,15 @@ describe("BuilderWorkspaceDesktop", () => {
     fireEvent.change(screen.getByLabelText("Supersede reason"), {
       target: { value: "Urgent production issue." },
     });
+
+    const supersedeReview = await screen.findByLabelText("Task supersede review");
+    expect(supersedeReview).toHaveTextContent("Worker: builder-alpha");
+    expect(supersedeReview).toHaveTextContent("Current task: builder-task-override");
+    expect(supersedeReview).toHaveTextContent("Replacement title: Urgent Builder override");
+    expect(supersedeReview).toHaveTextContent("Replacement scopes: frontend/src/components/workspaces");
+    expect(supersedeReview).toHaveTextContent("Stop active terminal: yes (terminal-builder-alpha-001)");
+    expect(supersedeReview).toHaveTextContent("Reason: Urgent production issue.");
+    expect(apiMocks.supersedeCodexControlTask).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Supersede current task" }));
 
