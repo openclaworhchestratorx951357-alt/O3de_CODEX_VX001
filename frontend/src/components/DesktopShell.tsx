@@ -133,62 +133,71 @@ export default function DesktopShell({
           boxSizing: "border-box",
         }}
       >
-        <aside style={navRailStyle}>
+        <aside aria-label="Workspace menu tree" style={navRailStyle}>
           <div style={navSectionHeaderStyle}>
-            <span style={navSectionEyebrowStyle}>Workspace switcher</span>
+            <span style={navSectionEyebrowStyle}>Workspace tree</span>
             <strong style={navSectionTitleStyle}>Control surface</strong>
             <span style={navSectionDetailStyle}>
-              Move through the project in shallow grouped sections instead of one intimidating continuous page.
+              Open one group at a time so the right side stays available for large editor and viewer surfaces.
+            </span>
+            <span style={currentWorkspacePillStyle}>
+              <span>Now open</span>
+              <strong>{activeNavItem?.label ?? workspaceTitle}</strong>
             </span>
           </div>
 
-          <div style={currentWorkspaceCardStyle}>
-            <span style={navSectionEyebrowStyle}>Now open</span>
-            <strong style={currentWorkspaceTitleStyle}>{activeNavItem?.label ?? workspaceTitle}</strong>
-            <span style={navSectionDetailStyle}>{activeNavItem?.subtitle ?? workspaceSubtitle}</span>
-          </div>
-
           <div style={navScrollableRegionStyle}>
-            {navSections.map((section) => (
-              <section key={section.id} style={navGroupStyle}>
-                <div style={navGroupHeaderStyle}>
-                  <strong style={navGroupTitleStyle}>{section.label}</strong>
-                  <span style={navGroupDetailStyle}>{section.detail}</span>
-                </div>
-                <div style={navListStyle}>
-                  {section.items.map((item) => {
-                    const active = item.id === activeWorkspaceId;
-                    const tone = toneStyles[item.tone ?? "neutral"];
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => onSelectWorkspace(item.id)}
-                        title={item.helpTooltip ?? undefined}
-                        style={{
-                          ...navButtonStyle,
-                          ...(active ? activeNavButtonStyle : null),
-                        }}
-                      >
-                        <div style={navButtonHeaderStyle}>
-                          <strong>{item.label}</strong>
-                          {item.badge ? (
-                            <span style={{ ...navBadgeStyle, ...tone }}>
-                              {item.badge}
-                            </span>
-                          ) : null}
-                        </div>
-                        <span style={navButtonSubtitleStyle}>{item.subtitle}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
+            {navSections.map((section) => {
+              const sectionActive = section.items.some((item) => item.id === activeWorkspaceId);
+              return (
+                <details
+                  key={section.id}
+                  open={sectionActive || section.id === "start"}
+                  style={navGroupStyle}
+                >
+                  <summary style={navGroupSummaryStyle} title={section.detail}>
+                    <span style={navGroupSummaryLabelStyle}>{section.label}</span>
+                    {sectionActive ? (
+                      <span style={{ ...navBadgeStyle, ...toneStyles.info }}>
+                        open
+                      </span>
+                    ) : null}
+                  </summary>
+                  <div style={navListStyle}>
+                    {section.items.map((item) => {
+                      const active = item.id === activeWorkspaceId;
+                      const tone = toneStyles[item.tone ?? "neutral"];
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => onSelectWorkspace(item.id)}
+                          title={item.helpTooltip ?? undefined}
+                          style={{
+                            ...navButtonStyle,
+                            ...(active ? activeNavButtonStyle : null),
+                          }}
+                        >
+                          <div style={navButtonHeaderStyle}>
+                            <strong>{item.label}</strong>
+                            {item.badge ? (
+                              <span style={{ ...navBadgeStyle, ...tone }}>
+                                {item.badge}
+                              </span>
+                            ) : null}
+                          </div>
+                          <span style={navButtonSubtitleStyle}>{item.subtitle}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </details>
+              );
+            })}
 
             {quickStats.length > 0 ? (
               <div style={quickStatsRailStyle}>
-                <span style={navSectionEyebrowStyle}>Desktop telemetry</span>
+                <span style={navSectionEyebrowStyle}>Status</span>
                 <div style={quickStatsGridStyle}>
                   {quickStats.map((item) => (
                     <div
@@ -357,32 +366,37 @@ const desktopSurfaceStyle = {
   zIndex: 1,
   display: "flex",
   flexWrap: "wrap",
-  gap: 24,
-  alignItems: "stretch",
+  gap: 18,
+  alignItems: "flex-start",
   minHeight: 0,
   overflow: "visible",
   padding: 24,
 } satisfies CSSProperties;
 
 const navRailStyle = {
-  flex: "1 1 260px",
-  minWidth: 240,
-  maxWidth: 320,
+  flex: "0 0 clamp(220px, 17vw, 280px)",
+  alignSelf: "flex-start",
+  position: "sticky",
+  top: 78,
+  minWidth: 220,
+  maxWidth: 280,
+  maxHeight: "calc(100vh - 98px)",
   display: "grid",
-  gap: 18,
-  gridTemplateRows: "auto auto auto",
-  padding: 20,
+  gap: 12,
+  gridTemplateRows: "auto minmax(0, 1fr)",
+  padding: 14,
   background: "var(--app-panel-bg)",
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-window-radius)",
   boxShadow: "var(--app-shadow-strong)",
   backdropFilter: "blur(20px)",
   minHeight: 0,
+  overflow: "auto",
 } satisfies CSSProperties;
 
 const navSectionHeaderStyle = {
   display: "grid",
-  gap: 6,
+  gap: 8,
 } satisfies CSSProperties;
 
 const navSectionEyebrowStyle = {
@@ -394,7 +408,8 @@ const navSectionEyebrowStyle = {
 } satisfies CSSProperties;
 
 const navSectionTitleStyle = {
-  fontSize: 18,
+  fontSize: 17,
+  lineHeight: 1.15,
 } satisfies CSSProperties;
 
 const navSectionDetailStyle = {
@@ -403,68 +418,74 @@ const navSectionDetailStyle = {
   lineHeight: 1.45,
 } satisfies CSSProperties;
 
+const currentWorkspacePillStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 5,
+  width: "fit-content",
+  maxWidth: "100%",
+  border: "1px solid var(--app-accent-strong)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "6px 9px",
+  background: "var(--app-accent-soft)",
+  color: "var(--app-text-color)",
+  fontSize: 12,
+  lineHeight: 1.25,
+} satisfies CSSProperties;
+
 const navListStyle = {
   display: "grid",
-  gap: 10,
-} satisfies CSSProperties;
-
-const currentWorkspaceCardStyle = {
-  display: "grid",
-  gap: 6,
-  padding: "14px 16px",
-  border: "1px solid var(--app-panel-border)",
-  borderRadius: "var(--app-panel-radius)",
-  background: "linear-gradient(145deg, var(--app-accent-soft) 0%, var(--app-panel-bg-alt) 100%)",
-  boxShadow: "var(--app-shadow-soft)",
-} satisfies CSSProperties;
-
-const currentWorkspaceTitleStyle = {
-  fontSize: 16,
-  lineHeight: 1.15,
+  gap: 8,
+  paddingTop: 8,
 } satisfies CSSProperties;
 
 const navScrollableRegionStyle = {
   display: "grid",
-  gap: 18,
-  minHeight: "auto",
+  gap: 10,
+  minHeight: 0,
   overflow: "visible",
 } satisfies CSSProperties;
 
 const navGroupStyle = {
   display: "grid",
-  gap: 10,
+  gap: 0,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-panel-radius)",
+  background: "var(--app-panel-bg-alt)",
+  boxShadow: "var(--app-shadow-soft)",
+  overflow: "hidden",
 } satisfies CSSProperties;
 
-const navGroupHeaderStyle = {
-  display: "grid",
-  gap: 4,
+const navGroupSummaryStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 8,
+  padding: "10px 12px",
+  cursor: "pointer",
+  listStyle: "revert",
 } satisfies CSSProperties;
 
-const navGroupTitleStyle = {
+const navGroupSummaryLabelStyle = {
   fontSize: 13,
   lineHeight: 1.15,
   textTransform: "uppercase",
   letterSpacing: "0.08em",
   color: "var(--app-subtle-color)",
-} satisfies CSSProperties;
-
-const navGroupDetailStyle = {
-  color: "var(--app-muted-color)",
-  fontSize: 12,
-  lineHeight: 1.45,
+  fontWeight: 800,
 } satisfies CSSProperties;
 
 const navButtonStyle = {
   borderWidth: 1,
   borderStyle: "solid",
   borderColor: "var(--app-panel-border)",
-  borderRadius: "var(--app-panel-radius)",
-  padding: "14px 16px",
+  borderRadius: "calc(var(--app-panel-radius) - 4px)",
+  padding: "10px 12px",
   background: "var(--app-panel-bg-alt)",
   cursor: "pointer",
   textAlign: "left",
   display: "grid",
-  gap: 6,
+  gap: 4,
   color: "var(--app-text-color)",
   boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;
@@ -485,8 +506,8 @@ const navButtonHeaderStyle = {
 
 const navButtonSubtitleStyle = {
   color: "var(--app-muted-color)",
-  fontSize: 12,
-  lineHeight: 1.45,
+  fontSize: 11,
+  lineHeight: 1.35,
 } satisfies CSSProperties;
 
 const navBadgeStyle = {
@@ -500,21 +521,21 @@ const navBadgeStyle = {
 
 const quickStatsRailStyle = {
   display: "grid",
-  gap: 10,
+  gap: 8,
 } satisfies CSSProperties;
 
 const quickStatsGridStyle = {
   display: "grid",
-  gap: 10,
-  gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+  gap: 8,
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
 } satisfies CSSProperties;
 
 const quickStatCardStyle = {
   border: "1px solid var(--app-panel-border)",
-  borderRadius: "var(--app-panel-radius)",
-  padding: "12px 14px",
+  borderRadius: "calc(var(--app-panel-radius) - 4px)",
+  padding: "9px 10px",
   display: "grid",
-  gap: 6,
+  gap: 4,
 } satisfies CSSProperties;
 
 const quickStatLabelStyle = {
@@ -525,7 +546,7 @@ const quickStatLabelStyle = {
 } satisfies CSSProperties;
 
 const workspaceShellStyle = {
-  flex: "999 1 760px",
+  flex: "1 1 820px",
   minWidth: 0,
   display: "grid",
   gap: 16,
