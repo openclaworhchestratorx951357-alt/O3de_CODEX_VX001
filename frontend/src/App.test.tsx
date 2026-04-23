@@ -142,6 +142,7 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("Control surface")).toBeInTheDocument();
     expect(screen.getAllByText("Mission Control").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Launchpad").length).toBeGreaterThan(0);
+    expect(screen.getByText("Recommended next steps")).toBeInTheDocument();
     expect(screen.getByText("LayoutHeader stub")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Prompt Studio/i));
@@ -152,6 +153,14 @@ describe("App desktop smoke", () => {
 
     expect(screen.getAllByText("Mission Control").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Launchpad").length).toBeGreaterThan(0);
+  });
+
+  it("opens prompt workspace from the home recommendation strip", async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Prompt Studio" }));
+
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
   });
 
   it("opens the runtime workspace from the home launchpad without leaving a blank shell", async () => {

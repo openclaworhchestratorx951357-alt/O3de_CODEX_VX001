@@ -10,6 +10,7 @@ import OverviewHandoffPackagePanel from "./components/OverviewHandoffPackagePane
 import OverviewAttentionPanel from "./components/OverviewAttentionPanel";
 import OverviewReviewQueuePanel from "./components/OverviewReviewQueuePanel";
 import OverviewReviewSessionPanel from "./components/OverviewReviewSessionPanel";
+import RecommendedActionsPanel from "./components/RecommendedActionsPanel";
 import HomeWorkspaceView from "./components/workspaces/HomeWorkspaceView";
 import SettingsPanel from "./components/SettingsPanel";
 import {
@@ -69,6 +70,7 @@ import {
   resetLaneFocus,
   resetPresetLaneFocus,
 } from "./lib/laneController";
+import { buildHomeRecommendationDescriptors, type HomeRecommendationActionId } from "./lib/recommendations";
 import { useSettings } from "./lib/settings/hooks";
 import type { FocusedSection, TruthFilterState } from "./lib/laneController";
 import type {
@@ -4612,6 +4614,44 @@ export default function App() {
       helpTooltip: runsQuickStatGuide.tooltip,
     },
   ] as const;
+  const homeRecommendationEntries = buildHomeRecommendationDescriptors({
+    pendingApprovalCount,
+    warningExecutionCount,
+    unresolvedRunCount,
+    persistenceReady: readiness?.persistence_ready ?? false,
+    bridgeConfigured: o3deBridgeStatus?.configured ?? false,
+    bridgeHeartbeatFresh: o3deBridgeStatus?.heartbeat_fresh ?? false,
+    supportsRealExecution: adapters?.supports_real_execution ?? false,
+  }).map((entry) => ({
+    ...entry,
+    onAction: () => {
+      handleHomeRecommendationAction(entry.actionId);
+    },
+  }));
+
+  function handleHomeRecommendationAction(actionId: HomeRecommendationActionId) {
+    switch (actionId) {
+      case "open_prompt":
+        setActiveWorkspaceId("prompt");
+        return;
+      case "open_builder":
+        setActiveWorkspaceId("builder");
+        return;
+      case "open_runtime_overview":
+        setActiveWorkspaceId("runtime");
+        setActiveRuntimeSurface("overview");
+        return;
+      case "open_records_runs":
+        setActiveWorkspaceId("records");
+        setActiveRecordsSurface("runs");
+        return;
+      case "open_operations_approvals":
+        setActiveWorkspaceId("operations");
+        setActiveOperationsSurface("approvals");
+        return;
+    }
+  }
+
   const operationsSurfaceItems = [
     {
       ...getWorkspaceSurfaceGuide("operations", "dispatch"),
@@ -4759,6 +4799,7 @@ export default function App() {
   const recordsLaunchpad = recordsWorkspaceGuide.launchpad!;
   const homeLaunchpadContent = (
     <>
+      <RecommendedActionsPanel entries={homeRecommendationEntries} />
       <div style={desktopLaunchpadGridStyle}>
         <button
           type="button"
