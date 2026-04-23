@@ -232,6 +232,22 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("OperatorOverviewPanel stub")).toBeInTheDocument();
   });
 
+  it("opens real app workspaces from the Home O3DE creation desk actions", async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("tab", { name: /O3DE Game/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Create with natural language/i }));
+
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+
+    fireEvent.click(getDesktopNavButton(/Home/i));
+    fireEvent.click(screen.getByRole("tab", { name: /O3DE Game/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Check bridge\/runtime/i }));
+
+    expect(await screen.findByText("SystemStatusPanel stub")).toBeInTheDocument();
+    expect(screen.getByText("Runtime Console")).toBeInTheDocument();
+  });
+
   it("shows a truthful empty catalog state instead of fallback agent data when live catalog data is unavailable", async () => {
     apiMocks.fetchToolsCatalog.mockResolvedValueOnce({ agents: [] });
     render(<App />);

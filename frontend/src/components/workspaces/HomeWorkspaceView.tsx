@@ -12,6 +12,9 @@ type HomeWorkspaceViewProps = {
   launchpadContent: ReactNode;
   overviewContent: ReactNode;
   guideContent: ReactNode;
+  onOpenPromptStudio?: () => void;
+  onOpenRuntimeOverview?: () => void;
+  onOpenBuilder?: () => void;
 };
 
 const missionControlWindow = getWorkspaceWindowGuide("home", "mission-control");
@@ -46,6 +49,9 @@ export default function HomeWorkspaceView({
   launchpadContent,
   overviewContent,
   guideContent,
+  onOpenPromptStudio,
+  onOpenRuntimeOverview,
+  onOpenBuilder,
 }: HomeWorkspaceViewProps) {
   const [activeSurfaceId, setActiveSurfaceId] = useState<HomeSurfaceId>("start");
 
@@ -77,7 +83,11 @@ export default function HomeWorkspaceView({
     >
       {activeSurfaceId === "start" ? (
         <div style={guidedShellStyle}>
-          <HomeTaskModePanel />
+          <HomeTaskModePanel
+            onOpenPromptStudio={onOpenPromptStudio}
+            onOpenRuntimeOverview={onOpenRuntimeOverview}
+            onOpenBuilder={onOpenBuilder}
+          />
           <DesktopWindow
             variant="nested"
             title={missionControlWindow.title}

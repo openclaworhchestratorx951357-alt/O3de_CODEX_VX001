@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import HomeWorkspaceView from "./HomeWorkspaceView";
 
@@ -38,12 +38,19 @@ describe("HomeWorkspaceView", () => {
   });
 
   it("switches Home task modes into O3DE creation and project loading desks", () => {
+    const openPromptStudio = vi.fn();
+    const openRuntimeOverview = vi.fn();
+    const openBuilder = vi.fn();
+
     render(
       <HomeWorkspaceView
         missionControlContent={<div>Mission control content</div>}
         launchpadContent={<div>Launchpad content</div>}
         overviewContent={<div>Overview content</div>}
         guideContent={<div>Guide content</div>}
+        onOpenPromptStudio={openPromptStudio}
+        onOpenRuntimeOverview={openRuntimeOverview}
+        onOpenBuilder={openBuilder}
       />,
     );
 
@@ -53,6 +60,14 @@ describe("HomeWorkspaceView", () => {
     expect(screen.getByLabelText("Game viewport control surface")).toBeInTheDocument();
     expect(screen.getByText("Component Palette")).toBeInTheDocument();
     expect(screen.getByText(/this is a generated control-surface shell/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Create with natural language/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Check bridge\/runtime/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Coordinate tasks/i }));
+
+    expect(openPromptStudio).toHaveBeenCalledTimes(1);
+    expect(openRuntimeOverview).toHaveBeenCalledTimes(1);
+    expect(openBuilder).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole("tab", { name: /O3DE Movie/i }));
 

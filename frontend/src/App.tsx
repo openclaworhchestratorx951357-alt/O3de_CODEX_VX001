@@ -6786,6 +6786,9 @@ export default function App() {
             launchpadContent={homeLaunchpadContent}
             overviewContent={homeOverviewContent}
             guideContent={homeGuideContent}
+            onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
+            onOpenRuntimeOverview={openRuntimeOverview}
+            onOpenBuilder={() => setActiveWorkspaceId("builder")}
           />
         ) : null}
 
