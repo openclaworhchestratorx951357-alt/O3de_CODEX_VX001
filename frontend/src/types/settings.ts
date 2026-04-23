@@ -45,6 +45,7 @@ export type LayoutSettings = {
   preferredLandingSection: LandingSection;
   showDesktopTelemetry: boolean;
   guidedMode: boolean;
+  guidedTourCompleted: boolean;
 };
 
 export type OperatorDefaultsSettings = {

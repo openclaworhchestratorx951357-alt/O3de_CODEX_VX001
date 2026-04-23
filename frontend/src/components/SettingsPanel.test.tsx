@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SettingsProvider } from "../lib/settings/context";
+import { createDefaultSettings, createSettingsProfile } from "../lib/settings/defaults";
 import SettingsPanel from "./SettingsPanel";
 import { SETTINGS_PROFILE_STORAGE_KEY } from "../types/settings";
 
@@ -155,5 +156,33 @@ describe("SettingsPanel", () => {
 
     expect(screen.getByLabelText("Theme mode")).toHaveValue("system");
     expect(screen.getByText("Saved settings were reset to defaults.")).toBeInTheDocument();
+  });
+
+  it("restarts the guided tour from the settings dialog", () => {
+    const defaultSettings = createDefaultSettings();
+    window.localStorage.setItem(
+      SETTINGS_PROFILE_STORAGE_KEY,
+      JSON.stringify(createSettingsProfile({
+        ...defaultSettings,
+        layout: {
+          ...defaultSettings.layout,
+          guidedMode: false,
+          guidedTourCompleted: true,
+        },
+      })),
+    );
+
+    render(
+      <SettingsProvider>
+        <SettingsPanel />
+      </SettingsProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "Restart Guided Tour" }));
+
+    expect(screen.queryByRole("dialog", { name: "Settings profile" })).not.toBeInTheDocument();
+    expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"guidedMode":true');
+    expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"guidedTourCompleted":false');
   });
 });

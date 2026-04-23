@@ -128,6 +128,7 @@ describe("DesktopShell", () => {
           preferredLandingSection: "home",
           showDesktopTelemetry: true,
           guidedMode: true,
+          guidedTourCompleted: true,
         },
         operatorDefaults: {
           projectRoot: "",

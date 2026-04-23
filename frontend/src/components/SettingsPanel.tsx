@@ -176,6 +176,20 @@ export default function SettingsPanel({
     setStatusMessage(`${formatGuidedModeToggleLabel(guidedMode)} mode applied.`);
   }
 
+  function handleRestartGuidedTour(): void {
+    const nextProfile = saveSettings(normalizeSettings({
+      ...settings,
+      layout: {
+        ...settings.layout,
+        guidedMode: true,
+        guidedTourCompleted: false,
+      },
+    }));
+    resetDraftFromSettings(nextProfile.settings);
+    setStatusMessage("Guided tour restarted.");
+    closeSettings();
+  }
+
   function handleSave(): void {
     const nextProfile = saveSettings(normalizedDraft);
     resetDraftFromSettings(nextProfile.settings);
@@ -491,6 +505,14 @@ export default function SettingsPanel({
                   />
                   Use guided mode to keep advanced panels collapsed by default
                 </label>
+
+                <button
+                  type="button"
+                  onClick={handleRestartGuidedTour}
+                  style={secondaryButtonStyle}
+                >
+                  Restart Guided Tour
+                </button>
               </section>
 
               <section style={cardStyle}>

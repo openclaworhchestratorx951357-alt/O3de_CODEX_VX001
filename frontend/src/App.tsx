@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useRef, useState, type CSSProperties } from "react";
 
 import DesktopShell from "./components/DesktopShell";
+import FirstRunTour from "./components/FirstRunTour";
 import LayoutHeader from "./components/LayoutHeader";
 import OverviewHandoffConfidencePanel from "./components/OverviewHandoffConfidencePanel";
 import OverviewContextMemoryPanel from "./components/OverviewContextMemoryPanel";
@@ -389,7 +390,7 @@ const ACTIVE_RUNTIME_SURFACE_SESSION_KEY = "o3de-control-app-active-runtime-surf
 const ACTIVE_RECORDS_SURFACE_SESSION_KEY = "o3de-control-app-active-records-surface";
 
 export default function App() {
-  const { settings } = useSettings();
+  const { settings, saveSettings } = useSettings();
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
   const [approvals, setApprovals] = useState<ApprovalListItem[]>([]);
@@ -4652,6 +4653,16 @@ export default function App() {
     }
   }
 
+  function completeFirstRunTour(): void {
+    saveSettings({
+      ...settings,
+      layout: {
+        ...settings.layout,
+        guidedTourCompleted: true,
+      },
+    });
+  }
+
   const operationsSurfaceItems = [
     {
       ...getWorkspaceSurfaceGuide("operations", "dispatch"),
@@ -6171,65 +6182,75 @@ export default function App() {
     </Suspense>
   );
   return (
-    <DesktopShell
-      appTitle={operatorGuideCatalog.app.title}
-      appSubtitle={operatorGuideCatalog.app.subtitle}
-      workspaceTitle={activeWorkspaceMeta.title}
-      workspaceSubtitle={activeWorkspaceMeta.subtitle}
-      activeWorkspaceId={activeWorkspaceId}
-      navSections={desktopNavSections}
-      quickStats={settings.layout.showDesktopTelemetry ? desktopQuickStats : []}
-      utilityLabel={dashboardRefreshStatus ?? "desktop shell live"}
-      utilityDetail={dashboardRefreshDetail}
-      utilityActions={<SettingsPanel />}
-      onSelectWorkspace={(workspaceId) => setActiveWorkspaceId(workspaceId as DesktopWorkspaceId)}
-    >
-      {activeWorkspaceId === "home" ? (
-        <HomeWorkspaceView
-          missionControlContent={homeMissionControlContent}
-          launchpadContent={homeLaunchpadContent}
-          overviewContent={homeOverviewContent}
-          guideContent={homeGuideContent}
+    <>
+      <DesktopShell
+        appTitle={operatorGuideCatalog.app.title}
+        appSubtitle={operatorGuideCatalog.app.subtitle}
+        workspaceTitle={activeWorkspaceMeta.title}
+        workspaceSubtitle={activeWorkspaceMeta.subtitle}
+        activeWorkspaceId={activeWorkspaceId}
+        navSections={desktopNavSections}
+        quickStats={settings.layout.showDesktopTelemetry ? desktopQuickStats : []}
+        utilityLabel={dashboardRefreshStatus ?? "desktop shell live"}
+        utilityDetail={dashboardRefreshDetail}
+        utilityActions={<SettingsPanel />}
+        onSelectWorkspace={(workspaceId) => setActiveWorkspaceId(workspaceId as DesktopWorkspaceId)}
+      >
+        {activeWorkspaceId === "home" ? (
+          <HomeWorkspaceView
+            missionControlContent={homeMissionControlContent}
+            launchpadContent={homeLaunchpadContent}
+            overviewContent={homeOverviewContent}
+            guideContent={homeGuideContent}
+          />
+        ) : null}
+
+        {activeWorkspaceId === "prompt" ? (
+          <Suspense
+            fallback={renderWorkspaceLoadingFallback(
+              "Prompt Studio",
+              "Loading natural-language planning and admitted execution controls.",
+            )}
+          >
+            <PromptWorkspaceDesktop
+              selectedWorkspaceId={selectedWorkspaceId}
+              selectedExecutorId={selectedExecutorId}
+            />
+          </Suspense>
+        ) : null}
+
+        {activeWorkspaceId === "builder" ? (
+          <Suspense
+            fallback={renderWorkspaceLoadingFallback(
+              "Builder",
+              "Loading worktree lanes, mission-control visibility, and Codex handoff scaffolding.",
+            )}
+          >
+            <BuilderWorkspaceDesktop />
+          </Suspense>
+        ) : null}
+
+        {activeWorkspaceId === "operations" ? (
+          renderOperationsWorkspace()
+        ) : null}
+
+        {activeWorkspaceId === "runtime" ? (
+          renderRuntimeWorkspace()
+        ) : null}
+
+        {activeWorkspaceId === "records" ? (
+          renderRecordsWorkspace()
+        ) : null}
+      </DesktopShell>
+
+      {settings.layout.guidedMode && !settings.layout.guidedTourCompleted ? (
+        <FirstRunTour
+          activeWorkspaceId={activeWorkspaceId}
+          onSelectWorkspace={(workspaceId) => setActiveWorkspaceId(workspaceId as DesktopWorkspaceId)}
+          onComplete={completeFirstRunTour}
         />
       ) : null}
-
-      {activeWorkspaceId === "prompt" ? (
-        <Suspense
-          fallback={renderWorkspaceLoadingFallback(
-            "Prompt Studio",
-            "Loading natural-language planning and admitted execution controls.",
-          )}
-        >
-          <PromptWorkspaceDesktop
-            selectedWorkspaceId={selectedWorkspaceId}
-            selectedExecutorId={selectedExecutorId}
-          />
-        </Suspense>
-      ) : null}
-
-      {activeWorkspaceId === "builder" ? (
-        <Suspense
-          fallback={renderWorkspaceLoadingFallback(
-            "Builder",
-            "Loading worktree lanes, mission-control visibility, and Codex handoff scaffolding.",
-          )}
-        >
-          <BuilderWorkspaceDesktop />
-        </Suspense>
-      ) : null}
-
-      {activeWorkspaceId === "operations" ? (
-        renderOperationsWorkspace()
-      ) : null}
-
-      {activeWorkspaceId === "runtime" ? (
-        renderRuntimeWorkspace()
-      ) : null}
-
-      {activeWorkspaceId === "records" ? (
-        renderRecordsWorkspace()
-      ) : null}
-    </DesktopShell>
+    </>
   );
 }
 

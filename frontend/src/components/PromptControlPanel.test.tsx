@@ -482,6 +482,7 @@ const waitingSession: PromptSessionRecord = {
           preferredLandingSection: "prompt",
           showDesktopTelemetry: true,
           guidedMode: true,
+          guidedTourCompleted: true,
         },
         operatorDefaults: {
           projectRoot: "C:/saved-project",
