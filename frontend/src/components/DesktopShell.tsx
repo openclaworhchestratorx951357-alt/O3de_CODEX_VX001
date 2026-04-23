@@ -304,53 +304,55 @@ export default function DesktopShell({
               </div>
             </div>
 
-            {activeNavSection ? (
-              <div
-                aria-label={`${activeNavSection.label} workspace sections`}
-                style={workspacePeerNavStyle}
-              >
-                <span style={workspacePeerNavLabelStyle}>
-                  {activeNavSection.label}
-                </span>
-                {activeNavSection.items.map((item) => {
-                  const active = item.id === activeWorkspaceId;
-                  return (
-                    <button
-                      key={`peer-${item.id}`}
-                      type="button"
-                      onClick={() => onSelectWorkspace(item.id)}
-                      title={item.helpTooltip ?? item.subtitle}
+            <div style={workspaceChromeControlsStyle}>
+              {activeNavSection ? (
+                <div
+                  aria-label={`${activeNavSection.label} workspace sections`}
+                  style={workspacePeerNavStyle}
+                >
+                  <span style={workspacePeerNavLabelStyle}>
+                    {activeNavSection.label}
+                  </span>
+                  {activeNavSection.items.map((item) => {
+                    const active = item.id === activeWorkspaceId;
+                    return (
+                      <button
+                        key={`peer-${item.id}`}
+                        type="button"
+                        onClick={() => onSelectWorkspace(item.id)}
+                        title={item.helpTooltip ?? item.subtitle}
+                        style={{
+                          ...workspacePeerNavPillStyle,
+                          ...(active ? activeWorkspacePeerNavPillStyle : null),
+                        }}
+                      >
+                        {item.label}
+                        {item.badge ? (
+                          <span style={workspacePeerNavBadgeStyle}>{item.badge}</span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {quickStats.length > 0 ? (
+                <div style={workspaceQuickStatsRowStyle}>
+                  {quickStats.map((item) => (
+                    <span
+                      key={`workspace-${item.label}-${item.value}`}
+                      title={item.helpTooltip ?? undefined}
                       style={{
-                        ...workspacePeerNavPillStyle,
-                        ...(active ? activeWorkspacePeerNavPillStyle : null),
+                        ...workspaceQuickStatPillStyle,
+                        ...toneStyles[item.tone ?? "neutral"],
                       }}
                     >
-                      {item.label}
-                      {item.badge ? (
-                        <span style={workspacePeerNavBadgeStyle}>{item.badge}</span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : null}
-
-            {quickStats.length > 0 ? (
-              <div style={workspaceQuickStatsRowStyle}>
-                {quickStats.map((item) => (
-                  <span
-                    key={`workspace-${item.label}-${item.value}`}
-                    title={item.helpTooltip ?? undefined}
-                    style={{
-                      ...workspaceQuickStatPillStyle,
-                      ...toneStyles[item.tone ?? "neutral"],
-                    }}
-                  >
-                    {item.label}: {item.value}
-                  </span>
-                ))}
-              </div>
-            ) : null}
+                      {item.label}: {item.value}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <div style={workspaceCanvasStyle}>
@@ -788,7 +790,7 @@ const workspaceShellStyle = {
   alignSelf: "stretch",
   minWidth: 0,
   display: "grid",
-  gap: 16,
+  gap: 12,
   gridTemplateRows: "auto minmax(0, 1fr)",
   padding: 16,
   background: "var(--app-panel-bg)",
@@ -803,33 +805,45 @@ const workspaceShellStyle = {
 } satisfies CSSProperties;
 
 const workspaceChromeStyle = {
-  display: "grid",
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
   gap: 12,
   width: "min(100%, 1040px)",
   justifySelf: "start",
-  padding: "14px 16px",
+  padding: "10px 12px",
   borderRadius: "var(--app-panel-radius)",
   background: "linear-gradient(135deg, var(--app-accent-soft) 0%, var(--app-panel-bg-alt) 100%)",
   border: "1px solid var(--app-panel-border)",
+  boxSizing: "border-box",
 } satisfies CSSProperties;
 
 const workspaceChromeMetaStyle = {
   display: "flex",
-  gap: 16,
-  alignItems: "flex-start",
-  justifyContent: "space-between",
-  flexWrap: "wrap",
+  gap: 10,
+  alignItems: "center",
+  flex: "1 1 320px",
+  minWidth: 220,
+} satisfies CSSProperties;
+
+const workspaceChromeControlsStyle = {
+  display: "grid",
+  justifyItems: "start",
+  alignSelf: "flex-start",
+  gap: 6,
+  flex: "0 1 560px",
+  minWidth: 0,
 } satisfies CSSProperties;
 
 const workspacePeerNavStyle = {
   display: "flex",
   alignItems: "center",
-  gap: 8,
+  gap: 5,
   width: "fit-content",
   maxWidth: "100%",
   minWidth: 0,
   overflowX: "auto",
-  padding: "8px",
+  padding: "4px",
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-pill-radius)",
   background: "color-mix(in srgb, var(--app-panel-bg) 70%, transparent)",
@@ -838,11 +852,11 @@ const workspacePeerNavStyle = {
 const workspacePeerNavLabelStyle = {
   flex: "0 0 auto",
   color: "var(--app-subtle-color)",
-  fontSize: 11,
+  fontSize: 10,
   fontWeight: 800,
   letterSpacing: "0.08em",
   textTransform: "uppercase",
-  paddingInline: 4,
+  paddingInline: 5,
 } satisfies CSSProperties;
 
 const workspacePeerNavPillStyle = {
@@ -852,11 +866,11 @@ const workspacePeerNavPillStyle = {
   gap: 7,
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-pill-radius)",
-  padding: "8px 12px",
+  padding: "5px 9px",
   background: "var(--app-panel-bg-alt)",
   color: "var(--app-text-color)",
   cursor: "pointer",
-  fontSize: 12,
+  fontSize: 11,
   fontWeight: 700,
   whiteSpace: "nowrap" as const,
 } satisfies CSSProperties;
@@ -870,25 +884,26 @@ const activeWorkspacePeerNavPillStyle = {
 const workspacePeerNavBadgeStyle = {
   border: "1px solid var(--app-accent-strong)",
   borderRadius: "var(--app-pill-radius)",
-  padding: "2px 6px",
+  padding: "1px 5px",
   background: "var(--app-panel-bg)",
-  fontSize: 10,
+  fontSize: 9,
 } satisfies CSSProperties;
 
 const workspaceTitleStyle = {
-  fontSize: 24,
+  fontSize: 20,
   lineHeight: 1.1,
 } satisfies CSSProperties;
 
 const workspaceSubtitleStyle = {
   color: "var(--app-muted-color)",
-  lineHeight: 1.5,
+  fontSize: 13,
+  lineHeight: 1.35,
 } satisfies CSSProperties;
 
 const workspaceQuickStatsRowStyle = {
   display: "flex",
   flexWrap: "wrap",
-  gap: 10,
+  gap: 6,
   alignItems: "flex-start",
 } satisfies CSSProperties;
 
@@ -900,21 +915,22 @@ const workspaceQuickStatPillStyle = {
   flex: "0 0 auto",
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-pill-radius)",
-  padding: "8px 12px",
-  fontSize: 12,
-  lineHeight: 1.35,
+  padding: "4px 8px",
+  fontSize: 11,
+  lineHeight: 1.2,
   whiteSpace: "nowrap" as const,
 } satisfies CSSProperties;
 
 const windowControlsStyle = {
   display: "flex",
-  gap: 8,
+  gap: 7,
   alignItems: "center",
+  paddingTop: 2,
 } satisfies CSSProperties;
 
 const windowControlDotStyle = {
-  width: 11,
-  height: 11,
+  width: 9,
+  height: 9,
   borderRadius: "50%",
   boxShadow: "var(--app-window-control-shadow)",
 } satisfies CSSProperties;
