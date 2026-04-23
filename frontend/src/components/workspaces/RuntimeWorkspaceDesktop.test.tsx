@@ -148,6 +148,9 @@ describe("RuntimeWorkspaceDesktop", () => {
 
     expect(screen.getByText("AdaptersPanel stub")).toBeInTheDocument();
     expect(screen.getByText("Runtime recommendations")).toBeInTheDocument();
+    expect(screen.getAllByText(/Suggested because:/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Runtime > Workspaces window/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime > Executors window/i)).toBeInTheDocument();
     expect(screen.getByText("SystemStatusPanel stub")).toBeInTheDocument();
     expect(screen.getByText("OperatorOverviewPanel stub")).toBeInTheDocument();
     expect(screen.queryByText("ExecutorsPanel stub")).not.toBeInTheDocument();

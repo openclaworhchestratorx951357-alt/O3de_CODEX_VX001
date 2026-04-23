@@ -13,7 +13,13 @@ import {
 type RecommendedActionsPanelProps = {
   title?: string;
   description?: string;
-  entries: ReadonlyArray<RecommendationDescriptor & { onAction: () => void }>;
+  entries: ReadonlyArray<
+    RecommendationDescriptor & {
+      onAction: () => void;
+      suggestedBecause?: string;
+      opensLabel?: string;
+    }
+  >;
 };
 
 const toneStyles: Record<RecommendationDescriptor["tone"], CSSProperties> = {
@@ -69,32 +75,53 @@ export default function RecommendedActionsPanel({
         />
       </div>
       <div style={summaryCardGridStyle}>
-        {entries.map((entry) => (
-          <article
-            key={entry.id}
-            style={{
-              ...summaryCardStyle,
-              alignContent: "start",
-            }}
-          >
-            <span
+        {entries.map((entry) => {
+          const hasReviewContext = Boolean(entry.suggestedBecause || entry.opensLabel);
+          return (
+            <article
+              key={entry.id}
               style={{
-                ...recommendationBadgeStyle,
-                ...toneStyles[entry.tone],
+                ...summaryCardStyle,
+                alignContent: "start",
               }}
             >
-              {entry.label}
-            </span>
-            <p style={summaryMutedTextStyle}>{entry.detail}</p>
-            <button
-              type="button"
-              style={summaryActionButtonStyle}
-              onClick={entry.onAction}
-            >
-              {entry.actionLabel}
-            </button>
-          </article>
-        ))}
+              <span
+                style={{
+                  ...recommendationBadgeStyle,
+                  ...toneStyles[entry.tone],
+                }}
+              >
+                {entry.label}
+              </span>
+              {hasReviewContext ? (
+                <>
+                  <p style={summaryMutedTextStyle}>
+                    Review why this recommendation appears and which window it opens before you jump.
+                  </p>
+                  <div style={recommendationContextStyle}>
+                    <span>
+                      <strong>Suggested because:</strong> {entry.suggestedBecause ?? entry.detail}
+                    </span>
+                    {entry.opensLabel ? (
+                      <span>
+                        <strong>Opens:</strong> {entry.opensLabel}
+                      </span>
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <p style={summaryMutedTextStyle}>{entry.detail}</p>
+              )}
+              <button
+                type="button"
+                style={summaryActionButtonStyle}
+                onClick={entry.onAction}
+              >
+                {entry.actionLabel}
+              </button>
+            </article>
+          );
+        })}
       </div>
     </section>
   );
@@ -110,4 +137,12 @@ const recommendationBadgeStyle = {
   padding: "6px 10px",
   fontSize: 12,
   fontWeight: 700,
+} satisfies CSSProperties;
+
+const recommendationContextStyle = {
+  display: "grid",
+  gap: 6,
+  color: "var(--app-text-muted)",
+  fontSize: 13,
+  lineHeight: 1.45,
 } satisfies CSSProperties;

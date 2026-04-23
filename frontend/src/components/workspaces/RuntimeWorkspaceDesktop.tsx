@@ -70,6 +70,8 @@ export default function RuntimeWorkspaceDesktop({
     policyCount: governance.policies.items?.length ?? 0,
   }).map((entry) => ({
     ...entry,
+    suggestedBecause: entry.detail,
+    opensLabel: getRuntimeRecommendationOpensLabel(entry.actionId),
     onAction: () => {
       onSelectSurface(resolveRuntimeRecommendationSurface(entry.actionId));
     },
@@ -142,4 +144,17 @@ function resolveRuntimeRecommendationSurface(actionId: RuntimeRecommendationActi
     return "governance";
   }
   return "overview";
+}
+
+function getRuntimeRecommendationOpensLabel(actionId: RuntimeRecommendationActionId) {
+  if (actionId === "open_runtime_executors") {
+    return "Runtime > Executors window";
+  }
+  if (actionId === "open_runtime_workspaces") {
+    return "Runtime > Workspaces window";
+  }
+  if (actionId === "open_runtime_governance") {
+    return "Runtime > Governance window";
+  }
+  return "Runtime > Overview window";
 }

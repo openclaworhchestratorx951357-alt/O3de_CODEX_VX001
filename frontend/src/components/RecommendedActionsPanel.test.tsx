@@ -18,6 +18,8 @@ describe("RecommendedActionsPanel", () => {
             actionLabel: "Open runtime",
             actionId: "open_runtime_overview",
             tone: "warning",
+            suggestedBecause: "Bridge heartbeat is stale and needs a runtime review.",
+            opensLabel: "Runtime > Overview window",
             onAction,
           },
         ]}
@@ -26,6 +28,9 @@ describe("RecommendedActionsPanel", () => {
 
     expect(screen.getByText("Recommended next steps")).toBeInTheDocument();
     expect(screen.getByText("How to use recommendations")).toBeInTheDocument();
+    expect(screen.getByText(/Review why this recommendation appears/i)).toBeInTheDocument();
+    expect(screen.getByText(/Suggested because:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime > Overview window/i)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Open runtime" }));
     expect(onAction).toHaveBeenCalledTimes(1);
