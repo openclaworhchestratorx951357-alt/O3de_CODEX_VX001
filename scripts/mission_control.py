@@ -46,6 +46,8 @@ SUPPORTED_WORKER_CAPABILITY_TAGS = {
     "terminal_control",
     "artifact_review",
     "source_upload_context",
+    "external_agent",
+    "openclaw_agent",
 }
 
 
@@ -218,6 +220,9 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
             worker_id TEXT PRIMARY KEY,
             display_name TEXT NOT NULL,
             agent_profile TEXT,
+            agent_runtime TEXT,
+            agent_entrypoint TEXT,
+            agent_access_notes TEXT,
             identity_notes TEXT,
             personality_notes TEXT,
             soul_directive TEXT,
@@ -305,6 +310,9 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
         "workers",
         {
             "agent_profile": "TEXT",
+            "agent_runtime": "TEXT",
+            "agent_entrypoint": "TEXT",
+            "agent_access_notes": "TEXT",
             "identity_notes": "TEXT",
             "personality_notes": "TEXT",
             "soul_directive": "TEXT",
@@ -354,6 +362,9 @@ def row_to_worker(row: sqlite3.Row | None) -> dict[str, Any] | None:
     worker["capability_tags"] = parse_worker_capability_tags(worker.pop("capability_tags_json", None))
     worker["context_sources"] = parse_context_sources(worker.pop("context_sources_json", None))
     worker.setdefault("agent_profile", None)
+    worker.setdefault("agent_runtime", None)
+    worker.setdefault("agent_entrypoint", None)
+    worker.setdefault("agent_access_notes", None)
     worker.setdefault("identity_notes", None)
     worker.setdefault("personality_notes", None)
     worker.setdefault("soul_directive", None)
@@ -631,6 +642,9 @@ def upsert_worker(
     summary: str | None,
     current_task_id: str | None = None,
     agent_profile: str | None = None,
+    agent_runtime: str | None = None,
+    agent_entrypoint: str | None = None,
+    agent_access_notes: str | None = None,
     identity_notes: str | None = None,
     personality_notes: str | None = None,
     soul_directive: str | None = None,
@@ -649,6 +663,9 @@ def upsert_worker(
     existing = conn.execute("SELECT * FROM workers WHERE worker_id = ?", (worker_id,)).fetchone()
     existing_worker = row_to_worker(existing)
     next_agent_profile = agent_profile if agent_profile is not None else existing_worker.get("agent_profile") if existing_worker else None
+    next_agent_runtime = agent_runtime if agent_runtime is not None else existing_worker.get("agent_runtime") if existing_worker else None
+    next_agent_entrypoint = agent_entrypoint if agent_entrypoint is not None else existing_worker.get("agent_entrypoint") if existing_worker else None
+    next_agent_access_notes = agent_access_notes if agent_access_notes is not None else existing_worker.get("agent_access_notes") if existing_worker else None
     next_identity_notes = identity_notes if identity_notes is not None else existing_worker.get("identity_notes") if existing_worker else None
     next_personality_notes = personality_notes if personality_notes is not None else existing_worker.get("personality_notes") if existing_worker else None
     next_soul_directive = soul_directive if soul_directive is not None else existing_worker.get("soul_directive") if existing_worker else None
@@ -674,18 +691,21 @@ def upsert_worker(
         conn.execute(
             """
             INSERT INTO workers (
-                worker_id, display_name, agent_profile, identity_notes, personality_notes,
-                soul_directive, memory_notes, bootstrap_notes, capability_tags_json,
-                context_sources_json, avatar_label,
+                worker_id, display_name, agent_profile, agent_runtime, agent_entrypoint,
+                agent_access_notes, identity_notes, personality_notes, soul_directive,
+                memory_notes, bootstrap_notes, capability_tags_json, context_sources_json, avatar_label,
                 avatar_color, avatar_uri, branch_name, worktree_path, base_branch,
                 status, current_task_id, summary, resume_notes, created_at, updated_at, last_seen_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 worker_id,
                 display_name,
                 next_agent_profile,
+                next_agent_runtime,
+                next_agent_entrypoint,
+                next_agent_access_notes,
                 next_identity_notes,
                 next_personality_notes,
                 next_soul_directive,
@@ -712,9 +732,10 @@ def upsert_worker(
         conn.execute(
             """
             UPDATE workers
-            SET display_name = ?, agent_profile = ?, identity_notes = ?, personality_notes = ?,
-                soul_directive = ?, memory_notes = ?, bootstrap_notes = ?, capability_tags_json = ?,
-                context_sources_json = ?, avatar_label = ?, avatar_color = ?, avatar_uri = ?,
+            SET display_name = ?, agent_profile = ?, agent_runtime = ?, agent_entrypoint = ?,
+                agent_access_notes = ?, identity_notes = ?, personality_notes = ?, soul_directive = ?,
+                memory_notes = ?, bootstrap_notes = ?, capability_tags_json = ?, context_sources_json = ?,
+                avatar_label = ?, avatar_color = ?, avatar_uri = ?,
                 branch_name = ?, worktree_path = ?, base_branch = ?,
                 status = ?, current_task_id = ?, summary = ?, resume_notes = ?, updated_at = ?, last_seen_at = ?
             WHERE worker_id = ?
@@ -722,6 +743,9 @@ def upsert_worker(
             (
                 display_name,
                 next_agent_profile,
+                next_agent_runtime,
+                next_agent_entrypoint,
+                next_agent_access_notes,
                 next_identity_notes,
                 next_personality_notes,
                 next_soul_directive,
@@ -1403,6 +1427,12 @@ def write_board_files(context: Context, snapshot: dict[str, Any]) -> str:
                 f"task={worker['current_task_id'] or '-'} {summary}".rstrip()
             )
             lines.append(f"  profile: {worker.get('agent_profile') or '-'} capabilities={capabilities}")
+            if worker.get("agent_runtime"):
+                lines.append(f"  runtime: {worker['agent_runtime']}")
+            if worker.get("agent_entrypoint"):
+                lines.append(f"  entrypoint: {worker['agent_entrypoint']}")
+            if worker.get("agent_access_notes"):
+                lines.append(f"  access_notes: {worker['agent_access_notes']}")
             lines.append(f"  context_sources: {context_sources}")
             if worker.get("identity_notes"):
                 lines.append(f"  identity: {worker['identity_notes']}")
@@ -1518,6 +1548,9 @@ def command_sync_worker(args: argparse.Namespace, context: Context) -> dict[str,
             status=status,
             summary=args.summary,
             agent_profile=args.agent_profile,
+            agent_runtime=args.agent_runtime,
+            agent_entrypoint=args.agent_entrypoint,
+            agent_access_notes=args.agent_access_notes,
             identity_notes=args.identity_notes,
             personality_notes=args.personality_notes,
             soul_directive=args.soul_directive,
@@ -1565,6 +1598,9 @@ def command_create_lane(args: argparse.Namespace, context: Context) -> dict[str,
             status="idle",
             summary="lane created",
             agent_profile=args.agent_profile,
+            agent_runtime=args.agent_runtime,
+            agent_entrypoint=args.agent_entrypoint,
+            agent_access_notes=args.agent_access_notes,
             identity_notes=args.identity_notes,
             personality_notes=args.personality_notes,
             soul_directive=args.soul_directive,
@@ -1660,6 +1696,9 @@ def command_heartbeat(args: argparse.Namespace, context: Context) -> dict[str, A
             summary=summary,
             current_task_id=current_task_id,
             agent_profile=args.agent_profile,
+            agent_runtime=args.agent_runtime,
+            agent_entrypoint=args.agent_entrypoint,
+            agent_access_notes=args.agent_access_notes,
             identity_notes=args.identity_notes,
             personality_notes=args.personality_notes,
             soul_directive=args.soul_directive,
@@ -1830,6 +1869,9 @@ def build_parser() -> argparse.ArgumentParser:
     sync.add_argument("--status", default="idle")
     sync.add_argument("--summary")
     sync.add_argument("--agent-profile")
+    sync.add_argument("--agent-runtime")
+    sync.add_argument("--agent-entrypoint")
+    sync.add_argument("--agent-access-notes")
     sync.add_argument("--identity-notes")
     sync.add_argument("--personality-notes")
     sync.add_argument("--soul-directive")
@@ -1850,6 +1892,9 @@ def build_parser() -> argparse.ArgumentParser:
     create_lane.add_argument("--base-branch", default=DEFAULT_BASE_BRANCH)
     create_lane.add_argument("--no-bootstrap", action="store_true")
     create_lane.add_argument("--agent-profile")
+    create_lane.add_argument("--agent-runtime")
+    create_lane.add_argument("--agent-entrypoint")
+    create_lane.add_argument("--agent-access-notes")
     create_lane.add_argument("--identity-notes")
     create_lane.add_argument("--personality-notes")
     create_lane.add_argument("--soul-directive")
@@ -1904,6 +1949,9 @@ def build_parser() -> argparse.ArgumentParser:
     heartbeat.add_argument("--worktree-path")
     heartbeat.add_argument("--base-branch")
     heartbeat.add_argument("--agent-profile")
+    heartbeat.add_argument("--agent-runtime")
+    heartbeat.add_argument("--agent-entrypoint")
+    heartbeat.add_argument("--agent-access-notes")
     heartbeat.add_argument("--identity-notes")
     heartbeat.add_argument("--personality-notes")
     heartbeat.add_argument("--soul-directive")

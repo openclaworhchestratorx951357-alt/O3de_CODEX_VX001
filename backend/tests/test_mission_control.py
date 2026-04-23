@@ -95,6 +95,9 @@ def test_worker_profile_metadata_persists_for_resumable_thread_workspaces(tmp_pa
             status="idle",
             summary="Ready to resume O3DE authoring.",
             agent_profile="O3DE authoring specialist",
+            agent_runtime="OpenClaw",
+            agent_entrypoint="OpenClaw workspace profile: O3DE Author",
+            agent_access_notes="User grants the external agent access to its own workspace/context pack only.",
             identity_notes="Named helper thread with a durable workspace.",
             personality_notes="Careful, direct, and evidence-first.",
             soul_directive="Protect stable game work while unlocking safe authoring.",
@@ -113,6 +116,9 @@ def test_worker_profile_metadata_persists_for_resumable_thread_workspaces(tmp_pa
         snapshot = module.build_board_snapshot(conn, context)
 
     assert worker["agent_profile"] == "O3DE authoring specialist"
+    assert fetched["agent_runtime"] == "OpenClaw"
+    assert fetched["agent_entrypoint"] == "OpenClaw workspace profile: O3DE Author"
+    assert fetched["agent_access_notes"] == "User grants the external agent access to its own workspace/context pack only."
     assert fetched["capability_tags"] == ["repo_read", "mission_control", "o3de_bridge"]
     assert fetched["context_sources"] == ["docs/APP-OPERATOR-GUIDE.md", "frontend/src/App.tsx"]
     assert fetched["avatar_label"] == "OA"

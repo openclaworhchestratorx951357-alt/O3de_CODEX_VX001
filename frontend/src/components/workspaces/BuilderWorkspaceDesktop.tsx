@@ -69,6 +69,9 @@ type LaneDraft = {
   workerId: string;
   displayName: string;
   agentProfile: string;
+  agentRuntime: string;
+  agentEntrypoint: string;
+  agentAccessNotes: string;
   identityNotes: string;
   personalityNotes: string;
   soulDirective: string;
@@ -109,6 +112,9 @@ type WorkerSyncDraft = {
   workerId: string;
   displayName: string;
   agentProfile: string;
+  agentRuntime: string;
+  agentEntrypoint: string;
+  agentAccessNotes: string;
   identityNotes: string;
   personalityNotes: string;
   soulDirective: string;
@@ -132,6 +138,9 @@ type WorkerHeartbeatDraft = {
   summary: string;
   currentTaskId: string;
   agentProfile: string;
+  agentRuntime: string;
+  agentEntrypoint: string;
+  agentAccessNotes: string;
   identityNotes: string;
   personalityNotes: string;
   soulDirective: string;
@@ -158,6 +167,9 @@ type LoadedWorkerDraftReview = {
   baseBranch: string;
   currentTaskId?: string;
   agentProfile?: string;
+  agentRuntime?: string;
+  agentEntrypoint?: string;
+  agentAccessNotes?: string;
   identityNotes?: string;
   personalityNotes?: string;
   soulDirective?: string;
@@ -225,6 +237,9 @@ const INITIAL_LANE_DRAFT: LaneDraft = {
   workerId: "",
   displayName: "",
   agentProfile: "Builder generalist",
+  agentRuntime: "Codex Desktop",
+  agentEntrypoint: "",
+  agentAccessNotes: "User grants workspace/context access and approves any app-control script before execution.",
   identityNotes: "Named helper thread with its own branch, worktree, board identity, and resume trail.",
   personalityNotes: "Careful, concise, evidence-first, and collaborative.",
   soulDirective: "Protect the stable app while making steady, reviewable progress.",
@@ -265,6 +280,9 @@ const INITIAL_WORKER_SYNC_DRAFT: WorkerSyncDraft = {
   workerId: "",
   displayName: "",
   agentProfile: "",
+  agentRuntime: "",
+  agentEntrypoint: "",
+  agentAccessNotes: "",
   identityNotes: "",
   personalityNotes: "",
   soulDirective: "",
@@ -288,6 +306,9 @@ const INITIAL_WORKER_HEARTBEAT_DRAFT: WorkerHeartbeatDraft = {
   summary: "",
   currentTaskId: "",
   agentProfile: "",
+  agentRuntime: "",
+  agentEntrypoint: "",
+  agentAccessNotes: "",
   identityNotes: "",
   personalityNotes: "",
   soulDirective: "",
@@ -352,28 +373,45 @@ const SUPPORTED_THREAD_CAPABILITIES = [
   "terminal_control",
   "artifact_review",
   "source_upload_context",
+  "external_agent",
+  "openclaw_agent",
 ] as const;
 
 const THREAD_PROFILE_PRESETS = [
   {
     label: "Builder generalist",
     capabilityTags: "repo_read, repo_edit, mission_control, frontend_ui, backend_api",
+    runtime: "Codex Desktop",
+    accessNotes: "User grants repo/workspace access through Codex Desktop and app-control previews remain approval-gated.",
     color: "#2563eb",
   },
   {
     label: "O3DE authoring specialist",
     capabilityTags: "repo_read, mission_control, o3de_bridge, proof_validation, artifact_review",
+    runtime: "Codex Desktop",
+    accessNotes: "User grants O3DE target context through the repo bridge and keeps editor mutations approval-gated.",
     color: "#059669",
   },
   {
     label: "Frontend UX operator",
     capabilityTags: "repo_read, repo_edit, mission_control, frontend_ui, docs_runbook",
+    runtime: "Codex Desktop",
+    accessNotes: "User grants frontend worktree access; this worker should stay inside claimed UI scopes.",
     color: "#d97706",
   },
   {
     label: "Proof and release verifier",
     capabilityTags: "repo_read, mission_control, proof_validation, artifact_review, docs_runbook",
+    runtime: "Codex Desktop",
+    accessNotes: "User grants read/verification access; this worker should prefer evidence collection over mutation.",
     color: "#7c3aed",
+  },
+  {
+    label: "OpenClaw external agent",
+    capabilityTags: "repo_read, mission_control, source_upload_context, external_agent, openclaw_agent",
+    runtime: "OpenClaw or compatible external agent",
+    accessNotes: "User grants the external agent access to its own workspace/context pack; app-control actions still need user approval.",
+    color: "#0f766e",
   },
 ] as const;
 
@@ -610,6 +648,9 @@ function buildWorkerSyncDraft(
     workerId: worker.worker_id,
     displayName: worker.display_name,
     agentProfile: worker.agent_profile ?? "",
+    agentRuntime: worker.agent_runtime ?? "",
+    agentEntrypoint: worker.agent_entrypoint ?? "",
+    agentAccessNotes: worker.agent_access_notes ?? "",
     identityNotes: worker.identity_notes ?? "",
     personalityNotes: worker.personality_notes ?? "",
     soulDirective: worker.soul_directive ?? "",
@@ -639,6 +680,9 @@ function buildWorkerHeartbeatDraft(worker: CodexControlWorker | null): WorkerHea
     summary: worker.summary ?? "",
     currentTaskId: worker.current_task_id ?? "",
     agentProfile: worker.agent_profile ?? "",
+    agentRuntime: worker.agent_runtime ?? "",
+    agentEntrypoint: worker.agent_entrypoint ?? "",
+    agentAccessNotes: worker.agent_access_notes ?? "",
     identityNotes: worker.identity_notes ?? "",
     personalityNotes: worker.personality_notes ?? "",
     soulDirective: worker.soul_directive ?? "",
@@ -683,6 +727,9 @@ function buildWorkerHandoffPackage(
     `- worker_id: ${worker?.worker_id ?? "select a worker"}`,
     `- display_name: ${worker?.display_name ?? "n/a"}`,
     `- agent_profile: ${worker?.agent_profile ?? "n/a"}`,
+    `- agent_runtime: ${worker?.agent_runtime ?? "n/a"}`,
+    `- agent_entrypoint: ${worker?.agent_entrypoint ?? "n/a"}`,
+    `- agent_access_notes: ${worker?.agent_access_notes ?? "n/a"}`,
     `- identity_notes: ${worker?.identity_notes ?? "n/a"}`,
     `- personality_notes: ${worker?.personality_notes ?? "n/a"}`,
     `- soul_directive: ${worker?.soul_directive ?? "n/a"}`,
@@ -1764,6 +1811,9 @@ export default function BuilderWorkspaceDesktop() {
       worker_id: laneDraft.workerId.trim(),
       display_name: sanitizeOptional(laneDraft.displayName),
       agent_profile: sanitizeOptional(laneDraft.agentProfile),
+      agent_runtime: sanitizeOptional(laneDraft.agentRuntime),
+      agent_entrypoint: sanitizeOptional(laneDraft.agentEntrypoint),
+      agent_access_notes: sanitizeOptional(laneDraft.agentAccessNotes),
       identity_notes: sanitizeOptional(laneDraft.identityNotes),
       personality_notes: sanitizeOptional(laneDraft.personalityNotes),
       soul_directive: sanitizeOptional(laneDraft.soulDirective),
@@ -1907,6 +1957,9 @@ export default function BuilderWorkspaceDesktop() {
       worker_id: workerSyncDraft.workerId.trim(),
       display_name: sanitizeOptional(workerSyncDraft.displayName),
       agent_profile: sanitizeOptional(workerSyncDraft.agentProfile),
+      agent_runtime: sanitizeOptional(workerSyncDraft.agentRuntime),
+      agent_entrypoint: sanitizeOptional(workerSyncDraft.agentEntrypoint),
+      agent_access_notes: sanitizeOptional(workerSyncDraft.agentAccessNotes),
       identity_notes: sanitizeOptional(workerSyncDraft.identityNotes),
       personality_notes: sanitizeOptional(workerSyncDraft.personalityNotes),
       soul_directive: sanitizeOptional(workerSyncDraft.soulDirective),
@@ -1956,6 +2009,9 @@ export default function BuilderWorkspaceDesktop() {
       summary: sanitizeOptional(workerHeartbeatDraft.summary),
       current_task_id: sanitizeOptional(workerHeartbeatDraft.currentTaskId),
       agent_profile: sanitizeOptional(workerHeartbeatDraft.agentProfile),
+      agent_runtime: sanitizeOptional(workerHeartbeatDraft.agentRuntime),
+      agent_entrypoint: sanitizeOptional(workerHeartbeatDraft.agentEntrypoint),
+      agent_access_notes: sanitizeOptional(workerHeartbeatDraft.agentAccessNotes),
       identity_notes: sanitizeOptional(workerHeartbeatDraft.identityNotes),
       personality_notes: sanitizeOptional(workerHeartbeatDraft.personalityNotes),
       soul_directive: sanitizeOptional(workerHeartbeatDraft.soulDirective),
@@ -2005,6 +2061,9 @@ export default function BuilderWorkspaceDesktop() {
       worktreePath: nextDraft.worktreePath || "none",
       baseBranch: nextDraft.baseBranch || "none",
       agentProfile: nextDraft.agentProfile || "none",
+      agentRuntime: nextDraft.agentRuntime || "none",
+      agentEntrypoint: nextDraft.agentEntrypoint || "none",
+      agentAccessNotes: nextDraft.agentAccessNotes || "none",
       identityNotes: nextDraft.identityNotes || "none",
       personalityNotes: nextDraft.personalityNotes || "none",
       soulDirective: nextDraft.soulDirective || "none",
@@ -2032,6 +2091,9 @@ export default function BuilderWorkspaceDesktop() {
       baseBranch: nextDraft.baseBranch || "keep current",
       currentTaskId: nextDraft.currentTaskId || "keep current",
       agentProfile: nextDraft.agentProfile || "keep current",
+      agentRuntime: nextDraft.agentRuntime || "keep current",
+      agentEntrypoint: nextDraft.agentEntrypoint || "keep current",
+      agentAccessNotes: nextDraft.agentAccessNotes || "keep current",
       identityNotes: nextDraft.identityNotes || "keep current",
       personalityNotes: nextDraft.personalityNotes || "keep current",
       soulDirective: nextDraft.soulDirective || "keep current",
@@ -3520,6 +3582,37 @@ export default function BuilderWorkspaceDesktop() {
               </label>
 
               <label style={fieldStyle}>
+                Agent runtime / provider
+                <input
+                  value={laneDraft.agentRuntime}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, agentRuntime: event.target.value }))}
+                  placeholder="Codex Desktop, OpenClaw, custom local agent"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Agent entrypoint
+                <input
+                  value={laneDraft.agentEntrypoint}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, agentEntrypoint: event.target.value }))}
+                  placeholder="How to open or contact this agent: thread name, app profile, workspace URL, local path, or command notes"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Agent access notes
+                <textarea
+                  value={laneDraft.agentAccessNotes}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, agentAccessNotes: event.target.value }))}
+                  placeholder="What the user has granted this agent: workspace path, source pack, repo scope, approval boundaries"
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={fieldStyle}>
                 Avatar initials
                 <input
                   value={laneDraft.avatarLabel}
@@ -3640,6 +3733,8 @@ export default function BuilderWorkspaceDesktop() {
                   onClick={() => setLaneDraft((current) => ({
                     ...current,
                     agentProfile: preset.label,
+                    agentRuntime: preset.runtime,
+                    agentAccessNotes: preset.accessNotes,
                     capabilityTags: preset.capabilityTags,
                     avatarColor: preset.color,
                   }))}
@@ -3661,11 +3756,11 @@ export default function BuilderWorkspaceDesktop() {
           </label>
 
           <label style={fieldStyle}>
-            Worktree path
+            Worktree or external workspace path
             <input
               value={laneDraft.worktreePath}
               onChange={(event) => setLaneDraft((current) => ({ ...current, worktreePath: event.target.value }))}
-              placeholder="Leave blank to use the repo launchpad convention."
+              placeholder="Leave blank for launchpad worktree, or paste the external agent workspace path."
               style={inputStyle}
             />
           </label>
@@ -3817,6 +3912,9 @@ export default function BuilderWorkspaceDesktop() {
         <div style={metaStackStyle}>
           <span>Display name: <code>{selectedWorker?.display_name ?? "n/a"}</code></span>
           <span>Agent profile: <code>{selectedWorker?.agent_profile ?? "n/a"}</code></span>
+          <span>Runtime/provider: <code>{selectedWorker?.agent_runtime ?? "n/a"}</code></span>
+          <span>Agent entrypoint: <code>{selectedWorker?.agent_entrypoint ?? "n/a"}</code></span>
+          <span>Access notes: {selectedWorker?.agent_access_notes ?? "n/a"}</span>
           <span>Capabilities: <code>{formatStringList(selectedWorker?.capability_tags) || "n/a"}</code></span>
           <span>Context sources: <code>{formatStringList(selectedWorker?.context_sources) || "n/a"}</code></span>
           <span>Soul directive: {selectedWorker?.soul_directive ?? "n/a"}</span>
@@ -3870,6 +3968,36 @@ export default function BuilderWorkspaceDesktop() {
                   onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, agentProfile: event.target.value }))}
                   placeholder="O3DE authoring specialist"
                   style={inputStyle}
+                />
+              </label>
+
+              <label style={fieldStyle}>
+                Agent runtime / provider
+                <input
+                  value={workerSyncDraft.agentRuntime}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, agentRuntime: event.target.value }))}
+                  placeholder="Codex Desktop, OpenClaw, custom local agent"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Agent entrypoint
+                <input
+                  value={workerSyncDraft.agentEntrypoint}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, agentEntrypoint: event.target.value }))}
+                  placeholder="Thread name, app profile, workspace URL, local path, or command notes"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Agent access notes
+                <textarea
+                  value={workerSyncDraft.agentAccessNotes}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, agentAccessNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
                 />
               </label>
 
@@ -4180,6 +4308,9 @@ export default function BuilderWorkspaceDesktop() {
             { label: "Worktree", value: loadedWorkerDraftReview.worktreePath },
             { label: "Base branch", value: loadedWorkerDraftReview.baseBranch },
             { label: "Agent profile", value: loadedWorkerDraftReview.agentProfile ?? "none" },
+            { label: "Agent runtime", value: loadedWorkerDraftReview.agentRuntime ?? "none" },
+            { label: "Agent entrypoint", value: loadedWorkerDraftReview.agentEntrypoint ?? "none" },
+            { label: "Agent access notes", value: loadedWorkerDraftReview.agentAccessNotes ?? "none" },
             { label: "Identity", value: loadedWorkerDraftReview.identityNotes ?? "none" },
             { label: "Personality", value: loadedWorkerDraftReview.personalityNotes ?? "none" },
             { label: "Soul directive", value: loadedWorkerDraftReview.soulDirective ?? "none" },

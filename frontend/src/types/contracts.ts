@@ -359,6 +359,9 @@ export interface CodexControlWorker {
   worker_id: string;
   display_name: string;
   agent_profile?: string | null;
+  agent_runtime?: string | null;
+  agent_entrypoint?: string | null;
+  agent_access_notes?: string | null;
   identity_notes?: string | null;
   personality_notes?: string | null;
   soul_directive?: string | null;
@@ -472,6 +475,9 @@ export interface CodexControlLaneCreateRequest {
   worker_id: string;
   display_name?: string | null;
   agent_profile?: string | null;
+  agent_runtime?: string | null;
+  agent_entrypoint?: string | null;
+  agent_access_notes?: string | null;
   identity_notes?: string | null;
   personality_notes?: string | null;
   soul_directive?: string | null;
@@ -501,6 +507,9 @@ export interface CodexControlWorkerSyncRequest {
   worker_id: string;
   display_name?: string | null;
   agent_profile?: string | null;
+  agent_runtime?: string | null;
+  agent_entrypoint?: string | null;
+  agent_access_notes?: string | null;
   identity_notes?: string | null;
   personality_notes?: string | null;
   soul_directive?: string | null;
@@ -524,6 +533,9 @@ export interface CodexControlWorkerHeartbeatRequest {
   summary?: string | null;
   current_task_id?: string | null;
   agent_profile?: string | null;
+  agent_runtime?: string | null;
+  agent_entrypoint?: string | null;
+  agent_access_notes?: string | null;
   identity_notes?: string | null;
   personality_notes?: string | null;
   soul_directive?: string | null;

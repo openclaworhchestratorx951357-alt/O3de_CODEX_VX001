@@ -134,6 +134,9 @@ class CodexControlWorker(BaseModel):
     worker_id: str = Field(..., min_length=1)
     display_name: str = Field(..., min_length=1)
     agent_profile: str | None = None
+    agent_runtime: str | None = None
+    agent_entrypoint: str | None = None
+    agent_access_notes: str | None = None
     identity_notes: str | None = None
     personality_notes: str | None = None
     soul_directive: str | None = None
@@ -247,6 +250,9 @@ class CodexControlLaneCreateRequest(BaseModel):
     worker_id: str = Field(..., min_length=1)
     display_name: str | None = None
     agent_profile: str | None = None
+    agent_runtime: str | None = None
+    agent_entrypoint: str | None = None
+    agent_access_notes: str | None = None
     identity_notes: str | None = None
     personality_notes: str | None = None
     soul_directive: str | None = None
@@ -276,6 +282,9 @@ class CodexControlWorkerSyncRequest(BaseModel):
     worker_id: str = Field(..., min_length=1)
     display_name: str | None = None
     agent_profile: str | None = None
+    agent_runtime: str | None = None
+    agent_entrypoint: str | None = None
+    agent_access_notes: str | None = None
     identity_notes: str | None = None
     personality_notes: str | None = None
     soul_directive: str | None = None
@@ -299,6 +308,9 @@ class CodexControlWorkerHeartbeatRequest(BaseModel):
     summary: str | None = None
     current_task_id: str | None = None
     agent_profile: str | None = None
+    agent_runtime: str | None = None
+    agent_entrypoint: str | None = None
+    agent_access_notes: str | None = None
     identity_notes: str | None = None
     personality_notes: str | None = None
     soul_directive: str | None = None

@@ -54,15 +54,17 @@ vi.mock("../../lib/settings/hooks", () => ({
 vi.mock("./BuilderWorkspaceView", () => ({
   default: ({
     missionBoardContent,
+    laneCreateContent,
     workerLifecycleContent,
     terminalsContent,
     autonomyInboxContent,
   }: {
     missionBoardContent: ReactNode;
+    laneCreateContent: ReactNode;
     workerLifecycleContent: ReactNode;
     terminalsContent: ReactNode;
     autonomyInboxContent: ReactNode;
-  }) => <div>{missionBoardContent}{workerLifecycleContent}{terminalsContent}{autonomyInboxContent}</div>,
+  }) => <div>{missionBoardContent}{laneCreateContent}{workerLifecycleContent}{terminalsContent}{autonomyInboxContent}</div>,
 }));
 
 describe("BuilderWorkspaceDesktop", () => {
@@ -87,6 +89,9 @@ describe("BuilderWorkspaceDesktop", () => {
             worker_id: "builder-alpha",
             display_name: "Builder Alpha",
             agent_profile: "Builder generalist",
+            agent_runtime: "Codex Desktop",
+            agent_entrypoint: "Codex Desktop thread: Builder Alpha",
+            agent_access_notes: "User grants this worker repo workspace access through Codex Desktop.",
             identity_notes: "Named helper lane.",
             personality_notes: "Careful and evidence-first.",
             soul_directive: "Protect stable work.",
@@ -120,6 +125,33 @@ describe("BuilderWorkspaceDesktop", () => {
     apiMocks.fetchCodexControlNotifications.mockResolvedValue({
       status: "ok",
       notifications: [],
+      board_json_path: "C:\\repo\\.git\\codex-mission-control\\latest-board.json",
+      board_text_path: "C:\\repo\\.git\\codex-mission-control\\latest-board.txt",
+    });
+    apiMocks.createCodexControlLane.mockResolvedValue({
+      status: "ok",
+      worker: {
+        worker_id: "openclaw-alpha",
+        display_name: "OpenClaw Alpha",
+        agent_profile: "OpenClaw external agent",
+        agent_runtime: "OpenClaw or compatible external agent",
+        agent_entrypoint: "OpenClaw workspace profile: Alpha",
+        agent_access_notes: "User grants the external agent access to its own workspace/context pack only.",
+        capability_tags: ["repo_read", "mission_control", "source_upload_context", "external_agent", "openclaw_agent"],
+        context_sources: ["C:\\agent-workspace"],
+        avatar_label: "OC",
+        avatar_color: "#0f766e",
+        avatar_uri: null,
+        branch_name: "codex/external/openclaw-alpha",
+        worktree_path: "C:\\agent-workspace",
+        base_branch: "codex/control-plane/o3de-thread-launchpad-stable",
+        status: "idle",
+        current_task_id: null,
+        summary: "lane created",
+        updated_at: "2026-04-22T16:00:00Z",
+        last_seen_at: "2026-04-22T16:00:00Z",
+      },
+      worktree_path: "C:\\agent-workspace",
       board_json_path: "C:\\repo\\.git\\codex-mission-control\\latest-board.json",
       board_text_path: "C:\\repo\\.git\\codex-mission-control\\latest-board.txt",
     });
@@ -491,6 +523,42 @@ describe("BuilderWorkspaceDesktop", () => {
     expect(screen.getByDisplayValue("builder-runtime-guidance")).toBeInTheDocument();
   });
 
+  it("registers a bring-your-own OpenClaw agent lane with workspace context", async () => {
+    render(<BuilderWorkspaceDesktop />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Use OpenClaw external agent" }));
+    fireEvent.change(screen.getAllByLabelText("Worker ID")[0], {
+      target: { value: "openclaw-alpha" },
+    });
+    fireEvent.change(screen.getAllByLabelText("Display name")[0], {
+      target: { value: "OpenClaw Alpha" },
+    });
+    fireEvent.change(screen.getAllByLabelText("Agent entrypoint")[0], {
+      target: { value: "OpenClaw workspace profile: Alpha" },
+    });
+    fireEvent.change(screen.getAllByLabelText("Workspace context sources")[0], {
+      target: { value: "C:\\agent-workspace" },
+    });
+    fireEvent.change(screen.getByLabelText("Worktree or external workspace path"), {
+      target: { value: "C:\\agent-workspace" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Create worktree lane" }));
+
+    await waitFor(() => {
+      expect(apiMocks.createCodexControlLane).toHaveBeenCalledWith(expect.objectContaining({
+        worker_id: "openclaw-alpha",
+        display_name: "OpenClaw Alpha",
+        agent_profile: "OpenClaw external agent",
+        agent_runtime: "OpenClaw or compatible external agent",
+        agent_entrypoint: "OpenClaw workspace profile: Alpha",
+        capability_tags: expect.arrayContaining(["external_agent", "openclaw_agent"]),
+        context_sources: ["C:\\agent-workspace"],
+        worktree_path: "C:\\agent-workspace",
+      }));
+    });
+  });
+
   it("reviews worker lifecycle draft resets before anything is published", async () => {
     render(<BuilderWorkspaceDesktop />);
 
@@ -505,6 +573,8 @@ describe("BuilderWorkspaceDesktop", () => {
     expect(syncReview).toHaveTextContent("Worker: builder-alpha");
     expect(syncReview).toHaveTextContent("Worktree: C:\\repo-builder-alpha");
     expect(syncReview).toHaveTextContent("Agent profile: Builder generalist");
+    expect(syncReview).toHaveTextContent("Agent runtime: Codex Desktop");
+    expect(syncReview).toHaveTextContent("Agent entrypoint: Codex Desktop thread: Builder Alpha");
     expect(syncReview).toHaveTextContent("Capabilities: repo_read, mission_control, frontend_ui");
     expect(syncReview).toHaveTextContent("Context sources: frontend/src/components/workspaces");
     expect(syncReview).toHaveTextContent("Avatar: BA");

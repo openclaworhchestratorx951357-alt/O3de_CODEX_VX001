@@ -302,6 +302,12 @@ class CodexControlService:
             arguments.extend(["--display-name", request.display_name])
         if request.agent_profile:
             arguments.extend(["--agent-profile", request.agent_profile])
+        if request.agent_runtime:
+            arguments.extend(["--agent-runtime", request.agent_runtime])
+        if request.agent_entrypoint:
+            arguments.extend(["--agent-entrypoint", request.agent_entrypoint])
+        if request.agent_access_notes:
+            arguments.extend(["--agent-access-notes", request.agent_access_notes])
         if request.identity_notes:
             arguments.extend(["--identity-notes", request.identity_notes])
         if request.personality_notes:
@@ -355,6 +361,12 @@ class CodexControlService:
             arguments.extend(["--display-name", request.display_name])
         if request.agent_profile:
             arguments.extend(["--agent-profile", request.agent_profile])
+        if request.agent_runtime:
+            arguments.extend(["--agent-runtime", request.agent_runtime])
+        if request.agent_entrypoint:
+            arguments.extend(["--agent-entrypoint", request.agent_entrypoint])
+        if request.agent_access_notes:
+            arguments.extend(["--agent-access-notes", request.agent_access_notes])
         if request.identity_notes:
             arguments.extend(["--identity-notes", request.identity_notes])
         if request.personality_notes:
@@ -409,6 +421,12 @@ class CodexControlService:
             arguments.extend(["--current-task-id", request.current_task_id])
         if request.agent_profile:
             arguments.extend(["--agent-profile", request.agent_profile])
+        if request.agent_runtime:
+            arguments.extend(["--agent-runtime", request.agent_runtime])
+        if request.agent_entrypoint:
+            arguments.extend(["--agent-entrypoint", request.agent_entrypoint])
+        if request.agent_access_notes:
+            arguments.extend(["--agent-access-notes", request.agent_access_notes])
         if request.identity_notes:
             arguments.extend(["--identity-notes", request.identity_notes])
         if request.personality_notes:
