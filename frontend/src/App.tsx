@@ -3,7 +3,10 @@ import { Suspense, lazy, useEffect, useRef, useState, type CSSProperties } from 
 import DesktopShell from "./components/DesktopShell";
 import FirstRunTour from "./components/FirstRunTour";
 import LayoutHeader from "./components/LayoutHeader";
-import WorkspaceNextStepsPanel, { type WorkspaceNextStepEntry } from "./components/WorkspaceNextStepsPanel";
+import WorkspaceNextStepsPanel, {
+  type WorkspaceNextStepEntry,
+  type WorkspaceNextStepRecentAction,
+} from "./components/WorkspaceNextStepsPanel";
 import OverviewHandoffConfidencePanel from "./components/OverviewHandoffConfidencePanel";
 import OverviewContextMemoryPanel from "./components/OverviewContextMemoryPanel";
 import OverviewCloseoutReadinessPanel from "./components/OverviewCloseoutReadinessPanel";
@@ -389,6 +392,43 @@ const ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY = "o3de-control-app-active-desktop-wo
 const ACTIVE_OPERATIONS_SURFACE_SESSION_KEY = "o3de-control-app-active-operations-surface";
 const ACTIVE_RUNTIME_SURFACE_SESSION_KEY = "o3de-control-app-active-runtime-surface";
 const ACTIVE_RECORDS_SURFACE_SESSION_KEY = "o3de-control-app-active-records-surface";
+const WORKSPACE_NEXT_STEP_RECENT_ACTIONS_SESSION_KEY = "o3de-control-app-workspace-next-step-recent-actions";
+const MAX_WORKSPACE_NEXT_STEP_RECENT_ACTIONS = 4;
+
+function isWorkspaceNextStepRecentAction(value: unknown): value is WorkspaceNextStepRecentAction {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Partial<WorkspaceNextStepRecentAction>;
+  return typeof candidate.id === "string"
+    && typeof candidate.stepId === "string"
+    && typeof candidate.label === "string"
+    && typeof candidate.actionLabel === "string"
+    && typeof candidate.workspaceId === "string"
+    && typeof candidate.workspaceLabel === "string"
+    && typeof candidate.usedAt === "string";
+}
+
+function loadWorkspaceNextStepRecentActions(): WorkspaceNextStepRecentAction[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const rawValue = window.sessionStorage.getItem(WORKSPACE_NEXT_STEP_RECENT_ACTIONS_SESSION_KEY);
+  if (!rawValue) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    return Array.isArray(parsed)
+      ? parsed.filter(isWorkspaceNextStepRecentAction).slice(0, MAX_WORKSPACE_NEXT_STEP_RECENT_ACTIONS)
+      : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function App() {
   const { settings, saveSettings } = useSettings();
@@ -473,6 +513,8 @@ export default function App() {
     useState<RuntimeSurfaceId>("overview");
   const [activeRecordsSurface, setActiveRecordsSurface] =
     useState<RecordsSurfaceId>("runs");
+  const [workspaceNextStepRecentActions, setWorkspaceNextStepRecentActions] =
+    useState<WorkspaceNextStepRecentAction[]>(() => loadWorkspaceNextStepRecentActions());
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
   const [adaptersError, setAdaptersError] = useState<string | null>(null);
@@ -2217,6 +2259,17 @@ export default function App() {
 
     window.sessionStorage.setItem(ACTIVE_RECORDS_SURFACE_SESSION_KEY, activeRecordsSurface);
   }, [activeRecordsSurface]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      WORKSPACE_NEXT_STEP_RECENT_ACTIONS_SESSION_KEY,
+      JSON.stringify(workspaceNextStepRecentActions),
+    );
+  }, [workspaceNextStepRecentActions]);
 
   useEffect(() => {
     if (!selectedRunId) {
@@ -4702,6 +4755,27 @@ export default function App() {
     setActiveRecordsSurface("artifacts");
   }
 
+  function recordWorkspaceNextStepAction(entry: WorkspaceNextStepEntry): void {
+    const recentAction: WorkspaceNextStepRecentAction = {
+      id: `${Date.now()}-${entry.id}`,
+      stepId: entry.id,
+      label: entry.label,
+      actionLabel: entry.actionLabel,
+      workspaceId: activeWorkspaceId,
+      workspaceLabel: activeWorkspaceMeta.title,
+      usedAt: new Date().toISOString(),
+    };
+
+    setWorkspaceNextStepRecentActions((previousActions) => [
+      recentAction,
+      ...previousActions.filter((action) => action.stepId !== entry.id),
+    ].slice(0, MAX_WORKSPACE_NEXT_STEP_RECENT_ACTIONS));
+  }
+
+  function clearWorkspaceNextStepRecentActions(): void {
+    setWorkspaceNextStepRecentActions([]);
+  }
+
   function buildWorkspaceNextStepEntries(): WorkspaceNextStepEntry[] {
     const runtimeHealthy = readiness?.persistence_ready === true
       && o3deBridgeStatus?.configured === true
@@ -4712,7 +4786,13 @@ export default function App() {
       if (entries.length >= 3 || entries.some((existing) => existing.id === entry.id)) {
         return;
       }
-      entries.push(entry);
+      entries.push({
+        ...entry,
+        onAction: () => {
+          recordWorkspaceNextStepAction(entry);
+          entry.onAction();
+        },
+      });
     };
 
     if (pendingApprovalCount > 0) {
@@ -4720,6 +4800,11 @@ export default function App() {
         id: "approvals-waiting",
         label: "Approve or reject waiting work",
         detail: `${pendingApprovalCount} approval${pendingApprovalCount === 1 ? "" : "s"} are waiting before related work can continue.`,
+        reason: "Approval-gated work cannot safely continue until an operator approves or rejects the pending request.",
+        signals: [
+          `pending approvals = ${pendingApprovalCount}`,
+          "approval queue has priority over starting new work",
+        ],
         actionLabel: "Open approvals",
         tone: "warning",
         onAction: openOperationsApprovals,
@@ -4731,6 +4816,13 @@ export default function App() {
         id: "runtime-health",
         label: "Verify runtime health",
         detail: "Bridge, persistence, or real-execution readiness needs a check before trusting live O3DE work.",
+        reason: "Live O3DE actions depend on persistence, bridge configuration, heartbeat freshness, and real-execution adapter posture.",
+        signals: [
+          `persistence_ready = ${readiness?.persistence_ready === true}`,
+          `bridge_configured = ${o3deBridgeStatus?.configured === true}`,
+          `heartbeat_fresh = ${o3deBridgeStatus?.heartbeat_fresh === true}`,
+          `supports_real_execution = ${adapters?.supports_real_execution === true}`,
+        ],
         actionLabel: "Open runtime",
         tone: "warning",
         onAction: openRuntimeOverview,
@@ -4742,6 +4834,11 @@ export default function App() {
         id: "warning-executions",
         label: "Review warning executions",
         detail: `${warningExecutionCount} execution${warningExecutionCount === 1 ? "" : "s"} have warnings that may need evidence review.`,
+        reason: "Warning-bearing executions usually explain why work needs review before the operator starts another slice.",
+        signals: [
+          `warning executions = ${warningExecutionCount}`,
+          "records workspace is the evidence review lane",
+        ],
         actionLabel: "Open executions",
         tone: "warning",
         onAction: openRecordsExecutions,
@@ -4753,6 +4850,11 @@ export default function App() {
         id: "unresolved-runs",
         label: "Review unresolved runs",
         detail: `${unresolvedRunCount} run${unresolvedRunCount === 1 ? "" : "s"} still need closeout review.`,
+        reason: "Unresolved runs are the broadest open evidence wrappers, so they can hide incomplete or failed work.",
+        signals: [
+          `unresolved runs = ${unresolvedRunCount}`,
+          "run review helps confirm closeout before more work starts",
+        ],
         actionLabel: "Open runs",
         tone: "warning",
         onAction: openRecordsRuns,
@@ -4764,6 +4866,11 @@ export default function App() {
         id: "prompt-to-builder",
         label: "Coordinate follow-up work",
         detail: "After a prompt creates a plan or live result, use Builder to split follow-up tasks into safe worktree lanes.",
+        reason: "Prompt Studio is good for intent; Builder is better when that intent needs coordinated threads, worktrees, or managed terminals.",
+        signals: [
+          "current workspace = Prompt Studio",
+          "follow-up work benefits from mission-control ownership",
+        ],
         actionLabel: "Open Builder",
         tone: "info",
         onAction: () => setActiveWorkspaceId("builder"),
@@ -4772,6 +4879,11 @@ export default function App() {
         id: "prompt-to-dispatch",
         label: "Use typed dispatch when needed",
         detail: "If the natural-language plan is not the right fit, dispatch a specific tool request from Command Center.",
+        reason: "Typed dispatch is the direct path when you already know the exact tool and arguments you want to run.",
+        signals: [
+          "current workspace = Prompt Studio",
+          `catalog agents loaded = ${catalogAgents.length}`,
+        ],
         actionLabel: "Open dispatch",
         tone: "info",
         onAction: openOperationsDispatch,
@@ -4783,6 +4895,11 @@ export default function App() {
         id: "builder-to-prompt",
         label: "Describe the next build step",
         detail: "Use Prompt Studio when you want Codex to turn a natural-language O3DE request into a governed plan.",
+        reason: "Builder coordinates execution lanes, but Prompt Studio is the safer starting point for turning an idea into an admitted plan.",
+        signals: [
+          "current workspace = Builder",
+          "natural-language planning keeps capability boundaries visible",
+        ],
         actionLabel: "Open Prompt Studio",
         tone: "info",
         onAction: () => setActiveWorkspaceId("prompt"),
@@ -4791,6 +4908,11 @@ export default function App() {
         id: "builder-to-runtime",
         label: "Check live readiness",
         detail: "Before assigning real O3DE work to a lane, confirm runtime bridge and policy posture.",
+        reason: "Parallel Builder lanes should not assume live O3DE readiness without checking bridge, adapter, and policy truth first.",
+        signals: [
+          `runtime healthy = ${runtimeHealthy}`,
+          "governance shows admitted-real versus simulated boundaries",
+        ],
         actionLabel: "Open governance",
         tone: runtimeHealthy ? "success" : "warning",
         onAction: openRuntimeGovernance,
@@ -4803,6 +4925,11 @@ export default function App() {
           id: "operations-catalog-empty",
           label: "Wait for live catalog",
           detail: "The dispatch form needs a live catalog before tool requests can be submitted safely.",
+          reason: "Dispatch should not use fallback or invented tool data; the live catalog must be visible before users submit tool requests.",
+          signals: [
+            `catalog agents loaded = ${catalogAgents.length}`,
+            "dispatch is safest after catalog hydration",
+          ],
           actionLabel: "Open dispatch",
           tone: "warning",
           onAction: openOperationsDispatch,
@@ -4812,6 +4939,12 @@ export default function App() {
         id: "operations-to-records",
         label: "Inspect persisted evidence",
         detail: "After dispatch or approval work moves, review Records to confirm the run, execution, and artifact trail.",
+        reason: "Operations moves work forward; Records verifies what actually happened afterward.",
+        signals: [
+          "current workspace = Command Center",
+          `runs visible = ${runs.length}`,
+          `executions visible = ${executions.length}`,
+        ],
         actionLabel: "Open records",
         tone: "info",
         onAction: openRecordsRuns,
@@ -4824,6 +4957,13 @@ export default function App() {
           id: "runtime-overview",
           label: "Start with system status",
           detail: "Use Runtime Overview first when persistence, bridge, heartbeat, or real-execution posture is uncertain.",
+          reason: "Runtime Overview is the safest first stop when any live-readiness signal is missing or stale.",
+          signals: [
+            `persistence_ready = ${readiness?.persistence_ready === true}`,
+            `bridge_configured = ${o3deBridgeStatus?.configured === true}`,
+            `heartbeat_fresh = ${o3deBridgeStatus?.heartbeat_fresh === true}`,
+            `supports_real_execution = ${adapters?.supports_real_execution === true}`,
+          ],
           actionLabel: "Open overview",
           tone: "warning",
           onAction: openRuntimeOverview,
@@ -4834,6 +4974,11 @@ export default function App() {
           id: "runtime-executors",
           label: "Confirm executors",
           detail: "No executor records are visible yet, so check runner inventory before assigning work.",
+          reason: "Executor records explain which runner lanes exist and whether work has a clear owner.",
+          signals: [
+            `executors visible = ${executors.length}`,
+            "executor inventory supports safe assignment",
+          ],
           actionLabel: "Open executors",
           tone: "info",
           onAction: openRuntimeExecutors,
@@ -4844,6 +4989,11 @@ export default function App() {
           id: "runtime-workspaces",
           label: "Confirm workspaces",
           detail: "No workspace records are visible yet, so check substrate ownership before treating lanes as ready.",
+          reason: "Workspace records show substrate ownership and help avoid assuming a lane exists when it has not been persisted.",
+          signals: [
+            `workspaces visible = ${workspaces.length}`,
+            "workspace inventory supports safe coordination",
+          ],
           actionLabel: "Open workspaces",
           tone: "info",
           onAction: openRuntimeWorkspaces,
@@ -4853,6 +5003,11 @@ export default function App() {
         id: "runtime-governance",
         label: "Review capability boundaries",
         detail: "Use Governance before widening any claim about admitted-real, plan-only, or simulated capability.",
+        reason: "Governance is the truth surface for capability boundaries, so it should be checked before expanding live O3DE claims.",
+        signals: [
+          `runtime healthy = ${runtimeHealthy}`,
+          `policies visible = ${policies.length}`,
+        ],
         actionLabel: "Open governance",
         tone: runtimeHealthy ? "success" : "info",
         onAction: openRuntimeGovernance,
@@ -4865,6 +5020,11 @@ export default function App() {
           id: "records-executions",
           label: "Start with warning executions",
           detail: "Warning-bearing executions usually explain what needs operator attention first.",
+          reason: "Executions are close enough to the tool call to explain warnings without losing the broader run context.",
+          signals: [
+            `warning executions = ${warningExecutionCount}`,
+            "execution detail can show adapter mode and truth boundary",
+          ],
           actionLabel: "Open executions",
           tone: "warning",
           onAction: openRecordsExecutions,
@@ -4875,6 +5035,11 @@ export default function App() {
           id: "records-runs",
           label: "Close out unresolved runs",
           detail: "Runs are the broadest evidence wrapper, so review unresolved runs before assuming work is complete.",
+          reason: "Run records collect the broader outcome and are the right place to close the loop on incomplete work.",
+          signals: [
+            `unresolved runs = ${unresolvedRunCount}`,
+            "run review supports operator closeout",
+          ],
           actionLabel: "Open runs",
           tone: "warning",
           onAction: openRecordsRuns,
@@ -4884,6 +5049,11 @@ export default function App() {
         id: "records-artifacts",
         label: "Inspect artifacts",
         detail: "Artifacts carry the saved payloads and metadata you can use to verify what actually happened.",
+        reason: "Artifacts are the durable evidence objects to inspect when a result or payload needs verification.",
+        signals: [
+          `artifacts visible = ${artifacts.length}`,
+          "artifact metadata can confirm lineage",
+        ],
         actionLabel: "Open artifacts",
         tone: "info",
         onAction: openRecordsArtifacts,
@@ -4894,6 +5064,11 @@ export default function App() {
       id: "fallback-prompt",
       label: "Start a natural-language request",
       detail: "If you are unsure, describe the next O3DE or control-plane change in Prompt Studio and preview the plan.",
+      reason: "When no stronger warning is present, Prompt Studio is the safest beginner path because it previews a governed plan before execution.",
+      signals: [
+        "fallback guidance used after higher-priority recommendations",
+        "preview-first workflow reduces accidental changes",
+      ],
       actionLabel: "Open Prompt Studio",
       tone: "success",
       onAction: () => setActiveWorkspaceId("prompt"),
@@ -6446,7 +6621,11 @@ export default function App() {
         onSelectWorkspace={(workspaceId) => setActiveWorkspaceId(workspaceId as DesktopWorkspaceId)}
       >
         {workspaceNextStepEntries.length > 0 ? (
-          <WorkspaceNextStepsPanel entries={workspaceNextStepEntries} />
+          <WorkspaceNextStepsPanel
+            entries={workspaceNextStepEntries}
+            recentActions={workspaceNextStepRecentActions}
+            onClearRecentActions={clearWorkspaceNextStepRecentActions}
+          />
         ) : null}
 
         {activeWorkspaceId === "home" ? (
