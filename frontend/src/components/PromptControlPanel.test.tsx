@@ -305,6 +305,9 @@ describe("PromptControlPanel", () => {
 
     await screen.findByText("Prompt Capability Registry");
     expect(screen.getByText("Prompt template recommendations")).toBeInTheDocument();
+    expect(screen.getByText("Admitted-real editor actions")).toBeInTheDocument();
+    expect(screen.getAllByText("Why this template?").length).toBeGreaterThan(0);
+    expect(screen.getByText("editor.session.open is available")).toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Use Open current editor session safely" }),

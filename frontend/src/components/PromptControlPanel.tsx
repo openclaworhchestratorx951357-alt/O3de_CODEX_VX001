@@ -50,11 +50,21 @@ type PromptControlPanelProps = {
 type PromptDraftRecommendation = {
   id: string;
   label: string;
+  group: "beginner-safe" | "admitted-real";
   detail: string;
+  reason: string;
+  signals: readonly string[];
   promptText: string;
   preferredDomainsText: string;
   operatorNote: string;
   dryRun: boolean;
+};
+
+type PromptDraftRecommendationGroup = {
+  id: PromptDraftRecommendation["group"];
+  label: string;
+  description: string;
+  entries: PromptDraftRecommendation[];
 };
 
 function hasPromptCapability(
@@ -90,7 +100,14 @@ function buildPromptDraftRecommendations({
     recommendations.push({
       id: "inspect-project-first",
       label: "Inspect project before changing content",
+      group: "beginner-safe",
       detail: "Best first move when a user is unsure: gather project evidence and keep the request read-only.",
+      reason: "Project inspection is a low-risk orientation step because it asks the backend to summarize target evidence before any content mutation.",
+      signals: [
+        "project.inspect is available in the prompt capability registry",
+        "dry run stays on",
+        "operator note marks this as read-only orientation",
+      ],
       promptText: `Inspect ${targetLabel} and summarize the project evidence, current target assumptions, and the safest next O3DE authoring step. Do not create or modify content yet.`,
       preferredDomainsText: "project-build",
       operatorNote: "Template recommendation: read-only project orientation before any O3DE mutation.",
@@ -102,7 +119,14 @@ function buildPromptDraftRecommendations({
     recommendations.push({
       id: "open-editor-session",
       label: "Open current editor session safely",
+      group: "admitted-real",
       detail: "Use this before level, entity, or component work so the bridge-backed editor session is explicit.",
+      reason: "Editor work needs an admitted session foundation before later level or entity operations can claim real authoring evidence.",
+      signals: [
+        "editor.session.open is available",
+        "template avoids level open and content mutation",
+        "preferred domain is editor-control",
+      ],
       promptText: `Open an editor session for ${targetLabel} and report the real editor-session evidence. Do not open a level or mutate content in this prompt.`,
       preferredDomainsText: "editor-control",
       operatorNote: "Template recommendation: attach the editor session first and keep this prompt non-mutating.",
@@ -118,7 +142,14 @@ function buildPromptDraftRecommendations({
     recommendations.push({
       id: "narrow-entity-proof",
       label: "Create one safe test entity",
+      group: "admitted-real",
       detail: "Uses the admitted narrow entity-create path only: session, level, root-level named entity.",
+      reason: "This is the smallest useful real-authoring mutation template because it stays inside the proven root-level named entity boundary.",
+      signals: [
+        "editor.session.open, editor.level.open, and editor.entity.create are available",
+        "no parent_entity_id, prefab_asset, position, components, or properties",
+        "operator note calls out the narrow admitted-real boundary",
+      ],
       promptText: 'Open level "Levels/DefaultLevel" in the editor and create one root-level entity named "CodexPromptTemplateEntity". Do not set parent_entity_id, prefab_asset, position, components, or properties.',
       preferredDomainsText: "editor-control",
       operatorNote: "Template recommendation: narrow admitted-real proof only; root-level named entity, no transform/component/prefab work.",
@@ -130,7 +161,14 @@ function buildPromptDraftRecommendations({
     recommendations.push({
       id: "capability-orientation",
       label: "Ask for a safe capability plan",
+      group: "beginner-safe",
       detail: "Fallback starter when the capability registry is still loading or the backend exposes a limited prompt surface.",
+      reason: "When capability truth is incomplete, the safest prompt asks for a plan and explicitly avoids execution until an admitted path is visible.",
+      signals: [
+        "no stronger capability-specific template is available yet",
+        "dry run stays on",
+        "prompt asks for capability review before action",
+      ],
       promptText: "Review the current prompt capability registry and recommend the safest next O3DE action. Do not execute content mutation until the admitted tool path is explicit.",
       preferredDomainsText: "",
       operatorNote: "Template recommendation: capability orientation only; keep execution gated by preview and approval.",
@@ -142,7 +180,14 @@ function buildPromptDraftRecommendations({
     recommendations.push({
       id: "continue-existing-session",
       label: "Review recent prompt continuity",
+      group: "beginner-safe",
       detail: "Use this when there are existing prompt sessions and you want the next step without losing lineage.",
+      reason: "Continuity review helps avoid duplicate work by checking the latest prompt session lineage before creating or executing another prompt.",
+      signals: [
+        `prompt sessions visible = ${sessionCount}`,
+        "dry run stays on",
+        "prompt asks for approvals and evidence before execution",
+      ],
       promptText: "Review the latest prompt session lineage and explain the next safe continuation step, including any approval or evidence that must be checked before execution.",
       preferredDomainsText: "editor-control",
       operatorNote: "Template recommendation: continuity review before continuing or creating another prompt session.",
@@ -151,6 +196,27 @@ function buildPromptDraftRecommendations({
   }
 
   return recommendations.slice(0, 3);
+}
+
+function groupPromptDraftRecommendations(
+  recommendations: readonly PromptDraftRecommendation[],
+): PromptDraftRecommendationGroup[] {
+  const groups: PromptDraftRecommendationGroup[] = [
+    {
+      id: "beginner-safe",
+      label: "Beginner-safe starters",
+      description: "Planning, inspection, or continuity prompts that keep mutation risk low.",
+      entries: recommendations.filter((recommendation) => recommendation.group === "beginner-safe"),
+    },
+    {
+      id: "admitted-real",
+      label: "Admitted-real editor actions",
+      description: "Bridge-backed templates that still require preview, approval, and exact capability boundaries.",
+      entries: recommendations.filter((recommendation) => recommendation.group === "admitted-real"),
+    },
+  ];
+
+  return groups.filter((group) => group.entries.length > 0);
 }
 
 export default function PromptControlPanel({
@@ -198,6 +264,7 @@ export default function PromptControlPanel({
     targetConfig,
     sessionCount: sessions.length,
   });
+  const promptDraftRecommendationGroups = groupPromptDraftRecommendations(promptDraftRecommendations);
 
   const getDefaultProjectRoot = useCallback((nextTarget: O3DETargetConfig | null): string => (
     settings.operatorDefaults.projectRoot
@@ -445,22 +512,41 @@ export default function PromptControlPanel({
           </div>
           <span style={recommendationCountStyle}>{promptDraftRecommendations.length} ready</span>
         </div>
-        <div style={recommendationGridStyle}>
-          {promptDraftRecommendations.map((recommendation) => (
-            <article key={recommendation.id} style={recommendationCardStyle}>
-              <strong>{recommendation.label}</strong>
-              <p style={recommendationDetailStyle}>{recommendation.detail}</p>
-              <div style={recommendationMetaStyle}>
-                <span>Domains: {recommendation.preferredDomainsText || "planner choice"}</span>
-                <span>Dry run: {recommendation.dryRun ? "preferred" : "off for admitted real path"}</span>
+        <div style={recommendationGroupStackStyle}>
+          {promptDraftRecommendationGroups.map((group) => (
+            <section key={group.id} style={recommendationGroupStyle}>
+              <div style={recommendationGroupHeaderStyle}>
+                <strong>{group.label}</strong>
+                <span>{group.description}</span>
               </div>
-              <button
-                type="button"
-                onClick={() => handleLoadPromptRecommendation(recommendation)}
-              >
-                Use {recommendation.label}
-              </button>
-            </article>
+              <div style={recommendationGridStyle}>
+                {group.entries.map((recommendation) => (
+                  <article key={recommendation.id} style={recommendationCardStyle}>
+                    <strong>{recommendation.label}</strong>
+                    <p style={recommendationDetailStyle}>{recommendation.detail}</p>
+                    <details style={recommendationDetailsStyle}>
+                      <summary style={recommendationSummaryStyle}>Why this template?</summary>
+                      <p style={recommendationReasonStyle}>{recommendation.reason}</p>
+                      <ul style={recommendationSignalListStyle}>
+                        {recommendation.signals.map((signal) => (
+                          <li key={signal}>{signal}</li>
+                        ))}
+                      </ul>
+                    </details>
+                    <div style={recommendationMetaStyle}>
+                      <span>Domains: {recommendation.preferredDomainsText || "planner choice"}</span>
+                      <span>Dry run: {recommendation.dryRun ? "preferred" : "off for admitted real path"}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleLoadPromptRecommendation(recommendation)}
+                    >
+                      Use {recommendation.label}
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </section>
           ))}
         </div>
         {promptRecommendationMessage ? (
@@ -671,6 +757,23 @@ const recommendationCountStyle = {
   fontWeight: 700,
 } satisfies CSSProperties;
 
+const recommendationGroupStackStyle = {
+  display: "grid",
+  gap: 12,
+} satisfies CSSProperties;
+
+const recommendationGroupStyle = {
+  display: "grid",
+  gap: 10,
+  minWidth: 0,
+} satisfies CSSProperties;
+
+const recommendationGroupHeaderStyle = {
+  display: "grid",
+  gap: 3,
+  color: "var(--app-text-color)",
+} satisfies CSSProperties;
+
 const recommendationGridStyle = {
   display: "grid",
   gap: 10,
@@ -690,6 +793,33 @@ const recommendationCardStyle = {
 
 const recommendationDetailStyle = {
   margin: 0,
+  color: "var(--app-muted-color)",
+  lineHeight: 1.45,
+} satisfies CSSProperties;
+
+const recommendationDetailsStyle = {
+  padding: "8px 10px",
+  borderRadius: "var(--app-card-radius)",
+  border: "1px solid var(--app-panel-border)",
+  background: "var(--app-panel-bg)",
+} satisfies CSSProperties;
+
+const recommendationSummaryStyle = {
+  cursor: "pointer",
+  color: "var(--app-text-color)",
+  fontSize: 13,
+  fontWeight: 700,
+} satisfies CSSProperties;
+
+const recommendationReasonStyle = {
+  margin: "8px 0 0",
+  color: "var(--app-muted-color)",
+  lineHeight: 1.45,
+} satisfies CSSProperties;
+
+const recommendationSignalListStyle = {
+  margin: "8px 0 0",
+  paddingLeft: 18,
   color: "var(--app-muted-color)",
   lineHeight: 1.45,
 } satisfies CSSProperties;
