@@ -300,6 +300,29 @@ describe("PromptControlPanel", () => {
     expect(sessionButton).toHaveTextContent("Executor: executor-editor-control-real-local");
   });
 
+  it("loads a recommended prompt template into editable prompt fields", async () => {
+    render(<PromptControlPanel />);
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(screen.getByText("Prompt template recommendations")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Use Open current editor session safely" }),
+    );
+
+    expect(screen.getByLabelText("Prompt text")).toHaveValue(
+      "Open an editor session for the current McpSandbox target and report the real editor-session evidence. Do not open a level or mutate content in this prompt.",
+    );
+    expect(screen.getByLabelText("Preferred domains (comma-separated)")).toHaveValue("editor-control");
+    expect(screen.getByLabelText("Operator note")).toHaveValue(
+      "Template recommendation: attach the editor session first and keep this prompt non-mutating.",
+    );
+    expect(screen.getByRole("checkbox")).not.toBeChecked();
+    expect(
+      screen.getByText("Loaded recommended prompt template: Open current editor session safely."),
+    ).toBeInTheDocument();
+  });
+
   it("shows approval pause continuity and child lineage after executing a selected prompt", async () => {
     const plannedSession = makePlannedSession();
 const waitingSession: PromptSessionRecord = {

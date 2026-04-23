@@ -47,6 +47,112 @@ type PromptControlPanelProps = {
   selectedExecutorId?: string | null;
 };
 
+type PromptDraftRecommendation = {
+  id: string;
+  label: string;
+  detail: string;
+  promptText: string;
+  preferredDomainsText: string;
+  operatorNote: string;
+  dryRun: boolean;
+};
+
+function hasPromptCapability(
+  capabilities: readonly PromptCapabilityEntry[],
+  toolName: string,
+): boolean {
+  return capabilities.some((capability) => capability.tool_name === toolName);
+}
+
+function getTargetProjectLabel(targetConfig: O3DETargetConfig | null): string {
+  const projectRoot = targetConfig?.project_root?.trim();
+  if (!projectRoot) {
+    return "the selected O3DE target";
+  }
+
+  const projectName = projectRoot.split(/[\\/]/).filter(Boolean).pop();
+  return projectName ? `the current ${projectName} target` : "the current configured O3DE target";
+}
+
+function buildPromptDraftRecommendations({
+  capabilities,
+  targetConfig,
+  sessionCount,
+}: {
+  capabilities: readonly PromptCapabilityEntry[];
+  targetConfig: O3DETargetConfig | null;
+  sessionCount: number;
+}): PromptDraftRecommendation[] {
+  const recommendations: PromptDraftRecommendation[] = [];
+  const targetLabel = getTargetProjectLabel(targetConfig);
+
+  if (hasPromptCapability(capabilities, "project.inspect")) {
+    recommendations.push({
+      id: "inspect-project-first",
+      label: "Inspect project before changing content",
+      detail: "Best first move when a user is unsure: gather project evidence and keep the request read-only.",
+      promptText: `Inspect ${targetLabel} and summarize the project evidence, current target assumptions, and the safest next O3DE authoring step. Do not create or modify content yet.`,
+      preferredDomainsText: "project-build",
+      operatorNote: "Template recommendation: read-only project orientation before any O3DE mutation.",
+      dryRun: true,
+    });
+  }
+
+  if (hasPromptCapability(capabilities, "editor.session.open")) {
+    recommendations.push({
+      id: "open-editor-session",
+      label: "Open current editor session safely",
+      detail: "Use this before level, entity, or component work so the bridge-backed editor session is explicit.",
+      promptText: `Open an editor session for ${targetLabel} and report the real editor-session evidence. Do not open a level or mutate content in this prompt.`,
+      preferredDomainsText: "editor-control",
+      operatorNote: "Template recommendation: attach the editor session first and keep this prompt non-mutating.",
+      dryRun: false,
+    });
+  }
+
+  if (
+    hasPromptCapability(capabilities, "editor.session.open")
+    && hasPromptCapability(capabilities, "editor.level.open")
+    && hasPromptCapability(capabilities, "editor.entity.create")
+  ) {
+    recommendations.push({
+      id: "narrow-entity-proof",
+      label: "Create one safe test entity",
+      detail: "Uses the admitted narrow entity-create path only: session, level, root-level named entity.",
+      promptText: 'Open level "Levels/DefaultLevel" in the editor and create one root-level entity named "CodexPromptTemplateEntity". Do not set parent_entity_id, prefab_asset, position, components, or properties.',
+      preferredDomainsText: "editor-control",
+      operatorNote: "Template recommendation: narrow admitted-real proof only; root-level named entity, no transform/component/prefab work.",
+      dryRun: false,
+    });
+  }
+
+  if (recommendations.length === 0) {
+    recommendations.push({
+      id: "capability-orientation",
+      label: "Ask for a safe capability plan",
+      detail: "Fallback starter when the capability registry is still loading or the backend exposes a limited prompt surface.",
+      promptText: "Review the current prompt capability registry and recommend the safest next O3DE action. Do not execute content mutation until the admitted tool path is explicit.",
+      preferredDomainsText: "",
+      operatorNote: "Template recommendation: capability orientation only; keep execution gated by preview and approval.",
+      dryRun: true,
+    });
+  }
+
+  if (sessionCount > 0) {
+    recommendations.push({
+      id: "continue-existing-session",
+      label: "Review recent prompt continuity",
+      detail: "Use this when there are existing prompt sessions and you want the next step without losing lineage.",
+      promptText: "Review the latest prompt session lineage and explain the next safe continuation step, including any approval or evidence that must be checked before execution.",
+      preferredDomainsText: "editor-control",
+      operatorNote: "Template recommendation: continuity review before continuing or creating another prompt session.",
+      dryRun: true,
+    });
+  }
+
+  return recommendations.slice(0, 3);
+}
+
 export default function PromptControlPanel({
   selectedWorkspaceId = null,
   selectedExecutorId = null,
@@ -71,6 +177,7 @@ export default function PromptControlPanel({
   const [submitting, setSubmitting] = useState(false);
   const [executing, setExecuting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [promptRecommendationMessage, setPromptRecommendationMessage] = useState<string | null>(null);
   const previousOperatorDefaultsRef = useRef(settings.operatorDefaults);
   const initialProjectRootRef = useRef(projectRoot);
   const initialEngineRootRef = useRef(engineRoot);
@@ -86,6 +193,11 @@ export default function PromptControlPanel({
     : "Leave blank to allow the planner to choose from admitted domains.";
   const projectRootEnv = (import.meta.env.VITE_O3DE_TARGET_PROJECT_ROOT as string | undefined) ?? "";
   const engineRootEnv = (import.meta.env.VITE_O3DE_TARGET_ENGINE_ROOT as string | undefined) ?? "";
+  const promptDraftRecommendations = buildPromptDraftRecommendations({
+    capabilities,
+    targetConfig,
+    sessionCount: sessions.length,
+  });
 
   const getDefaultProjectRoot = useCallback((nextTarget: O3DETargetConfig | null): string => (
     settings.operatorDefaults.projectRoot
@@ -280,6 +392,14 @@ export default function PromptControlPanel({
     }
   }
 
+  function handleLoadPromptRecommendation(recommendation: PromptDraftRecommendation): void {
+    setPromptText(recommendation.promptText);
+    setPreferredDomainsText(recommendation.preferredDomainsText);
+    setOperatorNote(recommendation.operatorNote);
+    setDryRun(recommendation.dryRun);
+    setPromptRecommendationMessage(`Loaded recommended prompt template: ${recommendation.label}.`);
+  }
+
   const executeDisabled = !selectedSession
     || !selectedSession.plan?.admitted
     || selectedSession.status === "completed"
@@ -315,6 +435,38 @@ export default function PromptControlPanel({
           engine root manually before previewing a prompt plan.
         </p>
       )}
+      <article style={recommendationPanelStyle}>
+        <div style={recommendationHeaderStyle}>
+          <div>
+            <strong>Prompt template recommendations</strong>
+            <p style={subtleTextStyle}>
+              Load a practical starter request from current target and capability context, then edit it before previewing the plan.
+            </p>
+          </div>
+          <span style={recommendationCountStyle}>{promptDraftRecommendations.length} ready</span>
+        </div>
+        <div style={recommendationGridStyle}>
+          {promptDraftRecommendations.map((recommendation) => (
+            <article key={recommendation.id} style={recommendationCardStyle}>
+              <strong>{recommendation.label}</strong>
+              <p style={recommendationDetailStyle}>{recommendation.detail}</p>
+              <div style={recommendationMetaStyle}>
+                <span>Domains: {recommendation.preferredDomainsText || "planner choice"}</span>
+                <span>Dry run: {recommendation.dryRun ? "preferred" : "off for admitted real path"}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleLoadPromptRecommendation(recommendation)}
+              >
+                Use {recommendation.label}
+              </button>
+            </article>
+          ))}
+        </div>
+        {promptRecommendationMessage ? (
+          <p style={subtleTextStyle}>{promptRecommendationMessage}</p>
+        ) : null}
+      </article>
       <form onSubmit={handlePreviewPlan} style={{ display: "grid", gap: 12 }}>
         <label>
           Prompt text
@@ -485,6 +637,68 @@ const actionRowStyle = {
   display: "flex",
   gap: 12,
   flexWrap: "wrap" as const,
+} satisfies CSSProperties;
+
+const recommendationPanelStyle = {
+  display: "grid",
+  gap: 12,
+  marginBottom: 16,
+  padding: "14px 16px",
+  borderRadius: "var(--app-card-radius)",
+  border: "1px solid var(--app-panel-border)",
+  background: "var(--app-panel-bg)",
+  boxShadow: "var(--app-shadow-soft)",
+} satisfies CSSProperties;
+
+const recommendationHeaderStyle = {
+  display: "flex",
+  gap: 12,
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  flexWrap: "wrap",
+} satisfies CSSProperties;
+
+const recommendationCountStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "var(--app-pill-radius)",
+  border: "1px solid var(--app-info-border)",
+  background: "var(--app-info-bg)",
+  color: "var(--app-info-text)",
+  padding: "5px 10px",
+  fontSize: 12,
+  fontWeight: 700,
+} satisfies CSSProperties;
+
+const recommendationGridStyle = {
+  display: "grid",
+  gap: 10,
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  alignItems: "start",
+} satisfies CSSProperties;
+
+const recommendationCardStyle = {
+  display: "grid",
+  gap: 8,
+  minWidth: 0,
+  padding: "12px",
+  borderRadius: "var(--app-card-radius)",
+  border: "1px solid var(--app-panel-border)",
+  background: "var(--app-panel-bg-muted)",
+} satisfies CSSProperties;
+
+const recommendationDetailStyle = {
+  margin: 0,
+  color: "var(--app-muted-color)",
+  lineHeight: 1.45,
+} satisfies CSSProperties;
+
+const recommendationMetaStyle = {
+  display: "grid",
+  gap: 4,
+  color: "var(--app-muted-color)",
+  fontSize: 12,
 } satisfies CSSProperties;
 
 const checkboxStyle = {
