@@ -106,9 +106,8 @@ describe("DesktopShell", () => {
       screen.getByRole("button", { name: /records/i }),
     ).toHaveAttribute("title", "Inspect persisted evidence and warnings.");
     expect(screen.getByText("Bridge: fresh")).toHaveAttribute("title", "Heartbeat is currently fresh.");
-    expect(shellRoot).toHaveStyle("min-height: 100vh");
-    expect(shellRoot).toHaveStyle("overflow: visible");
-    expect(shellRoot).not.toHaveStyle("height: 100vh");
+    expect(shellRoot).toHaveStyle("height: 100vh");
+    expect(shellRoot).toHaveStyle("overflow: hidden");
 
     fireEvent.click(screen.getByRole("button", { name: /records/i }));
     expect(onSelectWorkspace).toHaveBeenCalledWith("records");
@@ -211,6 +210,7 @@ describe("DesktopShell", () => {
     expect(providerRoot.getAttribute("style")).toContain("--app-shell-max-width: 1240px");
     expect(providerRoot.getAttribute("style")).toContain("--app-transition: none");
     expect(desktopSurface).toHaveStyle("padding: 18px");
-    expect(desktopSurface).toHaveStyle("width: min(100%, var(--app-shell-max-width))");
+    expect(desktopSurface).toHaveStyle("width: 100%");
+    expect(desktopSurface).toHaveStyle("overflow: hidden");
   });
 });

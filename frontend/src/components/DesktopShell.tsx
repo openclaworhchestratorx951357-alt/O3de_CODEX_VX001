@@ -210,8 +210,8 @@ export default function DesktopShell({
         style={{
           ...desktopSurfaceStyle,
           padding: themeTokens.compactDensity ? 18 : 24,
-          width: "min(100%, var(--app-shell-max-width))",
-          margin: "0 auto",
+          width: "100%",
+          margin: 0,
           boxSizing: "border-box",
         }}
       >
@@ -422,14 +422,15 @@ const fallbackAgentCallItems = [
 ] satisfies DesktopShellAgentCallItem[];
 
 const shellStyle = {
-  minHeight: "100vh",
+  height: "100vh",
+  minHeight: 0,
   display: "grid",
   gridTemplateRows: "auto 1fr",
   background: "var(--app-shell-bg)",
   color: "var(--app-text-color)",
   fontFamily: '"Segoe UI Variable", "Segoe UI", "Trebuchet MS", sans-serif',
   position: "relative",
-  overflow: "visible",
+  overflow: "hidden",
 } satisfies CSSProperties;
 
 const wallpaperGlowTopStyle = {
@@ -455,8 +456,7 @@ const wallpaperGlowBottomStyle = {
 } satisfies CSSProperties;
 
 const taskbarStyle = {
-  position: "sticky",
-  top: 0,
+  position: "relative",
   zIndex: 2,
   display: "flex",
   justifyContent: "space-between",
@@ -595,22 +595,23 @@ const desktopSurfaceStyle = {
   position: "relative",
   zIndex: 1,
   display: "flex",
-  flexWrap: "wrap",
+  flexWrap: "nowrap",
   gap: 18,
-  alignItems: "flex-start",
-  minHeight: "calc(100vh - 72px)",
-  overflow: "visible",
+  alignItems: "stretch",
+  minHeight: 0,
+  height: "100%",
+  overflow: "hidden",
   padding: 24,
 } satisfies CSSProperties;
 
 const navRailStyle = {
   flex: "0 0 clamp(220px, 17vw, 280px)",
-  alignSelf: "flex-start",
-  position: "sticky",
-  top: 78,
+  alignSelf: "stretch",
+  position: "relative",
   minWidth: 220,
   maxWidth: 280,
-  maxHeight: "calc(100vh - 98px)",
+  height: "100%",
+  maxHeight: "100%",
   display: "grid",
   gap: 12,
   gridTemplateRows: "auto minmax(0, 1fr)",
@@ -784,8 +785,9 @@ const workspaceShellStyle = {
   borderRadius: "var(--app-window-radius)",
   boxShadow: "var(--app-shadow-strong)",
   backdropFilter: "blur(20px)",
-  minHeight: "calc(100vh - 126px)",
-  maxHeight: "calc(100vh - 126px)",
+  minHeight: 0,
+  height: "100%",
+  maxHeight: "100%",
   overflow: "hidden",
 } satisfies CSSProperties;
 
@@ -913,8 +915,8 @@ const workspaceCanvasStyle = {
 
 const agentChatDockStyle = {
   position: "fixed",
-  left: "max(18px, calc((100vw - var(--app-shell-max-width)) / 2 + 18px))",
-  right: "max(18px, calc((100vw - var(--app-shell-max-width)) / 2 + 18px))",
+  left: 18,
+  right: 18,
   bottom: 18,
   zIndex: 7,
   display: "grid",
