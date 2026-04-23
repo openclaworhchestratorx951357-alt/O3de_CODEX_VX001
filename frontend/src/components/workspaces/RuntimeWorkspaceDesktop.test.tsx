@@ -153,20 +153,20 @@ describe("RuntimeWorkspaceDesktop", () => {
     expect(screen.getByText(/Runtime > Executors window/i)).toBeInTheDocument();
     expect(screen.getByText("SystemStatusPanel stub")).toBeInTheDocument();
     expect(screen.getByText("OperatorOverviewPanel stub")).toBeInTheDocument();
-    expect(screen.queryByText("ExecutorsPanel stub")).not.toBeInTheDocument();
-    expect(screen.queryByText("WorkspacesPanel stub")).not.toBeInTheDocument();
-    expect(screen.queryByText("Phase7CapabilitySummaryPanel stub")).not.toBeInTheDocument();
+    expect(screen.getByText("ExecutorsPanel stub")).not.toBeVisible();
+    expect(screen.getByText("WorkspacesPanel stub")).not.toBeVisible();
+    expect(screen.getByText("Phase7CapabilitySummaryPanel stub")).not.toBeVisible();
   });
 
   it("assembles the executor desktop surface with context, list, and detail panes", () => {
     renderRuntimeWorkspaceDesktop("executors");
 
-    expect(screen.getByText("OverviewContextStrip stub")).toBeInTheDocument();
+    expect(getVisibleText("OverviewContextStrip stub")).toBeInTheDocument();
     expect(screen.getByText("ExecutorsPanel stub")).toBeInTheDocument();
     expect(screen.getByText("ExecutorDetailPanel stub")).toBeInTheDocument();
-    expect(screen.queryByText("AdaptersPanel stub")).not.toBeInTheDocument();
-    expect(screen.queryByText("WorkspacesPanel stub")).not.toBeInTheDocument();
-    expect(screen.queryByText("Phase7CapabilitySummaryPanel stub")).not.toBeInTheDocument();
+    expect(screen.getByText("AdaptersPanel stub")).not.toBeVisible();
+    expect(screen.getByText("WorkspacesPanel stub")).not.toBeVisible();
+    expect(screen.getByText("Phase7CapabilitySummaryPanel stub")).not.toBeVisible();
   });
 
   it("routes runtime recommendations through the runtime surface selector", () => {
@@ -177,3 +177,13 @@ describe("RuntimeWorkspaceDesktop", () => {
     expect(onSelectSurface).toHaveBeenCalledWith("workspaces");
   });
 });
+
+function getVisibleText(text: string): HTMLElement {
+  const match = screen.getAllByText(text).find((element) => (
+    element.closest('[aria-hidden="false"]')
+  ));
+
+  expect(match).toBeDefined();
+
+  return match as HTMLElement;
+}

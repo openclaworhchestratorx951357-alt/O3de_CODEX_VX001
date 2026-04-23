@@ -91,20 +91,30 @@ describe("RecordsWorkspaceDesktop", () => {
   it("assembles the runs desktop surface with context, list, and detail panes", () => {
     renderRecordsWorkspaceDesktop("runs");
 
-    expect(screen.getByText("OverviewContextStrip stub")).toBeInTheDocument();
+    expect(getVisibleText("OverviewContextStrip stub")).toBeInTheDocument();
     expect(screen.getByText("RunsPanel stub")).toBeInTheDocument();
     expect(screen.getByText("RunDetailPanel stub")).toBeInTheDocument();
-    expect(screen.queryByText("ExecutionsPanel stub")).not.toBeInTheDocument();
-    expect(screen.queryByText("ArtifactsPanel stub")).not.toBeInTheDocument();
+    expect(screen.getByText("ExecutionsPanel stub")).not.toBeVisible();
+    expect(screen.getByText("ArtifactsPanel stub")).not.toBeVisible();
   });
 
   it("assembles the artifact desktop surface with context, list, and detail panes", () => {
     renderRecordsWorkspaceDesktop("artifacts");
 
-    expect(screen.getByText("OverviewContextStrip stub")).toBeInTheDocument();
+    expect(getVisibleText("OverviewContextStrip stub")).toBeInTheDocument();
     expect(screen.getByText("ArtifactsPanel stub")).toBeInTheDocument();
     expect(screen.getByText("ArtifactDetailPanel stub")).toBeInTheDocument();
-    expect(screen.queryByText("RunsPanel stub")).not.toBeInTheDocument();
-    expect(screen.queryByText("ExecutionsPanel stub")).not.toBeInTheDocument();
+    expect(screen.getByText("RunsPanel stub")).not.toBeVisible();
+    expect(screen.getByText("ExecutionsPanel stub")).not.toBeVisible();
   });
 });
+
+function getVisibleText(text: string): HTMLElement {
+  const match = screen.getAllByText(text).find((element) => (
+    element.closest('[aria-hidden="false"]')
+  ));
+
+  expect(match).toBeDefined();
+
+  return match as HTMLElement;
+}

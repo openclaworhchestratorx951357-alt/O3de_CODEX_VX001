@@ -22,13 +22,18 @@ export function getDesktopNavButton(name: RegExp): HTMLButtonElement {
     return visibleButton;
   }
 
-  navScope.getAllByRole("button")
-    .filter((button) => button.hasAttribute("aria-expanded"))
-    .forEach((button) => {
-      if (button.getAttribute("aria-expanded") === "false") {
-        fireEvent.click(button);
-      }
-    });
+  for (const button of navScope.getAllByRole("button").filter((candidate) => (
+    candidate.hasAttribute("aria-expanded")
+  ))) {
+    if (button.getAttribute("aria-expanded") === "false") {
+      fireEvent.click(button);
+    }
+
+    const expandedButton = navScope.queryByRole("button", { name }) as HTMLButtonElement | null;
+    if (expandedButton) {
+      return expandedButton;
+    }
+  }
 
   return navScope.getByRole("button", { name }) as HTMLButtonElement;
 }
@@ -55,8 +60,5 @@ export function getDesktopTabButton(label: string, detail: string): HTMLButtonEl
 }
 
 export function expectDesktopTabActive(button: HTMLButtonElement): void {
-  expect(button).toHaveStyle({
-    borderColor: "var(--app-accent-strong)",
-    boxShadow: "var(--app-shadow-strong)",
-  });
+  expect(button).toHaveAttribute("aria-pressed", "true");
 }

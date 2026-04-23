@@ -63,357 +63,36 @@ import type {
   CodexControlWorktree,
 } from "../../types/contracts";
 import ActionReviewCard from "../ActionReviewCard";
+import {
+  INITIAL_AUTONOMY_JOB_DRAFT,
+  INITIAL_AUTONOMY_OBJECTIVE_DRAFT,
+  INITIAL_LANE_DRAFT,
+  INITIAL_TASK_DRAFT,
+  INITIAL_TASK_SUPERSEDE_DRAFT,
+  INITIAL_TERMINAL_LAUNCH_DRAFT,
+  INITIAL_WORKER_HEARTBEAT_DRAFT,
+  INITIAL_WORKER_SYNC_DRAFT,
+  STALE_BLOCKED_MINUTES,
+  STALE_WORKER_HEARTBEAT_MINUTES,
+  SUPPORTED_THREAD_CAPABILITIES,
+  THREAD_PROFILE_PRESETS,
+} from "./builderWorkspace/defaults";
+import type {
+  AttentionTone,
+  AutonomyDraftRecommendation,
+  AutonomyJobAttentionSignal,
+  AutonomyJobDraft,
+  AutonomyObjectiveDraft,
+  LaneDraft,
+  LoadedWorkerDraftReview,
+  TaskDraft,
+  TaskSupersedeDraft,
+  TerminalLaunchDraft,
+  WorkerHeartbeatDraft,
+  WorkerSyncDraft,
+} from "./builderWorkspace/types";
+import BuilderAutonomyRecommendationsPanel from "./builderWorkspace/BuilderAutonomyRecommendationsPanel";
 import BuilderWorkspaceView from "./BuilderWorkspaceView";
-
-type LaneDraft = {
-  workerId: string;
-  displayName: string;
-  agentProfile: string;
-  agentRuntime: string;
-  agentEntrypoint: string;
-  agentAccessNotes: string;
-  identityNotes: string;
-  personalityNotes: string;
-  soulDirective: string;
-  memoryNotes: string;
-  bootstrapNotes: string;
-  capabilityTags: string;
-  contextSources: string;
-  avatarLabel: string;
-  avatarColor: string;
-  avatarUri: string;
-  branchName: string;
-  worktreePath: string;
-  baseBranch: string;
-  resumeNotes: string;
-  bootstrap: boolean;
-};
-
-type TaskDraft = {
-  title: string;
-  summary: string;
-  priority: number;
-  branchPrefix: string;
-  scopePaths: string;
-};
-
-type TaskSupersedeDraft = {
-  sourceTaskId: string;
-  replacementTitle: string;
-  replacementSummary: string;
-  replacementPriority: number;
-  replacementScopePaths: string;
-  replacementBranchPrefix: string;
-  supersedeReason: string;
-  stopActiveTerminal: boolean;
-};
-
-type WorkerSyncDraft = {
-  workerId: string;
-  displayName: string;
-  agentProfile: string;
-  agentRuntime: string;
-  agentEntrypoint: string;
-  agentAccessNotes: string;
-  identityNotes: string;
-  personalityNotes: string;
-  soulDirective: string;
-  memoryNotes: string;
-  bootstrapNotes: string;
-  capabilityTags: string;
-  contextSources: string;
-  avatarLabel: string;
-  avatarColor: string;
-  avatarUri: string;
-  branchName: string;
-  worktreePath: string;
-  baseBranch: string;
-  status: string;
-  summary: string;
-  resumeNotes: string;
-};
-
-type WorkerHeartbeatDraft = {
-  status: string;
-  summary: string;
-  currentTaskId: string;
-  agentProfile: string;
-  agentRuntime: string;
-  agentEntrypoint: string;
-  agentAccessNotes: string;
-  identityNotes: string;
-  personalityNotes: string;
-  soulDirective: string;
-  memoryNotes: string;
-  bootstrapNotes: string;
-  capabilityTags: string;
-  contextSources: string;
-  avatarLabel: string;
-  avatarColor: string;
-  avatarUri: string;
-  branchName: string;
-  worktreePath: string;
-  baseBranch: string;
-  resumeNotes: string;
-};
-
-type LoadedWorkerDraftReview = {
-  label: string;
-  changedFields: string;
-  workerId: string;
-  status: string;
-  branchName: string;
-  worktreePath: string;
-  baseBranch: string;
-  currentTaskId?: string;
-  agentProfile?: string;
-  agentRuntime?: string;
-  agentEntrypoint?: string;
-  agentAccessNotes?: string;
-  identityNotes?: string;
-  personalityNotes?: string;
-  soulDirective?: string;
-  memoryNotes?: string;
-  bootstrapNotes?: string;
-  capabilityTags?: string;
-  contextSources?: string;
-  avatar?: string;
-  summary: string;
-  resumeNotes?: string;
-  safeMessage: string;
-};
-
-type AutonomyObjectiveDraft = {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: number;
-  targetScopes: string;
-  successCriteria: string;
-  ownerKind: string;
-  metadataJson: string;
-};
-
-type AutonomyJobDraft = {
-  id: string;
-  objectiveId: string;
-  jobKind: string;
-  title: string;
-  summary: string;
-  status: string;
-  assignedLane: string;
-  resourceKeys: string;
-  dependsOn: string;
-  inputPayloadJson: string;
-  maxRetries: number;
-};
-
-type TerminalLaunchDraft = {
-  label: string;
-  taskId: string;
-  cwd: string;
-  commandJson: string;
-};
-
-type AttentionTone = "neutral" | "success" | "warning" | "info";
-
-type AutonomyJobAttentionSignal = {
-  id: string;
-  label: string;
-  tone: AttentionTone;
-  detail: string;
-};
-
-type AutonomyDraftRecommendation = {
-  id: string;
-  label: string;
-  detail: string;
-  objective: AutonomyObjectiveDraft;
-  job: AutonomyJobDraft;
-};
-
-const INITIAL_LANE_DRAFT: LaneDraft = {
-  workerId: "",
-  displayName: "",
-  agentProfile: "Builder generalist",
-  agentRuntime: "Codex Desktop",
-  agentEntrypoint: "",
-  agentAccessNotes: "User grants workspace/context access and approves any app-control script before execution.",
-  identityNotes: "Named helper thread with its own branch, worktree, board identity, and resume trail.",
-  personalityNotes: "Careful, concise, evidence-first, and collaborative.",
-  soulDirective: "Protect the stable app while making steady, reviewable progress.",
-  memoryNotes: "",
-  bootstrapNotes: "Open this worktree, inspect mission control, claim only non-overlapping work, and publish heartbeats.",
-  capabilityTags: "repo_read, mission_control",
-  contextSources: "",
-  avatarLabel: "",
-  avatarColor: "#2563eb",
-  avatarUri: "",
-  branchName: "",
-  worktreePath: "",
-  baseBranch: "",
-  resumeNotes: "",
-  bootstrap: true,
-};
-
-const INITIAL_TASK_DRAFT: TaskDraft = {
-  title: "",
-  summary: "",
-  priority: 100,
-  branchPrefix: "",
-  scopePaths: "",
-};
-
-const INITIAL_TASK_SUPERSEDE_DRAFT: TaskSupersedeDraft = {
-  sourceTaskId: "",
-  replacementTitle: "",
-  replacementSummary: "",
-  replacementPriority: 200,
-  replacementScopePaths: "",
-  replacementBranchPrefix: "",
-  supersedeReason: "",
-  stopActiveTerminal: true,
-};
-
-const INITIAL_WORKER_SYNC_DRAFT: WorkerSyncDraft = {
-  workerId: "",
-  displayName: "",
-  agentProfile: "",
-  agentRuntime: "",
-  agentEntrypoint: "",
-  agentAccessNotes: "",
-  identityNotes: "",
-  personalityNotes: "",
-  soulDirective: "",
-  memoryNotes: "",
-  bootstrapNotes: "",
-  capabilityTags: "",
-  contextSources: "",
-  avatarLabel: "",
-  avatarColor: "",
-  avatarUri: "",
-  branchName: "",
-  worktreePath: "",
-  baseBranch: "",
-  status: "idle",
-  summary: "",
-  resumeNotes: "",
-};
-
-const INITIAL_WORKER_HEARTBEAT_DRAFT: WorkerHeartbeatDraft = {
-  status: "",
-  summary: "",
-  currentTaskId: "",
-  agentProfile: "",
-  agentRuntime: "",
-  agentEntrypoint: "",
-  agentAccessNotes: "",
-  identityNotes: "",
-  personalityNotes: "",
-  soulDirective: "",
-  memoryNotes: "",
-  bootstrapNotes: "",
-  capabilityTags: "",
-  contextSources: "",
-  avatarLabel: "",
-  avatarColor: "",
-  avatarUri: "",
-  branchName: "",
-  worktreePath: "",
-  baseBranch: "",
-  resumeNotes: "",
-};
-
-const INITIAL_AUTONOMY_OBJECTIVE_DRAFT: AutonomyObjectiveDraft = {
-  id: "",
-  title: "",
-  description: "",
-  status: "active",
-  priority: 100,
-  targetScopes: "",
-  successCriteria: "",
-  ownerKind: "builder",
-  metadataJson: "{}",
-};
-
-const INITIAL_AUTONOMY_JOB_DRAFT: AutonomyJobDraft = {
-  id: "",
-  objectiveId: "",
-  jobKind: "manual-thread-check",
-  title: "",
-  summary: "",
-  status: "queued",
-  assignedLane: "builder",
-  resourceKeys: "",
-  dependsOn: "",
-  inputPayloadJson: "{}",
-  maxRetries: 0,
-};
-
-const INITIAL_TERMINAL_LAUNCH_DRAFT: TerminalLaunchDraft = {
-  label: "",
-  taskId: "",
-  cwd: "",
-  commandJson: "[\"powershell\", \"-NoProfile\", \"-Command\", \"Get-Location\"]",
-};
-
-const STALE_BLOCKED_MINUTES = 10;
-const STALE_WORKER_HEARTBEAT_MINUTES = 10;
-const SUPPORTED_THREAD_CAPABILITIES = [
-  "repo_read",
-  "repo_edit",
-  "frontend_ui",
-  "backend_api",
-  "o3de_bridge",
-  "mission_control",
-  "proof_validation",
-  "docs_runbook",
-  "terminal_observe",
-  "terminal_control",
-  "artifact_review",
-  "source_upload_context",
-  "external_agent",
-  "openclaw_agent",
-] as const;
-
-const THREAD_PROFILE_PRESETS = [
-  {
-    label: "Builder generalist",
-    capabilityTags: "repo_read, repo_edit, mission_control, frontend_ui, backend_api",
-    runtime: "Codex Desktop",
-    accessNotes: "User grants repo/workspace access through Codex Desktop and app-control previews remain approval-gated.",
-    color: "#2563eb",
-  },
-  {
-    label: "O3DE authoring specialist",
-    capabilityTags: "repo_read, mission_control, o3de_bridge, proof_validation, artifact_review",
-    runtime: "Codex Desktop",
-    accessNotes: "User grants O3DE target context through the repo bridge and keeps editor mutations approval-gated.",
-    color: "#059669",
-  },
-  {
-    label: "Frontend UX operator",
-    capabilityTags: "repo_read, repo_edit, mission_control, frontend_ui, docs_runbook",
-    runtime: "Codex Desktop",
-    accessNotes: "User grants frontend worktree access; this worker should stay inside claimed UI scopes.",
-    color: "#d97706",
-  },
-  {
-    label: "Proof and release verifier",
-    capabilityTags: "repo_read, mission_control, proof_validation, artifact_review, docs_runbook",
-    runtime: "Codex Desktop",
-    accessNotes: "User grants read/verification access; this worker should prefer evidence collection over mutation.",
-    color: "#7c3aed",
-  },
-  {
-    label: "OpenClaw external agent",
-    capabilityTags: "repo_read, mission_control, source_upload_context, external_agent, openclaw_agent",
-    runtime: "OpenClaw or compatible external agent",
-    accessNotes: "User grants the external agent access to its own workspace/context pack; app-control actions still need user approval.",
-    color: "#0f766e",
-  },
-] as const;
 
 function formatTimestamp(value?: string | null): string {
   if (!value) {
@@ -4643,78 +4322,12 @@ export default function BuilderWorkspaceDesktop() {
         </article>
       ) : null}
 
-      <article style={summaryCardStyle}>
-        <div style={rowBetweenStyle}>
-          <div style={stackStyle}>
-            <strong>Codex draft recommendations</strong>
-            <p style={mutedParagraphStyle}>
-              Load practical objective and inbox-job drafts from current Builder state instead of
-              starting from blank templates. These are browser-local suggestions only until you edit
-              and save them.
-            </p>
-          </div>
-          <span style={{ ...pillStyle, ...toneStyle("info") }}>
-            {autonomyDraftRecommendations.length} ready
-          </span>
-        </div>
-        <div style={summaryGridStyle}>
-          {autonomyDraftRecommendations.map((recommendation) => (
-            <ActionReviewCard
-              key={recommendation.id}
-              ariaLabel={`Recommendation preview: ${recommendation.label}`}
-              eyebrow="Recommendation preview"
-              eyebrowTone="info"
-              title={recommendation.label}
-              description={recommendation.detail}
-              action={(
-                <button
-                  type="button"
-                  style={secondaryButtonStyle}
-                  onClick={() => handleLoadAutonomyRecommendation(recommendation)}
-                >
-                  Load {recommendation.label}
-                </button>
-              )}
-              details={[
-                { label: "Objective", value: recommendation.objective.title },
-                { label: "Job", value: recommendation.job.title },
-                { label: "Lane", value: recommendation.job.assignedLane || "builder" },
-                { label: "Save behavior", value: "loads editable drafts only; nothing is saved yet" },
-              ]}
-            />
-          ))}
-        </div>
-        {loadedAutonomyRecommendation ? (
-          <ActionReviewCard
-            ariaLabel="Loaded draft review"
-            eyebrow="Loaded draft review"
-            eyebrowTone="info"
-            title={loadedAutonomyRecommendation.label}
-            description={loadedAutonomyRecommendation.detail}
-            style={{ marginTop: 12 }}
-            action={(
-              <button
-                type="button"
-                style={secondaryButtonStyle}
-                onClick={() => setLoadedAutonomyRecommendation(null)}
-              >
-                Clear review
-              </button>
-            )}
-            details={[
-              { label: "Changed fields", value: "Objective draft, job draft, resource keys, payload JSON" },
-              { label: "Objective ID", value: loadedAutonomyRecommendation.objective.id },
-              { label: "Job ID", value: loadedAutonomyRecommendation.job.id },
-              { label: "Lane", value: loadedAutonomyRecommendation.job.assignedLane || "builder" },
-              { label: "Resources", value: loadedAutonomyRecommendation.job.resourceKeys.trim() || "none" },
-              {
-                label: "Safe until saved",
-                value: "review the drafts below, then use Add objective and Add inbox job when ready",
-              },
-            ]}
-          />
-        ) : null}
-      </article>
+      <BuilderAutonomyRecommendationsPanel
+        recommendations={autonomyDraftRecommendations}
+        loadedRecommendation={loadedAutonomyRecommendation}
+        onLoadRecommendation={handleLoadAutonomyRecommendation}
+        onClearLoadedRecommendation={() => setLoadedAutonomyRecommendation(null)}
+      />
 
       <div style={summaryGridStyle}>
         <form onSubmit={(event) => void handleAutonomyObjectiveSubmit(event)} style={stackStyle}>
