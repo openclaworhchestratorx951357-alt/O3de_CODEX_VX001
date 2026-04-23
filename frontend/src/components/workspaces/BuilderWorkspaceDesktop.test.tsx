@@ -479,13 +479,14 @@ describe("BuilderWorkspaceDesktop", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Reset to selected worker" }));
 
-    expect(await screen.findByLabelText("Loaded worker draft review")).toBeInTheDocument();
+    const syncReview = await screen.findByLabelText("Loaded worker draft review");
+    expect(syncReview).toBeInTheDocument();
     expect(await screen.findByText("Worker sync draft reloaded")).toBeInTheDocument();
     expect(
       screen.getByText("Nothing was written to mission control. Review the draft, then use Sync worker lane when ready."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Worker: builder-alpha")).toBeInTheDocument();
-    expect(screen.getByText("Worktree: C:\\repo-builder-alpha")).toBeInTheDocument();
+    expect(syncReview).toHaveTextContent("Worker: builder-alpha");
+    expect(syncReview).toHaveTextContent("Worktree: C:\\repo-builder-alpha");
 
     fireEvent.click(screen.getByRole("button", { name: "Clear worker review" }));
 
@@ -495,12 +496,13 @@ describe("BuilderWorkspaceDesktop", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Reset heartbeat draft" }));
 
-    expect(await screen.findByLabelText("Loaded worker draft review")).toBeInTheDocument();
+    const heartbeatReview = await screen.findByLabelText("Loaded worker draft review");
+    expect(heartbeatReview).toBeInTheDocument();
     expect(await screen.findByText("Heartbeat draft reloaded")).toBeInTheDocument();
     expect(
       screen.getByText("Nothing was published. Review the draft, then use Send heartbeat when ready."),
     ).toBeInTheDocument();
-    expect(screen.getByText("Current task: keep current")).toBeInTheDocument();
+    expect(heartbeatReview).toHaveTextContent("Current task: keep current");
   });
 
   it("records an observation and healing action when Builder promotion fails", async () => {
@@ -1058,12 +1060,26 @@ describe("BuilderWorkspaceDesktop", () => {
   it("launches a managed worker terminal for the selected lane", async () => {
     render(<BuilderWorkspaceDesktop />);
 
+    const launchReview = await screen.findByLabelText("Managed terminal launch review");
+    expect(launchReview).toBeInTheDocument();
+    expect(screen.getByText("Review before opening a real terminal")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Nothing has launched yet\. On Windows, the next button opens a real terminal window/i),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(launchReview).toHaveTextContent("Worker: builder-alpha");
+      expect(launchReview).toHaveTextContent("Label: Builder Alpha terminal");
+      expect(launchReview).toHaveTextContent("CWD: C:\\repo-builder-alpha");
+    });
+    expect(apiMocks.launchCodexControlTerminal).not.toHaveBeenCalled();
+
     fireEvent.click(await screen.findByRole("button", { name: "Launch managed terminal" }));
 
     await waitFor(() => {
       expect(apiMocks.launchCodexControlTerminal).toHaveBeenCalledWith(
         expect.objectContaining({
           worker_id: "builder-alpha",
+          cwd: "C:\\repo-builder-alpha",
           command: ["powershell", "-NoProfile", "-Command", "Get-Location"],
         }),
       );

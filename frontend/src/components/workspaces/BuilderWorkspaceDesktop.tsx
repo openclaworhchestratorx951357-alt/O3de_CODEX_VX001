@@ -1312,6 +1312,10 @@ export default function BuilderWorkspaceDesktop() {
     : tasks.find((task) => task.claimed_by_worker_id === selectedWorkerId) ?? null;
   const selectedWorkerTerminals = terminalSessions.filter((session) => session.worker_id === selectedWorkerId);
   const selectedActiveTerminal = selectedWorkerTerminals.find((session) => session.status === "running" || session.status === "stopping") ?? null;
+  const terminalLaunchLabel = terminalDraft.label.trim() || `${selectedWorkerId || "selected worker"} terminal`;
+  const terminalLaunchCwd = terminalDraft.cwd.trim() || selectedWorker?.worktree_path || status?.repo_root || "not set";
+  const terminalLaunchTaskId = terminalDraft.taskId.trim() || "not linked";
+  const terminalLaunchCommandJson = terminalDraft.commandJson.trim() || "[]";
   const handoffPackage = buildWorkerHandoffPackage(
     status,
     selectedWorker,
@@ -1474,12 +1478,19 @@ export default function BuilderWorkspaceDesktop() {
     setWorkerSyncDraft(buildWorkerSyncDraft(selectedWorker, status));
     setWorkerHeartbeatDraft(buildWorkerHeartbeatDraft(selectedWorker));
     setHandoffMessage(null);
-    setTerminalDraft((current) => ({
-      ...current,
-      label: current.label || (selectedWorker ? `${selectedWorker.display_name} terminal` : ""),
-      cwd: current.cwd || selectedWorker?.worktree_path || status?.repo_root || "",
-      taskId: current.taskId || selectedWorker?.current_task_id || "",
-    }));
+    setTerminalDraft((current) => {
+      const selectedWorkerCwd = selectedWorker?.worktree_path ?? "";
+      const repoRootFallback = status?.repo_root ?? "";
+      const shouldUseWorkerCwd =
+        Boolean(selectedWorkerCwd) && (!current.cwd || current.cwd === repoRootFallback);
+
+      return {
+        ...current,
+        label: current.label || (selectedWorker ? `${selectedWorker.display_name} terminal` : ""),
+        cwd: shouldUseWorkerCwd ? selectedWorkerCwd : current.cwd || repoRootFallback,
+        taskId: current.taskId || selectedWorker?.current_task_id || "",
+      };
+    });
   }, [selectedWorker, status]);
 
   useEffect(() => {
@@ -3699,6 +3710,31 @@ export default function BuilderWorkspaceDesktop() {
             />
           </label>
         </div>
+
+        <article aria-label="Managed terminal launch review" style={listCardStyle}>
+          <div style={rowBetweenStyle}>
+            <div style={stackStyle}>
+              <span style={{ ...pillStyle, ...toneStyle(selectedWorkerId ? "warning" : "neutral"), width: "fit-content" }}>
+                Launch review
+              </span>
+              <strong>Review before opening a real terminal</strong>
+              <p style={mutedParagraphStyle}>
+                Nothing has launched yet. On Windows, the next button opens a real terminal window tied to this
+                worker lane and records the session in mission control.
+              </p>
+            </div>
+            <span style={{ ...pillStyle, ...toneStyle(selectedWorkerId ? "info" : "warning") }}>
+              {selectedWorkerId ? "ready to review" : "select worker first"}
+            </span>
+          </div>
+          <div style={metaStackStyle}>
+            <span>Worker: {selectedWorkerId || "none selected"}</span>
+            <span>Label: {terminalLaunchLabel}</span>
+            <span>Linked task: {terminalLaunchTaskId}</span>
+            <span>CWD: {terminalLaunchCwd}</span>
+            <span>Command JSON: <code>{terminalLaunchCommandJson}</code></span>
+          </div>
+        </article>
 
         <div style={actionRowStyle}>
           <button type="submit" style={buttonStyle} disabled={!selectedWorkerId || terminalBusyLabel !== null}>
