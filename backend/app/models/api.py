@@ -133,12 +133,24 @@ class CodexControlWorktree(BaseModel):
 class CodexControlWorker(BaseModel):
     worker_id: str = Field(..., min_length=1)
     display_name: str = Field(..., min_length=1)
+    agent_profile: str | None = None
+    identity_notes: str | None = None
+    personality_notes: str | None = None
+    soul_directive: str | None = None
+    memory_notes: str | None = None
+    bootstrap_notes: str | None = None
+    capability_tags: list[str] = Field(default_factory=list)
+    context_sources: list[str] = Field(default_factory=list)
+    avatar_label: str | None = None
+    avatar_color: str | None = None
+    avatar_uri: str | None = None
     branch_name: str | None = None
     worktree_path: str | None = None
     base_branch: str | None = None
     status: str = Field(..., min_length=1)
     current_task_id: str | None = None
     summary: str | None = None
+    resume_notes: str | None = None
     updated_at: str | None = None
     last_seen_at: str | None = None
 
@@ -234,9 +246,21 @@ class CodexControlStatusResponse(BaseModel):
 class CodexControlLaneCreateRequest(BaseModel):
     worker_id: str = Field(..., min_length=1)
     display_name: str | None = None
+    agent_profile: str | None = None
+    identity_notes: str | None = None
+    personality_notes: str | None = None
+    soul_directive: str | None = None
+    memory_notes: str | None = None
+    bootstrap_notes: str | None = None
+    capability_tags: list[str] | None = None
+    context_sources: list[str] | None = None
+    avatar_label: str | None = None
+    avatar_color: str | None = None
+    avatar_uri: str | None = None
     branch_name: str | None = None
     worktree_path: str | None = None
     base_branch: str | None = None
+    resume_notes: str | None = None
     bootstrap: bool = True
 
 
@@ -251,20 +275,44 @@ class CodexControlLaneCreateResponse(BaseModel):
 class CodexControlWorkerSyncRequest(BaseModel):
     worker_id: str = Field(..., min_length=1)
     display_name: str | None = None
+    agent_profile: str | None = None
+    identity_notes: str | None = None
+    personality_notes: str | None = None
+    soul_directive: str | None = None
+    memory_notes: str | None = None
+    bootstrap_notes: str | None = None
+    capability_tags: list[str] | None = None
+    context_sources: list[str] | None = None
+    avatar_label: str | None = None
+    avatar_color: str | None = None
+    avatar_uri: str | None = None
     branch_name: str | None = None
     worktree_path: str | None = None
     base_branch: str | None = None
     status: str = Field(default="idle", min_length=1)
     summary: str | None = None
+    resume_notes: str | None = None
 
 
 class CodexControlWorkerHeartbeatRequest(BaseModel):
     status: str | None = None
     summary: str | None = None
     current_task_id: str | None = None
+    agent_profile: str | None = None
+    identity_notes: str | None = None
+    personality_notes: str | None = None
+    soul_directive: str | None = None
+    memory_notes: str | None = None
+    bootstrap_notes: str | None = None
+    capability_tags: list[str] | None = None
+    context_sources: list[str] | None = None
+    avatar_label: str | None = None
+    avatar_color: str | None = None
+    avatar_uri: str | None = None
     branch_name: str | None = None
     worktree_path: str | None = None
     base_branch: str | None = None
+    resume_notes: str | None = None
 
 
 class CodexControlWorkerResponse(BaseModel):

@@ -79,6 +79,48 @@ def test_fetch_active_task_for_worker_returns_none_when_worker_has_no_current_ta
         assert module.fetch_active_task_for_worker(conn, "alpha") is None
 
 
+def test_worker_profile_metadata_persists_for_resumable_thread_workspaces(tmp_path):
+    module = load_mission_control_module()
+    context = make_context(module, tmp_path)
+
+    with module.connect_db(context) as conn:
+        module.ensure_schema(conn)
+        worker = module.upsert_worker(
+            conn,
+            worker_id="o3de-author",
+            display_name="O3DE Author",
+            branch_name="codex/worker/o3de-author",
+            worktree_path=str(tmp_path / "o3de-author"),
+            base_branch=module.DEFAULT_BASE_BRANCH,
+            status="idle",
+            summary="Ready to resume O3DE authoring.",
+            agent_profile="O3DE authoring specialist",
+            identity_notes="Named helper thread with a durable workspace.",
+            personality_notes="Careful, direct, and evidence-first.",
+            soul_directive="Protect stable game work while unlocking safe authoring.",
+            memory_notes="Remember McpSandbox is the canonical O3DE target.",
+            bootstrap_notes="Open the worktree, inspect mission control, then claim non-overlapping work.",
+            capability_tags=["repo_read", "mission_control", "o3de_bridge"],
+            context_sources=["docs/APP-OPERATOR-GUIDE.md", "frontend/src/App.tsx"],
+            avatar_label="OA",
+            avatar_color="#059669",
+            avatar_uri="data:image/svg+xml;base64,avatar",
+            resume_notes="Continue from the component property read slice.",
+        )
+        conn.commit()
+
+        fetched = module.fetch_worker(conn, "o3de-author")
+        snapshot = module.build_board_snapshot(conn, context)
+
+    assert worker["agent_profile"] == "O3DE authoring specialist"
+    assert fetched["capability_tags"] == ["repo_read", "mission_control", "o3de_bridge"]
+    assert fetched["context_sources"] == ["docs/APP-OPERATOR-GUIDE.md", "frontend/src/App.tsx"]
+    assert fetched["avatar_label"] == "OA"
+    assert fetched["soul_directive"] == "Protect stable game work while unlocking safe authoring."
+    assert fetched["resume_notes"] == "Continue from the component property read slice."
+    assert snapshot["workers"][0]["bootstrap_notes"].startswith("Open the worktree")
+
+
 def test_waiter_gets_ready_notification_when_blocking_scope_clears(tmp_path):
     module = load_mission_control_module()
     context = make_context(module, tmp_path)

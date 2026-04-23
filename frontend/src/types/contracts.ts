@@ -169,6 +169,52 @@ export interface PromptShortcutResponse {
   generated_by: string;
 }
 
+export type AppControlOperationKind = "settings.patch" | "navigation.open_workspace";
+export type AppControlPreviewStatus = "ready" | "no_supported_action";
+export type AppControlRiskLevel = "low" | "medium";
+
+export interface AppControlActor {
+  worker_id?: string | null;
+  display_name?: string | null;
+  agent_profile?: string | null;
+}
+
+export interface AppControlPreviewRequest {
+  instruction: string;
+  active_workspace_id?: string | null;
+  current_settings: Record<string, unknown>;
+  actor?: AppControlActor | null;
+}
+
+export interface AppControlOperation {
+  operation_id: string;
+  kind: AppControlOperationKind;
+  target: string;
+  value: unknown;
+  description: string;
+  reversible: boolean;
+}
+
+export interface AppControlBackupPlan {
+  required: boolean;
+  captures: string[];
+  revert_action_label: string;
+}
+
+export interface AppControlScriptPreview {
+  script_id: string;
+  status: AppControlPreviewStatus;
+  instruction: string;
+  summary: string;
+  risk_level: AppControlRiskLevel;
+  approval_required: boolean;
+  backup: AppControlBackupPlan;
+  operations: AppControlOperation[];
+  warnings: string[];
+  generated_by: string;
+  actor?: AppControlActor | null;
+}
+
 export type PromptSessionStatus =
   | "planned"
   | "refused"
@@ -312,12 +358,24 @@ export interface CodexControlWorktree {
 export interface CodexControlWorker {
   worker_id: string;
   display_name: string;
+  agent_profile?: string | null;
+  identity_notes?: string | null;
+  personality_notes?: string | null;
+  soul_directive?: string | null;
+  memory_notes?: string | null;
+  bootstrap_notes?: string | null;
+  capability_tags?: string[];
+  context_sources?: string[];
+  avatar_label?: string | null;
+  avatar_color?: string | null;
+  avatar_uri?: string | null;
   branch_name?: string | null;
   worktree_path?: string | null;
   base_branch?: string | null;
   status: string;
   current_task_id?: string | null;
   summary?: string | null;
+  resume_notes?: string | null;
   updated_at?: string | null;
   last_seen_at?: string | null;
 }
@@ -413,9 +471,21 @@ export interface CodexControlStatusResponse {
 export interface CodexControlLaneCreateRequest {
   worker_id: string;
   display_name?: string | null;
+  agent_profile?: string | null;
+  identity_notes?: string | null;
+  personality_notes?: string | null;
+  soul_directive?: string | null;
+  memory_notes?: string | null;
+  bootstrap_notes?: string | null;
+  capability_tags?: string[] | null;
+  context_sources?: string[] | null;
+  avatar_label?: string | null;
+  avatar_color?: string | null;
+  avatar_uri?: string | null;
   branch_name?: string | null;
   worktree_path?: string | null;
   base_branch?: string | null;
+  resume_notes?: string | null;
   bootstrap: boolean;
 }
 
@@ -430,20 +500,44 @@ export interface CodexControlLaneCreateResponse {
 export interface CodexControlWorkerSyncRequest {
   worker_id: string;
   display_name?: string | null;
+  agent_profile?: string | null;
+  identity_notes?: string | null;
+  personality_notes?: string | null;
+  soul_directive?: string | null;
+  memory_notes?: string | null;
+  bootstrap_notes?: string | null;
+  capability_tags?: string[] | null;
+  context_sources?: string[] | null;
+  avatar_label?: string | null;
+  avatar_color?: string | null;
+  avatar_uri?: string | null;
   branch_name?: string | null;
   worktree_path?: string | null;
   base_branch?: string | null;
   status: string;
   summary?: string | null;
+  resume_notes?: string | null;
 }
 
 export interface CodexControlWorkerHeartbeatRequest {
   status?: string | null;
   summary?: string | null;
   current_task_id?: string | null;
+  agent_profile?: string | null;
+  identity_notes?: string | null;
+  personality_notes?: string | null;
+  soul_directive?: string | null;
+  memory_notes?: string | null;
+  bootstrap_notes?: string | null;
+  capability_tags?: string[] | null;
+  context_sources?: string[] | null;
+  avatar_label?: string | null;
+  avatar_color?: string | null;
+  avatar_uri?: string | null;
   branch_name?: string | null;
   worktree_path?: string | null;
   base_branch?: string | null;
+  resume_notes?: string | null;
 }
 
 export interface CodexControlWorkerResponse {

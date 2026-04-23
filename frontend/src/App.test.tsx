@@ -14,6 +14,7 @@ import { SETTINGS_PROFILE_STORAGE_KEY } from "./types/settings";
 const apiMocks = vi.hoisted(() => ({
   approveApproval: vi.fn(),
   cleanupO3deBridgeResults: vi.fn(),
+  previewAppControlScript: vi.fn(),
   createCodexControlNotification: vi.fn(),
   createAutonomyHealingAction: vi.fn(),
   createAutonomyJob: vi.fn(),

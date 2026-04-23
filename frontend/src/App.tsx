@@ -16,6 +16,7 @@ import OverviewAttentionPanel from "./components/OverviewAttentionPanel";
 import OverviewReviewQueuePanel from "./components/OverviewReviewQueuePanel";
 import OverviewReviewSessionPanel from "./components/OverviewReviewSessionPanel";
 import RecommendedActionsPanel from "./components/RecommendedActionsPanel";
+import AppControlCommandCenter from "./components/AppControlCommandCenter";
 import HomeWorkspaceView from "./components/workspaces/HomeWorkspaceView";
 import SettingsPanel from "./components/SettingsPanel";
 import {
@@ -6765,7 +6766,15 @@ export default function App() {
         quickStats={settings.layout.showDesktopTelemetry ? desktopQuickStats : []}
         utilityLabel={dashboardRefreshStatus ?? "desktop shell live"}
         utilityDetail={dashboardRefreshDetail}
-        utilityActions={<SettingsPanel />}
+        utilityActions={(
+          <>
+            <AppControlCommandCenter
+              activeWorkspaceId={activeWorkspaceId}
+              onSelectWorkspace={(workspaceId) => setActiveWorkspaceId(workspaceId as DesktopWorkspaceId)}
+            />
+            <SettingsPanel />
+          </>
+        )}
         onSelectWorkspace={(workspaceId) => setActiveWorkspaceId(workspaceId as DesktopWorkspaceId)}
       >
         {workspaceNextStepEntries.length > 0 ? (

@@ -68,9 +68,21 @@ import BuilderWorkspaceView from "./BuilderWorkspaceView";
 type LaneDraft = {
   workerId: string;
   displayName: string;
+  agentProfile: string;
+  identityNotes: string;
+  personalityNotes: string;
+  soulDirective: string;
+  memoryNotes: string;
+  bootstrapNotes: string;
+  capabilityTags: string;
+  contextSources: string;
+  avatarLabel: string;
+  avatarColor: string;
+  avatarUri: string;
   branchName: string;
   worktreePath: string;
   baseBranch: string;
+  resumeNotes: string;
   bootstrap: boolean;
 };
 
@@ -96,20 +108,44 @@ type TaskSupersedeDraft = {
 type WorkerSyncDraft = {
   workerId: string;
   displayName: string;
+  agentProfile: string;
+  identityNotes: string;
+  personalityNotes: string;
+  soulDirective: string;
+  memoryNotes: string;
+  bootstrapNotes: string;
+  capabilityTags: string;
+  contextSources: string;
+  avatarLabel: string;
+  avatarColor: string;
+  avatarUri: string;
   branchName: string;
   worktreePath: string;
   baseBranch: string;
   status: string;
   summary: string;
+  resumeNotes: string;
 };
 
 type WorkerHeartbeatDraft = {
   status: string;
   summary: string;
   currentTaskId: string;
+  agentProfile: string;
+  identityNotes: string;
+  personalityNotes: string;
+  soulDirective: string;
+  memoryNotes: string;
+  bootstrapNotes: string;
+  capabilityTags: string;
+  contextSources: string;
+  avatarLabel: string;
+  avatarColor: string;
+  avatarUri: string;
   branchName: string;
   worktreePath: string;
   baseBranch: string;
+  resumeNotes: string;
 };
 
 type LoadedWorkerDraftReview = {
@@ -121,7 +157,17 @@ type LoadedWorkerDraftReview = {
   worktreePath: string;
   baseBranch: string;
   currentTaskId?: string;
+  agentProfile?: string;
+  identityNotes?: string;
+  personalityNotes?: string;
+  soulDirective?: string;
+  memoryNotes?: string;
+  bootstrapNotes?: string;
+  capabilityTags?: string;
+  contextSources?: string;
+  avatar?: string;
   summary: string;
+  resumeNotes?: string;
   safeMessage: string;
 };
 
@@ -178,9 +224,21 @@ type AutonomyDraftRecommendation = {
 const INITIAL_LANE_DRAFT: LaneDraft = {
   workerId: "",
   displayName: "",
+  agentProfile: "Builder generalist",
+  identityNotes: "Named helper thread with its own branch, worktree, board identity, and resume trail.",
+  personalityNotes: "Careful, concise, evidence-first, and collaborative.",
+  soulDirective: "Protect the stable app while making steady, reviewable progress.",
+  memoryNotes: "",
+  bootstrapNotes: "Open this worktree, inspect mission control, claim only non-overlapping work, and publish heartbeats.",
+  capabilityTags: "repo_read, mission_control",
+  contextSources: "",
+  avatarLabel: "",
+  avatarColor: "#2563eb",
+  avatarUri: "",
   branchName: "",
   worktreePath: "",
   baseBranch: "",
+  resumeNotes: "",
   bootstrap: true,
 };
 
@@ -206,20 +264,44 @@ const INITIAL_TASK_SUPERSEDE_DRAFT: TaskSupersedeDraft = {
 const INITIAL_WORKER_SYNC_DRAFT: WorkerSyncDraft = {
   workerId: "",
   displayName: "",
+  agentProfile: "",
+  identityNotes: "",
+  personalityNotes: "",
+  soulDirective: "",
+  memoryNotes: "",
+  bootstrapNotes: "",
+  capabilityTags: "",
+  contextSources: "",
+  avatarLabel: "",
+  avatarColor: "",
+  avatarUri: "",
   branchName: "",
   worktreePath: "",
   baseBranch: "",
   status: "idle",
   summary: "",
+  resumeNotes: "",
 };
 
 const INITIAL_WORKER_HEARTBEAT_DRAFT: WorkerHeartbeatDraft = {
   status: "",
   summary: "",
   currentTaskId: "",
+  agentProfile: "",
+  identityNotes: "",
+  personalityNotes: "",
+  soulDirective: "",
+  memoryNotes: "",
+  bootstrapNotes: "",
+  capabilityTags: "",
+  contextSources: "",
+  avatarLabel: "",
+  avatarColor: "",
+  avatarUri: "",
   branchName: "",
   worktreePath: "",
   baseBranch: "",
+  resumeNotes: "",
 };
 
 const INITIAL_AUTONOMY_OBJECTIVE_DRAFT: AutonomyObjectiveDraft = {
@@ -257,6 +339,43 @@ const INITIAL_TERMINAL_LAUNCH_DRAFT: TerminalLaunchDraft = {
 
 const STALE_BLOCKED_MINUTES = 10;
 const STALE_WORKER_HEARTBEAT_MINUTES = 10;
+const SUPPORTED_THREAD_CAPABILITIES = [
+  "repo_read",
+  "repo_edit",
+  "frontend_ui",
+  "backend_api",
+  "o3de_bridge",
+  "mission_control",
+  "proof_validation",
+  "docs_runbook",
+  "terminal_observe",
+  "terminal_control",
+  "artifact_review",
+  "source_upload_context",
+] as const;
+
+const THREAD_PROFILE_PRESETS = [
+  {
+    label: "Builder generalist",
+    capabilityTags: "repo_read, repo_edit, mission_control, frontend_ui, backend_api",
+    color: "#2563eb",
+  },
+  {
+    label: "O3DE authoring specialist",
+    capabilityTags: "repo_read, mission_control, o3de_bridge, proof_validation, artifact_review",
+    color: "#059669",
+  },
+  {
+    label: "Frontend UX operator",
+    capabilityTags: "repo_read, repo_edit, mission_control, frontend_ui, docs_runbook",
+    color: "#d97706",
+  },
+  {
+    label: "Proof and release verifier",
+    capabilityTags: "repo_read, mission_control, proof_validation, artifact_review, docs_runbook",
+    color: "#7c3aed",
+  },
+] as const;
 
 function formatTimestamp(value?: string | null): string {
   if (!value) {
@@ -342,6 +461,55 @@ function parseScopePaths(value: string): string[] {
     .split(",")
     .map((entry) => entry.trim())
     .filter(Boolean);
+}
+
+function parseCapabilityTags(value: string): string[] {
+  const supported = new Set<string>(SUPPORTED_THREAD_CAPABILITIES);
+  return parseScopePaths(value)
+    .map((entry) => entry.toLowerCase().replace(/[-\s]+/g, "_"))
+    .filter((entry, index, values) => supported.has(entry) && values.indexOf(entry) === index);
+}
+
+function formatStringList(values?: string[] | null): string {
+  return values?.filter(Boolean).join(", ") ?? "";
+}
+
+function buildWorkerAvatarLabel(worker: CodexControlWorker | null): string {
+  const explicit = worker?.avatar_label?.trim();
+  if (explicit) {
+    return explicit.slice(0, 3).toUpperCase();
+  }
+  const source = worker?.display_name || worker?.worker_id || "CP";
+  return source
+    .split(/[\s_-]+/)
+    .map((entry) => entry[0])
+    .join("")
+    .slice(0, 3)
+    .toUpperCase() || "CP";
+}
+
+function renderWorkerAvatar(worker: CodexControlWorker | null, size = 44) {
+  const avatarColor = worker?.avatar_color || "#2563eb";
+  const avatarUri = worker?.avatar_uri?.trim();
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        ...workerAvatarStyle,
+        width: size,
+        height: size,
+        background: avatarUri
+          ? "var(--app-panel-bg-muted)"
+          : `linear-gradient(135deg, ${avatarColor}, rgba(15, 23, 42, 0.84))`,
+      }}
+    >
+      {avatarUri ? (
+        <img src={avatarUri} alt="" style={workerAvatarImageStyle} />
+      ) : (
+        buildWorkerAvatarLabel(worker)
+      )}
+    </span>
+  );
 }
 
 function parseJsonObject(value: string, label: string): Record<string, unknown> {
@@ -441,11 +609,23 @@ function buildWorkerSyncDraft(
   return {
     workerId: worker.worker_id,
     displayName: worker.display_name,
+    agentProfile: worker.agent_profile ?? "",
+    identityNotes: worker.identity_notes ?? "",
+    personalityNotes: worker.personality_notes ?? "",
+    soulDirective: worker.soul_directive ?? "",
+    memoryNotes: worker.memory_notes ?? "",
+    bootstrapNotes: worker.bootstrap_notes ?? "",
+    capabilityTags: formatStringList(worker.capability_tags),
+    contextSources: formatStringList(worker.context_sources),
+    avatarLabel: worker.avatar_label ?? "",
+    avatarColor: worker.avatar_color ?? "",
+    avatarUri: worker.avatar_uri ?? "",
     branchName: worker.branch_name ?? "",
     worktreePath: worker.worktree_path ?? "",
     baseBranch: worker.base_branch ?? status?.recommended_base_branch ?? "",
     status: worker.status,
     summary: worker.summary ?? "",
+    resumeNotes: worker.resume_notes ?? "",
   };
 }
 
@@ -458,9 +638,21 @@ function buildWorkerHeartbeatDraft(worker: CodexControlWorker | null): WorkerHea
     status: worker.status,
     summary: worker.summary ?? "",
     currentTaskId: worker.current_task_id ?? "",
+    agentProfile: worker.agent_profile ?? "",
+    identityNotes: worker.identity_notes ?? "",
+    personalityNotes: worker.personality_notes ?? "",
+    soulDirective: worker.soul_directive ?? "",
+    memoryNotes: worker.memory_notes ?? "",
+    bootstrapNotes: worker.bootstrap_notes ?? "",
+    capabilityTags: formatStringList(worker.capability_tags),
+    contextSources: formatStringList(worker.context_sources),
+    avatarLabel: worker.avatar_label ?? "",
+    avatarColor: worker.avatar_color ?? "",
+    avatarUri: worker.avatar_uri ?? "",
     branchName: worker.branch_name ?? "",
     worktreePath: worker.worktree_path ?? "",
     baseBranch: worker.base_branch ?? "",
+    resumeNotes: worker.resume_notes ?? "",
   };
 }
 
@@ -490,11 +682,20 @@ function buildWorkerHandoffPackage(
     "Worker",
     `- worker_id: ${worker?.worker_id ?? "select a worker"}`,
     `- display_name: ${worker?.display_name ?? "n/a"}`,
+    `- agent_profile: ${worker?.agent_profile ?? "n/a"}`,
+    `- identity_notes: ${worker?.identity_notes ?? "n/a"}`,
+    `- personality_notes: ${worker?.personality_notes ?? "n/a"}`,
+    `- soul_directive: ${worker?.soul_directive ?? "n/a"}`,
+    `- capability_tags: ${formatStringList(worker?.capability_tags) || "n/a"}`,
+    `- context_sources: ${formatStringList(worker?.context_sources) || "n/a"}`,
+    `- memory_notes: ${worker?.memory_notes ?? "n/a"}`,
+    `- bootstrap_notes: ${worker?.bootstrap_notes ?? "n/a"}`,
     `- status: ${worker?.status ?? "n/a"}`,
     `- branch_name: ${worker?.branch_name ?? "n/a"}`,
     `- worktree_path: ${worker?.worktree_path ?? "n/a"}`,
     `- current_task_id: ${worker?.current_task_id ?? "n/a"}`,
     `- summary: ${worker?.summary ?? "n/a"}`,
+    `- resume_notes: ${worker?.resume_notes ?? "n/a"}`,
     "",
     "Task",
     `- task_id: ${task?.task_id ?? "n/a"}`,
@@ -527,9 +728,14 @@ function buildWorkerHandoffPackage(
     worker?.current_task_id
       ? `2. Continue task ${worker.current_task_id} inside its claimed scope before touching overlapping files.`
       : "2. Claim or seed a coordination task before starting overlapping work.",
-    "3. Run the repo bootstrap/status checks in that worktree before using O3DE-facing flows.",
+    worker?.bootstrap_notes
+      ? `3. Follow this worker bootstrap first: ${worker.bootstrap_notes}`
+      : "3. Run the repo bootstrap/status checks in that worktree before using O3DE-facing flows.",
     "4. Keep the mission-control board updated with heartbeat, wait, release, or complete actions as work changes.",
-    "5. Treat this as a Builder handoff package for Codex Desktop, not as an autonomous self-prompting loop.",
+    worker?.context_sources?.length
+      ? `5. Treat these as the worker context upload pack: ${worker.context_sources.join(", ")}.`
+      : "5. Add source/context files to this worker profile before asking it to resume a complex slice.",
+    "6. Treat this as a Builder handoff package for Codex Desktop, not as an autonomous self-prompting loop.",
   );
 
   return lines.join("\n");
@@ -1557,9 +1763,21 @@ export default function BuilderWorkspaceDesktop() {
     const request: CodexControlLaneCreateRequest = {
       worker_id: laneDraft.workerId.trim(),
       display_name: sanitizeOptional(laneDraft.displayName),
+      agent_profile: sanitizeOptional(laneDraft.agentProfile),
+      identity_notes: sanitizeOptional(laneDraft.identityNotes),
+      personality_notes: sanitizeOptional(laneDraft.personalityNotes),
+      soul_directive: sanitizeOptional(laneDraft.soulDirective),
+      memory_notes: sanitizeOptional(laneDraft.memoryNotes),
+      bootstrap_notes: sanitizeOptional(laneDraft.bootstrapNotes),
+      capability_tags: parseCapabilityTags(laneDraft.capabilityTags),
+      context_sources: parseScopePaths(laneDraft.contextSources),
+      avatar_label: sanitizeOptional(laneDraft.avatarLabel),
+      avatar_color: sanitizeOptional(laneDraft.avatarColor),
+      avatar_uri: sanitizeOptional(laneDraft.avatarUri),
       branch_name: sanitizeOptional(laneDraft.branchName),
       worktree_path: sanitizeOptional(laneDraft.worktreePath),
       base_branch: sanitizeOptional(laneDraft.baseBranch),
+      resume_notes: sanitizeOptional(laneDraft.resumeNotes),
       bootstrap: laneDraft.bootstrap,
     };
 
@@ -1688,11 +1906,23 @@ export default function BuilderWorkspaceDesktop() {
     const request: CodexControlWorkerSyncRequest = {
       worker_id: workerSyncDraft.workerId.trim(),
       display_name: sanitizeOptional(workerSyncDraft.displayName),
+      agent_profile: sanitizeOptional(workerSyncDraft.agentProfile),
+      identity_notes: sanitizeOptional(workerSyncDraft.identityNotes),
+      personality_notes: sanitizeOptional(workerSyncDraft.personalityNotes),
+      soul_directive: sanitizeOptional(workerSyncDraft.soulDirective),
+      memory_notes: sanitizeOptional(workerSyncDraft.memoryNotes),
+      bootstrap_notes: sanitizeOptional(workerSyncDraft.bootstrapNotes),
+      capability_tags: parseCapabilityTags(workerSyncDraft.capabilityTags),
+      context_sources: parseScopePaths(workerSyncDraft.contextSources),
+      avatar_label: sanitizeOptional(workerSyncDraft.avatarLabel),
+      avatar_color: sanitizeOptional(workerSyncDraft.avatarColor),
+      avatar_uri: sanitizeOptional(workerSyncDraft.avatarUri),
       branch_name: sanitizeOptional(workerSyncDraft.branchName),
       worktree_path: sanitizeOptional(workerSyncDraft.worktreePath),
       base_branch: sanitizeOptional(workerSyncDraft.baseBranch),
       status: workerSyncDraft.status.trim() || "idle",
       summary: sanitizeOptional(workerSyncDraft.summary),
+      resume_notes: sanitizeOptional(workerSyncDraft.resumeNotes),
     };
 
     setWorkerBusyLabel("Syncing worker");
@@ -1725,9 +1955,25 @@ export default function BuilderWorkspaceDesktop() {
       status: sanitizeOptional(workerHeartbeatDraft.status),
       summary: sanitizeOptional(workerHeartbeatDraft.summary),
       current_task_id: sanitizeOptional(workerHeartbeatDraft.currentTaskId),
+      agent_profile: sanitizeOptional(workerHeartbeatDraft.agentProfile),
+      identity_notes: sanitizeOptional(workerHeartbeatDraft.identityNotes),
+      personality_notes: sanitizeOptional(workerHeartbeatDraft.personalityNotes),
+      soul_directive: sanitizeOptional(workerHeartbeatDraft.soulDirective),
+      memory_notes: sanitizeOptional(workerHeartbeatDraft.memoryNotes),
+      bootstrap_notes: sanitizeOptional(workerHeartbeatDraft.bootstrapNotes),
+      capability_tags: workerHeartbeatDraft.capabilityTags.trim()
+        ? parseCapabilityTags(workerHeartbeatDraft.capabilityTags)
+        : null,
+      context_sources: workerHeartbeatDraft.contextSources.trim()
+        ? parseScopePaths(workerHeartbeatDraft.contextSources)
+        : null,
+      avatar_label: sanitizeOptional(workerHeartbeatDraft.avatarLabel),
+      avatar_color: sanitizeOptional(workerHeartbeatDraft.avatarColor),
+      avatar_uri: sanitizeOptional(workerHeartbeatDraft.avatarUri),
       branch_name: sanitizeOptional(workerHeartbeatDraft.branchName),
       worktree_path: sanitizeOptional(workerHeartbeatDraft.worktreePath),
       base_branch: sanitizeOptional(workerHeartbeatDraft.baseBranch),
+      resume_notes: sanitizeOptional(workerHeartbeatDraft.resumeNotes),
     };
 
     setWorkerBusyLabel("Sending heartbeat");
@@ -1752,13 +1998,23 @@ export default function BuilderWorkspaceDesktop() {
     setWorkerSyncDraft(nextDraft);
     setLoadedWorkerDraftReview({
       label: "Worker sync draft reloaded",
-      changedFields: "Worker ID, display name, branch, worktree, base branch, status, summary",
+      changedFields: "Worker ID, display name, agent profile, avatar, capabilities, context sources, branch, worktree, base branch, status, summary, resume notes",
       workerId: nextDraft.workerId || "new worker lane",
       status: nextDraft.status || "idle",
       branchName: nextDraft.branchName || "none",
       worktreePath: nextDraft.worktreePath || "none",
       baseBranch: nextDraft.baseBranch || "none",
+      agentProfile: nextDraft.agentProfile || "none",
+      identityNotes: nextDraft.identityNotes || "none",
+      personalityNotes: nextDraft.personalityNotes || "none",
+      soulDirective: nextDraft.soulDirective || "none",
+      memoryNotes: nextDraft.memoryNotes || "none",
+      bootstrapNotes: nextDraft.bootstrapNotes || "none",
+      capabilityTags: nextDraft.capabilityTags || "none",
+      contextSources: nextDraft.contextSources || "none",
+      avatar: nextDraft.avatarUri || nextDraft.avatarLabel || "generated initials",
       summary: nextDraft.summary || "none",
+      resumeNotes: nextDraft.resumeNotes || "none",
       safeMessage: "Nothing was written to mission control. Review the draft, then use Sync worker lane when ready.",
     });
   }
@@ -1768,14 +2024,24 @@ export default function BuilderWorkspaceDesktop() {
     setWorkerHeartbeatDraft(nextDraft);
     setLoadedWorkerDraftReview({
       label: "Heartbeat draft reloaded",
-      changedFields: "Status, current task, branch, worktree, base branch, summary",
+      changedFields: "Status, current task, profile, context, branch, worktree, base branch, summary",
       workerId: selectedWorkerId || "no worker selected",
       status: nextDraft.status || "keep current",
       branchName: nextDraft.branchName || "keep current",
       worktreePath: nextDraft.worktreePath || "keep current",
       baseBranch: nextDraft.baseBranch || "keep current",
       currentTaskId: nextDraft.currentTaskId || "keep current",
+      agentProfile: nextDraft.agentProfile || "keep current",
+      identityNotes: nextDraft.identityNotes || "keep current",
+      personalityNotes: nextDraft.personalityNotes || "keep current",
+      soulDirective: nextDraft.soulDirective || "keep current",
+      memoryNotes: nextDraft.memoryNotes || "keep current",
+      bootstrapNotes: nextDraft.bootstrapNotes || "keep current",
+      capabilityTags: nextDraft.capabilityTags || "keep current",
+      contextSources: nextDraft.contextSources || "keep current",
+      avatar: nextDraft.avatarUri || nextDraft.avatarLabel || "keep current",
       summary: nextDraft.summary || "keep current",
+      resumeNotes: nextDraft.resumeNotes || "keep current",
       safeMessage: "Nothing was published. Review the draft, then use Send heartbeat when ready.",
     });
   }
@@ -2838,6 +3104,27 @@ export default function BuilderWorkspaceDesktop() {
             </select>
           </label>
         </div>
+        {workers.length ? (
+          <div style={workerQuickAccessGridStyle} aria-label="Thread quick access">
+            {workers.map((worker) => (
+              <button
+                key={worker.worker_id}
+                type="button"
+                style={{
+                  ...workerQuickAccessButtonStyle,
+                  ...(selectedWorkerId === worker.worker_id ? workerQuickAccessButtonActiveStyle : {}),
+                }}
+                onClick={() => setSelectedWorkerId(worker.worker_id)}
+              >
+                {renderWorkerAvatar(worker, 38)}
+                <span style={workerQuickAccessTextStyle}>
+                  <strong>{worker.display_name}</strong>
+                  <small>{worker.agent_profile || worker.worker_id}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : null}
         <div style={actionRowStyle}>
           <button
             type="button"
@@ -3219,6 +3506,150 @@ export default function BuilderWorkspaceDesktop() {
             />
           </label>
 
+          <details style={{ ...summaryCardStyle, gridColumn: "1 / -1" }} open>
+            <summary style={detailsSummaryStyle}>Thread identity, avatar, capabilities, and context pack</summary>
+            <div style={formGridStyle}>
+              <label style={fieldStyle}>
+                Agent profile
+                <input
+                  value={laneDraft.agentProfile}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, agentProfile: event.target.value }))}
+                  placeholder="Builder generalist"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={fieldStyle}>
+                Avatar initials
+                <input
+                  value={laneDraft.avatarLabel}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, avatarLabel: event.target.value }))}
+                  placeholder="BA"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={fieldStyle}>
+                Avatar color
+                <input
+                  type="color"
+                  value={laneDraft.avatarColor}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, avatarColor: event.target.value }))}
+                  style={{ ...inputStyle, minHeight: 44 }}
+                />
+              </label>
+
+              <label style={fieldStyle}>
+                Avatar image URL or data URL
+                <input
+                  value={laneDraft.avatarUri}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, avatarUri: event.target.value }))}
+                  placeholder="Optional small image URL"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                OpenClaw-style capabilities
+                <input
+                  value={laneDraft.capabilityTags}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, capabilityTags: event.target.value }))}
+                  placeholder={SUPPORTED_THREAD_CAPABILITIES.join(", ")}
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Workspace context sources
+                <input
+                  value={laneDraft.contextSources}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, contextSources: event.target.value }))}
+                  placeholder="docs/APP-OPERATOR-GUIDE.md, frontend/src/App.tsx, uploaded design notes"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Identity
+                <textarea
+                  value={laneDraft.identityNotes}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, identityNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Personality settings
+                <textarea
+                  value={laneDraft.personalityNotes}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, personalityNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Soul / mission directive
+                <textarea
+                  value={laneDraft.soulDirective}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, soulDirective: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Memory notes
+                <textarea
+                  value={laneDraft.memoryNotes}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, memoryNotes: event.target.value }))}
+                  placeholder="Durable facts this thread should remember when resuming."
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Bootstrap instructions
+                <textarea
+                  value={laneDraft.bootstrapNotes}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, bootstrapNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Resume notes
+                <textarea
+                  value={laneDraft.resumeNotes}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, resumeNotes: event.target.value }))}
+                  placeholder="Leave a continuation note for the next thread that opens this workspace."
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+            </div>
+            <div style={actionRowStyle}>
+              {THREAD_PROFILE_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  style={secondaryButtonStyle}
+                  onClick={() => setLaneDraft((current) => ({
+                    ...current,
+                    agentProfile: preset.label,
+                    capabilityTags: preset.capabilityTags,
+                    avatarColor: preset.color,
+                  }))}
+                >
+                  Use {preset.label}
+                </button>
+              ))}
+            </div>
+          </details>
+
           <label style={fieldStyle}>
             Branch name
             <input
@@ -3375,17 +3806,27 @@ export default function BuilderWorkspaceDesktop() {
     <div style={stackStyle}>
       <article style={summaryCardStyle}>
         <div style={rowBetweenStyle}>
-          <strong>Selected worker snapshot</strong>
+          <div style={workerSnapshotTitleStyle}>
+            {renderWorkerAvatar(selectedWorker)}
+            <strong>Selected thread workspace</strong>
+          </div>
           <span style={{ ...pillStyle, ...toneStyle(selectedWorker ? "info" : "warning") }}>
             {selectedWorker ? selectedWorker.worker_id : "no worker selected"}
           </span>
         </div>
         <div style={metaStackStyle}>
           <span>Display name: <code>{selectedWorker?.display_name ?? "n/a"}</code></span>
+          <span>Agent profile: <code>{selectedWorker?.agent_profile ?? "n/a"}</code></span>
+          <span>Capabilities: <code>{formatStringList(selectedWorker?.capability_tags) || "n/a"}</code></span>
+          <span>Context sources: <code>{formatStringList(selectedWorker?.context_sources) || "n/a"}</code></span>
+          <span>Soul directive: {selectedWorker?.soul_directive ?? "n/a"}</span>
+          <span>Bootstrap: {selectedWorker?.bootstrap_notes ?? "n/a"}</span>
+          <span>Memory: {selectedWorker?.memory_notes ?? "n/a"}</span>
           <span>Status: <code>{selectedWorker?.status ?? "n/a"}</code></span>
           <span>Branch: <code>{selectedWorker?.branch_name ?? "n/a"}</code></span>
           <span>Worktree: <code>{selectedWorker?.worktree_path ?? "n/a"}</code></span>
           <span>Current task: <code>{selectedWorkerTask?.task_id ?? selectedWorker?.current_task_id ?? "n/a"}</code></span>
+          <span>Resume notes: {selectedWorker?.resume_notes ?? "n/a"}</span>
           <span>Unread notifications loaded: {workerNotifications.filter((notification) => notification.status === "unread").length}</span>
         </div>
       </article>
@@ -3418,6 +3859,131 @@ export default function BuilderWorkspaceDesktop() {
               style={inputStyle}
             />
           </label>
+
+          <details style={{ ...summaryCardStyle, gridColumn: "1 / -1" }}>
+            <summary style={detailsSummaryStyle}>Edit thread profile, avatar, memory, and context sources</summary>
+            <div style={formGridStyle}>
+              <label style={fieldStyle}>
+                Agent profile
+                <input
+                  value={workerSyncDraft.agentProfile}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, agentProfile: event.target.value }))}
+                  placeholder="O3DE authoring specialist"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={fieldStyle}>
+                Avatar initials
+                <input
+                  value={workerSyncDraft.avatarLabel}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, avatarLabel: event.target.value }))}
+                  placeholder="OA"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={fieldStyle}>
+                Avatar color
+                <input
+                  type="color"
+                  value={workerSyncDraft.avatarColor || "#2563eb"}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, avatarColor: event.target.value }))}
+                  style={{ ...inputStyle, minHeight: 44 }}
+                />
+              </label>
+
+              <label style={fieldStyle}>
+                Avatar image URL or data URL
+                <input
+                  value={workerSyncDraft.avatarUri}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, avatarUri: event.target.value }))}
+                  placeholder="Optional small image URL"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                OpenClaw-style capabilities
+                <input
+                  value={workerSyncDraft.capabilityTags}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, capabilityTags: event.target.value }))}
+                  placeholder={SUPPORTED_THREAD_CAPABILITIES.join(", ")}
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Workspace context sources
+                <input
+                  value={workerSyncDraft.contextSources}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, contextSources: event.target.value }))}
+                  placeholder="Mini source upload pack for this thread: files, docs, screenshots, notes"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Identity
+                <textarea
+                  value={workerSyncDraft.identityNotes}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, identityNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Personality settings
+                <textarea
+                  value={workerSyncDraft.personalityNotes}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, personalityNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Soul / mission directive
+                <textarea
+                  value={workerSyncDraft.soulDirective}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, soulDirective: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Memory notes
+                <textarea
+                  value={workerSyncDraft.memoryNotes}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, memoryNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Bootstrap instructions
+                <textarea
+                  value={workerSyncDraft.bootstrapNotes}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, bootstrapNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Resume notes
+                <textarea
+                  value={workerSyncDraft.resumeNotes}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, resumeNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+            </div>
+          </details>
 
           <label style={fieldStyle}>
             Status
@@ -3613,10 +4179,20 @@ export default function BuilderWorkspaceDesktop() {
             { label: "Branch", value: loadedWorkerDraftReview.branchName },
             { label: "Worktree", value: loadedWorkerDraftReview.worktreePath },
             { label: "Base branch", value: loadedWorkerDraftReview.baseBranch },
+            { label: "Agent profile", value: loadedWorkerDraftReview.agentProfile ?? "none" },
+            { label: "Identity", value: loadedWorkerDraftReview.identityNotes ?? "none" },
+            { label: "Personality", value: loadedWorkerDraftReview.personalityNotes ?? "none" },
+            { label: "Soul directive", value: loadedWorkerDraftReview.soulDirective ?? "none" },
+            { label: "Capabilities", value: loadedWorkerDraftReview.capabilityTags ?? "none" },
+            { label: "Context sources", value: loadedWorkerDraftReview.contextSources ?? "none" },
+            { label: "Avatar", value: loadedWorkerDraftReview.avatar ?? "generated initials" },
+            { label: "Memory", value: loadedWorkerDraftReview.memoryNotes ?? "none" },
+            { label: "Bootstrap", value: loadedWorkerDraftReview.bootstrapNotes ?? "none" },
             ...(loadedWorkerDraftReview.currentTaskId
               ? [{ label: "Current task", value: loadedWorkerDraftReview.currentTaskId }]
               : []),
             { label: "Summary", value: loadedWorkerDraftReview.summary },
+            { label: "Resume notes", value: loadedWorkerDraftReview.resumeNotes ?? "none" },
           ]}
         />
       ) : null}
@@ -4506,6 +5082,73 @@ const summaryGridStyle = {
   display: "grid",
   gap: 12,
   gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+} satisfies CSSProperties;
+
+const detailsSummaryStyle = {
+  cursor: "pointer",
+  fontWeight: 800,
+  color: "var(--app-text)",
+  marginBottom: 12,
+} satisfies CSSProperties;
+
+const workerSnapshotTitleStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+} satisfies CSSProperties;
+
+const workerAvatarStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flex: "0 0 auto",
+  borderRadius: "999px",
+  border: "1px solid color-mix(in srgb, var(--app-panel-border), white 18%)",
+  color: "white",
+  fontWeight: 900,
+  fontSize: 13,
+  letterSpacing: "0.04em",
+  overflow: "hidden",
+  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.16)",
+} satisfies CSSProperties;
+
+const workerAvatarImageStyle = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  display: "block",
+} satisfies CSSProperties;
+
+const workerQuickAccessGridStyle = {
+  display: "grid",
+  gap: 10,
+  gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+  marginTop: 12,
+} satisfies CSSProperties;
+
+const workerQuickAccessButtonStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: 16,
+  border: "1px solid var(--app-panel-border)",
+  background: "var(--app-panel-bg)",
+  color: "var(--app-text)",
+  textAlign: "left",
+  cursor: "pointer",
+} satisfies CSSProperties;
+
+const workerQuickAccessButtonActiveStyle = {
+  borderColor: "color-mix(in srgb, var(--app-accent), white 18%)",
+  boxShadow: "0 0 0 3px color-mix(in srgb, var(--app-accent), transparent 76%)",
+} satisfies CSSProperties;
+
+const workerQuickAccessTextStyle = {
+  display: "grid",
+  gap: 2,
+  minWidth: 0,
 } satisfies CSSProperties;
 
 const summaryCardStyle = {

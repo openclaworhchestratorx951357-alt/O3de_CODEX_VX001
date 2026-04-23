@@ -1,6 +1,8 @@
 import type {
   AdaptersEnvelope,
   AdaptersResponse,
+  AppControlPreviewRequest,
+  AppControlScriptPreview,
   AutonomyHealingActionCreateRequest,
   AutonomyHealingActionUpdateRequest,
   AutonomyHealingActionsResponse,
@@ -135,6 +137,16 @@ export async function dispatchTool(
 
 export async function fetchToolsCatalog(): Promise<unknown> {
   return getJson("/tools/catalog", "Catalog fetch");
+}
+
+export async function previewAppControlScript(
+  request: AppControlPreviewRequest,
+): Promise<AppControlScriptPreview> {
+  return postJson<AppControlPreviewRequest, AppControlScriptPreview>(
+    "/app/control/preview",
+    request,
+    "App control preview",
+  );
 }
 
 export async function fetchAutonomySummary(): Promise<AutonomySummaryResponse> {

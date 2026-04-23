@@ -86,12 +86,24 @@ describe("BuilderWorkspaceDesktop", () => {
           {
             worker_id: "builder-alpha",
             display_name: "Builder Alpha",
+            agent_profile: "Builder generalist",
+            identity_notes: "Named helper lane.",
+            personality_notes: "Careful and evidence-first.",
+            soul_directive: "Protect stable work.",
+            memory_notes: "Remember current Builder context.",
+            bootstrap_notes: "Open the worktree and sync mission control.",
+            capability_tags: ["repo_read", "mission_control", "frontend_ui"],
+            context_sources: ["frontend/src/components/workspaces"],
+            avatar_label: "BA",
+            avatar_color: "#2563eb",
+            avatar_uri: null,
             branch_name: "codex/worker/builder-alpha",
             worktree_path: "C:\\repo-builder-alpha",
             base_branch: "codex/control-plane/o3de-thread-launchpad-stable",
             status: "active",
             current_task_id: null,
             summary: "Working Builder lane.",
+            resume_notes: "Continue the current Builder slice.",
             updated_at: "2026-04-22T16:00:00Z",
             last_seen_at: "2026-04-22T16:00:00Z",
           },
@@ -492,6 +504,10 @@ describe("BuilderWorkspaceDesktop", () => {
     ).toBeInTheDocument();
     expect(syncReview).toHaveTextContent("Worker: builder-alpha");
     expect(syncReview).toHaveTextContent("Worktree: C:\\repo-builder-alpha");
+    expect(syncReview).toHaveTextContent("Agent profile: Builder generalist");
+    expect(syncReview).toHaveTextContent("Capabilities: repo_read, mission_control, frontend_ui");
+    expect(syncReview).toHaveTextContent("Context sources: frontend/src/components/workspaces");
+    expect(syncReview).toHaveTextContent("Avatar: BA");
 
     fireEvent.click(screen.getByRole("button", { name: "Clear worker review" }));
 

@@ -55,6 +55,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         payload = response.json()
         assert payload["status"] == "phase-7-gem-state-refinement"
         assert payload["phase"] == "phase-7"
+        assert "/app/control/preview" in payload["routes"]
         assert "/summary" in payload["routes"]
         assert "/runs" in payload["routes"]
         assert "/runs/cards" in payload["routes"]

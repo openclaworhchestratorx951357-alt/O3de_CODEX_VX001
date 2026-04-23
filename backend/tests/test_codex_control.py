@@ -151,6 +151,17 @@ def test_create_lane_invokes_mission_control_with_expected_args(tmp_path) -> Non
                 "worker": {
                     "worker_id": "builder-alpha",
                     "display_name": "Builder Alpha",
+                    "agent_profile": "O3DE authoring specialist",
+                    "identity_notes": "Named helper lane.",
+                    "personality_notes": "Careful and evidence-first.",
+                    "soul_directive": "Protect stable work.",
+                    "memory_notes": "Remember McpSandbox paths.",
+                    "bootstrap_notes": "Open worktree and check mission control.",
+                    "capability_tags": ["repo_read", "mission_control", "o3de_bridge"],
+                    "context_sources": ["docs/APP-OPERATOR-GUIDE.md"],
+                    "avatar_label": "OA",
+                    "avatar_color": "#059669",
+                    "avatar_uri": "data:image/svg+xml;base64,avatar",
                     "branch_name": "codex/worker/builder-alpha",
                     "worktree_path": str(repo_root.parent / "repo-builder-alpha"),
                     "base_branch": "codex/control-plane/o3de-thread-launchpad-stable",
@@ -172,6 +183,17 @@ def test_create_lane_invokes_mission_control_with_expected_args(tmp_path) -> Non
         CodexControlLaneCreateRequest(
             worker_id="Builder Alpha",
             display_name="Builder Alpha",
+            agent_profile="O3DE authoring specialist",
+            identity_notes="Named helper lane.",
+            personality_notes="Careful and evidence-first.",
+            soul_directive="Protect stable work.",
+            memory_notes="Remember McpSandbox paths.",
+            bootstrap_notes="Open worktree and check mission control.",
+            capability_tags=["repo_read", "mission_control", "o3de_bridge"],
+            context_sources=["docs/APP-OPERATOR-GUIDE.md"],
+            avatar_label="OA",
+            avatar_color="#059669",
+            avatar_uri="data:image/svg+xml;base64,avatar",
             branch_name="codex/worker/builder-alpha",
             worktree_path=str(repo_root.parent / "repo-builder-alpha"),
             base_branch="codex/control-plane/o3de-thread-launchpad-stable",
@@ -188,12 +210,27 @@ def test_create_lane_invokes_mission_control_with_expected_args(tmp_path) -> Non
         "--worker-id",
     ]
     assert "--display-name" in captured_command
+    assert "--agent-profile" in captured_command
+    assert "--identity-notes" in captured_command
+    assert "--personality-notes" in captured_command
+    assert "--soul-directive" in captured_command
+    assert "--memory-notes" in captured_command
+    assert "--bootstrap-notes" in captured_command
+    assert captured_command.count("--capability-tag") == 3
+    assert "--context-source" in captured_command
+    assert "--avatar-label" in captured_command
+    assert "--avatar-color" in captured_command
+    assert "--avatar-uri" in captured_command
     assert "--branch-name" in captured_command
     assert "--worktree-path" in captured_command
     assert "--base-branch" in captured_command
     assert "--no-bootstrap" in captured_command
     assert response.status == "ok"
     assert response.worker.worker_id == "builder-alpha"
+    assert response.worker.agent_profile == "O3DE authoring specialist"
+    assert response.worker.capability_tags == ["repo_read", "mission_control", "o3de_bridge"]
+    assert response.worker.context_sources == ["docs/APP-OPERATOR-GUIDE.md"]
+    assert response.worker.avatar_label == "OA"
     assert response.worktree_path.endswith("repo-builder-alpha")
 
 

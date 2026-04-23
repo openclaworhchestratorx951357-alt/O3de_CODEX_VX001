@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.adapters import router as adapters_router
+from app.api.routes.app_control import router as app_control_router
 from app.api.routes.approvals import router as approvals_router
 from app.api.routes.artifacts import router as artifacts_router
 from app.api.routes.autonomy import router as autonomy_router
@@ -70,6 +71,7 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(o3de_target_router)
 app.include_router(adapters_router)
+app.include_router(app_control_router)
 app.include_router(summary_router)
 app.include_router(tools_router)
 app.include_router(tools_catalog_router)
@@ -100,6 +102,7 @@ def root() -> RootStatus:
         "/o3de/target",
         "/o3de/bridge",
         "/adapters",
+        "/app/control/preview",
         "/summary",
         "/tools/catalog",
         "/tools/dispatch",

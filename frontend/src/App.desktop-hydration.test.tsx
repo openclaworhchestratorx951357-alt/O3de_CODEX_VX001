@@ -20,6 +20,7 @@ const apiMocks = vi.hoisted(() => ({
   claimCodexControlTask: vi.fn(),
   approveApproval: vi.fn(),
   cleanupO3deBridgeResults: vi.fn(),
+  previewAppControlScript: vi.fn(),
   completeCodexControlTask: vi.fn(),
   createCodexControlNotification: vi.fn(),
   createAutonomyHealingAction: vi.fn(),
