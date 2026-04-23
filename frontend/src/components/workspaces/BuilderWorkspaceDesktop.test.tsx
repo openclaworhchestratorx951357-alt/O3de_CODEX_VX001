@@ -460,6 +460,16 @@ describe("BuilderWorkspaceDesktop", () => {
     expect(
       await screen.findByText("Loaded recommended drafts for Improve runtime readability and inline guidance."),
     ).toBeInTheDocument();
+    expect(screen.getByLabelText("Loaded draft review")).toBeInTheDocument();
+    expect(screen.getByText("Objective draft, job draft, resource keys, payload JSON")).toBeInTheDocument();
+    expect(
+      screen.getByText("Safe until saved: review the drafts below, then use Add objective and Add inbox job when ready."),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear review" }));
+
+    expect(screen.queryByLabelText("Loaded draft review")).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue("builder-runtime-guidance")).toBeInTheDocument();
   });
 
   it("records an observation and healing action when Builder promotion fails", async () => {

@@ -1284,6 +1284,8 @@ export default function BuilderWorkspaceDesktop() {
     INITIAL_AUTONOMY_OBJECTIVE_DRAFT,
   );
   const [jobDraft, setJobDraft] = useState<AutonomyJobDraft>(INITIAL_AUTONOMY_JOB_DRAFT);
+  const [loadedAutonomyRecommendation, setLoadedAutonomyRecommendation] =
+    useState<AutonomyDraftRecommendation | null>(null);
 
   const workers = status?.board.workers ?? [];
   const tasks = status?.board.tasks ?? [];
@@ -1941,6 +1943,7 @@ export default function BuilderWorkspaceDesktop() {
     setAutonomyPromptMessage(null);
     setObjectiveDraft(recommendation.objective);
     setJobDraft(recommendation.job);
+    setLoadedAutonomyRecommendation(recommendation);
     setAutonomyMessage(`Loaded recommended drafts for ${recommendation.label}.`);
   }
 
@@ -3806,6 +3809,40 @@ export default function BuilderWorkspaceDesktop() {
             </article>
           ))}
         </div>
+        {loadedAutonomyRecommendation ? (
+          <article aria-label="Loaded draft review" style={{ ...listCardStyle, marginTop: 12 }}>
+            <div style={rowBetweenStyle}>
+              <div style={stackStyle}>
+                <span style={{ ...pillStyle, ...toneStyle("info"), width: "fit-content" }}>
+                  Loaded draft review
+                </span>
+                <strong>{loadedAutonomyRecommendation.label}</strong>
+                <p style={mutedParagraphStyle}>{loadedAutonomyRecommendation.detail}</p>
+              </div>
+              <button
+                type="button"
+                style={secondaryButtonStyle}
+                onClick={() => setLoadedAutonomyRecommendation(null)}
+              >
+                Clear review
+              </button>
+            </div>
+            <div style={metaStackStyle}>
+              <span>
+                <strong>Changed fields:</strong> Objective draft, job draft, resource keys, payload JSON
+              </span>
+              <span>Objective ID: {loadedAutonomyRecommendation.objective.id}</span>
+              <span>Job ID: {loadedAutonomyRecommendation.job.id}</span>
+              <span>Lane: {loadedAutonomyRecommendation.job.assignedLane || "builder"}</span>
+              <span>
+                Resources: {loadedAutonomyRecommendation.job.resourceKeys.trim() || "none"}
+              </span>
+              <span>
+                Safe until saved: review the drafts below, then use Add objective and Add inbox job when ready.
+              </span>
+            </div>
+          </article>
+        ) : null}
       </article>
 
       <div style={summaryGridStyle}>
