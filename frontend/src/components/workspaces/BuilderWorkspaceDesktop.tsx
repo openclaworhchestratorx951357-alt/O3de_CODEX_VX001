@@ -111,6 +111,19 @@ type WorkerHeartbeatDraft = {
   baseBranch: string;
 };
 
+type LoadedWorkerDraftReview = {
+  label: string;
+  changedFields: string;
+  workerId: string;
+  status: string;
+  branchName: string;
+  worktreePath: string;
+  baseBranch: string;
+  currentTaskId?: string;
+  summary: string;
+  safeMessage: string;
+};
+
 type AutonomyObjectiveDraft = {
   id: string;
   title: string;
@@ -1251,6 +1264,7 @@ export default function BuilderWorkspaceDesktop() {
   const [workerHeartbeatDraft, setWorkerHeartbeatDraft] = useState<WorkerHeartbeatDraft>(
     INITIAL_WORKER_HEARTBEAT_DRAFT,
   );
+  const [loadedWorkerDraftReview, setLoadedWorkerDraftReview] = useState<LoadedWorkerDraftReview | null>(null);
   const [workerBusyLabel, setWorkerBusyLabel] = useState<string | null>(null);
   const [workerError, setWorkerError] = useState<string | null>(null);
   const [workerMessage, setWorkerMessage] = useState<string | null>(null);
@@ -1705,6 +1719,39 @@ export default function BuilderWorkspaceDesktop() {
     } finally {
       setWorkerBusyLabel(null);
     }
+  }
+
+  function handleResetWorkerSyncDraft() {
+    const nextDraft = buildWorkerSyncDraft(selectedWorker, status);
+    setWorkerSyncDraft(nextDraft);
+    setLoadedWorkerDraftReview({
+      label: "Worker sync draft reloaded",
+      changedFields: "Worker ID, display name, branch, worktree, base branch, status, summary",
+      workerId: nextDraft.workerId || "new worker lane",
+      status: nextDraft.status || "idle",
+      branchName: nextDraft.branchName || "none",
+      worktreePath: nextDraft.worktreePath || "none",
+      baseBranch: nextDraft.baseBranch || "none",
+      summary: nextDraft.summary || "none",
+      safeMessage: "Nothing was written to mission control. Review the draft, then use Sync worker lane when ready.",
+    });
+  }
+
+  function handleResetWorkerHeartbeatDraft() {
+    const nextDraft = buildWorkerHeartbeatDraft(selectedWorker);
+    setWorkerHeartbeatDraft(nextDraft);
+    setLoadedWorkerDraftReview({
+      label: "Heartbeat draft reloaded",
+      changedFields: "Status, current task, branch, worktree, base branch, summary",
+      workerId: selectedWorkerId || "no worker selected",
+      status: nextDraft.status || "keep current",
+      branchName: nextDraft.branchName || "keep current",
+      worktreePath: nextDraft.worktreePath || "keep current",
+      baseBranch: nextDraft.baseBranch || "keep current",
+      currentTaskId: nextDraft.currentTaskId || "keep current",
+      summary: nextDraft.summary || "keep current",
+      safeMessage: "Nothing was published. Review the draft, then use Send heartbeat when ready.",
+    });
   }
 
   async function handleCopyHandoffPackage() {
@@ -3389,7 +3436,7 @@ export default function BuilderWorkspaceDesktop() {
             type="button"
             style={secondaryButtonStyle}
             disabled={workerBusyLabel !== null}
-            onClick={() => setWorkerSyncDraft(buildWorkerSyncDraft(selectedWorker, status))}
+            onClick={handleResetWorkerSyncDraft}
           >
             Reset to selected worker
           </button>
@@ -3490,12 +3537,47 @@ export default function BuilderWorkspaceDesktop() {
             type="button"
             style={secondaryButtonStyle}
             disabled={!selectedWorkerId || workerBusyLabel !== null}
-            onClick={() => setWorkerHeartbeatDraft(buildWorkerHeartbeatDraft(selectedWorker))}
+            onClick={handleResetWorkerHeartbeatDraft}
           >
             Reset heartbeat draft
           </button>
         </div>
       </form>
+
+      {loadedWorkerDraftReview ? (
+        <article aria-label="Loaded worker draft review" style={listCardStyle}>
+          <div style={rowBetweenStyle}>
+            <div style={stackStyle}>
+              <span style={{ ...pillStyle, ...toneStyle("info"), width: "fit-content" }}>
+                Loaded worker draft review
+              </span>
+              <strong>{loadedWorkerDraftReview.label}</strong>
+              <p style={mutedParagraphStyle}>{loadedWorkerDraftReview.safeMessage}</p>
+            </div>
+            <button
+              type="button"
+              style={secondaryButtonStyle}
+              onClick={() => setLoadedWorkerDraftReview(null)}
+            >
+              Clear worker review
+            </button>
+          </div>
+          <div style={metaStackStyle}>
+            <span>
+              <strong>Changed fields:</strong> {loadedWorkerDraftReview.changedFields}
+            </span>
+            <span>Worker: {loadedWorkerDraftReview.workerId}</span>
+            <span>Status: {loadedWorkerDraftReview.status}</span>
+            <span>Branch: {loadedWorkerDraftReview.branchName}</span>
+            <span>Worktree: {loadedWorkerDraftReview.worktreePath}</span>
+            <span>Base branch: {loadedWorkerDraftReview.baseBranch}</span>
+            {loadedWorkerDraftReview.currentTaskId ? (
+              <span>Current task: {loadedWorkerDraftReview.currentTaskId}</span>
+            ) : null}
+            <span>Summary: {loadedWorkerDraftReview.summary}</span>
+          </div>
+        </article>
+      ) : null}
 
       {workerMessage ? (
         <article style={{ ...summaryCardStyle, ...toneStyle("success") }}>

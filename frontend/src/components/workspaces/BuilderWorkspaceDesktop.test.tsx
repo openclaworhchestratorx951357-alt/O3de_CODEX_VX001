@@ -54,13 +54,15 @@ vi.mock("../../lib/settings/hooks", () => ({
 vi.mock("./BuilderWorkspaceView", () => ({
   default: ({
     missionBoardContent,
+    workerLifecycleContent,
     terminalsContent,
     autonomyInboxContent,
   }: {
     missionBoardContent: ReactNode;
+    workerLifecycleContent: ReactNode;
     terminalsContent: ReactNode;
     autonomyInboxContent: ReactNode;
-  }) => <div>{missionBoardContent}{terminalsContent}{autonomyInboxContent}</div>,
+  }) => <div>{missionBoardContent}{workerLifecycleContent}{terminalsContent}{autonomyInboxContent}</div>,
 }));
 
 describe("BuilderWorkspaceDesktop", () => {
@@ -470,6 +472,35 @@ describe("BuilderWorkspaceDesktop", () => {
 
     expect(screen.queryByLabelText("Loaded draft review")).not.toBeInTheDocument();
     expect(screen.getByDisplayValue("builder-runtime-guidance")).toBeInTheDocument();
+  });
+
+  it("reviews worker lifecycle draft resets before anything is published", async () => {
+    render(<BuilderWorkspaceDesktop />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Reset to selected worker" }));
+
+    expect(await screen.findByLabelText("Loaded worker draft review")).toBeInTheDocument();
+    expect(await screen.findByText("Worker sync draft reloaded")).toBeInTheDocument();
+    expect(
+      screen.getByText("Nothing was written to mission control. Review the draft, then use Sync worker lane when ready."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Worker: builder-alpha")).toBeInTheDocument();
+    expect(screen.getByText("Worktree: C:\\repo-builder-alpha")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear worker review" }));
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Loaded worker draft review")).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset heartbeat draft" }));
+
+    expect(await screen.findByLabelText("Loaded worker draft review")).toBeInTheDocument();
+    expect(await screen.findByText("Heartbeat draft reloaded")).toBeInTheDocument();
+    expect(
+      screen.getByText("Nothing was published. Review the draft, then use Send heartbeat when ready."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Current task: keep current")).toBeInTheDocument();
   });
 
   it("records an observation and healing action when Builder promotion fails", async () => {
