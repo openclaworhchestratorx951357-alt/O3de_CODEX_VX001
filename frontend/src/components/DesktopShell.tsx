@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
 import { useThemeTokens } from "../lib/settings/hooks";
 
@@ -98,11 +98,8 @@ export default function DesktopShell({
   const activeNavSection = navSections.find((section) => (
     section.items.some((item) => item.id === activeWorkspaceId)
   ));
-  const [expandedSectionIds, setExpandedSectionIds] = useState<readonly string[]>(["start"]);
-  const expandedSectionIdSet = new Set([
-    ...expandedSectionIds,
-    activeNavSection?.id ?? "start",
-  ]);
+  const activeNavSectionId = activeNavSection?.id ?? "start";
+  const [expandedSectionId, setExpandedSectionId] = useState(activeNavSectionId);
   const timestampLabel = new Date().toLocaleString([], {
     hour: "numeric",
     minute: "2-digit",
@@ -113,14 +110,14 @@ export default function DesktopShell({
     ? agentCallItems
     : fallbackAgentCallItems;
 
-  function toggleNavSection(sectionId: string) {
-    setExpandedSectionIds((currentSectionIds) => {
-      if (currentSectionIds.includes(sectionId)) {
-        return currentSectionIds.filter((currentSectionId) => currentSectionId !== sectionId);
-      }
+  useEffect(() => {
+    setExpandedSectionId(activeNavSectionId);
+  }, [activeNavSectionId]);
 
-      return [...currentSectionIds, sectionId];
-    });
+  function toggleNavSection(sectionId: string) {
+    setExpandedSectionId((currentSectionId) => (
+      currentSectionId === sectionId ? activeNavSectionId : sectionId
+    ));
   }
 
   return (
@@ -231,7 +228,7 @@ export default function DesktopShell({
           <div style={navScrollableRegionStyle}>
             {navSections.map((section) => {
               const sectionActive = section.items.some((item) => item.id === activeWorkspaceId);
-              const sectionExpanded = expandedSectionIdSet.has(section.id);
+              const sectionExpanded = expandedSectionId === section.id;
               return (
                 <section
                   key={section.id}
@@ -273,7 +270,7 @@ export default function DesktopShell({
                             }}
                           >
                             <div style={navButtonHeaderStyle}>
-                              <strong>{item.label}</strong>
+                              <strong style={navButtonLabelStyle}>{item.label}</strong>
                               {item.badge ? (
                                 <span style={{ ...navBadgeStyle, ...tone }}>
                                   {item.badge}
@@ -622,7 +619,7 @@ const navRailStyle = {
   boxShadow: "var(--app-shadow-strong)",
   backdropFilter: "blur(20px)",
   minHeight: 0,
-  overflow: "auto",
+  overflow: "hidden",
 } satisfies CSSProperties;
 
 const navSectionHeaderStyle = {
@@ -666,15 +663,18 @@ const currentWorkspacePillStyle = {
 
 const navListStyle = {
   display: "grid",
-  gap: 8,
-  paddingTop: 8,
+  gap: 6,
+  padding: "6px 0 2px",
 } satisfies CSSProperties;
 
 const navScrollableRegionStyle = {
   display: "grid",
-  gap: 10,
+  alignContent: "start",
+  gap: 8,
   minHeight: 0,
-  overflow: "visible",
+  overflowY: "auto",
+  overflowX: "hidden",
+  paddingRight: 2,
 } satisfies CSSProperties;
 
 const navGroupStyle = {
@@ -694,7 +694,7 @@ const navGroupSummaryStyle = {
   gap: 8,
   width: "100%",
   border: 0,
-  padding: "10px 12px",
+  padding: "9px 11px",
   cursor: "pointer",
   background: "transparent",
   color: "var(--app-text-color)",
@@ -729,29 +729,38 @@ const navButtonStyle = {
   borderStyle: "solid",
   borderColor: "var(--app-panel-border)",
   borderRadius: "calc(var(--app-panel-radius) - 4px)",
-  padding: "10px 12px",
+  padding: "8px 10px",
   background: "var(--app-panel-bg-alt)",
   cursor: "pointer",
   textAlign: "left",
   display: "grid",
-  gap: 4,
+  gap: 3,
   color: "var(--app-text-color)",
   boxShadow: "var(--app-shadow-soft)",
+  minWidth: 0,
+  boxSizing: "border-box",
+  overflow: "hidden",
 } satisfies CSSProperties;
 
 const activeNavButtonStyle = {
   borderColor: "var(--app-accent-strong)",
   background: "linear-gradient(145deg, var(--app-accent-soft) 0%, var(--app-panel-bg-alt) 100%)",
   boxShadow: "var(--app-shadow-strong)",
-  transform: "translateY(-1px)",
 } satisfies CSSProperties;
 
 const navButtonHeaderStyle = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
-  gap: 10,
+  alignItems: "flex-start",
+  gap: 8,
   minWidth: 0,
+} satisfies CSSProperties;
+
+const navButtonLabelStyle = {
+  minWidth: 0,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap" as const,
 } satisfies CSSProperties;
 
 const navButtonSubtitleStyle = {
@@ -760,15 +769,17 @@ const navButtonSubtitleStyle = {
   lineHeight: 1.35,
   overflow: "hidden",
   textOverflow: "ellipsis",
-  whiteSpace: "nowrap" as const,
+  whiteSpace: "normal" as const,
+  maxHeight: 30,
 } satisfies CSSProperties;
 
 const navBadgeStyle = {
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-pill-radius)",
-  padding: "4px 8px",
+  padding: "3px 7px",
   fontSize: 11,
   fontWeight: 700,
+  flex: "0 0 auto",
   whiteSpace: "nowrap" as const,
 } satisfies CSSProperties;
 
