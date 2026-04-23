@@ -292,11 +292,6 @@ export default function DesktopShell({
         <section style={workspaceShellStyle}>
           <div style={workspaceChromeStyle}>
             <div style={workspaceChromeMetaStyle}>
-              <div style={windowControlsStyle}>
-                <span style={{ ...windowControlDotStyle, background: "var(--app-window-control-minimize)" }} />
-                <span style={{ ...windowControlDotStyle, background: "var(--app-window-control-maximize)" }} />
-                <span style={{ ...windowControlDotStyle, background: "var(--app-window-control-close)" }} />
-              </div>
               <div style={{ display: "grid", gap: 4 }}>
                 <span style={navSectionEyebrowStyle}>Active workspace</span>
                 <strong style={workspaceTitleStyle}>{workspaceTitle}</strong>
@@ -919,20 +914,6 @@ const workspaceQuickStatPillStyle = {
   fontSize: 11,
   lineHeight: 1.2,
   whiteSpace: "nowrap" as const,
-} satisfies CSSProperties;
-
-const windowControlsStyle = {
-  display: "flex",
-  gap: 7,
-  alignItems: "center",
-  paddingTop: 2,
-} satisfies CSSProperties;
-
-const windowControlDotStyle = {
-  width: 9,
-  height: 9,
-  borderRadius: "50%",
-  boxShadow: "var(--app-window-control-shadow)",
 } satisfies CSSProperties;
 
 const workspaceCanvasStyle = {
