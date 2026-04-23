@@ -861,23 +861,23 @@ const workspacePeerNavPillStyle = {
   display: "inline-flex",
   alignItems: "center",
   gap: 7,
-  border: "1px solid color-mix(in srgb, var(--app-panel-border) 78%, white 22%)",
+  border: "1px solid color-mix(in srgb, var(--app-panel-border) 86%, transparent)",
   borderRadius: "var(--app-pill-radius)",
   padding: "6px 11px",
-  background: "linear-gradient(180deg, color-mix(in srgb, var(--app-panel-bg-alt) 86%, white 14%) 0%, var(--app-panel-bg-alt) 100%)",
+  background: "linear-gradient(180deg, color-mix(in srgb, var(--app-panel-bg-alt) 92%, white 8%) 0%, var(--app-panel-bg-alt) 100%)",
   color: "var(--app-text-color)",
   cursor: "pointer",
   fontSize: 11,
   fontWeight: 700,
   whiteSpace: "nowrap" as const,
-  boxShadow: "0 8px 18px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.12)",
+  boxShadow: "0 5px 12px rgba(0, 0, 0, 0.13), inset 0 1px 0 rgba(255, 255, 255, 0.08)",
   transform: "translateY(-1px)",
 } satisfies CSSProperties;
 
 const activeWorkspacePeerNavPillStyle = {
-  borderColor: "var(--app-accent-strong)",
-  background: "linear-gradient(180deg, var(--app-accent-soft) 0%, color-mix(in srgb, var(--app-accent-soft) 72%, var(--app-panel-bg) 28%) 100%)",
-  boxShadow: "0 0 0 1px color-mix(in srgb, var(--app-accent-strong) 40%, transparent), 0 10px 22px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.18)",
+  borderColor: "#f8d477",
+  background: "linear-gradient(180deg, var(--app-accent-soft) 0%, color-mix(in srgb, var(--app-accent-soft) 76%, var(--app-panel-bg) 24%) 100%)",
+  boxShadow: "0 0 0 1px rgba(248, 212, 119, 0.94), 0 0 14px rgba(248, 212, 119, 0.42), 0 10px 22px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.18)",
 } satisfies CSSProperties;
 
 const workspacePeerNavBadgeStyle = {
