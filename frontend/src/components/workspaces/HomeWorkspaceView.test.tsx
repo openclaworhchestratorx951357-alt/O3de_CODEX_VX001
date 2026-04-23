@@ -64,6 +64,7 @@ describe("HomeWorkspaceView", () => {
     expect(screen.getByLabelText("Game viewport control surface")).toBeInTheDocument();
     expect(screen.getByText("Component Palette")).toBeInTheDocument();
     expect(screen.getByText("McpSandbox canonical target")).toBeInTheDocument();
+    expect(screen.getByText("C:\\src\\o3de")).toHaveStyle("overflow-wrap: anywhere");
     expect(screen.getByLabelText("O3DE companion layout guidance")).toHaveTextContent(
       "O3DE Editor full-size",
     );

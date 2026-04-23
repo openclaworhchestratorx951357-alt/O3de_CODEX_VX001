@@ -248,15 +248,18 @@ const toolButtonStyle = {
 
 const editorGridStyle = {
   display: "grid",
-  gridTemplateColumns: "minmax(150px, 0.72fr) minmax(320px, 2.2fr) minmax(190px, 0.9fr)",
+  gridTemplateColumns: "minmax(150px, 0.72fr) minmax(360px, 2.1fr) minmax(300px, 1fr)",
   gap: 10,
   alignItems: "stretch",
+  overflowX: "auto",
+  paddingBottom: 4,
 } satisfies CSSProperties;
 
 const editorRailStyle = {
   display: "grid",
   alignContent: "start",
   gap: 8,
+  minWidth: 0,
   minHeight: 260,
   padding: 12,
   border: "1px solid rgba(255, 255, 255, 0.14)",
@@ -267,6 +270,7 @@ const editorRailStyle = {
 const viewportStyle = {
   display: "grid",
   gridTemplateRows: "auto 1fr",
+  minWidth: 0,
   minHeight: 300,
   border: "1px solid rgba(124, 175, 255, 0.34)",
   borderRadius: "var(--app-card-radius)",
@@ -339,6 +343,7 @@ const inspectorStyle = {
   display: "grid",
   alignContent: "start",
   gap: 10,
+  minWidth: 0,
   minHeight: 260,
   padding: 12,
   border: "1px solid rgba(255, 255, 255, 0.14)",
@@ -349,18 +354,25 @@ const inspectorStyle = {
 const fieldLabelStyle = {
   display: "grid",
   gap: 4,
+  minWidth: 0,
   color: "var(--app-subtle-color)",
   fontSize: 12,
   fontWeight: 700,
 } satisfies CSSProperties;
 
 const readonlyFieldStyle = {
+  display: "block",
+  boxSizing: "border-box",
+  maxWidth: "100%",
+  minWidth: 0,
   padding: "7px 9px",
   border: "1px solid rgba(255, 255, 255, 0.12)",
   borderRadius: "var(--app-card-radius)",
   color: "var(--app-text-color)",
   background: "rgba(255, 255, 255, 0.06)",
   fontWeight: 500,
+  overflowWrap: "anywhere",
+  whiteSpace: "normal",
 } satisfies CSSProperties;
 
 const toolBayStyle = {
