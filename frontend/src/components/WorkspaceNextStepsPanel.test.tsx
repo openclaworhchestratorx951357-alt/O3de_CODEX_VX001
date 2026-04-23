@@ -17,6 +17,7 @@ describe("WorkspaceNextStepsPanel", () => {
             reason: "Runtime health is recommended because the live bridge heartbeat is not fresh.",
             signals: ["heartbeat_fresh = false"],
             actionLabel: "Open runtime",
+            opensLabel: "Runtime > Overview window",
             tone: "warning",
             onAction,
           },
@@ -28,6 +29,8 @@ describe("WorkspaceNextStepsPanel", () => {
     expect(screen.getByText("What should I do next?")).toBeInTheDocument();
     expect(screen.getByText("Why this?")).toBeInTheDocument();
     expect(screen.getByText("heartbeat_fresh = false")).toBeInTheDocument();
+    expect(screen.getByText(/Opens:/i)).toBeInTheDocument();
+    expect(screen.getByText("Runtime > Overview window")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Open runtime" }));
 

@@ -4805,6 +4805,7 @@ export default function App() {
       }
       entries.push({
         ...entry,
+        opensLabel: entry.opensLabel ?? getWorkspaceNextStepOpensLabel(entry.id, entry.actionLabel),
         onAction: () => {
           recordWorkspaceNextStepAction(entry);
           entry.onAction();
@@ -5092,6 +5093,42 @@ export default function App() {
     });
 
     return entries;
+  }
+
+  function getWorkspaceNextStepOpensLabel(stepId: string, fallbackLabel: string): string {
+    switch (stepId) {
+      case "approvals-waiting":
+        return "Operations > Approvals window";
+      case "runtime-health":
+      case "runtime-overview":
+        return "Runtime > Overview window";
+      case "warning-executions":
+      case "records-executions":
+        return "Records > Executions window";
+      case "unresolved-runs":
+      case "operations-to-records":
+      case "records-runs":
+        return "Records > Runs window";
+      case "prompt-to-builder":
+        return "Builder workspace";
+      case "prompt-to-dispatch":
+      case "operations-catalog-empty":
+        return "Operations > Dispatch window";
+      case "builder-to-prompt":
+      case "fallback-prompt":
+        return "Prompt Studio workspace";
+      case "builder-to-runtime":
+      case "runtime-governance":
+        return "Runtime > Governance window";
+      case "runtime-executors":
+        return "Runtime > Executors window";
+      case "runtime-workspaces":
+        return "Runtime > Workspaces window";
+      case "records-artifacts":
+        return "Records > Artifacts window";
+      default:
+        return fallbackLabel;
+    }
   }
 
   function completeFirstRunTour(): void {

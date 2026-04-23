@@ -15,6 +15,7 @@ export type WorkspaceNextStepEntry = {
   reason: string;
   signals?: readonly string[];
   actionLabel: string;
+  opensLabel?: string;
   tone: RecommendationTone;
   onAction: () => void;
 };
@@ -89,6 +90,11 @@ export default function WorkspaceNextStepsPanel({
                 </ul>
               ) : null}
             </details>
+            {entry.opensLabel ? (
+              <p style={opensLabelStyle}>
+                Opens: <strong>{entry.opensLabel}</strong>
+              </p>
+            ) : null}
             <button type="button" onClick={entry.onAction} style={summaryActionButtonStyle}>
               {entry.actionLabel}
             </button>
@@ -209,6 +215,13 @@ const signalListStyle = {
   paddingLeft: 18,
   color: "var(--app-muted-color)",
   lineHeight: 1.45,
+} satisfies CSSProperties;
+
+const opensLabelStyle = {
+  ...summaryMutedTextStyle,
+  margin: 0,
+  fontSize: 12,
+  lineHeight: 1.4,
 } satisfies CSSProperties;
 
 const recentPanelStyle = {
