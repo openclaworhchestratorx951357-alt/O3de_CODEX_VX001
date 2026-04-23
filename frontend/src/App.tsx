@@ -3,6 +3,7 @@ import { Suspense, lazy, useEffect, useRef, useState, type CSSProperties } from 
 import DesktopShell from "./components/DesktopShell";
 import FirstRunTour from "./components/FirstRunTour";
 import LayoutHeader from "./components/LayoutHeader";
+import WorkspaceNextStepsPanel, { type WorkspaceNextStepEntry } from "./components/WorkspaceNextStepsPanel";
 import OverviewHandoffConfidencePanel from "./components/OverviewHandoffConfidencePanel";
 import OverviewContextMemoryPanel from "./components/OverviewContextMemoryPanel";
 import OverviewCloseoutReadinessPanel from "./components/OverviewCloseoutReadinessPanel";
@@ -4629,6 +4630,9 @@ export default function App() {
       handleHomeRecommendationAction(entry.actionId);
     },
   }));
+  const workspaceNextStepEntries = settings.layout.guidedMode && activeWorkspaceId !== "home"
+    ? buildWorkspaceNextStepEntries()
+    : [];
 
   function handleHomeRecommendationAction(actionId: HomeRecommendationActionId) {
     switch (actionId) {
@@ -4651,6 +4655,251 @@ export default function App() {
         setActiveOperationsSurface("approvals");
         return;
     }
+  }
+
+  function openOperationsApprovals(): void {
+    setActiveWorkspaceId("operations");
+    setActiveOperationsSurface("approvals");
+  }
+
+  function openOperationsDispatch(): void {
+    setActiveWorkspaceId("operations");
+    setActiveOperationsSurface("dispatch");
+  }
+
+  function openRuntimeOverview(): void {
+    setActiveWorkspaceId("runtime");
+    setActiveRuntimeSurface("overview");
+  }
+
+  function openRuntimeGovernance(): void {
+    setActiveWorkspaceId("runtime");
+    setActiveRuntimeSurface("governance");
+  }
+
+  function openRuntimeExecutors(): void {
+    setActiveWorkspaceId("runtime");
+    setActiveRuntimeSurface("executors");
+  }
+
+  function openRuntimeWorkspaces(): void {
+    setActiveWorkspaceId("runtime");
+    setActiveRuntimeSurface("workspaces");
+  }
+
+  function openRecordsRuns(): void {
+    setActiveWorkspaceId("records");
+    setActiveRecordsSurface("runs");
+  }
+
+  function openRecordsExecutions(): void {
+    setActiveWorkspaceId("records");
+    setActiveRecordsSurface("executions");
+  }
+
+  function openRecordsArtifacts(): void {
+    setActiveWorkspaceId("records");
+    setActiveRecordsSurface("artifacts");
+  }
+
+  function buildWorkspaceNextStepEntries(): WorkspaceNextStepEntry[] {
+    const runtimeHealthy = readiness?.persistence_ready === true
+      && o3deBridgeStatus?.configured === true
+      && o3deBridgeStatus?.heartbeat_fresh === true
+      && adapters?.supports_real_execution === true;
+    const entries: WorkspaceNextStepEntry[] = [];
+    const addEntry = (entry: WorkspaceNextStepEntry): void => {
+      if (entries.length >= 3 || entries.some((existing) => existing.id === entry.id)) {
+        return;
+      }
+      entries.push(entry);
+    };
+
+    if (pendingApprovalCount > 0) {
+      addEntry({
+        id: "approvals-waiting",
+        label: "Approve or reject waiting work",
+        detail: `${pendingApprovalCount} approval${pendingApprovalCount === 1 ? "" : "s"} are waiting before related work can continue.`,
+        actionLabel: "Open approvals",
+        tone: "warning",
+        onAction: openOperationsApprovals,
+      });
+    }
+
+    if (!runtimeHealthy && activeWorkspaceId !== "runtime") {
+      addEntry({
+        id: "runtime-health",
+        label: "Verify runtime health",
+        detail: "Bridge, persistence, or real-execution readiness needs a check before trusting live O3DE work.",
+        actionLabel: "Open runtime",
+        tone: "warning",
+        onAction: openRuntimeOverview,
+      });
+    }
+
+    if (warningExecutionCount > 0 && activeWorkspaceId !== "records") {
+      addEntry({
+        id: "warning-executions",
+        label: "Review warning executions",
+        detail: `${warningExecutionCount} execution${warningExecutionCount === 1 ? "" : "s"} have warnings that may need evidence review.`,
+        actionLabel: "Open executions",
+        tone: "warning",
+        onAction: openRecordsExecutions,
+      });
+    }
+
+    if (unresolvedRunCount > 0 && activeWorkspaceId !== "records") {
+      addEntry({
+        id: "unresolved-runs",
+        label: "Review unresolved runs",
+        detail: `${unresolvedRunCount} run${unresolvedRunCount === 1 ? "" : "s"} still need closeout review.`,
+        actionLabel: "Open runs",
+        tone: "warning",
+        onAction: openRecordsRuns,
+      });
+    }
+
+    if (activeWorkspaceId === "prompt") {
+      addEntry({
+        id: "prompt-to-builder",
+        label: "Coordinate follow-up work",
+        detail: "After a prompt creates a plan or live result, use Builder to split follow-up tasks into safe worktree lanes.",
+        actionLabel: "Open Builder",
+        tone: "info",
+        onAction: () => setActiveWorkspaceId("builder"),
+      });
+      addEntry({
+        id: "prompt-to-dispatch",
+        label: "Use typed dispatch when needed",
+        detail: "If the natural-language plan is not the right fit, dispatch a specific tool request from Command Center.",
+        actionLabel: "Open dispatch",
+        tone: "info",
+        onAction: openOperationsDispatch,
+      });
+    }
+
+    if (activeWorkspaceId === "builder") {
+      addEntry({
+        id: "builder-to-prompt",
+        label: "Describe the next build step",
+        detail: "Use Prompt Studio when you want Codex to turn a natural-language O3DE request into a governed plan.",
+        actionLabel: "Open Prompt Studio",
+        tone: "info",
+        onAction: () => setActiveWorkspaceId("prompt"),
+      });
+      addEntry({
+        id: "builder-to-runtime",
+        label: "Check live readiness",
+        detail: "Before assigning real O3DE work to a lane, confirm runtime bridge and policy posture.",
+        actionLabel: "Open governance",
+        tone: runtimeHealthy ? "success" : "warning",
+        onAction: openRuntimeGovernance,
+      });
+    }
+
+    if (activeWorkspaceId === "operations") {
+      if (catalogAgents.length === 0) {
+        addEntry({
+          id: "operations-catalog-empty",
+          label: "Wait for live catalog",
+          detail: "The dispatch form needs a live catalog before tool requests can be submitted safely.",
+          actionLabel: "Open dispatch",
+          tone: "warning",
+          onAction: openOperationsDispatch,
+        });
+      }
+      addEntry({
+        id: "operations-to-records",
+        label: "Inspect persisted evidence",
+        detail: "After dispatch or approval work moves, review Records to confirm the run, execution, and artifact trail.",
+        actionLabel: "Open records",
+        tone: "info",
+        onAction: openRecordsRuns,
+      });
+    }
+
+    if (activeWorkspaceId === "runtime") {
+      if (!runtimeHealthy) {
+        addEntry({
+          id: "runtime-overview",
+          label: "Start with system status",
+          detail: "Use Runtime Overview first when persistence, bridge, heartbeat, or real-execution posture is uncertain.",
+          actionLabel: "Open overview",
+          tone: "warning",
+          onAction: openRuntimeOverview,
+        });
+      }
+      if (executors.length === 0) {
+        addEntry({
+          id: "runtime-executors",
+          label: "Confirm executors",
+          detail: "No executor records are visible yet, so check runner inventory before assigning work.",
+          actionLabel: "Open executors",
+          tone: "info",
+          onAction: openRuntimeExecutors,
+        });
+      }
+      if (workspaces.length === 0) {
+        addEntry({
+          id: "runtime-workspaces",
+          label: "Confirm workspaces",
+          detail: "No workspace records are visible yet, so check substrate ownership before treating lanes as ready.",
+          actionLabel: "Open workspaces",
+          tone: "info",
+          onAction: openRuntimeWorkspaces,
+        });
+      }
+      addEntry({
+        id: "runtime-governance",
+        label: "Review capability boundaries",
+        detail: "Use Governance before widening any claim about admitted-real, plan-only, or simulated capability.",
+        actionLabel: "Open governance",
+        tone: runtimeHealthy ? "success" : "info",
+        onAction: openRuntimeGovernance,
+      });
+    }
+
+    if (activeWorkspaceId === "records") {
+      if (warningExecutionCount > 0) {
+        addEntry({
+          id: "records-executions",
+          label: "Start with warning executions",
+          detail: "Warning-bearing executions usually explain what needs operator attention first.",
+          actionLabel: "Open executions",
+          tone: "warning",
+          onAction: openRecordsExecutions,
+        });
+      }
+      if (unresolvedRunCount > 0) {
+        addEntry({
+          id: "records-runs",
+          label: "Close out unresolved runs",
+          detail: "Runs are the broadest evidence wrapper, so review unresolved runs before assuming work is complete.",
+          actionLabel: "Open runs",
+          tone: "warning",
+          onAction: openRecordsRuns,
+        });
+      }
+      addEntry({
+        id: "records-artifacts",
+        label: "Inspect artifacts",
+        detail: "Artifacts carry the saved payloads and metadata you can use to verify what actually happened.",
+        actionLabel: "Open artifacts",
+        tone: "info",
+        onAction: openRecordsArtifacts,
+      });
+    }
+
+    addEntry({
+      id: "fallback-prompt",
+      label: "Start a natural-language request",
+      detail: "If you are unsure, describe the next O3DE or control-plane change in Prompt Studio and preview the plan.",
+      actionLabel: "Open Prompt Studio",
+      tone: "success",
+      onAction: () => setActiveWorkspaceId("prompt"),
+    });
+
+    return entries;
   }
 
   function completeFirstRunTour(): void {
@@ -6196,6 +6445,10 @@ export default function App() {
         utilityActions={<SettingsPanel />}
         onSelectWorkspace={(workspaceId) => setActiveWorkspaceId(workspaceId as DesktopWorkspaceId)}
       >
+        {workspaceNextStepEntries.length > 0 ? (
+          <WorkspaceNextStepsPanel entries={workspaceNextStepEntries} />
+        ) : null}
+
         {activeWorkspaceId === "home" ? (
           <HomeWorkspaceView
             missionControlContent={homeMissionControlContent}
