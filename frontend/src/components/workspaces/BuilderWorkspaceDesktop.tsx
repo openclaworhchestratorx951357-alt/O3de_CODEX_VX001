@@ -3952,15 +3952,14 @@ export default function BuilderWorkspaceDesktop() {
         </div>
         <div style={summaryGridStyle}>
           {autonomyDraftRecommendations.map((recommendation) => (
-            <article key={recommendation.id} style={listCardStyle}>
-              <strong>{recommendation.label}</strong>
-              <p style={mutedParagraphStyle}>{recommendation.detail}</p>
-              <div style={metaStackStyle}>
-                <span>Objective: {recommendation.objective.title}</span>
-                <span>Job: {recommendation.job.title}</span>
-                <span>Lane: {recommendation.job.assignedLane || "builder"}</span>
-              </div>
-              <div style={actionRowStyle}>
+            <ActionReviewCard
+              key={recommendation.id}
+              ariaLabel={`Recommendation preview: ${recommendation.label}`}
+              eyebrow="Recommendation preview"
+              eyebrowTone="info"
+              title={recommendation.label}
+              description={recommendation.detail}
+              action={(
                 <button
                   type="button"
                   style={secondaryButtonStyle}
@@ -3968,20 +3967,25 @@ export default function BuilderWorkspaceDesktop() {
                 >
                   Load {recommendation.label}
                 </button>
-              </div>
-            </article>
+              )}
+              details={[
+                { label: "Objective", value: recommendation.objective.title },
+                { label: "Job", value: recommendation.job.title },
+                { label: "Lane", value: recommendation.job.assignedLane || "builder" },
+                { label: "Save behavior", value: "loads editable drafts only; nothing is saved yet" },
+              ]}
+            />
           ))}
         </div>
         {loadedAutonomyRecommendation ? (
-          <article aria-label="Loaded draft review" style={{ ...listCardStyle, marginTop: 12 }}>
-            <div style={rowBetweenStyle}>
-              <div style={stackStyle}>
-                <span style={{ ...pillStyle, ...toneStyle("info"), width: "fit-content" }}>
-                  Loaded draft review
-                </span>
-                <strong>{loadedAutonomyRecommendation.label}</strong>
-                <p style={mutedParagraphStyle}>{loadedAutonomyRecommendation.detail}</p>
-              </div>
+          <ActionReviewCard
+            ariaLabel="Loaded draft review"
+            eyebrow="Loaded draft review"
+            eyebrowTone="info"
+            title={loadedAutonomyRecommendation.label}
+            description={loadedAutonomyRecommendation.detail}
+            style={{ marginTop: 12 }}
+            action={(
               <button
                 type="button"
                 style={secondaryButtonStyle}
@@ -3989,22 +3993,19 @@ export default function BuilderWorkspaceDesktop() {
               >
                 Clear review
               </button>
-            </div>
-            <div style={metaStackStyle}>
-              <span>
-                <strong>Changed fields:</strong> Objective draft, job draft, resource keys, payload JSON
-              </span>
-              <span>Objective ID: {loadedAutonomyRecommendation.objective.id}</span>
-              <span>Job ID: {loadedAutonomyRecommendation.job.id}</span>
-              <span>Lane: {loadedAutonomyRecommendation.job.assignedLane || "builder"}</span>
-              <span>
-                Resources: {loadedAutonomyRecommendation.job.resourceKeys.trim() || "none"}
-              </span>
-              <span>
-                Safe until saved: review the drafts below, then use Add objective and Add inbox job when ready.
-              </span>
-            </div>
-          </article>
+            )}
+            details={[
+              { label: "Changed fields", value: "Objective draft, job draft, resource keys, payload JSON" },
+              { label: "Objective ID", value: loadedAutonomyRecommendation.objective.id },
+              { label: "Job ID", value: loadedAutonomyRecommendation.job.id },
+              { label: "Lane", value: loadedAutonomyRecommendation.job.assignedLane || "builder" },
+              { label: "Resources", value: loadedAutonomyRecommendation.job.resourceKeys.trim() || "none" },
+              {
+                label: "Safe until saved",
+                value: "review the drafts below, then use Add objective and Add inbox job when ready",
+              },
+            ]}
+          />
         ) : null}
       </article>
 

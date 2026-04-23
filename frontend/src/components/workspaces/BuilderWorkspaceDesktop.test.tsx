@@ -448,8 +448,13 @@ describe("BuilderWorkspaceDesktop", () => {
   it("loads a practical recommendation into the autonomy objective and job templates", async () => {
     render(<BuilderWorkspaceDesktop />);
 
+    const recommendationPreview = await screen.findByLabelText(
+      "Recommendation preview: Improve runtime readability and inline guidance",
+    );
+    expect(recommendationPreview).toHaveTextContent("Save behavior: loads editable drafts only; nothing is saved yet");
+
     fireEvent.click(
-      await screen.findByRole("button", { name: "Load Improve runtime readability and inline guidance" }),
+      screen.getByRole("button", { name: "Load Improve runtime readability and inline guidance" }),
     );
 
     expect(await screen.findByDisplayValue("builder-runtime-guidance")).toBeInTheDocument();
@@ -462,11 +467,11 @@ describe("BuilderWorkspaceDesktop", () => {
     expect(
       await screen.findByText("Loaded recommended drafts for Improve runtime readability and inline guidance."),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Loaded draft review")).toBeInTheDocument();
-    expect(screen.getByText("Objective draft, job draft, resource keys, payload JSON")).toBeInTheDocument();
-    expect(
-      screen.getByText("Safe until saved: review the drafts below, then use Add objective and Add inbox job when ready."),
-    ).toBeInTheDocument();
+    const loadedDraftReview = screen.getByLabelText("Loaded draft review");
+    expect(loadedDraftReview).toHaveTextContent("Changed fields: Objective draft, job draft, resource keys, payload JSON");
+    expect(loadedDraftReview).toHaveTextContent(
+      "Safe until saved: review the drafts below, then use Add objective and Add inbox job when ready",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Clear review" }));
 
