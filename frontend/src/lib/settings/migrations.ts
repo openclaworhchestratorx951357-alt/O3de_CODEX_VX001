@@ -135,6 +135,7 @@ export function normalizeSettings(input?: DeepPartial<AppSettings> | null): AppS
       layoutInput.showDesktopTelemetry,
       defaults.layout.showDesktopTelemetry,
     ),
+    guidedMode: sanitizeBoolean(layoutInput.guidedMode, defaults.layout.guidedMode),
   };
 
   const operatorDefaults: OperatorDefaultsSettings = {

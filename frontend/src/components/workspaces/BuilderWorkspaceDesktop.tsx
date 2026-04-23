@@ -32,7 +32,7 @@ import {
   waitForCodexControlTask,
 } from "../../lib/api";
 import { buildBuilderRecommendationDescriptors } from "../../lib/recommendations";
-import { useThemeTokens } from "../../lib/settings/hooks";
+import { useSettings, useThemeTokens } from "../../lib/settings/hooks";
 import type {
   AutonomyHealingActionCreateRequest,
   AutonomyHealingActionRecord,
@@ -1228,6 +1228,7 @@ function renderTerminalSessionCard(session: CodexControlTerminalSession) {
 }
 
 export default function BuilderWorkspaceDesktop() {
+  const { settings } = useSettings();
   const themeTokens = useThemeTokens();
   const [status, setStatus] = useState<CodexControlStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -4290,6 +4291,7 @@ export default function BuilderWorkspaceDesktop() {
       terminalsContent={terminalsContent}
       autonomyInboxContent={autonomyInboxContent}
       recommendations={builderRecommendations}
+      guidedMode={settings.layout.guidedMode}
     />
   );
 }

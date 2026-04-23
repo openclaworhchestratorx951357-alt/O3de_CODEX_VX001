@@ -212,6 +212,7 @@ describe("App desktop smoke", () => {
         layout: {
           preferredLandingSection: "prompt",
           showDesktopTelemetry: false,
+          guidedMode: true,
         },
         operatorDefaults: {
           projectRoot: "",

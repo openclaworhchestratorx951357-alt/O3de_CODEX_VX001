@@ -21,6 +21,7 @@ describe("settings storage", () => {
     expect(profile.version).toBe(1);
     expect(profile.settings.appearance.themeMode).toBe("system");
     expect(profile.settings.layout.preferredLandingSection).toBe("home");
+    expect(profile.settings.layout.guidedMode).toBe(true);
   });
 
   it("loads a saved profile from localStorage", () => {
@@ -37,6 +38,7 @@ describe("settings storage", () => {
       layout: {
         preferredLandingSection: "runtime",
         showDesktopTelemetry: false,
+        guidedMode: false,
       },
       operatorDefaults: {
         projectRoot: "C:/Users/topgu/O3DE/Projects/McpSandbox",
@@ -53,6 +55,7 @@ describe("settings storage", () => {
 
     expect(profile.settings.appearance.themeMode).toBe("dark");
     expect(profile.settings.layout.preferredLandingSection).toBe("runtime");
+    expect(profile.settings.layout.guidedMode).toBe(false);
     expect(profile.settings.operatorDefaults.timeoutSeconds).toBe(90);
   });
 
@@ -76,6 +79,7 @@ describe("settings storage", () => {
     expect(profile.settings.appearance.themeMode).toBe("dark");
     expect(profile.settings.appearance.density).toBe("comfortable");
     expect(profile.settings.layout.preferredLandingSection).toBe("records");
+    expect(profile.settings.layout.guidedMode).toBe(true);
   });
 
   it("resets the saved profile to defaults", () => {
@@ -92,6 +96,7 @@ describe("settings storage", () => {
       layout: {
         preferredLandingSection: "runtime",
         showDesktopTelemetry: false,
+        guidedMode: false,
       },
       operatorDefaults: {
         projectRoot: "custom-project",
@@ -132,6 +137,7 @@ describe("settings storage", () => {
       layout: {
         preferredLandingSection: "operations",
         showDesktopTelemetry: true,
+        guidedMode: false,
       },
       operatorDefaults: {
         projectRoot: "C:/project",
@@ -146,6 +152,7 @@ describe("settings storage", () => {
     const imported = importSettingsProfile(exported);
 
     expect(imported.settings.appearance.accentColor).toBe("#8844ff");
+    expect(imported.settings.layout.guidedMode).toBe(false);
     expect(imported.settings.operatorDefaults.locks).toEqual(["project_config", "build_tree"]);
   });
 });

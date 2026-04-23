@@ -17,6 +17,7 @@ export function createDefaultSettings(): AppSettings {
     layout: {
       preferredLandingSection: "home",
       showDesktopTelemetry: true,
+      guidedMode: true,
     },
     operatorDefaults: {
       projectRoot: "",

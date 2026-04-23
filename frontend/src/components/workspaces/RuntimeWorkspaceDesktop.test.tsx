@@ -55,6 +55,7 @@ function renderRuntimeWorkspaceDesktop(
   const renderResult = render(
     <RuntimeWorkspaceDesktop
       activeSurfaceId={activeSurfaceId}
+      guidedMode={true}
       items={[
         {
           id: "overview",

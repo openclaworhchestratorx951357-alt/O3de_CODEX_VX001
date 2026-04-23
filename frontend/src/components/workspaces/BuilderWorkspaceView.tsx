@@ -2,6 +2,7 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
+import GuidedAdvancedSection from "../GuidedAdvancedSection";
 import RecommendedActionsPanel from "../RecommendedActionsPanel";
 import {
   getWorkspaceGuide,
@@ -21,6 +22,7 @@ type BuilderWorkspaceViewProps = {
   terminalsContent: ReactNode;
   autonomyInboxContent: ReactNode;
   recommendations?: readonly RecommendationDescriptor<BuilderRecommendationActionId>[];
+  guidedMode?: boolean;
 };
 
 const overviewWindow = getWorkspaceWindowGuide("builder", "builder-overview");
@@ -68,6 +70,7 @@ export default function BuilderWorkspaceView({
   terminalsContent,
   autonomyInboxContent,
   recommendations = [],
+  guidedMode = true,
 }: BuilderWorkspaceViewProps) {
   const [activeSurfaceId, setActiveSurfaceId] = useState<BuilderSurfaceId>("start");
   const recommendationEntries = recommendations.map((entry) => ({
@@ -142,16 +145,22 @@ export default function BuilderWorkspaceView({
               {laneCreateContent}
             </DesktopWindow>
           </div>
-          <DesktopWindow
-            variant="nested"
-            title={worktreesWindow.title}
-            subtitle={worktreesWindow.subtitle}
-            helpTooltip={worktreesWindow.tooltip}
-            guideTitle="How to use this window"
-            guideChecklist={worktreesWindow.instructions}
+          <GuidedAdvancedSection
+            guidedMode={guidedMode}
+            title="Worktree lane inventory"
+            description="Worktree inventory and branch details are still one click away, but guided mode keeps the first Builder screen focused on setup and recommendations."
           >
-            {worktreesContent}
-          </DesktopWindow>
+            <DesktopWindow
+              variant="nested"
+              title={worktreesWindow.title}
+              subtitle={worktreesWindow.subtitle}
+              helpTooltip={worktreesWindow.tooltip}
+              guideTitle="How to use this window"
+              guideChecklist={worktreesWindow.instructions}
+            >
+              {worktreesContent}
+            </DesktopWindow>
+          </GuidedAdvancedSection>
         </div>
       ) : activeSurfaceId === "mission-control" ? (
         <DesktopWindow

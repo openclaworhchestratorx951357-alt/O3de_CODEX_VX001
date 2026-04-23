@@ -39,6 +39,13 @@ const apiMocks = vi.hoisted(() => ({
 vi.mock("../../lib/api", () => apiMocks);
 
 vi.mock("../../lib/settings/hooks", () => ({
+  useSettings: () => ({
+    settings: {
+      layout: {
+        guidedMode: true,
+      },
+    },
+  }),
   useThemeTokens: () => ({
     compactDensity: false,
   }),

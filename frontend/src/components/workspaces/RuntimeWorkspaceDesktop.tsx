@@ -9,6 +9,7 @@ import OverviewContextStrip from "../OverviewContextStrip";
 import Phase7CapabilitySummaryPanel from "../Phase7CapabilitySummaryPanel";
 import PoliciesPanel from "../PoliciesPanel";
 import RecommendedActionsPanel from "../RecommendedActionsPanel";
+import GuidedAdvancedSection from "../GuidedAdvancedSection";
 import SystemStatusPanel from "../SystemStatusPanel";
 import WorkspaceDetailPanel from "../WorkspaceDetailPanel";
 import WorkspacesPanel from "../WorkspacesPanel";
@@ -45,6 +46,7 @@ type RuntimeWorkspaceDesktopProps = {
     locks: ComponentProps<typeof LocksPanel>;
     policies: ComponentProps<typeof PoliciesPanel>;
   };
+  guidedMode: boolean;
 };
 
 export default function RuntimeWorkspaceDesktop({
@@ -55,6 +57,7 @@ export default function RuntimeWorkspaceDesktop({
   executors,
   workspaces,
   governance,
+  guidedMode,
 }: RuntimeWorkspaceDesktopProps) {
   const runtimeRecommendationEntries = buildRuntimeRecommendationDescriptors({
     persistenceReady: overview.systemStatus.readiness?.persistence_ready ?? false,
@@ -84,9 +87,15 @@ export default function RuntimeWorkspaceDesktop({
             description="Local runtime guidance based on bridge, persistence, executor, workspace, lock, and policy state."
             entries={runtimeRecommendationEntries}
           />
-          <AdaptersPanel {...overview.adapters} />
           <SystemStatusPanel {...overview.systemStatus} />
-          <OperatorOverviewPanel {...overview.operatorOverview} />
+          <GuidedAdvancedSection
+            guidedMode={guidedMode}
+            title="Runtime truth details"
+            description="Adapter registry and operator summary panels stay available here, but guided mode keeps them tucked away until you need deeper runtime evidence."
+          >
+            <AdaptersPanel {...overview.adapters} />
+            <OperatorOverviewPanel {...overview.operatorOverview} />
+          </GuidedAdvancedSection>
         </>
       )}
       executorsContent={(

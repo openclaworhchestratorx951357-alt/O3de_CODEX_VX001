@@ -31,6 +31,26 @@ describe("SettingsPanel", () => {
     expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"themeMode":"dark"');
   });
 
+  it("shows a visible quick guidance toggle and saves the selected mode immediately", () => {
+    render(
+      <SettingsProvider>
+        <SettingsPanel />
+      </SettingsProvider>,
+    );
+
+    const guidedButton = screen.getByRole("button", { name: "Guided" });
+    const advancedButton = screen.getByRole("button", { name: "Advanced" });
+
+    expect(guidedButton).toHaveAttribute("aria-pressed", "true");
+    expect(advancedButton).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(advancedButton);
+
+    expect(guidedButton).toHaveAttribute("aria-pressed", "false");
+    expect(advancedButton).toHaveAttribute("aria-pressed", "true");
+    expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"guidedMode":false');
+  });
+
   it("toggles the settings dialog from the launcher button", () => {
     render(
       <SettingsProvider>

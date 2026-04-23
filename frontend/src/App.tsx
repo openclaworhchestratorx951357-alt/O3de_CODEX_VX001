@@ -5659,6 +5659,7 @@ export default function App() {
         executors={runtimeExecutorsProps}
         workspaces={runtimeWorkspacesProps}
         governance={runtimeGovernanceProps}
+        guidedMode={settings.layout.guidedMode}
       />
     </Suspense>
   );

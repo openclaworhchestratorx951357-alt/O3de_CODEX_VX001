@@ -31,6 +31,10 @@ function formatThemeToggleLabel(value: AppSettings["appearance"]["themeMode"]): 
   return value === "light" ? "Light" : "Dark";
 }
 
+function formatGuidedModeToggleLabel(value: boolean): string {
+  return value ? "Guided" : "Advanced";
+}
+
 function parseLocks(value: string): AppSettings["operatorDefaults"]["locks"] {
   const nextLocks = value
     .split(",")
@@ -156,6 +160,22 @@ export default function SettingsPanel({
     setStatusMessage(`${formatThemeToggleLabel(themeMode)} theme applied.`);
   }
 
+  function handleQuickGuidedModeChange(guidedMode: boolean): void {
+    if (settings.layout.guidedMode === guidedMode) {
+      return;
+    }
+
+    const nextProfile = saveSettings(normalizeSettings({
+      ...settings,
+      layout: {
+        ...settings.layout,
+        guidedMode,
+      },
+    }));
+    resetDraftFromSettings(nextProfile.settings);
+    setStatusMessage(`${formatGuidedModeToggleLabel(guidedMode)} mode applied.`);
+  }
+
   function handleSave(): void {
     const nextProfile = saveSettings(normalizedDraft);
     resetDraftFromSettings(nextProfile.settings);
@@ -242,6 +262,28 @@ export default function SettingsPanel({
                 }}
               >
                 {formatThemeToggleLabel(value)}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={launcherThemeRowStyle} role="group" aria-label="Guidance mode quick toggle">
+          {[true, false].map((value) => {
+            const active = settings.layout.guidedMode === value;
+            const label = formatGuidedModeToggleLabel(value);
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => handleQuickGuidedModeChange(value)}
+                aria-pressed={active}
+                title={`${label} mode ${value ? "keeps beginner-safe panels visible first" : "shows advanced panels by default"}.`}
+                style={{
+                  ...launcherThemeButtonStyle,
+                  ...(active ? launcherThemeButtonActiveStyle : null),
+                }}
+              >
+                {label}
               </button>
             );
           })}
@@ -436,6 +478,18 @@ export default function SettingsPanel({
                     })}
                   />
                   Show desktop telemetry and quick stats
+                </label>
+
+                <label style={checkboxRowStyle}>
+                  <input
+                    type="checkbox"
+                    checked={draft.layout.guidedMode}
+                    onChange={(event) => updateDraft({
+                      ...draft,
+                      layout: { ...draft.layout, guidedMode: event.target.checked },
+                    })}
+                  />
+                  Use guided mode to keep advanced panels collapsed by default
                 </label>
               </section>
 
