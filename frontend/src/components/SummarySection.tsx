@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import PanelActionStrip from "./PanelActionStrip";
 import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summarySectionStyle,
@@ -18,6 +19,9 @@ type SummarySectionProps = {
   guideTitle?: string;
   guideTooltip?: string | null;
   guideChecklist?: readonly string[];
+  quickStartTitle?: string;
+  quickStartDescription?: string | null;
+  quickStartItems?: readonly string[];
 };
 
 export default function SummarySection({
@@ -34,7 +38,18 @@ export default function SummarySection({
   guideTitle,
   guideTooltip,
   guideChecklist = [],
+  quickStartTitle,
+  quickStartDescription,
+  quickStartItems = [],
 }: SummarySectionProps) {
+  const quickStartItemSet = new Set(
+    quickStartItems.map((item) => item.trim()).filter(Boolean),
+  );
+  const remainingGuideChecklist = guideChecklist.filter((item) => {
+    const normalizedItem = item.trim();
+    return normalizedItem.length > 0 && !quickStartItemSet.has(normalizedItem);
+  });
+
   return (
     <section
       style={{
@@ -60,7 +75,7 @@ export default function SummarySection({
           <PanelGuideDetails
             title={guideTitle}
             tooltip={guideTooltip}
-            checklist={guideChecklist}
+            checklist={remainingGuideChecklist}
           />
         </div>
         {actions ? (
@@ -76,6 +91,11 @@ export default function SummarySection({
           </div>
         ) : null}
       </div>
+      <PanelActionStrip
+        title={quickStartTitle}
+        description={quickStartDescription}
+        items={quickStartItems}
+      />
       {error ? <p style={{ color: "var(--app-danger-text)" }}>{error}</p> : null}
       {loading ? (
         <p>Loading {title.toLowerCase()}...</p>

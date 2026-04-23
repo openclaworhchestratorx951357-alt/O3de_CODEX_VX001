@@ -89,6 +89,8 @@ export default function ApprovalQueue({
       hasItems={filteredItems.length > 0}
       marginTop={0}
       actionHint="Local refresh updates the decision queue without reloading unrelated overview or records surfaces."
+      quickStartTitle="Approval flow"
+      quickStartItems={approvalQueueGuide.checklist}
       actions={onRefresh ? (
         <button
           type="button"

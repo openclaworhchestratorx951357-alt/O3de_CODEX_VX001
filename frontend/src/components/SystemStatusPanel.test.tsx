@@ -157,6 +157,8 @@ describe("SystemStatusPanel", () => {
     );
 
     expect(screen.getByText("Editor Bridge")).toBeInTheDocument();
+    expect(screen.getByText("Runtime first checks")).toBeInTheDocument();
+    expect(screen.getByText(/Backend and persistence are ready\. Move to Governance before making capability-boundary claims\./i)).toBeInTheDocument();
     expect(screen.getByText("How to use this panel")).toBeInTheDocument();
     expect(screen.getByText("Heartbeat fresh")).toBeInTheDocument();
     expect(screen.getByText("Editor process active")).toBeInTheDocument();
@@ -168,6 +170,8 @@ describe("SystemStatusPanel", () => {
     expect(screen.getByText("Cleanup outcome")).toBeInTheDocument();
     expect(screen.getByText("stale results removed")).toBeInTheDocument();
     expect(screen.getByText("Clear stale success results")).toBeInTheDocument();
+    expect(screen.getByText("Covered tools")).toBeInTheDocument();
+    expect(screen.getByText("Family rollout details")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Clear stale success results" }),
     ).toHaveAttribute(
@@ -199,6 +203,12 @@ describe("SystemStatusPanel", () => {
 
     await userEvent.click(screen.getByText("Recent deadletters"));
     expect(screen.getAllByText("editor.level.open").length).toBeGreaterThan(0);
+
+    await userEvent.click(screen.getByText("Covered tools"));
+    expect(screen.getByText("editor.session.open")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText("Family rollout details"));
+    expect(screen.getByText(/editor\.component\.add/i)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Clear stale success results" }));
     expect(handleCleanupBridgeResults).toHaveBeenCalledTimes(1);

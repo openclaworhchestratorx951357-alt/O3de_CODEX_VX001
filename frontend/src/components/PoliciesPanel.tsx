@@ -6,6 +6,7 @@ import {
   describeSettingsPatchPolicyMeaning,
 } from "../lib/capabilityNarrative";
 import type { ToolPolicy } from "../types/contracts";
+import ExpandablePanelSection from "./ExpandablePanelSection";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
 import { SummaryList, SummaryListItem } from "./SummaryList";
@@ -54,6 +55,8 @@ export default function PoliciesPanel({
       error={error}
       emptyMessage={normalizedQuery ? "No policies match the current search." : "No policies published yet."}
       hasItems={filteredItems.length > 0}
+      quickStartTitle="Governance first steps"
+      quickStartItems={policiesPanelGuide.checklist}
     >
       <div style={summaryControlRowStyle}>
         <input
@@ -82,37 +85,53 @@ export default function PoliciesPanel({
                 <SummaryFact label="Requires approval">
                   <StatusChip label={String(item.requires_approval)} tone={item.requires_approval ? "warning" : "neutral"} />
                 </SummaryFact>
-                <SummaryFact label="Required locks">
-                  {item.required_locks.join(", ") || "none"}
-                </SummaryFact>
-                <SummaryFact label="Risk">{item.risk}</SummaryFact>
                 <SummaryFact label="Execution mode">
                   <StatusChip label={item.execution_mode} tone={getExecutionModeTone(item.execution_mode)} />
                 </SummaryFact>
-                <SummaryFact label="Dry run support">
-                  <StatusChip
-                    label={item.supports_dry_run ? "supported" : "not supported"}
-                    tone={getDryRunSupportTone(item.supports_dry_run)}
-                  />
-                </SummaryFact>
-                <SummaryFact label="Next requirement">{item.next_real_requirement}</SummaryFact>
               </SummaryFacts>
-              {item.tool === "build.configure" ? (
-                <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
-                  Meaning: {describeBuildConfigureMeaning()}
-                </div>
-              ) : null}
-              {item.tool === "settings.patch" ? (
-                <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
-                  Meaning: {describeSettingsPatchPolicyMeaning()}
-                </div>
-              ) : null}
+              <ExpandablePanelSection
+                title="Meaning and next requirement"
+                preview={summarizeTextPreview(item.next_real_requirement)}
+              >
+                <SummaryFacts>
+                  <SummaryFact label="Required locks">
+                    {item.required_locks.join(", ") || "none"}
+                  </SummaryFact>
+                  <SummaryFact label="Risk">{item.risk}</SummaryFact>
+                  <SummaryFact label="Dry run support">
+                    <StatusChip
+                      label={item.supports_dry_run ? "supported" : "not supported"}
+                      tone={getDryRunSupportTone(item.supports_dry_run)}
+                    />
+                  </SummaryFact>
+                  <SummaryFact label="Next requirement">{item.next_real_requirement}</SummaryFact>
+                </SummaryFacts>
+                {item.tool === "build.configure" ? (
+                  <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
+                    Meaning: {describeBuildConfigureMeaning()}
+                  </div>
+                ) : null}
+                {item.tool === "settings.patch" ? (
+                  <div style={{ ...summaryMutedTextStyle, marginTop: 8 }}>
+                    Meaning: {describeSettingsPatchPolicyMeaning()}
+                  </div>
+                ) : null}
+              </ExpandablePanelSection>
             </div>
           </SummaryListItem>
         ))}
       </SummaryList>
     </SummarySection>
   );
+}
+
+function summarizeTextPreview(value: string, maxLength = 92): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, maxLength).trimEnd()}...`;
 }
 
 function matchesPolicySearch(item: ToolPolicy, query: string): boolean {

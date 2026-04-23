@@ -80,6 +80,8 @@ export default function TaskTimeline({
       emptyMessage={normalizedQuery ? "No timeline events match the current search." : "No timeline events are recorded yet."}
       hasItems={filteredItems.length > 0}
       actionHint="Local refresh updates persisted timeline events without reloading the full dashboard."
+      quickStartTitle="Investigation flow"
+      quickStartItems={taskTimelineGuide.checklist}
       actions={onRefresh ? (
         <button
           type="button"
