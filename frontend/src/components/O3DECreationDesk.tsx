@@ -1,6 +1,9 @@
-import { useState, type CSSProperties } from "react";
+import { lazy, Suspense, useState, type CSSProperties } from "react";
 
+import type { O3DEProductionMode } from "./O3DEProductionPlanner";
 import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
+
+const O3DEProductionPlanner = lazy(() => import("./O3DEProductionPlanner"));
 
 type O3DECreationDeskProps = {
   title: string;
@@ -8,6 +11,7 @@ type O3DECreationDeskProps = {
   viewportLabel: string;
   intentLabel: string;
   checklist: string[];
+  productionMode?: O3DEProductionMode;
   projectProfile?: O3DEProjectProfile;
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
@@ -73,6 +77,7 @@ export default function O3DECreationDesk({
   viewportLabel,
   intentLabel,
   checklist,
+  productionMode = "game",
   projectProfile,
   onOpenPromptStudio,
   onOpenRuntimeOverview,
@@ -117,6 +122,17 @@ export default function O3DECreationDesk({
         <span><strong>Control plane:</strong> use this app for prompts, approvals, bridge truth, and work planning.</span>
         <span><strong>No shrink-wrap:</strong> the browser shell should augment O3DE tools, not replace the editor UI.</span>
       </div>
+
+      <Suspense fallback={<div style={plannerFallbackStyle}>Loading adaptive production planner...</div>}>
+        <O3DEProductionPlanner
+          mode={productionMode}
+          viewportLabel={viewportLabel}
+          activeToolLabel={activeTool.label}
+          projectProfileName={projectProfile?.name}
+          onOpenPromptStudio={onOpenPromptStudio}
+          onOpenBuilder={onOpenBuilder}
+        />
+      </Suspense>
 
       {actions.length > 0 ? (
         <div aria-label="O3DE creation desk actions" style={actionBarStyle}>
@@ -294,6 +310,15 @@ const companionGridStyle = {
   background: "rgba(124, 175, 255, 0.1)",
   color: "#dbe8ff",
   lineHeight: 1.45,
+} satisfies CSSProperties;
+
+const plannerFallbackStyle = {
+  padding: 12,
+  border: "1px solid rgba(124, 175, 255, 0.32)",
+  borderRadius: "var(--app-card-radius)",
+  background: "rgba(124, 175, 255, 0.1)",
+  color: "var(--app-muted-color)",
+  fontWeight: 700,
 } satisfies CSSProperties;
 
 const actionBarStyle = {

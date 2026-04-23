@@ -41,7 +41,7 @@ describe("HomeWorkspaceView", () => {
     expect(screen.queryByText("Mission control content")).not.toBeInTheDocument();
   });
 
-  it("switches Home task modes into O3DE creation and project loading desks", () => {
+  it("switches Home task modes into O3DE creation and project loading desks", async () => {
     const openPromptStudio = vi.fn();
     const openRuntimeOverview = vi.fn();
     const openBuilder = vi.fn();
@@ -64,15 +64,42 @@ describe("HomeWorkspaceView", () => {
     expect(screen.getByLabelText("Game viewport control surface")).toBeInTheDocument();
     expect(screen.getByText("Component Palette")).toBeInTheDocument();
     expect(screen.getByLabelText("O3DE guided tool dock")).toBeInTheDocument();
-    expect(screen.getByText("McpSandbox canonical target")).toBeInTheDocument();
+    expect(screen.getAllByText("McpSandbox canonical target").length).toBeGreaterThan(0);
     expect(screen.getByText("C:\\src\\o3de")).toHaveStyle("overflow-wrap: anywhere");
     expect(screen.getByLabelText("O3DE companion layout guidance")).toHaveTextContent(
       "O3DE Editor full-size",
     );
+    expect(await screen.findByLabelText("O3DE production planner")).toBeInTheDocument();
+    expect(await screen.findByText("What type of game are you building?")).toBeInTheDocument();
+    expect(screen.getAllByText("First-person adventure").length).toBeGreaterThan(0);
+    expect(screen.getByText("Step 1 of 5")).toBeInTheDocument();
+    expect(screen.getByLabelText("Current viewport guidance context")).toHaveTextContent("Game viewport control surface");
+    expect(screen.getByLabelText("Current viewport guidance context")).toHaveTextContent("Entity Tools");
+    expect(screen.getByText(/Create a one-page first-person adventure brief/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Create a production lane plan for first-person adventure content/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Source context upload")).toBeInTheDocument();
+    expect(screen.getByLabelText("Quick prompt shortcuts")).toHaveTextContent("Analyze viewport and recommend");
+    expect(screen.getByLabelText("Quick prompt shortcuts")).toHaveTextContent("frontend-local-shortcuts-v1");
+    fireEvent.change(screen.getByLabelText("Source context notes"), {
+      target: { value: "Use a lighthouse puzzle where the player redirects light beams." },
+    });
+    expect(screen.getAllByText(/Source context \(operator notes\): Use a lighthouse puzzle/i).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Choose local file" }));
+    expect(screen.getByLabelText("Upload source context file")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Puzzle exploration/i }));
+    expect(screen.getByText(/Create a puzzle exploration brief/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Use current viewport/i }));
+    expect(screen.getByText(/Use the current viewport context and selected tool area/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Next step" }));
+    expect(screen.getAllByText("2. Test room").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Plan a single O3DE puzzle test room/i)).toBeInTheDocument();
+
     expect(screen.getByText(/this is a generated control-surface shell/i)).toBeInTheDocument();
     expect(screen.getByText(/Open the current level and create a root-level entity/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Component Palette" }));
+    expect(screen.getByLabelText("Current viewport guidance context")).toHaveTextContent("Component Palette");
     expect(screen.getByText(/Add a Comment component to the selected entity/i)).toBeInTheDocument();
     expect(screen.getByText(/Records evidence for editor.component.add/i)).toBeInTheDocument();
 
@@ -89,6 +116,10 @@ describe("HomeWorkspaceView", () => {
     expect(screen.getByText("O3DE cinematic creation desk")).toBeInTheDocument();
     expect(screen.getByLabelText("Cinematic viewport control surface")).toBeInTheDocument();
     expect(screen.getByText("Cinematic authoring intent")).toBeInTheDocument();
+    expect(screen.getByText("What type of production are you building?")).toBeInTheDocument();
+    expect(screen.getAllByText("Trailer / previs").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: /Short film/i }));
+    expect(screen.getByText(/Create a short-film story package/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: /Load Project/i }));
 

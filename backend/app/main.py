@@ -142,7 +142,7 @@ def root() -> RootStatus:
     if workspaces_router is not None:
         routes.append("/workspaces")
     if prompt_control_router is not None:
-        routes.extend(["/prompt/capabilities", "/prompt/sessions"])
+        routes.extend(["/prompt/capabilities", "/prompt/shortcuts", "/prompt/sessions"])
     return RootStatus(
         name="O3DE Agent Control Backend",
         status="phase-7-gem-state-refinement",

@@ -3,11 +3,14 @@ from fastapi import APIRouter, HTTPException
 from app.models.prompt_control import (
     PromptCapabilitiesResponse,
     PromptRequest,
+    PromptShortcutRequest,
+    PromptShortcutResponse,
     PromptSessionRecord,
     PromptSessionsResponse,
 )
 from app.services.capability_registry import capability_registry_service
 from app.services.prompt_orchestrator import prompt_orchestrator_service
+from app.services.prompt_shortcuts import prompt_shortcut_service
 from app.services.prompt_sessions import prompt_sessions_service
 
 router = APIRouter(prefix="/prompt", tags=["prompt"])
@@ -21,6 +24,11 @@ def list_prompt_capabilities() -> PromptCapabilitiesResponse:
 @router.get("/sessions", response_model=PromptSessionsResponse)
 def list_prompt_sessions() -> PromptSessionsResponse:
     return PromptSessionsResponse(sessions=prompt_sessions_service.list_sessions())
+
+
+@router.post("/shortcuts", response_model=PromptShortcutResponse)
+def create_prompt_shortcuts(request: PromptShortcutRequest) -> PromptShortcutResponse:
+    return prompt_shortcut_service.build_shortcuts(request)
 
 
 @router.get("/sessions/{prompt_id}", response_model=PromptSessionRecord)

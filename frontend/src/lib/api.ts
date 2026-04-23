@@ -66,6 +66,8 @@ import type {
   PromptCapabilitiesResponse,
   PromptCapabilityEntry,
   PromptRequest,
+  PromptShortcutRequest,
+  PromptShortcutResponse,
   PromptSessionRecord,
   PromptSessionsResponse,
   ReadinessStatus,
@@ -639,6 +641,16 @@ export async function fetchPromptCapabilities(): Promise<PromptCapabilityEntry[]
     "Prompt capabilities fetch",
   );
   return payload.capabilities ?? [];
+}
+
+export async function createPromptShortcuts(
+  request: PromptShortcutRequest,
+): Promise<PromptShortcutResponse> {
+  return postJson<PromptShortcutRequest, PromptShortcutResponse>(
+    "/prompt/shortcuts",
+    request,
+    "Prompt shortcut generation",
+  );
 }
 
 export async function fetchApprovals(): Promise<ApprovalRecord[]> {

@@ -138,6 +138,37 @@ export interface PromptCapabilitiesResponse {
   capabilities: PromptCapabilityEntry[];
 }
 
+export interface PromptShortcutRequest {
+  mode: string;
+  scenario_id: string;
+  scenario_label: string;
+  stage_label: string;
+  focus_id: string;
+  focus_label: string;
+  viewport_label: string;
+  active_tool_label: string;
+  project_profile_name?: string | null;
+  source_context_name?: string | null;
+  source_context?: string | null;
+}
+
+export interface PromptShortcutOption {
+  shortcut_id: string;
+  title: string;
+  prompt_text: string;
+  evidence_gate: string;
+  source: string;
+}
+
+export interface PromptShortcutResponse {
+  mode: string;
+  scenario_id: string;
+  stage_label: string;
+  focus_id: string;
+  shortcuts: PromptShortcutOption[];
+  generated_by: string;
+}
+
 export type PromptSessionStatus =
   | "planned"
   | "refused"

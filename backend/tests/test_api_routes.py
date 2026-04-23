@@ -86,6 +86,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert "/executors" in payload["routes"]
         assert "/workspaces" in payload["routes"]
         assert "/prompt/capabilities" in payload["routes"]
+        assert "/prompt/shortcuts" in payload["routes"]
         assert "/prompt/sessions" in payload["routes"]
         assert "/o3de/target" in payload["routes"]
         assert "/o3de/bridge" in payload["routes"]

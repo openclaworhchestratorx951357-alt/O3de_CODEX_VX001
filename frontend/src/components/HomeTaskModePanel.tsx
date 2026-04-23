@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 
 import O3DECreationDesk from "./O3DECreationDesk";
 import { fetchO3deTarget } from "../lib/api";
@@ -95,10 +95,6 @@ export default function HomeTaskModePanel({
   const [backendTargetLoading, setBackendTargetLoading] = useState(false);
   const activeMode = taskModes.find((mode) => mode.id === activeModeId) ?? taskModes[0];
 
-  useEffect(() => {
-    setProfileDraft(profileToDraft(activeProjectProfile));
-  }, [activeProjectProfile]);
-
   function syncSettingsToProfile(profile: O3DEProjectProfile): void {
     saveSettings({
       ...settings,
@@ -115,6 +111,7 @@ export default function HomeTaskModePanel({
       selectO3DEProjectProfile(profileStore, profile.id),
     );
     setProfileStore(nextStore);
+    setProfileDraft(profileToDraft(profile));
     syncSettingsToProfile(profile);
     setProfileStatus(`${profile.name} is now selected for O3DE creation defaults.`);
   }
@@ -139,6 +136,7 @@ export default function HomeTaskModePanel({
     );
 
     setProfileStore(nextStore);
+    setProfileDraft(profileToDraft(profile));
     syncSettingsToProfile(profile);
     setProfileStatus(`${profile.name} was saved and selected.`);
   }
@@ -168,6 +166,7 @@ export default function HomeTaskModePanel({
       );
 
       setProfileStore(nextStore);
+      setProfileDraft(profileToDraft(profile));
       syncSettingsToProfile(profile);
       setProfileStatus("Live backend target was captured and selected.");
     } catch (error) {
@@ -225,6 +224,7 @@ export default function HomeTaskModePanel({
             subtitle="Generated viewport and editor control surface for gameplay work."
             viewportLabel="Game viewport control surface"
             intentLabel="Gameplay authoring intent"
+            productionMode="game"
             projectProfile={activeProjectProfile}
             onOpenPromptStudio={onOpenPromptStudio}
             onOpenRuntimeOverview={onOpenRuntimeOverview}
@@ -242,6 +242,7 @@ export default function HomeTaskModePanel({
             subtitle="Generated viewport and editor control surface for movie, trailer, and previs work."
             viewportLabel="Cinematic viewport control surface"
             intentLabel="Cinematic authoring intent"
+            productionMode="cinematic"
             projectProfile={activeProjectProfile}
             onOpenPromptStudio={onOpenPromptStudio}
             onOpenRuntimeOverview={onOpenRuntimeOverview}
