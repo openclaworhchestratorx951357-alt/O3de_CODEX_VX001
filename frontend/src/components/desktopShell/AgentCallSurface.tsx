@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 
 import type { DesktopShellAgentCallItem } from "./types";
 
@@ -20,6 +21,47 @@ export default function AgentCallSurface({
     setAgentChatOpen(true);
     setAgentCallOpen(false);
   }
+
+  const agentChatDock = agentChatOpen ? (
+    <div style={agentChatDockStyle} role="region" aria-label="Agent chat dock">
+      <div style={agentChatDockHeaderStyle}>
+        <div>
+          <strong>Agent chat</strong>
+          <span>Ask an agent to help with the current app workspace.</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setAgentChatOpen(false)}
+          style={agentChatCloseButtonStyle}
+        >
+          Close
+        </button>
+      </div>
+      <div style={agentChatFeatureRowStyle} aria-label="Agent feature shortcuts">
+        <button type="button" style={agentChatFeatureButtonStyle}>Attach source</button>
+        <button type="button" style={agentChatFeatureButtonStyle}>Use current panel</button>
+        <button type="button" style={agentChatFeatureButtonStyle}>Open App OS</button>
+        <button type="button" style={agentChatFeatureButtonStyle}>Ask O3DE</button>
+      </div>
+      <form
+        style={agentChatInputRowStyle}
+        onSubmit={(event) => {
+          event.preventDefault();
+          setAgentChatDraft("");
+        }}
+      >
+        <input
+          value={agentChatDraft}
+          onChange={(event) => setAgentChatDraft(event.target.value)}
+          placeholder="Tell the agent what to inspect, change, or prepare..."
+          style={agentChatInputStyle}
+        />
+        <button type="submit" aria-label="Send agent message" style={agentChatSendButtonStyle}>
+          {"\u2191"}
+        </button>
+      </form>
+    </div>
+  ) : null;
 
   return (
     <>
@@ -67,46 +109,9 @@ export default function AgentCallSurface({
         ) : null}
       </div>
 
-      {agentChatOpen ? (
-        <div style={agentChatDockStyle} role="region" aria-label="Agent chat dock">
-          <div style={agentChatDockHeaderStyle}>
-            <div>
-              <strong>Agent chat</strong>
-              <span>Ask an agent to help with the current app workspace.</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setAgentChatOpen(false)}
-              style={agentChatCloseButtonStyle}
-            >
-              Close
-            </button>
-          </div>
-          <div style={agentChatFeatureRowStyle} aria-label="Agent feature shortcuts">
-            <button type="button" style={agentChatFeatureButtonStyle}>Attach source</button>
-            <button type="button" style={agentChatFeatureButtonStyle}>Use current panel</button>
-            <button type="button" style={agentChatFeatureButtonStyle}>Open App OS</button>
-            <button type="button" style={agentChatFeatureButtonStyle}>Ask O3DE</button>
-          </div>
-          <form
-            style={agentChatInputRowStyle}
-            onSubmit={(event) => {
-              event.preventDefault();
-              setAgentChatDraft("");
-            }}
-          >
-            <input
-              value={agentChatDraft}
-              onChange={(event) => setAgentChatDraft(event.target.value)}
-              placeholder="Tell the agent what to inspect, change, or prepare..."
-              style={agentChatInputStyle}
-            />
-            <button type="submit" aria-label="Send agent message" style={agentChatSendButtonStyle}>
-              {"\u2191"}
-            </button>
-          </form>
-        </div>
-      ) : null}
+      {agentChatDock && typeof document !== "undefined"
+        ? createPortal(agentChatDock, document.body)
+        : agentChatDock}
     </>
   );
 }

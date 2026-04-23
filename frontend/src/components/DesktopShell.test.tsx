@@ -115,7 +115,11 @@ describe("DesktopShell", () => {
     fireEvent.click(screen.getByRole("button", { name: /call an agent/i }));
     expect(screen.getByRole("dialog", { name: "Agent call menu" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Start new chat" }));
-    expect(screen.getByRole("region", { name: "Agent chat dock" })).toBeInTheDocument();
+    const agentChatDock = screen.getByRole("region", { name: "Agent chat dock" });
+    expect(agentChatDock).toBeInTheDocument();
+    expect(agentChatDock.parentElement).toBe(document.body);
+    expect(agentChatDock).toHaveStyle("position: fixed");
+    expect(agentChatDock).toHaveStyle("bottom: 18px");
     expect(screen.getByRole("button", { name: "Attach source" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send agent message" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Close" }));
