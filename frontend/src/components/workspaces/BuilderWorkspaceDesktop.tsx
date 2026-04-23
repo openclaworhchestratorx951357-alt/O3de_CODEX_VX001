@@ -62,7 +62,7 @@ import type {
   CodexControlWorker,
   CodexControlWorktree,
 } from "../../types/contracts";
-import ActionReviewCard from "./ActionReviewCard";
+import ActionReviewCard from "../ActionReviewCard";
 import BuilderWorkspaceView from "./BuilderWorkspaceView";
 
 type LaneDraft = {

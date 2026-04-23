@@ -170,6 +170,12 @@ describe("SystemStatusPanel", () => {
     expect(screen.getByText("Cleanup outcome")).toBeInTheDocument();
     expect(screen.getByText("stale results removed")).toBeInTheDocument();
     expect(screen.getByText("Clear stale success results")).toBeInTheDocument();
+    const cleanupReview = screen.getByLabelText("Bridge cleanup review");
+    expect(cleanupReview).toHaveTextContent("Review before clearing stale bridge results");
+    expect(cleanupReview).toHaveTextContent("Action: remove stale successful bridge response artifacts only");
+    expect(cleanupReview).toHaveTextContent("Preserved evidence: deadletters remain preserved by default");
+    expect(cleanupReview).toHaveTextContent("Results queue: 0");
+    expect(cleanupReview).toHaveTextContent("Deadletters: 2 preserved");
     expect(screen.getByText("Covered tools")).toBeInTheDocument();
     expect(screen.getByText("Family rollout details")).toBeInTheDocument();
     expect(

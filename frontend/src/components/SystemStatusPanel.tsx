@@ -8,6 +8,7 @@ import {
   getPersistenceAttentionLabel,
   getSchemaAttentionLabel,
 } from "../lib/operatorStatus";
+import ActionReviewCard from "./ActionReviewCard";
 import CopyTextButton from "./CopyTextButton";
 import ExpandablePanelSection from "./ExpandablePanelSection";
 import OperatorStatusRail from "./OperatorStatusRail";
@@ -149,20 +150,32 @@ export default function SystemStatusPanel(
               Bridge telemetry reflects the persistent Gem-backed editor host only. It helps operators distinguish live bridge observation from simulated fallback and does not widen the admitted real editor set.
             </p>
             {onCleanupBridgeResults ? (
-              <div style={bridgeActionRowStyle}>
-                <button
-                  type="button"
-                  onClick={onCleanupBridgeResults}
-                  title={systemStatusCleanupControlGuide.tooltip}
-                  disabled={bridgeCleanupBusy || !bridgeData?.configured}
-                  style={summaryActionButtonStyle}
-                >
-                  {bridgeCleanupBusy ? "Cleaning stale results..." : "Clear stale success results"}
-                </button>
-                <span style={subtleTextStyle}>
-                  Removes stale successful `results/*.json.resp` transport artifacts only. Deadletters remain preserved by default.
-                </span>
-              </div>
+              <ActionReviewCard
+                ariaLabel="Bridge cleanup review"
+                eyebrow="Cleanup review"
+                eyebrowTone="warning"
+                title="Review before clearing stale bridge results"
+                description="No files are removed until you click. This cleanup only targets stale successful bridge transport responses and keeps failure evidence intact."
+                action={(
+                  <button
+                    type="button"
+                    onClick={onCleanupBridgeResults}
+                    title={systemStatusCleanupControlGuide.tooltip}
+                    disabled={bridgeCleanupBusy || !bridgeData?.configured}
+                    style={summaryActionButtonStyle}
+                  >
+                    {bridgeCleanupBusy ? "Cleaning stale results..." : "Clear stale success results"}
+                  </button>
+                )}
+                details={[
+                  { label: "Action", value: "remove stale successful bridge response artifacts only" },
+                  { label: "Preserved evidence", value: "deadletters remain preserved by default" },
+                  { label: "Configured target", value: formatBridgeValue(bridgeData?.project_root, "not reported") },
+                  { label: "Results queue", value: bridgeData?.queue_counts.results ?? 0 },
+                  { label: "Deadletters", value: `${bridgeData?.queue_counts.deadletter ?? 0} preserved` },
+                  { label: "Last cleanup", value: formatBridgeValue(formatIsoLabel(lastCleanup?.attempted_at)) },
+                ]}
+              />
             ) : null}
             {bridgeCleanupStatus ? (
               <p style={bridgeStatusNoteStyle}>{bridgeCleanupStatus}</p>
