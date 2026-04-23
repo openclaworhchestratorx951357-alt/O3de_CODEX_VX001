@@ -155,13 +155,15 @@ const taskbarStyle = {
   position: "relative",
   zIndex: 2,
   display: "grid",
-  gridTemplateColumns: "minmax(220px, 1fr) minmax(260px, 620px) minmax(220px, 1fr)",
+  gridTemplateColumns: "minmax(260px, max-content) minmax(280px, 1fr) max-content",
   alignItems: "center",
-  gap: 16,
-  padding: "14px 20px",
+  gap: 14,
+  minHeight: 64,
+  padding: "10px 18px",
   background: "var(--app-panel-bg)",
   borderBottom: "1px solid var(--app-panel-border)",
   backdropFilter: "blur(18px)",
+  overflow: "visible",
 } satisfies CSSProperties;
 
 const taskbarBrandGroupStyle = {
@@ -199,23 +201,27 @@ const taskbarMetaGroupStyle = {
   display: "flex",
   alignItems: "center",
   justifyContent: "flex-end",
-  flexWrap: "wrap",
-  gap: 10,
+  flexWrap: "nowrap",
+  gap: 8,
   minWidth: 0,
   justifySelf: "end",
+  whiteSpace: "nowrap",
 } satisfies CSSProperties;
 
 const taskbarUtilityBadgeStyle = {
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-pill-radius)",
-  padding: "7px 11px",
+  padding: "6px 10px",
   fontSize: 12,
+  maxWidth: 170,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 } satisfies CSSProperties;
 
 const taskbarClockStyle = {
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-pill-radius)",
-  padding: "7px 12px",
+  padding: "6px 10px",
   background: "var(--app-panel-bg-alt)",
   boxShadow: "var(--app-shadow-soft)",
   fontSize: 12,

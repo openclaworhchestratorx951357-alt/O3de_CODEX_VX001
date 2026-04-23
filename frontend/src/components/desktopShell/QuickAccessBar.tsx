@@ -234,7 +234,9 @@ function scoreQuickAccessEntry(entry: QuickAccessEntry, terms: readonly string[]
 const quickAccessShellStyle = {
   position: "relative",
   minWidth: 260,
-  width: "min(42vw, 620px)",
+  width: "100%",
+  maxWidth: 620,
+  justifySelf: "center",
   zIndex: 12,
 } satisfies CSSProperties;
 

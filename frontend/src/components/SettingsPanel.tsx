@@ -56,10 +56,12 @@ function getSettingsPortalHost(): HTMLElement | null {
 
 type SettingsPanelProps = {
   buttonLabel?: string;
+  compactLauncher?: boolean;
 };
 
 export default function SettingsPanel({
   buttonLabel = "Settings",
+  compactLauncher = false,
 }: SettingsPanelProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -260,48 +262,52 @@ export default function SettingsPanel({
           {buttonLabel}
         </button>
 
-        <div style={launcherThemeRowStyle} role="group" aria-label="Theme mode quick toggle">
-          {THEME_MODE_VALUES.map((value) => {
-            const active = settings.appearance.themeMode === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                onClick={() => handleQuickThemeChange(value)}
-                aria-pressed={active}
-                title={`Apply ${formatThemeToggleLabel(value)} theme without opening the full settings panel.`}
-                style={{
-                  ...launcherThemeButtonStyle,
-                  ...(active ? launcherThemeButtonActiveStyle : null),
-                }}
-              >
-                {formatThemeToggleLabel(value)}
-              </button>
-            );
-          })}
-        </div>
+        {compactLauncher ? null : (
+          <>
+            <div style={launcherThemeRowStyle} role="group" aria-label="Theme mode quick toggle">
+              {THEME_MODE_VALUES.map((value) => {
+                const active = settings.appearance.themeMode === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => handleQuickThemeChange(value)}
+                    aria-pressed={active}
+                    title={`Apply ${formatThemeToggleLabel(value)} theme without opening the full settings panel.`}
+                    style={{
+                      ...launcherThemeButtonStyle,
+                      ...(active ? launcherThemeButtonActiveStyle : null),
+                    }}
+                  >
+                    {formatThemeToggleLabel(value)}
+                  </button>
+                );
+              })}
+            </div>
 
-        <div style={launcherThemeRowStyle} role="group" aria-label="Guidance mode quick toggle">
-          {[true, false].map((value) => {
-            const active = settings.layout.guidedMode === value;
-            const label = formatGuidedModeToggleLabel(value);
-            return (
-              <button
-                key={label}
-                type="button"
-                onClick={() => handleQuickGuidedModeChange(value)}
-                aria-pressed={active}
-                title={`${label} mode ${value ? "keeps beginner-safe panels visible first" : "shows advanced panels by default"}.`}
-                style={{
-                  ...launcherThemeButtonStyle,
-                  ...(active ? launcherThemeButtonActiveStyle : null),
-                }}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
+            <div style={launcherThemeRowStyle} role="group" aria-label="Guidance mode quick toggle">
+              {[true, false].map((value) => {
+                const active = settings.layout.guidedMode === value;
+                const label = formatGuidedModeToggleLabel(value);
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => handleQuickGuidedModeChange(value)}
+                    aria-pressed={active}
+                    title={`${label} mode ${value ? "keeps beginner-safe panels visible first" : "shows advanced panels by default"}.`}
+                    style={{
+                      ...launcherThemeButtonStyle,
+                      ...(active ? launcherThemeButtonActiveStyle : null),
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
       {open && portalHost ? createPortal((

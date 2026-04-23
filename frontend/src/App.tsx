@@ -6789,7 +6789,7 @@ export default function App() {
               activeWorkspaceId={activeWorkspaceId}
               onSelectWorkspace={(workspaceId) => setActiveWorkspaceId(workspaceId as DesktopWorkspaceId)}
             />
-            <SettingsPanel />
+            <SettingsPanel compactLauncher />
           </>
         )}
         onSelectWorkspace={(workspaceId) => setActiveWorkspaceId(workspaceId as DesktopWorkspaceId)}
