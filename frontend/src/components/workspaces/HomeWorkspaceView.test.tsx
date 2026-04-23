@@ -63,12 +63,18 @@ describe("HomeWorkspaceView", () => {
     expect(screen.getByText("O3DE game creation desk")).toBeInTheDocument();
     expect(screen.getByLabelText("Game viewport control surface")).toBeInTheDocument();
     expect(screen.getByText("Component Palette")).toBeInTheDocument();
+    expect(screen.getByLabelText("O3DE guided tool dock")).toBeInTheDocument();
     expect(screen.getByText("McpSandbox canonical target")).toBeInTheDocument();
     expect(screen.getByText("C:\\src\\o3de")).toHaveStyle("overflow-wrap: anywhere");
     expect(screen.getByLabelText("O3DE companion layout guidance")).toHaveTextContent(
       "O3DE Editor full-size",
     );
     expect(screen.getByText(/this is a generated control-surface shell/i)).toBeInTheDocument();
+    expect(screen.getByText(/Open the current level and create a root-level entity/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Component Palette" }));
+    expect(screen.getByText(/Add a Comment component to the selected entity/i)).toBeInTheDocument();
+    expect(screen.getByText(/Records evidence for editor.component.add/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Create with natural language/i }));
     fireEvent.click(screen.getByRole("button", { name: /Check bridge\/runtime/i }));

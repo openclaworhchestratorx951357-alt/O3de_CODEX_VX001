@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 
 import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 
@@ -14,6 +14,59 @@ type O3DECreationDeskProps = {
   onOpenBuilder?: () => void;
 };
 
+type O3DEToolGuide = {
+  id: string;
+  label: string;
+  description: string;
+  safePrompt: string;
+  verifyWith: string;
+};
+
+const toolGuides: O3DEToolGuide[] = [
+  {
+    id: "entity-tools",
+    label: "Entity Tools",
+    description: "Create and review root-level named entities before adding behavior.",
+    safePrompt: "Open the current level and create a root-level entity named TrainingMarker.",
+    verifyWith: "Prompt Studio result, bridge command id, and Records evidence for editor.entity.create.",
+  },
+  {
+    id: "component-palette",
+    label: "Component Palette",
+    description: "Attach only allowlisted components to an existing entity in the loaded level.",
+    safePrompt: "Add a Comment component to the selected entity without changing any properties.",
+    verifyWith: "Runtime bridge status plus Records evidence for editor.component.add.",
+  },
+  {
+    id: "asset-browser",
+    label: "Asset Browser",
+    description: "Plan asset inspection or source-file work without mutating the editor scene first.",
+    safePrompt: "Inspect the project assets needed for this level and propose a safe import plan.",
+    verifyWith: "Catalog capability mode and Records artifacts before any destructive asset changes.",
+  },
+  {
+    id: "material-lighting",
+    label: "Material and Lighting",
+    description: "Keep lookdev as a planned task until material editing is explicitly admitted.",
+    safePrompt: "Create a lookdev checklist for lighting this scene without changing materials yet.",
+    verifyWith: "Builder task ownership and explicit simulated/plan-only labels.",
+  },
+  {
+    id: "animation-camera",
+    label: "Animation and Camera",
+    description: "Draft shot or camera intent before moving into cinematic bridge operations.",
+    safePrompt: "Plan a three-shot camera sequence for this level and list the bridge capabilities required.",
+    verifyWith: "Prompt plan output and operator approval before any editor mutation.",
+  },
+  {
+    id: "build-test",
+    label: "Build and Test",
+    description: "Treat build, run, and validation as separate tasks so editor authoring stays traceable.",
+    safePrompt: "Create a mission-control task to validate this O3DE slice after the editor changes land.",
+    verifyWith: "Builder lane status, test command output, and Records run evidence.",
+  },
+];
+
 export default function O3DECreationDesk({
   title,
   subtitle,
@@ -25,6 +78,8 @@ export default function O3DECreationDesk({
   onOpenRuntimeOverview,
   onOpenBuilder,
 }: O3DECreationDeskProps) {
+  const [activeToolId, setActiveToolId] = useState(toolGuides[0].id);
+  const activeTool = toolGuides.find((tool) => tool.id === activeToolId) ?? toolGuides[0];
   const actions = [
     {
       label: "Create with natural language",
@@ -131,18 +186,52 @@ export default function O3DECreationDesk({
         </aside>
       </div>
 
-      <div style={toolBayStyle}>
-        {[
-          "Entity Tools",
-          "Component Palette",
-          "Asset Browser",
-          "Material and Lighting",
-          "Animation and Camera",
-          "Build and Test",
-        ].map((tool) => (
-          <span key={tool} style={toolTileStyle}>{tool}</span>
-        ))}
-      </div>
+      <section aria-label="O3DE guided tool dock" style={toolDockStyle}>
+        <div style={toolDockHeaderStyle}>
+          <div>
+            <strong>O3DE guided tool dock</strong>
+            <p style={mutedParagraphStyle}>
+              Pick a tool area to see the safest natural-language prompt and the evidence to check next.
+            </p>
+          </div>
+          <span style={statusPillStyle}>Click a tool to focus</span>
+        </div>
+        <div style={toolBayStyle}>
+          {toolGuides.map((tool) => (
+            <button
+              key={tool.id}
+              type="button"
+              onClick={() => setActiveToolId(tool.id)}
+              aria-pressed={tool.id === activeTool.id}
+              title={tool.description}
+              style={{
+                ...toolTileStyle,
+                ...(tool.id === activeTool.id ? activeToolTileStyle : null),
+              }}
+            >
+              <span>{tool.label}</span>
+              <span aria-hidden="true" style={toolInfoBadgeStyle}>i</span>
+            </button>
+          ))}
+        </div>
+        <div style={toolGuidePanelStyle} aria-live="polite">
+          <div>
+            <span style={eyebrowStyle}>Selected O3DE area</span>
+            <strong>{activeTool.label}</strong>
+            <p style={mutedParagraphStyle}>{activeTool.description}</p>
+          </div>
+          <div style={toolGuideGridStyle}>
+            <span>
+              <strong>Suggested prompt</strong>
+              {activeTool.safePrompt}
+            </span>
+            <span>
+              <strong>Verify with</strong>
+              {activeTool.verifyWith}
+            </span>
+          </div>
+        </div>
+      </section>
 
       <div style={truthNoteStyle}>
         <strong>Truth boundary:</strong> this is a generated control-surface shell, not an embedded O3DE renderer.
@@ -381,14 +470,83 @@ const toolBayStyle = {
   gap: 8,
 } satisfies CSSProperties;
 
+const toolDockStyle = {
+  display: "grid",
+  gap: 10,
+  padding: 12,
+  border: "1px solid rgba(124, 175, 255, 0.26)",
+  borderRadius: "var(--app-card-radius)",
+  background: "rgba(4, 13, 28, 0.42)",
+} satisfies CSSProperties;
+
+const toolDockHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 10,
+  flexWrap: "wrap",
+  alignItems: "start",
+} satisfies CSSProperties;
+
 const toolTileStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 8,
+  alignItems: "center",
+  textAlign: "left",
   padding: "9px 10px",
   border: "1px solid rgba(255, 255, 255, 0.14)",
   borderRadius: "var(--app-card-radius)",
   background: "rgba(255, 255, 255, 0.07)",
   color: "var(--app-text-color)",
+  cursor: "pointer",
+  font: "inherit",
   fontSize: 12,
   fontWeight: 700,
+} satisfies CSSProperties;
+
+const activeToolTileStyle = {
+  border: "1px solid var(--app-accent-strong)",
+  background: "var(--app-info-bg)",
+  boxShadow: "var(--app-shadow-soft)",
+} satisfies CSSProperties;
+
+const toolInfoBadgeStyle = {
+  display: "inline-grid",
+  placeItems: "center",
+  flex: "0 0 auto",
+  width: 18,
+  height: 18,
+  border: "1px solid var(--app-info-border)",
+  borderRadius: "50%",
+  background: "var(--app-panel-bg)",
+  color: "var(--app-info-text)",
+  fontSize: 12,
+  fontWeight: 800,
+} satisfies CSSProperties;
+
+const toolGuidePanelStyle = {
+  display: "grid",
+  gap: 10,
+  padding: 12,
+  border: "1px solid rgba(255, 255, 255, 0.12)",
+  borderRadius: "var(--app-card-radius)",
+  background: "rgba(255, 255, 255, 0.06)",
+} satisfies CSSProperties;
+
+const toolGuideGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 10,
+  color: "var(--app-muted-color)",
+  lineHeight: 1.45,
+} satisfies CSSProperties;
+
+const eyebrowStyle = {
+  color: "var(--app-subtle-color)",
+  fontSize: 10,
+  fontWeight: 800,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
 } satisfies CSSProperties;
 
 const truthNoteStyle = {
