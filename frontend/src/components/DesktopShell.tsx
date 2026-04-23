@@ -793,8 +793,10 @@ const workspaceShellStyle = {
 
 const workspaceChromeStyle = {
   display: "grid",
-  gap: 14,
-  padding: "var(--app-panel-padding)",
+  gap: 12,
+  width: "min(100%, 1040px)",
+  justifySelf: "start",
+  padding: "14px 16px",
   borderRadius: "var(--app-panel-radius)",
   background: "linear-gradient(135deg, var(--app-accent-soft) 0%, var(--app-panel-bg-alt) 100%)",
   border: "1px solid var(--app-panel-border)",
@@ -812,6 +814,8 @@ const workspacePeerNavStyle = {
   display: "flex",
   alignItems: "center",
   gap: 8,
+  width: "fit-content",
+  maxWidth: "100%",
   minWidth: 0,
   overflowX: "auto",
   padding: "8px",
