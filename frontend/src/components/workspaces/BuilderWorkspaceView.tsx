@@ -2,11 +2,13 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
+import RecommendedActionsPanel from "../RecommendedActionsPanel";
 import {
   getWorkspaceGuide,
   getWorkspaceWindowGuide,
   mergeGuideChecklists,
 } from "../../content/operatorGuide";
+import type { BuilderRecommendationActionId, RecommendationDescriptor } from "../../lib/recommendations";
 
 type BuilderSurfaceId = "start" | "mission-control" | "active-lane" | "autonomy";
 
@@ -18,6 +20,7 @@ type BuilderWorkspaceViewProps = {
   workerLifecycleContent: ReactNode;
   terminalsContent: ReactNode;
   autonomyInboxContent: ReactNode;
+  recommendations?: readonly RecommendationDescriptor<BuilderRecommendationActionId>[];
 };
 
 const overviewWindow = getWorkspaceWindowGuide("builder", "builder-overview");
@@ -64,8 +67,15 @@ export default function BuilderWorkspaceView({
   workerLifecycleContent,
   terminalsContent,
   autonomyInboxContent,
+  recommendations = [],
 }: BuilderWorkspaceViewProps) {
   const [activeSurfaceId, setActiveSurfaceId] = useState<BuilderSurfaceId>("start");
+  const recommendationEntries = recommendations.map((entry) => ({
+    ...entry,
+    onAction: () => {
+      setActiveSurfaceId(resolveBuilderRecommendationSurface(entry.actionId));
+    },
+  }));
 
   const activeSurface = activeSurfaceId === "mission-control"
     ? missionBoardWindow
@@ -103,6 +113,11 @@ export default function BuilderWorkspaceView({
         />
       )}
     >
+      <RecommendedActionsPanel
+        title="Builder recommendations"
+        description="Local coordination guidance based on current worker lanes, mission-board tasks, waiters, notifications, terminals, and Builder inbox state."
+        entries={recommendationEntries}
+      />
       {activeSurfaceId === "start" ? (
         <div style={builderSurfaceStackStyle}>
           <div style={builderTwoPaneGridStyle}>
@@ -182,6 +197,19 @@ export default function BuilderWorkspaceView({
       )}
     </DesktopWindow>
   );
+}
+
+function resolveBuilderRecommendationSurface(actionId: BuilderRecommendationActionId): BuilderSurfaceId {
+  if (actionId === "open_builder_mission_control") {
+    return "mission-control";
+  }
+  if (actionId === "open_builder_active_lane") {
+    return "active-lane";
+  }
+  if (actionId === "open_builder_autonomy") {
+    return "autonomy";
+  }
+  return "start";
 }
 
 const builderSurfaceStackStyle = {

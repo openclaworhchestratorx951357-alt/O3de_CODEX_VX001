@@ -45,4 +45,34 @@ describe("BuilderWorkspaceView", () => {
     expect(screen.getByText(/Use the inbox summary cards to see whether there are active objectives/i)).toBeInTheDocument();
     expect(screen.queryByText("Mission board content")).not.toBeInTheDocument();
   });
+
+  it("uses Builder recommendations to switch nested surfaces", () => {
+    render(
+      <BuilderWorkspaceView
+        overviewContent={<div>Overview content</div>}
+        worktreesContent={<div>Worktrees content</div>}
+        missionBoardContent={<div>Mission board content</div>}
+        laneCreateContent={<div>Lane creation content</div>}
+        workerLifecycleContent={<div>Worker lifecycle content</div>}
+        terminalsContent={<div>Managed terminals content</div>}
+        autonomyInboxContent={<div>Autonomy inbox content</div>}
+        recommendations={[
+          {
+            id: "builder-autonomy",
+            label: "Review Builder inbox",
+            detail: "Queued autonomy jobs are ready for review.",
+            actionLabel: "Open autonomy inbox",
+            actionId: "open_builder_autonomy",
+            tone: "warning",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Builder recommendations")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open autonomy inbox" }));
+
+    expect(screen.getByText("Autonomy inbox content")).toBeInTheDocument();
+    expect(screen.queryByText("Overview content")).not.toBeInTheDocument();
+  });
 });

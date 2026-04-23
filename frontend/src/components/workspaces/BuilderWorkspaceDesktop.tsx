@@ -31,6 +31,7 @@ import {
   updateAutonomyObservation,
   waitForCodexControlTask,
 } from "../../lib/api";
+import { buildBuilderRecommendationDescriptors } from "../../lib/recommendations";
 import { useThemeTokens } from "../../lib/settings/hooks";
 import type {
   AutonomyHealingActionCreateRequest,
@@ -1333,6 +1334,16 @@ export default function BuilderWorkspaceDesktop() {
     refreshPendingJobCount,
     objectiveCount: autonomyObjectives.length,
     queuedJobCount: queuedAutonomyJobCount,
+  });
+  const builderRecommendations = buildBuilderRecommendationDescriptors({
+    missionControlAvailable: status?.mission_control_available ?? false,
+    workerCount: workers.length,
+    taskCount: tasks.length,
+    waiterCount: waiters.filter((waiter) => waiter.status === "waiting").length,
+    unreadNotificationCount: unreadNotifications,
+    terminalSessionCount: terminalSessions.length,
+    queuedAutonomyJobCount: queuedAutonomyJobCount,
+    autonomyAttentionCount: staleBlockedJobCount + staleWorkerJobCount + refreshPendingJobCount,
   });
 
   async function refreshStatus() {
@@ -4278,6 +4289,7 @@ export default function BuilderWorkspaceDesktop() {
       workerLifecycleContent={workerLifecycleContent}
       terminalsContent={terminalsContent}
       autonomyInboxContent={autonomyInboxContent}
+      recommendations={builderRecommendations}
     />
   );
 }

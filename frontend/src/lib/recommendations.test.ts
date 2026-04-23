@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { buildHomeRecommendationDescriptors } from "./recommendations";
+import {
+  buildBuilderRecommendationDescriptors,
+  buildHomeRecommendationDescriptors,
+  buildRuntimeRecommendationDescriptors,
+} from "./recommendations";
 
 describe("buildHomeRecommendationDescriptors", () => {
   it("prioritizes urgent operator blockers before starter guidance", () => {
@@ -41,6 +45,44 @@ describe("buildHomeRecommendationDescriptors", () => {
       "open_prompt",
       "open_builder",
       "open_runtime_overview",
+    ]);
+  });
+});
+
+describe("buildRuntimeRecommendationDescriptors", () => {
+  it("routes unhealthy runtime posture to overview before secondary checks", () => {
+    expect(buildRuntimeRecommendationDescriptors({
+      persistenceReady: false,
+      bridgeConfigured: true,
+      bridgeHeartbeatFresh: false,
+      supportsRealExecution: true,
+      executorCount: 0,
+      workspaceCount: 0,
+      activeLockCount: 2,
+      policyCount: 5,
+    }).map((entry) => entry.actionId)).toEqual([
+      "open_runtime_overview",
+      "open_runtime_governance",
+      "open_runtime_workspaces",
+    ]);
+  });
+});
+
+describe("buildBuilderRecommendationDescriptors", () => {
+  it("prioritizes mission-control attention and autonomy follow-up", () => {
+    expect(buildBuilderRecommendationDescriptors({
+      missionControlAvailable: true,
+      workerCount: 2,
+      taskCount: 4,
+      waiterCount: 1,
+      unreadNotificationCount: 3,
+      terminalSessionCount: 1,
+      queuedAutonomyJobCount: 2,
+      autonomyAttentionCount: 1,
+    }).map((entry) => entry.actionId)).toEqual([
+      "open_builder_mission_control",
+      "open_builder_autonomy",
+      "open_builder_active_lane",
     ]);
   });
 });

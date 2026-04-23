@@ -8,9 +8,11 @@ import OperatorOverviewPanel from "../OperatorOverviewPanel";
 import OverviewContextStrip from "../OverviewContextStrip";
 import Phase7CapabilitySummaryPanel from "../Phase7CapabilitySummaryPanel";
 import PoliciesPanel from "../PoliciesPanel";
+import RecommendedActionsPanel from "../RecommendedActionsPanel";
 import SystemStatusPanel from "../SystemStatusPanel";
 import WorkspaceDetailPanel from "../WorkspaceDetailPanel";
 import WorkspacesPanel from "../WorkspacesPanel";
+import { buildRuntimeRecommendationDescriptors, type RuntimeRecommendationActionId } from "../../lib/recommendations";
 import RuntimeWorkspaceView from "./RuntimeWorkspaceView";
 
 type RuntimeWorkspaceDesktopProps = {
@@ -54,6 +56,22 @@ export default function RuntimeWorkspaceDesktop({
   workspaces,
   governance,
 }: RuntimeWorkspaceDesktopProps) {
+  const runtimeRecommendationEntries = buildRuntimeRecommendationDescriptors({
+    persistenceReady: overview.systemStatus.readiness?.persistence_ready ?? false,
+    bridgeConfigured: overview.systemStatus.bridgeStatus?.configured ?? false,
+    bridgeHeartbeatFresh: overview.systemStatus.bridgeStatus?.heartbeat_fresh ?? false,
+    supportsRealExecution: overview.adapters.adapters?.supports_real_execution ?? false,
+    executorCount: executors.executorsPanel.items?.length ?? 0,
+    workspaceCount: workspaces.workspacesPanel.items?.length ?? 0,
+    activeLockCount: governance.locks.items?.length ?? 0,
+    policyCount: governance.policies.items?.length ?? 0,
+  }).map((entry) => ({
+    ...entry,
+    onAction: () => {
+      onSelectSurface(resolveRuntimeRecommendationSurface(entry.actionId));
+    },
+  }));
+
   return (
     <RuntimeWorkspaceView
       activeSurfaceId={activeSurfaceId}
@@ -61,6 +79,11 @@ export default function RuntimeWorkspaceDesktop({
       onSelectSurface={onSelectSurface}
       overviewContent={(
         <>
+          <RecommendedActionsPanel
+            title="Runtime recommendations"
+            description="Local runtime guidance based on bridge, persistence, executor, workspace, lock, and policy state."
+            entries={runtimeRecommendationEntries}
+          />
           <AdaptersPanel {...overview.adapters} />
           <SystemStatusPanel {...overview.systemStatus} />
           <OperatorOverviewPanel {...overview.operatorOverview} />
@@ -97,4 +120,17 @@ export default function RuntimeWorkspaceDesktop({
       )}
     />
   );
+}
+
+function resolveRuntimeRecommendationSurface(actionId: RuntimeRecommendationActionId) {
+  if (actionId === "open_runtime_executors") {
+    return "executors";
+  }
+  if (actionId === "open_runtime_workspaces") {
+    return "workspaces";
+  }
+  if (actionId === "open_runtime_governance") {
+    return "governance";
+  }
+  return "overview";
 }
