@@ -22,12 +22,16 @@ export default function AgentCallSurface({
     setAgentCallOpen(false);
   }
 
+  const agentChatPortalTarget = typeof document !== "undefined"
+    ? document.querySelector<HTMLElement>("[data-app-theme-root='true']") ?? document.body
+    : null;
+
   const agentChatDock = agentChatOpen ? (
     <div style={agentChatDockStyle} role="region" aria-label="Agent chat dock">
       <div style={agentChatDockHeaderStyle}>
-        <div>
-          <strong>Agent chat</strong>
-          <span>Ask an agent to help with the current app workspace.</span>
+        <div style={agentChatHeaderCopyStyle}>
+          <strong style={agentChatTitleStyle}>Agent chat</strong>
+          <span style={agentChatSubtitleStyle}>Ask an agent to help with the current app workspace.</span>
         </div>
         <button
           type="button"
@@ -109,8 +113,8 @@ export default function AgentCallSurface({
         ) : null}
       </div>
 
-      {agentChatDock && typeof document !== "undefined"
-        ? createPortal(agentChatDock, document.body)
+      {agentChatDock && agentChatPortalTarget
+        ? createPortal(agentChatDock, agentChatPortalTarget)
         : agentChatDock}
     </>
   );
@@ -202,18 +206,20 @@ const agentCallNewChatButtonStyle = {
 
 const agentChatDockStyle = {
   position: "fixed",
-  left: 18,
-  right: 18,
+  left: "50%",
+  right: "auto",
   bottom: 18,
-  zIndex: 7,
+  zIndex: 20,
+  width: "min(calc(100vw - 36px), 980px)",
+  transform: "translateX(-50%)",
   display: "grid",
-  gap: 10,
-  padding: "16px 18px",
-  border: "1px solid rgba(255, 255, 255, 0.12)",
-  borderRadius: 28,
-  background: "#343638",
+  gap: 12,
+  padding: "16px",
+  border: "1px solid rgba(255, 255, 255, 0.14)",
+  borderRadius: 24,
+  background: "linear-gradient(180deg, #3a3c3f 0%, #2f3133 100%)",
   color: "#f4f4f5",
-  boxShadow: "0 24px 70px rgba(0, 0, 0, 0.46)",
+  boxShadow: "0 24px 70px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.08)",
   backdropFilter: "blur(26px)",
 } satisfies CSSProperties;
 
@@ -225,13 +231,34 @@ const agentChatDockHeaderStyle = {
   color: "#f4f4f5",
 } satisfies CSSProperties;
 
+const agentChatHeaderCopyStyle = {
+  display: "grid",
+  gap: 3,
+  minWidth: 0,
+} satisfies CSSProperties;
+
+const agentChatTitleStyle = {
+  fontSize: 15,
+  lineHeight: 1.1,
+  letterSpacing: "0.01em",
+} satisfies CSSProperties;
+
+const agentChatSubtitleStyle = {
+  color: "#c9ced6",
+  fontSize: 13,
+  lineHeight: 1.35,
+} satisfies CSSProperties;
+
 const agentChatCloseButtonStyle = {
-  border: "1px solid rgba(255, 255, 255, 0.16)",
-  borderRadius: "var(--app-pill-radius)",
-  padding: "7px 12px",
-  background: "rgba(255, 255, 255, 0.07)",
-  color: "#f4f4f5",
+  border: "1px solid rgba(248, 113, 113, 0.86)",
+  borderRadius: 999,
+  padding: "7px 13px",
+  background: "linear-gradient(180deg, rgba(127, 29, 29, 0.34), rgba(69, 10, 10, 0.18))",
+  color: "#fecaca",
+  boxShadow: "0 0 0 1px rgba(248, 113, 113, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.1)",
   cursor: "pointer",
+  fontSize: 13,
+  fontWeight: 700,
 } satisfies CSSProperties;
 
 const agentChatFeatureRowStyle = {
@@ -241,12 +268,14 @@ const agentChatFeatureRowStyle = {
 } satisfies CSSProperties;
 
 const agentChatFeatureButtonStyle = {
-  border: "1px solid rgba(255, 255, 255, 0.16)",
-  borderRadius: "var(--app-pill-radius)",
-  padding: "9px 12px",
-  background: "rgba(255, 255, 255, 0.07)",
+  border: "1px solid rgba(255, 255, 255, 0.14)",
+  borderRadius: 14,
+  padding: "9px 13px",
+  background: "linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06))",
   color: "#f4f4f5",
+  boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 1px 2px rgba(0, 0, 0, 0.22)",
   cursor: "pointer",
+  fontSize: 13,
   fontWeight: 800,
 } satisfies CSSProperties;
 
@@ -262,12 +291,13 @@ const agentChatInputStyle = {
   minWidth: 0,
   boxSizing: "border-box",
   border: "1px solid rgba(255, 255, 255, 0.16)",
-  borderRadius: "var(--app-pill-radius)",
+  borderRadius: 18,
   padding: "13px 16px",
   background: "#2f3133",
   color: "#f4f4f5",
   outline: "none",
   font: "inherit",
+  boxShadow: "inset 0 1px 3px rgba(0, 0, 0, 0.24)",
 } satisfies CSSProperties;
 
 const agentChatSendButtonStyle = {
