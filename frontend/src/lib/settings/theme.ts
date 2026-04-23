@@ -75,6 +75,14 @@ export function buildThemeTokens(
   const panelBorder = resolvedThemeMode === "dark" ? "rgba(112, 137, 179, 0.28)" : "rgba(137, 156, 196, 0.22)";
   const panelBorderStrong = resolvedThemeMode === "dark" ? "rgba(129, 156, 203, 0.34)" : "rgba(103, 132, 184, 0.22)";
   const inputBackground = resolvedThemeMode === "dark" ? "rgba(10, 16, 30, 0.92)" : "#ffffff";
+  const inputBorder = resolvedThemeMode === "dark" ? "rgba(129, 156, 203, 0.36)" : "rgba(91, 118, 165, 0.34)";
+  const inputShadow = resolvedThemeMode === "dark"
+    ? "inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 1px 2px rgba(2, 6, 23, 0.18)"
+    : "inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(58, 84, 136, 0.1)";
+  const inputFocusRing = resolvedThemeMode === "dark"
+    ? `0 0 0 3px ${rgba(accentColor, 0.24)}, inset 0 1px 0 rgba(255, 255, 255, 0.05)`
+    : `0 0 0 3px ${rgba(accentColor, 0.18)}, inset 0 1px 0 rgba(255, 255, 255, 0.92)`;
+  const inputPlaceholder = resolvedThemeMode === "dark" ? "rgba(169, 183, 209, 0.72)" : "rgba(79, 102, 137, 0.72)";
   const commandBackground = resolvedThemeMode === "dark" ? "#07111f" : "#10203a";
   const commandText = "#e7f0ff";
 
@@ -106,8 +114,14 @@ export function buildThemeTokens(
       "--app-panel-border-strong": panelBorderStrong,
       "--app-text-color": textColor,
       "--app-muted-color": mutedColor,
+      "--app-text-muted": mutedColor,
       "--app-subtle-color": subtleColor,
       "--app-input-bg": inputBackground,
+      "--app-input-border": inputBorder,
+      "--app-input-shadow": inputShadow,
+      "--app-input-focus-ring": inputFocusRing,
+      "--app-input-placeholder": inputPlaceholder,
+      "--app-color-scheme": resolvedThemeMode,
       "--app-command-bg": commandBackground,
       "--app-command-text": commandText,
       "--app-shadow-soft": shadowSoft,
