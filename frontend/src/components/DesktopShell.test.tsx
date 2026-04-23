@@ -111,9 +111,13 @@ describe("DesktopShell", () => {
 
     const quickAccessInput = screen.getByRole("combobox", { name: "Quick access app explorer" });
     fireEvent.focus(quickAccessInput);
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
     fireEvent.change(quickAccessInput, { target: { value: "record" } });
     expect(screen.getByRole("listbox", { name: "Quick access results" })).toBeInTheDocument();
-    expect(screen.getByText("Type a workspace, tool, or help topic. Use arrows and Enter to jump.")).toBeInTheDocument();
+    expect(screen.queryByText("Type a workspace, tool, or help topic. Use arrows and Enter to jump.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Inspect persisted evidence and warnings.")).not.toBeInTheDocument();
+    fireEvent.change(quickAccessInput, { target: { value: "rds" } });
+    expect(screen.getByRole("option", { name: /records/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("option", { name: /records/i }));
     expect(onSelectWorkspace).toHaveBeenCalledWith("records");
     onSelectWorkspace.mockClear();

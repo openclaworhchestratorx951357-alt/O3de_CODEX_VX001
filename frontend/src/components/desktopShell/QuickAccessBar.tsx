@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 
 import type { DesktopShellNavSection } from "./types";
 
@@ -36,7 +36,8 @@ export default function QuickAccessBar({
     () => filterQuickAccessEntries(entries, query),
     [entries, query],
   );
-  const visibleEntries = filteredEntries.slice(0, 8);
+  const hasQuery = normalizeSearchText(query).length > 0;
+  const visibleEntries = hasQuery ? filteredEntries.slice(0, 8) : [];
   const activeDescendantId = open && visibleEntries[highlightedIndex]
     ? `quick-access-option-${visibleEntries[highlightedIndex].id}`
     : undefined;
@@ -132,9 +133,6 @@ export default function QuickAccessBar({
           aria-label="Quick access results"
           style={quickAccessResultsStyle}
         >
-          <div style={quickAccessHelpStyle}>
-            Type a workspace, tool, or help topic. Use arrows and Enter to jump.
-          </div>
           {visibleEntries.length ? (
             visibleEntries.map((entry, index) => {
               const highlighted = index === highlightedIndex;
@@ -145,6 +143,7 @@ export default function QuickAccessBar({
                   id={`quick-access-option-${entry.id}`}
                   type="button"
                   role="option"
+                  aria-label={`${entry.label} ${entry.sectionLabel}${active ? " open" : ""}`}
                   aria-selected={highlighted}
                   onMouseEnter={() => setHighlightedIndex(index)}
                   onMouseDown={(event) => event.preventDefault()}
@@ -154,20 +153,25 @@ export default function QuickAccessBar({
                     ...(highlighted ? quickAccessResultHighlightedStyle : null),
                   }}
                 >
-                  <span style={quickAccessResultSectionStyle}>{entry.sectionLabel}</span>
-                  <strong style={quickAccessResultTitleStyle}>
-                    {entry.label}
+                  <span style={quickAccessResultTextStyle}>
+                    <strong style={quickAccessResultTitleStyle}>
+                      {renderMatchedText(entry.label, query)}
+                    </strong>
+                    <span style={quickAccessResultSectionStyle}>{entry.sectionLabel}</span>
                     {active ? <span style={quickAccessActivePillStyle}>open</span> : null}
-                  </strong>
-                  <span style={quickAccessResultSubtitleStyle}>{entry.subtitle}</span>
-                  <span style={quickAccessResultHelpStyle}>{entry.helpText}</span>
+                  </span>
                 </button>
               );
             })
           ) : (
-            <div style={quickAccessEmptyStyle}>
+            <>
+              <div style={quickAccessEmptyStyle}>
+                {hasQuery ? "No matches. Try runtime, builder, prompt, or guide." : "Type letters to find a workspace or command."}
+              </div>
+              <div style={{ ...quickAccessEmptyStyle, display: "none" }}>
               No matching app section. Try “runtime”, “builder”, “prompt”, or “guide”.
-            </div>
+              </div>
+            </>
           )}
         </div>
       ) : null}
@@ -201,34 +205,116 @@ export function buildQuickAccessEntries(navSections: readonly DesktopShellNavSec
 }
 
 function filterQuickAccessEntries(entries: readonly QuickAccessEntry[], query: string): QuickAccessEntry[] {
-  const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  if (terms.length === 0) {
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) {
     return [...entries];
   }
 
   return entries
     .map((entry) => ({
       entry,
-      score: scoreQuickAccessEntry(entry, terms),
+      score: scoreQuickAccessEntry(entry, normalizedQuery),
     }))
     .filter(({ score }) => score > 0)
     .sort((left, right) => right.score - left.score || left.entry.label.localeCompare(right.entry.label))
     .map(({ entry }) => entry);
 }
 
-function scoreQuickAccessEntry(entry: QuickAccessEntry, terms: readonly string[]) {
-  return terms.reduce((score, term) => {
-    if (entry.label.toLowerCase().startsWith(term)) {
-      return score + 12;
+function scoreQuickAccessEntry(entry: QuickAccessEntry, normalizedQuery: string) {
+  const candidates = [
+    { text: entry.label, weight: 100 },
+    { text: entry.sectionLabel, weight: 70 },
+    { text: entry.subtitle, weight: 42 },
+    { text: entry.searchText, weight: 18 },
+  ];
+
+  return candidates.reduce((bestScore, candidate) => {
+    const candidateScore = scoreOrderedMatch(candidate.text, normalizedQuery);
+    if (candidateScore === null) {
+      return bestScore;
     }
-    if (entry.sectionLabel.toLowerCase().startsWith(term)) {
-      return score + 8;
-    }
-    if (entry.searchText.includes(term)) {
-      return score + 3;
-    }
-    return score - 100;
+
+    return Math.max(bestScore, candidate.weight + candidateScore);
   }, 0);
+}
+
+function scoreOrderedMatch(text: string, normalizedQuery: string): number | null {
+  const normalizedText = normalizeSearchText(text);
+  const matchedIndexes = getOrderedMatchIndexes(normalizedText, normalizedQuery);
+  if (!matchedIndexes) {
+    return null;
+  }
+
+  const firstIndex = matchedIndexes[0] ?? 0;
+  const lastIndex = matchedIndexes[matchedIndexes.length - 1] ?? firstIndex;
+  const span = Math.max(lastIndex - firstIndex + 1, 1);
+  const compactness = Math.max(0, 70 - (span - normalizedQuery.length) * 8);
+  const earlyMatch = Math.max(0, 35 - firstIndex * 3);
+  const prefixBonus = normalizedText.startsWith(normalizedQuery) ? 80 : 0;
+  const substringBonus = normalizedText.includes(normalizedQuery) ? 45 : 0;
+
+  return compactness + earlyMatch + prefixBonus + substringBonus;
+}
+
+function getOrderedMatchIndexes(normalizedText: string, normalizedQuery: string): number[] | null {
+  const indexes: number[] = [];
+  let cursor = 0;
+
+  for (const queryCharacter of normalizedQuery) {
+    const nextIndex = normalizedText.indexOf(queryCharacter, cursor);
+    if (nextIndex === -1) {
+      return null;
+    }
+
+    indexes.push(nextIndex);
+    cursor = nextIndex + 1;
+  }
+
+  return indexes;
+}
+
+function normalizeSearchText(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function renderMatchedText(text: string, query: string): ReactNode {
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) {
+    return text;
+  }
+
+  const matchedOriginalIndexes = getOrderedOriginalMatchIndexes(text, normalizedQuery);
+  if (!matchedOriginalIndexes) {
+    return text;
+  }
+
+  const matchedIndexSet = new Set(matchedOriginalIndexes);
+  return Array.from(text).map((character, index) => (
+    matchedIndexSet.has(index)
+      ? <mark key={`${character}-${index}`} style={quickAccessMatchStyle}>{character}</mark>
+      : <span key={`${character}-${index}`}>{character}</span>
+  ));
+}
+
+function getOrderedOriginalMatchIndexes(text: string, normalizedQuery: string): number[] | null {
+  const matches: number[] = [];
+  let queryIndex = 0;
+
+  Array.from(text).some((character, originalIndex) => {
+    const normalizedCharacter = normalizeSearchText(character);
+    if (!normalizedCharacter) {
+      return false;
+    }
+
+    if (normalizedCharacter === normalizedQuery[queryIndex]) {
+      matches.push(originalIndex);
+      queryIndex += 1;
+    }
+
+    return queryIndex >= normalizedQuery.length;
+  });
+
+  return queryIndex >= normalizedQuery.length ? matches : null;
 }
 
 const quickAccessShellStyle = {
@@ -284,36 +370,27 @@ const quickAccessShortcutStyle = {
 
 const quickAccessResultsStyle = {
   position: "absolute",
-  top: "calc(100% + 10px)",
+  top: "calc(100% + 8px)",
   left: 0,
   right: 0,
   display: "grid",
-  gap: 6,
-  padding: 10,
+  gap: 2,
+  padding: 6,
+  maxHeight: 260,
+  overflowY: "auto",
   border: "1px solid var(--app-panel-border-strong)",
-  borderRadius: "var(--app-window-radius)",
+  borderRadius: "18px",
   background: "var(--app-panel-bg-alt)",
   boxShadow: "var(--app-shadow-strong)",
   backdropFilter: "blur(24px)",
 } satisfies CSSProperties;
 
-const quickAccessHelpStyle = {
-  border: "1px solid var(--app-panel-border)",
-  borderRadius: "var(--app-card-radius)",
-  padding: "8px 10px",
-  background: "var(--app-panel-bg-muted)",
-  color: "var(--app-muted-color)",
-  fontSize: 12,
-  lineHeight: 1.35,
-} satisfies CSSProperties;
-
 const quickAccessResultButtonStyle = {
-  display: "grid",
-  gap: 3,
+  display: "block",
   width: "100%",
   border: "1px solid transparent",
-  borderRadius: "var(--app-panel-radius)",
-  padding: "10px 11px",
+  borderRadius: "12px",
+  padding: "7px 9px",
   background: "transparent",
   color: "var(--app-text-color)",
   cursor: "pointer",
@@ -321,48 +398,50 @@ const quickAccessResultButtonStyle = {
 } satisfies CSSProperties;
 
 const quickAccessResultHighlightedStyle = {
-  borderColor: "var(--app-accent-strong)",
-  background: "linear-gradient(145deg, var(--app-accent-soft), var(--app-panel-bg-muted))",
-  boxShadow: "var(--app-shadow-soft)",
+  border: "1px solid var(--app-accent-strong)",
+  background: "var(--app-accent-soft)",
+} satisfies CSSProperties;
+
+const quickAccessResultTextStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  minWidth: 0,
+  maxWidth: "100%",
+  color: "var(--app-text-color)",
+  fontSize: 13,
+  whiteSpace: "nowrap",
+} satisfies CSSProperties;
+
+const quickAccessResultTitleStyle = {
+  fontSize: 14,
+  fontWeight: 900,
 } satisfies CSSProperties;
 
 const quickAccessResultSectionStyle = {
   color: "var(--app-subtle-color)",
-  fontSize: 10,
-  fontWeight: 900,
-  letterSpacing: "0.08em",
-  textTransform: "uppercase",
-} satisfies CSSProperties;
-
-const quickAccessResultTitleStyle = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  fontSize: 14,
+  fontSize: 11,
+  fontWeight: 800,
 } satisfies CSSProperties;
 
 const quickAccessActivePillStyle = {
   border: "1px solid var(--app-success-border)",
   borderRadius: "var(--app-pill-radius)",
-  padding: "2px 7px",
+  padding: "1px 6px",
   background: "var(--app-success-bg)",
   color: "var(--app-success-text)",
-  fontSize: 10,
+  fontSize: 9,
   fontWeight: 900,
   textTransform: "uppercase",
   letterSpacing: "0.06em",
 } satisfies CSSProperties;
 
-const quickAccessResultSubtitleStyle = {
-  color: "var(--app-muted-color)",
-  fontSize: 12,
-  lineHeight: 1.35,
-} satisfies CSSProperties;
-
-const quickAccessResultHelpStyle = {
-  color: "var(--app-subtle-color)",
-  fontSize: 11,
-  lineHeight: 1.35,
+const quickAccessMatchStyle = {
+  borderRadius: 4,
+  padding: "0 1px",
+  background: "rgba(250, 204, 21, 0.18)",
+  color: "var(--app-warning-text)",
+  fontWeight: 950,
 } satisfies CSSProperties;
 
 const quickAccessEmptyStyle = {
