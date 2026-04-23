@@ -75,6 +75,8 @@ export default function BuilderWorkspaceView({
   const [activeSurfaceId, setActiveSurfaceId] = useState<BuilderSurfaceId>("start");
   const recommendationEntries = recommendations.map((entry) => ({
     ...entry,
+    suggestedBecause: entry.detail,
+    opensLabel: getBuilderRecommendationOpensLabel(entry.actionId),
     onAction: () => {
       setActiveSurfaceId(resolveBuilderRecommendationSurface(entry.actionId));
     },
@@ -219,6 +221,19 @@ function resolveBuilderRecommendationSurface(actionId: BuilderRecommendationActi
     return "autonomy";
   }
   return "start";
+}
+
+function getBuilderRecommendationOpensLabel(actionId: BuilderRecommendationActionId) {
+  if (actionId === "open_builder_mission_control") {
+    return "Builder > Mission Control window";
+  }
+  if (actionId === "open_builder_active_lane") {
+    return "Builder > Active Lane window";
+  }
+  if (actionId === "open_builder_autonomy") {
+    return "Builder > Autonomy window";
+  }
+  return "Builder > Start Here window";
 }
 
 const builderSurfaceStackStyle = {

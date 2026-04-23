@@ -70,6 +70,11 @@ describe("BuilderWorkspaceView", () => {
     );
 
     expect(screen.getByText("Builder recommendations")).toBeInTheDocument();
+    expect(screen.getByText(/Review why this recommendation appears/i)).toBeInTheDocument();
+    expect(screen.getByText(/Suggested because:/i)).toBeInTheDocument();
+    expect(screen.getByText("Queued autonomy jobs are ready for review.")).toBeInTheDocument();
+    expect(screen.getByText(/Opens:/i)).toBeInTheDocument();
+    expect(screen.getByText("Builder > Autonomy window")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Open autonomy inbox" }));
 
     expect(screen.getByText("Autonomy inbox content")).toBeInTheDocument();
