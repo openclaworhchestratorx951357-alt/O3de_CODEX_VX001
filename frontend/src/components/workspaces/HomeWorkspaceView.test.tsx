@@ -92,7 +92,8 @@ describe("HomeWorkspaceView", () => {
     fireEvent.click(screen.getByRole("button", { name: /Use current viewport/i }));
     expect(screen.getByText(/Use the current viewport context and selected tool area/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Next step" }));
-    expect(screen.getAllByText("2. Test room").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Test room").length).toBeGreaterThan(0);
+    expect(screen.queryByText("2. Test room")).not.toBeInTheDocument();
     expect(screen.getByText(/Plan a single O3DE puzzle test room/i)).toBeInTheDocument();
 
     expect(screen.getByText(/this is a generated control-surface shell/i)).toBeInTheDocument();

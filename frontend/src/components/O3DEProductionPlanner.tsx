@@ -71,7 +71,7 @@ const gameScenarios: ProductionScenario[] = [
     stages: [
       {
         id: "brief",
-        label: "1. Game brief",
+        label: "Game brief",
         outcome: "Lock the player promise, camera, controls, core loop, target platform, and production risks.",
         prompt: "Create a one-page first-person adventure brief with core loop, target player, scope limits, and first playable milestone.",
         evidence: "Saved brief, mission-control task, selected O3DE project profile, and Runtime readiness.",
@@ -79,7 +79,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "prototype",
-        label: "2. Playable prototype",
+        label: "Playable prototype",
         outcome: "Graybox one room, one objective, one interaction, and one restartable play loop.",
         prompt: "Plan the first playable graybox for a first-person room with one interactable objective and acceptance checks.",
         evidence: "Prompt plan, bridge-backed level/entity evidence when admitted tools are used, and manual play notes.",
@@ -87,7 +87,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "vertical-slice",
-        label: "3. Vertical slice",
+        label: "Vertical slice",
         outcome: "Finish one representative slice with placeholder UI, audio notes, lighting direction, and test criteria.",
         prompt: "Turn the prototype into a vertical-slice backlog with level, UI, audio, lighting, and validation tasks.",
         evidence: "Builder tasks, Records artifacts, bridge provenance, and a replayable validation checklist.",
@@ -95,7 +95,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "production",
-        label: "4. Content production",
+        label: "Content production",
         outcome: "Split art, audio, gameplay, levels, build, and QA into owned lanes with clear definitions of done.",
         prompt: "Create a production lane plan for first-person adventure content with naming rules, validation gates, and weekly milestones.",
         evidence: "Mission-control ownership, source-control commits, asset checklist, and recurring build/test results.",
@@ -103,7 +103,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "release",
-        label: "5. Release readiness",
+        label: "Release readiness",
         outcome: "Stabilize packaging, performance, input, settings, crash recovery, and operator runbooks.",
         prompt: "Create a release-readiness checklist for the first-person adventure slice with performance, packaging, and QA gates.",
         evidence: "Passing test/build logs, packaged build smoke test, known-issues list, and rollback notes.",
@@ -118,7 +118,7 @@ const gameScenarios: ProductionScenario[] = [
     stages: [
       {
         id: "brief",
-        label: "1. Puzzle promise",
+        label: "Puzzle promise",
         outcome: "Define the puzzle rule set, player vocabulary, clue style, fail states, and hint philosophy.",
         prompt: "Create a puzzle exploration brief with rules, clue language, level flow, and first puzzle acceptance tests.",
         evidence: "Puzzle design brief, testable rules, and mission task for the first room.",
@@ -126,7 +126,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "prototype",
-        label: "2. Test room",
+        label: "Test room",
         outcome: "Build one graybox puzzle room with entry, clue, interaction, success state, and reset path.",
         prompt: "Plan a single O3DE puzzle test room with named entities, interaction points, and reset/solve checks.",
         evidence: "Entity/component evidence, puzzle acceptance tests, and playtest observations.",
@@ -134,7 +134,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "vertical-slice",
-        label: "3. Puzzle slice",
+        label: "Puzzle slice",
         outcome: "Complete a short chain of puzzles with onboarding, escalation, payoff, and usability notes.",
         prompt: "Create a vertical-slice task plan for three linked puzzle rooms with onboarding and validation gates.",
         evidence: "Room-by-room task ownership, playtest notes, issue list, and Records artifacts.",
@@ -142,7 +142,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "production",
-        label: "4. Puzzle production",
+        label: "Puzzle production",
         outcome: "Scale content using reusable puzzle patterns, naming conventions, and regression checks.",
         prompt: "Create a puzzle production checklist with reusable room patterns, asset naming, and regression tests.",
         evidence: "Reusable templates, regression checklist, task assignments, and source-control commits.",
@@ -150,7 +150,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "release",
-        label: "5. Release readiness",
+        label: "Release readiness",
         outcome: "Verify every puzzle can be completed, reset, and understood by a fresh player.",
         prompt: "Create a release validation plan for puzzle completion, hint clarity, reset behavior, and accessibility.",
         evidence: "Playthrough checklist, blocker list, accessibility notes, and packaged build smoke result.",
@@ -165,7 +165,7 @@ const gameScenarios: ProductionScenario[] = [
     stages: [
       {
         id: "brief",
-        label: "1. Action brief",
+        label: "Action brief",
         outcome: "Define camera distance, movement feel, enemy/target model, arena size, and input priorities.",
         prompt: "Create a third-person action brief with camera rules, movement goals, arena constraints, and first playable target.",
         evidence: "Brief, input assumptions, camera risk list, and mission-control task.",
@@ -173,7 +173,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "prototype",
-        label: "2. Movement arena",
+        label: "Movement arena",
         outcome: "Graybox one arena with traversal, target markers, camera checks, and reset behavior.",
         prompt: "Plan a graybox third-person movement arena with target markers, camera checks, and validation notes.",
         evidence: "Level/entity plan, playtest notes, bridge evidence for admitted edits, and camera checklist.",
@@ -181,7 +181,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "vertical-slice",
-        label: "3. Encounter slice",
+        label: "Encounter slice",
         outcome: "Build one representative encounter with readable pacing, placeholders, UI cues, and performance target.",
         prompt: "Create a vertical-slice backlog for one third-person encounter with readability, UI, audio, and performance gates.",
         evidence: "Task ownership, Records evidence, performance notes, and known issue list.",
@@ -189,7 +189,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "production",
-        label: "4. Encounter production",
+        label: "Encounter production",
         outcome: "Scale arenas, abilities, content, and QA using lane ownership and regression playthroughs.",
         prompt: "Create a production lane plan for third-person action content with encounter templates and regression checks.",
         evidence: "Encounter templates, build/test logs, source-control commits, and QA pass/fail notes.",
@@ -197,7 +197,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "release",
-        label: "5. Release readiness",
+        label: "Release readiness",
         outcome: "Verify performance, controller input, camera comfort, failure recovery, and packaging.",
         prompt: "Create a release checklist for third-person camera comfort, input, performance, packaging, and crash recovery.",
         evidence: "Packaged smoke test, performance capture, input checklist, and rollback notes.",
@@ -212,7 +212,7 @@ const gameScenarios: ProductionScenario[] = [
     stages: [
       {
         id: "brief",
-        label: "1. Network brief",
+        label: "Network brief",
         outcome: "Define session model, player count, authority model, replication risks, and non-network fallback.",
         prompt: "Create a multiplayer prototype brief with player count, authority model, replication risks, and first test milestone.",
         evidence: "Network-risk register, architecture assumptions, and test plan task.",
@@ -220,7 +220,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "prototype",
-        label: "2. Tiny network test",
+        label: "Tiny network test",
         outcome: "Plan a tiny map, one replicated entity, one player action, and a deterministic test checklist.",
         prompt: "Create a tiny O3DE multiplayer test plan with one replicated object, one action, and pass/fail checks.",
         evidence: "Test map task, runbook, logs, and explicit pass/fail criteria.",
@@ -228,7 +228,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "vertical-slice",
-        label: "3. Network slice",
+        label: "Network slice",
         outcome: "Prove join, leave, action sync, desync recovery, and one gameplay objective.",
         prompt: "Create a vertical-slice backlog for a multiplayer objective with join/leave, sync, and recovery checks.",
         evidence: "Session test notes, logs, task ownership, and known network blockers.",
@@ -236,7 +236,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "production",
-        label: "4. Network production",
+        label: "Network production",
         outcome: "Separate gameplay, backend, content, QA, and load-test lanes with strict validation.",
         prompt: "Create a multiplayer production lane plan with replication checks, load-test milestones, and rollback criteria.",
         evidence: "Load-test logs, regression runs, source-control commits, and issue triage.",
@@ -244,7 +244,7 @@ const gameScenarios: ProductionScenario[] = [
       },
       {
         id: "release",
-        label: "5. Release readiness",
+        label: "Release readiness",
         outcome: "Verify reconnect, latency handling, crash recovery, packaging, and support runbooks.",
         prompt: "Create a multiplayer release checklist for latency, reconnect, crash recovery, packaging, and support.",
         evidence: "Network smoke tests, packaged build, incident plan, and rollback path.",
@@ -262,7 +262,7 @@ const cinematicScenarios: ProductionScenario[] = [
     stages: [
       {
         id: "brief",
-        label: "1. Creative brief",
+        label: "Creative brief",
         outcome: "Define audience, mood, runtime, shot count, hero moment, and review cadence.",
         prompt: "Create a trailer previs brief with mood, runtime, shot list, hero moment, and review gates.",
         evidence: "Creative brief, shot list, and mission-control tasks.",
@@ -270,7 +270,7 @@ const cinematicScenarios: ProductionScenario[] = [
       },
       {
         id: "layout",
-        label: "2. Layout pass",
+        label: "Layout pass",
         outcome: "Block camera positions, scene beats, rough timing, and object placement.",
         prompt: "Plan an O3DE layout pass for the trailer with camera beats, placeholders, and validation notes.",
         evidence: "Level/session readiness, shot tasks, and review notes.",
@@ -278,7 +278,7 @@ const cinematicScenarios: ProductionScenario[] = [
       },
       {
         id: "slice",
-        label: "3. Shot slice",
+        label: "Shot slice",
         outcome: "Finish one representative shot with camera, lighting direction, placeholder audio, and review criteria.",
         prompt: "Create a shot-slice task list for one trailer shot with camera, lighting, timing, and review criteria.",
         evidence: "Shot review, Records artifacts, and approved revision notes.",
@@ -286,7 +286,7 @@ const cinematicScenarios: ProductionScenario[] = [
       },
       {
         id: "production",
-        label: "4. Shot production",
+        label: "Shot production",
         outcome: "Scale shots with naming rules, review status, render notes, and task ownership.",
         prompt: "Create a shot production tracker with shot status, owners, render checks, and naming rules.",
         evidence: "Shot tracker, task ownership, render notes, and source-control commits.",
@@ -294,7 +294,7 @@ const cinematicScenarios: ProductionScenario[] = [
       },
       {
         id: "release",
-        label: "5. Final delivery",
+        label: "Final delivery",
         outcome: "Verify render settings, edit timing, audio handoff, archive, and rollback notes.",
         prompt: "Create a final delivery checklist for trailer render settings, timing, audio, archive, and rollback.",
         evidence: "Final render notes, delivery checklist, archive path, and known-issues list.",
@@ -309,7 +309,7 @@ const cinematicScenarios: ProductionScenario[] = [
     stages: [
       {
         id: "brief",
-        label: "1. Story package",
+        label: "Story package",
         outcome: "Lock story beats, scene list, character needs, tone, and production constraints.",
         prompt: "Create a short-film story package with scene list, tone, character needs, and production constraints.",
         evidence: "Story package, scene list, and approval notes.",
@@ -317,7 +317,7 @@ const cinematicScenarios: ProductionScenario[] = [
       },
       {
         id: "layout",
-        label: "2. Scene layout",
+        label: "Scene layout",
         outcome: "Block each scene with camera intent, timing, staging, and placeholder assets.",
         prompt: "Plan scene layout tasks for a short film with camera intent, staging, and placeholder asset needs.",
         evidence: "Scene tasks, layout notes, and bridge evidence for admitted editor changes.",
@@ -325,7 +325,7 @@ const cinematicScenarios: ProductionScenario[] = [
       },
       {
         id: "slice",
-        label: "3. Lookdev scene",
+        label: "Lookdev scene",
         outcome: "Finish one representative scene with style, lighting, animation target, and render check.",
         prompt: "Create a lookdev scene backlog with lighting, camera, animation target, render check, and review gate.",
         evidence: "Lookdev notes, review artifact, and source-control commit.",
@@ -333,7 +333,7 @@ const cinematicScenarios: ProductionScenario[] = [
       },
       {
         id: "production",
-        label: "4. Scene production",
+        label: "Scene production",
         outcome: "Run scenes through layout, animation, lighting, review, fixes, and archive lanes.",
         prompt: "Create a short-film production tracker with scene stages, owners, review dates, and archive rules.",
         evidence: "Production tracker, review notes, render artifacts, and issue list.",
@@ -341,7 +341,7 @@ const cinematicScenarios: ProductionScenario[] = [
       },
       {
         id: "release",
-        label: "5. Delivery package",
+        label: "Delivery package",
         outcome: "Verify final exports, audio timing, credits, archive, source backup, and known issues.",
         prompt: "Create a delivery checklist for final short-film export, audio timing, credits, archive, and backup.",
         evidence: "Final render, archive proof, backup location, and signoff notes.",
