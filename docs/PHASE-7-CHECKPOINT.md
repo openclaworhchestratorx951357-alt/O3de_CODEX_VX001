@@ -106,11 +106,12 @@ Current truth:
 
 Current truth:
 - may use a real hybrid preflight path
-- now also includes the first admitted manifest-backed set-only mutation path
+- now also includes the first admitted narrow mutation corridors, each limited
+  to its own explicit file-backed or manifest-backed scope
 - keeps backup provenance, rollback outcome evidence, patch-plan evidence, and
-  post-write verification explicit
-- now also persists explicit manifest/root/source-of-truth provenance for both
-  the admitted real preflight and admitted real mutation records
+  post-write verification explicit for the admitted real mutation records
+- now also persists explicit source-of-truth provenance for both the admitted
+  real preflight and admitted real mutation records
 - now also persists explicit simulated-fallback provenance including
   `manifest-missing`, `manifest-unreadable`, and `mutation-not-admitted`
   categorization when the admitted real path is unavailable

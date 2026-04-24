@@ -271,7 +271,7 @@ CATALOG = ToolsCatalog(
                 ),
                 ToolDefinition(
                     name="render.material.patch",
-                    description="Apply a controlled material property patch.",
+                    description="Apply an explicit local .material top-level propertyValues patch with backup, verification, rollback, and optional shader-preflight review evidence.",
                     approval_class="content_write",
                     adapter_family="render-lookdev",
                     capability_status=tool_capability_status("render.material.patch"),
