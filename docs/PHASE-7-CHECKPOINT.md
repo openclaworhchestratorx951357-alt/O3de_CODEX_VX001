@@ -56,9 +56,10 @@ Current truth:
   manifest path and missing-vs-unreadable fallback categorization
 - asset and render admitted read-only slices remain narrow and evidence-first:
   `asset.processor.status` and `asset.source.inspect` expose explicit local
-  asset/runtime evidence, while `render.capture.viewport` and
-  `render.material.inspect` remain explicit runtime-probe/read-only evidence
-  paths rather than broader render runtime readback or artifact guarantees
+  asset/runtime evidence, `render.capture.viewport` remains an explicit
+  runtime-probe/read-only evidence path, and `render.material.inspect` now adds
+  explicit project-local `.material` readback evidence without implying broader
+  render runtime readback or shader/reference expansion
 - `test.visual.diff` remains a narrow admitted real evidence path and does not
   imply broad test runner execution
 - falls back to simulated when the real manifest path is unavailable
@@ -214,8 +215,10 @@ The operator shell now exposes this boundary through:
   preflight-only and do not imply real test execution or structured result
   artifact production
 - `render.capture.viewport` and `render.material.inspect` remain narrow
-  runtime-probe/read-only evidence paths and do not imply broader render
-  runtime readback
+  read-only evidence paths; `render.capture.viewport` remains runtime-probe-only,
+  while `render.material.inspect` now also includes explicit local `.material`
+  readback evidence and still does not imply broader render runtime readback,
+  shader data expansion, or reference expansion
 - `render.shader.rebuild` remains a preflight/result-truth path and does not
   imply actual shader rebuild execution
 - broader mutation paths are still not implemented beyond the first admitted

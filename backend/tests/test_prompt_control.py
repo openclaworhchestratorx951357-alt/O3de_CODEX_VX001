@@ -615,77 +615,108 @@ def test_prompt_session_executes_render_capture_viewport_with_truthful_evidence(
 
 
 def test_prompt_session_executes_render_material_inspect_with_truthful_evidence() -> None:
-    with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
-        with patch(
-            "app.services.adapters.editor_automation_runtime_service.execute_render_material_inspect",
-            return_value={
-                "runtime_result": {
-                    "ok": True,
-                    "message": "Material inspection substrate probe completed against the admitted editor runtime path.",
-                    "runtime_probe_attempted": True,
-                    "runtime_probe_method": "editor-runtime-get-context",
-                    "runtime_available": True,
-                    "material_inspection_requested": True,
-                    "material_inspection_attempted": False,
-                    "material_runtime_mode": "runtime-probe-only",
-                    "material_operation_available": False,
-                    "material_evidence_produced": False,
-                    "material_evidence_path": None,
-                    "material_unavailable_reason": "No admitted real material inspection path is available in this slice.",
-                    "material_path": "Materials/Example.material",
-                    "include_shader_data_requested": True,
-                    "include_references_requested": True,
-                    "active_level_path": "Levels/Main.level",
-                    "editor_transport": "oneshot",
-                    "bridge_name": "ControlPlaneEditorBridge",
-                    "bridge_available": True,
-                    "bridge_operation": "GetEditorContext",
-                    "bridge_contract_version": "v0.1",
-                    "bridge_result_summary": "Context available",
-                },
-                "runner_command": ["Editor.exe"],
-                "manifest": {},
-                "runtime_script": "backend/runtime/editor_scripts/render_material_probe.py",
-            },
-        ):
-            with isolated_client() as client:
-                create_response = client.post(
-                    "/prompt/sessions",
-                    json={
-                        "prompt_id": "prompt-render-material-1",
-                        "prompt_text": 'Inspect material "Materials/Example.material".',
-                        "project_root": "C:/project",
-                        "engine_root": "C:/engine",
-                        "dry_run": False,
-                        "preferred_domains": ["render-lookdev"],
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        material_path = project_root / "Materials" / "Example.material"
+        material_path.parent.mkdir(parents=True, exist_ok=True)
+        material_path.write_text(
+            json.dumps(
+                {
+                    "materialType": "PromptMaterial",
+                    "propertyValues": {"roughness": 0.5, "metallic": 0.1},
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_render_material_inspect",
+                return_value={
+                    "runtime_result": {
+                        "ok": True,
+                        "message": "Material inspection substrate probe completed against the admitted editor runtime path.",
+                        "runtime_probe_attempted": True,
+                        "runtime_probe_method": "editor-runtime-get-context",
+                        "runtime_available": True,
+                        "material_inspection_requested": True,
+                        "material_inspection_attempted": False,
+                        "material_runtime_mode": "runtime-probe-only",
+                        "material_operation_available": False,
+                        "material_evidence_produced": False,
+                        "material_evidence_path": None,
+                        "material_unavailable_reason": "No admitted real material inspection path is available in this slice.",
+                        "material_path": "Materials/Example.material",
+                        "include_shader_data_requested": True,
+                        "include_references_requested": True,
+                        "active_level_path": "Levels/Main.level",
+                        "editor_transport": "oneshot",
+                        "bridge_name": "ControlPlaneEditorBridge",
+                        "bridge_available": True,
+                        "bridge_operation": "GetEditorContext",
+                        "bridge_contract_version": "v0.1",
+                        "bridge_result_summary": "Context available",
                     },
-                )
-                assert create_response.status_code == 200
-                payload = create_response.json()
-                assert payload["status"] == "planned"
-                assert payload["admitted_capabilities"] == ["render.material.inspect"]
+                    "runner_command": ["Editor.exe"],
+                    "manifest": {},
+                    "runtime_script": "backend/runtime/editor_scripts/render_material_probe.py",
+                },
+            ):
+                with isolated_client() as client:
+                    create_response = client.post(
+                        "/prompt/sessions",
+                        json={
+                            "prompt_id": "prompt-render-material-1",
+                            "prompt_text": 'Inspect material "Materials/Example.material".',
+                            "project_root": str(project_root),
+                            "engine_root": "C:/engine",
+                            "dry_run": False,
+                            "preferred_domains": ["render-lookdev"],
+                        },
+                    )
+                    assert create_response.status_code == 200
+                    payload = create_response.json()
+                    assert payload["status"] == "planned"
+                    assert payload["admitted_capabilities"] == ["render.material.inspect"]
 
-                execute_response = client.post(
-                    "/prompt/sessions/prompt-render-material-1/execute",
-                )
-                assert execute_response.status_code == 200
-                execute_payload = execute_response.json()
-                assert execute_payload["status"] == "completed"
-                child_response = execute_payload["latest_child_responses"][0]
-                assert (
-                    child_response["execution_details"]["inspection_surface"]
-                    == "render_material_runtime_probe"
-                )
-                assert child_response["execution_details"]["runtime_available"] is True
-                assert child_response["execution_details"]["material_evidence_produced"] is False
-                assert (
-                    "Material inspection runtime probe confirmed editor runtime context is available"
-                    in execute_payload["final_result_summary"]
-                )
-                assert (
-                    "No real material evidence was produced in this admitted slice."
-                    in execute_payload["final_result_summary"]
-                )
+                    execute_response = client.post(
+                        "/prompt/sessions/prompt-render-material-1/execute",
+                    )
+                    assert execute_response.status_code == 200
+                    execute_payload = execute_response.json()
+                    assert execute_payload["status"] == "completed"
+                    child_response = execute_payload["latest_child_responses"][0]
+                    assert (
+                        child_response["execution_details"]["inspection_surface"]
+                        == "render_material_runtime_probe"
+                    )
+                    assert child_response["execution_details"]["runtime_available"] is True
+                    assert (
+                        child_response["execution_details"]["material_evidence_produced"] is True
+                    )
+                    assert (
+                        "Material inspection runtime probe confirmed editor runtime context is available"
+                        in execute_payload["final_result_summary"]
+                    )
+                    assert (
+                        "Material inspection readback confirmed explicit local material evidence for Materials/Example.material."
+                        in execute_payload["final_result_summary"]
+                    )
+                    assert (
+                        "Material readback confirmed 2 propertyValues entries."
+                        in execute_payload["final_result_summary"]
+                    )
+                    assert (
+                        "Runtime material readback remains unavailable in this admitted slice."
+                        in execute_payload["final_result_summary"]
+                    )
+                    assert (
+                        "Shader data readback remains unavailable in this admitted slice."
+                        in execute_payload["final_result_summary"]
+                    )
+                    assert (
+                        "Material reference expansion remains unavailable in this admitted slice."
+                        in execute_payload["final_result_summary"]
+                    )
 
 
 def test_prompt_session_plans_render_material_patch_as_hybrid_mutation() -> None:

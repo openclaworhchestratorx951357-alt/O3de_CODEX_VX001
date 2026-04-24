@@ -89,8 +89,10 @@ def tool_next_real_requirement(tool_name: str) -> str:
     if tool_name == "render.material.inspect":
         return (
             "Keep real execution limited to explicit material-inspection substrate "
-            "evidence and material-evidence reporting, with actual material readback "
-            "semantics marked unavailable unless a real admitted inspection path is proven."
+            "evidence, explicit project-local material readback evidence, and "
+            "material-evidence reporting, while runtime material readback, shader "
+            "data expansion, and reference expansion remain unavailable unless a "
+            "broader admitted inspection path is proven."
         )
     if tool_name == "test.run.gtest":
         return (

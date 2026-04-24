@@ -760,13 +760,40 @@ class PromptOrchestratorService:
                     "Material inspection runtime evidence remains unavailable in this admitted slice."
                 )
             if details.get("material_evidence_produced") is True:
-                summary_parts.append(
-                    "Material inspection evidence confirmed a real material evidence record was produced."
+                material_path = details.get("material_path_relative_to_project_root") or details.get(
+                    "material_path"
                 )
+                if isinstance(material_path, str) and material_path:
+                    summary_parts.append(
+                        f"Material inspection readback confirmed explicit local material evidence for {material_path}."
+                    )
+                else:
+                    summary_parts.append(
+                        "Material inspection evidence confirmed a real material evidence record was produced."
+                    )
+                property_value_count = details.get("property_value_count")
+                if (
+                    details.get("property_values_field_present") is True
+                    and isinstance(property_value_count, int)
+                ):
+                    summary_parts.append(
+                        f"Material readback confirmed {property_value_count} propertyValues entr{'y' if property_value_count == 1 else 'ies'}."
+                    )
             else:
                 summary_parts.append(
                     "No real material evidence was produced in this admitted slice."
                 )
+            runtime_readback_unavailable_reason = details.get(
+                "material_runtime_readback_unavailable_reason"
+            )
+            if isinstance(runtime_readback_unavailable_reason, str) and runtime_readback_unavailable_reason:
+                summary_parts.append(runtime_readback_unavailable_reason)
+            shader_data_unavailable_reason = details.get("shader_data_unavailable_reason")
+            if isinstance(shader_data_unavailable_reason, str) and shader_data_unavailable_reason:
+                summary_parts.append(shader_data_unavailable_reason)
+            references_unavailable_reason = details.get("references_unavailable_reason")
+            if isinstance(references_unavailable_reason, str) and references_unavailable_reason:
+                summary_parts.append(references_unavailable_reason)
             unavailable_reason = details.get("material_unavailable_reason")
             if isinstance(unavailable_reason, str) and unavailable_reason:
                 summary_parts.append(unavailable_reason)

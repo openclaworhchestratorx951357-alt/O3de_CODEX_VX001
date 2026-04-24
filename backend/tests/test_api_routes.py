@@ -1353,6 +1353,96 @@ def test_policies_route_marks_render_material_inspect_as_real_read_only_active()
         assert "material-evidence reporting" in render_material["next_real_requirement"].lower()
 
 
+def test_dispatch_route_uses_real_render_material_inspect_readback_in_hybrid_mode() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        material_path = project_root / "Materials" / "Example.material"
+        material_path.parent.mkdir(parents=True, exist_ok=True)
+        material_path.write_text(
+            json.dumps(
+                {
+                    "materialType": "ApiReadbackMaterial",
+                    "propertyValues": {"roughness": 0.5},
+                }
+            ),
+            encoding="utf-8",
+        )
+        runtime_result = {
+            "ok": True,
+            "message": "Material inspection substrate probe completed against the admitted editor runtime path.",
+            "runtime_probe_attempted": True,
+            "runtime_probe_method": "editor-runtime-get-context",
+            "runtime_available": True,
+            "material_inspection_requested": True,
+            "material_inspection_attempted": False,
+            "material_runtime_mode": "runtime-probe-only",
+            "material_operation_available": False,
+            "material_evidence_produced": False,
+            "material_evidence_path": None,
+            "material_unavailable_reason": "No admitted real material inspection path is available in this slice.",
+            "material_path": "Materials/Example.material",
+            "include_shader_data_requested": True,
+            "include_references_requested": True,
+            "active_level_path": "Levels/Main.level",
+            "editor_transport": "oneshot",
+            "bridge_name": "ControlPlaneEditorBridge",
+            "bridge_available": True,
+            "bridge_operation": "GetEditorContext",
+            "bridge_contract_version": "v0.1",
+            "bridge_result_summary": "Context available",
+        }
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_render_material_inspect",
+                return_value={
+                    "runtime_result": runtime_result,
+                    "runner_command": ["Editor.exe"],
+                    "manifest": {},
+                    "runtime_script": "backend/runtime/editor_scripts/render_material_probe.py",
+                },
+            ):
+                with isolated_client() as client:
+                    dispatch = client.post(
+                        "/tools/dispatch",
+                        json={
+                            "request_id": "api-render-material-inspect-1",
+                            "tool": "render.material.inspect",
+                            "agent": "render-lookdev",
+                            "project_root": str(project_root),
+                            "engine_root": "/tmp/engine",
+                            "dry_run": False,
+                            "locks": [],
+                            "timeout_s": 30,
+                            "args": {
+                                "material_path": "Materials/Example.material",
+                                "include_shader_data": True,
+                                "include_references": True,
+                            },
+                        },
+                    )
+                    assert dispatch.status_code == 200
+                    payload = dispatch.json()
+                    assert payload["ok"] is True
+                    assert payload["result"]["simulated"] is False
+                    assert payload["result"]["execution_mode"] == "real"
+
+                    executions = client.get("/executions")
+                    assert executions.status_code == 200
+                    execution = next(
+                        execution
+                        for execution in executions.json()["executions"]
+                        if execution["run_id"] == payload["operation_id"]
+                    )
+                    assert execution["details"]["inspection_surface"] == "render_material_runtime_probe"
+                    assert execution["details"]["material_evidence_produced"] is True
+                    assert (
+                        execution["details"]["material_path_relative_to_project_root"]
+                        == "Materials/Example.material"
+                    )
+                    assert execution["details"]["property_value_count"] == 1
+                    assert execution["details"]["material_runtime_readback_available"] is False
+
+
 def test_runs_endpoint_reflects_dispatch_attempt() -> None:
     with isolated_client() as client:
         dispatch = client.post(

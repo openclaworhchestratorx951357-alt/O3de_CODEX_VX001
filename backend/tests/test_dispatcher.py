@@ -361,12 +361,24 @@ def approve_asset_move_safe_request(
     return approved_request
 
 
-def make_render_material_inspect_request() -> RequestEnvelope:
-    request = make_request("render-lookdev", "render.material.inspect")
+def make_render_material_inspect_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = True,
+    material_path: str = "Materials/Example.material",
+    include_shader_data: bool = True,
+    include_references: bool = True,
+) -> RequestEnvelope:
+    request = make_request(
+        "render-lookdev",
+        "render.material.inspect",
+        project_root=project_root,
+        dry_run=dry_run,
+    )
     request.args = {
-        "material_path": "Materials/Example.material",
-        "include_shader_data": True,
-        "include_references": True,
+        "material_path": material_path,
+        "include_shader_data": include_shader_data,
+        "include_references": include_references,
     }
     return request
 
@@ -4921,7 +4933,19 @@ def test_render_material_inspect_simulated_persisted_payloads_match_published_sc
 
 
 def test_render_material_inspect_uses_real_runtime_probe_substrate_in_hybrid_mode() -> None:
-    with isolated_database():
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        material_path = project_root / "Materials" / "Example.material"
+        material_path.parent.mkdir(parents=True, exist_ok=True)
+        material_path.write_text(
+            json.dumps(
+                {
+                    "materialType": "ReadbackMaterial",
+                    "propertyValues": {"roughness": 0.5, "metallic": 0.1},
+                }
+            ),
+            encoding="utf-8",
+        )
         runtime_result = {
             "ok": True,
             "message": "Material inspection substrate probe completed against the admitted editor runtime path.",
@@ -4956,7 +4980,9 @@ def test_render_material_inspect_uses_real_runtime_probe_substrate_in_hybrid_mod
                     "runtime_script": "backend/runtime/editor_scripts/render_material_probe.py",
                 },
             ):
-                response = dispatcher_service.dispatch(make_render_material_inspect_request())
+                response = dispatcher_service.dispatch(
+                    make_render_material_inspect_request(project_root=str(project_root))
+                )
 
         assert response.ok is True
         assert response.result is not None
@@ -4972,15 +4998,38 @@ def test_render_material_inspect_uses_real_runtime_probe_substrate_in_hybrid_mod
         artifact = artifacts_service.get_artifact(response.artifacts[0])
         assert execution.details["inspection_surface"] == "render_material_runtime_probe"
         assert execution.details["runtime_available"] is True
-        assert execution.details["material_inspection_attempted"] is False
-        assert execution.details["material_evidence_produced"] is False
+        assert execution.details["material_inspection_attempted"] is True
+        assert execution.details["material_evidence_produced"] is True
+        assert execution.details["material_readback_available"] is True
+        assert execution.details["material_path_resolved"] == str(material_path.resolve())
+        assert (
+            execution.details["material_path_relative_to_project_root"]
+            == "Materials/Example.material"
+        )
+        assert execution.details["property_values_field_present"] is True
+        assert execution.details["property_value_count"] == 2
+        assert execution.details["material_runtime_readback_available"] is False
+        assert execution.details["shader_data_available"] is False
+        assert execution.details["references_available"] is False
         assert artifact is not None
         assert artifact.metadata["execution_mode"] == "real"
         assert artifact.metadata["inspection_surface"] == "render_material_runtime_probe"
 
 
 def test_render_material_inspect_real_persisted_payloads_match_published_schemas() -> None:
-    with isolated_database():
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        material_path = project_root / "Materials" / "Example.material"
+        material_path.parent.mkdir(parents=True, exist_ok=True)
+        material_path.write_text(
+            json.dumps(
+                {
+                    "materialType": "ReadbackMaterial",
+                    "propertyValues": {"roughness": 0.5},
+                }
+            ),
+            encoding="utf-8",
+        )
         runtime_result = {
             "ok": True,
             "message": "Material inspection substrate probe completed, but runtime material support remains unavailable in this editor context.",
@@ -5015,7 +5064,9 @@ def test_render_material_inspect_real_persisted_payloads_match_published_schemas
                     "runtime_script": "backend/runtime/editor_scripts/render_material_probe.py",
                 },
             ):
-                response = dispatcher_service.dispatch(make_render_material_inspect_request())
+                response = dispatcher_service.dispatch(
+                    make_render_material_inspect_request(project_root=str(project_root))
+                )
 
         assert response.ok is True
         assert response.result is not None
@@ -5029,6 +5080,8 @@ def test_render_material_inspect_real_persisted_payloads_match_published_schemas
         )
         artifact = artifacts_service.get_artifact(response.artifacts[0])
         assert artifact is not None
+        assert execution.details["material_evidence_produced"] is True
+        assert execution.details["runtime_available"] is False
         assert (
             schema_validation_service.validate_execution_details(
                 tool_name="render.material.inspect",

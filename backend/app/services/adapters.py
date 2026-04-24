@@ -8367,6 +8367,182 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
         simulated.result_summary = "render.material.patch fell back to the simulated path."
         return simulated
 
+    def _inspect_explicit_material_readback(
+        self,
+        *,
+        project_root: str,
+        material_path: Any,
+        include_shader_data_requested: bool,
+        include_references_requested: bool,
+    ) -> dict[str, Any]:
+        details: dict[str, Any] = {
+            "material_path_input": material_path if isinstance(material_path, str) else None,
+            "material_path_resolved": None,
+            "material_path_relative_to_project_root": None,
+            "material_path_workspace_local": False,
+            "material_path_within_project_root": False,
+            "material_file_exists": False,
+            "material_is_file": False,
+            "material_json_readable": False,
+            "material_root_is_object": False,
+            "material_inspection_attempted": False,
+            "material_readback_attempted": False,
+            "material_readback_available": False,
+            "material_readback_source": None,
+            "material_readback_scope": "explicit-project-local-material-file",
+            "material_readback_mode": "unavailable",
+            "material_readback_unavailable_reason": None,
+            "material_evidence_produced": False,
+            "material_evidence_path": None,
+            "material_operation_available": False,
+            "material_top_level_keys": [],
+            "material_top_level_key_count": 0,
+            "material_type": None,
+            "property_values_field_present": False,
+            "property_value_count": None,
+            "material_runtime_readback_available": False,
+            "material_runtime_readback_unavailable_reason": (
+                "Runtime material readback remains unavailable in this admitted slice."
+            ),
+            "shader_data_available": False,
+            "shader_data_unavailable_reason": (
+                "Shader data readback remains unavailable in this admitted slice."
+                if include_shader_data_requested
+                else None
+            ),
+            "references_available": False,
+            "references_unavailable_reason": (
+                "Material reference expansion remains unavailable in this admitted slice."
+                if include_references_requested
+                else None
+            ),
+            "material_unavailable_reason": (
+                "An explicit material_path is required for the admitted material readback slice."
+            ),
+        }
+
+        material_path_input = details["material_path_input"]
+        if not isinstance(material_path_input, str) or not material_path_input.strip():
+            return details
+
+        details["material_readback_attempted"] = True
+        details["material_inspection_attempted"] = True
+        material_path_input = material_path_input.strip()
+
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        candidate_path = Path(material_path_input).expanduser()
+        try:
+            resolved_material_path = (
+                candidate_path.resolve()
+                if candidate_path.is_absolute()
+                else (resolved_project_root / candidate_path).resolve()
+            )
+        except OSError as exc:
+            details["material_readback_unavailable_reason"] = (
+                f"Material path resolution failed: {exc}"
+            )
+            details["material_unavailable_reason"] = details["material_readback_unavailable_reason"]
+            return details
+
+        details["material_path_resolved"] = str(resolved_material_path)
+        try:
+            material_path_relative_to_project_root = str(
+                resolved_material_path.relative_to(resolved_project_root)
+            ).replace("\\", "/")
+        except ValueError:
+            material_path_relative_to_project_root = None
+        details["material_path_relative_to_project_root"] = material_path_relative_to_project_root
+        details["material_path_workspace_local"] = material_path_relative_to_project_root is not None
+        details["material_path_within_project_root"] = (
+            material_path_relative_to_project_root is not None
+        )
+
+        if material_path_relative_to_project_root is None:
+            details["material_readback_unavailable_reason"] = (
+                "Real render.material.inspect currently admits only explicit project-local "
+                ".material paths for readback evidence."
+            )
+            details["material_unavailable_reason"] = details["material_readback_unavailable_reason"]
+            return details
+
+        if resolved_material_path.suffix.lower() != ".material":
+            details["material_readback_unavailable_reason"] = (
+                "Real render.material.inspect currently admits only explicit local .material "
+                "files for material readback evidence."
+            )
+            details["material_unavailable_reason"] = details["material_readback_unavailable_reason"]
+            return details
+
+        details["material_file_exists"] = resolved_material_path.exists()
+        if not details["material_file_exists"]:
+            details["material_readback_unavailable_reason"] = (
+                "The explicit local .material file does not exist."
+            )
+            details["material_unavailable_reason"] = details["material_readback_unavailable_reason"]
+            return details
+
+        details["material_is_file"] = resolved_material_path.is_file()
+        if not details["material_is_file"]:
+            details["material_readback_unavailable_reason"] = (
+                "The explicit local material path resolved, but not as a file."
+            )
+            details["material_unavailable_reason"] = details["material_readback_unavailable_reason"]
+            return details
+
+        try:
+            material_text = resolved_material_path.read_text(encoding="utf-8")
+        except OSError as exc:
+            details["material_readback_unavailable_reason"] = (
+                f"The explicit local .material file could not be read: {exc}"
+            )
+            details["material_unavailable_reason"] = details["material_readback_unavailable_reason"]
+            return details
+
+        try:
+            material_payload = json.loads(material_text)
+        except ValueError as exc:
+            details["material_readback_unavailable_reason"] = (
+                f"The explicit local .material file could not be parsed as JSON: {exc}"
+            )
+            details["material_unavailable_reason"] = details["material_readback_unavailable_reason"]
+            return details
+
+        details["material_json_readable"] = True
+        if not isinstance(material_payload, dict):
+            details["material_readback_unavailable_reason"] = (
+                "The explicit local .material file parsed, but not as a JSON object."
+            )
+            details["material_unavailable_reason"] = details["material_readback_unavailable_reason"]
+            return details
+
+        top_level_keys = sorted(str(key) for key in material_payload.keys())
+        property_values = material_payload.get("propertyValues")
+        details.update(
+            {
+                "material_root_is_object": True,
+                "material_readback_available": True,
+                "material_readback_source": "project-local-material-json",
+                "material_readback_mode": "runtime-probe-plus-local-file-readback",
+                "material_evidence_produced": True,
+                "material_evidence_path": str(resolved_material_path),
+                "material_operation_available": True,
+                "material_top_level_keys": top_level_keys,
+                "material_top_level_key_count": len(top_level_keys),
+                "material_type": (
+                    material_payload.get("materialType")
+                    if isinstance(material_payload.get("materialType"), str)
+                    else None
+                ),
+                "property_values_field_present": "propertyValues" in material_payload,
+                "property_value_count": (
+                    len(property_values) if isinstance(property_values, dict) else None
+                ),
+                "material_unavailable_reason": None,
+                "material_readback_unavailable_reason": None,
+            }
+        )
+        return details
+
     def _execute_render_material_inspect(
         self,
         *,
@@ -8399,16 +8575,52 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
             runtime_result = {}
 
         runtime_available = bool(runtime_result.get("runtime_available"))
-        material_inspection_attempted = bool(
-            runtime_result.get("material_inspection_attempted")
-        )
-        material_evidence_produced = bool(runtime_result.get("material_evidence_produced"))
-        material_unavailable_reason = str(
+        include_shader_data_requested = bool(
             runtime_result.get(
-                "material_unavailable_reason",
-                "No admitted real material inspection path is available in this slice.",
+                "include_shader_data_requested",
+                args.get("include_shader_data"),
             )
         )
+        include_references_requested = bool(
+            runtime_result.get(
+                "include_references_requested",
+                args.get("include_references"),
+            )
+        )
+        material_readback = self._inspect_explicit_material_readback(
+            project_root=project_root,
+            material_path=runtime_result.get("material_path") or args.get("material_path"),
+            include_shader_data_requested=include_shader_data_requested,
+            include_references_requested=include_references_requested,
+        )
+        material_inspection_attempted = bool(
+            runtime_result.get("material_inspection_attempted")
+        ) or bool(material_readback.get("material_inspection_attempted"))
+        material_evidence_produced = bool(runtime_result.get("material_evidence_produced")) or bool(
+            material_readback.get("material_evidence_produced")
+        )
+        material_operation_available = bool(
+            runtime_result.get("material_operation_available", False)
+        ) or bool(material_readback.get("material_operation_available"))
+        material_runtime_mode = runtime_result.get("material_runtime_mode")
+        if material_evidence_produced:
+            material_runtime_mode = material_readback.get(
+                "material_readback_mode",
+                "runtime-probe-plus-local-file-readback",
+            )
+        material_evidence_path = material_readback.get("material_evidence_path") or runtime_result.get(
+            "material_evidence_path"
+        )
+        material_unavailable_reason = material_readback.get("material_unavailable_reason")
+        if material_evidence_produced:
+            material_unavailable_reason = None
+        elif not isinstance(material_unavailable_reason, str) or not material_unavailable_reason:
+            material_unavailable_reason = str(
+                runtime_result.get(
+                    "material_unavailable_reason",
+                    "No admitted real material inspection path is available in this slice.",
+                )
+            )
 
         inspection_evidence = ["runtime_probe_attempt"]
         unavailable_evidence: list[str] = []
@@ -8426,11 +8638,33 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
             inspection_evidence.append("material_inspection_attempt")
         else:
             unavailable_evidence.append("material_inspection_attempt")
+        if material_readback.get("material_readback_attempted") is True:
+            inspection_evidence.append("explicit_material_file_readback_request")
+        else:
+            unavailable_evidence.append("explicit_material_file_readback_request")
+        if material_readback.get("material_readback_available") is True:
+            inspection_evidence.extend(["material_file_readback", "material_json_readback"])
+            material_evidence_path_for_log = material_readback.get("material_evidence_path")
+            if isinstance(material_evidence_path_for_log, str) and material_evidence_path_for_log:
+                logs.append(f"Read local material file from '{material_evidence_path_for_log}'.")
+        else:
+            unavailable_evidence.append("material_file_readback")
         if material_evidence_produced:
             inspection_evidence.append("material_evidence")
         else:
             unavailable_evidence.append("material_evidence")
-        logs.append(material_unavailable_reason)
+        if include_shader_data_requested and not material_readback.get("shader_data_available", False):
+            unavailable_evidence.append("shader_data")
+        if include_references_requested and not material_readback.get("references_available", False):
+            unavailable_evidence.append("references")
+        if isinstance(material_unavailable_reason, str) and material_unavailable_reason:
+            logs.append(material_unavailable_reason)
+        shader_data_unavailable_reason = material_readback.get("shader_data_unavailable_reason")
+        if isinstance(shader_data_unavailable_reason, str) and shader_data_unavailable_reason:
+            logs.append(shader_data_unavailable_reason)
+        references_unavailable_reason = material_readback.get("references_unavailable_reason")
+        if isinstance(references_unavailable_reason, str) and references_unavailable_reason:
+            logs.append(references_unavailable_reason)
 
         details = {
             "inspection_surface": "render_material_runtime_probe",
@@ -8445,26 +8679,69 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
             "runtime_probe_attempted": bool(runtime_result.get("runtime_probe_attempted", True)),
             "runtime_probe_method": runtime_result.get("runtime_probe_method"),
             "runtime_available": runtime_available,
-            "material_runtime_mode": runtime_result.get("material_runtime_mode"),
-            "material_operation_available": bool(
-                runtime_result.get("material_operation_available", False)
-            ),
+            "material_runtime_mode": material_runtime_mode,
+            "material_operation_available": material_operation_available,
             "material_inspection_attempted": material_inspection_attempted,
             "material_evidence_produced": material_evidence_produced,
-            "material_evidence_path": runtime_result.get("material_evidence_path"),
+            "material_evidence_path": material_evidence_path,
             "material_unavailable_reason": material_unavailable_reason,
-            "material_path": runtime_result.get("material_path") or args.get("material_path"),
-            "include_shader_data_requested": bool(
-                runtime_result.get(
-                    "include_shader_data_requested",
-                    args.get("include_shader_data"),
-                )
+            "material_path": material_readback.get("material_path_input")
+            or runtime_result.get("material_path")
+            or args.get("material_path"),
+            "material_path_resolved": material_readback.get("material_path_resolved"),
+            "material_path_relative_to_project_root": material_readback.get(
+                "material_path_relative_to_project_root"
             ),
-            "include_references_requested": bool(
-                runtime_result.get(
-                    "include_references_requested",
-                    args.get("include_references"),
-                )
+            "material_path_workspace_local": bool(
+                material_readback.get("material_path_workspace_local", False)
+            ),
+            "material_path_within_project_root": bool(
+                material_readback.get("material_path_within_project_root", False)
+            ),
+            "material_file_exists": bool(material_readback.get("material_file_exists", False)),
+            "material_is_file": bool(material_readback.get("material_is_file", False)),
+            "material_json_readable": bool(
+                material_readback.get("material_json_readable", False)
+            ),
+            "material_root_is_object": bool(
+                material_readback.get("material_root_is_object", False)
+            ),
+            "material_readback_attempted": bool(
+                material_readback.get("material_readback_attempted", False)
+            ),
+            "material_readback_available": bool(
+                material_readback.get("material_readback_available", False)
+            ),
+            "material_readback_source": material_readback.get("material_readback_source"),
+            "material_readback_scope": material_readback.get("material_readback_scope"),
+            "material_readback_mode": material_readback.get("material_readback_mode"),
+            "material_readback_unavailable_reason": material_readback.get(
+                "material_readback_unavailable_reason"
+            ),
+            "material_top_level_keys": list(material_readback.get("material_top_level_keys", [])),
+            "material_top_level_key_count": int(
+                material_readback.get("material_top_level_key_count", 0)
+            ),
+            "material_type": material_readback.get("material_type"),
+            "property_values_field_present": bool(
+                material_readback.get("property_values_field_present", False)
+            ),
+            "property_value_count": material_readback.get("property_value_count"),
+            "material_runtime_readback_available": bool(
+                material_readback.get("material_runtime_readback_available", False)
+            ),
+            "material_runtime_readback_unavailable_reason": material_readback.get(
+                "material_runtime_readback_unavailable_reason"
+            ),
+            "include_shader_data_requested": include_shader_data_requested,
+            "include_references_requested": include_references_requested,
+            "shader_data_available": bool(material_readback.get("shader_data_available", False)),
+            "shader_data_unavailable_reason": material_readback.get(
+                "shader_data_unavailable_reason"
+            ),
+            "references_available": bool(material_readback.get("references_available", False)),
+            "references_unavailable_reason": material_readback.get(
+                "references_unavailable_reason"
             ),
             "active_level_path": runtime_result.get("active_level_path"),
             "inspection_evidence": inspection_evidence,
@@ -8490,12 +8767,23 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
                 if key in runtime_result
             },
         }
-        message = str(
-            runtime_result.get(
-                "message",
-                "Material inspection substrate probe completed against the admitted editor runtime path.",
+        if material_evidence_produced:
+            message = (
+                "Real render.material.inspect completed within the admitted runtime probe "
+                "and explicit local material readback boundary; read-only material evidence "
+                "was captured."
             )
-        )
+            result_summary = (
+                "Real render material runtime and readback evidence completed successfully."
+            )
+        else:
+            message = str(
+                runtime_result.get(
+                    "message",
+                    "Material inspection substrate probe completed against the admitted editor runtime path.",
+                )
+            )
+            result_summary = "Real render material substrate probe completed successfully."
         result = DispatchResult(
             status="real_success",
             tool=tool,
@@ -8524,7 +8812,7 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
                 **details,
             },
             execution_details=details,
-            result_summary="Real render material substrate probe completed successfully.",
+            result_summary=result_summary,
         )
 
 

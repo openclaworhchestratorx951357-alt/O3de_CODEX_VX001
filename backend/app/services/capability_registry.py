@@ -125,7 +125,7 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             state_scope="Explicit material inspection evidence request.",
             backup_class="none",
             rollback_class="none",
-            verification_class="runtime probe and material evidence metadata verification",
+            verification_class="runtime probe and explicit material file readback verification",
             retention_class="inspection-evidence",
             natural_language_status="prompt-ready-read-only",
         )
@@ -462,7 +462,9 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
     "render.material.inspect": {
         "capability_maturity": "hybrid-read-only",
         "planner_intent_aliases": ["inspect material", "show material", "material details"],
-        "natural_language_affordances": ["Inspect a material by explicit material path."],
+        "natural_language_affordances": [
+            "Inspect a material by explicit material path with runtime probe facts and explicit local material readback evidence."
+        ],
         "allowlisted_parameter_surfaces": ["material_path", "include_shader_data", "include_references"],
         "real_adapter_availability": True,
         "dry_run_availability": True,
