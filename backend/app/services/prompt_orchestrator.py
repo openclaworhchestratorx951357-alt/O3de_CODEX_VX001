@@ -508,6 +508,7 @@ class PromptOrchestratorService:
         property_response = self._latest_successful_response_for_step(
             session, "editor-component-property-1"
         )
+        asset_response = self._latest_successful_response_for_step(session, "asset-inspect-1")
 
         summary_parts: list[str] = []
         if entity_response is not None:
@@ -548,6 +549,39 @@ class PromptOrchestratorService:
                 summary_parts.append(
                     f"Readback confirmed {property_path} = {value}."
                 )
+
+        if asset_response is not None:
+            details = asset_response.get("execution_details", {})
+            source_path = details.get("source_path_relative_to_project_root") or details.get(
+                "source_path_input"
+            )
+            if isinstance(source_path, str) and source_path:
+                if details.get("source_exists") is True and details.get("source_is_file") is True:
+                    summary_parts.append(f"Readback confirmed source asset {source_path}.")
+                elif details.get("source_exists") is False:
+                    summary_parts.append(
+                        f"Readback confirmed source asset {source_path} is currently unavailable on disk."
+                    )
+                elif details.get("source_is_file") is False:
+                    summary_parts.append(
+                        f"Readback confirmed source asset path {source_path} resolved, but not as a file."
+                    )
+            if details.get("product_evidence_requested") is True:
+                if details.get("product_evidence_available") is True:
+                    summary_parts.append(
+                        f"Product readback confirmed {details.get('product_count', 0)} related product entry(ies)."
+                    )
+                else:
+                    summary_parts.append("Product evidence remains unavailable in this admitted slice.")
+            if details.get("dependency_evidence_requested") is True:
+                if details.get("dependency_evidence_available") is True:
+                    summary_parts.append(
+                        f"Dependency readback confirmed {details.get('dependency_count', 0)} related dependency entry(ies)."
+                    )
+                else:
+                    summary_parts.append(
+                        "Dependency evidence remains unavailable in this admitted slice."
+                    )
 
         if entity_response is not None:
             self._append_restore_boundary_summary(

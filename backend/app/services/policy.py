@@ -5,6 +5,8 @@ from app.services.catalog import catalog_service
 def tool_real_admission_stage(tool_name: str) -> str:
     if tool_name == "project.inspect":
         return "real-read-only-active"
+    if tool_name == "asset.source.inspect":
+        return "real-read-only-active"
     if tool_name == "editor.component.property.get":
         return "real-read-only-active"
     if tool_name in {
@@ -30,6 +32,12 @@ def tool_next_real_requirement(tool_name: str) -> str:
         return (
             "Keep manifest-backed read-only evidence truthful; do not widen into "
             "mutation from this path."
+        )
+    if tool_name == "asset.source.inspect":
+        return (
+            "Keep real execution limited to explicit project-local source-path "
+            "identity and read-only metadata evidence, with products and "
+            "dependencies marked unavailable unless a real admitted source is proven."
         )
     if tool_name == "editor.session.open":
         return (

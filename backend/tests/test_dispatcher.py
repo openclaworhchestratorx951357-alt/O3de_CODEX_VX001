@@ -4013,41 +4013,62 @@ def test_asset_move_safe_simulated_persisted_payloads_match_published_schemas() 
         )
 
 
-def test_asset_source_inspect_simulated_persisted_payloads_match_published_schemas() -> None:
-    with isolated_database():
-        response = dispatcher_service.dispatch(make_asset_source_inspect_request())
+def test_asset_source_inspect_real_persisted_payloads_match_published_schemas() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = project_root / "Assets" / "Textures" / "example.png"
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_bytes = b"real-asset-source"
+        source_path.write_bytes(source_bytes)
 
-        assert response.ok is True
-        assert response.result is not None
-        assert response.result.simulated is True
-        run_id = response.operation_id
-        assert run_id is not None
-        execution = next(
-            execution
-            for execution in executions_service.list_executions()
-            if execution.run_id == run_id
-        )
-        artifact = artifacts_service.get_artifact(response.artifacts[0])
-        assert execution.details["inspection_surface"] == "simulated"
-        assert execution.details["simulated"] is True
-        assert artifact is not None
-        assert artifact.simulated is True
-        assert artifact.metadata["execution_mode"] == "simulated"
-        assert artifact.metadata["inspection_surface"] == "simulated"
-        assert (
-            schema_validation_service.validate_execution_details(
-                tool_name="asset.source.inspect",
-                payload=execution.details,
-            )
-            == []
-        )
-        assert (
-            schema_validation_service.validate_artifact_metadata(
-                tool_name="asset.source.inspect",
-                payload=artifact.metadata,
-            )
-            == []
-        )
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_database():
+                request = make_asset_source_inspect_request()
+                request.project_root = str(project_root)
+                response = dispatcher_service.dispatch(request)
+                assert response.ok is True
+                assert response.result is not None
+                assert response.result.simulated is False
+                assert response.result.execution_mode == "real"
+                run_id = response.operation_id
+                assert run_id is not None
+                execution = next(
+                    execution
+                    for execution in executions_service.list_executions()
+                    if execution.run_id == run_id
+                )
+                artifact = artifacts_service.get_artifact(response.artifacts[0])
+                assert execution.details["inspection_surface"] == "asset_source_file"
+                assert execution.details["simulated"] is False
+                assert execution.details["source_path_relative_to_project_root"] == (
+                    "Assets/Textures/example.png"
+                )
+                assert execution.details["source_exists"] is True
+                assert execution.details["source_is_file"] is True
+                assert execution.details["source_resolution_status"] == "resolved-file"
+                assert execution.details["source_size_bytes"] == len(source_bytes)
+                assert execution.details["product_evidence_requested"] is True
+                assert execution.details["product_evidence_available"] is False
+                assert execution.details["dependency_evidence_requested"] is True
+                assert execution.details["dependency_evidence_available"] is False
+                assert artifact is not None
+                assert artifact.simulated is False
+                assert artifact.metadata["execution_mode"] == "real"
+                assert artifact.metadata["inspection_surface"] == "asset_source_file"
+                assert (
+                    schema_validation_service.validate_execution_details(
+                        tool_name="asset.source.inspect",
+                        payload=execution.details,
+                    )
+                    == []
+                )
+                assert (
+                    schema_validation_service.validate_artifact_metadata(
+                        tool_name="asset.source.inspect",
+                        payload=artifact.metadata,
+                    )
+                    == []
+                )
 
 
 def test_render_material_inspect_simulated_persisted_payloads_match_published_schemas(

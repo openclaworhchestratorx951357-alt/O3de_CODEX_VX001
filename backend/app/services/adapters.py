@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 from abc import ABC, abstractmethod
@@ -23,6 +24,7 @@ REAL_TOOL_PATHS_BY_MODE = {
         "editor.entity.create",
         "editor.component.add",
         "editor.component.property.get",
+        "asset.source.inspect",
         "project.inspect",
     ],
 }
@@ -34,7 +36,8 @@ ADAPTER_EXECUTION_BOUNDARY = (
     "Control-plane bookkeeping is real, but O3DE tool execution remains simulated."
 )
 HYBRID_EXECUTION_BOUNDARY = (
-    "Control-plane bookkeeping is real. In hybrid mode, project.inspect may use a "
+    "Control-plane bookkeeping is real. In hybrid mode, asset.source.inspect may "
+    "use a real read-only project-local source inspection path, project.inspect may use a "
     "real read-only project-manifest path, editor.level.open may use the "
     "live-validated admitted real editor runtime path on McpSandbox, "
     "editor.session.open may use the live-validated admitted real editor session path, "
@@ -605,6 +608,335 @@ class EditorControlHybridAdapter(ToolExecutionAdapter):
             execution_details=details,
             result_summary=result_summary,
         )
+
+
+class AssetPipelineHybridAdapter(ToolExecutionAdapter):
+    def __init__(self, *, family: str, mode: str) -> None:
+        super().__init__(family=family, mode=mode)
+        self._simulated = SimulatedToolExecutionAdapter(family=family, mode=mode)
+
+    def execute(
+        self,
+        *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        if tool == "asset.source.inspect":
+            return self._execute_asset_source_inspect(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+            )
+
+        simulated = self._simulated.execute(
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+        )
+        simulated.warnings.append(
+            "Hybrid adapter mode is active, but this asset-pipeline tool still runs "
+            "through the simulated path in this phase."
+        )
+        simulated.logs.append(
+            "Hybrid mode did not change execution for this asset-pipeline tool; "
+            "the simulated adapter path remained in use."
+        )
+        simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        return simulated
+
+    def _execute_asset_source_inspect(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        source_path_input = str(args.get("source_path", "")).strip()
+        include_products = bool(args.get("include_products", False))
+        include_dependencies = bool(args.get("include_dependencies", False))
+
+        if not source_path_input:
+            return self._fallback_asset_source_inspect(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real asset inspection was unavailable because no explicit source "
+                    "path was provided."
+                ),
+                fallback_category="missing-source-path",
+            )
+
+        source_candidate = Path(source_path_input).expanduser()
+        resolved_source_path = (
+            source_candidate.resolve()
+            if source_candidate.is_absolute()
+            else (resolved_project_root / source_candidate).resolve()
+        )
+        try:
+            source_relative_path = str(
+                resolved_source_path.relative_to(resolved_project_root)
+            ).replace("\\", "/")
+            source_within_project_root = True
+        except ValueError:
+            source_relative_path = None
+            source_within_project_root = False
+
+        if not source_within_project_root:
+            return self._fallback_asset_source_inspect(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real asset inspection is limited to explicit source paths within "
+                    f"the current project root; '{source_path_input}' resolved outside "
+                    "that admitted boundary."
+                ),
+                fallback_category="outside-project-root",
+            )
+
+        source_exists = resolved_source_path.exists()
+        source_is_file = resolved_source_path.is_file()
+        source_size_bytes: int | None = None
+        source_sha256: str | None = None
+        source_resolution_status = "missing"
+        inspection_evidence = ["source_path_identity", "source_resolution_status"]
+        unavailable_evidence: list[str] = []
+        warnings: list[str] = []
+        logs = [
+            "Real asset.source.inspect resolved the requested path against the project root.",
+            f"Resolved source path: {resolved_source_path}",
+        ]
+
+        if source_exists and source_is_file:
+            source_resolution_status = "resolved-file"
+            source_size_bytes = resolved_source_path.stat().st_size
+            source_sha256 = hashlib.sha256(resolved_source_path.read_bytes()).hexdigest()
+            inspection_evidence.extend(["source_file_stat", "source_file_hash"])
+            logs.append("Read-only source-file metadata and content hash were captured.")
+        elif source_exists:
+            source_resolution_status = "resolved-non-file"
+            warnings.append(
+                "The requested source path resolved within the project root but is not a file."
+            )
+            logs.append("Resolved source path exists but is not a file.")
+        else:
+            warnings.append(
+                "The requested source path was not found within the project root."
+            )
+            logs.append("Resolved source path is missing on disk.")
+
+        product_evidence_source = (
+            "unavailable-missing-source"
+            if not source_exists
+            else "unavailable-no-admitted-product-index"
+        )
+        dependency_evidence_source = (
+            "unavailable-missing-source"
+            if not source_exists
+            else "unavailable-no-admitted-dependency-index"
+        )
+        product_unavailable_reason = (
+            "No admitted real product index or asset database is available in this slice."
+        )
+        dependency_unavailable_reason = (
+            "No admitted real dependency index or asset database is available in this slice."
+        )
+        if not source_exists:
+            product_unavailable_reason = (
+                "The requested source path was not found, so no product evidence could be proven."
+            )
+            dependency_unavailable_reason = (
+                "The requested source path was not found, so no dependency evidence could be proven."
+            )
+
+        if include_products:
+            unavailable_evidence.append("products")
+            logs.append(product_unavailable_reason)
+        if include_dependencies:
+            unavailable_evidence.append("dependencies")
+            logs.append(dependency_unavailable_reason)
+
+        message = "Read-only asset source inspection completed against real project files."
+        if source_resolution_status == "missing":
+            message = (
+                "Read-only asset source inspection completed against real project files, "
+                "but the requested source path was not found."
+            )
+        elif source_resolution_status == "resolved-non-file":
+            message = (
+                "Read-only asset source inspection completed against real project files, "
+                "but the requested source path did not resolve to a file."
+            )
+
+        details = {
+            "inspection_surface": "asset_source_file",
+            "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+            "simulated": False,
+            "adapter_family": self.family,
+            "adapter_mode": self.mode,
+            "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+            "real_path_available": True,
+            "project_root_path": str(resolved_project_root),
+            "source_path_input": source_path_input,
+            "source_path_resolved": str(resolved_source_path),
+            "source_path_relative_to_project_root": source_relative_path,
+            "source_path_source_of_truth": (
+                f"project_root/{source_relative_path}"
+                if source_relative_path is not None
+                else "project_root"
+            ),
+            "source_path_within_project_root": source_within_project_root,
+            "source_read_mode": "read-only",
+            "source_exists": source_exists,
+            "source_is_file": source_is_file,
+            "source_resolution_status": source_resolution_status,
+            "source_name": resolved_source_path.name,
+            "source_extension": resolved_source_path.suffix or None,
+            "source_size_bytes": source_size_bytes,
+            "source_sha256": source_sha256,
+            "include_flags": {
+                "include_products": include_products,
+                "include_dependencies": include_dependencies,
+            },
+            "inspection_evidence": inspection_evidence,
+            "unavailable_evidence": unavailable_evidence,
+            "products": [],
+            "product_count": 0,
+            "product_evidence_requested": include_products,
+            "product_evidence_available": False,
+            "product_evidence_source": product_evidence_source,
+            "product_unavailable_reason": product_unavailable_reason,
+            "dependencies": [],
+            "dependency_count": 0,
+            "dependency_evidence_requested": include_dependencies,
+            "dependency_evidence_available": False,
+            "dependency_evidence_source": dependency_evidence_source,
+            "dependency_unavailable_reason": dependency_unavailable_reason,
+        }
+        result = DispatchResult(
+            status="real_success",
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            simulated=False,
+            execution_mode="real",
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+            message=message,
+        )
+        artifact_uri = (
+            resolved_source_path.as_uri()
+            if source_exists and source_is_file
+            else "asset-inspect://runs/{run_id}/executions/{execution_id}/source"
+        )
+        return AdapterExecutionReport(
+            execution_mode="real",
+            result=result,
+            warnings=warnings,
+            logs=logs,
+            artifact_label="Real asset source inspection evidence",
+            artifact_kind="asset_inspection_result",
+            artifact_uri=artifact_uri,
+            artifact_metadata={
+                "tool": tool,
+                "agent": agent,
+                "execution_mode": "real",
+                **details,
+            },
+            execution_details=details,
+            result_summary="Real asset source inspection completed successfully.",
+        )
+
+    def _fallback_asset_source_inspect(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+        reason: str,
+        fallback_category: str = "unavailable",
+    ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        simulated = self._simulated.execute(
+            request_id="",
+            session_id=None,
+            workspace_id=None,
+            executor_id=None,
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+        )
+        simulated.warnings.append(reason)
+        simulated.logs.append(reason)
+        simulated.logs.append(
+            "Hybrid mode fell back to the simulated asset.source.inspect path."
+        )
+        simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.artifact_metadata["real_path_available"] = False
+        simulated.artifact_metadata["fallback_reason"] = reason
+        simulated.artifact_metadata["fallback_category"] = fallback_category
+        simulated.artifact_metadata["project_root_path"] = str(resolved_project_root)
+        simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.execution_details["real_path_available"] = False
+        simulated.execution_details["fallback_reason"] = reason
+        simulated.execution_details["fallback_category"] = fallback_category
+        simulated.execution_details["project_root_path"] = str(resolved_project_root)
+        simulated.result_summary = "Asset source inspection fell back to the simulated path."
+        return simulated
 
 
 class ProjectBuildHybridAdapter(ToolExecutionAdapter):
@@ -2836,6 +3168,12 @@ class AdapterService:
                 if tool_name.startswith(("project.", "build.", "settings.", "gem."))
             }
             family_plan_only = set(self._plan_only_tool_paths_for_mode(active_mode))
+        if active_mode == "hybrid" and family == "asset-pipeline":
+            family_real = {
+                tool_name
+                for tool_name in self._real_tool_paths_for_mode(active_mode)
+                if tool_name.startswith("asset.")
+            }
         if active_mode == "hybrid" and family == "editor-control":
             family_real = {
                 tool_name
@@ -2857,7 +3195,12 @@ class AdapterService:
             return {}
         registry: dict[str, ToolExecutionAdapter] = {}
         for agent in catalog_service.get_catalog_model().agents:
-            if configured_mode == "hybrid" and agent.id == "project-build":
+            if configured_mode == "hybrid" and agent.id == "asset-pipeline":
+                registry[agent.id] = AssetPipelineHybridAdapter(
+                    family=agent.id,
+                    mode=configured_mode,
+                )
+            elif configured_mode == "hybrid" and agent.id == "project-build":
                 registry[agent.id] = ProjectBuildHybridAdapter(
                     family=agent.id,
                     mode=configured_mode,
@@ -2898,8 +3241,9 @@ class AdapterService:
                 notes=[
                     "Adapter mode selection is now config-driven.",
                     "Hybrid mode now includes a narrow admitted subset of real O3DE adapters.",
-                    "Hybrid mode currently enables a real read-only project.inspect "
-                    "path, admitted real editor session/level runtime paths, "
+                    "Hybrid mode currently enables a real read-only asset.source.inspect "
+                    "path for explicit project-local source files, a real read-only "
+                    "project.inspect path, admitted real editor session/level runtime paths, "
                     "an admitted real root-level editor.entity.create path on "
                     "McpSandbox, an admitted allowlist-bound editor.component.add "
                     "path on McpSandbox, and an admitted explicit "
@@ -2932,6 +3276,8 @@ class AdapterService:
                 warning=None,
                 notes=[
                     "Adapter mode selection is now config-driven.",
+                    "Hybrid mode enables a real read-only asset.source.inspect path when "
+                    "the explicit source path resolves within the current project root.",
                     "Hybrid mode enables a real read-only project.inspect path when its "
                     "manifest preconditions are satisfied.",
                     "Hybrid mode also enables admitted real editor runtime paths for "
@@ -3019,13 +3365,17 @@ class AdapterService:
         for family in runtime_status.available_families:
             family_supports_real = (
                 runtime_status.active_mode == "hybrid"
-                and family in {"project-build", "editor-control"}
+                and family in {"asset-pipeline", "project-build", "editor-control"}
             )
             family_real_tool_paths = (
                 [
                     tool_name
                     for tool_name in runtime_status.real_tool_paths
                     if (
+                        family == "asset-pipeline"
+                        and tool_name.startswith("asset.")
+                    )
+                    or (
                         family == "project-build"
                         and tool_name.startswith(("project.", "build.", "settings.", "gem."))
                     )
@@ -3054,6 +3404,11 @@ class AdapterService:
                         "project.inspect currently has a real read-only path and "
                         "build.configure and settings.patch currently have real "
                         "preflight-only paths in this family."
+                    )
+                if family == "asset-pipeline":
+                    family_notes.append(
+                        "asset.source.inspect currently has a real read-only project-local "
+                        "source inspection path in this family."
                     )
                 if family == "editor-control":
                     family_notes.append(

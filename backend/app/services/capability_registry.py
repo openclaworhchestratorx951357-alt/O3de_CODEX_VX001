@@ -84,6 +84,15 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             retention_class="manifest-inspection-evidence",
             natural_language_status="prompt-ready-read-only",
         )
+    if tool_name == "asset.source.inspect":
+        return _build_safety_envelope(
+            state_scope="Single project-local source-asset identity and dependency read scope.",
+            backup_class="none",
+            rollback_class="none",
+            verification_class="source-path resolution and metadata readback verification",
+            retention_class="inspection-evidence",
+            natural_language_status="prompt-ready-read-only",
+        )
     if tool_name == "settings.patch":
         return _build_safety_envelope(
             state_scope="Manifest-backed admitted settings mutation subset.",
@@ -283,11 +292,11 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": True,
     },
     "asset.source.inspect": {
-        "capability_maturity": "simulated-only",
+        "capability_maturity": "hybrid-read-only",
         "planner_intent_aliases": ["inspect asset", "source asset", "asset metadata"],
         "natural_language_affordances": ["Inspect a source asset by explicit path."],
         "allowlisted_parameter_surfaces": ["source_path", "include_products", "include_dependencies"],
-        "real_adapter_availability": False,
+        "real_adapter_availability": True,
         "dry_run_availability": True,
         "simulation_fallback_availability": True,
     },

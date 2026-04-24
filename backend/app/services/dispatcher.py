@@ -682,6 +682,20 @@ class DispatcherService:
             admitted_tools = ["project.inspect", "build.configure"]
             backup_class = None
             rollback_class = None
+        elif request.tool == "asset.source.inspect" and inspection_surface == "asset_source_file":
+            executor_id = "executor-asset-pipeline-hybrid-readonly-local"
+            executor_kind = "local-admitted-readonly"
+            executor_label = "Admitted local asset inspection executor"
+            executor_host_label = "local-project-asset-filesystem"
+            workspace_kind = "admitted-readonly-project-root"
+            cleanup_policy = "operator-managed-readonly"
+            artifact_role = "inspection-evidence"
+            evidence_completeness = "inspection-backed"
+            execution_boundary = "read-only local source asset inspection"
+            workspace_id = f"workspace-asset-source-inspect-{execution_id}"
+            admitted_tools = ["asset.source.inspect"]
+            backup_class = None
+            rollback_class = None
         elif (
             request.tool == "build.configure"
             and inspection_surface == "build_configure_preflight"
@@ -1212,11 +1226,15 @@ class DispatcherService:
             )
         if request.tool == "project.inspect" and capability == "hybrid-read-only":
             return "hybrid-read-only project.inspect path"
+        if request.tool == "asset.source.inspect" and capability == "hybrid-read-only":
+            return "hybrid-read-only asset.source.inspect path"
         return f"{capability} dispatch"
 
     def _result_warning(self, request: RequestEnvelope, result) -> str:
         if result.simulated:
             return "Underlying O3DE execution remains simulated in this phase."
+        if request.tool == "asset.source.inspect":
+            return "This run used the first real read-only asset.source.inspect path."
         if request.tool == "project.inspect":
             return "This run used the first real read-only project inspection path."
         if request.tool == "build.configure":

@@ -144,6 +144,85 @@ def test_prompt_shortcuts_return_fast_contextual_viewport_recommendations() -> N
         }
 
 
+def test_prompt_session_plans_asset_source_inspect_as_hybrid_read_only() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-asset-source-inspect-1",
+                "prompt_text": 'Inspect asset "Assets/Textures/example.png".',
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": True,
+                "preferred_domains": ["asset-pipeline"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "planned"
+        assert payload["admitted_capabilities"] == ["asset.source.inspect"]
+        assert len(payload["plan"]["steps"]) == 1
+        step = payload["plan"]["steps"][0]
+        assert step["tool"] == "asset.source.inspect"
+        assert step["capability_maturity"] == "hybrid-read-only"
+        assert step["args"]["source_path"] == "Assets/Textures/example.png"
+        assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-read-only"
+
+
+def test_prompt_session_executes_asset_source_inspect_with_truthful_evidence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = project_root / "Assets" / "Textures" / "example.png"
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"asset-source")
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                create_response = client.post(
+                    "/prompt/sessions",
+                    json={
+                        "prompt_id": "prompt-asset-source-inspect-execute-1",
+                        "prompt_text": 'Inspect asset "Assets/Textures/example.png".',
+                        "project_root": str(project_root),
+                        "engine_root": "C:/engine",
+                        "dry_run": True,
+                        "preferred_domains": ["asset-pipeline"],
+                    },
+                )
+                assert create_response.status_code == 200
+
+                execute_response = client.post(
+                    "/prompt/sessions/prompt-asset-source-inspect-execute-1/execute"
+                )
+                assert execute_response.status_code == 200
+                payload = execute_response.json()
+                assert payload["status"] == "completed"
+                assert payload["child_run_ids"]
+                assert len(payload["child_run_ids"]) == 1
+                assert payload["latest_child_responses"][0]["ok"] is True
+                assert (
+                    payload["latest_child_responses"][0]["result"]["execution_mode"] == "real"
+                )
+                details = payload["latest_child_responses"][0]["execution_details"]
+                assert details["inspection_surface"] == "asset_source_file"
+                assert details["source_path_relative_to_project_root"] == (
+                    "Assets/Textures/example.png"
+                )
+                assert details["source_exists"] is True
+                assert details["product_evidence_available"] is False
+                assert details["dependency_evidence_available"] is False
+                assert "Readback confirmed source asset Assets/Textures/example.png." in (
+                    payload["final_result_summary"]
+                )
+                assert "Product evidence remains unavailable" in payload["final_result_summary"]
+                assert "Dependency evidence remains unavailable" in payload["final_result_summary"]
+
+
 def test_prompt_session_execute_creates_child_lineage_and_pauses_for_approval() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)

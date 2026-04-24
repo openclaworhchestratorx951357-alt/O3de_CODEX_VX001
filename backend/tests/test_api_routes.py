@@ -801,6 +801,7 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
                 "editor.entity.create",
                 "editor.component.add",
                 "editor.component.property.get",
+                "asset.source.inspect",
                 "project.inspect",
             ]
             assert payload["adapter_mode"]["plan_only_tool_paths"] == [
@@ -849,14 +850,30 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "editor.entity.create",
                 "editor.component.add",
                 "editor.component.property.get",
+                "asset.source.inspect",
                 "project.inspect",
             ]
             assert payload["plan_only_tool_paths"] == ["build.configure", "settings.patch"]
             project_build = next(
                 family for family in payload["families"] if family["family"] == "project-build"
             )
+            asset_pipeline = next(
+                family for family in payload["families"] if family["family"] == "asset-pipeline"
+            )
             editor_control = next(
                 family for family in payload["families"] if family["family"] == "editor-control"
+            )
+            assert asset_pipeline["supports_real_execution"] is True
+            assert asset_pipeline["real_tool_paths"] == ["asset.source.inspect"]
+            assert asset_pipeline["plan_only_tool_paths"] == []
+            assert sorted(asset_pipeline["simulated_tool_paths"]) == [
+                "asset.batch.process",
+                "asset.move.safe",
+                "asset.processor.status",
+            ]
+            assert any(
+                "asset.source.inspect" in note
+                for note in asset_pipeline["notes"]
             )
             assert project_build["supports_real_execution"] is True
             assert project_build["real_tool_paths"] == ["project.inspect"]
@@ -962,6 +979,9 @@ def test_policies_route_exposes_truthful_execution_mode_and_dry_run_support() ->
         assert policies_by_tool["project.inspect"]["execution_mode"] == "real"
         assert policies_by_tool["project.inspect"]["supports_dry_run"] is True
 
+        assert policies_by_tool["asset.source.inspect"]["execution_mode"] == "real"
+        assert policies_by_tool["asset.source.inspect"]["supports_dry_run"] is True
+
         assert policies_by_tool["build.configure"]["execution_mode"] == "plan-only"
         assert policies_by_tool["build.configure"]["supports_dry_run"] is True
 
@@ -976,6 +996,20 @@ def test_policies_route_exposes_truthful_execution_mode_and_dry_run_support() ->
 
         assert policies_by_tool["settings.patch"]["execution_mode"] == "gated"
         assert policies_by_tool["settings.patch"]["supports_dry_run"] is True
+
+
+def test_policies_route_marks_asset_source_inspect_as_real_read_only_active() -> None:
+    with isolated_client() as client:
+        response = client.get("/policies")
+        assert response.status_code == 200
+        asset_source_inspect = next(
+            policy
+            for policy in response.json()["policies"]
+            if policy["tool"] == "asset.source.inspect"
+        )
+        assert asset_source_inspect["real_admission_stage"] == "real-read-only-active"
+        assert asset_source_inspect["execution_mode"] == "real"
+        assert "project-local" in asset_source_inspect["next_real_requirement"].lower()
 
 
 def test_runs_endpoint_reflects_dispatch_attempt() -> None:
