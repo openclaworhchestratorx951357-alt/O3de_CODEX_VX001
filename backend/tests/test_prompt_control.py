@@ -7,9 +7,14 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.models.control_plane import ExecutionStatus
+from app.models.request_envelope import RequestEnvelope
 from app.models.response_envelope import ResponseEnvelope, ResponseError
+from app.services.artifacts import artifacts_service
 from app.services.editor_runtime_defaults import EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S
 from app.services.db import configure_database, initialize_database, reset_database
+from app.services.executions import executions_service
+from app.services.runs import runs_service
 
 
 @contextmanager
@@ -24,6 +29,59 @@ def isolated_client() -> TestClient:
                 yield client
         finally:
             configure_database(None)
+
+
+def create_test_artifact_record(
+    *,
+    path: Path,
+    label: str,
+    content_type: str = "image/png",
+) -> str:
+    seed_request = RequestEnvelope(
+        request_id=f"seed-{label.lower().replace(' ', '-')}",
+        tool="test.visual.diff",
+        agent="validation",
+        project_root=str(path.parent),
+        engine_root=str(path.parent),
+        dry_run=True,
+        locks=[],
+        timeout_s=30,
+        args={},
+    )
+    run = runs_service.create_run(
+        seed_request,
+        requested_locks=[],
+        execution_mode="real",
+    )
+    execution = executions_service.create_execution(
+        run_id=run.id,
+        request_id=seed_request.request_id,
+        agent="validation",
+        tool="test.visual.diff",
+        execution_mode="real",
+        status=ExecutionStatus.SUCCEEDED,
+        result_summary="Seed artifact execution.",
+    )
+    artifact = artifacts_service.create_artifact(
+        run_id=run.id,
+        execution_id=execution.id,
+        label=label,
+        kind="test_image",
+        uri=path.as_uri(),
+        path=str(path),
+        content_type=content_type,
+        simulated=False,
+        metadata={
+            "tool": "test.seed",
+            "agent": "validation",
+            "execution_mode": "real",
+            "inspection_surface": "seeded_artifact",
+        },
+        artifact_role="evidence",
+        retention_class="test-log-evidence",
+        evidence_completeness="seeded-local-file",
+    )
+    return artifact.id
 
 def test_prompt_session_preview_compiles_typed_steps_across_families() -> None:
     with isolated_client() as client:
@@ -278,6 +336,99 @@ def test_prompt_session_executes_asset_source_inspect_with_truthful_evidence() -
                 )
                 assert "Product evidence remains unavailable" in payload["final_result_summary"]
                 assert "Dependency evidence remains unavailable" in payload["final_result_summary"]
+
+
+def test_prompt_session_plans_test_visual_diff_as_hybrid_read_only() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-visual-diff-plan-1",
+                "prompt_text": 'Run visual diff for "art-baseline-001" and "art-candidate-001".',
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": True,
+                "preferred_domains": ["validation"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "planned"
+        assert payload["admitted_capabilities"] == ["test.visual.diff"]
+        assert len(payload["plan"]["steps"]) == 1
+        step = payload["plan"]["steps"][0]
+        assert step["tool"] == "test.visual.diff"
+        assert step["capability_maturity"] == "hybrid-read-only"
+        assert step["args"]["baseline_artifact_id"] == "art-baseline-001"
+        assert step["args"]["candidate_artifact_id"] == "art-candidate-001"
+        assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-read-only"
+
+
+def test_prompt_session_executes_test_visual_diff_with_truthful_evidence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        root = Path(temp_dir)
+        baseline_path = root / "baseline.png"
+        candidate_path = root / "candidate.png"
+        baseline_path.write_bytes(b"baseline-prompt-image")
+        candidate_path.write_bytes(b"candidate-prompt-image")
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                baseline_artifact_id = create_test_artifact_record(
+                    path=baseline_path,
+                    label="Prompt baseline image",
+                )
+                candidate_artifact_id = create_test_artifact_record(
+                    path=candidate_path,
+                    label="Prompt candidate image",
+                )
+
+                create_response = client.post(
+                    "/prompt/sessions",
+                    json={
+                        "prompt_id": "prompt-visual-diff-execute-1",
+                        "prompt_text": (
+                            f'Run visual diff for "{baseline_artifact_id}" and "{candidate_artifact_id}".'
+                        ),
+                        "project_root": str(root),
+                        "engine_root": "C:/engine",
+                        "dry_run": True,
+                        "preferred_domains": ["validation"],
+                    },
+                )
+                assert create_response.status_code == 200
+
+                execute_response = client.post(
+                    "/prompt/sessions/prompt-visual-diff-execute-1/execute"
+                )
+                assert execute_response.status_code == 200
+                payload = execute_response.json()
+                assert payload["status"] == "completed"
+                assert payload["child_run_ids"]
+                assert len(payload["child_run_ids"]) == 1
+                assert payload["latest_child_responses"][0]["ok"] is True
+                assert (
+                    payload["latest_child_responses"][0]["result"]["execution_mode"] == "real"
+                )
+                details = payload["latest_child_responses"][0]["execution_details"]
+                assert details["inspection_surface"] == "artifact_file_comparison"
+                assert details["comparison_available"] is True
+                assert details["comparison_status"] == "different"
+                assert details["visual_metric_available"] is False
+                assert (
+                    "Artifact comparison confirmed differing file identity for the requested inputs."
+                    in payload["final_result_summary"]
+                )
+                assert (
+                    "Stronger visual diff metrics remain unavailable in this admitted slice."
+                    in payload["final_result_summary"]
+                )
 
 
 def test_prompt_session_execute_creates_child_lineage_and_pauses_for_approval() -> None:

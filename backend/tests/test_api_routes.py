@@ -804,6 +804,7 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
                 "asset.processor.status",
                 "asset.source.inspect",
                 "project.inspect",
+                "test.visual.diff",
             ]
             assert payload["adapter_mode"]["plan_only_tool_paths"] == [
                 "build.configure",
@@ -854,6 +855,7 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "asset.processor.status",
                 "asset.source.inspect",
                 "project.inspect",
+                "test.visual.diff",
             ]
             assert payload["plan_only_tool_paths"] == ["build.configure", "settings.patch"]
             project_build = next(
@@ -864,6 +866,9 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
             )
             editor_control = next(
                 family for family in payload["families"] if family["family"] == "editor-control"
+            )
+            validation = next(
+                family for family in payload["families"] if family["family"] == "validation"
             )
             assert asset_pipeline["supports_real_execution"] is True
             assert asset_pipeline["real_tool_paths"] == [
@@ -903,6 +908,31 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "editor.component.property.get" in note
                 for note in editor_control["notes"]
             )
+            assert validation["supports_real_execution"] is True
+            assert validation["real_tool_paths"] == ["test.visual.diff"]
+            assert validation["plan_only_tool_paths"] == []
+            assert sorted(validation["simulated_tool_paths"]) == [
+                "test.run.editor_python",
+                "test.run.gtest",
+                "test.tiaf.sequence",
+            ]
+            assert any(
+                "test.visual.diff" in note
+                for note in validation["notes"]
+            )
+
+
+def test_prompt_capabilities_reports_test_visual_diff_as_hybrid_read_only() -> None:
+    with isolated_client() as client:
+        response = client.get("/prompt/capabilities")
+        assert response.status_code == 200
+        payload = response.json()
+        entry = next(
+            item for item in payload["capabilities"] if item["tool_name"] == "test.visual.diff"
+        )
+        assert entry["agent_family"] == "validation"
+        assert entry["capability_maturity"] == "hybrid-read-only"
+        assert entry["safety_envelope"]["natural_language_status"] == "prompt-ready-read-only"
 
 
 def test_adapters_endpoint_reports_invalid_mode_truthfully() -> None:

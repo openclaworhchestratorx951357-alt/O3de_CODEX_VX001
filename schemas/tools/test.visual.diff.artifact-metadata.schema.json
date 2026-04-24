@@ -19,7 +19,10 @@
       "properties": {
         "tool": { "const": "test.visual.diff" },
         "agent": { "const": "validation" },
-        "execution_mode": { "const": "simulated" }
+        "execution_mode": {
+          "type": "string",
+          "enum": ["simulated", "real"]
+        }
       }
     }
   ]

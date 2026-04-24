@@ -12,12 +12,59 @@
   "properties": {
     "inspection_surface": {
       "type": "string",
-      "const": "simulated"
+      "enum": ["simulated", "artifact_file_comparison"]
     },
     "execution_boundary": { "type": "string", "minLength": 1 },
-    "simulated": { "type": "boolean", "const": true },
+    "simulated": { "type": "boolean" },
     "adapter_family": { "type": "string", "minLength": 1 },
     "adapter_mode": { "type": "string", "minLength": 1 },
-    "adapter_contract_version": { "type": "string", "minLength": 1 }
+    "adapter_contract_version": { "type": "string", "minLength": 1 },
+    "real_path_available": { "type": "boolean" },
+    "comparison_read_mode": { "type": "string", "minLength": 1 },
+    "baseline_artifact_id": { "type": "string", "minLength": 1 },
+    "candidate_artifact_id": { "type": "string", "minLength": 1 },
+    "threshold_requested": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "threshold_applied": { "type": "boolean" },
+    "threshold_unavailable_reason": { "type": ["string", "null"], "minLength": 1 },
+    "inspection_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "unavailable_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "baseline_resolution_status": { "type": "string", "minLength": 1 },
+    "baseline_artifact_found": { "type": "boolean" },
+    "baseline_local_path_resolved": { "type": ["string", "null"], "minLength": 1 },
+    "baseline_file_exists": { "type": "boolean" },
+    "baseline_file_readable": { "type": "boolean" },
+    "baseline_content_type": { "type": ["string", "null"], "minLength": 1 },
+    "baseline_extension": { "type": ["string", "null"], "minLength": 1 },
+    "baseline_size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+    "baseline_sha256": { "type": ["string", "null"], "minLength": 1 },
+    "candidate_resolution_status": { "type": "string", "minLength": 1 },
+    "candidate_artifact_found": { "type": "boolean" },
+    "candidate_local_path_resolved": { "type": ["string", "null"], "minLength": 1 },
+    "candidate_file_exists": { "type": "boolean" },
+    "candidate_file_readable": { "type": "boolean" },
+    "candidate_content_type": { "type": ["string", "null"], "minLength": 1 },
+    "candidate_extension": { "type": ["string", "null"], "minLength": 1 },
+    "candidate_size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+    "candidate_sha256": { "type": ["string", "null"], "minLength": 1 },
+    "comparison_attempted": { "type": "boolean" },
+    "comparison_available": { "type": "boolean" },
+    "comparison_method": { "type": ["string", "null"], "minLength": 1 },
+    "comparison_status": { "type": "string", "minLength": 1 },
+    "byte_identical": { "type": ["boolean", "null"] },
+    "file_size_delta_bytes": { "type": ["integer", "null"] },
+    "content_type_match": { "type": ["boolean", "null"] },
+    "image_like_inputs": { "type": "boolean" },
+    "visual_metric_available": { "type": "boolean" },
+    "visual_metric_name": { "type": ["string", "null"], "minLength": 1 },
+    "visual_metric_value": { "type": ["number", "null"] },
+    "visual_metric_unavailable_reason": { "type": "string", "minLength": 1 },
+    "fallback_category": { "type": "string", "minLength": 1 },
+    "fallback_reason": { "type": "string", "minLength": 1 }
   }
 }

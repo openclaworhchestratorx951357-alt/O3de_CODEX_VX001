@@ -1,15 +1,18 @@
 import csv
 import hashlib
 import json
+import mimetypes
 import os
 import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urlparse
 
 from app.models.api import AdapterFamilyStatus, AdapterModeStatus, AdaptersResponse
 from app.models.response_envelope import DispatchResult
+from app.services.artifacts import artifacts_service
 from app.services.catalog import catalog_service
 from app.services.editor_automation_runtime import (
     EDITOR_RUNTIME_BOUNDARY,
@@ -29,6 +32,7 @@ REAL_TOOL_PATHS_BY_MODE = {
         "asset.processor.status",
         "asset.source.inspect",
         "project.inspect",
+        "test.visual.diff",
     ],
 }
 PLAN_ONLY_TOOL_PATHS_BY_MODE = {
@@ -42,7 +46,9 @@ HYBRID_EXECUTION_BOUNDARY = (
     "Control-plane bookkeeping is real. In hybrid mode, asset.processor.status may "
     "use a real read-only host runtime probe, asset.source.inspect may "
     "use a real read-only project-local source inspection path, project.inspect may use a "
-    "real read-only project-manifest path, editor.level.open may use the "
+    "real read-only project-manifest path, test.visual.diff may use a real "
+    "read-only explicit artifact comparison path, "
+    "editor.level.open may use the "
     "live-validated admitted real editor runtime path on McpSandbox, "
     "editor.session.open may use the live-validated admitted real editor session path, "
     "editor.entity.create may use the live-validated admitted real root-level "
@@ -3428,6 +3434,420 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         return "unknown"
 
 
+class ValidationHybridAdapter(ToolExecutionAdapter):
+    def __init__(self, *, family: str, mode: str) -> None:
+        super().__init__(family=family, mode=mode)
+        self._simulated = SimulatedToolExecutionAdapter(family=family, mode=mode)
+
+    def execute(
+        self,
+        *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        if tool == "test.visual.diff":
+            return self._execute_test_visual_diff(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+            )
+
+        simulated = self._simulated.execute(
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+        )
+        simulated.warnings.append(
+            "Hybrid adapter mode is active, but this validation tool still runs "
+            "through the simulated path in this phase."
+        )
+        simulated.logs.append(
+            "Hybrid mode did not change execution for this validation tool; "
+            "the simulated adapter path remained in use."
+        )
+        simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        return simulated
+
+    def _execute_test_visual_diff(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        baseline_artifact_id = str(args.get("baseline_artifact_id", "")).strip()
+        candidate_artifact_id = str(args.get("candidate_artifact_id", "")).strip()
+        threshold = args.get("threshold")
+
+        baseline = self._inspect_artifact_file(baseline_artifact_id)
+        candidate = self._inspect_artifact_file(candidate_artifact_id)
+
+        comparison_attempted = bool(baseline.get("sha256")) and bool(candidate.get("sha256"))
+        byte_identical = (
+            baseline["sha256"] == candidate["sha256"] if comparison_attempted else None
+        )
+        file_size_delta_bytes = (
+            int(candidate["size_bytes"]) - int(baseline["size_bytes"])
+            if comparison_attempted
+            and isinstance(baseline.get("size_bytes"), int)
+            and isinstance(candidate.get("size_bytes"), int)
+            else None
+        )
+        content_type_match = (
+            baseline.get("content_type") == candidate.get("content_type")
+            if baseline.get("content_type") and candidate.get("content_type")
+            else None
+        )
+        image_like_inputs = bool(baseline.get("image_like")) and bool(candidate.get("image_like"))
+
+        inspection_evidence = [
+            "baseline_artifact_lookup",
+            "candidate_artifact_lookup",
+        ]
+        if baseline.get("file_readable") is True:
+            inspection_evidence.append("baseline_file_metadata")
+        if candidate.get("file_readable") is True:
+            inspection_evidence.append("candidate_file_metadata")
+        if comparison_attempted:
+            inspection_evidence.extend(
+                [
+                    "baseline_file_hash",
+                    "candidate_file_hash",
+                    "artifact_file_identity_comparison",
+                ]
+            )
+
+        unavailable_evidence: list[str] = []
+        if baseline.get("file_readable") is not True:
+            unavailable_evidence.append("baseline_file_read")
+        if candidate.get("file_readable") is not True:
+            unavailable_evidence.append("candidate_file_read")
+        if not comparison_attempted:
+            unavailable_evidence.append("comparison")
+        unavailable_evidence.append("visual_metric")
+
+        stronger_metric_reason = (
+            "No admitted real pixel-diff or perceptual image-diff substrate is available in this slice."
+        )
+        threshold_reason = (
+            "Threshold evaluation remains unavailable until a stronger admitted visual diff metric exists."
+        )
+        comparison_status = (
+            "identical"
+            if comparison_attempted and byte_identical is True
+            else "different"
+            if comparison_attempted and byte_identical is False
+            else "unavailable"
+        )
+
+        logs = [
+            "Real test.visual.diff executed through the admitted artifact comparison substrate.",
+            f"Baseline artifact lookup status: {baseline['resolution_status']}",
+            f"Candidate artifact lookup status: {candidate['resolution_status']}",
+        ]
+        warnings: list[str] = []
+        if baseline.get("warning"):
+            warnings.append(str(baseline["warning"]))
+            logs.append(str(baseline["warning"]))
+        if candidate.get("warning"):
+            warnings.append(str(candidate["warning"]))
+            logs.append(str(candidate["warning"]))
+        if comparison_attempted:
+            logs.append(
+                "Computed a real file-identity comparison from readable resolved artifact files."
+            )
+        else:
+            logs.append(
+                "Comparison evidence remained unavailable because one or both artifact inputs could not be read as local files."
+            )
+        logs.append(stronger_metric_reason)
+        if threshold is not None:
+            logs.append(threshold_reason)
+
+        message = (
+            "Read-only artifact comparison completed against the admitted local file substrate."
+        )
+        if comparison_status == "identical":
+            message = (
+                "Read-only artifact comparison completed and confirmed matching file identity for the requested inputs."
+            )
+        elif comparison_status == "different":
+            message = (
+                "Read-only artifact comparison completed and confirmed differing file identity for the requested inputs."
+            )
+
+        details = {
+            "inspection_surface": "artifact_file_comparison",
+            "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+            "simulated": False,
+            "adapter_family": self.family,
+            "adapter_mode": self.mode,
+            "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+            "real_path_available": True,
+            "comparison_read_mode": "read-only",
+            "baseline_artifact_id": baseline_artifact_id,
+            "candidate_artifact_id": candidate_artifact_id,
+            "threshold_requested": threshold,
+            "threshold_applied": False,
+            "threshold_unavailable_reason": threshold_reason if threshold is not None else None,
+            "inspection_evidence": inspection_evidence,
+            "unavailable_evidence": unavailable_evidence,
+            "baseline_resolution_status": baseline["resolution_status"],
+            "baseline_artifact_found": baseline["artifact_found"],
+            "baseline_local_path_resolved": baseline["resolved_path"],
+            "baseline_file_exists": baseline["file_exists"],
+            "baseline_file_readable": baseline["file_readable"],
+            "baseline_content_type": baseline["content_type"],
+            "baseline_extension": baseline["extension"],
+            "baseline_size_bytes": baseline["size_bytes"],
+            "baseline_sha256": baseline["sha256"],
+            "candidate_resolution_status": candidate["resolution_status"],
+            "candidate_artifact_found": candidate["artifact_found"],
+            "candidate_local_path_resolved": candidate["resolved_path"],
+            "candidate_file_exists": candidate["file_exists"],
+            "candidate_file_readable": candidate["file_readable"],
+            "candidate_content_type": candidate["content_type"],
+            "candidate_extension": candidate["extension"],
+            "candidate_size_bytes": candidate["size_bytes"],
+            "candidate_sha256": candidate["sha256"],
+            "comparison_attempted": comparison_attempted,
+            "comparison_available": comparison_attempted,
+            "comparison_method": "sha256-file-identity" if comparison_attempted else None,
+            "comparison_status": comparison_status,
+            "byte_identical": byte_identical,
+            "file_size_delta_bytes": file_size_delta_bytes,
+            "content_type_match": content_type_match,
+            "image_like_inputs": image_like_inputs,
+            "visual_metric_available": False,
+            "visual_metric_name": None,
+            "visual_metric_value": None,
+            "visual_metric_unavailable_reason": stronger_metric_reason,
+        }
+        result = DispatchResult(
+            status="real_success",
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            simulated=False,
+            execution_mode="real",
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+            message=message,
+        )
+        return AdapterExecutionReport(
+            execution_mode="real",
+            result=result,
+            warnings=warnings,
+            logs=logs,
+            artifact_label="Real artifact comparison evidence",
+            artifact_kind="artifact_comparison_result",
+            artifact_uri="artifact-diff://runs/{run_id}/executions/{execution_id}/comparison",
+            artifact_metadata={
+                "tool": tool,
+                "agent": agent,
+                "execution_mode": "real",
+                **details,
+            },
+            execution_details=details,
+            result_summary="Real artifact comparison substrate completed successfully.",
+        )
+
+    def _inspect_artifact_file(self, artifact_id: str) -> dict[str, Any]:
+        artifact = artifacts_service.get_artifact(artifact_id)
+        if artifact is None:
+            return {
+                "artifact_found": False,
+                "resolution_status": "artifact-missing",
+                "resolved_path": None,
+                "file_exists": False,
+                "file_readable": False,
+                "content_type": None,
+                "extension": None,
+                "size_bytes": None,
+                "sha256": None,
+                "image_like": False,
+                "warning": f"Artifact '{artifact_id}' was not found in the control-plane store.",
+            }
+
+        resolved_path = self._artifact_local_path(artifact.path, artifact.uri)
+        if resolved_path is None:
+            return {
+                "artifact_found": True,
+                "resolution_status": "no-local-file-path",
+                "resolved_path": None,
+                "file_exists": False,
+                "file_readable": False,
+                "content_type": artifact.content_type,
+                "extension": None,
+                "size_bytes": None,
+                "sha256": None,
+                "image_like": bool(
+                    isinstance(artifact.content_type, str)
+                    and artifact.content_type.startswith("image/")
+                ),
+                "warning": (
+                    f"Artifact '{artifact_id}' has no admitted local file path or file URI to compare."
+                ),
+            }
+
+        try:
+            exists = resolved_path.exists()
+        except OSError as exc:
+            return {
+                "artifact_found": True,
+                "resolution_status": "path-unavailable",
+                "resolved_path": str(resolved_path),
+                "file_exists": False,
+                "file_readable": False,
+                "content_type": artifact.content_type,
+                "extension": resolved_path.suffix or None,
+                "size_bytes": None,
+                "sha256": None,
+                "image_like": self._is_image_like(
+                    content_type=artifact.content_type,
+                    path=resolved_path,
+                ),
+                "warning": f"Artifact '{artifact_id}' path could not be inspected: {exc}",
+            }
+
+        if not exists:
+            return {
+                "artifact_found": True,
+                "resolution_status": "missing-on-disk",
+                "resolved_path": str(resolved_path),
+                "file_exists": False,
+                "file_readable": False,
+                "content_type": artifact.content_type,
+                "extension": resolved_path.suffix or None,
+                "size_bytes": None,
+                "sha256": None,
+                "image_like": self._is_image_like(
+                    content_type=artifact.content_type,
+                    path=resolved_path,
+                ),
+                "warning": f"Artifact '{artifact_id}' resolved to a missing local file.",
+            }
+
+        if not resolved_path.is_file():
+            return {
+                "artifact_found": True,
+                "resolution_status": "resolved-non-file",
+                "resolved_path": str(resolved_path),
+                "file_exists": True,
+                "file_readable": False,
+                "content_type": artifact.content_type,
+                "extension": resolved_path.suffix or None,
+                "size_bytes": None,
+                "sha256": None,
+                "image_like": self._is_image_like(
+                    content_type=artifact.content_type,
+                    path=resolved_path,
+                ),
+                "warning": f"Artifact '{artifact_id}' resolved locally but not as a file.",
+            }
+
+        try:
+            size_bytes = resolved_path.stat().st_size
+            sha256 = hashlib.sha256(resolved_path.read_bytes()).hexdigest()
+        except OSError as exc:
+            return {
+                "artifact_found": True,
+                "resolution_status": "read-failed",
+                "resolved_path": str(resolved_path),
+                "file_exists": True,
+                "file_readable": False,
+                "content_type": artifact.content_type,
+                "extension": resolved_path.suffix or None,
+                "size_bytes": None,
+                "sha256": None,
+                "image_like": self._is_image_like(
+                    content_type=artifact.content_type,
+                    path=resolved_path,
+                ),
+                "warning": f"Artifact '{artifact_id}' could not be read from disk: {exc}",
+            }
+
+        content_type = artifact.content_type or mimetypes.guess_type(str(resolved_path))[0]
+        return {
+            "artifact_found": True,
+            "resolution_status": "resolved-file",
+            "resolved_path": str(resolved_path),
+            "file_exists": True,
+            "file_readable": True,
+            "content_type": content_type,
+            "extension": resolved_path.suffix or None,
+            "size_bytes": size_bytes,
+            "sha256": sha256,
+            "image_like": self._is_image_like(content_type=content_type, path=resolved_path),
+            "warning": None,
+        }
+
+    def _artifact_local_path(self, artifact_path: str | None, artifact_uri: str | None) -> Path | None:
+        if artifact_path:
+            return Path(artifact_path).expanduser()
+        if not artifact_uri:
+            return None
+        parsed = urlparse(artifact_uri)
+        if parsed.scheme != "file":
+            return None
+        uri_path = unquote(parsed.path or "")
+        if parsed.netloc and not uri_path.startswith("//"):
+            uri_path = f"//{parsed.netloc}{uri_path}"
+        if os.name == "nt" and len(uri_path) >= 3 and uri_path.startswith("/") and uri_path[2] == ":":
+            uri_path = uri_path[1:]
+        return Path(uri_path).expanduser()
+
+    def _is_image_like(self, *, content_type: str | None, path: Path | None) -> bool:
+        if isinstance(content_type, str) and content_type.startswith("image/"):
+            return True
+        if path is None:
+            return False
+        return path.suffix.lower() in {
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".bmp",
+            ".tif",
+            ".tiff",
+            ".tga",
+            ".gif",
+            ".webp",
+            ".dds",
+        }
+
+
 class AdapterService:
     def _real_tool_paths_for_mode(self, active_mode: str) -> list[str]:
         return list(REAL_TOOL_PATHS_BY_MODE.get(active_mode, []))
@@ -3468,6 +3888,12 @@ class AdapterService:
                 for tool_name in self._real_tool_paths_for_mode(active_mode)
                 if tool_name.startswith("editor.")
             }
+        if active_mode == "hybrid" and family == "validation":
+            family_real = {
+                tool_name
+                for tool_name in self._real_tool_paths_for_mode(active_mode)
+                if tool_name.startswith("test.")
+            }
         return sorted(
             tool_name
             for tool_name in tool_names
@@ -3495,6 +3921,11 @@ class AdapterService:
                 )
             elif configured_mode == "hybrid" and agent.id == "editor-control":
                 registry[agent.id] = EditorControlHybridAdapter(
+                    family=agent.id,
+                    mode=configured_mode,
+                )
+            elif configured_mode == "hybrid" and agent.id == "validation":
+                registry[agent.id] = ValidationHybridAdapter(
                     family=agent.id,
                     mode=configured_mode,
                 )
@@ -3532,6 +3963,7 @@ class AdapterService:
                     "Hybrid mode currently enables a real read-only asset.source.inspect "
                     "path for explicit project-local source files, a real read-only "
                     "asset.processor.status host runtime probe, a real read-only "
+                    "test.visual.diff explicit artifact comparison substrate, a real read-only "
                     "project.inspect path, admitted real editor session/level runtime paths, "
                     "an admitted real root-level editor.entity.create path on "
                     "McpSandbox, an admitted allowlist-bound editor.component.add "
@@ -3572,6 +4004,8 @@ class AdapterService:
                     "the explicit source path resolves within the current project root.",
                     "Hybrid mode enables a real read-only project.inspect path when its "
                     "manifest preconditions are satisfied.",
+                    "Hybrid mode enables a real read-only test.visual.diff substrate "
+                    "when both requested artifact ids resolve to admitted local files.",
                     "Hybrid mode also enables admitted real editor runtime paths for "
                     "editor.session.open, editor.level.open, editor.entity.create, "
                     "the allowlist-bound editor.component.add path, and the explicit "
@@ -3657,7 +4091,7 @@ class AdapterService:
         for family in runtime_status.available_families:
             family_supports_real = (
                 runtime_status.active_mode == "hybrid"
-                and family in {"asset-pipeline", "project-build", "editor-control"}
+                and family in {"asset-pipeline", "project-build", "editor-control", "validation"}
             )
             family_real_tool_paths = (
                 [
@@ -3672,6 +4106,7 @@ class AdapterService:
                         and tool_name.startswith(("project.", "build.", "settings.", "gem."))
                     )
                     or (family == "editor-control" and tool_name.startswith("editor."))
+                    or (family == "validation" and tool_name.startswith("test."))
                 ]
                 if family_supports_real
                 else []
@@ -3708,6 +4143,11 @@ class AdapterService:
                         "editor.entity.create, editor.component.add, and "
                         "editor.component.property.get currently have admitted real "
                         "runtime-owned editor paths in this family."
+                    )
+                if family == "validation":
+                    family_notes.append(
+                        "test.visual.diff currently has a real read-only admitted "
+                        "artifact comparison substrate in this family."
                     )
             elif runtime_status.active_mode == "hybrid":
                 family_notes.append(

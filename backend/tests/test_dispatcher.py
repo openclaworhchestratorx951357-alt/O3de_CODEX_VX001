@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
+from app.models.control_plane import ExecutionStatus
 from app.models.request_envelope import RequestEnvelope
 from app.services.approvals import approvals_service
 from app.services.artifacts import artifacts_service
@@ -21,6 +22,59 @@ from app.services.executions import executions_service
 from app.services.locks import locks_service
 from app.services.runs import runs_service
 from app.services.schema_validation import schema_validation_service
+
+
+def create_test_artifact_record(
+    *,
+    path: Path,
+    label: str,
+    content_type: str = "image/png",
+) -> str:
+    seed_request = RequestEnvelope(
+        request_id=f"seed-{label.lower().replace(' ', '-')}",
+        tool="test.visual.diff",
+        agent="validation",
+        project_root=str(path.parent),
+        engine_root=str(path.parent),
+        dry_run=True,
+        locks=[],
+        timeout_s=30,
+        args={},
+    )
+    run = runs_service.create_run(
+        seed_request,
+        requested_locks=[],
+        execution_mode="real",
+    )
+    execution = executions_service.create_execution(
+        run_id=run.id,
+        request_id=seed_request.request_id,
+        agent="validation",
+        tool="test.visual.diff",
+        execution_mode="real",
+        status=ExecutionStatus.SUCCEEDED,
+        result_summary="Seed artifact execution.",
+    )
+    artifact = artifacts_service.create_artifact(
+        run_id=run.id,
+        execution_id=execution.id,
+        label=label,
+        kind="test_image",
+        uri=path.as_uri(),
+        path=str(path),
+        content_type=content_type,
+        simulated=False,
+        metadata={
+            "tool": "test.seed",
+            "agent": "validation",
+            "execution_mode": "real",
+            "inspection_surface": "seeded_artifact",
+        },
+        artifact_role="evidence",
+        retention_class="test-log-evidence",
+        evidence_completeness="seeded-local-file",
+    )
+    return artifact.id
 
 
 def make_request(
@@ -237,11 +291,15 @@ def approve_render_shader_rebuild_request() -> RequestEnvelope:
     return approved_request
 
 
-def make_test_visual_diff_request() -> RequestEnvelope:
+def make_test_visual_diff_request(
+    *,
+    baseline_artifact_id: str = "artifact-baseline-001",
+    candidate_artifact_id: str = "artifact-candidate-001",
+) -> RequestEnvelope:
     request = make_request("validation", "test.visual.diff")
     request.args = {
-        "baseline_artifact_id": "artifact-baseline-001",
-        "candidate_artifact_id": "artifact-candidate-001",
+        "baseline_artifact_id": baseline_artifact_id,
+        "candidate_artifact_id": candidate_artifact_id,
         "threshold": 0.1,
     }
     return request
@@ -4297,6 +4355,111 @@ def test_test_visual_diff_simulated_persisted_payloads_match_published_schemas(
         assert artifact.simulated is True
         assert artifact.metadata["execution_mode"] == "simulated"
         assert artifact.metadata["inspection_surface"] == "simulated"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="test.visual.diff",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="test.visual.diff",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_test_visual_diff_uses_real_artifact_comparison_substrate_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        root = Path(temp_dir)
+        baseline_path = root / "baseline.png"
+        candidate_path = root / "candidate.png"
+        baseline_path.write_bytes(b"baseline-image")
+        candidate_path.write_bytes(b"candidate-image")
+
+        baseline_artifact_id = create_test_artifact_record(
+            path=baseline_path,
+            label="Baseline image",
+        )
+        candidate_artifact_id = create_test_artifact_record(
+            path=candidate_path,
+            label="Candidate image",
+        )
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                make_test_visual_diff_request(
+                    baseline_artifact_id=baseline_artifact_id,
+                    candidate_artifact_id=candidate_artifact_id,
+                )
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "artifact_file_comparison"
+        assert execution.details["comparison_available"] is True
+        assert execution.details["comparison_status"] == "different"
+        assert execution.details["byte_identical"] is False
+        assert execution.details["visual_metric_available"] is False
+        assert execution.details["baseline_artifact_found"] is True
+        assert execution.details["candidate_artifact_found"] is True
+        assert artifact is not None
+        assert artifact.simulated is False
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "artifact_file_comparison"
+
+
+def test_test_visual_diff_real_persisted_payloads_match_published_schemas() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        root = Path(temp_dir)
+        baseline_path = root / "baseline.png"
+        candidate_path = root / "candidate.png"
+        baseline_path.write_bytes(b"same-image")
+        candidate_path.write_bytes(b"same-image")
+
+        baseline_artifact_id = create_test_artifact_record(
+            path=baseline_path,
+            label="Baseline schema image",
+        )
+        candidate_artifact_id = create_test_artifact_record(
+            path=candidate_path,
+            label="Candidate schema image",
+        )
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                make_test_visual_diff_request(
+                    baseline_artifact_id=baseline_artifact_id,
+                    candidate_artifact_id=candidate_artifact_id,
+                )
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["comparison_status"] == "identical"
+        assert execution.details["byte_identical"] is True
+        assert artifact is not None
         assert (
             schema_validation_service.validate_execution_details(
                 tool_name="test.visual.diff",

@@ -102,6 +102,15 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             retention_class="inspection-evidence",
             natural_language_status="prompt-ready-read-only",
         )
+    if tool_name == "test.visual.diff":
+        return _build_safety_envelope(
+            state_scope="Explicit baseline-versus-candidate artifact comparison scope.",
+            backup_class="none",
+            rollback_class="none",
+            verification_class="artifact resolution and comparison readback verification",
+            retention_class="visual-diff-evidence",
+            natural_language_status="prompt-ready-read-only",
+        )
     if tool_name == "settings.patch":
         return _build_safety_envelope(
             state_scope="Manifest-backed admitted settings mutation subset.",
@@ -446,11 +455,11 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": True,
     },
     "test.visual.diff": {
-        "capability_maturity": "simulated-only",
+        "capability_maturity": "hybrid-read-only",
         "planner_intent_aliases": ["visual diff", "compare screenshots", "image diff"],
         "natural_language_affordances": ["Compare an explicit baseline artifact id against a candidate artifact id."],
         "allowlisted_parameter_surfaces": ["baseline_artifact_id", "candidate_artifact_id", "threshold"],
-        "real_adapter_availability": False,
+        "real_adapter_availability": True,
         "dry_run_availability": True,
         "simulation_fallback_availability": True,
     },

@@ -512,6 +512,9 @@ class PromptOrchestratorService:
             session, "asset-processor-1"
         )
         asset_response = self._latest_successful_response_for_step(session, "asset-inspect-1")
+        visual_diff_response = self._latest_successful_response_for_step(
+            session, "validation-visual-diff-1"
+        )
 
         summary_parts: list[str] = []
         if entity_response is not None:
@@ -619,6 +622,30 @@ class PromptOrchestratorService:
                     summary_parts.append(
                         "Dependency evidence remains unavailable in this admitted slice."
                     )
+
+        if visual_diff_response is not None:
+            details = visual_diff_response.get("execution_details", {})
+            comparison_status = details.get("comparison_status")
+            if comparison_status == "identical":
+                summary_parts.append(
+                    "Artifact comparison confirmed matching file identity for the requested inputs."
+                )
+            elif comparison_status == "different":
+                summary_parts.append(
+                    "Artifact comparison confirmed differing file identity for the requested inputs."
+                )
+            else:
+                summary_parts.append(
+                    "Artifact comparison evidence remained partially unavailable for the requested inputs."
+                )
+            if details.get("visual_metric_available") is True:
+                summary_parts.append(
+                    f"Visual metric readback confirmed {details.get('visual_metric_name')} = {details.get('visual_metric_value')}."
+                )
+            else:
+                summary_parts.append(
+                    "Stronger visual diff metrics remain unavailable in this admitted slice."
+                )
 
         if entity_response is not None:
             self._append_restore_boundary_summary(
