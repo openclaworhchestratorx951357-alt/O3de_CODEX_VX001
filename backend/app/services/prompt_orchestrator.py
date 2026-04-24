@@ -768,10 +768,20 @@ class PromptOrchestratorService:
         if gem_enable_response is not None:
             details = gem_enable_response.get("execution_details", {})
             requested_gem_name = details.get("requested_gem_name")
+            mutation_applied = details.get("mutation_applied") is True
+            mutation_blocked = details.get("mutation_blocked") is True
             if isinstance(requested_gem_name, str) and requested_gem_name:
-                if details.get("requested_gem_already_enabled") is True:
+                if mutation_applied:
+                    summary_parts.append(
+                        f"Gem enable mutation inserted {requested_gem_name} into project.json and verified the manifest write."
+                    )
+                elif details.get("requested_gem_already_enabled") is True:
                     summary_parts.append(
                         f"Gem enable preflight confirmed manifest-backed gem state already contains {requested_gem_name}."
+                    )
+                elif mutation_blocked:
+                    summary_parts.append(
+                        f"Gem enable preflight published a mutation-ready local gem_names insertion plan for {requested_gem_name}, but writes remain intentionally disabled."
                     )
                 else:
                     summary_parts.append(
@@ -785,7 +795,11 @@ class PromptOrchestratorService:
                 summary_parts.append(
                     "Gem enable preflight recorded that configured build tree evidence remains unavailable for downstream impact review."
                 )
-            if details.get("execution_attempted") is True:
+            if mutation_applied:
+                summary_parts.append(
+                    "Real gem.enable mutation completed within the admitted backup and rollback boundary."
+                )
+            elif details.get("execution_attempted") is True:
                 summary_parts.append("Real gem.enable execution was attempted in this slice.")
             else:
                 summary_parts.append(

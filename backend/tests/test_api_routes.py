@@ -1150,6 +1150,19 @@ def test_policies_route_marks_settings_patch_as_real_mutation_preflight_active()
         assert "set-only mutation path" in settings_patch["next_real_requirement"].lower()
 
 
+def test_policies_route_marks_gem_enable_as_real_mutation_preflight_active() -> None:
+    with isolated_client() as client:
+        response = client.get("/policies")
+        assert response.status_code == 200
+        gem_enable = next(
+            policy for policy in response.json()["policies"] if policy["tool"] == "gem.enable"
+        )
+        assert gem_enable["real_admission_stage"] == "real-mutation-preflight-active"
+        assert "backup" in gem_enable["next_real_requirement"].lower()
+        assert "local gem_names insertion" in gem_enable["next_real_requirement"].lower()
+        assert "version resolution" in gem_enable["next_real_requirement"].lower()
+
+
 def test_policies_route_exposes_truthful_execution_mode_and_dry_run_support() -> None:
     with isolated_client() as client:
         response = client.get("/policies")
@@ -3603,10 +3616,11 @@ def test_dispatch_route_uses_real_gem_enable_preflight_in_hybrid_mode() -> None:
                 assert workspace["owner_executor_id"] == executor["id"]
 
 
-def test_dispatch_route_records_gem_enable_dry_run_fallback_provenance_in_hybrid_mode() -> None:
+def test_dispatch_route_uses_real_gem_enable_mutation_in_hybrid_mode() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)
-        (project_root / "project.json").write_text(
+        manifest_path = project_root / "project.json"
+        manifest_path.write_text(
             json.dumps({"project_name": "ApiGemProject", "gem_names": []}),
             encoding="utf-8",
         )
@@ -3651,20 +3665,90 @@ def test_dispatch_route_records_gem_enable_dry_run_fallback_provenance_in_hybrid
                 assert approved_dispatch.status_code == 200
                 payload = approved_dispatch.json()
                 assert payload["ok"] is True
-                assert payload["result"]["simulated"] is True
+                assert payload["result"]["simulated"] is False
+                assert payload["result"]["execution_mode"] == "real"
+                assert "inserted 'ExampleGem' into project.json" in payload["result"]["message"]
 
                 executions = client.get("/executions")
+                execution_cards = client.get("/executions/cards")
+                artifacts = client.get("/artifacts")
+                artifact_cards = client.get("/artifacts/cards")
+                executors = client.get("/executors")
+                workspaces = client.get("/workspaces")
+                executions = client.get("/executions")
                 assert executions.status_code == 200
+                assert execution_cards.status_code == 200
+                assert artifacts.status_code == 200
+                assert artifact_cards.status_code == 200
+                assert executors.status_code == 200
+                assert workspaces.status_code == 200
                 execution = next(
                     execution
                     for execution in executions.json()["executions"]
                     if execution["run_id"] == payload["operation_id"]
                 )
-                assert execution["details"]["real_path_available"] is False
-                assert execution["details"]["fallback_category"] == "dry-run-required"
-                assert "dry_run=true" in execution["details"]["fallback_reason"]
-                assert execution["details"]["project_root_path"] == str(project_root.resolve())
+                execution_card = next(
+                    item
+                    for item in execution_cards.json()["executions"]
+                    if item["run_id"] == payload["operation_id"]
+                )
+                artifact = next(
+                    item
+                    for item in artifacts.json()["artifacts"]
+                    if item["run_id"] == payload["operation_id"]
+                )
+                artifact_card = next(
+                    item
+                    for item in artifact_cards.json()["artifacts"]
+                    if item["run_id"] == payload["operation_id"]
+                )
+                executor = next(
+                    item
+                    for item in executors.json()["executors"]
+                    if item["id"] == execution["executor_id"]
+                )
+                workspace = next(
+                    item
+                    for item in workspaces.json()["workspaces"]
+                    if item["id"] == execution["workspace_id"]
+                )
+
+                assert execution["details"]["inspection_surface"] == "gem_enable_mutation"
                 assert execution["details"]["requested_gem_name"] == "ExampleGem"
+                assert execution["details"]["requested_gem_already_enabled"] is False
+                assert execution["details"]["mutation_applied"] is True
+                assert execution["details"]["execution_attempted"] is True
+                assert execution["details"]["post_write_verification_succeeded"] is True
+                assert execution["details"]["result_artifact_produced"] is False
+                assert execution["executor_id"] == "executor-project-build-hybrid-mutation-gated-local-gem"
+                assert execution["workspace_id"] == f"workspace-gem-enable-{execution['id']}"
+                assert execution["runner_family"] == "cli"
+                assert execution["execution_attempt_state"] == "completed"
+                assert execution_card["executor_id"] == execution["executor_id"]
+                assert execution_card["workspace_id"] == execution["workspace_id"]
+
+                assert artifact["executor_id"] == execution["executor_id"]
+                assert artifact["workspace_id"] == execution["workspace_id"]
+                assert artifact["artifact_role"] == "mutation-evidence"
+                assert artifact["retention_class"] == "operator-configured"
+                assert artifact["evidence_completeness"] == "mutation-backed"
+                assert artifact_card["artifact_role"] == "mutation-evidence"
+                assert artifact_card["evidence_completeness"] == "mutation-backed"
+
+                assert executor["id"] == "executor-project-build-hybrid-mutation-gated-local-gem"
+                assert sorted(executor["capability_snapshot"]["admitted_tools"]) == [
+                    "gem.enable",
+                    "project.inspect",
+                ]
+
+                assert workspace["id"] == execution["workspace_id"]
+                assert workspace["workspace_root"] == str(project_root.resolve())
+                assert workspace["workspace_kind"] == "admitted-mutation-gated-project-root"
+                assert workspace["cleanup_policy"] == "operator-managed-backup-rollback"
+                assert workspace["runner_family"] == "cli"
+
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                assert manifest["gem_names"] == ["ExampleGem"]
 
 
 def test_dispatch_route_uses_real_settings_patch_preflight_in_hybrid_mode() -> None:

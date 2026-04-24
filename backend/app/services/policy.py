@@ -37,7 +37,7 @@ def tool_real_admission_stage(tool_name: str) -> str:
     if tool_name == "settings.patch":
         return "real-mutation-preflight-active"
     if tool_name == "gem.enable":
-        return "real-plan-only-active"
+        return "real-mutation-preflight-active"
     if tool_name == "build.compile":
         return "real-plan-only-active"
     return "simulated-only"
@@ -153,10 +153,11 @@ def tool_next_real_requirement(tool_name: str) -> str:
         )
     if tool_name == "gem.enable":
         return (
-            "Keep real execution limited to explicit gem.enable preflight and "
-            "manifest/build-state evidence, with actual manifest mutation, Gem "
-            "recovery, and downstream configure impacts marked unavailable unless "
-            "an admitted mutation path is proven."
+            "Keep real execution tightly limited to explicit gem.enable preflight "
+            "and the first manifest-backed local gem_names insertion path, with "
+            "backup, rollback, post-write verification, and failure-visible "
+            "behavior kept explicit while version resolution, optional semantics, "
+            "dependency recovery, and downstream configure impacts remain unavailable."
         )
     if tool_name == "build.compile":
         return (

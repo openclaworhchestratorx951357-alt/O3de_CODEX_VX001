@@ -4151,20 +4151,26 @@ def test_gem_enable_records_missing_manifest_gem_state_in_hybrid_mode() -> None:
             for execution in executions_service.list_executions()
             if execution.run_id == run_id
         )
+        assert execution.details["inspection_surface"] == "gem_enable_preflight"
         assert execution.details["requested_gem_already_enabled"] is False
         assert execution.details["manifest_mutation_required"] is True
+        assert execution.details["manifest_write_available"] is True
+        assert execution.details["backup_created"] is True
+        assert execution.details["mutation_ready"] is True
+        assert execution.details["mutation_blocked"] is True
         assert execution.details["matched_requested_gem_names"] == []
         assert execution.details["missing_requested_gem_names"] == ["ExampleGem"]
         assert execution.details["configured_build_tree_available"] is False
         assert execution.details["gem_entries_present"] is False
         assert execution.details["execution_attempted"] is False
+        assert execution.details["result_unavailable_reason"] is not None
         assert any(
             "configured build-tree evidence remains unavailable" in warning.lower()
             for warning in execution.warnings
         )
 
 
-def test_gem_enable_records_dry_run_required_fallback_provenance_in_hybrid_mode() -> None:
+def test_gem_enable_writes_manifest_on_fully_admitted_path_in_hybrid_mode() -> None:
     with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)
         manifest_path = project_root / "project.json"
@@ -4180,7 +4186,7 @@ def test_gem_enable_records_dry_run_required_fallback_provenance_in_hybrid_mode(
 
         assert response.ok is True
         assert response.result is not None
-        assert response.result.simulated is True
+        assert response.result.simulated is False
         run_id = response.operation_id
         assert run_id is not None
         execution = next(
@@ -4188,11 +4194,76 @@ def test_gem_enable_records_dry_run_required_fallback_provenance_in_hybrid_mode(
             for execution in executions_service.list_executions()
             if execution.run_id == run_id
         )
-        assert execution.details["inspection_surface"] == "simulated"
-        assert execution.details["real_path_available"] is False
-        assert execution.details["fallback_category"] == "dry-run-required"
-        assert "dry_run=true" in execution.details["fallback_reason"]
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "gem_enable_mutation"
         assert execution.details["requested_gem_name"] == "ExampleGem"
+        assert execution.details["requested_gem_already_enabled"] is False
+        assert execution.details["manifest_mutation_required"] is True
+        assert execution.details["backup_created"] is True
+        assert execution.details["mutation_ready"] is True
+        assert execution.details["mutation_blocked"] is False
+        assert execution.details["mutation_applied"] is True
+        assert execution.details["execution_attempted"] is True
+        assert execution.details["result_status"] == "mutation-applied"
+        assert execution.details["post_write_verification_attempted"] is True
+        assert execution.details["post_write_verification_succeeded"] is True
+        assert execution.details["verified_requested_gem_present"] is True
+        assert execution.details["matched_requested_gem_names"] == ["ExampleGem"]
+        assert execution.details["missing_requested_gem_names"] == []
+        assert artifact is not None
+        assert artifact.simulated is False
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "gem_enable_mutation"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        assert manifest["gem_names"] == ["ExampleGem"]
+
+
+def test_gem_enable_rolls_back_when_manifest_write_fails() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        manifest_path = project_root / "project.json"
+        manifest_path.write_text(
+            json.dumps({"project_name": "GemProject", "gem_names": []}),
+            encoding="utf-8",
+        )
+
+        original_write_text = Path.write_text
+        failed_once = {"manifest_write": False}
+
+        def patched_write_text(
+            self: Path,
+            data: str,
+            *args: object,
+            **kwargs: object,
+        ) -> int:
+            if self == manifest_path and not failed_once["manifest_write"]:
+                failed_once["manifest_write"] = True
+                raise OSError("write failed")
+            return original_write_text(self, data, *args, **kwargs)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch("pathlib.Path.write_text", new=patched_write_text):
+                response = dispatcher_service.dispatch(
+                    approve_gem_enable_request(project_root=str(project_root), dry_run=False)
+                )
+
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "ADAPTER_PRECHECK_FAILED"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        assert execution.details["inspection_surface"] == "gem_enable_mutation"
+        assert execution.details["rollback_attempted"] is True
+        assert execution.details["rollback_succeeded"] is True
+        assert execution.details["rollback_trigger"] == "mutation_write_failure"
+        assert execution.details["rollback_outcome"] == "restored_and_verified"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        assert manifest["gem_names"] == []
 
 
 def test_gem_enable_real_persisted_payloads_match_published_schemas() -> None:
@@ -4200,13 +4271,13 @@ def test_gem_enable_real_persisted_payloads_match_published_schemas() -> None:
         project_root = Path(temp_dir)
         manifest_path = project_root / "project.json"
         manifest_path.write_text(
-            json.dumps({"project_name": "GemProject", "gem_names": ["ExampleGem"]}),
+            json.dumps({"project_name": "GemProject", "gem_names": []}),
             encoding="utf-8",
         )
 
         with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
             response = dispatcher_service.dispatch(
-                approve_gem_enable_request(project_root=str(project_root))
+                approve_gem_enable_request(project_root=str(project_root), dry_run=False)
             )
 
         assert response.ok is True
@@ -4220,15 +4291,15 @@ def test_gem_enable_real_persisted_payloads_match_published_schemas() -> None:
             if execution.run_id == run_id
         )
         artifact = artifacts_service.get_artifact(response.artifacts[0])
-        assert execution.details["inspection_surface"] == "gem_enable_preflight"
-        assert execution.details["preflight_execution_mode"] == "plan-only"
-        assert execution.details["requested_gem_already_enabled"] is True
-        assert execution.details["execution_attempted"] is False
+        assert execution.details["inspection_surface"] == "gem_enable_mutation"
+        assert execution.details["requested_gem_already_enabled"] is False
+        assert execution.details["mutation_applied"] is True
+        assert execution.details["execution_attempted"] is True
         assert execution.details["result_artifact_produced"] is False
         assert artifact is not None
         assert artifact.simulated is False
         assert artifact.metadata["execution_mode"] == "real"
-        assert artifact.metadata["inspection_surface"] == "gem_enable_preflight"
+        assert artifact.metadata["inspection_surface"] == "gem_enable_mutation"
         assert (
             schema_validation_service.validate_execution_details(
                 tool_name="gem.enable",

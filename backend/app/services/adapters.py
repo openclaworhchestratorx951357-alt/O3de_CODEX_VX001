@@ -83,8 +83,9 @@ HYBRID_EXECUTION_BOUNDARY = (
     "component property read path on McpSandbox, "
     "build.configure may use a real plan-only preflight path, build.compile may "
     "use a real plan-only explicit target preflight and result-truth substrate, "
-    "gem.enable may use a real plan-only explicit gem-request preflight and result-truth "
-    "substrate, "
+    "gem.enable may use a real explicit gem-request preflight substrate and a "
+    "first mutation-gated manifest-backed local gem_names insertion path with "
+    "backup, rollback, and post-write verification, "
     "settings.patch may use a real dry-run-only preflight path, test.run.gtest may use a real "
     "plan-only runner preflight and result-truth substrate for explicit target "
     "requests, test.run.editor_python may use a real plan-only runner preflight "
@@ -3351,22 +3352,6 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         requested_version = str(args.get("version", "")).strip() or None
         optional_flag_requested = "optional" in args
         requested_optional = args.get("optional") if optional_flag_requested else None
-        if not dry_run:
-            return self._fallback_gem_enable(
-                tool=tool,
-                agent=agent,
-                project_root=project_root,
-                engine_root=engine_root,
-                dry_run=dry_run,
-                args=args,
-                approval_class=approval_class,
-                locks_acquired=locks_acquired,
-                reason=(
-                    "Real gem.enable substrate evidence is currently limited to "
-                    "dry_run=true preflight requests; actual gem mutation remains non-admitted."
-                ),
-                fallback_category="dry-run-required",
-            )
         if not requested_gem_name:
             return self._fallback_gem_enable(
                 tool=tool,
@@ -3417,17 +3402,32 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             )
 
         project_name = self._manifest_string_value(manifest, "project_name")
-        enabled_gems = self._normalized_string_list(manifest.get("gem_names"))
-        requested_gem_already_enabled = requested_gem_name in enabled_gems
-        matched_requested_gem_names = (
-            [requested_gem_name] if requested_gem_already_enabled else []
-        )
-        missing_requested_gem_names = (
-            [] if requested_gem_already_enabled else [requested_gem_name]
-        )
-        matched_requested_gem_count = len(matched_requested_gem_names)
-        missing_requested_gem_count = len(missing_requested_gem_names)
+        raw_gem_names = manifest.get("gem_names")
+        current_gem_names = self._normalized_string_list(raw_gem_names)
+        requested_gem_already_enabled = requested_gem_name in current_gem_names
         manifest_mutation_required = not requested_gem_already_enabled
+        gem_names_field_present = "gem_names" in manifest
+        gem_names_shape_supported = (
+            not gem_names_field_present
+            or (
+                isinstance(raw_gem_names, list)
+                and all(
+                    isinstance(entry, str)
+                    and bool(entry.strip())
+                    and entry == entry.strip()
+                    for entry in raw_gem_names
+                )
+            )
+        )
+        gem_names_shape_unavailable_reason = (
+            None
+            if gem_names_shape_supported
+            else (
+                "The current project.json gem_names field is not a clean local list of "
+                "trimmed strings, so manifest repair/normalization remains outside the "
+                "first admitted gem.enable mutation slice."
+            )
+        )
         manifest_path_relative_to_project_root = (
             str(manifest_path.relative_to(resolved_project_root))
             if manifest_path.is_relative_to(resolved_project_root)
@@ -3437,6 +3437,367 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         manifest_keys = sorted(str(key) for key in manifest.keys())
         build_root = resolved_project_root / "build"
         configure_probe = self._probe_configured_build_tree(build_root=build_root)
+        mutation_scope_admitted = (
+            manifest_mutation_required
+            and requested_version is None
+            and not optional_flag_requested
+            and gem_names_shape_supported
+        )
+        backup_target = manifest_path.with_suffix(f"{manifest_path.suffix}.bak")
+        backup_source_path = str(manifest_path)
+        backup_created = False
+        backup_error: str | None = None
+        if mutation_scope_admitted:
+            try:
+                backup_target.write_text(
+                    manifest_path.read_text(encoding="utf-8"),
+                    encoding="utf-8",
+                )
+                backup_created = True
+            except OSError as exc:
+                backup_error = str(exc)
+                raise AdapterExecutionRejected(
+                    "Real gem.enable preflight was rejected because the backup file "
+                    "could not be created before any admitted mutation-capable step.",
+                    details={
+                        "inspection_surface": "gem_enable_preflight",
+                        "project_manifest_path": str(manifest_path),
+                        "requested_gem_name": requested_gem_name,
+                        "backup_target": str(backup_target),
+                        "backup_created": False,
+                        "backup_error": backup_error,
+                    },
+                    warnings=[
+                        "gem.enable preflight was rejected before mutation because the "
+                        "backup file could not be created."
+                    ],
+                    logs=[
+                        "Hybrid adapter mode enabled a real gem.enable preflight path.",
+                        f"Read project manifest from '{manifest_path}'.",
+                        f"Backup creation failed for '{backup_target}': {backup_error}",
+                    ],
+                ) from exc
+
+        rollback_strategy = "restore-project-manifest-backup"
+        rollback_ready = backup_created and mutation_scope_admitted
+        mutation_ready = rollback_ready
+        mutation_blocked = dry_run and mutation_ready
+        mutation_blocked_reason = (
+            "Validated mutation-ready gem.enable plan remains intentionally "
+            "write-disabled because dry_run=true."
+            if mutation_blocked
+            else None
+        )
+        mutation_applied = mutation_ready and not dry_run
+        rollback_attempted = False
+        rollback_succeeded = False
+        rollback_outcome: str | None = None
+        rollback_trigger: str | None = None
+        rollback_verification_attempted = False
+        rollback_verification_succeeded = False
+        rollback_verification_error: str | None = None
+        verification_error: str | None = None
+        post_write_verification_attempted = False
+        post_write_verification_succeeded = False
+        verified_requested_gem_present = requested_gem_name in current_gem_names
+
+        def _build_mutation_audit(*, phase: str, status: str, summary: str) -> dict[str, Any]:
+            return {
+                "phase": phase,
+                "status": status,
+                "backup_created": backup_created,
+                "backup_target": str(backup_target),
+                "backup_source_path": backup_source_path,
+                "mutation_ready": mutation_ready,
+                "mutation_blocked": mutation_blocked,
+                "mutation_applied": mutation_applied,
+                "post_write_verification_attempted": post_write_verification_attempted,
+                "post_write_verification_succeeded": post_write_verification_succeeded,
+                "verified_requested_gem_present": verified_requested_gem_present,
+                "rollback_attempted": rollback_attempted,
+                "rollback_succeeded": rollback_succeeded,
+                "rollback_trigger": rollback_trigger,
+                "rollback_outcome": rollback_outcome,
+                "summary": summary,
+            }
+
+        def _attempt_rollback() -> tuple[bool, bool, str | None, str | None, str]:
+            rollback_error_local: str | None = None
+            rollback_verification_error_local: str | None = None
+            rollback_verification_succeeded_local = False
+            rollback_outcome_local = "restore_failed"
+            try:
+                backup_payload = backup_target.read_text(encoding="utf-8")
+                manifest_path.write_text(backup_payload, encoding="utf-8")
+                try:
+                    restored_payload = manifest_path.read_text(encoding="utf-8")
+                    rollback_verification_succeeded_local = restored_payload == backup_payload
+                    rollback_outcome_local = (
+                        "restored_and_verified"
+                        if rollback_verification_succeeded_local
+                        else "restored_but_unverified"
+                    )
+                    if not rollback_verification_succeeded_local:
+                        rollback_verification_error_local = (
+                            "Restored manifest content did not match backup payload."
+                        )
+                except OSError as exc:
+                    rollback_verification_error_local = str(exc)
+                    rollback_outcome_local = "restored_but_unverified"
+                return (
+                    True,
+                    rollback_verification_succeeded_local,
+                    rollback_error_local,
+                    rollback_verification_error_local,
+                    rollback_outcome_local,
+                )
+            except OSError as exc:
+                rollback_error_local = str(exc)
+                return (
+                    False,
+                    False,
+                    rollback_error_local,
+                    rollback_verification_error_local,
+                    rollback_outcome_local,
+                )
+
+        if mutation_applied:
+            existing_gem_names_for_write = (
+                list(raw_gem_names)
+                if isinstance(raw_gem_names, list) and gem_names_shape_supported
+                else []
+            )
+            mutated_manifest = dict(manifest)
+            mutated_manifest["gem_names"] = existing_gem_names_for_write + [requested_gem_name]
+            try:
+                manifest_path.write_text(
+                    json.dumps(mutated_manifest, indent=2) + "\n",
+                    encoding="utf-8",
+                )
+            except OSError as exc:
+                rollback_attempted = True
+                rollback_trigger = "mutation_write_failure"
+                (
+                    rollback_succeeded,
+                    rollback_verification_succeeded,
+                    rollback_error,
+                    rollback_verification_error,
+                    rollback_outcome,
+                ) = _attempt_rollback()
+                rollback_verification_attempted = rollback_succeeded
+                mutation_audit = _build_mutation_audit(
+                    phase="rollback",
+                    status=(
+                        "rolled_back"
+                        if rollback_outcome == "restored_and_verified"
+                        else "failed"
+                    ),
+                    summary=(
+                        "Gem manifest write failed and rollback restored the project manifest."
+                        if rollback_outcome == "restored_and_verified"
+                        else (
+                            "Gem manifest write failed and rollback could not fully "
+                            "verify the manifest restore."
+                        )
+                    ),
+                )
+                raise AdapterExecutionRejected(
+                    "Real gem.enable mutation failed while writing the project manifest "
+                    "and triggered rollback handling.",
+                    details={
+                        "inspection_surface": "gem_enable_mutation",
+                        "project_manifest_path": str(manifest_path),
+                        "requested_gem_name": requested_gem_name,
+                        "backup_source_path": backup_source_path,
+                        "backup_target": str(backup_target),
+                        "backup_created": backup_created,
+                        "rollback_attempted": rollback_attempted,
+                        "rollback_succeeded": rollback_succeeded,
+                        "rollback_trigger": rollback_trigger,
+                        "rollback_outcome": rollback_outcome,
+                        "rollback_error": rollback_error,
+                        "rollback_verification_attempted": rollback_verification_attempted,
+                        "rollback_verification_succeeded": rollback_verification_succeeded,
+                        "rollback_verification_error": rollback_verification_error,
+                        "mutation_audit": mutation_audit,
+                    },
+                    warnings=[
+                        "gem.enable mutation failed during manifest write and "
+                        "triggered rollback handling."
+                    ],
+                    logs=[
+                        "Hybrid adapter mode enabled a real gem.enable mutation path.",
+                        f"Read project manifest from '{manifest_path}'.",
+                        f"Mutation write failed for '{manifest_path}': {exc}",
+                        (
+                            "Rollback restored and verified manifest content from "
+                            f"'{backup_target}'."
+                            if rollback_outcome == "restored_and_verified"
+                            else f"Rollback restored manifest content from '{backup_target}', "
+                            "but verification remained incomplete."
+                            if rollback_succeeded
+                            else "Rollback could not restore manifest content after the "
+                            "failed gem.enable write."
+                        ),
+                    ],
+                ) from exc
+
+            post_write_verification_attempted = True
+            try:
+                verified_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                verification_error = str(exc)
+                rollback_attempted = True
+                rollback_trigger = "post_write_verification_reload_failure"
+                (
+                    rollback_succeeded,
+                    rollback_verification_succeeded,
+                    rollback_error,
+                    rollback_verification_error,
+                    rollback_outcome,
+                ) = _attempt_rollback()
+                rollback_verification_attempted = rollback_succeeded
+                mutation_audit = _build_mutation_audit(
+                    phase="rollback",
+                    status=(
+                        "rolled_back"
+                        if rollback_outcome == "restored_and_verified"
+                        else "failed"
+                    ),
+                    summary=(
+                        "Gem manifest reread failed and rollback restored the project manifest."
+                        if rollback_outcome == "restored_and_verified"
+                        else (
+                            "Gem manifest reread failed and rollback could not fully "
+                            "verify the manifest restore."
+                        )
+                    ),
+                )
+                raise AdapterExecutionRejected(
+                    "Real gem.enable mutation failed post-write verification and triggered "
+                    "rollback handling.",
+                    details={
+                        "inspection_surface": "gem_enable_mutation",
+                        "project_manifest_path": str(manifest_path),
+                        "requested_gem_name": requested_gem_name,
+                        "backup_source_path": backup_source_path,
+                        "backup_target": str(backup_target),
+                        "backup_created": backup_created,
+                        "rollback_attempted": rollback_attempted,
+                        "rollback_succeeded": rollback_succeeded,
+                        "rollback_trigger": rollback_trigger,
+                        "rollback_outcome": rollback_outcome,
+                        "rollback_error": rollback_error,
+                        "rollback_verification_attempted": rollback_verification_attempted,
+                        "rollback_verification_succeeded": rollback_verification_succeeded,
+                        "rollback_verification_error": rollback_verification_error,
+                        "post_write_verification_attempted": True,
+                        "post_write_verification_succeeded": False,
+                        "verification_error": verification_error,
+                        "mutation_audit": mutation_audit,
+                    },
+                    warnings=[
+                        "gem.enable mutation write completed, but post-write verification "
+                        "failed and triggered rollback handling."
+                    ],
+                    logs=[
+                        "Hybrid adapter mode enabled a real gem.enable mutation path.",
+                        f"Read project manifest from '{manifest_path}'.",
+                        "Post-write verification could not reload the project manifest cleanly.",
+                        (
+                            "Rollback restored and verified manifest content from "
+                            f"'{backup_target}'."
+                            if rollback_outcome == "restored_and_verified"
+                            else f"Rollback restored manifest content from '{backup_target}', "
+                            "but verification remained incomplete."
+                            if rollback_succeeded
+                            else "Rollback could not restore manifest content after the "
+                            "failed gem.enable verification reload."
+                        ),
+                    ],
+                ) from exc
+
+            current_gem_names = self._normalized_string_list(verified_manifest.get("gem_names"))
+            verified_requested_gem_present = requested_gem_name in current_gem_names
+            if not verified_requested_gem_present:
+                verification_error = (
+                    "Post-write verification did not find the requested gem in project.json."
+                )
+                rollback_attempted = True
+                rollback_trigger = "post_write_verification_value_mismatch"
+                (
+                    rollback_succeeded,
+                    rollback_verification_succeeded,
+                    rollback_error,
+                    rollback_verification_error,
+                    rollback_outcome,
+                ) = _attempt_rollback()
+                rollback_verification_attempted = rollback_succeeded
+                mutation_audit = _build_mutation_audit(
+                    phase="rollback",
+                    status=(
+                        "rolled_back"
+                        if rollback_outcome == "restored_and_verified"
+                        else "failed"
+                    ),
+                    summary=(
+                        "Gem manifest verification detected a mismatch and rollback restored "
+                        "the project manifest."
+                        if rollback_outcome == "restored_and_verified"
+                        else (
+                            "Gem manifest verification detected a mismatch and rollback "
+                            "could not fully verify the manifest restore."
+                        )
+                    ),
+                )
+                raise AdapterExecutionRejected(
+                    "Real gem.enable mutation failed post-write verification and triggered "
+                    "rollback handling.",
+                    details={
+                        "inspection_surface": "gem_enable_mutation",
+                        "project_manifest_path": str(manifest_path),
+                        "requested_gem_name": requested_gem_name,
+                        "backup_source_path": backup_source_path,
+                        "backup_target": str(backup_target),
+                        "backup_created": backup_created,
+                        "rollback_attempted": rollback_attempted,
+                        "rollback_succeeded": rollback_succeeded,
+                        "rollback_trigger": rollback_trigger,
+                        "rollback_outcome": rollback_outcome,
+                        "rollback_error": rollback_error,
+                        "rollback_verification_attempted": rollback_verification_attempted,
+                        "rollback_verification_succeeded": rollback_verification_succeeded,
+                        "rollback_verification_error": rollback_verification_error,
+                        "post_write_verification_attempted": True,
+                        "post_write_verification_succeeded": False,
+                        "verified_requested_gem_present": False,
+                        "verification_error": verification_error,
+                        "mutation_audit": mutation_audit,
+                    },
+                    warnings=[
+                        "gem.enable mutation values did not pass post-write verification "
+                        "and triggered rollback handling."
+                    ],
+                    logs=[
+                        "Hybrid adapter mode enabled a real gem.enable mutation path.",
+                        f"Read project manifest from '{manifest_path}'.",
+                        "Post-write verification did not find the requested gem in project.json.",
+                        (
+                            "Rollback restored and verified manifest content from "
+                            f"'{backup_target}'."
+                            if rollback_outcome == "restored_and_verified"
+                            else f"Rollback restored manifest content from '{backup_target}', "
+                            "but verification remained incomplete."
+                            if rollback_succeeded
+                            else "Rollback could not restore manifest content after the "
+                            "failed gem.enable verification mismatch."
+                        ),
+                    ],
+                )
+            post_write_verification_succeeded = True
+            raw_gem_names = verified_manifest.get("gem_names")
+            manifest = verified_manifest
+            manifest_keys = sorted(str(key) for key in manifest.keys())
 
         inspection_evidence = [
             "project_manifest",
@@ -3445,31 +3806,58 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "configured_build_tree_probe",
         ]
         unavailable_evidence = [
-            "gem_enable_mutation",
             "gem_enable_result_artifact",
             "gem_enable_exit_result",
             "gem_dependency_resolution",
         ]
+        if not mutation_applied:
+            unavailable_evidence.append("gem_enable_mutation")
         if configure_probe["configured_build_tree_available"]:
             inspection_evidence.append("configured_build_tree_markers")
         else:
             unavailable_evidence.append("configured_build_tree_markers")
+        if mutation_scope_admitted:
+            inspection_evidence.append("manifest_gem_names_insertion_scope")
+        else:
+            unavailable_evidence.append("manifest_gem_names_insertion_scope")
+        if backup_created:
+            inspection_evidence.append("manifest_backup")
         if requested_version is not None:
             unavailable_evidence.append("gem_version_resolution")
         if optional_flag_requested:
             unavailable_evidence.append("gem_optional_resolution")
+        if not gem_names_shape_supported:
+            unavailable_evidence.append("manifest_gem_names_shape_repair")
+        if post_write_verification_succeeded:
+            inspection_evidence.append("post_write_manifest_readback")
 
-        gem_unavailable_reasons: list[str] = [
-            "No admitted real gem.enable mutation was attempted in this slice."
-        ]
-        if requested_gem_already_enabled:
+        requested_gem_subset_present = requested_gem_name in current_gem_names
+        matched_requested_gem_names = (
+            [requested_gem_name] if requested_gem_subset_present else []
+        )
+        missing_requested_gem_names = (
+            [] if requested_gem_subset_present else [requested_gem_name]
+        )
+        matched_requested_gem_count = len(matched_requested_gem_names)
+        missing_requested_gem_count = len(missing_requested_gem_names)
+
+        gem_unavailable_reasons: list[str] = []
+        if mutation_blocked:
+            gem_unavailable_reasons.append(
+                "Validated manifest-backed local gem_names insertion remains "
+                "intentionally write-disabled because dry_run=true."
+            )
+        elif not mutation_applied and requested_gem_already_enabled:
             gem_unavailable_reasons.append(
                 f"Requested gem '{requested_gem_name}' is already present in manifest-backed gem_names."
             )
-        else:
+        elif not mutation_applied:
             gem_unavailable_reasons.append(
-                f"Requested gem '{requested_gem_name}' is not currently present in manifest-backed gem_names."
+                f"Requested gem '{requested_gem_name}' is not currently present in "
+                "manifest-backed gem_names."
             )
+        if not gem_names_shape_supported and gem_names_shape_unavailable_reason is not None:
+            gem_unavailable_reasons.append(gem_names_shape_unavailable_reason)
         if not configure_probe["configured_build_tree_available"]:
             gem_unavailable_reasons.append(
                 "Configured build-tree evidence remains unavailable, so downstream configure impact is still unproven in this admitted slice."
@@ -3482,20 +3870,69 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             gem_unavailable_reasons.append(
                 "Requested optional Gem semantics were recorded, but no admitted Gem optional-resolution substrate is available."
             )
-        gem_unavailable_reason = " ".join(dict.fromkeys(gem_unavailable_reasons))
+        gem_unavailable_reason = " ".join(dict.fromkeys(gem_unavailable_reasons)) or None
+        result_unavailable_reason: str | None = None
+        if not mutation_applied:
+            if mutation_blocked:
+                result_unavailable_reason = (
+                    "No real gem.enable mutation was attempted because dry_run=true "
+                    "kept the admitted local gem_names insertion path write-disabled."
+                )
+            elif requested_gem_already_enabled:
+                result_unavailable_reason = (
+                    "No real gem.enable mutation was required because the requested gem "
+                    "is already present in project.json."
+                )
+            elif not mutation_scope_admitted:
+                result_unavailable_reason = (
+                    "No real gem.enable mutation was attempted because the request is "
+                    "outside the admitted local gem_names insertion scope."
+                )
+            else:
+                result_unavailable_reason = (
+                    "No real gem.enable mutation was attempted in this admitted preflight slice."
+                )
 
         logs = [
-            "Real gem.enable executed through the admitted plan-only project/gem preflight substrate.",
+            (
+                "Real gem.enable executed through the admitted mutation-gated "
+                "project/gem substrate."
+                if mutation_applied
+                else "Real gem.enable executed through the admitted project/gem preflight substrate."
+            ),
             f"Read project manifest from '{manifest_path}'.",
             f"Recorded explicit gem request '{requested_gem_name}'.",
-            "No project manifest mutation was executed in this slice.",
         ]
         warnings = [
-            "This is a real plan-only gem.enable preflight path; actual manifest mutation remains non-admitted.",
+            (
+                "A real gem.enable mutation was applied only for the admitted "
+                "manifest-backed local gem_names insertion path in this slice."
+                if mutation_applied
+                else "This is a real gem.enable preflight path; only the first "
+                "manifest-backed local gem_names insertion path is mutation-admitted "
+                "in this slice."
+            ),
         ]
+        if backup_created:
+            logs.append(f"Created gem.enable backup at '{backup_target}'.")
+        else:
+            logs.append(
+                "Skipped backup creation because no admitted gem.enable mutation-ready "
+                "scope was available."
+            )
         if requested_gem_already_enabled:
             logs.append(
                 f"Manifest-backed gem_names already contain '{requested_gem_name}'."
+            )
+        elif mutation_applied:
+            logs.append(
+                f"Inserted '{requested_gem_name}' into manifest-backed gem_names and "
+                "verified the write."
+            )
+        elif mutation_blocked:
+            logs.append(
+                f"Validated a mutation-ready local gem_names insertion plan for "
+                f"'{requested_gem_name}', but writes remain intentionally disabled."
             )
         else:
             logs.append(
@@ -3515,9 +3952,18 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             warnings.append(
                 "Requested optional Gem semantics were recorded as evidence only; no real optional-resolution was attempted."
             )
+        if not gem_names_shape_supported and gem_names_shape_unavailable_reason is not None:
+            warnings.append(gem_names_shape_unavailable_reason)
+        if post_write_verification_succeeded:
+            warnings.append(
+                "Post-write verification re-read the manifest and confirmed the "
+                "requested gem entry."
+            )
 
         details = {
-            "inspection_surface": "gem_enable_preflight",
+            "inspection_surface": (
+                "gem_enable_mutation" if mutation_applied else "gem_enable_preflight"
+            ),
             "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
             "simulated": False,
             "adapter_family": self.family,
@@ -3525,6 +3971,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
             "real_path_available": True,
             "preflight_execution_mode": "plan-only",
+            "mutation_execution_mode": "mutation-gated" if mutation_applied else None,
             "gem_request_explicit": True,
             "dry_run_requested": dry_run,
             "project_root_path": str(resolved_project_root),
@@ -3549,15 +3996,18 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "missing_requested_gem_names": missing_requested_gem_names,
             "matched_requested_gem_count": matched_requested_gem_count,
             "missing_requested_gem_count": missing_requested_gem_count,
-            "available_gem_names": enabled_gems,
-            "available_gem_count": len(enabled_gems),
-            "gem_names": enabled_gems,
-            "gem_names_count": len(enabled_gems),
-            "gem_entries_present": bool(enabled_gems),
-            "requested_gem_subset_present": requested_gem_already_enabled,
+            "available_gem_names": current_gem_names,
+            "available_gem_count": len(current_gem_names),
+            "gem_names": current_gem_names,
+            "gem_names_count": len(current_gem_names),
+            "gem_entries_present": bool(current_gem_names),
+            "requested_gem_subset_present": requested_gem_subset_present,
             "requested_gem_already_enabled": requested_gem_already_enabled,
             "manifest_mutation_required": manifest_mutation_required,
-            "manifest_write_available": False,
+            "manifest_write_available": mutation_ready,
+            "gem_names_field_present": gem_names_field_present,
+            "gem_names_shape_supported": gem_names_shape_supported,
+            "gem_names_shape_unavailable_reason": gem_names_shape_unavailable_reason,
             "build_root_path": str(build_root),
             "build_root_exists": build_root.exists(),
             "configure_marker_probe_attempted": True,
@@ -3579,30 +4029,99 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 if optional_flag_requested
                 else None
             ),
-            "execution_attempted": False,
+            "backup_source_path": backup_source_path,
+            "backup_target": str(backup_target),
+            "backup_created": backup_created,
+            "backup_error": backup_error,
+            "backup_provenance": {
+                "source_path": backup_source_path,
+                "backup_target": str(backup_target),
+                "backup_created": backup_created,
+            },
+            "rollback_strategy": rollback_strategy,
+            "rollback_ready": rollback_ready,
+            "rollback_artifact_path": str(backup_target),
+            "mutation_ready": mutation_ready,
+            "mutation_blocked": mutation_blocked,
+            "mutation_blocked_reason": mutation_blocked_reason,
+            "mutation_applied": mutation_applied,
+            "rollback_attempted": rollback_attempted,
+            "rollback_succeeded": rollback_succeeded,
+            "rollback_trigger": rollback_trigger,
+            "rollback_outcome": rollback_outcome,
+            "rollback_verification_attempted": rollback_verification_attempted,
+            "rollback_verification_succeeded": rollback_verification_succeeded,
+            "rollback_verification_error": rollback_verification_error,
+            "post_write_verification_attempted": post_write_verification_attempted,
+            "post_write_verification_succeeded": post_write_verification_succeeded,
+            "verified_requested_gem_present": verified_requested_gem_present,
+            "verification_error": verification_error,
+            "mutation_audit": _build_mutation_audit(
+                phase="mutation" if mutation_applied else "preflight",
+                status=(
+                    "succeeded"
+                    if mutation_applied
+                    else "blocked"
+                    if mutation_blocked
+                    else "preflight"
+                ),
+                summary=(
+                    f"Inserted '{requested_gem_name}' into project.json and verified the write."
+                    if mutation_applied
+                    else (
+                        "The admitted local gem_names insertion plan is mutation-ready, "
+                        "but writes remain intentionally disabled."
+                    )
+                    if mutation_blocked
+                    else (
+                        "The real gem.enable path published preflight evidence only; "
+                        "no project manifest mutation was executed."
+                    )
+                ),
+            ),
+            "execution_attempted": mutation_applied,
             "result_artifact_produced": False,
             "result_artifact_path": None,
             "result_artifact_content_type": None,
             "result_artifact_size_bytes": None,
             "exit_code_available": False,
             "exit_code": None,
-            "result_status": "not-attempted",
-            "result_summary_available": False,
-            "result_unavailable_reason": (
-                "No real gem.enable execution was attempted in this admitted plan-only slice."
-            ),
+            "result_status": "mutation-applied" if mutation_applied else "not-attempted",
+            "result_summary_available": mutation_applied,
+            "result_unavailable_reason": result_unavailable_reason,
             "gem_unavailable_reason": gem_unavailable_reason,
         }
         message = (
             "Real gem.enable preflight completed for the explicit gem request; "
             "no project manifest mutation was executed."
         )
+        if mutation_applied:
+            message = (
+                "Real gem.enable mutation completed for the explicit gem request; "
+                "project.json was updated and verified."
+            )
+            if isinstance(project_name, str) and project_name:
+                message = (
+                    f"Real gem.enable mutation completed for '{project_name}' and "
+                    f"inserted '{requested_gem_name}' into project.json."
+                )
         if requested_gem_already_enabled:
             message = (
                 f"Real gem.enable preflight confirmed '{requested_gem_name}' is already "
                 "present in the project manifest; no project manifest mutation was executed."
             )
-        elif isinstance(project_name, str) and project_name:
+        elif not mutation_applied and mutation_blocked:
+            message = (
+                "Real gem.enable preflight completed and published a mutation-ready "
+                "local gem_names insertion plan; writes remain intentionally disabled."
+            )
+            if isinstance(project_name, str) and project_name:
+                message = (
+                    f"Real gem.enable preflight completed for '{project_name}' and "
+                    "published a mutation-ready local gem_names insertion plan; "
+                    "writes remain intentionally disabled."
+                )
+        elif not mutation_applied and isinstance(project_name, str) and project_name:
             message = (
                 f"Real gem.enable preflight completed for '{project_name}' and explicit "
                 f"gem request '{requested_gem_name}'; no project manifest mutation was executed."
@@ -3625,8 +4144,14 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             result=result,
             warnings=warnings,
             logs=logs,
-            artifact_label="Real gem enable preflight evidence",
-            artifact_kind="gem_enable_preflight",
+            artifact_label=(
+                "Real gem enable mutation evidence"
+                if mutation_applied
+                else "Real gem enable preflight evidence"
+            ),
+            artifact_kind=(
+                "gem_enable_mutation" if mutation_applied else "gem_enable_preflight"
+            ),
             artifact_uri=manifest_path.as_uri(),
             artifact_metadata={
                 "tool": tool,
@@ -3635,7 +4160,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 **details,
             },
             execution_details=details,
-            result_summary="Real gem.enable preflight substrate completed successfully.",
+            result_summary=(
+                "Real gem.enable mutation completed successfully."
+                if mutation_applied
+                else "Real gem.enable preflight substrate completed successfully."
+            ),
         )
 
     def _execute_settings_patch(

@@ -57,12 +57,12 @@ def test_build_compile_is_cataloged_as_plan_only() -> None:
     assert "build_tree" in tool.default_locks
 
 
-def test_gem_enable_is_cataloged_as_plan_only() -> None:
+def test_gem_enable_is_cataloged_as_mutation_gated() -> None:
     tool = catalog_service.get_tool_definition("project-build", "gem.enable")
     assert tool is not None
     assert tool.approval_class == "config_write"
     assert tool.adapter_family == "project-build"
-    assert tool.capability_status == "plan-only"
+    assert tool.capability_status == "mutation-gated"
     assert tool.args_schema.endswith("gem.enable.args.schema.json")
     assert tool.result_schema.endswith("gem.enable.result.schema.json")
     assert "project_config" in tool.default_locks

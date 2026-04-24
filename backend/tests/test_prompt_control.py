@@ -764,7 +764,7 @@ def test_prompt_session_plans_build_compile_as_plan_only() -> None:
         assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
 
 
-def test_prompt_session_plans_gem_enable_as_plan_only() -> None:
+def test_prompt_session_plans_gem_enable_as_mutation_gated() -> None:
     with isolated_client() as client:
         response = client.post(
             "/prompt/sessions",
@@ -784,9 +784,12 @@ def test_prompt_session_plans_gem_enable_as_plan_only() -> None:
         assert len(payload["plan"]["steps"]) == 1
         step = payload["plan"]["steps"][0]
         assert step["tool"] == "gem.enable"
-        assert step["capability_maturity"] == "plan-only"
+        assert step["capability_maturity"] == "hybrid-mutation"
         assert step["args"]["gem_name"] == "MyTestGem"
-        assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
+        assert (
+            step["safety_envelope"]["natural_language_status"]
+            == "prompt-ready-approval-gated"
+        )
 
 
 def test_prompt_session_plans_test_run_editor_python_as_plan_only() -> None:
@@ -1340,7 +1343,7 @@ def test_prompt_session_execute_creates_child_lineage_and_pauses_for_approval() 
                     executions_by_tool["gem.enable"]["details"]["prompt_safety"][
                         "natural_language_status"
                     ]
-                    == "prompt-ready-plan-only"
+                    == "prompt-ready-approval-gated"
                 )
 
                 artifacts_response = client.get("/artifacts")
@@ -1415,7 +1418,7 @@ def test_prompt_session_execute_resumes_after_approval_without_losing_lineage() 
                     "runs=3, executions=3, artifacts="
                 )
                 assert (
-                    "Gem enable preflight confirmed explicit request evidence for MyTestGem, but the Gem is not yet present in project.json."
+                    "Gem enable preflight published a mutation-ready local gem_names insertion plan for MyTestGem, but writes remain intentionally disabled."
                     in resumed_payload["final_result_summary"]
                 )
                 assert (

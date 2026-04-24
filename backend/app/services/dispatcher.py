@@ -778,20 +778,40 @@ class DispatcherService:
             admitted_tools = ["project.inspect", "build.configure", "build.compile"]
             backup_class = None
             rollback_class = None
-        elif request.tool == "gem.enable" and inspection_surface == "gem_enable_preflight":
-            executor_id = "executor-project-build-hybrid-plan-only-local-gem"
-            executor_kind = "local-admitted-readonly"
-            executor_label = "Admitted local gem preflight executor"
-            executor_host_label = "local-project-manifest-build-state"
-            workspace_kind = "admitted-plan-only-project-root"
-            cleanup_policy = "operator-managed-preflight"
-            artifact_role = "plan-evidence"
-            evidence_completeness = "plan-backed"
-            execution_boundary = "plan-only local gem enable preflight"
-            workspace_id = f"workspace-gem-enable-{execution_id}"
-            admitted_tools = ["gem.enable", "project.inspect"]
-            backup_class = None
-            rollback_class = None
+        elif request.tool == "gem.enable" and inspection_surface in {
+            "gem_enable_preflight",
+            "gem_enable_mutation",
+        }:
+            if inspection_surface == "gem_enable_mutation":
+                executor_id = "executor-project-build-hybrid-mutation-gated-local-gem"
+                executor_kind = "local-admitted-mutation-gated"
+                executor_label = "Admitted local gem mutation-gated executor"
+                executor_host_label = "local-project-gem-manifest-mutation"
+                workspace_kind = "admitted-mutation-gated-project-root"
+                cleanup_policy = "operator-managed-backup-rollback"
+                artifact_role = "mutation-evidence"
+                evidence_completeness = "mutation-backed"
+                execution_boundary = (
+                    "mutation-gated local gem enable with backup and rollback boundary"
+                )
+                workspace_id = f"workspace-gem-enable-{execution_id}"
+                admitted_tools = ["gem.enable", "project.inspect"]
+                backup_class = "project-manifest-backup"
+                rollback_class = "project-manifest-restore"
+            else:
+                executor_id = "executor-project-build-hybrid-plan-only-local-gem"
+                executor_kind = "local-admitted-readonly"
+                executor_label = "Admitted local gem preflight executor"
+                executor_host_label = "local-project-manifest-build-state"
+                workspace_kind = "admitted-plan-only-project-root"
+                cleanup_policy = "operator-managed-preflight"
+                artifact_role = "plan-evidence"
+                evidence_completeness = "plan-backed"
+                execution_boundary = "plan-only local gem enable preflight"
+                workspace_id = f"workspace-gem-enable-{execution_id}"
+                admitted_tools = ["gem.enable", "project.inspect"]
+                backup_class = None
+                rollback_class = None
         elif request.tool == "settings.patch" and inspection_surface in {
             "settings_patch_preflight",
             "settings_patch_mutation",
@@ -1303,8 +1323,12 @@ class DispatcherService:
             return "plan-only asset.move.safe preflight"
         if request.tool == "build.compile" and capability == "plan-only":
             return "plan-only build.compile preflight"
-        if request.tool == "gem.enable" and capability == "plan-only":
-            return "plan-only gem.enable preflight"
+        if request.tool == "gem.enable" and capability == "mutation-gated":
+            return (
+                "mutation-gated gem.enable path"
+                if not request.dry_run
+                else "plan-only gem.enable preflight"
+            )
         if request.tool == "settings.patch" and capability == "mutation-gated":
             return (
                 "mutation-gated settings.patch path"
@@ -1337,7 +1361,14 @@ class DispatcherService:
         if request.tool == "build.compile":
             return "This run used the real plan-only build.compile preflight path."
         if request.tool == "gem.enable":
-            return "This run used the real plan-only gem.enable preflight path."
+            if isinstance(result.message, str) and result.message.startswith(
+                "Real gem.enable mutation completed"
+            ):
+                return "This run used the first real gem.enable mutation path."
+            return (
+                "This run used the real plan-only gem.enable preflight path; "
+                "no project manifest mutation was executed."
+            )
         if request.tool == "settings.patch":
             if isinstance(result.message, str) and result.message.startswith(
                 "Real settings.patch mutation completed"
