@@ -114,11 +114,19 @@ Current truth:
 - `build.compile`
 
 Current truth:
-- remain approval-gated and explicitly non-real in this phase
+- `gem.enable` now has an admitted narrow approval-gated real mutation
+  corridor for explicit local `project.json` top-level `gem_names` insertion,
+  with backup, reread verification, and rollback on failure
+- `build.compile` now has an admitted real plan-only preflight/result-truth
+  corridor for explicit build target requests
+- neither boundary implies broad Gem dependency/configure recovery or actual
+  compile execution
 
 ### Simulated-only
 
-All remaining currently published tools remain simulated-only.
+No currently published tool on the current tested branch remains fully
+simulated-only. The remaining boundaries are still explicitly read-only,
+plan-only, or narrow mutation-gated.
 
 ## Operator-facing status
 
@@ -162,16 +170,27 @@ The operator shell now exposes this boundary through:
 - `editor.entity.create` remains excluded from the admitted-real set on the
   current tested local targets
 - `build.configure` is not a real configure execution path
+- `build.compile` is not a real compile execution path
 - `project.inspect` real evidence is still limited to manifest-backed
   project-config, requested-vs-discovered Gem, requested Gem subset matching,
   requested settings subset matching, top-level settings fields, explicit
   engine compatibility inventory, explicit project origin provenance, and
   explicit presentation metadata inventory, and explicit identity/tag inventory
   rather than broader layered config discovery
+- `asset.batch.process` and `asset.move.safe` remain preflight-only and do not
+  imply real asset processing or real asset move/reference-repair execution
+- `test.run.gtest`, `test.run.editor_python`, and `test.tiaf.sequence` remain
+  preflight-only and do not imply real test execution or structured result
+  artifact production
+- `render.capture.viewport` and `render.material.inspect` remain narrow
+  runtime-probe/read-only evidence paths and do not imply broader render
+  runtime readback
+- `render.shader.rebuild` remains a preflight/result-truth path and does not
+  imply actual shader rebuild execution
 - broader mutation paths are still not implemented beyond the first admitted
-  manifest-backed settings.patch case
-- the admitted `settings.patch` mutation boundary is still narrow and does not
-  imply broad settings mutation support
+  `settings.patch`, `gem.enable`, and `render.material.patch` corridors
+- the admitted mutation boundaries above remain narrow and do not imply broad
+  settings, Gem, or material mutation support
 - simulated fallback remains part of the truthful accepted behavior
 - default non-container persistence is still not claimed healthy; explicit
   operator-configured persistence remains the truthful baseline for
@@ -189,10 +208,10 @@ Before widening into broader real adapter execution, the next slice should stay
 narrow and truthful.
 
 Recommended next boundary:
-- complete Phase 6B remote executor substrate and workspace isolation before
-  broader real adapter expansion, and
-- complete Phase 6C automation surface matrix and admission standard before
-  widening real remote automation claims, and
+- refresh checkpoint and operator-facing truth so the already admitted
+  read-only, plan-only, and narrow mutation-gated lanes are described
+  consistently, and
 - define the next narrow admitted backend contract only if it preserves the same
   explicit real-vs-simulated boundary and does not blur the already-admitted
-  `settings.patch` mutation boundary into a broader mutation claim
+  `settings.patch`, `gem.enable`, or `render.material.patch` mutation
+  boundaries into broader mutation claims

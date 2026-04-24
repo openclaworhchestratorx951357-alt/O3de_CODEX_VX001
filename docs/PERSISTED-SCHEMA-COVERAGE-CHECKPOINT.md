@@ -79,13 +79,19 @@ checkpoint.
 ## Real vs simulated truth
 
 Current execution truth is still:
-- `project.inspect` may use a real read-only hybrid path
-- `build.configure` may use a real plan-only hybrid preflight path
-- `settings.patch` now has an admitted real hybrid boundary for preflight and
-  the first manifest-backed set-only mutation case
-- `gem.enable` and `build.compile` remain simulated in practice
-- `editor-control`, `asset-pipeline`, `render-lookdev`, and `validation`
-  tools remain simulated-only in practice
+- `project.inspect`, `asset.processor.status`, `asset.source.inspect`,
+  `render.capture.viewport`, `render.material.inspect`, `test.visual.diff`,
+  and `editor.component.property.get` may use admitted real read-only paths
+- `build.configure`, `build.compile`, `asset.batch.process`,
+  `asset.move.safe`, `render.shader.rebuild`, `test.run.gtest`,
+  `test.run.editor_python`, and `test.tiaf.sequence` may use admitted real
+  plan-only preflight/result-truth paths
+- `settings.patch`, `gem.enable`, and `render.material.patch` now have
+  admitted narrow real mutation boundaries with backup, verification, and
+  rollback visibility
+- broader execution, artifact production, dependency resolution, reference
+  repair, runtime readback, and runner/build semantics remain unavailable
+  outside those admitted slices
 
 ## Current uncovered surfaces
 
@@ -108,9 +114,10 @@ operator-facing status wording so the now-complete cross-family coverage is
 described truthfully and consistently.
 
 After that, the next engineering decision is whether to:
-- keep tightening contract and documentation evidence around the existing
-  hybrid boundary, especially the admitted settings.patch mutation boundary
-- or start a new phase for genuinely real adapter implementation work
+- keep tightening contract and verification depth around the already admitted
+  narrow plan-only and mutation-gated boundaries
+- or reselect the single safest next mutation or execution lane only after that
+  checkpoint is refreshed
 
 ## Non-goals of this checkpoint
 
