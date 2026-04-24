@@ -588,6 +588,7 @@ class AdapterModeStatus(BaseModel):
     available_families: list[str] = Field(default_factory=list)
     real_tool_paths: list[str] = Field(default_factory=list)
     plan_only_tool_paths: list[str] = Field(default_factory=list)
+    gated_tool_paths: list[str] = Field(default_factory=list)
     simulated_tool_paths: list[str] = Field(default_factory=list)
     warning: str | None = None
     notes: list[str] = Field(default_factory=list)
@@ -602,6 +603,7 @@ class AdapterFamilyStatus(BaseModel):
     ready: bool
     real_tool_paths: list[str] = Field(default_factory=list)
     plan_only_tool_paths: list[str] = Field(default_factory=list)
+    gated_tool_paths: list[str] = Field(default_factory=list)
     simulated_tool_paths: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
 
@@ -614,6 +616,7 @@ class AdaptersResponse(BaseModel):
     supports_real_execution: bool
     real_tool_paths: list[str] = Field(default_factory=list)
     plan_only_tool_paths: list[str] = Field(default_factory=list)
+    gated_tool_paths: list[str] = Field(default_factory=list)
     simulated_tool_paths: list[str] = Field(default_factory=list)
     families: list[AdapterFamilyStatus] = Field(default_factory=list)
     warning: str | None = None

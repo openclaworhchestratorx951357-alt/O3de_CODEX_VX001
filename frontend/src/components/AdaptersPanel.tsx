@@ -32,7 +32,7 @@ export default function AdaptersPanel(
   return (
     <SummarySection
       title="Adapter Registry"
-      description="Read-only adapter registry view. Control-plane bookkeeping is real, but only the named hybrid paths below should be treated as real today. Everything else remains explicitly simulated or plan-only."
+      description="Read-only adapter registry view. Control-plane bookkeeping is real, but only the named hybrid paths below should be treated as real today. Everything else remains explicitly simulated, plan-only, or mutation-gated."
       guideTooltip={adaptersPanelGuide.tooltip}
       guideChecklist={adaptersPanelGuide.checklist}
       loading={loading}
@@ -93,6 +93,9 @@ export default function AdaptersPanel(
               <SummaryFact label="Plan-only count">
                 {adapters.plan_only_tool_paths.length}
               </SummaryFact>
+              <SummaryFact label="Gated count">
+                {adapters.gated_tool_paths?.length ?? 0}
+              </SummaryFact>
               <SummaryFact label="Simulated count">
                 {adapters.simulated_tool_paths.length}
               </SummaryFact>
@@ -108,6 +111,12 @@ export default function AdaptersPanel(
               preview={summarizeListPreview(adapters.plan_only_tool_paths)}
             >
               <PathList paths={adapters.plan_only_tool_paths} />
+            </ExpandablePanelSection>
+            <ExpandablePanelSection
+              title="Gated tool paths"
+              preview={summarizeListPreview(adapters.gated_tool_paths ?? [])}
+            >
+              <PathList paths={adapters.gated_tool_paths ?? []} />
             </ExpandablePanelSection>
             <ExpandablePanelSection
               title="Simulated paths"
@@ -167,6 +176,9 @@ export default function AdaptersPanel(
                   <SummaryFact label="Plan-only">
                     {family.plan_only_tool_paths.length}
                   </SummaryFact>
+                  <SummaryFact label="Gated">
+                    {family.gated_tool_paths?.length ?? 0}
+                  </SummaryFact>
                   <SummaryFact label="Simulated paths">
                     {family.simulated_tool_paths.length}
                   </SummaryFact>
@@ -185,6 +197,12 @@ export default function AdaptersPanel(
                   preview={summarizeListPreview(family.plan_only_tool_paths)}
                 >
                   <PathList paths={family.plan_only_tool_paths} />
+                </ExpandablePanelSection>
+                <ExpandablePanelSection
+                  title="Gated paths"
+                  preview={summarizeListPreview(family.gated_tool_paths ?? [])}
+                >
+                  <PathList paths={family.gated_tool_paths ?? []} />
                 </ExpandablePanelSection>
                 <ExpandablePanelSection
                   title="Simulated paths"

@@ -1379,6 +1379,7 @@ export interface AdapterFamilyStatus {
   ready: boolean;
    real_tool_paths: string[];
    plan_only_tool_paths: string[];
+   gated_tool_paths?: string[];
    simulated_tool_paths: string[];
   notes: string[];
 }
@@ -1391,6 +1392,7 @@ export interface AdaptersResponse {
   supports_real_execution: boolean;
   real_tool_paths: string[];
   plan_only_tool_paths: string[];
+  gated_tool_paths?: string[];
   simulated_tool_paths: string[];
   families: AdapterFamilyStatus[];
   warning?: string | null;
@@ -1442,6 +1444,7 @@ export interface AdapterModeStatus {
   available_families: string[];
   real_tool_paths: string[];
   plan_only_tool_paths: string[];
+  gated_tool_paths?: string[];
   simulated_tool_paths: string[];
   warning?: string | null;
   notes: string[];

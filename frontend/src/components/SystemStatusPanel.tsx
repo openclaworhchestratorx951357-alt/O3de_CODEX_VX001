@@ -413,6 +413,9 @@ export default function SystemStatusPanel(
               <SummaryFact label="Plan-only tool paths">
                 {readinessData.adapter_mode.plan_only_tool_paths.join(", ") || "none"}
               </SummaryFact>
+              <SummaryFact label="Gated tool paths">
+                {(readinessData.adapter_mode.gated_tool_paths ?? []).join(", ") || "none"}
+              </SummaryFact>
               <SummaryFact label="Boundary">{readinessData.adapter_mode.execution_boundary}</SummaryFact>
             </SummaryFacts>
           </article>

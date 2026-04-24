@@ -813,13 +813,15 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
                 "asset.move.safe",
                 "build.configure",
                 "build.compile",
-                "gem.enable",
-                "render.material.patch",
                 "render.shader.rebuild",
-                "settings.patch",
                 "test.run.gtest",
                 "test.run.editor_python",
                 "test.tiaf.sequence",
+            ]
+            assert payload["adapter_mode"]["gated_tool_paths"] == [
+                "gem.enable",
+                "render.material.patch",
+                "settings.patch",
             ]
             assert "gem.enable" not in payload["adapter_mode"]["simulated_tool_paths"]
 
@@ -875,13 +877,15 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "asset.move.safe",
                 "build.configure",
                 "build.compile",
-                "gem.enable",
-                "render.material.patch",
                 "render.shader.rebuild",
-                "settings.patch",
                 "test.run.gtest",
                 "test.run.editor_python",
                 "test.tiaf.sequence",
+            ]
+            assert payload["gated_tool_paths"] == [
+                "gem.enable",
+                "render.material.patch",
+                "settings.patch",
             ]
             project_build = next(
                 family for family in payload["families"] if family["family"] == "project-build"
@@ -919,6 +923,8 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
             assert project_build["plan_only_tool_paths"] == [
                 "build.configure",
                 "build.compile",
+            ]
+            assert project_build["gated_tool_paths"] == [
                 "gem.enable",
                 "settings.patch",
             ]
@@ -943,9 +949,9 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "render.material.inspect",
             ]
             assert render_lookdev["plan_only_tool_paths"] == [
-                "render.material.patch",
                 "render.shader.rebuild",
             ]
+            assert render_lookdev["gated_tool_paths"] == ["render.material.patch"]
             assert render_lookdev["simulated_tool_paths"] == []
             assert any(
                 "render.capture.viewport" in note

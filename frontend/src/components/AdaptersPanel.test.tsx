@@ -18,7 +18,8 @@ const adapters: AdaptersResponse = {
     "editor.component.add",
     "editor.component.property.get",
   ],
-  plan_only_tool_paths: ["build.configure", "settings.patch"],
+  plan_only_tool_paths: ["build.configure"],
+  gated_tool_paths: ["gem.enable", "settings.patch"],
   simulated_tool_paths: ["asset.batch.process", "render.capture.viewport"],
   warning: null,
   notes: [
@@ -39,6 +40,7 @@ const adapters: AdaptersResponse = {
         "editor.component.add",
       ],
       plan_only_tool_paths: [],
+      gated_tool_paths: ["gem.enable"],
       simulated_tool_paths: [],
       notes: [],
       execution_boundary:
@@ -60,6 +62,7 @@ describe("AdaptersPanel", () => {
     expect(screen.getByText("Adapter Registry")).toBeInTheDocument();
     expect(screen.getByText("Registry Summary")).toBeInTheDocument();
     expect(screen.getByText("Path Rollup")).toBeInTheDocument();
+    expect(screen.getByText("Gated count")).toBeInTheDocument();
 
     const registrySummaryCard = screen.getByText("Registry Summary").closest("article");
     const pathRollupCard = screen.getByText("Path Rollup").closest("article");
@@ -89,5 +92,13 @@ describe("AdaptersPanel", () => {
     await userEvent.click(realToolPathsToggle);
     expect(realToolPathsSection).toHaveAttribute("open");
     expect(within(realToolPathsSection as HTMLElement).getByText("editor.component.property.get")).toBeInTheDocument();
+
+    const gatedPathsToggle = within(pathRollupCard as HTMLElement).getByText("Gated tool paths");
+    const gatedPathsSection = gatedPathsToggle.closest("details");
+    expect(gatedPathsSection).not.toBeNull();
+
+    await userEvent.click(gatedPathsToggle);
+    expect(gatedPathsSection).toHaveAttribute("open");
+    expect(within(gatedPathsSection as HTMLElement).getByText("gem.enable")).toBeInTheDocument();
   });
 });

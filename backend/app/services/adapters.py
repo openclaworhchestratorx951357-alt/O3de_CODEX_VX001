@@ -51,13 +51,18 @@ PLAN_ONLY_TOOL_PATHS_BY_MODE = {
         "asset.move.safe",
         "build.configure",
         "build.compile",
-        "gem.enable",
-        "render.material.patch",
         "render.shader.rebuild",
-        "settings.patch",
         "test.run.gtest",
         "test.run.editor_python",
         "test.tiaf.sequence",
+    ],
+}
+GATED_TOOL_PATHS_BY_MODE = {
+    "simulated": [],
+    "hybrid": [
+        "gem.enable",
+        "render.material.patch",
+        "settings.patch",
     ],
 }
 ADAPTER_EXECUTION_BOUNDARY = (
@@ -8530,6 +8535,9 @@ class AdapterService:
     def _plan_only_tool_paths_for_mode(self, active_mode: str) -> list[str]:
         return list(PLAN_ONLY_TOOL_PATHS_BY_MODE.get(active_mode, []))
 
+    def _gated_tool_paths_for_mode(self, active_mode: str) -> list[str]:
+        return list(GATED_TOOL_PATHS_BY_MODE.get(active_mode, []))
+
     def _simulated_tool_paths_for_family(
         self,
         *,
@@ -8544,6 +8552,7 @@ class AdapterService:
         )
         family_real = set()
         family_plan_only = set()
+        family_gated = set()
         if active_mode == "hybrid" and family == "project-build":
             family_real = {
                 tool_name
@@ -8553,6 +8562,11 @@ class AdapterService:
             family_plan_only = {
                 tool_name
                 for tool_name in self._plan_only_tool_paths_for_mode(active_mode)
+                if tool_name.startswith(("project.", "build.", "settings.", "gem."))
+            }
+            family_gated = {
+                tool_name
+                for tool_name in self._gated_tool_paths_for_mode(active_mode)
                 if tool_name.startswith(("project.", "build.", "settings.", "gem."))
             }
         if active_mode == "hybrid" and family == "asset-pipeline":
@@ -8583,6 +8597,11 @@ class AdapterService:
                 for tool_name in self._plan_only_tool_paths_for_mode(active_mode)
                 if tool_name.startswith("test.")
             }
+            family_gated = {
+                tool_name
+                for tool_name in self._gated_tool_paths_for_mode(active_mode)
+                if tool_name.startswith("test.")
+            }
         if active_mode == "hybrid" and family == "render-lookdev":
             family_real = {
                 tool_name
@@ -8594,10 +8613,19 @@ class AdapterService:
                 for tool_name in self._plan_only_tool_paths_for_mode(active_mode)
                 if tool_name.startswith("render.")
             }
+            family_gated = {
+                tool_name
+                for tool_name in self._gated_tool_paths_for_mode(active_mode)
+                if tool_name.startswith("render.")
+            }
         return sorted(
             tool_name
             for tool_name in tool_names
-            if tool_name not in family_real and tool_name not in family_plan_only
+            if (
+                tool_name not in family_real
+                and tool_name not in family_plan_only
+                and tool_name not in family_gated
+            )
         )
 
     def _configured_mode(self) -> str:
@@ -8657,6 +8685,7 @@ class AdapterService:
                 available_families=available_families,
                 real_tool_paths=[],
                 plan_only_tool_paths=[],
+                gated_tool_paths=[],
                 simulated_tool_paths=[],
                 warning=(
                     f"Configured adapter mode '{configured_mode}' is not supported; "
@@ -8677,18 +8706,23 @@ class AdapterService:
                     "path on McpSandbox, and an admitted explicit "
                     "editor.component.property.get read path on McpSandbox, "
                     "real plan-only asset.batch.process, build.configure, "
-                    "build.compile, and gem.enable preflight paths, and a real "
-                    "dry-run-only settings.patch preflight path.",
+                    "and build.compile paths, a real mutation-gated gem.enable "
+                    "path, and a real mutation-gated settings.patch path.",
                 ],
             )
         if configured_mode == "hybrid":
             real_tool_paths = self._real_tool_paths_for_mode("hybrid")
             plan_only_tool_paths = self._plan_only_tool_paths_for_mode("hybrid")
+            gated_tool_paths = self._gated_tool_paths_for_mode("hybrid")
             simulated_tool_paths = sorted(
                 tool.name
                 for agent in catalog_service.get_catalog_model().agents
                 for tool in agent.tools
-                if tool.name not in real_tool_paths and tool.name not in plan_only_tool_paths
+                if (
+                    tool.name not in real_tool_paths
+                    and tool.name not in plan_only_tool_paths
+                    and tool.name not in gated_tool_paths
+                )
             )
             return AdapterModeStatus(
                 ready=True,
@@ -8701,6 +8735,7 @@ class AdapterService:
                 available_families=available_families,
                 real_tool_paths=real_tool_paths,
                 plan_only_tool_paths=plan_only_tool_paths,
+                gated_tool_paths=gated_tool_paths,
                 simulated_tool_paths=simulated_tool_paths,
                 warning=None,
                 notes=[
@@ -8730,16 +8765,15 @@ class AdapterService:
                     "satisfied.",
                     "Hybrid mode also enables a real plan-only build.compile "
                     "preflight/result-truth path for explicit target requests.",
-                    "Hybrid mode also enables a real plan-only gem.enable "
-                    "preflight/result-truth path for explicit gem requests.",
+                    "Hybrid mode also enables a real mutation-gated gem.enable "
+                    "path for explicit manifest-backed local gem_names insertion requests.",
                     "Hybrid mode also enables a real mutation-gated render.material.patch "
                     "path for explicit local .material propertyValues writes with "
                     "backup, rollback, and post-write verification.",
                     "Hybrid mode also enables a real plan-only render.shader.rebuild "
                     "preflight/result-truth path for explicit shader target requests.",
-                    "Hybrid mode also enables a real dry-run-only settings.patch "
-                    "preflight path when manifest-backed settings admission criteria "
-                    "are satisfied.",
+                    "Hybrid mode also enables a real mutation-gated settings.patch "
+                    "path when the admitted manifest-backed mutation criteria are satisfied.",
                     "Hybrid mode also enables a real plan-only test.run.gtest "
                     "preflight/result-truth path for explicit target requests and a "
                     "real plan-only test.run.editor_python preflight/result-truth "
@@ -8761,6 +8795,7 @@ class AdapterService:
             available_families=available_families,
             real_tool_paths=[],
             plan_only_tool_paths=[],
+            gated_tool_paths=[],
             simulated_tool_paths=sorted(
                 tool.name
                 for agent in catalog_service.get_catalog_model().agents
@@ -8860,6 +8895,20 @@ class AdapterService:
                 if family_supports_real
                 else []
             )
+            family_gated_tool_paths = (
+                [
+                    tool_name
+                    for tool_name in runtime_status.gated_tool_paths
+                    if (
+                        family == "project-build"
+                        and tool_name.startswith(("project.", "build.", "settings.", "gem."))
+                    )
+                    or (family == "validation" and tool_name.startswith("test."))
+                    or (family == "render-lookdev" and tool_name.startswith("render."))
+                ]
+                if family_supports_real
+                else []
+            )
             family_simulated_tool_paths = self._simulated_tool_paths_for_family(
                 family=family,
                 active_mode=runtime_status.active_mode,
@@ -8869,9 +8918,10 @@ class AdapterService:
                 if family == "project-build":
                     family_notes.append(
                         "project.inspect currently has a real read-only path and "
-                        "build.configure, build.compile, gem.enable, and "
-                        "settings.patch currently have real preflight-only paths "
-                        "in this family."
+                        "build.configure and build.compile currently have real "
+                        "plan-only preflight paths, while gem.enable and "
+                        "settings.patch currently have narrow real mutation-gated "
+                        "paths in this family."
                     )
                 if family == "asset-pipeline":
                     family_notes.append(
@@ -8920,6 +8970,7 @@ class AdapterService:
                     ready=runtime_status.ready,
                     real_tool_paths=family_real_tool_paths,
                     plan_only_tool_paths=family_plan_only_tool_paths,
+                    gated_tool_paths=family_gated_tool_paths,
                     simulated_tool_paths=family_simulated_tool_paths,
                     notes=family_notes,
                 )
@@ -8932,6 +8983,7 @@ class AdapterService:
             supports_real_execution=runtime_status.supports_real_execution,
             real_tool_paths=runtime_status.real_tool_paths,
             plan_only_tool_paths=runtime_status.plan_only_tool_paths,
+            gated_tool_paths=runtime_status.gated_tool_paths,
             simulated_tool_paths=runtime_status.simulated_tool_paths,
             families=families,
             warning=runtime_status.warning,

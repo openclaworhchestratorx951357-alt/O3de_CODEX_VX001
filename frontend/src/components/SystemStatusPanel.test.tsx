@@ -46,7 +46,8 @@ const readiness: ReadinessStatus = {
     supported_modes: ["hybrid", "simulated"],
     available_families: ["editor-control"],
     real_tool_paths: ["editor.session.open", "editor.level.open"],
-    plan_only_tool_paths: ["build.configure", "settings.patch"],
+    plan_only_tool_paths: ["build.configure"],
+    gated_tool_paths: ["gem.enable", "settings.patch"],
     simulated_tool_paths: ["editor.entity.create"],
     warning: null,
     notes: [],
@@ -178,6 +179,8 @@ describe("SystemStatusPanel", () => {
     expect(cleanupReview).toHaveTextContent("Deadletters: 2 preserved");
     expect(screen.getByText("Covered tools")).toBeInTheDocument();
     expect(screen.getByText("Family rollout details")).toBeInTheDocument();
+    expect(screen.getByText("Gated tool paths")).toBeInTheDocument();
+    expect(screen.getByText(/gem\.enable/i)).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Clear stale success results" }),
     ).toHaveAttribute(
