@@ -759,8 +759,18 @@ class DispatcherService:
                 "editor.component.add",
                 "editor.component.property.get",
             ]
-            backup_class = None
-            rollback_class = None
+            backup_class = (
+                "loaded-level-restore-boundary"
+                if request.tool in {"editor.entity.create", "editor.component.add"}
+                and adapter_report.execution_details.get("restore_boundary_created") is True
+                else None
+            )
+            rollback_class = (
+                "loaded-level-restore"
+                if request.tool in {"editor.entity.create", "editor.component.add"}
+                and adapter_report.execution_details.get("restore_boundary_available") is True
+                else None
+            )
         else:
             return {
                 "executor_id": None,

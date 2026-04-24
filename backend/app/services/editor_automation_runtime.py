@@ -30,6 +30,10 @@ BRIDGE_HEARTBEAT_RECOVERY_WAIT_S = 3.0
 BRIDGE_LAUNCH_LOG_TAIL_LINES = 40
 BRIDGE_DEADLETTER_DIAGNOSTIC_LIMIT = 5
 RUNTIME_HOST_IS_WINDOWS = os.name == "nt"
+EDITOR_MUTATION_RESTORE_SCOPE = "loaded-level-file"
+EDITOR_MUTATION_RESTORE_STRATEGY = (
+    "restore-loaded-level-file-from-pre-mutation-backup"
+)
 BRIDGE_PROVENANCE_KEYS = (
     "editor_transport",
     "bridge_name",
@@ -132,6 +136,7 @@ class EditorAutomationRuntimeService:
         self._payloads_dir = runtime_root / "editor_payloads"
         self._results_dir = runtime_root / "editor_results"
         self._state_dir = runtime_root / "editor_state"
+        self._restore_boundaries_dir = self._state_dir / "restore_boundaries"
         self._bridge_poll_interval_s = 0.25
 
     def execute_session_open(
@@ -432,21 +437,40 @@ class EditorAutomationRuntimeService:
                 },
             )
 
-        bridge_response = self._invoke_bridge_command(
-            tool="editor.entity.create",
-            operation="editor.entity.create",
+        restore_boundary = self._create_editor_restore_boundary(
             project_root=project_root,
-            engine_root=normalized_engine_root,
-            request_id=request_id,
-            session_id=session_id,
-            workspace_id=workspace_id,
-            executor_id=executor_id,
-            args={
+            state=state,
+            tool="editor.entity.create",
+            loaded_level_path=loaded_level_path,
+            mutation_target={
                 "entity_name": entity_name,
-                "level_path": loaded_level_path,
             },
-            timeout_s=90,
         )
+        try:
+            bridge_response = self._invoke_bridge_command(
+                tool="editor.entity.create",
+                operation="editor.entity.create",
+                project_root=project_root,
+                engine_root=normalized_engine_root,
+                request_id=request_id,
+                session_id=session_id,
+                workspace_id=workspace_id,
+                executor_id=executor_id,
+                args={
+                    "entity_name": entity_name,
+                    "level_path": loaded_level_path,
+                },
+                timeout_s=90,
+            )
+        except Exception as exc:
+            self._attach_restore_outcome_to_exception(
+                exc,
+                project_root=project_root,
+                state=state,
+                restore_boundary=restore_boundary,
+                trigger="editor-entity-create-bridge-failure",
+            )
+            raise
         bridge_details = self._bridge_response_details(bridge_response)
         created_entity_id = bridge_details.get("entity_id")
         created_entity_name = bridge_details.get("entity_name", entity_name)
@@ -476,6 +500,7 @@ class EditorAutomationRuntimeService:
                 "editor.entity.create",
             ],
             "editor_transport": "bridge",
+            **self._restore_boundary_runtime_metadata(restore_boundary),
             **self._bridge_result_metadata(bridge_response),
         }
         state["last_created_entity_id"] = runtime_result.get("entity_id")
@@ -637,18 +662,38 @@ class EditorAutomationRuntimeService:
         if entity_name_hint is not None:
             bridge_args["entity_name_hint"] = entity_name_hint
 
-        bridge_response = self._invoke_bridge_command(
-            tool="editor.component.add",
-            operation="editor.component.add",
+        restore_boundary = self._create_editor_restore_boundary(
             project_root=project_root,
-            engine_root=normalized_engine_root,
-            request_id=request_id,
-            session_id=session_id,
-            workspace_id=workspace_id,
-            executor_id=executor_id,
-            args=bridge_args,
-            timeout_s=90,
+            state=state,
+            tool="editor.component.add",
+            loaded_level_path=loaded_level_path,
+            mutation_target={
+                "entity_id": normalized_entity_id,
+                "components": canonical_components,
+            },
         )
+        try:
+            bridge_response = self._invoke_bridge_command(
+                tool="editor.component.add",
+                operation="editor.component.add",
+                project_root=project_root,
+                engine_root=normalized_engine_root,
+                request_id=request_id,
+                session_id=session_id,
+                workspace_id=workspace_id,
+                executor_id=executor_id,
+                args=bridge_args,
+                timeout_s=90,
+            )
+        except Exception as exc:
+            self._attach_restore_outcome_to_exception(
+                exc,
+                project_root=project_root,
+                state=state,
+                restore_boundary=restore_boundary,
+                trigger="editor-component-add-bridge-failure",
+            )
+            raise
         bridge_details = self._bridge_response_details(bridge_response)
         runtime_result = {
             "ok": True,
@@ -672,6 +717,7 @@ class EditorAutomationRuntimeService:
                 "editor.component.add",
             ],
             "editor_transport": "bridge",
+            **self._restore_boundary_runtime_metadata(restore_boundary),
             **self._bridge_result_metadata(bridge_response),
         }
         state["editor_transport"] = "bridge"
@@ -1755,10 +1801,171 @@ class EditorAutomationRuntimeService:
         state_path.write_text(json.dumps(state, indent=2, sort_keys=True), encoding="utf-8")
 
     def _state_path(self, project_root: str) -> Path:
-        project_key = hashlib.sha1(
+        return self._state_dir / f"{self._project_key(project_root)}.json"
+
+    def _project_key(self, project_root: str) -> str:
+        return hashlib.sha1(
             str(Path(project_root).expanduser().resolve()).encode("utf-8")
         ).hexdigest()[:16]
-        return self._state_dir / f"{project_key}.json"
+
+    def _create_editor_restore_boundary(
+        self,
+        *,
+        project_root: str,
+        state: dict[str, Any],
+        tool: str,
+        loaded_level_path: str,
+        mutation_target: dict[str, Any],
+    ) -> dict[str, Any]:
+        level_file_path = self._resolve_loaded_level_file_path(
+            project_root,
+            loaded_level_path=loaded_level_path,
+        )
+        if not level_file_path.is_file():
+            self._reject_preflight(
+                tool=tool,
+                project_root=project_root,
+                reason="restore-boundary-level-file-missing",
+                message=(
+                    f"{tool} requires a filesystem-backed loaded level so a bounded "
+                    "restore boundary can be captured before mutation."
+                ),
+                extra_details={
+                    "loaded_level_path": loaded_level_path,
+                    "restore_boundary_scope": EDITOR_MUTATION_RESTORE_SCOPE,
+                    "restore_strategy": EDITOR_MUTATION_RESTORE_STRATEGY,
+                    "restore_boundary_source_path": str(level_file_path),
+                },
+            )
+
+        boundary_id = uuid4().hex
+        backup_dir = self._restore_boundaries_dir / self._project_key(project_root)
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        backup_extension = "".join(level_file_path.suffixes) or ".bak"
+        backup_path = backup_dir / f"{boundary_id}{backup_extension}"
+        shutil.copy2(level_file_path, backup_path)
+
+        boundary = {
+            "restore_boundary_created": True,
+            "restore_boundary_id": boundary_id,
+            "restore_boundary_scope": EDITOR_MUTATION_RESTORE_SCOPE,
+            "restore_strategy": EDITOR_MUTATION_RESTORE_STRATEGY,
+            "restore_boundary_created_at": self._utc_now(),
+            "restore_boundary_level_path": loaded_level_path,
+            "restore_boundary_source_path": str(level_file_path),
+            "restore_boundary_backup_path": str(backup_path),
+            "restore_boundary_available": True,
+            "restore_invoked": False,
+            "restore_result": "available_not_invoked",
+            "restore_boundary_target": mutation_target,
+            "restore_boundary_backup_sha256": self._file_sha256(backup_path),
+        }
+        state["available_restore_boundary"] = boundary
+        self._save_editor_state(project_root, state)
+        return boundary
+
+    def _attach_restore_outcome_to_exception(
+        self,
+        exc: Exception,
+        *,
+        project_root: str,
+        state: dict[str, Any],
+        restore_boundary: dict[str, Any],
+        trigger: str,
+    ) -> None:
+        restore_outcome = self._restore_editor_restore_boundary(
+            project_root=project_root,
+            state=state,
+            restore_boundary=restore_boundary,
+            trigger=trigger,
+        )
+        details = getattr(exc, "details", None)
+        if isinstance(details, dict):
+            details.update(restore_outcome)
+        logs = getattr(exc, "logs", None)
+        if isinstance(logs, list):
+            logs.append(
+                "Editor restore boundary was invoked after the admitted mutation path reported a failure."
+            )
+
+    def _restore_editor_restore_boundary(
+        self,
+        *,
+        project_root: str,
+        state: dict[str, Any],
+        restore_boundary: dict[str, Any],
+        trigger: str,
+    ) -> dict[str, Any]:
+        restore_outcome = dict(restore_boundary)
+        restore_outcome.update(
+            {
+                "restore_invoked": True,
+                "restore_attempted": True,
+                "restore_trigger": trigger,
+            }
+        )
+        source_path = Path(str(restore_boundary["restore_boundary_source_path"]))
+        backup_path = Path(str(restore_boundary["restore_boundary_backup_path"]))
+
+        try:
+            source_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(backup_path, source_path)
+        except OSError as exc:
+            restore_outcome["restore_succeeded"] = False
+            restore_outcome["restore_result"] = "restore_copy_failed"
+            restore_outcome["restore_error"] = str(exc)
+            state["available_restore_boundary"] = restore_outcome
+            self._save_editor_state(project_root, state)
+            return restore_outcome
+
+        restore_outcome["restore_verification_attempted"] = True
+        restored_hash = self._file_sha256(source_path)
+        restore_outcome["restore_verification_succeeded"] = (
+            restored_hash == restore_boundary.get("restore_boundary_backup_sha256")
+        )
+        restore_outcome["restore_succeeded"] = bool(
+            restore_outcome["restore_verification_succeeded"]
+        )
+        restore_outcome["restore_result"] = (
+            "restored_and_verified"
+            if restore_outcome["restore_succeeded"]
+            else "restore_verification_failed"
+        )
+        restore_outcome["restore_restored_sha256"] = restored_hash
+        state["available_restore_boundary"] = restore_outcome
+        self._save_editor_state(project_root, state)
+        return restore_outcome
+
+    def _restore_boundary_runtime_metadata(
+        self,
+        restore_boundary: dict[str, Any],
+    ) -> dict[str, Any]:
+        return {
+            key: value
+            for key, value in restore_boundary.items()
+            if key != "restore_boundary_target"
+        }
+
+    def _resolve_loaded_level_file_path(
+        self,
+        project_root: str,
+        *,
+        loaded_level_path: str,
+    ) -> Path:
+        return Path(project_root).expanduser().resolve() / loaded_level_path.replace(
+            "\\",
+            "/",
+        )
+
+    def _file_sha256(self, path: Path) -> str:
+        hasher = hashlib.sha256()
+        with path.open("rb") as handle:
+            while True:
+                chunk = handle.read(8192)
+                if not chunk:
+                    break
+                hasher.update(chunk)
+        return hasher.hexdigest()
 
     def _collect_editor_log_diagnostics(self, project_root: str) -> dict[str, Any]:
         latest_log = self._find_latest_editor_log(project_root)

@@ -845,6 +845,16 @@ def test_prompt_session_executes_editor_component_add_with_created_entity_handof
                                 "bridge_heartbeat_seen_at": "2026-04-20T00:00:02Z",
                                 "bridge_queue_mode": "filesystem-inbox",
                                 "editor_transport": "bridge",
+                                "restore_boundary_created": True,
+                                "restore_boundary_id": "entity-restore-boundary-1",
+                                "restore_boundary_scope": "loaded-level-file",
+                                "restore_boundary_level_path": "Levels/Main.level",
+                                "restore_boundary_source_path": "C:/project/Levels/Main.level",
+                                "restore_boundary_backup_path": "C:/project/runtime/editor_state/restore_boundaries/entity-restore-boundary-1.level",
+                                "restore_boundary_available": True,
+                                "restore_strategy": "restore-loaded-level-file-from-pre-mutation-backup",
+                                "restore_invoked": False,
+                                "restore_result": "available_not_invoked",
                             },
                             "runner_command": ["fake-editor-runner"],
                             "runtime_script": "control_plane_bridge_poller.py",
@@ -886,6 +896,16 @@ def test_prompt_session_executes_editor_component_add_with_created_entity_handof
                                     "bridge_heartbeat_seen_at": "2026-04-20T00:00:03Z",
                                     "bridge_queue_mode": "filesystem-inbox",
                                     "editor_transport": "bridge",
+                                    "restore_boundary_created": True,
+                                    "restore_boundary_id": "component-restore-boundary-1",
+                                    "restore_boundary_scope": "loaded-level-file",
+                                    "restore_boundary_level_path": "Levels/Main.level",
+                                    "restore_boundary_source_path": "C:/project/Levels/Main.level",
+                                    "restore_boundary_backup_path": "C:/project/runtime/editor_state/restore_boundaries/component-restore-boundary-1.level",
+                                    "restore_boundary_available": True,
+                                    "restore_strategy": "restore-loaded-level-file-from-pre-mutation-backup",
+                                    "restore_invoked": False,
+                                    "restore_result": "available_not_invoked",
                                 },
                                 "runner_command": ["fake-editor-runner"],
                                 "runtime_script": "control_plane_bridge_poller.py",
@@ -956,6 +976,14 @@ def test_prompt_session_executes_editor_component_add_with_created_entity_handof
                                 )
                                 assert (
                                     "Readback confirmed added component(s) Camera on entity 101."
+                                    in completed_payload["final_result_summary"]
+                                )
+                                assert (
+                                    "Restore boundary entity-restore-boundary-1 was captured before admitted editor mutation and remains available for the current subset."
+                                    in completed_payload["final_result_summary"]
+                                )
+                                assert (
+                                    "Restore boundary component-restore-boundary-1 was captured before admitted editor mutation and remains available for the current subset."
                                     in completed_payload["final_result_summary"]
                                 )
 
@@ -1133,6 +1161,16 @@ def test_prompt_session_executes_editor_component_property_read_from_added_compo
                                 "bridge_heartbeat_seen_at": "2026-04-20T00:00:02Z",
                                 "bridge_queue_mode": "filesystem-inbox",
                                 "editor_transport": "bridge",
+                                "restore_boundary_created": True,
+                                "restore_boundary_id": "entity-restore-boundary-2",
+                                "restore_boundary_scope": "loaded-level-file",
+                                "restore_boundary_level_path": "Levels/Main.level",
+                                "restore_boundary_source_path": "C:/project/Levels/Main.level",
+                                "restore_boundary_backup_path": "C:/project/runtime/editor_state/restore_boundaries/entity-restore-boundary-2.level",
+                                "restore_boundary_available": True,
+                                "restore_strategy": "restore-loaded-level-file-from-pre-mutation-backup",
+                                "restore_invoked": False,
+                                "restore_result": "available_not_invoked",
                             },
                             "runner_command": ["fake-editor-runner"],
                             "runtime_script": "control_plane_bridge_poller.py",
@@ -1174,6 +1212,16 @@ def test_prompt_session_executes_editor_component_property_read_from_added_compo
                                     "bridge_heartbeat_seen_at": "2026-04-20T00:00:03Z",
                                     "bridge_queue_mode": "filesystem-inbox",
                                     "editor_transport": "bridge",
+                                    "restore_boundary_created": True,
+                                    "restore_boundary_id": "component-restore-boundary-2",
+                                    "restore_boundary_scope": "loaded-level-file",
+                                    "restore_boundary_level_path": "Levels/Main.level",
+                                    "restore_boundary_source_path": "C:/project/Levels/Main.level",
+                                    "restore_boundary_backup_path": "C:/project/runtime/editor_state/restore_boundaries/component-restore-boundary-2.level",
+                                    "restore_boundary_available": True,
+                                    "restore_strategy": "restore-loaded-level-file-from-pre-mutation-backup",
+                                    "restore_invoked": False,
+                                    "restore_result": "available_not_invoked",
                                 },
                                 "runner_command": ["fake-editor-runner"],
                                 "runtime_script": "control_plane_bridge_poller.py",
@@ -1297,6 +1345,14 @@ def test_prompt_session_executes_editor_component_property_read_from_added_compo
                                     )
                                     assert (
                                         "Readback confirmed Controller|Configuration|Model Asset = objects/example.azmodel."
+                                        in completed_payload["final_result_summary"]
+                                    )
+                                    assert (
+                                        "Restore boundary entity-restore-boundary-2 was captured before admitted editor mutation and remains available for the current subset."
+                                        in completed_payload["final_result_summary"]
+                                    )
+                                    assert (
+                                        "Restore boundary component-restore-boundary-2 was captured before admitted editor mutation and remains available for the current subset."
                                         in completed_payload["final_result_summary"]
                                     )
 

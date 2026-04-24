@@ -7,9 +7,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+import pytest
+
 from app.models.request_envelope import RequestEnvelope
 from app.services.approvals import approvals_service
 from app.services.artifacts import artifacts_service
+from app.services.adapters import AdapterExecutionRejected
 from app.services.editor_automation_runtime import editor_automation_runtime_service
 from app.services.db import configure_database, initialize_database, reset_database
 from app.services.dispatcher import dispatcher_service
@@ -424,6 +427,18 @@ def write_editor_project_manifest(project_root: Path) -> None:
         ),
         encoding="utf-8",
     )
+
+
+def write_level_file(
+    project_root: Path,
+    *,
+    level_path: str = "Levels/Main.level",
+    content: str = '{\n  "level": "baseline"\n}\n',
+) -> Path:
+    resolved_path = project_root / level_path
+    resolved_path.parent.mkdir(parents=True, exist_ok=True)
+    resolved_path.write_text(content, encoding="utf-8")
+    return resolved_path
 
 
 def editor_state_path_for(project_root: Path) -> Path:
@@ -3293,6 +3308,92 @@ def test_editor_entity_create_uses_real_runtime_in_hybrid_mode() -> None:
         )
 
 
+def test_editor_entity_create_captures_restore_boundary_before_mutation() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        write_editor_project_manifest(project_root)
+        level_file_path = write_level_file(project_root)
+
+        session_state_path = editor_state_path_for(project_root)
+        session_state_path.parent.mkdir(parents=True, exist_ok=True)
+        session_state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.object(
+            editor_automation_runtime_service,
+            "_resolve_bridge_runner",
+            return_value=["fake-editor-runner"],
+        ):
+            with patch.object(
+                editor_automation_runtime_service,
+                "_bridge_host_available",
+                return_value=True,
+            ):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_invoke_bridge_command",
+                    return_value={
+                        "success": True,
+                        "bridge_command_id": "bridge-entity-restore-1",
+                        "operation": "editor.entity.create",
+                        "protocol_version": "v1",
+                        "finished_at": "2026-04-24T00:00:01Z",
+                        "result_summary": "editor.entity.create completed.",
+                        "details": {
+                            "entity_id": "101",
+                            "entity_name": "ExampleEntity",
+                            "level_path": "Levels/Main.level",
+                            "entity_id_source": "editor_entity_context_create",
+                            "direct_return_entity_id": "101",
+                            "notification_entity_ids": [],
+                            "selected_entity_count_before_create": 0,
+                            "name_mutation_ran": False,
+                            "name_mutation_succeeded": True,
+                        },
+                    },
+                ):
+                    runtime_payload = editor_automation_runtime_service.execute_entity_create(
+                        request_id="req-editor-restore-entity-1",
+                        session_id=None,
+                        workspace_id=None,
+                        executor_id=None,
+                        project_root=str(project_root),
+                        engine_root=str(project_root),
+                        dry_run=False,
+                        args={
+                            "entity_name": "ExampleEntity",
+                            "level_path": "Levels/Main.level",
+                        },
+                        locks_acquired=[],
+                    )
+
+        runtime_result = runtime_payload["runtime_result"]
+        assert runtime_result["restore_boundary_created"] is True
+        assert runtime_result["restore_boundary_available"] is True
+        assert runtime_result["restore_invoked"] is False
+        assert runtime_result["restore_result"] == "available_not_invoked"
+        assert runtime_result["restore_strategy"] == (
+            "restore-loaded-level-file-from-pre-mutation-backup"
+        )
+        backup_path = Path(runtime_result["restore_boundary_backup_path"])
+        assert backup_path.is_file()
+        assert backup_path.read_text(encoding="utf-8") == level_file_path.read_text(
+            encoding="utf-8"
+        )
+        persisted_state = json.loads(session_state_path.read_text(encoding="utf-8"))
+        assert (
+            persisted_state["available_restore_boundary"]["restore_boundary_id"]
+            == runtime_result["restore_boundary_id"]
+        )
+
+
 def test_editor_component_add_uses_real_runtime_in_hybrid_mode() -> None:
     with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)
@@ -3416,6 +3517,173 @@ def test_editor_component_add_uses_real_runtime_in_hybrid_mode() -> None:
                 payload=artifact.metadata,
             )
             == []
+        )
+
+
+def test_editor_component_add_captures_restore_boundary_before_mutation() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        write_editor_project_manifest(project_root)
+        write_level_file(project_root)
+
+        session_state_path = editor_state_path_for(project_root)
+        session_state_path.parent.mkdir(parents=True, exist_ok=True)
+        session_state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                    "last_created_entity_id": "101",
+                    "last_created_entity_name": "ExampleEntity",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.object(
+            editor_automation_runtime_service,
+            "_resolve_bridge_runner",
+            return_value=["fake-editor-runner"],
+        ):
+            with patch.object(
+                editor_automation_runtime_service,
+                "_bridge_host_available",
+                return_value=True,
+            ):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_invoke_bridge_command",
+                    return_value={
+                        "success": True,
+                        "bridge_command_id": "bridge-component-restore-1",
+                        "operation": "editor.component.add",
+                        "protocol_version": "v1",
+                        "finished_at": "2026-04-24T00:00:02Z",
+                        "result_summary": "editor.component.add completed.",
+                        "details": {
+                            "entity_id": "101",
+                            "entity_name": "ExampleEntity",
+                            "added_components": ["Mesh"],
+                            "added_component_refs": [
+                                {
+                                    "component": "Mesh",
+                                    "component_id": "EntityComponentIdPair(EntityId(101), 201)",
+                                    "entity_id": "101",
+                                }
+                            ],
+                            "rejected_components": [],
+                            "modified_entities": ["101"],
+                            "level_path": "Levels/Main.level",
+                            "loaded_level_path": "Levels/Main.level",
+                        },
+                    },
+                ):
+                    runtime_payload = editor_automation_runtime_service.execute_component_add(
+                        request_id="req-editor-restore-component-1",
+                        session_id=None,
+                        workspace_id=None,
+                        executor_id=None,
+                        project_root=str(project_root),
+                        engine_root=str(project_root),
+                        dry_run=False,
+                        args={
+                            "entity_id": "101",
+                            "components": ["Mesh"],
+                            "level_path": "Levels/Main.level",
+                        },
+                        locks_acquired=[],
+                    )
+
+        runtime_result = runtime_payload["runtime_result"]
+        assert runtime_result["restore_boundary_created"] is True
+        assert runtime_result["restore_boundary_available"] is True
+        assert runtime_result["restore_invoked"] is False
+        assert runtime_result["restore_result"] == "available_not_invoked"
+        assert runtime_result["restore_strategy"] == (
+            "restore-loaded-level-file-from-pre-mutation-backup"
+        )
+
+
+def test_editor_component_add_restores_level_snapshot_when_bridge_fails() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        write_editor_project_manifest(project_root)
+        level_file_path = write_level_file(
+            project_root,
+            content='{\n  "level": "before-component-add"\n}\n',
+        )
+
+        session_state_path = editor_state_path_for(project_root)
+        session_state_path.parent.mkdir(parents=True, exist_ok=True)
+        session_state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                    "last_created_entity_id": "101",
+                    "last_created_entity_name": "ExampleEntity",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        def failing_bridge_command(**_: object) -> dict[str, object]:
+            level_file_path.write_text(
+                '{\n  "level": "mutated-before-restore"\n}\n',
+                encoding="utf-8",
+            )
+            raise AdapterExecutionRejected(
+                "editor.component.add bridge command failed after mutation.",
+                details={"bridge_operation": "editor.component.add"},
+                logs=["Bridge reported editor.component.add failure."],
+            )
+
+        with patch.object(
+            editor_automation_runtime_service,
+            "_resolve_bridge_runner",
+            return_value=["fake-editor-runner"],
+        ):
+            with patch.object(
+                editor_automation_runtime_service,
+                "_bridge_host_available",
+                return_value=True,
+            ):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_invoke_bridge_command",
+                    side_effect=failing_bridge_command,
+                ):
+                    with pytest.raises(AdapterExecutionRejected) as exc_info:
+                        editor_automation_runtime_service.execute_component_add(
+                            request_id="req-editor-restore-component-fail-1",
+                            session_id=None,
+                            workspace_id=None,
+                            executor_id=None,
+                            project_root=str(project_root),
+                            engine_root=str(project_root),
+                            dry_run=False,
+                            args={
+                                "entity_id": "101",
+                                "components": ["Mesh"],
+                                "level_path": "Levels/Main.level",
+                            },
+                            locks_acquired=[],
+                        )
+
+        assert level_file_path.read_text(encoding="utf-8") == (
+            '{\n  "level": "before-component-add"\n}\n'
+        )
+        assert exc_info.value.details["restore_boundary_created"] is True
+        assert exc_info.value.details["restore_invoked"] is True
+        assert exc_info.value.details["restore_attempted"] is True
+        assert exc_info.value.details["restore_succeeded"] is True
+        assert exc_info.value.details["restore_result"] == "restored_and_verified"
+        assert exc_info.value.details["restore_trigger"] == (
+            "editor-component-add-bridge-failure"
+        )
+        persisted_state = json.loads(session_state_path.read_text(encoding="utf-8"))
+        assert persisted_state["available_restore_boundary"]["restore_result"] == (
+            "restored_and_verified"
         )
 
 

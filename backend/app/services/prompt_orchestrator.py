@@ -538,6 +538,7 @@ class PromptOrchestratorService:
                     summary_parts.append(
                         f"Readback confirmed added component(s) {component_list}."
                     )
+            self._append_restore_boundary_summary(details, summary_parts)
 
         if property_response is not None:
             details = property_response.get("execution_details", {})
@@ -548,9 +549,41 @@ class PromptOrchestratorService:
                     f"Readback confirmed {property_path} = {value}."
                 )
 
+        if entity_response is not None:
+            self._append_restore_boundary_summary(
+                entity_response.get("execution_details", {}),
+                summary_parts,
+            )
+
         if not summary_parts:
             return None
         return " ".join(summary_parts)
+
+    def _append_restore_boundary_summary(
+        self,
+        details: dict[str, Any],
+        summary_parts: list[str],
+    ) -> None:
+        restore_boundary_id = details.get("restore_boundary_id")
+        if not isinstance(restore_boundary_id, str) or not restore_boundary_id:
+            return
+
+        if details.get("restore_invoked") is True:
+            restore_result = details.get("restore_result")
+            if isinstance(restore_result, str) and restore_result:
+                summary_parts.append(
+                    f"Restore boundary {restore_boundary_id} was invoked with result {restore_result}."
+                )
+            else:
+                summary_parts.append(
+                    f"Restore boundary {restore_boundary_id} was invoked."
+                )
+            return
+
+        if details.get("restore_boundary_available") is True:
+            summary_parts.append(
+                f"Restore boundary {restore_boundary_id} was captured before admitted editor mutation and remains available for the current subset."
+            )
 
 
 prompt_orchestrator_service = PromptOrchestratorService()
