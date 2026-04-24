@@ -46,6 +46,17 @@ def test_project_inspect_is_classified_as_hybrid_read_only() -> None:
     assert tool.capability_status == "hybrid-read-only"
 
 
+def test_build_compile_is_cataloged_as_plan_only() -> None:
+    tool = catalog_service.get_tool_definition("project-build", "build.compile")
+    assert tool is not None
+    assert tool.approval_class == "build_execute"
+    assert tool.adapter_family == "project-build"
+    assert tool.capability_status == "plan-only"
+    assert tool.args_schema.endswith("build.compile.args.schema.json")
+    assert tool.result_schema.endswith("build.compile.result.schema.json")
+    assert "build_tree" in tool.default_locks
+
+
 def test_editor_component_property_get_is_cataloged_as_hybrid_read_only() -> None:
     tool = catalog_service.get_tool_definition(
         "editor-control",

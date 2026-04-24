@@ -153,21 +153,46 @@ def approve_gem_enable_request() -> RequestEnvelope:
     return approved_request
 
 
-def make_build_compile_request() -> RequestEnvelope:
-    request = make_request("project-build", "build.compile")
+def make_build_compile_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = True,
+    targets: list[str] | None = None,
+) -> RequestEnvelope:
+    request = make_request(
+        "project-build",
+        "build.compile",
+        project_root=project_root,
+        dry_run=dry_run,
+    )
     request.args = {
-        "targets": ["Editor"],
+        "targets": targets or ["Editor"],
     }
     return request
 
 
-def approve_build_compile_request() -> RequestEnvelope:
-    first = dispatcher_service.dispatch(make_build_compile_request())
+def approve_build_compile_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = True,
+    targets: list[str] | None = None,
+) -> RequestEnvelope:
+    first = dispatcher_service.dispatch(
+        make_build_compile_request(
+            project_root=project_root,
+            dry_run=dry_run,
+            targets=targets,
+        )
+    )
     approval = approvals_service.get_approval(first.approval_id or "")
     assert approval is not None
     approvals_service.approve(approval.id)
 
-    approved_request = make_build_compile_request()
+    approved_request = make_build_compile_request(
+        project_root=project_root,
+        dry_run=dry_run,
+        targets=targets,
+    )
     approved_request.approval_token = approval.token
     return approved_request
 
@@ -4006,6 +4031,93 @@ def test_build_compile_simulated_persisted_payloads_match_published_schemas() ->
         assert artifact.simulated is True
         assert artifact.metadata["execution_mode"] == "simulated"
         assert artifact.metadata["inspection_surface"] == "simulated"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="build.compile",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="build.compile",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_build_compile_uses_real_preflight_substrate_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        cache_path = project_root / "build" / "windows" / "CMakeCache.txt"
+        target_path = project_root / "build" / "windows" / "bin" / "profile" / "Editor.exe"
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text("CMAKE_GENERATOR:INTERNAL=Ninja\n", encoding="utf-8")
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_bytes(b"build-target")
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                approve_build_compile_request(project_root=str(project_root))
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "build_compile_preflight"
+        assert execution.details["preflight_execution_mode"] == "plan-only"
+        assert execution.details["configured_build_tree_available"] is True
+        assert (
+            execution.details["target_artifact_candidates_found_for_all_requested_targets"]
+            is True
+        )
+        assert execution.details["execution_attempted"] is False
+        assert execution.details["result_artifact_produced"] is False
+        assert str(target_path) in execution.details["resolved_target_candidate_paths"]
+        assert artifact is not None
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "build_compile_preflight"
+
+
+def test_build_compile_real_persisted_payloads_match_published_schemas() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        cache_path = project_root / "build" / "linux" / "CMakeCache.txt"
+        target_path = project_root / "build" / "linux" / "bin" / "profile" / "Editor"
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text("CMAKE_BUILD_TYPE:STRING=profile\n", encoding="utf-8")
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_bytes(b"build-target-schema")
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                approve_build_compile_request(project_root=str(project_root))
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["execution_attempted"] is False
+        assert execution.details["result_status"] == "not-attempted"
+        assert artifact is not None
         assert (
             schema_validation_service.validate_execution_details(
                 tool_name="build.compile",

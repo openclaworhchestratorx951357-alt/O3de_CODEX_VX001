@@ -35,7 +35,7 @@ def tool_real_admission_stage(tool_name: str) -> str:
     if tool_name == "gem.enable":
         return "mutation-candidate-after-gate"
     if tool_name == "build.compile":
-        return "deferred-high-risk-mutation"
+        return "real-plan-only-active"
     return "simulated-only"
 
 
@@ -140,8 +140,10 @@ def tool_next_real_requirement(tool_name: str) -> str:
         )
     if tool_name == "build.compile":
         return (
-            "Defer until mutation-capable configure admission and stronger runtime "
-            "dependency evidence are both proven."
+            "Keep real execution limited to explicit build.compile preflight and "
+            "result-truth evidence, with actual compile execution, exit semantics, "
+            "and result artifact production marked unavailable unless a real admitted "
+            "compiler runner path is proven."
         )
     return "Remain simulated until a tool-specific real adapter gate is admitted."
 

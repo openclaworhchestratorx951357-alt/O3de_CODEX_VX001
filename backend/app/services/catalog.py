@@ -40,7 +40,9 @@ def tool_capability_status(tool_name: str) -> str:
         return "real-authoring"
     if tool_name == "build.configure":
         return "plan-only"
-    if tool_name in {"settings.patch", "gem.enable", "build.compile"}:
+    if tool_name == "build.compile":
+        return "plan-only"
+    if tool_name in {"settings.patch", "gem.enable"}:
         return "mutation-gated"
     return "simulated-only"
 

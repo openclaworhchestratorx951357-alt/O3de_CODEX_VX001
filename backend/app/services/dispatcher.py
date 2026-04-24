@@ -679,7 +679,7 @@ class DispatcherService:
             evidence_completeness = "inspection-backed"
             execution_boundary = "read-only local manifest inspection"
             workspace_id = f"workspace-project-inspect-{execution_id}"
-            admitted_tools = ["project.inspect", "build.configure"]
+            admitted_tools = ["project.inspect", "build.configure", "build.compile"]
             backup_class = None
             rollback_class = None
         elif (
@@ -727,7 +727,24 @@ class DispatcherService:
             evidence_completeness = "plan-backed"
             execution_boundary = "plan-only local configure preflight"
             workspace_id = f"workspace-build-configure-{execution_id}"
-            admitted_tools = ["project.inspect", "build.configure"]
+            admitted_tools = ["project.inspect", "build.configure", "build.compile"]
+            backup_class = None
+            rollback_class = None
+        elif (
+            request.tool == "build.compile"
+            and inspection_surface == "build_compile_preflight"
+        ):
+            executor_id = "executor-project-build-hybrid-readonly-local"
+            executor_kind = "local-admitted-readonly"
+            executor_label = "Admitted local read-only substrate executor"
+            executor_host_label = "local-project-manifest"
+            workspace_kind = "admitted-plan-only-project-root"
+            cleanup_policy = "operator-managed-preflight"
+            artifact_role = "plan-evidence"
+            evidence_completeness = "plan-backed"
+            execution_boundary = "plan-only local compile preflight"
+            workspace_id = f"workspace-build-compile-{execution_id}"
+            admitted_tools = ["project.inspect", "build.configure", "build.compile"]
             backup_class = None
             rollback_class = None
         elif request.tool == "settings.patch" and inspection_surface in {
@@ -1235,6 +1252,8 @@ class DispatcherService:
         capability = self._request_capability_status(request)
         if request.tool == "build.configure" and capability == "plan-only":
             return "plan-only build.configure preflight"
+        if request.tool == "build.compile" and capability == "plan-only":
+            return "plan-only build.compile preflight"
         if request.tool == "settings.patch" and capability == "mutation-gated":
             return (
                 "mutation-gated settings.patch path"
@@ -1260,6 +1279,8 @@ class DispatcherService:
             return "This run used the first real read-only project inspection path."
         if request.tool == "build.configure":
             return "This run used the real plan-only build.configure preflight path."
+        if request.tool == "build.compile":
+            return "This run used the real plan-only build.compile preflight path."
         if request.tool == "settings.patch":
             if isinstance(result.message, str) and result.message.startswith(
                 "Real settings.patch mutation completed"

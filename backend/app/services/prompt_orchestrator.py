@@ -518,6 +518,9 @@ class PromptOrchestratorService:
         render_material_response = self._latest_successful_response_for_step(
             session, "render-material-inspect-1"
         )
+        build_compile_response = self._latest_successful_response_for_step(
+            session, "build-compile-1"
+        )
         gtest_response = self._latest_successful_response_for_step(
             session, "validation-gtest-1"
         )
@@ -685,6 +688,38 @@ class PromptOrchestratorService:
                     "No real material evidence was produced in this admitted slice."
                 )
             unavailable_reason = details.get("material_unavailable_reason")
+            if isinstance(unavailable_reason, str) and unavailable_reason:
+                summary_parts.append(unavailable_reason)
+
+        if build_compile_response is not None:
+            details = build_compile_response.get("execution_details", {})
+            if details.get("configured_build_tree_available") is True:
+                summary_parts.append(
+                    "Build compile preflight confirmed configured build tree evidence for the explicit target request."
+                )
+            else:
+                summary_parts.append(
+                    "Build compile preflight recorded that configured build tree evidence remains unavailable for the explicit target request."
+                )
+            if details.get("target_artifact_candidates_found_for_all_requested_targets") is True:
+                summary_parts.append(
+                    "Build compile preflight confirmed artifact candidate resolution for all explicit build targets."
+                )
+            else:
+                summary_parts.append(
+                    "Build compile preflight could not confirm artifact candidate resolution for all explicit build targets."
+                )
+            if details.get("execution_attempted") is True:
+                summary_parts.append(
+                    "Real build.compile execution was attempted in this slice."
+                )
+            else:
+                summary_parts.append(
+                    "No real build.compile execution was attempted in this admitted slice."
+                )
+            unavailable_reason = details.get("compile_unavailable_reason") or details.get(
+                "result_unavailable_reason"
+            )
             if isinstance(unavailable_reason, str) and unavailable_reason:
                 summary_parts.append(unavailable_reason)
 

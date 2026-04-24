@@ -194,12 +194,12 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
         )
     if tool_name == "build.compile":
         return _build_safety_envelope(
-            state_scope="Workspace-local explicit target build set.",
-            backup_class="workspace-snapshot-preferred",
-            rollback_class="workspace-clean-or-rebuild",
-            verification_class="exit-status and target-output verification",
+            state_scope="Workspace-local explicit target build preflight scope.",
+            backup_class="none",
+            rollback_class="environment-cleanup-only",
+            verification_class="configured build tree and target artifact candidate verification",
             retention_class="build-log-evidence",
-            natural_language_status="prompt-ready-simulated",
+            natural_language_status="prompt-ready-plan-only",
         )
     if tool_name == "render.material.patch":
         return _build_safety_envelope(
@@ -428,11 +428,11 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": True,
     },
     "build.compile": {
-        "capability_maturity": "simulated-only",
+        "capability_maturity": "plan-only",
         "planner_intent_aliases": ["compile target", "build target", "compile project"],
         "natural_language_affordances": ["Compile explicit named targets through a typed build request."],
         "allowlisted_parameter_surfaces": ["targets", "config", "parallel_jobs"],
-        "real_adapter_availability": False,
+        "real_adapter_availability": True,
         "dry_run_availability": True,
         "simulation_fallback_availability": True,
     },
