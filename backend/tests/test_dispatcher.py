@@ -4387,8 +4387,8 @@ def test_test_visual_diff_uses_real_artifact_comparison_substrate_in_hybrid_mode
         root = Path(temp_dir)
         baseline_path = root / "baseline.png"
         candidate_path = root / "candidate.png"
-        create_test_image(baseline_path, size=(2, 3), color=(255, 0, 0, 255))
-        create_test_image(candidate_path, size=(4, 1), color=(0, 0, 255, 255))
+        create_test_image(baseline_path, size=(2, 2), color=(255, 0, 0, 255))
+        create_test_image(candidate_path, size=(2, 2), color=(0, 0, 255, 255))
 
         baseline_artifact_id = create_test_artifact_record(
             path=baseline_path,
@@ -4425,15 +4425,22 @@ def test_test_visual_diff_uses_real_artifact_comparison_substrate_in_hybrid_mode
         assert execution.details["byte_identical"] is False
         assert execution.details["baseline_image_decodable"] is True
         assert execution.details["baseline_image_width"] == 2
-        assert execution.details["baseline_image_height"] == 3
+        assert execution.details["baseline_image_height"] == 2
         assert execution.details["baseline_image_mode"] == "RGBA"
         assert execution.details["baseline_image_channel_count"] == 4
         assert execution.details["candidate_image_decodable"] is True
-        assert execution.details["candidate_image_width"] == 4
-        assert execution.details["candidate_image_height"] == 1
+        assert execution.details["candidate_image_width"] == 2
+        assert execution.details["candidate_image_height"] == 2
         assert execution.details["candidate_image_mode"] == "RGBA"
         assert execution.details["candidate_image_channel_count"] == 4
-        assert execution.details["visual_metric_available"] is False
+        assert execution.details["visual_metric_input_compatible"] is True
+        assert execution.details["visual_metric_available"] is True
+        assert execution.details["visual_metric_name"] == "exact_rgba_pixel_match_ratio"
+        assert execution.details["visual_metric_value"] == 0.0
+        assert execution.details["visual_metric_color_space"] == "RGBA"
+        assert execution.details["visual_metric_total_pixels"] == 4
+        assert execution.details["visual_metric_matching_pixels"] == 0
+        assert execution.details["visual_metric_mismatched_pixels"] == 4
         assert execution.details["baseline_artifact_found"] is True
         assert execution.details["candidate_artifact_found"] is True
         assert artifact is not None
@@ -4540,6 +4547,48 @@ def test_test_visual_diff_reports_decode_unavailable_for_non_image_inputs() -> N
             )
             == []
         )
+
+
+def test_test_visual_diff_reports_metric_unavailable_for_dimension_mismatch() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        root = Path(temp_dir)
+        baseline_path = root / "baseline.png"
+        candidate_path = root / "candidate.png"
+        create_test_image(baseline_path, size=(2, 2), color=(255, 255, 255, 255))
+        create_test_image(candidate_path, size=(3, 1), color=(255, 255, 255, 255))
+
+        baseline_artifact_id = create_test_artifact_record(
+            path=baseline_path,
+            label="Baseline metric mismatch image",
+        )
+        candidate_artifact_id = create_test_artifact_record(
+            path=candidate_path,
+            label="Candidate metric mismatch image",
+        )
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                make_test_visual_diff_request(
+                    baseline_artifact_id=baseline_artifact_id,
+                    candidate_artifact_id=candidate_artifact_id,
+                )
+            )
+
+        assert response.ok is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        assert execution.details["baseline_image_decodable"] is True
+        assert execution.details["candidate_image_decodable"] is True
+        assert execution.details["visual_metric_input_compatible"] is False
+        assert execution.details["visual_metric_available"] is False
+        assert execution.details["visual_metric_name"] is None
+        assert execution.details["visual_metric_value"] is None
+        assert "same dimensions" in execution.details["visual_metric_unavailable_reason"]
 
 
 def test_test_run_editor_python_simulated_persisted_payloads_match_published_schemas(

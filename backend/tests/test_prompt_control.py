@@ -381,7 +381,7 @@ def test_prompt_session_executes_test_visual_diff_with_truthful_evidence() -> No
         baseline_path = root / "baseline.png"
         candidate_path = root / "candidate.png"
         create_test_image(baseline_path, size=(2, 2), color=(255, 0, 0, 255))
-        create_test_image(candidate_path, size=(3, 1), color=(0, 0, 255, 255))
+        create_test_image(candidate_path, size=(2, 2), color=(0, 0, 255, 255))
 
         with patch.dict(
             "os.environ",
@@ -435,19 +435,21 @@ def test_prompt_session_executes_test_visual_diff_with_truthful_evidence() -> No
                 assert details["candidate_image_decodable"] is True
                 assert details["baseline_image_width"] == 2
                 assert details["baseline_image_height"] == 2
-                assert details["candidate_image_width"] == 3
-                assert details["candidate_image_height"] == 1
-                assert details["visual_metric_available"] is False
+                assert details["candidate_image_width"] == 2
+                assert details["candidate_image_height"] == 2
+                assert details["visual_metric_available"] is True
+                assert details["visual_metric_name"] == "exact_rgba_pixel_match_ratio"
+                assert details["visual_metric_value"] == 0.0
                 assert (
                     "Artifact comparison confirmed differing file identity for the requested inputs."
                     in payload["final_result_summary"]
                 )
                 assert (
-                    "Image decode confirmed baseline 2x2 RGBA and candidate 3x1 RGBA."
+                    "Image decode confirmed baseline 2x2 RGBA and candidate 2x2 RGBA."
                     in payload["final_result_summary"]
                 )
                 assert (
-                    "Stronger visual diff metrics remain unavailable in this admitted slice."
+                    "Visual metric readback confirmed exact_rgba_pixel_match_ratio = 0.0."
                     in payload["final_result_summary"]
                 )
 

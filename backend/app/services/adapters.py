@@ -3517,6 +3517,10 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
 
         baseline = self._inspect_artifact_file(baseline_artifact_id)
         candidate = self._inspect_artifact_file(candidate_artifact_id)
+        visual_metric = self._compute_exact_pixel_match_ratio(
+            baseline=baseline,
+            candidate=candidate,
+        )
 
         comparison_attempted = bool(baseline.get("sha256")) and bool(candidate.get("sha256"))
         byte_identical = (
@@ -3552,6 +3556,8 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
             inspection_evidence.append("baseline_image_decode")
         if candidate.get("image_decodable") is True:
             inspection_evidence.append("candidate_image_decode")
+        if visual_metric["available"] is True:
+            inspection_evidence.append("exact_rgba_pixel_match_ratio")
         if comparison_attempted:
             inspection_evidence.extend(
                 [
@@ -3572,11 +3578,10 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
             unavailable_evidence.append("candidate_image_decode")
         if not comparison_attempted:
             unavailable_evidence.append("comparison")
-        unavailable_evidence.append("visual_metric")
+        if visual_metric["available"] is not True:
+            unavailable_evidence.append("visual_metric")
 
-        stronger_metric_reason = (
-            "No admitted real pixel-diff or perceptual image-diff substrate is available in this slice."
-        )
+        stronger_metric_reason = str(visual_metric["unavailable_reason"])
         threshold_reason = (
             "Threshold evaluation remains unavailable until a stronger admitted visual diff metric exists."
         )
@@ -3615,6 +3620,10 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
         else:
             logs.append(
                 "Image decode evidence remained partially unavailable for one or both artifact inputs."
+            )
+        if visual_metric["available"] is True:
+            logs.append(
+                "Computed an exact RGBA pixel-match ratio for the decoded artifact inputs."
             )
         logs.append(stronger_metric_reason)
         if threshold is not None:
@@ -3702,9 +3711,14 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
             "file_size_delta_bytes": file_size_delta_bytes,
             "content_type_match": content_type_match,
             "image_like_inputs": image_like_inputs,
-            "visual_metric_available": False,
-            "visual_metric_name": None,
-            "visual_metric_value": None,
+            "visual_metric_input_compatible": visual_metric["input_compatible"],
+            "visual_metric_color_space": visual_metric["color_space"],
+            "visual_metric_total_pixels": visual_metric["total_pixels"],
+            "visual_metric_matching_pixels": visual_metric["matching_pixels"],
+            "visual_metric_mismatched_pixels": visual_metric["mismatched_pixels"],
+            "visual_metric_available": visual_metric["available"],
+            "visual_metric_name": visual_metric["name"],
+            "visual_metric_value": visual_metric["value"],
             "visual_metric_unavailable_reason": stronger_metric_reason,
         }
         result = DispatchResult(
@@ -3959,6 +3973,98 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
                     f"The resolved file could not be decoded by the current admitted image substrate: {exc}"
                 ),
             }
+
+    def _compute_exact_pixel_match_ratio(
+        self,
+        *,
+        baseline: dict[str, Any],
+        candidate: dict[str, Any],
+    ) -> dict[str, Any]:
+        unavailable_result = {
+            "available": False,
+            "name": None,
+            "value": None,
+            "input_compatible": False,
+            "color_space": None,
+            "total_pixels": None,
+            "matching_pixels": None,
+            "mismatched_pixels": None,
+            "unavailable_reason": (
+                "No admitted real pixel-diff or perceptual image-diff substrate is available in this slice."
+            ),
+        }
+        if baseline.get("image_decodable") is not True or candidate.get("image_decodable") is not True:
+            unavailable_result["unavailable_reason"] = (
+                "Exact RGBA pixel matching is unavailable because one or both inputs were not decodable images."
+            )
+            return unavailable_result
+
+        baseline_width = baseline.get("image_width")
+        baseline_height = baseline.get("image_height")
+        candidate_width = candidate.get("image_width")
+        candidate_height = candidate.get("image_height")
+        if (
+            not isinstance(baseline_width, int)
+            or not isinstance(baseline_height, int)
+            or not isinstance(candidate_width, int)
+            or not isinstance(candidate_height, int)
+        ):
+            unavailable_result["unavailable_reason"] = (
+                "Exact RGBA pixel matching is unavailable because decoded image dimensions were not fully available."
+            )
+            return unavailable_result
+        if (baseline_width, baseline_height) != (candidate_width, candidate_height):
+            unavailable_result["unavailable_reason"] = (
+                "Exact RGBA pixel matching is unavailable because the decoded inputs do not share the same dimensions."
+            )
+            return unavailable_result
+
+        baseline_path = baseline.get("resolved_path")
+        candidate_path = candidate.get("resolved_path")
+        if not isinstance(baseline_path, str) or not isinstance(candidate_path, str):
+            unavailable_result["unavailable_reason"] = (
+                "Exact RGBA pixel matching is unavailable because one or both decoded inputs had no admitted local file path."
+            )
+            return unavailable_result
+
+        try:
+            with Image.open(Path(baseline_path)) as baseline_image:
+                with Image.open(Path(candidate_path)) as candidate_image:
+                    baseline_rgba = baseline_image.convert("RGBA")
+                    candidate_rgba = candidate_image.convert("RGBA")
+                    baseline_pixels = baseline_rgba.getdata()
+                    candidate_pixels = candidate_rgba.getdata()
+                    total_pixels = baseline_rgba.width * baseline_rgba.height
+                    matching_pixels = sum(
+                        1
+                        for baseline_pixel, candidate_pixel in zip(
+                            baseline_pixels,
+                            candidate_pixels,
+                            strict=True,
+                        )
+                        if baseline_pixel == candidate_pixel
+                    )
+        except OSError as exc:
+            unavailable_result["unavailable_reason"] = (
+                "Exact RGBA pixel matching could not complete on the decoded inputs: "
+                f"{exc}"
+            )
+            return unavailable_result
+
+        mismatched_pixels = total_pixels - matching_pixels
+        return {
+            "available": True,
+            "name": "exact_rgba_pixel_match_ratio",
+            "value": matching_pixels / total_pixels if total_pixels else None,
+            "input_compatible": True,
+            "color_space": "RGBA",
+            "total_pixels": total_pixels,
+            "matching_pixels": matching_pixels,
+            "mismatched_pixels": mismatched_pixels,
+            "unavailable_reason": (
+                "No admitted real pixel-diff or perceptual image-diff substrate is available in this slice."
+            ),
+        }
 
     def _artifact_local_path(self, artifact_path: str | None, artifact_uri: str | None) -> Path | None:
         if artifact_path:
