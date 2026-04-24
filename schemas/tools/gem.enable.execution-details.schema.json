@@ -12,12 +12,100 @@
   "properties": {
     "inspection_surface": {
       "type": "string",
-      "const": "simulated"
+      "enum": ["simulated", "gem_enable_preflight"]
     },
     "execution_boundary": { "type": "string", "minLength": 1 },
-    "simulated": { "type": "boolean", "const": true },
+    "simulated": { "type": "boolean" },
     "adapter_family": { "type": "string", "minLength": 1 },
     "adapter_mode": { "type": "string", "minLength": 1 },
-    "adapter_contract_version": { "type": "string", "minLength": 1 }
+    "adapter_contract_version": { "type": "string", "minLength": 1 },
+    "real_path_available": { "type": "boolean" },
+    "preflight_execution_mode": { "type": "string", "minLength": 1 },
+    "gem_request_explicit": { "type": "boolean" },
+    "dry_run_requested": { "type": "boolean" },
+    "project_root_path": { "type": "string", "minLength": 1 },
+    "project_manifest_path": { "type": "string", "minLength": 1 },
+    "project_manifest_relative_path": { "type": ["string", "null"] },
+    "project_manifest_read_mode": { "type": "string", "minLength": 1 },
+    "project_manifest_source_of_truth": { "type": "string", "minLength": 1 },
+    "project_manifest_workspace_local": { "type": "boolean" },
+    "project_manifest_within_project_root": { "type": "boolean" },
+    "manifest_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "project_name": { "type": ["string", "null"] },
+    "requested_gem_name": { "type": "string", "minLength": 1 },
+    "requested_gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "requested_version": { "type": ["string", "null"] },
+    "optional_flag_requested": { "type": "boolean" },
+    "requested_optional": { "type": ["boolean", "null"] },
+    "inspection_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "unavailable_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "gem_evidence_source": { "type": "string", "minLength": 1 },
+    "gem_selection_mode": { "type": "string", "minLength": 1 },
+    "matched_requested_gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "missing_requested_gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "matched_requested_gem_count": { "type": "integer", "minimum": 0 },
+    "missing_requested_gem_count": { "type": "integer", "minimum": 0 },
+    "available_gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "available_gem_count": { "type": "integer", "minimum": 0 },
+    "gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "gem_names_count": { "type": "integer", "minimum": 0 },
+    "gem_entries_present": { "type": "boolean" },
+    "requested_gem_subset_present": { "type": "boolean" },
+    "requested_gem_already_enabled": { "type": "boolean" },
+    "manifest_mutation_required": { "type": "boolean" },
+    "manifest_write_available": { "type": "boolean" },
+    "build_root_path": { "type": "string", "minLength": 1 },
+    "build_root_exists": { "type": "boolean" },
+    "configure_marker_probe_attempted": { "type": "boolean" },
+    "configure_marker_probe_method": { "type": "string", "minLength": 1 },
+    "configured_build_tree_available": { "type": "boolean" },
+    "configured_build_tree_markers": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "configured_build_tree_marker_count": { "type": "integer", "minimum": 0 },
+    "version_resolution_available": { "type": "boolean" },
+    "version_unavailable_reason": { "type": ["string", "null"] },
+    "optional_resolution_available": { "type": "boolean" },
+    "optional_unavailable_reason": { "type": ["string", "null"] },
+    "execution_attempted": { "type": "boolean" },
+    "result_artifact_produced": { "type": "boolean" },
+    "result_artifact_path": { "type": ["string", "null"] },
+    "result_artifact_content_type": { "type": ["string", "null"] },
+    "result_artifact_size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+    "exit_code_available": { "type": "boolean" },
+    "exit_code": { "type": ["integer", "null"] },
+    "result_status": { "type": "string", "minLength": 1 },
+    "result_summary_available": { "type": "boolean" },
+    "result_unavailable_reason": { "type": ["string", "null"] },
+    "gem_unavailable_reason": { "type": ["string", "null"] },
+    "fallback_category": { "type": "string", "minLength": 1 },
+    "fallback_reason": { "type": "string", "minLength": 1 },
+    "expected_project_manifest_path": { "type": "string", "minLength": 1 },
+    "expected_project_manifest_relative_path": { "type": "string", "minLength": 1 }
   }
 }

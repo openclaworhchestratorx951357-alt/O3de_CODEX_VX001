@@ -51,6 +51,7 @@ PLAN_ONLY_TOOL_PATHS_BY_MODE = {
         "asset.move.safe",
         "build.configure",
         "build.compile",
+        "gem.enable",
         "settings.patch",
         "test.run.gtest",
         "test.run.editor_python",
@@ -82,6 +83,8 @@ HYBRID_EXECUTION_BOUNDARY = (
     "component property read path on McpSandbox, "
     "build.configure may use a real plan-only preflight path, build.compile may "
     "use a real plan-only explicit target preflight and result-truth substrate, "
+    "gem.enable may use a real plan-only explicit gem-request preflight and result-truth "
+    "substrate, "
     "settings.patch may use a real dry-run-only preflight path, test.run.gtest may use a real "
     "plan-only runner preflight and result-truth substrate for explicit target "
     "requests, test.run.editor_python may use a real plan-only runner preflight "
@@ -2107,6 +2110,17 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 approval_class=approval_class,
                 locks_acquired=locks_acquired,
             )
+        if tool == "gem.enable":
+            return self._execute_gem_enable(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+            )
         simulated = self._simulated.execute(
             request_id=request_id,
             session_id=session_id,
@@ -3319,6 +3333,311 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             result_summary="Real build.compile preflight substrate completed successfully.",
         )
 
+    def _execute_gem_enable(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        manifest_path = resolved_project_root / "project.json"
+        requested_gem_name = str(args.get("gem_name", "")).strip()
+        requested_version = str(args.get("version", "")).strip() or None
+        optional_flag_requested = "optional" in args
+        requested_optional = args.get("optional") if optional_flag_requested else None
+        if not dry_run:
+            return self._fallback_gem_enable(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real gem.enable substrate evidence is currently limited to "
+                    "dry_run=true preflight requests; actual gem mutation remains non-admitted."
+                ),
+                fallback_category="dry-run-required",
+            )
+        if not requested_gem_name:
+            return self._fallback_gem_enable(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason="Real gem.enable preflight requires an explicit non-empty gem_name.",
+                fallback_category="explicit-gem-required",
+            )
+        if not manifest_path.is_file():
+            return self._fallback_gem_enable(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real gem.enable preflight was unavailable because "
+                    f"'{manifest_path}' was not found."
+                ),
+                fallback_category="manifest-missing",
+            )
+
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            return self._fallback_gem_enable(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real gem.enable preflight was unavailable because the project "
+                    f"manifest could not be read cleanly: {exc}"
+                ),
+                fallback_category="manifest-unreadable",
+            )
+
+        project_name = self._manifest_string_value(manifest, "project_name")
+        enabled_gems = self._normalized_string_list(manifest.get("gem_names"))
+        requested_gem_already_enabled = requested_gem_name in enabled_gems
+        matched_requested_gem_names = (
+            [requested_gem_name] if requested_gem_already_enabled else []
+        )
+        missing_requested_gem_names = (
+            [] if requested_gem_already_enabled else [requested_gem_name]
+        )
+        matched_requested_gem_count = len(matched_requested_gem_names)
+        missing_requested_gem_count = len(missing_requested_gem_names)
+        manifest_mutation_required = not requested_gem_already_enabled
+        manifest_path_relative_to_project_root = (
+            str(manifest_path.relative_to(resolved_project_root))
+            if manifest_path.is_relative_to(resolved_project_root)
+            else None
+        )
+        manifest_path_within_project_root = manifest_path_relative_to_project_root is not None
+        manifest_keys = sorted(str(key) for key in manifest.keys())
+        build_root = resolved_project_root / "build"
+        configure_probe = self._probe_configured_build_tree(build_root=build_root)
+
+        inspection_evidence = [
+            "project_manifest",
+            "gem_enable_request",
+            "manifest_gem_names",
+            "configured_build_tree_probe",
+        ]
+        unavailable_evidence = [
+            "gem_enable_mutation",
+            "gem_enable_result_artifact",
+            "gem_enable_exit_result",
+            "gem_dependency_resolution",
+        ]
+        if configure_probe["configured_build_tree_available"]:
+            inspection_evidence.append("configured_build_tree_markers")
+        else:
+            unavailable_evidence.append("configured_build_tree_markers")
+        if requested_version is not None:
+            unavailable_evidence.append("gem_version_resolution")
+        if optional_flag_requested:
+            unavailable_evidence.append("gem_optional_resolution")
+
+        gem_unavailable_reasons: list[str] = [
+            "No admitted real gem.enable mutation was attempted in this slice."
+        ]
+        if requested_gem_already_enabled:
+            gem_unavailable_reasons.append(
+                f"Requested gem '{requested_gem_name}' is already present in manifest-backed gem_names."
+            )
+        else:
+            gem_unavailable_reasons.append(
+                f"Requested gem '{requested_gem_name}' is not currently present in manifest-backed gem_names."
+            )
+        if not configure_probe["configured_build_tree_available"]:
+            gem_unavailable_reasons.append(
+                "Configured build-tree evidence remains unavailable, so downstream configure impact is still unproven in this admitted slice."
+            )
+        if requested_version is not None:
+            gem_unavailable_reasons.append(
+                "Requested gem version was recorded, but no admitted gem version resolution substrate is available."
+            )
+        if optional_flag_requested:
+            gem_unavailable_reasons.append(
+                "Requested optional Gem semantics were recorded, but no admitted Gem optional-resolution substrate is available."
+            )
+        gem_unavailable_reason = " ".join(dict.fromkeys(gem_unavailable_reasons))
+
+        logs = [
+            "Real gem.enable executed through the admitted plan-only project/gem preflight substrate.",
+            f"Read project manifest from '{manifest_path}'.",
+            f"Recorded explicit gem request '{requested_gem_name}'.",
+            "No project manifest mutation was executed in this slice.",
+        ]
+        warnings = [
+            "This is a real plan-only gem.enable preflight path; actual manifest mutation remains non-admitted.",
+        ]
+        if requested_gem_already_enabled:
+            logs.append(
+                f"Manifest-backed gem_names already contain '{requested_gem_name}'."
+            )
+        else:
+            logs.append(
+                f"Manifest-backed gem_names do not currently contain '{requested_gem_name}'."
+            )
+        if configure_probe["configured_build_tree_available"]:
+            logs.append("Configured build-tree markers were found for downstream impact review.")
+        else:
+            warnings.append(
+                "Configured build-tree evidence remains unavailable; downstream configure impact is still unproven in this slice."
+            )
+        if requested_version is not None:
+            warnings.append(
+                "Requested gem version was recorded as evidence only; no real version resolution was attempted."
+            )
+        if optional_flag_requested:
+            warnings.append(
+                "Requested optional Gem semantics were recorded as evidence only; no real optional-resolution was attempted."
+            )
+
+        details = {
+            "inspection_surface": "gem_enable_preflight",
+            "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+            "simulated": False,
+            "adapter_family": self.family,
+            "adapter_mode": self.mode,
+            "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+            "real_path_available": True,
+            "preflight_execution_mode": "plan-only",
+            "gem_request_explicit": True,
+            "dry_run_requested": dry_run,
+            "project_root_path": str(resolved_project_root),
+            "project_manifest_path": str(manifest_path),
+            "project_manifest_relative_path": manifest_path_relative_to_project_root,
+            "project_manifest_read_mode": "read-only",
+            "project_manifest_source_of_truth": "project_root/project.json",
+            "project_manifest_workspace_local": manifest_path_within_project_root,
+            "project_manifest_within_project_root": manifest_path_within_project_root,
+            "manifest_keys": manifest_keys,
+            "project_name": project_name,
+            "requested_gem_name": requested_gem_name,
+            "requested_gem_names": [requested_gem_name],
+            "requested_version": requested_version,
+            "optional_flag_requested": optional_flag_requested,
+            "requested_optional": requested_optional,
+            "inspection_evidence": inspection_evidence,
+            "unavailable_evidence": unavailable_evidence,
+            "gem_evidence_source": "project_manifest_gem_names",
+            "gem_selection_mode": "requested-subset",
+            "matched_requested_gem_names": matched_requested_gem_names,
+            "missing_requested_gem_names": missing_requested_gem_names,
+            "matched_requested_gem_count": matched_requested_gem_count,
+            "missing_requested_gem_count": missing_requested_gem_count,
+            "available_gem_names": enabled_gems,
+            "available_gem_count": len(enabled_gems),
+            "gem_names": enabled_gems,
+            "gem_names_count": len(enabled_gems),
+            "gem_entries_present": bool(enabled_gems),
+            "requested_gem_subset_present": requested_gem_already_enabled,
+            "requested_gem_already_enabled": requested_gem_already_enabled,
+            "manifest_mutation_required": manifest_mutation_required,
+            "manifest_write_available": False,
+            "build_root_path": str(build_root),
+            "build_root_exists": build_root.exists(),
+            "configure_marker_probe_attempted": True,
+            "configure_marker_probe_method": "cmake-cache-lookup",
+            "configured_build_tree_available": configure_probe["configured_build_tree_available"],
+            "configured_build_tree_markers": configure_probe["configured_build_tree_markers"],
+            "configured_build_tree_marker_count": configure_probe[
+                "configured_build_tree_marker_count"
+            ],
+            "version_resolution_available": False,
+            "version_unavailable_reason": (
+                "No admitted gem version resolution substrate is available in this slice."
+                if requested_version is not None
+                else None
+            ),
+            "optional_resolution_available": False,
+            "optional_unavailable_reason": (
+                "No admitted Gem optional-resolution substrate is available in this slice."
+                if optional_flag_requested
+                else None
+            ),
+            "execution_attempted": False,
+            "result_artifact_produced": False,
+            "result_artifact_path": None,
+            "result_artifact_content_type": None,
+            "result_artifact_size_bytes": None,
+            "exit_code_available": False,
+            "exit_code": None,
+            "result_status": "not-attempted",
+            "result_summary_available": False,
+            "result_unavailable_reason": (
+                "No real gem.enable execution was attempted in this admitted plan-only slice."
+            ),
+            "gem_unavailable_reason": gem_unavailable_reason,
+        }
+        message = (
+            "Real gem.enable preflight completed for the explicit gem request; "
+            "no project manifest mutation was executed."
+        )
+        if requested_gem_already_enabled:
+            message = (
+                f"Real gem.enable preflight confirmed '{requested_gem_name}' is already "
+                "present in the project manifest; no project manifest mutation was executed."
+            )
+        elif isinstance(project_name, str) and project_name:
+            message = (
+                f"Real gem.enable preflight completed for '{project_name}' and explicit "
+                f"gem request '{requested_gem_name}'; no project manifest mutation was executed."
+            )
+        result = DispatchResult(
+            status="real_success",
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            simulated=False,
+            execution_mode="real",
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+            message=message,
+        )
+        return AdapterExecutionReport(
+            execution_mode="real",
+            result=result,
+            warnings=warnings,
+            logs=logs,
+            artifact_label="Real gem enable preflight evidence",
+            artifact_kind="gem_enable_preflight",
+            artifact_uri=manifest_path.as_uri(),
+            artifact_metadata={
+                "tool": tool,
+                "agent": agent,
+                "execution_mode": "real",
+                **details,
+            },
+            execution_details=details,
+            result_summary="Real gem.enable preflight substrate completed successfully.",
+        )
+
     def _execute_settings_patch(
         self,
         *,
@@ -4396,6 +4715,80 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "project_root/project.json"
         )
         simulated.result_summary = "settings.patch fell back to the simulated path."
+        return simulated
+
+    def _fallback_gem_enable(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+        reason: str,
+        fallback_category: str = "unavailable",
+    ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        expected_manifest_path = resolved_project_root / "project.json"
+        simulated = self._simulated.execute(
+            request_id="",
+            session_id=None,
+            workspace_id=None,
+            executor_id=None,
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+        )
+        simulated.warnings.append(reason)
+        simulated.logs.append(reason)
+        simulated.logs.append("Hybrid mode fell back to the simulated gem.enable path.")
+        simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.artifact_metadata["real_path_available"] = False
+        simulated.artifact_metadata["fallback_category"] = fallback_category
+        simulated.artifact_metadata["fallback_reason"] = reason
+        simulated.artifact_metadata["project_root_path"] = str(resolved_project_root)
+        simulated.artifact_metadata["expected_project_manifest_path"] = str(
+            expected_manifest_path
+        )
+        simulated.artifact_metadata["expected_project_manifest_relative_path"] = "project.json"
+        simulated.artifact_metadata["project_manifest_source_of_truth"] = (
+            "project_root/project.json"
+        )
+        simulated.artifact_metadata["requested_gem_name"] = str(args.get("gem_name", "")).strip()
+        simulated.artifact_metadata["requested_version"] = (
+            str(args.get("version", "")).strip() or None
+        )
+        simulated.artifact_metadata["optional_flag_requested"] = "optional" in args
+        simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.execution_details["real_path_available"] = False
+        simulated.execution_details["fallback_category"] = fallback_category
+        simulated.execution_details["fallback_reason"] = reason
+        simulated.execution_details["project_root_path"] = str(resolved_project_root)
+        simulated.execution_details["expected_project_manifest_path"] = str(
+            expected_manifest_path
+        )
+        simulated.execution_details["expected_project_manifest_relative_path"] = (
+            "project.json"
+        )
+        simulated.execution_details["project_manifest_source_of_truth"] = (
+            "project_root/project.json"
+        )
+        simulated.execution_details["requested_gem_name"] = str(
+            args.get("gem_name", "")
+        ).strip()
+        simulated.execution_details["requested_version"] = (
+            str(args.get("version", "")).strip() or None
+        )
+        simulated.execution_details["optional_flag_requested"] = "optional" in args
+        simulated.result_summary = "gem.enable fell back to the simulated path."
         return simulated
 
     def _coerce_positive_int(self, value: Any) -> int | None:
@@ -6609,9 +7002,9 @@ class AdapterService:
                     "McpSandbox, an admitted allowlist-bound editor.component.add "
                     "path on McpSandbox, and an admitted explicit "
                     "editor.component.property.get read path on McpSandbox, "
-                    "real plan-only asset.batch.process, build.configure, and "
-                    "build.compile preflight paths, and a real dry-run-only "
-                    "settings.patch preflight path.",
+                    "real plan-only asset.batch.process, build.configure, "
+                    "build.compile, and gem.enable preflight paths, and a real "
+                    "dry-run-only settings.patch preflight path.",
                 ],
             )
         if configured_mode == "hybrid":
@@ -6663,6 +7056,8 @@ class AdapterService:
                     "satisfied.",
                     "Hybrid mode also enables a real plan-only build.compile "
                     "preflight/result-truth path for explicit target requests.",
+                    "Hybrid mode also enables a real plan-only gem.enable "
+                    "preflight/result-truth path for explicit gem requests.",
                     "Hybrid mode also enables a real dry-run-only settings.patch "
                     "preflight path when manifest-backed settings admission criteria "
                     "are satisfied.",
@@ -6794,8 +7189,9 @@ class AdapterService:
                 if family == "project-build":
                     family_notes.append(
                         "project.inspect currently has a real read-only path and "
-                        "build.configure, build.compile, and settings.patch currently "
-                        "have real preflight-only paths in this family."
+                        "build.configure, build.compile, gem.enable, and "
+                        "settings.patch currently have real preflight-only paths "
+                        "in this family."
                     )
                 if family == "asset-pipeline":
                     family_notes.append(

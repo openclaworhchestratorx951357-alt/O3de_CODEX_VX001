@@ -134,21 +134,56 @@ def approve_settings_patch_request() -> RequestEnvelope:
     return approved_request
 
 
-def make_gem_enable_request() -> RequestEnvelope:
-    request = make_request("project-build", "gem.enable")
-    request.args = {
-        "gem_name": "ExampleGem",
-    }
+def make_gem_enable_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = True,
+    gem_name: str = "ExampleGem",
+    version: str | None = None,
+    optional: bool | None = None,
+) -> RequestEnvelope:
+    request = make_request(
+        "project-build",
+        "gem.enable",
+        project_root=project_root,
+        dry_run=dry_run,
+    )
+    request.args = {"gem_name": gem_name}
+    if version is not None:
+        request.args["version"] = version
+    if optional is not None:
+        request.args["optional"] = optional
     return request
 
 
-def approve_gem_enable_request() -> RequestEnvelope:
-    first = dispatcher_service.dispatch(make_gem_enable_request())
+def approve_gem_enable_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = True,
+    gem_name: str = "ExampleGem",
+    version: str | None = None,
+    optional: bool | None = None,
+) -> RequestEnvelope:
+    first = dispatcher_service.dispatch(
+        make_gem_enable_request(
+            project_root=project_root,
+            dry_run=dry_run,
+            gem_name=gem_name,
+            version=version,
+            optional=optional,
+        )
+    )
     approval = approvals_service.get_approval(first.approval_id or "")
     assert approval is not None
     approvals_service.approve(approval.id)
 
-    approved_request = make_gem_enable_request()
+    approved_request = make_gem_enable_request(
+        project_root=project_root,
+        dry_run=dry_run,
+        gem_name=gem_name,
+        version=version,
+        optional=optional,
+    )
     approved_request.approval_token = approval.token
     return approved_request
 
@@ -4039,9 +4074,109 @@ def test_settings_patch_simulated_persisted_payloads_match_published_schemas() -
         )
 
 
-def test_gem_enable_simulated_persisted_payloads_match_published_schemas() -> None:
-    with isolated_database():
-        response = dispatcher_service.dispatch(approve_gem_enable_request())
+def test_gem_enable_uses_real_preflight_substrate_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        manifest_path = project_root / "project.json"
+        cache_path = project_root / "build" / "windows" / "CMakeCache.txt"
+        manifest_path.write_text(
+            json.dumps(
+                {
+                    "project_name": "GemProject",
+                    "version": "1.0.0",
+                    "gem_names": ["ExampleGem"],
+                }
+            ),
+            encoding="utf-8",
+        )
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text("CMAKE_GENERATOR:INTERNAL=Ninja\n", encoding="utf-8")
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                approve_gem_enable_request(
+                    project_root=str(project_root),
+                    version="1.2.3",
+                    optional=True,
+                )
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "gem_enable_preflight"
+        assert execution.details["preflight_execution_mode"] == "plan-only"
+        assert execution.details["requested_gem_name"] == "ExampleGem"
+        assert execution.details["requested_version"] == "1.2.3"
+        assert execution.details["requested_optional"] is True
+        assert execution.details["requested_gem_already_enabled"] is True
+        assert execution.details["manifest_mutation_required"] is False
+        assert execution.details["configured_build_tree_available"] is True
+        assert execution.details["execution_attempted"] is False
+        assert execution.details["result_artifact_produced"] is False
+        assert artifact is not None
+        assert artifact.simulated is False
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "gem_enable_preflight"
+
+
+def test_gem_enable_records_missing_manifest_gem_state_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        manifest_path = project_root / "project.json"
+        manifest_path.write_text(
+            json.dumps({"project_name": "GemProject", "version": "1.0.0", "gem_names": []}),
+            encoding="utf-8",
+        )
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                approve_gem_enable_request(project_root=str(project_root))
+            )
+
+        assert response.ok is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        assert execution.details["requested_gem_already_enabled"] is False
+        assert execution.details["manifest_mutation_required"] is True
+        assert execution.details["matched_requested_gem_names"] == []
+        assert execution.details["missing_requested_gem_names"] == ["ExampleGem"]
+        assert execution.details["configured_build_tree_available"] is False
+        assert execution.details["gem_entries_present"] is False
+        assert execution.details["execution_attempted"] is False
+        assert any(
+            "configured build-tree evidence remains unavailable" in warning.lower()
+            for warning in execution.warnings
+        )
+
+
+def test_gem_enable_records_dry_run_required_fallback_provenance_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        manifest_path = project_root / "project.json"
+        manifest_path.write_text(
+            json.dumps({"project_name": "GemProject", "gem_names": []}),
+            encoding="utf-8",
+        )
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                approve_gem_enable_request(project_root=str(project_root), dry_run=False)
+            )
 
         assert response.ok is True
         assert response.result is not None
@@ -4053,13 +4188,47 @@ def test_gem_enable_simulated_persisted_payloads_match_published_schemas() -> No
             for execution in executions_service.list_executions()
             if execution.run_id == run_id
         )
-        artifact = artifacts_service.get_artifact(response.artifacts[0])
         assert execution.details["inspection_surface"] == "simulated"
-        assert execution.details["simulated"] is True
+        assert execution.details["real_path_available"] is False
+        assert execution.details["fallback_category"] == "dry-run-required"
+        assert "dry_run=true" in execution.details["fallback_reason"]
+        assert execution.details["requested_gem_name"] == "ExampleGem"
+
+
+def test_gem_enable_real_persisted_payloads_match_published_schemas() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        manifest_path = project_root / "project.json"
+        manifest_path.write_text(
+            json.dumps({"project_name": "GemProject", "gem_names": ["ExampleGem"]}),
+            encoding="utf-8",
+        )
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                approve_gem_enable_request(project_root=str(project_root))
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "gem_enable_preflight"
+        assert execution.details["preflight_execution_mode"] == "plan-only"
+        assert execution.details["requested_gem_already_enabled"] is True
+        assert execution.details["execution_attempted"] is False
+        assert execution.details["result_artifact_produced"] is False
         assert artifact is not None
-        assert artifact.simulated is True
-        assert artifact.metadata["execution_mode"] == "simulated"
-        assert artifact.metadata["inspection_surface"] == "simulated"
+        assert artifact.simulated is False
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "gem_enable_preflight"
         assert (
             schema_validation_service.validate_execution_details(
                 tool_name="gem.enable",

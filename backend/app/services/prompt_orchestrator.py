@@ -524,6 +524,7 @@ class PromptOrchestratorService:
         render_material_response = self._latest_successful_response_for_step(
             session, "render-material-inspect-1"
         )
+        gem_enable_response = self._latest_successful_response_for_step(session, "gem-enable-1")
         build_compile_response = self._latest_successful_response_for_step(
             session, "build-compile-1"
         )
@@ -761,6 +762,38 @@ class PromptOrchestratorService:
                     "No real material evidence was produced in this admitted slice."
                 )
             unavailable_reason = details.get("material_unavailable_reason")
+            if isinstance(unavailable_reason, str) and unavailable_reason:
+                summary_parts.append(unavailable_reason)
+
+        if gem_enable_response is not None:
+            details = gem_enable_response.get("execution_details", {})
+            requested_gem_name = details.get("requested_gem_name")
+            if isinstance(requested_gem_name, str) and requested_gem_name:
+                if details.get("requested_gem_already_enabled") is True:
+                    summary_parts.append(
+                        f"Gem enable preflight confirmed manifest-backed gem state already contains {requested_gem_name}."
+                    )
+                else:
+                    summary_parts.append(
+                        f"Gem enable preflight confirmed explicit request evidence for {requested_gem_name}, but the Gem is not yet present in project.json."
+                    )
+            if details.get("configured_build_tree_available") is True:
+                summary_parts.append(
+                    "Gem enable preflight confirmed configured build tree evidence for downstream impact review."
+                )
+            else:
+                summary_parts.append(
+                    "Gem enable preflight recorded that configured build tree evidence remains unavailable for downstream impact review."
+                )
+            if details.get("execution_attempted") is True:
+                summary_parts.append("Real gem.enable execution was attempted in this slice.")
+            else:
+                summary_parts.append(
+                    "No real gem.enable execution was attempted in this admitted slice."
+                )
+            unavailable_reason = details.get("gem_unavailable_reason") or details.get(
+                "result_unavailable_reason"
+            )
             if isinstance(unavailable_reason, str) and unavailable_reason:
                 summary_parts.append(unavailable_reason)
 

@@ -19,7 +19,7 @@
       "properties": {
         "tool": { "const": "gem.enable" },
         "agent": { "const": "project-build" },
-        "execution_mode": { "const": "simulated" }
+        "execution_mode": { "enum": ["simulated", "real"] }
       }
     }
   ]

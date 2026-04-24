@@ -37,7 +37,7 @@ def tool_real_admission_stage(tool_name: str) -> str:
     if tool_name == "settings.patch":
         return "real-mutation-preflight-active"
     if tool_name == "gem.enable":
-        return "mutation-candidate-after-gate"
+        return "real-plan-only-active"
     if tool_name == "build.compile":
         return "real-plan-only-active"
     return "simulated-only"
@@ -153,8 +153,10 @@ def tool_next_real_requirement(tool_name: str) -> str:
         )
     if tool_name == "gem.enable":
         return (
-            "Wait until the first mutation gate is proven and Gem-specific recovery "
-            "and downstream configure impacts are operator-visible."
+            "Keep real execution limited to explicit gem.enable preflight and "
+            "manifest/build-state evidence, with actual manifest mutation, Gem "
+            "recovery, and downstream configure impacts marked unavailable unless "
+            "an admitted mutation path is proven."
         )
     if tool_name == "build.compile":
         return (

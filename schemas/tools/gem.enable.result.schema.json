@@ -9,8 +9,8 @@
       "properties": {
         "tool": { "const": "gem.enable" },
         "approval_class": { "const": "config_write" },
-        "execution_mode": { "const": "simulated" },
-        "simulated": { "const": true }
+        "execution_mode": { "enum": ["simulated", "real"] },
+        "simulated": { "type": "boolean" }
       }
     }
   ]

@@ -813,12 +813,13 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
                 "asset.move.safe",
                 "build.configure",
                 "build.compile",
+                "gem.enable",
                 "settings.patch",
                 "test.run.gtest",
                 "test.run.editor_python",
                 "test.tiaf.sequence",
             ]
-            assert "gem.enable" in payload["adapter_mode"]["simulated_tool_paths"]
+            assert "gem.enable" not in payload["adapter_mode"]["simulated_tool_paths"]
 
 
 def test_version_reports_adapter_contract_version() -> None:
@@ -872,6 +873,7 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "asset.move.safe",
                 "build.configure",
                 "build.compile",
+                "gem.enable",
                 "settings.patch",
                 "test.run.gtest",
                 "test.run.editor_python",
@@ -913,9 +915,10 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
             assert project_build["plan_only_tool_paths"] == [
                 "build.configure",
                 "build.compile",
+                "gem.enable",
                 "settings.patch",
             ]
-            assert sorted(project_build["simulated_tool_paths"]) == ["gem.enable"]
+            assert project_build["simulated_tool_paths"] == []
             assert editor_control["supports_real_execution"] is True
             assert editor_control["real_tool_paths"] == [
                 "editor.session.open",
@@ -3466,6 +3469,202 @@ def test_dispatch_route_records_build_compile_dry_run_fallback_provenance_in_hyb
                 assert execution["details"]["build_root_path"] == str(
                     project_root.resolve() / "build"
                 )
+
+
+def test_dispatch_route_uses_real_gem_enable_preflight_in_hybrid_mode() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps(
+                {
+                    "project_name": "ApiGemProject",
+                    "gem_names": ["ExampleGem"],
+                }
+            ),
+            encoding="utf-8",
+        )
+        cache_path = project_root / "build" / "windows" / "CMakeCache.txt"
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text("CMAKE_GENERATOR:INTERNAL=Ninja\n", encoding="utf-8")
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-gem-enable-preflight-1",
+                        "tool": "gem.enable",
+                        "agent": "project-build",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": True,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "args": {
+                            "gem_name": "ExampleGem",
+                            "version": "1.2.3",
+                            "optional": True,
+                        },
+                    },
+                )
+                approval_id = dispatch.json()["approval_id"]
+                approval = approvals_service.get_approval(approval_id)
+                assert approval is not None
+                client.post(
+                    f"/approvals/{approval_id}/approve",
+                    json={"reason": "Approve gem.enable preflight for test"},
+                )
+                approved_dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-gem-enable-preflight-2",
+                        "tool": "gem.enable",
+                        "agent": "project-build",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": True,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "approval_token": approval.token,
+                        "args": {
+                            "gem_name": "ExampleGem",
+                            "version": "1.2.3",
+                            "optional": True,
+                        },
+                    },
+                )
+                assert approved_dispatch.status_code == 200
+                payload = approved_dispatch.json()
+                assert payload["ok"] is True
+                assert payload["result"]["simulated"] is False
+                assert payload["result"]["execution_mode"] == "real"
+                assert "no project manifest mutation was executed" in payload["result"]["message"]
+
+                executions = client.get("/executions")
+                execution_cards = client.get("/executions/cards")
+                artifacts = client.get("/artifacts")
+                artifact_cards = client.get("/artifacts/cards")
+                executors = client.get("/executors")
+                workspaces = client.get("/workspaces")
+                assert executions.status_code == 200
+                assert execution_cards.status_code == 200
+                assert artifacts.status_code == 200
+                assert artifact_cards.status_code == 200
+                assert executors.status_code == 200
+                assert workspaces.status_code == 200
+                execution = executions.json()["executions"][0]
+                execution_card = execution_cards.json()["executions"][0]
+                artifact = artifacts.json()["artifacts"][0]
+                artifact_card = artifact_cards.json()["artifacts"][0]
+                executor = executors.json()["executors"][0]
+                workspace = workspaces.json()["workspaces"][0]
+                assert execution["details"]["inspection_surface"] == "gem_enable_preflight"
+                assert execution["details"]["preflight_execution_mode"] == "plan-only"
+                assert execution["details"]["requested_gem_name"] == "ExampleGem"
+                assert execution["details"]["requested_version"] == "1.2.3"
+                assert execution["details"]["requested_optional"] is True
+                assert execution["details"]["requested_gem_already_enabled"] is True
+                assert execution["details"]["configured_build_tree_available"] is True
+                assert execution["details"]["execution_attempted"] is False
+                assert execution["details"]["result_artifact_produced"] is False
+                assert execution["executor_id"] == "executor-project-build-hybrid-plan-only-local-gem"
+                assert execution["workspace_id"] == f"workspace-gem-enable-{execution['id']}"
+                assert execution["runner_family"] == "cli"
+                assert execution["execution_attempt_state"] == "completed"
+                assert execution_card["executor_id"] == execution["executor_id"]
+                assert execution_card["workspace_id"] == execution["workspace_id"]
+                assert execution_card["runner_family"] == "cli"
+                assert execution_card["execution_attempt_state"] == "completed"
+
+                assert artifact["executor_id"] == execution["executor_id"]
+                assert artifact["workspace_id"] == execution["workspace_id"]
+                assert artifact["artifact_role"] == "plan-evidence"
+                assert artifact["retention_class"] == "operator-configured"
+                assert artifact["evidence_completeness"] == "plan-backed"
+                assert artifact_card["executor_id"] == execution["executor_id"]
+                assert artifact_card["workspace_id"] == execution["workspace_id"]
+                assert artifact_card["artifact_role"] == "plan-evidence"
+                assert artifact_card["retention_class"] == "operator-configured"
+                assert artifact_card["evidence_completeness"] == "plan-backed"
+
+                assert executor["id"] == "executor-project-build-hybrid-plan-only-local-gem"
+                assert sorted(executor["capability_snapshot"]["admitted_tools"]) == [
+                    "gem.enable",
+                    "project.inspect",
+                ]
+
+                assert workspace["id"] == execution["workspace_id"]
+                assert workspace["workspace_root"] == str(project_root.resolve())
+                assert workspace["workspace_kind"] == "admitted-plan-only-project-root"
+                assert workspace["workspace_state"] == "ready"
+                assert workspace["cleanup_policy"] == "operator-managed-preflight"
+                assert workspace["runner_family"] == "cli"
+                assert workspace["owner_run_id"] == payload["operation_id"]
+                assert workspace["owner_execution_id"] == execution["id"]
+                assert workspace["owner_executor_id"] == executor["id"]
+
+
+def test_dispatch_route_records_gem_enable_dry_run_fallback_provenance_in_hybrid_mode() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps({"project_name": "ApiGemProject", "gem_names": []}),
+            encoding="utf-8",
+        )
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-gem-enable-fallback-1",
+                        "tool": "gem.enable",
+                        "agent": "project-build",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "args": {"gem_name": "ExampleGem"},
+                    },
+                )
+                approval_id = dispatch.json()["approval_id"]
+                approval = approvals_service.get_approval(approval_id)
+                assert approval is not None
+                client.post(
+                    f"/approvals/{approval_id}/approve",
+                    json={"reason": "Approve gem.enable fallback test"},
+                )
+                approved_dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-gem-enable-fallback-2",
+                        "tool": "gem.enable",
+                        "agent": "project-build",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "approval_token": approval.token,
+                        "args": {"gem_name": "ExampleGem"},
+                    },
+                )
+                assert approved_dispatch.status_code == 200
+                payload = approved_dispatch.json()
+                assert payload["ok"] is True
+                assert payload["result"]["simulated"] is True
+
+                executions = client.get("/executions")
+                assert executions.status_code == 200
+                execution = next(
+                    execution
+                    for execution in executions.json()["executions"]
+                    if execution["run_id"] == payload["operation_id"]
+                )
+                assert execution["details"]["real_path_available"] is False
+                assert execution["details"]["fallback_category"] == "dry-run-required"
+                assert "dry_run=true" in execution["details"]["fallback_reason"]
+                assert execution["details"]["project_root_path"] == str(project_root.resolve())
+                assert execution["details"]["requested_gem_name"] == "ExampleGem"
 
 
 def test_dispatch_route_uses_real_settings_patch_preflight_in_hybrid_mode() -> None:

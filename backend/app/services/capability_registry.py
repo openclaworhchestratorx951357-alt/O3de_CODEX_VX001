@@ -194,12 +194,12 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
         )
     if tool_name == "gem.enable":
         return _build_safety_envelope(
-            state_scope="Project gem enablement and related build-facing project config.",
-            backup_class="manifest-snapshot-and-build-state-note",
-            rollback_class="restore-manifest-and-gem-config",
-            verification_class="manifest and project build config readback verification",
-            retention_class="mutation-plan-evidence",
-            natural_language_status="prompt-ready-simulated",
+            state_scope="Explicit project gem enable preflight scope.",
+            backup_class="none",
+            rollback_class="environment-cleanup-only",
+            verification_class="manifest-backed gem state and configured build tree verification",
+            retention_class="gem-enable-preflight-evidence",
+            natural_language_status="prompt-ready-plan-only",
         )
     if tool_name == "build.compile":
         return _build_safety_envelope(
@@ -423,11 +423,13 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": True,
     },
     "gem.enable": {
-        "capability_maturity": "simulated-only",
+        "capability_maturity": "plan-only",
         "planner_intent_aliases": ["enable gem", "add gem"],
-        "natural_language_affordances": ["Enable a named Gem for the current project."],
+        "natural_language_affordances": [
+            "Preflight an explicit Gem enable request against manifest-backed Gem state and local build-tree evidence."
+        ],
         "allowlisted_parameter_surfaces": ["gem_name", "version", "optional"],
-        "real_adapter_availability": False,
+        "real_adapter_availability": True,
         "dry_run_availability": True,
         "simulation_fallback_availability": True,
     },

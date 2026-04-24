@@ -764,6 +764,31 @@ def test_prompt_session_plans_build_compile_as_plan_only() -> None:
         assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
 
 
+def test_prompt_session_plans_gem_enable_as_plan_only() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-gem-enable-plan-1",
+                "prompt_text": 'Enable gem "MyTestGem".',
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": True,
+                "preferred_domains": ["project-build"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "planned"
+        assert payload["admitted_capabilities"] == ["gem.enable"]
+        assert len(payload["plan"]["steps"]) == 1
+        step = payload["plan"]["steps"][0]
+        assert step["tool"] == "gem.enable"
+        assert step["capability_maturity"] == "plan-only"
+        assert step["args"]["gem_name"] == "MyTestGem"
+        assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
+
+
 def test_prompt_session_plans_test_run_editor_python_as_plan_only() -> None:
     with isolated_client() as client:
         response = client.post(
@@ -935,6 +960,75 @@ def test_prompt_session_executes_build_compile_with_truthful_preflight_evidence(
                 assert details["execution_attempted"] is False
                 assert details["result_artifact_produced"] is False
                 assert str(target_path) in details["resolved_target_candidate_paths"]
+
+
+def test_prompt_session_executes_gem_enable_with_truthful_preflight_evidence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps({"project_name": "PromptProject", "gem_names": ["MyTestGem"]}),
+            encoding="utf-8",
+        )
+        cache_path = project_root / "build" / "windows" / "CMakeCache.txt"
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text("CMAKE_GENERATOR:INTERNAL=Ninja\n", encoding="utf-8")
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                create_response = client.post(
+                    "/prompt/sessions",
+                    json={
+                        "prompt_id": "prompt-gem-enable-execute-1",
+                        "prompt_text": 'Enable gem "MyTestGem".',
+                        "project_root": str(project_root),
+                        "engine_root": "C:/engine",
+                        "dry_run": True,
+                        "preferred_domains": ["project-build"],
+                    },
+                )
+                assert create_response.status_code == 200
+
+                execute_response = client.post(
+                    "/prompt/sessions/prompt-gem-enable-execute-1/execute"
+                )
+                assert execute_response.status_code == 200
+                payload = execute_response.json()
+                assert payload["status"] == "waiting_approval"
+                approval = approvals_service.get_approval(payload["pending_approval_id"])
+                assert approval is not None
+                approvals_service.approve(approval.id)
+
+                execute_response = client.post(
+                    "/prompt/sessions/prompt-gem-enable-execute-1/execute"
+                )
+                assert execute_response.status_code == 200
+                payload = execute_response.json()
+                assert payload["status"] == "completed"
+                assert (
+                    "Gem enable preflight confirmed manifest-backed gem state already contains MyTestGem."
+                    in payload["final_result_summary"]
+                )
+                assert (
+                    "Gem enable preflight confirmed configured build tree evidence for downstream impact review."
+                    in payload["final_result_summary"]
+                )
+                assert (
+                    "No real gem.enable execution was attempted in this admitted slice."
+                    in payload["final_result_summary"]
+                )
+                child_response = payload["latest_child_responses"][-1]
+                details = child_response["execution_details"]
+                assert details["inspection_surface"] == "gem_enable_preflight"
+                assert details["requested_gem_name"] == "MyTestGem"
+                assert details["requested_gem_already_enabled"] is True
+                assert details["configured_build_tree_available"] is True
+                assert details["execution_attempted"] is False
+                assert details["result_artifact_produced"] is False
 
 
 def test_prompt_session_executes_test_run_editor_python_with_truthful_preflight_evidence() -> None:
@@ -1246,7 +1340,7 @@ def test_prompt_session_execute_creates_child_lineage_and_pauses_for_approval() 
                     executions_by_tool["gem.enable"]["details"]["prompt_safety"][
                         "natural_language_status"
                     ]
-                    == "prompt-ready-simulated"
+                    == "prompt-ready-plan-only"
                 )
 
                 artifacts_response = client.get("/artifacts")
@@ -1320,8 +1414,13 @@ def test_prompt_session_execute_resumes_after_approval_without_losing_lineage() 
                 assert resumed_payload["evidence_summary"].startswith(
                     "runs=3, executions=3, artifacts="
                 )
-                assert resumed_payload["final_result_summary"] == (
-                    "Executed 2 typed child step(s) through DispatcherService."
+                assert (
+                    "Gem enable preflight confirmed explicit request evidence for MyTestGem, but the Gem is not yet present in project.json."
+                    in resumed_payload["final_result_summary"]
+                )
+                assert (
+                    "No real gem.enable execution was attempted in this admitted slice."
+                    in resumed_payload["final_result_summary"]
                 )
 
 
