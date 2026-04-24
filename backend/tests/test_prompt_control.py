@@ -239,6 +239,31 @@ def test_prompt_session_plans_asset_source_inspect_as_hybrid_read_only() -> None
         assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-read-only"
 
 
+def test_prompt_session_plans_asset_batch_process_as_plan_only() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-asset-batch-plan-1",
+                "prompt_text": 'Process assets glob "Assets/**/*.fbx".',
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": True,
+                "preferred_domains": ["asset-pipeline"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "planned"
+        assert payload["admitted_capabilities"] == ["asset.batch.process"]
+        assert len(payload["plan"]["steps"]) == 1
+        step = payload["plan"]["steps"][0]
+        assert step["tool"] == "asset.batch.process"
+        assert step["capability_maturity"] == "plan-only"
+        assert step["args"]["source_glob"] == "Assets/**/*.fbx"
+        assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
+
+
 def test_prompt_session_executes_asset_processor_status_with_truthful_evidence() -> None:
     with patch.dict(
         "os.environ",
@@ -348,6 +373,76 @@ def test_prompt_session_executes_asset_source_inspect_with_truthful_evidence() -
                 )
                 assert "Product evidence remains unavailable" in payload["final_result_summary"]
                 assert "Dependency evidence remains unavailable" in payload["final_result_summary"]
+
+
+def test_prompt_session_executes_asset_batch_process_with_truthful_preflight_evidence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = project_root / "Assets" / "Models" / "ship.fbx"
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"asset-batch-prompt-source")
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+            },
+            clear=False,
+        ):
+            with patch(
+                "app.services.adapters.AssetPipelineHybridAdapter._probe_asset_processor_runtime",
+                return_value={
+                    "runtime_probe_available": True,
+                    "runtime_probe_method": "windows-tasklist",
+                    "runtime_process_ids": [5150],
+                    "runtime_process_names": ["AssetProcessor.exe"],
+                },
+            ):
+                with isolated_client() as client:
+                    create_response = client.post(
+                        "/prompt/sessions",
+                        json={
+                            "prompt_id": "prompt-asset-batch-execute-1",
+                            "prompt_text": 'Process assets glob "Assets/**/*.fbx".',
+                            "project_root": str(project_root),
+                            "engine_root": "C:/engine",
+                            "dry_run": True,
+                            "preferred_domains": ["asset-pipeline"],
+                        },
+                    )
+                    assert create_response.status_code == 200
+
+                    execute_response = client.post(
+                        "/prompt/sessions/prompt-asset-batch-execute-1/execute"
+                    )
+                    assert execute_response.status_code == 200
+                    payload = execute_response.json()
+                    assert payload["status"] == "waiting_approval"
+                    approval = approvals_service.get_approval(payload["pending_approval_id"])
+                    assert approval is not None
+                    approvals_service.approve(approval.id)
+
+                    execute_response = client.post(
+                        "/prompt/sessions/prompt-asset-batch-execute-1/execute"
+                    )
+                    assert execute_response.status_code == 200
+                    payload = execute_response.json()
+                    assert payload["status"] == "completed"
+                    assert (
+                        "Asset batch preflight confirmed 1 project-local source candidate file(s)"
+                        in payload["final_result_summary"]
+                    )
+                    assert (
+                        "No real asset.batch.process execution was attempted"
+                        in payload["final_result_summary"]
+                    )
+                    child_response = payload["latest_child_responses"][-1]
+                    details = child_response["execution_details"]
+                    assert details["inspection_surface"] == "asset_batch_preflight"
+                    assert details["runtime_available"] is True
+                    assert details["source_candidate_match_count"] == 1
+                    assert details["execution_attempted"] is False
+                    assert details["result_artifact_produced"] is False
+                    assert str(source_path) in details["resolved_source_candidate_paths"]
 
 
 def test_prompt_session_executes_render_capture_viewport_with_truthful_evidence() -> None:

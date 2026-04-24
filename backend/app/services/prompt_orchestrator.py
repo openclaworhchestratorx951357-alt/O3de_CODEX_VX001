@@ -512,6 +512,9 @@ class PromptOrchestratorService:
             session, "asset-processor-1"
         )
         asset_response = self._latest_successful_response_for_step(session, "asset-inspect-1")
+        asset_batch_response = self._latest_successful_response_for_step(
+            session, "asset-batch-1"
+        )
         render_capture_response = self._latest_successful_response_for_step(
             session, "render-capture-1"
         )
@@ -640,6 +643,39 @@ class PromptOrchestratorService:
                     summary_parts.append(
                         "Dependency evidence remains unavailable in this admitted slice."
                     )
+
+        if asset_batch_response is not None:
+            details = asset_batch_response.get("execution_details", {})
+            match_count = details.get("source_candidate_match_count", 0)
+            if match_count:
+                summary_parts.append(
+                    f"Asset batch preflight confirmed {match_count} project-local source candidate file(s) for the explicit source glob."
+                )
+            else:
+                summary_parts.append(
+                    "Asset batch preflight could not confirm any project-local source candidates for the explicit source glob."
+                )
+            if details.get("runtime_available") is True:
+                summary_parts.append(
+                    "Asset batch preflight confirmed a running Asset Processor runtime through the admitted host probe."
+                )
+            else:
+                summary_parts.append(
+                    "Asset batch preflight could not confirm a running Asset Processor runtime in this admitted slice."
+                )
+            if details.get("execution_attempted") is True:
+                summary_parts.append(
+                    "Real asset.batch.process execution was attempted in this slice."
+                )
+            else:
+                summary_parts.append(
+                    "No real asset.batch.process execution was attempted in this admitted slice."
+                )
+            unavailable_reason = details.get("batch_unavailable_reason") or details.get(
+                "result_unavailable_reason"
+            )
+            if isinstance(unavailable_reason, str) and unavailable_reason:
+                summary_parts.append(unavailable_reason)
 
         if render_capture_response is not None:
             details = render_capture_response.get("execution_details", {})

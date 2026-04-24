@@ -216,24 +216,53 @@ def make_asset_source_inspect_request() -> RequestEnvelope:
     return request
 
 
-def make_asset_batch_process_request() -> RequestEnvelope:
-    request = make_request("asset-pipeline", "asset.batch.process")
+def make_asset_batch_process_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = True,
+    source_glob: str = "Assets/**/*.fbx",
+    platforms: list[str] | None = None,
+) -> RequestEnvelope:
+    request = make_request(
+        "asset-pipeline",
+        "asset.batch.process",
+        project_root=project_root,
+        dry_run=dry_run,
+    )
     request.args = {
-        "source_glob": "Assets/**/*.fbx",
-        "platforms": ["pc"],
+        "source_glob": source_glob,
+        "platforms": platforms or ["pc"],
         "clean": False,
         "max_jobs": 4,
     }
     return request
 
 
-def approve_asset_batch_process_request() -> RequestEnvelope:
-    first = dispatcher_service.dispatch(make_asset_batch_process_request())
+def approve_asset_batch_process_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = True,
+    source_glob: str = "Assets/**/*.fbx",
+    platforms: list[str] | None = None,
+) -> RequestEnvelope:
+    first = dispatcher_service.dispatch(
+        make_asset_batch_process_request(
+            project_root=project_root,
+            dry_run=dry_run,
+            source_glob=source_glob,
+            platforms=platforms,
+        )
+    )
     approval = approvals_service.get_approval(first.approval_id or "")
     assert approval is not None
     approvals_service.approve(approval.id)
 
-    approved_request = make_asset_batch_process_request()
+    approved_request = make_asset_batch_process_request(
+        project_root=project_root,
+        dry_run=dry_run,
+        source_glob=source_glob,
+        platforms=platforms,
+    )
     approved_request.approval_token = approval.token
     return approved_request
 
@@ -4223,13 +4252,31 @@ def test_asset_processor_status_real_persisted_payloads_match_published_schemas(
         )
 
 
-def test_asset_batch_process_simulated_persisted_payloads_match_published_schemas() -> None:
-    with isolated_database():
-        response = dispatcher_service.dispatch(approve_asset_batch_process_request())
+def test_asset_batch_process_uses_real_preflight_substrate_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = project_root / "Assets" / "Models" / "ship.fbx"
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"asset-batch-source")
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.AssetPipelineHybridAdapter._probe_asset_processor_runtime",
+                return_value={
+                    "runtime_probe_available": True,
+                    "runtime_probe_method": "windows-tasklist",
+                    "runtime_process_ids": [5150],
+                    "runtime_process_names": ["AssetProcessor.exe"],
+                },
+            ):
+                response = dispatcher_service.dispatch(
+                    approve_asset_batch_process_request(project_root=str(project_root))
+                )
 
         assert response.ok is True
         assert response.result is not None
-        assert response.result.simulated is True
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
         run_id = response.operation_id
         assert run_id is not None
         execution = next(
@@ -4238,12 +4285,17 @@ def test_asset_batch_process_simulated_persisted_payloads_match_published_schema
             if execution.run_id == run_id
         )
         artifact = artifacts_service.get_artifact(response.artifacts[0])
-        assert execution.details["inspection_surface"] == "simulated"
-        assert execution.details["simulated"] is True
+        assert execution.details["inspection_surface"] == "asset_batch_preflight"
+        assert execution.details["preflight_execution_mode"] == "plan-only"
+        assert execution.details["runtime_available"] is True
+        assert execution.details["source_candidate_match_count"] == 1
+        assert execution.details["execution_attempted"] is False
+        assert execution.details["result_artifact_produced"] is False
+        assert str(source_path) in execution.details["resolved_source_candidate_paths"]
         assert artifact is not None
-        assert artifact.simulated is True
-        assert artifact.metadata["execution_mode"] == "simulated"
-        assert artifact.metadata["inspection_surface"] == "simulated"
+        assert artifact.simulated is False
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "asset_batch_preflight"
         assert (
             schema_validation_service.validate_execution_details(
                 tool_name="asset.batch.process",
@@ -4258,6 +4310,32 @@ def test_asset_batch_process_simulated_persisted_payloads_match_published_schema
             )
             == []
         )
+
+
+def test_asset_batch_process_records_dry_run_fallback_provenance_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                approve_asset_batch_process_request(
+                    project_root=str(project_root),
+                    dry_run=False,
+                )
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        assert execution.details["real_path_available"] is False
+        assert execution.details["fallback_category"] == "dry-run-required"
+        assert execution.details["project_root_path"] == str(project_root.resolve())
 
 
 def test_asset_move_safe_simulated_persisted_payloads_match_published_schemas() -> None:

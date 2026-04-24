@@ -9,8 +9,8 @@
       "properties": {
         "tool": { "const": "asset.batch.process" },
         "approval_class": { "const": "build_execute" },
-        "execution_mode": { "const": "simulated" },
-        "simulated": { "const": true }
+        "execution_mode": { "enum": ["simulated", "real"] },
+        "simulated": { "type": "boolean" }
       }
     }
   ]

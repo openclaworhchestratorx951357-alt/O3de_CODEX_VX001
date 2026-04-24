@@ -47,6 +47,7 @@ REAL_TOOL_PATHS_BY_MODE = {
 PLAN_ONLY_TOOL_PATHS_BY_MODE = {
     "simulated": [],
     "hybrid": [
+        "asset.batch.process",
         "build.configure",
         "build.compile",
         "settings.patch",
@@ -61,7 +62,9 @@ ADAPTER_EXECUTION_BOUNDARY = (
 HYBRID_EXECUTION_BOUNDARY = (
     "Control-plane bookkeeping is real. In hybrid mode, asset.processor.status may "
     "use a real read-only host runtime probe, asset.source.inspect may "
-    "use a real read-only project-local source inspection path, project.inspect may use a "
+    "use a real read-only project-local source inspection path, asset.batch.process may "
+    "use a real plan-only explicit source-glob asset batch preflight and result-truth substrate, "
+    "project.inspect may use a "
     "real read-only project-manifest path, test.visual.diff may use a real "
     "read-only explicit viewport-capture substrate probe, render.material.inspect may use a "
     "real read-only explicit material-inspection runtime probe, "
@@ -687,6 +690,17 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
                 approval_class=approval_class,
                 locks_acquired=locks_acquired,
             )
+        if tool == "asset.batch.process":
+            return self._execute_asset_batch_process(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+            )
 
         simulated = self._simulated.execute(
             request_id=request_id,
@@ -1255,6 +1269,359 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
         simulated.execution_details["project_root_path"] = str(resolved_project_root)
         simulated.result_summary = "Asset source inspection fell back to the simulated path."
         return simulated
+
+    def _execute_asset_batch_process(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        source_glob_input = str(args.get("source_glob", "")).strip()
+        requested_platforms = self._normalized_string_list(args.get("platforms"))
+        clean_requested = bool(args.get("clean", False))
+        max_jobs_requested = self._coerce_positive_int(args.get("max_jobs"))
+        if not dry_run:
+            return self._fallback_asset_batch_process(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real asset.batch.process substrate evidence is currently limited to "
+                    "dry_run=true preflight requests; actual asset batch execution remains non-admitted."
+                ),
+                fallback_category="dry-run-required",
+            )
+        if not source_glob_input:
+            return self._fallback_asset_batch_process(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real asset.batch.process preflight requires an explicit project-relative "
+                    "source_glob."
+                ),
+                fallback_category="missing-source-glob",
+            )
+
+        normalized_source_glob, glob_validation_error = self._normalize_project_relative_glob(
+            source_glob_input
+        )
+        if normalized_source_glob is None:
+            return self._fallback_asset_batch_process(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=glob_validation_error
+                or (
+                    "Real asset.batch.process preflight is limited to explicit project-relative "
+                    "source globs within the current project root."
+                ),
+                fallback_category="outside-project-root",
+            )
+
+        runtime_probe = self._probe_asset_processor_runtime()
+        runtime_probe_available = bool(runtime_probe.get("runtime_probe_available", False))
+        runtime_probe_method = str(runtime_probe.get("runtime_probe_method", "host-process-list"))
+        runtime_probe_error = runtime_probe.get("runtime_probe_error")
+        runtime_process_ids = [
+            int(pid)
+            for pid in runtime_probe.get("runtime_process_ids", [])
+            if isinstance(pid, int)
+        ]
+        runtime_process_names = [
+            str(name)
+            for name in runtime_probe.get("runtime_process_names", [])
+            if isinstance(name, str) and name
+        ]
+        runtime_process_count = len(runtime_process_ids)
+        runtime_available = runtime_probe_available and runtime_process_count > 0
+        runtime_status = (
+            "running"
+            if runtime_available
+            else ("not-running" if runtime_probe_available else "unknown")
+        )
+
+        source_candidates = self._resolve_project_relative_glob_candidates(
+            project_root=resolved_project_root,
+            source_glob=normalized_source_glob,
+        )
+        resolved_source_candidate_paths = [str(path) for path in source_candidates]
+        source_candidate_relative_paths = [
+            str(path.relative_to(resolved_project_root)).replace("\\", "/")
+            for path in source_candidates
+        ]
+        source_candidate_match_count = len(source_candidates)
+
+        inspection_evidence = [
+            "source_glob_identity",
+            "source_glob_resolution",
+            "runtime_probe_attempt",
+        ]
+        unavailable_evidence: list[str] = []
+        warnings = [
+            "This is a real plan-only asset.batch.process preflight path; actual batch execution remains non-admitted.",
+        ]
+        logs = [
+            "Real asset.batch.process executed through the admitted plan-only preflight substrate.",
+            f"Project-relative source glob: {normalized_source_glob}",
+            f"Matched explicit source candidate count: {source_candidate_match_count}.",
+            "No asset batch command was executed in this slice.",
+        ]
+
+        if runtime_probe_available:
+            inspection_evidence.append("runtime_process_visibility")
+            logs.append(
+                f"Asset Processor runtime probe observed {runtime_process_count} matching process(es)."
+            )
+        else:
+            unavailable_evidence.append("runtime")
+            if isinstance(runtime_probe_error, str) and runtime_probe_error:
+                warnings.append(runtime_probe_error)
+                logs.append(runtime_probe_error)
+            logs.append(
+                "Asset Processor runtime visibility is unavailable on this host through the admitted probe."
+            )
+
+        if source_candidate_match_count > 0:
+            inspection_evidence.append("source_candidate_readback")
+        else:
+            unavailable_evidence.append("source_candidates")
+            logs.append(
+                f"No project-local source files matched explicit source glob '{normalized_source_glob}'."
+            )
+
+        if requested_platforms:
+            inspection_evidence.append("platform_request")
+
+        batch_unavailable_reasons: list[str] = []
+        if not runtime_probe_available:
+            batch_unavailable_reasons.append(
+                "Asset Processor runtime visibility is unavailable on this host through the admitted probe."
+            )
+        elif runtime_status != "running":
+            batch_unavailable_reasons.append(
+                "No running Asset Processor runtime was confirmed during this admitted preflight slice."
+            )
+        if source_candidate_match_count == 0:
+            batch_unavailable_reasons.append(
+                f"No project-local source files matched explicit source glob '{normalized_source_glob}'."
+            )
+        batch_unavailable_reason = (
+            " ".join(dict.fromkeys(batch_unavailable_reasons))
+            if batch_unavailable_reasons
+            else None
+        )
+        if batch_unavailable_reason:
+            warnings.append(batch_unavailable_reason)
+
+        details = {
+            "inspection_surface": "asset_batch_preflight",
+            "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+            "simulated": False,
+            "adapter_family": self.family,
+            "adapter_mode": self.mode,
+            "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+            "real_path_available": True,
+            "preflight_execution_mode": "plan-only",
+            "batch_request_explicit": True,
+            "project_root_path": str(resolved_project_root),
+            "source_glob_input": source_glob_input,
+            "source_glob_normalized": normalized_source_glob,
+            "source_glob_scope": "project-root-relative",
+            "source_glob_within_project_root": True,
+            "source_candidate_match_count": source_candidate_match_count,
+            "resolved_source_candidate_paths": resolved_source_candidate_paths,
+            "source_candidate_relative_paths": source_candidate_relative_paths,
+            "platform_request_explicit": bool(requested_platforms),
+            "platforms_requested": requested_platforms,
+            "clean_requested": clean_requested,
+            "max_jobs_requested": max_jobs_requested,
+            "runtime_probe_attempted": True,
+            "runtime_probe_method": runtime_probe_method,
+            "runtime_probe_available": runtime_probe_available,
+            "runtime_probe_error": (
+                runtime_probe_error
+                if isinstance(runtime_probe_error, str) and runtime_probe_error
+                else None
+            ),
+            "runtime_status": runtime_status,
+            "runtime_available": runtime_available,
+            "runtime_process_count": runtime_process_count,
+            "runtime_process_ids": runtime_process_ids,
+            "runtime_process_names": runtime_process_names,
+            "inspection_evidence": inspection_evidence,
+            "unavailable_evidence": unavailable_evidence,
+            "execution_attempted": False,
+            "result_artifact_produced": False,
+            "result_artifact_path": None,
+            "result_artifact_content_type": None,
+            "result_artifact_size_bytes": None,
+            "exit_code_available": False,
+            "exit_code": None,
+            "result_status": "not-attempted",
+            "result_summary_available": False,
+            "result_unavailable_reason": (
+                "No real asset.batch.process execution was attempted in this admitted plan-only slice."
+            ),
+            "batch_unavailable_reason": batch_unavailable_reason,
+        }
+        result = DispatchResult(
+            status="real_success",
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            simulated=False,
+            execution_mode="real",
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+            message=(
+                "Real asset.batch.process preflight completed for the explicit source glob; "
+                "no asset batch command was executed."
+            ),
+        )
+        return AdapterExecutionReport(
+            execution_mode="real",
+            result=result,
+            warnings=warnings,
+            logs=logs,
+            artifact_label="Real asset batch preflight evidence",
+            artifact_kind="asset_batch_preflight",
+            artifact_uri=resolved_project_root.as_uri(),
+            artifact_metadata={
+                "tool": tool,
+                "agent": agent,
+                "execution_mode": "real",
+                **details,
+            },
+            execution_details=details,
+            result_summary="Real asset.batch.process preflight substrate completed successfully.",
+        )
+
+    def _fallback_asset_batch_process(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+        reason: str,
+        fallback_category: str = "unavailable",
+    ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        simulated = self._simulated.execute(
+            request_id="",
+            session_id=None,
+            workspace_id=None,
+            executor_id=None,
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+        )
+        simulated.warnings.append(reason)
+        simulated.logs.append(reason)
+        simulated.logs.append(
+            "Hybrid mode fell back to the simulated asset.batch.process path."
+        )
+        simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.artifact_metadata["real_path_available"] = False
+        simulated.artifact_metadata["fallback_reason"] = reason
+        simulated.artifact_metadata["fallback_category"] = fallback_category
+        simulated.artifact_metadata["project_root_path"] = str(resolved_project_root)
+        simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.execution_details["real_path_available"] = False
+        simulated.execution_details["fallback_reason"] = reason
+        simulated.execution_details["fallback_category"] = fallback_category
+        simulated.execution_details["project_root_path"] = str(resolved_project_root)
+        simulated.result_summary = "Asset batch process fell back to the simulated path."
+        return simulated
+
+    def _coerce_positive_int(self, value: Any) -> int | None:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return None
+        return parsed if parsed > 0 else None
+
+    def _normalized_string_list(self, value: Any) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        normalized: list[str] = []
+        for entry in value:
+            if isinstance(entry, str):
+                candidate = entry.strip()
+                if candidate:
+                    normalized.append(candidate)
+        return normalized
+
+    def _normalize_project_relative_glob(
+        self,
+        source_glob: str,
+    ) -> tuple[str | None, str | None]:
+        candidate = source_glob.strip().replace("\\", "/")
+        if not candidate:
+            return None, "Real asset.batch.process preflight requires a non-empty source_glob."
+        if Path(candidate).is_absolute() or candidate.startswith("/"):
+            return (
+                None,
+                "Real asset.batch.process preflight is limited to explicit project-relative source globs.",
+            )
+        path_parts = Path(candidate).parts
+        if any(part == ".." for part in path_parts):
+            return (
+                None,
+                "Real asset.batch.process preflight does not admit parent-directory traversal in source_glob.",
+            )
+        return candidate, None
+
+    def _resolve_project_relative_glob_candidates(
+        self,
+        *,
+        project_root: Path,
+        source_glob: str,
+    ) -> list[Path]:
+        try:
+            matches = [
+                path.resolve()
+                for path in project_root.glob(source_glob)
+                if path.is_file()
+            ]
+        except (OSError, NotImplementedError, ValueError):
+            return []
+        unique_matches = sorted({str(path): path for path in matches}.values(), key=str)
+        return unique_matches
 
 
 class ProjectBuildHybridAdapter(ToolExecutionAdapter):
@@ -5714,6 +6081,11 @@ class AdapterService:
                 for tool_name in self._real_tool_paths_for_mode(active_mode)
                 if tool_name.startswith("asset.")
             }
+            family_plan_only = {
+                tool_name
+                for tool_name in self._plan_only_tool_paths_for_mode(active_mode)
+                if tool_name.startswith("asset.")
+            }
         if active_mode == "hybrid" and family == "editor-control":
             family_real = {
                 tool_name
@@ -5819,8 +6191,9 @@ class AdapterService:
                     "McpSandbox, an admitted allowlist-bound editor.component.add "
                     "path on McpSandbox, and an admitted explicit "
                     "editor.component.property.get read path on McpSandbox, "
-                    "real plan-only build.configure and build.compile preflight "
-                    "paths, and a real dry-run-only settings.patch preflight path.",
+                    "real plan-only asset.batch.process, build.configure, and "
+                    "build.compile preflight paths, and a real dry-run-only "
+                    "settings.patch preflight path.",
                 ],
             )
         if configured_mode == "hybrid":
@@ -5852,6 +6225,8 @@ class AdapterService:
                     "kept explicit when unavailable.",
                     "Hybrid mode enables a real read-only asset.source.inspect path when "
                     "the explicit source path resolves within the current project root.",
+                    "Hybrid mode also enables a real plan-only asset.batch.process "
+                    "preflight/result-truth path for explicit source-glob requests.",
                     "Hybrid mode enables a real read-only project.inspect path when its "
                     "manifest preconditions are satisfied.",
                     "Hybrid mode enables a real read-only render.capture.viewport substrate "
@@ -5980,6 +6355,10 @@ class AdapterService:
                     tool_name
                     for tool_name in runtime_status.plan_only_tool_paths
                     if (
+                        family == "asset-pipeline"
+                        and tool_name.startswith("asset.")
+                    )
+                    or (
                         family == "project-build"
                         and tool_name.startswith(("project.", "build.", "settings.", "gem."))
                     )
@@ -6002,9 +6381,11 @@ class AdapterService:
                     )
                 if family == "asset-pipeline":
                     family_notes.append(
-                    "asset.processor.status and asset.source.inspect currently have "
-                    "real read-only admitted paths in this family."
-                )
+                        "asset.processor.status and asset.source.inspect currently have "
+                        "real read-only admitted paths in this family, and "
+                        "asset.batch.process currently has a real plan-only "
+                        "preflight/result-truth substrate."
+                    )
                 if family == "editor-control":
                     family_notes.append(
                         "editor.session.open, editor.level.open, "

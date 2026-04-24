@@ -809,6 +809,7 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
                 "test.visual.diff",
             ]
             assert payload["adapter_mode"]["plan_only_tool_paths"] == [
+                "asset.batch.process",
                 "build.configure",
                 "build.compile",
                 "settings.patch",
@@ -866,6 +867,7 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "test.visual.diff",
             ]
             assert payload["plan_only_tool_paths"] == [
+                "asset.batch.process",
                 "build.configure",
                 "build.compile",
                 "settings.patch",
@@ -893,13 +895,12 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "asset.processor.status",
                 "asset.source.inspect",
             ]
-            assert asset_pipeline["plan_only_tool_paths"] == []
-            assert sorted(asset_pipeline["simulated_tool_paths"]) == [
-                "asset.batch.process",
-                "asset.move.safe",
-            ]
+            assert asset_pipeline["plan_only_tool_paths"] == ["asset.batch.process"]
+            assert sorted(asset_pipeline["simulated_tool_paths"]) == ["asset.move.safe"]
             assert any(
-                "asset.processor.status" in note or "asset.source.inspect" in note
+                "asset.batch.process" in note
+                or "asset.processor.status" in note
+                or "asset.source.inspect" in note
                 for note in asset_pipeline["notes"]
             )
             assert project_build["supports_real_execution"] is True
@@ -990,6 +991,19 @@ def test_prompt_capabilities_reports_build_compile_as_plan_only() -> None:
             item for item in payload["capabilities"] if item["tool_name"] == "build.compile"
         )
         assert entry["agent_family"] == "project-build"
+        assert entry["capability_maturity"] == "plan-only"
+        assert entry["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
+
+
+def test_prompt_capabilities_reports_asset_batch_process_as_plan_only() -> None:
+    with isolated_client() as client:
+        response = client.get("/prompt/capabilities")
+        assert response.status_code == 200
+        payload = response.json()
+        entry = next(
+            item for item in payload["capabilities"] if item["tool_name"] == "asset.batch.process"
+        )
+        assert entry["agent_family"] == "asset-pipeline"
         assert entry["capability_maturity"] == "plan-only"
         assert entry["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
 
@@ -1138,6 +1152,9 @@ def test_policies_route_exposes_truthful_execution_mode_and_dry_run_support() ->
         assert policies_by_tool["asset.source.inspect"]["execution_mode"] == "real"
         assert policies_by_tool["asset.source.inspect"]["supports_dry_run"] is True
 
+        assert policies_by_tool["asset.batch.process"]["execution_mode"] == "plan-only"
+        assert policies_by_tool["asset.batch.process"]["supports_dry_run"] is True
+
         assert policies_by_tool["build.configure"]["execution_mode"] == "plan-only"
         assert policies_by_tool["build.configure"]["supports_dry_run"] is True
         assert policies_by_tool["build.compile"]["execution_mode"] == "plan-only"
@@ -1182,6 +1199,20 @@ def test_policies_route_marks_asset_processor_status_as_real_read_only_active() 
         assert asset_processor_status["real_admission_stage"] == "real-read-only-active"
         assert asset_processor_status["execution_mode"] == "real"
         assert "job and platform" in asset_processor_status["next_real_requirement"].lower()
+
+
+def test_policies_route_marks_asset_batch_process_as_real_plan_only_active() -> None:
+    with isolated_client() as client:
+        response = client.get("/policies")
+        assert response.status_code == 200
+        asset_batch_process = next(
+            policy
+            for policy in response.json()["policies"]
+            if policy["tool"] == "asset.batch.process"
+        )
+        assert asset_batch_process["real_admission_stage"] == "real-plan-only-active"
+        assert asset_batch_process["execution_mode"] == "plan-only"
+        assert "preflight" in asset_batch_process["next_real_requirement"].lower()
 
 
 def test_policies_route_marks_render_capture_viewport_as_real_read_only_active() -> None:
@@ -2623,6 +2654,204 @@ def test_dispatch_route_records_manifest_missing_fallback_provenance_in_hybrid_m
                     execution["details"]["project_manifest_source_of_truth"]
                     == "project_root/project.json"
                 )
+
+
+def test_dispatch_route_uses_real_asset_batch_process_preflight_in_hybrid_mode() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = project_root / "Assets" / "Models" / "ship.fbx"
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"api-asset-batch-source")
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.AssetPipelineHybridAdapter._probe_asset_processor_runtime",
+                return_value={
+                    "runtime_probe_available": True,
+                    "runtime_probe_method": "windows-tasklist",
+                    "runtime_process_ids": [5150],
+                    "runtime_process_names": ["AssetProcessor.exe"],
+                },
+            ):
+                with isolated_client() as client:
+                    dispatch = client.post(
+                        "/tools/dispatch",
+                        json={
+                            "request_id": "api-asset-batch-preflight-1",
+                            "tool": "asset.batch.process",
+                            "agent": "asset-pipeline",
+                            "project_root": str(project_root),
+                            "engine_root": "/tmp/engine",
+                            "dry_run": True,
+                            "locks": [],
+                            "timeout_s": 30,
+                            "args": {
+                                "source_glob": "Assets/**/*.fbx",
+                                "platforms": ["pc"],
+                                "clean": False,
+                                "max_jobs": 4,
+                            },
+                        },
+                    )
+                    approval_id = dispatch.json()["approval_id"]
+                    approval = approvals_service.get_approval(approval_id)
+                    assert approval is not None
+                    client.post(
+                        f"/approvals/{approval_id}/approve",
+                        json={"reason": "Approve asset.batch.process preflight for test"},
+                    )
+                    approved_dispatch = client.post(
+                        "/tools/dispatch",
+                        json={
+                            "request_id": "api-asset-batch-preflight-2",
+                            "tool": "asset.batch.process",
+                            "agent": "asset-pipeline",
+                            "project_root": str(project_root),
+                            "engine_root": "/tmp/engine",
+                            "dry_run": True,
+                            "locks": [],
+                            "timeout_s": 30,
+                            "approval_token": approval.token,
+                            "args": {
+                                "source_glob": "Assets/**/*.fbx",
+                                "platforms": ["pc"],
+                                "clean": False,
+                                "max_jobs": 4,
+                            },
+                        },
+                    )
+                    assert approved_dispatch.status_code == 200
+                    payload = approved_dispatch.json()
+                    assert payload["ok"] is True
+                    assert payload["result"]["simulated"] is False
+                    assert payload["result"]["execution_mode"] == "real"
+                    assert "no asset batch command was executed" in payload["result"]["message"]
+
+                    executions = client.get("/executions")
+                    execution_cards = client.get("/executions/cards")
+                    artifacts = client.get("/artifacts")
+                    artifact_cards = client.get("/artifacts/cards")
+                    executors = client.get("/executors")
+                    workspaces = client.get("/workspaces")
+                    assert executions.status_code == 200
+                    assert execution_cards.status_code == 200
+                    assert artifacts.status_code == 200
+                    assert artifact_cards.status_code == 200
+                    assert executors.status_code == 200
+                    assert workspaces.status_code == 200
+                    execution = executions.json()["executions"][0]
+                    execution_card = execution_cards.json()["executions"][0]
+                    artifact = artifacts.json()["artifacts"][0]
+                    artifact_card = artifact_cards.json()["artifacts"][0]
+                    executor = executors.json()["executors"][0]
+                    workspace = workspaces.json()["workspaces"][0]
+                    assert execution["details"]["inspection_surface"] == "asset_batch_preflight"
+                    assert execution["details"]["preflight_execution_mode"] == "plan-only"
+                    assert execution["details"]["runtime_available"] is True
+                    assert execution["details"]["source_candidate_match_count"] == 1
+                    assert execution["details"]["execution_attempted"] is False
+                    assert execution["details"]["result_artifact_produced"] is False
+                    assert str(source_path) in execution["details"]["resolved_source_candidate_paths"]
+                    assert execution["executor_id"] == "executor-asset-pipeline-hybrid-plan-only-local"
+                    assert (
+                        execution["workspace_id"]
+                        == f"workspace-asset-batch-process-{execution['id']}"
+                    )
+                    assert execution["runner_family"] == "cli"
+                    assert execution["execution_attempt_state"] == "completed"
+                    assert execution_card["executor_id"] == execution["executor_id"]
+                    assert execution_card["workspace_id"] == execution["workspace_id"]
+                    assert execution_card["runner_family"] == "cli"
+                    assert execution_card["execution_attempt_state"] == "completed"
+
+                    assert artifact["executor_id"] == execution["executor_id"]
+                    assert artifact["workspace_id"] == execution["workspace_id"]
+                    assert artifact["artifact_role"] == "plan-evidence"
+                    assert artifact["retention_class"] == "operator-configured"
+                    assert artifact["evidence_completeness"] == "plan-backed"
+                    assert artifact_card["executor_id"] == execution["executor_id"]
+                    assert artifact_card["workspace_id"] == execution["workspace_id"]
+                    assert artifact_card["artifact_role"] == "plan-evidence"
+                    assert artifact_card["retention_class"] == "operator-configured"
+                    assert artifact_card["evidence_completeness"] == "plan-backed"
+
+                    assert executor["id"] == "executor-asset-pipeline-hybrid-plan-only-local"
+                    assert executor["capability_snapshot"]["admitted_tools"] == [
+                        "asset.batch.process"
+                    ]
+
+                    assert workspace["id"] == execution["workspace_id"]
+                    assert workspace["workspace_root"] == str(project_root.resolve())
+                    assert workspace["workspace_kind"] == "admitted-plan-only-project-root"
+                    assert workspace["workspace_state"] == "ready"
+                    assert workspace["cleanup_policy"] == "operator-managed-preflight"
+                    assert workspace["runner_family"] == "cli"
+                    assert workspace["owner_run_id"] == payload["operation_id"]
+                    assert workspace["owner_execution_id"] == execution["id"]
+                    assert workspace["owner_executor_id"] == executor["id"]
+
+
+def test_dispatch_route_records_asset_batch_process_dry_run_fallback_provenance_in_hybrid_mode() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-asset-batch-fallback-1",
+                        "tool": "asset.batch.process",
+                        "agent": "asset-pipeline",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "args": {
+                            "source_glob": "Assets/**/*.fbx",
+                            "platforms": ["pc"],
+                        },
+                    },
+                )
+                approval_id = dispatch.json()["approval_id"]
+                approval = approvals_service.get_approval(approval_id)
+                assert approval is not None
+                client.post(
+                    f"/approvals/{approval_id}/approve",
+                    json={"reason": "Approve asset.batch.process fallback test"},
+                )
+                approved_dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-asset-batch-fallback-2",
+                        "tool": "asset.batch.process",
+                        "agent": "asset-pipeline",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "approval_token": approval.token,
+                        "args": {
+                            "source_glob": "Assets/**/*.fbx",
+                            "platforms": ["pc"],
+                        },
+                    },
+                )
+                assert approved_dispatch.status_code == 200
+                payload = approved_dispatch.json()
+                assert payload["ok"] is True
+                assert payload["result"]["simulated"] is True
+
+                executions = client.get("/executions")
+                assert executions.status_code == 200
+                execution = next(
+                    execution
+                    for execution in executions.json()["executions"]
+                    if execution["run_id"] == payload["operation_id"]
+                )
+                assert execution["details"]["real_path_available"] is False
+                assert execution["details"]["fallback_category"] == "dry-run-required"
+                assert execution["details"]["project_root_path"] == str(project_root.resolve())
 
 
 def test_dispatch_route_uses_real_build_configure_preflight_in_hybrid_mode() -> None:

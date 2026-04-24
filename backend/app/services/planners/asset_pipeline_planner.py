@@ -72,20 +72,22 @@ def plan_asset_pipeline_prompt(
         capability = capabilities["asset.batch.process"]
         if capability is not None:
             source_glob = extract_value_after_phrase(prompt_text, "glob ")
-            args: dict[str, object] = {}
             if source_glob:
-                args["source_glob"] = source_glob
-            steps.append(
-                make_step(
-                    step_id="asset-batch-1",
-                    capability=capability,
-                    request=request,
-                    args=args,
+                steps.append(
+                    make_step(
+                        step_id="asset-batch-1",
+                        capability=capability,
+                        request=request,
+                        args={"source_glob": source_glob},
+                    )
                 )
-            )
-            requirement = capability_requirement_note(capability)
-            if requirement:
-                requirements.append(requirement)
+                requirement = capability_requirement_note(capability)
+                if requirement:
+                    requirements.append(requirement)
+            else:
+                refusals.append(
+                    "asset.batch.process requires an explicit project-relative source glob in the prompt."
+                )
 
     if contains_any(prompt_text, ["move asset", "rename asset", "relocate asset"]):
         capability = capabilities["asset.move.safe"]

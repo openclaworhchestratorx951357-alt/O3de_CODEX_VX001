@@ -102,6 +102,15 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             retention_class="inspection-evidence",
             natural_language_status="prompt-ready-read-only",
         )
+    if tool_name == "asset.batch.process":
+        return _build_safety_envelope(
+            state_scope="Explicit project-relative source-glob asset batch preflight scope.",
+            backup_class="none",
+            rollback_class="environment-cleanup-only",
+            verification_class="runtime probe and source candidate coverage verification",
+            retention_class="pipeline-log-evidence",
+            natural_language_status="prompt-ready-plan-only",
+        )
     if tool_name == "render.capture.viewport":
         return _build_safety_envelope(
             state_scope="Explicit viewport-capture evidence request.",
@@ -225,7 +234,7 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
         scope_by_tool = {
             "asset.processor.status": "Project asset processor status query.",
             "asset.source.inspect": "Single source-asset identity and dependency read scope.",
-            "asset.batch.process": "Explicit source batch and platform set within the current project.",
+            "asset.batch.process": "Explicit project-relative source-glob asset batch preflight within the current project.",
             "render.material.inspect": "Single material inspection scope.",
             "render.shader.rebuild": "Explicit shader target rebuild scope.",
             "render.capture.viewport": "Explicit viewport capture request.",
@@ -237,7 +246,7 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
         verification_by_tool = {
             "asset.processor.status": "processor-status readback",
             "asset.source.inspect": "asset metadata readback",
-            "asset.batch.process": "job summary and platform output coverage verification",
+            "asset.batch.process": "runtime probe and source candidate coverage verification",
             "render.material.inspect": "material readback verification",
             "render.shader.rebuild": "shader output and log verification",
             "render.capture.viewport": "capture artifact existence and metadata verification",
@@ -366,11 +375,13 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": True,
     },
     "asset.batch.process": {
-        "capability_maturity": "simulated-only",
+        "capability_maturity": "plan-only",
         "planner_intent_aliases": ["process assets", "asset batch", "asset pipeline batch"],
-        "natural_language_affordances": ["Run a typed asset batch process request."],
+        "natural_language_affordances": [
+            "Preflight an explicit asset batch request against project-local source candidates and admitted Asset Processor runtime evidence."
+        ],
         "allowlisted_parameter_surfaces": ["source_glob", "platforms", "clean", "max_jobs"],
-        "real_adapter_availability": False,
+        "real_adapter_availability": True,
         "dry_run_availability": True,
         "simulation_fallback_availability": True,
     },

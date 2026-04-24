@@ -714,6 +714,23 @@ class DispatcherService:
             backup_class = None
             rollback_class = None
         elif (
+            request.tool == "asset.batch.process"
+            and inspection_surface == "asset_batch_preflight"
+        ):
+            executor_id = "executor-asset-pipeline-hybrid-plan-only-local"
+            executor_kind = "local-admitted-readonly"
+            executor_label = "Admitted local asset pipeline preflight executor"
+            executor_host_label = "local-project-asset-pipeline"
+            workspace_kind = "admitted-plan-only-project-root"
+            cleanup_policy = "operator-managed-preflight"
+            artifact_role = "plan-evidence"
+            evidence_completeness = "plan-backed"
+            execution_boundary = "plan-only local asset batch preflight"
+            workspace_id = f"workspace-asset-batch-process-{execution_id}"
+            admitted_tools = ["asset.batch.process"]
+            backup_class = None
+            rollback_class = None
+        elif (
             request.tool == "build.configure"
             and inspection_surface == "build_configure_preflight"
         ):
@@ -1252,6 +1269,8 @@ class DispatcherService:
         capability = self._request_capability_status(request)
         if request.tool == "build.configure" and capability == "plan-only":
             return "plan-only build.configure preflight"
+        if request.tool == "asset.batch.process" and capability == "plan-only":
+            return "plan-only asset.batch.process preflight"
         if request.tool == "build.compile" and capability == "plan-only":
             return "plan-only build.compile preflight"
         if request.tool == "settings.patch" and capability == "mutation-gated":
@@ -1275,6 +1294,8 @@ class DispatcherService:
             return "This run used the first real read-only asset.processor.status path."
         if request.tool == "asset.source.inspect":
             return "This run used the first real read-only asset.source.inspect path."
+        if request.tool == "asset.batch.process":
+            return "This run used the real plan-only asset.batch.process preflight path."
         if request.tool == "project.inspect":
             return "This run used the first real read-only project inspection path."
         if request.tool == "build.configure":

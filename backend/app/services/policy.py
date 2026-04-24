@@ -9,6 +9,8 @@ def tool_real_admission_stage(tool_name: str) -> str:
         return "real-read-only-active"
     if tool_name == "asset.source.inspect":
         return "real-read-only-active"
+    if tool_name == "asset.batch.process":
+        return "real-plan-only-active"
     if tool_name == "render.capture.viewport":
         return "real-read-only-active"
     if tool_name == "render.material.inspect":
@@ -56,6 +58,13 @@ def tool_next_real_requirement(tool_name: str) -> str:
             "Keep real execution limited to host-visible Asset Processor runtime "
             "availability evidence, with job and platform fields marked unavailable "
             "unless an admitted real telemetry substrate is proven."
+        )
+    if tool_name == "asset.batch.process":
+        return (
+            "Keep real execution limited to explicit project-relative source-glob "
+            "asset batch preflight and result-truth evidence, with actual asset "
+            "processing execution, job results, and output artifact production "
+            "marked unavailable unless a real admitted batch runner path is proven."
         )
     if tool_name == "render.capture.viewport":
         return (

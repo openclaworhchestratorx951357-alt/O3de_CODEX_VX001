@@ -57,6 +57,17 @@ def test_build_compile_is_cataloged_as_plan_only() -> None:
     assert "build_tree" in tool.default_locks
 
 
+def test_asset_batch_process_is_cataloged_as_plan_only() -> None:
+    tool = catalog_service.get_tool_definition("asset-pipeline", "asset.batch.process")
+    assert tool is not None
+    assert tool.approval_class == "build_execute"
+    assert tool.adapter_family == "asset-pipeline"
+    assert tool.capability_status == "plan-only"
+    assert tool.args_schema.endswith("asset.batch.process.args.schema.json")
+    assert tool.result_schema.endswith("asset.batch.process.result.schema.json")
+    assert "asset_pipeline" in tool.default_locks
+
+
 def test_editor_component_property_get_is_cataloged_as_hybrid_read_only() -> None:
     tool = catalog_service.get_tool_definition(
         "editor-control",
