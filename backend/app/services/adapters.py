@@ -52,6 +52,7 @@ PLAN_ONLY_TOOL_PATHS_BY_MODE = {
         "build.configure",
         "build.compile",
         "gem.enable",
+        "render.material.patch",
         "settings.patch",
         "test.run.gtest",
         "test.run.editor_python",
@@ -86,6 +87,8 @@ HYBRID_EXECUTION_BOUNDARY = (
     "gem.enable may use a real explicit gem-request preflight substrate and a "
     "first mutation-gated manifest-backed local gem_names insertion path with "
     "backup, rollback, and post-write verification, "
+    "render.material.patch may use a real explicit local .material "
+    "propertyValues backup/write/verification corridor, "
     "settings.patch may use a real dry-run-only preflight path, test.run.gtest may use a real "
     "plan-only runner preflight and result-truth substrate for explicit target "
     "requests, test.run.editor_python may use a real plan-only runner preflight "
@@ -7039,6 +7042,17 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
                 approval_class=approval_class,
                 locks_acquired=locks_acquired,
             )
+        if tool == "render.material.patch":
+            return self._execute_render_material_patch(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+            )
 
         simulated = self._simulated.execute(
             request_id=request_id,
@@ -7221,6 +7235,612 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
             execution_details=details,
             result_summary="Real render capture substrate probe completed successfully.",
         )
+
+    def _execute_render_material_patch(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        material_path_input = str(args.get("material_path", "")).strip()
+        property_overrides = args.get("property_overrides")
+        create_backup_requested = bool(args.get("create_backup", True))
+        if not material_path_input:
+            return self._fallback_render_material_patch(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real render.material.patch requires an explicit non-empty material_path."
+                ),
+                fallback_category="explicit-material-required",
+            )
+        if not isinstance(property_overrides, dict) or not property_overrides:
+            return self._fallback_render_material_patch(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real render.material.patch requires a non-empty property_overrides map."
+                ),
+                fallback_category="explicit-overrides-required",
+            )
+        normalized_property_overrides: dict[str, Any] = {}
+        for key, value in property_overrides.items():
+            if not isinstance(key, str) or not key.strip():
+                return self._fallback_render_material_patch(
+                    tool=tool,
+                    agent=agent,
+                    project_root=project_root,
+                    engine_root=engine_root,
+                    dry_run=dry_run,
+                    args=args,
+                    approval_class=approval_class,
+                    locks_acquired=locks_acquired,
+                    reason=(
+                        "Real render.material.patch currently admits only non-empty string "
+                        "keys in the property_overrides map."
+                    ),
+                    fallback_category="override-key-not-admitted",
+                )
+            normalized_property_overrides[key.strip()] = value
+        if not create_backup_requested:
+            return self._fallback_render_material_patch(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real render.material.patch currently requires create_backup=true so "
+                    "backup, rollback, and verification remain within the admitted corridor."
+                ),
+                fallback_category="backup-required",
+            )
+
+        requested_material_path = Path(material_path_input).expanduser()
+        resolved_material_path = (
+            (resolved_project_root / requested_material_path).resolve()
+            if not requested_material_path.is_absolute()
+            else requested_material_path.resolve()
+        )
+        try:
+            material_path_relative_to_project_root = str(
+                resolved_material_path.relative_to(resolved_project_root)
+            )
+        except ValueError:
+            material_path_relative_to_project_root = None
+        material_path_within_project_root = material_path_relative_to_project_root is not None
+        if not material_path_within_project_root:
+            return self._fallback_render_material_patch(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real render.material.patch is currently limited to explicit project-local "
+                    ".material files within the current project root."
+                ),
+                fallback_category="outside-project-root",
+            )
+        if resolved_material_path.suffix.lower() != ".material":
+            return self._fallback_render_material_patch(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real render.material.patch currently admits only explicit local .material "
+                    "files."
+                ),
+                fallback_category="material-extension-not-admitted",
+            )
+        if not resolved_material_path.is_file():
+            return self._fallback_render_material_patch(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real render.material.patch was unavailable because the explicit material "
+                    f"file '{resolved_material_path}' was not found."
+                ),
+                fallback_category="material-missing",
+            )
+
+        try:
+            original_material_text = resolved_material_path.read_text(encoding="utf-8")
+            material_payload = json.loads(original_material_text)
+        except (OSError, json.JSONDecodeError) as exc:
+            return self._fallback_render_material_patch(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real render.material.patch was unavailable because the explicit local "
+                    f"material file could not be read as JSON: {exc}"
+                ),
+                fallback_category="material-unreadable",
+            )
+        if not isinstance(material_payload, dict):
+            return self._fallback_render_material_patch(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real render.material.patch currently requires a JSON object at the root "
+                    "of the explicit local .material file."
+                ),
+                fallback_category="material-root-not-object",
+            )
+
+        property_values_field_present = "propertyValues" in material_payload
+        raw_property_values = material_payload.get("propertyValues")
+        if raw_property_values is None:
+            current_property_values: dict[str, Any] = {}
+        elif isinstance(raw_property_values, dict):
+            current_property_values = dict(raw_property_values)
+        else:
+            return self._fallback_render_material_patch(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real render.material.patch currently requires propertyValues to be absent "
+                    "or a JSON object so the first admitted write corridor can stay explicit."
+                ),
+                fallback_category="property-values-shape-not-admitted",
+            )
+
+        backup_target = resolved_material_path.with_suffix(
+            f"{resolved_material_path.suffix}.bak"
+        )
+        backup_created = False
+        backup_error: str | None = None
+        try:
+            backup_target.write_text(original_material_text, encoding="utf-8")
+            backup_created = True
+        except OSError as exc:
+            backup_error = str(exc)
+            raise AdapterExecutionRejected(
+                "Real render.material.patch preflight was rejected because the backup file "
+                "could not be created before any admitted mutation-capable step.",
+                details={
+                    "inspection_surface": "render_material_patch_preflight",
+                    "material_path": str(resolved_material_path),
+                    "backup_target": str(backup_target),
+                    "backup_created": False,
+                    "backup_error": backup_error,
+                },
+                warnings=[
+                    "render.material.patch preflight was rejected before mutation because "
+                    "the backup file could not be created."
+                ],
+                logs=[
+                    "Hybrid adapter mode enabled a real render.material.patch path.",
+                    f"Read material file from '{resolved_material_path}'.",
+                    f"Backup creation failed for '{backup_target}': {backup_error}",
+                ],
+            ) from exc
+
+        mutation_ready = backup_created
+        mutation_blocked = dry_run and mutation_ready
+        mutation_applied = mutation_ready and not dry_run
+        mutation_blocked_reason = (
+            "Validated mutation-ready render.material.patch plan remains intentionally "
+            "write-disabled because dry_run=true."
+            if mutation_blocked
+            else None
+        )
+        post_write_verification_attempted = False
+        post_write_verification_succeeded = False
+        verified_override_keys: list[str] = []
+        verification_mismatched_keys: list[str] = []
+        verification_error: str | None = None
+        rollback_attempted = False
+        rollback_succeeded = False
+        rollback_outcome: str | None = None
+        rollback_trigger: str | None = None
+        rollback_verification_attempted = False
+        rollback_verification_succeeded = False
+        rollback_verification_error: str | None = None
+        result_status = "preflight-ready" if mutation_ready else "preflight-unavailable"
+        material_unavailable_reason = (
+            "Runtime material readback, shader rebuild, and reference repair remain unavailable "
+            "in this admitted local .material propertyValues mutation slice."
+        )
+
+        def _build_mutation_audit(*, phase: str, status: str, summary: str) -> dict[str, Any]:
+            return {
+                "phase": phase,
+                "status": status,
+                "summary": summary,
+                "backup_created": backup_created,
+                "backup_target": str(backup_target),
+                "mutation_ready": mutation_ready,
+                "mutation_blocked": mutation_blocked,
+                "mutation_applied": mutation_applied,
+                "post_write_verification_attempted": post_write_verification_attempted,
+                "post_write_verification_succeeded": post_write_verification_succeeded,
+                "verified_override_keys": verified_override_keys,
+                "verification_mismatched_keys": verification_mismatched_keys,
+                "rollback_attempted": rollback_attempted,
+                "rollback_succeeded": rollback_succeeded,
+                "rollback_outcome": rollback_outcome,
+                "rollback_trigger": rollback_trigger,
+            }
+
+        def _restore_backup(trigger: str) -> None:
+            nonlocal rollback_attempted
+            nonlocal rollback_succeeded
+            nonlocal rollback_outcome
+            nonlocal rollback_trigger
+            nonlocal rollback_verification_attempted
+            nonlocal rollback_verification_succeeded
+            nonlocal rollback_verification_error
+
+            rollback_attempted = True
+            rollback_trigger = trigger
+            try:
+                backup_text = backup_target.read_text(encoding="utf-8")
+                resolved_material_path.write_text(backup_text, encoding="utf-8")
+                rollback_verification_attempted = True
+                restored_text = resolved_material_path.read_text(encoding="utf-8")
+                rollback_verification_succeeded = restored_text == backup_text
+                rollback_succeeded = rollback_verification_succeeded
+                rollback_outcome = (
+                    "restored_and_verified"
+                    if rollback_verification_succeeded
+                    else "restored_but_verification_failed"
+                )
+            except OSError as exc:
+                rollback_succeeded = False
+                rollback_outcome = "restore_failed"
+                rollback_verification_error = str(exc)
+
+        if mutation_applied:
+            updated_material_payload = dict(material_payload)
+            updated_property_values = dict(current_property_values)
+            updated_property_values.update(normalized_property_overrides)
+            updated_material_payload["propertyValues"] = updated_property_values
+            try:
+                resolved_material_path.write_text(
+                    json.dumps(updated_material_payload, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+            except OSError as exc:
+                verification_error = str(exc)
+                _restore_backup("mutation_write_failure")
+                raise AdapterExecutionRejected(
+                    "Real render.material.patch mutation failed while writing the local "
+                    "material file; rollback was attempted.",
+                    details={
+                        "inspection_surface": "render_material_patch_mutation",
+                        "material_path": str(resolved_material_path),
+                        "rollback_attempted": rollback_attempted,
+                        "rollback_succeeded": rollback_succeeded,
+                        "rollback_outcome": rollback_outcome,
+                        "rollback_trigger": rollback_trigger,
+                        "write_error": verification_error,
+                    },
+                    warnings=[
+                        "render.material.patch write failed inside the admitted mutation corridor."
+                    ],
+                    logs=[
+                        "Hybrid adapter mode enabled a real render.material.patch path.",
+                        f"Read material file from '{resolved_material_path}'.",
+                        f"Material write failed for '{resolved_material_path}': {verification_error}",
+                    ],
+                ) from exc
+
+            post_write_verification_attempted = True
+            try:
+                verified_material_payload = json.loads(
+                    resolved_material_path.read_text(encoding="utf-8")
+                )
+                if not isinstance(verified_material_payload, dict):
+                    raise ValueError("material root was no longer a JSON object")
+                verified_property_values = verified_material_payload.get("propertyValues")
+                if not isinstance(verified_property_values, dict):
+                    raise ValueError("propertyValues was not a JSON object after write")
+                for key, value in normalized_property_overrides.items():
+                    if verified_property_values.get(key) == value:
+                        verified_override_keys.append(key)
+                    else:
+                        verification_mismatched_keys.append(key)
+                post_write_verification_succeeded = not verification_mismatched_keys
+                if not post_write_verification_succeeded:
+                    raise ValueError("post_write_verification_value_mismatch")
+            except (OSError, json.JSONDecodeError, ValueError) as exc:
+                verification_error = str(exc)
+                _restore_backup("post_write_verification_failure")
+                raise AdapterExecutionRejected(
+                    "Real render.material.patch mutation failed post-write verification; "
+                    "rollback was attempted.",
+                    details={
+                        "inspection_surface": "render_material_patch_mutation",
+                        "material_path": str(resolved_material_path),
+                        "rollback_attempted": rollback_attempted,
+                        "rollback_succeeded": rollback_succeeded,
+                        "rollback_outcome": rollback_outcome,
+                        "rollback_trigger": rollback_trigger,
+                        "verification_error": verification_error,
+                        "verification_mismatched_keys": verification_mismatched_keys,
+                    },
+                    warnings=[
+                        "render.material.patch verification failed inside the admitted mutation corridor."
+                    ],
+                    logs=[
+                        "Hybrid adapter mode enabled a real render.material.patch path.",
+                        f"Read material file from '{resolved_material_path}'.",
+                        "Post-write verification failed for the local material mutation.",
+                        verification_error,
+                    ],
+                ) from exc
+            result_status = "mutation-applied"
+        elif mutation_blocked:
+            result_status = "mutation-blocked"
+
+        inspection_surface = (
+            "render_material_patch_mutation"
+            if mutation_applied
+            else "render_material_patch_preflight"
+        )
+        inspection_evidence = [
+            "material_path_resolution",
+            "material_json_readback",
+            "property_values_scope_validation",
+            "backup_creation",
+            "explicit_override_request",
+        ]
+        unavailable_evidence = [
+            "runtime_material_readback",
+            "shader_rebuild",
+            "reference_repair",
+        ]
+        if mutation_applied:
+            inspection_evidence.extend(["material_write", "post_write_verification"])
+        else:
+            unavailable_evidence.append("material_write")
+        if not post_write_verification_succeeded:
+            unavailable_evidence.append("post_write_verification")
+
+        details = {
+            "inspection_surface": inspection_surface,
+            "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+            "simulated": False,
+            "adapter_family": self.family,
+            "adapter_mode": self.mode,
+            "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+            "real_path_available": True,
+            "material_patch_request_explicit": True,
+            "material_path_input": material_path_input,
+            "material_path": str(resolved_material_path),
+            "material_path_resolved": str(resolved_material_path),
+            "material_path_relative_to_project_root": material_path_relative_to_project_root,
+            "material_path_workspace_local": material_path_within_project_root,
+            "material_path_within_project_root": material_path_within_project_root,
+            "material_file_exists": True,
+            "material_is_file": True,
+            "material_json_readable": True,
+            "material_root_is_object": True,
+            "property_values_field_present": property_values_field_present,
+            "property_values_shape_supported": True,
+            "admitted_mutation_scope": "top-level propertyValues map only",
+            "requested_override_count": len(normalized_property_overrides),
+            "requested_override_keys": sorted(normalized_property_overrides.keys()),
+            "property_override_count": len(normalized_property_overrides),
+            "property_overrides": normalized_property_overrides,
+            "create_backup_requested": create_backup_requested,
+            "backup_target": str(backup_target),
+            "backup_created": backup_created,
+            "backup_error": backup_error,
+            "mutation_ready": mutation_ready,
+            "mutation_blocked": mutation_blocked,
+            "mutation_blocked_reason": mutation_blocked_reason,
+            "mutation_applied": mutation_applied,
+            "execution_attempted": mutation_applied,
+            "result_artifact_produced": False,
+            "result_status": result_status,
+            "result_unavailable_reason": (
+                material_unavailable_reason if not mutation_applied else None
+            ),
+            "material_runtime_readback_available": False,
+            "shader_rebuild_available": False,
+            "reference_repair_available": False,
+            "material_unavailable_reason": material_unavailable_reason,
+            "post_write_verification_attempted": post_write_verification_attempted,
+            "post_write_verification_succeeded": post_write_verification_succeeded,
+            "verified_override_keys": sorted(verified_override_keys),
+            "verification_mismatched_keys": sorted(verification_mismatched_keys),
+            "verification_error": verification_error,
+            "rollback_attempted": rollback_attempted,
+            "rollback_succeeded": rollback_succeeded,
+            "rollback_outcome": rollback_outcome,
+            "rollback_trigger": rollback_trigger,
+            "rollback_verification_attempted": rollback_verification_attempted,
+            "rollback_verification_succeeded": rollback_verification_succeeded,
+            "rollback_verification_error": rollback_verification_error,
+            "inspection_evidence": inspection_evidence,
+            "unavailable_evidence": unavailable_evidence,
+            "mutation_audit": _build_mutation_audit(
+                phase="mutation" if mutation_applied else "preflight",
+                status="succeeded" if mutation_applied else "ready",
+                summary=(
+                    "Material propertyValues overrides were written and verified."
+                    if mutation_applied
+                    else "Material propertyValues mutation plan was validated with backup."
+                ),
+            ),
+        }
+        warnings = [material_unavailable_reason]
+        logs = [
+            "Hybrid adapter mode enabled a real render.material.patch path.",
+            f"Read material file from '{resolved_material_path}'.",
+            f"Requested explicit property override count: {len(normalized_property_overrides)}.",
+        ]
+        if mutation_applied:
+            logs.append(
+                "Wrote and verified the explicit local material propertyValues mutation."
+            )
+            message = (
+                "Real render.material.patch mutation completed within the admitted local "
+                "material propertyValues corridor; requested file updates were written "
+                "and verified."
+            )
+            result_summary = "Real render.material.patch mutation completed successfully."
+        else:
+            logs.append("No material file write was executed in this slice.")
+            if mutation_blocked_reason:
+                logs.append(mutation_blocked_reason)
+                warnings.append(mutation_blocked_reason)
+            message = (
+                "Real render.material.patch preflight completed; a backup-verified local "
+                "material propertyValues plan is ready but no material file was written "
+                "because dry_run=true."
+            )
+            result_summary = "Real render.material.patch preflight completed successfully."
+
+        result = DispatchResult(
+            status="real_success",
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            simulated=False,
+            execution_mode="real",
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+            message=message,
+        )
+        return AdapterExecutionReport(
+            execution_mode="real",
+            result=result,
+            warnings=warnings,
+            logs=logs,
+            artifact_label="Render material patch evidence",
+            artifact_kind="render_material_patch_evidence",
+            artifact_uri=resolved_material_path.as_uri(),
+            artifact_metadata={
+                "tool": tool,
+                "agent": agent,
+                "execution_mode": "real",
+                **details,
+            },
+            execution_details=details,
+            result_summary=result_summary,
+        )
+
+    def _fallback_render_material_patch(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+        reason: str,
+        fallback_category: str = "unavailable",
+    ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        simulated = self._simulated.execute(
+            request_id="",
+            session_id=None,
+            workspace_id=None,
+            executor_id=None,
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+        )
+        simulated.warnings.append(reason)
+        simulated.logs.append(reason)
+        simulated.logs.append(
+            "Hybrid mode fell back to the simulated render.material.patch path."
+        )
+        simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.artifact_metadata["real_path_available"] = False
+        simulated.artifact_metadata["fallback_category"] = fallback_category
+        simulated.artifact_metadata["fallback_reason"] = reason
+        simulated.artifact_metadata["project_root_path"] = str(resolved_project_root)
+        simulated.artifact_metadata["requested_material_path"] = str(
+            args.get("material_path", "")
+        ).strip()
+        simulated.artifact_metadata["requested_override_count"] = len(
+            args.get("property_overrides", {})
+            if isinstance(args.get("property_overrides"), dict)
+            else {}
+        )
+        simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.execution_details["real_path_available"] = False
+        simulated.execution_details["fallback_category"] = fallback_category
+        simulated.execution_details["fallback_reason"] = reason
+        simulated.execution_details["project_root_path"] = str(resolved_project_root)
+        simulated.execution_details["requested_material_path"] = str(
+            args.get("material_path", "")
+        ).strip()
+        simulated.execution_details["requested_override_count"] = len(
+            args.get("property_overrides", {})
+            if isinstance(args.get("property_overrides"), dict)
+            else {}
+        )
+        simulated.result_summary = "render.material.patch fell back to the simulated path."
+        return simulated
 
     def _execute_render_material_inspect(
         self,
@@ -7449,6 +8069,11 @@ class AdapterService:
                 for tool_name in self._real_tool_paths_for_mode(active_mode)
                 if tool_name.startswith("render.")
             }
+            family_plan_only = {
+                tool_name
+                for tool_name in self._plan_only_tool_paths_for_mode(active_mode)
+                if tool_name.startswith("render.")
+            }
         return sorted(
             tool_name
             for tool_name in tool_names
@@ -7587,6 +8212,9 @@ class AdapterService:
                     "preflight/result-truth path for explicit target requests.",
                     "Hybrid mode also enables a real plan-only gem.enable "
                     "preflight/result-truth path for explicit gem requests.",
+                    "Hybrid mode also enables a real mutation-gated render.material.patch "
+                    "path for explicit local .material propertyValues writes with "
+                    "backup, rollback, and post-write verification.",
                     "Hybrid mode also enables a real dry-run-only settings.patch "
                     "preflight path when manifest-backed settings admission criteria "
                     "are satisfied.",
@@ -7701,10 +8329,11 @@ class AdapterService:
                         and tool_name.startswith("asset.")
                     )
                     or (
-                        family == "project-build"
+                    family == "project-build"
                         and tool_name.startswith(("project.", "build.", "settings.", "gem."))
                     )
                     or (family == "validation" and tool_name.startswith("test."))
+                    or (family == "render-lookdev" and tool_name.startswith("render."))
                 ]
                 if family_supports_real
                 else []
@@ -7749,7 +8378,9 @@ class AdapterService:
                 if family == "render-lookdev":
                     family_notes.append(
                         "render.capture.viewport and render.material.inspect currently have "
-                        "real read-only admitted runtime probe substrates in this family."
+                        "real read-only admitted runtime probe substrates in this family, "
+                        "and render.material.patch currently has a narrow mutation-gated "
+                        "local material backup/write/verification corridor."
                     )
             elif runtime_status.active_mode == "hybrid":
                 family_notes.append(

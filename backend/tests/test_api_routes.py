@@ -814,6 +814,7 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
                 "build.configure",
                 "build.compile",
                 "gem.enable",
+                "render.material.patch",
                 "settings.patch",
                 "test.run.gtest",
                 "test.run.editor_python",
@@ -874,6 +875,7 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "build.configure",
                 "build.compile",
                 "gem.enable",
+                "render.material.patch",
                 "settings.patch",
                 "test.run.gtest",
                 "test.run.editor_python",
@@ -938,13 +940,12 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "render.capture.viewport",
                 "render.material.inspect",
             ]
-            assert render_lookdev["plan_only_tool_paths"] == []
-            assert sorted(render_lookdev["simulated_tool_paths"]) == [
-                "render.material.patch",
-                "render.shader.rebuild",
-            ]
+            assert render_lookdev["plan_only_tool_paths"] == ["render.material.patch"]
+            assert sorted(render_lookdev["simulated_tool_paths"]) == ["render.shader.rebuild"]
             assert any(
-                "render.capture.viewport" in note or "render.material.inspect" in note
+                "render.capture.viewport" in note
+                or "render.material.inspect" in note
+                or "render.material.patch" in note
                 for note in render_lookdev["notes"]
             )
             assert validation["supports_real_execution"] is True
@@ -1089,6 +1090,21 @@ def test_prompt_capabilities_reports_render_material_inspect_as_hybrid_read_only
         assert entry["safety_envelope"]["natural_language_status"] == "prompt-ready-read-only"
 
 
+def test_prompt_capabilities_reports_render_material_patch_as_mutation_gated() -> None:
+    with isolated_client() as client:
+        response = client.get("/prompt/capabilities")
+        assert response.status_code == 200
+        payload = response.json()
+        entry = next(
+            item
+            for item in payload["capabilities"]
+            if item["tool_name"] == "render.material.patch"
+        )
+        assert entry["agent_family"] == "render-lookdev"
+        assert entry["capability_maturity"] == "hybrid-mutation"
+        assert entry["safety_envelope"]["natural_language_status"] == "prompt-ready-approval-gated"
+
+
 def test_adapters_endpoint_reports_invalid_mode_truthfully() -> None:
     with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "real"}, clear=False):
         with isolated_client() as client:
@@ -1163,6 +1179,21 @@ def test_policies_route_marks_gem_enable_as_real_mutation_preflight_active() -> 
         assert "version resolution" in gem_enable["next_real_requirement"].lower()
 
 
+def test_policies_route_marks_render_material_patch_as_real_mutation_preflight_active() -> None:
+    with isolated_client() as client:
+        response = client.get("/policies")
+        assert response.status_code == 200
+        render_material_patch = next(
+            policy
+            for policy in response.json()["policies"]
+            if policy["tool"] == "render.material.patch"
+        )
+        assert render_material_patch["real_admission_stage"] == "real-mutation-preflight-active"
+        assert render_material_patch["execution_mode"] == "gated"
+        assert "propertyvalues" in render_material_patch["next_real_requirement"].lower()
+        assert "shader rebuild" in render_material_patch["next_real_requirement"].lower()
+
+
 def test_policies_route_exposes_truthful_execution_mode_and_dry_run_support() -> None:
     with isolated_client() as client:
         response = client.get("/policies")
@@ -1207,6 +1238,8 @@ def test_policies_route_exposes_truthful_execution_mode_and_dry_run_support() ->
 
         assert policies_by_tool["settings.patch"]["execution_mode"] == "gated"
         assert policies_by_tool["settings.patch"]["supports_dry_run"] is True
+        assert policies_by_tool["render.material.patch"]["execution_mode"] == "gated"
+        assert policies_by_tool["render.material.patch"]["supports_dry_run"] is True
 
 
 def test_policies_route_marks_asset_source_inspect_as_real_read_only_active() -> None:
@@ -3301,6 +3334,150 @@ def test_dispatch_route_records_build_configure_dry_run_fallback_provenance_in_h
                     execution["details"]["expected_project_manifest_relative_path"]
                     == "project.json"
                 )
+
+
+def test_dispatch_route_uses_real_render_material_patch_mutation_in_hybrid_mode() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        material_path = project_root / "Materials" / "Example.material"
+        material_path.parent.mkdir(parents=True, exist_ok=True)
+        material_path.write_text(
+            json.dumps(
+                {
+                    "materialType": "ApiMaterial",
+                    "propertyValues": {"roughness": 0.5},
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-render-material-patch-1",
+                        "tool": "render.material.patch",
+                        "agent": "render-lookdev",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "args": {
+                            "material_path": "Materials/Example.material",
+                            "property_overrides": {"roughness": 0.25},
+                            "create_backup": True,
+                        },
+                    },
+                )
+                approval_id = dispatch.json()["approval_id"]
+                approval = approvals_service.get_approval(approval_id)
+                assert approval is not None
+                client.post(
+                    f"/approvals/{approval_id}/approve",
+                    json={"reason": "Approve render.material.patch mutation for test"},
+                )
+                approved_dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-render-material-patch-2",
+                        "tool": "render.material.patch",
+                        "agent": "render-lookdev",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "approval_token": approval.token,
+                        "args": {
+                            "material_path": "Materials/Example.material",
+                            "property_overrides": {"roughness": 0.25},
+                            "create_backup": True,
+                        },
+                    },
+                )
+                assert approved_dispatch.status_code == 200
+                payload = approved_dispatch.json()
+                assert payload["ok"] is True
+                assert payload["result"]["simulated"] is False
+                assert payload["result"]["execution_mode"] == "real"
+                assert "material propertyValues corridor" in payload["result"]["message"]
+                persisted_material = json.loads(material_path.read_text(encoding="utf-8"))
+                assert persisted_material["propertyValues"]["roughness"] == 0.25
+
+                executions = client.get("/executions")
+                execution_cards = client.get("/executions/cards")
+                artifacts = client.get("/artifacts")
+                artifact_cards = client.get("/artifacts/cards")
+                executors = client.get("/executors")
+                workspaces = client.get("/workspaces")
+                assert executions.status_code == 200
+                assert execution_cards.status_code == 200
+                assert artifacts.status_code == 200
+                assert artifact_cards.status_code == 200
+                assert executors.status_code == 200
+                assert workspaces.status_code == 200
+                execution = next(
+                    execution
+                    for execution in executions.json()["executions"]
+                    if execution["run_id"] == payload["operation_id"]
+                )
+                execution_card = next(
+                    execution_card
+                    for execution_card in execution_cards.json()["executions"]
+                    if execution_card["run_id"] == payload["operation_id"]
+                )
+                artifact = next(
+                    artifact
+                    for artifact in artifacts.json()["artifacts"]
+                    if artifact["run_id"] == payload["operation_id"]
+                )
+                artifact_card = next(
+                    artifact_card
+                    for artifact_card in artifact_cards.json()["artifacts"]
+                    if artifact_card["run_id"] == payload["operation_id"]
+                )
+                executor = next(
+                    executor
+                    for executor in executors.json()["executors"]
+                    if executor["id"] == execution["executor_id"]
+                )
+                workspace = next(
+                    workspace
+                    for workspace in workspaces.json()["workspaces"]
+                    if workspace["id"] == f"workspace-render-material-patch-{execution['id']}"
+                )
+                assert execution["details"]["inspection_surface"] == "render_material_patch_mutation"
+                assert execution["details"]["mutation_applied"] is True
+                assert execution["details"]["post_write_verification_attempted"] is True
+                assert execution["details"]["post_write_verification_succeeded"] is True
+                assert execution["details"]["material_path_relative_to_project_root"] == str(
+                    Path("Materials") / "Example.material"
+                )
+                assert execution["executor_id"] == executor["id"]
+                assert execution["workspace_id"] == workspace["id"]
+                assert execution["runner_family"] == "cli"
+                assert execution["execution_attempt_state"] == "completed"
+                assert execution["backup_class"] == "material-file-backup"
+                assert execution["rollback_class"] == "material-file-restore"
+                assert execution_card["executor_id"] == execution["executor_id"]
+                assert execution_card["workspace_id"] == execution["workspace_id"]
+                assert artifact["artifact_role"] == "mutation-evidence"
+                assert artifact["evidence_completeness"] == "mutation-backed"
+                assert artifact_card["artifact_role"] == "mutation-evidence"
+                assert artifact_card["evidence_completeness"] == "mutation-backed"
+                assert executor["executor_kind"] == "local-admitted-mutation-gated"
+                assert executor["supported_runner_families"] == ["cli"]
+                assert executor["capability_snapshot"]["admitted_tools"] == [
+                    "render.material.patch"
+                ]
+                assert (
+                    executor["capability_snapshot"]["execution_boundary"]
+                    == "mutation-gated local material propertyValues patch with backup and rollback boundary"
+                )
+                assert workspace["workspace_kind"] == "admitted-mutation-gated-project-root"
+                assert workspace["cleanup_policy"] == "operator-managed-backup-rollback"
+                assert workspace["runner_family"] == "cli"
 
 
 def test_dispatch_route_uses_real_build_compile_preflight_in_hybrid_mode() -> None:

@@ -212,12 +212,12 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
         )
     if tool_name == "render.material.patch":
         return _build_safety_envelope(
-            state_scope="Single material property override scope.",
-            backup_class="material-backup-or-source-control-checkpoint",
-            rollback_class="restore-material-from-backup",
-            verification_class="material property readback verification",
+            state_scope="Explicit local .material top-level propertyValues override scope.",
+            backup_class="material-file-backup",
+            rollback_class="restore-backed-file",
+            verification_class="post-write material propertyValues readback verification",
             retention_class="render-mutation-evidence",
-            natural_language_status="prompt-ready-simulated",
+            natural_language_status="prompt-ready-approval-gated",
         )
     if tool_name in {
         "asset.processor.status",
@@ -461,11 +461,13 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": True,
     },
     "render.material.patch": {
-        "capability_maturity": "simulated-only",
+        "capability_maturity": "hybrid-mutation",
         "planner_intent_aliases": ["patch material", "set material", "update material property"],
-        "natural_language_affordances": ["Apply an explicit material property override map to a material path."],
+        "natural_language_affordances": [
+            "Preflight an explicit local .material propertyValues override request and, for the first admitted corridor, apply a backup-verified local material patch."
+        ],
         "allowlisted_parameter_surfaces": ["material_path", "property_overrides", "create_backup"],
-        "real_adapter_availability": False,
+        "real_adapter_availability": True,
         "dry_run_availability": True,
         "simulation_fallback_availability": True,
     },

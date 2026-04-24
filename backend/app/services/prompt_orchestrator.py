@@ -524,6 +524,9 @@ class PromptOrchestratorService:
         render_material_response = self._latest_successful_response_for_step(
             session, "render-material-inspect-1"
         )
+        render_material_patch_response = self._latest_successful_response_for_step(
+            session, "render-material-patch-1"
+        )
         gem_enable_response = self._latest_successful_response_for_step(session, "gem-enable-1")
         build_compile_response = self._latest_successful_response_for_step(
             session, "build-compile-1"
@@ -762,6 +765,44 @@ class PromptOrchestratorService:
                     "No real material evidence was produced in this admitted slice."
                 )
             unavailable_reason = details.get("material_unavailable_reason")
+            if isinstance(unavailable_reason, str) and unavailable_reason:
+                summary_parts.append(unavailable_reason)
+
+        if render_material_patch_response is not None:
+            details = render_material_patch_response.get("execution_details", {})
+            material_path = details.get("material_path_relative_to_project_root") or details.get(
+                "material_path_input"
+            )
+            mutation_applied = details.get("mutation_applied") is True
+            mutation_blocked = details.get("mutation_blocked") is True
+            if isinstance(material_path, str) and material_path:
+                if mutation_applied:
+                    summary_parts.append(
+                        f"Material patch mutation wrote requested propertyValues overrides to {material_path} and verified the file write."
+                    )
+                elif mutation_blocked:
+                    summary_parts.append(
+                        f"Material patch preflight published a mutation-ready local propertyValues plan for {material_path}, but writes remain intentionally disabled."
+                    )
+                else:
+                    summary_parts.append(
+                        f"Material patch preflight confirmed explicit request evidence for {material_path}, but the request remained outside the first admitted write corridor."
+                    )
+            if mutation_applied:
+                summary_parts.append(
+                    "Runtime material readback and shader rebuild remain unavailable beyond the admitted local material file mutation boundary."
+                )
+            elif details.get("execution_attempted") is True:
+                summary_parts.append(
+                    "Real render.material.patch execution was attempted in this slice."
+                )
+            else:
+                summary_parts.append(
+                    "No real render.material.patch execution was attempted in this admitted slice."
+                )
+            unavailable_reason = details.get("material_unavailable_reason") or details.get(
+                "result_unavailable_reason"
+            )
             if isinstance(unavailable_reason, str) and unavailable_reason:
                 summary_parts.append(unavailable_reason)
 

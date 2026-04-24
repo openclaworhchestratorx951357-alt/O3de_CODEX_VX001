@@ -688,6 +688,94 @@ def test_prompt_session_executes_render_material_inspect_with_truthful_evidence(
                 )
 
 
+def test_prompt_session_plans_render_material_patch_as_hybrid_mutation() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-render-material-patch-plan-1",
+                "prompt_text": 'Patch material "Materials/Example.material" roughness to 1',
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": False,
+                "preferred_domains": ["render-lookdev"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "planned"
+        assert payload["admitted_capabilities"] == ["render.material.patch"]
+        assert len(payload["plan"]["steps"]) == 1
+        step = payload["plan"]["steps"][0]
+        assert step["tool"] == "render.material.patch"
+        assert step["capability_maturity"] == "hybrid-mutation"
+        assert step["args"]["material_path"] == "Materials/Example.material"
+        assert step["args"]["property_overrides"] == {"roughness": "1"}
+        assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-approval-gated"
+
+
+def test_prompt_session_executes_render_material_patch_with_truthful_evidence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        material_path = project_root / "Materials" / "Example.material"
+        material_path.parent.mkdir(parents=True, exist_ok=True)
+        material_path.write_text(
+            json.dumps(
+                {
+                    "materialType": "TestMaterial",
+                    "propertyValues": {"roughness": 0.5},
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                create_response = client.post(
+                    "/prompt/sessions",
+                    json={
+                        "prompt_id": "prompt-render-material-patch-execute-1",
+                        "prompt_text": 'Patch material "Materials/Example.material" roughness to 1',
+                        "project_root": str(project_root),
+                        "engine_root": "C:/engine",
+                        "dry_run": False,
+                        "preferred_domains": ["render-lookdev"],
+                    },
+                )
+                assert create_response.status_code == 200
+
+                execute_response = client.post(
+                    "/prompt/sessions/prompt-render-material-patch-execute-1/execute"
+                )
+                assert execute_response.status_code == 200
+                payload = execute_response.json()
+                assert payload["status"] == "waiting_approval"
+                approval = approvals_service.get_approval(payload["pending_approval_id"])
+                assert approval is not None
+                approvals_service.approve(approval.id)
+
+                execute_response = client.post(
+                    "/prompt/sessions/prompt-render-material-patch-execute-1/execute"
+                )
+                assert execute_response.status_code == 200
+                payload = execute_response.json()
+                assert payload["status"] == "completed"
+                assert (
+                    "Material patch mutation wrote requested propertyValues overrides"
+                    in payload["final_result_summary"]
+                )
+                assert (
+                    "Runtime material readback and shader rebuild remain unavailable"
+                    in payload["final_result_summary"]
+                )
+                child_response = payload["latest_child_responses"][-1]
+                details = child_response["execution_details"]
+                assert details["inspection_surface"] == "render_material_patch_mutation"
+                assert details["mutation_applied"] is True
+                assert details["post_write_verification_succeeded"] is True
+                persisted_material = json.loads(material_path.read_text(encoding="utf-8"))
+                assert persisted_material["propertyValues"]["roughness"] == "1"
+
+
 def test_prompt_session_plans_test_visual_diff_as_hybrid_read_only() -> None:
     with isolated_client() as client:
         response = client.post(

@@ -68,6 +68,17 @@ def test_gem_enable_is_cataloged_as_mutation_gated() -> None:
     assert "project_config" in tool.default_locks
 
 
+def test_render_material_patch_is_cataloged_as_mutation_gated() -> None:
+    tool = catalog_service.get_tool_definition("render-lookdev", "render.material.patch")
+    assert tool is not None
+    assert tool.approval_class == "content_write"
+    assert tool.adapter_family == "render-lookdev"
+    assert tool.capability_status == "mutation-gated"
+    assert tool.args_schema.endswith("render.material.patch.args.schema.json")
+    assert tool.result_schema.endswith("render.material.patch.result.schema.json")
+    assert "render_pipeline" in tool.default_locks
+
+
 def test_asset_batch_process_is_cataloged_as_plan_only() -> None:
     tool = catalog_service.get_tool_definition("asset-pipeline", "asset.batch.process")
     assert tool is not None

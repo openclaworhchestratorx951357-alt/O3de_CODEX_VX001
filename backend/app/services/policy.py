@@ -38,6 +38,8 @@ def tool_real_admission_stage(tool_name: str) -> str:
         return "real-mutation-preflight-active"
     if tool_name == "gem.enable":
         return "real-mutation-preflight-active"
+    if tool_name == "render.material.patch":
+        return "real-mutation-preflight-active"
     if tool_name == "build.compile":
         return "real-plan-only-active"
     return "simulated-only"
@@ -158,6 +160,13 @@ def tool_next_real_requirement(tool_name: str) -> str:
             "backup, rollback, post-write verification, and failure-visible "
             "behavior kept explicit while version resolution, optional semantics, "
             "dependency recovery, and downstream configure impacts remain unavailable."
+        )
+    if tool_name == "render.material.patch":
+        return (
+            "Keep real execution tightly limited to explicit project-local .material "
+            "propertyValues patching with backup, rollback, and post-write readback "
+            "verification, while runtime material readback, shader rebuild, and "
+            "reference repair remain unavailable."
         )
     if tool_name == "build.compile":
         return (

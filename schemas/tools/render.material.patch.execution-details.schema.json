@@ -12,10 +12,14 @@
   "properties": {
     "inspection_surface": {
       "type": "string",
-      "const": "simulated"
+      "enum": [
+        "simulated",
+        "render_material_patch_preflight",
+        "render_material_patch_mutation"
+      ]
     },
     "execution_boundary": { "type": "string", "minLength": 1 },
-    "simulated": { "type": "boolean", "const": true },
+    "simulated": { "type": "boolean" },
     "adapter_family": { "type": "string", "minLength": 1 },
     "adapter_mode": { "type": "string", "minLength": 1 },
     "adapter_contract_version": { "type": "string", "minLength": 1 }

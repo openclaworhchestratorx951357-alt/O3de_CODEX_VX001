@@ -839,6 +839,33 @@ class DispatcherService:
             admitted_tools = ["settings.patch"]
             backup_class = "project-manifest-backup"
             rollback_class = "project-manifest-restore"
+        elif request.tool == "render.material.patch" and inspection_surface in {
+            "render_material_patch_preflight",
+            "render_material_patch_mutation",
+        }:
+            executor_id = "executor-render-lookdev-hybrid-mutation-gated-local-material"
+            executor_kind = "local-admitted-mutation-gated"
+            executor_label = "Admitted local material mutation-gated executor"
+            executor_host_label = "local-project-material-file"
+            workspace_kind = "admitted-mutation-gated-project-root"
+            cleanup_policy = "operator-managed-backup-rollback"
+            artifact_role = (
+                "mutation-evidence"
+                if inspection_surface == "render_material_patch_mutation"
+                else "mutation-preflight-evidence"
+            )
+            evidence_completeness = (
+                "mutation-backed"
+                if inspection_surface == "render_material_patch_mutation"
+                else "backup-and-plan-backed"
+            )
+            execution_boundary = (
+                "mutation-gated local material propertyValues patch with backup and rollback boundary"
+            )
+            workspace_id = f"workspace-render-material-patch-{execution_id}"
+            admitted_tools = ["render.material.patch"]
+            backup_class = "material-file-backup"
+            rollback_class = "material-file-restore"
         elif request.tool in {
             "editor.session.open",
             "editor.level.open",
@@ -1329,6 +1356,12 @@ class DispatcherService:
                 if not request.dry_run
                 else "plan-only gem.enable preflight"
             )
+        if request.tool == "render.material.patch" and capability == "mutation-gated":
+            return (
+                "mutation-gated render.material.patch path"
+                if not request.dry_run
+                else "plan-only render.material.patch preflight"
+            )
         if request.tool == "settings.patch" and capability == "mutation-gated":
             return (
                 "mutation-gated settings.patch path"
@@ -1377,6 +1410,15 @@ class DispatcherService:
             return (
                 "This run used the real plan-only settings.patch preflight path; "
                 "no settings were written."
+            )
+        if request.tool == "render.material.patch":
+            if isinstance(result.message, str) and result.message.startswith(
+                "Real render.material.patch mutation completed"
+            ):
+                return "This run used the first real render.material.patch mutation path."
+            return (
+                "This run used the real render.material.patch preflight path; "
+                "no material file write was executed."
             )
         if request.tool == "editor.session.open":
             return "This run used the admitted real editor.session.open runtime path."

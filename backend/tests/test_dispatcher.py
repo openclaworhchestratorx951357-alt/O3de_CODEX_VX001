@@ -371,25 +371,59 @@ def make_render_material_inspect_request() -> RequestEnvelope:
     return request
 
 
-def make_render_material_patch_request() -> RequestEnvelope:
-    request = make_request("render-lookdev", "render.material.patch")
+def make_render_material_patch_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = True,
+    material_path: str = "Materials/Example.material",
+    property_overrides: dict[str, object] | None = None,
+    create_backup: bool = True,
+) -> RequestEnvelope:
+    request = make_request(
+        "render-lookdev",
+        "render.material.patch",
+        project_root=project_root,
+        dry_run=dry_run,
+    )
     request.args = {
-        "material_path": "Materials/Example.material",
-        "property_overrides": {
+        "material_path": material_path,
+        "property_overrides": property_overrides
+        or {
             "baseColor.factor": [1.0, 0.2, 0.2, 1.0],
         },
-        "create_backup": True,
+        "create_backup": create_backup,
     }
     return request
 
 
-def approve_render_material_patch_request() -> RequestEnvelope:
-    first = dispatcher_service.dispatch(make_render_material_patch_request())
+def approve_render_material_patch_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = True,
+    material_path: str = "Materials/Example.material",
+    property_overrides: dict[str, object] | None = None,
+    create_backup: bool = True,
+) -> RequestEnvelope:
+    first = dispatcher_service.dispatch(
+        make_render_material_patch_request(
+            project_root=project_root,
+            dry_run=dry_run,
+            material_path=material_path,
+            property_overrides=property_overrides,
+            create_backup=create_backup,
+        )
+    )
     approval = approvals_service.get_approval(first.approval_id or "")
     assert approval is not None
     approvals_service.approve(approval.id)
 
-    approved_request = make_render_material_patch_request()
+    approved_request = make_render_material_patch_request(
+        project_root=project_root,
+        dry_run=dry_run,
+        material_path=material_path,
+        property_overrides=property_overrides,
+        create_backup=create_backup,
+    )
     approved_request.approval_token = approval.token
     return approved_request
 
@@ -4966,6 +5000,151 @@ def test_render_material_inspect_real_persisted_payloads_match_published_schemas
         assert (
             schema_validation_service.validate_artifact_metadata(
                 tool_name="render.material.inspect",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_render_material_patch_uses_real_preflight_path_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        material_path = project_root / "Materials" / "Example.material"
+        material_path.parent.mkdir(parents=True, exist_ok=True)
+        material_path.write_text(
+            json.dumps(
+                {
+                    "materialType": "TestMaterial",
+                    "propertyValues": {"roughness": 0.5},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                approve_render_material_patch_request(
+                    project_root=str(project_root),
+                    material_path="Materials/Example.material",
+                    property_overrides={"roughness": 0.2},
+                    dry_run=True,
+                )
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "render_material_patch_preflight"
+        assert execution.details["material_path"] == str(material_path.resolve())
+        assert execution.details["material_path_relative_to_project_root"] == str(
+            Path("Materials") / "Example.material"
+        )
+        assert execution.details["backup_created"] is True
+        assert execution.details["mutation_ready"] is True
+        assert execution.details["mutation_blocked"] is True
+        assert execution.details["mutation_applied"] is False
+        assert execution.details["execution_attempted"] is False
+        assert execution.details["result_artifact_produced"] is False
+        assert execution.details["material_runtime_readback_available"] is False
+        assert execution.details["shader_rebuild_available"] is False
+        assert execution.details["reference_repair_available"] is False
+        persisted_material = json.loads(material_path.read_text(encoding="utf-8"))
+        assert persisted_material["propertyValues"]["roughness"] == 0.5
+        assert artifact is not None
+        assert artifact.simulated is False
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "render_material_patch_preflight"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="render.material.patch",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="render.material.patch",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_render_material_patch_uses_real_mutation_path_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        material_path = project_root / "Materials" / "Example.material"
+        material_path.parent.mkdir(parents=True, exist_ok=True)
+        material_path.write_text(
+            json.dumps(
+                {
+                    "materialType": "TestMaterial",
+                    "propertyValues": {"roughness": 0.5},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                approve_render_material_patch_request(
+                    project_root=str(project_root),
+                    material_path="Materials/Example.material",
+                    property_overrides={"roughness": 0.2, "metallic": 1.0},
+                    dry_run=False,
+                )
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "render_material_patch_mutation"
+        assert execution.details["mutation_ready"] is True
+        assert execution.details["mutation_blocked"] is False
+        assert execution.details["mutation_applied"] is True
+        assert execution.details["execution_attempted"] is True
+        assert execution.details["post_write_verification_attempted"] is True
+        assert execution.details["post_write_verification_succeeded"] is True
+        assert execution.details["rollback_attempted"] is False
+        assert sorted(execution.details["verified_override_keys"]) == [
+            "metallic",
+            "roughness",
+        ]
+        persisted_material = json.loads(material_path.read_text(encoding="utf-8"))
+        assert persisted_material["propertyValues"]["roughness"] == 0.2
+        assert persisted_material["propertyValues"]["metallic"] == 1.0
+        assert artifact is not None
+        assert artifact.simulated is False
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "render_material_patch_mutation"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="render.material.patch",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="render.material.patch",
                 payload=artifact.metadata,
             )
             == []
