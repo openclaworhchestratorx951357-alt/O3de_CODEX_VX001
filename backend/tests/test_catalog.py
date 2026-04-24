@@ -68,6 +68,17 @@ def test_asset_batch_process_is_cataloged_as_plan_only() -> None:
     assert "asset_pipeline" in tool.default_locks
 
 
+def test_asset_move_safe_is_cataloged_as_plan_only() -> None:
+    tool = catalog_service.get_tool_definition("asset-pipeline", "asset.move.safe")
+    assert tool is not None
+    assert tool.approval_class == "destructive_content_write"
+    assert tool.adapter_family == "asset-pipeline"
+    assert tool.capability_status == "plan-only"
+    assert tool.args_schema.endswith("asset.move.safe.args.schema.json")
+    assert tool.result_schema.endswith("asset.move.safe.result.schema.json")
+    assert "asset_pipeline" in tool.default_locks
+
+
 def test_editor_component_property_get_is_cataloged_as_hybrid_read_only() -> None:
     tool = catalog_service.get_tool_definition(
         "editor-control",

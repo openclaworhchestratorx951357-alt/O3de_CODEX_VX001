@@ -730,6 +730,20 @@ class DispatcherService:
             admitted_tools = ["asset.batch.process"]
             backup_class = None
             rollback_class = None
+        elif request.tool == "asset.move.safe" and inspection_surface == "asset_move_preflight":
+            executor_id = "executor-asset-pipeline-hybrid-plan-only-local-move"
+            executor_kind = "local-admitted-readonly"
+            executor_label = "Admitted local asset move preflight executor"
+            executor_host_label = "local-project-asset-identity"
+            workspace_kind = "admitted-plan-only-project-root"
+            cleanup_policy = "operator-managed-preflight"
+            artifact_role = "plan-evidence"
+            evidence_completeness = "plan-backed"
+            execution_boundary = "plan-only local asset move identity/reference preflight"
+            workspace_id = f"workspace-asset-move-safe-{execution_id}"
+            admitted_tools = ["asset.move.safe"]
+            backup_class = None
+            rollback_class = None
         elif (
             request.tool == "build.configure"
             and inspection_surface == "build_configure_preflight"
@@ -1271,6 +1285,8 @@ class DispatcherService:
             return "plan-only build.configure preflight"
         if request.tool == "asset.batch.process" and capability == "plan-only":
             return "plan-only asset.batch.process preflight"
+        if request.tool == "asset.move.safe" and capability == "plan-only":
+            return "plan-only asset.move.safe preflight"
         if request.tool == "build.compile" and capability == "plan-only":
             return "plan-only build.compile preflight"
         if request.tool == "settings.patch" and capability == "mutation-gated":
@@ -1296,6 +1312,8 @@ class DispatcherService:
             return "This run used the first real read-only asset.source.inspect path."
         if request.tool == "asset.batch.process":
             return "This run used the real plan-only asset.batch.process preflight path."
+        if request.tool == "asset.move.safe":
+            return "This run used the real plan-only asset.move.safe preflight path."
         if request.tool == "project.inspect":
             return "This run used the first real read-only project inspection path."
         if request.tool == "build.configure":

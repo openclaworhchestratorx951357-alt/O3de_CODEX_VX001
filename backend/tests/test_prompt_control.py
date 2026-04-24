@@ -264,6 +264,33 @@ def test_prompt_session_plans_asset_batch_process_as_plan_only() -> None:
         assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
 
 
+def test_prompt_session_plans_asset_move_safe_as_plan_only() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-asset-move-plan-1",
+                "prompt_text": 'Move asset "Assets/Old/example.fbx" to "Assets/New/example.fbx".',
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": False,
+                "preferred_domains": ["asset-pipeline"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "planned"
+        assert payload["admitted_capabilities"] == ["asset.move.safe"]
+        assert len(payload["plan"]["steps"]) == 1
+        step = payload["plan"]["steps"][0]
+        assert step["tool"] == "asset.move.safe"
+        assert step["capability_maturity"] == "plan-only"
+        assert step["args"]["source_path"] == "Assets/Old/example.fbx"
+        assert step["args"]["destination_path"] == "Assets/New/example.fbx"
+        assert step["args"]["dry_run_plan"] is True
+        assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
+
+
 def test_prompt_session_executes_asset_processor_status_with_truthful_evidence() -> None:
     with patch.dict(
         "os.environ",
@@ -443,6 +470,72 @@ def test_prompt_session_executes_asset_batch_process_with_truthful_preflight_evi
                     assert details["execution_attempted"] is False
                     assert details["result_artifact_produced"] is False
                     assert str(source_path) in details["resolved_source_candidate_paths"]
+
+
+def test_prompt_session_executes_asset_move_safe_with_truthful_preflight_evidence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = project_root / "Assets" / "Old" / "example.fbx"
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        (project_root / "Assets" / "New").mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"asset-move-prompt-source")
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                create_response = client.post(
+                    "/prompt/sessions",
+                    json={
+                        "prompt_id": "prompt-asset-move-execute-1",
+                        "prompt_text": 'Move asset "Assets/Old/example.fbx" to "Assets/New/example.fbx".',
+                        "project_root": str(project_root),
+                        "engine_root": "C:/engine",
+                        "dry_run": False,
+                        "preferred_domains": ["asset-pipeline"],
+                    },
+                )
+                assert create_response.status_code == 200
+
+                execute_response = client.post(
+                    "/prompt/sessions/prompt-asset-move-execute-1/execute"
+                )
+                assert execute_response.status_code == 200
+                payload = execute_response.json()
+                assert payload["status"] == "waiting_approval"
+                approval = approvals_service.get_approval(payload["pending_approval_id"])
+                assert approval is not None
+                approvals_service.approve(approval.id)
+
+                execute_response = client.post(
+                    "/prompt/sessions/prompt-asset-move-execute-1/execute"
+                )
+                assert execute_response.status_code == 200
+                payload = execute_response.json()
+                assert payload["status"] == "completed"
+                assert (
+                    "Asset move preflight confirmed a project-local identity corridor"
+                    in payload["final_result_summary"]
+                )
+                assert (
+                    "No real asset.move.safe execution was attempted"
+                    in payload["final_result_summary"]
+                )
+                assert (
+                    "No admitted real reference graph or repair substrate is available"
+                    in payload["final_result_summary"]
+                )
+                child_response = payload["latest_child_responses"][-1]
+                details = child_response["execution_details"]
+                assert details["inspection_surface"] == "asset_move_preflight"
+                assert details["move_plan_requested"] is True
+                assert details["identity_corridor_available"] is True
+                assert details["execution_attempted"] is False
+                assert details["result_artifact_produced"] is False
+                assert details["source_path_resolved"] == str(source_path.resolve())
 
 
 def test_prompt_session_executes_render_capture_viewport_with_truthful_evidence() -> None:

@@ -267,24 +267,61 @@ def approve_asset_batch_process_request(
     return approved_request
 
 
-def make_asset_move_safe_request() -> RequestEnvelope:
-    request = make_request("asset-pipeline", "asset.move.safe")
+def make_asset_move_safe_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = False,
+    source_path: str = "Assets/Old/example.fbx",
+    destination_path: str = "Assets/New/example.fbx",
+    update_references: bool = True,
+    dry_run_plan: bool = True,
+) -> RequestEnvelope:
+    request = make_request(
+        "asset-pipeline",
+        "asset.move.safe",
+        project_root=project_root,
+        dry_run=dry_run,
+    )
     request.args = {
-        "source_path": "Assets/Old/example.fbx",
-        "destination_path": "Assets/New/example.fbx",
-        "update_references": True,
-        "dry_run_plan": True,
+        "source_path": source_path,
+        "destination_path": destination_path,
+        "update_references": update_references,
+        "dry_run_plan": dry_run_plan,
     }
     return request
 
 
-def approve_asset_move_safe_request() -> RequestEnvelope:
-    first = dispatcher_service.dispatch(make_asset_move_safe_request())
+def approve_asset_move_safe_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = False,
+    source_path: str = "Assets/Old/example.fbx",
+    destination_path: str = "Assets/New/example.fbx",
+    update_references: bool = True,
+    dry_run_plan: bool = True,
+) -> RequestEnvelope:
+    first = dispatcher_service.dispatch(
+        make_asset_move_safe_request(
+            project_root=project_root,
+            dry_run=dry_run,
+            source_path=source_path,
+            destination_path=destination_path,
+            update_references=update_references,
+            dry_run_plan=dry_run_plan,
+        )
+    )
     approval = approvals_service.get_approval(first.approval_id or "")
     assert approval is not None
     approvals_service.approve(approval.id)
 
-    approved_request = make_asset_move_safe_request()
+    approved_request = make_asset_move_safe_request(
+        project_root=project_root,
+        dry_run=dry_run,
+        source_path=source_path,
+        destination_path=destination_path,
+        update_references=update_references,
+        dry_run_plan=dry_run_plan,
+    )
     approved_request.approval_token = approval.token
     return approved_request
 
@@ -4338,9 +4375,76 @@ def test_asset_batch_process_records_dry_run_fallback_provenance_in_hybrid_mode(
         assert execution.details["project_root_path"] == str(project_root.resolve())
 
 
-def test_asset_move_safe_simulated_persisted_payloads_match_published_schemas() -> None:
-    with isolated_database():
-        response = dispatcher_service.dispatch(approve_asset_move_safe_request())
+def test_asset_move_safe_uses_real_preflight_substrate_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = project_root / "Assets" / "Old" / "example.fbx"
+        destination_path = project_root / "Assets" / "New" / "example.fbx"
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        destination_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"asset-move-source")
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                approve_asset_move_safe_request(
+                    project_root=str(project_root),
+                    source_path="Assets/Old/example.fbx",
+                    destination_path="Assets/New/example.fbx",
+                    dry_run=False,
+                    dry_run_plan=True,
+                )
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "asset_move_preflight"
+        assert execution.details["preflight_execution_mode"] == "plan-only"
+        assert execution.details["move_plan_requested"] is True
+        assert execution.details["source_exists"] is True
+        assert execution.details["source_is_file"] is True
+        assert execution.details["destination_exists"] is False
+        assert execution.details["destination_parent_exists"] is True
+        assert execution.details["source_destination_same_path"] is False
+        assert execution.details["identity_corridor_available"] is True
+        assert execution.details["update_references_requested"] is True
+        assert execution.details["reference_preflight_available"] is False
+        assert execution.details["execution_attempted"] is False
+        assert execution.details["result_artifact_produced"] is False
+        assert execution.details["source_path_resolved"] == str(source_path.resolve())
+        assert execution.details["destination_path_resolved"] == str(destination_path.resolve())
+        assert artifact is not None
+        assert artifact.simulated is False
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "asset_move_preflight"
+
+
+def test_asset_move_safe_records_plan_required_fallback_provenance_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = project_root / "Assets" / "Old" / "example.fbx"
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"asset-move-fallback")
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                approve_asset_move_safe_request(
+                    project_root=str(project_root),
+                    source_path="Assets/Old/example.fbx",
+                    destination_path="Assets/New/example.fbx",
+                    dry_run=False,
+                    dry_run_plan=False,
+                )
+            )
 
         assert response.ok is True
         assert response.result is not None
@@ -4352,13 +4456,45 @@ def test_asset_move_safe_simulated_persisted_payloads_match_published_schemas() 
             for execution in executions_service.list_executions()
             if execution.run_id == run_id
         )
+        assert execution.details["real_path_available"] is False
+        assert execution.details["fallback_category"] == "plan-required"
+        assert execution.details["project_root_path"] == str(project_root.resolve())
+
+
+def test_asset_move_safe_real_persisted_payloads_match_published_schemas() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = project_root / "Assets" / "Old" / "example.fbx"
+        destination_path = project_root / "Assets" / "New" / "example.fbx"
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        destination_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"asset-move-schema")
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                approve_asset_move_safe_request(
+                    project_root=str(project_root),
+                    source_path="Assets/Old/example.fbx",
+                    destination_path="Assets/New/example.fbx",
+                    dry_run=False,
+                    dry_run_plan=True,
+                )
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
         artifact = artifacts_service.get_artifact(response.artifacts[0])
-        assert execution.details["inspection_surface"] == "simulated"
-        assert execution.details["simulated"] is True
+        assert execution.details["execution_attempted"] is False
+        assert execution.details["result_status"] == "not-attempted"
         assert artifact is not None
-        assert artifact.simulated is True
-        assert artifact.metadata["execution_mode"] == "simulated"
-        assert artifact.metadata["inspection_surface"] == "simulated"
         assert (
             schema_validation_service.validate_execution_details(
                 tool_name="asset.move.safe",

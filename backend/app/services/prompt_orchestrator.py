@@ -515,6 +515,9 @@ class PromptOrchestratorService:
         asset_batch_response = self._latest_successful_response_for_step(
             session, "asset-batch-1"
         )
+        asset_move_response = self._latest_successful_response_for_step(
+            session, "asset-move-1"
+        )
         render_capture_response = self._latest_successful_response_for_step(
             session, "render-capture-1"
         )
@@ -673,6 +676,40 @@ class PromptOrchestratorService:
                 )
             unavailable_reason = details.get("batch_unavailable_reason") or details.get(
                 "result_unavailable_reason"
+            )
+            if isinstance(unavailable_reason, str) and unavailable_reason:
+                summary_parts.append(unavailable_reason)
+
+        if asset_move_response is not None:
+            details = asset_move_response.get("execution_details", {})
+            source_path = details.get("source_path_relative_to_project_root") or details.get(
+                "source_path_input"
+            )
+            destination_path = details.get("destination_path_relative_to_project_root") or details.get(
+                "destination_path_input"
+            )
+            if isinstance(source_path, str) and isinstance(destination_path, str):
+                if details.get("identity_corridor_available") is True:
+                    summary_parts.append(
+                        f"Asset move preflight confirmed a project-local identity corridor from {source_path} to {destination_path}."
+                    )
+                else:
+                    summary_parts.append(
+                        f"Asset move preflight could not confirm a mutation-ready identity corridor from {source_path} to {destination_path}."
+                    )
+            if details.get("execution_attempted") is True:
+                summary_parts.append(
+                    "Real asset.move.safe execution was attempted in this slice."
+                )
+            else:
+                summary_parts.append(
+                    "No real asset.move.safe execution was attempted in this admitted slice."
+                )
+            reference_reason = details.get("reference_unavailable_reason")
+            if isinstance(reference_reason, str) and reference_reason:
+                summary_parts.append(reference_reason)
+            unavailable_reason = details.get("identity_corridor_unavailable_reason") or details.get(
+                "move_unavailable_reason"
             )
             if isinstance(unavailable_reason, str) and unavailable_reason:
                 summary_parts.append(unavailable_reason)

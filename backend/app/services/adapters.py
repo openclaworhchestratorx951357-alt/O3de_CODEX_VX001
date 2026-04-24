@@ -48,6 +48,7 @@ PLAN_ONLY_TOOL_PATHS_BY_MODE = {
     "simulated": [],
     "hybrid": [
         "asset.batch.process",
+        "asset.move.safe",
         "build.configure",
         "build.compile",
         "settings.patch",
@@ -64,6 +65,8 @@ HYBRID_EXECUTION_BOUNDARY = (
     "use a real read-only host runtime probe, asset.source.inspect may "
     "use a real read-only project-local source inspection path, asset.batch.process may "
     "use a real plan-only explicit source-glob asset batch preflight and result-truth substrate, "
+    "asset.move.safe may use a real plan-only explicit source-to-destination asset "
+    "identity corridor and reference-unavailable preflight/result-truth substrate, "
     "project.inspect may use a "
     "real read-only project-manifest path, test.visual.diff may use a real "
     "read-only explicit viewport-capture substrate probe, render.material.inspect may use a "
@@ -692,6 +695,17 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             )
         if tool == "asset.batch.process":
             return self._execute_asset_batch_process(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+            )
+        if tool == "asset.move.safe":
+            return self._execute_asset_move_safe(
                 tool=tool,
                 agent=agent,
                 project_root=project_root,
@@ -1568,6 +1582,343 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
         simulated.result_summary = "Asset batch process fell back to the simulated path."
         return simulated
 
+    def _execute_asset_move_safe(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        source_path_input = str(args.get("source_path", "")).strip()
+        destination_path_input = str(args.get("destination_path", "")).strip()
+        update_references_requested = bool(args.get("update_references", False))
+        dry_run_plan_requested = bool(args.get("dry_run_plan", False))
+        move_plan_requested = dry_run or dry_run_plan_requested
+
+        if not source_path_input or not destination_path_input:
+            return self._fallback_asset_move_safe(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real asset.move.safe preflight requires explicit source_path "
+                    "and destination_path values."
+                ),
+                fallback_category="missing-explicit-paths",
+            )
+        if not move_plan_requested:
+            return self._fallback_asset_move_safe(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real asset.move.safe substrate evidence is currently limited to "
+                    "explicit plan-only preflight requests; actual asset move mutation "
+                    "remains non-admitted."
+                ),
+                fallback_category="plan-required",
+            )
+
+        source_evidence = self._resolve_project_local_path_evidence(
+            project_root=resolved_project_root,
+            requested_path=source_path_input,
+        )
+        destination_evidence = self._resolve_project_local_path_evidence(
+            project_root=resolved_project_root,
+            requested_path=destination_path_input,
+        )
+
+        source_within_project_root = bool(source_evidence["path_within_project_root"])
+        destination_within_project_root = bool(
+            destination_evidence["path_within_project_root"]
+        )
+        source_exists = bool(source_evidence["exists"])
+        source_is_file = bool(source_evidence["is_file"])
+        destination_exists = bool(destination_evidence["exists"])
+        destination_is_file = bool(destination_evidence["is_file"])
+        destination_is_directory = bool(destination_evidence["is_directory"])
+        destination_parent_exists = bool(destination_evidence["parent_exists"])
+        same_path_requested = (
+            source_evidence["resolved_path"] == destination_evidence["resolved_path"]
+        )
+        destination_collision_detected = destination_exists
+        identity_corridor_available = (
+            source_within_project_root
+            and destination_within_project_root
+            and source_exists
+            and source_is_file
+            and not same_path_requested
+            and destination_parent_exists
+            and not destination_collision_detected
+        )
+
+        inspection_evidence = [
+            "source_path_identity",
+            "destination_path_identity",
+            "move_plan_request",
+        ]
+        unavailable_evidence: list[str] = ["asset_move_mutation", "move_result_artifact"]
+        warnings = [
+            "This is a real plan-only asset.move.safe preflight path; no asset files or references were modified.",
+        ]
+        logs = [
+            "Real asset.move.safe executed through the admitted plan-only identity/reference preflight substrate.",
+            f"Resolved source path: {source_evidence['resolved_path']}",
+            f"Resolved destination path: {destination_evidence['resolved_path']}",
+            "No real asset.move.safe mutation was attempted in this slice.",
+        ]
+
+        if source_exists and source_is_file:
+            inspection_evidence.extend(["source_file_stat", "source_file_hash"])
+        else:
+            unavailable_evidence.append("source_asset")
+        if destination_within_project_root:
+            inspection_evidence.append("destination_path_scope")
+        else:
+            unavailable_evidence.append("destination_path_scope")
+        if destination_parent_exists:
+            inspection_evidence.append("destination_parent_presence")
+        else:
+            unavailable_evidence.append("destination_parent_presence")
+        if destination_exists and destination_is_file:
+            inspection_evidence.extend(["destination_collision", "destination_file_hash"])
+        elif destination_exists:
+            inspection_evidence.append("destination_collision")
+        if update_references_requested:
+            inspection_evidence.append("reference_update_request")
+            unavailable_evidence.append("reference_update")
+
+        identity_corridor_reasons: list[str] = []
+        if not source_within_project_root:
+            identity_corridor_reasons.append(
+                "The requested source path resolved outside the current project root."
+            )
+        elif not source_exists:
+            identity_corridor_reasons.append(
+                "The requested source path was not found within the current project root."
+            )
+        elif not source_is_file:
+            identity_corridor_reasons.append(
+                "The requested source path resolved within the current project root but not as a file."
+            )
+
+        if not destination_within_project_root:
+            identity_corridor_reasons.append(
+                "The requested destination path resolved outside the current project root."
+            )
+        if same_path_requested:
+            identity_corridor_reasons.append(
+                "The requested source and destination resolve to the same project-local path."
+            )
+        if not destination_parent_exists:
+            identity_corridor_reasons.append(
+                "The requested destination parent directory does not currently exist within the project root."
+            )
+        if destination_exists:
+            if destination_is_file:
+                identity_corridor_reasons.append(
+                    "The requested destination path already resolves to an existing file."
+                )
+            elif destination_is_directory:
+                identity_corridor_reasons.append(
+                    "The requested destination path already resolves to a directory."
+                )
+            else:
+                identity_corridor_reasons.append(
+                    "The requested destination path already resolves to an existing non-file entry."
+                )
+
+        identity_corridor_unavailable_reason = (
+            " ".join(dict.fromkeys(identity_corridor_reasons))
+            if identity_corridor_reasons
+            else None
+        )
+        if identity_corridor_unavailable_reason:
+            warnings.append(identity_corridor_unavailable_reason)
+            logs.append(identity_corridor_unavailable_reason)
+
+        reference_unavailable_reason = None
+        if update_references_requested:
+            reference_unavailable_reason = (
+                "No admitted real reference graph or repair substrate is available in this slice."
+            )
+            warnings.append(reference_unavailable_reason)
+            logs.append(reference_unavailable_reason)
+
+        move_unavailable_parts: list[str] = []
+        if identity_corridor_unavailable_reason:
+            move_unavailable_parts.append(identity_corridor_unavailable_reason)
+        if reference_unavailable_reason:
+            move_unavailable_parts.append(reference_unavailable_reason)
+        move_unavailable_parts.append(
+            "Actual asset.move.safe mutation remains non-admitted in this slice."
+        )
+        move_unavailable_reason = " ".join(dict.fromkeys(move_unavailable_parts))
+
+        details = {
+            "inspection_surface": "asset_move_preflight",
+            "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+            "simulated": False,
+            "adapter_family": self.family,
+            "adapter_mode": self.mode,
+            "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+            "real_path_available": True,
+            "preflight_execution_mode": "plan-only",
+            "move_request_explicit": True,
+            "dry_run_requested": dry_run,
+            "dry_run_plan_requested": dry_run_plan_requested,
+            "move_plan_requested": move_plan_requested,
+            "project_root_path": str(resolved_project_root),
+            "source_path_input": source_path_input,
+            "source_path_resolved": source_evidence["resolved_path"],
+            "source_path_relative_to_project_root": source_evidence["relative_path"],
+            "source_path_source_of_truth": source_evidence["source_of_truth"],
+            "source_path_within_project_root": source_within_project_root,
+            "source_exists": source_exists,
+            "source_is_file": source_is_file,
+            "source_is_directory": source_evidence["is_directory"],
+            "source_resolution_status": source_evidence["resolution_status"],
+            "source_size_bytes": source_evidence["size_bytes"],
+            "source_sha256": source_evidence["sha256"],
+            "destination_path_input": destination_path_input,
+            "destination_path_resolved": destination_evidence["resolved_path"],
+            "destination_path_relative_to_project_root": destination_evidence["relative_path"],
+            "destination_path_source_of_truth": destination_evidence["source_of_truth"],
+            "destination_path_within_project_root": destination_within_project_root,
+            "destination_exists": destination_exists,
+            "destination_is_file": destination_is_file,
+            "destination_is_directory": destination_is_directory,
+            "destination_resolution_status": destination_evidence["resolution_status"],
+            "destination_size_bytes": destination_evidence["size_bytes"],
+            "destination_sha256": destination_evidence["sha256"],
+            "destination_parent_path": destination_evidence["parent_path"],
+            "destination_parent_relative_to_project_root": destination_evidence[
+                "parent_relative_path"
+            ],
+            "destination_parent_within_project_root": destination_evidence[
+                "parent_within_project_root"
+            ],
+            "destination_parent_exists": destination_parent_exists,
+            "source_destination_same_path": same_path_requested,
+            "destination_collision_detected": destination_collision_detected,
+            "identity_corridor_available": identity_corridor_available,
+            "identity_corridor_unavailable_reason": identity_corridor_unavailable_reason,
+            "update_references_requested": update_references_requested,
+            "reference_preflight_available": False,
+            "reference_unavailable_reason": reference_unavailable_reason,
+            "inspection_evidence": inspection_evidence,
+            "unavailable_evidence": unavailable_evidence,
+            "execution_attempted": False,
+            "result_artifact_produced": False,
+            "result_artifact_path": None,
+            "result_artifact_content_type": None,
+            "result_artifact_size_bytes": None,
+            "exit_code_available": False,
+            "exit_code": None,
+            "result_status": "not-attempted",
+            "result_summary_available": False,
+            "result_unavailable_reason": (
+                "No real asset.move.safe execution was attempted in this admitted plan-only slice."
+            ),
+            "move_unavailable_reason": move_unavailable_reason,
+        }
+        result = DispatchResult(
+            status="real_success",
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            simulated=False,
+            execution_mode="real",
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+            message=(
+                "Real asset.move.safe preflight completed for the explicit source and destination; "
+                "no asset files or references were changed."
+            ),
+        )
+        return AdapterExecutionReport(
+            execution_mode="real",
+            result=result,
+            warnings=warnings,
+            logs=logs,
+            artifact_label="Real asset move preflight evidence",
+            artifact_kind="asset_move_preflight",
+            artifact_uri=resolved_project_root.as_uri(),
+            artifact_metadata={
+                "tool": tool,
+                "agent": agent,
+                "execution_mode": "real",
+                **details,
+            },
+            execution_details=details,
+            result_summary="Real asset.move.safe preflight substrate completed successfully.",
+        )
+
+    def _fallback_asset_move_safe(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+        reason: str,
+        fallback_category: str = "unavailable",
+    ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        simulated = self._simulated.execute(
+            request_id="",
+            session_id=None,
+            workspace_id=None,
+            executor_id=None,
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+        )
+        simulated.warnings.append(reason)
+        simulated.logs.append(reason)
+        simulated.logs.append(
+            "Hybrid mode fell back to the simulated asset.move.safe path."
+        )
+        simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.artifact_metadata["real_path_available"] = False
+        simulated.artifact_metadata["fallback_reason"] = reason
+        simulated.artifact_metadata["fallback_category"] = fallback_category
+        simulated.artifact_metadata["project_root_path"] = str(resolved_project_root)
+        simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.execution_details["real_path_available"] = False
+        simulated.execution_details["fallback_reason"] = reason
+        simulated.execution_details["fallback_category"] = fallback_category
+        simulated.execution_details["project_root_path"] = str(resolved_project_root)
+        simulated.result_summary = "Asset move safe fell back to the simulated path."
+        return simulated
+
     def _coerce_positive_int(self, value: Any) -> int | None:
         try:
             parsed = int(value)
@@ -1622,6 +1973,73 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             return []
         unique_matches = sorted({str(path): path for path in matches}.values(), key=str)
         return unique_matches
+
+    def _resolve_project_local_path_evidence(
+        self,
+        *,
+        project_root: Path,
+        requested_path: str,
+    ) -> dict[str, Any]:
+        candidate = Path(requested_path).expanduser()
+        try:
+            resolved_path = (
+                candidate.resolve()
+                if candidate.is_absolute()
+                else (project_root / candidate).resolve()
+            )
+        except (OSError, RuntimeError):
+            resolved_path = candidate if candidate.is_absolute() else (project_root / candidate)
+
+        try:
+            relative_path = str(resolved_path.relative_to(project_root)).replace("\\", "/")
+            path_within_project_root = True
+        except ValueError:
+            relative_path = None
+            path_within_project_root = False
+
+        exists = resolved_path.exists()
+        is_file = resolved_path.is_file()
+        is_directory = resolved_path.is_dir()
+        resolution_status = "missing"
+        size_bytes: int | None = None
+        sha256: str | None = None
+        if exists and is_file:
+            resolution_status = "resolved-file"
+            size_bytes = resolved_path.stat().st_size
+            sha256 = hashlib.sha256(resolved_path.read_bytes()).hexdigest()
+        elif exists and is_directory:
+            resolution_status = "resolved-directory"
+        elif exists:
+            resolution_status = "resolved-non-file"
+
+        parent_path = resolved_path.parent
+        try:
+            parent_relative_path = str(parent_path.relative_to(project_root)).replace("\\", "/")
+            parent_within_project_root = True
+        except ValueError:
+            parent_relative_path = None
+            parent_within_project_root = False
+
+        return {
+            "resolved_path": str(resolved_path),
+            "relative_path": relative_path,
+            "source_of_truth": (
+                f"project_root/{relative_path}"
+                if relative_path is not None
+                else "outside-admitted-project-root"
+            ),
+            "path_within_project_root": path_within_project_root,
+            "exists": exists,
+            "is_file": is_file,
+            "is_directory": is_directory,
+            "resolution_status": resolution_status,
+            "size_bytes": size_bytes,
+            "sha256": sha256,
+            "parent_path": str(parent_path),
+            "parent_relative_path": parent_relative_path,
+            "parent_within_project_root": parent_within_project_root,
+            "parent_exists": parent_path.exists(),
+        }
 
 
 class ProjectBuildHybridAdapter(ToolExecutionAdapter):
@@ -6383,8 +6801,8 @@ class AdapterService:
                     family_notes.append(
                         "asset.processor.status and asset.source.inspect currently have "
                         "real read-only admitted paths in this family, and "
-                        "asset.batch.process currently has a real plan-only "
-                        "preflight/result-truth substrate."
+                        "asset.batch.process and asset.move.safe currently have real "
+                        "plan-only preflight/result-truth substrates."
                     )
                 if family == "editor-control":
                     family_notes.append(

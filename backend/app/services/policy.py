@@ -11,6 +11,8 @@ def tool_real_admission_stage(tool_name: str) -> str:
         return "real-read-only-active"
     if tool_name == "asset.batch.process":
         return "real-plan-only-active"
+    if tool_name == "asset.move.safe":
+        return "real-plan-only-active"
     if tool_name == "render.capture.viewport":
         return "real-read-only-active"
     if tool_name == "render.material.inspect":
@@ -65,6 +67,13 @@ def tool_next_real_requirement(tool_name: str) -> str:
             "asset batch preflight and result-truth evidence, with actual asset "
             "processing execution, job results, and output artifact production "
             "marked unavailable unless a real admitted batch runner path is proven."
+        )
+    if tool_name == "asset.move.safe":
+        return (
+            "Keep real execution limited to explicit source/destination asset "
+            "identity corridor and reference-unavailable preflight evidence, with "
+            "actual asset move mutation, overwrite semantics, and reference repair "
+            "marked unavailable unless a real admitted mutation path is proven."
         )
     if tool_name == "render.capture.viewport":
         return (

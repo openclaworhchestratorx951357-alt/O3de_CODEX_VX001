@@ -108,7 +108,7 @@ def plan_asset_pipeline_prompt(
                             "source_path": source_path,
                             "destination_path": destination_path,
                             "update_references": True,
-                            "dry_run_plan": request.dry_run,
+                            "dry_run_plan": True,
                         },
                     )
                 )

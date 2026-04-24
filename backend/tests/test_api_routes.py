@@ -810,6 +810,7 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
             ]
             assert payload["adapter_mode"]["plan_only_tool_paths"] == [
                 "asset.batch.process",
+                "asset.move.safe",
                 "build.configure",
                 "build.compile",
                 "settings.patch",
@@ -868,6 +869,7 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
             ]
             assert payload["plan_only_tool_paths"] == [
                 "asset.batch.process",
+                "asset.move.safe",
                 "build.configure",
                 "build.compile",
                 "settings.patch",
@@ -895,8 +897,11 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "asset.processor.status",
                 "asset.source.inspect",
             ]
-            assert asset_pipeline["plan_only_tool_paths"] == ["asset.batch.process"]
-            assert sorted(asset_pipeline["simulated_tool_paths"]) == ["asset.move.safe"]
+            assert asset_pipeline["plan_only_tool_paths"] == [
+                "asset.batch.process",
+                "asset.move.safe",
+            ]
+            assert asset_pipeline["simulated_tool_paths"] == []
             assert any(
                 "asset.batch.process" in note
                 or "asset.processor.status" in note
@@ -1002,6 +1007,19 @@ def test_prompt_capabilities_reports_asset_batch_process_as_plan_only() -> None:
         payload = response.json()
         entry = next(
             item for item in payload["capabilities"] if item["tool_name"] == "asset.batch.process"
+        )
+        assert entry["agent_family"] == "asset-pipeline"
+        assert entry["capability_maturity"] == "plan-only"
+        assert entry["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
+
+
+def test_prompt_capabilities_reports_asset_move_safe_as_plan_only() -> None:
+    with isolated_client() as client:
+        response = client.get("/prompt/capabilities")
+        assert response.status_code == 200
+        payload = response.json()
+        entry = next(
+            item for item in payload["capabilities"] if item["tool_name"] == "asset.move.safe"
         )
         assert entry["agent_family"] == "asset-pipeline"
         assert entry["capability_maturity"] == "plan-only"
@@ -1154,6 +1172,8 @@ def test_policies_route_exposes_truthful_execution_mode_and_dry_run_support() ->
 
         assert policies_by_tool["asset.batch.process"]["execution_mode"] == "plan-only"
         assert policies_by_tool["asset.batch.process"]["supports_dry_run"] is True
+        assert policies_by_tool["asset.move.safe"]["execution_mode"] == "plan-only"
+        assert policies_by_tool["asset.move.safe"]["supports_dry_run"] is True
 
         assert policies_by_tool["build.configure"]["execution_mode"] == "plan-only"
         assert policies_by_tool["build.configure"]["supports_dry_run"] is True
@@ -1213,6 +1233,20 @@ def test_policies_route_marks_asset_batch_process_as_real_plan_only_active() -> 
         assert asset_batch_process["real_admission_stage"] == "real-plan-only-active"
         assert asset_batch_process["execution_mode"] == "plan-only"
         assert "preflight" in asset_batch_process["next_real_requirement"].lower()
+
+
+def test_policies_route_marks_asset_move_safe_as_real_plan_only_active() -> None:
+    with isolated_client() as client:
+        response = client.get("/policies")
+        assert response.status_code == 200
+        asset_move_safe = next(
+            policy
+            for policy in response.json()["policies"]
+            if policy["tool"] == "asset.move.safe"
+        )
+        assert asset_move_safe["real_admission_stage"] == "real-plan-only-active"
+        assert asset_move_safe["execution_mode"] == "plan-only"
+        assert "identity corridor" in asset_move_safe["next_real_requirement"].lower()
 
 
 def test_policies_route_marks_render_capture_viewport_as_real_read_only_active() -> None:
@@ -2851,6 +2885,215 @@ def test_dispatch_route_records_asset_batch_process_dry_run_fallback_provenance_
                 )
                 assert execution["details"]["real_path_available"] is False
                 assert execution["details"]["fallback_category"] == "dry-run-required"
+                assert execution["details"]["project_root_path"] == str(project_root.resolve())
+
+
+def test_dispatch_route_uses_real_asset_move_safe_preflight_in_hybrid_mode() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = project_root / "Assets" / "Old" / "example.fbx"
+        destination_dir = project_root / "Assets" / "New"
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        destination_dir.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"api-asset-move-source")
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-asset-move-preflight-1",
+                        "tool": "asset.move.safe",
+                        "agent": "asset-pipeline",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "args": {
+                            "source_path": "Assets/Old/example.fbx",
+                            "destination_path": "Assets/New/example.fbx",
+                            "update_references": True,
+                            "dry_run_plan": True,
+                        },
+                    },
+                )
+                approval_id = dispatch.json()["approval_id"]
+                approval = approvals_service.get_approval(approval_id)
+                assert approval is not None
+                client.post(
+                    f"/approvals/{approval_id}/approve",
+                    json={"reason": "Approve asset.move.safe preflight for test"},
+                )
+                approved_dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-asset-move-preflight-2",
+                        "tool": "asset.move.safe",
+                        "agent": "asset-pipeline",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "approval_token": approval.token,
+                        "args": {
+                            "source_path": "Assets/Old/example.fbx",
+                            "destination_path": "Assets/New/example.fbx",
+                            "update_references": True,
+                            "dry_run_plan": True,
+                        },
+                    },
+                )
+                assert approved_dispatch.status_code == 200
+                payload = approved_dispatch.json()
+                assert payload["ok"] is True
+                assert payload["result"]["simulated"] is False
+                assert payload["result"]["execution_mode"] == "real"
+                assert "no asset files or references were changed" in payload["result"]["message"]
+
+                executions = client.get("/executions")
+                execution_cards = client.get("/executions/cards")
+                artifacts = client.get("/artifacts")
+                artifact_cards = client.get("/artifacts/cards")
+                executors = client.get("/executors")
+                workspaces = client.get("/workspaces")
+                assert executions.status_code == 200
+                assert execution_cards.status_code == 200
+                assert artifacts.status_code == 200
+                assert artifact_cards.status_code == 200
+                assert executors.status_code == 200
+                assert workspaces.status_code == 200
+                execution = next(
+                    execution
+                    for execution in executions.json()["executions"]
+                    if execution["run_id"] == payload["operation_id"]
+                )
+                execution_card = next(
+                    card
+                    for card in execution_cards.json()["executions"]
+                    if card["id"] == execution["id"]
+                )
+                artifact = next(
+                    artifact
+                    for artifact in artifacts.json()["artifacts"]
+                    if artifact["run_id"] == payload["operation_id"]
+                )
+                artifact_card = next(
+                    card
+                    for card in artifact_cards.json()["artifacts"]
+                    if card["id"] == artifact["id"]
+                )
+                executor = next(
+                    executor
+                    for executor in executors.json()["executors"]
+                    if executor["id"] == execution["executor_id"]
+                )
+                workspace = next(
+                    workspace
+                    for workspace in workspaces.json()["workspaces"]
+                    if workspace["id"] == execution["workspace_id"]
+                )
+                assert execution["details"]["inspection_surface"] == "asset_move_preflight"
+                assert execution["details"]["preflight_execution_mode"] == "plan-only"
+                assert execution["details"]["move_plan_requested"] is True
+                assert execution["details"]["identity_corridor_available"] is True
+                assert execution["details"]["execution_attempted"] is False
+                assert execution["details"]["result_artifact_produced"] is False
+                assert execution["details"]["source_path_resolved"] == str(source_path.resolve())
+                assert execution["executor_id"] == "executor-asset-pipeline-hybrid-plan-only-local-move"
+                assert execution["workspace_id"] == f"workspace-asset-move-safe-{execution['id']}"
+                assert execution["runner_family"] == "cli"
+                assert execution_card["executor_id"] == execution["executor_id"]
+                assert execution_card["workspace_id"] == execution["workspace_id"]
+
+                assert artifact["executor_id"] == execution["executor_id"]
+                assert artifact["workspace_id"] == execution["workspace_id"]
+                assert artifact["artifact_role"] == "plan-evidence"
+                assert artifact["evidence_completeness"] == "plan-backed"
+                assert artifact_card["executor_id"] == execution["executor_id"]
+                assert artifact_card["workspace_id"] == execution["workspace_id"]
+                assert artifact_card["artifact_role"] == "plan-evidence"
+
+                assert executor["id"] == "executor-asset-pipeline-hybrid-plan-only-local-move"
+                assert executor["capability_snapshot"]["admitted_tools"] == ["asset.move.safe"]
+
+                assert workspace["id"] == execution["workspace_id"]
+                assert workspace["workspace_root"] == str(project_root.resolve())
+                assert workspace["workspace_kind"] == "admitted-plan-only-project-root"
+                assert workspace["cleanup_policy"] == "operator-managed-preflight"
+                assert workspace["owner_run_id"] == payload["operation_id"]
+                assert workspace["owner_execution_id"] == execution["id"]
+                assert workspace["owner_executor_id"] == executor["id"]
+
+
+def test_dispatch_route_records_asset_move_safe_plan_required_fallback_in_hybrid_mode() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = project_root / "Assets" / "Old" / "example.fbx"
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"api-asset-move-fallback")
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-asset-move-fallback-1",
+                        "tool": "asset.move.safe",
+                        "agent": "asset-pipeline",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "args": {
+                            "source_path": "Assets/Old/example.fbx",
+                            "destination_path": "Assets/New/example.fbx",
+                            "update_references": True,
+                            "dry_run_plan": False,
+                        },
+                    },
+                )
+                approval_id = dispatch.json()["approval_id"]
+                approval = approvals_service.get_approval(approval_id)
+                assert approval is not None
+                client.post(
+                    f"/approvals/{approval_id}/approve",
+                    json={"reason": "Approve asset.move.safe fallback test"},
+                )
+                approved_dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-asset-move-fallback-2",
+                        "tool": "asset.move.safe",
+                        "agent": "asset-pipeline",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "approval_token": approval.token,
+                        "args": {
+                            "source_path": "Assets/Old/example.fbx",
+                            "destination_path": "Assets/New/example.fbx",
+                            "update_references": True,
+                            "dry_run_plan": False,
+                        },
+                    },
+                )
+                assert approved_dispatch.status_code == 200
+                payload = approved_dispatch.json()
+                assert payload["ok"] is True
+                assert payload["result"]["simulated"] is True
+
+                executions = client.get("/executions")
+                assert executions.status_code == 200
+                execution = next(
+                    execution
+                    for execution in executions.json()["executions"]
+                    if execution["run_id"] == payload["operation_id"]
+                )
+                assert execution["details"]["real_path_available"] is False
+                assert execution["details"]["fallback_category"] == "plan-required"
                 assert execution["details"]["project_root_path"] == str(project_root.resolve())
 
 

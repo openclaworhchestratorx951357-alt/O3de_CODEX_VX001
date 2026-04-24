@@ -19,6 +19,8 @@ def tool_capability_status(tool_name: str) -> str:
         return "hybrid-read-only"
     if tool_name == "asset.batch.process":
         return "plan-only"
+    if tool_name == "asset.move.safe":
+        return "plan-only"
     if tool_name == "render.capture.viewport":
         return "hybrid-read-only"
     if tool_name == "render.material.inspect":

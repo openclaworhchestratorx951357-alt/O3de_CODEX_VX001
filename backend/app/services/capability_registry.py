@@ -185,12 +185,12 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
         )
     if tool_name == "asset.move.safe":
         return _build_safety_envelope(
-            state_scope="Explicit source-to-destination asset identity corridor.",
-            backup_class="workspace-diff-bundle",
-            rollback_class="source-path-restore-and-reference-repair",
-            verification_class="reference-graph and destination readback verification",
-            retention_class="asset-mutation-evidence",
-            natural_language_status="prompt-ready-simulated",
+            state_scope="Explicit source-to-destination asset identity/reference preflight corridor.",
+            backup_class="none",
+            rollback_class="environment-cleanup-only",
+            verification_class="source/destination identity corridor and reference-unavailable verification",
+            retention_class="asset-move-preflight-evidence",
+            natural_language_status="prompt-ready-plan-only",
         )
     if tool_name == "gem.enable":
         return _build_safety_envelope(
@@ -386,11 +386,13 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": True,
     },
     "asset.move.safe": {
-        "capability_maturity": "simulated-only",
+        "capability_maturity": "plan-only",
         "planner_intent_aliases": ["move asset", "rename asset", "relocate asset"],
-        "natural_language_affordances": ["Plan or execute a guarded asset move with explicit source and destination."],
+        "natural_language_affordances": [
+            "Preflight an explicit source-to-destination asset move request against project-local identity corridor evidence."
+        ],
         "allowlisted_parameter_surfaces": ["source_path", "destination_path", "update_references", "dry_run_plan"],
-        "real_adapter_availability": False,
+        "real_adapter_availability": True,
         "dry_run_availability": True,
         "simulation_fallback_availability": True,
     },
