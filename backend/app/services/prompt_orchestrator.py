@@ -512,6 +512,9 @@ class PromptOrchestratorService:
             session, "asset-processor-1"
         )
         asset_response = self._latest_successful_response_for_step(session, "asset-inspect-1")
+        render_capture_response = self._latest_successful_response_for_step(
+            session, "render-capture-1"
+        )
         visual_diff_response = self._latest_successful_response_for_step(
             session, "validation-visual-diff-1"
         )
@@ -622,6 +625,34 @@ class PromptOrchestratorService:
                     summary_parts.append(
                         "Dependency evidence remains unavailable in this admitted slice."
                     )
+
+        if render_capture_response is not None:
+            details = render_capture_response.get("execution_details", {})
+            if details.get("runtime_available") is True:
+                summary_parts.append(
+                    "Viewport capture runtime probe confirmed editor runtime context is available for explicit capture requests."
+                )
+            else:
+                summary_parts.append(
+                    "Viewport capture runtime evidence remains unavailable in this admitted slice."
+                )
+            if details.get("capture_artifact_produced") is True:
+                artifact_path = details.get("capture_artifact_path")
+                if artifact_path:
+                    summary_parts.append(
+                        f"Viewport capture evidence confirmed an artifact at {artifact_path}."
+                    )
+                else:
+                    summary_parts.append(
+                        "Viewport capture evidence confirmed a real capture artifact was produced."
+                    )
+            else:
+                summary_parts.append(
+                    "No real capture artifact was produced in this admitted slice."
+                )
+            unavailable_reason = details.get("capture_unavailable_reason")
+            if isinstance(unavailable_reason, str) and unavailable_reason:
+                summary_parts.append(unavailable_reason)
 
         if visual_diff_response is not None:
             details = visual_diff_response.get("execution_details", {})

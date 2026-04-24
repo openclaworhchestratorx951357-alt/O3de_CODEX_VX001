@@ -102,6 +102,15 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             retention_class="inspection-evidence",
             natural_language_status="prompt-ready-read-only",
         )
+    if tool_name == "render.capture.viewport":
+        return _build_safety_envelope(
+            state_scope="Explicit viewport-capture evidence request.",
+            backup_class="none",
+            rollback_class="none",
+            verification_class="runtime probe and capture artifact metadata verification",
+            retention_class="capture-evidence",
+            natural_language_status="prompt-ready-read-only",
+        )
     if tool_name == "test.visual.diff":
         return _build_safety_envelope(
             state_scope="Explicit baseline-versus-candidate artifact comparison scope.",
@@ -419,11 +428,11 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": True,
     },
     "render.capture.viewport": {
-        "capability_maturity": "simulated-only",
+        "capability_maturity": "hybrid-read-only",
         "planner_intent_aliases": ["capture viewport", "viewport screenshot", "take screenshot"],
         "natural_language_affordances": ["Capture a viewport image with an optional camera and resolution."],
         "allowlisted_parameter_surfaces": ["output_label", "camera_entity_id", "resolution"],
-        "real_adapter_availability": False,
+        "real_adapter_availability": True,
         "dry_run_availability": True,
         "simulation_fallback_availability": True,
     },

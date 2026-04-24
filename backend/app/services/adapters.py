@@ -37,6 +37,7 @@ REAL_TOOL_PATHS_BY_MODE = {
         "editor.component.property.get",
         "asset.processor.status",
         "asset.source.inspect",
+        "render.capture.viewport",
         "project.inspect",
         "test.visual.diff",
     ],
@@ -53,6 +54,7 @@ HYBRID_EXECUTION_BOUNDARY = (
     "use a real read-only host runtime probe, asset.source.inspect may "
     "use a real read-only project-local source inspection path, project.inspect may use a "
     "real read-only project-manifest path, test.visual.diff may use a real "
+    "read-only explicit viewport-capture substrate probe, "
     "read-only explicit artifact comparison path, "
     "editor.level.open may use the "
     "live-validated admitted real editor runtime path on McpSandbox, "
@@ -4100,6 +4102,226 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
         }
 
 
+class RenderLookdevHybridAdapter(ToolExecutionAdapter):
+    def __init__(self, *, family: str, mode: str) -> None:
+        super().__init__(family=family, mode=mode)
+        self._simulated = SimulatedToolExecutionAdapter(family=family, mode=mode)
+
+    def execute(
+        self,
+        *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        if tool == "render.capture.viewport":
+            return self._execute_render_capture_viewport(
+                request_id=request_id,
+                session_id=session_id,
+                workspace_id=workspace_id,
+                executor_id=executor_id,
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+            )
+
+        simulated = self._simulated.execute(
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+        )
+        simulated.warnings.append(
+            "Hybrid adapter mode is active, but this render-lookdev tool still runs "
+            "through the simulated path in this phase."
+        )
+        simulated.logs.append(
+            "Hybrid mode did not change execution for this render-lookdev tool; "
+            "the simulated adapter path remained in use."
+        )
+        simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        return simulated
+
+    def _execute_render_capture_viewport(
+        self,
+        *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        runtime_probe = editor_automation_runtime_service.execute_render_capture_viewport(
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            locks_acquired=locks_acquired,
+        )
+        runtime_result = runtime_probe.get("runtime_result", {})
+        if not isinstance(runtime_result, dict):
+            runtime_result = {}
+
+        runtime_available = bool(runtime_result.get("runtime_available"))
+        capture_attempted = bool(runtime_result.get("capture_attempted"))
+        capture_artifact_produced = bool(runtime_result.get("capture_artifact_produced"))
+        capture_unavailable_reason = str(
+            runtime_result.get(
+                "capture_unavailable_reason",
+                "No admitted real screenshot production path is available in this slice.",
+            )
+        )
+
+        inspection_evidence = ["runtime_probe_attempt"]
+        unavailable_evidence: list[str] = []
+        logs = [
+            "Real render.capture.viewport executed through the admitted editor runtime probe substrate.",
+            f"Runtime probe method: {runtime_result.get('runtime_probe_method', 'editor-runtime-get-context')}",
+        ]
+        if runtime_available:
+            inspection_evidence.append("runtime_context_readback")
+            logs.append("Render capture runtime context was available in the admitted editor substrate.")
+        else:
+            unavailable_evidence.append("runtime")
+            logs.append("Render capture runtime evidence remained unavailable in this editor context.")
+        if capture_attempted:
+            inspection_evidence.append("capture_attempt")
+        else:
+            unavailable_evidence.append("capture_attempt")
+        if capture_artifact_produced:
+            inspection_evidence.append("capture_artifact")
+        else:
+            unavailable_evidence.append("capture_artifact")
+        logs.append(capture_unavailable_reason)
+
+        requested_resolution = runtime_result.get("requested_resolution")
+        if not isinstance(requested_resolution, dict):
+            requested_resolution = args.get("resolution")
+        details = {
+            "inspection_surface": "render_capture_runtime_probe",
+            "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+            "simulated": False,
+            "adapter_family": self.family,
+            "adapter_mode": self.mode,
+            "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+            "real_path_available": True,
+            "capture_request_explicit": True,
+            "comparison_read_mode": "read-only",
+            "runtime_probe_attempted": bool(runtime_result.get("runtime_probe_attempted", True)),
+            "runtime_probe_method": runtime_result.get("runtime_probe_method"),
+            "runtime_available": runtime_available,
+            "capture_runtime_mode": runtime_result.get("capture_runtime_mode"),
+            "capture_operation_available": bool(
+                runtime_result.get("capture_operation_available", False)
+            ),
+            "capture_attempted": capture_attempted,
+            "capture_artifact_produced": capture_artifact_produced,
+            "capture_artifact_path": runtime_result.get("capture_artifact_path"),
+            "capture_artifact_content_type": runtime_result.get(
+                "capture_artifact_content_type"
+            ),
+            "capture_artifact_size_bytes": runtime_result.get("capture_artifact_size_bytes"),
+            "capture_unavailable_reason": capture_unavailable_reason,
+            "output_label": runtime_result.get("output_label") or args.get("output_label"),
+            "camera_entity_id": runtime_result.get("camera_entity_id")
+            or args.get("camera_entity_id"),
+            "requested_resolution": requested_resolution,
+            "active_level_path": runtime_result.get("active_level_path"),
+            "inspection_evidence": inspection_evidence,
+            "unavailable_evidence": unavailable_evidence,
+            **{
+                key: runtime_result[key]
+                for key in (
+                    "bridge_name",
+                    "bridge_version",
+                    "bridge_available",
+                    "bridge_operation",
+                    "bridge_contract_version",
+                    "bridge_command_id",
+                    "bridge_result_summary",
+                    "bridge_error_code",
+                    "bridge_heartbeat_seen_at",
+                    "bridge_queue_mode",
+                    "bridge_selected_entity_count",
+                    "bridge_prefab_context_notes",
+                    "editor_transport",
+                    "editor_log_path",
+                )
+                if key in runtime_result
+            },
+        }
+        message = str(
+            runtime_result.get(
+                "message",
+                "Viewport capture substrate probe completed against the admitted editor runtime path.",
+            )
+        )
+        result = DispatchResult(
+            status="real_success",
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            simulated=False,
+            execution_mode="real",
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+            message=message,
+        )
+        return AdapterExecutionReport(
+            execution_mode="real",
+            result=result,
+            warnings=[],
+            logs=logs,
+            artifact_label="Render capture substrate evidence",
+            artifact_kind="render_capture_probe_result",
+            artifact_uri="render-capture-probe://runs/{run_id}/executions/{execution_id}/probe",
+            artifact_metadata={
+                "tool": tool,
+                "agent": agent,
+                "execution_mode": "real",
+                **details,
+            },
+            execution_details=details,
+            result_summary="Real render capture substrate probe completed successfully.",
+        )
+
+
 class AdapterService:
     def _real_tool_paths_for_mode(self, active_mode: str) -> list[str]:
         return list(REAL_TOOL_PATHS_BY_MODE.get(active_mode, []))
@@ -4146,6 +4368,12 @@ class AdapterService:
                 for tool_name in self._real_tool_paths_for_mode(active_mode)
                 if tool_name.startswith("test.")
             }
+        if active_mode == "hybrid" and family == "render-lookdev":
+            family_real = {
+                tool_name
+                for tool_name in self._real_tool_paths_for_mode(active_mode)
+                if tool_name.startswith("render.")
+            }
         return sorted(
             tool_name
             for tool_name in tool_names
@@ -4178,6 +4406,11 @@ class AdapterService:
                 )
             elif configured_mode == "hybrid" and agent.id == "validation":
                 registry[agent.id] = ValidationHybridAdapter(
+                    family=agent.id,
+                    mode=configured_mode,
+                )
+            elif configured_mode == "hybrid" and agent.id == "render-lookdev":
+                registry[agent.id] = RenderLookdevHybridAdapter(
                     family=agent.id,
                     mode=configured_mode,
                 )
@@ -4215,6 +4448,7 @@ class AdapterService:
                     "Hybrid mode currently enables a real read-only asset.source.inspect "
                     "path for explicit project-local source files, a real read-only "
                     "asset.processor.status host runtime probe, a real read-only "
+                    "render.capture.viewport explicit runtime probe substrate, a real read-only "
                     "test.visual.diff explicit artifact comparison substrate, a real read-only "
                     "project.inspect path, admitted real editor session/level runtime paths, "
                     "an admitted real root-level editor.entity.create path on "
@@ -4256,6 +4490,8 @@ class AdapterService:
                     "the explicit source path resolves within the current project root.",
                     "Hybrid mode enables a real read-only project.inspect path when its "
                     "manifest preconditions are satisfied.",
+                    "Hybrid mode enables a real read-only render.capture.viewport substrate "
+                    "when an explicit capture request reaches the admitted editor runtime probe path.",
                     "Hybrid mode enables a real read-only test.visual.diff substrate "
                     "when both requested artifact ids resolve to admitted local files.",
                     "Hybrid mode also enables admitted real editor runtime paths for "
@@ -4343,7 +4579,8 @@ class AdapterService:
         for family in runtime_status.available_families:
             family_supports_real = (
                 runtime_status.active_mode == "hybrid"
-                and family in {"asset-pipeline", "project-build", "editor-control", "validation"}
+                and family
+                in {"asset-pipeline", "project-build", "editor-control", "validation", "render-lookdev"}
             )
             family_real_tool_paths = (
                 [
@@ -4359,6 +4596,7 @@ class AdapterService:
                     )
                     or (family == "editor-control" and tool_name.startswith("editor."))
                     or (family == "validation" and tool_name.startswith("test."))
+                    or (family == "render-lookdev" and tool_name.startswith("render."))
                 ]
                 if family_supports_real
                 else []
@@ -4400,6 +4638,11 @@ class AdapterService:
                     family_notes.append(
                         "test.visual.diff currently has a real read-only admitted "
                         "artifact comparison substrate in this family."
+                    )
+                if family == "render-lookdev":
+                    family_notes.append(
+                        "render.capture.viewport currently has a real read-only admitted "
+                        "runtime probe substrate in this family."
                     )
             elif runtime_status.active_mode == "hybrid":
                 family_notes.append(

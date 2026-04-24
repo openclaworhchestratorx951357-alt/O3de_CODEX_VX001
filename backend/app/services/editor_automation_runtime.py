@@ -904,6 +904,77 @@ class EditorAutomationRuntimeService:
             "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
         }
 
+    def execute_render_capture_viewport(
+        self,
+        *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        locks_acquired: list[str],
+    ) -> dict[str, Any]:
+        manifest = self._load_project_manifest(project_root)
+        self._ensure_python_editor_bindings_enabled(manifest, project_root=project_root)
+        normalized_engine_root = _normalize_engine_root_path(engine_root)
+        runner_command = self._resolve_bridge_runner()
+        runtime_result = self._invoke_runtime_script(
+            script_name="render_capture_probe.py",
+            payload={
+                "request_id": request_id,
+                "session_id": session_id,
+                "workspace_id": workspace_id,
+                "executor_id": executor_id,
+                "project_root": str(Path(project_root).expanduser().resolve()),
+                "engine_root": normalized_engine_root,
+                "tool": "render.capture.viewport",
+                "dry_run": dry_run,
+                "args": {
+                    "output_label": args.get("output_label"),
+                    "camera_entity_id": args.get("camera_entity_id"),
+                    "resolution": args.get("resolution"),
+                },
+                "locks_acquired": locks_acquired,
+            },
+            runner_command=runner_command,
+            timeout_s=90,
+            tool="render.capture.viewport",
+            project_root=project_root,
+        )
+        runtime_result.setdefault(
+            "message",
+            "Viewport capture substrate probe completed against the admitted editor runtime path.",
+        )
+        runtime_result.setdefault(
+            "exact_editor_apis",
+            ["ControlPlaneEditorBridgeRequestBus.GetEditorContext"],
+        )
+        runtime_result.setdefault("capture_requested", True)
+        runtime_result.setdefault("capture_attempted", False)
+        runtime_result.setdefault("capture_artifact_produced", False)
+        runtime_result.setdefault("capture_artifact_path", None)
+        runtime_result.setdefault("capture_artifact_content_type", None)
+        runtime_result.setdefault("capture_artifact_size_bytes", None)
+        runtime_result.setdefault(
+            "capture_unavailable_reason",
+            "No admitted real screenshot production path is available in this slice.",
+        )
+        runtime_result.setdefault("runtime_probe_attempted", True)
+        runtime_result.setdefault("runtime_probe_method", "editor-runtime-get-context")
+        runtime_result.setdefault("capture_runtime_mode", "runtime-probe-only")
+        runtime_result.setdefault("output_label", args.get("output_label"))
+        runtime_result.setdefault("camera_entity_id", args.get("camera_entity_id"))
+        runtime_result.setdefault("requested_resolution", args.get("resolution"))
+        return {
+            "runtime_result": runtime_result,
+            "runner_command": runner_command,
+            "manifest": manifest,
+            "runtime_script": "backend/runtime/editor_scripts/render_capture_probe.py",
+        }
+
     def _invoke_runtime_script(
         self,
         *,

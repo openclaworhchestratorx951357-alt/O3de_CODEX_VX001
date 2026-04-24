@@ -349,6 +349,82 @@ def test_prompt_session_executes_asset_source_inspect_with_truthful_evidence() -
                 assert "Dependency evidence remains unavailable" in payload["final_result_summary"]
 
 
+def test_prompt_session_executes_render_capture_viewport_with_truthful_evidence() -> None:
+    with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+        with patch(
+            "app.services.adapters.editor_automation_runtime_service.execute_render_capture_viewport",
+            return_value={
+                "runtime_result": {
+                    "ok": True,
+                    "message": "Viewport capture substrate probe completed against the admitted editor runtime path.",
+                    "runtime_probe_attempted": True,
+                    "runtime_probe_method": "editor-runtime-get-context",
+                    "runtime_available": True,
+                    "capture_requested": True,
+                    "capture_attempted": False,
+                    "capture_runtime_mode": "runtime-probe-only",
+                    "capture_operation_available": False,
+                    "capture_artifact_produced": False,
+                    "capture_artifact_path": None,
+                    "capture_artifact_content_type": None,
+                    "capture_artifact_size_bytes": None,
+                    "capture_unavailable_reason": "No admitted real screenshot production path is available in this slice.",
+                    "output_label": "baseline-shot",
+                    "camera_entity_id": "camera-001",
+                    "requested_resolution": {"width": 1280, "height": 720},
+                    "active_level_path": "Levels/Main.level",
+                    "editor_transport": "oneshot",
+                    "bridge_name": "ControlPlaneEditorBridge",
+                    "bridge_available": True,
+                    "bridge_operation": "GetEditorContext",
+                    "bridge_contract_version": "v0.1",
+                    "bridge_result_summary": "Context available",
+                },
+                "runner_command": ["Editor.exe"],
+                "manifest": {},
+                "runtime_script": "backend/runtime/editor_scripts/render_capture_probe.py",
+            },
+        ):
+            with isolated_client() as client:
+                create_response = client.post(
+                    "/prompt/sessions",
+                    json={
+                        "prompt_id": "prompt-render-capture-1",
+                        "prompt_text": "Capture viewport baseline evidence.",
+                        "project_root": "C:/project",
+                        "engine_root": "C:/engine",
+                        "dry_run": False,
+                        "preferred_domains": ["render-lookdev"],
+                    },
+                )
+                assert create_response.status_code == 200
+                payload = create_response.json()
+                assert payload["status"] == "planned"
+                assert payload["admitted_capabilities"] == ["render.capture.viewport"]
+
+                execute_response = client.post(
+                    "/prompt/sessions/prompt-render-capture-1/execute",
+                )
+                assert execute_response.status_code == 200
+                execute_payload = execute_response.json()
+                assert execute_payload["status"] == "completed"
+                child_response = execute_payload["latest_child_responses"][0]
+                assert (
+                    child_response["execution_details"]["inspection_surface"]
+                    == "render_capture_runtime_probe"
+                )
+                assert child_response["execution_details"]["runtime_available"] is True
+                assert child_response["execution_details"]["capture_artifact_produced"] is False
+                assert (
+                    "Viewport capture runtime probe confirmed editor runtime context is available"
+                    in execute_payload["final_result_summary"]
+                )
+                assert (
+                    "No real capture artifact was produced in this admitted slice."
+                    in execute_payload["final_result_summary"]
+                )
+
+
 def test_prompt_session_plans_test_visual_diff_as_hybrid_read_only() -> None:
     with isolated_client() as client:
         response = client.post(

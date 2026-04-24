@@ -4307,7 +4307,7 @@ def test_render_shader_rebuild_simulated_persisted_payloads_match_published_sche
 
 
 def test_render_capture_viewport_simulated_persisted_payloads_match_published_schemas(
-    ) -> None:
+) -> None:
     with isolated_database():
         response = dispatcher_service.dispatch(make_render_capture_viewport_request())
 
@@ -4328,6 +4328,135 @@ def test_render_capture_viewport_simulated_persisted_payloads_match_published_sc
         assert artifact.simulated is True
         assert artifact.metadata["execution_mode"] == "simulated"
         assert artifact.metadata["inspection_surface"] == "simulated"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="render.capture.viewport",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="render.capture.viewport",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_render_capture_viewport_uses_real_runtime_probe_substrate_in_hybrid_mode() -> None:
+    with isolated_database():
+        runtime_result = {
+            "ok": True,
+            "message": "Viewport capture substrate probe completed against the admitted editor runtime path.",
+            "runtime_probe_attempted": True,
+            "runtime_probe_method": "editor-runtime-get-context",
+            "runtime_available": True,
+            "capture_requested": True,
+            "capture_attempted": False,
+            "capture_runtime_mode": "runtime-probe-only",
+            "capture_operation_available": False,
+            "capture_artifact_produced": False,
+            "capture_artifact_path": None,
+            "capture_artifact_content_type": None,
+            "capture_artifact_size_bytes": None,
+            "capture_unavailable_reason": "No admitted real screenshot production path is available in this slice.",
+            "output_label": "baseline-shot",
+            "camera_entity_id": "camera-001",
+            "requested_resolution": {"width": 1280, "height": 720},
+            "active_level_path": "Levels/Main.level",
+            "editor_transport": "oneshot",
+            "bridge_name": "ControlPlaneEditorBridge",
+            "bridge_available": True,
+            "bridge_operation": "GetEditorContext",
+            "bridge_contract_version": "v0.1",
+            "bridge_result_summary": "Context available",
+        }
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_render_capture_viewport",
+                return_value={
+                    "runtime_result": runtime_result,
+                    "runner_command": ["Editor.exe"],
+                    "manifest": {},
+                    "runtime_script": "backend/runtime/editor_scripts/render_capture_probe.py",
+                },
+            ):
+                response = dispatcher_service.dispatch(make_render_capture_viewport_request())
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "render_capture_runtime_probe"
+        assert execution.details["runtime_available"] is True
+        assert execution.details["capture_attempted"] is False
+        assert execution.details["capture_artifact_produced"] is False
+        assert artifact is not None
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "render_capture_runtime_probe"
+
+
+def test_render_capture_viewport_real_persisted_payloads_match_published_schemas() -> None:
+    with isolated_database():
+        runtime_result = {
+            "ok": True,
+            "message": "Viewport capture substrate probe completed, but runtime capture support remains unavailable in this editor context.",
+            "runtime_probe_attempted": True,
+            "runtime_probe_method": "editor-runtime-get-context",
+            "runtime_available": False,
+            "capture_requested": True,
+            "capture_attempted": False,
+            "capture_runtime_mode": "runtime-probe-only",
+            "capture_operation_available": False,
+            "capture_artifact_produced": False,
+            "capture_artifact_path": None,
+            "capture_artifact_content_type": None,
+            "capture_artifact_size_bytes": None,
+            "capture_unavailable_reason": "No admitted real screenshot production path is available in this slice.",
+            "output_label": "baseline-shot",
+            "camera_entity_id": "camera-001",
+            "requested_resolution": {"width": 1280, "height": 720},
+            "active_level_path": None,
+            "editor_transport": "oneshot",
+            "bridge_name": "ControlPlaneEditorBridge",
+            "bridge_available": False,
+            "bridge_operation": "GetEditorContext",
+            "bridge_contract_version": "v0.1",
+            "bridge_result_summary": "Runtime unavailable",
+        }
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_render_capture_viewport",
+                return_value={
+                    "runtime_result": runtime_result,
+                    "runner_command": ["Editor.exe"],
+                    "manifest": {},
+                    "runtime_script": "backend/runtime/editor_scripts/render_capture_probe.py",
+                },
+            ):
+                response = dispatcher_service.dispatch(make_render_capture_viewport_request())
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert artifact is not None
         assert (
             schema_validation_service.validate_execution_details(
                 tool_name="render.capture.viewport",

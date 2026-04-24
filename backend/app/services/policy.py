@@ -9,6 +9,8 @@ def tool_real_admission_stage(tool_name: str) -> str:
         return "real-read-only-active"
     if tool_name == "asset.source.inspect":
         return "real-read-only-active"
+    if tool_name == "render.capture.viewport":
+        return "real-read-only-active"
     if tool_name == "editor.component.property.get":
         return "real-read-only-active"
     if tool_name in {
@@ -46,6 +48,13 @@ def tool_next_real_requirement(tool_name: str) -> str:
             "Keep real execution limited to host-visible Asset Processor runtime "
             "availability evidence, with job and platform fields marked unavailable "
             "unless an admitted real telemetry substrate is proven."
+        )
+    if tool_name == "render.capture.viewport":
+        return (
+            "Keep real execution limited to explicit viewport-capture substrate "
+            "evidence and artifact-presence reporting, with screenshot production "
+            "and capture failure semantics marked unavailable unless a real admitted "
+            "capture path is proven."
         )
     if tool_name == "editor.session.open":
         return (
