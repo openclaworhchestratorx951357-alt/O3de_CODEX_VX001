@@ -508,6 +508,9 @@ class PromptOrchestratorService:
         property_response = self._latest_successful_response_for_step(
             session, "editor-component-property-1"
         )
+        asset_processor_response = self._latest_successful_response_for_step(
+            session, "asset-processor-1"
+        )
         asset_response = self._latest_successful_response_for_step(session, "asset-inspect-1")
 
         summary_parts: list[str] = []
@@ -549,6 +552,40 @@ class PromptOrchestratorService:
                 summary_parts.append(
                     f"Readback confirmed {property_path} = {value}."
                 )
+
+        if asset_processor_response is not None:
+            details = asset_processor_response.get("execution_details", {})
+            runtime_status = details.get("runtime_status")
+            runtime_process_count = details.get("runtime_process_count", 0)
+            if runtime_status == "running":
+                summary_parts.append(
+                    "Asset Processor runtime readback confirmed "
+                    f"{runtime_process_count} running process(es)."
+                )
+            elif runtime_status == "not-running":
+                summary_parts.append(
+                    "Asset Processor runtime readback confirmed no running Asset Processor process."
+                )
+            else:
+                summary_parts.append(
+                    "Asset Processor runtime evidence remains unavailable on this host."
+                )
+            if details.get("job_evidence_requested") is True:
+                if details.get("job_evidence_available") is True:
+                    summary_parts.append(
+                        f"Job readback confirmed {details.get('job_count', 0)} Asset Processor job entry(ies)."
+                    )
+                else:
+                    summary_parts.append("Job evidence remains unavailable in this admitted slice.")
+            if details.get("platform_evidence_requested") is True:
+                if details.get("platform_evidence_available") is True:
+                    summary_parts.append(
+                        f"Platform readback confirmed {details.get('platform_count', 0)} platform status entry(ies)."
+                    )
+                else:
+                    summary_parts.append(
+                        "Platform evidence remains unavailable in this admitted slice."
+                    )
 
         if asset_response is not None:
             details = asset_response.get("execution_details", {})

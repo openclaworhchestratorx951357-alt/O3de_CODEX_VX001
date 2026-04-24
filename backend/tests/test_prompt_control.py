@@ -169,6 +169,63 @@ def test_prompt_session_plans_asset_source_inspect_as_hybrid_read_only() -> None
         assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-read-only"
 
 
+def test_prompt_session_executes_asset_processor_status_with_truthful_evidence() -> None:
+    with patch.dict(
+        "os.environ",
+        {
+            "O3DE_ADAPTER_MODE": "hybrid",
+        },
+        clear=False,
+    ):
+        with patch(
+            "app.services.adapters.AssetPipelineHybridAdapter._probe_asset_processor_runtime",
+            return_value={
+                "runtime_probe_available": True,
+                "runtime_probe_method": "windows-tasklist",
+                "runtime_process_ids": [4242],
+                "runtime_process_names": ["AssetProcessor.exe"],
+            },
+        ):
+            with isolated_client() as client:
+                create_response = client.post(
+                    "/prompt/sessions",
+                    json={
+                        "prompt_id": "prompt-asset-processor-status-execute-1",
+                        "prompt_text": "Check asset processor status.",
+                        "project_root": "C:/project",
+                        "engine_root": "C:/engine",
+                        "dry_run": True,
+                        "preferred_domains": ["asset-pipeline"],
+                    },
+                )
+                assert create_response.status_code == 200
+
+                execute_response = client.post(
+                    "/prompt/sessions/prompt-asset-processor-status-execute-1/execute"
+                )
+                assert execute_response.status_code == 200
+                payload = execute_response.json()
+                assert payload["status"] == "completed"
+                assert payload["child_run_ids"]
+                assert len(payload["child_run_ids"]) == 1
+                assert payload["latest_child_responses"][0]["ok"] is True
+                assert (
+                    payload["latest_child_responses"][0]["result"]["execution_mode"] == "real"
+                )
+                details = payload["latest_child_responses"][0]["execution_details"]
+                assert details["inspection_surface"] == "asset_processor_runtime"
+                assert details["runtime_probe_available"] is True
+                assert details["runtime_status"] == "running"
+                assert details["runtime_process_count"] == 1
+                assert details["job_evidence_available"] is False
+                assert details["platform_evidence_available"] is False
+                assert "Asset Processor runtime readback confirmed 1 running process(es)." in (
+                    payload["final_result_summary"]
+                )
+                assert "Job evidence remains unavailable" in payload["final_result_summary"]
+                assert "Platform evidence remains unavailable" in payload["final_result_summary"]
+
+
 def test_prompt_session_executes_asset_source_inspect_with_truthful_evidence() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)

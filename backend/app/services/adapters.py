@@ -1,6 +1,8 @@
+import csv
 import hashlib
 import json
 import os
+import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,6 +26,7 @@ REAL_TOOL_PATHS_BY_MODE = {
         "editor.entity.create",
         "editor.component.add",
         "editor.component.property.get",
+        "asset.processor.status",
         "asset.source.inspect",
         "project.inspect",
     ],
@@ -36,7 +39,8 @@ ADAPTER_EXECUTION_BOUNDARY = (
     "Control-plane bookkeeping is real, but O3DE tool execution remains simulated."
 )
 HYBRID_EXECUTION_BOUNDARY = (
-    "Control-plane bookkeeping is real. In hybrid mode, asset.source.inspect may "
+    "Control-plane bookkeeping is real. In hybrid mode, asset.processor.status may "
+    "use a real read-only host runtime probe, asset.source.inspect may "
     "use a real read-only project-local source inspection path, project.inspect may use a "
     "real read-only project-manifest path, editor.level.open may use the "
     "live-validated admitted real editor runtime path on McpSandbox, "
@@ -631,6 +635,17 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
         approval_class: str,
         locks_acquired: list[str],
     ) -> AdapterExecutionReport:
+        if tool == "asset.processor.status":
+            return self._execute_asset_processor_status(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+            )
         if tool == "asset.source.inspect":
             return self._execute_asset_source_inspect(
                 tool=tool,
@@ -668,6 +683,279 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
         simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
         simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
         return simulated
+
+    def _execute_asset_processor_status(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        include_jobs = bool(args.get("include_jobs", False))
+        include_platforms = bool(args.get("include_platforms", False))
+        runtime_probe = self._probe_asset_processor_runtime()
+        runtime_probe_available = bool(runtime_probe.get("runtime_probe_available", False))
+        runtime_probe_method = str(runtime_probe.get("runtime_probe_method", "host-process-list"))
+        runtime_probe_error = runtime_probe.get("runtime_probe_error")
+        runtime_process_ids = [
+            int(pid)
+            for pid in runtime_probe.get("runtime_process_ids", [])
+            if isinstance(pid, int)
+        ]
+        runtime_process_names = [
+            str(name)
+            for name in runtime_probe.get("runtime_process_names", [])
+            if isinstance(name, str) and name
+        ]
+        runtime_process_count = len(runtime_process_ids)
+        runtime_available = runtime_probe_available and runtime_process_count > 0
+        runtime_status = (
+            "running"
+            if runtime_available
+            else ("not-running" if runtime_probe_available else "unknown")
+        )
+        warnings: list[str] = []
+        inspection_evidence = ["runtime_probe_attempt"]
+        unavailable_evidence: list[str] = []
+        logs = [
+            "Real asset.processor.status executed through the admitted host runtime probe.",
+            f"Runtime probe method: {runtime_probe_method}",
+        ]
+        if runtime_probe_available:
+            inspection_evidence.append("runtime_process_visibility")
+            logs.append(
+                f"Asset Processor runtime probe observed {runtime_process_count} matching process(es)."
+            )
+        else:
+            unavailable_evidence.append("runtime")
+            if isinstance(runtime_probe_error, str) and runtime_probe_error:
+                warnings.append(runtime_probe_error)
+                logs.append(runtime_probe_error)
+            logs.append(
+                "Asset Processor runtime visibility is unavailable on this host through the admitted probe."
+            )
+
+        job_unavailable_reason = (
+            "No admitted real Asset Processor job telemetry substrate is available in this slice."
+        )
+        platform_unavailable_reason = (
+            "No admitted real Asset Processor platform status substrate is available in this slice."
+        )
+        if include_jobs:
+            unavailable_evidence.append("jobs")
+            logs.append(job_unavailable_reason)
+        if include_platforms:
+            unavailable_evidence.append("platforms")
+            logs.append(platform_unavailable_reason)
+
+        message = (
+            "Read-only Asset Processor status inspection completed against the admitted host runtime probe."
+        )
+        if runtime_status == "running":
+            message = (
+                "Read-only Asset Processor status inspection completed and confirmed a running Asset Processor runtime."
+            )
+        elif runtime_status == "not-running":
+            message = (
+                "Read-only Asset Processor status inspection completed and found no running Asset Processor runtime."
+            )
+        elif runtime_status == "unknown":
+            message = (
+                "Read-only Asset Processor status inspection completed, but runtime visibility is unavailable on this host."
+            )
+
+        details = {
+            "inspection_surface": "asset_processor_runtime",
+            "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+            "simulated": False,
+            "adapter_family": self.family,
+            "adapter_mode": self.mode,
+            "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+            "real_path_available": True,
+            "project_root_path": str(Path(project_root).expanduser().resolve()),
+            "engine_root_path": str(Path(engine_root).expanduser().resolve()),
+            "runtime_probe_method": runtime_probe_method,
+            "runtime_probe_available": runtime_probe_available,
+            "runtime_probe_scope": "host-process-name",
+            "runtime_probe_error": runtime_probe_error if isinstance(runtime_probe_error, str) and runtime_probe_error else None,
+            "runtime_status": runtime_status,
+            "runtime_available": runtime_available,
+            "runtime_process_count": runtime_process_count,
+            "runtime_process_ids": runtime_process_ids,
+            "runtime_process_names": runtime_process_names,
+            "candidate_process_names": [
+                "AssetProcessor.exe",
+                "AssetProcessor",
+            ],
+            "include_flags": {
+                "include_jobs": include_jobs,
+                "include_platforms": include_platforms,
+            },
+            "inspection_evidence": inspection_evidence,
+            "unavailable_evidence": unavailable_evidence,
+            "job_evidence_requested": include_jobs,
+            "job_evidence_available": False,
+            "job_count": 0,
+            "jobs": [],
+            "job_evidence_source": "unavailable-no-admitted-job-telemetry",
+            "job_unavailable_reason": job_unavailable_reason,
+            "platform_evidence_requested": include_platforms,
+            "platform_evidence_available": False,
+            "platform_count": 0,
+            "platforms": [],
+            "platform_evidence_source": "unavailable-no-admitted-platform-telemetry",
+            "platform_unavailable_reason": platform_unavailable_reason,
+        }
+        result = DispatchResult(
+            status="real_success",
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            simulated=False,
+            execution_mode="real",
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+            message=message,
+        )
+        return AdapterExecutionReport(
+            execution_mode="real",
+            result=result,
+            warnings=warnings,
+            logs=logs,
+            artifact_label="Real Asset Processor status evidence",
+            artifact_kind="asset_processor_status_result",
+            artifact_uri="asset-processor://runs/{run_id}/executions/{execution_id}/status",
+            artifact_metadata={
+                "tool": tool,
+                "agent": agent,
+                "execution_mode": "real",
+                **details,
+            },
+            execution_details=details,
+            result_summary="Real Asset Processor status inspection completed successfully.",
+        )
+
+    def _probe_asset_processor_runtime(self) -> dict[str, Any]:
+        candidate_names = {"assetprocessor.exe", "assetprocessor"}
+        if os.name == "nt":
+            try:
+                completed = subprocess.run(
+                    ["tasklist", "/FO", "CSV", "/NH"],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+            except OSError as exc:
+                return {
+                    "runtime_probe_available": False,
+                    "runtime_probe_method": "windows-tasklist",
+                    "runtime_probe_error": (
+                        "Asset Processor runtime probe is unavailable because tasklist could not be executed: "
+                        f"{exc}"
+                    ),
+                    "runtime_process_ids": [],
+                    "runtime_process_names": [],
+                }
+            if completed.returncode != 0:
+                stderr = (completed.stderr or "").strip() or "tasklist returned a non-zero exit code."
+                return {
+                    "runtime_probe_available": False,
+                    "runtime_probe_method": "windows-tasklist",
+                    "runtime_probe_error": (
+                        "Asset Processor runtime probe is unavailable because tasklist failed: "
+                        f"{stderr}"
+                    ),
+                    "runtime_process_ids": [],
+                    "runtime_process_names": [],
+                }
+
+            runtime_process_ids: list[int] = []
+            runtime_process_names: list[str] = []
+            for row in csv.reader(
+                line
+                for line in (completed.stdout or "").splitlines()
+                if line.strip()
+            ):
+                if len(row) < 2:
+                    continue
+                image_name = row[0].strip()
+                if image_name.lower() not in candidate_names:
+                    continue
+                try:
+                    pid = int(row[1].strip())
+                except ValueError:
+                    continue
+                runtime_process_ids.append(pid)
+                runtime_process_names.append(image_name)
+            return {
+                "runtime_probe_available": True,
+                "runtime_probe_method": "windows-tasklist",
+                "runtime_process_ids": runtime_process_ids,
+                "runtime_process_names": runtime_process_names,
+            }
+
+        try:
+            completed = subprocess.run(
+                ["ps", "-A", "-o", "pid=", "-o", "comm="],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        except OSError as exc:
+            return {
+                "runtime_probe_available": False,
+                "runtime_probe_method": "posix-ps",
+                "runtime_probe_error": (
+                    "Asset Processor runtime probe is unavailable because ps could not be executed: "
+                    f"{exc}"
+                ),
+                "runtime_process_ids": [],
+                "runtime_process_names": [],
+            }
+        if completed.returncode != 0:
+            stderr = (completed.stderr or "").strip() or "ps returned a non-zero exit code."
+            return {
+                "runtime_probe_available": False,
+                "runtime_probe_method": "posix-ps",
+                "runtime_probe_error": (
+                    "Asset Processor runtime probe is unavailable because ps failed: "
+                    f"{stderr}"
+                ),
+                "runtime_process_ids": [],
+                "runtime_process_names": [],
+            }
+
+        runtime_process_ids: list[int] = []
+        runtime_process_names: list[str] = []
+        for line in (completed.stdout or "").splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            parts = stripped.split(None, 1)
+            if len(parts) != 2:
+                continue
+            pid_text, image_name = parts
+            if image_name.strip().lower() not in candidate_names:
+                continue
+            try:
+                pid = int(pid_text)
+            except ValueError:
+                continue
+            runtime_process_ids.append(pid)
+            runtime_process_names.append(image_name.strip())
+        return {
+            "runtime_probe_available": True,
+            "runtime_probe_method": "posix-ps",
+            "runtime_process_ids": runtime_process_ids,
+            "runtime_process_names": runtime_process_names,
+        }
 
     def _execute_asset_source_inspect(
         self,
@@ -3243,6 +3531,7 @@ class AdapterService:
                     "Hybrid mode now includes a narrow admitted subset of real O3DE adapters.",
                     "Hybrid mode currently enables a real read-only asset.source.inspect "
                     "path for explicit project-local source files, a real read-only "
+                    "asset.processor.status host runtime probe, a real read-only "
                     "project.inspect path, admitted real editor session/level runtime paths, "
                     "an admitted real root-level editor.entity.create path on "
                     "McpSandbox, an admitted allowlist-bound editor.component.add "
@@ -3276,6 +3565,9 @@ class AdapterService:
                 warning=None,
                 notes=[
                     "Adapter mode selection is now config-driven.",
+                    "Hybrid mode enables a real read-only asset.processor.status path when "
+                    "host process visibility is available, with job and platform evidence "
+                    "kept explicit when unavailable.",
                     "Hybrid mode enables a real read-only asset.source.inspect path when "
                     "the explicit source path resolves within the current project root.",
                     "Hybrid mode enables a real read-only project.inspect path when its "
@@ -3407,9 +3699,9 @@ class AdapterService:
                     )
                 if family == "asset-pipeline":
                     family_notes.append(
-                        "asset.source.inspect currently has a real read-only project-local "
-                        "source inspection path in this family."
-                    )
+                    "asset.processor.status and asset.source.inspect currently have "
+                    "real read-only admitted paths in this family."
+                )
                 if family == "editor-control":
                     family_notes.append(
                         "editor.session.open, editor.level.open, "

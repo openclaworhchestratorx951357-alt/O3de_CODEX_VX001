@@ -19,7 +19,10 @@
       "properties": {
         "tool": { "const": "asset.processor.status" },
         "agent": { "const": "asset-pipeline" },
-        "execution_mode": { "const": "simulated" }
+        "execution_mode": {
+          "type": "string",
+          "enum": ["simulated", "real"]
+        }
       }
     }
   ]

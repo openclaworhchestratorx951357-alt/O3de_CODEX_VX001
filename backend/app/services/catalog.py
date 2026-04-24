@@ -13,6 +13,8 @@ def tool_result_schema(tool_name: str) -> str:
 def tool_capability_status(tool_name: str) -> str:
     if tool_name == "project.inspect":
         return "hybrid-read-only"
+    if tool_name == "asset.processor.status":
+        return "hybrid-read-only"
     if tool_name == "asset.source.inspect":
         return "hybrid-read-only"
     if tool_name == "editor.component.property.get":

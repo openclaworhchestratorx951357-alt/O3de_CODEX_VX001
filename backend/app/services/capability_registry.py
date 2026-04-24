@@ -84,6 +84,15 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             retention_class="manifest-inspection-evidence",
             natural_language_status="prompt-ready-read-only",
         )
+    if tool_name == "asset.processor.status":
+        return _build_safety_envelope(
+            state_scope="Project Asset Processor runtime availability query.",
+            backup_class="none",
+            rollback_class="none",
+            verification_class="host runtime visibility readback",
+            retention_class="operator-summary-evidence",
+            natural_language_status="prompt-ready-read-only",
+        )
     if tool_name == "asset.source.inspect":
         return _build_safety_envelope(
             state_scope="Single project-local source-asset identity and dependency read scope.",
@@ -283,11 +292,13 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": False,
     },
     "asset.processor.status": {
-        "capability_maturity": "simulated-only",
+        "capability_maturity": "hybrid-read-only",
         "planner_intent_aliases": ["asset processor status", "asset status", "asset processor"],
-        "natural_language_affordances": ["Inspect Asset Processor runtime state."],
+        "natural_language_affordances": [
+            "Inspect Asset Processor runtime availability through the admitted real host probe."
+        ],
         "allowlisted_parameter_surfaces": ["include_jobs", "include_platforms"],
-        "real_adapter_availability": False,
+        "real_adapter_availability": True,
         "dry_run_availability": True,
         "simulation_fallback_availability": True,
     },

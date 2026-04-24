@@ -3939,6 +3939,58 @@ def test_asset_processor_status_simulated_persisted_payloads_match_published_sch
         )
 
 
+def test_asset_processor_status_real_persisted_payloads_match_published_schemas() -> None:
+    with isolated_database():
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.AssetPipelineHybridAdapter._probe_asset_processor_runtime",
+                return_value={
+                    "runtime_probe_available": True,
+                    "runtime_probe_method": "windows-tasklist",
+                    "runtime_process_ids": [4242],
+                    "runtime_process_names": ["AssetProcessor.exe"],
+                },
+            ):
+                response = dispatcher_service.dispatch(make_asset_processor_status_request())
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "asset_processor_runtime"
+        assert execution.details["runtime_probe_available"] is True
+        assert execution.details["runtime_status"] == "running"
+        assert execution.details["runtime_process_count"] == 1
+        assert execution.details["job_evidence_available"] is False
+        assert execution.details["platform_evidence_available"] is False
+        assert artifact is not None
+        assert artifact.simulated is False
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "asset_processor_runtime"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="asset.processor.status",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="asset.processor.status",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
 def test_asset_batch_process_simulated_persisted_payloads_match_published_schemas() -> None:
     with isolated_database():
         response = dispatcher_service.dispatch(approve_asset_batch_process_request())

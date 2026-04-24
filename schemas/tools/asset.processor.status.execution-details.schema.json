@@ -12,12 +12,81 @@
   "properties": {
     "inspection_surface": {
       "type": "string",
-      "const": "simulated"
+      "enum": ["simulated", "asset_processor_runtime"]
     },
     "execution_boundary": { "type": "string", "minLength": 1 },
-    "simulated": { "type": "boolean", "const": true },
+    "simulated": { "type": "boolean" },
     "adapter_family": { "type": "string", "minLength": 1 },
     "adapter_mode": { "type": "string", "minLength": 1 },
-    "adapter_contract_version": { "type": "string", "minLength": 1 }
+    "adapter_contract_version": { "type": "string", "minLength": 1 },
+    "real_path_available": { "type": "boolean" },
+    "fallback_category": { "type": "string", "minLength": 1 },
+    "fallback_reason": { "type": "string", "minLength": 1 },
+    "project_root_path": { "type": "string", "minLength": 1 },
+    "engine_root_path": { "type": "string", "minLength": 1 },
+    "runtime_probe_method": { "type": "string", "minLength": 1 },
+    "runtime_probe_available": { "type": "boolean" },
+    "runtime_probe_scope": { "type": "string", "minLength": 1 },
+    "runtime_probe_error": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "runtime_status": { "type": "string", "minLength": 1 },
+    "runtime_available": { "type": "boolean" },
+    "runtime_process_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "runtime_process_ids": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "runtime_process_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "candidate_process_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "include_flags": {
+      "type": "object",
+      "additionalProperties": { "type": "boolean" }
+    },
+    "inspection_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "unavailable_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "job_evidence_requested": { "type": "boolean" },
+    "job_evidence_available": { "type": "boolean" },
+    "job_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "jobs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "job_evidence_source": { "type": "string", "minLength": 1 },
+    "job_unavailable_reason": { "type": "string", "minLength": 1 },
+    "platform_evidence_requested": { "type": "boolean" },
+    "platform_evidence_available": { "type": "boolean" },
+    "platform_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "platforms": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "platform_evidence_source": { "type": "string", "minLength": 1 },
+    "platform_unavailable_reason": { "type": "string", "minLength": 1 }
   }
 }

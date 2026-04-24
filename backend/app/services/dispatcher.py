@@ -682,6 +682,23 @@ class DispatcherService:
             admitted_tools = ["project.inspect", "build.configure"]
             backup_class = None
             rollback_class = None
+        elif (
+            request.tool == "asset.processor.status"
+            and inspection_surface == "asset_processor_runtime"
+        ):
+            executor_id = "executor-asset-pipeline-hybrid-readonly-host"
+            executor_kind = "local-admitted-readonly"
+            executor_label = "Admitted host runtime status executor"
+            executor_host_label = "local-host-process-visibility"
+            workspace_kind = "admitted-readonly-host-runtime"
+            cleanup_policy = "operator-managed-readonly"
+            artifact_role = "inspection-evidence"
+            evidence_completeness = "inspection-backed"
+            execution_boundary = "read-only host Asset Processor runtime inspection"
+            workspace_id = f"workspace-asset-processor-status-{execution_id}"
+            admitted_tools = ["asset.processor.status"]
+            backup_class = None
+            rollback_class = None
         elif request.tool == "asset.source.inspect" and inspection_surface == "asset_source_file":
             executor_id = "executor-asset-pipeline-hybrid-readonly-local"
             executor_kind = "local-admitted-readonly"
@@ -1226,6 +1243,8 @@ class DispatcherService:
             )
         if request.tool == "project.inspect" and capability == "hybrid-read-only":
             return "hybrid-read-only project.inspect path"
+        if request.tool == "asset.processor.status" and capability == "hybrid-read-only":
+            return "hybrid-read-only asset.processor.status path"
         if request.tool == "asset.source.inspect" and capability == "hybrid-read-only":
             return "hybrid-read-only asset.source.inspect path"
         return f"{capability} dispatch"
@@ -1233,6 +1252,8 @@ class DispatcherService:
     def _result_warning(self, request: RequestEnvelope, result) -> str:
         if result.simulated:
             return "Underlying O3DE execution remains simulated in this phase."
+        if request.tool == "asset.processor.status":
+            return "This run used the first real read-only asset.processor.status path."
         if request.tool == "asset.source.inspect":
             return "This run used the first real read-only asset.source.inspect path."
         if request.tool == "project.inspect":
