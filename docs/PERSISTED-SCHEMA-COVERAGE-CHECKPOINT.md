@@ -109,15 +109,15 @@ every tool in:
 ## Recommended next expansion
 
 The safest next expansion is no longer tool-by-tool schema rollout inside the
-current published catalog. The highest-signal next slice is to refresh docs and
-operator-facing status wording so the now-complete cross-family coverage is
-described truthfully and consistently.
+current published catalog. The highest-signal next slice is to reselect one
+truthful next depth packet from the now-aligned read-only, plan-only, and
+mutation-gated baseline.
 
 After that, the next engineering decision is whether to:
 - keep tightening contract and verification depth around the already admitted
   narrow plan-only and mutation-gated boundaries
-- or reselect the single safest next mutation or execution lane only after that
-  checkpoint is refreshed
+- or reselect the single safest next mutation or execution lane only when a
+  narrower evidence-first packet is no longer available
 
 ## Non-goals of this checkpoint
 

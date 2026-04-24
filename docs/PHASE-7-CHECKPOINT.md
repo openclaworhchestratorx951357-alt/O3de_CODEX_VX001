@@ -21,13 +21,16 @@ As of the current accepted branch state:
 - approvals, runs, locks, events, executions, and artifacts are real records
 - adapter mode selection is real and config-driven
 - adapter registry reporting is real
+- operator-facing status now separates read-only, plan-only, and
+  mutation-gated real lanes instead of collapsing them into one hybrid bucket
 - operator visibility for adapter mode, capability gating, provenance, and
   approval/policy meaning is in place
 - operator visibility now also includes persisted settings.patch audit summary,
   admitted mutation evidence wording, and refresh-preserved run detail context
 - admitted Phase 7 backend evidence now also carries aligned manifest/root
   provenance and fallback categorization across `project.inspect`,
-  `build.configure`, and `settings.patch`
+  `build.configure`, `settings.patch`, and the newer admitted asset/render/test
+  plan-only and mutation-gated paths
 
 Real O3DE execution is still narrow.
 
@@ -36,6 +39,11 @@ Real O3DE execution is still narrow.
 ### Real read-only
 
 - `project.inspect`
+- `asset.processor.status`
+- `asset.source.inspect`
+- `render.capture.viewport`
+- `render.material.inspect`
+- `test.visual.diff`
 
 Current truth:
 - may use a real read-only manifest-backed path in `O3DE_ADAPTER_MODE=hybrid`
@@ -46,6 +54,13 @@ Current truth:
   admitted real path
 - now also persists explicit simulated-fallback provenance including expected
   manifest path and missing-vs-unreadable fallback categorization
+- asset and render admitted read-only slices remain narrow and evidence-first:
+  `asset.processor.status` and `asset.source.inspect` expose explicit local
+  asset/runtime evidence, while `render.capture.viewport` and
+  `render.material.inspect` remain explicit runtime-probe/read-only evidence
+  paths rather than broader render runtime readback or artifact guarantees
+- `test.visual.diff` remains a narrow admitted real evidence path and does not
+  imply broad test runner execution
 - falls back to simulated when the real manifest path is unavailable
 - remains explicitly labeled as real vs simulated in backend and frontend
 - still does not authorize deeper layered settings discovery or any mutation path
@@ -53,6 +68,13 @@ Current truth:
 ### Real plan-only
 
 - `build.configure`
+- `build.compile`
+- `asset.batch.process`
+- `asset.move.safe`
+- `render.shader.rebuild`
+- `test.run.gtest`
+- `test.run.editor_python`
+- `test.tiaf.sequence`
 
 Current truth:
 - may use a real plan-only preflight path in `O3DE_ADAPTER_MODE=hybrid`
@@ -62,12 +84,24 @@ Current truth:
 - now also records explicit simulated-fallback provenance including
   `dry-run-required`, `manifest-missing`, and `manifest-unreadable`
   categorization when the real preflight path is unavailable
+- `build.compile` now has an admitted real preflight/result-truth corridor for
+  explicit build target requests
+- `asset.batch.process` and `asset.move.safe` now have admitted real
+  preflight/result-truth corridors for explicit project-local source-glob and
+  identity-corridor requests
+- `render.shader.rebuild` now has an admitted real preflight/result-truth
+  corridor for explicit shader target requests
+- `test.run.gtest`, `test.run.editor_python`, and `test.tiaf.sequence` now
+  have admitted real preflight/result-truth corridors for explicit validation
+  requests without implying actual test execution
 - does not execute a real configure mutation
 - falls back to simulated when preconditions are not satisfied
 
 ### Real mutation-gated
 
 - `settings.patch`
+- `gem.enable`
+- `render.material.patch`
 
 Current truth:
 - may use a real hybrid preflight path
@@ -79,6 +113,13 @@ Current truth:
 - now also persists explicit simulated-fallback provenance including
   `manifest-missing`, `manifest-unreadable`, and `mutation-not-admitted`
   categorization when the admitted real path is unavailable
+- `gem.enable` now has an admitted narrow approval-gated real mutation corridor
+  for explicit local `project.json` top-level `gem_names` insertion, with
+  backup, reread verification, and rollback on failure
+- `render.material.patch` now has an admitted narrow approval-gated real
+  mutation corridor for explicit local `.material` top-level `propertyValues`
+  overrides, with backup, reread verification, rollback on failure, and
+  optional explicit post-patch shader preflight review evidence
 - remains approval-gated and tightly bounded rather than broadly mutation-capable
 - falls back to simulated when the admitted real path is unavailable or
   preconditions are not satisfied
@@ -107,20 +148,6 @@ Current truth:
 - must continue to be described as excluded rather than partially-real or
   implied-real
 - should not be widened until a stable prefab-safe create contract is proven
-
-### Mutation candidates after the current gate
-
-- `gem.enable`
-- `build.compile`
-
-Current truth:
-- `gem.enable` now has an admitted narrow approval-gated real mutation
-  corridor for explicit local `project.json` top-level `gem_names` insertion,
-  with backup, reread verification, and rollback on failure
-- `build.compile` now has an admitted real plan-only preflight/result-truth
-  corridor for explicit build target requests
-- neither boundary implies broad Gem dependency/configure recovery or actual
-  compile execution
 
 ### Simulated-only
 
@@ -155,6 +182,8 @@ The operator shell now exposes this boundary through:
   for admitted real-path failures
 - explicit manifest/root/source-of-truth provenance for admitted real preflight
   and mutation evidence
+- explicit operator-visible separation between plan-only and mutation-gated
+  lanes in adapter and readiness rollups
 - explicit bridge heartbeat, queue, cleanup history, and lag-note visibility
   for the admitted editor-runtime boundary
 - local operator-lane state, action rails, and detail-panel carry-through for
@@ -177,6 +206,8 @@ The operator shell now exposes this boundary through:
   engine compatibility inventory, explicit project origin provenance, and
   explicit presentation metadata inventory, and explicit identity/tag inventory
   rather than broader layered config discovery
+- `build.compile` remains a preflight/result-truth path and does not imply
+  actual compile execution, exit semantics, or build artifact production
 - `asset.batch.process` and `asset.move.safe` remain preflight-only and do not
   imply real asset processing or real asset move/reference-repair execution
 - `test.run.gtest`, `test.run.editor_python`, and `test.tiaf.sequence` remain
@@ -208,10 +239,10 @@ Before widening into broader real adapter execution, the next slice should stay
 narrow and truthful.
 
 Recommended next boundary:
-- refresh checkpoint and operator-facing truth so the already admitted
-  read-only, plan-only, and narrow mutation-gated lanes are described
-  consistently, and
-- define the next narrow admitted backend contract only if it preserves the same
-  explicit real-vs-simulated boundary and does not blur the already-admitted
-  `settings.patch`, `gem.enable`, or `render.material.patch` mutation
-  boundaries into broader mutation claims
+- reselect the single safest next depth step from the now-aligned read-only,
+  plan-only, and narrow mutation-gated baseline, and
+- prefer a read-only or evidence-first verification packet before broader
+  execution widening; the strongest current follow-on is render/material depth
+  only if it stays inside truthful post-patch verification or runtime-evidence
+  boundaries rather than implying broader shader execution or render runtime
+  readback
