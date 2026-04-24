@@ -38,6 +38,7 @@ REAL_TOOL_PATHS_BY_MODE = {
         "asset.processor.status",
         "asset.source.inspect",
         "render.capture.viewport",
+        "render.material.inspect",
         "project.inspect",
         "test.visual.diff",
     ],
@@ -54,7 +55,8 @@ HYBRID_EXECUTION_BOUNDARY = (
     "use a real read-only host runtime probe, asset.source.inspect may "
     "use a real read-only project-local source inspection path, project.inspect may use a "
     "real read-only project-manifest path, test.visual.diff may use a real "
-    "read-only explicit viewport-capture substrate probe, "
+    "read-only explicit viewport-capture substrate probe, render.material.inspect may use a "
+    "real read-only explicit material-inspection runtime probe, "
     "read-only explicit artifact comparison path, "
     "editor.level.open may use the "
     "live-validated admitted real editor runtime path on McpSandbox, "
@@ -4138,6 +4140,21 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
                 approval_class=approval_class,
                 locks_acquired=locks_acquired,
             )
+        if tool == "render.material.inspect":
+            return self._execute_render_material_inspect(
+                request_id=request_id,
+                session_id=session_id,
+                workspace_id=workspace_id,
+                executor_id=executor_id,
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+            )
 
         simulated = self._simulated.execute(
             request_id=request_id,
@@ -4321,6 +4338,166 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
             result_summary="Real render capture substrate probe completed successfully.",
         )
 
+    def _execute_render_material_inspect(
+        self,
+        *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        runtime_probe = editor_automation_runtime_service.execute_render_material_inspect(
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            locks_acquired=locks_acquired,
+        )
+        runtime_result = runtime_probe.get("runtime_result", {})
+        if not isinstance(runtime_result, dict):
+            runtime_result = {}
+
+        runtime_available = bool(runtime_result.get("runtime_available"))
+        material_inspection_attempted = bool(
+            runtime_result.get("material_inspection_attempted")
+        )
+        material_evidence_produced = bool(runtime_result.get("material_evidence_produced"))
+        material_unavailable_reason = str(
+            runtime_result.get(
+                "material_unavailable_reason",
+                "No admitted real material inspection path is available in this slice.",
+            )
+        )
+
+        inspection_evidence = ["runtime_probe_attempt"]
+        unavailable_evidence: list[str] = []
+        logs = [
+            "Real render.material.inspect executed through the admitted editor runtime probe substrate.",
+            f"Runtime probe method: {runtime_result.get('runtime_probe_method', 'editor-runtime-get-context')}",
+        ]
+        if runtime_available:
+            inspection_evidence.append("runtime_context_readback")
+            logs.append("Material inspection runtime context was available in the admitted editor substrate.")
+        else:
+            unavailable_evidence.append("runtime")
+            logs.append("Material inspection runtime evidence remained unavailable in this editor context.")
+        if material_inspection_attempted:
+            inspection_evidence.append("material_inspection_attempt")
+        else:
+            unavailable_evidence.append("material_inspection_attempt")
+        if material_evidence_produced:
+            inspection_evidence.append("material_evidence")
+        else:
+            unavailable_evidence.append("material_evidence")
+        logs.append(material_unavailable_reason)
+
+        details = {
+            "inspection_surface": "render_material_runtime_probe",
+            "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+            "simulated": False,
+            "adapter_family": self.family,
+            "adapter_mode": self.mode,
+            "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+            "real_path_available": True,
+            "material_request_explicit": True,
+            "inspection_read_mode": "read-only",
+            "runtime_probe_attempted": bool(runtime_result.get("runtime_probe_attempted", True)),
+            "runtime_probe_method": runtime_result.get("runtime_probe_method"),
+            "runtime_available": runtime_available,
+            "material_runtime_mode": runtime_result.get("material_runtime_mode"),
+            "material_operation_available": bool(
+                runtime_result.get("material_operation_available", False)
+            ),
+            "material_inspection_attempted": material_inspection_attempted,
+            "material_evidence_produced": material_evidence_produced,
+            "material_evidence_path": runtime_result.get("material_evidence_path"),
+            "material_unavailable_reason": material_unavailable_reason,
+            "material_path": runtime_result.get("material_path") or args.get("material_path"),
+            "include_shader_data_requested": bool(
+                runtime_result.get(
+                    "include_shader_data_requested",
+                    args.get("include_shader_data"),
+                )
+            ),
+            "include_references_requested": bool(
+                runtime_result.get(
+                    "include_references_requested",
+                    args.get("include_references"),
+                )
+            ),
+            "active_level_path": runtime_result.get("active_level_path"),
+            "inspection_evidence": inspection_evidence,
+            "unavailable_evidence": unavailable_evidence,
+            **{
+                key: runtime_result[key]
+                for key in (
+                    "bridge_name",
+                    "bridge_version",
+                    "bridge_available",
+                    "bridge_operation",
+                    "bridge_contract_version",
+                    "bridge_command_id",
+                    "bridge_result_summary",
+                    "bridge_error_code",
+                    "bridge_heartbeat_seen_at",
+                    "bridge_queue_mode",
+                    "bridge_selected_entity_count",
+                    "bridge_prefab_context_notes",
+                    "editor_transport",
+                    "editor_log_path",
+                )
+                if key in runtime_result
+            },
+        }
+        message = str(
+            runtime_result.get(
+                "message",
+                "Material inspection substrate probe completed against the admitted editor runtime path.",
+            )
+        )
+        result = DispatchResult(
+            status="real_success",
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            simulated=False,
+            execution_mode="real",
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+            message=message,
+        )
+        return AdapterExecutionReport(
+            execution_mode="real",
+            result=result,
+            warnings=[],
+            logs=logs,
+            artifact_label="Render material substrate evidence",
+            artifact_kind="render_material_probe_result",
+            artifact_uri="render-material-probe://runs/{run_id}/executions/{execution_id}/probe",
+            artifact_metadata={
+                "tool": tool,
+                "agent": agent,
+                "execution_mode": "real",
+                **details,
+            },
+            execution_details=details,
+            result_summary="Real render material substrate probe completed successfully.",
+        )
+
 
 class AdapterService:
     def _real_tool_paths_for_mode(self, active_mode: str) -> list[str]:
@@ -4449,6 +4626,7 @@ class AdapterService:
                     "path for explicit project-local source files, a real read-only "
                     "asset.processor.status host runtime probe, a real read-only "
                     "render.capture.viewport explicit runtime probe substrate, a real read-only "
+                    "render.material.inspect explicit runtime probe substrate, a real read-only "
                     "test.visual.diff explicit artifact comparison substrate, a real read-only "
                     "project.inspect path, admitted real editor session/level runtime paths, "
                     "an admitted real root-level editor.entity.create path on "
@@ -4492,6 +4670,8 @@ class AdapterService:
                     "manifest preconditions are satisfied.",
                     "Hybrid mode enables a real read-only render.capture.viewport substrate "
                     "when an explicit capture request reaches the admitted editor runtime probe path.",
+                    "Hybrid mode enables a real read-only render.material.inspect substrate "
+                    "when an explicit material inspection request reaches the admitted editor runtime probe path.",
                     "Hybrid mode enables a real read-only test.visual.diff substrate "
                     "when both requested artifact ids resolve to admitted local files.",
                     "Hybrid mode also enables admitted real editor runtime paths for "
@@ -4641,8 +4821,8 @@ class AdapterService:
                     )
                 if family == "render-lookdev":
                     family_notes.append(
-                        "render.capture.viewport currently has a real read-only admitted "
-                        "runtime probe substrate in this family."
+                        "render.capture.viewport and render.material.inspect currently have "
+                        "real read-only admitted runtime probe substrates in this family."
                     )
             elif runtime_status.active_mode == "hybrid":
                 family_notes.append(

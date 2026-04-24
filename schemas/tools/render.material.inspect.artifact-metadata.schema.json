@@ -19,7 +19,10 @@
       "properties": {
         "tool": { "const": "render.material.inspect" },
         "agent": { "const": "render-lookdev" },
-        "execution_mode": { "const": "simulated" }
+        "execution_mode": {
+          "type": "string",
+          "enum": ["simulated", "real"]
+        }
       }
     }
   ]

@@ -515,6 +515,9 @@ class PromptOrchestratorService:
         render_capture_response = self._latest_successful_response_for_step(
             session, "render-capture-1"
         )
+        render_material_response = self._latest_successful_response_for_step(
+            session, "render-material-inspect-1"
+        )
         visual_diff_response = self._latest_successful_response_for_step(
             session, "validation-visual-diff-1"
         )
@@ -651,6 +654,28 @@ class PromptOrchestratorService:
                     "No real capture artifact was produced in this admitted slice."
                 )
             unavailable_reason = details.get("capture_unavailable_reason")
+            if isinstance(unavailable_reason, str) and unavailable_reason:
+                summary_parts.append(unavailable_reason)
+
+        if render_material_response is not None:
+            details = render_material_response.get("execution_details", {})
+            if details.get("runtime_available") is True:
+                summary_parts.append(
+                    "Material inspection runtime probe confirmed editor runtime context is available for explicit inspection requests."
+                )
+            else:
+                summary_parts.append(
+                    "Material inspection runtime evidence remains unavailable in this admitted slice."
+                )
+            if details.get("material_evidence_produced") is True:
+                summary_parts.append(
+                    "Material inspection evidence confirmed a real material evidence record was produced."
+                )
+            else:
+                summary_parts.append(
+                    "No real material evidence was produced in this admitted slice."
+                )
+            unavailable_reason = details.get("material_unavailable_reason")
             if isinstance(unavailable_reason, str) and unavailable_reason:
                 summary_parts.append(unavailable_reason)
 

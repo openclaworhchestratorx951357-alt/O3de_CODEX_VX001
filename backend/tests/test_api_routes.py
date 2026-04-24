@@ -804,6 +804,7 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
                 "asset.processor.status",
                 "asset.source.inspect",
                 "render.capture.viewport",
+                "render.material.inspect",
                 "project.inspect",
                 "test.visual.diff",
             ]
@@ -856,6 +857,7 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "asset.processor.status",
                 "asset.source.inspect",
                 "render.capture.viewport",
+                "render.material.inspect",
                 "project.inspect",
                 "test.visual.diff",
             ]
@@ -914,15 +916,17 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 for note in editor_control["notes"]
             )
             assert render_lookdev["supports_real_execution"] is True
-            assert render_lookdev["real_tool_paths"] == ["render.capture.viewport"]
+            assert render_lookdev["real_tool_paths"] == [
+                "render.capture.viewport",
+                "render.material.inspect",
+            ]
             assert render_lookdev["plan_only_tool_paths"] == []
             assert sorted(render_lookdev["simulated_tool_paths"]) == [
-                "render.material.inspect",
                 "render.material.patch",
                 "render.shader.rebuild",
             ]
             assert any(
-                "render.capture.viewport" in note
+                "render.capture.viewport" in note or "render.material.inspect" in note
                 for note in render_lookdev["notes"]
             )
             assert validation["supports_real_execution"] is True
@@ -961,6 +965,21 @@ def test_prompt_capabilities_reports_render_capture_viewport_as_hybrid_read_only
             item
             for item in payload["capabilities"]
             if item["tool_name"] == "render.capture.viewport"
+        )
+        assert entry["agent_family"] == "render-lookdev"
+        assert entry["capability_maturity"] == "hybrid-read-only"
+        assert entry["safety_envelope"]["natural_language_status"] == "prompt-ready-read-only"
+
+
+def test_prompt_capabilities_reports_render_material_inspect_as_hybrid_read_only() -> None:
+    with isolated_client() as client:
+        response = client.get("/prompt/capabilities")
+        assert response.status_code == 200
+        payload = response.json()
+        entry = next(
+            item
+            for item in payload["capabilities"]
+            if item["tool_name"] == "render.material.inspect"
         )
         assert entry["agent_family"] == "render-lookdev"
         assert entry["capability_maturity"] == "hybrid-read-only"
@@ -1107,6 +1126,20 @@ def test_policies_route_marks_render_capture_viewport_as_real_read_only_active()
         assert render_capture["real_admission_stage"] == "real-read-only-active"
         assert render_capture["execution_mode"] == "real"
         assert "artifact-presence reporting" in render_capture["next_real_requirement"].lower()
+
+
+def test_policies_route_marks_render_material_inspect_as_real_read_only_active() -> None:
+    with isolated_client() as client:
+        response = client.get("/policies")
+        assert response.status_code == 200
+        render_material = next(
+            policy
+            for policy in response.json()["policies"]
+            if policy["tool"] == "render.material.inspect"
+        )
+        assert render_material["real_admission_stage"] == "real-read-only-active"
+        assert render_material["execution_mode"] == "real"
+        assert "material-evidence reporting" in render_material["next_real_requirement"].lower()
 
 
 def test_runs_endpoint_reflects_dispatch_attempt() -> None:

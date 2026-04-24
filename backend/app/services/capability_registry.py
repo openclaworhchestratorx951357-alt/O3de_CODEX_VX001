@@ -111,6 +111,15 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             retention_class="capture-evidence",
             natural_language_status="prompt-ready-read-only",
         )
+    if tool_name == "render.material.inspect":
+        return _build_safety_envelope(
+            state_scope="Explicit material inspection evidence request.",
+            backup_class="none",
+            rollback_class="none",
+            verification_class="runtime probe and material evidence metadata verification",
+            retention_class="inspection-evidence",
+            natural_language_status="prompt-ready-read-only",
+        )
     if tool_name == "test.visual.diff":
         return _build_safety_envelope(
             state_scope="Explicit baseline-versus-candidate artifact comparison scope.",
@@ -401,11 +410,11 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": True,
     },
     "render.material.inspect": {
-        "capability_maturity": "simulated-only",
+        "capability_maturity": "hybrid-read-only",
         "planner_intent_aliases": ["inspect material", "show material", "material details"],
         "natural_language_affordances": ["Inspect a material by explicit material path."],
         "allowlisted_parameter_surfaces": ["material_path", "include_shader_data", "include_references"],
-        "real_adapter_availability": False,
+        "real_adapter_availability": True,
         "dry_run_availability": True,
         "simulation_fallback_availability": True,
     },

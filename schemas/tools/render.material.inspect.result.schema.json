@@ -9,8 +9,11 @@
       "properties": {
         "tool": { "const": "render.material.inspect" },
         "approval_class": { "const": "read_only" },
-        "execution_mode": { "const": "simulated" },
-        "simulated": { "const": true }
+        "execution_mode": {
+          "type": "string",
+          "enum": ["simulated", "real"]
+        },
+        "simulated": { "type": "boolean" }
       }
     }
   ]

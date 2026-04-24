@@ -4230,6 +4230,131 @@ def test_render_material_inspect_simulated_persisted_payloads_match_published_sc
         )
 
 
+def test_render_material_inspect_uses_real_runtime_probe_substrate_in_hybrid_mode() -> None:
+    with isolated_database():
+        runtime_result = {
+            "ok": True,
+            "message": "Material inspection substrate probe completed against the admitted editor runtime path.",
+            "runtime_probe_attempted": True,
+            "runtime_probe_method": "editor-runtime-get-context",
+            "runtime_available": True,
+            "material_inspection_requested": True,
+            "material_inspection_attempted": False,
+            "material_runtime_mode": "runtime-probe-only",
+            "material_operation_available": False,
+            "material_evidence_produced": False,
+            "material_evidence_path": None,
+            "material_unavailable_reason": "No admitted real material inspection path is available in this slice.",
+            "material_path": "Materials/Example.material",
+            "include_shader_data_requested": True,
+            "include_references_requested": True,
+            "active_level_path": "Levels/Main.level",
+            "editor_transport": "oneshot",
+            "bridge_name": "ControlPlaneEditorBridge",
+            "bridge_available": True,
+            "bridge_operation": "GetEditorContext",
+            "bridge_contract_version": "v0.1",
+            "bridge_result_summary": "Context available",
+        }
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_render_material_inspect",
+                return_value={
+                    "runtime_result": runtime_result,
+                    "runner_command": ["Editor.exe"],
+                    "manifest": {},
+                    "runtime_script": "backend/runtime/editor_scripts/render_material_probe.py",
+                },
+            ):
+                response = dispatcher_service.dispatch(make_render_material_inspect_request())
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "render_material_runtime_probe"
+        assert execution.details["runtime_available"] is True
+        assert execution.details["material_inspection_attempted"] is False
+        assert execution.details["material_evidence_produced"] is False
+        assert artifact is not None
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "render_material_runtime_probe"
+
+
+def test_render_material_inspect_real_persisted_payloads_match_published_schemas() -> None:
+    with isolated_database():
+        runtime_result = {
+            "ok": True,
+            "message": "Material inspection substrate probe completed, but runtime material support remains unavailable in this editor context.",
+            "runtime_probe_attempted": True,
+            "runtime_probe_method": "editor-runtime-get-context",
+            "runtime_available": False,
+            "material_inspection_requested": True,
+            "material_inspection_attempted": False,
+            "material_runtime_mode": "runtime-probe-only",
+            "material_operation_available": False,
+            "material_evidence_produced": False,
+            "material_evidence_path": None,
+            "material_unavailable_reason": "No admitted real material inspection path is available in this slice.",
+            "material_path": "Materials/Example.material",
+            "include_shader_data_requested": True,
+            "include_references_requested": True,
+            "active_level_path": None,
+            "editor_transport": "oneshot",
+            "bridge_name": "ControlPlaneEditorBridge",
+            "bridge_available": False,
+            "bridge_operation": "GetEditorContext",
+            "bridge_contract_version": "v0.1",
+            "bridge_result_summary": "Runtime unavailable",
+        }
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_render_material_inspect",
+                return_value={
+                    "runtime_result": runtime_result,
+                    "runner_command": ["Editor.exe"],
+                    "manifest": {},
+                    "runtime_script": "backend/runtime/editor_scripts/render_material_probe.py",
+                },
+            ):
+                response = dispatcher_service.dispatch(make_render_material_inspect_request())
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert artifact is not None
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="render.material.inspect",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="render.material.inspect",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
 def test_render_material_patch_simulated_persisted_payloads_match_published_schemas(
     ) -> None:
     with isolated_database():
