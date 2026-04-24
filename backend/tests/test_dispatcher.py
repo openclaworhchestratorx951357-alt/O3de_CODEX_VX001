@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import pytest
+from PIL import Image
 
 from app.models.control_plane import ExecutionStatus
 from app.models.request_envelope import RequestEnvelope
@@ -75,6 +76,16 @@ def create_test_artifact_record(
         evidence_completeness="seeded-local-file",
     )
     return artifact.id
+
+
+def create_test_image(
+    path: Path,
+    *,
+    size: tuple[int, int],
+    color: tuple[int, int, int, int],
+) -> None:
+    image = Image.new("RGBA", size, color)
+    image.save(path, format="PNG")
 
 
 def make_request(
@@ -4376,8 +4387,8 @@ def test_test_visual_diff_uses_real_artifact_comparison_substrate_in_hybrid_mode
         root = Path(temp_dir)
         baseline_path = root / "baseline.png"
         candidate_path = root / "candidate.png"
-        baseline_path.write_bytes(b"baseline-image")
-        candidate_path.write_bytes(b"candidate-image")
+        create_test_image(baseline_path, size=(2, 3), color=(255, 0, 0, 255))
+        create_test_image(candidate_path, size=(4, 1), color=(0, 0, 255, 255))
 
         baseline_artifact_id = create_test_artifact_record(
             path=baseline_path,
@@ -4412,6 +4423,16 @@ def test_test_visual_diff_uses_real_artifact_comparison_substrate_in_hybrid_mode
         assert execution.details["comparison_available"] is True
         assert execution.details["comparison_status"] == "different"
         assert execution.details["byte_identical"] is False
+        assert execution.details["baseline_image_decodable"] is True
+        assert execution.details["baseline_image_width"] == 2
+        assert execution.details["baseline_image_height"] == 3
+        assert execution.details["baseline_image_mode"] == "RGBA"
+        assert execution.details["baseline_image_channel_count"] == 4
+        assert execution.details["candidate_image_decodable"] is True
+        assert execution.details["candidate_image_width"] == 4
+        assert execution.details["candidate_image_height"] == 1
+        assert execution.details["candidate_image_mode"] == "RGBA"
+        assert execution.details["candidate_image_channel_count"] == 4
         assert execution.details["visual_metric_available"] is False
         assert execution.details["baseline_artifact_found"] is True
         assert execution.details["candidate_artifact_found"] is True
@@ -4426,8 +4447,8 @@ def test_test_visual_diff_real_persisted_payloads_match_published_schemas() -> N
         root = Path(temp_dir)
         baseline_path = root / "baseline.png"
         candidate_path = root / "candidate.png"
-        baseline_path.write_bytes(b"same-image")
-        candidate_path.write_bytes(b"same-image")
+        create_test_image(baseline_path, size=(1, 1), color=(0, 255, 0, 255))
+        create_test_image(candidate_path, size=(1, 1), color=(0, 255, 0, 255))
 
         baseline_artifact_id = create_test_artifact_record(
             path=baseline_path,
@@ -4459,6 +4480,7 @@ def test_test_visual_diff_real_persisted_payloads_match_published_schemas() -> N
         artifact = artifacts_service.get_artifact(response.artifacts[0])
         assert execution.details["comparison_status"] == "identical"
         assert execution.details["byte_identical"] is True
+        assert execution.details["decoded_image_inputs"] is True
         assert artifact is not None
         assert (
             schema_validation_service.validate_execution_details(
@@ -4467,6 +4489,50 @@ def test_test_visual_diff_real_persisted_payloads_match_published_schemas() -> N
             )
             == []
         )
+
+
+def test_test_visual_diff_reports_decode_unavailable_for_non_image_inputs() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        root = Path(temp_dir)
+        baseline_path = root / "baseline.png"
+        candidate_path = root / "candidate.txt"
+        create_test_image(baseline_path, size=(1, 2), color=(255, 255, 0, 255))
+        candidate_path.write_text("not an image", encoding="utf-8")
+
+        baseline_artifact_id = create_test_artifact_record(
+            path=baseline_path,
+            label="Baseline decode image",
+        )
+        candidate_artifact_id = create_test_artifact_record(
+            path=candidate_path,
+            label="Candidate decode text",
+            content_type="text/plain",
+        )
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                make_test_visual_diff_request(
+                    baseline_artifact_id=baseline_artifact_id,
+                    candidate_artifact_id=candidate_artifact_id,
+                )
+            )
+
+        assert response.ok is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["baseline_image_decodable"] is True
+        assert execution.details["candidate_image_decodable"] is False
+        assert execution.details["candidate_image_decode_attempted"] is True
+        assert execution.details["candidate_image_decode_status"] == "unsupported-or-not-image"
+        assert execution.details["candidate_image_decode_unavailable_reason"]
+        assert "candidate_image_decode" in execution.details["unavailable_evidence"]
+        assert artifact is not None
         assert (
             schema_validation_service.validate_artifact_metadata(
                 tool_name="test.visual.diff",

@@ -10,6 +10,12 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
 
+try:
+    from PIL import Image, UnidentifiedImageError
+except ImportError:  # pragma: no cover - runtime fallback when Pillow is unavailable
+    Image = None
+    UnidentifiedImageError = OSError
+
 from app.models.api import AdapterFamilyStatus, AdapterModeStatus, AdaptersResponse
 from app.models.response_envelope import DispatchResult
 from app.services.artifacts import artifacts_service
@@ -3538,6 +3544,14 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
             inspection_evidence.append("baseline_file_metadata")
         if candidate.get("file_readable") is True:
             inspection_evidence.append("candidate_file_metadata")
+        if baseline.get("image_decode_attempted") is True:
+            inspection_evidence.append("baseline_image_decode_attempt")
+        if candidate.get("image_decode_attempted") is True:
+            inspection_evidence.append("candidate_image_decode_attempt")
+        if baseline.get("image_decodable") is True:
+            inspection_evidence.append("baseline_image_decode")
+        if candidate.get("image_decodable") is True:
+            inspection_evidence.append("candidate_image_decode")
         if comparison_attempted:
             inspection_evidence.extend(
                 [
@@ -3552,6 +3566,10 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
             unavailable_evidence.append("baseline_file_read")
         if candidate.get("file_readable") is not True:
             unavailable_evidence.append("candidate_file_read")
+        if baseline.get("image_decodable") is not True:
+            unavailable_evidence.append("baseline_image_decode")
+        if candidate.get("image_decodable") is not True:
+            unavailable_evidence.append("candidate_image_decode")
         if not comparison_attempted:
             unavailable_evidence.append("comparison")
         unavailable_evidence.append("visual_metric")
@@ -3589,6 +3607,14 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
         else:
             logs.append(
                 "Comparison evidence remained unavailable because one or both artifact inputs could not be read as local files."
+            )
+        if baseline.get("image_decodable") is True and candidate.get("image_decodable") is True:
+            logs.append(
+                "Decoded both artifact inputs through the admitted local image decode substrate."
+            )
+        else:
+            logs.append(
+                "Image decode evidence remained partially unavailable for one or both artifact inputs."
             )
         logs.append(stronger_metric_reason)
         if threshold is not None:
@@ -3631,6 +3657,19 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
             "baseline_extension": baseline["extension"],
             "baseline_size_bytes": baseline["size_bytes"],
             "baseline_sha256": baseline["sha256"],
+            "baseline_image_decode_attempted": baseline["image_decode_attempted"],
+            "baseline_image_decode_substrate_available": baseline[
+                "image_decode_substrate_available"
+            ],
+            "baseline_image_decode_status": baseline["image_decode_status"],
+            "baseline_image_decodable": baseline["image_decodable"],
+            "baseline_image_width": baseline["image_width"],
+            "baseline_image_height": baseline["image_height"],
+            "baseline_image_mode": baseline["image_mode"],
+            "baseline_image_channel_count": baseline["image_channel_count"],
+            "baseline_image_decode_unavailable_reason": baseline[
+                "image_decode_unavailable_reason"
+            ],
             "candidate_resolution_status": candidate["resolution_status"],
             "candidate_artifact_found": candidate["artifact_found"],
             "candidate_local_path_resolved": candidate["resolved_path"],
@@ -3640,6 +3679,21 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
             "candidate_extension": candidate["extension"],
             "candidate_size_bytes": candidate["size_bytes"],
             "candidate_sha256": candidate["sha256"],
+            "candidate_image_decode_attempted": candidate["image_decode_attempted"],
+            "candidate_image_decode_substrate_available": candidate[
+                "image_decode_substrate_available"
+            ],
+            "candidate_image_decode_status": candidate["image_decode_status"],
+            "candidate_image_decodable": candidate["image_decodable"],
+            "candidate_image_width": candidate["image_width"],
+            "candidate_image_height": candidate["image_height"],
+            "candidate_image_mode": candidate["image_mode"],
+            "candidate_image_channel_count": candidate["image_channel_count"],
+            "candidate_image_decode_unavailable_reason": candidate[
+                "image_decode_unavailable_reason"
+            ],
+            "decoded_image_inputs": bool(baseline["image_decodable"])
+            and bool(candidate["image_decodable"]),
             "comparison_attempted": comparison_attempted,
             "comparison_available": comparison_attempted,
             "comparison_method": "sha256-file-identity" if comparison_attempted else None,
@@ -3698,6 +3752,9 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
                 "size_bytes": None,
                 "sha256": None,
                 "image_like": False,
+                **self._image_decode_not_attempted(
+                    "Image decode was not attempted because the artifact record was missing."
+                ),
                 "warning": f"Artifact '{artifact_id}' was not found in the control-plane store.",
             }
 
@@ -3716,6 +3773,9 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
                 "image_like": bool(
                     isinstance(artifact.content_type, str)
                     and artifact.content_type.startswith("image/")
+                ),
+                **self._image_decode_not_attempted(
+                    "Image decode was not attempted because the artifact had no admitted local file path."
                 ),
                 "warning": (
                     f"Artifact '{artifact_id}' has no admitted local file path or file URI to compare."
@@ -3739,6 +3799,9 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
                     content_type=artifact.content_type,
                     path=resolved_path,
                 ),
+                **self._image_decode_not_attempted(
+                    "Image decode was not attempted because the artifact path could not be inspected."
+                ),
                 "warning": f"Artifact '{artifact_id}' path could not be inspected: {exc}",
             }
 
@@ -3757,6 +3820,9 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
                     content_type=artifact.content_type,
                     path=resolved_path,
                 ),
+                **self._image_decode_not_attempted(
+                    "Image decode was not attempted because the resolved artifact file was missing on disk."
+                ),
                 "warning": f"Artifact '{artifact_id}' resolved to a missing local file.",
             }
 
@@ -3774,6 +3840,9 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
                 "image_like": self._is_image_like(
                     content_type=artifact.content_type,
                     path=resolved_path,
+                ),
+                **self._image_decode_not_attempted(
+                    "Image decode was not attempted because the resolved artifact path was not a file."
                 ),
                 "warning": f"Artifact '{artifact_id}' resolved locally but not as a file.",
             }
@@ -3796,6 +3865,9 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
                     content_type=artifact.content_type,
                     path=resolved_path,
                 ),
+                **self._image_decode_not_attempted(
+                    "Image decode was not attempted because the resolved artifact file could not be read."
+                ),
                 "warning": f"Artifact '{artifact_id}' could not be read from disk: {exc}",
             }
 
@@ -3811,8 +3883,82 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
             "size_bytes": size_bytes,
             "sha256": sha256,
             "image_like": self._is_image_like(content_type=content_type, path=resolved_path),
+            **self._decode_image_file(resolved_path),
             "warning": None,
         }
+
+    def _image_decode_not_attempted(self, reason: str) -> dict[str, Any]:
+        return {
+            "image_decode_attempted": False,
+            "image_decode_substrate_available": Image is not None,
+            "image_decode_status": "not-attempted",
+            "image_decodable": False,
+            "image_width": None,
+            "image_height": None,
+            "image_mode": None,
+            "image_channel_count": None,
+            "image_decode_unavailable_reason": reason,
+        }
+
+    def _decode_image_file(self, resolved_path: Path) -> dict[str, Any]:
+        if Image is None:
+            return {
+                "image_decode_attempted": False,
+                "image_decode_substrate_available": False,
+                "image_decode_status": "decode-substrate-unavailable",
+                "image_decodable": False,
+                "image_width": None,
+                "image_height": None,
+                "image_mode": None,
+                "image_channel_count": None,
+                "image_decode_unavailable_reason": (
+                    "The admitted image decode substrate is unavailable because Pillow is not installed."
+                ),
+            }
+
+        try:
+            with Image.open(resolved_path) as image:
+                image.load()
+                bands = image.getbands()
+                return {
+                    "image_decode_attempted": True,
+                    "image_decode_substrate_available": True,
+                    "image_decode_status": "decoded",
+                    "image_decodable": True,
+                    "image_width": image.width,
+                    "image_height": image.height,
+                    "image_mode": image.mode,
+                    "image_channel_count": len(bands) if bands else None,
+                    "image_decode_unavailable_reason": None,
+                }
+        except UnidentifiedImageError:
+            return {
+                "image_decode_attempted": True,
+                "image_decode_substrate_available": True,
+                "image_decode_status": "unsupported-or-not-image",
+                "image_decodable": False,
+                "image_width": None,
+                "image_height": None,
+                "image_mode": None,
+                "image_channel_count": None,
+                "image_decode_unavailable_reason": (
+                    "The resolved file is readable but is not decodable as an admitted image input by the current substrate."
+                ),
+            }
+        except OSError as exc:
+            return {
+                "image_decode_attempted": True,
+                "image_decode_substrate_available": True,
+                "image_decode_status": "decode-failed",
+                "image_decodable": False,
+                "image_width": None,
+                "image_height": None,
+                "image_mode": None,
+                "image_channel_count": None,
+                "image_decode_unavailable_reason": (
+                    f"The resolved file could not be decoded by the current admitted image substrate: {exc}"
+                ),
+            }
 
     def _artifact_local_path(self, artifact_path: str | None, artifact_uri: str | None) -> Path | None:
         if artifact_path:

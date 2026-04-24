@@ -638,6 +638,21 @@ class PromptOrchestratorService:
                 summary_parts.append(
                     "Artifact comparison evidence remained partially unavailable for the requested inputs."
                 )
+            if (
+                details.get("baseline_image_decodable") is True
+                and details.get("candidate_image_decodable") is True
+            ):
+                summary_parts.append(
+                    "Image decode confirmed baseline "
+                    f"{details.get('baseline_image_width')}x{details.get('baseline_image_height')} "
+                    f"{details.get('baseline_image_mode')} and candidate "
+                    f"{details.get('candidate_image_width')}x{details.get('candidate_image_height')} "
+                    f"{details.get('candidate_image_mode')}."
+                )
+            else:
+                summary_parts.append(
+                    "Image decode evidence remained partially unavailable for one or both requested inputs."
+                )
             if details.get("visual_metric_available") is True:
                 summary_parts.append(
                     f"Visual metric readback confirmed {details.get('visual_metric_name')} = {details.get('visual_metric_value')}."
