@@ -416,6 +416,26 @@ const cinematicScenarios: ProductionScenario[] = [
     id: "trailer-previs",
     label: "Trailer / previs",
     description: "Use this for fast camera blocking, shot intent, timing, and production-risk discovery.",
+    subGenres: [
+      {
+        id: "game-trailer",
+        label: "Game trailer",
+        description: "Hero gameplay beats, signature moments, and marketing-first pacing.",
+        promptLead: "Emphasize hero gameplay moments, punchy pacing, and beats that sell the core player fantasy quickly.",
+      },
+      {
+        id: "cinematic-teaser",
+        label: "Cinematic teaser",
+        description: "Mood, mystery, reveal control, and restrained shot storytelling.",
+        promptLead: "Emphasize mood, reveal control, and short visual storytelling beats that build intrigue without oversharing.",
+      },
+      {
+        id: "previs-blocking",
+        label: "Previs blocking",
+        description: "Editorial timing, camera intent, and production-risk discovery before polish.",
+        promptLead: "Emphasize blocking clarity, editorial timing, and shot-to-shot production-risk discovery before lookdev polish.",
+      },
+    ],
     stages: [
       {
         id: "brief",
@@ -463,6 +483,26 @@ const cinematicScenarios: ProductionScenario[] = [
     id: "short-film",
     label: "Short film",
     description: "Use this for scene-by-scene planning, blocking, lookdev, animation, and final review discipline.",
+    subGenres: [
+      {
+        id: "dialogue-drama",
+        label: "Dialogue drama",
+        description: "Performance beats, coverage planning, and readable emotional pacing.",
+        promptLead: "Emphasize performance beats, coverage planning, and emotional readability across each scene.",
+      },
+      {
+        id: "stylized-animation",
+        label: "Stylized animation",
+        description: "Strong lookdev direction, exaggerated motion, and deliberate visual tone.",
+        promptLead: "Emphasize strong visual tone, stylized motion choices, and lookdev decisions that support a cohesive visual language.",
+      },
+      {
+        id: "atmospheric-mood-piece",
+        label: "Atmospheric mood piece",
+        description: "Lighting, framing, environment storytelling, and sparse but intentional action.",
+        promptLead: "Emphasize lighting, framing, and environment storytelling so each scene carries mood even with minimal action.",
+      },
+    ],
     stages: [
       {
         id: "brief",
@@ -647,7 +687,7 @@ export default function O3DEProductionPlanner({
           <span style={eyebrowStyle}>Adaptive production roadmap</span>
           <strong>{question}</strong>
           <p style={mutedParagraphStyle}>
-            Choose the closest scenario{mode === "game" ? " and a sub-genre emphasis" : ""}. The app then guides the work from brief to release-ready checks
+            Choose the closest scenario{activeScenario.subGenres?.length ? " and a sub-genre emphasis" : ""}. The app then guides the work from brief to release-ready checks
             while keeping O3DE edits behind Runtime, Prompt Studio, Builder, and Records evidence.
           </p>
         </div>
@@ -696,14 +736,18 @@ export default function O3DEProductionPlanner({
         </details>
       </div>
 
-      {mode === "game" && activeScenario.subGenres?.length ? (
-        <div style={subGenrePanelStyle} aria-label="Game sub-genre choice">
+      {activeScenario.subGenres?.length ? (
+        <div
+          style={subGenrePanelStyle}
+          aria-label={mode === "game" ? "Game sub-genre choice" : "Movie sub-genre choice"}
+        >
           <div>
             <span style={eyebrowStyle}>Sub-genre emphasis</span>
             <strong>Choose a sub-genre emphasis</strong>
             <p style={mutedParagraphStyle}>
-              Narrow the current game path so the prompts, milestones, and quick recommendations match the kind
-              of game you actually want to build.
+              {mode === "game"
+                ? "Narrow the current game path so the prompts, milestones, and quick recommendations match the kind of game you actually want to build."
+                : "Narrow the current movie path so the prompts, milestones, and quick recommendations match the kind of production you actually want to build."}
             </p>
           </div>
           <div style={subGenreGridStyle}>

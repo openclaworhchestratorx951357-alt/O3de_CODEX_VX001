@@ -8,7 +8,7 @@ describe("HomeWorkspaceView", () => {
     window.localStorage.clear();
   });
 
-  it("defaults to the calmer start-here layout and switches surfaces on demand", () => {
+  it("defaults to the calmer start-here layout and switches surfaces on demand", async () => {
     render(
       <HomeWorkspaceView
         missionControlContent={<div>Mission control content</div>}
@@ -21,8 +21,8 @@ describe("HomeWorkspaceView", () => {
     expect(screen.getByText("Mission control content")).toBeInTheDocument();
     expect(screen.getByText("Launchpad content")).toBeInTheDocument();
     expect(screen.getByText("Overview content")).toBeInTheDocument();
-    expect(screen.getByText("Choose what you are building")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /Develop the App/i })).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByText("Choose what you are building")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Develop the App/i })).toBeInTheDocument();
     expect(screen.getAllByText("How to use this workspace")).toHaveLength(1);
     expect(screen.getAllByText("How to use this window")).toHaveLength(3);
     expect(screen.getByText(/Refresh the dashboard when you need a current top-level read/i)).toBeInTheDocument();
@@ -58,7 +58,9 @@ describe("HomeWorkspaceView", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: /O3DE Game/i }));
+    expect(await screen.findByText("Choose what you are building")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: /Create Game/i }));
 
     expect(screen.getByText("O3DE game creation desk")).toBeInTheDocument();
     expect(screen.getByLabelText("Game viewport control surface")).toBeInTheDocument();
@@ -120,15 +122,19 @@ describe("HomeWorkspaceView", () => {
     expect(openRuntimeOverview).toHaveBeenCalledTimes(1);
     expect(openBuilder).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(screen.getByRole("tab", { name: /O3DE Movie/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /Create Movie/i }));
 
     expect(screen.getByText("O3DE cinematic creation desk")).toBeInTheDocument();
     expect(screen.getByLabelText("Cinematic viewport control surface")).toBeInTheDocument();
     expect(screen.getByText("Cinematic authoring intent")).toBeInTheDocument();
     expect(screen.getByText("What type of production are you building?")).toBeInTheDocument();
     expect(screen.getAllByText("Trailer / previs").length).toBeGreaterThan(0);
+    expect(screen.getByText("Choose a sub-genre emphasis")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Game trailer/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Short film/i }));
     expect(screen.getByText(/Create a short-film story package/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Atmospheric mood piece/i }));
+    expect(screen.getByLabelText("Current viewport guidance context")).toHaveTextContent("Atmospheric mood piece");
 
     fireEvent.click(screen.getByRole("tab", { name: /Load Project/i }));
 

@@ -33,14 +33,14 @@ const taskModes: HomeTaskMode[] = [
   },
   {
     id: "o3de-game",
-    label: "O3DE Game",
+    label: "Create Game",
     eyebrow: "Game Creation",
     description: "Shape gameplay, levels, entities, components, assets, and testable game slices through O3DE.",
     help: "Use this when you want to create or modify an O3DE game project through guided natural-language steps.",
   },
   {
     id: "o3de-cinematic",
-    label: "O3DE Movie",
+    label: "Create Movie",
     eyebrow: "Cinematic Creation",
     description: "Plan scenes, cameras, lighting, animation beats, and render-lookdev passes for a movie workflow.",
     help: "Use this when the goal is a cinematic, trailer, previs sequence, or non-game O3DE production.",
@@ -699,47 +699,49 @@ const profileShellStyle = {
 
 const guidedReconnectStyle = {
   display: "grid",
-  gap: 14,
-  padding: 16,
-  border: "1px solid var(--app-accent-strong)",
+  gap: 18,
+  padding: 20,
+  border: "1px solid color-mix(in srgb, var(--app-accent-strong) 52%, var(--app-panel-border) 48%)",
   borderRadius: "var(--app-card-radius)",
-  background: "linear-gradient(135deg, var(--app-accent-soft) 0%, var(--app-panel-bg) 100%)",
-  boxShadow: "var(--app-shadow-soft)",
+  background: "linear-gradient(180deg, color-mix(in srgb, var(--app-accent-soft) 42%, var(--app-panel-bg) 58%) 0%, var(--app-panel-bg) 100%)",
+  boxShadow: "0 18px 34px rgba(3, 8, 20, 0.2)",
 } satisfies CSSProperties;
 
 const guidedStepGridStyle = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: 10,
+  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+  gap: 14,
 } satisfies CSSProperties;
 
 const guidedStepCardStyle = {
   display: "grid",
   gridTemplateColumns: "auto 1fr",
-  gap: 10,
+  gap: 14,
   minWidth: 0,
-  padding: 12,
-  border: "1px solid var(--app-panel-border)",
-  borderRadius: "var(--app-card-radius)",
-  background: "var(--app-panel-bg)",
+  padding: "18px 16px 16px",
+  border: "1px solid color-mix(in srgb, var(--app-panel-border) 84%, white 16%)",
+  borderRadius: "calc(var(--app-card-radius) + 2px)",
+  background: "linear-gradient(180deg, color-mix(in srgb, var(--app-panel-bg) 90%, white 10%) 0%, var(--app-panel-bg) 100%)",
+  boxShadow: "0 10px 24px rgba(6, 12, 28, 0.18)",
 } satisfies CSSProperties;
 
 const stepNumberStyle = {
   display: "inline-grid",
   placeItems: "center",
-  width: 28,
-  height: 28,
-  border: "1px solid var(--app-accent-strong)",
+  width: 34,
+  height: 34,
+  border: "1px solid color-mix(in srgb, var(--app-accent-strong) 70%, white 30%)",
   borderRadius: "50%",
-  background: "var(--app-accent)",
+  background: "linear-gradient(180deg, color-mix(in srgb, var(--app-accent) 82%, white 18%) 0%, var(--app-accent) 100%)",
   color: "var(--app-accent-contrast)",
-  fontSize: 13,
+  boxShadow: "0 8px 18px rgba(52, 88, 255, 0.28)",
+  fontSize: 14,
   fontWeight: 900,
 } satisfies CSSProperties;
 
 const guidedStepBodyStyle = {
   display: "grid",
-  gap: 7,
+  gap: 10,
   minWidth: 0,
   alignContent: "start",
 } satisfies CSSProperties;
@@ -748,13 +750,14 @@ const stepStatusStyle = {
   display: "inline-flex",
   width: "fit-content",
   maxWidth: "100%",
-  padding: "5px 8px",
-  border: "1px solid var(--app-info-border)",
+  padding: "6px 10px",
+  border: "1px solid color-mix(in srgb, var(--app-info-border) 74%, transparent)",
   borderRadius: "var(--app-pill-radius)",
-  background: "var(--app-info-bg)",
-  color: "var(--app-info-text)",
-  fontSize: 12,
+  background: "color-mix(in srgb, var(--app-info-bg) 82%, var(--app-panel-bg) 18%)",
+  color: "color-mix(in srgb, var(--app-info-text) 88%, white 12%)",
+  fontSize: 11,
   fontWeight: 700,
+  letterSpacing: "0.01em",
   overflowWrap: "anywhere",
 } satisfies CSSProperties;
 
@@ -845,13 +848,14 @@ const primaryActionButtonStyle = {
 } satisfies CSSProperties;
 
 const secondaryActionButtonStyle = {
-  border: "1px solid var(--app-panel-border)",
+  border: "1px solid color-mix(in srgb, var(--app-panel-border) 84%, white 16%)",
   borderRadius: "var(--app-pill-radius)",
-  padding: "8px 12px",
-  background: "var(--app-panel-bg-muted)",
+  padding: "9px 14px",
+  background: "linear-gradient(180deg, color-mix(in srgb, var(--app-panel-bg-muted) 88%, white 12%) 0%, var(--app-panel-bg) 100%)",
   color: "var(--app-text-color)",
   cursor: "pointer",
   fontWeight: 700,
+  boxShadow: "0 6px 14px rgba(6, 12, 28, 0.14)",
 } satisfies CSSProperties;
 
 const statusTextStyle = {
