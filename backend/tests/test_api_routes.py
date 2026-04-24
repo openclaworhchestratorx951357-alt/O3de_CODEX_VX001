@@ -815,6 +815,7 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
                 "build.compile",
                 "gem.enable",
                 "render.material.patch",
+                "render.shader.rebuild",
                 "settings.patch",
                 "test.run.gtest",
                 "test.run.editor_python",
@@ -876,6 +877,7 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "build.compile",
                 "gem.enable",
                 "render.material.patch",
+                "render.shader.rebuild",
                 "settings.patch",
                 "test.run.gtest",
                 "test.run.editor_python",
@@ -940,12 +942,16 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "render.capture.viewport",
                 "render.material.inspect",
             ]
-            assert render_lookdev["plan_only_tool_paths"] == ["render.material.patch"]
-            assert sorted(render_lookdev["simulated_tool_paths"]) == ["render.shader.rebuild"]
+            assert render_lookdev["plan_only_tool_paths"] == [
+                "render.material.patch",
+                "render.shader.rebuild",
+            ]
+            assert render_lookdev["simulated_tool_paths"] == []
             assert any(
                 "render.capture.viewport" in note
                 or "render.material.inspect" in note
                 or "render.material.patch" in note
+                or "render.shader.rebuild" in note
                 for note in render_lookdev["notes"]
             )
             assert validation["supports_real_execution"] is True
@@ -1000,6 +1006,21 @@ def test_prompt_capabilities_reports_build_compile_as_plan_only() -> None:
             item for item in payload["capabilities"] if item["tool_name"] == "build.compile"
         )
         assert entry["agent_family"] == "project-build"
+        assert entry["capability_maturity"] == "plan-only"
+        assert entry["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
+
+
+def test_prompt_capabilities_reports_render_shader_rebuild_as_plan_only() -> None:
+    with isolated_client() as client:
+        response = client.get("/prompt/capabilities")
+        assert response.status_code == 200
+        payload = response.json()
+        entry = next(
+            item
+            for item in payload["capabilities"]
+            if item["tool_name"] == "render.shader.rebuild"
+        )
+        assert entry["agent_family"] == "render-lookdev"
         assert entry["capability_maturity"] == "plan-only"
         assert entry["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
 

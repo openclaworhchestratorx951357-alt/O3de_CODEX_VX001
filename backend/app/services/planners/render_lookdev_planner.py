@@ -107,19 +107,21 @@ def plan_render_lookdev_prompt(
         capability = capabilities["render.shader.rebuild"]
         if capability is not None:
             shader_targets = extract_quoted_values(prompt_text)
-            args: dict[str, object] = {}
             if shader_targets:
-                args["shader_targets"] = shader_targets
-            steps.append(
-                make_step(
-                    step_id="render-shader-1",
-                    capability=capability,
-                    request=request,
-                    args=args,
+                steps.append(
+                    make_step(
+                        step_id="render-shader-1",
+                        capability=capability,
+                        request=request,
+                        args={"shader_targets": shader_targets},
+                    )
                 )
-            )
-            requirement = capability_requirement_note(capability)
-            if requirement:
-                requirements.append(requirement)
+                requirement = capability_requirement_note(capability)
+                if requirement:
+                    requirements.append(requirement)
+            else:
+                refusals.append(
+                    "render.shader.rebuild requires an explicit quoted shader target in the prompt."
+                )
 
     return steps, refusals, requirements

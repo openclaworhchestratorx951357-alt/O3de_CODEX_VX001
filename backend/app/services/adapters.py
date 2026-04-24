@@ -53,6 +53,7 @@ PLAN_ONLY_TOOL_PATHS_BY_MODE = {
         "build.compile",
         "gem.enable",
         "render.material.patch",
+        "render.shader.rebuild",
         "settings.patch",
         "test.run.gtest",
         "test.run.editor_python",
@@ -88,7 +89,9 @@ HYBRID_EXECUTION_BOUNDARY = (
     "first mutation-gated manifest-backed local gem_names insertion path with "
     "backup, rollback, and post-write verification, "
     "render.material.patch may use a real explicit local .material "
-    "propertyValues backup/write/verification corridor, "
+    "propertyValues backup/write/verification corridor, render.shader.rebuild "
+    "may use a real plan-only explicit shader target preflight and result-truth "
+    "substrate, "
     "settings.patch may use a real dry-run-only preflight path, test.run.gtest may use a real "
     "plan-only runner preflight and result-truth substrate for explicit target "
     "requests, test.run.editor_python may use a real plan-only runner preflight "
@@ -7053,6 +7056,17 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
                 approval_class=approval_class,
                 locks_acquired=locks_acquired,
             )
+        if tool == "render.shader.rebuild":
+            return self._execute_render_shader_rebuild(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+            )
 
         simulated = self._simulated.execute(
             request_id=request_id,
@@ -7779,6 +7793,374 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
             result_summary=result_summary,
         )
 
+    def _execute_render_shader_rebuild(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        resolved_engine_root = Path(engine_root).expanduser().resolve()
+        requested_targets = [
+            entry.strip()
+            for entry in args.get("shader_targets", [])
+            if isinstance(entry, str) and entry.strip()
+        ]
+        requested_platforms = [
+            entry.strip()
+            for entry in args.get("platforms", [])
+            if isinstance(entry, str) and entry.strip()
+        ]
+        force_requested = bool(args.get("force", False))
+        if not dry_run:
+            return self._fallback_render_shader_rebuild(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real render.shader.rebuild substrate evidence is currently limited "
+                    "to dry_run=true preflight requests; actual shader rebuild execution "
+                    "remains non-admitted."
+                ),
+                fallback_category="dry-run-required",
+            )
+        if not requested_targets:
+            return self._fallback_render_shader_rebuild(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real render.shader.rebuild preflight requires explicit non-empty "
+                    "shader_targets."
+                ),
+                fallback_category="explicit-targets-required",
+            )
+
+        build_root = resolved_project_root / "build"
+        configured_build_tree_markers = (
+            sorted(
+                str(path)
+                for path in build_root.rglob("CMakeCache.txt")
+                if path.is_file()
+            )
+            if build_root.exists()
+            else []
+        )
+        configured_build_tree_available = bool(configured_build_tree_markers)
+
+        probe_roots: list[tuple[str, Path]] = [("project_root", resolved_project_root)]
+        if resolved_engine_root != resolved_project_root and resolved_engine_root.exists():
+            probe_roots.append(("engine_root", resolved_engine_root))
+
+        def _probe_shader_source_candidate(target_name: str) -> dict[str, Any]:
+            candidate_names = [
+                f"{target_name}.shader",
+                f"{target_name}.shadervariantlist",
+                f"{target_name}.azsl",
+                f"{target_name}.azsli",
+            ]
+            matches: list[tuple[str, Path]] = []
+            seen_matches: set[str] = set()
+            for root_label, root_path in probe_roots:
+                if not root_path.exists():
+                    continue
+                for candidate_name in candidate_names:
+                    for path in root_path.rglob(candidate_name):
+                        if not path.is_file():
+                            continue
+                        normalized_path = str(path)
+                        if normalized_path in seen_matches:
+                            continue
+                        seen_matches.add(normalized_path)
+                        matches.append((root_label, path))
+            if not matches:
+                return {
+                    "target_name": target_name,
+                    "candidate_names": candidate_names,
+                    "source_candidate_found": False,
+                    "source_candidate_match_count": 0,
+                    "source_candidate_path": None,
+                    "source_candidate_root": None,
+                    "source_candidate_size_bytes": None,
+                }
+
+            selected_root, selected_path = min(
+                matches,
+                key=lambda match: (
+                    0 if match[0] == "project_root" else 1,
+                    len(match[1].parts),
+                    len(str(match[1])),
+                ),
+            )
+            source_candidate_size_bytes = None
+            try:
+                source_candidate_size_bytes = selected_path.stat().st_size
+            except OSError:
+                source_candidate_size_bytes = None
+            return {
+                "target_name": target_name,
+                "candidate_names": candidate_names,
+                "source_candidate_found": True,
+                "source_candidate_match_count": len(matches),
+                "source_candidate_path": str(selected_path),
+                "source_candidate_root": selected_root,
+                "source_candidate_size_bytes": source_candidate_size_bytes,
+            }
+
+        target_probes = [
+            _probe_shader_source_candidate(target_name)
+            for target_name in requested_targets
+        ]
+        shader_source_candidates_found_for_all_requested_targets = bool(target_probes) and all(
+            bool(probe["source_candidate_found"]) for probe in target_probes
+        )
+        resolved_shader_candidate_paths = [
+            str(probe["source_candidate_path"])
+            for probe in target_probes
+            if isinstance(probe.get("source_candidate_path"), str)
+            and probe["source_candidate_path"]
+        ]
+
+        inspection_evidence = ["render_shader_target_request"]
+        unavailable_evidence = [
+            "shader_rebuild_execution",
+            "shader_rebuild_result_artifact",
+            "shader_rebuild_exit_result",
+        ]
+        if build_root.exists():
+            inspection_evidence.append("build_tree_presence")
+        else:
+            unavailable_evidence.append("build_tree_presence")
+        inspection_evidence.append("configured_build_tree_probe")
+        if configured_build_tree_available:
+            inspection_evidence.append("configured_build_tree_markers")
+        else:
+            unavailable_evidence.append("configured_build_tree_markers")
+        inspection_evidence.append("shader_source_candidate_probe")
+        if shader_source_candidates_found_for_all_requested_targets:
+            inspection_evidence.append("shader_source_candidate_metadata")
+        else:
+            unavailable_evidence.append("shader_source_candidate_metadata")
+        if requested_platforms:
+            inspection_evidence.append("platform_request")
+        if force_requested:
+            inspection_evidence.append("force_request")
+
+        shader_rebuild_unavailable_reasons: list[str] = []
+        if not build_root.exists():
+            shader_rebuild_unavailable_reasons.append(
+                f"Build root '{build_root}' is unavailable, so explicit render.shader.rebuild preflight could not inspect configured shader rebuild state."
+            )
+        elif not configured_build_tree_available:
+            shader_rebuild_unavailable_reasons.append(
+                "No admitted configured build-tree markers were found under the local build root for this slice."
+            )
+        if not shader_source_candidates_found_for_all_requested_targets:
+            missing_targets = [
+                str(probe["target_name"])
+                for probe in target_probes
+                if probe["source_candidate_found"] is not True
+            ]
+            if missing_targets:
+                shader_rebuild_unavailable_reasons.append(
+                    "No admitted local shader source candidate was found for requested shader target(s): "
+                    + ", ".join(missing_targets)
+                    + "."
+                )
+        shader_rebuild_unavailable_reason = (
+            " ".join(dict.fromkeys(shader_rebuild_unavailable_reasons))
+            if shader_rebuild_unavailable_reasons
+            else None
+        )
+
+        logs = [
+            "Real render.shader.rebuild executed through the admitted plan-only preflight substrate.",
+            f"Build root inspected at '{build_root}'.",
+            f"Requested explicit shader target count: {len(requested_targets)}.",
+            "No shader rebuild command was executed in this slice.",
+        ]
+        warnings = [
+            "This is a real plan-only render.shader.rebuild preflight path; actual shader rebuild execution remains non-admitted.",
+        ]
+        if shader_rebuild_unavailable_reason:
+            warnings.append(shader_rebuild_unavailable_reason)
+            logs.append(shader_rebuild_unavailable_reason)
+        elif resolved_shader_candidate_paths:
+            logs.append(
+                "Resolved explicit shader source candidate(s): "
+                + ", ".join(resolved_shader_candidate_paths)
+            )
+
+        details = {
+            "inspection_surface": "render_shader_rebuild_preflight",
+            "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+            "simulated": False,
+            "adapter_family": self.family,
+            "adapter_mode": self.mode,
+            "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+            "real_path_available": True,
+            "preflight_execution_mode": "plan-only",
+            "shader_request_explicit": True,
+            "project_root_path": str(resolved_project_root),
+            "engine_root_path": str(resolved_engine_root),
+            "build_root_path": str(build_root),
+            "build_root_exists": build_root.exists(),
+            "requested_shader_targets": requested_targets,
+            "requested_platforms": requested_platforms,
+            "requested_force": force_requested,
+            "inspection_evidence": inspection_evidence,
+            "unavailable_evidence": unavailable_evidence,
+            "configure_marker_probe_attempted": True,
+            "configure_marker_probe_method": "cmake-cache-lookup",
+            "configured_build_tree_available": configured_build_tree_available,
+            "configured_build_tree_markers": configured_build_tree_markers,
+            "configured_build_tree_marker_count": len(configured_build_tree_markers),
+            "shader_target_probe_attempted": True,
+            "shader_target_probe_method": "project-and-engine-shader-source-lookup",
+            "shader_probe_roots": [str(root_path) for _, root_path in probe_roots],
+            "shader_source_candidates_found_for_all_requested_targets": (
+                shader_source_candidates_found_for_all_requested_targets
+            ),
+            "resolved_shader_candidate_paths": resolved_shader_candidate_paths,
+            "shader_target_probe_results": target_probes,
+            "execution_attempted": False,
+            "result_artifact_produced": False,
+            "result_artifact_path": None,
+            "result_artifact_content_type": None,
+            "result_artifact_size_bytes": None,
+            "exit_code_available": False,
+            "exit_code": None,
+            "result_status": "not-attempted",
+            "result_summary_available": False,
+            "result_unavailable_reason": (
+                "No real render.shader.rebuild execution was attempted in this admitted plan-only slice."
+            ),
+            "shader_rebuild_unavailable_reason": shader_rebuild_unavailable_reason,
+        }
+        result = DispatchResult(
+            status="real_success",
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            simulated=False,
+            execution_mode="real",
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+            message=(
+                "Real render.shader.rebuild preflight completed for the explicit shader target request; no shader rebuild command was executed."
+            ),
+        )
+        return AdapterExecutionReport(
+            execution_mode="real",
+            result=result,
+            warnings=warnings,
+            logs=logs,
+            artifact_label="Real render shader rebuild preflight evidence",
+            artifact_kind="render_shader_rebuild_preflight",
+            artifact_uri=(build_root if build_root.exists() else resolved_project_root).as_uri(),
+            artifact_metadata={
+                "tool": tool,
+                "agent": agent,
+                "execution_mode": "real",
+                **details,
+            },
+            execution_details=details,
+            result_summary="Real render.shader.rebuild preflight substrate completed successfully.",
+        )
+
+    def _fallback_render_shader_rebuild(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+        reason: str,
+        fallback_category: str = "unavailable",
+    ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        resolved_engine_root = Path(engine_root).expanduser().resolve()
+        build_root = resolved_project_root / "build"
+        simulated = self._simulated.execute(
+            request_id="",
+            session_id=None,
+            workspace_id=None,
+            executor_id=None,
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+        )
+        simulated.warnings.append(reason)
+        simulated.logs.append(reason)
+        simulated.logs.append(
+            "Hybrid mode fell back to the simulated render.shader.rebuild path."
+        )
+        simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.artifact_metadata["real_path_available"] = False
+        simulated.artifact_metadata["fallback_category"] = fallback_category
+        simulated.artifact_metadata["fallback_reason"] = reason
+        simulated.artifact_metadata["project_root_path"] = str(resolved_project_root)
+        simulated.artifact_metadata["engine_root_path"] = str(resolved_engine_root)
+        simulated.artifact_metadata["build_root_path"] = str(build_root)
+        simulated.artifact_metadata["requested_shader_targets"] = [
+            entry.strip()
+            for entry in args.get("shader_targets", [])
+            if isinstance(entry, str) and entry.strip()
+        ]
+        simulated.artifact_metadata["requested_platforms"] = [
+            entry.strip()
+            for entry in args.get("platforms", [])
+            if isinstance(entry, str) and entry.strip()
+        ]
+        simulated.artifact_metadata["requested_force"] = bool(args.get("force", False))
+        simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.execution_details["real_path_available"] = False
+        simulated.execution_details["fallback_category"] = fallback_category
+        simulated.execution_details["fallback_reason"] = reason
+        simulated.execution_details["project_root_path"] = str(resolved_project_root)
+        simulated.execution_details["engine_root_path"] = str(resolved_engine_root)
+        simulated.execution_details["build_root_path"] = str(build_root)
+        simulated.execution_details["requested_shader_targets"] = [
+            entry.strip()
+            for entry in args.get("shader_targets", [])
+            if isinstance(entry, str) and entry.strip()
+        ]
+        simulated.execution_details["requested_platforms"] = [
+            entry.strip()
+            for entry in args.get("platforms", [])
+            if isinstance(entry, str) and entry.strip()
+        ]
+        simulated.execution_details["requested_force"] = bool(args.get("force", False))
+        simulated.result_summary = "render.shader.rebuild fell back to the simulated path."
+        return simulated
+
     def _fallback_render_material_patch(
         self,
         *,
@@ -8215,6 +8597,8 @@ class AdapterService:
                     "Hybrid mode also enables a real mutation-gated render.material.patch "
                     "path for explicit local .material propertyValues writes with "
                     "backup, rollback, and post-write verification.",
+                    "Hybrid mode also enables a real plan-only render.shader.rebuild "
+                    "preflight/result-truth path for explicit shader target requests.",
                     "Hybrid mode also enables a real dry-run-only settings.patch "
                     "preflight path when manifest-backed settings admission criteria "
                     "are satisfied.",
@@ -8379,8 +8763,10 @@ class AdapterService:
                     family_notes.append(
                         "render.capture.viewport and render.material.inspect currently have "
                         "real read-only admitted runtime probe substrates in this family, "
-                        "and render.material.patch currently has a narrow mutation-gated "
-                        "local material backup/write/verification corridor."
+                        "render.material.patch currently has a narrow mutation-gated "
+                        "local material backup/write/verification corridor, and "
+                        "render.shader.rebuild currently has a real plan-only "
+                        "preflight/result-truth substrate in this family."
                     )
             elif runtime_status.active_mode == "hybrid":
                 family_notes.append(

@@ -852,6 +852,31 @@ def test_prompt_session_plans_build_compile_as_plan_only() -> None:
         assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
 
 
+def test_prompt_session_plans_render_shader_rebuild_as_plan_only() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-render-shader-plan-1",
+                "prompt_text": 'Rebuild shader "ExampleShader".',
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": True,
+                "preferred_domains": ["render-lookdev"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "planned"
+        assert payload["admitted_capabilities"] == ["render.shader.rebuild"]
+        assert len(payload["plan"]["steps"]) == 1
+        step = payload["plan"]["steps"][0]
+        assert step["tool"] == "render.shader.rebuild"
+        assert step["capability_maturity"] == "plan-only"
+        assert step["args"]["shader_targets"] == ["ExampleShader"]
+        assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
+
+
 def test_prompt_session_plans_gem_enable_as_mutation_gated() -> None:
     with isolated_client() as client:
         response = client.post(
@@ -1120,6 +1145,65 @@ def test_prompt_session_executes_gem_enable_with_truthful_preflight_evidence() -
                 assert details["configured_build_tree_available"] is True
                 assert details["execution_attempted"] is False
                 assert details["result_artifact_produced"] is False
+
+
+def test_prompt_session_executes_render_shader_rebuild_with_truthful_preflight_evidence(
+) -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        build_root = project_root / "build"
+        build_root.mkdir(parents=True, exist_ok=True)
+        (build_root / "CMakeCache.txt").write_text("PROJECT_NAME=ShaderBuild\n", encoding="utf-8")
+        shader_path = project_root / "Assets" / "Shaders" / "ExampleShader.shader"
+        shader_path.parent.mkdir(parents=True, exist_ok=True)
+        shader_path.write_text("shader-source", encoding="utf-8")
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                create_response = client.post(
+                    "/prompt/sessions",
+                    json={
+                        "prompt_id": "prompt-render-shader-execute-1",
+                        "prompt_text": 'Rebuild shader "ExampleShader".',
+                        "project_root": str(project_root),
+                        "engine_root": "C:/engine",
+                        "dry_run": True,
+                        "preferred_domains": ["render-lookdev"],
+                    },
+                )
+                assert create_response.status_code == 200
+
+                execute_response = client.post(
+                    "/prompt/sessions/prompt-render-shader-execute-1/execute"
+                )
+                assert execute_response.status_code == 200
+                payload = execute_response.json()
+                assert payload["status"] == "waiting_approval"
+                approval = approvals_service.get_approval(payload["pending_approval_id"])
+                assert approval is not None
+                approvals_service.approve(approval.id)
+
+                execute_response = client.post(
+                    "/prompt/sessions/prompt-render-shader-execute-1/execute"
+                )
+                assert execute_response.status_code == 200
+                payload = execute_response.json()
+                assert payload["status"] == "completed"
+                assert (
+                    "Shader rebuild preflight confirmed configured build tree evidence"
+                    in payload["final_result_summary"]
+                )
+                assert (
+                    "No real render.shader.rebuild execution was attempted"
+                    in payload["final_result_summary"]
+                )
+                child_response = payload["latest_child_responses"][-1]
+                details = child_response["execution_details"]
+                assert details["inspection_surface"] == "render_shader_rebuild_preflight"
+                assert details["configured_build_tree_available"] is True
+                assert details["shader_source_candidates_found_for_all_requested_targets"] is True
+                assert details["execution_attempted"] is False
+                assert details["result_artifact_produced"] is False
+                assert str(shader_path) in details["resolved_shader_candidate_paths"]
 
 
 def test_prompt_session_executes_test_run_editor_python_with_truthful_preflight_evidence() -> None:

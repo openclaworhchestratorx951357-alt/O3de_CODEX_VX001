@@ -219,12 +219,20 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             retention_class="render-mutation-evidence",
             natural_language_status="prompt-ready-approval-gated",
         )
+    if tool_name == "render.shader.rebuild":
+        return _build_safety_envelope(
+            state_scope="Explicit shader target rebuild preflight scope.",
+            backup_class="none",
+            rollback_class="workspace-clean-or-shader-cache-reset",
+            verification_class="configured build tree and shader source candidate verification",
+            retention_class="render-log-evidence",
+            natural_language_status="prompt-ready-plan-only",
+        )
     if tool_name in {
         "asset.processor.status",
         "asset.source.inspect",
         "asset.batch.process",
         "render.material.inspect",
-        "render.shader.rebuild",
         "render.capture.viewport",
         "test.run.gtest",
         "test.run.editor_python",
@@ -472,11 +480,13 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": True,
     },
     "render.shader.rebuild": {
-        "capability_maturity": "simulated-only",
+        "capability_maturity": "plan-only",
         "planner_intent_aliases": ["rebuild shader", "recompile shader"],
-        "natural_language_affordances": ["Request a typed shader rebuild."],
+        "natural_language_affordances": [
+            "Run an explicit shader rebuild preflight for named shader targets."
+        ],
         "allowlisted_parameter_surfaces": ["shader_targets", "platforms", "force"],
-        "real_adapter_availability": False,
+        "real_adapter_availability": True,
         "dry_run_availability": True,
         "simulation_fallback_availability": True,
     },

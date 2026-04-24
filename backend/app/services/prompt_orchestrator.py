@@ -527,6 +527,9 @@ class PromptOrchestratorService:
         render_material_patch_response = self._latest_successful_response_for_step(
             session, "render-material-patch-1"
         )
+        render_shader_response = self._latest_successful_response_for_step(
+            session, "render-shader-1"
+        )
         gem_enable_response = self._latest_successful_response_for_step(session, "gem-enable-1")
         build_compile_response = self._latest_successful_response_for_step(
             session, "build-compile-1"
@@ -801,6 +804,38 @@ class PromptOrchestratorService:
                     "No real render.material.patch execution was attempted in this admitted slice."
                 )
             unavailable_reason = details.get("material_unavailable_reason") or details.get(
+                "result_unavailable_reason"
+            )
+            if isinstance(unavailable_reason, str) and unavailable_reason:
+                summary_parts.append(unavailable_reason)
+
+        if render_shader_response is not None:
+            details = render_shader_response.get("execution_details", {})
+            if details.get("configured_build_tree_available") is True:
+                summary_parts.append(
+                    "Shader rebuild preflight confirmed configured build tree evidence for the explicit shader target request."
+                )
+            else:
+                summary_parts.append(
+                    "Shader rebuild preflight recorded that configured build tree evidence remains unavailable for the explicit shader target request."
+                )
+            if details.get("shader_source_candidates_found_for_all_requested_targets") is True:
+                summary_parts.append(
+                    "Shader rebuild preflight confirmed shader source candidate resolution for all explicit shader targets."
+                )
+            else:
+                summary_parts.append(
+                    "Shader rebuild preflight could not confirm shader source candidate resolution for all explicit shader targets."
+                )
+            if details.get("execution_attempted") is True:
+                summary_parts.append(
+                    "Real render.shader.rebuild execution was attempted in this slice."
+                )
+            else:
+                summary_parts.append(
+                    "No real render.shader.rebuild execution was attempted in this admitted slice."
+                )
+            unavailable_reason = details.get("shader_rebuild_unavailable_reason") or details.get(
                 "result_unavailable_reason"
             )
             if isinstance(unavailable_reason, str) and unavailable_reason:

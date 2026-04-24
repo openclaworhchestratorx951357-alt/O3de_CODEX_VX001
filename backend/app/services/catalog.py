@@ -52,6 +52,8 @@ def tool_capability_status(tool_name: str) -> str:
         return "mutation-gated"
     if tool_name == "render.material.patch":
         return "mutation-gated"
+    if tool_name == "render.shader.rebuild":
+        return "plan-only"
     return "simulated-only"
 
 CATALOG = ToolsCatalog(

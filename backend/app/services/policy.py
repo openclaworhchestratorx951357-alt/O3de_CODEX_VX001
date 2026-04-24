@@ -40,6 +40,8 @@ def tool_real_admission_stage(tool_name: str) -> str:
         return "real-mutation-preflight-active"
     if tool_name == "render.material.patch":
         return "real-mutation-preflight-active"
+    if tool_name == "render.shader.rebuild":
+        return "real-plan-only-active"
     if tool_name == "build.compile":
         return "real-plan-only-active"
     return "simulated-only"
@@ -167,6 +169,13 @@ def tool_next_real_requirement(tool_name: str) -> str:
             "propertyValues patching with backup, rollback, and post-write readback "
             "verification, while runtime material readback, shader rebuild, and "
             "reference repair remain unavailable."
+        )
+    if tool_name == "render.shader.rebuild":
+        return (
+            "Keep real execution limited to explicit render.shader.rebuild preflight "
+            "and result-truth evidence, with actual shader rebuild execution, exit "
+            "semantics, and result artifact production marked unavailable unless a "
+            "real admitted shader rebuild runner path is proven."
         )
     if tool_name == "build.compile":
         return (

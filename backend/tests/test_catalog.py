@@ -79,6 +79,17 @@ def test_render_material_patch_is_cataloged_as_mutation_gated() -> None:
     assert "render_pipeline" in tool.default_locks
 
 
+def test_render_shader_rebuild_is_cataloged_as_plan_only() -> None:
+    tool = catalog_service.get_tool_definition("render-lookdev", "render.shader.rebuild")
+    assert tool is not None
+    assert tool.approval_class == "build_execute"
+    assert tool.adapter_family == "render-lookdev"
+    assert tool.capability_status == "plan-only"
+    assert tool.args_schema.endswith("render.shader.rebuild.args.schema.json")
+    assert tool.result_schema.endswith("render.shader.rebuild.result.schema.json")
+    assert "render_pipeline" in tool.default_locks
+
+
 def test_asset_batch_process_is_cataloged_as_plan_only() -> None:
     tool = catalog_service.get_tool_definition("asset-pipeline", "asset.batch.process")
     assert tool is not None

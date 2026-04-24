@@ -866,6 +866,23 @@ class DispatcherService:
             admitted_tools = ["render.material.patch"]
             backup_class = "material-file-backup"
             rollback_class = "material-file-restore"
+        elif (
+            request.tool == "render.shader.rebuild"
+            and inspection_surface == "render_shader_rebuild_preflight"
+        ):
+            executor_id = "executor-render-lookdev-hybrid-plan-only-local-shader"
+            executor_kind = "local-admitted-readonly"
+            executor_label = "Admitted local shader rebuild preflight executor"
+            executor_host_label = "local-project-build-and-shader-sources"
+            workspace_kind = "admitted-plan-only-project-root"
+            cleanup_policy = "operator-managed-preflight"
+            artifact_role = "plan-evidence"
+            evidence_completeness = "plan-backed"
+            execution_boundary = "plan-only local render shader rebuild preflight"
+            workspace_id = f"workspace-render-shader-rebuild-{execution_id}"
+            admitted_tools = ["render.shader.rebuild"]
+            backup_class = None
+            rollback_class = None
         elif request.tool in {
             "editor.session.open",
             "editor.level.open",
@@ -1350,6 +1367,8 @@ class DispatcherService:
             return "plan-only asset.move.safe preflight"
         if request.tool == "build.compile" and capability == "plan-only":
             return "plan-only build.compile preflight"
+        if request.tool == "render.shader.rebuild" and capability == "plan-only":
+            return "plan-only render.shader.rebuild preflight"
         if request.tool == "gem.enable" and capability == "mutation-gated":
             return (
                 "mutation-gated gem.enable path"
@@ -1393,6 +1412,10 @@ class DispatcherService:
             return "This run used the real plan-only build.configure preflight path."
         if request.tool == "build.compile":
             return "This run used the real plan-only build.compile preflight path."
+        if request.tool == "render.shader.rebuild":
+            return (
+                "This run used the real plan-only render.shader.rebuild preflight path."
+            )
         if request.tool == "gem.enable":
             if isinstance(result.message, str) and result.message.startswith(
                 "Real gem.enable mutation completed"

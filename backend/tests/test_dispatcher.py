@@ -441,23 +441,56 @@ def make_render_capture_viewport_request() -> RequestEnvelope:
     return request
 
 
-def make_render_shader_rebuild_request() -> RequestEnvelope:
-    request = make_request("render-lookdev", "render.shader.rebuild")
+def make_render_shader_rebuild_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = True,
+    shader_targets: list[str] | None = None,
+    platforms: list[str] | None = None,
+    force: bool = True,
+) -> RequestEnvelope:
+    request = make_request(
+        "render-lookdev",
+        "render.shader.rebuild",
+        project_root=project_root,
+        dry_run=dry_run,
+    )
     request.args = {
-        "shader_targets": ["ExampleShader"],
-        "platforms": ["pc"],
-        "force": True,
+        "shader_targets": shader_targets or ["ExampleShader"],
+        "platforms": platforms or ["pc"],
+        "force": force,
     }
     return request
 
 
-def approve_render_shader_rebuild_request() -> RequestEnvelope:
-    first = dispatcher_service.dispatch(make_render_shader_rebuild_request())
+def approve_render_shader_rebuild_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = True,
+    shader_targets: list[str] | None = None,
+    platforms: list[str] | None = None,
+    force: bool = True,
+) -> RequestEnvelope:
+    first = dispatcher_service.dispatch(
+        make_render_shader_rebuild_request(
+            project_root=project_root,
+            dry_run=dry_run,
+            shader_targets=shader_targets,
+            platforms=platforms,
+            force=force,
+        )
+    )
     approval = approvals_service.get_approval(first.approval_id or "")
     assert approval is not None
     approvals_service.approve(approval.id)
 
-    approved_request = make_render_shader_rebuild_request()
+    approved_request = make_render_shader_rebuild_request(
+        project_root=project_root,
+        dry_run=dry_run,
+        shader_targets=shader_targets,
+        platforms=platforms,
+        force=force,
+    )
     approved_request.approval_token = approval.token
     return approved_request
 
@@ -5225,6 +5258,93 @@ def test_render_shader_rebuild_simulated_persisted_payloads_match_published_sche
             )
             == []
         )
+
+
+def test_render_shader_rebuild_uses_real_preflight_substrate_in_hybrid_mode() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        build_root = project_root / "build"
+        build_root.mkdir(parents=True, exist_ok=True)
+        (build_root / "CMakeCache.txt").write_text("PROJECT_NAME=ShaderBuild\n", encoding="utf-8")
+        shader_path = project_root / "Assets" / "Shaders" / "ExampleShader.shader"
+        shader_path.parent.mkdir(parents=True, exist_ok=True)
+        shader_path.write_text("shader-source", encoding="utf-8")
+
+        with isolated_database():
+            with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+                response = dispatcher_service.dispatch(
+                    approve_render_shader_rebuild_request(project_root=str(project_root))
+                )
+            assert response.ok is True
+            assert response.result is not None
+            assert response.result.simulated is False
+            assert response.result.execution_mode == "real"
+            run_id = response.operation_id
+            assert run_id is not None
+            execution = next(
+                execution
+                for execution in executions_service.list_executions()
+                if execution.run_id == run_id
+            )
+            artifact = artifacts_service.get_artifact(response.artifacts[0])
+            assert execution.details["inspection_surface"] == "render_shader_rebuild_preflight"
+            assert execution.details["configured_build_tree_available"] is True
+            assert execution.details["shader_source_candidates_found_for_all_requested_targets"] is True
+            assert execution.details["execution_attempted"] is False
+            assert execution.details["result_artifact_produced"] is False
+            assert str(shader_path) in execution.details["resolved_shader_candidate_paths"]
+            assert artifact is not None
+            assert artifact.simulated is False
+            assert artifact.metadata["execution_mode"] == "real"
+            assert artifact.metadata["inspection_surface"] == "render_shader_rebuild_preflight"
+
+
+def test_render_shader_rebuild_real_persisted_payloads_match_published_schemas() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        build_root = project_root / "build"
+        build_root.mkdir(parents=True, exist_ok=True)
+        (build_root / "CMakeCache.txt").write_text("PROJECT_NAME=ShaderBuild\n", encoding="utf-8")
+        shader_path = project_root / "Assets" / "Shaders" / "ExampleShader.shader"
+        shader_path.parent.mkdir(parents=True, exist_ok=True)
+        shader_path.write_text("shader-source", encoding="utf-8")
+
+        with isolated_database():
+            with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+                response = dispatcher_service.dispatch(
+                    approve_render_shader_rebuild_request(project_root=str(project_root))
+                )
+            assert response.ok is True
+            assert response.result is not None
+            assert response.result.simulated is False
+            run_id = response.operation_id
+            assert run_id is not None
+            execution = next(
+                execution
+                for execution in executions_service.list_executions()
+                if execution.run_id == run_id
+            )
+            artifact = artifacts_service.get_artifact(response.artifacts[0])
+            assert execution.details["inspection_surface"] == "render_shader_rebuild_preflight"
+            assert execution.details["simulated"] is False
+            assert artifact is not None
+            assert artifact.simulated is False
+            assert artifact.metadata["execution_mode"] == "real"
+            assert artifact.metadata["inspection_surface"] == "render_shader_rebuild_preflight"
+            assert (
+                schema_validation_service.validate_execution_details(
+                    tool_name="render.shader.rebuild",
+                    payload=execution.details,
+                )
+                == []
+            )
+            assert (
+                schema_validation_service.validate_artifact_metadata(
+                    tool_name="render.shader.rebuild",
+                    payload=artifact.metadata,
+                )
+                == []
+            )
 
 
 def test_render_capture_viewport_simulated_persisted_payloads_match_published_schemas(

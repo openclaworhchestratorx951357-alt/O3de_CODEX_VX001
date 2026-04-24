@@ -19,7 +19,7 @@
       "properties": {
         "tool": { "const": "render.shader.rebuild" },
         "agent": { "const": "render-lookdev" },
-        "execution_mode": { "const": "simulated" }
+        "execution_mode": { "enum": ["simulated", "real"] }
       }
     }
   ]
