@@ -1,4 +1,4 @@
-import { getPanelControlGuide } from "../content/operatorGuide";
+import { getShellPanelControlGuide } from "../content/operatorGuideShell";
 import OperatorLaneStateBlock, { type OperatorLaneStateEntry } from "./OperatorLaneStateBlock";
 import { buildOperatorLaneStateEntries } from "./laneViewModel";
 import {
@@ -8,8 +8,8 @@ import {
   summaryMutedTextStyle,
 } from "./summaryPrimitives";
 
-const layoutHeaderLaneActionsControlGuide = getPanelControlGuide("operator-overview", "lane-actions");
-const layoutHeaderRefreshControlGuide = getPanelControlGuide("operator-overview", "refresh");
+const layoutHeaderLaneActionsControlGuide = getShellPanelControlGuide("operator-overview", "lane-actions");
+const layoutHeaderRefreshControlGuide = getShellPanelControlGuide("operator-overview", "refresh");
 
 function getLayoutHeaderLaneActionTitle(detail: string): string {
   return `${layoutHeaderLaneActionsControlGuide.tooltip} ${detail}`;

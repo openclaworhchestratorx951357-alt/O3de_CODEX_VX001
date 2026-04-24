@@ -32,6 +32,7 @@ describe("RecordsWorkspaceView", () => {
         runsContent={<div>Runs content</div>}
         executionsContent={<div>Executions content</div>}
         artifactsContent={<div>Artifacts content</div>}
+        eventsContent={<div>Events content</div>}
       />,
     );
 

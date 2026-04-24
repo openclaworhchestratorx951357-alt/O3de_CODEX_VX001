@@ -1,6 +1,8 @@
 import type {
   AdaptersEnvelope,
   AdaptersResponse,
+  AppControlExecutionReport,
+  AppControlExecutionReportRequest,
   AppControlPreviewRequest,
   AppControlScriptPreview,
   AutonomyHealingActionCreateRequest,
@@ -48,7 +50,9 @@ import type {
   ExecutorsResponse,
   EventListItem,
   EventListResponse,
+  EventDetailResponse,
   EventRecord,
+  EventSummaryResponse,
   EventsResponse,
   ExecutionListItem,
   ExecutionListResponse,
@@ -146,6 +150,16 @@ export async function previewAppControlScript(
     "/app/control/preview",
     request,
     "App control preview",
+  );
+}
+
+export async function buildAppControlExecutionReport(
+  request: AppControlExecutionReportRequest,
+): Promise<AppControlExecutionReport> {
+  return postJson<AppControlExecutionReportRequest, AppControlExecutionReport>(
+    "/app/control/report",
+    request,
+    "App control execution report",
   );
 }
 
@@ -718,6 +732,14 @@ export async function fetchEvents(): Promise<EventRecord[]> {
 export async function fetchEventCards(): Promise<EventListItem[]> {
   const payload = await getJson<EventListResponse>("/events/cards", "Event cards fetch");
   return payload.events ?? [];
+}
+
+export async function fetchEventSummary(): Promise<EventSummaryResponse> {
+  return getJson<EventSummaryResponse>("/events/summary", "Event summary fetch");
+}
+
+export async function fetchEventDetail(eventId: string): Promise<EventDetailResponse> {
+  return getJson<EventDetailResponse>(`/events/${eventId}`, "Event detail fetch");
 }
 
 export async function fetchRuns(

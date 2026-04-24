@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 
-import { previewAppControlScript } from "../lib/api";
+import { buildAppControlExecutionReport, previewAppControlScript } from "../lib/api";
 import { useSettings } from "../lib/settings/hooks";
-import type { AppControlOperation, AppControlScriptPreview } from "../types/contracts";
+import { loadSettingsProfile } from "../lib/settings/storage";
+import type {
+  AppControlExecutionReport,
+  AppControlExecutionReportItem,
+  AppControlOperation,
+  AppControlScriptPreview,
+} from "../types/contracts";
 import type { AppSettings, SettingsProfile } from "../types/settings";
 
 type AppControlCommandCenterProps = {
@@ -11,15 +17,34 @@ type AppControlCommandCenterProps = {
   onSelectWorkspace: (workspaceId: string) => void;
 };
 
+type AppControlWorkspaceValue = (typeof WORKSPACE_VALUES)[number];
+
 type AppControlBackup = {
   scriptId: string;
   createdAt: string;
   profile: SettingsProfile;
-  activeWorkspaceId: string;
+  activeWorkspaceId: AppControlWorkspaceValue;
+};
+
+type AppControlReceiptItem = AppControlExecutionReportItem & {
+  verificationSource?: {
+    kind: "navigation";
+    workspaceId: AppControlWorkspaceValue;
+  } | null;
+};
+
+type AppControlReceipt = Omit<AppControlExecutionReport, "items" | "script_id"> & {
+  scriptId: string;
+  items: AppControlReceiptItem[];
 };
 
 const APP_CONTROL_BACKUP_SESSION_KEY = "o3de-control-app-last-app-control-backup";
 const WORKSPACE_VALUES = ["home", "prompt", "builder", "operations", "runtime", "records"] as const;
+const APP_CONTROL_BOUNDARY_ITEMS = [
+  "Shell commands and Windows file edits stay out of scope here.",
+  "O3DE editor/runtime state is not mutated by this surface.",
+  "Backend runtime state and bridge state are not changed by this slice.",
+] as const;
 
 function loadLastBackup(): AppControlBackup | null {
   if (typeof window === "undefined") {
@@ -83,6 +108,262 @@ function applySettingsOperations(settings: AppSettings, operations: AppControlOp
   }, settings);
 }
 
+function resolveWorkspaceAfter(
+  workspaceBefore: string,
+  operations: AppControlOperation[],
+): string {
+  const navigationOperation = operations.find((operation) => operation.kind === "navigation.open_workspace");
+  return navigationOperation && isWorkspaceValue(navigationOperation.value)
+    ? navigationOperation.value
+    : workspaceBefore;
+}
+
+function loadPersistedSettings(): AppSettings | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return loadSettingsProfile().settings;
+  } catch {
+    return null;
+  }
+}
+
+function readSettingValue(settings: AppSettings, target: string): unknown {
+  switch (target) {
+    case "appearance.themeMode":
+      return settings.appearance.themeMode;
+    case "appearance.density":
+      return settings.appearance.density;
+    case "appearance.contentMaxWidth":
+      return settings.appearance.contentMaxWidth;
+    case "layout.showDesktopTelemetry":
+      return settings.layout.showDesktopTelemetry;
+    case "layout.guidedMode":
+      return settings.layout.guidedMode;
+    default:
+      return undefined;
+  }
+}
+
+function formatAppControlValue(value: unknown): string {
+  if (typeof value === "boolean") {
+    return value ? "true" : "false";
+  }
+
+  if (value === undefined) {
+    return "unknown";
+  }
+
+  if (value === null) {
+    return "null";
+  }
+
+  return String(value);
+}
+
+function formatSettingTargetLabel(target: string): string {
+  switch (target) {
+    case "appearance.themeMode":
+      return "Theme mode";
+    case "appearance.density":
+      return "Density";
+    case "appearance.contentMaxWidth":
+      return "Content width";
+    case "layout.showDesktopTelemetry":
+      return "Desktop telemetry";
+    case "layout.guidedMode":
+      return "Guided mode";
+    default:
+      return target;
+  }
+}
+
+function describeSettingDelta(target: string, beforeValue: unknown, afterValue: unknown): string {
+  return `${formatSettingTargetLabel(target)}: ${formatAppControlValue(beforeValue)} -> ${formatAppControlValue(afterValue)}`;
+}
+
+function collectSettingsRestoreDeltas(
+  currentSettings: AppSettings,
+  backupSettings: AppSettings,
+): string[] {
+  const admittedTargets = [
+    "appearance.themeMode",
+    "appearance.density",
+    "appearance.contentMaxWidth",
+    "layout.showDesktopTelemetry",
+    "layout.guidedMode",
+  ] as const;
+
+  return admittedTargets.flatMap((target) => {
+    const currentValue = readSettingValue(currentSettings, target);
+    const backupValue = readSettingValue(backupSettings, target);
+    return currentValue === backupValue
+      ? []
+      : [describeSettingDelta(target, currentValue, backupValue)];
+  });
+}
+
+function buildApplyReceipt(
+  preview: AppControlScriptPreview,
+  settingsBeforeApply: AppSettings,
+): AppControlReceipt {
+  const persistedSettings = loadPersistedSettings();
+  const items = preview.operations.map((operation) => {
+    if (operation.kind === "settings.patch") {
+      const delta = describeSettingDelta(
+        operation.target,
+        readSettingValue(settingsBeforeApply, operation.target),
+        operation.value,
+      );
+      const verified = persistedSettings
+        ? readSettingValue(persistedSettings, operation.target) === operation.value
+        : false;
+
+      return {
+        id: operation.operation_id,
+        label: operation.description,
+        detail: verified
+          ? "Verified by re-reading the local saved app settings after apply."
+          : "Requested for local settings apply, but this panel could not verify the saved value afterward.",
+        delta,
+        verification: verified ? "verified" : "assumed",
+      } satisfies AppControlReceiptItem;
+    }
+
+    if (operation.kind === "navigation.open_workspace") {
+      if (!isWorkspaceValue(operation.value)) {
+        return {
+        id: operation.operation_id,
+        label: operation.description,
+        detail: "Navigation request was issued, but this panel only verifies known desktop workspace targets.",
+        delta: null,
+        verification: "assumed",
+        verificationSource: null,
+      } satisfies AppControlReceiptItem;
+      }
+
+      return {
+        id: operation.operation_id,
+        label: operation.description,
+        detail: "Navigation request was sent to the shell, but this panel does not read back final workspace focus.",
+        delta: `Workspace: ${settingsBeforeApply.layout.preferredLandingSection} -> ${operation.value}`,
+        verification: "assumed",
+        verificationSource: { kind: "navigation", workspaceId: operation.value },
+      } satisfies AppControlReceiptItem;
+    }
+
+    return {
+      id: operation.operation_id,
+      label: operation.description,
+      detail: "Operation was issued from this panel, but no direct readback is available here.",
+      delta: null,
+      verification: "assumed",
+      verificationSource: null,
+    } satisfies AppControlReceiptItem;
+  });
+
+  return {
+    mode: "applied",
+    scriptId: preview.script_id,
+    summary: `Applied ${preview.operations.length} planned operation(s). Verified results are marked explicitly below.`,
+    items,
+    event_id: null,
+    generated_by: "frontend-app-control-fallback-v1",
+  };
+}
+
+function buildRevertReceipt(
+  backup: AppControlBackup,
+  settingsBeforeRevert: AppSettings,
+): AppControlReceipt {
+  const persistedSettings = loadPersistedSettings();
+  const settingsRestored = persistedSettings
+    ? JSON.stringify(persistedSettings) === JSON.stringify(backup.profile.settings)
+    : false;
+  const restoreDeltas = collectSettingsRestoreDeltas(settingsBeforeRevert, backup.profile.settings);
+
+  return {
+    mode: "reverted",
+    scriptId: backup.scriptId,
+    summary: "Requested restore of the last saved App OS backup. Verified results are marked explicitly below.",
+    items: [
+      {
+        id: `${backup.scriptId}-settings-restore`,
+        label: "Restore saved app settings profile",
+        detail: settingsRestored
+          ? "Verified by re-reading the local saved settings profile after revert."
+          : "Restore was requested, but this panel could not verify the saved settings profile afterward.",
+        delta: restoreDeltas.length > 0 ? restoreDeltas.join(" | ") : "No admitted settings values changed during restore.",
+        verification: settingsRestored ? "verified" : "assumed",
+      },
+      {
+        id: `${backup.scriptId}-workspace-restore`,
+        label: `Return to ${backup.activeWorkspaceId} workspace`,
+        detail: "Navigation request was sent to the shell, but this panel does not read back final workspace focus.",
+        delta: `Workspace: ${settingsBeforeRevert.layout.preferredLandingSection} -> ${backup.activeWorkspaceId}`,
+        verification: "assumed",
+        verificationSource: { kind: "navigation", workspaceId: backup.activeWorkspaceId },
+      },
+    ],
+    event_id: null,
+    generated_by: "frontend-app-control-fallback-v1",
+  };
+}
+
+function updateReceiptNavigationVerification(
+  receipt: AppControlReceipt,
+  activeWorkspaceId: string,
+): AppControlReceipt {
+  let changed = false;
+  const nextItems = receipt.items.map((item) => {
+    if (item.verificationSource?.kind !== "navigation") {
+      return item;
+    }
+
+    const verified = activeWorkspaceId === item.verificationSource.workspaceId;
+    const nextItem = {
+      ...item,
+      detail: verified
+        ? `Verified by reading the current shell workspace focus as ${item.verificationSource.workspaceId}.`
+        : "Navigation request was sent to the shell, but the current shell workspace focus does not match yet.",
+      verification: verified ? "verified" : "assumed",
+    } satisfies AppControlReceiptItem;
+
+    if (
+      nextItem.detail !== item.detail
+      || nextItem.verification !== item.verification
+    ) {
+      changed = true;
+    }
+
+    return nextItem;
+  });
+
+  return changed ? { ...receipt, items: nextItems } : receipt;
+}
+
+function normalizeExecutionReport(report: AppControlExecutionReport): AppControlReceipt {
+  return {
+    mode: report.mode,
+    scriptId: report.script_id,
+    summary: report.summary,
+    items: report.items.map((item) => ({
+      ...item,
+      verificationSource: item.verification_source && item.verification_source.kind === "navigation"
+        && isWorkspaceValue(item.verification_source.workspace_id)
+        ? {
+            kind: "navigation",
+            workspaceId: item.verification_source.workspace_id,
+          }
+        : null,
+    })),
+    event_id: report.event_id ?? null,
+    generated_by: report.generated_by,
+  };
+}
+
 export default function AppControlCommandCenter({
   activeWorkspaceId,
   onSelectWorkspace,
@@ -101,11 +382,26 @@ export default function AppControlCommandCenter({
   const [actorName, setActorName] = useState("");
   const [preview, setPreview] = useState<AppControlScriptPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [receipt, setReceipt] = useState<AppControlReceipt | null>(null);
   const [status, setStatus] = useState("Ask for a safe app setting or navigation change.");
   const [lastBackup, setLastBackup] = useState<AppControlBackup | null>(() => loadLastBackup());
   const overlayTarget = typeof document !== "undefined"
     ? document.querySelector<HTMLElement>("[data-app-theme-root='true']") ?? document.body
     : null;
+
+  useEffect(() => {
+    if (!receipt) {
+      return;
+    }
+
+    setReceipt((currentReceipt) => {
+      if (!currentReceipt) {
+        return currentReceipt;
+      }
+
+      return updateReceiptNavigationVerification(currentReceipt, activeWorkspaceId);
+    });
+  }, [activeWorkspaceId, receipt]);
 
   useEffect(() => {
     if (!open) {
@@ -175,6 +471,7 @@ export default function AppControlCommandCenter({
 
     setPreviewLoading(true);
     setStatus("Building a safe script preview...");
+    setReceipt(null);
     try {
       const nextPreview = await previewAppControlScript({
         instruction,
@@ -196,7 +493,7 @@ export default function AppControlCommandCenter({
     }
   }
 
-  function approveAndRunScript() {
+  async function approveAndRunScript() {
     if (!preview || preview.status !== "ready") {
       setStatus("Only ready previews can be executed.");
       return;
@@ -206,9 +503,10 @@ export default function AppControlCommandCenter({
       scriptId: preview.script_id,
       createdAt: new Date().toISOString(),
       profile,
-      activeWorkspaceId,
+      activeWorkspaceId: isWorkspaceValue(activeWorkspaceId) ? activeWorkspaceId : "home",
     };
     const nextSettings = applySettingsOperations(settings, preview.operations);
+    const nextWorkspaceId = resolveWorkspaceAfter(activeWorkspaceId, preview.operations);
 
     saveSettings(nextSettings);
     preview.operations.forEach((operation) => {
@@ -219,11 +517,25 @@ export default function AppControlCommandCenter({
 
     saveLastBackup(backup);
     setLastBackup(backup);
-    setStatus(`Executed ${preview.operations.length} operation(s). Backup is ready for revert.`);
+    try {
+      const report = await buildAppControlExecutionReport({
+        script_id: preview.script_id,
+        mode: "applied",
+        operations: preview.operations,
+        settings_before: settings as unknown as Record<string, unknown>,
+        settings_after: nextSettings as unknown as Record<string, unknown>,
+        workspace_before: activeWorkspaceId,
+        workspace_after: nextWorkspaceId,
+      });
+      setReceipt(normalizeExecutionReport(report));
+    } catch {
+      setReceipt(buildApplyReceipt(preview, settings));
+    }
+    setStatus(`Executed ${preview.operations.length} operation(s). Backup is ready for revert. Verified results are marked below.`);
     setPreview(null);
   }
 
-  function revertLastScript() {
+  async function revertLastScript() {
     if (!lastBackup) {
       setStatus("No app-control backup is available yet.");
       return;
@@ -233,7 +545,23 @@ export default function AppControlCommandCenter({
     if (isWorkspaceValue(lastBackup.activeWorkspaceId)) {
       onSelectWorkspace(lastBackup.activeWorkspaceId);
     }
-    setStatus(`Reverted script ${lastBackup.scriptId}.`);
+    try {
+      const report = await buildAppControlExecutionReport({
+        script_id: lastBackup.scriptId,
+        mode: "reverted",
+        operations: [],
+        settings_before: settings as unknown as Record<string, unknown>,
+        settings_after: lastBackup.profile.settings as unknown as Record<string, unknown>,
+        workspace_before: activeWorkspaceId,
+        workspace_after: lastBackup.activeWorkspaceId,
+        backup_settings: lastBackup.profile.settings as unknown as Record<string, unknown>,
+        backup_workspace_id: lastBackup.activeWorkspaceId,
+      });
+      setReceipt(normalizeExecutionReport(report));
+    } catch {
+      setReceipt(buildRevertReceipt(lastBackup, settings));
+    }
+    setStatus(`Reverted script ${lastBackup.scriptId}. Verified results are marked below.`);
   }
 
   const panel = open && overlayTarget && panelPosition
@@ -289,7 +617,7 @@ export default function AppControlCommandCenter({
               <button type="submit" disabled={previewLoading} style={primaryButtonStyle}>
                 {previewLoading ? "Previewing..." : "Preview script"}
               </button>
-              <button type="button" onClick={revertLastScript} disabled={!lastBackup} style={secondaryButtonStyle}>
+              <button type="button" onClick={() => void revertLastScript()} disabled={!lastBackup} style={secondaryButtonStyle}>
                 Back / revert last
               </button>
             </div>
@@ -310,26 +638,55 @@ export default function AppControlCommandCenter({
                 <span><strong>Backup</strong>{preview.backup.captures.join(", ")}</span>
                 <span><strong>Actor</strong>{preview.actor?.display_name ?? "User direct"}</span>
               </div>
-              {preview.operations.length > 0 ? (
-                <ol style={operationListStyle}>
-                  {preview.operations.map((operation) => (
-                    <li key={operation.operation_id}>
-                      <strong>{operation.kind}</strong>: {operation.description}
-                    </li>
-                  ))}
-                </ol>
-              ) : null}
-              {preview.warnings.length > 0 ? (
-                <ul style={warningListStyle}>
-                  {preview.warnings.map((warning) => (
-                    <li key={warning}>{warning}</li>
-                  ))}
-                </ul>
-              ) : null}
+              <div style={previewSectionGridStyle}>
+                <div style={previewSectionCardStyle}>
+                  <span style={eyebrowStyle}>Will change</span>
+                  {preview.operations.length > 0 ? (
+                    <ol style={operationListStyle}>
+                      {preview.operations.map((operation) => (
+                        <li key={operation.operation_id}>
+                          <strong>{operation.kind}</strong>: {operation.description}
+                          {operation.kind === "settings.patch" ? (
+                            <div style={deltaLineStyle}>
+                              {describeSettingDelta(
+                                operation.target,
+                                readSettingValue(settings, operation.target),
+                                operation.value,
+                              )}
+                            </div>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p style={mutedTightStyle}>No admitted app changes are planned from this preview.</p>
+                  )}
+                </div>
+                <div style={previewSectionCardStyle}>
+                  <span style={eyebrowStyle}>Won&apos;t change here</span>
+                  <ul style={neutralListStyle}>
+                    {APP_CONTROL_BOUNDARY_ITEMS.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div style={previewSectionCardStyle}>
+                  <span style={eyebrowStyle}>Blocked or unsupported</span>
+                  {preview.warnings.length > 0 ? (
+                    <ul style={warningListStyle}>
+                      {preview.warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p style={mutedTightStyle}>No blocked or unsupported actions were reported for this preview.</p>
+                  )}
+                </div>
+              </div>
               <div style={buttonRowStyle}>
                 <button
                   type="button"
-                  onClick={approveAndRunScript}
+                  onClick={() => void approveAndRunScript()}
                   disabled={preview.status !== "ready"}
                   style={primaryButtonStyle}
                 >
@@ -338,6 +695,47 @@ export default function AppControlCommandCenter({
                 <button type="button" onClick={() => setPreview(null)} style={secondaryButtonStyle}>
                   Cancel
                 </button>
+              </div>
+            </div>
+          ) : null}
+
+          {receipt ? (
+            <div style={receiptStyle}>
+              <div>
+                <span style={eyebrowStyle}>{receipt.mode === "applied" ? "Execution receipt" : "Revert receipt"}</span>
+                <strong>{receipt.summary}</strong>
+                <p style={mutedStyle}>Script id: {receipt.scriptId}</p>
+                {receipt.event_id ? (
+                  <p style={receiptEventStyle}>Audit event: {receipt.event_id}</p>
+                ) : null}
+                <p style={receiptSummaryStyle}>
+                  {receipt.items.filter((item) => item.verification === "verified").length} verified
+                  {" | "}
+                  {receipt.items.filter((item) => item.verification === "assumed").length} assumed
+                </p>
+              </div>
+              <div style={receiptListStyle}>
+                {receipt.items.map((item) => (
+                  <div key={item.id} style={receiptItemStyle}>
+                    <div style={receiptItemHeaderStyle}>
+                      <strong>{item.label}</strong>
+                      <span
+                        style={{
+                          ...verificationBadgeStyle,
+                          ...(item.verification === "verified"
+                            ? verifiedBadgeStyle
+                            : assumedBadgeStyle),
+                        }}
+                      >
+                        {item.verification}
+                      </span>
+                    </div>
+                    {item.delta ? (
+                      <p style={deltaLineStyle}>{item.delta}</p>
+                    ) : null}
+                    <p style={mutedTightStyle}>{item.detail}</p>
+                  </div>
+                ))}
               </div>
             </div>
           ) : null}
@@ -477,14 +875,112 @@ const previewGridStyle = {
   overflowWrap: "anywhere",
 } satisfies CSSProperties;
 
+const previewSectionGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+  gap: 10,
+} satisfies CSSProperties;
+
+const previewSectionCardStyle = {
+  display: "grid",
+  gap: 6,
+  padding: 10,
+  border: "1px solid color-mix(in srgb, var(--app-warning-border) 55%, transparent)",
+  borderRadius: "var(--app-card-radius)",
+  background: "color-mix(in srgb, var(--app-panel-bg-alt) 78%, var(--app-warning-bg) 22%)",
+} satisfies CSSProperties;
+
 const operationListStyle = {
   margin: 0,
   paddingLeft: 20,
   lineHeight: 1.45,
 } satisfies CSSProperties;
 
+const neutralListStyle = {
+  ...operationListStyle,
+  color: "var(--app-muted-color)",
+} satisfies CSSProperties;
+
 const warningListStyle = {
   ...operationListStyle,
+  color: "var(--app-warning-text)",
+} satisfies CSSProperties;
+
+const deltaLineStyle = {
+  marginTop: 4,
+  color: "var(--app-info-text)",
+  fontSize: 12,
+  fontWeight: 700,
+  lineHeight: 1.35,
+} satisfies CSSProperties;
+
+const receiptStyle = {
+  display: "grid",
+  gap: 10,
+  padding: 12,
+  border: "1px solid var(--app-info-border)",
+  borderRadius: "var(--app-card-radius)",
+  background: "var(--app-info-bg)",
+  color: "var(--app-text-color)",
+} satisfies CSSProperties;
+
+const receiptListStyle = {
+  display: "grid",
+  gap: 8,
+} satisfies CSSProperties;
+
+const receiptSummaryStyle = {
+  margin: "6px 0 0",
+  color: "var(--app-info-text)",
+  fontSize: 12,
+  fontWeight: 700,
+  lineHeight: 1.35,
+} satisfies CSSProperties;
+
+const receiptEventStyle = {
+  margin: "6px 0 0",
+  color: "var(--app-subtle-color)",
+  fontSize: 12,
+  lineHeight: 1.35,
+} satisfies CSSProperties;
+
+const receiptItemStyle = {
+  display: "grid",
+  gap: 4,
+  padding: 10,
+  border: "1px solid color-mix(in srgb, var(--app-info-border) 70%, transparent)",
+  borderRadius: "calc(var(--app-card-radius) - 6px)",
+  background: "color-mix(in srgb, var(--app-panel-bg-alt) 85%, var(--app-info-bg) 15%)",
+} satisfies CSSProperties;
+
+const receiptItemHeaderStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 8,
+} satisfies CSSProperties;
+
+const verificationBadgeStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "2px 8px",
+  fontSize: 11,
+  fontWeight: 800,
+  textTransform: "uppercase",
+  letterSpacing: "0.04em",
+} satisfies CSSProperties;
+
+const verifiedBadgeStyle = {
+  border: "1px solid var(--app-success-border)",
+  background: "var(--app-success-bg)",
+  color: "var(--app-success-text)",
+} satisfies CSSProperties;
+
+const assumedBadgeStyle = {
+  border: "1px solid var(--app-warning-border)",
+  background: "var(--app-warning-bg)",
   color: "var(--app-warning-text)",
 } satisfies CSSProperties;
 
@@ -500,6 +996,11 @@ const mutedStyle = {
   color: "var(--app-muted-color)",
   lineHeight: 1.45,
   fontSize: 13,
+} satisfies CSSProperties;
+
+const mutedTightStyle = {
+  ...mutedStyle,
+  margin: 0,
 } satisfies CSSProperties;
 
 const eyebrowStyle = {

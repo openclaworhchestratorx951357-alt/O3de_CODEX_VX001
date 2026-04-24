@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import { getShellPanelControlGuide, getShellPanelGuide } from "../content/operatorGuideShell";
 import type { ControlPlaneSummaryResponse } from "../types/contracts";
 import {
   getDominantMode,
@@ -34,10 +34,10 @@ import {
   summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
 
-const operatorOverviewGuide = getPanelGuide("operator-overview");
-const operatorOverviewRefreshControlGuide = getPanelControlGuide("operator-overview", "refresh");
-const operatorOverviewStatusFiltersControlGuide = getPanelControlGuide("operator-overview", "status-filters");
-const operatorOverviewLaneActionsControlGuide = getPanelControlGuide("operator-overview", "lane-actions");
+const operatorOverviewGuide = getShellPanelGuide("operator-overview");
+const operatorOverviewRefreshControlGuide = getShellPanelControlGuide("operator-overview", "refresh");
+const operatorOverviewStatusFiltersControlGuide = getShellPanelControlGuide("operator-overview", "status-filters");
+const operatorOverviewLaneActionsControlGuide = getShellPanelControlGuide("operator-overview", "lane-actions");
 
 type OperatorOverviewPanelProps = {
   summary: ControlPlaneSummaryResponse | null;

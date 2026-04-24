@@ -1,4 +1,4 @@
-import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import { getShellPanelControlGuide, getShellPanelGuide } from "../content/operatorGuideShell";
 import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryActionButtonStyle,
@@ -7,8 +7,8 @@ import {
   summarySectionStyle,
 } from "./summaryPrimitives";
 
-const overviewReviewSessionGuide = getPanelGuide("overview-review-session");
-const overviewReviewSessionActionsControlGuide = getPanelControlGuide("overview-review-session", "session-actions");
+const overviewReviewSessionGuide = getShellPanelGuide("overview-review-session");
+const overviewReviewSessionActionsControlGuide = getShellPanelControlGuide("overview-review-session", "session-actions");
 
 type OverviewReviewSessionPanelProps = {
   inQueueCount: number;

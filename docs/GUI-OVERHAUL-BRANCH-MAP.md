@@ -58,6 +58,39 @@ The overhaul should move toward:
 
 ## Branch map
 
+## Current local checkpoint
+
+The current GUI stabilization stream now has a repo-recorded checkpoint and a
+follow-on branch for the next narrow slice.
+
+- checkpoint branch:
+  `codex/control-plane/gui-stabilization-refactor`
+  - checkpoint commit:
+    `4399972`
+  - purpose:
+    preserve the accepted GUI stabilization state before the next control-plane
+    UX slice
+  - checkpoint scope:
+    quick access outside-click close, compact header theme toggle restoration,
+    agent call menu overlay stabilization, Home left-nav restore, O3DE planner
+    `Open world` and sub-genre additions, App OS overlay anchoring, and App OS
+    readability polish
+
+- active follow-on branch:
+  `codex/control-plane/app-os-review-evidence`
+  - purpose:
+    continue from the checkpoint on the next narrow App OS review/evidence,
+    rollback-truth, and persisted audit-event slice without risking the fallback
+    branch
+  - handoff summary:
+    this branch hardened the App OS review/evidence lane, added backend-aligned and persisted App OS audit/event surfaces, improved Records event inspection and recovery UX, and reduced the App/Home entry bundle by moving guide- and Home-heavy sections behind local lazy boundaries.
+    branch proof is repeatable from the repo root with `pwsh -File .\scripts\dev.ps1 app-os-readiness`, which covers focused frontend tests, frontend build, and backend smoke including `python -m pytest backend/tests/test_api_routes.py backend/tests/test_app_control.py` with `47 passed`.
+    this handoff does not claim full manual UI QA, broader O3DE execution expansion, or another frontend performance phase; the next higher-priority lane should be integration readiness or roadmap-native capability work rather than more App/Home bundle splitting.
+  - integration note:
+    the closest comparison base is `codex/control-plane/gui-stabilization-refactor`, because this branch was cut directly from that checkpoint and the committed ancestry still matches it.
+    the broader eventual merge lane is `codex/control-plane/gui-overhaul-integration`, but that branch is materially farther away and will likely conflict in shared shell files such as `frontend/src/App.tsx`, `frontend/src/components/workspaces/HomeWorkspaceView.tsx`, `frontend/src/components/workspaces/RecordsWorkspaceDesktop.tsx`, and `docs/GUI-OVERHAUL-BRANCH-MAP.md`.
+    the safest order is: commit and review this branch against the stabilization checkpoint first, accept `app-os-readiness` as the merge baseline, then do the broader integration merge as a separate step with conflict review.
+
 ### Safety baseline
 
 - `codex/control-plane/gui-safe-baseline-2026-04-22`

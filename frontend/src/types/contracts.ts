@@ -172,6 +172,8 @@ export interface PromptShortcutResponse {
 export type AppControlOperationKind = "settings.patch" | "navigation.open_workspace";
 export type AppControlPreviewStatus = "ready" | "no_supported_action";
 export type AppControlRiskLevel = "low" | "medium";
+export type AppControlReportMode = "applied" | "reverted";
+export type AppControlVerification = "verified" | "assumed";
 
 export interface AppControlActor {
   worker_id?: string | null;
@@ -213,6 +215,36 @@ export interface AppControlScriptPreview {
   warnings: string[];
   generated_by: string;
   actor?: AppControlActor | null;
+}
+
+export interface AppControlExecutionReportRequest {
+  script_id: string;
+  mode: AppControlReportMode;
+  operations: AppControlOperation[];
+  settings_before: Record<string, unknown>;
+  settings_after: Record<string, unknown>;
+  workspace_before?: string | null;
+  workspace_after?: string | null;
+  backup_settings?: Record<string, unknown> | null;
+  backup_workspace_id?: string | null;
+}
+
+export interface AppControlExecutionReportItem {
+  id: string;
+  label: string;
+  detail: string;
+  delta?: string | null;
+  verification: AppControlVerification;
+  verification_source?: Record<string, unknown> | null;
+}
+
+export interface AppControlExecutionReport {
+  script_id: string;
+  mode: AppControlReportMode;
+  summary: string;
+  items: AppControlExecutionReportItem[];
+  event_id?: string | null;
+  generated_by: string;
 }
 
 export type PromptSessionStatus =
@@ -1005,11 +1037,56 @@ export interface EventListItem {
   failure_category?: string | null;
   capability_status?: string | null;
   adapter_mode?: string | null;
+  verification_state?: string | null;
+  verified_count?: number | null;
+  assumed_count?: number | null;
   event_state: string;
 }
 
 export interface EventListResponse {
   events: EventListItem[];
+}
+
+export interface AppControlEventSummary {
+  total_events: number;
+  applied_events: number;
+  reverted_events: number;
+  verified_only_events: number;
+  assumed_present_events: number;
+  verification_not_recorded_events: number;
+  latest_event_id?: string | null;
+  latest_event_type?: string | null;
+  latest_created_at?: string | null;
+  latest_summary?: string | null;
+  latest_verified_count?: number | null;
+  latest_assumed_count?: number | null;
+  latest_script_id?: string | null;
+}
+
+export interface EventSummaryResponse {
+  app_control: AppControlEventSummary;
+}
+
+export interface AppControlEventDetailItem {
+  id: string;
+  label: string;
+  detail: string;
+  delta?: string | null;
+  verification?: string | null;
+}
+
+export interface AppControlEventDetail {
+  script_id?: string | null;
+  mode?: string | null;
+  summary?: string | null;
+  verified_count?: number | null;
+  assumed_count?: number | null;
+  items: AppControlEventDetailItem[];
+}
+
+export interface EventDetailResponse {
+  event: EventRecord;
+  app_control?: AppControlEventDetail | null;
 }
 
 export interface RunRecord {

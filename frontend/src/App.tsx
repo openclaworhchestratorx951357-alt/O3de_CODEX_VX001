@@ -7,25 +7,18 @@ import WorkspaceNextStepsPanel, {
   type WorkspaceNextStepEntry,
   type WorkspaceNextStepRecentAction,
 } from "./components/WorkspaceNextStepsPanel";
-import OverviewHandoffConfidencePanel from "./components/OverviewHandoffConfidencePanel";
-import OverviewContextMemoryPanel from "./components/OverviewContextMemoryPanel";
-import OverviewCloseoutReadinessPanel from "./components/OverviewCloseoutReadinessPanel";
-import OverviewHandoffExportPanel from "./components/OverviewHandoffExportPanel";
-import OverviewHandoffPackagePanel from "./components/OverviewHandoffPackagePanel";
-import OverviewAttentionPanel from "./components/OverviewAttentionPanel";
-import OverviewReviewQueuePanel from "./components/OverviewReviewQueuePanel";
-import OverviewReviewSessionPanel from "./components/OverviewReviewSessionPanel";
 import RecommendedActionsPanel from "./components/RecommendedActionsPanel";
 import AppControlCommandCenter from "./components/AppControlCommandCenter";
 import HomeWorkspaceView from "./components/workspaces/HomeWorkspaceView";
 import type { HomeTaskModeId } from "./components/HomeTaskModePanel";
 import SettingsPanel from "./components/SettingsPanel";
+import type { HomeOverviewPanelDeckProps } from "./components/HomeOverviewPanelDeck";
 import {
-  getQuickStatGuide,
-  getWorkspaceGuide,
-  getWorkspaceSurfaceGuide,
-  operatorGuideCatalog,
-} from "./content/operatorGuide";
+  getShellQuickStatGuide,
+  getShellWorkspaceGuide,
+  getShellWorkspaceSurfaceGuide,
+  operatorGuideShellApp,
+} from "./content/operatorGuideShell";
 import {
   approveApproval,
   fetchAdapters,
@@ -41,7 +34,10 @@ import {
   fetchExecution,
   fetchExecutionCards,
   fetchExecutionCardsForTruthFilter,
+  fetchEvents,
   fetchEventCards,
+  fetchEventDetail,
+  fetchEventSummary,
   fetchLockCards,
   fetchRun,
   fetchRunCards,
@@ -91,6 +87,9 @@ import type {
   ExecutionRecord,
   ExecutionListItem,
   EventListItem,
+  EventDetailResponse,
+  EventRecord,
+  EventSummaryResponse,
   LockListItem,
   O3DEBridgeStatus,
   ReadinessStatus,
@@ -104,6 +103,7 @@ import type {
 } from "./types/contracts";
 
 const OperationsWorkspaceDesktop = lazy(() => import("./components/workspaces/OperationsWorkspaceDesktop"));
+const HomeOverviewPanelDeck = lazy(() => import("./components/HomeOverviewPanelDeck"));
 const OperatorGuidePanel = lazy(() => import("./components/OperatorGuidePanel"));
 const BuilderWorkspaceDesktop = lazy(() => import("./components/workspaces/BuilderWorkspaceDesktop"));
 const PromptWorkspaceDesktop = lazy(() => import("./components/workspaces/PromptWorkspaceDesktop"));
@@ -253,7 +253,8 @@ type RuntimeSurfaceId =
 type RecordsSurfaceId =
   | "runs"
   | "executions"
-  | "artifacts";
+  | "artifacts"
+  | "events";
 
 type AuditFilter =
   | "all"
@@ -400,9 +401,11 @@ const ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY = "o3de-control-app-active-desktop-wo
 const ACTIVE_OPERATIONS_SURFACE_SESSION_KEY = "o3de-control-app-active-operations-surface";
 const ACTIVE_RUNTIME_SURFACE_SESSION_KEY = "o3de-control-app-active-runtime-surface";
 const ACTIVE_RECORDS_SURFACE_SESSION_KEY = "o3de-control-app-active-records-surface";
+const EVENTS_TIMELINE_SAVED_VIEWS_SESSION_KEY = "o3de-control-app-events-timeline-saved-views";
 const WORKSPACE_NEXT_STEP_RECENT_ACTIONS_SESSION_KEY = "o3de-control-app-workspace-next-step-recent-actions";
 const WORKSPACE_NEXT_STEPS_COLLAPSED_SESSION_KEY = "o3de-control-app-workspace-next-steps-collapsed";
 const MAX_WORKSPACE_NEXT_STEP_RECENT_ACTIONS = 4;
+const MAX_EVENTS_TIMELINE_SAVED_VIEWS = 6;
 
 function isWorkspaceNextStepRecentAction(value: unknown): value is WorkspaceNextStepRecentAction {
   if (typeof value !== "object" || value === null) {
@@ -448,6 +451,65 @@ function loadWorkspaceNextStepsCollapsed(): boolean {
   return window.sessionStorage.getItem(WORKSPACE_NEXT_STEPS_COLLAPSED_SESSION_KEY) === "true";
 }
 
+type EventsTimelineSavedView = {
+  id: string;
+  label: string;
+  eventTypeFilter: "all" | "app_control" | "app_control_applied" | "app_control_reverted";
+  verificationFilter: "all" | "verified_only" | "assumed_present" | "not_recorded";
+  searchValue: string;
+  createdAt: string;
+};
+
+type EventsTimelineSavedViewFeedback = {
+  label: string;
+  detail: string;
+  view: EventsTimelineSavedView;
+};
+
+function loadEventsTimelineSavedViews(): EventsTimelineSavedView[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const rawValue = window.sessionStorage.getItem(EVENTS_TIMELINE_SAVED_VIEWS_SESSION_KEY);
+  if (!rawValue) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    return Array.isArray(parsed)
+      ? parsed.filter(isEventsTimelineSavedView).slice(0, MAX_EVENTS_TIMELINE_SAVED_VIEWS)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function isEventsTimelineSavedView(value: unknown): value is EventsTimelineSavedView {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Partial<EventsTimelineSavedView>;
+  return typeof candidate.id === "string"
+    && typeof candidate.label === "string"
+    && typeof candidate.createdAt === "string"
+    && typeof candidate.searchValue === "string"
+    && (
+      candidate.eventTypeFilter === "all"
+      || candidate.eventTypeFilter === "app_control"
+      || candidate.eventTypeFilter === "app_control_applied"
+      || candidate.eventTypeFilter === "app_control_reverted"
+    )
+    && (
+      candidate.verificationFilter === "all"
+      || candidate.verificationFilter === "verified_only"
+      || candidate.verificationFilter === "assumed_present"
+      || candidate.verificationFilter === "not_recorded"
+    );
+}
+
 export default function App() {
   const { settings, saveSettings } = useSettings();
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
@@ -456,6 +518,17 @@ export default function App() {
   const [adapters, setAdapters] = useState<AdaptersResponse | null>(null);
   const [artifacts, setArtifacts] = useState<ArtifactListItem[]>([]);
   const [events, setEvents] = useState<EventListItem[]>([]);
+  const [eventRecords, setEventRecords] = useState<EventRecord[]>([]);
+  const [eventSummary, setEventSummary] = useState<EventSummaryResponse>({
+    app_control: {
+      total_events: 0,
+      applied_events: 0,
+      reverted_events: 0,
+      verified_only_events: 0,
+      assumed_present_events: 0,
+      verification_not_recorded_events: 0,
+    },
+  });
   const [executors, setExecutors] = useState<ExecutorRecord[]>([]);
   const [executions, setExecutions] = useState<ExecutionListItem[]>([]);
   const [locks, setLocks] = useState<LockListItem[]>([]);
@@ -483,6 +556,8 @@ export default function App() {
   const [selectedExecution, setSelectedExecution] = useState<ExecutionRecord | null>(null);
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | null>(null);
   const [selectedArtifact, setSelectedArtifact] = useState<ArtifactRecord | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [selectedEventDetail, setSelectedEventDetail] = useState<EventDetailResponse | null>(null);
   const [runDetailRefreshHint, setRunDetailRefreshHint] = useState<string | null>(null);
   const [executionDetailRefreshHint, setExecutionDetailRefreshHint] = useState<string | null>(null);
   const [artifactDetailRefreshHint, setArtifactDetailRefreshHint] = useState<string | null>(null);
@@ -499,6 +574,7 @@ export default function App() {
   const [runDetailRefreshing, setRunDetailRefreshing] = useState(false);
   const [executionDetailRefreshing, setExecutionDetailRefreshing] = useState(false);
   const [artifactDetailRefreshing, setArtifactDetailRefreshing] = useState(false);
+  const [eventDetailRefreshing, setEventDetailRefreshing] = useState(false);
   const [executorsRefreshedAt, setExecutorsRefreshedAt] = useState<string | null>(null);
   const [workspacesRefreshedAt, setWorkspacesRefreshedAt] = useState<string | null>(null);
   const [executorDetailRefreshedAt, setExecutorDetailRefreshedAt] = useState<string | null>(null);
@@ -506,6 +582,7 @@ export default function App() {
   const [runDetailRefreshedAt, setRunDetailRefreshedAt] = useState<string | null>(null);
   const [executionDetailRefreshedAt, setExecutionDetailRefreshedAt] = useState<string | null>(null);
   const [artifactDetailRefreshedAt, setArtifactDetailRefreshedAt] = useState<string | null>(null);
+  const [eventDetailRefreshedAt, setEventDetailRefreshedAt] = useState<string | null>(null);
   const [runDetailBreadcrumbs, setRunDetailBreadcrumbs] = useState<DetailBreadcrumb[]>([]);
   const [executionDetailBreadcrumbs, setExecutionDetailBreadcrumbs] = useState<DetailBreadcrumb[]>([]);
   const [artifactDetailBreadcrumbs, setArtifactDetailBreadcrumbs] = useState<DetailBreadcrumb[]>([]);
@@ -556,6 +633,7 @@ export default function App() {
   const [selectedRunError, setSelectedRunError] = useState<string | null>(null);
   const [selectedExecutorError, setSelectedExecutorError] = useState<string | null>(null);
   const [selectedWorkspaceError, setSelectedWorkspaceError] = useState<string | null>(null);
+  const [selectedEventError, setSelectedEventError] = useState<string | null>(null);
   const [approvalsLoading, setApprovalsLoading] = useState(true);
   const [adaptersLoading, setAdaptersLoading] = useState(true);
   const [artifactsLoading, setArtifactsLoading] = useState(true);
@@ -574,6 +652,7 @@ export default function App() {
   const [selectedExecutionLoading, setSelectedExecutionLoading] = useState(false);
   const [selectedArtifactLoading, setSelectedArtifactLoading] = useState(false);
   const [selectedWorkspaceLoading, setSelectedWorkspaceLoading] = useState(false);
+  const [selectedEventLoading, setSelectedEventLoading] = useState(false);
   const [dashboardRefreshing, setDashboardRefreshing] = useState(false);
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
   const [selectedExecutionError, setSelectedExecutionError] = useState<string | null>(null);
@@ -593,6 +672,10 @@ export default function App() {
   const [executorsSearchPreset, setExecutorsSearchPreset] = useState<string | null>(null);
   const [executionsSearchPreset, setExecutionsSearchPreset] = useState<string | null>(null);
   const [eventsSearchPreset, setEventsSearchPreset] = useState<string | null>(null);
+  const [eventsEventTypePreset, setEventsEventTypePreset] =
+    useState<"all" | "app_control" | "app_control_applied" | "app_control_reverted">("all");
+  const [eventsVerificationPreset, setEventsVerificationPreset] =
+    useState<"all" | "verified_only" | "assumed_present" | "not_recorded">("all");
   const [workspacesSearchPreset, setWorkspacesSearchPreset] = useState<string | null>(null);
   const [artifactTruthFilter, setArtifactTruthFilter] = useState<TruthFilterState>(
     createNeutralTruthFilter(),
@@ -609,6 +692,8 @@ export default function App() {
   const [executorsFocusLabel, setExecutorsFocusLabel] = useState<string | null>(null);
   const [executionsFocusLabel, setExecutionsFocusLabel] = useState<string | null>(null);
   const [eventsFocusLabel, setEventsFocusLabel] = useState<string | null>(null);
+  const [eventsSavedViewFeedback, setEventsSavedViewFeedback] =
+    useState<EventsTimelineSavedViewFeedback | null>(null);
   const [workspacesFocusLabel, setWorkspacesFocusLabel] = useState<string | null>(null);
   const [runsOverviewContextHistory, setRunsOverviewContextHistory] = useState<
     OverviewContextHistoryEntry<RunsOverviewContextKind>[]
@@ -669,6 +754,7 @@ export default function App() {
   const runDetailSectionRef = useRef<HTMLDivElement | null>(null);
   const executionDetailSectionRef = useRef<HTMLDivElement | null>(null);
   const artifactDetailSectionRef = useRef<HTMLDivElement | null>(null);
+  const eventDetailSectionRef = useRef<HTMLDivElement | null>(null);
   const workspaceDetailSectionRef = useRef<HTMLDivElement | null>(null);
   const announceRunDetailRefreshRef = useRef(false);
   const bridgeFollowupRefreshTimeoutRef = useRef<number | null>(null);
@@ -743,6 +829,10 @@ export default function App() {
         artifacts.filter((artifact) => artifact.workspace_id === selectedWorkspace.id),
       )
     : null;
+  const selectedEvent = selectedEventDetail?.event
+    ?? (selectedEventId
+      ? eventRecords.find((event) => event.id === selectedEventId) ?? null
+      : null);
   const nextPinnedLaneRecord = getNextPinnedLaneRecord(
     pinnedRecord,
     runs,
@@ -2247,6 +2337,7 @@ export default function App() {
       storedRecordsSurface === "runs"
       || storedRecordsSurface === "executions"
       || storedRecordsSurface === "artifacts"
+      || storedRecordsSurface === "events"
     ) {
       setActiveRecordsSurface(storedRecordsSurface);
     }
@@ -2360,6 +2451,15 @@ export default function App() {
     setActiveWorkspaceId("records");
     setActiveRecordsSurface("artifacts");
   }, [selectedArtifactId]);
+
+  useEffect(() => {
+    if (!selectedEventId) {
+      return;
+    }
+
+    setActiveWorkspaceId("records");
+    setActiveRecordsSurface("events");
+  }, [selectedEventId]);
 
   useEffect(() => {
     if (!selectedExecutorId) {
@@ -2615,8 +2715,14 @@ export default function App() {
   async function loadEvents() {
     setEventsLoading(true);
     try {
-      const nextEvents = await fetchEventCards();
+      const [nextEvents, nextEventRecords, nextEventSummary] = await Promise.all([
+        fetchEventCards(),
+        fetchEvents(),
+        fetchEventSummary(),
+      ]);
       setEvents(nextEvents);
+      setEventRecords(nextEventRecords);
+      setEventSummary(nextEventSummary);
       setEventsRefreshedAt(new Date().toISOString());
       setEventsError(null);
     } catch (error) {
@@ -2771,6 +2877,24 @@ export default function App() {
       );
     } finally {
       setSelectedArtifactLoading(false);
+    }
+  }
+
+  async function loadEventDetail(eventId: string) {
+    setSelectedEventId(eventId);
+    setSelectedEventLoading(true);
+    setSelectedEventError(null);
+    setSelectedEventDetail(null);
+    try {
+      const nextEventDetail = await fetchEventDetail(eventId);
+      setSelectedEventDetail(nextEventDetail);
+      setEventDetailRefreshedAt(new Date().toISOString());
+    } catch (error) {
+      setSelectedEventError(
+        error instanceof Error ? error.message : "Failed to load event detail",
+      );
+    } finally {
+      setSelectedEventLoading(false);
     }
   }
 
@@ -3995,6 +4119,12 @@ export default function App() {
     });
   }
 
+  function openEventDetail(eventId: string) {
+    void loadEventDetail(eventId).then(() => {
+      scrollToSection(eventDetailSectionRef.current);
+    });
+  }
+
   function openExecutorDetail(executorId: string) {
     void loadExecutorDetail(executorId).then(() => {
       scrollToSection(executorDetailSectionRef.current);
@@ -4042,6 +4172,26 @@ export default function App() {
       }
     } finally {
       setEventsRefreshing(false);
+    }
+  }
+
+  async function refreshEventDetailSection() {
+    if (!selectedEventId) {
+      return;
+    }
+    setEventDetailRefreshing(true);
+    setDashboardRefreshStatus("refreshing event detail");
+    setDashboardRefreshDetail("Refreshing the selected event detail record.");
+    try {
+      await loadEventDetail(selectedEventId);
+      setDashboardRefreshedAt(new Date().toISOString());
+      setDashboardRefreshStatus("event detail refresh complete");
+      setDashboardRefreshDetail("Updated selected event detail.");
+      if (activeFocusedSection === "events") {
+        setUpdatedFocusedSection("events");
+      }
+    } finally {
+      setEventDetailRefreshing(false);
     }
   }
 
@@ -4428,6 +4578,8 @@ export default function App() {
   }
 
   function handleEventSeverityDrilldown(severity: string) {
+    setEventsEventTypePreset("all");
+    setEventsVerificationPreset("all");
     setEventsSearchPreset(severity);
     setEventsFocusLabel(formatOverviewFocusLabel("severity", severity));
     setActiveFocusedSection("events");
@@ -4563,6 +4715,8 @@ export default function App() {
   }
 
   function clearEventsFocus() {
+    setEventsEventTypePreset("all");
+    setEventsVerificationPreset("all");
     resetPresetLaneFocus({
       activeFocusedSection,
       section: "events",
@@ -4589,16 +4743,16 @@ export default function App() {
   const warningExecutionCount = executions.filter((execution) => execution.warning_count > 0).length;
   const unresolvedRunCount = runs.filter(isUnresolvedRun).length;
   const bridgeStatusLabel = o3deBridgeStatus?.heartbeat_fresh ? "fresh" : "check";
-  const homeWorkspaceGuide = getWorkspaceGuide("home");
-  const promptWorkspaceGuide = getWorkspaceGuide("prompt");
-  const builderWorkspaceGuide = getWorkspaceGuide("builder");
-  const operationsWorkspaceGuide = getWorkspaceGuide("operations");
-  const runtimeWorkspaceGuide = getWorkspaceGuide("runtime");
-  const recordsWorkspaceGuide = getWorkspaceGuide("records");
-  const approvalsQuickStatGuide = getQuickStatGuide("approvals");
-  const bridgeQuickStatGuide = getQuickStatGuide("bridge");
-  const warningsQuickStatGuide = getQuickStatGuide("warnings");
-  const runsQuickStatGuide = getQuickStatGuide("runs");
+  const homeWorkspaceGuide = getShellWorkspaceGuide("home");
+  const promptWorkspaceGuide = getShellWorkspaceGuide("prompt");
+  const builderWorkspaceGuide = getShellWorkspaceGuide("builder");
+  const operationsWorkspaceGuide = getShellWorkspaceGuide("operations");
+  const runtimeWorkspaceGuide = getShellWorkspaceGuide("runtime");
+  const recordsWorkspaceGuide = getShellWorkspaceGuide("records");
+  const approvalsQuickStatGuide = getShellQuickStatGuide("approvals");
+  const bridgeQuickStatGuide = getShellQuickStatGuide("bridge");
+  const warningsQuickStatGuide = getShellQuickStatGuide("warnings");
+  const runsQuickStatGuide = getShellQuickStatGuide("runs");
   const workspaceMeta: Record<DesktopWorkspaceId, { title: string; subtitle: string }> = {
     home: {
       title: homeWorkspaceGuide.workspaceTitle,
@@ -4866,6 +5020,121 @@ export default function App() {
   function openRecordsArtifacts(): void {
     setActiveWorkspaceId("records");
     setActiveRecordsSurface("artifacts");
+  }
+
+  function openRecordsEvents(): void {
+    setActiveWorkspaceId("records");
+    setActiveRecordsSurface("events");
+  }
+
+  function focusAppControlEvents(): void {
+    setEventsSearchPreset(null);
+    setEventsEventTypePreset("app_control");
+    setEventsVerificationPreset("all");
+    setEventsFocusLabel(formatOverviewFocusLabel("event type", "app_control"));
+    setActiveFocusedSection("events");
+    setUpdatedFocusedSection(null);
+    setEventsSearchVersion((value) => value + 1);
+    openRecordsEvents();
+  }
+
+  function focusAppliedAppControlEvents(): void {
+    setEventsSearchPreset(null);
+    setEventsEventTypePreset("app_control_applied");
+    setEventsVerificationPreset("all");
+    setEventsFocusLabel(formatOverviewFocusLabel("event type", "app_control_applied"));
+    setActiveFocusedSection("events");
+    setUpdatedFocusedSection(null);
+    setEventsSearchVersion((value) => value + 1);
+    openRecordsEvents();
+  }
+
+  function focusRevertedAppControlEvents(): void {
+    setEventsSearchPreset(null);
+    setEventsEventTypePreset("app_control_reverted");
+    setEventsVerificationPreset("all");
+    setEventsFocusLabel(formatOverviewFocusLabel("event type", "app_control_reverted"));
+    setActiveFocusedSection("events");
+    setUpdatedFocusedSection(null);
+    setEventsSearchVersion((value) => value + 1);
+    openRecordsEvents();
+  }
+
+  function focusVerifiedOnlyAppControlEvents(): void {
+    setEventsSearchPreset(null);
+    setEventsEventTypePreset("app_control");
+    setEventsVerificationPreset("verified_only");
+    setEventsFocusLabel(formatOverviewFocusLabel("verification", "verified_only"));
+    setActiveFocusedSection("events");
+    setUpdatedFocusedSection(null);
+    setEventsSearchVersion((value) => value + 1);
+    openRecordsEvents();
+  }
+
+  function focusAssumedPresentAppControlEvents(): void {
+    setEventsSearchPreset(null);
+    setEventsEventTypePreset("app_control");
+    setEventsVerificationPreset("assumed_present");
+    setEventsFocusLabel(formatOverviewFocusLabel("verification", "assumed_present"));
+    setActiveFocusedSection("events");
+    setUpdatedFocusedSection(null);
+    setEventsSearchVersion((value) => value + 1);
+    openRecordsEvents();
+  }
+
+  function saveEventsTimelineView(
+    label: string,
+    eventTypeFilter: EventsTimelineSavedView["eventTypeFilter"],
+    verificationFilter: EventsTimelineSavedView["verificationFilter"],
+    searchValue = "",
+  ): void {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const nextView: EventsTimelineSavedView = {
+      id: `saved-view-${Date.now()}`,
+      label,
+      eventTypeFilter,
+      verificationFilter,
+      searchValue,
+      createdAt: new Date().toISOString(),
+    };
+
+    const nextSavedViews = [nextView, ...loadEventsTimelineSavedViews()]
+      .slice(0, MAX_EVENTS_TIMELINE_SAVED_VIEWS);
+    window.sessionStorage.setItem(
+      EVENTS_TIMELINE_SAVED_VIEWS_SESSION_KEY,
+      JSON.stringify(nextSavedViews),
+    );
+    setEventsSavedViewFeedback({
+      label: "Saved to views",
+      detail: `${label} is now available in browser-session saved views for the Events lane.`,
+      view: nextView,
+    });
+    setEventsSearchVersion((value) => value + 1);
+  }
+
+  function openEventsTimelineSavedView(view: EventsTimelineSavedView): void {
+    setEventsSearchPreset(view.searchValue || null);
+    setEventsEventTypePreset(view.eventTypeFilter);
+    setEventsVerificationPreset(view.verificationFilter);
+    setEventsFocusLabel(formatOverviewFocusLabel("saved view", view.label));
+    setActiveFocusedSection("events");
+    setUpdatedFocusedSection(null);
+    setEventsSearchVersion((value) => value + 1);
+    openRecordsEvents();
+  }
+
+  function focusReviewableLocalEvents(): void {
+    setEventsSearchPreset("reviewable_local");
+    setEventsEventTypePreset("app_control");
+    setEventsVerificationPreset("all");
+    setEventsFocusLabel(formatOverviewFocusLabel("capability", "reviewable_local"));
+    setActiveFocusedSection("events");
+    setUpdatedFocusedSection(null);
+    setEventsSearchVersion((value) => value + 1);
+    openRecordsEvents();
   }
 
   function recordWorkspaceNextStepAction(entry: WorkspaceNextStepEntry): void {
@@ -5321,64 +5590,69 @@ export default function App() {
 
   const operationsSurfaceItems = [
     {
-      ...getWorkspaceSurfaceGuide("operations", "dispatch"),
-      helpTooltip: getWorkspaceSurfaceGuide("operations", "dispatch").tooltip,
+      ...getShellWorkspaceSurfaceGuide("operations", "dispatch"),
+      helpTooltip: getShellWorkspaceSurfaceGuide("operations", "dispatch").tooltip,
     },
     {
-      ...getWorkspaceSurfaceGuide("operations", "agents"),
-      helpTooltip: getWorkspaceSurfaceGuide("operations", "agents").tooltip,
+      ...getShellWorkspaceSurfaceGuide("operations", "agents"),
+      helpTooltip: getShellWorkspaceSurfaceGuide("operations", "agents").tooltip,
     },
     {
-      ...getWorkspaceSurfaceGuide("operations", "approvals"),
+      ...getShellWorkspaceSurfaceGuide("operations", "approvals"),
       badge: pendingApprovalCount > 0 ? String(pendingApprovalCount) : null,
-      helpTooltip: getWorkspaceSurfaceGuide("operations", "approvals").tooltip,
+      helpTooltip: getShellWorkspaceSurfaceGuide("operations", "approvals").tooltip,
     },
     {
-      ...getWorkspaceSurfaceGuide("operations", "timeline"),
-      helpTooltip: getWorkspaceSurfaceGuide("operations", "timeline").tooltip,
+      ...getShellWorkspaceSurfaceGuide("operations", "timeline"),
+      helpTooltip: getShellWorkspaceSurfaceGuide("operations", "timeline").tooltip,
     },
   ] as const;
   const runtimeSurfaceItems = [
     {
-      ...getWorkspaceSurfaceGuide("runtime", "overview"),
+      ...getShellWorkspaceSurfaceGuide("runtime", "overview"),
       badge: bridgeStatusLabel,
-      helpTooltip: getWorkspaceSurfaceGuide("runtime", "overview").tooltip,
+      helpTooltip: getShellWorkspaceSurfaceGuide("runtime", "overview").tooltip,
     },
     {
-      ...getWorkspaceSurfaceGuide("runtime", "executors"),
+      ...getShellWorkspaceSurfaceGuide("runtime", "executors"),
       badge: executors.length > 0 ? String(executors.length) : null,
-      helpTooltip: getWorkspaceSurfaceGuide("runtime", "executors").tooltip,
+      helpTooltip: getShellWorkspaceSurfaceGuide("runtime", "executors").tooltip,
     },
     {
-      ...getWorkspaceSurfaceGuide("runtime", "workspaces"),
+      ...getShellWorkspaceSurfaceGuide("runtime", "workspaces"),
       badge: workspaces.length > 0 ? String(workspaces.length) : null,
-      helpTooltip: getWorkspaceSurfaceGuide("runtime", "workspaces").tooltip,
+      helpTooltip: getShellWorkspaceSurfaceGuide("runtime", "workspaces").tooltip,
     },
     {
-      ...getWorkspaceSurfaceGuide("runtime", "governance"),
-      helpTooltip: getWorkspaceSurfaceGuide("runtime", "governance").tooltip,
+      ...getShellWorkspaceSurfaceGuide("runtime", "governance"),
+      helpTooltip: getShellWorkspaceSurfaceGuide("runtime", "governance").tooltip,
     },
   ] as const;
   const recordsSurfaceItems = [
     {
-      ...getWorkspaceSurfaceGuide("records", "runs"),
+      ...getShellWorkspaceSurfaceGuide("records", "runs"),
       badge: runs.length > 0 ? String(runs.length) : null,
-      helpTooltip: getWorkspaceSurfaceGuide("records", "runs").tooltip,
+      helpTooltip: getShellWorkspaceSurfaceGuide("records", "runs").tooltip,
     },
     {
-      ...getWorkspaceSurfaceGuide("records", "executions"),
+      ...getShellWorkspaceSurfaceGuide("records", "executions"),
       badge: warningExecutionCount > 0 ? String(warningExecutionCount) : null,
-      helpTooltip: getWorkspaceSurfaceGuide("records", "executions").tooltip,
+      helpTooltip: getShellWorkspaceSurfaceGuide("records", "executions").tooltip,
     },
     {
-      ...getWorkspaceSurfaceGuide("records", "artifacts"),
+      ...getShellWorkspaceSurfaceGuide("records", "artifacts"),
       badge: artifacts.length > 0 ? String(artifacts.length) : null,
-      helpTooltip: getWorkspaceSurfaceGuide("records", "artifacts").tooltip,
+      helpTooltip: getShellWorkspaceSurfaceGuide("records", "artifacts").tooltip,
+    },
+    {
+      ...getShellWorkspaceSurfaceGuide("records", "events"),
+      badge: events.length > 0 ? String(events.length) : null,
+      helpTooltip: getShellWorkspaceSurfaceGuide("records", "events").tooltip,
     },
   ] as const;
   const homeMissionControlContent = (
     <LayoutHeader
-      title={operatorGuideCatalog.app.title}
+      title={operatorGuideShellApp.title}
       subtitle="Desktop operator shell for orchestrating O3DE-focused agents, approvals, logs, artifacts, and tool-driven workflows."
       refreshing={dashboardRefreshing}
       lastRefreshedAt={dashboardRefreshedAt}
@@ -5563,369 +5837,360 @@ export default function App() {
       <OperatorGuidePanel />
     </Suspense>
   );
-  const homeOverviewContent = (
-    <>
-      <OverviewAttentionPanel
-        entries={attentionRecommendations}
-        onPrimaryAction={(entryId) => {
-          const [, targetId] = entryId.split(":");
-          if (targetId === "runs" && runsOverviewContextPreset) {
-            void replayRunsOverviewContext(runsOverviewContextPreset);
-            return;
-          }
-          if (targetId === "executions") {
-            if (entryId.startsWith("snoozed:") && executionsOverviewContextPreset) {
-              handleTriageSavedExecutionContext();
-              return;
-            }
-            if (executionsOverviewContextPreset) {
-              replayExecutionsOverviewContext(executionsOverviewContextPreset);
-              return;
-            }
-          }
-          if (targetId === "artifacts") {
-            if (entryId.startsWith("snoozed:") && artifactsOverviewContextPreset) {
-              handleTriageSavedArtifactContext();
-              return;
-            }
-            if (artifactsOverviewContextPreset) {
-              replayArtifactsOverviewContext(artifactsOverviewContextPreset);
-            }
-          }
-        }}
-        onSecondaryAction={(entryId) => {
-          const [, targetId] = entryId.split(":");
-          if (targetId === "runs" || targetId === "executions" || targetId === "artifacts") {
-            handleKeepOverviewEntryInQueue(targetId);
-          }
-        }}
-      />
-
-      <OverviewCloseoutReadinessPanel
-        readyCount={overviewReviewSessionSummary.readyCount}
-        pendingCount={overviewReviewSessionSummary.pendingCount}
-        entries={readinessDiagnostics}
-      />
-
-      <OverviewHandoffConfidencePanel
-        confidenceLabel={handoffConfidence.label}
-        confidenceDetail={handoffConfidence.detail}
-        tone={handoffConfidence.tone}
-        staleCount={overviewReviewSessionSummary.staleCount}
-        driftedCount={overviewReviewSessionSummary.driftedCount}
-        excludedCount={handoffPackageExcludedEntries.length}
-        changedSinceSnapshotCount={changedSinceSnapshotCount}
-      />
-
-      <OverviewHandoffPackagePanel
-        includedEntries={handoffPackageIncludedEntries}
-        excludedEntries={handoffPackageExcludedEntries}
-      />
-
-      <OverviewHandoffExportPanel
-        generatedAtLabel={`Generated: ${handoffExportGeneratedAt}`}
-        includedEntries={handoffPackageIncludedEntries}
-        excludedEntries={handoffPackageExcludedEntries}
-        draftText={overviewHandoffExportDraft}
-        statusLabel={laneHandoffSummary?.label ?? null}
-        statusDetail={laneHandoffSummary?.detail ?? null}
-        onCopyDraft={
-          handoffPackageIncludedEntries.length > 0 || handoffPackageExcludedEntries.length > 0
-            ? (() => { void handleCopyOverviewHandoffExportDraft(); })
-            : null
+  const homeOverviewPanelDeckProps: HomeOverviewPanelDeckProps = {
+    attention: {
+      entries: attentionRecommendations,
+      onPrimaryAction: (entryId) => {
+        const [, targetId] = entryId.split(":");
+        if (targetId === "runs" && runsOverviewContextPreset) {
+          void replayRunsOverviewContext(runsOverviewContextPreset);
+          return;
         }
-      />
-
-      <OverviewReviewSessionPanel
-        inQueueCount={overviewReviewSessionSummary.inQueueCount}
-        snoozedCount={overviewReviewSessionSummary.snoozedCount}
-        reviewedCount={overviewReviewSessionSummary.reviewedCount}
-        staleCount={overviewReviewSessionSummary.staleCount}
-        driftedCount={overviewReviewSessionSummary.driftedCount}
-        longestSnoozedLabel={overviewReviewSessionSummary.longestSnoozedLabel}
-        longestSnoozedDetail={overviewReviewSessionSummary.longestSnoozedDetail}
-        lastSnapshotLabel={overviewReviewSessionSummary.lastSnapshotLabel}
-        compareSummaryLabel={overviewReviewSessionSummary.compareSummaryLabel}
-        onCopySessionSnapshot={
-          overviewContextMemoryEntries.length > 0 || attentionRecommendations.length > 0
-            ? (() => { void handleCopyOverviewReviewSessionSnapshot(); })
-            : null
-        }
-        onReturnAllToQueue={
-          Object.keys(overviewReviewState).length > 0
-            ? (() => {
-                setOverviewReviewState((current) => {
-                  const next = { ...current };
-                  for (const key of Object.keys(next) as OverviewContextId[]) {
-                    next[key] = {
-                      disposition: "in_queue",
-                      updatedAt: new Date().toISOString(),
-                    };
-                  }
-                  return next;
-                });
-                setLaneHandoffSummary({
-                  label: "handoff: local review queue reset",
-                  detail: "Returned all saved local overview contexts to the in-queue state for this browser session. No backend review state was changed.",
-                });
-              })
-            : null
-        }
-        onResetReviewState={
-          Object.keys(overviewReviewState).length > 0
-            ? (() => {
-                setOverviewReviewState({});
-                setLaneHandoffSummary({
-                  label: "handoff: local review state cleared",
-                  detail: "Cleared all browser-session review outcomes for saved overview contexts. No backend queue or task state was changed.",
-                });
-              })
-            : null
-        }
-      />
-
-      <OverviewReviewQueuePanel
-        entries={overviewReviewQueueEntries}
-        onOpenEntry={(entryId) => {
-          if (entryId === "executions" && executionsOverviewContextPreset) {
-            replayExecutionsOverviewContext(executionsOverviewContextPreset);
-            return;
-          }
-          if (entryId === "artifacts" && artifactsOverviewContextPreset) {
-            replayArtifactsOverviewContext(artifactsOverviewContextPreset);
-            return;
-          }
-          if (entryId === "executors" && executorsOverviewContextPreset) {
-            replayExecutorsOverviewContext(executorsOverviewContextPreset);
-            return;
-          }
-          if (entryId === "workspaces" && workspacesOverviewContextPreset) {
-            replayWorkspacesOverviewContext(workspacesOverviewContextPreset);
-          }
-        }}
-        onTriageEntry={(entryId) => {
-          if (entryId === "executions") {
+        if (targetId === "executions") {
+          if (entryId.startsWith("snoozed:") && executionsOverviewContextPreset) {
             handleTriageSavedExecutionContext();
             return;
           }
-          if (entryId === "artifacts") {
-            handleTriageSavedArtifactContext();
-            return;
-          }
-          if (entryId === "executors") {
-            handleTriageSavedExecutorContext();
-            return;
-          }
-          if (entryId === "workspaces") {
-            handleTriageSavedWorkspaceContext();
-          }
-        }}
-        onMarkReviewed={(entryId) => {
-          if (
-            entryId === "executions"
-            || entryId === "artifacts"
-            || entryId === "executors"
-            || entryId === "workspaces"
-          ) {
-            handleMarkOverviewEntryReviewed(entryId);
-          }
-        }}
-        onSnoozeEntry={(entryId) => {
-          if (
-            entryId === "executions"
-            || entryId === "artifacts"
-            || entryId === "executors"
-            || entryId === "workspaces"
-          ) {
-            handleSnoozeOverviewEntry(entryId);
-          }
-        }}
-        onKeepInQueue={(entryId) => {
-          if (
-            entryId === "executions"
-            || entryId === "artifacts"
-            || entryId === "executors"
-            || entryId === "workspaces"
-          ) {
-            handleKeepOverviewEntryInQueue(entryId);
-          }
-        }}
-      />
-
-      <OverviewContextMemoryPanel
-        entries={overviewContextMemoryEntries}
-        onOpenEntry={(entryId) => {
-          if (entryId === "runs" && runsOverviewContextPreset) {
-            void replayRunsOverviewContext(runsOverviewContextPreset);
-            return;
-          }
-          if (entryId === "executions" && executionsOverviewContextPreset) {
+          if (executionsOverviewContextPreset) {
             replayExecutionsOverviewContext(executionsOverviewContextPreset);
             return;
           }
-          if (entryId === "artifacts" && artifactsOverviewContextPreset) {
-            replayArtifactsOverviewContext(artifactsOverviewContextPreset);
-            return;
-          }
-          if (entryId === "executors" && executorsOverviewContextPreset) {
-            replayExecutorsOverviewContext(executorsOverviewContextPreset);
-            return;
-          }
-          if (entryId === "workspaces" && workspacesOverviewContextPreset) {
-            replayWorkspacesOverviewContext(workspacesOverviewContextPreset);
-          }
-        }}
-        onTriageEntry={(entryId) => {
-          if (entryId === "executions") {
-            handleTriageSavedExecutionContext();
-            return;
-          }
-          if (entryId === "artifacts") {
+        }
+        if (targetId === "artifacts") {
+          if (entryId.startsWith("snoozed:") && artifactsOverviewContextPreset) {
             handleTriageSavedArtifactContext();
             return;
           }
-          if (entryId === "executors") {
-            handleTriageSavedExecutorContext();
-            return;
+          if (artifactsOverviewContextPreset) {
+            replayArtifactsOverviewContext(artifactsOverviewContextPreset);
           }
-          if (entryId === "workspaces") {
-            handleTriageSavedWorkspaceContext();
-          }
-        }}
-        onSaveNote={(entryId, text) => {
-          if (
-            entryId === "runs"
-            || entryId === "executions"
-            || entryId === "artifacts"
-            || entryId === "executors"
-            || entryId === "workspaces"
-          ) {
-            handleSaveOverviewContextNote(entryId, text);
-          }
-        }}
-        onMarkReviewed={(entryId) => {
-          if (
-            entryId === "runs"
-            || entryId === "executions"
-            || entryId === "artifacts"
-            || entryId === "executors"
-            || entryId === "workspaces"
-          ) {
-            handleMarkOverviewEntryReviewed(entryId);
-          }
-        }}
-        onSnoozeEntry={(entryId) => {
-          if (
-            entryId === "runs"
-            || entryId === "executions"
-            || entryId === "artifacts"
-            || entryId === "executors"
-            || entryId === "workspaces"
-          ) {
-            handleSnoozeOverviewEntry(entryId);
-          }
-        }}
-        onKeepInQueue={(entryId) => {
-          if (
-            entryId === "runs"
-            || entryId === "executions"
-            || entryId === "artifacts"
-            || entryId === "executors"
-            || entryId === "workspaces"
-          ) {
-            handleKeepOverviewEntryInQueue(entryId);
-          }
-        }}
-        onClearEntry={(entryId) => {
-          if (entryId === "runs") {
+        }
+      },
+      onSecondaryAction: (entryId) => {
+        const [, targetId] = entryId.split(":");
+        if (targetId === "runs" || targetId === "executions" || targetId === "artifacts") {
+          handleKeepOverviewEntryInQueue(targetId);
+        }
+      },
+    },
+    closeoutReadiness: {
+      readyCount: overviewReviewSessionSummary.readyCount,
+      pendingCount: overviewReviewSessionSummary.pendingCount,
+      entries: readinessDiagnostics,
+    },
+    handoffConfidence: {
+      confidenceLabel: handoffConfidence.label,
+      confidenceDetail: handoffConfidence.detail,
+      tone: handoffConfidence.tone,
+      staleCount: overviewReviewSessionSummary.staleCount,
+      driftedCount: overviewReviewSessionSummary.driftedCount,
+      excludedCount: handoffPackageExcludedEntries.length,
+      changedSinceSnapshotCount,
+    },
+    handoffPackage: {
+      includedEntries: handoffPackageIncludedEntries,
+      excludedEntries: handoffPackageExcludedEntries,
+    },
+    handoffExport: {
+      generatedAtLabel: `Generated: ${handoffExportGeneratedAt}`,
+      includedEntries: handoffPackageIncludedEntries,
+      excludedEntries: handoffPackageExcludedEntries,
+      draftText: overviewHandoffExportDraft,
+      statusLabel: laneHandoffSummary?.label ?? null,
+      statusDetail: laneHandoffSummary?.detail ?? null,
+      onCopyDraft: handoffPackageIncludedEntries.length > 0 || handoffPackageExcludedEntries.length > 0
+        ? (() => { void handleCopyOverviewHandoffExportDraft(); })
+        : null,
+    },
+    reviewSession: {
+      inQueueCount: overviewReviewSessionSummary.inQueueCount,
+      snoozedCount: overviewReviewSessionSummary.snoozedCount,
+      reviewedCount: overviewReviewSessionSummary.reviewedCount,
+      staleCount: overviewReviewSessionSummary.staleCount,
+      driftedCount: overviewReviewSessionSummary.driftedCount,
+      longestSnoozedLabel: overviewReviewSessionSummary.longestSnoozedLabel,
+      longestSnoozedDetail: overviewReviewSessionSummary.longestSnoozedDetail,
+      lastSnapshotLabel: overviewReviewSessionSummary.lastSnapshotLabel,
+      compareSummaryLabel: overviewReviewSessionSummary.compareSummaryLabel,
+      onCopySessionSnapshot: overviewContextMemoryEntries.length > 0 || attentionRecommendations.length > 0
+        ? (() => { void handleCopyOverviewReviewSessionSnapshot(); })
+        : null,
+      onReturnAllToQueue: Object.keys(overviewReviewState).length > 0
+        ? (() => {
+            setOverviewReviewState((current) => {
+              const next = { ...current };
+              for (const key of Object.keys(next) as OverviewContextId[]) {
+                next[key] = {
+                  disposition: "in_queue",
+                  updatedAt: new Date().toISOString(),
+                };
+              }
+              return next;
+            });
+            setLaneHandoffSummary({
+              label: "handoff: local review queue reset",
+              detail: "Returned all saved local overview contexts to the in-queue state for this browser session. No backend review state was changed.",
+            });
+          })
+        : null,
+      onResetReviewState: Object.keys(overviewReviewState).length > 0
+        ? (() => {
+            setOverviewReviewState({});
+            setLaneHandoffSummary({
+              label: "handoff: local review state cleared",
+              detail: "Cleared all browser-session review outcomes for saved overview contexts. No backend queue or task state was changed.",
+            });
+          })
+        : null,
+    },
+    reviewQueue: {
+      entries: overviewReviewQueueEntries,
+      onOpenEntry: (entryId) => {
+        if (entryId === "executions" && executionsOverviewContextPreset) {
+          replayExecutionsOverviewContext(executionsOverviewContextPreset);
+          return;
+        }
+        if (entryId === "artifacts" && artifactsOverviewContextPreset) {
+          replayArtifactsOverviewContext(artifactsOverviewContextPreset);
+          return;
+        }
+        if (entryId === "executors" && executorsOverviewContextPreset) {
+          replayExecutorsOverviewContext(executorsOverviewContextPreset);
+          return;
+        }
+        if (entryId === "workspaces" && workspacesOverviewContextPreset) {
+          replayWorkspacesOverviewContext(workspacesOverviewContextPreset);
+        }
+      },
+      onTriageEntry: (entryId) => {
+        if (entryId === "executions") {
+          handleTriageSavedExecutionContext();
+          return;
+        }
+        if (entryId === "artifacts") {
+          handleTriageSavedArtifactContext();
+          return;
+        }
+        if (entryId === "executors") {
+          handleTriageSavedExecutorContext();
+          return;
+        }
+        if (entryId === "workspaces") {
+          handleTriageSavedWorkspaceContext();
+        }
+      },
+      onMarkReviewed: (entryId) => {
+        if (
+          entryId === "executions"
+          || entryId === "artifacts"
+          || entryId === "executors"
+          || entryId === "workspaces"
+        ) {
+          handleMarkOverviewEntryReviewed(entryId);
+        }
+      },
+      onSnoozeEntry: (entryId) => {
+        if (
+          entryId === "executions"
+          || entryId === "artifacts"
+          || entryId === "executors"
+          || entryId === "workspaces"
+        ) {
+          handleSnoozeOverviewEntry(entryId);
+        }
+      },
+      onKeepInQueue: (entryId) => {
+        if (
+          entryId === "executions"
+          || entryId === "artifacts"
+          || entryId === "executors"
+          || entryId === "workspaces"
+        ) {
+          handleKeepOverviewEntryInQueue(entryId);
+        }
+      },
+    },
+    contextMemory: {
+      entries: overviewContextMemoryEntries,
+      onOpenEntry: (entryId) => {
+        if (entryId === "runs" && runsOverviewContextPreset) {
+          void replayRunsOverviewContext(runsOverviewContextPreset);
+          return;
+        }
+        if (entryId === "executions" && executionsOverviewContextPreset) {
+          replayExecutionsOverviewContext(executionsOverviewContextPreset);
+          return;
+        }
+        if (entryId === "artifacts" && artifactsOverviewContextPreset) {
+          replayArtifactsOverviewContext(artifactsOverviewContextPreset);
+          return;
+        }
+        if (entryId === "executors" && executorsOverviewContextPreset) {
+          replayExecutorsOverviewContext(executorsOverviewContextPreset);
+          return;
+        }
+        if (entryId === "workspaces" && workspacesOverviewContextPreset) {
+          replayWorkspacesOverviewContext(workspacesOverviewContextPreset);
+        }
+      },
+      onTriageEntry: (entryId) => {
+        if (entryId === "executions") {
+          handleTriageSavedExecutionContext();
+          return;
+        }
+        if (entryId === "artifacts") {
+          handleTriageSavedArtifactContext();
+          return;
+        }
+        if (entryId === "executors") {
+          handleTriageSavedExecutorContext();
+          return;
+        }
+        if (entryId === "workspaces") {
+          handleTriageSavedWorkspaceContext();
+        }
+      },
+      onSaveNote: (entryId, text) => {
+        if (
+          entryId === "runs"
+          || entryId === "executions"
+          || entryId === "artifacts"
+          || entryId === "executors"
+          || entryId === "workspaces"
+        ) {
+          handleSaveOverviewContextNote(entryId, text);
+        }
+      },
+      onMarkReviewed: (entryId) => {
+        if (
+          entryId === "runs"
+          || entryId === "executions"
+          || entryId === "artifacts"
+          || entryId === "executors"
+          || entryId === "workspaces"
+        ) {
+          handleMarkOverviewEntryReviewed(entryId);
+        }
+      },
+      onSnoozeEntry: (entryId) => {
+        if (
+          entryId === "runs"
+          || entryId === "executions"
+          || entryId === "artifacts"
+          || entryId === "executors"
+          || entryId === "workspaces"
+        ) {
+          handleSnoozeOverviewEntry(entryId);
+        }
+      },
+      onKeepInQueue: (entryId) => {
+        if (
+          entryId === "runs"
+          || entryId === "executions"
+          || entryId === "artifacts"
+          || entryId === "executors"
+          || entryId === "workspaces"
+        ) {
+          handleKeepOverviewEntryInQueue(entryId);
+        }
+      },
+      onClearEntry: (entryId) => {
+        if (entryId === "runs") {
+          setRunsOverviewContextPreset(null);
+          setOverviewReviewState((current) => {
+            const next = { ...current };
+            delete next.runs;
+            return next;
+          });
+          setOverviewContextNotes((current) => {
+            const next = { ...current };
+            delete next.runs;
+            return next;
+          });
+          return;
+        }
+        if (entryId === "executions") {
+          setExecutionsOverviewContextPreset(null);
+          setOverviewReviewState((current) => {
+            const next = { ...current };
+            delete next.executions;
+            return next;
+          });
+          setOverviewContextNotes((current) => {
+            const next = { ...current };
+            delete next.executions;
+            return next;
+          });
+          return;
+        }
+        if (entryId === "artifacts") {
+          setArtifactsOverviewContextPreset(null);
+          setOverviewReviewState((current) => {
+            const next = { ...current };
+            delete next.artifacts;
+            return next;
+          });
+          setOverviewContextNotes((current) => {
+            const next = { ...current };
+            delete next.artifacts;
+            return next;
+          });
+          return;
+        }
+        if (entryId === "executors") {
+          setExecutorsOverviewContextPreset(null);
+          setOverviewReviewState((current) => {
+            const next = { ...current };
+            delete next.executors;
+            return next;
+          });
+          setOverviewContextNotes((current) => {
+            const next = { ...current };
+            delete next.executors;
+            return next;
+          });
+          return;
+        }
+        if (entryId === "workspaces") {
+          setWorkspacesOverviewContextPreset(null);
+          setOverviewReviewState((current) => {
+            const next = { ...current };
+            delete next.workspaces;
+            return next;
+          });
+          setOverviewContextNotes((current) => {
+            const next = { ...current };
+            delete next.workspaces;
+            return next;
+          });
+        }
+      },
+      onClearAll: overviewContextMemoryEntries.length > 0
+        ? (() => {
             setRunsOverviewContextPreset(null);
-            setOverviewReviewState((current) => {
-              const next = { ...current };
-              delete next.runs;
-              return next;
-            });
-            setOverviewContextNotes((current) => {
-              const next = { ...current };
-              delete next.runs;
-              return next;
-            });
-            return;
-          }
-          if (entryId === "executions") {
             setExecutionsOverviewContextPreset(null);
-            setOverviewReviewState((current) => {
-              const next = { ...current };
-              delete next.executions;
-              return next;
-            });
-            setOverviewContextNotes((current) => {
-              const next = { ...current };
-              delete next.executions;
-              return next;
-            });
-            return;
-          }
-          if (entryId === "artifacts") {
             setArtifactsOverviewContextPreset(null);
-            setOverviewReviewState((current) => {
-              const next = { ...current };
-              delete next.artifacts;
-              return next;
-            });
-            setOverviewContextNotes((current) => {
-              const next = { ...current };
-              delete next.artifacts;
-              return next;
-            });
-            return;
-          }
-          if (entryId === "executors") {
             setExecutorsOverviewContextPreset(null);
-            setOverviewReviewState((current) => {
-              const next = { ...current };
-              delete next.executors;
-              return next;
-            });
-            setOverviewContextNotes((current) => {
-              const next = { ...current };
-              delete next.executors;
-              return next;
-            });
-            return;
-          }
-          if (entryId === "workspaces") {
             setWorkspacesOverviewContextPreset(null);
-            setOverviewReviewState((current) => {
-              const next = { ...current };
-              delete next.workspaces;
-              return next;
+            setOverviewReviewState({});
+            setOverviewContextNotes({});
+            setLaneHandoffSummary({
+              label: "handoff: local context memory cleared",
+              detail: "Cleared browser-session overview context presets from workspace memory. No backend preset or server persistence was affected.",
             });
-            setOverviewContextNotes((current) => {
-              const next = { ...current };
-              delete next.workspaces;
-              return next;
-            });
-          }
-        }}
-        onClearAll={
-          overviewContextMemoryEntries.length > 0
-            ? (() => {
-                setRunsOverviewContextPreset(null);
-                setExecutionsOverviewContextPreset(null);
-                setArtifactsOverviewContextPreset(null);
-                setExecutorsOverviewContextPreset(null);
-                setWorkspacesOverviewContextPreset(null);
-                setOverviewReviewState({});
-                setOverviewContextNotes({});
-                setLaneHandoffSummary({
-                  label: "handoff: local context memory cleared",
-                  detail: "Cleared browser-session overview context presets from workspace memory. No backend preset or server persistence was affected.",
-                });
-              })
-            : null
-        }
-      />
-    </>
+          })
+        : null,
+    },
+  };
+  const homeOverviewContent = (
+    <Suspense
+      fallback={renderWorkspaceLoadingFallback(
+        "Operator overview",
+        "Loading the Home overview deck and local review memory surfaces.",
+      )}
+    >
+      <HomeOverviewPanelDeck {...homeOverviewPanelDeckProps} />
+    </Suspense>
   );
   const runtimeOverviewProps = {
     adapters: {
@@ -6745,6 +7010,113 @@ export default function App() {
       refreshing: runDetailRefreshing || selectedRunLoading,
     },
   };
+  const recordsEventsProps = {
+    panelKey: `records-events-search-${eventsSearchVersion}`,
+    sectionRef: eventsSectionRef,
+    detailSectionRef: eventDetailSectionRef,
+    contextStrip: {
+      laneLabel: "Events",
+      focusLabel: eventsFocusLabel,
+      originLabel: describeOverviewFocusOrigin(eventsFocusLabel),
+      autoOpenLabel: selectedEventId ? `detail selected: ${selectedEventId}` : null,
+      impactLabel: selectedEvent?.event_type ?? null,
+      impactDetail: selectedEvent?.message ?? null,
+      promotedPresetLabel: null,
+      promotedPresetDetail: null,
+      historyEntries: [],
+      onSelectHistoryEntry: undefined,
+      onClearHistory: null,
+      onPromoteCurrentContext: null,
+      onApplyPromotedPreset: null,
+      onClearPromotedPreset: null,
+      onClearFocus: eventsFocusLabel ? clearEventsFocus : null,
+    },
+    auditSummaryPanel: {
+      summary: eventSummary.app_control,
+      onOpenLatest: eventSummary.app_control.latest_event_id
+        ? () => openEventDetail(
+          eventSummary.app_control.latest_event_id!,
+        )
+        : null,
+      onOpenApplied: eventSummary.app_control.applied_events > 0
+        ? focusAppliedAppControlEvents
+        : null,
+      onOpenReverted: eventSummary.app_control.reverted_events > 0
+        ? focusRevertedAppControlEvents
+        : null,
+      onOpenVerifiedOnly: eventSummary.app_control.verified_only_events > 0
+        ? focusVerifiedOnlyAppControlEvents
+        : null,
+      onOpenAssumedPresent: eventSummary.app_control.assumed_present_events > 0
+        ? focusAssumedPresentAppControlEvents
+        : null,
+      onSaveAppliedView: eventSummary.app_control.applied_events > 0
+        ? () => saveEventsTimelineView("Applied App OS receipts", "app_control_applied", "all")
+        : null,
+      onSaveRevertedView: eventSummary.app_control.reverted_events > 0
+        ? () => saveEventsTimelineView("Reverted App OS receipts", "app_control_reverted", "all")
+        : null,
+      onSaveVerifiedOnlyView: eventSummary.app_control.verified_only_events > 0
+        ? () => saveEventsTimelineView("Verified-only App OS receipts", "app_control", "verified_only")
+        : null,
+      onSaveAssumedPresentView: eventSummary.app_control.assumed_present_events > 0
+        ? () => saveEventsTimelineView("App OS receipts with assumed results", "app_control", "assumed_present")
+        : null,
+      savedViewFeedback: eventsSavedViewFeedback
+        ? {
+          label: eventsSavedViewFeedback.label,
+          detail: eventsSavedViewFeedback.detail,
+          onOpenSavedView: () => openEventsTimelineSavedView(eventsSavedViewFeedback.view),
+        }
+        : null,
+    },
+    timelinePanel: {
+      items: events,
+      loading: eventsLoading,
+      error: eventsError,
+      presetActions: [
+        {
+          id: "app-os-receipts",
+          label: "App OS receipts",
+          title: "Filter the event lane to persisted App OS apply and revert receipts.",
+          onSelect: focusAppControlEvents,
+        },
+        {
+          id: "reviewable-local",
+          label: "Reviewable local",
+          title: "Filter the event lane to reviewable local capability receipts and timeline records.",
+          onSelect: focusReviewableLocalEvents,
+        },
+      ],
+      onOpenEvent: openEventDetail,
+      onOpenRun: openRunDetail,
+      onOpenExecution: openExecutionDetail,
+      onOpenExecutor: openExecutorDetail,
+      onOpenWorkspace: openWorkspaceDetail,
+      eventTypePreset: eventsEventTypePreset,
+      verificationPreset: eventsVerificationPreset,
+      searchPreset: eventsSearchPreset,
+      savedViewsStorageKey: EVENTS_TIMELINE_SAVED_VIEWS_SESSION_KEY,
+      focusLabel: eventsFocusLabel,
+      onClearFocus: clearEventsFocus,
+      lastRefreshedAt: eventsRefreshedAt,
+      updateBadgeLabel: getFocusedSectionUpdateLabel("events"),
+      onRefresh: () => {
+        void refreshEventsSection();
+      },
+      refreshing: eventsRefreshing,
+    },
+    eventDetailPanel: {
+      item: selectedEventDetail,
+      loading: selectedEventLoading,
+      error: selectedEventError,
+      lastRefreshedAt: eventDetailRefreshedAt,
+      onRefresh: () => {
+        void refreshEventDetailSection();
+      },
+      refreshing: eventDetailRefreshing,
+    },
+  };
 
   const renderRecordsWorkspace = () => (
     <Suspense
@@ -6758,6 +7130,7 @@ export default function App() {
         items={recordsSurfaceItems}
         onSelectSurface={(surfaceId) => setActiveRecordsSurface(surfaceId)}
         artifacts={recordsArtifactsProps}
+        events={recordsEventsProps}
         executions={recordsExecutionsProps}
         runs={recordsRunsProps}
       />
@@ -6813,25 +7186,43 @@ export default function App() {
           },
           refreshing: approvalsRefreshing,
         }}
-        timeline={{
-          panelKey: `events-search-${eventsSearchVersion}`,
-          items: events,
-          loading: eventsLoading,
-          error: eventsError,
-          onOpenRun: openRunDetail,
-          onOpenExecution: openExecutionDetail,
-          onOpenExecutor: openExecutorDetail,
-          onOpenWorkspace: openWorkspaceDetail,
-          searchPreset: eventsSearchPreset,
-          focusLabel: eventsFocusLabel,
-          onClearFocus: clearEventsFocus,
-          lastRefreshedAt: eventsRefreshedAt,
-          updateBadgeLabel: getFocusedSectionUpdateLabel("events"),
-          onRefresh: () => {
-            void refreshEventsSection();
-          },
-          refreshing: eventsRefreshing,
-        }}
+          timeline={{
+            panelKey: `events-search-${eventsSearchVersion}`,
+            items: events,
+            loading: eventsLoading,
+            error: eventsError,
+            presetActions: [
+              {
+                id: "app-os-receipts",
+                label: "App OS receipts",
+                title: "Filter the timeline to persisted App OS apply and revert receipts.",
+                onSelect: focusAppControlEvents,
+              },
+              {
+                id: "reviewable-local",
+                label: "Reviewable local",
+                title: "Filter the timeline to reviewable local capability receipts and timeline records.",
+                onSelect: focusReviewableLocalEvents,
+              },
+            ],
+            onOpenEvent: openEventDetail,
+            onOpenRun: openRunDetail,
+            onOpenExecution: openExecutionDetail,
+            onOpenExecutor: openExecutorDetail,
+            onOpenWorkspace: openWorkspaceDetail,
+            eventTypePreset: eventsEventTypePreset,
+            verificationPreset: eventsVerificationPreset,
+            searchPreset: eventsSearchPreset,
+            savedViewsStorageKey: EVENTS_TIMELINE_SAVED_VIEWS_SESSION_KEY,
+            focusLabel: eventsFocusLabel,
+            onClearFocus: clearEventsFocus,
+            lastRefreshedAt: eventsRefreshedAt,
+            updateBadgeLabel: getFocusedSectionUpdateLabel("events"),
+            onRefresh: () => {
+              void refreshEventsSection();
+            },
+            refreshing: eventsRefreshing,
+          }}
         approvalsSectionRef={approvalsSectionRef}
         timelineSectionRef={eventsSectionRef}
       />
@@ -6840,8 +7231,8 @@ export default function App() {
   return (
     <>
       <DesktopShell
-        appTitle={operatorGuideCatalog.app.title}
-        appSubtitle={operatorGuideCatalog.app.subtitle}
+        appTitle={operatorGuideShellApp.title}
+        appSubtitle={operatorGuideShellApp.subtitle}
         workspaceTitle={activeWorkspaceMeta.title}
         workspaceSubtitle={activeWorkspaceMeta.subtitle}
         activeWorkspaceId={activeWorkspaceId}

@@ -3,10 +3,16 @@ from typing import Any
 
 from app.models.app_control import (
     AppControlBackupPlan,
+    AppControlExecutionReport,
+    AppControlExecutionReportItem,
+    AppControlExecutionReportRequest,
     AppControlOperation,
     AppControlPreviewRequest,
+    AppControlReportMode,
     AppControlScriptPreview,
 )
+from app.models.control_plane import EventSeverity
+from app.services.events import events_service
 
 
 WORKSPACE_TARGETS = {
@@ -49,6 +55,14 @@ BLOCKED_TERMS = [
     "token",
     "password",
     "secret",
+]
+
+ADMITTED_SETTINGS_TARGETS = [
+    "appearance.themeMode",
+    "appearance.density",
+    "appearance.contentMaxWidth",
+    "layout.showDesktopTelemetry",
+    "layout.guidedMode",
 ]
 
 
@@ -103,6 +117,48 @@ class AppControlScriptService:
                 "Agent actor metadata is advisory; the user approval gate remains the authority before execution.",
             ],
             actor=request.actor,
+        )
+
+    def build_execution_report(self, request: AppControlExecutionReportRequest) -> AppControlExecutionReport:
+        if request.mode == "applied":
+            items = [self._report_item_for_operation(operation, request) for operation in request.operations]
+            summary = (
+                f"Applied {len(request.operations)} planned operation(s). "
+                "Verified results are marked explicitly below."
+            )
+            persisted_event = self._record_report_event(
+                script_id=request.script_id,
+                mode="applied",
+                summary=summary,
+                items=items,
+                workspace_id=request.workspace_after or request.workspace_before,
+            )
+            return AppControlExecutionReport(
+                script_id=request.script_id,
+                mode="applied",
+                summary=summary,
+                items=items,
+                event_id=persisted_event.id,
+            )
+
+        items = [
+            self._report_item_for_revert_settings(request),
+            self._report_item_for_revert_workspace(request),
+        ]
+        summary = "Requested restore of the last saved App OS backup. Verified results are marked explicitly below."
+        persisted_event = self._record_report_event(
+            script_id=request.script_id,
+            mode="reverted",
+            summary=summary,
+            items=items,
+            workspace_id=request.backup_workspace_id or request.workspace_after or request.workspace_before,
+        )
+        return AppControlExecutionReport(
+            script_id=request.script_id,
+            mode="reverted",
+            summary=summary,
+            items=items,
+            event_id=persisted_event.id,
         )
 
     def _build_operations(self, normalized: str) -> list[AppControlOperation]:
@@ -197,6 +253,181 @@ class AppControlScriptService:
         return (
             f"{actor_prefix}Apply {len(operations)} safe app-control operations "
             "after taking a reversible settings backup."
+        )
+
+    def _report_item_for_operation(
+        self,
+        operation: AppControlOperation,
+        request: AppControlExecutionReportRequest,
+    ) -> AppControlExecutionReportItem:
+        if operation.kind == "settings.patch":
+            verified = self._read_setting_value(request.settings_after, operation.target) == operation.value
+            return AppControlExecutionReportItem(
+                id=operation.operation_id,
+                label=operation.description,
+                detail=(
+                    "Verified by re-reading the local saved app settings after apply."
+                    if verified
+                    else "Requested for local settings apply, but the saved value did not read back as requested."
+                ),
+                delta=self._describe_setting_delta(
+                    operation.target,
+                    self._read_setting_value(request.settings_before, operation.target),
+                    operation.value,
+                ),
+                verification="verified" if verified else "assumed",
+            )
+
+        if operation.kind == "navigation.open_workspace":
+            verified = request.workspace_after == operation.value
+            return AppControlExecutionReportItem(
+                id=operation.operation_id,
+                label=operation.description,
+                detail=(
+                    f"Verified by reading the current shell workspace focus as {operation.value}."
+                    if verified
+                    else "Navigation request was sent to the shell, but the current shell workspace focus does not match yet."
+                ),
+                delta=f"Workspace: {request.workspace_before or 'unknown'} -> {operation.value}",
+                verification="verified" if verified else "assumed",
+                verification_source={
+                    "kind": "navigation",
+                    "workspace_id": operation.value,
+                },
+            )
+
+        return AppControlExecutionReportItem(
+            id=operation.operation_id,
+            label=operation.description,
+            detail="Operation was issued from this panel, but no direct readback is available here.",
+            verification="assumed",
+        )
+
+    def _report_item_for_revert_settings(
+        self,
+        request: AppControlExecutionReportRequest,
+    ) -> AppControlExecutionReportItem:
+        backup_settings = request.backup_settings or {}
+        settings_restored = request.settings_after == backup_settings
+        deltas = self._collect_restore_deltas(request.settings_before, backup_settings)
+        return AppControlExecutionReportItem(
+            id=f"{request.script_id}-settings-restore",
+            label="Restore saved app settings profile",
+            detail=(
+                "Verified by re-reading the local saved settings profile after revert."
+                if settings_restored
+                else "Restore was requested, but the saved settings profile did not read back as the backup snapshot."
+            ),
+            delta=" | ".join(deltas) if deltas else "No admitted settings values changed during restore.",
+            verification="verified" if settings_restored else "assumed",
+        )
+
+    def _report_item_for_revert_workspace(
+        self,
+        request: AppControlExecutionReportRequest,
+    ) -> AppControlExecutionReportItem:
+        target_workspace = request.backup_workspace_id or "home"
+        verified = request.workspace_after == target_workspace
+        return AppControlExecutionReportItem(
+            id=f"{request.script_id}-workspace-restore",
+            label=f"Return to {target_workspace} workspace",
+            detail=(
+                f"Verified by reading the current shell workspace focus as {target_workspace}."
+                if verified
+                else "Navigation request was sent to the shell, but the current shell workspace focus does not match yet."
+            ),
+            delta=f"Workspace: {request.workspace_before or 'unknown'} -> {target_workspace}",
+            verification="verified" if verified else "assumed",
+            verification_source={
+                "kind": "navigation",
+                "workspace_id": target_workspace,
+            },
+        )
+
+    def _read_setting_value(self, settings: dict[str, Any], target: str) -> Any:
+        current: Any = settings
+        for key in target.split("."):
+            if not isinstance(current, dict) or key not in current:
+                return None
+            current = current[key]
+        return current
+
+    def _format_value(self, value: Any) -> str:
+        if value is True:
+            return "true"
+        if value is False:
+            return "false"
+        if value is None:
+            return "unknown"
+        return str(value)
+
+    def _format_target_label(self, target: str) -> str:
+        labels = {
+            "appearance.themeMode": "Theme mode",
+            "appearance.density": "Density",
+            "appearance.contentMaxWidth": "Content width",
+            "layout.showDesktopTelemetry": "Desktop telemetry",
+            "layout.guidedMode": "Guided mode",
+        }
+        return labels.get(target, target)
+
+    def _describe_setting_delta(self, target: str, before_value: Any, after_value: Any) -> str:
+        return (
+            f"{self._format_target_label(target)}: "
+            f"{self._format_value(before_value)} -> {self._format_value(after_value)}"
+        )
+
+    def _collect_restore_deltas(
+        self,
+        settings_before: dict[str, Any],
+        backup_settings: dict[str, Any],
+    ) -> list[str]:
+        deltas: list[str] = []
+        for target in ADMITTED_SETTINGS_TARGETS:
+            before_value = self._read_setting_value(settings_before, target)
+            backup_value = self._read_setting_value(backup_settings, target)
+            if before_value != backup_value:
+                deltas.append(self._describe_setting_delta(target, before_value, backup_value))
+        return deltas
+
+    def _record_report_event(
+        self,
+        *,
+        script_id: str,
+        mode: AppControlReportMode,
+        summary: str,
+        items: list[AppControlExecutionReportItem],
+        workspace_id: str | None,
+    ):
+        verified_count = len([item for item in items if item.verification == "verified"])
+        assumed_count = len([item for item in items if item.verification == "assumed"])
+        return events_service.record(
+            category="app_control",
+            severity=EventSeverity.INFO,
+            message=f"App control {mode} report recorded for {script_id}.",
+            workspace_id=workspace_id,
+            event_type=f"app_control_{mode}",
+            current_state="verified" if assumed_count == 0 else "mixed",
+            details={
+                "event_type": f"app_control_{mode}",
+                "capability_status": "reviewable_local",
+                "script_id": script_id,
+                "mode": mode,
+                "summary": summary,
+                "item_count": str(len(items)),
+                "verified_count": str(verified_count),
+                "assumed_count": str(assumed_count),
+                "receipt_items": [
+                    {
+                        "id": item.id,
+                        "label": item.label,
+                        "detail": item.detail,
+                        "delta": item.delta,
+                        "verification": item.verification,
+                    }
+                    for item in items
+                ],
+            },
         )
 
 

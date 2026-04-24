@@ -56,6 +56,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert payload["status"] == "phase-7-gem-state-refinement"
         assert payload["phase"] == "phase-7"
         assert "/app/control/preview" in payload["routes"]
+        assert "/app/control/report" in payload["routes"]
         assert "/summary" in payload["routes"]
         assert "/runs" in payload["routes"]
         assert "/runs/cards" in payload["routes"]
@@ -63,6 +64,8 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert "/approvals/cards" in payload["routes"]
         assert "/locks/cards" in payload["routes"]
         assert "/events/cards" in payload["routes"]
+        assert "/events/summary" in payload["routes"]
+        assert "/events/{event_id}" in payload["routes"]
         assert "/executions/cards" in payload["routes"]
         assert "/artifacts/cards" in payload["routes"]
         assert "/autonomy" in payload["routes"]
@@ -464,6 +467,152 @@ def test_event_cards_expose_substrate_lineage_and_failure_fields() -> None:
         assert payload["failure_category"] == "policy-blocked"
         assert payload["adapter_mode"] == "hybrid"
         assert payload["capability_status"] == "mutation-gated"
+        assert payload["verification_state"] is None
+        assert payload["verified_count"] is None
+        assert payload["assumed_count"] is None
+
+
+def test_event_cards_expose_app_control_verification_posture() -> None:
+    with isolated_client() as client:
+        control_plane_repository.create_event(
+            EventRecord(
+                id="evt-app-control-verification",
+                category="app_control",
+                event_type="app_control_applied",
+                severity=EventSeverity.INFO,
+                message="App control applied report recorded for app-control-verification.",
+                details={
+                    "capability_status": "reviewable_local",
+                    "summary": "Applied 2 planned operation(s).",
+                    "verified_count": 1,
+                    "assumed_count": 1,
+                    "receipt_items": [
+                        {
+                            "id": "open-runtime",
+                            "label": "Open Runtime workspace.",
+                            "detail": "Workspace focus changed locally.",
+                            "verification": "assumed",
+                        }
+                    ],
+                },
+            )
+        )
+
+        response = client.get("/events/cards")
+        assert response.status_code == 200
+        payload = response.json()["events"][0]
+        assert payload["event_type"] == "app_control_applied"
+        assert payload["verification_state"] == "assumed_present"
+        assert payload["verified_count"] == 1
+        assert payload["assumed_count"] == 1
+
+
+def test_events_summary_returns_app_control_audit_totals_and_latest_receipt() -> None:
+    with isolated_client() as client:
+        control_plane_repository.create_event(
+            EventRecord(
+                id="evt-app-control-old",
+                category="app_control",
+                event_type="app_control_applied",
+                severity=EventSeverity.INFO,
+                message="App control applied report recorded for app-control-old.",
+                created_at=datetime(2026, 4, 23, 17, 0, tzinfo=timezone.utc),
+                details={
+                    "summary": "Applied 1 planned operation(s). Verified results are marked explicitly below.",
+                    "verified_count": "1",
+                    "assumed_count": "0",
+                    "script_id": "app-control-old",
+                },
+            )
+        )
+        control_plane_repository.create_event(
+            EventRecord(
+                id="evt-app-control-new",
+                category="app_control",
+                event_type="app_control_reverted",
+                severity=EventSeverity.INFO,
+                message="App control reverted report recorded for app-control-new.",
+                created_at=datetime(2026, 4, 23, 18, 0, tzinfo=timezone.utc),
+                details={
+                    "summary": "Requested restore of the last saved App OS backup. Verified results are marked explicitly below.",
+                    "verified_count": "2",
+                    "assumed_count": "0",
+                    "script_id": "app-control-new",
+                },
+            )
+        )
+        control_plane_repository.create_event(
+            EventRecord(
+                id="evt-app-control-assumed",
+                category="app_control",
+                event_type="app_control_applied",
+                severity=EventSeverity.INFO,
+                message="App control applied report recorded for app-control-assumed.",
+                created_at=datetime(2026, 4, 23, 19, 0, tzinfo=timezone.utc),
+                details={
+                    "summary": "Applied 1 planned operation(s). Some results remain assumed.",
+                    "verified_count": "1",
+                    "assumed_count": "1",
+                    "script_id": "app-control-assumed",
+                },
+            )
+        )
+
+        response = client.get("/events/summary")
+
+    assert response.status_code == 200
+    payload = response.json()["app_control"]
+    assert payload["total_events"] == 3
+    assert payload["applied_events"] == 2
+    assert payload["reverted_events"] == 1
+    assert payload["verified_only_events"] == 2
+    assert payload["assumed_present_events"] == 1
+    assert payload["verification_not_recorded_events"] == 0
+    assert payload["latest_event_id"] == "evt-app-control-assumed"
+    assert payload["latest_event_type"] == "app_control_applied"
+    assert payload["latest_verified_count"] == 1
+    assert payload["latest_assumed_count"] == 1
+    assert payload["latest_script_id"] == "app-control-assumed"
+
+
+def test_event_detail_returns_typed_app_control_receipt_detail() -> None:
+    with isolated_client() as client:
+        control_plane_repository.create_event(
+            EventRecord(
+                id="evt-app-control-detail",
+                category="app_control",
+                event_type="app_control_applied",
+                severity=EventSeverity.INFO,
+                message="App control applied report recorded for app-control-detail.",
+                details={
+                    "script_id": "app-control-detail",
+                    "mode": "applied",
+                    "summary": "Applied 2 planned operation(s). Verified results are marked explicitly below.",
+                    "verified_count": "2",
+                    "assumed_count": "0",
+                    "receipt_items": [
+                        {
+                            "id": "set-theme-dark",
+                            "label": "Set the app theme mode to dark.",
+                            "detail": "Verified by re-reading the local saved app settings after apply.",
+                            "delta": "Theme mode: system -> dark",
+                            "verification": "verified",
+                        }
+                    ],
+                },
+            )
+        )
+
+        response = client.get("/events/evt-app-control-detail")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["event"]["id"] == "evt-app-control-detail"
+    assert payload["app_control"]["script_id"] == "app-control-detail"
+    assert payload["app_control"]["mode"] == "applied"
+    assert payload["app_control"]["verified_count"] == 2
+    assert payload["app_control"]["assumed_count"] == 0
+    assert payload["app_control"]["items"][0]["delta"] == "Theme mode: system -> dark"
 
 
 def test_ready_reports_database_status_details() -> None:

@@ -794,11 +794,56 @@ class EventListItem(BaseModel):
     failure_category: str | None = None
     capability_status: str | None = None
     adapter_mode: str | None = None
+    verification_state: str | None = None
+    verified_count: int | None = None
+    assumed_count: int | None = None
     event_state: str = Field(..., min_length=1)
 
 
 class EventListResponse(BaseModel):
     events: list[EventListItem] = Field(default_factory=list)
+
+
+class AppControlEventSummary(BaseModel):
+    total_events: int = 0
+    applied_events: int = 0
+    reverted_events: int = 0
+    verified_only_events: int = 0
+    assumed_present_events: int = 0
+    verification_not_recorded_events: int = 0
+    latest_event_id: str | None = None
+    latest_event_type: str | None = None
+    latest_created_at: str | None = None
+    latest_summary: str | None = None
+    latest_verified_count: int | None = None
+    latest_assumed_count: int | None = None
+    latest_script_id: str | None = None
+
+
+class EventSummaryResponse(BaseModel):
+    app_control: AppControlEventSummary = Field(default_factory=AppControlEventSummary)
+
+
+class AppControlEventDetailItem(BaseModel):
+    id: str = Field(..., min_length=1)
+    label: str = Field(..., min_length=1)
+    detail: str = Field(..., min_length=1)
+    delta: str | None = None
+    verification: str | None = None
+
+
+class AppControlEventDetail(BaseModel):
+    script_id: str | None = None
+    mode: str | None = None
+    summary: str | None = None
+    verified_count: int | None = None
+    assumed_count: int | None = None
+    items: list[AppControlEventDetailItem] = Field(default_factory=list)
+
+
+class EventDetailResponse(BaseModel):
+    event: EventRecord
+    app_control: AppControlEventDetail | None = None
 
 
 class PoliciesResponse(BaseModel):

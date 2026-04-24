@@ -11,7 +11,8 @@ import {
 type RecordsSurfaceId =
   | "runs"
   | "executions"
-  | "artifacts";
+  | "artifacts"
+  | "events";
 
 type RecordsWorkspaceViewProps = {
   activeSurfaceId: RecordsSurfaceId;
@@ -20,6 +21,7 @@ type RecordsWorkspaceViewProps = {
   runsContent: ReactNode;
   executionsContent: ReactNode;
   artifactsContent: ReactNode;
+  eventsContent: ReactNode;
 };
 
 const recordsExplorerWindow = getWorkspaceWindowGuide("records", "records-explorer");
@@ -31,6 +33,7 @@ export default function RecordsWorkspaceView({
   runsContent,
   executionsContent,
   artifactsContent,
+  eventsContent,
 }: RecordsWorkspaceViewProps) {
   const activeSurfaceGuide = getWorkspaceSurfaceGuide("records", activeSurfaceId);
 
@@ -61,6 +64,9 @@ export default function RecordsWorkspaceView({
         </div>
         <div aria-hidden={activeSurfaceId !== "artifacts"} style={activeSurfaceId === "artifacts" ? visibleSurfaceStyle : hiddenSurfaceStyle}>
           {artifactsContent}
+        </div>
+        <div aria-hidden={activeSurfaceId !== "events"} style={activeSurfaceId === "events" ? visibleSurfaceStyle : hiddenSurfaceStyle}>
+          {eventsContent}
         </div>
       </div>
     </DesktopWindow>

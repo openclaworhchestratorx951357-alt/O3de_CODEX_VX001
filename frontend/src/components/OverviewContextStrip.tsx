@@ -1,4 +1,4 @@
-import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import { getShellPanelControlGuide, getShellPanelGuide } from "../content/operatorGuideShell";
 import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryActionButtonStyle,
@@ -6,10 +6,10 @@ import {
   summarySectionStyle,
 } from "./summaryPrimitives";
 
-const overviewContextStripGuide = getPanelGuide("overview-context-strip");
-const overviewContextStripHistoryControlGuide = getPanelControlGuide("overview-context-strip", "history-entry");
-const overviewContextStripPresetControlGuide = getPanelControlGuide("overview-context-strip", "preset-actions");
-const overviewContextStripClearFocusControlGuide = getPanelControlGuide("overview-context-strip", "clear-focus");
+const overviewContextStripGuide = getShellPanelGuide("overview-context-strip");
+const overviewContextStripHistoryControlGuide = getShellPanelControlGuide("overview-context-strip", "history-entry");
+const overviewContextStripPresetControlGuide = getShellPanelControlGuide("overview-context-strip", "preset-actions");
+const overviewContextStripClearFocusControlGuide = getShellPanelControlGuide("overview-context-strip", "clear-focus");
 
 type OverviewContextStripProps = {
   laneLabel: string;
