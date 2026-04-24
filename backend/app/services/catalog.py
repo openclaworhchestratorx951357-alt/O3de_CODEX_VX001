@@ -259,7 +259,7 @@ CATALOG = ToolsCatalog(
             tools=[
                 ToolDefinition(
                     name="render.material.inspect",
-                    description="Inspect a material and its related shader state.",
+                    description="Inspect an explicit material path with runtime probe facts and local read-only material evidence.",
                     approval_class="read_only",
                     adapter_family="render-lookdev",
                     capability_status=tool_capability_status("render.material.inspect"),

@@ -47,9 +47,9 @@ Default guidance note:
   not by constantly rewriting the charter
 
 Current Phase 7 checkpoint truth:
-- `project.inspect` is the current real read-only path in hybrid mode
-- that path now includes manifest-backed project-config subset matching, manifest-backed Gem subset/source evidence with explicit source/count visibility, and manifest-backed top-level settings subset evidence with explicit source/count visibility
-- `settings.patch` is still the first recommended mutation-capable candidate and now has a real hybrid path for both dry-run preflight and the first fully admitted manifest-backed set-only mutation case, with backup provenance, rollback outcome evidence, patch-plan evidence, and post-write verification
+- the canonical current checkpoint lives in `docs/PHASE-7-CHECKPOINT.md`
+- `project.inspect` remains an admitted real read-only path in hybrid mode, and the current Phase 7 baseline also includes admitted narrow asset, render, and validation evidence slices such as `asset.source.inspect`, `asset.processor.status`, `render.capture.viewport`, `render.material.inspect`, `test.run.gtest`, `test.run.editor_python`, and `test.tiaf.sequence`
+- `settings.patch`, `gem.enable`, and `render.material.patch` are the current mutation-gated lanes; `render.material.inspect` now includes explicit local `.material` readback evidence but still does not imply shader-state expansion or runtime material readback beyond that admitted boundary
 - `editor.session.open` and `editor.level.open` are admitted real on the
   verified `McpSandbox` target wiring through the persistent bridge-backed
   runtime path
