@@ -75,24 +75,39 @@ def plan_render_lookdev_prompt(
         capability = capabilities["render.material.patch"]
         if capability is not None:
             material_path = extract_first_path_like_value(prompt_text)
+            quoted_values = extract_quoted_values(prompt_text)
             override_value = extract_value_after_phrase(prompt_text, "to ")
             lowered = prompt_text.lower()
             override_key = None
+            shader_review_requested = contains_any(
+                prompt_text,
+                ["review shader", "shader target", "shader targets", "shader preflight"],
+            )
+            shader_targets_for_review = [
+                value for value in quoted_values if value != material_path
+            ]
             for candidate in ("roughness", "metallic", "basecolor", "base color", "opacity"):
                 if candidate in lowered:
                     override_key = candidate.replace(" ", "_")
                     break
-            if material_path and override_key and override_value:
+            if shader_review_requested and not shader_targets_for_review:
+                refusals.append(
+                    "render.material.patch shader review requires an explicit quoted shader target in the prompt."
+                )
+            elif material_path and override_key and override_value:
+                step_args = {
+                    "material_path": material_path,
+                    "property_overrides": {override_key: override_value},
+                    "create_backup": True,
+                }
+                if shader_targets_for_review:
+                    step_args["shader_targets_for_review"] = shader_targets_for_review
                 steps.append(
                     make_step(
                         step_id="render-material-patch-1",
                         capability=capability,
                         request=request,
-                        args={
-                            "material_path": material_path,
-                            "property_overrides": {override_key: override_value},
-                            "create_backup": True,
-                        },
+                        args=step_args,
                     )
                 )
                 requirement = capability_requirement_note(capability)

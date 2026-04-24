@@ -166,9 +166,10 @@ def tool_next_real_requirement(tool_name: str) -> str:
     if tool_name == "render.material.patch":
         return (
             "Keep real execution tightly limited to explicit project-local .material "
-            "propertyValues patching with backup, rollback, and post-write readback "
-            "verification, while runtime material readback, shader rebuild, and "
-            "reference repair remain unavailable."
+            "propertyValues patching with backup, rollback, post-write readback "
+            "verification, and optional explicit post-patch shader preflight review "
+            "evidence, while runtime material readback, actual shader rebuild "
+            "execution, and reference repair remain unavailable."
         )
     if tool_name == "render.shader.rebuild":
         return (

@@ -776,6 +776,76 @@ def test_prompt_session_executes_render_material_patch_with_truthful_evidence() 
                 assert persisted_material["propertyValues"]["roughness"] == "1"
 
 
+def test_prompt_session_executes_render_material_patch_with_explicit_shader_review_evidence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        material_path = project_root / "Materials" / "Example.material"
+        build_root = project_root / "build"
+        shader_path = project_root / "Assets" / "Shaders" / "ExampleShader.shader"
+        material_path.parent.mkdir(parents=True, exist_ok=True)
+        build_root.mkdir(parents=True, exist_ok=True)
+        shader_path.parent.mkdir(parents=True, exist_ok=True)
+        material_path.write_text(
+            json.dumps(
+                {
+                    "materialType": "TestMaterial",
+                    "propertyValues": {"roughness": 0.5},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (build_root / "CMakeCache.txt").write_text("PROJECT_NAME=ShaderPrompt\n", encoding="utf-8")
+        shader_path.write_text("shader-source", encoding="utf-8")
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                create_response = client.post(
+                    "/prompt/sessions",
+                    json={
+                        "prompt_id": "prompt-render-material-patch-shader-review-1",
+                        "prompt_text": 'Patch material "Materials/Example.material" roughness to 1 and review shader "ExampleShader".',
+                        "project_root": str(project_root),
+                        "engine_root": "C:/engine",
+                        "dry_run": False,
+                        "preferred_domains": ["render-lookdev"],
+                    },
+                )
+                assert create_response.status_code == 200
+                create_payload = create_response.json()
+                step = create_payload["plan"]["steps"][0]
+                assert step["args"]["shader_targets_for_review"] == ["ExampleShader"]
+
+                execute_response = client.post(
+                    "/prompt/sessions/prompt-render-material-patch-shader-review-1/execute"
+                )
+                assert execute_response.status_code == 200
+                approval = approvals_service.get_approval(
+                    execute_response.json()["pending_approval_id"]
+                )
+                assert approval is not None
+                approvals_service.approve(approval.id)
+
+                execute_response = client.post(
+                    "/prompt/sessions/prompt-render-material-patch-shader-review-1/execute"
+                )
+                assert execute_response.status_code == 200
+                payload = execute_response.json()
+                assert payload["status"] == "completed"
+                assert (
+                    "Post-patch shader preflight confirmed configured build-tree evidence"
+                    in payload["final_result_summary"]
+                )
+                assert "no shader rebuild command was executed" in payload["final_result_summary"]
+                child_response = payload["latest_child_responses"][-1]
+                details = child_response["execution_details"]
+                assert details["post_patch_shader_preflight_review_requested"] is True
+                assert details["post_patch_shader_preflight_review_attempted"] is True
+                assert details["post_patch_shader_preflight_review_ready"] is True
+                assert (
+                    details["post_patch_shader_preflight_review"]["inspection_surface"]
+                    == "render_shader_rebuild_preflight"
+                )
+
+
 def test_prompt_session_plans_test_visual_diff_as_hybrid_read_only() -> None:
     with isolated_client() as client:
         response = client.post(

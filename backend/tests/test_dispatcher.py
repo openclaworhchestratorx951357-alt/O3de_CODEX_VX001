@@ -378,6 +378,7 @@ def make_render_material_patch_request(
     material_path: str = "Materials/Example.material",
     property_overrides: dict[str, object] | None = None,
     create_backup: bool = True,
+    shader_targets_for_review: list[str] | None = None,
 ) -> RequestEnvelope:
     request = make_request(
         "render-lookdev",
@@ -393,6 +394,8 @@ def make_render_material_patch_request(
         },
         "create_backup": create_backup,
     }
+    if shader_targets_for_review:
+        request.args["shader_targets_for_review"] = shader_targets_for_review
     return request
 
 
@@ -403,6 +406,7 @@ def approve_render_material_patch_request(
     material_path: str = "Materials/Example.material",
     property_overrides: dict[str, object] | None = None,
     create_backup: bool = True,
+    shader_targets_for_review: list[str] | None = None,
 ) -> RequestEnvelope:
     first = dispatcher_service.dispatch(
         make_render_material_patch_request(
@@ -411,6 +415,7 @@ def approve_render_material_patch_request(
             material_path=material_path,
             property_overrides=property_overrides,
             create_backup=create_backup,
+            shader_targets_for_review=shader_targets_for_review,
         )
     )
     approval = approvals_service.get_approval(first.approval_id or "")
@@ -423,6 +428,7 @@ def approve_render_material_patch_request(
         material_path=material_path,
         property_overrides=property_overrides,
         create_backup=create_backup,
+        shader_targets_for_review=shader_targets_for_review,
     )
     approved_request.approval_token = approval.token
     return approved_request
@@ -5184,8 +5190,89 @@ def test_render_material_patch_uses_real_mutation_path_in_hybrid_mode() -> None:
         )
 
 
+def test_render_material_patch_records_post_patch_shader_preflight_review_when_explicit_targets_are_provided(
+) -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        material_path = project_root / "Materials" / "Example.material"
+        build_root = project_root / "build"
+        shader_path = project_root / "Assets" / "Shaders" / "ExampleShader.shader"
+        material_path.parent.mkdir(parents=True, exist_ok=True)
+        build_root.mkdir(parents=True, exist_ok=True)
+        shader_path.parent.mkdir(parents=True, exist_ok=True)
+        material_path.write_text(
+            json.dumps(
+                {
+                    "materialType": "TestMaterial",
+                    "propertyValues": {"roughness": 0.5},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (build_root / "CMakeCache.txt").write_text("PROJECT_NAME=ShaderPatch\n", encoding="utf-8")
+        shader_path.write_text("shader-source", encoding="utf-8")
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                approve_render_material_patch_request(
+                    project_root=str(project_root),
+                    material_path="Materials/Example.material",
+                    property_overrides={"roughness": 0.2},
+                    dry_run=False,
+                    shader_targets_for_review=["ExampleShader"],
+                )
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "render_material_patch_mutation"
+        assert execution.details["mutation_applied"] is True
+        assert execution.details["post_patch_shader_preflight_review_requested"] is True
+        assert execution.details["post_patch_shader_preflight_review_attempted"] is True
+        assert execution.details["post_patch_shader_preflight_review_ready"] is True
+        assert execution.details["post_patch_shader_preflight_review_requested_targets"] == [
+            "ExampleShader"
+        ]
+        shader_review = execution.details["post_patch_shader_preflight_review"]
+        assert shader_review["inspection_surface"] == "render_shader_rebuild_preflight"
+        assert shader_review["configured_build_tree_available"] is True
+        assert shader_review["shader_source_candidates_found_for_all_requested_targets"] is True
+        assert str(shader_path) in shader_review["resolved_shader_candidate_paths"]
+        assert shader_review["execution_attempted"] is False
+        assert shader_review["result_artifact_produced"] is False
+        assert artifact is not None
+        assert artifact.simulated is False
+        assert artifact.metadata["post_patch_shader_preflight_review_attempted"] is True
+        assert artifact.metadata["post_patch_shader_preflight_review"]["inspection_surface"] == (
+            "render_shader_rebuild_preflight"
+        )
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="render.material.patch",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="render.material.patch",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
 def test_render_material_patch_simulated_persisted_payloads_match_published_schemas(
-    ) -> None:
+) -> None:
     with isolated_database():
         response = dispatcher_service.dispatch(approve_render_material_patch_request())
 

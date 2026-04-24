@@ -3501,6 +3501,93 @@ def test_dispatch_route_uses_real_render_material_patch_mutation_in_hybrid_mode(
                 assert workspace["runner_family"] == "cli"
 
 
+def test_dispatch_route_records_post_patch_shader_review_for_render_material_patch() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        material_path = project_root / "Materials" / "Example.material"
+        build_root = project_root / "build"
+        shader_path = project_root / "Assets" / "Shaders" / "ExampleShader.shader"
+        material_path.parent.mkdir(parents=True, exist_ok=True)
+        build_root.mkdir(parents=True, exist_ok=True)
+        shader_path.parent.mkdir(parents=True, exist_ok=True)
+        material_path.write_text(
+            json.dumps(
+                {
+                    "materialType": "ApiMaterial",
+                    "propertyValues": {"roughness": 0.5},
+                }
+            ),
+            encoding="utf-8",
+        )
+        (build_root / "CMakeCache.txt").write_text("PROJECT_NAME=ShaderApi\n", encoding="utf-8")
+        shader_path.write_text("shader-source", encoding="utf-8")
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-render-material-patch-shader-review-1",
+                        "tool": "render.material.patch",
+                        "agent": "render-lookdev",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "args": {
+                            "material_path": "Materials/Example.material",
+                            "property_overrides": {"roughness": 0.25},
+                            "create_backup": True,
+                            "shader_targets_for_review": ["ExampleShader"],
+                        },
+                    },
+                )
+                approval_id = dispatch.json()["approval_id"]
+                approval = approvals_service.get_approval(approval_id)
+                assert approval is not None
+                client.post(
+                    f"/approvals/{approval_id}/approve",
+                    json={"reason": "Approve render.material.patch shader review test"},
+                )
+                approved_dispatch = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": "api-render-material-patch-shader-review-2",
+                        "tool": "render.material.patch",
+                        "agent": "render-lookdev",
+                        "project_root": str(project_root),
+                        "engine_root": "/tmp/engine",
+                        "dry_run": False,
+                        "locks": [],
+                        "timeout_s": 30,
+                        "approval_token": approval.token,
+                        "args": {
+                            "material_path": "Materials/Example.material",
+                            "property_overrides": {"roughness": 0.25},
+                            "create_backup": True,
+                            "shader_targets_for_review": ["ExampleShader"],
+                        },
+                    },
+                )
+                assert approved_dispatch.status_code == 200
+                payload = approved_dispatch.json()
+                assert payload["ok"] is True
+                execution = next(
+                    execution
+                    for execution in client.get("/executions").json()["executions"]
+                    if execution["run_id"] == payload["operation_id"]
+                )
+                assert execution["details"]["post_patch_shader_preflight_review_requested"] is True
+                assert execution["details"]["post_patch_shader_preflight_review_attempted"] is True
+                assert execution["details"]["post_patch_shader_preflight_review_ready"] is True
+                assert execution["details"]["post_patch_shader_preflight_review"]["inspection_surface"] == (
+                    "render_shader_rebuild_preflight"
+                )
+                assert str(shader_path) in execution["details"]["post_patch_shader_preflight_review"][
+                    "resolved_shader_candidate_paths"
+                ]
+
+
 def test_dispatch_route_uses_real_build_compile_preflight_in_hybrid_mode() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)

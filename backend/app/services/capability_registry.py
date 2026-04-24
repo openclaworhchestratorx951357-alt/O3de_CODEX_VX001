@@ -472,9 +472,14 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "capability_maturity": "hybrid-mutation",
         "planner_intent_aliases": ["patch material", "set material", "update material property"],
         "natural_language_affordances": [
-            "Preflight an explicit local .material propertyValues override request and, for the first admitted corridor, apply a backup-verified local material patch."
+            "Preflight an explicit local .material propertyValues override request and, for the first admitted corridor, apply a backup-verified local material patch with optional explicit post-patch shader preflight review evidence."
         ],
-        "allowlisted_parameter_surfaces": ["material_path", "property_overrides", "create_backup"],
+        "allowlisted_parameter_surfaces": [
+            "material_path",
+            "property_overrides",
+            "create_backup",
+            "shader_targets_for_review",
+        ],
         "real_adapter_availability": True,
         "dry_run_availability": True,
         "simulation_fallback_availability": True,

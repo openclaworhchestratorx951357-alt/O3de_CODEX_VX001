@@ -7266,6 +7266,8 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
         material_path_input = str(args.get("material_path", "")).strip()
         property_overrides = args.get("property_overrides")
         create_backup_requested = bool(args.get("create_backup", True))
+        raw_shader_targets_for_review = args.get("shader_targets_for_review")
+        shader_targets_for_review: list[str] = []
         if not material_path_input:
             return self._fallback_render_material_patch(
                 tool=tool,
@@ -7315,6 +7317,57 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
                     fallback_category="override-key-not-admitted",
                 )
             normalized_property_overrides[key.strip()] = value
+        if raw_shader_targets_for_review is not None:
+            if not isinstance(raw_shader_targets_for_review, list):
+                return self._fallback_render_material_patch(
+                    tool=tool,
+                    agent=agent,
+                    project_root=project_root,
+                    engine_root=engine_root,
+                    dry_run=dry_run,
+                    args=args,
+                    approval_class=approval_class,
+                    locks_acquired=locks_acquired,
+                    reason=(
+                        "Real render.material.patch currently admits shader_targets_for_review "
+                        "only as an explicit non-empty list of shader target strings."
+                    ),
+                    fallback_category="shader-review-targets-not-admitted",
+                )
+            for entry in raw_shader_targets_for_review:
+                if not isinstance(entry, str) or not entry.strip():
+                    return self._fallback_render_material_patch(
+                        tool=tool,
+                        agent=agent,
+                        project_root=project_root,
+                        engine_root=engine_root,
+                        dry_run=dry_run,
+                        args=args,
+                        approval_class=approval_class,
+                        locks_acquired=locks_acquired,
+                        reason=(
+                            "Real render.material.patch currently admits shader_targets_for_review "
+                            "only as an explicit non-empty list of shader target strings."
+                        ),
+                        fallback_category="shader-review-targets-not-admitted",
+                    )
+                shader_targets_for_review.append(entry.strip())
+            if not shader_targets_for_review:
+                return self._fallback_render_material_patch(
+                    tool=tool,
+                    agent=agent,
+                    project_root=project_root,
+                    engine_root=engine_root,
+                    dry_run=dry_run,
+                    args=args,
+                    approval_class=approval_class,
+                    locks_acquired=locks_acquired,
+                    reason=(
+                        "Real render.material.patch currently admits shader_targets_for_review "
+                        "only as an explicit non-empty list of shader target strings."
+                    ),
+                    fallback_category="shader-review-targets-not-admitted",
+                )
         if not create_backup_requested:
             return self._fallback_render_material_patch(
                 tool=tool,
@@ -7505,6 +7558,12 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
         rollback_verification_attempted = False
         rollback_verification_succeeded = False
         rollback_verification_error: str | None = None
+        post_patch_shader_preflight_review_requested = bool(shader_targets_for_review)
+        post_patch_shader_preflight_review_attempted = False
+        post_patch_shader_preflight_review_ready = False
+        post_patch_shader_preflight_review_unavailable_reason: str | None = None
+        post_patch_shader_preflight_review: dict[str, Any] | None = None
+        post_patch_shader_preflight_review_summary: str | None = None
         result_status = "preflight-ready" if mutation_ready else "preflight-unavailable"
         material_unavailable_reason = (
             "Runtime material readback, shader rebuild, and reference repair remain unavailable "
@@ -7642,6 +7701,38 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
         elif mutation_blocked:
             result_status = "mutation-blocked"
 
+        if post_patch_shader_preflight_review_requested:
+            if mutation_applied:
+                shader_review_report = self._execute_render_shader_rebuild(
+                    tool="render.shader.rebuild",
+                    agent=agent,
+                    project_root=project_root,
+                    engine_root=engine_root,
+                    dry_run=True,
+                    args={"shader_targets": shader_targets_for_review},
+                    approval_class=approval_class,
+                    locks_acquired=locks_acquired,
+                )
+                post_patch_shader_preflight_review_attempted = True
+                post_patch_shader_preflight_review = dict(shader_review_report.execution_details)
+                post_patch_shader_preflight_review_summary = shader_review_report.result_summary
+                post_patch_shader_preflight_review_unavailable_reason = (
+                    post_patch_shader_preflight_review.get("shader_rebuild_unavailable_reason")
+                    or post_patch_shader_preflight_review.get("result_unavailable_reason")
+                )
+                post_patch_shader_preflight_review_ready = bool(
+                    post_patch_shader_preflight_review.get("configured_build_tree_available")
+                ) and bool(
+                    post_patch_shader_preflight_review.get(
+                        "shader_source_candidates_found_for_all_requested_targets"
+                    )
+                )
+            else:
+                post_patch_shader_preflight_review_unavailable_reason = (
+                    "Explicit post-patch shader preflight review was requested, but no local "
+                    "material mutation was applied in this slice."
+                )
+
         inspection_surface = (
             "render_material_patch_mutation"
             if mutation_applied
@@ -7659,6 +7750,12 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
             "shader_rebuild",
             "reference_repair",
         ]
+        if post_patch_shader_preflight_review_requested:
+            inspection_evidence.append("explicit_post_patch_shader_preflight_review_request")
+            if post_patch_shader_preflight_review_attempted:
+                inspection_evidence.append("post_patch_shader_preflight_review")
+            else:
+                unavailable_evidence.append("post_patch_shader_preflight_review")
         if mutation_applied:
             inspection_evidence.extend(["material_write", "post_write_verification"])
         else:
@@ -7715,6 +7812,15 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
             "verified_override_keys": sorted(verified_override_keys),
             "verification_mismatched_keys": sorted(verification_mismatched_keys),
             "verification_error": verification_error,
+            "post_patch_shader_preflight_review_requested": post_patch_shader_preflight_review_requested,
+            "post_patch_shader_preflight_review_attempted": post_patch_shader_preflight_review_attempted,
+            "post_patch_shader_preflight_review_requested_targets": shader_targets_for_review,
+            "post_patch_shader_preflight_review_ready": post_patch_shader_preflight_review_ready,
+            "post_patch_shader_preflight_review_summary": post_patch_shader_preflight_review_summary,
+            "post_patch_shader_preflight_review_unavailable_reason": (
+                post_patch_shader_preflight_review_unavailable_reason
+            ),
+            "post_patch_shader_preflight_review": post_patch_shader_preflight_review,
             "rollback_attempted": rollback_attempted,
             "rollback_succeeded": rollback_succeeded,
             "rollback_outcome": rollback_outcome,
@@ -7740,16 +7846,42 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
             f"Read material file from '{resolved_material_path}'.",
             f"Requested explicit property override count: {len(normalized_property_overrides)}.",
         ]
+        if post_patch_shader_preflight_review_attempted:
+            logs.append(
+                "Captured explicit post-patch shader preflight review evidence without executing a shader rebuild command."
+            )
+            if post_patch_shader_preflight_review_ready:
+                logs.append(
+                    "Post-patch shader preflight confirmed configured build-tree evidence and local shader source candidates for the explicit review targets."
+                )
+            elif post_patch_shader_preflight_review_unavailable_reason:
+                logs.append(post_patch_shader_preflight_review_unavailable_reason)
+                warnings.append(post_patch_shader_preflight_review_unavailable_reason)
+        elif post_patch_shader_preflight_review_requested and post_patch_shader_preflight_review_unavailable_reason:
+            logs.append(post_patch_shader_preflight_review_unavailable_reason)
+            warnings.append(post_patch_shader_preflight_review_unavailable_reason)
         if mutation_applied:
             logs.append(
                 "Wrote and verified the explicit local material propertyValues mutation."
             )
-            message = (
-                "Real render.material.patch mutation completed within the admitted local "
-                "material propertyValues corridor; requested file updates were written "
-                "and verified."
-            )
-            result_summary = "Real render.material.patch mutation completed successfully."
+            if post_patch_shader_preflight_review_attempted:
+                message = (
+                    "Real render.material.patch mutation completed within the admitted local "
+                    "material propertyValues corridor; requested file updates were written "
+                    "and verified, and explicit post-patch shader preflight review evidence "
+                    "was captured."
+                )
+                result_summary = (
+                    "Real render.material.patch mutation and post-patch shader preflight "
+                    "review completed successfully."
+                )
+            else:
+                message = (
+                    "Real render.material.patch mutation completed within the admitted local "
+                    "material propertyValues corridor; requested file updates were written "
+                    "and verified."
+                )
+                result_summary = "Real render.material.patch mutation completed successfully."
         else:
             logs.append("No material file write was executed in this slice.")
             if mutation_blocked_reason:
@@ -7760,7 +7892,13 @@ class RenderLookdevHybridAdapter(ToolExecutionAdapter):
                 "material propertyValues plan is ready but no material file was written "
                 "because dry_run=true."
             )
-            result_summary = "Real render.material.patch preflight completed successfully."
+            if post_patch_shader_preflight_review_requested:
+                result_summary = (
+                    "Real render.material.patch preflight completed successfully, but the "
+                    "explicit post-patch shader review request was not attempted."
+                )
+            else:
+                result_summary = "Real render.material.patch preflight completed successfully."
 
         result = DispatchResult(
             status="real_success",

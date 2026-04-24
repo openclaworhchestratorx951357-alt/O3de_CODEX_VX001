@@ -791,6 +791,33 @@ class PromptOrchestratorService:
                     summary_parts.append(
                         f"Material patch preflight confirmed explicit request evidence for {material_path}, but the request remained outside the first admitted write corridor."
                     )
+                if details.get("post_patch_shader_preflight_review_attempted") is True:
+                    shader_review = details.get("post_patch_shader_preflight_review", {})
+                    shader_targets = details.get("post_patch_shader_preflight_review_requested_targets")
+                    if not isinstance(shader_targets, list):
+                        shader_targets = shader_review.get("requested_shader_targets", [])
+                    shader_target_summary = (
+                        ", ".join(str(item) for item in shader_targets)
+                        if shader_targets
+                        else "the explicit shader review targets"
+                    )
+                    if (
+                        isinstance(shader_review, dict)
+                        and shader_review.get("configured_build_tree_available") is True
+                        and shader_review.get("shader_source_candidates_found_for_all_requested_targets")
+                        is True
+                    ):
+                        summary_parts.append(
+                            f"Post-patch shader preflight confirmed configured build-tree evidence and local shader source candidates for {shader_target_summary}; no shader rebuild command was executed."
+                        )
+                    else:
+                        summary_parts.append(
+                            f"Post-patch shader preflight could not fully confirm rebuild readiness for {shader_target_summary}."
+                        )
+                elif details.get("post_patch_shader_preflight_review_requested") is True:
+                    summary_parts.append(
+                        "Post-patch shader preflight review was requested but not attempted because no local material mutation was applied in this slice."
+                    )
             if mutation_applied:
                 summary_parts.append(
                     "Runtime material readback and shader rebuild remain unavailable beyond the admitted local material file mutation boundary."
@@ -808,6 +835,11 @@ class PromptOrchestratorService:
             )
             if isinstance(unavailable_reason, str) and unavailable_reason:
                 summary_parts.append(unavailable_reason)
+            shader_review_unavailable_reason = details.get(
+                "post_patch_shader_preflight_review_unavailable_reason"
+            )
+            if isinstance(shader_review_unavailable_reason, str) and shader_review_unavailable_reason:
+                summary_parts.append(shader_review_unavailable_reason)
 
         if render_shader_response is not None:
             details = render_shader_response.get("execution_details", {})
