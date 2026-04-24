@@ -16,6 +16,8 @@ from app.services.planners._common import (
     make_step,
 )
 
+_CREATED_ENTITY_ID_REF = "$step:editor-entity-1.entity_id"
+
 
 def plan_editor_prompt(
     request: PromptRequest,
@@ -115,21 +117,30 @@ def plan_editor_prompt(
             if requirement:
                 requirements.append(requirement)
 
-    if contains_any(prompt_text, ["add component", "attach component"]):
+    component_matches = re.findall(
+        r"(?:add|attach) ([a-z0-9_ -]+?) component",
+        prompt_text.lower(),
+    )
+    if contains_any(prompt_text, ["add component", "attach component"]) or component_matches:
         component_capability = capabilities["editor.component.add"]
         if component_capability is not None:
             entity_id = extract_value_after_phrase(prompt_text, "entity id ")
-            if entity_id is None:
+            if entity_id is None and wants_entity_create:
+                entity_id = _CREATED_ENTITY_ID_REF
+            elif entity_id is None:
                 quoted_values = extract_quoted_values(prompt_text)
                 entity_id = quoted_values[0] if quoted_values else None
-            component_matches = re.findall(
-                r"(?:add|attach) ([a-z0-9_ -]+?) component",
-                prompt_text.lower(),
-            )
-            component_name = component_matches[0].strip().title() if component_matches else None
+            component_name = None
+            if component_matches:
+                normalized_component_name = re.sub(
+                    r"^(?:a|an|the)\s+",
+                    "",
+                    component_matches[0].strip(),
+                )
+                component_name = normalized_component_name.title() if normalized_component_name else None
             if not entity_id or not component_name:
                 refusals.append(
-                    "editor.component.add requires an explicit entity id and component name in the prompt."
+                    "editor.component.add requires either an explicit entity id or a prior create entity step plus a component name in the prompt."
                 )
             else:
                 component_args: dict[str, object] = {
@@ -141,6 +152,13 @@ def plan_editor_prompt(
                 depends_on = ["editor-session-1"] if session_capability else []
                 if level_path:
                     depends_on.append("editor-level-1")
+                planner_note = None
+                if entity_id == _CREATED_ENTITY_ID_REF:
+                    depends_on.append("editor-entity-1")
+                    planner_note = (
+                        "Use the entity created by the immediately preceding prompt-authored "
+                        "entity creation step."
+                    )
                 steps.append(
                     make_step(
                         step_id="editor-component-1",
@@ -148,6 +166,7 @@ def plan_editor_prompt(
                         request=request,
                         args=component_args,
                         depends_on=depends_on,
+                        planner_note=planner_note,
                     )
                 )
                 requirement = capability_requirement_note(component_capability)

@@ -466,6 +466,67 @@ def test_prompt_session_plans_admitted_real_editor_entity_create() -> None:
                 )
 
 
+def test_prompt_session_plans_editor_component_add_from_created_entity_output() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps(
+                {
+                    "project_name": "PromptEditorProject",
+                    "version": "1.0.0",
+                    "gem_names": ["PythonEditorBindings"],
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                create_response = client.post(
+                    "/prompt/sessions",
+                    json={
+                        "prompt_id": "prompt-editor-chain-plan-1",
+                        "prompt_text": (
+                            'Open level "Levels/Main.level", create entity named "Hero", '
+                            'and add a Camera component.'
+                        ),
+                        "project_root": str(project_root),
+                        "engine_root": "C:/engine",
+                        "dry_run": False,
+                        "preferred_domains": ["editor-control"],
+                    },
+                )
+                assert create_response.status_code == 200
+                create_payload = create_response.json()
+                assert create_payload["status"] == "planned"
+                assert [step["tool"] for step in create_payload["plan"]["steps"]] == [
+                    "editor.session.open",
+                    "editor.level.open",
+                    "editor.entity.create",
+                    "editor.component.add",
+                ]
+                assert create_payload["plan"]["steps"][3]["args"] == {
+                    "entity_id": "$step:editor-entity-1.entity_id",
+                    "components": ["Camera"],
+                    "level_path": "Levels/Main.level",
+                }
+                assert create_payload["plan"]["steps"][3]["depends_on"] == [
+                    "editor-session-1",
+                    "editor-level-1",
+                    "editor-entity-1",
+                ]
+                assert (
+                    create_payload["plan"]["steps"][3]["planner_note"]
+                    == "Use the entity created by the immediately preceding prompt-authored entity creation step."
+                )
+                assert create_payload["refused_capabilities"] == []
+
+
 def test_prompt_session_executes_admitted_real_editor_session_and_level_through_prompt_lineage() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)
@@ -682,3 +743,230 @@ def test_prompt_session_executes_admitted_real_editor_session_and_level_through_
                             ]["natural_language_status"]
                             == "prompt-ready-approval-gated"
                         )
+
+
+def test_prompt_session_executes_editor_component_add_with_created_entity_handoff() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps(
+                {
+                    "project_name": "PromptEditorProject",
+                    "version": "1.0.0",
+                    "gem_names": ["PythonEditorBindings"],
+                }
+            ),
+            encoding="utf-8",
+        )
+        captured_component_args: list[dict[str, object]] = []
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+            },
+            clear=False,
+        ):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_session_open",
+                return_value={
+                    "runtime_result": {
+                        "editor_session_id": "editor-session-runtime",
+                        "loaded_level_path": "Levels/Main.level",
+                        "exact_editor_apis": [
+                            "azlmbr.legacy.general.open_level_no_prompt"
+                        ],
+                        "bridge_available": True,
+                        "bridge_name": "ControlPlaneEditorBridge",
+                        "bridge_version": "0.1.0",
+                        "bridge_operation": "editor.session.open",
+                        "bridge_contract_version": "v1",
+                        "bridge_command_id": "bridge-session-1",
+                        "bridge_result_summary": "editor.session.open completed.",
+                        "bridge_heartbeat_seen_at": "2026-04-20T00:00:00Z",
+                        "bridge_queue_mode": "filesystem-inbox",
+                        "editor_transport": "bridge",
+                    },
+                    "runner_command": ["fake-editor-runner"],
+                    "runtime_script": "control_plane_bridge_bootstrap.py",
+                },
+            ):
+                with patch(
+                    "app.services.adapters.editor_automation_runtime_service.execute_level_open",
+                    return_value={
+                        "runtime_result": {
+                            "loaded_level_path": "Levels/Main.level",
+                            "level_path": "Levels/Main.level",
+                            "created_level": False,
+                            "exact_editor_apis": [
+                                "azlmbr.legacy.general.open_level_no_prompt"
+                            ],
+                            "bridge_available": True,
+                            "bridge_name": "ControlPlaneEditorBridge",
+                            "bridge_version": "0.1.0",
+                            "bridge_operation": "editor.level.open",
+                            "bridge_contract_version": "v1",
+                            "bridge_command_id": "bridge-level-1",
+                            "bridge_result_summary": "editor.level.open completed.",
+                            "bridge_heartbeat_seen_at": "2026-04-20T00:00:01Z",
+                            "bridge_queue_mode": "filesystem-inbox",
+                            "editor_transport": "bridge",
+                        },
+                        "runner_command": ["fake-editor-runner"],
+                        "runtime_script": "control_plane_bridge_bootstrap.py",
+                    },
+                ):
+                    with patch(
+                        "app.services.adapters.editor_automation_runtime_service.execute_entity_create",
+                        return_value={
+                            "runtime_result": {
+                                "ok": True,
+                                "entity_id": "101",
+                                "entity_name": "Hero",
+                                "modified_entities": ["101"],
+                                "level_path": "Levels/Main.level",
+                                "loaded_level_path": "Levels/Main.level",
+                                "entity_id_source": "direct_return_entity_id",
+                                "direct_return_entity_id": "101",
+                                "notification_entity_ids": ["101"],
+                                "selected_entity_count_before_create": 0,
+                                "name_mutation_ran": True,
+                                "name_mutation_succeeded": True,
+                                "exact_editor_apis": [
+                                    "ControlPlaneEditorBridge filesystem inbox",
+                                    "editor.entity.create",
+                                ],
+                                "bridge_available": True,
+                                "bridge_name": "ControlPlaneEditorBridge",
+                                "bridge_version": "0.1.0",
+                                "bridge_operation": "editor.entity.create",
+                                "bridge_contract_version": "v1",
+                                "bridge_command_id": "bridge-entity-1",
+                                "bridge_result_summary": "editor.entity.create completed.",
+                                "bridge_heartbeat_seen_at": "2026-04-20T00:00:02Z",
+                                "bridge_queue_mode": "filesystem-inbox",
+                                "editor_transport": "bridge",
+                            },
+                            "runner_command": ["fake-editor-runner"],
+                            "runtime_script": "control_plane_bridge_poller.py",
+                        },
+                    ):
+                        def fake_component_add(*, args, **kwargs):  # type: ignore[no-untyped-def]
+                            captured_component_args.append(args)
+                            assert args["entity_id"] == "101"
+                            assert args["components"] == ["Camera"]
+                            assert args["level_path"] == "Levels/Main.level"
+                            return {
+                                "runtime_result": {
+                                    "ok": True,
+                                    "entity_id": "101",
+                                    "entity_name": "Hero",
+                                    "added_components": ["Camera"],
+                                    "added_component_refs": [
+                                        {
+                                            "component": "Camera",
+                                            "component_id": "EntityComponentIdPair(EntityId(101), 301)",
+                                            "entity_id": "101",
+                                        }
+                                    ],
+                                    "rejected_components": [],
+                                    "modified_entities": ["101"],
+                                    "level_path": "Levels/Main.level",
+                                    "loaded_level_path": "Levels/Main.level",
+                                    "exact_editor_apis": [
+                                        "ControlPlaneEditorBridge filesystem inbox",
+                                        "editor.component.add",
+                                    ],
+                                    "bridge_available": True,
+                                    "bridge_name": "ControlPlaneEditorBridge",
+                                    "bridge_version": "0.1.0",
+                                    "bridge_operation": "editor.component.add",
+                                    "bridge_contract_version": "v1",
+                                    "bridge_command_id": "bridge-component-1",
+                                    "bridge_result_summary": "editor.component.add completed.",
+                                    "bridge_heartbeat_seen_at": "2026-04-20T00:00:03Z",
+                                    "bridge_queue_mode": "filesystem-inbox",
+                                    "editor_transport": "bridge",
+                                },
+                                "runner_command": ["fake-editor-runner"],
+                                "runtime_script": "control_plane_bridge_poller.py",
+                            }
+
+                        with patch(
+                            "app.services.adapters.editor_automation_runtime_service.execute_component_add",
+                            side_effect=fake_component_add,
+                        ):
+                            with isolated_client() as client:
+                                create_response = client.post(
+                                    "/prompt/sessions",
+                                    json={
+                                        "prompt_id": "prompt-editor-chain-execute-1",
+                                        "prompt_text": (
+                                            'Open level "Levels/Main.level", create entity named "Hero", '
+                                            'add a Camera component, then read back the component/property evidence.'
+                                        ),
+                                        "project_root": str(project_root),
+                                        "engine_root": "C:/engine",
+                                        "dry_run": False,
+                                        "preferred_domains": ["editor-control"],
+                                    },
+                                )
+                                assert create_response.status_code == 200
+                                create_payload = create_response.json()
+                                assert [step["tool"] for step in create_payload["plan"]["steps"]] == [
+                                    "editor.session.open",
+                                    "editor.level.open",
+                                    "editor.entity.create",
+                                    "editor.component.add",
+                                ]
+
+                                latest_payload = None
+                                for _ in range(4):
+                                    execute_response = client.post(
+                                        "/prompt/sessions/prompt-editor-chain-execute-1/execute"
+                                    )
+                                    assert execute_response.status_code == 200
+                                    latest_payload = execute_response.json()
+                                    assert latest_payload["status"] == "waiting_approval"
+                                    assert latest_payload["pending_approval_id"]
+                                    approval_response = client.post(
+                                        f"/approvals/{latest_payload['pending_approval_id']}/approve",
+                                        json={},
+                                    )
+                                    assert approval_response.status_code == 200
+
+                                completed_response = client.post(
+                                    "/prompt/sessions/prompt-editor-chain-execute-1/execute"
+                                )
+                                assert completed_response.status_code == 200
+                                completed_payload = completed_response.json()
+                                assert completed_payload["status"] == "completed"
+                                assert captured_component_args == [
+                                    {
+                                        "entity_id": "101",
+                                        "components": ["Camera"],
+                                        "level_path": "Levels/Main.level",
+                                    }
+                                ]
+                                assert len(completed_payload["child_run_ids"]) == 8
+                                assert len(completed_payload["child_execution_ids"]) == 8
+                                assert len(completed_payload["child_artifact_ids"]) == 4
+                                assert (
+                                    "Readback confirmed entity 'Hero' (101) in Levels/Main.level."
+                                    in completed_payload["final_result_summary"]
+                                )
+                                assert (
+                                    "Readback confirmed added component(s) Camera on entity 101."
+                                    in completed_payload["final_result_summary"]
+                                )
+
+                                latest_success_by_step = {
+                                    response["prompt_step_id"]: response
+                                    for response in completed_payload["latest_child_responses"]
+                                    if response["ok"] is True
+                                }
+                                assert latest_success_by_step["editor-entity-1"][
+                                    "execution_details"
+                                ]["entity_id"] == "101"
+                                assert latest_success_by_step["editor-component-1"][
+                                    "execution_details"
+                                ]["added_components"] == ["Camera"]

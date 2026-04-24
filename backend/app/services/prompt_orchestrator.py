@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import re
+from typing import Any
 
 from app.models.prompt_control import (
     PromptRequest,
     PromptSessionRecord,
     PromptSessionStatus,
 )
+from app.models.prompt_step import PromptPlanStep
 from app.models.request_envelope import RequestEnvelope
 from app.models.response_envelope import ResponseEnvelope
 from app.services.approvals import approvals_service
@@ -18,6 +21,10 @@ from app.services.executors import executors_service
 from app.services.intent_planner import intent_planner_service
 from app.services.prompt_sessions import prompt_sessions_service
 from app.services.workspaces import workspaces_service
+
+_STEP_OUTPUT_REF_PATTERN = re.compile(
+    r"^\$step:(?P<step_id>[a-z0-9_-]+)\.(?P<path>[A-Za-z0-9_.\[\]-]+)$"
+)
 
 
 class PromptOrchestratorService:
@@ -98,6 +105,16 @@ class PromptOrchestratorService:
         for step_index in range(next_step_index, len(session.plan.steps)):
             step = session.plan.steps[step_index]
             approval_token = self._approval_token_for_step(session, step.step_id)
+            try:
+                resolved_args = self._resolve_step_args(session, step)
+            except ValueError as exc:
+                session.status = PromptSessionStatus.FAILED
+                session.current_step_id = step.step_id
+                session.last_error_code = "PROMPT_STEP_OUTPUT_MISSING"
+                session.last_error_retryable = False
+                session.evidence_summary = self._build_evidence_summary(session)
+                session.final_result_summary = str(exc)
+                return prompt_sessions_service.update_session(session)
             response = dispatcher_service.dispatch(
                 RequestEnvelope(
                     request_id=f"{session.prompt_id}:{step.step_id}",
@@ -112,11 +129,11 @@ class PromptOrchestratorService:
                     approval_token=approval_token,
                     locks=step.required_locks,
                     timeout_s=30,
-                    args=step.args,
+                    args=resolved_args,
                 )
             )
             self._record_step_attempt(session, step.step_id)
-            self._append_child_response(session, response)
+            self._append_child_response(session, step.step_id, response)
             self._collect_child_lineage(session, response)
             if not response.ok:
                 self._record_failed_step_state(session, step.step_id, response)
@@ -135,9 +152,12 @@ class PromptOrchestratorService:
     def _append_child_response(
         self,
         session: PromptSessionRecord,
+        step_id: str,
         response: ResponseEnvelope,
     ) -> None:
-        session.latest_child_responses.append(response.model_dump(mode="json"))
+        session.latest_child_responses.append(
+            self._build_child_response_record(step_id, response)
+        )
         session.updated_at = datetime.now(timezone.utc)
 
     def _collect_child_lineage(
@@ -225,6 +245,24 @@ class PromptOrchestratorService:
             f"artifacts={len(session.child_artifact_ids)}, "
             f"events={len(session.child_event_ids)}"
         )
+
+    def _build_child_response_record(
+        self,
+        step_id: str,
+        response: ResponseEnvelope,
+    ) -> dict[str, Any]:
+        record = response.model_dump(mode="json")
+        record["prompt_step_id"] = step_id
+        if response.operation_id is None:
+            return record
+        execution = self._execution_for_run_id(response.operation_id)
+        if execution is not None:
+            record["execution_details"] = execution.details
+        if response.artifacts:
+            artifact = artifacts_service.get_artifact(response.artifacts[0])
+            if artifact is not None:
+                record["artifact_metadata"] = artifact.metadata
+        return record
 
     def _resolve_next_step_index(self, session: PromptSessionRecord) -> int | None:
         if session.status == PromptSessionStatus.WAITING_APPROVAL:
@@ -353,14 +391,166 @@ class PromptOrchestratorService:
         session.last_error_code = None
         session.last_error_retryable = False
         session.evidence_summary = self._build_evidence_summary(session)
-        session.final_result_summary = (
+        base_summary = (
             f"Executed {len(session.plan.steps) if session.plan else 0} typed child step(s) through DispatcherService."
+        )
+        review_summary = self._build_operator_review_summary(session)
+        session.final_result_summary = (
+            f"{base_summary} {review_summary}" if review_summary else base_summary
         )
         return prompt_sessions_service.update_session(session)
 
     def _append_unique(self, values: list[str], value: str) -> None:
         if value not in values:
             values.append(value)
+
+    def _resolve_step_args(
+        self,
+        session: PromptSessionRecord,
+        step: PromptPlanStep,
+    ) -> dict[str, Any]:
+        return self._resolve_step_output_value(session, step.args)
+
+    def _resolve_step_output_value(
+        self,
+        session: PromptSessionRecord,
+        value: Any,
+    ) -> Any:
+        if isinstance(value, dict):
+            return {
+                key: self._resolve_step_output_value(session, item)
+                for key, item in value.items()
+            }
+        if isinstance(value, list):
+            return [self._resolve_step_output_value(session, item) for item in value]
+        if isinstance(value, str):
+            return self._resolve_step_output_reference(session, value)
+        return value
+
+    def _resolve_step_output_reference(
+        self,
+        session: PromptSessionRecord,
+        value: str,
+    ) -> Any:
+        match = _STEP_OUTPUT_REF_PATTERN.match(value)
+        if match is None:
+            return value
+
+        step_id = match.group("step_id")
+        path = match.group("path")
+        response_record = self._latest_successful_response_for_step(session, step_id)
+        if response_record is None:
+            raise ValueError(
+                f"Prompt execution could not resolve output from prior child step {step_id} before continuing."
+            )
+        if "execution_details" not in response_record:
+            raise ValueError(
+                f"Prompt execution could not resolve persisted execution details for prior child step {step_id}."
+            )
+        return self._extract_path_value(response_record["execution_details"], path, step_id=step_id)
+
+    def _latest_successful_response_for_step(
+        self,
+        session: PromptSessionRecord,
+        step_id: str,
+    ) -> dict[str, Any] | None:
+        for response_record in reversed(session.latest_child_responses):
+            if (
+                response_record.get("prompt_step_id") == step_id
+                and response_record.get("ok") is True
+            ):
+                return response_record
+        return None
+
+    def _extract_path_value(
+        self,
+        root: Any,
+        path: str,
+        *,
+        step_id: str,
+    ) -> Any:
+        value = root
+        for segment in path.split("."):
+            segment_match = re.fullmatch(r"([A-Za-z0-9_-]+)(?:\[(\d+)\])?", segment)
+            if segment_match is None:
+                raise ValueError(
+                    f"Prompt execution could not interpret output path '{path}' for child step {step_id}."
+                )
+            key = segment_match.group(1)
+            index = segment_match.group(2)
+            if not isinstance(value, dict) or key not in value:
+                raise ValueError(
+                    f"Prompt execution could not find output field '{key}' on child step {step_id}."
+                )
+            value = value[key]
+            if index is not None:
+                if not isinstance(value, list):
+                    raise ValueError(
+                        f"Prompt execution expected list output for '{key}' on child step {step_id}."
+                    )
+                item_index = int(index)
+                if item_index >= len(value):
+                    raise ValueError(
+                        f"Prompt execution could not find output index [{item_index}] for '{key}' on child step {step_id}."
+                    )
+                value = value[item_index]
+        return value
+
+    def _execution_for_run_id(self, run_id: str):
+        for execution in executions_service.list_executions():
+            if execution.run_id == run_id:
+                return execution
+        return None
+
+    def _build_operator_review_summary(self, session: PromptSessionRecord) -> str | None:
+        entity_response = self._latest_successful_response_for_step(session, "editor-entity-1")
+        component_response = self._latest_successful_response_for_step(session, "editor-component-1")
+        property_response = self._latest_successful_response_for_step(
+            session, "editor-component-property-1"
+        )
+
+        summary_parts: list[str] = []
+        if entity_response is not None:
+            details = entity_response.get("execution_details", {})
+            entity_name = details.get("entity_name")
+            entity_id = details.get("entity_id")
+            level_path = details.get("level_path") or details.get("loaded_level_path")
+            if entity_name and entity_id and level_path:
+                summary_parts.append(
+                    f"Readback confirmed entity '{entity_name}' ({entity_id}) in {level_path}."
+                )
+            elif entity_name and entity_id:
+                summary_parts.append(
+                    f"Readback confirmed entity '{entity_name}' ({entity_id})."
+                )
+
+        if component_response is not None:
+            details = component_response.get("execution_details", {})
+            added_components = details.get("added_components")
+            entity_id = details.get("entity_id")
+            if isinstance(added_components, list) and added_components:
+                component_list = ", ".join(str(item) for item in added_components)
+                if entity_id:
+                    summary_parts.append(
+                        f"Readback confirmed added component(s) {component_list} on entity {entity_id}."
+                    )
+                else:
+                    summary_parts.append(
+                        f"Readback confirmed added component(s) {component_list}."
+                    )
+
+        if property_response is not None:
+            details = property_response.get("execution_details", {})
+            property_path = details.get("property_path")
+            value = details.get("value")
+            if property_path is not None and value is not None:
+                summary_parts.append(
+                    f"Readback confirmed {property_path} = {value}."
+                )
+
+        if not summary_parts:
+            return None
+        return " ".join(summary_parts)
 
 
 prompt_orchestrator_service = PromptOrchestratorService()
