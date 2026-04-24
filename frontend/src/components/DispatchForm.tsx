@@ -6,6 +6,7 @@ import {
   getDispatchExpectedExecutionTruth,
   getHybridDispatchNote,
 } from "../lib/executionTruth";
+import { loadActiveO3DEProjectProfile } from "../lib/o3deProjectProfiles";
 import { useSettings } from "../lib/settings/hooks";
 import PanelGuideDetails from "./PanelGuideDetails";
 import StatusChip from "./StatusChip";
@@ -49,6 +50,7 @@ export default function DispatchForm({
   onResponse,
 }: DispatchFormProps) {
   const { settings } = useSettings();
+  const [activeProjectProfile] = useState(() => loadActiveO3DEProjectProfile());
   const firstAgent = agents[0]?.id ?? "";
   const toolsForSelectedAgent = useMemo(
     () => agents.find((agent) => agent.id === firstAgent)?.tools ?? [],
@@ -59,8 +61,8 @@ export default function DispatchForm({
     request_id: crypto.randomUUID(),
     tool: toolsForSelectedAgent[0]?.name ?? "",
     agent: firstAgent,
-    project_root: settings.operatorDefaults.projectRoot || "/path/to/project",
-    engine_root: settings.operatorDefaults.engineRoot || "/path/to/engine",
+    project_root: settings.operatorDefaults.projectRoot || activeProjectProfile.projectRoot || "/path/to/project",
+    engine_root: settings.operatorDefaults.engineRoot || activeProjectProfile.engineRoot || "/path/to/engine",
     dry_run: settings.operatorDefaults.dryRun,
     locks: settings.operatorDefaults.locks,
     timeout_s: settings.operatorDefaults.timeoutSeconds,
@@ -105,15 +107,17 @@ export default function DispatchForm({
 
   const getDefaultProjectRoot = useCallback((target: O3DETargetConfig | null): string => {
     return settings.operatorDefaults.projectRoot
+      || activeProjectProfile.projectRoot
       || target?.project_root
       || ((import.meta.env.VITE_O3DE_TARGET_PROJECT_ROOT as string | undefined) ?? "/path/to/project");
-  }, [settings.operatorDefaults.projectRoot]);
+  }, [activeProjectProfile.projectRoot, settings.operatorDefaults.projectRoot]);
 
   const getDefaultEngineRoot = useCallback((target: O3DETargetConfig | null): string => {
     return settings.operatorDefaults.engineRoot
+      || activeProjectProfile.engineRoot
       || target?.engine_root
       || ((import.meta.env.VITE_O3DE_TARGET_ENGINE_ROOT as string | undefined) ?? "/path/to/engine");
-  }, [settings.operatorDefaults.engineRoot]);
+  }, [activeProjectProfile.engineRoot, settings.operatorDefaults.engineRoot]);
 
   useEffect(() => {
     let cancelled = false;
@@ -235,6 +239,11 @@ export default function DispatchForm({
       {hybridDispatchNote ? (
         <p style={{ marginTop: 0, color: "var(--app-muted-color)" }}>{hybridDispatchNote}</p>
       ) : null}
+      <p style={{ marginTop: 0, color: "var(--app-muted-color)" }}>
+        Selected project profile: <strong>{activeProjectProfile.name}</strong>
+        {" "}using <strong>{activeProjectProfile.projectRoot}</strong>
+        {" "}on <strong>{activeProjectProfile.engineRoot}</strong>.
+      </p>
       {targetConfig?.project_root || targetConfig?.engine_root ? (
         <p style={{ marginTop: 0, color: "var(--app-muted-color)" }}>
           Active local target: <strong>{targetConfig.project_root ?? "project unset"}</strong>

@@ -11,6 +11,8 @@ It exists to make three things explicit before any edits begin:
 - the current slice starts from a known, reviewable local state
 
 This checklist complements:
+- `AGENTS.md`
+- `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
 
@@ -78,6 +80,11 @@ These are active standing assumptions for this repository:
 - explicit operator-configured persistence remains the truthful local-run baseline
 - Phase 3 validator support is intentionally frozen at the accepted subset unless a newly published per-tool schema actually requires more
 - no real O3DE adapters should be claimed unless implemented and validated
+
+Evergreen execution default:
+- use `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md` as the default prioritization
+  and capability-truth reference unless the user explicitly supersedes it
+- use code, tests, and runtime behavior as truth over stale roadmap wording
 
 ## Recommended PowerShell Slice Start Block
 

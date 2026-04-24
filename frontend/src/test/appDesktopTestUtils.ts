@@ -1,4 +1,4 @@
-import { screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { expect, type Mock } from "vitest";
 
 export function createPendingPromise<T>() {
@@ -16,7 +16,26 @@ export function getDesktopNavButton(name: RegExp): HTMLButtonElement {
 
   expect(navRail).not.toBeNull();
 
-  return within(navRail as HTMLElement).getByRole("button", { name }) as HTMLButtonElement;
+  const navScope = within(navRail as HTMLElement);
+  const visibleButton = navScope.queryByRole("button", { name }) as HTMLButtonElement | null;
+  if (visibleButton) {
+    return visibleButton;
+  }
+
+  for (const button of navScope.getAllByRole("button").filter((candidate) => (
+    candidate.hasAttribute("aria-expanded")
+  ))) {
+    if (button.getAttribute("aria-expanded") === "false") {
+      fireEvent.click(button);
+    }
+
+    const expandedButton = navScope.queryByRole("button", { name }) as HTMLButtonElement | null;
+    if (expandedButton) {
+      return expandedButton;
+    }
+  }
+
+  return navScope.getByRole("button", { name }) as HTMLButtonElement;
 }
 
 export function getLaunchpadButton(detail: string): HTMLButtonElement {
@@ -41,8 +60,5 @@ export function getDesktopTabButton(label: string, detail: string): HTMLButtonEl
 }
 
 export function expectDesktopTabActive(button: HTMLButtonElement): void {
-  expect(button).toHaveStyle({
-    borderColor: "var(--app-accent-strong)",
-    boxShadow: "var(--app-shadow-strong)",
-  });
+  expect(button).toHaveAttribute("aria-pressed", "true");
 }

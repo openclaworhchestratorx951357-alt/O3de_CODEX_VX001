@@ -106,5 +106,8 @@ describe("PromptSessionPanel", () => {
     );
 
     expect(screen.getByText("No prompt sessions have been created yet.")).toBeInTheDocument();
+    expect(screen.getByText("Create the first governed prompt")).toBeInTheDocument();
+    expect(screen.getByText(/Open Prompt Studio and describe the O3DE change/i)).toBeInTheDocument();
+    expect(screen.getByText("Example beginner prompt")).toBeInTheDocument();
   });
 });

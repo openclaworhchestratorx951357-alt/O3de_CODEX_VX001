@@ -165,3 +165,25 @@ export function getPanelControlGuide(
     `Missing operator guide panel control entry for "${panelId}.${controlId}".`,
   );
 }
+
+export function mergeGuideChecklists(
+  ...checklists: ReadonlyArray<readonly string[] | undefined>
+): string[] {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+
+  for (const checklist of checklists) {
+    for (const item of checklist ?? []) {
+      const normalizedItem = item.trim();
+
+      if (!normalizedItem || seen.has(normalizedItem)) {
+        continue;
+      }
+
+      seen.add(normalizedItem);
+      merged.push(normalizedItem);
+    }
+  }
+
+  return merged;
+}

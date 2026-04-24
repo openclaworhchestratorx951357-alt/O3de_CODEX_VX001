@@ -68,6 +68,24 @@ export default function ExecutorsPanel({
       error={error}
       emptyMessage={normalizedQuery ? "No executors match the current search." : "No executors are recorded yet."}
       hasItems={filteredItems.length > 0}
+      emptyGuideTitle={normalizedQuery ? "Widen the executor search" : "Register or inspect executor lanes"}
+      emptyGuideDescription={normalizedQuery
+        ? "The current search hides all executor records. Executor inventory is easiest to find by label, host, runner family, or availability state."
+        : "Executor records describe who can own work. They are inventory only and do not widen the admitted O3DE mutation surface."}
+      emptyGuideSteps={normalizedQuery ? [
+        "Clear the search or try the host label, runner family, ready, available, or offline.",
+        "Refresh executors if a worker lane was just created.",
+        "Use Workspaces next to confirm which lane an executor owns.",
+      ] : [
+        "Create or bootstrap a Builder worktree lane when you need another thread to help.",
+        "Refresh executor inventory after lane setup.",
+        "Open detail only after a record appears so you can inspect ownership and readiness.",
+      ]}
+      emptyGuideExampleTitle={normalizedQuery ? "Search examples" : "Beginner lane example"}
+      emptyGuideExample={normalizedQuery
+        ? "Try codex, local, worker, available, or a runner family name."
+        : "A safe helper thread should have its own worktree lane, clear task ownership, and a recorded executor/workspace trail."}
+      renderChildrenWhenEmpty
       actionHint="Refresh updates persisted executor inventory and availability state without changing the current admitted adapter boundary."
       actions={onRefresh ? (
         <button

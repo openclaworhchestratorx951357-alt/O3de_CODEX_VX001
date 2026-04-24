@@ -1,6 +1,10 @@
 import type {
   AdaptersEnvelope,
   AdaptersResponse,
+  AppControlExecutionReport,
+  AppControlExecutionReportRequest,
+  AppControlPreviewRequest,
+  AppControlScriptPreview,
   AutonomyHealingActionCreateRequest,
   AutonomyHealingActionUpdateRequest,
   AutonomyHealingActionsResponse,
@@ -46,7 +50,9 @@ import type {
   ExecutorsResponse,
   EventListItem,
   EventListResponse,
+  EventDetailResponse,
   EventRecord,
+  EventSummaryResponse,
   EventsResponse,
   ExecutionListItem,
   ExecutionListResponse,
@@ -66,6 +72,8 @@ import type {
   PromptCapabilitiesResponse,
   PromptCapabilityEntry,
   PromptRequest,
+  PromptShortcutRequest,
+  PromptShortcutResponse,
   PromptSessionRecord,
   PromptSessionsResponse,
   ReadinessStatus,
@@ -133,6 +141,26 @@ export async function dispatchTool(
 
 export async function fetchToolsCatalog(): Promise<unknown> {
   return getJson("/tools/catalog", "Catalog fetch");
+}
+
+export async function previewAppControlScript(
+  request: AppControlPreviewRequest,
+): Promise<AppControlScriptPreview> {
+  return postJson<AppControlPreviewRequest, AppControlScriptPreview>(
+    "/app/control/preview",
+    request,
+    "App control preview",
+  );
+}
+
+export async function buildAppControlExecutionReport(
+  request: AppControlExecutionReportRequest,
+): Promise<AppControlExecutionReport> {
+  return postJson<AppControlExecutionReportRequest, AppControlExecutionReport>(
+    "/app/control/report",
+    request,
+    "App control execution report",
+  );
 }
 
 export async function fetchAutonomySummary(): Promise<AutonomySummaryResponse> {
@@ -641,6 +669,16 @@ export async function fetchPromptCapabilities(): Promise<PromptCapabilityEntry[]
   return payload.capabilities ?? [];
 }
 
+export async function createPromptShortcuts(
+  request: PromptShortcutRequest,
+): Promise<PromptShortcutResponse> {
+  return postJson<PromptShortcutRequest, PromptShortcutResponse>(
+    "/prompt/shortcuts",
+    request,
+    "Prompt shortcut generation",
+  );
+}
+
 export async function fetchApprovals(): Promise<ApprovalRecord[]> {
   const payload = await getJson<ApprovalsResponse>("/approvals", "Approvals fetch");
   return payload.approvals ?? [];
@@ -694,6 +732,14 @@ export async function fetchEvents(): Promise<EventRecord[]> {
 export async function fetchEventCards(): Promise<EventListItem[]> {
   const payload = await getJson<EventListResponse>("/events/cards", "Event cards fetch");
   return payload.events ?? [];
+}
+
+export async function fetchEventSummary(): Promise<EventSummaryResponse> {
+  return getJson<EventSummaryResponse>("/events/summary", "Event summary fetch");
+}
+
+export async function fetchEventDetail(eventId: string): Promise<EventDetailResponse> {
+  return getJson<EventDetailResponse>(`/events/${eventId}`, "Event detail fetch");
 }
 
 export async function fetchRuns(

@@ -82,6 +82,24 @@ export default function ExecutionsPanel({
       error={error}
       emptyMessage={normalizedQuery ? "No executions match the current search." : "No executions are recorded yet."}
       hasItems={filteredItems.length > 0}
+      emptyGuideTitle={normalizedQuery ? "Widen the execution search" : "Create execution evidence first"}
+      emptyGuideDescription={normalizedQuery
+        ? "The current search hides all execution records. Executions are easiest to find by tool name, run ID, executor, or result summary."
+        : "Execution records are created under runs and show the exact tool path, execution mode, warnings, and provenance."}
+      emptyGuideSteps={normalizedQuery ? [
+        "Clear the search or try a broader tool family such as editor-control.",
+        "Search for real, simulated, warning, or a run ID when tracing a dispatch.",
+        "Refresh executions if another thread just completed a tool call.",
+      ] : [
+        "Submit a prompt or dispatch a typed tool request.",
+        "Approve gated work if the backend pauses for approval.",
+        "Return here to inspect the tool-level execution record and provenance.",
+      ]}
+      emptyGuideExampleTitle={normalizedQuery ? "Search examples" : "Example execution source"}
+      emptyGuideExample={normalizedQuery
+        ? "Try editor.component.add, real, warning, executor ID, or the first few characters of a run ID."
+        : "A bridge-backed editor.component.add proof creates an execution record that should show real mode and bridge provenance."}
+      renderChildrenWhenEmpty
       actionHint="Local refresh updates persisted execution records without reloading the full overview lane."
       actions={onRefresh ? (
         <button

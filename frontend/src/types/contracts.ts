@@ -138,6 +138,115 @@ export interface PromptCapabilitiesResponse {
   capabilities: PromptCapabilityEntry[];
 }
 
+export interface PromptShortcutRequest {
+  mode: string;
+  scenario_id: string;
+  scenario_label: string;
+  stage_label: string;
+  focus_id: string;
+  focus_label: string;
+  viewport_label: string;
+  active_tool_label: string;
+  project_profile_name?: string | null;
+  source_context_name?: string | null;
+  source_context?: string | null;
+}
+
+export interface PromptShortcutOption {
+  shortcut_id: string;
+  title: string;
+  prompt_text: string;
+  evidence_gate: string;
+  source: string;
+}
+
+export interface PromptShortcutResponse {
+  mode: string;
+  scenario_id: string;
+  stage_label: string;
+  focus_id: string;
+  shortcuts: PromptShortcutOption[];
+  generated_by: string;
+}
+
+export type AppControlOperationKind = "settings.patch" | "navigation.open_workspace";
+export type AppControlPreviewStatus = "ready" | "no_supported_action";
+export type AppControlRiskLevel = "low" | "medium";
+export type AppControlReportMode = "applied" | "reverted";
+export type AppControlVerification = "verified" | "assumed";
+
+export interface AppControlActor {
+  worker_id?: string | null;
+  display_name?: string | null;
+  agent_profile?: string | null;
+}
+
+export interface AppControlPreviewRequest {
+  instruction: string;
+  active_workspace_id?: string | null;
+  current_settings: Record<string, unknown>;
+  actor?: AppControlActor | null;
+}
+
+export interface AppControlOperation {
+  operation_id: string;
+  kind: AppControlOperationKind;
+  target: string;
+  value: unknown;
+  description: string;
+  reversible: boolean;
+}
+
+export interface AppControlBackupPlan {
+  required: boolean;
+  captures: string[];
+  revert_action_label: string;
+}
+
+export interface AppControlScriptPreview {
+  script_id: string;
+  status: AppControlPreviewStatus;
+  instruction: string;
+  summary: string;
+  risk_level: AppControlRiskLevel;
+  approval_required: boolean;
+  backup: AppControlBackupPlan;
+  operations: AppControlOperation[];
+  warnings: string[];
+  generated_by: string;
+  actor?: AppControlActor | null;
+}
+
+export interface AppControlExecutionReportRequest {
+  script_id: string;
+  mode: AppControlReportMode;
+  operations: AppControlOperation[];
+  settings_before: Record<string, unknown>;
+  settings_after: Record<string, unknown>;
+  workspace_before?: string | null;
+  workspace_after?: string | null;
+  backup_settings?: Record<string, unknown> | null;
+  backup_workspace_id?: string | null;
+}
+
+export interface AppControlExecutionReportItem {
+  id: string;
+  label: string;
+  detail: string;
+  delta?: string | null;
+  verification: AppControlVerification;
+  verification_source?: Record<string, unknown> | null;
+}
+
+export interface AppControlExecutionReport {
+  script_id: string;
+  mode: AppControlReportMode;
+  summary: string;
+  items: AppControlExecutionReportItem[];
+  event_id?: string | null;
+  generated_by: string;
+}
+
 export type PromptSessionStatus =
   | "planned"
   | "refused"
@@ -281,12 +390,27 @@ export interface CodexControlWorktree {
 export interface CodexControlWorker {
   worker_id: string;
   display_name: string;
+  agent_profile?: string | null;
+  agent_runtime?: string | null;
+  agent_entrypoint?: string | null;
+  agent_access_notes?: string | null;
+  identity_notes?: string | null;
+  personality_notes?: string | null;
+  soul_directive?: string | null;
+  memory_notes?: string | null;
+  bootstrap_notes?: string | null;
+  capability_tags?: string[];
+  context_sources?: string[];
+  avatar_label?: string | null;
+  avatar_color?: string | null;
+  avatar_uri?: string | null;
   branch_name?: string | null;
   worktree_path?: string | null;
   base_branch?: string | null;
   status: string;
   current_task_id?: string | null;
   summary?: string | null;
+  resume_notes?: string | null;
   updated_at?: string | null;
   last_seen_at?: string | null;
 }
@@ -382,9 +506,24 @@ export interface CodexControlStatusResponse {
 export interface CodexControlLaneCreateRequest {
   worker_id: string;
   display_name?: string | null;
+  agent_profile?: string | null;
+  agent_runtime?: string | null;
+  agent_entrypoint?: string | null;
+  agent_access_notes?: string | null;
+  identity_notes?: string | null;
+  personality_notes?: string | null;
+  soul_directive?: string | null;
+  memory_notes?: string | null;
+  bootstrap_notes?: string | null;
+  capability_tags?: string[] | null;
+  context_sources?: string[] | null;
+  avatar_label?: string | null;
+  avatar_color?: string | null;
+  avatar_uri?: string | null;
   branch_name?: string | null;
   worktree_path?: string | null;
   base_branch?: string | null;
+  resume_notes?: string | null;
   bootstrap: boolean;
 }
 
@@ -399,20 +538,50 @@ export interface CodexControlLaneCreateResponse {
 export interface CodexControlWorkerSyncRequest {
   worker_id: string;
   display_name?: string | null;
+  agent_profile?: string | null;
+  agent_runtime?: string | null;
+  agent_entrypoint?: string | null;
+  agent_access_notes?: string | null;
+  identity_notes?: string | null;
+  personality_notes?: string | null;
+  soul_directive?: string | null;
+  memory_notes?: string | null;
+  bootstrap_notes?: string | null;
+  capability_tags?: string[] | null;
+  context_sources?: string[] | null;
+  avatar_label?: string | null;
+  avatar_color?: string | null;
+  avatar_uri?: string | null;
   branch_name?: string | null;
   worktree_path?: string | null;
   base_branch?: string | null;
   status: string;
   summary?: string | null;
+  resume_notes?: string | null;
 }
 
 export interface CodexControlWorkerHeartbeatRequest {
   status?: string | null;
   summary?: string | null;
   current_task_id?: string | null;
+  agent_profile?: string | null;
+  agent_runtime?: string | null;
+  agent_entrypoint?: string | null;
+  agent_access_notes?: string | null;
+  identity_notes?: string | null;
+  personality_notes?: string | null;
+  soul_directive?: string | null;
+  memory_notes?: string | null;
+  bootstrap_notes?: string | null;
+  capability_tags?: string[] | null;
+  context_sources?: string[] | null;
+  avatar_label?: string | null;
+  avatar_color?: string | null;
+  avatar_uri?: string | null;
   branch_name?: string | null;
   worktree_path?: string | null;
   base_branch?: string | null;
+  resume_notes?: string | null;
 }
 
 export interface CodexControlWorkerResponse {
@@ -868,11 +1037,56 @@ export interface EventListItem {
   failure_category?: string | null;
   capability_status?: string | null;
   adapter_mode?: string | null;
+  verification_state?: string | null;
+  verified_count?: number | null;
+  assumed_count?: number | null;
   event_state: string;
 }
 
 export interface EventListResponse {
   events: EventListItem[];
+}
+
+export interface AppControlEventSummary {
+  total_events: number;
+  applied_events: number;
+  reverted_events: number;
+  verified_only_events: number;
+  assumed_present_events: number;
+  verification_not_recorded_events: number;
+  latest_event_id?: string | null;
+  latest_event_type?: string | null;
+  latest_created_at?: string | null;
+  latest_summary?: string | null;
+  latest_verified_count?: number | null;
+  latest_assumed_count?: number | null;
+  latest_script_id?: string | null;
+}
+
+export interface EventSummaryResponse {
+  app_control: AppControlEventSummary;
+}
+
+export interface AppControlEventDetailItem {
+  id: string;
+  label: string;
+  detail: string;
+  delta?: string | null;
+  verification?: string | null;
+}
+
+export interface AppControlEventDetail {
+  script_id?: string | null;
+  mode?: string | null;
+  summary?: string | null;
+  verified_count?: number | null;
+  assumed_count?: number | null;
+  items: AppControlEventDetailItem[];
+}
+
+export interface EventDetailResponse {
+  event: EventRecord;
+  app_control?: AppControlEventDetail | null;
 }
 
 export interface RunRecord {

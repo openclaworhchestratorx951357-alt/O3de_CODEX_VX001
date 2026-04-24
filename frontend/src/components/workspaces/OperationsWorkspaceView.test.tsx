@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import OperationsWorkspaceView from "./OperationsWorkspaceView";
 
 describe("OperationsWorkspaceView", () => {
-  it("renders only the active operations surface content", () => {
+  it("keeps operations surface content mounted while hiding inactive panes", () => {
     render(
       <OperationsWorkspaceView
         activeSurfaceId="approvals"
@@ -43,8 +43,11 @@ describe("OperationsWorkspaceView", () => {
     );
 
     expect(screen.getByText("Approvals content")).toBeInTheDocument();
-    expect(screen.queryByText("Dispatch content")).not.toBeInTheDocument();
-    expect(screen.queryByText("Agents content")).not.toBeInTheDocument();
-    expect(screen.queryByText("Timeline content")).not.toBeInTheDocument();
+    expect(screen.getByText("How to use this workspace")).toBeInTheDocument();
+    expect(screen.getByText(/Treat Command Center as the queue-and-control lane for operator action/i)).toBeInTheDocument();
+    expect(screen.getByText(/Use this tab whenever the approvals counter is non-zero/i)).toBeInTheDocument();
+    expect(screen.getByText("Dispatch content").closest("[aria-hidden='true']")).not.toBeNull();
+    expect(screen.getByText("Agents content").closest("[aria-hidden='true']")).not.toBeNull();
+    expect(screen.getByText("Timeline content").closest("[aria-hidden='true']")).not.toBeNull();
   });
 });

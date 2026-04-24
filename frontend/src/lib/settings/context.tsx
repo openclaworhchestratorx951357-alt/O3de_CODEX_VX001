@@ -91,8 +91,39 @@ export function SettingsProvider({ children }: SettingsProviderProps) {
   return (
     <SettingsContext.Provider value={contextValue}>
       <div data-app-theme-root="true" style={providerStyle}>
+        <style>{globalControlStyles}</style>
         {children}
       </div>
     </SettingsContext.Provider>
   );
 }
+
+const globalControlStyles = `
+[data-app-theme-root="true"] input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+[data-app-theme-root="true"] select,
+[data-app-theme-root="true"] textarea {
+  color-scheme: var(--app-color-scheme);
+  transition: var(--app-transition);
+}
+
+[data-app-theme-root="true"] input::placeholder,
+[data-app-theme-root="true"] textarea::placeholder {
+  color: var(--app-input-placeholder);
+  opacity: 1;
+}
+
+[data-app-theme-root="true"] input:focus-visible:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+[data-app-theme-root="true"] select:focus-visible,
+[data-app-theme-root="true"] textarea:focus-visible {
+  border-color: var(--app-accent) !important;
+  box-shadow: var(--app-input-focus-ring) !important;
+  outline: 2px solid transparent !important;
+}
+
+[data-app-theme-root="true"] input:disabled:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+[data-app-theme-root="true"] select:disabled,
+[data-app-theme-root="true"] textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+`;

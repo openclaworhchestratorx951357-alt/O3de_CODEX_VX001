@@ -273,10 +273,13 @@ const heroHeaderStyle = {
 } satisfies CSSProperties;
 
 const eyebrowStyle = {
+  display: "block",
+  marginBottom: 4,
   color: "var(--app-subtle-color)",
   fontSize: 11,
   fontWeight: 700,
   letterSpacing: "0.08em",
+  lineHeight: 1.2,
   textTransform: "uppercase",
 } satisfies CSSProperties;
 

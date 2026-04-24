@@ -87,6 +87,8 @@ describe("SettingsProvider", () => {
         layout: {
           preferredLandingSection: "runtime",
           showDesktopTelemetry: true,
+          guidedMode: true,
+          guidedTourCompleted: true,
         },
         operatorDefaults: {
           projectRoot: "",
@@ -131,6 +133,8 @@ describe("SettingsProvider", () => {
         layout: {
           preferredLandingSection: "home",
           showDesktopTelemetry: true,
+          guidedMode: true,
+          guidedTourCompleted: true,
         },
         operatorDefaults: {
           projectRoot: "",

@@ -14,6 +14,8 @@ Agent control app for O3DE-focused orchestration, tooling, approvals, and operat
 ## Development workflow
 
 See these official source files before making changes:
+- `AGENTS.md`
+- `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`
 - `docs/CODEX-OPERATING-RUNBOOK.md`
 - `docs/WORKTREE-STRATEGY.md`
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
@@ -38,6 +40,12 @@ See these official source files before making changes:
 - `docs/PHASE-7-SETTINGS-GEM-CANDIDATES.md`
 - `CONTRIBUTING.md`
 - `docs/LOCAL-STACK-RUNBOOK.md`
+
+Default repo-wide guidance:
+- use `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md` as the stable execution charter
+  for deciding what to build next until the user explicitly chooses a different model
+- use code, tests, and observed runtime behavior as truth over stale docs
+- keep work packets narrow, verifiable, and explicit about capability deltas
 
 Current Phase 7 checkpoint truth:
 - `project.inspect` is the current real read-only path in hybrid mode
@@ -84,6 +92,7 @@ Common examples:
 
 ```powershell
 pwsh -File .\scripts\dev.ps1 checks
+pwsh -File .\scripts\dev.ps1 app-os-readiness
 pwsh -File .\scripts\dev.ps1 backend-lint
 pwsh -File .\scripts\dev.ps1 backend-test
 pwsh -File .\scripts\dev.ps1 frontend-lint
@@ -93,6 +102,7 @@ pwsh -File .\scripts\dev.ps1 frontend-build
 Notes:
 - backend tasks use the repo-local `backend/.vendor_tools` install path and set `PYTHONPATH` automatically
 - frontend tasks run from `frontend/`
+- `app-os-readiness` reruns the current branch proof surface from the repo root: focused frontend tests, frontend build, and backend smoke
 - compose tasks are available, but still require Docker to be installed locally
 
 Local container startup:

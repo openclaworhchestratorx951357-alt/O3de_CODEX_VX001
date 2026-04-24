@@ -148,6 +148,24 @@ export default function RunsPanel({
       error={error}
       emptyMessage={normalizedQuery ? "No runs match the current search." : "No runs recorded yet."}
       hasItems={visibleItems.length > 0}
+      emptyGuideTitle={normalizedQuery ? "Widen the run search" : "Create a run first"}
+      emptyGuideDescription={normalizedQuery
+        ? "The search is filtering the run list down to zero. A wider query usually brings the control-plane evidence back into view."
+        : "Runs are created when Prompt Studio or Command Center dispatches work through the backend."}
+      emptyGuideSteps={normalizedQuery ? [
+        "Clear the current search text or search by tool name, run ID, executor ID, or workspace ID.",
+        "Use Refresh runs if another thread just completed work.",
+        "Switch to Executions when you need lower-level tool-call evidence.",
+      ] : [
+        "Start with Prompt Studio for natural-language work or Command Center for a specific typed tool.",
+        "Approve any approval-gated work when it appears.",
+        "Return here to confirm the persisted run status and execution mode.",
+      ]}
+      emptyGuideExampleTitle={normalizedQuery ? "Search examples" : "Example run source"}
+      emptyGuideExample={normalizedQuery
+        ? "Try editor.entity.create, real-authoring, workspace ID, or the first few characters of a run ID."
+        : "A successful editor.session.open or editor.level.open dispatch creates a run record with real-authoring evidence."}
+      renderChildrenWhenEmpty
       actionHint="Local refresh updates the persisted records lane and preserves selected detail context when possible."
       actions={onRefresh ? (
         <button

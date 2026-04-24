@@ -39,6 +39,13 @@ const apiMocks = vi.hoisted(() => ({
 vi.mock("../../lib/api", () => apiMocks);
 
 vi.mock("../../lib/settings/hooks", () => ({
+  useSettings: () => ({
+    settings: {
+      layout: {
+        guidedMode: true,
+      },
+    },
+  }),
   useThemeTokens: () => ({
     compactDensity: false,
   }),
@@ -47,13 +54,17 @@ vi.mock("../../lib/settings/hooks", () => ({
 vi.mock("./BuilderWorkspaceView", () => ({
   default: ({
     missionBoardContent,
+    laneCreateContent,
+    workerLifecycleContent,
     terminalsContent,
     autonomyInboxContent,
   }: {
     missionBoardContent: ReactNode;
+    laneCreateContent: ReactNode;
+    workerLifecycleContent: ReactNode;
     terminalsContent: ReactNode;
     autonomyInboxContent: ReactNode;
-  }) => <div>{missionBoardContent}{terminalsContent}{autonomyInboxContent}</div>,
+  }) => <div>{missionBoardContent}{laneCreateContent}{workerLifecycleContent}{terminalsContent}{autonomyInboxContent}</div>,
 }));
 
 describe("BuilderWorkspaceDesktop", () => {
@@ -77,12 +88,27 @@ describe("BuilderWorkspaceDesktop", () => {
           {
             worker_id: "builder-alpha",
             display_name: "Builder Alpha",
+            agent_profile: "Builder generalist",
+            agent_runtime: "Codex Desktop",
+            agent_entrypoint: "Codex Desktop thread: Builder Alpha",
+            agent_access_notes: "User grants this worker repo workspace access through Codex Desktop.",
+            identity_notes: "Named helper lane.",
+            personality_notes: "Careful and evidence-first.",
+            soul_directive: "Protect stable work.",
+            memory_notes: "Remember current Builder context.",
+            bootstrap_notes: "Open the worktree and sync mission control.",
+            capability_tags: ["repo_read", "mission_control", "frontend_ui"],
+            context_sources: ["frontend/src/components/workspaces"],
+            avatar_label: "BA",
+            avatar_color: "#2563eb",
+            avatar_uri: null,
             branch_name: "codex/worker/builder-alpha",
             worktree_path: "C:\\repo-builder-alpha",
             base_branch: "codex/control-plane/o3de-thread-launchpad-stable",
             status: "active",
             current_task_id: null,
             summary: "Working Builder lane.",
+            resume_notes: "Continue the current Builder slice.",
             updated_at: "2026-04-22T16:00:00Z",
             last_seen_at: "2026-04-22T16:00:00Z",
           },
@@ -99,6 +125,33 @@ describe("BuilderWorkspaceDesktop", () => {
     apiMocks.fetchCodexControlNotifications.mockResolvedValue({
       status: "ok",
       notifications: [],
+      board_json_path: "C:\\repo\\.git\\codex-mission-control\\latest-board.json",
+      board_text_path: "C:\\repo\\.git\\codex-mission-control\\latest-board.txt",
+    });
+    apiMocks.createCodexControlLane.mockResolvedValue({
+      status: "ok",
+      worker: {
+        worker_id: "openclaw-alpha",
+        display_name: "OpenClaw Alpha",
+        agent_profile: "OpenClaw external agent",
+        agent_runtime: "OpenClaw or compatible external agent",
+        agent_entrypoint: "OpenClaw workspace profile: Alpha",
+        agent_access_notes: "User grants the external agent access to its own workspace/context pack only.",
+        capability_tags: ["repo_read", "mission_control", "source_upload_context", "external_agent", "openclaw_agent"],
+        context_sources: ["C:\\agent-workspace"],
+        avatar_label: "OC",
+        avatar_color: "#0f766e",
+        avatar_uri: null,
+        branch_name: "codex/external/openclaw-alpha",
+        worktree_path: "C:\\agent-workspace",
+        base_branch: "codex/control-plane/o3de-thread-launchpad-stable",
+        status: "idle",
+        current_task_id: null,
+        summary: "lane created",
+        updated_at: "2026-04-22T16:00:00Z",
+        last_seen_at: "2026-04-22T16:00:00Z",
+      },
+      worktree_path: "C:\\agent-workspace",
       board_json_path: "C:\\repo\\.git\\codex-mission-control\\latest-board.json",
       board_text_path: "C:\\repo\\.git\\codex-mission-control\\latest-board.txt",
     });
@@ -434,6 +487,113 @@ describe("BuilderWorkspaceDesktop", () => {
         "Promoted job-check-builder-inbox to mission task builder-task-001 and claimed it for builder-alpha.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("loads a practical recommendation into the autonomy objective and job templates", async () => {
+    render(<BuilderWorkspaceDesktop />);
+
+    const recommendationPreview = await screen.findByLabelText(
+      "Recommendation preview: Improve runtime readability and inline guidance",
+    );
+    expect(recommendationPreview).toHaveTextContent("Save behavior: loads editable drafts only; nothing is saved yet");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Load Improve runtime readability and inline guidance" }),
+    );
+
+    expect(await screen.findByDisplayValue("builder-runtime-guidance")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Improve runtime readability and inline guidance")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("job-audit-runtime-guidance")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("ui-runtime-review")).toBeInTheDocument();
+    expect(
+      screen.getByDisplayValue("Audit runtime surfaces and load readability fixes"),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText("Loaded recommended drafts for Improve runtime readability and inline guidance."),
+    ).toBeInTheDocument();
+    const loadedDraftReview = screen.getByLabelText("Loaded draft review");
+    expect(loadedDraftReview).toHaveTextContent("Changed fields: Objective draft, job draft, resource keys, payload JSON");
+    expect(loadedDraftReview).toHaveTextContent(
+      "Safe until saved: review the drafts below, then use Add objective and Add inbox job when ready",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear review" }));
+
+    expect(screen.queryByLabelText("Loaded draft review")).not.toBeInTheDocument();
+    expect(screen.getByDisplayValue("builder-runtime-guidance")).toBeInTheDocument();
+  });
+
+  it("registers a bring-your-own OpenClaw agent lane with workspace context", async () => {
+    render(<BuilderWorkspaceDesktop />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Use OpenClaw external agent" }));
+    fireEvent.change(screen.getAllByLabelText("Worker ID")[0], {
+      target: { value: "openclaw-alpha" },
+    });
+    fireEvent.change(screen.getAllByLabelText("Display name")[0], {
+      target: { value: "OpenClaw Alpha" },
+    });
+    fireEvent.change(screen.getAllByLabelText("Agent entrypoint")[0], {
+      target: { value: "OpenClaw workspace profile: Alpha" },
+    });
+    fireEvent.change(screen.getAllByLabelText("Workspace context sources")[0], {
+      target: { value: "C:\\agent-workspace" },
+    });
+    fireEvent.change(screen.getByLabelText("Worktree or external workspace path"), {
+      target: { value: "C:\\agent-workspace" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Create worktree lane" }));
+
+    await waitFor(() => {
+      expect(apiMocks.createCodexControlLane).toHaveBeenCalledWith(expect.objectContaining({
+        worker_id: "openclaw-alpha",
+        display_name: "OpenClaw Alpha",
+        agent_profile: "OpenClaw external agent",
+        agent_runtime: "OpenClaw or compatible external agent",
+        agent_entrypoint: "OpenClaw workspace profile: Alpha",
+        capability_tags: expect.arrayContaining(["external_agent", "openclaw_agent"]),
+        context_sources: ["C:\\agent-workspace"],
+        worktree_path: "C:\\agent-workspace",
+      }));
+    });
+  });
+
+  it("reviews worker lifecycle draft resets before anything is published", async () => {
+    render(<BuilderWorkspaceDesktop />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Reset to selected worker" }));
+
+    const syncReview = await screen.findByLabelText("Loaded worker draft review");
+    expect(syncReview).toBeInTheDocument();
+    expect(await screen.findByText("Worker sync draft reloaded")).toBeInTheDocument();
+    expect(
+      screen.getByText("Nothing was written to mission control. Review the draft, then use Sync worker lane when ready."),
+    ).toBeInTheDocument();
+    expect(syncReview).toHaveTextContent("Worker: builder-alpha");
+    expect(syncReview).toHaveTextContent("Worktree: C:\\repo-builder-alpha");
+    expect(syncReview).toHaveTextContent("Agent profile: Builder generalist");
+    expect(syncReview).toHaveTextContent("Agent runtime: Codex Desktop");
+    expect(syncReview).toHaveTextContent("Agent entrypoint: Codex Desktop thread: Builder Alpha");
+    expect(syncReview).toHaveTextContent("Capabilities: repo_read, mission_control, frontend_ui");
+    expect(syncReview).toHaveTextContent("Context sources: frontend/src/components/workspaces");
+    expect(syncReview).toHaveTextContent("Avatar: BA");
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear worker review" }));
+
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Loaded worker draft review")).not.toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset heartbeat draft" }));
+
+    const heartbeatReview = await screen.findByLabelText("Loaded worker draft review");
+    expect(heartbeatReview).toBeInTheDocument();
+    expect(await screen.findByText("Heartbeat draft reloaded")).toBeInTheDocument();
+    expect(
+      screen.getByText("Nothing was published. Review the draft, then use Send heartbeat when ready."),
+    ).toBeInTheDocument();
+    expect(heartbeatReview).toHaveTextContent("Current task: keep current");
   });
 
   it("records an observation and healing action when Builder promotion fails", async () => {
@@ -991,12 +1151,26 @@ describe("BuilderWorkspaceDesktop", () => {
   it("launches a managed worker terminal for the selected lane", async () => {
     render(<BuilderWorkspaceDesktop />);
 
+    const launchReview = await screen.findByLabelText("Managed terminal launch review");
+    expect(launchReview).toBeInTheDocument();
+    expect(screen.getByText("Review before opening a real terminal")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Nothing has launched yet\. On Windows, the next button opens a real terminal window/i),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(launchReview).toHaveTextContent("Worker: builder-alpha");
+      expect(launchReview).toHaveTextContent("Label: Builder Alpha terminal");
+      expect(launchReview).toHaveTextContent("CWD: C:\\repo-builder-alpha");
+    });
+    expect(apiMocks.launchCodexControlTerminal).not.toHaveBeenCalled();
+
     fireEvent.click(await screen.findByRole("button", { name: "Launch managed terminal" }));
 
     await waitFor(() => {
       expect(apiMocks.launchCodexControlTerminal).toHaveBeenCalledWith(
         expect.objectContaining({
           worker_id: "builder-alpha",
+          cwd: "C:\\repo-builder-alpha",
           command: ["powershell", "-NoProfile", "-Command", "Get-Location"],
         }),
       );
@@ -1081,6 +1255,14 @@ describe("BuilderWorkspaceDesktop", () => {
     });
 
     render(<BuilderWorkspaceDesktop />);
+
+    const interruptReview = await screen.findByLabelText("Urgent interrupt review");
+    expect(interruptReview).toHaveTextContent("Worker: builder-alpha");
+    expect(interruptReview).toHaveTextContent("Current task: builder-task-override");
+    expect(interruptReview).toHaveTextContent("Active terminal: terminal-builder-alpha-001");
+    expect(interruptReview).toHaveTextContent("Stop behavior: force-stop terminal-builder-alpha-001");
+    expect(interruptReview).toHaveTextContent("Notification: send interrupt request to builder-alpha");
+    expect(apiMocks.stopCodexControlTerminal).not.toHaveBeenCalled();
 
     fireEvent.click(await screen.findByRole("button", { name: "Interrupt selected worker" }));
 
@@ -1204,6 +1386,15 @@ describe("BuilderWorkspaceDesktop", () => {
     fireEvent.change(screen.getByLabelText("Supersede reason"), {
       target: { value: "Urgent production issue." },
     });
+
+    const supersedeReview = await screen.findByLabelText("Task supersede review");
+    expect(supersedeReview).toHaveTextContent("Worker: builder-alpha");
+    expect(supersedeReview).toHaveTextContent("Current task: builder-task-override");
+    expect(supersedeReview).toHaveTextContent("Replacement title: Urgent Builder override");
+    expect(supersedeReview).toHaveTextContent("Replacement scopes: frontend/src/components/workspaces");
+    expect(supersedeReview).toHaveTextContent("Stop active terminal: yes (terminal-builder-alpha-001)");
+    expect(supersedeReview).toHaveTextContent("Reason: Urgent production issue.");
+    expect(apiMocks.supersedeCodexControlTask).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByRole("button", { name: "Supersede current task" }));
 

@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import GuidedEmptyState from "./GuidedEmptyState";
+import PanelActionStrip from "./PanelActionStrip";
 import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summarySectionStyle,
@@ -18,6 +20,15 @@ type SummarySectionProps = {
   guideTitle?: string;
   guideTooltip?: string | null;
   guideChecklist?: readonly string[];
+  quickStartTitle?: string;
+  quickStartDescription?: string | null;
+  quickStartItems?: readonly string[];
+  emptyGuideTitle?: string;
+  emptyGuideDescription?: string | null;
+  emptyGuideSteps?: readonly string[];
+  emptyGuideExampleTitle?: string;
+  emptyGuideExample?: string | null;
+  renderChildrenWhenEmpty?: boolean;
 };
 
 export default function SummarySection({
@@ -34,7 +45,24 @@ export default function SummarySection({
   guideTitle,
   guideTooltip,
   guideChecklist = [],
+  quickStartTitle,
+  quickStartDescription,
+  quickStartItems = [],
+  emptyGuideTitle,
+  emptyGuideDescription = null,
+  emptyGuideSteps = [],
+  emptyGuideExampleTitle,
+  emptyGuideExample = null,
+  renderChildrenWhenEmpty = false,
 }: SummarySectionProps) {
+  const quickStartItemSet = new Set(
+    quickStartItems.map((item) => item.trim()).filter(Boolean),
+  );
+  const remainingGuideChecklist = guideChecklist.filter((item) => {
+    const normalizedItem = item.trim();
+    return normalizedItem.length > 0 && !quickStartItemSet.has(normalizedItem);
+  });
+
   return (
     <section
       style={{
@@ -60,7 +88,7 @@ export default function SummarySection({
           <PanelGuideDetails
             title={guideTitle}
             tooltip={guideTooltip}
-            checklist={guideChecklist}
+            checklist={remainingGuideChecklist}
           />
         </div>
         {actions ? (
@@ -76,13 +104,28 @@ export default function SummarySection({
           </div>
         ) : null}
       </div>
+      <PanelActionStrip
+        title={quickStartTitle}
+        description={quickStartDescription}
+        items={quickStartItems}
+      />
       {error ? <p style={{ color: "var(--app-danger-text)" }}>{error}</p> : null}
       {loading ? (
         <p>Loading {title.toLowerCase()}...</p>
-      ) : !hasItems ? (
-        <p>{emptyMessage}</p>
       ) : (
-        children
+        <>
+          {!hasItems ? (
+            <GuidedEmptyState
+              message={emptyMessage}
+              title={emptyGuideTitle}
+              description={emptyGuideDescription}
+              steps={emptyGuideSteps}
+              exampleTitle={emptyGuideExampleTitle}
+              exampleBody={emptyGuideExample}
+            />
+          ) : null}
+          {hasItems || renderChildrenWhenEmpty ? children : null}
+        </>
       )}
     </section>
   );

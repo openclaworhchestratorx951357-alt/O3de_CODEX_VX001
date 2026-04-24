@@ -300,6 +300,36 @@ class CodexControlService:
         ]
         if request.display_name:
             arguments.extend(["--display-name", request.display_name])
+        if request.agent_profile:
+            arguments.extend(["--agent-profile", request.agent_profile])
+        if request.agent_runtime:
+            arguments.extend(["--agent-runtime", request.agent_runtime])
+        if request.agent_entrypoint:
+            arguments.extend(["--agent-entrypoint", request.agent_entrypoint])
+        if request.agent_access_notes:
+            arguments.extend(["--agent-access-notes", request.agent_access_notes])
+        if request.identity_notes:
+            arguments.extend(["--identity-notes", request.identity_notes])
+        if request.personality_notes:
+            arguments.extend(["--personality-notes", request.personality_notes])
+        if request.soul_directive:
+            arguments.extend(["--soul-directive", request.soul_directive])
+        if request.memory_notes:
+            arguments.extend(["--memory-notes", request.memory_notes])
+        if request.bootstrap_notes:
+            arguments.extend(["--bootstrap-notes", request.bootstrap_notes])
+        for capability_tag in request.capability_tags or []:
+            arguments.extend(["--capability-tag", capability_tag])
+        for context_source in request.context_sources or []:
+            arguments.extend(["--context-source", context_source])
+        if request.resume_notes:
+            arguments.extend(["--resume-notes", request.resume_notes])
+        if request.avatar_label:
+            arguments.extend(["--avatar-label", request.avatar_label])
+        if request.avatar_color:
+            arguments.extend(["--avatar-color", request.avatar_color])
+        if request.avatar_uri:
+            arguments.extend(["--avatar-uri", request.avatar_uri])
         if request.branch_name:
             arguments.extend(["--branch-name", request.branch_name])
         if request.worktree_path:
@@ -329,6 +359,36 @@ class CodexControlService:
         ]
         if request.display_name:
             arguments.extend(["--display-name", request.display_name])
+        if request.agent_profile:
+            arguments.extend(["--agent-profile", request.agent_profile])
+        if request.agent_runtime:
+            arguments.extend(["--agent-runtime", request.agent_runtime])
+        if request.agent_entrypoint:
+            arguments.extend(["--agent-entrypoint", request.agent_entrypoint])
+        if request.agent_access_notes:
+            arguments.extend(["--agent-access-notes", request.agent_access_notes])
+        if request.identity_notes:
+            arguments.extend(["--identity-notes", request.identity_notes])
+        if request.personality_notes:
+            arguments.extend(["--personality-notes", request.personality_notes])
+        if request.soul_directive:
+            arguments.extend(["--soul-directive", request.soul_directive])
+        if request.memory_notes:
+            arguments.extend(["--memory-notes", request.memory_notes])
+        if request.bootstrap_notes:
+            arguments.extend(["--bootstrap-notes", request.bootstrap_notes])
+        for capability_tag in request.capability_tags or []:
+            arguments.extend(["--capability-tag", capability_tag])
+        for context_source in request.context_sources or []:
+            arguments.extend(["--context-source", context_source])
+        if request.resume_notes:
+            arguments.extend(["--resume-notes", request.resume_notes])
+        if request.avatar_label:
+            arguments.extend(["--avatar-label", request.avatar_label])
+        if request.avatar_color:
+            arguments.extend(["--avatar-color", request.avatar_color])
+        if request.avatar_uri:
+            arguments.extend(["--avatar-uri", request.avatar_uri])
         if request.branch_name:
             arguments.extend(["--branch-name", request.branch_name])
         if request.worktree_path:
@@ -359,6 +419,36 @@ class CodexControlService:
             arguments.extend(["--summary", request.summary])
         if request.current_task_id:
             arguments.extend(["--current-task-id", request.current_task_id])
+        if request.agent_profile:
+            arguments.extend(["--agent-profile", request.agent_profile])
+        if request.agent_runtime:
+            arguments.extend(["--agent-runtime", request.agent_runtime])
+        if request.agent_entrypoint:
+            arguments.extend(["--agent-entrypoint", request.agent_entrypoint])
+        if request.agent_access_notes:
+            arguments.extend(["--agent-access-notes", request.agent_access_notes])
+        if request.identity_notes:
+            arguments.extend(["--identity-notes", request.identity_notes])
+        if request.personality_notes:
+            arguments.extend(["--personality-notes", request.personality_notes])
+        if request.soul_directive:
+            arguments.extend(["--soul-directive", request.soul_directive])
+        if request.memory_notes:
+            arguments.extend(["--memory-notes", request.memory_notes])
+        if request.bootstrap_notes:
+            arguments.extend(["--bootstrap-notes", request.bootstrap_notes])
+        for capability_tag in request.capability_tags or []:
+            arguments.extend(["--capability-tag", capability_tag])
+        for context_source in request.context_sources or []:
+            arguments.extend(["--context-source", context_source])
+        if request.resume_notes:
+            arguments.extend(["--resume-notes", request.resume_notes])
+        if request.avatar_label:
+            arguments.extend(["--avatar-label", request.avatar_label])
+        if request.avatar_color:
+            arguments.extend(["--avatar-color", request.avatar_color])
+        if request.avatar_uri:
+            arguments.extend(["--avatar-uri", request.avatar_uri])
         if request.branch_name:
             arguments.extend(["--branch-name", request.branch_name])
         if request.worktree_path:

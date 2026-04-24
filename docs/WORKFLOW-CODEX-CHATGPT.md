@@ -11,6 +11,11 @@ The goals are to:
 - keep implementation aligned with the O3DE control-plane direction already documented in the research batches
 - make progress auditable, reviewable, and production-oriented
 
+Default execution charter:
+- unless the user explicitly chooses a different operating model, use
+  `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md` as the stable default reference
+  for capability maturity, next-packet selection, and truth hierarchy
+
 ---
 
 ## Repository of Record
@@ -137,9 +142,10 @@ At the beginning of every Codex work session:
 2. print current branch
 3. print `git status --short`
 4. fetch latest refs
-5. reconcile the active branch with GitHub when it is safe to do so
-6. confirm the exact task being worked on
-7. only then begin edits
+5. re-read `AGENTS.md` and `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md` if the slice changes capability truth or execution priority
+6. reconcile the active branch with GitHub when it is safe to do so
+7. confirm the exact task being worked on
+8. only then begin edits
 
 Recommended session start commands:
 

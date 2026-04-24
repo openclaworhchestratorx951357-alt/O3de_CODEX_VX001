@@ -1,5 +1,5 @@
 import { createRef, type ComponentProps } from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import RuntimeWorkspaceDesktop from "./RuntimeWorkspaceDesktop";
@@ -51,9 +51,11 @@ vi.mock("../PoliciesPanel", () => ({
 function renderRuntimeWorkspaceDesktop(
   activeSurfaceId: ComponentProps<typeof RuntimeWorkspaceDesktop>["activeSurfaceId"],
 ) {
-  return render(
+  const onSelectSurface = vi.fn();
+  const renderResult = render(
     <RuntimeWorkspaceDesktop
       activeSurfaceId={activeSurfaceId}
+      guidedMode={true}
       items={[
         {
           id: "overview",
@@ -80,10 +82,22 @@ function renderRuntimeWorkspaceDesktop(
           helpTooltip: "Use governance for policy and lock review.",
         },
       ]}
-      onSelectSurface={vi.fn()}
+      onSelectSurface={onSelectSurface}
       overview={{
-        adapters: {} as ComponentProps<typeof RuntimeWorkspaceDesktop>["overview"]["adapters"],
-        systemStatus: {} as ComponentProps<typeof RuntimeWorkspaceDesktop>["overview"]["systemStatus"],
+        adapters: {
+          adapters: {
+            supports_real_execution: true,
+          },
+        } as ComponentProps<typeof RuntimeWorkspaceDesktop>["overview"]["adapters"],
+        systemStatus: {
+          readiness: {
+            persistence_ready: true,
+          },
+          bridgeStatus: {
+            configured: true,
+            heartbeat_fresh: true,
+          },
+        } as ComponentProps<typeof RuntimeWorkspaceDesktop>["overview"]["systemStatus"],
         operatorOverview: {} as ComponentProps<typeof RuntimeWorkspaceDesktop>["overview"]["operatorOverview"],
       }}
       executors={{
@@ -91,7 +105,11 @@ function renderRuntimeWorkspaceDesktop(
         sectionRef: createRef<HTMLDivElement>(),
         detailSectionRef: createRef<HTMLDivElement>(),
         contextStrip: {} as ComponentProps<typeof RuntimeWorkspaceDesktop>["executors"]["contextStrip"],
-        executorsPanel: {} as ComponentProps<typeof RuntimeWorkspaceDesktop>["executors"]["executorsPanel"],
+        executorsPanel: {
+          items: [],
+          loading: false,
+          error: null,
+        } as ComponentProps<typeof RuntimeWorkspaceDesktop>["executors"]["executorsPanel"],
         executorDetailPanel: {} as ComponentProps<typeof RuntimeWorkspaceDesktop>["executors"]["executorDetailPanel"],
       }}
       workspaces={{
@@ -99,16 +117,29 @@ function renderRuntimeWorkspaceDesktop(
         sectionRef: createRef<HTMLDivElement>(),
         detailSectionRef: createRef<HTMLDivElement>(),
         contextStrip: {} as ComponentProps<typeof RuntimeWorkspaceDesktop>["workspaces"]["contextStrip"],
-        workspacesPanel: {} as ComponentProps<typeof RuntimeWorkspaceDesktop>["workspaces"]["workspacesPanel"],
+        workspacesPanel: {
+          items: [],
+          loading: false,
+          error: null,
+        } as ComponentProps<typeof RuntimeWorkspaceDesktop>["workspaces"]["workspacesPanel"],
         workspaceDetailPanel: {} as ComponentProps<typeof RuntimeWorkspaceDesktop>["workspaces"]["workspaceDetailPanel"],
       }}
       governance={{
         phase7: {} as ComponentProps<typeof RuntimeWorkspaceDesktop>["governance"]["phase7"],
-        locks: {} as ComponentProps<typeof RuntimeWorkspaceDesktop>["governance"]["locks"],
-        policies: {} as ComponentProps<typeof RuntimeWorkspaceDesktop>["governance"]["policies"],
+        locks: {
+          items: [],
+          loading: false,
+          error: null,
+        } as ComponentProps<typeof RuntimeWorkspaceDesktop>["governance"]["locks"],
+        policies: {
+          items: [],
+          loading: false,
+          error: null,
+        } as ComponentProps<typeof RuntimeWorkspaceDesktop>["governance"]["policies"],
       }}
     />,
   );
+  return { ...renderResult, onSelectSurface };
 }
 
 describe("RuntimeWorkspaceDesktop", () => {
@@ -116,21 +147,43 @@ describe("RuntimeWorkspaceDesktop", () => {
     renderRuntimeWorkspaceDesktop("overview");
 
     expect(screen.getByText("AdaptersPanel stub")).toBeInTheDocument();
+    expect(screen.getByText("Runtime recommendations")).toBeInTheDocument();
+    expect(screen.getAllByText(/Suggested because:/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Runtime > Workspaces window/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime > Executors window/i)).toBeInTheDocument();
     expect(screen.getByText("SystemStatusPanel stub")).toBeInTheDocument();
     expect(screen.getByText("OperatorOverviewPanel stub")).toBeInTheDocument();
-    expect(screen.queryByText("ExecutorsPanel stub")).not.toBeInTheDocument();
-    expect(screen.queryByText("WorkspacesPanel stub")).not.toBeInTheDocument();
-    expect(screen.queryByText("Phase7CapabilitySummaryPanel stub")).not.toBeInTheDocument();
+    expect(screen.getByText("ExecutorsPanel stub")).not.toBeVisible();
+    expect(screen.getByText("WorkspacesPanel stub")).not.toBeVisible();
+    expect(screen.getByText("Phase7CapabilitySummaryPanel stub")).not.toBeVisible();
   });
 
   it("assembles the executor desktop surface with context, list, and detail panes", () => {
     renderRuntimeWorkspaceDesktop("executors");
 
-    expect(screen.getByText("OverviewContextStrip stub")).toBeInTheDocument();
+    expect(getVisibleText("OverviewContextStrip stub")).toBeInTheDocument();
     expect(screen.getByText("ExecutorsPanel stub")).toBeInTheDocument();
     expect(screen.getByText("ExecutorDetailPanel stub")).toBeInTheDocument();
-    expect(screen.queryByText("AdaptersPanel stub")).not.toBeInTheDocument();
-    expect(screen.queryByText("WorkspacesPanel stub")).not.toBeInTheDocument();
-    expect(screen.queryByText("Phase7CapabilitySummaryPanel stub")).not.toBeInTheDocument();
+    expect(screen.getByText("AdaptersPanel stub")).not.toBeVisible();
+    expect(screen.getByText("WorkspacesPanel stub")).not.toBeVisible();
+    expect(screen.getByText("Phase7CapabilitySummaryPanel stub")).not.toBeVisible();
+  });
+
+  it("routes runtime recommendations through the runtime surface selector", () => {
+    const { onSelectSurface } = renderRuntimeWorkspaceDesktop("overview");
+
+    fireEvent.click(screen.getByRole("button", { name: "Open workspaces" }));
+
+    expect(onSelectSurface).toHaveBeenCalledWith("workspaces");
   });
 });
+
+function getVisibleText(text: string): HTMLElement {
+  const match = screen.getAllByText(text).find((element) => (
+    element.closest('[aria-hidden="false"]')
+  ));
+
+  expect(match).toBeDefined();
+
+  return match as HTMLElement;
+}

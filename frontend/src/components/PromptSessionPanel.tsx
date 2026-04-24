@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 
 import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { PromptSessionRecord } from "../types/contracts";
+import GuidedEmptyState from "./GuidedEmptyState";
 import PanelGuideDetails from "./PanelGuideDetails";
 import StatusChip from "./StatusChip";
 import { getPromptSessionStatusTone } from "./statusChipTones";
@@ -31,7 +32,18 @@ export default function PromptSessionPanel({
         checklist={promptSessionsGuide.checklist}
       />
       {sessions.length === 0 ? (
-        <p style={emptyTextStyle}>No prompt sessions have been created yet.</p>
+        <GuidedEmptyState
+          message="No prompt sessions have been created yet."
+          title="Create the first governed prompt"
+          description="Prompt sessions appear after the app sends a natural-language request to the backend and stores the resulting plan, approvals, and evidence lineage."
+          steps={[
+            "Open Prompt Studio and describe the O3DE change in plain language.",
+            "Keep dry run on first if you only want to preview the plan.",
+            "Review any approval request before executing real editor work.",
+          ]}
+          exampleTitle="Example beginner prompt"
+          exampleBody="Open the default level in McpSandbox and explain which editor-control steps will run before changing anything."
+        />
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
           {sessions.map((session) => {
@@ -104,9 +116,4 @@ const promptTextPreviewStyle = {
 const subtleTextStyle = {
   color: "var(--app-muted-color)",
   fontSize: 13,
-} satisfies CSSProperties;
-
-const emptyTextStyle = {
-  margin: 0,
-  color: "var(--app-muted-color)",
 } satisfies CSSProperties;

@@ -31,7 +31,8 @@ import {
   updateAutonomyObservation,
   waitForCodexControlTask,
 } from "../../lib/api";
-import { useThemeTokens } from "../../lib/settings/hooks";
+import { buildBuilderRecommendationDescriptors } from "../../lib/recommendations";
+import { useSettings, useThemeTokens } from "../../lib/settings/hooks";
 import type {
   AutonomyHealingActionCreateRequest,
   AutonomyHealingActionRecord,
@@ -61,179 +62,37 @@ import type {
   CodexControlWorker,
   CodexControlWorktree,
 } from "../../types/contracts";
+import ActionReviewCard from "../ActionReviewCard";
+import {
+  INITIAL_AUTONOMY_JOB_DRAFT,
+  INITIAL_AUTONOMY_OBJECTIVE_DRAFT,
+  INITIAL_LANE_DRAFT,
+  INITIAL_TASK_DRAFT,
+  INITIAL_TASK_SUPERSEDE_DRAFT,
+  INITIAL_TERMINAL_LAUNCH_DRAFT,
+  INITIAL_WORKER_HEARTBEAT_DRAFT,
+  INITIAL_WORKER_SYNC_DRAFT,
+  STALE_BLOCKED_MINUTES,
+  STALE_WORKER_HEARTBEAT_MINUTES,
+  SUPPORTED_THREAD_CAPABILITIES,
+  THREAD_PROFILE_PRESETS,
+} from "./builderWorkspace/defaults";
+import type {
+  AttentionTone,
+  AutonomyDraftRecommendation,
+  AutonomyJobAttentionSignal,
+  AutonomyJobDraft,
+  AutonomyObjectiveDraft,
+  LaneDraft,
+  LoadedWorkerDraftReview,
+  TaskDraft,
+  TaskSupersedeDraft,
+  TerminalLaunchDraft,
+  WorkerHeartbeatDraft,
+  WorkerSyncDraft,
+} from "./builderWorkspace/types";
+import BuilderAutonomyRecommendationsPanel from "./builderWorkspace/BuilderAutonomyRecommendationsPanel";
 import BuilderWorkspaceView from "./BuilderWorkspaceView";
-
-type LaneDraft = {
-  workerId: string;
-  displayName: string;
-  branchName: string;
-  worktreePath: string;
-  baseBranch: string;
-  bootstrap: boolean;
-};
-
-type TaskDraft = {
-  title: string;
-  summary: string;
-  priority: number;
-  branchPrefix: string;
-  scopePaths: string;
-};
-
-type TaskSupersedeDraft = {
-  sourceTaskId: string;
-  replacementTitle: string;
-  replacementSummary: string;
-  replacementPriority: number;
-  replacementScopePaths: string;
-  replacementBranchPrefix: string;
-  supersedeReason: string;
-  stopActiveTerminal: boolean;
-};
-
-type WorkerSyncDraft = {
-  workerId: string;
-  displayName: string;
-  branchName: string;
-  worktreePath: string;
-  baseBranch: string;
-  status: string;
-  summary: string;
-};
-
-type WorkerHeartbeatDraft = {
-  status: string;
-  summary: string;
-  currentTaskId: string;
-  branchName: string;
-  worktreePath: string;
-  baseBranch: string;
-};
-
-type AutonomyObjectiveDraft = {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: number;
-  targetScopes: string;
-  successCriteria: string;
-  ownerKind: string;
-  metadataJson: string;
-};
-
-type AutonomyJobDraft = {
-  id: string;
-  objectiveId: string;
-  jobKind: string;
-  title: string;
-  summary: string;
-  status: string;
-  assignedLane: string;
-  resourceKeys: string;
-  dependsOn: string;
-  inputPayloadJson: string;
-  maxRetries: number;
-};
-
-type TerminalLaunchDraft = {
-  label: string;
-  taskId: string;
-  cwd: string;
-  commandJson: string;
-};
-
-type AttentionTone = "neutral" | "success" | "warning" | "info";
-
-type AutonomyJobAttentionSignal = {
-  id: string;
-  label: string;
-  tone: AttentionTone;
-  detail: string;
-};
-
-const INITIAL_LANE_DRAFT: LaneDraft = {
-  workerId: "",
-  displayName: "",
-  branchName: "",
-  worktreePath: "",
-  baseBranch: "",
-  bootstrap: true,
-};
-
-const INITIAL_TASK_DRAFT: TaskDraft = {
-  title: "",
-  summary: "",
-  priority: 100,
-  branchPrefix: "",
-  scopePaths: "",
-};
-
-const INITIAL_TASK_SUPERSEDE_DRAFT: TaskSupersedeDraft = {
-  sourceTaskId: "",
-  replacementTitle: "",
-  replacementSummary: "",
-  replacementPriority: 200,
-  replacementScopePaths: "",
-  replacementBranchPrefix: "",
-  supersedeReason: "",
-  stopActiveTerminal: true,
-};
-
-const INITIAL_WORKER_SYNC_DRAFT: WorkerSyncDraft = {
-  workerId: "",
-  displayName: "",
-  branchName: "",
-  worktreePath: "",
-  baseBranch: "",
-  status: "idle",
-  summary: "",
-};
-
-const INITIAL_WORKER_HEARTBEAT_DRAFT: WorkerHeartbeatDraft = {
-  status: "",
-  summary: "",
-  currentTaskId: "",
-  branchName: "",
-  worktreePath: "",
-  baseBranch: "",
-};
-
-const INITIAL_AUTONOMY_OBJECTIVE_DRAFT: AutonomyObjectiveDraft = {
-  id: "",
-  title: "",
-  description: "",
-  status: "active",
-  priority: 100,
-  targetScopes: "",
-  successCriteria: "",
-  ownerKind: "builder",
-  metadataJson: "{}",
-};
-
-const INITIAL_AUTONOMY_JOB_DRAFT: AutonomyJobDraft = {
-  id: "",
-  objectiveId: "",
-  jobKind: "manual-thread-check",
-  title: "",
-  summary: "",
-  status: "queued",
-  assignedLane: "builder",
-  resourceKeys: "",
-  dependsOn: "",
-  inputPayloadJson: "{}",
-  maxRetries: 0,
-};
-
-const INITIAL_TERMINAL_LAUNCH_DRAFT: TerminalLaunchDraft = {
-  label: "",
-  taskId: "",
-  cwd: "",
-  commandJson: "[\"powershell\", \"-NoProfile\", \"-Command\", \"Get-Location\"]",
-};
-
-const STALE_BLOCKED_MINUTES = 10;
-const STALE_WORKER_HEARTBEAT_MINUTES = 10;
 
 function formatTimestamp(value?: string | null): string {
   if (!value) {
@@ -319,6 +178,55 @@ function parseScopePaths(value: string): string[] {
     .split(",")
     .map((entry) => entry.trim())
     .filter(Boolean);
+}
+
+function parseCapabilityTags(value: string): string[] {
+  const supported = new Set<string>(SUPPORTED_THREAD_CAPABILITIES);
+  return parseScopePaths(value)
+    .map((entry) => entry.toLowerCase().replace(/[-\s]+/g, "_"))
+    .filter((entry, index, values) => supported.has(entry) && values.indexOf(entry) === index);
+}
+
+function formatStringList(values?: string[] | null): string {
+  return values?.filter(Boolean).join(", ") ?? "";
+}
+
+function buildWorkerAvatarLabel(worker: CodexControlWorker | null): string {
+  const explicit = worker?.avatar_label?.trim();
+  if (explicit) {
+    return explicit.slice(0, 3).toUpperCase();
+  }
+  const source = worker?.display_name || worker?.worker_id || "CP";
+  return source
+    .split(/[\s_-]+/)
+    .map((entry) => entry[0])
+    .join("")
+    .slice(0, 3)
+    .toUpperCase() || "CP";
+}
+
+function renderWorkerAvatar(worker: CodexControlWorker | null, size = 44) {
+  const avatarColor = worker?.avatar_color || "#2563eb";
+  const avatarUri = worker?.avatar_uri?.trim();
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        ...workerAvatarStyle,
+        width: size,
+        height: size,
+        background: avatarUri
+          ? "var(--app-panel-bg-muted)"
+          : `linear-gradient(135deg, ${avatarColor}, rgba(15, 23, 42, 0.84))`,
+      }}
+    >
+      {avatarUri ? (
+        <img src={avatarUri} alt="" style={workerAvatarImageStyle} />
+      ) : (
+        buildWorkerAvatarLabel(worker)
+      )}
+    </span>
+  );
 }
 
 function parseJsonObject(value: string, label: string): Record<string, unknown> {
@@ -418,11 +326,26 @@ function buildWorkerSyncDraft(
   return {
     workerId: worker.worker_id,
     displayName: worker.display_name,
+    agentProfile: worker.agent_profile ?? "",
+    agentRuntime: worker.agent_runtime ?? "",
+    agentEntrypoint: worker.agent_entrypoint ?? "",
+    agentAccessNotes: worker.agent_access_notes ?? "",
+    identityNotes: worker.identity_notes ?? "",
+    personalityNotes: worker.personality_notes ?? "",
+    soulDirective: worker.soul_directive ?? "",
+    memoryNotes: worker.memory_notes ?? "",
+    bootstrapNotes: worker.bootstrap_notes ?? "",
+    capabilityTags: formatStringList(worker.capability_tags),
+    contextSources: formatStringList(worker.context_sources),
+    avatarLabel: worker.avatar_label ?? "",
+    avatarColor: worker.avatar_color ?? "",
+    avatarUri: worker.avatar_uri ?? "",
     branchName: worker.branch_name ?? "",
     worktreePath: worker.worktree_path ?? "",
     baseBranch: worker.base_branch ?? status?.recommended_base_branch ?? "",
     status: worker.status,
     summary: worker.summary ?? "",
+    resumeNotes: worker.resume_notes ?? "",
   };
 }
 
@@ -435,9 +358,24 @@ function buildWorkerHeartbeatDraft(worker: CodexControlWorker | null): WorkerHea
     status: worker.status,
     summary: worker.summary ?? "",
     currentTaskId: worker.current_task_id ?? "",
+    agentProfile: worker.agent_profile ?? "",
+    agentRuntime: worker.agent_runtime ?? "",
+    agentEntrypoint: worker.agent_entrypoint ?? "",
+    agentAccessNotes: worker.agent_access_notes ?? "",
+    identityNotes: worker.identity_notes ?? "",
+    personalityNotes: worker.personality_notes ?? "",
+    soulDirective: worker.soul_directive ?? "",
+    memoryNotes: worker.memory_notes ?? "",
+    bootstrapNotes: worker.bootstrap_notes ?? "",
+    capabilityTags: formatStringList(worker.capability_tags),
+    contextSources: formatStringList(worker.context_sources),
+    avatarLabel: worker.avatar_label ?? "",
+    avatarColor: worker.avatar_color ?? "",
+    avatarUri: worker.avatar_uri ?? "",
     branchName: worker.branch_name ?? "",
     worktreePath: worker.worktree_path ?? "",
     baseBranch: worker.base_branch ?? "",
+    resumeNotes: worker.resume_notes ?? "",
   };
 }
 
@@ -467,11 +405,23 @@ function buildWorkerHandoffPackage(
     "Worker",
     `- worker_id: ${worker?.worker_id ?? "select a worker"}`,
     `- display_name: ${worker?.display_name ?? "n/a"}`,
+    `- agent_profile: ${worker?.agent_profile ?? "n/a"}`,
+    `- agent_runtime: ${worker?.agent_runtime ?? "n/a"}`,
+    `- agent_entrypoint: ${worker?.agent_entrypoint ?? "n/a"}`,
+    `- agent_access_notes: ${worker?.agent_access_notes ?? "n/a"}`,
+    `- identity_notes: ${worker?.identity_notes ?? "n/a"}`,
+    `- personality_notes: ${worker?.personality_notes ?? "n/a"}`,
+    `- soul_directive: ${worker?.soul_directive ?? "n/a"}`,
+    `- capability_tags: ${formatStringList(worker?.capability_tags) || "n/a"}`,
+    `- context_sources: ${formatStringList(worker?.context_sources) || "n/a"}`,
+    `- memory_notes: ${worker?.memory_notes ?? "n/a"}`,
+    `- bootstrap_notes: ${worker?.bootstrap_notes ?? "n/a"}`,
     `- status: ${worker?.status ?? "n/a"}`,
     `- branch_name: ${worker?.branch_name ?? "n/a"}`,
     `- worktree_path: ${worker?.worktree_path ?? "n/a"}`,
     `- current_task_id: ${worker?.current_task_id ?? "n/a"}`,
     `- summary: ${worker?.summary ?? "n/a"}`,
+    `- resume_notes: ${worker?.resume_notes ?? "n/a"}`,
     "",
     "Task",
     `- task_id: ${task?.task_id ?? "n/a"}`,
@@ -504,9 +454,14 @@ function buildWorkerHandoffPackage(
     worker?.current_task_id
       ? `2. Continue task ${worker.current_task_id} inside its claimed scope before touching overlapping files.`
       : "2. Claim or seed a coordination task before starting overlapping work.",
-    "3. Run the repo bootstrap/status checks in that worktree before using O3DE-facing flows.",
+    worker?.bootstrap_notes
+      ? `3. Follow this worker bootstrap first: ${worker.bootstrap_notes}`
+      : "3. Run the repo bootstrap/status checks in that worktree before using O3DE-facing flows.",
     "4. Keep the mission-control board updated with heartbeat, wait, release, or complete actions as work changes.",
-    "5. Treat this as a Builder handoff package for Codex Desktop, not as an autonomous self-prompting loop.",
+    worker?.context_sources?.length
+      ? `5. Treat these as the worker context upload pack: ${worker.context_sources.join(", ")}.`
+      : "5. Add source/context files to this worker profile before asking it to resume a complex slice.",
+    "6. Treat this as a Builder handoff package for Codex Desktop, not as an autonomous self-prompting loop.",
   );
 
   return lines.join("\n");
@@ -582,6 +537,184 @@ function buildAutonomyThreadPrompt(
   );
 
   return lines.join("\n");
+}
+
+function buildAutonomyDraftRecommendations({
+  selectedWorkerId,
+  unreadNotifications,
+  staleBlockedJobCount,
+  staleWorkerJobCount,
+  refreshPendingJobCount,
+  objectiveCount,
+  queuedJobCount,
+}: {
+  selectedWorkerId: string | null;
+  unreadNotifications: number;
+  staleBlockedJobCount: number;
+  staleWorkerJobCount: number;
+  refreshPendingJobCount: number;
+  objectiveCount: number;
+  queuedJobCount: number;
+}): AutonomyDraftRecommendation[] {
+  const assignedLane = selectedWorkerId ?? "builder";
+  const recommendations: AutonomyDraftRecommendation[] = [
+    {
+      id: "runtime-readability",
+      label: "Improve runtime readability and inline guidance",
+      detail: "Use this when runtime cards feel dense, long evidence text should stay collapsed by default, or new operators still need clearer step-by-step help affordances.",
+      objective: {
+        id: "builder-runtime-guidance",
+        title: "Improve runtime readability and inline guidance",
+        description: "Reduce dense runtime inspector walls, keep long evidence collapsed until requested, and make panel/window help markers obvious for inexperienced operators.",
+        status: "active",
+        priority: 180,
+        targetScopes: "frontend/src/components, frontend/src/content, docs/APP-OPERATOR-GUIDE.md",
+        successCriteria: "Runtime panels stay readable without overflow, long evidence is collapsed behind explicit dropdown disclosures, and visible info markers guide operators at the point of use.",
+        ownerKind: "builder",
+        metadataJson: JSON.stringify(
+          {
+            focus: "runtime-readability",
+            requestedBy: "operator",
+            selectedLane: assignedLane,
+          },
+          null,
+          2,
+        ),
+      },
+      job: {
+        id: "job-audit-runtime-guidance",
+        objectiveId: "builder-runtime-guidance",
+        jobKind: "ui-runtime-review",
+        title: "Audit runtime surfaces and load readability fixes",
+        summary: "Inspect runtime overview and governance panels for overflow, missing inline guidance, and long text that should default to a collapsed disclosure.",
+        status: "queued",
+        assignedLane,
+        resourceKeys: "runtime-overview, operator-guidance",
+        dependsOn: "",
+        inputPayloadJson: JSON.stringify(
+          {
+            focus: "runtime-readability",
+            scope_paths: [
+              "frontend/src/components",
+              "frontend/src/content",
+              "docs/APP-OPERATOR-GUIDE.md",
+            ],
+            recommended_checks: [
+              "runtime overview overflow",
+              "guide marker visibility",
+              "collapsible long-form evidence",
+            ],
+          },
+          null,
+          2,
+        ),
+        maxRetries: 1,
+      },
+    },
+  ];
+
+  if (staleBlockedJobCount > 0 || staleWorkerJobCount > 0 || refreshPendingJobCount > 0) {
+    recommendations.unshift({
+      id: "coordination-recovery",
+      label: "Recover stuck Builder coordination",
+      detail: `Use current Builder signals to unblock stale work. Stale blockers: ${staleBlockedJobCount}, stale worker heartbeats: ${staleWorkerJobCount}, pending refresh requests: ${refreshPendingJobCount}.`,
+      objective: {
+        id: "builder-recover-stuck-coordination",
+        title: "Recover stuck Builder coordination",
+        description: "Clear stale blockers, refresh waiting lanes, and requeue helper work without duplicating scopes or losing current mission-control ownership.",
+        status: "active",
+        priority: 220,
+        targetScopes: "frontend/src/components/workspaces, scripts/mission_control.py",
+        successCriteria: "Blocked Builder jobs are either released, refreshed, or requeued with an explicit owner and the stale-thread signals return to a routine level.",
+        ownerKind: "builder",
+        metadataJson: JSON.stringify(
+          {
+            focus: "coordination-recovery",
+            staleBlockedJobCount,
+            staleWorkerJobCount,
+            refreshPendingJobCount,
+            selectedLane: assignedLane,
+          },
+          null,
+          2,
+        ),
+      },
+      job: {
+        id: "job-recover-stuck-builder-coordination",
+        objectiveId: "builder-recover-stuck-coordination",
+        jobKind: "coordination-recovery",
+        title: "Review stale Builder blockers and recover the next safe lane",
+        summary: "Inspect stale blockers, pending refresh requests, and stale worker heartbeats, then choose whether to wait, ping refresh, or requeue the linked job.",
+        status: "queued",
+        assignedLane,
+        resourceKeys: "builder-inbox, mission-board, worker-lifecycle",
+        dependsOn: "",
+        inputPayloadJson: JSON.stringify(
+          {
+            focus: "coordination-recovery",
+            stale_blockers: staleBlockedJobCount,
+            stale_worker_heartbeats: staleWorkerJobCount,
+            refresh_pending: refreshPendingJobCount,
+          },
+          null,
+          2,
+        ),
+        maxRetries: 2,
+      },
+    });
+  }
+
+  if (objectiveCount === 0 || queuedJobCount === 0 || unreadNotifications > 0) {
+    recommendations.push({
+      id: "builder-baseline",
+      label: "Seed Builder inbox baseline",
+      detail: unreadNotifications > 0
+        ? `There are ${unreadNotifications} unread worker notification${unreadNotifications === 1 ? "" : "s"} and the inbox may need a clearer next-step objective.`
+        : "Use this when Builder needs a clean baseline objective and a safe manual-thread check job instead of ad hoc prompts.",
+      objective: {
+        id: "builder-inbox-baseline",
+        title: "Keep Builder inbox coordinated and operator-friendly",
+        description: "Maintain a clean Builder inbox with bounded jobs, explicit ownership, and thread prompts that let new helper threads contribute safely.",
+        status: "active",
+        priority: 140,
+        targetScopes: "frontend/src/components/workspaces, docs/APP-OPERATOR-GUIDE.md",
+        successCriteria: "Builder shows at least one durable objective, the next helper job is ready to claim safely, and unread coordination follow-ups are acknowledged.",
+        ownerKind: "builder",
+        metadataJson: JSON.stringify(
+          {
+            focus: "builder-baseline",
+            unreadNotifications,
+            selectedLane: assignedLane,
+          },
+          null,
+          2,
+        ),
+      },
+      job: {
+        id: "job-check-builder-inbox-baseline",
+        objectiveId: "builder-inbox-baseline",
+        jobKind: "manual-thread-check",
+        title: "Check Builder inbox and claim the next safe slice",
+        summary: "Open Builder, read the inbox and mission board, acknowledge unread coordination signals, and claim only the next safe scope for the selected lane.",
+        status: "queued",
+        assignedLane,
+        resourceKeys: "builder-inbox, worker-lifecycle",
+        dependsOn: "",
+        inputPayloadJson: JSON.stringify(
+          {
+            focus: "builder-baseline",
+            selected_lane: assignedLane,
+            respect_existing_ownership: true,
+          },
+          null,
+          2,
+        ),
+        maxRetries: 0,
+      },
+    });
+  }
+
+  return recommendations;
 }
 
 function parseStringArray(value: unknown): string[] {
@@ -1041,6 +1174,7 @@ function renderTerminalSessionCard(session: CodexControlTerminalSession) {
 }
 
 export default function BuilderWorkspaceDesktop() {
+  const { settings } = useSettings();
   const themeTokens = useThemeTokens();
   const [status, setStatus] = useState<CodexControlStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1063,6 +1197,7 @@ export default function BuilderWorkspaceDesktop() {
   const [workerHeartbeatDraft, setWorkerHeartbeatDraft] = useState<WorkerHeartbeatDraft>(
     INITIAL_WORKER_HEARTBEAT_DRAFT,
   );
+  const [loadedWorkerDraftReview, setLoadedWorkerDraftReview] = useState<LoadedWorkerDraftReview | null>(null);
   const [workerBusyLabel, setWorkerBusyLabel] = useState<string | null>(null);
   const [workerError, setWorkerError] = useState<string | null>(null);
   const [workerMessage, setWorkerMessage] = useState<string | null>(null);
@@ -1096,6 +1231,8 @@ export default function BuilderWorkspaceDesktop() {
     INITIAL_AUTONOMY_OBJECTIVE_DRAFT,
   );
   const [jobDraft, setJobDraft] = useState<AutonomyJobDraft>(INITIAL_AUTONOMY_JOB_DRAFT);
+  const [loadedAutonomyRecommendation, setLoadedAutonomyRecommendation] =
+    useState<AutonomyDraftRecommendation | null>(null);
 
   const workers = status?.board.workers ?? [];
   const tasks = status?.board.tasks ?? [];
@@ -1108,6 +1245,24 @@ export default function BuilderWorkspaceDesktop() {
     : tasks.find((task) => task.claimed_by_worker_id === selectedWorkerId) ?? null;
   const selectedWorkerTerminals = terminalSessions.filter((session) => session.worker_id === selectedWorkerId);
   const selectedActiveTerminal = selectedWorkerTerminals.find((session) => session.status === "running" || session.status === "stopping") ?? null;
+  const terminalLaunchLabel = terminalDraft.label.trim() || `${selectedWorkerId || "selected worker"} terminal`;
+  const terminalLaunchCwd = terminalDraft.cwd.trim() || selectedWorker?.worktree_path || status?.repo_root || "not set";
+  const terminalLaunchTaskId = terminalDraft.taskId.trim() || "not linked";
+  const terminalLaunchCommandJson = terminalDraft.commandJson.trim() || "[]";
+  const urgentInterruptWorkerReview = selectedWorkerId || "none selected";
+  const urgentInterruptTaskReview = selectedWorkerTask?.task_id ?? "none";
+  const urgentInterruptTerminalReview = selectedActiveTerminal?.session_id ?? "none";
+  const urgentInterruptStopReview = selectedActiveTerminal
+    ? `force-stop ${selectedActiveTerminal.session_id}`
+    : "no active managed terminal to stop";
+  const taskSupersedeScopeReview = taskSupersedeDraft.replacementScopePaths.trim() || "not set";
+  const taskSupersedeBranchReview = taskSupersedeDraft.replacementBranchPrefix.trim() || "not set";
+  const taskSupersedeReasonReview = taskSupersedeDraft.supersedeReason.trim() || "not set";
+  const taskSupersedeStopReview = taskSupersedeDraft.stopActiveTerminal
+    ? selectedActiveTerminal
+      ? `yes (${selectedActiveTerminal.session_id})`
+      : "yes (no active managed terminal selected)"
+    : "no";
   const handoffPackage = buildWorkerHandoffPackage(
     status,
     selectedWorker,
@@ -1138,6 +1293,26 @@ export default function BuilderWorkspaceDesktop() {
   const staleWorkerJobCount = autonomyJobEntries.filter((entry) => (
     entry.attentionSignals.some((signal) => signal.id === "worker-stale")
   )).length;
+  const queuedAutonomyJobCount = autonomyJobs.filter((job) => job.status === "queued").length;
+  const autonomyDraftRecommendations = buildAutonomyDraftRecommendations({
+    selectedWorkerId,
+    unreadNotifications,
+    staleBlockedJobCount,
+    staleWorkerJobCount,
+    refreshPendingJobCount,
+    objectiveCount: autonomyObjectives.length,
+    queuedJobCount: queuedAutonomyJobCount,
+  });
+  const builderRecommendations = buildBuilderRecommendationDescriptors({
+    missionControlAvailable: status?.mission_control_available ?? false,
+    workerCount: workers.length,
+    taskCount: tasks.length,
+    waiterCount: waiters.filter((waiter) => waiter.status === "waiting").length,
+    unreadNotificationCount: unreadNotifications,
+    terminalSessionCount: terminalSessions.length,
+    queuedAutonomyJobCount: queuedAutonomyJobCount,
+    autonomyAttentionCount: staleBlockedJobCount + staleWorkerJobCount + refreshPendingJobCount,
+  });
 
   async function refreshStatus() {
     setLoading(true);
@@ -1250,12 +1425,19 @@ export default function BuilderWorkspaceDesktop() {
     setWorkerSyncDraft(buildWorkerSyncDraft(selectedWorker, status));
     setWorkerHeartbeatDraft(buildWorkerHeartbeatDraft(selectedWorker));
     setHandoffMessage(null);
-    setTerminalDraft((current) => ({
-      ...current,
-      label: current.label || (selectedWorker ? `${selectedWorker.display_name} terminal` : ""),
-      cwd: current.cwd || selectedWorker?.worktree_path || status?.repo_root || "",
-      taskId: current.taskId || selectedWorker?.current_task_id || "",
-    }));
+    setTerminalDraft((current) => {
+      const selectedWorkerCwd = selectedWorker?.worktree_path ?? "";
+      const repoRootFallback = status?.repo_root ?? "";
+      const shouldUseWorkerCwd =
+        Boolean(selectedWorkerCwd) && (!current.cwd || current.cwd === repoRootFallback);
+
+      return {
+        ...current,
+        label: current.label || (selectedWorker ? `${selectedWorker.display_name} terminal` : ""),
+        cwd: shouldUseWorkerCwd ? selectedWorkerCwd : current.cwd || repoRootFallback,
+        taskId: current.taskId || selectedWorker?.current_task_id || "",
+      };
+    });
   }, [selectedWorker, status]);
 
   useEffect(() => {
@@ -1307,9 +1489,24 @@ export default function BuilderWorkspaceDesktop() {
     const request: CodexControlLaneCreateRequest = {
       worker_id: laneDraft.workerId.trim(),
       display_name: sanitizeOptional(laneDraft.displayName),
+      agent_profile: sanitizeOptional(laneDraft.agentProfile),
+      agent_runtime: sanitizeOptional(laneDraft.agentRuntime),
+      agent_entrypoint: sanitizeOptional(laneDraft.agentEntrypoint),
+      agent_access_notes: sanitizeOptional(laneDraft.agentAccessNotes),
+      identity_notes: sanitizeOptional(laneDraft.identityNotes),
+      personality_notes: sanitizeOptional(laneDraft.personalityNotes),
+      soul_directive: sanitizeOptional(laneDraft.soulDirective),
+      memory_notes: sanitizeOptional(laneDraft.memoryNotes),
+      bootstrap_notes: sanitizeOptional(laneDraft.bootstrapNotes),
+      capability_tags: parseCapabilityTags(laneDraft.capabilityTags),
+      context_sources: parseScopePaths(laneDraft.contextSources),
+      avatar_label: sanitizeOptional(laneDraft.avatarLabel),
+      avatar_color: sanitizeOptional(laneDraft.avatarColor),
+      avatar_uri: sanitizeOptional(laneDraft.avatarUri),
       branch_name: sanitizeOptional(laneDraft.branchName),
       worktree_path: sanitizeOptional(laneDraft.worktreePath),
       base_branch: sanitizeOptional(laneDraft.baseBranch),
+      resume_notes: sanitizeOptional(laneDraft.resumeNotes),
       bootstrap: laneDraft.bootstrap,
     };
 
@@ -1438,11 +1635,26 @@ export default function BuilderWorkspaceDesktop() {
     const request: CodexControlWorkerSyncRequest = {
       worker_id: workerSyncDraft.workerId.trim(),
       display_name: sanitizeOptional(workerSyncDraft.displayName),
+      agent_profile: sanitizeOptional(workerSyncDraft.agentProfile),
+      agent_runtime: sanitizeOptional(workerSyncDraft.agentRuntime),
+      agent_entrypoint: sanitizeOptional(workerSyncDraft.agentEntrypoint),
+      agent_access_notes: sanitizeOptional(workerSyncDraft.agentAccessNotes),
+      identity_notes: sanitizeOptional(workerSyncDraft.identityNotes),
+      personality_notes: sanitizeOptional(workerSyncDraft.personalityNotes),
+      soul_directive: sanitizeOptional(workerSyncDraft.soulDirective),
+      memory_notes: sanitizeOptional(workerSyncDraft.memoryNotes),
+      bootstrap_notes: sanitizeOptional(workerSyncDraft.bootstrapNotes),
+      capability_tags: parseCapabilityTags(workerSyncDraft.capabilityTags),
+      context_sources: parseScopePaths(workerSyncDraft.contextSources),
+      avatar_label: sanitizeOptional(workerSyncDraft.avatarLabel),
+      avatar_color: sanitizeOptional(workerSyncDraft.avatarColor),
+      avatar_uri: sanitizeOptional(workerSyncDraft.avatarUri),
       branch_name: sanitizeOptional(workerSyncDraft.branchName),
       worktree_path: sanitizeOptional(workerSyncDraft.worktreePath),
       base_branch: sanitizeOptional(workerSyncDraft.baseBranch),
       status: workerSyncDraft.status.trim() || "idle",
       summary: sanitizeOptional(workerSyncDraft.summary),
+      resume_notes: sanitizeOptional(workerSyncDraft.resumeNotes),
     };
 
     setWorkerBusyLabel("Syncing worker");
@@ -1475,9 +1687,28 @@ export default function BuilderWorkspaceDesktop() {
       status: sanitizeOptional(workerHeartbeatDraft.status),
       summary: sanitizeOptional(workerHeartbeatDraft.summary),
       current_task_id: sanitizeOptional(workerHeartbeatDraft.currentTaskId),
+      agent_profile: sanitizeOptional(workerHeartbeatDraft.agentProfile),
+      agent_runtime: sanitizeOptional(workerHeartbeatDraft.agentRuntime),
+      agent_entrypoint: sanitizeOptional(workerHeartbeatDraft.agentEntrypoint),
+      agent_access_notes: sanitizeOptional(workerHeartbeatDraft.agentAccessNotes),
+      identity_notes: sanitizeOptional(workerHeartbeatDraft.identityNotes),
+      personality_notes: sanitizeOptional(workerHeartbeatDraft.personalityNotes),
+      soul_directive: sanitizeOptional(workerHeartbeatDraft.soulDirective),
+      memory_notes: sanitizeOptional(workerHeartbeatDraft.memoryNotes),
+      bootstrap_notes: sanitizeOptional(workerHeartbeatDraft.bootstrapNotes),
+      capability_tags: workerHeartbeatDraft.capabilityTags.trim()
+        ? parseCapabilityTags(workerHeartbeatDraft.capabilityTags)
+        : null,
+      context_sources: workerHeartbeatDraft.contextSources.trim()
+        ? parseScopePaths(workerHeartbeatDraft.contextSources)
+        : null,
+      avatar_label: sanitizeOptional(workerHeartbeatDraft.avatarLabel),
+      avatar_color: sanitizeOptional(workerHeartbeatDraft.avatarColor),
+      avatar_uri: sanitizeOptional(workerHeartbeatDraft.avatarUri),
       branch_name: sanitizeOptional(workerHeartbeatDraft.branchName),
       worktree_path: sanitizeOptional(workerHeartbeatDraft.worktreePath),
       base_branch: sanitizeOptional(workerHeartbeatDraft.baseBranch),
+      resume_notes: sanitizeOptional(workerHeartbeatDraft.resumeNotes),
     };
 
     setWorkerBusyLabel("Sending heartbeat");
@@ -1495,6 +1726,65 @@ export default function BuilderWorkspaceDesktop() {
     } finally {
       setWorkerBusyLabel(null);
     }
+  }
+
+  function handleResetWorkerSyncDraft() {
+    const nextDraft = buildWorkerSyncDraft(selectedWorker, status);
+    setWorkerSyncDraft(nextDraft);
+    setLoadedWorkerDraftReview({
+      label: "Worker sync draft reloaded",
+      changedFields: "Worker ID, display name, agent profile, avatar, capabilities, context sources, branch, worktree, base branch, status, summary, resume notes",
+      workerId: nextDraft.workerId || "new worker lane",
+      status: nextDraft.status || "idle",
+      branchName: nextDraft.branchName || "none",
+      worktreePath: nextDraft.worktreePath || "none",
+      baseBranch: nextDraft.baseBranch || "none",
+      agentProfile: nextDraft.agentProfile || "none",
+      agentRuntime: nextDraft.agentRuntime || "none",
+      agentEntrypoint: nextDraft.agentEntrypoint || "none",
+      agentAccessNotes: nextDraft.agentAccessNotes || "none",
+      identityNotes: nextDraft.identityNotes || "none",
+      personalityNotes: nextDraft.personalityNotes || "none",
+      soulDirective: nextDraft.soulDirective || "none",
+      memoryNotes: nextDraft.memoryNotes || "none",
+      bootstrapNotes: nextDraft.bootstrapNotes || "none",
+      capabilityTags: nextDraft.capabilityTags || "none",
+      contextSources: nextDraft.contextSources || "none",
+      avatar: nextDraft.avatarUri || nextDraft.avatarLabel || "generated initials",
+      summary: nextDraft.summary || "none",
+      resumeNotes: nextDraft.resumeNotes || "none",
+      safeMessage: "Nothing was written to mission control. Review the draft, then use Sync worker lane when ready.",
+    });
+  }
+
+  function handleResetWorkerHeartbeatDraft() {
+    const nextDraft = buildWorkerHeartbeatDraft(selectedWorker);
+    setWorkerHeartbeatDraft(nextDraft);
+    setLoadedWorkerDraftReview({
+      label: "Heartbeat draft reloaded",
+      changedFields: "Status, current task, profile, context, branch, worktree, base branch, summary",
+      workerId: selectedWorkerId || "no worker selected",
+      status: nextDraft.status || "keep current",
+      branchName: nextDraft.branchName || "keep current",
+      worktreePath: nextDraft.worktreePath || "keep current",
+      baseBranch: nextDraft.baseBranch || "keep current",
+      currentTaskId: nextDraft.currentTaskId || "keep current",
+      agentProfile: nextDraft.agentProfile || "keep current",
+      agentRuntime: nextDraft.agentRuntime || "keep current",
+      agentEntrypoint: nextDraft.agentEntrypoint || "keep current",
+      agentAccessNotes: nextDraft.agentAccessNotes || "keep current",
+      identityNotes: nextDraft.identityNotes || "keep current",
+      personalityNotes: nextDraft.personalityNotes || "keep current",
+      soulDirective: nextDraft.soulDirective || "keep current",
+      memoryNotes: nextDraft.memoryNotes || "keep current",
+      bootstrapNotes: nextDraft.bootstrapNotes || "keep current",
+      capabilityTags: nextDraft.capabilityTags || "keep current",
+      contextSources: nextDraft.contextSources || "keep current",
+      avatar: nextDraft.avatarUri || nextDraft.avatarLabel || "keep current",
+      summary: nextDraft.summary || "keep current",
+      resumeNotes: nextDraft.resumeNotes || "keep current",
+      safeMessage: "Nothing was published. Review the draft, then use Send heartbeat when ready.",
+    });
   }
 
   async function handleCopyHandoffPackage() {
@@ -1726,6 +2016,15 @@ export default function BuilderWorkspaceDesktop() {
     } finally {
       setAutonomyBusyLabel(null);
     }
+  }
+
+  function handleLoadAutonomyRecommendation(recommendation: AutonomyDraftRecommendation) {
+    setAutonomyError(null);
+    setAutonomyPromptMessage(null);
+    setObjectiveDraft(recommendation.objective);
+    setJobDraft(recommendation.job);
+    setLoadedAutonomyRecommendation(recommendation);
+    setAutonomyMessage(`Loaded recommended drafts for ${recommendation.label}.`);
   }
 
   async function handleCopyAutonomyThreadPrompt() {
@@ -2546,6 +2845,27 @@ export default function BuilderWorkspaceDesktop() {
             </select>
           </label>
         </div>
+        {workers.length ? (
+          <div style={workerQuickAccessGridStyle} aria-label="Thread quick access">
+            {workers.map((worker) => (
+              <button
+                key={worker.worker_id}
+                type="button"
+                style={{
+                  ...workerQuickAccessButtonStyle,
+                  ...(selectedWorkerId === worker.worker_id ? workerQuickAccessButtonActiveStyle : {}),
+                }}
+                onClick={() => setSelectedWorkerId(worker.worker_id)}
+              >
+                {renderWorkerAvatar(worker, 38)}
+                <span style={workerQuickAccessTextStyle}>
+                  <strong>{worker.display_name}</strong>
+                  <small>{worker.agent_profile || worker.worker_id}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : null}
         <div style={actionRowStyle}>
           <button
             type="button"
@@ -2695,6 +3015,26 @@ export default function BuilderWorkspaceDesktop() {
             />
             Stop the selected worker's active managed terminal as part of the override
           </label>
+
+          <ActionReviewCard
+            ariaLabel="Task supersede review"
+            eyebrow="Override review"
+            eyebrowTone={selectedWorkerTask ? "warning" : "neutral"}
+            title="Review before superseding the current task"
+            description="No task is superseded yet. This summarizes the replacement task, stop behavior, and notification target before the urgent action runs."
+            statusLabel={selectedWorkerTask ? "manual trigger" : "select active task"}
+            statusTone={selectedWorkerTask ? "warning" : "neutral"}
+            details={[
+              { label: "Worker", value: selectedWorkerId || "none selected" },
+              { label: "Current task", value: selectedWorkerTask?.task_id ?? "none" },
+              { label: "Replacement title", value: taskSupersedeDraft.replacementTitle.trim() || "not set" },
+              { label: "Replacement priority", value: taskSupersedeDraft.replacementPriority },
+              { label: "Replacement scopes", value: taskSupersedeScopeReview },
+              { label: "Replacement branch prefix", value: taskSupersedeBranchReview },
+              { label: "Stop active terminal", value: taskSupersedeStopReview },
+              { label: "Reason", value: taskSupersedeReasonReview },
+            ]}
+          />
 
           <div style={actionRowStyle}>
             <button
@@ -2907,6 +3247,183 @@ export default function BuilderWorkspaceDesktop() {
             />
           </label>
 
+          <details style={{ ...summaryCardStyle, gridColumn: "1 / -1" }} open>
+            <summary style={detailsSummaryStyle}>Thread identity, avatar, capabilities, and context pack</summary>
+            <div style={formGridStyle}>
+              <label style={fieldStyle}>
+                Agent profile
+                <input
+                  value={laneDraft.agentProfile}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, agentProfile: event.target.value }))}
+                  placeholder="Builder generalist"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={fieldStyle}>
+                Agent runtime / provider
+                <input
+                  value={laneDraft.agentRuntime}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, agentRuntime: event.target.value }))}
+                  placeholder="Codex Desktop, OpenClaw, custom local agent"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Agent entrypoint
+                <input
+                  value={laneDraft.agentEntrypoint}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, agentEntrypoint: event.target.value }))}
+                  placeholder="How to open or contact this agent: thread name, app profile, workspace URL, local path, or command notes"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Agent access notes
+                <textarea
+                  value={laneDraft.agentAccessNotes}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, agentAccessNotes: event.target.value }))}
+                  placeholder="What the user has granted this agent: workspace path, source pack, repo scope, approval boundaries"
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={fieldStyle}>
+                Avatar initials
+                <input
+                  value={laneDraft.avatarLabel}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, avatarLabel: event.target.value }))}
+                  placeholder="BA"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={fieldStyle}>
+                Avatar color
+                <input
+                  type="color"
+                  value={laneDraft.avatarColor}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, avatarColor: event.target.value }))}
+                  style={{ ...inputStyle, minHeight: 44 }}
+                />
+              </label>
+
+              <label style={fieldStyle}>
+                Avatar image URL or data URL
+                <input
+                  value={laneDraft.avatarUri}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, avatarUri: event.target.value }))}
+                  placeholder="Optional small image URL"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                OpenClaw-style capabilities
+                <input
+                  value={laneDraft.capabilityTags}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, capabilityTags: event.target.value }))}
+                  placeholder={SUPPORTED_THREAD_CAPABILITIES.join(", ")}
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Workspace context sources
+                <input
+                  value={laneDraft.contextSources}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, contextSources: event.target.value }))}
+                  placeholder="docs/APP-OPERATOR-GUIDE.md, frontend/src/App.tsx, uploaded design notes"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Identity
+                <textarea
+                  value={laneDraft.identityNotes}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, identityNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Personality settings
+                <textarea
+                  value={laneDraft.personalityNotes}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, personalityNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Soul / mission directive
+                <textarea
+                  value={laneDraft.soulDirective}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, soulDirective: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Memory notes
+                <textarea
+                  value={laneDraft.memoryNotes}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, memoryNotes: event.target.value }))}
+                  placeholder="Durable facts this thread should remember when resuming."
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Bootstrap instructions
+                <textarea
+                  value={laneDraft.bootstrapNotes}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, bootstrapNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Resume notes
+                <textarea
+                  value={laneDraft.resumeNotes}
+                  onChange={(event) => setLaneDraft((current) => ({ ...current, resumeNotes: event.target.value }))}
+                  placeholder="Leave a continuation note for the next thread that opens this workspace."
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+            </div>
+            <div style={actionRowStyle}>
+              {THREAD_PROFILE_PRESETS.map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  style={secondaryButtonStyle}
+                  onClick={() => setLaneDraft((current) => ({
+                    ...current,
+                    agentProfile: preset.label,
+                    agentRuntime: preset.runtime,
+                    agentAccessNotes: preset.accessNotes,
+                    capabilityTags: preset.capabilityTags,
+                    avatarColor: preset.color,
+                  }))}
+                >
+                  Use {preset.label}
+                </button>
+              ))}
+            </div>
+          </details>
+
           <label style={fieldStyle}>
             Branch name
             <input
@@ -2918,11 +3435,11 @@ export default function BuilderWorkspaceDesktop() {
           </label>
 
           <label style={fieldStyle}>
-            Worktree path
+            Worktree or external workspace path
             <input
               value={laneDraft.worktreePath}
               onChange={(event) => setLaneDraft((current) => ({ ...current, worktreePath: event.target.value }))}
-              placeholder="Leave blank to use the repo launchpad convention."
+              placeholder="Leave blank for launchpad worktree, or paste the external agent workspace path."
               style={inputStyle}
             />
           </label>
@@ -3063,17 +3580,30 @@ export default function BuilderWorkspaceDesktop() {
     <div style={stackStyle}>
       <article style={summaryCardStyle}>
         <div style={rowBetweenStyle}>
-          <strong>Selected worker snapshot</strong>
+          <div style={workerSnapshotTitleStyle}>
+            {renderWorkerAvatar(selectedWorker)}
+            <strong>Selected thread workspace</strong>
+          </div>
           <span style={{ ...pillStyle, ...toneStyle(selectedWorker ? "info" : "warning") }}>
             {selectedWorker ? selectedWorker.worker_id : "no worker selected"}
           </span>
         </div>
         <div style={metaStackStyle}>
           <span>Display name: <code>{selectedWorker?.display_name ?? "n/a"}</code></span>
+          <span>Agent profile: <code>{selectedWorker?.agent_profile ?? "n/a"}</code></span>
+          <span>Runtime/provider: <code>{selectedWorker?.agent_runtime ?? "n/a"}</code></span>
+          <span>Agent entrypoint: <code>{selectedWorker?.agent_entrypoint ?? "n/a"}</code></span>
+          <span>Access notes: {selectedWorker?.agent_access_notes ?? "n/a"}</span>
+          <span>Capabilities: <code>{formatStringList(selectedWorker?.capability_tags) || "n/a"}</code></span>
+          <span>Context sources: <code>{formatStringList(selectedWorker?.context_sources) || "n/a"}</code></span>
+          <span>Soul directive: {selectedWorker?.soul_directive ?? "n/a"}</span>
+          <span>Bootstrap: {selectedWorker?.bootstrap_notes ?? "n/a"}</span>
+          <span>Memory: {selectedWorker?.memory_notes ?? "n/a"}</span>
           <span>Status: <code>{selectedWorker?.status ?? "n/a"}</code></span>
           <span>Branch: <code>{selectedWorker?.branch_name ?? "n/a"}</code></span>
           <span>Worktree: <code>{selectedWorker?.worktree_path ?? "n/a"}</code></span>
           <span>Current task: <code>{selectedWorkerTask?.task_id ?? selectedWorker?.current_task_id ?? "n/a"}</code></span>
+          <span>Resume notes: {selectedWorker?.resume_notes ?? "n/a"}</span>
           <span>Unread notifications loaded: {workerNotifications.filter((notification) => notification.status === "unread").length}</span>
         </div>
       </article>
@@ -3106,6 +3636,161 @@ export default function BuilderWorkspaceDesktop() {
               style={inputStyle}
             />
           </label>
+
+          <details style={{ ...summaryCardStyle, gridColumn: "1 / -1" }}>
+            <summary style={detailsSummaryStyle}>Edit thread profile, avatar, memory, and context sources</summary>
+            <div style={formGridStyle}>
+              <label style={fieldStyle}>
+                Agent profile
+                <input
+                  value={workerSyncDraft.agentProfile}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, agentProfile: event.target.value }))}
+                  placeholder="O3DE authoring specialist"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={fieldStyle}>
+                Agent runtime / provider
+                <input
+                  value={workerSyncDraft.agentRuntime}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, agentRuntime: event.target.value }))}
+                  placeholder="Codex Desktop, OpenClaw, custom local agent"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Agent entrypoint
+                <input
+                  value={workerSyncDraft.agentEntrypoint}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, agentEntrypoint: event.target.value }))}
+                  placeholder="Thread name, app profile, workspace URL, local path, or command notes"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Agent access notes
+                <textarea
+                  value={workerSyncDraft.agentAccessNotes}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, agentAccessNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={fieldStyle}>
+                Avatar initials
+                <input
+                  value={workerSyncDraft.avatarLabel}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, avatarLabel: event.target.value }))}
+                  placeholder="OA"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={fieldStyle}>
+                Avatar color
+                <input
+                  type="color"
+                  value={workerSyncDraft.avatarColor || "#2563eb"}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, avatarColor: event.target.value }))}
+                  style={{ ...inputStyle, minHeight: 44 }}
+                />
+              </label>
+
+              <label style={fieldStyle}>
+                Avatar image URL or data URL
+                <input
+                  value={workerSyncDraft.avatarUri}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, avatarUri: event.target.value }))}
+                  placeholder="Optional small image URL"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                OpenClaw-style capabilities
+                <input
+                  value={workerSyncDraft.capabilityTags}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, capabilityTags: event.target.value }))}
+                  placeholder={SUPPORTED_THREAD_CAPABILITIES.join(", ")}
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Workspace context sources
+                <input
+                  value={workerSyncDraft.contextSources}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, contextSources: event.target.value }))}
+                  placeholder="Mini source upload pack for this thread: files, docs, screenshots, notes"
+                  style={inputStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Identity
+                <textarea
+                  value={workerSyncDraft.identityNotes}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, identityNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Personality settings
+                <textarea
+                  value={workerSyncDraft.personalityNotes}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, personalityNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Soul / mission directive
+                <textarea
+                  value={workerSyncDraft.soulDirective}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, soulDirective: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Memory notes
+                <textarea
+                  value={workerSyncDraft.memoryNotes}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, memoryNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Bootstrap instructions
+                <textarea
+                  value={workerSyncDraft.bootstrapNotes}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, bootstrapNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+
+              <label style={{ ...fieldStyle, gridColumn: "1 / -1" }}>
+                Resume notes
+                <textarea
+                  value={workerSyncDraft.resumeNotes}
+                  onChange={(event) => setWorkerSyncDraft((current) => ({ ...current, resumeNotes: event.target.value }))}
+                  rows={2}
+                  style={textareaStyle}
+                />
+              </label>
+            </div>
+          </details>
 
           <label style={fieldStyle}>
             Status
@@ -3170,7 +3855,7 @@ export default function BuilderWorkspaceDesktop() {
             type="button"
             style={secondaryButtonStyle}
             disabled={workerBusyLabel !== null}
-            onClick={() => setWorkerSyncDraft(buildWorkerSyncDraft(selectedWorker, status))}
+            onClick={handleResetWorkerSyncDraft}
           >
             Reset to selected worker
           </button>
@@ -3271,12 +3956,56 @@ export default function BuilderWorkspaceDesktop() {
             type="button"
             style={secondaryButtonStyle}
             disabled={!selectedWorkerId || workerBusyLabel !== null}
-            onClick={() => setWorkerHeartbeatDraft(buildWorkerHeartbeatDraft(selectedWorker))}
+            onClick={handleResetWorkerHeartbeatDraft}
           >
             Reset heartbeat draft
           </button>
         </div>
       </form>
+
+      {loadedWorkerDraftReview ? (
+        <ActionReviewCard
+          ariaLabel="Loaded worker draft review"
+          eyebrow="Loaded worker draft review"
+          eyebrowTone="info"
+          title={loadedWorkerDraftReview.label}
+          description={loadedWorkerDraftReview.safeMessage}
+          action={(
+            <button
+              type="button"
+              style={secondaryButtonStyle}
+              onClick={() => setLoadedWorkerDraftReview(null)}
+            >
+              Clear worker review
+            </button>
+          )}
+          details={[
+            { label: "Changed fields", value: loadedWorkerDraftReview.changedFields },
+            { label: "Worker", value: loadedWorkerDraftReview.workerId },
+            { label: "Status", value: loadedWorkerDraftReview.status },
+            { label: "Branch", value: loadedWorkerDraftReview.branchName },
+            { label: "Worktree", value: loadedWorkerDraftReview.worktreePath },
+            { label: "Base branch", value: loadedWorkerDraftReview.baseBranch },
+            { label: "Agent profile", value: loadedWorkerDraftReview.agentProfile ?? "none" },
+            { label: "Agent runtime", value: loadedWorkerDraftReview.agentRuntime ?? "none" },
+            { label: "Agent entrypoint", value: loadedWorkerDraftReview.agentEntrypoint ?? "none" },
+            { label: "Agent access notes", value: loadedWorkerDraftReview.agentAccessNotes ?? "none" },
+            { label: "Identity", value: loadedWorkerDraftReview.identityNotes ?? "none" },
+            { label: "Personality", value: loadedWorkerDraftReview.personalityNotes ?? "none" },
+            { label: "Soul directive", value: loadedWorkerDraftReview.soulDirective ?? "none" },
+            { label: "Capabilities", value: loadedWorkerDraftReview.capabilityTags ?? "none" },
+            { label: "Context sources", value: loadedWorkerDraftReview.contextSources ?? "none" },
+            { label: "Avatar", value: loadedWorkerDraftReview.avatar ?? "generated initials" },
+            { label: "Memory", value: loadedWorkerDraftReview.memoryNotes ?? "none" },
+            { label: "Bootstrap", value: loadedWorkerDraftReview.bootstrapNotes ?? "none" },
+            ...(loadedWorkerDraftReview.currentTaskId
+              ? [{ label: "Current task", value: loadedWorkerDraftReview.currentTaskId }]
+              : []),
+            { label: "Summary", value: loadedWorkerDraftReview.summary },
+            { label: "Resume notes", value: loadedWorkerDraftReview.resumeNotes ?? "none" },
+          ]}
+        />
+      ) : null}
 
       {workerMessage ? (
         <article style={{ ...summaryCardStyle, ...toneStyle("success") }}>
@@ -3332,9 +4061,9 @@ export default function BuilderWorkspaceDesktop() {
           <span>Selected worker terminals: {selectedWorkerTerminals.length}</span>
           <span>Active managed terminal: <code>{selectedActiveTerminal?.session_id ?? "none"}</code></span>
           <span>
-            These are repo-launched worker processes with captured logs. They are observable and stoppable from Builder,
-            but they do not automatically control arbitrary Codex chat threads unless those threads choose to work through
-            this managed surface.
+            These sessions stay tracked in mission control. On Windows they launch as real terminal windows you can use
+            directly, while still writing observable logs back into Builder. They do not automatically control arbitrary
+            Codex chat threads unless those threads choose to work through this managed surface.
           </span>
         </div>
       </article>
@@ -3343,8 +4072,8 @@ export default function BuilderWorkspaceDesktop() {
         <article style={summaryCardStyle}>
           <strong>Launch a managed terminal</strong>
           <p style={mutedParagraphStyle}>
-            Start one log-backed worker process for the selected lane so the app, operators, and other threads can see
-            what that lane is running without relying on private local terminals.
+            Start one mission-controlled worker terminal for the selected lane. On Windows this opens a real console
+            window, while Builder keeps the session observable, stoppable, and tied back to the selected worker lane.
           </p>
         </article>
 
@@ -3398,6 +4127,45 @@ export default function BuilderWorkspaceDesktop() {
             />
           </label>
         </div>
+
+        <ActionReviewCard
+          ariaLabel="Managed terminal launch review"
+          eyebrow="Launch review"
+          eyebrowTone={selectedWorkerId ? "warning" : "neutral"}
+          title="Review before opening a real terminal"
+          description="Nothing has launched yet. On Windows, the next button opens a real terminal window tied to this worker lane and records the session in mission control."
+          statusLabel={selectedWorkerId ? "ready to review" : "select worker first"}
+          statusTone={selectedWorkerId ? "info" : "warning"}
+          details={[
+            { label: "Worker", value: selectedWorkerId || "none selected" },
+            { label: "Label", value: terminalLaunchLabel },
+            { label: "Linked task", value: terminalLaunchTaskId },
+            { label: "CWD", value: terminalLaunchCwd },
+            { label: "Command JSON", value: <code>{terminalLaunchCommandJson}</code> },
+          ]}
+        />
+
+        <ActionReviewCard
+          ariaLabel="Urgent interrupt review"
+          eyebrow="Urgent review"
+          eyebrowTone={selectedActiveTerminal ? "warning" : "info"}
+          title="Review before interrupting this worker"
+          description="Nothing is interrupted yet. This action is for urgent overrides when a worker should stop, refresh, and avoid continuing stale work."
+          statusLabel={selectedWorkerId ? "manual trigger" : "select worker first"}
+          statusTone={selectedWorkerId ? "warning" : "neutral"}
+          details={[
+            { label: "Worker", value: urgentInterruptWorkerReview },
+            { label: "Current task", value: urgentInterruptTaskReview },
+            { label: "Active terminal", value: urgentInterruptTerminalReview },
+            { label: "Stop behavior", value: urgentInterruptStopReview },
+            {
+              label: "Notification",
+              value: selectedWorkerId
+                ? `send interrupt request to ${selectedWorkerId}`
+                : "select a worker before sending a notification",
+            },
+          ]}
+        />
 
         <div style={actionRowStyle}>
           <button type="submit" style={buttonStyle} disabled={!selectedWorkerId || terminalBusyLabel !== null}>
@@ -3553,6 +4321,13 @@ export default function BuilderWorkspaceDesktop() {
           <p style={mutedParagraphStyle}>{autonomyError}</p>
         </article>
       ) : null}
+
+      <BuilderAutonomyRecommendationsPanel
+        recommendations={autonomyDraftRecommendations}
+        loadedRecommendation={loadedAutonomyRecommendation}
+        onLoadRecommendation={handleLoadAutonomyRecommendation}
+        onClearLoadedRecommendation={() => setLoadedAutonomyRecommendation(null)}
+      />
 
       <div style={summaryGridStyle}>
         <form onSubmit={(event) => void handleAutonomyObjectiveSubmit(event)} style={stackStyle}>
@@ -4036,6 +4811,8 @@ export default function BuilderWorkspaceDesktop() {
       workerLifecycleContent={workerLifecycleContent}
       terminalsContent={terminalsContent}
       autonomyInboxContent={autonomyInboxContent}
+      recommendations={builderRecommendations}
+      guidedMode={settings.layout.guidedMode}
     />
   );
 }
@@ -4049,6 +4826,73 @@ const summaryGridStyle = {
   display: "grid",
   gap: 12,
   gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+} satisfies CSSProperties;
+
+const detailsSummaryStyle = {
+  cursor: "pointer",
+  fontWeight: 800,
+  color: "var(--app-text)",
+  marginBottom: 12,
+} satisfies CSSProperties;
+
+const workerSnapshotTitleStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+} satisfies CSSProperties;
+
+const workerAvatarStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flex: "0 0 auto",
+  borderRadius: "999px",
+  border: "1px solid color-mix(in srgb, var(--app-panel-border), white 18%)",
+  color: "white",
+  fontWeight: 900,
+  fontSize: 13,
+  letterSpacing: "0.04em",
+  overflow: "hidden",
+  boxShadow: "0 12px 28px rgba(15, 23, 42, 0.16)",
+} satisfies CSSProperties;
+
+const workerAvatarImageStyle = {
+  width: "100%",
+  height: "100%",
+  objectFit: "cover",
+  display: "block",
+} satisfies CSSProperties;
+
+const workerQuickAccessGridStyle = {
+  display: "grid",
+  gap: 10,
+  gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+  marginTop: 12,
+} satisfies CSSProperties;
+
+const workerQuickAccessButtonStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: 16,
+  border: "1px solid var(--app-panel-border)",
+  background: "var(--app-panel-bg)",
+  color: "var(--app-text)",
+  textAlign: "left",
+  cursor: "pointer",
+} satisfies CSSProperties;
+
+const workerQuickAccessButtonActiveStyle = {
+  borderColor: "color-mix(in srgb, var(--app-accent), white 18%)",
+  boxShadow: "0 0 0 3px color-mix(in srgb, var(--app-accent), transparent 76%)",
+} satisfies CSSProperties;
+
+const workerQuickAccessTextStyle = {
+  display: "grid",
+  gap: 2,
+  minWidth: 0,
 } satisfies CSSProperties;
 
 const summaryCardStyle = {
@@ -4133,9 +4977,12 @@ const inputStyle = {
   width: "100%",
   boxSizing: "border-box",
   borderRadius: 10,
-  border: "1px solid var(--app-panel-border)",
-  background: "var(--app-panel-bg)",
+  border: "1px solid var(--app-input-border)",
+  background: "var(--app-input-bg)",
   color: "var(--app-text-color)",
+  boxShadow: "var(--app-input-shadow)",
+  colorScheme: "var(--app-color-scheme)",
+  caretColor: "var(--app-accent)",
   padding: "10px 12px",
   font: "inherit",
 } satisfies CSSProperties;

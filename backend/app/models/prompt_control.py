@@ -59,6 +59,37 @@ class PromptCapabilitiesResponse(BaseModel):
     capabilities: list[PromptCapabilityEntry] = Field(default_factory=list)
 
 
+class PromptShortcutRequest(BaseModel):
+    mode: str = Field(..., min_length=1)
+    scenario_id: str = Field(..., min_length=1)
+    scenario_label: str = Field(..., min_length=1)
+    stage_label: str = Field(..., min_length=1)
+    focus_id: str = Field(..., min_length=1)
+    focus_label: str = Field(..., min_length=1)
+    viewport_label: str = Field(..., min_length=1)
+    active_tool_label: str = Field(..., min_length=1)
+    project_profile_name: str | None = None
+    source_context_name: str | None = Field(default=None, max_length=200)
+    source_context: str | None = Field(default=None, max_length=8000)
+
+
+class PromptShortcutOption(BaseModel):
+    shortcut_id: str = Field(..., min_length=1)
+    title: str = Field(..., min_length=1)
+    prompt_text: str = Field(..., min_length=1)
+    evidence_gate: str = Field(..., min_length=1)
+    source: str = Field(..., min_length=1)
+
+
+class PromptShortcutResponse(BaseModel):
+    mode: str = Field(..., min_length=1)
+    scenario_id: str = Field(..., min_length=1)
+    stage_label: str = Field(..., min_length=1)
+    focus_id: str = Field(..., min_length=1)
+    shortcuts: list[PromptShortcutOption] = Field(default_factory=list)
+    generated_by: str = Field(..., min_length=1)
+
+
 class PromptSessionRecord(BaseModel):
     prompt_id: str = Field(..., min_length=1)
     plan_id: str = Field(..., min_length=1)

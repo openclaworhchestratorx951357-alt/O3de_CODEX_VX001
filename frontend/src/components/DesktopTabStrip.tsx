@@ -27,6 +27,7 @@ export default function DesktopTabStrip({
           <button
             key={item.id}
             type="button"
+            aria-pressed={active}
             onClick={() => onSelectItem(item.id)}
             title={item.helpTooltip ?? undefined}
             style={{
@@ -51,37 +52,46 @@ export default function DesktopTabStrip({
 }
 
 const tabStripStyle = {
-  display: "grid",
-  gap: 10,
-  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+  display: "flex",
+  gap: 9,
+  alignItems: "center",
+  flexWrap: "wrap",
+  minWidth: 0,
 } satisfies CSSProperties;
 
 const tabButtonStyle = {
+  position: "relative",
+  flex: "0 0 auto",
   borderWidth: 1,
   borderStyle: "solid",
-  borderColor: "var(--app-panel-border)",
-  borderRadius: "var(--app-panel-radius)",
-  padding: "12px 14px",
-  background: "var(--app-panel-bg)",
+  borderColor: "color-mix(in srgb, var(--app-panel-border) 86%, transparent)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "8px 13px",
+  background: "linear-gradient(180deg, color-mix(in srgb, var(--app-panel-bg-alt) 92%, white 8%) 0%, var(--app-panel-bg) 100%)",
   color: "var(--app-text-color)",
   cursor: "pointer",
   textAlign: "left",
-  display: "grid",
-  gap: 6,
-  boxShadow: "var(--app-shadow-soft)",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  boxShadow: "0 6px 14px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.08)",
+  transform: "translateY(-1px)",
+  minHeight: 34,
+  maxWidth: 240,
 } satisfies CSSProperties;
 
 const activeTabButtonStyle = {
-  borderColor: "var(--app-accent-strong)",
-  background: "linear-gradient(145deg, var(--app-accent-soft) 0%, var(--app-panel-bg-alt) 100%)",
-  boxShadow: "var(--app-shadow-strong)",
+  borderColor: "#f8d477",
+  background: "linear-gradient(180deg, var(--app-accent-soft) 0%, color-mix(in srgb, var(--app-accent-soft) 76%, var(--app-panel-bg) 24%) 100%)",
+  boxShadow: "0 0 0 1px rgba(248, 212, 119, 0.94), 0 0 14px rgba(248, 212, 119, 0.42), 0 10px 22px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.18)",
 } satisfies CSSProperties;
 
 const tabHeaderStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 10,
+  display: "inline-flex",
+  justifyContent: "center",
+  gap: 8,
   alignItems: "center",
+  whiteSpace: "nowrap" as const,
 } satisfies CSSProperties;
 
 const tabBadgeStyle = {
@@ -95,7 +105,13 @@ const tabBadgeStyle = {
 } satisfies CSSProperties;
 
 const tabDetailStyle = {
-  color: "var(--app-muted-color)",
-  fontSize: 12,
-  lineHeight: 1.4,
+  position: "absolute",
+  width: 1,
+  height: 1,
+  padding: 0,
+  margin: -1,
+  overflow: "hidden",
+  clip: "rect(0, 0, 0, 0)",
+  whiteSpace: "nowrap" as const,
+  border: 0,
 } satisfies CSSProperties;

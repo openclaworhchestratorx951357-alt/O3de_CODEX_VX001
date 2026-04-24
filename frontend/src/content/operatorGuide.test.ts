@@ -6,6 +6,7 @@ import {
   getWorkspaceGuide,
   getWorkspaceSurfaceGuide,
   getWorkspaceWindowGuide,
+  mergeGuideChecklists,
   operatorGuideCatalog,
 } from "./operatorGuide";
 
@@ -160,5 +161,17 @@ describe("operatorGuide catalog", () => {
     expect(getPanelControlGuide("execution-detail", "record-navigation").tooltip).toMatch(/related artifacts/i);
     expect(getPanelControlGuide("artifact-detail", "next-hop").tooltip).toMatch(/closest execution or broader run context/i);
     expect(getPanelControlGuide("workspace-detail", "related-record-open").tooltip).toMatch(/first linked execution, run, or artifact/i);
+  });
+
+  it("merges workspace checklists without blank or duplicate entries", () => {
+    expect(mergeGuideChecklists(
+      ["Open Runtime first.", "Review bridge freshness."],
+      undefined,
+      ["", "Review bridge freshness.", "Escalate to Governance."],
+    )).toEqual([
+      "Open Runtime first.",
+      "Review bridge freshness.",
+      "Escalate to Governance.",
+    ]);
   });
 });

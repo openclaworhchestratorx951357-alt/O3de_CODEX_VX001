@@ -20,6 +20,7 @@ const apiMocks = vi.hoisted(() => ({
   claimCodexControlTask: vi.fn(),
   approveApproval: vi.fn(),
   cleanupO3deBridgeResults: vi.fn(),
+  previewAppControlScript: vi.fn(),
   completeCodexControlTask: vi.fn(),
   createCodexControlNotification: vi.fn(),
   createAutonomyHealingAction: vi.fn(),
@@ -49,7 +50,10 @@ const apiMocks = vi.hoisted(() => ({
   fetchExecution: vi.fn(),
   fetchExecutionCards: vi.fn(),
   fetchExecutionCardsForTruthFilter: vi.fn(),
+  fetchEvents: vi.fn(),
   fetchEventCards: vi.fn(),
+  fetchEventDetail: vi.fn(),
+  fetchEventSummary: vi.fn(),
   fetchLockCards: vi.fn(),
   fetchO3deBridge: vi.fn(),
   fetchO3deTarget: vi.fn(),
@@ -494,7 +498,7 @@ describe("App desktop hydration", () => {
 
     fireEvent.click(executionsSurfaceButton);
 
-    expect(screen.getByText("Records Explorer")).toBeInTheDocument();
+    expect(screen.getAllByText("Records Explorer").length).toBeGreaterThan(0);
     expect(await screen.findByText("ExecutionsPanel stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
@@ -534,7 +538,7 @@ describe("App desktop hydration", () => {
 
     fireEvent.click(artifactsSurfaceButton);
 
-    expect(screen.getByText("Records Explorer")).toBeInTheDocument();
+    expect(screen.getAllByText("Records Explorer").length).toBeGreaterThan(0);
     expect(await screen.findByText("ArtifactsPanel stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),

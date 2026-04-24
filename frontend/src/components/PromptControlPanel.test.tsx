@@ -3,6 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SettingsProvider } from "../lib/settings/context";
 import { createSettingsProfile, DEFAULT_ACCENT_COLOR } from "../lib/settings/defaults";
+import {
+  createDefaultO3DEProjectProfilesStore,
+  createO3DEProjectProfile,
+  saveO3DEProjectProfilesStore,
+  selectO3DEProjectProfile,
+  upsertO3DEProjectProfile,
+} from "../lib/o3deProjectProfiles";
 import { SETTINGS_PROFILE_STORAGE_KEY } from "../types/settings";
 import PromptControlPanel from "./PromptControlPanel";
 import type {
@@ -230,8 +237,9 @@ describe("PromptControlPanel", () => {
     );
 
     await screen.findByText("Prompt Capability Registry");
-    expect(screen.getByDisplayValue("C:/Users/topgu/O3DE/Projects/McpSandbox")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("C:/src/o3de")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("C:\\Users\\topgu\\O3DE\\Projects\\McpSandbox")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("C:\\src\\o3de")).toBeInTheDocument();
+    expect(screen.getByText(/Selected project profile:/i)).toHaveTextContent("McpSandbox canonical target");
     expect(screen.getByText(/Active local target:/i)).toBeInTheDocument();
     const promptControlSection = screen.getByRole("heading", { name: "Prompt Control" }).closest("section");
     expect(promptControlSection).not.toBeNull();
@@ -298,6 +306,44 @@ describe("PromptControlPanel", () => {
     const sessionButton = screen.getByRole("button", { name: /prompt-editor-1/i });
     expect(sessionButton).toHaveTextContent("Workspace: workspace-editor-project");
     expect(sessionButton).toHaveTextContent("Executor: executor-editor-control-real-local");
+  });
+
+  it("loads a recommended prompt template into editable prompt fields", async () => {
+    render(<PromptControlPanel />);
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(screen.getByText("Prompt template recommendations")).toBeInTheDocument();
+    expect(screen.getByText("Admitted-real editor actions")).toBeInTheDocument();
+    expect(screen.getAllByText("Why this template?").length).toBeGreaterThan(0);
+    expect(screen.getByText("editor.session.open is available")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Use Open current editor session safely" }),
+    );
+
+    expect(screen.getByLabelText("Prompt text")).toHaveValue(
+      "Open an editor session for the selected McpSandbox project profile and report the real editor-session evidence. Do not open a level or mutate content in this prompt.",
+    );
+    expect(screen.getByLabelText("Preferred domains (comma-separated)")).toHaveValue("editor-control");
+    expect(screen.getByLabelText("Operator note")).toHaveValue(
+      "Template recommendation: attach the editor session first and keep this prompt non-mutating.",
+    );
+    await waitFor(() => {
+      expect(screen.getByRole("checkbox")).not.toBeChecked();
+    });
+    expect(
+      screen.getByText("Loaded recommended prompt template: Open current editor session safely."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Loaded template review")).toBeInTheDocument();
+    expect(screen.getByText("Changed fields:")).toBeInTheDocument();
+    expect(screen.getByText("Prompt text, preferred domains, operator note, dry run")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear review" }));
+
+    expect(screen.queryByLabelText("Loaded template review")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Prompt text")).toHaveValue(
+      "Open an editor session for the selected McpSandbox project profile and report the real editor-session evidence. Do not open a level or mutate content in this prompt.",
+    );
   });
 
   it("shows approval pause continuity and child lineage after executing a selected prompt", async () => {
@@ -481,6 +527,8 @@ const waitingSession: PromptSessionRecord = {
         layout: {
           preferredLandingSection: "prompt",
           showDesktopTelemetry: true,
+          guidedMode: true,
+          guidedTourCompleted: true,
         },
         operatorDefaults: {
           projectRoot: "C:/saved-project",
@@ -502,5 +550,37 @@ const waitingSession: PromptSessionRecord = {
     expect(screen.getByDisplayValue("C:/saved-project")).toBeInTheDocument();
     expect(screen.getByDisplayValue("C:/saved-engine")).toBeInTheDocument();
     expect(screen.getByRole("checkbox")).not.toBeChecked();
+  });
+
+  it("prefills prompt roots from the selected O3DE project profile when operator defaults are empty", async () => {
+    const profile = createO3DEProjectProfile({
+      id: "profile-training-project",
+      name: "Training Project",
+      projectRoot: "D:/O3DE/Projects/TrainingProject",
+      engineRoot: "D:/o3de",
+      editorRunner: "D:/O3DE/Projects/TrainingProject/build/windows/bin/profile/Editor.exe",
+    });
+    saveO3DEProjectProfilesStore(
+      selectO3DEProjectProfile(
+        upsertO3DEProjectProfile(createDefaultO3DEProjectProfilesStore(), profile),
+        profile.id,
+      ),
+      window.localStorage,
+    );
+
+    render(<PromptControlPanel />);
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(screen.getByText(/Selected project profile:/i)).toHaveTextContent("Training Project");
+    expect(screen.getByDisplayValue("D:/O3DE/Projects/TrainingProject")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("D:/o3de")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Use Open current editor session safely" }),
+    );
+
+    expect(screen.getByLabelText("Prompt text")).toHaveValue(
+      "Open an editor session for the selected TrainingProject project profile and report the real editor-session evidence. Do not open a level or mutate content in this prompt.",
+    );
   });
 });

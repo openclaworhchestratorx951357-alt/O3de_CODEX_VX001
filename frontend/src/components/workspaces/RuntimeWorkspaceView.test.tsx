@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import RuntimeWorkspaceView from "./RuntimeWorkspaceView";
 
 describe("RuntimeWorkspaceView", () => {
-  it("renders only the active runtime surface content", () => {
+  it("keeps runtime surface content mounted while hiding inactive panes", () => {
     render(
       <RuntimeWorkspaceView
         activeSurfaceId="workspaces"
@@ -43,8 +43,11 @@ describe("RuntimeWorkspaceView", () => {
     );
 
     expect(screen.getByText("Workspaces content")).toBeInTheDocument();
-    expect(screen.queryByText("Overview content")).not.toBeInTheDocument();
-    expect(screen.queryByText("Executors content")).not.toBeInTheDocument();
-    expect(screen.queryByText("Governance content")).not.toBeInTheDocument();
+    expect(screen.getByText("How to use this workspace")).toBeInTheDocument();
+    expect(screen.getByText(/Use Runtime Console for health and ownership checks/i)).toBeInTheDocument();
+    expect(screen.getByText(/Check workspace ownership here when the active project context is unclear/i)).toBeInTheDocument();
+    expect(screen.getByText("Overview content").closest("[aria-hidden='true']")).not.toBeNull();
+    expect(screen.getByText("Executors content").closest("[aria-hidden='true']")).not.toBeNull();
+    expect(screen.getByText("Governance content").closest("[aria-hidden='true']")).not.toBeNull();
   });
 });

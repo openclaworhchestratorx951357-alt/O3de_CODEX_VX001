@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import RecordsWorkspaceView from "./RecordsWorkspaceView";
 
 describe("RecordsWorkspaceView", () => {
-  it("renders only the active records surface content", () => {
+  it("keeps records surface content mounted while hiding inactive panes", () => {
     render(
       <RecordsWorkspaceView
         activeSurfaceId="executions"
@@ -32,11 +32,15 @@ describe("RecordsWorkspaceView", () => {
         runsContent={<div>Runs content</div>}
         executionsContent={<div>Executions content</div>}
         artifactsContent={<div>Artifacts content</div>}
+        eventsContent={<div>Events content</div>}
       />,
     );
 
     expect(screen.getByText("Executions content")).toBeInTheDocument();
-    expect(screen.queryByText("Runs content")).not.toBeInTheDocument();
-    expect(screen.queryByText("Artifacts content")).not.toBeInTheDocument();
+    expect(screen.getByText("How to use this workspace")).toBeInTheDocument();
+    expect(screen.getByText(/Treat this workspace as the closeout and handoff evidence source/i)).toBeInTheDocument();
+    expect(screen.getByText(/Use this tab when warnings or truth labels need review/i)).toBeInTheDocument();
+    expect(screen.getByText("Runs content").closest("[aria-hidden='true']")).not.toBeNull();
+    expect(screen.getByText("Artifacts content").closest("[aria-hidden='true']")).not.toBeNull();
   });
 });

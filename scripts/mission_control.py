@@ -30,10 +30,80 @@ NOTIFICATION_STATUSES = {"unread", "read"}
 WORKER_STATUSES = {"idle", "active", "blocked", "review"}
 TASK_STATUSES = {"pending", "in_progress", "blocked", "review", "completed"}
 TERMINAL_SESSION_STATUSES = {"running", "stopping", "stopped", "exited", "failed"}
+WINDOWS_CREATE_NEW_CONSOLE = 0x00000010
+WINDOWS_CREATE_NEW_PROCESS_GROUP = 0x00000200
+DEFAULT_WORKER_CAPABILITY_TAGS = ("repo_read", "mission_control")
+SUPPORTED_WORKER_CAPABILITY_TAGS = {
+    "repo_read",
+    "repo_edit",
+    "frontend_ui",
+    "backend_api",
+    "o3de_bridge",
+    "mission_control",
+    "proof_validation",
+    "docs_runbook",
+    "terminal_observe",
+    "terminal_control",
+    "artifact_review",
+    "source_upload_context",
+    "external_agent",
+    "openclaw_agent",
+}
 
 
 class MissionControlError(RuntimeError):
     """Raised when mission control cannot complete a requested action."""
+
+
+def normalize_worker_capability_tag(value: str) -> str:
+    return value.strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def normalize_worker_capability_tags(values: Iterable[str] | None) -> list[str]:
+    tags: list[str] = []
+    for value in values or []:
+        tag = normalize_worker_capability_tag(value)
+        if not tag:
+            continue
+        if tag not in SUPPORTED_WORKER_CAPABILITY_TAGS:
+            supported = ", ".join(sorted(SUPPORTED_WORKER_CAPABILITY_TAGS))
+            raise MissionControlError(f"Unsupported worker capability '{value}'. Supported tags: {supported}.")
+        if tag not in tags:
+            tags.append(tag)
+    return tags
+
+
+def parse_worker_capability_tags(value: str | None) -> list[str]:
+    if not value:
+        return []
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return normalize_worker_capability_tags(str(entry) for entry in parsed)
+
+
+def normalize_context_sources(values: Iterable[str] | None) -> list[str]:
+    sources: list[str] = []
+    for value in values or []:
+        source = value.strip()
+        if source and source not in sources:
+            sources.append(source)
+    return sources
+
+
+def parse_context_sources(value: str | None) -> list[str]:
+    if not value:
+        return []
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError:
+        return []
+    if not isinstance(parsed, list):
+        return []
+    return normalize_context_sources(str(entry) for entry in parsed)
 
 
 @dataclass(frozen=True)
@@ -49,6 +119,10 @@ class Context:
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def is_windows() -> bool:
+    return os.name == "nt"
 
 
 def slugify(value: str) -> str:
@@ -145,12 +219,27 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
         CREATE TABLE IF NOT EXISTS workers (
             worker_id TEXT PRIMARY KEY,
             display_name TEXT NOT NULL,
+            agent_profile TEXT,
+            agent_runtime TEXT,
+            agent_entrypoint TEXT,
+            agent_access_notes TEXT,
+            identity_notes TEXT,
+            personality_notes TEXT,
+            soul_directive TEXT,
+            memory_notes TEXT,
+            bootstrap_notes TEXT,
+            capability_tags_json TEXT NOT NULL DEFAULT '[]',
+            context_sources_json TEXT NOT NULL DEFAULT '[]',
+            avatar_label TEXT,
+            avatar_color TEXT,
+            avatar_uri TEXT,
             branch_name TEXT,
             worktree_path TEXT,
             base_branch TEXT NOT NULL,
             status TEXT NOT NULL,
             current_task_id TEXT,
             summary TEXT,
+            resume_notes TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
             last_seen_at TEXT NOT NULL
@@ -218,6 +307,27 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
     )
     ensure_table_columns(
         conn,
+        "workers",
+        {
+            "agent_profile": "TEXT",
+            "agent_runtime": "TEXT",
+            "agent_entrypoint": "TEXT",
+            "agent_access_notes": "TEXT",
+            "identity_notes": "TEXT",
+            "personality_notes": "TEXT",
+            "soul_directive": "TEXT",
+            "memory_notes": "TEXT",
+            "bootstrap_notes": "TEXT",
+            "capability_tags_json": "TEXT NOT NULL DEFAULT '[]'",
+            "context_sources_json": "TEXT NOT NULL DEFAULT '[]'",
+            "avatar_label": "TEXT",
+            "avatar_color": "TEXT",
+            "avatar_uri": "TEXT",
+            "resume_notes": "TEXT",
+        },
+    )
+    ensure_table_columns(
+        conn,
         "tasks",
         {
             "superseded_by_task_id": "TEXT",
@@ -248,7 +358,23 @@ def ensure_table_columns(
 def row_to_worker(row: sqlite3.Row | None) -> dict[str, Any] | None:
     if row is None:
         return None
-    return dict(row)
+    worker = dict(row)
+    worker["capability_tags"] = parse_worker_capability_tags(worker.pop("capability_tags_json", None))
+    worker["context_sources"] = parse_context_sources(worker.pop("context_sources_json", None))
+    worker.setdefault("agent_profile", None)
+    worker.setdefault("agent_runtime", None)
+    worker.setdefault("agent_entrypoint", None)
+    worker.setdefault("agent_access_notes", None)
+    worker.setdefault("identity_notes", None)
+    worker.setdefault("personality_notes", None)
+    worker.setdefault("soul_directive", None)
+    worker.setdefault("memory_notes", None)
+    worker.setdefault("bootstrap_notes", None)
+    worker.setdefault("avatar_label", None)
+    worker.setdefault("avatar_color", None)
+    worker.setdefault("avatar_uri", None)
+    worker.setdefault("resume_notes", None)
+    return worker
 
 
 def row_to_task(row: sqlite3.Row | None) -> dict[str, Any] | None:
@@ -274,11 +400,57 @@ def read_log_tail(log_path: Path, *, max_lines: int = 12) -> list[str]:
     return lines[-max_lines:]
 
 
+def quote_powershell_literal(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
+def render_powershell_array(values: Iterable[str]) -> str:
+    return "@(" + ", ".join(quote_powershell_literal(value) for value in values) + ")"
+
+
+def write_windows_terminal_launcher(
+    *,
+    launcher_path: Path,
+    session_id: str,
+    label: str,
+    cwd: Path,
+    command: list[str],
+    log_path: Path,
+) -> None:
+    command_preview = " ".join(command)
+    launcher_lines = [
+        "$ErrorActionPreference = 'Continue'",
+        "$ProgressPreference = 'SilentlyContinue'",
+        f"$sessionId = {quote_powershell_literal(session_id)}",
+        f"$logPath = {quote_powershell_literal(str(log_path))}",
+        f"$command = {render_powershell_array(command)}",
+        f"$host.UI.RawUI.WindowTitle = {quote_powershell_literal(label)}",
+        f"Set-Location -LiteralPath {quote_powershell_literal(str(cwd))}",
+        "try {",
+        "  Start-Transcript -Path $logPath -Append -Force | Out-Null",
+        "} catch {",
+        '  Write-Host "Transcript unavailable: $($_.Exception.Message)"',
+        "}",
+        f'Write-Host "[managed terminal] {session_id}"',
+        f'Write-Host "[cwd] {cwd}"',
+        f'Write-Host "[command] {command_preview}"',
+        "if ($command.Length -gt 1) {",
+        "  & $command[0] @($command[1..($command.Length - 1)])",
+        "} else {",
+        "  & $command[0]",
+        "}",
+        "$exitCode = if ($null -ne $LASTEXITCODE) { $LASTEXITCODE } else { 0 }",
+        'Write-Host ""',
+        'Write-Host "Command exited with code $exitCode. This worker terminal will stay open until you close it."',
+    ]
+    launcher_path.write_text("\n".join(launcher_lines) + "\n", encoding="utf-8")
+
+
 def process_exists(pid: int | None) -> bool:
     if pid is None or pid <= 0:
         return False
 
-    if os.name == "nt":
+    if is_windows():
         process_handle = ctypes.windll.kernel32.OpenProcess(0x1000, False, pid)
         if not process_handle:
             return False
@@ -301,7 +473,7 @@ def terminate_process(pid: int | None, *, force: bool) -> bool:
     if pid is None or pid <= 0:
         return False
 
-    if os.name == "nt":
+    if is_windows():
         process_handle = ctypes.windll.kernel32.OpenProcess(0x0001, False, pid)
         if not process_handle:
             return False
@@ -469,29 +641,88 @@ def upsert_worker(
     status: str,
     summary: str | None,
     current_task_id: str | None = None,
+    agent_profile: str | None = None,
+    agent_runtime: str | None = None,
+    agent_entrypoint: str | None = None,
+    agent_access_notes: str | None = None,
+    identity_notes: str | None = None,
+    personality_notes: str | None = None,
+    soul_directive: str | None = None,
+    memory_notes: str | None = None,
+    bootstrap_notes: str | None = None,
+    capability_tags: Iterable[str] | None = None,
+    context_sources: Iterable[str] | None = None,
+    avatar_label: str | None = None,
+    avatar_color: str | None = None,
+    avatar_uri: str | None = None,
+    resume_notes: str | None = None,
 ) -> dict[str, Any]:
     if status not in WORKER_STATUSES:
         raise MissionControlError(f"Unsupported worker status '{status}'.")
     now = utc_now()
-    existing = conn.execute("SELECT worker_id FROM workers WHERE worker_id = ?", (worker_id,)).fetchone()
+    existing = conn.execute("SELECT * FROM workers WHERE worker_id = ?", (worker_id,)).fetchone()
+    existing_worker = row_to_worker(existing)
+    next_agent_profile = agent_profile if agent_profile is not None else existing_worker.get("agent_profile") if existing_worker else None
+    next_agent_runtime = agent_runtime if agent_runtime is not None else existing_worker.get("agent_runtime") if existing_worker else None
+    next_agent_entrypoint = agent_entrypoint if agent_entrypoint is not None else existing_worker.get("agent_entrypoint") if existing_worker else None
+    next_agent_access_notes = agent_access_notes if agent_access_notes is not None else existing_worker.get("agent_access_notes") if existing_worker else None
+    next_identity_notes = identity_notes if identity_notes is not None else existing_worker.get("identity_notes") if existing_worker else None
+    next_personality_notes = personality_notes if personality_notes is not None else existing_worker.get("personality_notes") if existing_worker else None
+    next_soul_directive = soul_directive if soul_directive is not None else existing_worker.get("soul_directive") if existing_worker else None
+    next_memory_notes = memory_notes if memory_notes is not None else existing_worker.get("memory_notes") if existing_worker else None
+    next_bootstrap_notes = bootstrap_notes if bootstrap_notes is not None else existing_worker.get("bootstrap_notes") if existing_worker else None
+    next_capability_tags = (
+        normalize_worker_capability_tags(capability_tags)
+        if capability_tags is not None
+        else existing_worker.get("capability_tags") if existing_worker else list(DEFAULT_WORKER_CAPABILITY_TAGS)
+    )
+    next_context_sources = (
+        normalize_context_sources(context_sources)
+        if context_sources is not None
+        else existing_worker.get("context_sources") if existing_worker else []
+    )
+    next_avatar_label = avatar_label if avatar_label is not None else existing_worker.get("avatar_label") if existing_worker else None
+    next_avatar_color = avatar_color if avatar_color is not None else existing_worker.get("avatar_color") if existing_worker else None
+    next_avatar_uri = avatar_uri if avatar_uri is not None else existing_worker.get("avatar_uri") if existing_worker else None
+    next_resume_notes = resume_notes if resume_notes is not None else existing_worker.get("resume_notes") if existing_worker else None
+    capability_tags_json = json.dumps(next_capability_tags, separators=(",", ":"))
+    context_sources_json = json.dumps(next_context_sources, separators=(",", ":"))
     if existing is None:
         conn.execute(
             """
             INSERT INTO workers (
-                worker_id, display_name, branch_name, worktree_path, base_branch,
-                status, current_task_id, summary, created_at, updated_at, last_seen_at
+                worker_id, display_name, agent_profile, agent_runtime, agent_entrypoint,
+                agent_access_notes, identity_notes, personality_notes, soul_directive,
+                memory_notes, bootstrap_notes, capability_tags_json, context_sources_json, avatar_label,
+                avatar_color, avatar_uri, branch_name, worktree_path, base_branch,
+                status, current_task_id, summary, resume_notes, created_at, updated_at, last_seen_at
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 worker_id,
                 display_name,
+                next_agent_profile,
+                next_agent_runtime,
+                next_agent_entrypoint,
+                next_agent_access_notes,
+                next_identity_notes,
+                next_personality_notes,
+                next_soul_directive,
+                next_memory_notes,
+                next_bootstrap_notes,
+                capability_tags_json,
+                context_sources_json,
+                next_avatar_label,
+                next_avatar_color,
+                next_avatar_uri,
                 branch_name,
                 worktree_path,
                 base_branch,
                 status,
                 current_task_id,
                 summary,
+                next_resume_notes,
                 now,
                 now,
                 now,
@@ -501,18 +732,37 @@ def upsert_worker(
         conn.execute(
             """
             UPDATE workers
-            SET display_name = ?, branch_name = ?, worktree_path = ?, base_branch = ?,
-                status = ?, current_task_id = ?, summary = ?, updated_at = ?, last_seen_at = ?
+            SET display_name = ?, agent_profile = ?, agent_runtime = ?, agent_entrypoint = ?,
+                agent_access_notes = ?, identity_notes = ?, personality_notes = ?, soul_directive = ?,
+                memory_notes = ?, bootstrap_notes = ?, capability_tags_json = ?, context_sources_json = ?,
+                avatar_label = ?, avatar_color = ?, avatar_uri = ?,
+                branch_name = ?, worktree_path = ?, base_branch = ?,
+                status = ?, current_task_id = ?, summary = ?, resume_notes = ?, updated_at = ?, last_seen_at = ?
             WHERE worker_id = ?
             """,
             (
                 display_name,
+                next_agent_profile,
+                next_agent_runtime,
+                next_agent_entrypoint,
+                next_agent_access_notes,
+                next_identity_notes,
+                next_personality_notes,
+                next_soul_directive,
+                next_memory_notes,
+                next_bootstrap_notes,
+                capability_tags_json,
+                context_sources_json,
+                next_avatar_label,
+                next_avatar_color,
+                next_avatar_uri,
                 branch_name,
                 worktree_path,
                 base_branch,
                 status,
                 current_task_id,
                 summary,
+                next_resume_notes,
                 now,
                 now,
                 worker_id,
@@ -709,25 +959,50 @@ def launch_terminal_session(
     log_path = terminal_logs_dir / f"{session_id}.log"
     now = utc_now()
 
-    popen_kwargs: dict[str, Any] = {
-        "cwd": str(command_cwd),
-        "stdin": subprocess.DEVNULL,
-        "stderr": subprocess.STDOUT,
-        "text": True,
-    }
-    if os.name == "nt":
-        popen_kwargs["creationflags"] = 0x00000008 | 0x00000200
+    process_command = command
+    popen_kwargs: dict[str, Any] = {"cwd": str(command_cwd)}
+    if is_windows():
+        launcher_path = terminal_logs_dir / f"{session_id}.ps1"
+        write_windows_terminal_launcher(
+            launcher_path=launcher_path,
+            session_id=session_id,
+            label=label,
+            cwd=command_cwd,
+            command=command,
+            log_path=log_path,
+        )
+        process_command = [
+            "powershell.exe",
+            "-NoLogo",
+            "-NoExit",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            str(launcher_path),
+        ]
+        popen_kwargs["creationflags"] = WINDOWS_CREATE_NEW_CONSOLE | WINDOWS_CREATE_NEW_PROCESS_GROUP
     else:
+        popen_kwargs.update({
+            "stdin": subprocess.DEVNULL,
+            "stderr": subprocess.STDOUT,
+            "text": True,
+        })
         popen_kwargs["start_new_session"] = True
 
-    with log_path.open("a", encoding="utf-8") as log_file:
-        log_file.write(f"[{now}] Launching managed terminal {session_id}: {' '.join(command)}\n")
-        log_file.flush()
-        process = subprocess.Popen(
-            command,
-            stdout=log_file,
-            **popen_kwargs,
-        )
+    log_path.write_text(
+        f"[{now}] Launching managed terminal {session_id}: {' '.join(command)}\n",
+        encoding="utf-8",
+    )
+
+    if is_windows():
+        process = subprocess.Popen(process_command, **popen_kwargs)
+    else:
+        with log_path.open("a", encoding="utf-8") as log_file:
+            process = subprocess.Popen(
+                process_command,
+                stdout=log_file,
+                **popen_kwargs,
+            )
 
     conn.execute(
         """
@@ -1145,10 +1420,32 @@ def write_board_files(context: Context, snapshot: dict[str, Any]) -> str:
     if snapshot["workers"]:
         for worker in snapshot["workers"]:
             summary = worker["summary"] or ""
+            capabilities = ",".join(worker.get("capability_tags") or []) or "-"
+            context_sources = ",".join(worker.get("context_sources") or []) or "-"
             lines.append(
                 f"- {worker['worker_id']} [{worker['status']}] branch={worker['branch_name'] or '-'} "
                 f"task={worker['current_task_id'] or '-'} {summary}".rstrip()
             )
+            lines.append(f"  profile: {worker.get('agent_profile') or '-'} capabilities={capabilities}")
+            if worker.get("agent_runtime"):
+                lines.append(f"  runtime: {worker['agent_runtime']}")
+            if worker.get("agent_entrypoint"):
+                lines.append(f"  entrypoint: {worker['agent_entrypoint']}")
+            if worker.get("agent_access_notes"):
+                lines.append(f"  access_notes: {worker['agent_access_notes']}")
+            lines.append(f"  context_sources: {context_sources}")
+            if worker.get("identity_notes"):
+                lines.append(f"  identity: {worker['identity_notes']}")
+            if worker.get("personality_notes"):
+                lines.append(f"  personality: {worker['personality_notes']}")
+            if worker.get("soul_directive"):
+                lines.append(f"  soul_directive: {worker['soul_directive']}")
+            if worker.get("memory_notes"):
+                lines.append(f"  memory: {worker['memory_notes']}")
+            if worker.get("bootstrap_notes"):
+                lines.append(f"  bootstrap: {worker['bootstrap_notes']}")
+            if worker.get("resume_notes"):
+                lines.append(f"  resume: {worker['resume_notes']}")
     else:
         lines.append("- none")
 
@@ -1250,6 +1547,21 @@ def command_sync_worker(args: argparse.Namespace, context: Context) -> dict[str,
             base_branch=args.base_branch,
             status=status,
             summary=args.summary,
+            agent_profile=args.agent_profile,
+            agent_runtime=args.agent_runtime,
+            agent_entrypoint=args.agent_entrypoint,
+            agent_access_notes=args.agent_access_notes,
+            identity_notes=args.identity_notes,
+            personality_notes=args.personality_notes,
+            soul_directive=args.soul_directive,
+            memory_notes=args.memory_notes,
+            bootstrap_notes=args.bootstrap_notes,
+            capability_tags=args.capability_tag,
+            context_sources=args.context_source,
+            avatar_label=args.avatar_label,
+            avatar_color=args.avatar_color,
+            avatar_uri=args.avatar_uri,
+            resume_notes=args.resume_notes,
         )
         conn.commit()
     return {"status": "ok", "worker": worker}
@@ -1285,6 +1597,21 @@ def command_create_lane(args: argparse.Namespace, context: Context) -> dict[str,
             base_branch=args.base_branch,
             status="idle",
             summary="lane created",
+            agent_profile=args.agent_profile,
+            agent_runtime=args.agent_runtime,
+            agent_entrypoint=args.agent_entrypoint,
+            agent_access_notes=args.agent_access_notes,
+            identity_notes=args.identity_notes,
+            personality_notes=args.personality_notes,
+            soul_directive=args.soul_directive,
+            memory_notes=args.memory_notes,
+            bootstrap_notes=args.bootstrap_notes,
+            capability_tags=args.capability_tag,
+            context_sources=args.context_source,
+            avatar_label=args.avatar_label,
+            avatar_color=args.avatar_color,
+            avatar_uri=args.avatar_uri,
+            resume_notes=args.resume_notes,
         )
         conn.commit()
     return {"status": "ok", "worker": worker, "worktree_path": str(worktree_path.resolve())}
@@ -1368,6 +1695,21 @@ def command_heartbeat(args: argparse.Namespace, context: Context) -> dict[str, A
             status=status,
             summary=summary,
             current_task_id=current_task_id,
+            agent_profile=args.agent_profile,
+            agent_runtime=args.agent_runtime,
+            agent_entrypoint=args.agent_entrypoint,
+            agent_access_notes=args.agent_access_notes,
+            identity_notes=args.identity_notes,
+            personality_notes=args.personality_notes,
+            soul_directive=args.soul_directive,
+            memory_notes=args.memory_notes,
+            bootstrap_notes=args.bootstrap_notes,
+            capability_tags=args.capability_tag,
+            context_sources=args.context_source,
+            avatar_label=args.avatar_label,
+            avatar_color=args.avatar_color,
+            avatar_uri=args.avatar_uri,
+            resume_notes=args.resume_notes,
         )
         conn.commit()
     return {"status": "ok", "worker": worker}
@@ -1526,6 +1868,21 @@ def build_parser() -> argparse.ArgumentParser:
     sync.add_argument("--base-branch", default=DEFAULT_BASE_BRANCH)
     sync.add_argument("--status", default="idle")
     sync.add_argument("--summary")
+    sync.add_argument("--agent-profile")
+    sync.add_argument("--agent-runtime")
+    sync.add_argument("--agent-entrypoint")
+    sync.add_argument("--agent-access-notes")
+    sync.add_argument("--identity-notes")
+    sync.add_argument("--personality-notes")
+    sync.add_argument("--soul-directive")
+    sync.add_argument("--memory-notes")
+    sync.add_argument("--bootstrap-notes")
+    sync.add_argument("--capability-tag", action="append")
+    sync.add_argument("--context-source", action="append")
+    sync.add_argument("--resume-notes")
+    sync.add_argument("--avatar-label")
+    sync.add_argument("--avatar-color")
+    sync.add_argument("--avatar-uri")
 
     create_lane = subparsers.add_parser("create-lane")
     create_lane.add_argument("--worker-id", required=True)
@@ -1534,6 +1891,21 @@ def build_parser() -> argparse.ArgumentParser:
     create_lane.add_argument("--worktree-path")
     create_lane.add_argument("--base-branch", default=DEFAULT_BASE_BRANCH)
     create_lane.add_argument("--no-bootstrap", action="store_true")
+    create_lane.add_argument("--agent-profile")
+    create_lane.add_argument("--agent-runtime")
+    create_lane.add_argument("--agent-entrypoint")
+    create_lane.add_argument("--agent-access-notes")
+    create_lane.add_argument("--identity-notes")
+    create_lane.add_argument("--personality-notes")
+    create_lane.add_argument("--soul-directive")
+    create_lane.add_argument("--memory-notes")
+    create_lane.add_argument("--bootstrap-notes")
+    create_lane.add_argument("--capability-tag", action="append")
+    create_lane.add_argument("--context-source", action="append")
+    create_lane.add_argument("--resume-notes")
+    create_lane.add_argument("--avatar-label")
+    create_lane.add_argument("--avatar-color")
+    create_lane.add_argument("--avatar-uri")
 
     add_task = subparsers.add_parser("add-task")
     add_task.add_argument("--task-id")
@@ -1576,6 +1948,21 @@ def build_parser() -> argparse.ArgumentParser:
     heartbeat.add_argument("--branch-name")
     heartbeat.add_argument("--worktree-path")
     heartbeat.add_argument("--base-branch")
+    heartbeat.add_argument("--agent-profile")
+    heartbeat.add_argument("--agent-runtime")
+    heartbeat.add_argument("--agent-entrypoint")
+    heartbeat.add_argument("--agent-access-notes")
+    heartbeat.add_argument("--identity-notes")
+    heartbeat.add_argument("--personality-notes")
+    heartbeat.add_argument("--soul-directive")
+    heartbeat.add_argument("--memory-notes")
+    heartbeat.add_argument("--bootstrap-notes")
+    heartbeat.add_argument("--capability-tag", action="append")
+    heartbeat.add_argument("--context-source", action="append")
+    heartbeat.add_argument("--resume-notes")
+    heartbeat.add_argument("--avatar-label")
+    heartbeat.add_argument("--avatar-color")
+    heartbeat.add_argument("--avatar-uri")
 
     next_task = subparsers.add_parser("next-task")
     next_task.add_argument("--worker-id", required=True)

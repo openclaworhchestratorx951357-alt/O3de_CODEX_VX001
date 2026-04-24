@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SettingsProvider } from "../lib/settings/context";
+import { createDefaultSettings, createSettingsProfile } from "../lib/settings/defaults";
 import SettingsPanel from "./SettingsPanel";
 import { SETTINGS_PROFILE_STORAGE_KEY } from "../types/settings";
 
@@ -28,6 +29,49 @@ describe("SettingsPanel", () => {
 
     expect(darkButton).toHaveAttribute("aria-pressed", "true");
     expect(systemButton).toHaveAttribute("aria-pressed", "false");
+    expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"themeMode":"dark"');
+  });
+
+  it("shows a visible quick guidance toggle and saves the selected mode immediately", () => {
+    render(
+      <SettingsProvider>
+        <SettingsPanel />
+      </SettingsProvider>,
+    );
+
+    const guidedButton = screen.getByRole("button", { name: "Guided" });
+    const advancedButton = screen.getByRole("button", { name: "Advanced" });
+
+    expect(guidedButton).toHaveAttribute("aria-pressed", "true");
+    expect(advancedButton).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(advancedButton);
+
+    expect(guidedButton).toHaveAttribute("aria-pressed", "false");
+    expect(advancedButton).toHaveAttribute("aria-pressed", "true");
+    expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"guidedMode":false');
+  });
+
+  it("keeps the quick theme toggle visible in compact launcher mode", () => {
+    render(
+      <SettingsProvider>
+        <SettingsPanel compactLauncher />
+      </SettingsProvider>,
+    );
+
+    const lightButton = screen.getByRole("button", { name: "Light" });
+    const darkButton = screen.getByRole("button", { name: "Dark" });
+    const systemButton = screen.getByRole("button", { name: "System" });
+
+    expect(lightButton).toBeInTheDocument();
+    expect(darkButton).toBeInTheDocument();
+    expect(systemButton).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Guided" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Advanced" })).not.toBeInTheDocument();
+
+    fireEvent.click(darkButton);
+
+    expect(darkButton).toHaveAttribute("aria-pressed", "true");
     expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"themeMode":"dark"');
   });
 
@@ -135,5 +179,33 @@ describe("SettingsPanel", () => {
 
     expect(screen.getByLabelText("Theme mode")).toHaveValue("system");
     expect(screen.getByText("Saved settings were reset to defaults.")).toBeInTheDocument();
+  });
+
+  it("restarts the guided tour from the settings dialog", () => {
+    const defaultSettings = createDefaultSettings();
+    window.localStorage.setItem(
+      SETTINGS_PROFILE_STORAGE_KEY,
+      JSON.stringify(createSettingsProfile({
+        ...defaultSettings,
+        layout: {
+          ...defaultSettings.layout,
+          guidedMode: false,
+          guidedTourCompleted: true,
+        },
+      })),
+    );
+
+    render(
+      <SettingsProvider>
+        <SettingsPanel />
+      </SettingsProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "Restart Guided Tour" }));
+
+    expect(screen.queryByRole("dialog", { name: "Settings profile" })).not.toBeInTheDocument();
+    expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"guidedMode":true');
+    expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"guidedTourCompleted":false');
   });
 });

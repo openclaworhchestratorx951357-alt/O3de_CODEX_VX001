@@ -6,6 +6,7 @@ import {
   describeSettingsPatchPolicyMeaning,
 } from "../lib/capabilityNarrative";
 import type { ToolPolicy } from "../types/contracts";
+import ExpandablePanelSection from "./ExpandablePanelSection";
 import OperatorStatusRail from "./OperatorStatusRail";
 import StatusChip from "./StatusChip";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -16,7 +17,6 @@ import {
 } from "./statusChipTones";
 import {
   summaryBadgeStyle,
-  summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
   summaryMutedTextStyle,
@@ -115,7 +115,7 @@ export default function Phase7CapabilitySummaryPanel({
               );
             })}
           </div>
-          <div style={summaryCardGridStyle}>
+          <div style={capabilityBucketGridStyle}>
             {buckets.map((bucket) => (
               <article
                 key={bucket.label}
@@ -148,7 +148,12 @@ export default function Phase7CapabilitySummaryPanel({
                     />
                   </SummaryFact>
                 </SummaryFacts>
-                <p style={summaryMutedTextStyle}>{bucket.description}</p>
+                <ExpandablePanelSection
+                  title="Capability boundary"
+                  preview={summarizeTextPreview(bucket.description)}
+                >
+                  <p style={policyParagraphStyle}>{bucket.description}</p>
+                </ExpandablePanelSection>
                 <div style={toolCardGridStyle}>
                   {bucket.items.map((policy) => (
                     <article key={policy.tool} style={toolCardStyle}>
@@ -172,10 +177,15 @@ export default function Phase7CapabilitySummaryPanel({
                           />
                         </SummaryFact>
                       </SummaryFacts>
-                      <p style={summaryMutedTextStyle}>{describePolicyMeaning(policy)}</p>
-                      <p style={{ ...summaryMutedTextStyle, marginBottom: 0 }}>
-                        Next requirement: {policy.next_real_requirement}
-                      </p>
+                      <ExpandablePanelSection
+                        title="Meaning and next requirement"
+                        preview={summarizeTextPreview(policy.next_real_requirement)}
+                      >
+                        <p style={policyParagraphStyle}>{describePolicyMeaning(policy)}</p>
+                        <p style={{ ...policyParagraphStyle, marginBottom: 0 }}>
+                          Next requirement: {policy.next_real_requirement}
+                        </p>
+                      </ExpandablePanelSection>
                     </article>
                   ))}
                 </div>
@@ -227,6 +237,15 @@ function describePolicyMeaning(policy: ToolPolicy): string {
   return describeCatalogCapability(policy.tool, policy.capability_status);
 }
 
+function summarizeTextPreview(value: string, maxLength = 92): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, maxLength).trimEnd()}...`;
+}
+
 const cardStyle: CSSProperties = {
   ...summaryCardStyle,
 };
@@ -247,6 +266,13 @@ const highlightRowStyle: CSSProperties = {
   marginBottom: 16,
 };
 
+const capabilityBucketGridStyle: CSSProperties = {
+  display: "grid",
+  gap: 12,
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))",
+  alignItems: "start",
+};
+
 const toolCardGridStyle: CSSProperties = {
   display: "grid",
   gap: 8,
@@ -259,6 +285,12 @@ const toolCardStyle: CSSProperties = {
   background: "var(--app-panel-bg)",
   display: "grid",
   gap: 8,
+};
+
+const policyParagraphStyle: CSSProperties = {
+  ...summaryMutedTextStyle,
+  margin: 0,
+  overflowWrap: "anywhere",
 };
 
 const toolHeadingRowStyle: CSSProperties = {

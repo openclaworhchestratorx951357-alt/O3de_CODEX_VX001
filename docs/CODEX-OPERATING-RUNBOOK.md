@@ -13,12 +13,19 @@ Use it to answer:
 - when to use review, CI, or app automations
 
 This runbook complements:
+- `AGENTS.md`
+- `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`
 - `README.md`
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/SLICE-START-CHECKLIST.md`
 - `docs/LOCAL-STACK-RUNBOOK.md`
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md`
 - `docs/WORKTREE-STRATEGY.md`
+
+Default standing guidance:
+- the evergreen execution charter in `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`
+  is the default decision framework for choosing the next slice unless the user
+  explicitly overrides it
 
 ## Standing truths that must not drift
 

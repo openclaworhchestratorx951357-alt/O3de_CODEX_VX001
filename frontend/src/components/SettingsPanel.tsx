@@ -31,6 +31,10 @@ function formatThemeToggleLabel(value: AppSettings["appearance"]["themeMode"]): 
   return value === "light" ? "Light" : "Dark";
 }
 
+function formatGuidedModeToggleLabel(value: boolean): string {
+  return value ? "Guided" : "Advanced";
+}
+
 function parseLocks(value: string): AppSettings["operatorDefaults"]["locks"] {
   const nextLocks = value
     .split(",")
@@ -52,10 +56,12 @@ function getSettingsPortalHost(): HTMLElement | null {
 
 type SettingsPanelProps = {
   buttonLabel?: string;
+  compactLauncher?: boolean;
 };
 
 export default function SettingsPanel({
   buttonLabel = "Settings",
+  compactLauncher = false,
 }: SettingsPanelProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -156,6 +162,36 @@ export default function SettingsPanel({
     setStatusMessage(`${formatThemeToggleLabel(themeMode)} theme applied.`);
   }
 
+  function handleQuickGuidedModeChange(guidedMode: boolean): void {
+    if (settings.layout.guidedMode === guidedMode) {
+      return;
+    }
+
+    const nextProfile = saveSettings(normalizeSettings({
+      ...settings,
+      layout: {
+        ...settings.layout,
+        guidedMode,
+      },
+    }));
+    resetDraftFromSettings(nextProfile.settings);
+    setStatusMessage(`${formatGuidedModeToggleLabel(guidedMode)} mode applied.`);
+  }
+
+  function handleRestartGuidedTour(): void {
+    const nextProfile = saveSettings(normalizeSettings({
+      ...settings,
+      layout: {
+        ...settings.layout,
+        guidedMode: true,
+        guidedTourCompleted: false,
+      },
+    }));
+    resetDraftFromSettings(nextProfile.settings);
+    setStatusMessage("Guided tour restarted.");
+    closeSettings();
+  }
+
   function handleSave(): void {
     const nextProfile = saveSettings(normalizedDraft);
     resetDraftFromSettings(nextProfile.settings);
@@ -226,7 +262,14 @@ export default function SettingsPanel({
           {buttonLabel}
         </button>
 
-        <div style={launcherThemeRowStyle} role="group" aria-label="Theme mode quick toggle">
+        <div
+          style={{
+            ...launcherThemeRowStyle,
+            ...(compactLauncher ? launcherThemeRowCompactStyle : null),
+          }}
+          role="group"
+          aria-label="Theme mode quick toggle"
+        >
           {THEME_MODE_VALUES.map((value) => {
             const active = settings.appearance.themeMode === value;
             return (
@@ -238,6 +281,7 @@ export default function SettingsPanel({
                 title={`Apply ${formatThemeToggleLabel(value)} theme without opening the full settings panel.`}
                 style={{
                   ...launcherThemeButtonStyle,
+                  ...(compactLauncher ? launcherThemeButtonCompactStyle : null),
                   ...(active ? launcherThemeButtonActiveStyle : null),
                 }}
               >
@@ -246,6 +290,32 @@ export default function SettingsPanel({
             );
           })}
         </div>
+
+        {compactLauncher ? null : (
+          <>
+            <div style={launcherThemeRowStyle} role="group" aria-label="Guidance mode quick toggle">
+              {[true, false].map((value) => {
+                const active = settings.layout.guidedMode === value;
+                const label = formatGuidedModeToggleLabel(value);
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => handleQuickGuidedModeChange(value)}
+                    aria-pressed={active}
+                    title={`${label} mode ${value ? "keeps beginner-safe panels visible first" : "shows advanced panels by default"}.`}
+                    style={{
+                      ...launcherThemeButtonStyle,
+                      ...(active ? launcherThemeButtonActiveStyle : null),
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
       </div>
 
       {open && portalHost ? createPortal((
@@ -437,6 +507,26 @@ export default function SettingsPanel({
                   />
                   Show desktop telemetry and quick stats
                 </label>
+
+                <label style={checkboxRowStyle}>
+                  <input
+                    type="checkbox"
+                    checked={draft.layout.guidedMode}
+                    onChange={(event) => updateDraft({
+                      ...draft,
+                      layout: { ...draft.layout, guidedMode: event.target.checked },
+                    })}
+                  />
+                  Use guided mode to keep advanced panels collapsed by default
+                </label>
+
+                <button
+                  type="button"
+                  onClick={handleRestartGuidedTour}
+                  style={secondaryButtonStyle}
+                >
+                  Restart Guided Tour
+                </button>
               </section>
 
               <section style={cardStyle}>
@@ -594,6 +684,11 @@ const launcherThemeRowStyle = {
   boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
+const launcherThemeRowCompactStyle = {
+  gap: 4,
+  padding: 3,
+} satisfies CSSProperties;
+
 const launcherThemeButtonStyle = {
   borderWidth: 1,
   borderStyle: "solid",
@@ -604,6 +699,11 @@ const launcherThemeButtonStyle = {
   color: "var(--app-text-color)",
   cursor: "pointer",
   fontSize: 12,
+} satisfies CSSProperties;
+
+const launcherThemeButtonCompactStyle = {
+  padding: "6px 9px",
+  fontSize: 11,
 } satisfies CSSProperties;
 
 const launcherThemeButtonActiveStyle = {
@@ -645,11 +745,14 @@ const panelHeaderStyle = {
 } satisfies CSSProperties;
 
 const eyebrowStyle = {
+  display: "block",
+  marginBottom: 4,
   color: "var(--app-subtle-color)",
   fontSize: 11,
   fontWeight: 700,
   textTransform: "uppercase" as const,
   letterSpacing: "0.08em",
+  lineHeight: 1.2,
 } satisfies CSSProperties;
 
 const panelTitleStyle = {

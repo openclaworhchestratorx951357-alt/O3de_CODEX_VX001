@@ -30,29 +30,43 @@ describe("DesktopShell", () => {
   it("renders workspace navigation and forwards selection events", () => {
     const onSelectWorkspace = vi.fn();
 
-    render(
+    const { container } = render(
       <DesktopShell
         appTitle="O3DE Agent Control App"
         appSubtitle="Desktop operator shell"
         workspaceTitle="Home"
         workspaceSubtitle="Overview and launch surface"
         activeWorkspaceId="home"
-        navItems={[
+        navSections={[
           {
-            id: "home",
-            label: "Home",
-            subtitle: "Overview and launch surface",
-            badge: "2",
-            tone: "info",
-            helpTooltip: "Start here to orient the operator desktop.",
+            id: "start",
+            label: "Start",
+            detail: "Begin with a calmer orientation surface.",
+            items: [
+              {
+                id: "home",
+                label: "Home",
+                subtitle: "Overview and launch surface",
+                badge: "2",
+                tone: "info",
+                helpTooltip: "Start here to orient the operator desktop.",
+              },
+            ],
           },
           {
-            id: "records",
-            label: "Records",
-            subtitle: "Runs, executions, artifacts",
-            badge: "9",
-            tone: "warning",
-            helpTooltip: "Inspect persisted evidence and warnings.",
+            id: "inspect",
+            label: "Inspect",
+            detail: "Review persisted evidence and warnings.",
+            items: [
+              {
+                id: "records",
+                label: "Records",
+                subtitle: "Runs, executions, artifacts",
+                badge: "9",
+                tone: "warning",
+                helpTooltip: "Inspect persisted evidence and warnings.",
+              },
+            ],
           },
         ]}
         quickStats={[
@@ -77,16 +91,70 @@ describe("DesktopShell", () => {
       </DesktopShell>,
     );
 
+    const shellRoot = container.firstElementChild as HTMLElement;
+
     expect(screen.getByText("Control surface")).toBeInTheDocument();
+    expect(screen.getByText("Now open")).toBeInTheDocument();
+    expect(screen.getAllByText("Start").length).toBeGreaterThan(0);
+    expect(screen.getByText("Inspect")).toBeInTheDocument();
     expect(screen.getByText("Active workspace")).toBeInTheDocument();
     expect(screen.getByText("Workspace body")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /inspect/i }));
+
     expect(
       screen.getByRole("button", { name: /records/i }),
     ).toHaveAttribute("title", "Inspect persisted evidence and warnings.");
-    expect(screen.getByText("Bridge").closest("div")).toHaveAttribute("title", "Heartbeat is currently fresh.");
+    expect(screen.getByText("Bridge: fresh")).toHaveAttribute("title", "Heartbeat is currently fresh.");
+    expect(shellRoot).toHaveStyle("height: 100vh");
+    expect(shellRoot).toHaveStyle("overflow: hidden");
+
+    const quickAccessInput = screen.getByRole("combobox", { name: "Quick access app explorer" });
+    fireEvent.focus(quickAccessInput);
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
+    fireEvent.change(quickAccessInput, { target: { value: "record" } });
+    expect(screen.getByRole("listbox", { name: "Quick access results" })).toBeInTheDocument();
+    expect(screen.queryByText("Type a workspace, tool, or help topic. Use arrows and Enter to jump.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Inspect persisted evidence and warnings.")).not.toBeInTheDocument();
+    fireEvent.change(quickAccessInput, { target: { value: "rds" } });
+    expect(screen.getByRole("option", { name: /records/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("option", { name: /records/i }));
+    expect(onSelectWorkspace).toHaveBeenCalledWith("records");
+    onSelectWorkspace.mockClear();
+
+    fireEvent.change(quickAccessInput, { target: { value: "record" } });
+    expect(screen.getByRole("listbox", { name: "Quick access results" })).toBeInTheDocument();
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole("listbox", { name: "Quick access results" })).not.toBeInTheDocument();
+
+    fireEvent.focus(quickAccessInput);
+    fireEvent.change(quickAccessInput, { target: { value: "home" } });
+    fireEvent.keyDown(quickAccessInput, { key: "Enter" });
+    expect(onSelectWorkspace).toHaveBeenCalledWith("home");
+    onSelectWorkspace.mockClear();
 
     fireEvent.click(screen.getByRole("button", { name: /records/i }));
     expect(onSelectWorkspace).toHaveBeenCalledWith("records");
+
+    fireEvent.click(screen.getByRole("button", { name: /call an agent/i }));
+    const agentCallMenu = screen.getByRole("dialog", { name: "Agent call menu" });
+    expect(agentCallMenu).toBeInTheDocument();
+    expect(agentCallMenu.parentElement).toBe(document.body);
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole("dialog", { name: "Agent call menu" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /call an agent/i }));
+    expect(screen.getByRole("dialog", { name: "Agent call menu" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Start new chat" }));
+    const agentChatDock = screen.getByRole("region", { name: "Agent chat dock" });
+    expect(agentChatDock).toBeInTheDocument();
+    expect(agentChatDock.parentElement).toBe(document.body);
+    expect(agentChatDock).toHaveStyle("position: fixed");
+    expect(agentChatDock).toHaveStyle("bottom: 18px");
+    expect(screen.getByRole("button", { name: "Attach source" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send agent message" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("region", { name: "Agent chat dock" })).not.toBeInTheDocument();
   });
 
   it("consumes saved shell settings for dark compact desktop layout", () => {
@@ -105,6 +173,8 @@ describe("DesktopShell", () => {
         layout: {
           preferredLandingSection: "home",
           showDesktopTelemetry: true,
+          guidedMode: true,
+          guidedTourCompleted: true,
         },
         operatorDefaults: {
           projectRoot: "",
@@ -124,18 +194,32 @@ describe("DesktopShell", () => {
           workspaceTitle="Runtime Console"
           workspaceSubtitle="Bridge status, executors, workspaces, and governance health."
           activeWorkspaceId="runtime"
-          navItems={[
+          navSections={[
             {
-              id: "home",
-              label: "Home",
-              subtitle: "Overview and launch surface",
+              id: "start",
+              label: "Start",
+              detail: "Begin with the overview shell.",
+              items: [
+                {
+                  id: "home",
+                  label: "Home",
+                  subtitle: "Overview and launch surface",
+                },
+              ],
             },
             {
-              id: "runtime",
-              label: "Runtime",
-              subtitle: "Bridge status and workspace health",
-              badge: "live",
-              tone: "success",
+              id: "operate",
+              label: "Operate",
+              detail: "Watch bridge status and workspace health.",
+              items: [
+                {
+                  id: "runtime",
+                  label: "Runtime",
+                  subtitle: "Bridge status and workspace health",
+                  badge: "live",
+                  tone: "success",
+                },
+              ],
             },
           ]}
           quickStats={[
@@ -162,6 +246,7 @@ describe("DesktopShell", () => {
     expect(providerRoot.getAttribute("style")).toContain("--app-shell-max-width: 1240px");
     expect(providerRoot.getAttribute("style")).toContain("--app-transition: none");
     expect(desktopSurface).toHaveStyle("padding: 18px");
-    expect(desktopSurface).toHaveStyle("width: min(100%, var(--app-shell-max-width))");
+    expect(desktopSurface).toHaveStyle("width: 100%");
+    expect(desktopSurface).toHaveStyle("overflow: hidden");
   });
 });

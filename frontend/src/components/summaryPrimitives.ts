@@ -61,11 +61,15 @@ export const summaryHighlightedCardStyle: CSSProperties = {
 export const summaryFactsGridStyle: CSSProperties = {
   display: "grid",
   gap: 8,
+  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+  alignItems: "start",
 };
 
 export const summaryFactRowStyle: CSSProperties = {
   display: "grid",
   gap: 4,
+  minWidth: 0,
+  alignContent: "start",
 };
 
 export const summaryFactLabelStyle: CSSProperties = {
@@ -79,6 +83,9 @@ export const summaryFactValueStyle: CSSProperties = {
   alignItems: "center",
   gap: 6,
   flexWrap: "wrap",
+  minWidth: 0,
+  overflowWrap: "anywhere",
+  wordBreak: "break-word",
 };
 
 export const summaryCardHeadingStyle: CSSProperties = {

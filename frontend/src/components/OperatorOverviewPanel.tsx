@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import { getShellPanelControlGuide, getShellPanelGuide } from "../content/operatorGuideShell";
 import type { ControlPlaneSummaryResponse } from "../types/contracts";
 import {
   getDominantMode,
@@ -28,17 +28,16 @@ import {
   formatSummaryTimestamp,
   summaryActionButtonStyle,
   summaryBadgeStyle,
-  summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
   summaryMutedTextStyle,
   summaryTimestampNoteStyle,
 } from "./summaryPrimitives";
 
-const operatorOverviewGuide = getPanelGuide("operator-overview");
-const operatorOverviewRefreshControlGuide = getPanelControlGuide("operator-overview", "refresh");
-const operatorOverviewStatusFiltersControlGuide = getPanelControlGuide("operator-overview", "status-filters");
-const operatorOverviewLaneActionsControlGuide = getPanelControlGuide("operator-overview", "lane-actions");
+const operatorOverviewGuide = getShellPanelGuide("operator-overview");
+const operatorOverviewRefreshControlGuide = getShellPanelControlGuide("operator-overview", "refresh");
+const operatorOverviewStatusFiltersControlGuide = getShellPanelControlGuide("operator-overview", "status-filters");
+const operatorOverviewLaneActionsControlGuide = getShellPanelControlGuide("operator-overview", "lane-actions");
 
 type OperatorOverviewPanelProps = {
   summary: ControlPlaneSummaryResponse | null;
@@ -527,7 +526,7 @@ export default function OperatorOverviewPanel({
               </div>
             </article>
           ) : null}
-          <div style={summaryCardGridStyle}>
+          <div style={runtimeOverviewMetricsGridStyle}>
             <article style={summaryCardStyle}>
               <h3 style={summaryCardHeadingStyle}>Prompt Sessions</h3>
               <SummaryFacts>
@@ -1020,6 +1019,13 @@ const badgeRowStyle: CSSProperties = {
   gap: 8,
   flexWrap: "wrap",
   marginBottom: 12,
+};
+
+const runtimeOverviewMetricsGridStyle: CSSProperties = {
+  display: "grid",
+  gap: 12,
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 300px), 1fr))",
+  alignItems: "start",
 };
 
 const chipWrapStyle: CSSProperties = {

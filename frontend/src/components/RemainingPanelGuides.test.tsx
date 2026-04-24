@@ -127,7 +127,7 @@ describe("remaining panel guides", () => {
     );
 
     expect(screen.getAllByText("How to use this panel").length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText("Project Build").closest("li")).toHaveAttribute(
+    expect(screen.getByText("Project Build").closest("div[title]")).toHaveAttribute(
       "title",
       "Read each agent family row to confirm tool ownership and role before dispatching work.",
     );

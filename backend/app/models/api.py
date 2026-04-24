@@ -133,12 +133,27 @@ class CodexControlWorktree(BaseModel):
 class CodexControlWorker(BaseModel):
     worker_id: str = Field(..., min_length=1)
     display_name: str = Field(..., min_length=1)
+    agent_profile: str | None = None
+    agent_runtime: str | None = None
+    agent_entrypoint: str | None = None
+    agent_access_notes: str | None = None
+    identity_notes: str | None = None
+    personality_notes: str | None = None
+    soul_directive: str | None = None
+    memory_notes: str | None = None
+    bootstrap_notes: str | None = None
+    capability_tags: list[str] = Field(default_factory=list)
+    context_sources: list[str] = Field(default_factory=list)
+    avatar_label: str | None = None
+    avatar_color: str | None = None
+    avatar_uri: str | None = None
     branch_name: str | None = None
     worktree_path: str | None = None
     base_branch: str | None = None
     status: str = Field(..., min_length=1)
     current_task_id: str | None = None
     summary: str | None = None
+    resume_notes: str | None = None
     updated_at: str | None = None
     last_seen_at: str | None = None
 
@@ -234,9 +249,24 @@ class CodexControlStatusResponse(BaseModel):
 class CodexControlLaneCreateRequest(BaseModel):
     worker_id: str = Field(..., min_length=1)
     display_name: str | None = None
+    agent_profile: str | None = None
+    agent_runtime: str | None = None
+    agent_entrypoint: str | None = None
+    agent_access_notes: str | None = None
+    identity_notes: str | None = None
+    personality_notes: str | None = None
+    soul_directive: str | None = None
+    memory_notes: str | None = None
+    bootstrap_notes: str | None = None
+    capability_tags: list[str] | None = None
+    context_sources: list[str] | None = None
+    avatar_label: str | None = None
+    avatar_color: str | None = None
+    avatar_uri: str | None = None
     branch_name: str | None = None
     worktree_path: str | None = None
     base_branch: str | None = None
+    resume_notes: str | None = None
     bootstrap: bool = True
 
 
@@ -251,20 +281,50 @@ class CodexControlLaneCreateResponse(BaseModel):
 class CodexControlWorkerSyncRequest(BaseModel):
     worker_id: str = Field(..., min_length=1)
     display_name: str | None = None
+    agent_profile: str | None = None
+    agent_runtime: str | None = None
+    agent_entrypoint: str | None = None
+    agent_access_notes: str | None = None
+    identity_notes: str | None = None
+    personality_notes: str | None = None
+    soul_directive: str | None = None
+    memory_notes: str | None = None
+    bootstrap_notes: str | None = None
+    capability_tags: list[str] | None = None
+    context_sources: list[str] | None = None
+    avatar_label: str | None = None
+    avatar_color: str | None = None
+    avatar_uri: str | None = None
     branch_name: str | None = None
     worktree_path: str | None = None
     base_branch: str | None = None
     status: str = Field(default="idle", min_length=1)
     summary: str | None = None
+    resume_notes: str | None = None
 
 
 class CodexControlWorkerHeartbeatRequest(BaseModel):
     status: str | None = None
     summary: str | None = None
     current_task_id: str | None = None
+    agent_profile: str | None = None
+    agent_runtime: str | None = None
+    agent_entrypoint: str | None = None
+    agent_access_notes: str | None = None
+    identity_notes: str | None = None
+    personality_notes: str | None = None
+    soul_directive: str | None = None
+    memory_notes: str | None = None
+    bootstrap_notes: str | None = None
+    capability_tags: list[str] | None = None
+    context_sources: list[str] | None = None
+    avatar_label: str | None = None
+    avatar_color: str | None = None
+    avatar_uri: str | None = None
     branch_name: str | None = None
     worktree_path: str | None = None
     base_branch: str | None = None
+    resume_notes: str | None = None
 
 
 class CodexControlWorkerResponse(BaseModel):
@@ -734,11 +794,56 @@ class EventListItem(BaseModel):
     failure_category: str | None = None
     capability_status: str | None = None
     adapter_mode: str | None = None
+    verification_state: str | None = None
+    verified_count: int | None = None
+    assumed_count: int | None = None
     event_state: str = Field(..., min_length=1)
 
 
 class EventListResponse(BaseModel):
     events: list[EventListItem] = Field(default_factory=list)
+
+
+class AppControlEventSummary(BaseModel):
+    total_events: int = 0
+    applied_events: int = 0
+    reverted_events: int = 0
+    verified_only_events: int = 0
+    assumed_present_events: int = 0
+    verification_not_recorded_events: int = 0
+    latest_event_id: str | None = None
+    latest_event_type: str | None = None
+    latest_created_at: str | None = None
+    latest_summary: str | None = None
+    latest_verified_count: int | None = None
+    latest_assumed_count: int | None = None
+    latest_script_id: str | None = None
+
+
+class EventSummaryResponse(BaseModel):
+    app_control: AppControlEventSummary = Field(default_factory=AppControlEventSummary)
+
+
+class AppControlEventDetailItem(BaseModel):
+    id: str = Field(..., min_length=1)
+    label: str = Field(..., min_length=1)
+    detail: str = Field(..., min_length=1)
+    delta: str | None = None
+    verification: str | None = None
+
+
+class AppControlEventDetail(BaseModel):
+    script_id: str | None = None
+    mode: str | None = None
+    summary: str | None = None
+    verified_count: int | None = None
+    assumed_count: int | None = None
+    items: list[AppControlEventDetailItem] = Field(default_factory=list)
+
+
+class EventDetailResponse(BaseModel):
+    event: EventRecord
+    app_control: AppControlEventDetail | None = None
 
 
 class PoliciesResponse(BaseModel):

@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.adapters import router as adapters_router
+from app.api.routes.app_control import router as app_control_router
 from app.api.routes.approvals import router as approvals_router
 from app.api.routes.artifacts import router as artifacts_router
 from app.api.routes.autonomy import router as autonomy_router
@@ -70,6 +71,7 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(o3de_target_router)
 app.include_router(adapters_router)
+app.include_router(app_control_router)
 app.include_router(summary_router)
 app.include_router(tools_router)
 app.include_router(tools_catalog_router)
@@ -100,6 +102,8 @@ def root() -> RootStatus:
         "/o3de/target",
         "/o3de/bridge",
         "/adapters",
+        "/app/control/preview",
+        "/app/control/report",
         "/summary",
         "/tools/catalog",
         "/tools/dispatch",
@@ -112,6 +116,8 @@ def root() -> RootStatus:
         "/locks/cards",
         "/events",
         "/events/cards",
+        "/events/summary",
+        "/events/{event_id}",
         "/policies",
         "/executions",
         "/executions/cards",
@@ -142,7 +148,7 @@ def root() -> RootStatus:
     if workspaces_router is not None:
         routes.append("/workspaces")
     if prompt_control_router is not None:
-        routes.extend(["/prompt/capabilities", "/prompt/sessions"])
+        routes.extend(["/prompt/capabilities", "/prompt/shortcuts", "/prompt/sessions"])
     return RootStatus(
         name="O3DE Agent Control Backend",
         status="phase-7-gem-state-refinement",

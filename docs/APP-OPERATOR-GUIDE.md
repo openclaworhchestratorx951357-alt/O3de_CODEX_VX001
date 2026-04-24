@@ -906,6 +906,7 @@ Records is the evidence workspace. When you need persisted truth, this is where 
 - Open Runs to understand lineage and unresolved work at the run level.
 - Open Executions when warnings, truth markers, or child evidence need review.
 - Open Artifacts before sharing outputs or claiming a mutation result is safe.
+- Open Events when a persisted timeline row needs full receipt or detail review.
 ### Launchpad shortcut
 
 - **Records Explorer**: Runs, executions, artifacts, and detail drilldowns in one organized lane.
@@ -913,10 +914,10 @@ Records is the evidence workspace. When you need persisted truth, this is where 
 
 ### Windows
 #### Records Explorer
-- Inspect persisted runs, executions, and artifacts in a dedicated workspace.
+- Inspect persisted runs, executions, artifacts, and events in a dedicated workspace.
 - Quick tip: Use the tab strip to move through persisted evidence surfaces without leaving the evidence workspace.
 - Stay in Records while reviewing evidence.
-- Use tab changes to pivot between runs, executions, and artifacts instead of leaving the workspace.
+- Use tab changes to pivot between runs, executions, artifacts, and events instead of leaving the workspace.
 - Treat this workspace as the closeout and handoff evidence source.
 ### Surfaces and tabs
 
@@ -943,6 +944,14 @@ Records is the evidence workspace. When you need persisted truth, this is where 
 - Review artifacts before handoff or publish.
 - Use artifact evidence to confirm whether a mutation claim is trustworthy.
 - Treat this tab as the source of truth for output files, not just a convenience view.
+
+#### Events
+
+- Timeline chronology and persisted event receipts.
+- Quick tip: Use Events to inspect persisted timeline records, including App OS audit receipts and event-level metadata.
+- Use this tab when a timeline row needs full event detail instead of a compact card.
+- Inspect App OS apply and revert receipts here after the original modal is closed.
+- Treat this tab as the persisted event record view, not a replacement for runs or execution detail.
 
 
 ## Maintenance workflow

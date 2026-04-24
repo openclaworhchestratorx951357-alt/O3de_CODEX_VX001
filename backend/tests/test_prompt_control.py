@@ -101,6 +101,49 @@ def test_prompt_session_preview_compiles_typed_steps_across_families() -> None:
         ] == "prompt-ready-read-only"
 
 
+def test_prompt_shortcuts_return_fast_contextual_viewport_recommendations() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/shortcuts",
+            json={
+                "mode": "game",
+                "scenario_id": "puzzle-exploration",
+                "scenario_label": "Puzzle exploration",
+                "stage_label": "2. Test room",
+                "focus_id": "viewport",
+                "focus_label": "Use current viewport",
+                "viewport_label": "Game viewport control surface",
+                "active_tool_label": "Component Palette",
+                "project_profile_name": "McpSandbox canonical target",
+                "source_context_name": "puzzle-brief.md",
+                "source_context": "The player redirects light beams through mirrors in a lighthouse test room.",
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["generated_by"] == "deterministic-backend-shortcuts-v1"
+        assert payload["mode"] == "game"
+        assert payload["scenario_id"] == "puzzle-exploration"
+        assert payload["stage_label"] == "2. Test room"
+        assert payload["focus_id"] == "viewport"
+        shortcuts = payload["shortcuts"]
+        assert shortcuts[0]["shortcut_id"] == "analyze-viewport-recommend"
+        assert "Analyze the current O3DE viewport/context" in shortcuts[0]["prompt_text"]
+        assert "Component Palette" in shortcuts[0]["prompt_text"]
+        assert "Game viewport control surface" in shortcuts[0]["prompt_text"]
+        assert "McpSandbox canonical target" in shortcuts[0]["prompt_text"]
+        assert "puzzle-brief.md" in shortcuts[0]["prompt_text"]
+        assert "light beams through mirrors" in shortcuts[0]["prompt_text"]
+        assert {
+            shortcut["shortcut_id"] for shortcut in shortcuts
+        } == {
+            "analyze-viewport-recommend",
+            "context-aware-next-step",
+            "builder-task-draft",
+            "safety-check",
+        }
+
+
 def test_prompt_session_execute_creates_child_lineage_and_pauses_for_approval() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)

@@ -1,4 +1,4 @@
-import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import { getShellPanelControlGuide, getShellPanelGuide } from "../content/operatorGuideShell";
 import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryBadgeStyle,
@@ -6,8 +6,8 @@ import {
   summarySectionStyle,
 } from "./summaryPrimitives";
 
-const overviewHandoffPackageGuide = getPanelGuide("overview-handoff-package");
-const overviewHandoffPackageEntryControlGuide = getPanelControlGuide("overview-handoff-package", "package-entry");
+const overviewHandoffPackageGuide = getShellPanelGuide("overview-handoff-package");
+const overviewHandoffPackageEntryControlGuide = getShellPanelControlGuide("overview-handoff-package", "package-entry");
 
 type OverviewHandoffPackageEntry = {
   id: string;

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -60,7 +61,7 @@ const policies: ToolPolicy[] = [
 ];
 
 describe("PoliciesPanel", () => {
-  it("renders truthful execution mode and dry run support for live policy records", () => {
+  it("renders truthful execution mode and dry run support for live policy records", async () => {
     render(<PoliciesPanel items={policies} loading={false} error={null} />);
 
     const sessionPolicy = screen.getByText("editor.session.open").closest("li");
@@ -72,14 +73,21 @@ describe("PoliciesPanel", () => {
     expect(settingsPatchPolicy).not.toBeNull();
 
     expect(within(sessionPolicy as HTMLLIElement).getByText("real")).toBeInTheDocument();
-    expect(within(sessionPolicy as HTMLLIElement).getByText("not supported")).toBeInTheDocument();
+    expect(screen.getByText("Governance first steps")).toBeInTheDocument();
 
     expect(within(buildConfigurePolicy as HTMLLIElement).getAllByText("plan-only")).toHaveLength(2);
-    expect(within(buildConfigurePolicy as HTMLLIElement).getByText("supported")).toBeInTheDocument();
 
     expect(within(settingsPatchPolicy as HTMLLIElement).getByText("gated")).toBeInTheDocument();
-    expect(within(settingsPatchPolicy as HTMLLIElement).getByText("supported")).toBeInTheDocument();
 
+    const buildMeaningToggle = within(buildConfigurePolicy as HTMLLIElement).getByText("Meaning and next requirement");
+    const settingsMeaningToggle = within(settingsPatchPolicy as HTMLLIElement).getByText("Meaning and next requirement");
+
+    await userEvent.click(buildMeaningToggle);
+    await userEvent.click(settingsMeaningToggle);
+
+    expect(within(buildConfigurePolicy as HTMLLIElement).getByText("supported")).toBeInTheDocument();
+    expect(within(sessionPolicy as HTMLLIElement).getByText("not supported")).toBeInTheDocument();
+    expect(within(settingsPatchPolicy as HTMLLIElement).getByText("supported")).toBeInTheDocument();
     expect(screen.getByText(`Meaning: ${describeBuildConfigureMeaning()}`)).toBeInTheDocument();
     expect(screen.getByText(`Meaning: ${describeSettingsPatchPolicyMeaning()}`)).toBeInTheDocument();
   });

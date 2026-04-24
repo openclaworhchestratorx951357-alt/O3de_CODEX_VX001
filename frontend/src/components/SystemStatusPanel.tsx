@@ -8,7 +8,9 @@ import {
   getPersistenceAttentionLabel,
   getSchemaAttentionLabel,
 } from "../lib/operatorStatus";
+import ActionReviewCard from "./ActionReviewCard";
 import CopyTextButton from "./CopyTextButton";
+import ExpandablePanelSection from "./ExpandablePanelSection";
 import OperatorStatusRail from "./OperatorStatusRail";
 import SummarySection from "./SummarySection";
 import { SummaryFact, SummaryFacts } from "./SummaryFacts";
@@ -19,7 +21,6 @@ import {
 } from "./statusChipTones";
 import {
   summaryActionButtonStyle,
-  summaryCardGridStyle,
   summaryCardHeadingStyle,
   summaryCardStyle,
 } from "./summaryPrimitives";
@@ -73,9 +74,11 @@ export default function SystemStatusPanel(
       emptyMessage="No readiness data available."
       hasItems={Boolean(readinessData || bridgeData)}
       marginTop={0}
+      quickStartTitle="Runtime first checks"
+      quickStartItems={buildSystemStatusQuickStartItems(readinessData, bridgeData)}
     >
       {readinessData || bridgeData ? (
-        <div style={summaryCardGridStyle}>
+        <div style={runtimeStatusGridStyle}>
           <article style={summaryCardStyle}>
             <h3 style={summaryCardHeadingStyle}>Editor Bridge</h3>
             <SummaryFacts>
@@ -147,20 +150,32 @@ export default function SystemStatusPanel(
               Bridge telemetry reflects the persistent Gem-backed editor host only. It helps operators distinguish live bridge observation from simulated fallback and does not widen the admitted real editor set.
             </p>
             {onCleanupBridgeResults ? (
-              <div style={bridgeActionRowStyle}>
-                <button
-                  type="button"
-                  onClick={onCleanupBridgeResults}
-                  title={systemStatusCleanupControlGuide.tooltip}
-                  disabled={bridgeCleanupBusy || !bridgeData?.configured}
-                  style={summaryActionButtonStyle}
-                >
-                  {bridgeCleanupBusy ? "Cleaning stale results..." : "Clear stale success results"}
-                </button>
-                <span style={subtleTextStyle}>
-                  Removes stale successful `results/*.json.resp` transport artifacts only. Deadletters remain preserved by default.
-                </span>
-              </div>
+              <ActionReviewCard
+                ariaLabel="Bridge cleanup review"
+                eyebrow="Cleanup review"
+                eyebrowTone="warning"
+                title="Review before clearing stale bridge results"
+                description="No files are removed until you click. This cleanup only targets stale successful bridge transport responses and keeps failure evidence intact."
+                action={(
+                  <button
+                    type="button"
+                    onClick={onCleanupBridgeResults}
+                    title={systemStatusCleanupControlGuide.tooltip}
+                    disabled={bridgeCleanupBusy || !bridgeData?.configured}
+                    style={summaryActionButtonStyle}
+                  >
+                    {bridgeCleanupBusy ? "Cleaning stale results..." : "Clear stale success results"}
+                  </button>
+                )}
+                details={[
+                  { label: "Action", value: "remove stale successful bridge response artifacts only" },
+                  { label: "Preserved evidence", value: "deadletters remain preserved by default" },
+                  { label: "Configured target", value: formatBridgeValue(bridgeData?.project_root, "not reported") },
+                  { label: "Results queue", value: bridgeData?.queue_counts.results ?? 0 },
+                  { label: "Deadletters", value: `${bridgeData?.queue_counts.deadletter ?? 0} preserved` },
+                  { label: "Last cleanup", value: formatBridgeValue(formatIsoLabel(lastCleanup?.attempted_at)) },
+                ]}
+              />
             ) : null}
             {bridgeCleanupStatus ? (
               <p style={bridgeStatusNoteStyle}>{bridgeCleanupStatus}</p>
@@ -202,21 +217,25 @@ export default function SystemStatusPanel(
                     </span>
                   </div>
                 ) : null}
-                <p style={listLabelStyle}><strong>Recent deadletters</strong></p>
-                <ul style={listStyle}>
-                  {bridgeData.recent_deadletters.map((deadletter) => (
-                    <li key={deadletter.bridge_command_id} style={{ marginBottom: 10 }}>
-                      <strong>{deadletter.operation ?? "unknown operation"}</strong>:{" "}
-                      {deadletter.error_code ?? "no error code"}
-                      <div style={subtleTextStyle}>
-                        {deadletter.result_summary ?? "No summary recorded."}
-                      </div>
-                      <div style={subtleTextStyle}>
-                        Finished: {formatIsoLabel(deadletter.finished_at)}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <ExpandablePanelSection
+                  title="Recent deadletters"
+                  preview={`${bridgeData.recent_deadletters.length} preserved bridge failure${bridgeData.recent_deadletters.length === 1 ? "" : "s"}`}
+                >
+                  <ul style={listStyle}>
+                    {bridgeData.recent_deadletters.map((deadletter) => (
+                      <li key={deadletter.bridge_command_id} style={{ marginBottom: 10 }}>
+                        <strong>{deadletter.operation ?? "unknown operation"}</strong>:{" "}
+                        {deadletter.error_code ?? "no error code"}
+                        <div style={subtleTextStyle}>
+                          {deadletter.result_summary ?? "No summary recorded."}
+                        </div>
+                        <div style={subtleTextStyle}>
+                          Finished: {formatIsoLabel(deadletter.finished_at)}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </ExpandablePanelSection>
               </>
             ) : null}
           </article>
@@ -322,12 +341,16 @@ export default function SystemStatusPanel(
                   .join(", ")}
               </SummaryFact>
             </SummaryFacts>
-            <p style={listLabelStyle}><strong>Covered tools</strong></p>
-            <ul style={listStyle}>
-              {readinessData.schema_validation.persisted_execution_details_tools.map((toolName) => (
-                <li key={toolName}>{toolName}</li>
-              ))}
-            </ul>
+            <ExpandablePanelSection
+              title="Covered tools"
+              preview={`${readinessData.schema_validation.persisted_execution_details_tools.length} tool${readinessData.schema_validation.persisted_execution_details_tools.length === 1 ? "" : "s"} with persisted execution details`}
+            >
+              <ul style={listStyle}>
+                {readinessData.schema_validation.persisted_execution_details_tools.map((toolName) => (
+                  <li key={toolName}>{toolName}</li>
+                ))}
+              </ul>
+            </ExpandablePanelSection>
           </article>
           ) : null}
           {readinessData ? (
@@ -342,25 +365,30 @@ export default function SystemStatusPanel(
                 </SummaryFact>
               </SummaryFacts>
             </div>
-            <ul style={listStyle}>
-              {readinessData.schema_validation.persisted_family_coverage.map((family) => (
-                <li key={family.family} style={{ marginBottom: 10 }}>
-                  <strong>{family.family}</strong>: {family.execution_details_tools}/
-                  {family.total_tools} execution-details, {family.artifact_metadata_tools}/
-                  {family.total_tools} artifact-metadata
-                  <div style={subtleTextStyle}>
-                    Covered: {family.covered_tools.length > 0
-                      ? family.covered_tools.join(", ")
-                      : "none"}
-                  </div>
-                  <div style={subtleTextStyle}>
-                    Remaining: {family.uncovered_tools.length > 0
-                      ? family.uncovered_tools.join(", ")
-                      : "none"}
-                  </div>
-                </li>
-              ))}
-            </ul>
+            <ExpandablePanelSection
+              title="Family rollout details"
+              preview={`${readinessData.schema_validation.persisted_family_coverage.length} family bucket${readinessData.schema_validation.persisted_family_coverage.length === 1 ? "" : "s"}`}
+            >
+              <ul style={listStyle}>
+                {readinessData.schema_validation.persisted_family_coverage.map((family) => (
+                  <li key={family.family} style={{ marginBottom: 10 }}>
+                    <strong>{family.family}</strong>: {family.execution_details_tools}/
+                    {family.total_tools} execution-details, {family.artifact_metadata_tools}/
+                    {family.total_tools} artifact-metadata
+                    <div style={subtleTextStyle}>
+                      Covered: {family.covered_tools.length > 0
+                        ? family.covered_tools.join(", ")
+                        : "none"}
+                    </div>
+                    <div style={subtleTextStyle}>
+                      Remaining: {family.uncovered_tools.length > 0
+                        ? family.uncovered_tools.join(", ")
+                        : "none"}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </ExpandablePanelSection>
           </article>
           ) : null}
           {readinessData ? (
@@ -393,6 +421,35 @@ export default function SystemStatusPanel(
       ) : null}
     </SummarySection>
   );
+}
+
+function buildSystemStatusQuickStartItems(
+  readinessData: ReadinessStatus | null,
+  bridgeData: O3DEBridgeStatus | null,
+): string[] {
+  const items: string[] = [];
+
+  if (!bridgeData?.configured) {
+    items.push("Confirm Runtime is attached to the intended O3DE project before treating any editor path as live.");
+  } else if (!bridgeData.heartbeat_fresh) {
+    items.push("Bridge heartbeat is stale. Stay on Runtime Overview until the persistent bridge host is healthy again.");
+  } else {
+    items.push("Bridge heartbeat is fresh. Confirm the active target and current level here before you move into real-editor work.");
+  }
+
+  if (readinessData && !readinessData.persistence_ready) {
+    items.push("Persistence is not ready yet. Fix backend storage before trusting runs, executions, or artifacts.");
+  } else if (readinessData?.ok) {
+    items.push("Backend and persistence are ready. Move to Governance before making capability-boundary claims.");
+  }
+
+  if ((bridgeData?.queue_counts.deadletter ?? 0) > 0) {
+    items.push("Review preserved bridge deadletters or copy the follow-up draft before retrying the same editor action.");
+  } else {
+    items.push("If bridge diagnostics stay clean here, use Executors or Workspaces next for ownership and target follow-up.");
+  }
+
+  return items;
 }
 
 function formatBridgeValue(value: unknown, fallback = "none") {
@@ -523,29 +580,36 @@ function buildBridgeHeartbeatLagNote(
   return "Bridge heartbeat is healthy, but the editor context snapshot may still be catching up after a real editor action. Refresh after the next pulse if active level remains unreported.";
 }
 
-const listLabelStyle: CSSProperties = {
-  marginBottom: 8,
+const runtimeStatusGridStyle: CSSProperties = {
+  display: "grid",
+  gap: 12,
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
+  alignItems: "start",
 };
 
 const listStyle: CSSProperties = {
   margin: 0,
   paddingLeft: 18,
+  overflowWrap: "anywhere",
 };
 
 const subtleTextStyle: CSSProperties = {
   color: "var(--app-muted-color)",
   marginTop: 4,
+  overflowWrap: "anywhere",
 };
 
 const bridgeWarningStyle: CSSProperties = {
   color: "var(--app-warning-text)",
   marginTop: 12,
+  overflowWrap: "anywhere",
 };
 
 const bridgeStatusNoteStyle: CSSProperties = {
   color: "var(--app-info-text)",
   marginTop: 8,
   marginBottom: 0,
+  overflowWrap: "anywhere",
 };
 
 const bridgeActionRowStyle: CSSProperties = {

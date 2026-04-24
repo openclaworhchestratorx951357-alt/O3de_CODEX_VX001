@@ -80,6 +80,24 @@ export default function ArtifactsPanel({
       error={error}
       emptyMessage={normalizedQuery ? "No artifacts match the current search." : "No artifacts are recorded yet."}
       hasItems={filteredItems.length > 0}
+      emptyGuideTitle={normalizedQuery ? "Widen the artifact search" : "Create artifact evidence first"}
+      emptyGuideDescription={normalizedQuery
+        ? "The current search hides all artifact records. Artifacts are easiest to find by label, run ID, execution ID, path, or evidence role."
+        : "Artifacts appear after backend work writes durable request, response, proof, or metadata records."}
+      emptyGuideSteps={normalizedQuery ? [
+        "Clear the search or search by run ID, execution ID, path, or artifact role.",
+        "Open the matching Run or Execution if you need the broader lineage first.",
+        "Refresh artifacts after new backend work completes.",
+      ] : [
+        "Run a prompt or typed dispatch that produces persisted evidence.",
+        "Open Records after the run completes or fails.",
+        "Use artifacts to verify exact payloads, paths, and retained evidence.",
+      ]}
+      emptyGuideExampleTitle={normalizedQuery ? "Search examples" : "Example artifact source"}
+      emptyGuideExample={normalizedQuery
+        ? "Try request, response, proof, McpSandbox, or the first few characters of an execution ID."
+        : "The repo-owned live editor authoring proof writes a JSON evidence bundle and linked backend artifacts."}
+      renderChildrenWhenEmpty
       actionHint="Local refresh updates persisted artifact records and preserves selected artifact detail when available."
       actions={onRefresh ? (
         <button
