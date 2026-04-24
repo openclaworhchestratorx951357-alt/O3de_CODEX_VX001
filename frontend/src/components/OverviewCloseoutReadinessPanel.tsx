@@ -1,4 +1,4 @@
-import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import { getShellPanelControlGuide, getShellPanelGuide } from "../content/operatorGuideShell";
 import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryBadgeStyle,
@@ -6,8 +6,8 @@ import {
   summarySectionStyle,
 } from "./summaryPrimitives";
 
-const overviewCloseoutReadinessGuide = getPanelGuide("overview-closeout-readiness");
-const overviewCloseoutReadinessEntryControlGuide = getPanelControlGuide("overview-closeout-readiness", "readiness-entry");
+const overviewCloseoutReadinessGuide = getShellPanelGuide("overview-closeout-readiness");
+const overviewCloseoutReadinessEntryControlGuide = getShellPanelControlGuide("overview-closeout-readiness", "readiness-entry");
 
 type OverviewCloseoutReadinessEntry = {
   id: string;

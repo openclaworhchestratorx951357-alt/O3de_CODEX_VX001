@@ -92,6 +92,7 @@ Common examples:
 
 ```powershell
 pwsh -File .\scripts\dev.ps1 checks
+pwsh -File .\scripts\dev.ps1 app-os-readiness
 pwsh -File .\scripts\dev.ps1 backend-lint
 pwsh -File .\scripts\dev.ps1 backend-test
 pwsh -File .\scripts\dev.ps1 frontend-lint
@@ -101,6 +102,7 @@ pwsh -File .\scripts\dev.ps1 frontend-build
 Notes:
 - backend tasks use the repo-local `backend/.vendor_tools` install path and set `PYTHONPATH` automatically
 - frontend tasks run from `frontend/`
+- `app-os-readiness` reruns the current branch proof surface from the repo root: focused frontend tests, frontend build, and backend smoke
 - compose tasks are available, but still require Docker to be installed locally
 
 Local container startup:

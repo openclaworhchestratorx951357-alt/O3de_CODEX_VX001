@@ -1,9 +1,9 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { Suspense, lazy, useState, type CSSProperties, type ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
-import HomeTaskModePanel, { type HomeTaskModeId } from "../HomeTaskModePanel";
-import { getWorkspaceGuide, getWorkspaceWindowGuide } from "../../content/operatorGuide";
+import type { HomeTaskModeId } from "../HomeTaskModePanel";
+import { getShellWorkspaceGuide, getShellWorkspaceWindowGuide } from "../../content/operatorGuideShell";
 
 type HomeSurfaceId = "start" | "mission-control" | "guidebook";
 
@@ -19,11 +19,12 @@ type HomeWorkspaceViewProps = {
   onActiveTaskModeChange?: (modeId: HomeTaskModeId) => void;
 };
 
-const missionControlWindow = getWorkspaceWindowGuide("home", "mission-control");
-const launchpadWindow = getWorkspaceWindowGuide("home", "launchpad");
-const overviewWindow = getWorkspaceWindowGuide("home", "operator-overview");
-const guidebookWindow = getWorkspaceWindowGuide("home", "guidebook");
-const homeWorkspace = getWorkspaceGuide("home");
+const missionControlWindow = getShellWorkspaceWindowGuide("home", "mission-control");
+const launchpadWindow = getShellWorkspaceWindowGuide("home", "launchpad");
+const overviewWindow = getShellWorkspaceWindowGuide("home", "operator-overview");
+const guidebookWindow = getShellWorkspaceWindowGuide("home", "guidebook");
+const homeWorkspace = getShellWorkspaceGuide("home");
+const HomeTaskModePanel = lazy(() => import("../HomeTaskModePanel"));
 
 const items: DesktopTabStripItem[] = [
   {
@@ -87,13 +88,15 @@ export default function HomeWorkspaceView({
     >
       {activeSurfaceId === "start" ? (
         <div style={guidedShellStyle}>
-          <HomeTaskModePanel
-            activeModeId={activeTaskModeId}
-            onOpenPromptStudio={onOpenPromptStudio}
-            onOpenRuntimeOverview={onOpenRuntimeOverview}
-            onOpenBuilder={onOpenBuilder}
-            onActiveModeChange={onActiveTaskModeChange}
-          />
+          <Suspense fallback={<div style={taskModeLoadingStyle}>Loading task launcher...</div>}>
+            <HomeTaskModePanel
+              activeModeId={activeTaskModeId}
+              onOpenPromptStudio={onOpenPromptStudio}
+              onOpenRuntimeOverview={onOpenRuntimeOverview}
+              onOpenBuilder={onOpenBuilder}
+              onActiveModeChange={onActiveTaskModeChange}
+            />
+          </Suspense>
           <DesktopWindow
             variant="nested"
             title={missionControlWindow.title}
@@ -160,4 +163,14 @@ const guidedGridStyle = {
 const guidedShellStyle = {
   display: "grid",
   gap: 16,
+} satisfies CSSProperties;
+
+const taskModeLoadingStyle = {
+  minHeight: 120,
+  display: "grid",
+  placeItems: "center",
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
+  background: "var(--app-panel-bg-muted)",
+  color: "var(--app-text-muted)",
 } satisfies CSSProperties;

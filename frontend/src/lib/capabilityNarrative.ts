@@ -59,6 +59,9 @@ export function describeTimelineMeaning(
   if (capabilityStatus === "runtime-reaching") {
     return "This event reflects an editor runtime path that reaches the live boundary but remains narrowed until stable on the target editor build.";
   }
+  if (capabilityStatus === "reviewable_local") {
+    return "This event records an App OS apply or revert receipt from the admitted local settings and workspace lane. Verified items were read back explicitly; assumed items still rely on request-time evidence.";
+  }
 
   return null;
 }

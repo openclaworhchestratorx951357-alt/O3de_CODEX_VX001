@@ -1,4 +1,4 @@
-import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import { getShellPanelControlGuide, getShellPanelGuide } from "../content/operatorGuideShell";
 import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryBadgeStyle,
@@ -6,8 +6,8 @@ import {
   summarySectionStyle,
 } from "./summaryPrimitives";
 
-const overviewHandoffConfidenceGuide = getPanelGuide("overview-handoff-confidence");
-const overviewHandoffConfidenceSummaryControlGuide = getPanelControlGuide("overview-handoff-confidence", "confidence-summary");
+const overviewHandoffConfidenceGuide = getShellPanelGuide("overview-handoff-confidence");
+const overviewHandoffConfidenceSummaryControlGuide = getShellPanelControlGuide("overview-handoff-confidence", "confidence-summary");
 
 type OverviewHandoffConfidencePanelProps = {
   confidenceLabel: string;

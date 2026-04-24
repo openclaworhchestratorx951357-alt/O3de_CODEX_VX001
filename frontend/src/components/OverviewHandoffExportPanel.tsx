@@ -1,4 +1,4 @@
-import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import { getShellPanelControlGuide, getShellPanelGuide } from "../content/operatorGuideShell";
 import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryActionButtonStyle,
@@ -7,9 +7,9 @@ import {
   summarySectionStyle,
 } from "./summaryPrimitives";
 
-const overviewHandoffExportGuide = getPanelGuide("overview-handoff-export");
-const overviewHandoffExportCopyControlGuide = getPanelControlGuide("overview-handoff-export", "copy-draft");
-const overviewHandoffExportPreviewControlGuide = getPanelControlGuide("overview-handoff-export", "draft-preview");
+const overviewHandoffExportGuide = getShellPanelGuide("overview-handoff-export");
+const overviewHandoffExportCopyControlGuide = getShellPanelControlGuide("overview-handoff-export", "copy-draft");
+const overviewHandoffExportPreviewControlGuide = getShellPanelControlGuide("overview-handoff-export", "draft-preview");
 
 type OverviewHandoffExportEntry = {
   id: string;

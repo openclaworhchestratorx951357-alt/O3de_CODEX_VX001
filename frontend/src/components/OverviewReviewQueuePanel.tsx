@@ -1,4 +1,4 @@
-import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import { getShellPanelControlGuide, getShellPanelGuide } from "../content/operatorGuideShell";
 import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryActionButtonStyle,
@@ -7,10 +7,10 @@ import {
   summarySectionStyle,
 } from "./summaryPrimitives";
 
-const overviewReviewQueueGuide = getPanelGuide("overview-review-queue");
-const overviewReviewQueueEntryControlGuide = getPanelControlGuide("overview-review-queue", "queue-entry");
-const overviewReviewQueueOpenControlGuide = getPanelControlGuide("overview-review-queue", "open-context");
-const overviewReviewQueueTriageControlGuide = getPanelControlGuide("overview-review-queue", "triage-actions");
+const overviewReviewQueueGuide = getShellPanelGuide("overview-review-queue");
+const overviewReviewQueueEntryControlGuide = getShellPanelControlGuide("overview-review-queue", "queue-entry");
+const overviewReviewQueueOpenControlGuide = getShellPanelControlGuide("overview-review-queue", "open-context");
+const overviewReviewQueueTriageControlGuide = getShellPanelControlGuide("overview-review-queue", "triage-actions");
 
 type OverviewReviewQueueEntry = {
   id: string;

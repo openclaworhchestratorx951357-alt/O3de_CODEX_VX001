@@ -1566,15 +1566,16 @@
     {
       "id": "records",
       "navLabel": "Records",
-      "navSubtitle": "Runs, executions, artifacts",
+      "navSubtitle": "Runs, executions, artifacts, events",
       "workspaceTitle": "Records",
-      "workspaceSubtitle": "Runs, executions, and artifacts arranged into focused inspection surfaces.",
-      "tooltip": "Use Records to inspect persisted evidence, warnings, truth markers, and output artifacts before handoff or closeout.",
+      "workspaceSubtitle": "Runs, executions, artifacts, and event receipts arranged into focused inspection surfaces.",
+      "tooltip": "Use Records to inspect persisted evidence, warnings, truth markers, event receipts, and output artifacts before handoff or closeout.",
       "guideSummary": "Records is the evidence workspace. When you need persisted truth, this is where you verify it instead of relying on short-term UI state alone.",
       "operatorChecklist": [
         "Open Runs to understand lineage and unresolved work at the run level.",
         "Open Executions when warnings, truth markers, or child evidence need review.",
-        "Open Artifacts before sharing outputs or claiming a mutation result is safe."
+        "Open Artifacts before sharing outputs or claiming a mutation result is safe.",
+        "Open Events when a persisted timeline row needs full receipt or detail review."
       ],
       "launchpad": {
         "label": "Records Explorer",
@@ -1585,11 +1586,11 @@
         {
           "id": "records-explorer",
           "title": "Records Explorer",
-          "subtitle": "Inspect persisted runs, executions, and artifacts in a dedicated workspace.",
+          "subtitle": "Inspect persisted runs, executions, artifacts, and events in a dedicated workspace.",
           "tooltip": "Use the tab strip to move through persisted evidence surfaces without leaving the evidence workspace.",
           "instructions": [
             "Stay in Records while reviewing evidence.",
-            "Use tab changes to pivot between runs, executions, and artifacts instead of leaving the workspace.",
+            "Use tab changes to pivot between runs, executions, artifacts, and events instead of leaving the workspace.",
             "Treat this workspace as the closeout and handoff evidence source."
           ]
         }
@@ -1626,6 +1627,17 @@
             "Review artifacts before handoff or publish.",
             "Use artifact evidence to confirm whether a mutation claim is trustworthy.",
             "Treat this tab as the source of truth for output files, not just a convenience view."
+          ]
+        },
+        {
+          "id": "events",
+          "label": "Events",
+          "detail": "Timeline chronology and persisted event receipts.",
+          "tooltip": "Use Events to inspect persisted timeline records, including App OS audit receipts and event-level metadata.",
+          "instructions": [
+            "Use this tab when a timeline row needs full event detail instead of a compact card.",
+            "Inspect App OS apply and revert receipts here after the original modal is closed.",
+            "Treat this tab as the persisted event record view, not a replacement for runs or execution detail."
           ]
         }
       ]

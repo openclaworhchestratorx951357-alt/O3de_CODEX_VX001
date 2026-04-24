@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SettingsProvider } from "../lib/settings/context";
@@ -7,9 +8,30 @@ import AppControlCommandCenter from "./AppControlCommandCenter";
 
 const apiMocks = vi.hoisted(() => ({
   previewAppControlScript: vi.fn(),
+  buildAppControlExecutionReport: vi.fn(),
 }));
 
 vi.mock("../lib/api", () => apiMocks);
+
+function AppControlHarness({
+  initialWorkspaceId = "home",
+  onSelectWorkspaceSpy,
+}: {
+  initialWorkspaceId?: string;
+  onSelectWorkspaceSpy?: ReturnType<typeof vi.fn>;
+}) {
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState(initialWorkspaceId);
+
+  return (
+    <AppControlCommandCenter
+      activeWorkspaceId={activeWorkspaceId}
+      onSelectWorkspace={(workspaceId) => {
+        onSelectWorkspaceSpy?.(workspaceId);
+        setActiveWorkspaceId(workspaceId);
+      }}
+    />
+  );
+}
 
 Object.defineProperty(window, "matchMedia", {
   writable: true,
@@ -30,6 +52,63 @@ describe("AppControlCommandCenter", () => {
     window.localStorage.clear();
     window.sessionStorage.clear();
     vi.clearAllMocks();
+    apiMocks.buildAppControlExecutionReport.mockImplementation(async (request) => ({
+      script_id: request.script_id,
+      mode: request.mode,
+      summary: request.mode === "applied"
+        ? "Applied 3 planned operation(s). Verified results are marked explicitly below."
+        : "Requested restore of the last saved App OS backup. Verified results are marked explicitly below.",
+      items: request.mode === "applied"
+        ? [
+            {
+              id: "set-theme-dark",
+              label: "Set the app theme mode to dark.",
+              detail: "Verified by re-reading the local saved app settings after apply.",
+              delta: "Theme mode: system -> dark",
+              verification: "verified",
+            },
+            {
+              id: "set-density-compact",
+              label: "Use compact app spacing.",
+              detail: "Verified by re-reading the local saved app settings after apply.",
+              delta: "Density: comfortable -> compact",
+              verification: "verified",
+            },
+            {
+              id: "open-workspace-runtime",
+              label: "Open the runtime workspace.",
+              detail: "Navigation request was sent to the shell, but the current shell workspace focus does not match yet.",
+              delta: "Workspace: home -> runtime",
+              verification: "assumed",
+              verification_source: {
+                kind: "navigation",
+                workspace_id: "runtime",
+              },
+            },
+          ]
+        : [
+            {
+              id: `${request.script_id}-settings-restore`,
+              label: "Restore saved app settings profile",
+              detail: "Verified by re-reading the local saved settings profile after revert.",
+              delta: "Theme mode: dark -> system | Density: compact -> comfortable",
+              verification: "verified",
+            },
+            {
+              id: `${request.script_id}-workspace-restore`,
+              label: "Return to home workspace",
+              detail: "Navigation request was sent to the shell, but the current shell workspace focus does not match yet.",
+              delta: "Workspace: runtime -> home",
+              verification: "assumed",
+              verification_source: {
+                kind: "navigation",
+                workspace_id: "home",
+              },
+            },
+          ],
+      generated_by: "deterministic-app-control-report-v1",
+      event_id: request.mode === "applied" ? "evt-app-control-apply" : "evt-app-control-revert",
+    }));
   });
 
   it("previews, approves, applies, and reverts a safe app-control script", async () => {
@@ -79,7 +158,7 @@ describe("AppControlCommandCenter", () => {
 
     render(
       <SettingsProvider>
-        <AppControlCommandCenter activeWorkspaceId="home" onSelectWorkspace={onSelectWorkspace} />
+        <AppControlHarness onSelectWorkspaceSpy={onSelectWorkspace} />
       </SettingsProvider>,
     );
 
@@ -93,7 +172,12 @@ describe("AppControlCommandCenter", () => {
     fireEvent.click(screen.getByRole("button", { name: "Preview script" }));
 
     expect(await screen.findByText("Approval required")).toBeInTheDocument();
+    expect(screen.getByText("Will change")).toBeInTheDocument();
+    expect(screen.getByText("Won't change here")).toBeInTheDocument();
+    expect(screen.getByText("Blocked or unsupported")).toBeInTheDocument();
     expect(screen.getByText(/Set the app theme mode to dark/i)).toBeInTheDocument();
+    expect(screen.getByText("Theme mode: system -> dark")).toBeInTheDocument();
+    expect(screen.getByText("Density: comfortable -> compact")).toBeInTheDocument();
     expect(screen.getByText("O3DE authoring specialist")).toBeInTheDocument();
     expect(apiMocks.previewAppControlScript).toHaveBeenCalledWith(expect.objectContaining({
       actor: { display_name: "O3DE authoring specialist" },
@@ -102,18 +186,34 @@ describe("AppControlCommandCenter", () => {
     fireEvent.click(screen.getByRole("button", { name: "Approve and run script" }));
 
     await waitFor(() => {
-      expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"themeMode":"dark"');
+      expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain("\"themeMode\":\"dark\"");
     });
-    expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"density":"compact"');
+    expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain("\"density\":\"compact\"");
     expect(onSelectWorkspace).toHaveBeenCalledWith("runtime");
     expect(screen.getByText(/Backup is ready for revert/i)).toBeInTheDocument();
+    expect(screen.getByText("Execution receipt")).toBeInTheDocument();
+    expect(screen.getByText("Audit event: evt-app-control-apply")).toBeInTheDocument();
+    expect(screen.getAllByText(/Verified by re-reading the local saved app settings after apply/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Verified by reading the current shell workspace focus as runtime/i)).toBeInTheDocument();
+    expect(screen.getByText("Theme mode: system -> dark")).toBeInTheDocument();
+    expect(screen.getByText("Density: comfortable -> compact")).toBeInTheDocument();
+    expect(screen.getByText(/3 verified/)).toBeInTheDocument();
+    expect(screen.getByText(/0 assumed/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Back / revert last" }));
 
     await waitFor(() => {
-      expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"themeMode":"system"');
+      expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain("\"themeMode\":\"system\"");
     });
     expect(onSelectWorkspace).toHaveBeenCalledWith("home");
+    expect(screen.getByText("Revert receipt")).toBeInTheDocument();
+    expect(screen.getByText("Audit event: evt-app-control-revert")).toBeInTheDocument();
+    expect(screen.getByText(/Verified by re-reading the local saved settings profile after revert/i)).toBeInTheDocument();
+    expect(screen.getByText(/Verified by reading the current shell workspace focus as home/i)).toBeInTheDocument();
+    expect(screen.getByText(/Theme mode: dark -> system/)).toBeInTheDocument();
+    expect(screen.getByText(/Density: compact -> comfortable/)).toBeInTheDocument();
+    expect(screen.getByText(/2 verified/)).toBeInTheDocument();
+    expect(screen.getByText(/0 assumed/)).toBeInTheDocument();
   });
 
   it("shows blocked preview warnings without executing unsupported scripts", async () => {
@@ -148,6 +248,7 @@ describe("AppControlCommandCenter", () => {
     fireEvent.click(screen.getByRole("button", { name: "Preview script" }));
 
     expect(await screen.findByText("No safe app-control operation was generated.")).toBeInTheDocument();
+    expect(screen.getByText("Blocked or unsupported")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Approve and run script" })).toBeDisabled();
   });
 

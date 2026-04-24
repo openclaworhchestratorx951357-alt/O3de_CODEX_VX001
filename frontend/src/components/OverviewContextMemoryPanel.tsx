@@ -1,4 +1,4 @@
-import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import { getShellPanelControlGuide, getShellPanelGuide } from "../content/operatorGuideShell";
 import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryActionButtonStyle,
@@ -7,12 +7,12 @@ import {
   summarySectionStyle,
 } from "./summaryPrimitives";
 
-const overviewContextMemoryGuide = getPanelGuide("overview-context-memory");
-const overviewContextMemoryClearAllControlGuide = getPanelControlGuide("overview-context-memory", "clear-all");
-const overviewContextMemoryOpenControlGuide = getPanelControlGuide("overview-context-memory", "open-context");
-const overviewContextMemoryReviewActionsControlGuide = getPanelControlGuide("overview-context-memory", "local-review-actions");
-const overviewContextMemoryNoteControlGuide = getPanelControlGuide("overview-context-memory", "note-editor");
-const overviewContextMemoryClearEntryControlGuide = getPanelControlGuide("overview-context-memory", "clear-entry");
+const overviewContextMemoryGuide = getShellPanelGuide("overview-context-memory");
+const overviewContextMemoryClearAllControlGuide = getShellPanelControlGuide("overview-context-memory", "clear-all");
+const overviewContextMemoryOpenControlGuide = getShellPanelControlGuide("overview-context-memory", "open-context");
+const overviewContextMemoryReviewActionsControlGuide = getShellPanelControlGuide("overview-context-memory", "local-review-actions");
+const overviewContextMemoryNoteControlGuide = getShellPanelControlGuide("overview-context-memory", "note-editor");
+const overviewContextMemoryClearEntryControlGuide = getShellPanelControlGuide("overview-context-memory", "clear-entry");
 
 type OverviewContextMemoryEntry = {
   id: string;

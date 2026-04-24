@@ -17,6 +17,7 @@ param(
         "desktop-stop",
         "desktop-restart",
         "desktop-shortcut",
+        "app-os-readiness",
         "frontend-lint",
         "frontend-build",
         "frontend-dev",
@@ -447,6 +448,33 @@ function Invoke-FrontendSmoke {
     }
 }
 
+function Invoke-AppOsReadiness {
+    $frontendFocusedTests = @(
+        "run",
+        "test",
+        "--",
+        "--run",
+        "src/components/TaskTimeline.test.tsx",
+        "src/components/workspaces/RecordsWorkspaceDesktop.test.tsx",
+        "src/components/workspaces/RecordsWorkspaceView.test.tsx",
+        "src/App.test.tsx",
+        "src/App.desktop-hydration.test.tsx"
+    )
+
+    Invoke-RepoProcess `
+        -WorkingDirectory $FrontendDir `
+        -FilePath (Get-NpmExecutable) `
+        -ArgumentList $frontendFocusedTests
+
+    Invoke-FrontendBuild
+
+    Invoke-RepoProcess `
+        -WorkingDirectory $RepoRoot `
+        -FilePath (Get-BackendPython) `
+        -ArgumentList @("-m", "pytest", "backend/tests/test_api_routes.py", "backend/tests/test_app_control.py") `
+        -Environment @{ PYTHONPATH = $BackendPythonPath }
+}
+
 function Invoke-ComposeBuild {
     Invoke-RepoProcess -WorkingDirectory $RepoRoot -FilePath "docker" -ArgumentList @("compose", "build")
 }
@@ -471,6 +499,7 @@ switch ($Task) {
     "desktop-stop" { Invoke-DesktopAppControl -DesktopAction "stop" }
     "desktop-restart" { Invoke-DesktopAppControl -DesktopAction "restart" }
     "desktop-shortcut" { Invoke-DesktopAppControl -DesktopAction "install-shortcut" }
+    "app-os-readiness" { Invoke-AppOsReadiness }
     "frontend-lint" { Invoke-FrontendLint }
     "frontend-build" { Invoke-FrontendBuild }
     "frontend-dev" { Invoke-FrontendDev }

@@ -1,4 +1,4 @@
-import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import { getShellPanelControlGuide, getShellPanelGuide } from "../content/operatorGuideShell";
 import PanelGuideDetails from "./PanelGuideDetails";
 import {
   summaryActionButtonStyle,
@@ -7,9 +7,9 @@ import {
   summarySectionStyle,
 } from "./summaryPrimitives";
 
-const overviewAttentionGuide = getPanelGuide("overview-attention");
-const overviewAttentionCardControlGuide = getPanelControlGuide("overview-attention", "recommendation-card");
-const overviewAttentionActionControlGuide = getPanelControlGuide("overview-attention", "action-buttons");
+const overviewAttentionGuide = getShellPanelGuide("overview-attention");
+const overviewAttentionCardControlGuide = getShellPanelControlGuide("overview-attention", "recommendation-card");
+const overviewAttentionActionControlGuide = getShellPanelControlGuide("overview-attention", "action-buttons");
 
 type OverviewAttentionEntry = {
   id: string;
