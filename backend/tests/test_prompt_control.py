@@ -576,6 +576,31 @@ def test_prompt_session_plans_test_run_editor_python_as_plan_only() -> None:
         assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
 
 
+def test_prompt_session_plans_test_tiaf_sequence_as_plan_only() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-tiaf-plan-1",
+                "prompt_text": 'Run TIAF sequence "smoke-sequence".',
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": True,
+                "preferred_domains": ["validation"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "planned"
+        assert payload["admitted_capabilities"] == ["test.tiaf.sequence"]
+        assert len(payload["plan"]["steps"]) == 1
+        step = payload["plan"]["steps"][0]
+        assert step["tool"] == "test.tiaf.sequence"
+        assert step["capability_maturity"] == "plan-only"
+        assert step["args"]["sequence_name"] == "smoke-sequence"
+        assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
+
+
 def test_prompt_session_executes_test_run_gtest_with_truthful_preflight_evidence() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)
@@ -713,6 +738,80 @@ def test_prompt_session_executes_test_run_editor_python_with_truthful_preflight_
                     assert details["execution_attempted"] is False
                     assert details["result_artifact_produced"] is False
                     assert details["runtime_runner_path"] == str(runner_path.resolve())
+
+
+def test_prompt_session_executes_test_tiaf_sequence_with_truthful_preflight_evidence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+                "O3DE_TARGET_PROJECT_ROOT": str(project_root),
+            },
+            clear=False,
+        ):
+            with patch(
+                "app.services.adapters.o3de_target_service.get_bridge_status",
+                return_value=type(
+                    "BridgeStatus",
+                    (),
+                    {
+                        "configured": True,
+                        "project_root": str(project_root),
+                        "heartbeat_fresh": True,
+                        "heartbeat_path": str(
+                            project_root
+                            / "user"
+                            / "ControlPlaneBridge"
+                            / "heartbeat"
+                            / "status.json"
+                        ),
+                        "runner_process_active": False,
+                    },
+                )(),
+            ):
+                with isolated_client() as client:
+                    create_response = client.post(
+                        "/prompt/sessions",
+                        json={
+                            "prompt_id": "prompt-tiaf-execute-1",
+                            "prompt_text": 'Run TIAF sequence "smoke-sequence".',
+                            "project_root": str(project_root),
+                            "engine_root": "C:/engine",
+                            "dry_run": True,
+                            "preferred_domains": ["validation"],
+                        },
+                    )
+                    assert create_response.status_code == 200
+
+                    execute_response = client.post("/prompt/sessions/prompt-tiaf-execute-1/execute")
+                    assert execute_response.status_code == 200
+                    payload = execute_response.json()
+                    assert payload["status"] == "waiting_approval"
+                    approval = approvals_service.get_approval(payload["pending_approval_id"])
+                    assert approval is not None
+                    approvals_service.approve(approval.id)
+
+                    execute_response = client.post("/prompt/sessions/prompt-tiaf-execute-1/execute")
+                    assert execute_response.status_code == 200
+                    payload = execute_response.json()
+                    assert payload["status"] == "completed"
+                    assert (
+                        "TIAF preflight confirmed admitted runner/runtime evidence"
+                        in payload["final_result_summary"]
+                    )
+                    assert (
+                        "No TIAF sequence execution was attempted"
+                        in payload["final_result_summary"]
+                    )
+                    child_response = payload["latest_child_responses"][-1]
+                    details = child_response["execution_details"]
+                    assert details["inspection_surface"] == "tiaf_runner_preflight"
+                    assert details["runner_runtime_available"] is True
+                    assert details["execution_attempted"] is False
+                    assert details["result_artifact_produced"] is False
+                    assert details["sequence_name"] == "smoke-sequence"
 
 
 def test_prompt_session_executes_test_visual_diff_with_truthful_evidence() -> None:

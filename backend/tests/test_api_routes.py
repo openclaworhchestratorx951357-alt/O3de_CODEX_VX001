@@ -813,6 +813,7 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
                 "settings.patch",
                 "test.run.gtest",
                 "test.run.editor_python",
+                "test.tiaf.sequence",
             ]
             assert "gem.enable" in payload["adapter_mode"]["simulated_tool_paths"]
 
@@ -868,6 +869,7 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "settings.patch",
                 "test.run.gtest",
                 "test.run.editor_python",
+                "test.tiaf.sequence",
             ]
             project_build = next(
                 family for family in payload["families"] if family["family"] == "project-build"
@@ -941,12 +943,14 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
             assert sorted(validation["plan_only_tool_paths"]) == [
                 "test.run.editor_python",
                 "test.run.gtest",
+                "test.tiaf.sequence",
             ]
-            assert validation["simulated_tool_paths"] == ["test.tiaf.sequence"]
+            assert validation["simulated_tool_paths"] == []
             assert any(
                 "test.visual.diff" in note
                 or "test.run.gtest" in note
                 or "test.run.editor_python" in note
+                or "test.tiaf.sequence" in note
                 for note in validation["notes"]
             )
 
@@ -986,6 +990,21 @@ def test_prompt_capabilities_reports_test_run_editor_python_as_plan_only() -> No
             item
             for item in payload["capabilities"]
             if item["tool_name"] == "test.run.editor_python"
+        )
+        assert entry["agent_family"] == "validation"
+        assert entry["capability_maturity"] == "plan-only"
+        assert entry["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
+
+
+def test_prompt_capabilities_reports_test_tiaf_sequence_as_plan_only() -> None:
+    with isolated_client() as client:
+        response = client.get("/prompt/capabilities")
+        assert response.status_code == 200
+        payload = response.json()
+        entry = next(
+            item
+            for item in payload["capabilities"]
+            if item["tool_name"] == "test.tiaf.sequence"
         )
         assert entry["agent_family"] == "validation"
         assert entry["capability_maturity"] == "plan-only"

@@ -524,6 +524,9 @@ class PromptOrchestratorService:
         editor_python_response = self._latest_successful_response_for_step(
             session, "validation-editor-python-1"
         )
+        tiaf_response = self._latest_successful_response_for_step(
+            session, "validation-tiaf-1"
+        )
         visual_diff_response = self._latest_successful_response_for_step(
             session, "validation-visual-diff-1"
         )
@@ -726,6 +729,30 @@ class PromptOrchestratorService:
             else:
                 summary_parts.append(
                     "No editor-hosted Python test execution was attempted in this admitted slice."
+                )
+            unavailable_reason = details.get("runner_unavailable_reason") or details.get(
+                "result_unavailable_reason"
+            )
+            if isinstance(unavailable_reason, str) and unavailable_reason:
+                summary_parts.append(unavailable_reason)
+
+        if tiaf_response is not None:
+            details = tiaf_response.get("execution_details", {})
+            if details.get("runner_runtime_available") is True:
+                summary_parts.append(
+                    "TIAF preflight confirmed admitted runner/runtime evidence for the explicit sequence request."
+                )
+            else:
+                summary_parts.append(
+                    "TIAF runner evidence remains partially unavailable for the explicit sequence request."
+                )
+            if details.get("execution_attempted") is True:
+                summary_parts.append(
+                    "TIAF sequence execution was attempted in this slice."
+                )
+            else:
+                summary_parts.append(
+                    "No TIAF sequence execution was attempted in this admitted slice."
                 )
             unavailable_reason = details.get("runner_unavailable_reason") or details.get(
                 "result_unavailable_reason"

@@ -147,6 +147,15 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             retention_class="test-log-evidence",
             natural_language_status="prompt-ready-plan-only",
         )
+    if tool_name == "test.tiaf.sequence":
+        return _build_safety_envelope(
+            state_scope="Explicit TIAF sequence preflight scope.",
+            backup_class="none",
+            rollback_class="environment-cleanup-only",
+            verification_class="TIAF runner preflight and runtime-context verification",
+            retention_class="test-log-evidence",
+            natural_language_status="prompt-ready-plan-only",
+        )
     if tool_name == "settings.patch":
         return _build_safety_envelope(
             state_scope="Manifest-backed admitted settings mutation subset.",
@@ -482,11 +491,11 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": True,
     },
     "test.tiaf.sequence": {
-        "capability_maturity": "simulated-only",
+        "capability_maturity": "plan-only",
         "planner_intent_aliases": ["run tiaf", "tiaf sequence", "test impact analysis"],
         "natural_language_affordances": ["Run an explicit TIAF sequence name."],
         "allowlisted_parameter_surfaces": ["sequence_name", "platforms", "shard_count"],
-        "real_adapter_availability": False,
+        "real_adapter_availability": True,
         "dry_run_availability": True,
         "simulation_fallback_availability": True,
     },

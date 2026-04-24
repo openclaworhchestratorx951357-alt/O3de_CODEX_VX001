@@ -391,8 +391,17 @@ def approve_test_run_gtest_request(
     return approved_request
 
 
-def make_test_tiaf_sequence_request() -> RequestEnvelope:
-    request = make_request("validation", "test.tiaf.sequence")
+def make_test_tiaf_sequence_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = True,
+) -> RequestEnvelope:
+    request = make_request(
+        "validation",
+        "test.tiaf.sequence",
+        project_root=project_root,
+        dry_run=dry_run,
+    )
     request.args = {
         "sequence_name": "smoke-sequence",
         "platforms": ["windows"],
@@ -401,13 +410,22 @@ def make_test_tiaf_sequence_request() -> RequestEnvelope:
     return request
 
 
-def approve_test_tiaf_sequence_request() -> RequestEnvelope:
-    first = dispatcher_service.dispatch(make_test_tiaf_sequence_request())
+def approve_test_tiaf_sequence_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = True,
+) -> RequestEnvelope:
+    first = dispatcher_service.dispatch(
+        make_test_tiaf_sequence_request(project_root=project_root, dry_run=dry_run)
+    )
     approval = approvals_service.get_approval(first.approval_id or "")
     assert approval is not None
     approvals_service.approve(approval.id)
 
-    approved_request = make_test_tiaf_sequence_request()
+    approved_request = make_test_tiaf_sequence_request(
+        project_root=project_root,
+        dry_run=dry_run,
+    )
     approved_request.approval_token = approval.token
     return approved_request
 
@@ -5180,6 +5198,122 @@ def test_test_tiaf_sequence_simulated_persisted_payloads_match_published_schemas
         assert artifact.simulated is True
         assert artifact.metadata["execution_mode"] == "simulated"
         assert artifact.metadata["inspection_surface"] == "simulated"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="test.tiaf.sequence",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="test.tiaf.sequence",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_test_tiaf_sequence_uses_real_preflight_substrate_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+                "O3DE_TARGET_PROJECT_ROOT": str(project_root),
+            },
+            clear=False,
+        ):
+            with patch(
+                "app.services.adapters.o3de_target_service.get_bridge_status",
+                return_value=type(
+                    "BridgeStatus",
+                    (),
+                    {
+                        "configured": True,
+                        "project_root": str(project_root),
+                        "heartbeat_fresh": True,
+                        "heartbeat_path": str(
+                            project_root / "user" / "ControlPlaneBridge" / "heartbeat" / "status.json"
+                        ),
+                        "runner_process_active": False,
+                    },
+                )(),
+            ):
+                response = dispatcher_service.dispatch(
+                    approve_test_tiaf_sequence_request(project_root=str(project_root))
+                )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "tiaf_runner_preflight"
+        assert execution.details["preflight_execution_mode"] == "plan-only"
+        assert execution.details["runner_runtime_available"] is True
+        assert execution.details["execution_attempted"] is False
+        assert execution.details["result_artifact_produced"] is False
+        assert execution.details["sequence_name"] == "smoke-sequence"
+        assert execution.details["requested_platforms"] == ["windows"]
+        assert artifact is not None
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "tiaf_runner_preflight"
+
+
+def test_test_tiaf_sequence_real_persisted_payloads_match_published_schemas() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+                "O3DE_TARGET_PROJECT_ROOT": str(project_root),
+            },
+            clear=False,
+        ):
+            with patch(
+                "app.services.adapters.o3de_target_service.get_bridge_status",
+                return_value=type(
+                    "BridgeStatus",
+                    (),
+                    {
+                        "configured": False,
+                        "project_root": None,
+                        "heartbeat_fresh": False,
+                        "heartbeat_path": None,
+                        "runner_process_active": False,
+                    },
+                )(),
+            ):
+                response = dispatcher_service.dispatch(
+                    approve_test_tiaf_sequence_request(project_root=str(project_root))
+                )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["execution_attempted"] is False
+        assert execution.details["result_status"] == "not-attempted"
+        assert artifact is not None
         assert (
             schema_validation_service.validate_execution_details(
                 tool_name="test.tiaf.sequence",

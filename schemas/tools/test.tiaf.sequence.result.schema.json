@@ -9,8 +9,11 @@
       "properties": {
         "tool": { "const": "test.tiaf.sequence" },
         "approval_class": { "const": "test_execute" },
-        "execution_mode": { "const": "simulated" },
-        "simulated": { "const": true }
+        "execution_mode": {
+          "type": "string",
+          "enum": ["simulated", "real"]
+        },
+        "simulated": { "type": "boolean" }
       }
     }
   ]
