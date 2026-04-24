@@ -129,6 +129,15 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             retention_class="visual-diff-evidence",
             natural_language_status="prompt-ready-read-only",
         )
+    if tool_name == "test.run.gtest":
+        return _build_safety_envelope(
+            state_scope="Explicit native test target preflight scope.",
+            backup_class="none",
+            rollback_class="environment-cleanup-only",
+            verification_class="runner preflight and target-path verification",
+            retention_class="test-log-evidence",
+            natural_language_status="prompt-ready-plan-only",
+        )
     if tool_name == "settings.patch":
         return _build_safety_envelope(
             state_scope="Manifest-backed admitted settings mutation subset.",
@@ -446,11 +455,11 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": True,
     },
     "test.run.gtest": {
-        "capability_maturity": "simulated-only",
+        "capability_maturity": "plan-only",
         "planner_intent_aliases": ["run gtest", "native test", "gtest target"],
         "natural_language_affordances": ["Run explicit native test targets."],
         "allowlisted_parameter_surfaces": ["test_targets", "filter", "timeout_s"],
-        "real_adapter_availability": False,
+        "real_adapter_availability": True,
         "dry_run_availability": True,
         "simulation_fallback_availability": True,
     },

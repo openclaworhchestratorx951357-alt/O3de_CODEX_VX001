@@ -45,7 +45,7 @@ REAL_TOOL_PATHS_BY_MODE = {
 }
 PLAN_ONLY_TOOL_PATHS_BY_MODE = {
     "simulated": [],
-    "hybrid": ["build.configure", "settings.patch"],
+    "hybrid": ["build.configure", "settings.patch", "test.run.gtest"],
 }
 ADAPTER_EXECUTION_BOUNDARY = (
     "Control-plane bookkeeping is real, but O3DE tool execution remains simulated."
@@ -67,7 +67,9 @@ HYBRID_EXECUTION_BOUNDARY = (
     "editor.component.property.get may use the explicit bridge-backed real "
     "component property read path on McpSandbox, "
     "build.configure may use a real plan-only preflight path, settings.patch may "
-    "use a real dry-run-only preflight path, and all other tools remain simulated."
+    "use a real dry-run-only preflight path, test.run.gtest may use a real "
+    "plan-only runner preflight and result-truth substrate for explicit target "
+    "requests, and all other tools remain simulated."
 )
 MANIFEST_SETTINGS_KEYS = (
     "project_id",
@@ -3465,6 +3467,17 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
         approval_class: str,
         locks_acquired: list[str],
     ) -> AdapterExecutionReport:
+        if tool == "test.run.gtest":
+            return self._execute_test_run_gtest(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+            )
         if tool == "test.visual.diff":
             return self._execute_test_visual_diff(
                 tool=tool,
@@ -3502,6 +3515,170 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
         simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
         simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
         return simulated
+
+    def _execute_test_run_gtest(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+    ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        build_root = resolved_project_root / "build"
+        if not dry_run:
+            return self._fallback_test_run_gtest(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                dry_run=dry_run,
+                args=args,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                reason=(
+                    "Real test.run.gtest substrate evidence is currently limited to "
+                    "dry_run=true preflight requests; native test execution remains non-admitted."
+                ),
+                fallback_category="dry-run-required",
+            )
+
+        requested_targets = self._normalized_string_list(args.get("test_targets"))
+        requested_filter = str(args.get("filter", "")).strip() or None
+        requested_timeout_s = self._coerce_positive_int(args.get("timeout_s"))
+        target_probes = [
+            self._probe_gtest_target_runner(build_root=build_root, target_name=target_name)
+            for target_name in requested_targets
+        ]
+        target_resolution_complete = bool(target_probes) and all(
+            bool(probe["runner_found"]) for probe in target_probes
+        )
+        resolved_runner_paths = [
+            str(probe["runner_path"])
+            for probe in target_probes
+            if isinstance(probe.get("runner_path"), str) and probe["runner_path"]
+        ]
+        inspection_evidence = ["gtest_target_request"]
+        unavailable_evidence = ["native_test_execution", "gtest_result_artifact", "gtest_exit_result"]
+        if build_root.exists():
+            inspection_evidence.append("build_tree_presence")
+        else:
+            unavailable_evidence.append("build_tree_presence")
+        if target_probes:
+            inspection_evidence.append("gtest_runner_lookup")
+        if target_resolution_complete:
+            inspection_evidence.append("gtest_runner_metadata")
+        else:
+            unavailable_evidence.append("gtest_runner_lookup")
+
+        runner_unavailable_reason = None
+        if not build_root.exists():
+            runner_unavailable_reason = (
+                f"Build root '{build_root}' is unavailable, so explicit gtest runner preflight could not resolve target binaries."
+            )
+        elif not target_resolution_complete:
+            missing_targets = [
+                str(probe["target_name"])
+                for probe in target_probes
+                if probe["runner_found"] is not True
+            ]
+            runner_unavailable_reason = (
+                "No admitted local gtest runner binary was found for requested target(s): "
+                + ", ".join(missing_targets)
+                + "."
+            )
+
+        logs = [
+            "Real test.run.gtest executed through the admitted plan-only runner preflight substrate.",
+            f"Build root inspected at '{build_root}'.",
+            f"Requested explicit gtest target count: {len(requested_targets)}.",
+            "No native tests were executed in this slice.",
+        ]
+        warnings = [
+            "This is a real plan-only gtest preflight path; native test execution remains non-admitted.",
+        ]
+        if runner_unavailable_reason:
+            warnings.append(runner_unavailable_reason)
+            logs.append(runner_unavailable_reason)
+        elif resolved_runner_paths:
+            logs.append(
+                "Resolved explicit gtest runner candidate(s): " + ", ".join(resolved_runner_paths)
+            )
+
+        details = {
+            "inspection_surface": "gtest_runner_preflight",
+            "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
+            "simulated": False,
+            "adapter_family": self.family,
+            "adapter_mode": self.mode,
+            "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
+            "real_path_available": True,
+            "preflight_execution_mode": "plan-only",
+            "gtest_request_explicit": True,
+            "project_root_path": str(resolved_project_root),
+            "build_root_path": str(build_root),
+            "build_root_exists": build_root.exists(),
+            "test_targets": requested_targets,
+            "requested_filter": requested_filter,
+            "requested_timeout_s": requested_timeout_s,
+            "inspection_evidence": inspection_evidence,
+            "unavailable_evidence": unavailable_evidence,
+            "runner_probe_attempted": True,
+            "runner_probe_method": "build-tree-target-binary-lookup",
+            "runner_runtime_available": target_resolution_complete,
+            "target_resolution_complete": target_resolution_complete,
+            "resolved_runner_paths": resolved_runner_paths,
+            "runner_probe_results": target_probes,
+            "execution_attempted": False,
+            "result_artifact_produced": False,
+            "result_artifact_path": None,
+            "result_artifact_content_type": None,
+            "result_artifact_size_bytes": None,
+            "exit_code_available": False,
+            "exit_code": None,
+            "result_status": "not-attempted",
+            "result_summary_available": False,
+            "result_unavailable_reason": (
+                "No native gtest execution was attempted in this admitted plan-only slice."
+            ),
+            "runner_unavailable_reason": runner_unavailable_reason,
+        }
+        result = DispatchResult(
+            status="real_success",
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            simulated=False,
+            execution_mode="real",
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+            message=(
+                "Real gtest preflight completed for the explicit target request; no native tests were executed."
+            ),
+        )
+        return AdapterExecutionReport(
+            execution_mode="real",
+            result=result,
+            warnings=warnings,
+            logs=logs,
+            artifact_label="Real gtest preflight evidence",
+            artifact_kind="gtest_preflight",
+            artifact_uri=(build_root if build_root.exists() else resolved_project_root).as_uri(),
+            artifact_metadata={
+                "tool": tool,
+                "agent": agent,
+                "execution_mode": "real",
+                **details,
+            },
+            execution_details=details,
+            result_summary="Real gtest preflight substrate completed successfully.",
+        )
 
     def _execute_test_visual_diff(
         self,
@@ -3755,6 +3932,124 @@ class ValidationHybridAdapter(ToolExecutionAdapter):
             execution_details=details,
             result_summary="Real artifact comparison substrate completed successfully.",
         )
+
+    def _fallback_test_run_gtest(
+        self,
+        *,
+        tool: str,
+        agent: str,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        approval_class: str,
+        locks_acquired: list[str],
+        reason: str,
+        fallback_category: str = "unavailable",
+    ) -> AdapterExecutionReport:
+        resolved_project_root = Path(project_root).expanduser().resolve()
+        build_root = resolved_project_root / "build"
+        simulated = self._simulated.execute(
+            request_id="",
+            session_id=None,
+            workspace_id=None,
+            executor_id=None,
+            tool=tool,
+            agent=agent,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            approval_class=approval_class,
+            locks_acquired=locks_acquired,
+        )
+        simulated.warnings.append(reason)
+        simulated.logs.append(reason)
+        simulated.logs.append(
+            "Hybrid mode fell back to the simulated test.run.gtest path."
+        )
+        simulated.artifact_metadata["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.artifact_metadata["real_path_available"] = False
+        simulated.artifact_metadata["fallback_category"] = fallback_category
+        simulated.artifact_metadata["fallback_reason"] = reason
+        simulated.artifact_metadata["project_root_path"] = str(resolved_project_root)
+        simulated.artifact_metadata["build_root_path"] = str(build_root)
+        simulated.artifact_metadata["preflight_execution_mode"] = "plan-only"
+        simulated.execution_details["execution_boundary"] = HYBRID_EXECUTION_BOUNDARY
+        simulated.execution_details["real_path_available"] = False
+        simulated.execution_details["fallback_category"] = fallback_category
+        simulated.execution_details["fallback_reason"] = reason
+        simulated.execution_details["project_root_path"] = str(resolved_project_root)
+        simulated.execution_details["build_root_path"] = str(build_root)
+        simulated.execution_details["preflight_execution_mode"] = "plan-only"
+        simulated.result_summary = "test.run.gtest fell back to the simulated path."
+        return simulated
+
+    def _probe_gtest_target_runner(
+        self,
+        *,
+        build_root: Path,
+        target_name: str,
+    ) -> dict[str, Any]:
+        candidate_names = [target_name]
+        if not target_name.lower().endswith(".exe"):
+            candidate_names.append(f"{target_name}.exe")
+
+        if not build_root.exists():
+            return {
+                "target_name": target_name,
+                "candidate_names": candidate_names,
+                "runner_found": False,
+                "runner_path": None,
+                "runner_size_bytes": None,
+            }
+
+        matches: list[Path] = []
+        for candidate_name in candidate_names:
+            matches.extend(path for path in build_root.rglob(candidate_name) if path.is_file())
+        if not matches:
+            return {
+                "target_name": target_name,
+                "candidate_names": candidate_names,
+                "runner_found": False,
+                "runner_path": None,
+                "runner_size_bytes": None,
+            }
+
+        selected = min(
+            matches,
+            key=lambda path: (len(path.parts), len(str(path))),
+        )
+        size_bytes = None
+        try:
+            size_bytes = selected.stat().st_size
+        except OSError:
+            size_bytes = None
+        return {
+            "target_name": target_name,
+            "candidate_names": candidate_names,
+            "runner_found": True,
+            "runner_path": str(selected),
+            "runner_size_bytes": size_bytes,
+        }
+
+    def _coerce_positive_int(self, value: Any) -> int | None:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return None
+        return parsed if parsed > 0 else None
+
+    def _normalized_string_list(self, value: Any) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        normalized: list[str] = []
+        for entry in value:
+            if isinstance(entry, str):
+                candidate = entry.strip()
+                if candidate:
+                    normalized.append(candidate)
+        return normalized
 
     def _inspect_artifact_file(self, artifact_id: str) -> dict[str, Any]:
         artifact = artifacts_service.get_artifact(artifact_id)
@@ -4526,7 +4821,11 @@ class AdapterService:
                 for tool_name in self._real_tool_paths_for_mode(active_mode)
                 if tool_name.startswith(("project.", "build.", "settings.", "gem."))
             }
-            family_plan_only = set(self._plan_only_tool_paths_for_mode(active_mode))
+            family_plan_only = {
+                tool_name
+                for tool_name in self._plan_only_tool_paths_for_mode(active_mode)
+                if tool_name.startswith(("project.", "build.", "settings.", "gem."))
+            }
         if active_mode == "hybrid" and family == "asset-pipeline":
             family_real = {
                 tool_name
@@ -4543,6 +4842,11 @@ class AdapterService:
             family_real = {
                 tool_name
                 for tool_name in self._real_tool_paths_for_mode(active_mode)
+                if tool_name.startswith("test.")
+            }
+            family_plan_only = {
+                tool_name
+                for tool_name in self._plan_only_tool_paths_for_mode(active_mode)
                 if tool_name.startswith("test.")
             }
         if active_mode == "hybrid" and family == "render-lookdev":
@@ -4785,7 +5089,11 @@ class AdapterService:
                 [
                     tool_name
                     for tool_name in runtime_status.plan_only_tool_paths
-                    if family == "project-build"
+                    if (
+                        family == "project-build"
+                        and tool_name.startswith(("project.", "build.", "settings.", "gem."))
+                    )
+                    or (family == "validation" and tool_name.startswith("test."))
                 ]
                 if family_supports_real
                 else []
@@ -4817,7 +5125,8 @@ class AdapterService:
                 if family == "validation":
                     family_notes.append(
                         "test.visual.diff currently has a real read-only admitted "
-                        "artifact comparison substrate in this family."
+                        "artifact comparison substrate and test.run.gtest currently "
+                        "has a real plan-only preflight/result-truth substrate in this family."
                     )
                 if family == "render-lookdev":
                     family_notes.append(

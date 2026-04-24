@@ -13,6 +13,8 @@ def tool_real_admission_stage(tool_name: str) -> str:
         return "real-read-only-active"
     if tool_name == "render.material.inspect":
         return "real-read-only-active"
+    if tool_name == "test.run.gtest":
+        return "real-plan-only-active"
     if tool_name == "editor.component.property.get":
         return "real-read-only-active"
     if tool_name in {
@@ -63,6 +65,13 @@ def tool_next_real_requirement(tool_name: str) -> str:
             "Keep real execution limited to explicit material-inspection substrate "
             "evidence and material-evidence reporting, with actual material readback "
             "semantics marked unavailable unless a real admitted inspection path is proven."
+        )
+    if tool_name == "test.run.gtest":
+        return (
+            "Keep real execution limited to explicit gtest runner preflight and "
+            "result-truth evidence, with native test execution, exit semantics, and "
+            "result artifact production marked unavailable unless a real admitted runner "
+            "path is proven."
         )
     if tool_name == "editor.session.open":
         return (

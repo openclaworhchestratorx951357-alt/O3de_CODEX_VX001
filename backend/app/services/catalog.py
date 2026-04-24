@@ -23,6 +23,8 @@ def tool_capability_status(tool_name: str) -> str:
         return "hybrid-read-only"
     if tool_name == "test.visual.diff":
         return "hybrid-read-only"
+    if tool_name == "test.run.gtest":
+        return "plan-only"
     if tool_name == "editor.component.property.get":
         return "hybrid-read-only"
     if tool_name in {

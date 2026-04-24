@@ -337,8 +337,17 @@ def approve_test_run_editor_python_request() -> RequestEnvelope:
     return approved_request
 
 
-def make_test_run_gtest_request() -> RequestEnvelope:
-    request = make_request("validation", "test.run.gtest")
+def make_test_run_gtest_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = True,
+) -> RequestEnvelope:
+    request = make_request(
+        "validation",
+        "test.run.gtest",
+        project_root=project_root,
+        dry_run=dry_run,
+    )
     request.args = {
         "test_targets": ["AzCoreTests"],
         "filter": "Smoke*",
@@ -347,13 +356,19 @@ def make_test_run_gtest_request() -> RequestEnvelope:
     return request
 
 
-def approve_test_run_gtest_request() -> RequestEnvelope:
-    first = dispatcher_service.dispatch(make_test_run_gtest_request())
+def approve_test_run_gtest_request(
+    *,
+    project_root: str = "/tmp/project",
+    dry_run: bool = True,
+) -> RequestEnvelope:
+    first = dispatcher_service.dispatch(
+        make_test_run_gtest_request(project_root=project_root, dry_run=dry_run)
+    )
     approval = approvals_service.get_approval(first.approval_id or "")
     assert approval is not None
     approvals_service.approve(approval.id)
 
-    approved_request = make_test_run_gtest_request()
+    approved_request = make_test_run_gtest_request(project_root=project_root, dry_run=dry_run)
     approved_request.approval_token = approval.token
     return approved_request
 
@@ -4905,6 +4920,90 @@ def test_test_run_gtest_simulated_persisted_payloads_match_published_schemas(
         assert artifact.simulated is True
         assert artifact.metadata["execution_mode"] == "simulated"
         assert artifact.metadata["inspection_surface"] == "simulated"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="test.run.gtest",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="test.run.gtest",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_test_run_gtest_uses_real_preflight_substrate_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        runner_path = (
+            project_root / "build" / "windows" / "bin" / "profile" / "AzCoreTests.exe"
+        )
+        runner_path.parent.mkdir(parents=True, exist_ok=True)
+        runner_path.write_bytes(b"gtest-runner")
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                approve_test_run_gtest_request(project_root=str(project_root))
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "gtest_runner_preflight"
+        assert execution.details["preflight_execution_mode"] == "plan-only"
+        assert execution.details["runner_runtime_available"] is True
+        assert execution.details["target_resolution_complete"] is True
+        assert execution.details["execution_attempted"] is False
+        assert execution.details["result_artifact_produced"] is False
+        assert execution.details["exit_code_available"] is False
+        assert str(runner_path) in execution.details["resolved_runner_paths"]
+        assert artifact is not None
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "gtest_runner_preflight"
+
+
+def test_test_run_gtest_real_persisted_payloads_match_published_schemas() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        runner_path = (
+            project_root / "build" / "linux" / "bin" / "profile" / "AzCoreTests"
+        )
+        runner_path.parent.mkdir(parents=True, exist_ok=True)
+        runner_path.write_bytes(b"gtest-runner-schema")
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            response = dispatcher_service.dispatch(
+                approve_test_run_gtest_request(project_root=str(project_root))
+            )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["runner_runtime_available"] is True
+        assert execution.details["execution_attempted"] is False
+        assert execution.details["result_status"] == "not-attempted"
+        assert artifact is not None
         assert (
             schema_validation_service.validate_execution_details(
                 tool_name="test.run.gtest",

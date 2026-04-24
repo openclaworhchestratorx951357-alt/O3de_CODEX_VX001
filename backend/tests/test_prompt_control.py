@@ -11,6 +11,7 @@ from app.main import app
 from app.models.control_plane import ExecutionStatus
 from app.models.request_envelope import RequestEnvelope
 from app.models.response_envelope import ResponseEnvelope, ResponseError
+from app.services.approvals import approvals_service
 from app.services.artifacts import artifacts_service
 from app.services.editor_runtime_defaults import EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S
 from app.services.db import configure_database, initialize_database, reset_database
@@ -523,6 +524,87 @@ def test_prompt_session_plans_test_visual_diff_as_hybrid_read_only() -> None:
         assert step["args"]["baseline_artifact_id"] == "art-baseline-001"
         assert step["args"]["candidate_artifact_id"] == "art-candidate-001"
         assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-read-only"
+
+
+def test_prompt_session_plans_test_run_gtest_as_plan_only() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-gtest-plan-1",
+                "prompt_text": 'Run gtest target "AzCoreTests".',
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": True,
+                "preferred_domains": ["validation"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "planned"
+        assert payload["admitted_capabilities"] == ["test.run.gtest"]
+        assert len(payload["plan"]["steps"]) == 1
+        step = payload["plan"]["steps"][0]
+        assert step["tool"] == "test.run.gtest"
+        assert step["capability_maturity"] == "plan-only"
+        assert step["args"]["test_targets"] == ["AzCoreTests"]
+        assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
+
+
+def test_prompt_session_executes_test_run_gtest_with_truthful_preflight_evidence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        runner_path = (
+            project_root / "build" / "windows" / "bin" / "profile" / "AzCoreTests.exe"
+        )
+        runner_path.parent.mkdir(parents=True, exist_ok=True)
+        runner_path.write_bytes(b"gtest-prompt-runner")
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                create_response = client.post(
+                    "/prompt/sessions",
+                    json={
+                        "prompt_id": "prompt-gtest-execute-1",
+                        "prompt_text": 'Run gtest target "AzCoreTests".',
+                        "project_root": str(project_root),
+                        "engine_root": "C:/engine",
+                        "dry_run": True,
+                        "preferred_domains": ["validation"],
+                    },
+                )
+                assert create_response.status_code == 200
+
+                execute_response = client.post("/prompt/sessions/prompt-gtest-execute-1/execute")
+                assert execute_response.status_code == 200
+                payload = execute_response.json()
+                assert payload["status"] == "waiting_approval"
+                approval = approvals_service.get_approval(payload["pending_approval_id"])
+                assert approval is not None
+                approvals_service.approve(approval.id)
+
+                execute_response = client.post("/prompt/sessions/prompt-gtest-execute-1/execute")
+                assert execute_response.status_code == 200
+                payload = execute_response.json()
+                assert payload["status"] == "completed"
+                assert "GTest preflight confirmed runnable target binaries" in payload[
+                    "final_result_summary"
+                ]
+                assert "No native gtest execution was attempted" in payload[
+                    "final_result_summary"
+                ]
+                child_response = payload["latest_child_responses"][-1]
+                details = child_response["execution_details"]
+                assert details["inspection_surface"] == "gtest_runner_preflight"
+                assert details["runner_runtime_available"] is True
+                assert details["execution_attempted"] is False
+                assert details["result_artifact_produced"] is False
+                assert str(runner_path) in details["resolved_runner_paths"]
 
 
 def test_prompt_session_executes_test_visual_diff_with_truthful_evidence() -> None:

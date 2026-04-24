@@ -518,6 +518,9 @@ class PromptOrchestratorService:
         render_material_response = self._latest_successful_response_for_step(
             session, "render-material-inspect-1"
         )
+        gtest_response = self._latest_successful_response_for_step(
+            session, "validation-gtest-1"
+        )
         visual_diff_response = self._latest_successful_response_for_step(
             session, "validation-visual-diff-1"
         )
@@ -676,6 +679,30 @@ class PromptOrchestratorService:
                     "No real material evidence was produced in this admitted slice."
                 )
             unavailable_reason = details.get("material_unavailable_reason")
+            if isinstance(unavailable_reason, str) and unavailable_reason:
+                summary_parts.append(unavailable_reason)
+
+        if gtest_response is not None:
+            details = gtest_response.get("execution_details", {})
+            if details.get("runner_runtime_available") is True:
+                summary_parts.append(
+                    "GTest preflight confirmed runnable target binaries for the explicit request."
+                )
+            else:
+                summary_parts.append(
+                    "GTest runner evidence remains partially unavailable for the explicit request."
+                )
+            if details.get("execution_attempted") is True:
+                summary_parts.append(
+                    "Native gtest execution was attempted in this slice."
+                )
+            else:
+                summary_parts.append(
+                    "No native gtest execution was attempted in this admitted slice."
+                )
+            unavailable_reason = details.get("runner_unavailable_reason") or details.get(
+                "result_unavailable_reason"
+            )
             if isinstance(unavailable_reason, str) and unavailable_reason:
                 summary_parts.append(unavailable_reason)
 
