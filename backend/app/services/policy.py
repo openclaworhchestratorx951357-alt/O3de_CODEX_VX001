@@ -15,6 +15,8 @@ def tool_real_admission_stage(tool_name: str) -> str:
         return "real-read-only-active"
     if tool_name == "test.run.gtest":
         return "real-plan-only-active"
+    if tool_name == "test.run.editor_python":
+        return "real-plan-only-active"
     if tool_name == "editor.component.property.get":
         return "real-read-only-active"
     if tool_name in {
@@ -71,6 +73,13 @@ def tool_next_real_requirement(tool_name: str) -> str:
             "Keep real execution limited to explicit gtest runner preflight and "
             "result-truth evidence, with native test execution, exit semantics, and "
             "result artifact production marked unavailable unless a real admitted runner "
+            "path is proven."
+        )
+    if tool_name == "test.run.editor_python":
+        return (
+            "Keep real execution limited to explicit editor-python runner preflight and "
+            "result-truth evidence, with editor-hosted test execution, exit semantics, and "
+            "structured result artifact production marked unavailable unless a real admitted runner "
             "path is proven."
         )
     if tool_name == "editor.session.open":

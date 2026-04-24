@@ -138,6 +138,15 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             retention_class="test-log-evidence",
             natural_language_status="prompt-ready-plan-only",
         )
+    if tool_name == "test.run.editor_python":
+        return _build_safety_envelope(
+            state_scope="Explicit editor Python module preflight scope.",
+            backup_class="none",
+            rollback_class="environment-cleanup-only",
+            verification_class="editor runner preflight and target-path verification",
+            retention_class="test-log-evidence",
+            natural_language_status="prompt-ready-plan-only",
+        )
     if tool_name == "settings.patch":
         return _build_safety_envelope(
             state_scope="Manifest-backed admitted settings mutation subset.",
@@ -464,11 +473,11 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "simulation_fallback_availability": True,
     },
     "test.run.editor_python": {
-        "capability_maturity": "simulated-only",
+        "capability_maturity": "plan-only",
         "planner_intent_aliases": ["run editor python test", "editor python module", "editor python validation"],
         "natural_language_affordances": ["Run explicit editor Python test modules."],
         "allowlisted_parameter_surfaces": ["test_modules", "editor_args", "timeout_s"],
-        "real_adapter_availability": False,
+        "real_adapter_availability": True,
         "dry_run_availability": True,
         "simulation_fallback_availability": True,
     },

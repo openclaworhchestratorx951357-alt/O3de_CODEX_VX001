@@ -521,6 +521,9 @@ class PromptOrchestratorService:
         gtest_response = self._latest_successful_response_for_step(
             session, "validation-gtest-1"
         )
+        editor_python_response = self._latest_successful_response_for_step(
+            session, "validation-editor-python-1"
+        )
         visual_diff_response = self._latest_successful_response_for_step(
             session, "validation-visual-diff-1"
         )
@@ -699,6 +702,30 @@ class PromptOrchestratorService:
             else:
                 summary_parts.append(
                     "No native gtest execution was attempted in this admitted slice."
+                )
+            unavailable_reason = details.get("runner_unavailable_reason") or details.get(
+                "result_unavailable_reason"
+            )
+            if isinstance(unavailable_reason, str) and unavailable_reason:
+                summary_parts.append(unavailable_reason)
+
+        if editor_python_response is not None:
+            details = editor_python_response.get("execution_details", {})
+            if details.get("runner_runtime_available") is True:
+                summary_parts.append(
+                    "Editor Python preflight confirmed admitted runner/runtime evidence for the explicit module request."
+                )
+            else:
+                summary_parts.append(
+                    "Editor Python runner evidence remains partially unavailable for the explicit module request."
+                )
+            if details.get("execution_attempted") is True:
+                summary_parts.append(
+                    "Editor-hosted Python test execution was attempted in this slice."
+                )
+            else:
+                summary_parts.append(
+                    "No editor-hosted Python test execution was attempted in this admitted slice."
                 )
             unavailable_reason = details.get("runner_unavailable_reason") or details.get(
                 "result_unavailable_reason"
