@@ -118,7 +118,7 @@ function renderGuide(catalog) {
     `- App subtitle: ${catalog.app.subtitle}`,
     `- Canonical backend: ${catalog.app.canonicalBackend}`,
     `- Admitted real: ${catalog.app.admittedRealTools.join(", ")}`,
-    `- Still simulated: ${catalog.app.simulatedOnlyFocusTools.join(", ")}`,
+    `- Still bounded: ${catalog.app.simulatedOnlyFocusTools.join(", ")}`,
     "",
     "## How to move through the app",
     "",

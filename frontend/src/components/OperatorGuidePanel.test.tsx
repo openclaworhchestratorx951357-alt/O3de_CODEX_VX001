@@ -17,7 +17,9 @@ describe("OperatorGuidePanel", () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Still simulated: asset mutation tools, render mutation tools, validation execution tools/i),
+      screen.getByText(
+        /Still bounded: asset execution or mutation beyond admitted slices, render execution or mutation beyond admitted slices, validation execution beyond admitted preflight slices/i,
+      ),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Operator proof checklist for canonical 127.0.0.1:8000" }),

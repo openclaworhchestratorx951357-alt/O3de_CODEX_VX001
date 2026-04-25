@@ -10,7 +10,7 @@ Operate the control-plane through focused desktop workspaces instead of one over
 - App subtitle: Windows-style control-plane workspace for O3DE operators
 - Canonical backend: http://127.0.0.1:8000
 - Admitted real: editor.session.open, editor.level.open, editor.entity.create, editor.component.add, editor.component.property.get
-- Still simulated: asset mutation tools, render mutation tools, validation execution tools
+- Still bounded: asset execution or mutation beyond admitted slices, render execution or mutation beyond admitted slices, validation execution beyond admitted preflight slices
 
 ## How to move through the app
 
@@ -135,7 +135,7 @@ Use one repo-owned command to dispatch editor.session.open, editor.level.open, a
 
 ### Keep the admitted editor surfaces inside the current narrow boundaries
 
-Treat the live proof and capability map as evidence only for the currently admitted editor slices: root-level entity creation, allowlisted component attachment, and explicit read-only component property inspection on the loaded/current level.
+Treat the live proof, capability map, and composed Prompt Studio review flow as evidence only for the currently admitted editor slices: root-level entity creation, allowlisted component attachment, and explicit read-only component property inspection on the loaded/current level.
 
 #### Endpoints
 
@@ -158,6 +158,9 @@ Invoke-RestMethod 'http://127.0.0.1:8000/policies'
 - editor.component.add is admitted real-authoring only for explicit entity_id plus allowlisted components Camera, Comment, and Mesh on the loaded/current level.
 - editor.component.add still rejects property mutation, removal, parenting, prefab work, and transform placement.
 - editor.component.property.get is admitted hybrid read-only only for explicit component_id plus property_path on the loaded/current level.
+- Prompt-controlled editor chains may automatically bind the created entity id into editor.component.add and bind the added component id into admitted property readback where the planner has a proven mapping.
+- Operator-facing editor-chain review summaries now distinguish requested action, executed action, verified facts, assumptions, missing proof, and safest next step.
+- Bounded editor-chain review labels now include succeeded_verified, succeeded_partially_verified, blocked_missing_editor_target, blocked_missing_level, blocked_component_not_allowlisted, failed_runtime_error, and incomplete_readback_unavailable.
 
 
 ## Capability posture
@@ -166,6 +169,7 @@ Invoke-RestMethod 'http://127.0.0.1:8000/policies'
 - The control-plane repo remains the single orchestration and governance substrate.
 - Current admitted-real editor proof remains anchored to the canonical local backend on 127.0.0.1:8000 and the repo-owned backend/runtime/prove_live_editor_authoring.cmd command.
 - Current admitted editor-control scope includes real-authoring editor.component.add on its allowlisted surface and hybrid read-only editor.component.property.get on its explicit readback surface.
+- The admitted prompt-controlled editor chain may now compose editor.session.open, editor.level.open, editor.entity.create, editor.component.add, and mapped editor.component.property.get readback with automatic result binding and structured post-action review.
 - Live bridge success currently depends on the project-local ControlPlaneEditorBridge handler path on the active McpSandbox target.
 
 ## Key panels

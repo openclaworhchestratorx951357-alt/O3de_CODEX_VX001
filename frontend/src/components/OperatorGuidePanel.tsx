@@ -21,7 +21,7 @@ export default function OperatorGuidePanel() {
             </span>
             {operatorGuideCatalog.app.simulatedOnlyFocusTools.length > 0 ? (
               <span style={warningPillStyle}>
-                Still simulated: {operatorGuideCatalog.app.simulatedOnlyFocusTools.join(", ")}
+                Still bounded: {operatorGuideCatalog.app.simulatedOnlyFocusTools.join(", ")}
               </span>
             ) : null}
           </div>

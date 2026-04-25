@@ -155,6 +155,13 @@ Current truth:
   heartbeat from a live editor launch
 - were re-verified through the canonical repo-owned backend bound to
   `127.0.0.1:8000`
+- now also compose truthfully inside Prompt Studio as a bounded editor chain
+  that may automatically bind the created entity id into allowlisted
+  component attachment and bind the added component id into admitted property
+  readback when the planner has a proven mapping
+- now also produce operator-facing post-action review summaries that separate
+  requested action, executed action, verified facts, assumptions, missing
+  proof, and safest next step using bounded result labels
 - remain explicitly labeled real vs simulated in backend and frontend evidence
 - do not imply a broad real editor-control family beyond the admitted tools,
   broader component/property mutation, or arbitrary Editor Python execution
@@ -207,6 +214,10 @@ The operator shell now exposes this boundary through:
 - admitted real editor-authoring/runtime remains limited to
   `editor.session.open`, `editor.level.open`, `editor.entity.create`, and
   `editor.component.add` on the verified `McpSandbox` target wiring
+- the composed prompt-controlled editor chain remains limited to those admitted
+  tools plus explicit admitted `editor.component.property.get` readback and
+  does not imply arbitrary component names, broader property reads or writes,
+  delete, parenting, prefab mutation, or arbitrary Editor Python execution
 - `build.configure` is not a real configure execution path
 - `project.inspect` real evidence is still limited to manifest-backed
   project-config, requested-vs-discovered Gem, requested Gem subset matching,
@@ -252,10 +263,10 @@ Before widening into broader real adapter execution, the next slice should stay
 narrow and truthful.
 
 Recommended next boundary:
-- reselect the single safest next depth step from the now-aligned read-only,
-  plan-only, and narrow mutation-gated baseline, and
-- prefer a read-only or evidence-first verification packet before broader
-  execution widening; the strongest current follow-on is render/material depth
-  only if it stays inside truthful post-patch verification or runtime-evidence
-  boundaries rather than implying broader shader execution or render runtime
-  readback
+- when a real Editor target is available, prefer a live-proof packet against a
+  sandbox/test level for the admitted composed editor chain before widening
+  other mutation or execution families, and
+- if that live target is unavailable, reselect the single safest next depth
+  step from the now-aligned read-only, plan-only, execution-gated, and narrow
+  mutation-gated baseline without pretending the composed editor chain was
+  live-proven
