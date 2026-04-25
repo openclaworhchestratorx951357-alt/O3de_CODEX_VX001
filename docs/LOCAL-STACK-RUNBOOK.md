@@ -69,6 +69,7 @@ pwsh -File .\scripts\dev.ps1 live-start
 pwsh -File .\scripts\dev.ps1 live-status
 pwsh -File .\scripts\dev.ps1 live-stop
 pwsh -File .\scripts\dev.ps1 live-restart
+pwsh -File .\scripts\dev.ps1 live-bridge-start
 pwsh -File .\scripts\dev.ps1 live-proof
 ```
 
@@ -82,6 +83,9 @@ Operational intent:
   runs.
 - `live-restart` gives operators one clean relaunch path when port collisions or
   stale backend state are suspected.
+- `live-bridge-start` starts or reuses the canonical backend, then launches or
+  reuses the canonical McpSandbox Editor bridge and waits for a fresh heartbeat
+  without running the proof helper or executing the admitted editor chain.
 - `live-proof` restarts the backend, launches the canonical McpSandbox Editor
   bridge when no canonical `Editor.exe` is already running, waits for a fresh
   bridge heartbeat, and then runs the repo-owned live proof helper. If an

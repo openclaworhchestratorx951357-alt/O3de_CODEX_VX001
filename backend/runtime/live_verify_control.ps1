@@ -8,6 +8,7 @@ param(
         "stop-editor",
         "stop-all",
         "restart",
+        "start-bridge",
         "proof",
         "entity-exists-proof"
     )]
@@ -654,6 +655,18 @@ function Invoke-StartCanonicalBackend {
     }
 }
 
+function Invoke-StartCanonicalBridgeReadiness {
+    $backendStartResult = Invoke-StartCanonicalBackend
+    $editorStartResult = Invoke-StartCanonicalEditorBridge
+
+    return [ordered]@{
+        action = "start-bridge"
+        backend_start_result = $backendStartResult
+        editor_start_result = $editorStartResult
+        status = Get-LifecycleStatus
+    }
+}
+
 function Invoke-StopCanonicalBackend {
     $ids = @()
     $listener = Get-PortListener -PortNumber $Port
@@ -770,6 +783,7 @@ $result = switch ($Action) {
             status = Get-LifecycleStatus
         }
     }
+    "start-bridge" { Invoke-StartCanonicalBridgeReadiness }
     "proof" {
         Invoke-ProofRun -SelectedProofHelper $ProofHelper -ProofAction "proof"
     }

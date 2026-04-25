@@ -12,6 +12,7 @@ param(
         "live-start",
         "live-stop",
         "live-restart",
+        "live-bridge-start",
         "live-proof",
         "live-entity-exists-proof",
         "desktop-status",
@@ -504,6 +505,7 @@ switch ($Task) {
     "live-start" { Invoke-LiveRuntimeControl -Action "start" }
     "live-stop" { Invoke-LiveRuntimeControl -Action "stop-all" }
     "live-restart" { Invoke-LiveRuntimeControl -Action "restart" }
+    "live-bridge-start" { Invoke-LiveRuntimeControl -Action "start-bridge" }
     "live-proof" { Invoke-LiveRuntimeControl -Action "proof" }
     "live-entity-exists-proof" { Invoke-LiveRuntimeControl -Action "entity-exists-proof" }
     "desktop-status" { Invoke-DesktopAppControl -DesktopAction "status" }
