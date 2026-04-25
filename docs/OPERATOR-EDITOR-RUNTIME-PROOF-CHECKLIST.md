@@ -205,7 +205,13 @@ The direct proof command:
 ## Latest Verified Repo-Owned Proof
 
 Latest successful proof bundle:
-- `backend/runtime/live_editor_authoring_proof_20260425-080441.json`
+- `backend/runtime/live_editor_authoring_proof_20260425-175429.json`
+
+Latest successful restore boundary artifact:
+- `backend/runtime/editor_state/restore_boundaries/3474cf9464f71663/679d8e02d5a545f7b424a443f82f6e33.prefab`
+
+Latest successful proof command:
+- `powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-proof`
 
 Latest successful proof summary:
 - `summary.succeeded = true`
@@ -214,49 +220,76 @@ Latest successful proof summary:
 - `summary.prompt_session.execute_attempt_count = 5`
 - `summary.prompt_session.approval_count = 4`
 - `summary.selected_level_path = Levels/TestLoevel01`
-- `summary.entity_name = CodexProofEntity_20260425_080441`
-- `summary.entity_id = [362085715539]`
+- `summary.entity_name = CodexProofEntity_20260425_175429`
+- `summary.entity_id = [361233096433]`
 - `summary.component_name = Mesh`
-- `summary.component_id = EntityComponentIdPair(EntityId(5957391582996336467), 16444678243022057229)`
+- `summary.component_id = EntityComponentIdPair(EntityId(12942850416866051145), 1461236105898970455)`
 - `summary.property_path = Controller|Configuration|Model Asset`
 - `summary.cleanup_restore.restore_result = restored_and_verified`
+- `summary.cleanup_restore.restore_succeeded = true`
+
+Latest successful proof chain:
+- `editor.session.open` -> `editor.level.open` -> `editor.entity.create` ->
+  `editor.component.add` -> `editor.component.property.get`
+
+Latest successful live-status gates:
+- before proof: backend listener present, canonical `Editor.exe` process id
+  `31776`, and `heartbeat_fresh = true`
+- after proof: backend listener present, canonical `Editor.exe` process id
+  `31776`, and `heartbeat_fresh = true`
+
+Latest successful mutation and restore truth:
+- mutation occurred during proof: entity creation plus Mesh component add
+- restore result: `restored_and_verified`
+- restore verification scope: filesystem restoration of the selected
+  loaded-level prefab from the pre-mutation backup
+- runtime artifacts were intentionally left under ignored `backend/runtime`
+  evidence paths instead of being committed
 
 Latest successful proof run ids:
-- `editor.session.open run_id = run-347b6f0b0916`
-- `editor.level.open run_id = run-ac7cf33b76a1`
-- `editor.entity.create run_id = run-c0ca1421721a`
-- `editor.component.add run_id = run-f5ffdc247902`
-- `editor.component.property.get run_id = run-eaa66db57ae6`
+- `editor.session.open run_id = run-05f095296048`
+- `editor.level.open run_id = run-6ab51d0674b2`
+- `editor.entity.create run_id = run-67f403e430f2`
+- `editor.component.add run_id = run-856d30797bc1`
+- `editor.component.property.get run_id = run-b94bc6bd2b33`
 
 Latest successful proof execution ids:
-- `editor.session.open execution_id = exe-a48cc45d4617`
-- `editor.level.open execution_id = exe-41696ac7c943`
-- `editor.entity.create execution_id = exe-4d48b88ee508`
-- `editor.component.add execution_id = exe-820a04e5310b`
-- `editor.component.property.get execution_id = exe-79ad74504250`
+- `editor.session.open execution_id = exe-18702cf6641a`
+- `editor.level.open execution_id = exe-f63a68c8b9c3`
+- `editor.entity.create execution_id = exe-820920527686`
+- `editor.component.add execution_id = exe-2c3fc8f3f0f9`
+- `editor.component.property.get execution_id = exe-c6dd4b64d5bb`
 
 Latest successful proof artifact ids:
-- `editor.session.open artifact_id = art-7fce3e7ec783`
-- `editor.level.open artifact_id = art-0eb8cf22c0cf`
-- `editor.entity.create artifact_id = art-b02dd12523b4`
-- `editor.component.add artifact_id = art-6259a814a976`
-- `editor.component.property.get artifact_id = art-db062532ceb9`
+- `editor.session.open artifact_id = art-58f6d8b86ba6`
+- `editor.level.open artifact_id = art-d84e707d61bf`
+- `editor.entity.create artifact_id = art-e7b648e4022f`
+- `editor.component.add artifact_id = art-d6cb04f01c3c`
+- `editor.component.property.get artifact_id = art-9c46f5dd713b`
 
 Latest successful proof bridge command ids:
-- `editor.session.open bridge_command_id = e5c3b024002447eca23155ca548e9f91`
-- `editor.level.open bridge_command_id = 98ea6701e3764df2808547ec323cecad`
-- `editor.entity.create bridge_command_id = 729d56f8de5c448dabcd3b9050a54a77`
-- `editor.component.add bridge_command_id = fb93b401a800433aa519080ea49e0b92`
-- `editor.component.property.get bridge_command_id = c2b4f82bbc884b149a44b3e336620c56`
+- `editor.session.open bridge_command_id = ce6fca8d80e6446d9d0d724080464e14`
+- `editor.level.open bridge_command_id = ca5620e114d3447d9941d9bf46665f88`
+- `editor.entity.create bridge_command_id = 859f11757f674e8f9f09df608f5646e8`
+- `editor.component.add bridge_command_id = 8d4c353251764aa6ab34f87a1fe73811`
+- `editor.component.property.get bridge_command_id = be815203217a4cbeabde269ed0b9558c`
 
 Latest successful cleanup restore:
-- `restore_boundary_id = 2ba80761a0e741da9fd728da67c60712`
+- `restore_boundary_id = 679d8e02d5a545f7b424a443f82f6e33`
 - `restore_boundary_scope = loaded-level-file`
 - `restore_strategy = restore-loaded-level-file-from-pre-mutation-backup`
 - `restore_trigger = live-proof-success-cleanup`
 - `restore_succeeded = true`
 - `restore_boundary_backup_sha256 = ba0d16a2b61162dac35d411cbeb17a1f1a0c72b04a9b3a8eec7477119d5c9c9c`
 - `restore_restored_sha256 = ba0d16a2b61162dac35d411cbeb17a1f1a0c72b04a9b3a8eec7477119d5c9c9c`
+
+Latest proof explicitly did not prove:
+- arbitrary Editor Python
+- arbitrary component or property writes
+- delete, parenting, prefab, material, asset, render, build, or TIAF behavior
+- live Editor undo
+- viewport reload
+- post-restore entity-absence readback
 
 ## Latest Direct Read-Only Entity Exists Proof
 

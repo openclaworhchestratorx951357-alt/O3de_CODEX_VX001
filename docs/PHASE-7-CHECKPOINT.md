@@ -192,7 +192,9 @@ Current truth:
   `editor.session.open` -> `editor.level.open` -> `editor.entity.create` ->
   `editor.component.add` -> `editor.component.property.get`
 - live proof bundle:
-  `backend/runtime/live_editor_authoring_proof_20260425-080441.json`
+  `backend/runtime/live_editor_authoring_proof_20260425-175429.json`
+- restore boundary artifact:
+  `backend/runtime/editor_state/restore_boundaries/3474cf9464f71663/679d8e02d5a545f7b424a443f82f6e33.prefab`
 - the proof verified entity creation, Mesh attachment, and
   `Controller|Configuration|Model Asset` readback through the prompt
   orchestrated path
@@ -200,12 +202,18 @@ Current truth:
   boundary and hash-verified the selected level prefab against the captured
   backup after proof execution
 - latest proof entity/component evidence:
-  `CodexProofEntity_20260425_080441`, entity id `[362085715539]`, Mesh
+  `CodexProofEntity_20260425_175429`, entity id `[361233096433]`, Mesh
   component id
-  `EntityComponentIdPair(EntityId(5957391582996336467), 16444678243022057229)`
+  `EntityComponentIdPair(EntityId(12942850416866051145), 1461236105898970455)`
 - latest proof cleanup boundary:
-  `2ba80761a0e741da9fd728da67c60712`,
+  `679d8e02d5a545f7b424a443f82f6e33`,
   `restore_result = restored_and_verified`
+- live-status immediately before and after the proof had a backend listener,
+  canonical `Editor.exe` process id `31776`, and `heartbeat_fresh = true`
+- the proof did mutate the selected test level during execution by creating
+  `CodexProofEntity_20260425_175429` and adding Mesh, then verified only the
+  filesystem restore of the selected loaded-level prefab from the pre-mutation
+  backup
 - no live Editor undo, viewport reload, entity-absence readback, broader
   property write, delete, parenting, prefab, material, asset, render, build, or
   arbitrary Editor Python behavior was executed or verified by that proof
