@@ -106,18 +106,20 @@ Invoke-RestMethod 'http://127.0.0.1:8000/prompt/capabilities'
 
 ### Run the repo-owned live proof command
 
-Use one repo-owned command to dispatch editor.session.open, editor.level.open, and editor.entity.create against the canonical backend and write one JSON evidence bundle under backend/runtime.
+Use one repo-owned command to prove the admitted prompt-orchestrated editor chain against the canonical backend and write one JSON evidence bundle under backend/runtime.
 
 #### Endpoints
 
 - GET /ready
 - GET /o3de/target
 - GET /o3de/bridge
-- POST /tools/dispatch
+- GET /prompt/capabilities
+- POST /prompt/sessions
+- POST /prompt/sessions/{prompt_id}/execute
 - POST /approvals/{approval_id}/approve
 - GET /runs/{run_id}
-- GET /executions/{execution_id}
-- GET /artifacts/{artifact_id}
+- GET /executions
+- GET /artifacts
 
 #### Commands
 
@@ -129,9 +131,13 @@ Use one repo-owned command to dispatch editor.session.open, editor.level.open, a
 
 - The command writes backend\runtime\live_editor_authoring_proof_<timestamp>.json.
 - summary.succeeded = true and summary.bridge_transport_confirmed = true.
-- summary.records.approval_ids, run_ids, execution_ids, and artifact_ids are populated for editor.session.open, editor.level.open, and editor.entity.create.
-- summary.bridge_command_ids captures the persistent bridge command ids for all three admitted-real editor steps.
-- summary.entity_name, summary.entity_id, and summary.level_path capture the created root-level entity and loaded level context.
+- summary.prompt.status = completed and summary.prompt.approval_count shows the auto-walked approvals.
+- summary.records.approval_ids, run_ids, execution_ids, and artifact_ids are populated for editor.session.open, editor.level.open, editor.entity.create, editor.component.add, and editor.component.property.get.
+- summary.bridge_command_ids captures the persistent bridge command ids for all admitted real editor steps.
+- summary.safe_level.selected_level_path names a sandbox/test level rather than relying on DefaultLevel.
+- summary.entity_name, summary.entity_id, summary.component_id, summary.property_path, and summary.property_value capture the created entity, Mesh attachment, and Controller|Configuration|Model Asset readback.
+- summary.cleanup_restore.restore_invoked = true, restore_succeeded = true, and restore_result = restored_and_verified prove file-backed loaded-level restore against the captured backup hash.
+- summary.missing_proof still states that live Editor undo, viewport reload, and entity-absence readback were not proven.
 
 ### Keep the admitted editor surfaces inside the current narrow boundaries
 
@@ -170,6 +176,7 @@ Invoke-RestMethod 'http://127.0.0.1:8000/policies'
 - Current admitted-real editor proof remains anchored to the canonical local backend on 127.0.0.1:8000 and the repo-owned backend/runtime/prove_live_editor_authoring.cmd command.
 - Current admitted editor-control scope includes real-authoring editor.component.add on its allowlisted surface and hybrid read-only editor.component.property.get on its explicit readback surface.
 - The admitted prompt-controlled editor chain may now compose editor.session.open, editor.level.open, editor.entity.create, editor.component.add, and mapped editor.component.property.get readback with automatic result binding and structured post-action review.
+- Restore-boundary evidence is operator-visible in run, execution, and artifact detail only as file-backed loaded-level restore evidence; it does not prove live Editor undo, viewport reload, or entity absence.
 - Live bridge success currently depends on the project-local ControlPlaneEditorBridge handler path on the active McpSandbox target.
 
 ## Key panels
@@ -614,9 +621,10 @@ Invoke-RestMethod 'http://127.0.0.1:8000/policies'
 ### Run Detail
 
 - Location: Records > Runs > Run Detail
-- Quick tip: Use Run Detail to inspect one persisted run with its lineage, truth boundary, locks, warnings, prompt safety, and any available mutation or evidence follow-through.
+- Quick tip: Use Run Detail to inspect one persisted run with its lineage, truth boundary, locks, warnings, prompt safety, restore-boundary evidence, and any available mutation or evidence follow-through.
 - Start with lineage and triage summary before jumping deeper into evidence.
 - Use the truth boundary section to keep simulated versus admitted-real wording accurate.
+- When Editor Restore Boundary appears, treat it as file-backed loaded-level restore evidence only, not proof of live Editor undo, viewport reload, or entity absence.
 - Refresh the selected run detail when related execution evidence may have changed.
 
 #### Control tips
@@ -629,9 +637,10 @@ Invoke-RestMethod 'http://127.0.0.1:8000/policies'
 ### Execution Detail
 
 - Location: Records > Executions > Execution Detail
-- Quick tip: Use Execution Detail to inspect one persisted execution with lineage, truth markers, prompt safety, related artifacts, and evidence when available.
+- Quick tip: Use Execution Detail to inspect one persisted execution with lineage, truth markers, prompt safety, restore-boundary evidence, related artifacts, and evidence when available.
 - Read lineage and triage summary before reviewing artifact follow-through.
 - Use execution truth markers and prompt safety together before describing the outcome.
+- Use Editor Restore Boundary status and hash fields only when the execution details include restore_boundary_id.
 - Refresh the execution detail when related artifact records may have changed.
 
 #### Control tips
@@ -644,9 +653,10 @@ Invoke-RestMethod 'http://127.0.0.1:8000/policies'
 ### Artifact Detail
 
 - Location: Records > Artifacts > Artifact Detail
-- Quick tip: Use Artifact Detail to inspect one persisted artifact with lineage, provenance markers, prompt safety, sibling artifacts, and next-hop guidance.
+- Quick tip: Use Artifact Detail to inspect one persisted artifact with lineage, provenance markers, prompt safety, restore-boundary evidence, sibling artifacts, and next-hop guidance.
 - Read lineage and triage summary before deciding whether to move back to execution or run context.
 - Check artifact truth markers and prompt safety together before sharing or promoting output.
+- Do not promote restore-boundary metadata into cleanup or reversibility claims unless restore_invoked and restore_succeeded are both true.
 - Refresh the selected artifact when related records may have changed.
 
 #### Control tips
