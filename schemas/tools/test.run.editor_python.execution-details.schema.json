@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/test.run.editor_python.execution-details.schema.json",
+  "title": "test.run.editor_python execution details",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "inspection_surface",
+    "execution_boundary",
+    "simulated"
+  ],
+  "properties": {
+    "inspection_surface": {
+      "type": "string",
+      "enum": ["simulated", "editor_python_runner_preflight"]
+    },
+    "execution_boundary": { "type": "string", "minLength": 1 },
+    "simulated": { "type": "boolean" },
+    "adapter_family": { "type": "string", "minLength": 1 },
+    "adapter_mode": { "type": "string", "minLength": 1 },
+    "adapter_contract_version": { "type": "string", "minLength": 1 },
+    "real_path_available": { "type": "boolean" },
+    "preflight_execution_mode": { "type": "string", "minLength": 1 },
+    "editor_python_request_explicit": { "type": "boolean" },
+    "project_root_path": { "type": ["string", "null"], "minLength": 1 },
+    "configured_target_project_root": { "type": ["string", "null"], "minLength": 1 },
+    "target_project_matches_request": { "type": "boolean" },
+    "test_modules": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "requested_editor_args": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "requested_timeout_s": { "type": ["integer", "null"], "minimum": 1 },
+    "inspection_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "unavailable_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "runner_probe_attempted": { "type": "boolean" },
+    "runner_probe_method": { "type": ["string", "null"], "minLength": 1 },
+    "runner_runtime_available": { "type": "boolean" },
+    "runtime_runner_path": { "type": ["string", "null"], "minLength": 1 },
+    "runtime_runner_exists": { "type": "boolean" },
+    "bridge_configured": { "type": "boolean" },
+    "bridge_project_matches_request": { "type": "boolean" },
+    "bridge_heartbeat_fresh": { "type": "boolean" },
+    "bridge_heartbeat_path": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_runner_process_active": { "type": "boolean" },
+    "execution_attempted": { "type": "boolean" },
+    "result_artifact_produced": { "type": "boolean" },
+    "result_artifact_path": { "type": ["string", "null"], "minLength": 1 },
+    "result_artifact_content_type": { "type": ["string", "null"], "minLength": 1 },
+    "result_artifact_size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+    "exit_code_available": { "type": "boolean" },
+    "exit_code": { "type": ["integer", "null"] },
+    "result_status": { "type": "string", "minLength": 1 },
+    "result_summary_available": { "type": "boolean" },
+    "result_unavailable_reason": { "type": ["string", "null"], "minLength": 1 },
+    "runner_unavailable_reason": { "type": ["string", "null"], "minLength": 1 },
+    "fallback_category": { "type": "string", "minLength": 1 },
+    "fallback_reason": { "type": "string", "minLength": 1 }
+  }
+}

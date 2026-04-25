@@ -1,0 +1,119 @@
+import type { CSSProperties } from "react";
+
+import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
+import type { PromptSessionRecord } from "../types/contracts";
+import GuidedEmptyState from "./GuidedEmptyState";
+import PanelGuideDetails from "./PanelGuideDetails";
+import StatusChip from "./StatusChip";
+import { getPromptSessionStatusTone } from "./statusChipTones";
+
+const promptSessionsGuide = getPanelGuide("prompt-sessions");
+const promptSessionsEntryControlGuide = getPanelControlGuide("prompt-sessions", "session-entry");
+
+type PromptSessionPanelProps = {
+  sessions: PromptSessionRecord[];
+  selectedPromptId: string | null;
+  onSelect: (promptId: string) => void;
+};
+
+export default function PromptSessionPanel({
+  sessions,
+  selectedPromptId,
+  onSelect,
+}: PromptSessionPanelProps) {
+  return (
+    <section style={panelStyle}>
+      <h3 style={{ marginTop: 0 }}>Prompt Sessions</h3>
+      <p style={subtleTextStyle}>
+        Select the persisted prompt session you want to inspect, continue, or explain across Prompt Studio.
+      </p>
+      <PanelGuideDetails
+        tooltip={promptSessionsGuide.tooltip}
+        checklist={promptSessionsGuide.checklist}
+      />
+      {sessions.length === 0 ? (
+        <GuidedEmptyState
+          message="No prompt sessions have been created yet."
+          title="Create the first governed prompt"
+          description="Prompt sessions appear after the app sends a natural-language request to the backend and stores the resulting plan, approvals, and evidence lineage."
+          steps={[
+            "Open Prompt Studio and describe the O3DE change in plain language.",
+            "Keep dry run on first if you only want to preview the plan.",
+            "Review any approval request before executing real editor work.",
+          ]}
+          exampleTitle="Example beginner prompt"
+          exampleBody="Open the default level in McpSandbox and explain which editor-control steps will run before changing anything."
+        />
+      ) : (
+        <div style={{ display: "grid", gap: 8 }}>
+          {sessions.map((session) => {
+            const active = session.prompt_id === selectedPromptId;
+            return (
+              <button
+                key={session.prompt_id}
+                type="button"
+                title={promptSessionsEntryControlGuide.tooltip}
+                onClick={() => onSelect(session.prompt_id)}
+                style={{
+                  ...sessionButtonStyle,
+                  borderColor: active ? "var(--app-accent)" : "var(--app-panel-border)",
+                  background: active ? "var(--app-accent-soft)" : "var(--app-panel-bg)",
+                }}
+              >
+                <div style={sessionHeaderStyle}>
+                  <strong>{session.prompt_id}</strong>
+                  <StatusChip
+                    label={session.status}
+                    tone={getPromptSessionStatusTone(session.status)}
+                  />
+                </div>
+                <div style={promptTextPreviewStyle}>{session.prompt_text}</div>
+                <div style={subtleTextStyle}>
+                  {session.final_result_summary ?? session.plan_summary ?? "No summary available."}
+                </div>
+                <div style={subtleTextStyle}>
+                  Workspace: {session.workspace_id ?? "none"} | Executor: {session.executor_id ?? "none"}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+const panelStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-panel-radius)",
+  padding: "var(--app-panel-padding)",
+  background: "var(--app-panel-bg-muted)",
+  boxShadow: "var(--app-shadow-soft)",
+} satisfies CSSProperties;
+
+const sessionButtonStyle = {
+  display: "grid",
+  gap: 6,
+  width: "100%",
+  textAlign: "left" as const,
+  padding: 12,
+  borderRadius: "var(--app-card-radius)",
+  border: "1px solid var(--app-panel-border)",
+  cursor: "pointer",
+  color: "var(--app-text-color)",
+} satisfies CSSProperties;
+
+const sessionHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+} satisfies CSSProperties;
+
+const promptTextPreviewStyle = {
+  color: "var(--app-text-color)",
+} satisfies CSSProperties;
+
+const subtleTextStyle = {
+  color: "var(--app-muted-color)",
+  fontSize: 13,
+} satisfies CSSProperties;

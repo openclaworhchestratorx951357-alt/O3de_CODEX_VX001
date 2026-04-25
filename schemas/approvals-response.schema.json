@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/approvals-response.schema.json",
+  "title": "Approvals Response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["approvals"],
+  "properties": {
+    "approvals": {
+      "type": "array",
+      "items": {
+        "$ref": "approval.schema.json"
+      }
+    }
+  }
+}

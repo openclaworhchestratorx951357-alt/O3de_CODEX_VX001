@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/readiness-status.schema.json",
+  "title": "Readiness Status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "ok",
+    "service",
+    "execution_mode",
+    "persistence_ready",
+    "requested_database_strategy",
+    "database_strategy",
+    "database_path",
+    "persistence_warning",
+    "attempted_database_paths",
+    "adapter_mode",
+    "schema_validation",
+    "dependencies"
+  ],
+  "properties": {
+    "ok": { "type": "boolean" },
+    "service": { "type": "string", "minLength": 1 },
+    "execution_mode": {
+      "type": "string",
+      "enum": ["hybrid", "simulated", "unavailable"]
+    },
+    "persistence_ready": { "type": "boolean" },
+    "requested_database_strategy": { "type": "string", "minLength": 1 },
+    "database_strategy": { "type": "string", "minLength": 1 },
+    "database_path": { "type": "string", "minLength": 1 },
+    "persistence_warning": {
+      "type": ["string", "null"]
+    },
+    "attempted_database_paths": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "adapter_mode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ready",
+        "configured_mode",
+        "active_mode",
+        "supports_real_execution",
+        "contract_version",
+        "execution_boundary",
+        "supported_modes",
+        "available_families",
+        "warning",
+        "notes"
+      ],
+      "properties": {
+        "ready": { "type": "boolean" },
+        "configured_mode": { "type": "string", "minLength": 1 },
+        "active_mode": { "type": "string", "minLength": 1 },
+        "supports_real_execution": { "type": "boolean" },
+        "contract_version": { "type": "string", "minLength": 1 },
+        "execution_boundary": { "type": "string", "minLength": 1 },
+        "supported_modes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "available_families": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "warning": { "type": ["string", "null"] },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "schema_validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "schema_scope",
+        "supports_request_args",
+        "supports_result_conformance",
+        "active_keywords",
+        "active_unsupported_keywords",
+        "active_metadata_keywords",
+        "supported_keywords",
+        "supported_refs",
+        "unsupported_keywords",
+        "notes"
+      ],
+      "properties": {
+        "mode": { "type": "string", "minLength": 1 },
+        "schema_scope": { "type": "string", "minLength": 1 },
+        "supports_request_args": { "type": "boolean" },
+        "supports_result_conformance": { "type": "boolean" },
+        "active_keywords": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "active_unsupported_keywords": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "active_metadata_keywords": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "supported_keywords": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "supported_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "unsupported_keywords": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

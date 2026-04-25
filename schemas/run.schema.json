@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/run.schema.json",
+  "title": "Control Plane Run",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "request_id",
+    "agent",
+    "tool",
+    "status",
+    "created_at",
+    "updated_at",
+    "dry_run",
+    "requested_locks",
+    "granted_locks",
+    "warnings",
+    "execution_mode"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "request_id": { "type": "string", "minLength": 1 },
+    "agent": { "type": "string", "minLength": 1 },
+    "tool": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "waiting_approval", "blocked", "running", "succeeded", "rejected", "failed"]
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "dry_run": { "type": "boolean" },
+    "approval_id": { "type": ["string", "null"] },
+    "approval_token": { "type": ["string", "null"] },
+    "requested_locks": { "type": "array", "items": { "type": "string" } },
+    "granted_locks": { "type": "array", "items": { "type": "string" } },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "execution_mode": { "type": "string", "minLength": 1 },
+    "result_summary": { "type": ["string", "null"] }
+  }
+}

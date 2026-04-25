@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/editor.component.add.args.schema.json",
+  "title": "editor.component.add args",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["entity_id", "components"],
+  "properties": {
+    "entity_id": { "type": "string", "minLength": 1 },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "level_path": { "type": "string", "minLength": 1 }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/adapters-response.schema.json",
+  "title": "Adapters Response",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["adapters"],
+  "properties": {
+    "adapters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "configured_mode",
+        "active_mode",
+        "supported_modes",
+        "contract_version",
+        "supports_real_execution",
+        "families",
+        "warning",
+        "notes"
+      ],
+      "properties": {
+        "configured_mode": { "type": "string", "minLength": 1 },
+        "active_mode": { "type": "string", "minLength": 1 },
+        "supported_modes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "contract_version": { "type": "string", "minLength": 1 },
+        "supports_real_execution": { "type": "boolean" },
+        "families": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "family",
+              "mode",
+              "supports_real_execution",
+              "contract_version",
+              "execution_boundary",
+              "ready",
+              "notes"
+            ],
+            "properties": {
+              "family": { "type": "string", "minLength": 1 },
+              "mode": { "type": "string", "minLength": 1 },
+              "supports_real_execution": { "type": "boolean" },
+              "contract_version": { "type": "string", "minLength": 1 },
+              "execution_boundary": { "type": "string", "minLength": 1 },
+              "ready": { "type": "boolean" },
+              "notes": {
+                "type": "array",
+                "items": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        },
+        "warning": { "type": ["string", "null"] },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

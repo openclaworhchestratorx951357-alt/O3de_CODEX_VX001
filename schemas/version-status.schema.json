@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/version-status.schema.json",
+  "title": "Version Status",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["service", "version", "api_version", "adapter_contract_version"],
+  "properties": {
+    "service": { "type": "string", "minLength": 1 },
+    "version": { "type": "string", "minLength": 1 },
+    "api_version": { "type": "string", "minLength": 1 },
+    "adapter_contract_version": { "type": "string", "minLength": 1 }
+  }
+}

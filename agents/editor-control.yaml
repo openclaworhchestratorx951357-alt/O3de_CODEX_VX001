@@ -12,6 +12,7 @@ owned_tools:
   - editor.level.create
   - editor.level.save
   - editor.entity.create
+  - editor.entity.exists
   - editor.entity.find
   - editor.entity.rename
   - editor.entity.delete

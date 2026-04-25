@@ -364,6 +364,37 @@ Returns:
 
 ---
 
+## editor.entity.exists
+Purpose: Check whether one explicit entity id or one exact entity name exists in the currently loaded level.
+
+Approval: `read_only`
+Idempotent: yes
+Lock: `editor_session`
+
+Args:
+```json
+{
+  "entity_id": "string|null",
+  "entity_name": "string|null",
+  "level_path": "string|null"
+}
+```
+
+Returns:
+```json
+{
+  "exists": true,
+  "lookup_mode": "entity_id|entity_name",
+  "entity_id": "string|null",
+  "entity_name": "string|null",
+  "matched_count": 1
+}
+```
+
+Boundary: exactly one lookup target is admitted. Ambiguous exact-name lookup is a failure, not a selected match; delete, reload, parenting, prefab, broad scene enumeration, component discovery, and property mutation remain out of scope.
+
+---
+
 ## editor.entity.find
 Purpose: Search entities by name pattern or exact id.
 

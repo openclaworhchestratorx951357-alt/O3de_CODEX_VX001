@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/editor.entity.create.args.schema.json",
+  "title": "editor.entity.create args",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["entity_name"],
+  "properties": {
+    "entity_name": { "type": "string", "minLength": 1 },
+    "parent_entity_id": { "type": "string", "minLength": 1 },
+    "level_path": { "type": "string", "minLength": 1 },
+    "prefab_asset": { "type": "string", "minLength": 1 },
+    "position": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      }
+    }
+  }
+}

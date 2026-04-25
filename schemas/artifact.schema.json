@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/artifact.schema.json",
+  "title": "Control Plane Artifact",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "run_id",
+    "execution_id",
+    "label",
+    "kind",
+    "uri",
+    "simulated",
+    "created_at",
+    "metadata"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "execution_id": { "type": "string", "minLength": 1 },
+    "label": { "type": "string", "minLength": 1 },
+    "kind": { "type": "string", "minLength": 1 },
+    "uri": { "type": "string", "minLength": 1 },
+    "path": { "type": ["string", "null"] },
+    "content_type": { "type": ["string", "null"] },
+    "simulated": { "type": "boolean" },
+    "created_at": { "type": "string", "format": "date-time" },
+    "metadata": { "type": "object", "additionalProperties": true }
+  }
+}

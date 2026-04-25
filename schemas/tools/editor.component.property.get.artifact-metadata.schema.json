@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/editor.component.property.get.artifact-metadata.schema.json",
+  "title": "editor.component.property.get artifact metadata",
+  "allOf": [
+    {
+      "$ref": "./editor.component.property.get.execution-details.schema.json"
+    },
+    {
+      "type": "object",
+      "required": [
+        "tool",
+        "agent",
+        "execution_mode",
+        "adapter_family",
+        "adapter_mode",
+        "adapter_contract_version"
+      ],
+      "properties": {
+        "tool": { "const": "editor.component.property.get" },
+        "agent": { "const": "editor-control" },
+        "execution_mode": { "enum": ["simulated", "real"] }
+      }
+    }
+  ]
+}

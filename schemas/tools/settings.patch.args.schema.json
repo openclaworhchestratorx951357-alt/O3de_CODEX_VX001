@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/settings.patch.args.schema.json",
+  "title": "settings.patch args",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["registry_path", "operations"],
+  "properties": {
+    "registry_path": { "type": "string", "minLength": 1 },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["op", "path"],
+        "properties": {
+          "op": { "type": "string", "enum": ["set", "remove", "append"] },
+          "path": { "type": "string", "minLength": 1 },
+          "value": {}
+        }
+      }
+    }
+  }
+}

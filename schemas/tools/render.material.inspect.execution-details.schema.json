@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/render.material.inspect.execution-details.schema.json",
+  "title": "render.material.inspect execution details",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "inspection_surface",
+    "execution_boundary",
+    "simulated"
+  ],
+  "properties": {
+    "inspection_surface": {
+      "type": "string",
+      "enum": ["simulated", "render_material_runtime_probe"]
+    },
+    "execution_boundary": { "type": "string", "minLength": 1 },
+    "simulated": { "type": "boolean" },
+    "adapter_family": { "type": "string", "minLength": 1 },
+    "adapter_mode": { "type": "string", "minLength": 1 },
+    "adapter_contract_version": { "type": "string", "minLength": 1 },
+    "real_path_available": { "type": "boolean" },
+    "material_request_explicit": { "type": "boolean" },
+    "inspection_read_mode": { "type": "string", "minLength": 1 },
+    "runtime_probe_attempted": { "type": "boolean" },
+    "runtime_probe_method": { "type": ["string", "null"], "minLength": 1 },
+    "runtime_available": { "type": "boolean" },
+    "material_runtime_mode": { "type": ["string", "null"], "minLength": 1 },
+    "material_operation_available": { "type": "boolean" },
+    "material_inspection_attempted": { "type": "boolean" },
+    "material_evidence_produced": { "type": "boolean" },
+    "material_evidence_path": { "type": ["string", "null"], "minLength": 1 },
+    "material_unavailable_reason": { "type": ["string", "null"], "minLength": 1 },
+    "material_path": { "type": ["string", "null"], "minLength": 1 },
+    "material_path_resolved": { "type": ["string", "null"], "minLength": 1 },
+    "material_path_relative_to_project_root": { "type": ["string", "null"], "minLength": 1 },
+    "material_path_workspace_local": { "type": "boolean" },
+    "material_path_within_project_root": { "type": "boolean" },
+    "material_file_exists": { "type": "boolean" },
+    "material_is_file": { "type": "boolean" },
+    "material_json_readable": { "type": "boolean" },
+    "material_root_is_object": { "type": "boolean" },
+    "material_readback_attempted": { "type": "boolean" },
+    "material_readback_available": { "type": "boolean" },
+    "material_readback_source": { "type": ["string", "null"], "minLength": 1 },
+    "material_readback_scope": { "type": ["string", "null"], "minLength": 1 },
+    "material_readback_mode": { "type": ["string", "null"], "minLength": 1 },
+    "material_readback_unavailable_reason": { "type": ["string", "null"], "minLength": 1 },
+    "material_top_level_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "material_top_level_key_count": { "type": "integer", "minimum": 0 },
+    "material_type": { "type": ["string", "null"], "minLength": 1 },
+    "property_values_field_present": { "type": "boolean" },
+    "property_value_count": { "type": ["integer", "null"], "minimum": 0 },
+    "material_runtime_readback_available": { "type": "boolean" },
+    "material_runtime_readback_unavailable_reason": { "type": ["string", "null"], "minLength": 1 },
+    "include_shader_data_requested": { "type": "boolean" },
+    "include_references_requested": { "type": "boolean" },
+    "shader_data_available": { "type": "boolean" },
+    "shader_data_unavailable_reason": { "type": ["string", "null"], "minLength": 1 },
+    "references_available": { "type": "boolean" },
+    "references_unavailable_reason": { "type": ["string", "null"], "minLength": 1 },
+    "active_level_path": { "type": ["string", "null"], "minLength": 1 },
+    "inspection_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "unavailable_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "editor_transport": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_name": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_version": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_available": { "type": "boolean" },
+    "bridge_operation": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_contract_version": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_command_id": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_result_summary": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_error_code": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_heartbeat_seen_at": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_queue_mode": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_selected_entity_count": { "type": ["integer", "null"], "minimum": 0 },
+    "bridge_prefab_context_notes": {
+      "type": ["array", "null"],
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "editor_log_path": { "type": ["string", "null"], "minLength": 1 }
+  }
+}

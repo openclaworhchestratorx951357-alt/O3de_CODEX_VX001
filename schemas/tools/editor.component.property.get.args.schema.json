@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/editor.component.property.get.args.schema.json",
+  "title": "editor.component.property.get args",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["component_id", "property_path"],
+  "properties": {
+    "component_id": { "type": "string", "minLength": 1 },
+    "property_path": { "type": "string", "minLength": 1 },
+    "level_path": { "type": "string", "minLength": 1 }
+  }
+}

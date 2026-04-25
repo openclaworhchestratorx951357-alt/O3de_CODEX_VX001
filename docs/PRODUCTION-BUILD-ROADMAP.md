@@ -17,6 +17,9 @@ Read this together with:
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `README.md`
 - `docs/README.md`
+- `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`
+- `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
+- `docs/PHASE-6B-REMOTE-EXECUTOR-CONTRACT.md`
 
 ---
 
@@ -103,12 +106,14 @@ Before starting any phase, Codex must follow `docs/WORKFLOW-CODEX-CHATGPT.md`.
 5. Phase 4 — Operator frontend baseline
 6. Phase 5 — Production engineering baseline
 7. Phase 6 — Adapter framework and simulated O3DE executors
-8. Phase 7 — Real O3DE integration slice: project/build/settings
-9. Phase 8 — Real O3DE integration slice: editor automation
-10. Phase 9 — Real O3DE integration slice: assets/prefabs/pipeline
-11. Phase 10 — Real O3DE integration slice: validation/TIAF
-12. Phase 11 — Real O3DE integration slice: rendering/lookdev
-13. Phase 12 — Hardening, release readiness, and operator handoff
+8. Phase 6B — Remote executor substrate and workspace isolation
+9. Phase 6C — Automation surface matrix and admission standard
+10. Phase 7 — Real O3DE integration slice: project/build/settings
+11. Phase 8 — Real O3DE integration slice: editor automation
+12. Phase 9 — Real O3DE integration slice: assets/prefabs/pipeline
+13. Phase 10 — Real O3DE integration slice: validation/TIAF
+14. Phase 11 — Real O3DE integration slice: rendering/lookdev
+15. Phase 12 — Hardening, release readiness, and operator handoff
 
 Each phase below includes goals, required outputs, and exit criteria.
 
@@ -358,6 +363,68 @@ Create a robust adapter model before deep real integrations.
 
 ---
 
+# Phase 6B — Remote Executor Substrate and Workspace Isolation
+
+## Goal
+Build the production-grade remote execution substrate that broader real O3DE
+automation depends on.
+
+## Required work
+- define the remote executor model for official O3DE substrates rather than GUI
+  automation-first control
+- provision isolated workspaces for remote runs
+- define engine/project binding rules per workspace
+- define environment and secret boundaries for runner families
+- add artifact/log/summary streaming contracts
+- add cancellation, timeout, and failure classification behavior
+- add backup staging and rollback hooks for mutating runner families
+
+## Deliverables
+- remote executor contract
+- isolated workspace lifecycle contract
+- runner environment contract
+- evidence streaming contract
+- policy and admission contract
+- release and conformance plan
+- implementation sequence
+- backend mapping
+- persistence change set
+
+Primary planning source:
+- `docs/PHASE-6B-REMOTE-EXECUTOR-CONTRACT.md`
+
+## Exit criteria
+- real remote execution has a stable substrate independent of any single tool
+- mutating future runners have a place to attach backup and rollback controls
+- broader real adapter work no longer depends on ad hoc host execution
+
+---
+
+# Phase 6C — Automation Surface Matrix and Admission Standard
+
+## Goal
+Make real remote automation expansion explicit, testable, and release-governed.
+
+## Required work
+- create the canonical automation surface matrix
+- classify each admitted or candidate surface by official substrate and runner
+  type
+- define approval/lock class, backup/rollback rules, and frontend truth labels
+- define release evidence requirements per surface
+- make the matrix part of roadmap and checkpoint review
+
+## Deliverables
+- `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`
+- `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
+- aligned roadmap and checkpoint references
+
+## Exit criteria
+- the repository has one canonical admission matrix for remote automation scope
+- no new real surface should be widened without a matrix row and evidence rules
+- release readiness can be checked against the matrix instead of informal claims
+
+---
+
 # Phase 7 — Real O3DE Integration Slice: Project / Build / Settings
 
 ## Goal
@@ -377,6 +444,8 @@ Project/build/settings is the most natural first real integration because O3DE�
 - prefer inspect/read flows first
 - mutation must be approval-gated and auditable
 - config changes must be reversible and visible
+- do not bypass the Phase 6B executor/isolation boundary or the Phase 6C
+  admission matrix when broadening real surfaces
 
 ## Exit criteria
 - at least one project/build/settings flow is truly real and validated
@@ -522,6 +591,8 @@ Prepare the project for sustained operator use and continued iteration.
 
 ### Must exist before deep real integrations
 - Phase 6
+- Phase 6B
+- Phase 6C
 
 ### Real integration sequence order
 1. project/build/settings
@@ -529,6 +600,8 @@ Prepare the project for sustained operator use and continued iteration.
 3. assets/prefabs/pipeline
 4. validation/TIAF
 5. rendering/lookdev
+6. optional remote repository/content distribution only if the repository scope
+   explicitly includes it
 
 This order is intentional and should not be reversed casually.
 

@@ -2,6 +2,13 @@
 
 Agent definitions, policies, and capability boundaries.
 
+Repo-wide working defaults for agents now live in:
+- `AGENTS.md`
+- `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`
+
+Use those files as the default execution and prioritization reference unless
+the active user instruction explicitly says otherwise.
+
 Planned contents:
 - editor-control
 - asset-pipeline

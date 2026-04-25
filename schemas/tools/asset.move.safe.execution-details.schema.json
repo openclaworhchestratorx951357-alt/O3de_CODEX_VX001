@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/asset.move.safe.execution-details.schema.json",
+  "title": "asset.move.safe execution details",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "inspection_surface",
+    "execution_boundary",
+    "simulated"
+  ],
+  "properties": {
+    "inspection_surface": {
+      "type": "string",
+      "enum": ["simulated", "asset_move_preflight"]
+    },
+    "execution_boundary": { "type": "string", "minLength": 1 },
+    "simulated": { "type": "boolean" },
+    "adapter_family": { "type": "string", "minLength": 1 },
+    "adapter_mode": { "type": "string", "minLength": 1 },
+    "adapter_contract_version": { "type": "string", "minLength": 1 },
+    "real_path_available": { "type": "boolean" },
+    "preflight_execution_mode": { "type": "string", "minLength": 1 },
+    "move_request_explicit": { "type": "boolean" },
+    "dry_run_requested": { "type": "boolean" },
+    "dry_run_plan_requested": { "type": "boolean" },
+    "move_plan_requested": { "type": "boolean" },
+    "project_root_path": { "type": "string", "minLength": 1 },
+    "source_path_input": { "type": "string", "minLength": 1 },
+    "source_path_resolved": { "type": "string", "minLength": 1 },
+    "source_path_relative_to_project_root": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "source_path_source_of_truth": { "type": "string", "minLength": 1 },
+    "source_path_within_project_root": { "type": "boolean" },
+    "source_exists": { "type": "boolean" },
+    "source_is_file": { "type": "boolean" },
+    "source_is_directory": { "type": "boolean" },
+    "source_resolution_status": { "type": "string", "minLength": 1 },
+    "source_size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+    "source_sha256": { "type": ["string", "null"], "minLength": 1 },
+    "destination_path_input": { "type": "string", "minLength": 1 },
+    "destination_path_resolved": { "type": "string", "minLength": 1 },
+    "destination_path_relative_to_project_root": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "destination_path_source_of_truth": { "type": "string", "minLength": 1 },
+    "destination_path_within_project_root": { "type": "boolean" },
+    "destination_exists": { "type": "boolean" },
+    "destination_is_file": { "type": "boolean" },
+    "destination_is_directory": { "type": "boolean" },
+    "destination_resolution_status": { "type": "string", "minLength": 1 },
+    "destination_size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+    "destination_sha256": { "type": ["string", "null"], "minLength": 1 },
+    "destination_parent_path": { "type": "string", "minLength": 1 },
+    "destination_parent_relative_to_project_root": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "destination_parent_within_project_root": { "type": "boolean" },
+    "destination_parent_exists": { "type": "boolean" },
+    "source_destination_same_path": { "type": "boolean" },
+    "destination_collision_detected": { "type": "boolean" },
+    "identity_corridor_available": { "type": "boolean" },
+    "identity_corridor_unavailable_reason": { "type": ["string", "null"] },
+    "update_references_requested": { "type": "boolean" },
+    "reference_preflight_available": { "type": "boolean" },
+    "reference_unavailable_reason": { "type": ["string", "null"] },
+    "inspection_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "unavailable_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "execution_attempted": { "type": "boolean" },
+    "result_artifact_produced": { "type": "boolean" },
+    "result_artifact_path": { "type": ["string", "null"] },
+    "result_artifact_content_type": { "type": ["string", "null"] },
+    "result_artifact_size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+    "exit_code_available": { "type": "boolean" },
+    "exit_code": { "type": ["integer", "null"] },
+    "result_status": { "type": "string", "minLength": 1 },
+    "result_summary_available": { "type": "boolean" },
+    "result_unavailable_reason": { "type": ["string", "null"] },
+    "move_unavailable_reason": { "type": ["string", "null"] },
+    "fallback_category": { "type": "string", "minLength": 1 },
+    "fallback_reason": { "type": "string", "minLength": 1 }
+  }
+}
