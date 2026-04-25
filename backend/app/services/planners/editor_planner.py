@@ -21,6 +21,39 @@ _ADDED_COMPONENT_ID_REF = "$step:editor-component-1.added_component_refs[0].comp
 _ADMITTED_COMPONENT_PROPERTY_READ_PATHS = {
     "Mesh": "Controller|Configuration|Model Asset",
 }
+_ENTITY_EXISTS_STEP_ID = "editor-entity-exists-1"
+
+
+def _is_path_like(value: str) -> bool:
+    return "/" in value or "\\" in value or "." in value
+
+
+def _extract_entity_exists_lookup(prompt_text: str) -> dict[str, object] | None:
+    entity_id = extract_value_after_phrase(prompt_text, "entity id ")
+    if entity_id:
+        return {"entity_id": entity_id}
+
+    for phrase in ("entity named ", "named ", "called "):
+        entity_name = extract_value_after_phrase(prompt_text, phrase)
+        if entity_name and not _is_path_like(entity_name):
+            return {"entity_name": entity_name}
+
+    for quoted_value in extract_quoted_values(prompt_text):
+        if not _is_path_like(quoted_value):
+            return {"entity_name": quoted_value}
+
+    match = re.search(
+        r"(?:entity|object)\s+([A-Za-z0-9_ -]+?)\s+"
+        r"(?:exists|exist|is present|is loaded|is in)",
+        prompt_text,
+        flags=re.IGNORECASE,
+    )
+    if match:
+        entity_name = match.group(1).strip(" :,-")
+        if entity_name and not _is_path_like(entity_name):
+            return {"entity_name": entity_name}
+
+    return None
 
 
 def plan_editor_prompt(
@@ -31,12 +64,24 @@ def plan_editor_prompt(
         prompt_text,
         ["create entity", "spawn entity", "add entity"],
     )
+    wants_entity_exists = contains_any(
+        prompt_text,
+        [
+            "check entity exists",
+            "entity exists",
+            "verify entity",
+            "read entity existence",
+            "inspect entity",
+            "does entity",
+        ],
+    )
     capabilities = {
         tool: capability_registry_service.get_capability(tool)
         for tool in (
             "editor.session.open",
             "editor.level.open",
             "editor.entity.create",
+            "editor.entity.exists",
             "editor.component.add",
             "editor.component.property.get",
         )
@@ -80,6 +125,7 @@ def plan_editor_prompt(
         if level_path:
             level_capability = capabilities["editor.level.open"]
             if level_capability is not None:
+                read_only_level_open = wants_entity_exists and not wants_entity_create
                 steps.append(
                     make_step(
                         step_id="editor-level-1",
@@ -87,8 +133,8 @@ def plan_editor_prompt(
                         request=request,
                         args={
                             "level_path": level_path,
-                            "make_writable": True,
-                            "focus_viewport": True,
+                            "make_writable": not read_only_level_open,
+                            "focus_viewport": not read_only_level_open,
                         },
                         depends_on=["editor-session-1"] if session_capability else [],
                     )
@@ -98,6 +144,37 @@ def plan_editor_prompt(
                     requirements.append(requirement)
         else:
             refusals.append("editor.level.open requires an explicit level path in the prompt.")
+
+    if wants_entity_exists and not wants_entity_create:
+        entity_exists_capability = capabilities["editor.entity.exists"]
+        entity_exists_args = _extract_entity_exists_lookup(prompt_text)
+        if entity_exists_capability is not None and entity_exists_args is not None:
+            if level_path:
+                entity_exists_args["level_path"] = level_path
+            depends_on = ["editor-session-1"] if session_capability else []
+            if level_path:
+                depends_on.append("editor-level-1")
+            steps.append(
+                make_step(
+                    step_id=_ENTITY_EXISTS_STEP_ID,
+                    capability=entity_exists_capability,
+                    request=request,
+                    args=entity_exists_args,
+                    depends_on=depends_on,
+                    planner_note=(
+                        "Use the admitted read-only exact entity id or exact entity-name "
+                        "lookup without broad scene discovery or editor mutation."
+                    ),
+                )
+            )
+            requirement = capability_requirement_note(entity_exists_capability)
+            if requirement:
+                requirements.append(requirement)
+        else:
+            refusals.append(
+                "editor.entity.exists requires exactly one explicit entity id or exact entity name in the prompt."
+            )
+        return steps, refusals, requirements
 
     if wants_entity_create:
         entity_capability = capabilities["editor.entity.create"]

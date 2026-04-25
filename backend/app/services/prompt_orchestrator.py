@@ -32,6 +32,11 @@ _EDITOR_CHAIN_STEP_IDS = {
     "editor-component-1",
     "editor-component-property-1",
 }
+_EDITOR_ENTITY_EXISTS_STEP_IDS = {
+    "editor-session-1",
+    "editor-level-1",
+    "editor-entity-exists-1",
+}
 _EDITOR_PROPERTY_REFUSAL_PREFIX = "editor.component.property.get"
 
 
@@ -530,6 +535,12 @@ class PromptOrchestratorService:
         return None
 
     def _build_operator_review_summary(self, session: PromptSessionRecord) -> str | None:
+        entity_exists_review_summary = self._build_editor_entity_exists_review_summary(
+            session
+        )
+        if entity_exists_review_summary is not None:
+            return entity_exists_review_summary
+
         editor_review_summary = self._build_editor_chain_review_summary(session)
         if editor_review_summary is not None:
             return editor_review_summary
@@ -1252,6 +1263,287 @@ class PromptOrchestratorService:
             f"Safest next step: {safest_next_step}",
         ]
         return "\n".join(sections)
+
+    def _build_editor_entity_exists_review_summary(
+        self,
+        session: PromptSessionRecord,
+    ) -> str | None:
+        planned_steps = session.plan.steps if session.plan is not None else []
+        if not any(step.step_id == "editor-entity-exists-1" for step in planned_steps):
+            return None
+
+        session_response = self._latest_successful_response_for_step(session, "editor-session-1")
+        level_response = self._latest_successful_response_for_step(session, "editor-level-1")
+        exists_response = self._latest_successful_response_for_step(
+            session,
+            "editor-entity-exists-1",
+        )
+        failed_response = None
+        if session.status != PromptSessionStatus.COMPLETED:
+            failed_response = next(
+                (
+                    response_record
+                    for response_record in reversed(session.latest_child_responses)
+                    if response_record.get("ok") is False
+                    and response_record.get("prompt_step_id") in _EDITOR_ENTITY_EXISTS_STEP_IDS
+                    and (
+                        not isinstance(response_record.get("error"), dict)
+                        or response_record["error"].get("code") != "APPROVAL_REQUIRED"
+                    )
+                ),
+                None,
+            )
+
+        result_label = self._classify_editor_entity_exists_review(
+            failed_response=failed_response,
+            exists_response=exists_response,
+        )
+        sections = [
+            f"Review result: {result_label}",
+            f"Requested action: {session.prompt_text}",
+            self._format_review_section(
+                "Executed action",
+                self._editor_entity_exists_executed_actions(
+                    session_response=session_response,
+                    level_response=level_response,
+                    exists_response=exists_response,
+                    failed_response=failed_response,
+                ),
+            ),
+            self._format_review_section(
+                "Verified facts",
+                self._editor_entity_exists_verified_facts(
+                    exists_response=exists_response,
+                ),
+            ),
+            self._format_review_section(
+                "Assumptions",
+                self._editor_entity_exists_assumptions(
+                    exists_response=exists_response,
+                ),
+            ),
+            self._format_review_section(
+                "Missing proof",
+                self._editor_entity_exists_missing_proof(
+                    result_label=result_label,
+                    failed_response=failed_response,
+                    exists_response=exists_response,
+                ),
+            ),
+            (
+                "Safest next step: "
+                f"{self._editor_entity_exists_safest_next_step(result_label=result_label)}"
+            ),
+        ]
+        return "\n".join(sections)
+
+    def _classify_editor_entity_exists_review(
+        self,
+        *,
+        failed_response: dict[str, Any] | None,
+        exists_response: dict[str, Any] | None,
+    ) -> str:
+        if failed_response is not None:
+            step_id = failed_response.get("prompt_step_id")
+            error = failed_response.get("error", {})
+            details = error.get("details") if isinstance(error, dict) else {}
+            details = details if isinstance(details, dict) else {}
+            preflight_reason = details.get("preflight_reason")
+            if step_id == "editor-session-1":
+                return "blocked_missing_editor_target"
+            if step_id == "editor-level-1" or preflight_reason in {
+                "level-not-loaded",
+                "loaded-level-mismatch",
+            }:
+                return "blocked_missing_level"
+            if preflight_reason == "ambiguous-entity-lookup":
+                return "blocked_ambiguous_entity_lookup"
+            return "failed_runtime_error"
+
+        if exists_response is None:
+            return "incomplete_readback_unavailable"
+        details = exists_response.get("execution_details", {})
+        if details.get("exists") is False:
+            return "succeeded_absence_verified"
+        if details.get("exists") is True:
+            return "succeeded_readback_verified"
+        return "incomplete_readback_unavailable"
+
+    def _editor_entity_exists_executed_actions(
+        self,
+        *,
+        session_response: dict[str, Any] | None,
+        level_response: dict[str, Any] | None,
+        exists_response: dict[str, Any] | None,
+        failed_response: dict[str, Any] | None,
+    ) -> list[str]:
+        actions: list[str] = []
+        if session_response is not None:
+            actions.append(
+                "Attached or validated the editor target through the admitted real editor session path."
+            )
+        if level_response is not None:
+            details = level_response.get("execution_details", {})
+            level_path = details.get("level_path") or details.get("loaded_level_path")
+            if level_path:
+                actions.append(f"Opened level {level_path} for read-only entity existence review.")
+        if exists_response is not None:
+            details = exists_response.get("execution_details", {})
+            lookup_mode = details.get("lookup_mode")
+            requested_entity = (
+                details.get("requested_entity_name")
+                or details.get("requested_entity_id")
+                or details.get("entity_name")
+                or details.get("entity_id")
+            )
+            if lookup_mode and requested_entity:
+                actions.append(
+                    f"Checked entity existence by {lookup_mode} lookup for {requested_entity}."
+                )
+            else:
+                actions.append("Checked entity existence through the admitted read-only path.")
+        if failed_response is not None:
+            failed_step_id = failed_response.get("prompt_step_id")
+            if failed_step_id == "editor-entity-exists-1":
+                actions.append("Stopped before entity existence readback could be verified.")
+            elif failed_step_id == "editor-level-1":
+                actions.append("Stopped before the requested editor level could be confirmed.")
+            elif failed_step_id == "editor-session-1":
+                actions.append("Stopped before an admitted editor target could be confirmed.")
+        return actions
+
+    def _editor_entity_exists_verified_facts(
+        self,
+        *,
+        exists_response: dict[str, Any] | None,
+    ) -> list[str]:
+        if exists_response is None:
+            return []
+        details = exists_response.get("execution_details", {})
+        exists = details.get("exists")
+        lookup_mode = details.get("lookup_mode")
+        level_path = details.get("level_path") or details.get("loaded_level_path")
+        entity_name = details.get("entity_name") or details.get("requested_entity_name")
+        entity_id = details.get("entity_id") or details.get("requested_entity_id")
+        matched_count = details.get("matched_count")
+        if exists is True:
+            entity_label = entity_name or entity_id or "the requested entity"
+            id_suffix = f" ({entity_id})" if entity_id and entity_id != entity_label else ""
+            level_suffix = f" in {level_path}" if level_path else ""
+            matched_suffix = (
+                f" with matched_count={matched_count}"
+                if matched_count is not None
+                else ""
+            )
+            return [
+                (
+                    f"Readback confirmed {entity_label}{id_suffix} exists"
+                    f"{level_suffix} via {lookup_mode} lookup{matched_suffix}."
+                )
+            ]
+        if exists is False:
+            requested_entity = details.get("requested_entity_name") or details.get(
+                "requested_entity_id"
+            )
+            requested_entity = requested_entity or "the requested entity"
+            level_suffix = f" in {level_path}" if level_path else ""
+            return [
+                (
+                    f"Readback confirmed {requested_entity} was not found"
+                    f"{level_suffix} on the admitted exact lookup path."
+                )
+            ]
+        return ["Entity existence readback completed, but the exists field was unavailable."]
+
+    def _editor_entity_exists_assumptions(
+        self,
+        *,
+        exists_response: dict[str, Any] | None,
+    ) -> list[str]:
+        if exists_response is None:
+            return [
+                "No entity existence readback result is available yet for this prompt review."
+            ]
+        details = exists_response.get("execution_details", {})
+        lookup_mode = details.get("lookup_mode")
+        if lookup_mode == "entity_name":
+            return [
+                "Exact-name lookup is treated as verified only for the loaded/current level reported by the runtime."
+            ]
+        if lookup_mode == "entity_id":
+            return [
+                "Explicit entity-id lookup is treated as verified only for the loaded/current level reported by the runtime."
+            ]
+        return [
+            "The review relies on the admitted typed prompt plan and recorded editor runtime details."
+        ]
+
+    def _editor_entity_exists_missing_proof(
+        self,
+        *,
+        result_label: str,
+        failed_response: dict[str, Any] | None,
+        exists_response: dict[str, Any] | None,
+    ) -> list[str]:
+        missing_proof: list[str] = []
+        if result_label == "blocked_missing_editor_target":
+            missing_proof.append(
+                "No admitted editor target could be confirmed for the requested readback."
+            )
+        elif result_label == "blocked_missing_level":
+            missing_proof.append(
+                "A loaded or explicitly opened level was not proven for the requested readback."
+            )
+        elif result_label == "blocked_ambiguous_entity_lookup":
+            missing_proof.append(
+                "The exact-name lookup was ambiguous and no arbitrary entity selection was made."
+            )
+        elif result_label == "failed_runtime_error":
+            error = failed_response.get("error", {}) if failed_response is not None else {}
+            error_message = error.get("message") if isinstance(error, dict) else None
+            missing_proof.append(
+                error_message
+                if isinstance(error_message, str) and error_message
+                else "The admitted read-only entity existence path stopped on a runtime-side failure."
+            )
+        elif result_label == "incomplete_readback_unavailable":
+            missing_proof.append(
+                "Entity existence readback did not produce verified evidence on the admitted path."
+            )
+
+        if exists_response is not None:
+            missing_proof.append(
+                "No cleanup or restore was executed or needed by this read-only proof."
+            )
+        missing_proof.append(
+            "This review does not claim entity creation, component changes, property writes, delete, parenting, prefab, material, asset, render, build, arbitrary Editor Python, live Editor undo, viewport reload, or reversibility."
+        )
+        return missing_proof
+
+    def _editor_entity_exists_safest_next_step(self, *, result_label: str) -> str:
+        if result_label == "blocked_missing_editor_target":
+            return (
+                "Ensure an attachable Editor target is available, then rerun the same admitted readback."
+            )
+        if result_label == "blocked_missing_level":
+            return (
+                "Open or confirm an explicit level path before retrying the admitted entity existence readback."
+            )
+        if result_label == "blocked_ambiguous_entity_lookup":
+            return (
+                "Retry with an explicit entity id or a unique exact entity name instead of broadening into scene discovery."
+            )
+        if result_label == "failed_runtime_error":
+            return "Review the recorded bridge/runtime error details before retrying the same admitted readback."
+        if result_label == "succeeded_absence_verified":
+            return (
+                "If presence was expected, confirm the loaded level and retry with an explicit entity id or unique exact name."
+            )
+        if result_label == "incomplete_readback_unavailable":
+            return "Retry the same admitted read-only lookup after confirming bridge and level readiness."
+        return (
+            "Use the recorded readback evidence for review, or run another admitted read-only check without widening editor control."
+        )
 
     def _classify_editor_chain_review(
         self,

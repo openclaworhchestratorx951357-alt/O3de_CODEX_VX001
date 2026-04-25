@@ -83,6 +83,11 @@ Current truth:
   did not prove live Editor undo, viewport reload, entity absence after restore,
   broad entity discovery, component discovery, property mutation, delete,
   parenting, prefab, material, asset, render, build, or arbitrary Editor Python
+- Prompt Studio now plans direct `editor.entity.exists` reviews as
+  `editor.session.open` -> read-only `editor.level.open` ->
+  `editor.entity.exists` for exactly one explicit entity id or exact entity
+  name, and its final review summary keeps cleanup, restore, mutation, and
+  reversibility outside the claim
 - falls back to simulated when the real manifest path is unavailable
 - remains explicitly labeled as real vs simulated in backend and frontend
 - still does not authorize deeper layered settings discovery or any mutation path
@@ -244,6 +249,9 @@ The operator shell now exposes this boundary through:
   mutation-gated lanes in adapter and readiness rollups
 - explicit bridge heartbeat, queue, cleanup history, and lag-note visibility
   for the admitted editor-authoring/runtime boundary
+- explicit direct entity-exists prompt review wording for requested action,
+  executed read-only lookup, verified facts, assumptions, missing proof, and
+  safest next step
 - local operator-lane state, action rails, and detail-panel carry-through for
   pinned-lane navigation
 - explicit preset restore, preset drift, local note, local clipboard, and local

@@ -179,6 +179,13 @@ That command proves this exact direct chain against `127.0.0.1:8000`:
 2. `editor.level.open`
 3. `editor.entity.exists`
 
+Prompt Studio can now plan and review the same direct read-only chain when the
+operator prompt provides exactly one explicit entity id or exact entity name.
+The generated `editor.level.open` step is read-only (`make_writable=false` and
+`focus_viewport=false`), and the final review summary separates presence,
+absence, ambiguity, missing target/level, runtime failure, and incomplete
+readback without claiming cleanup, restore, mutation, or reversibility.
+
 The direct proof command:
 - restarts or reuses the canonical backend
 - launches the canonical McpSandbox Editor bridge when no canonical Editor is
@@ -294,6 +301,8 @@ The following do count as proof:
   runtime-owned backup
 - the direct entity-exists proof bundle proving exact-name existence readback
   only for the loaded/current level target it records
+- Prompt Studio direct entity-exists review summaries proving only the recorded
+  exact read-only lookup result and its persisted child lineage
 
 The following are not sufficient by themselves:
 - a manual editor launch by itself

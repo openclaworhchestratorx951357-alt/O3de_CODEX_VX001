@@ -328,6 +328,11 @@ Current truth on this branch:
   verified exact-name `editor.entity.exists` readback for `Ground` on
   `Levels/TestLoevel01` through the repo-owned
   `scripts/dev.ps1 live-entity-exists-proof` lifecycle command
+- Prompt Studio now plans direct read-only entity-exists prompts through
+  `editor.session.open` -> read-only `editor.level.open` ->
+  `editor.entity.exists`, and its operator review labels exact presence,
+  absence, ambiguity, missing target/level, runtime failure, or incomplete
+  readback without claiming cleanup, restore, mutation, or reversibility
 - the proofs do not claim live Editor undo, viewport reload, entity-absence
   readback, broader component or property mutation, delete, parenting, prefab
   mutation, material, asset, render, build, or arbitrary Editor Python behavior
