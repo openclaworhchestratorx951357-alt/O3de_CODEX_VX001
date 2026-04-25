@@ -5,7 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from PIL import Image
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -94,6 +94,13 @@ def create_test_image(
     size: tuple[int, int],
     color: tuple[int, int, int, int],
 ) -> None:
+    try:
+        from PIL import Image
+    except ImportError:
+        pytest.skip(
+            "Pillow is required only for PNG fixture generation in visual diff tests."
+        )
+
     image = Image.new("RGBA", size, color)
     image.save(path, format="PNG")
 

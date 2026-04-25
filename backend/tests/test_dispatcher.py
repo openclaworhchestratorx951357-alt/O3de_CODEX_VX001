@@ -8,7 +8,6 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import pytest
-from PIL import Image
 
 from app.models.control_plane import ExecutionStatus
 from app.models.request_envelope import RequestEnvelope
@@ -84,6 +83,13 @@ def create_test_image(
     size: tuple[int, int],
     color: tuple[int, int, int, int],
 ) -> None:
+    try:
+        from PIL import Image
+    except ImportError:
+        pytest.skip(
+            "Pillow is required only for PNG fixture generation in visual diff tests."
+        )
+
     image = Image.new("RGBA", size, color)
     image.save(path, format="PNG")
 
@@ -6277,6 +6283,59 @@ def test_test_visual_diff_real_persisted_payloads_match_published_schemas() -> N
             )
             == []
         )
+
+
+def test_test_visual_diff_reports_decode_substrate_unavailable_without_pillow() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        root = Path(temp_dir)
+        baseline_path = root / "baseline.png"
+        candidate_path = root / "candidate.png"
+        baseline_path.write_bytes(b"baseline-bytes")
+        candidate_path.write_bytes(b"candidate-bytes")
+
+        baseline_artifact_id = create_test_artifact_record(
+            path=baseline_path,
+            label="Baseline no pillow image",
+        )
+        candidate_artifact_id = create_test_artifact_record(
+            path=candidate_path,
+            label="Candidate no pillow image",
+        )
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch("app.services.adapters.Image", None):
+                response = dispatcher_service.dispatch(
+                    make_test_visual_diff_request(
+                        baseline_artifact_id=baseline_artifact_id,
+                        candidate_artifact_id=candidate_artifact_id,
+                    )
+                )
+
+        assert response.ok is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        assert execution.details["baseline_image_decode_attempted"] is False
+        assert execution.details["baseline_image_decode_substrate_available"] is False
+        assert execution.details["baseline_image_decode_status"] == (
+            "decode-substrate-unavailable"
+        )
+        assert execution.details["candidate_image_decode_attempted"] is False
+        assert execution.details["candidate_image_decode_substrate_available"] is False
+        assert execution.details["candidate_image_decode_status"] == (
+            "decode-substrate-unavailable"
+        )
+        assert "Pillow is not installed" in execution.details[
+            "baseline_image_decode_unavailable_reason"
+        ]
+        assert "baseline_image_decode" in execution.details["unavailable_evidence"]
+        assert "candidate_image_decode" in execution.details["unavailable_evidence"]
+        assert execution.details["comparison_available"] is True
+        assert execution.details["visual_metric_available"] is False
 
 
 def test_test_visual_diff_reports_decode_unavailable_for_non_image_inputs() -> None:
