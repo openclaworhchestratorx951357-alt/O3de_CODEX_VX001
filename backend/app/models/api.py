@@ -10,9 +10,9 @@ from app.models.control_plane import (
     AutonomyMemoryRecord,
     AutonomyObjectiveRecord,
     AutonomyObservationRecord,
-    ExecutorRecord,
     EventRecord,
     ExecutionRecord,
+    ExecutorRecord,
     LockRecord,
     RunRecord,
     ToolPolicy,
@@ -930,8 +930,49 @@ class ExecutorsResponse(BaseModel):
     executors: list[ExecutorRecord] = Field(default_factory=list)
 
 
+class ExecutorStatusProjection(BaseModel):
+    executor_id: str = Field(..., min_length=1)
+    executor_label: str = Field(..., min_length=1)
+    executor_kind: str = Field(..., min_length=1)
+    executor_host_label: str = Field(..., min_length=1)
+    execution_mode_class: str = Field(..., min_length=1)
+    supported_runner_families: list[str] = Field(default_factory=list)
+    availability_state: str = Field(..., min_length=1)
+    last_heartbeat_at: str | None = None
+    active_workspace_count: int = 0
+    active_run_count: int = 0
+    last_failure_summary: str | None = None
+    truth_note: str = Field(..., min_length=1)
+
+
+class ExecutorStatusResponse(BaseModel):
+    executors: list[ExecutorStatusProjection] = Field(default_factory=list)
+
+
 class WorkspacesResponse(BaseModel):
     workspaces: list[WorkspaceRecord] = Field(default_factory=list)
+
+
+class WorkspaceStatusProjection(BaseModel):
+    workspace_id: str = Field(..., min_length=1)
+    workspace_kind: str = Field(..., min_length=1)
+    workspace_state: str = Field(..., min_length=1)
+    engine_binding_label: str | None = None
+    project_binding_label: str | None = None
+    runner_family: str = Field(..., min_length=1)
+    owner_run_id: str | None = None
+    owner_execution_id: str | None = None
+    owner_executor_id: str | None = None
+    created_at: str = Field(..., min_length=1)
+    updated_at: str = Field(..., min_length=1)
+    cleanup_policy: str = Field(..., min_length=1)
+    retention_label: str = Field(..., min_length=1)
+    last_failure_summary: str | None = None
+    truth_note: str = Field(..., min_length=1)
+
+
+class WorkspaceStatusResponse(BaseModel):
+    workspaces: list[WorkspaceStatusProjection] = Field(default_factory=list)
 
 
 class ApprovalDecisionRequest(BaseModel):

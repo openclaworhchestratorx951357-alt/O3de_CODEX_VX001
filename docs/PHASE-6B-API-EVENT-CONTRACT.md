@@ -27,7 +27,21 @@ This contract must preserve current branch truth:
 - simulated vs real wording must remain explicit
 
 This document defines future executor/workspace visibility and event contracts.
-It does not claim those APIs or event streams already exist.
+It distinguishes implemented read-only projection slices from remaining
+contract-only API and event streams.
+
+## Current Implementation Checkpoint
+
+The first read-only projection slice now exists:
+- `GET /executors/status` exposes executor status projections.
+- `GET /workspaces/status` exposes workspace status projections.
+
+These endpoints are projections over persisted control-plane records. They do
+not provision executors, run tools, mutate workspaces, prove runtime execution,
+or admit any additional real tool surface.
+
+Run-to-executor/workspace summary projections and lifecycle event payload
+streams remain contract-only until implemented in a later slice.
 
 ## Goals
 
@@ -43,7 +57,7 @@ The Phase 6B API and event contract should:
 ## Non-Goals
 
 This contract is not:
-- an implementation of new endpoints
+- a broad implementation of every endpoint or projection family
 - an authorization model by itself
 - proof that executor/workspace runtime exists
 - permission to broaden any tool surface from simulated to real
@@ -282,15 +296,18 @@ to distinguish:
 
 ## Suggested Endpoint / Projection Shapes
 
-This slice does not require final endpoint names, but the contract should
-support projections equivalent to:
+The current implementation exposes the first two projection families as:
+- `GET /executors/status`
+- `GET /workspaces/status`
+
+Future slices should still support projections equivalent to:
 
 - executor status collection
 - workspace status collection
 - run execution substrate summary
 - lifecycle event feed
 
-These may eventually appear as:
+Remaining projection families may eventually appear as:
 - dedicated endpoints
 - embedded fields on run/execution detail responses
 - operator summary panels

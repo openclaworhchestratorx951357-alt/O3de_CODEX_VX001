@@ -144,9 +144,9 @@ def root() -> RootStatus:
         "/codex/control/workers/{worker_id}/notifications/mark-read",
     ]
     if executors_router is not None:
-        routes.append("/executors")
+        routes.extend(["/executors", "/executors/status"])
     if workspaces_router is not None:
-        routes.append("/workspaces")
+        routes.extend(["/workspaces", "/workspaces/status"])
     if prompt_control_router is not None:
         routes.extend(["/prompt/capabilities", "/prompt/shortcuts", "/prompt/sessions"])
     return RootStatus(
