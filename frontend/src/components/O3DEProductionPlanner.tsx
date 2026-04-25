@@ -983,9 +983,10 @@ const plannerStyle = {
   display: "grid",
   gap: 12,
   padding: 12,
-  border: "1px solid rgba(124, 175, 255, 0.32)",
+  border: "1px solid var(--app-info-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "linear-gradient(135deg, rgba(124, 175, 255, 0.13) 0%, rgba(4, 13, 28, 0.48) 100%)",
+  background:
+    "linear-gradient(135deg, color-mix(in srgb, var(--app-accent-soft) 48%, var(--app-panel-bg-alt) 52%) 0%, color-mix(in srgb, var(--app-panel-bg) 94%, var(--app-page-bg) 6%) 100%)",
 } satisfies CSSProperties;
 
 const plannerHeaderStyle = {
@@ -1007,9 +1008,9 @@ const scenarioButtonStyle = {
   gap: 5,
   minWidth: 0,
   padding: 11,
-  border: "1px solid rgba(255, 255, 255, 0.14)",
+  border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(255, 255, 255, 0.07)",
+  background: "var(--app-panel-bg)",
   color: "var(--app-text-color)",
   cursor: "pointer",
   font: "inherit",
@@ -1026,9 +1027,9 @@ const selectedScenarioStyle = {
   display: "grid",
   gap: 10,
   padding: 12,
-  border: "1px solid rgba(255, 255, 255, 0.12)",
+  border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(255, 255, 255, 0.05)",
+  background: "var(--app-panel-bg)",
 } satisfies CSSProperties;
 
 const subGenrePanelStyle = {
@@ -1047,18 +1048,18 @@ const subGenreButtonStyle = {
 } satisfies CSSProperties;
 
 const activeSubGenreButtonStyle = {
-  border: "1px solid rgba(255, 205, 103, 0.7)",
-  background: "rgba(255, 205, 103, 0.12)",
-  boxShadow: "0 0 0 1px rgba(255, 205, 103, 0.22), var(--app-shadow-soft)",
+  border: "1px solid var(--app-warning-border)",
+  background: "var(--app-warning-bg)",
+  boxShadow: "0 0 0 1px color-mix(in srgb, var(--app-warning-border) 68%, transparent), var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
 const contextPanelStyle = {
   display: "grid",
   gap: 10,
   padding: 12,
-  border: "1px solid rgba(255, 255, 255, 0.12)",
+  border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(255, 255, 255, 0.05)",
+  background: "var(--app-panel-bg)",
 } satisfies CSSProperties;
 
 const contextGridStyle = {
@@ -1080,9 +1081,9 @@ const sourcePanelStyle = {
   display: "grid",
   gap: 10,
   padding: 12,
-  border: "1px solid rgba(255, 205, 103, 0.3)",
+  border: "1px solid var(--app-warning-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(255, 205, 103, 0.08)",
+  background: "color-mix(in srgb, var(--app-warning-bg) 68%, var(--app-panel-bg) 32%)",
 } satisfies CSSProperties;
 
 const fieldLabelStyle = {
@@ -1144,9 +1145,9 @@ const focusButtonStyle = {
   display: "grid",
   gap: 4,
   padding: 10,
-  border: "1px solid rgba(255, 255, 255, 0.14)",
+  border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(255, 255, 255, 0.07)",
+  background: "var(--app-panel-bg)",
   color: "var(--app-text-color)",
   cursor: "pointer",
   font: "inherit",
@@ -1163,9 +1164,9 @@ const roadmapDisclosureStyle = {
   display: "grid",
   gap: 8,
   padding: 10,
-  border: "1px solid rgba(255, 255, 255, 0.14)",
+  border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(255, 255, 255, 0.07)",
+  background: "var(--app-panel-bg-muted)",
 } satisfies CSSProperties;
 
 const roadmapSummaryStyle = {
@@ -1208,9 +1209,9 @@ const shortcutCardStyle = {
   display: "grid",
   gap: 8,
   padding: 10,
-  border: "1px solid rgba(255, 255, 255, 0.12)",
+  border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(255, 255, 255, 0.05)",
+  background: "var(--app-panel-bg)",
 } satisfies CSSProperties;
 
 const buttonRowStyle = {

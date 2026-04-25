@@ -63,6 +63,10 @@ describe("HomeWorkspaceView", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Create Game/i }));
 
     expect(screen.getByText("O3DE game creation desk")).toBeInTheDocument();
+    const creationDeskRegion = screen.getByRole("region", { name: "O3DE game creation desk" });
+    expect(creationDeskRegion.getAttribute("style")).toContain("var(--app-panel-bg-alt)");
+    expect(creationDeskRegion.getAttribute("style")).toContain("var(--app-panel-bg)");
+    expect(creationDeskRegion.getAttribute("style")).not.toContain("rgba(17, 36, 68, 0.96)");
     expect(screen.getByLabelText("Game viewport control surface")).toBeInTheDocument();
     expect(screen.getByText("Component Palette")).toBeInTheDocument();
     expect(screen.getByLabelText("O3DE guided tool dock")).toBeInTheDocument();
@@ -71,7 +75,10 @@ describe("HomeWorkspaceView", () => {
     expect(screen.getByLabelText("O3DE companion layout guidance")).toHaveTextContent(
       "O3DE Editor full-size",
     );
-    expect(await screen.findByLabelText("O3DE production planner")).toBeInTheDocument();
+    const productionPlanner = await screen.findByLabelText("O3DE production planner");
+    expect(productionPlanner.getAttribute("style")).toContain("var(--app-panel-bg-alt)");
+    expect(productionPlanner.getAttribute("style")).toContain("var(--app-panel-bg)");
+    expect(productionPlanner.getAttribute("style")).not.toContain("rgba(4, 13, 28, 0.48)");
     expect(await screen.findByText("What type of game are you building?")).toBeInTheDocument();
     expect(screen.getAllByText("First-person adventure").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: /Open world/i })).toBeInTheDocument();

@@ -104,7 +104,7 @@ export default function O3DECreationDesk({
   ].filter((action): action is { label: string; detail: string; onClick: () => void } => Boolean(action.onClick));
 
   return (
-    <div style={editorShellStyle}>
+    <section aria-label={title} style={editorShellStyle}>
       <div style={editorHeaderStyle}>
         <div>
           <strong>{title}</strong>
@@ -259,7 +259,7 @@ export default function O3DECreationDesk({
           <li key={item}>{item}</li>
         ))}
       </ul>
-    </div>
+    </section>
   );
 }
 
@@ -269,7 +269,8 @@ const editorShellStyle = {
   padding: 14,
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "linear-gradient(145deg, rgba(17, 36, 68, 0.96) 0%, var(--app-panel-bg) 100%)",
+  background:
+    "linear-gradient(145deg, color-mix(in srgb, var(--app-accent-soft) 54%, var(--app-panel-bg-alt) 46%) 0%, color-mix(in srgb, var(--app-panel-bg) 94%, var(--app-page-bg) 6%) 100%)",
   color: "var(--app-text-color)",
   overflow: "hidden",
 } satisfies CSSProperties;
@@ -296,7 +297,7 @@ const statusPillStyle = {
 
 const companionTextStyle = {
   margin: "6px 0 0",
-  color: "#dbe8ff",
+  color: "color-mix(in srgb, var(--app-muted-color) 88%, var(--app-text-color) 12%)",
   lineHeight: 1.45,
 } satisfies CSSProperties;
 
@@ -305,19 +306,19 @@ const companionGridStyle = {
   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
   gap: 8,
   padding: 10,
-  border: "1px solid rgba(124, 175, 255, 0.3)",
+  border: "1px solid var(--app-info-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(124, 175, 255, 0.1)",
-  color: "#dbe8ff",
+  background: "color-mix(in srgb, var(--app-info-bg) 72%, var(--app-panel-bg) 28%)",
+  color: "var(--app-info-text)",
   lineHeight: 1.45,
 } satisfies CSSProperties;
 
 const plannerFallbackStyle = {
   padding: 12,
-  border: "1px solid rgba(124, 175, 255, 0.32)",
+  border: "1px solid var(--app-info-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(124, 175, 255, 0.1)",
-  color: "var(--app-muted-color)",
+  background: "color-mix(in srgb, var(--app-info-bg) 70%, var(--app-panel-bg) 30%)",
+  color: "var(--app-info-text)",
   fontWeight: 700,
 } satisfies CSSProperties;
 
@@ -332,9 +333,9 @@ const actionButtonStyle = {
   gap: 3,
   textAlign: "left",
   padding: "10px 12px",
-  border: "1px solid rgba(124, 175, 255, 0.35)",
+  border: "1px solid var(--app-info-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(124, 175, 255, 0.12)",
+  background: "color-mix(in srgb, var(--app-info-bg) 64%, var(--app-panel-bg) 36%)",
   color: "var(--app-text-color)",
   cursor: "pointer",
   boxShadow: "var(--app-shadow-soft)",
@@ -345,16 +346,17 @@ const editorToolbarStyle = {
   gap: 8,
   flexWrap: "wrap",
   padding: 8,
-  border: "1px solid rgba(255, 255, 255, 0.12)",
+  border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(3, 10, 24, 0.42)",
+  background:
+    "linear-gradient(180deg, color-mix(in srgb, var(--app-panel-bg-muted) 86%, var(--app-panel-bg) 14%) 0%, var(--app-panel-bg) 100%)",
 } satisfies CSSProperties;
 
 const toolButtonStyle = {
-  border: "1px solid rgba(255, 255, 255, 0.18)",
+  border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-pill-radius)",
   padding: "6px 10px",
-  background: "rgba(255, 255, 255, 0.08)",
+  background: "var(--app-panel-bg)",
   color: "var(--app-text-color)",
   cursor: "pointer",
   fontSize: 12,
@@ -376,9 +378,10 @@ const editorRailStyle = {
   minWidth: 0,
   minHeight: 260,
   padding: 12,
-  border: "1px solid rgba(255, 255, 255, 0.14)",
+  border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(0, 0, 0, 0.22)",
+  background:
+    "linear-gradient(180deg, color-mix(in srgb, var(--app-panel-bg-alt) 92%, var(--app-page-bg) 8%) 0%, var(--app-panel-bg) 100%)",
 } satisfies CSSProperties;
 
 const viewportStyle = {
@@ -460,9 +463,10 @@ const inspectorStyle = {
   minWidth: 0,
   minHeight: 260,
   padding: 12,
-  border: "1px solid rgba(255, 255, 255, 0.14)",
+  border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(0, 0, 0, 0.22)",
+  background:
+    "linear-gradient(180deg, color-mix(in srgb, var(--app-panel-bg-alt) 92%, var(--app-page-bg) 8%) 0%, var(--app-panel-bg) 100%)",
 } satisfies CSSProperties;
 
 const fieldLabelStyle = {
@@ -480,10 +484,10 @@ const readonlyFieldStyle = {
   maxWidth: "100%",
   minWidth: 0,
   padding: "7px 9px",
-  border: "1px solid rgba(255, 255, 255, 0.12)",
+  border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-card-radius)",
   color: "var(--app-text-color)",
-  background: "rgba(255, 255, 255, 0.06)",
+  background: "var(--app-panel-bg)",
   fontWeight: 500,
   overflowWrap: "anywhere",
   whiteSpace: "normal",
@@ -499,9 +503,10 @@ const toolDockStyle = {
   display: "grid",
   gap: 10,
   padding: 12,
-  border: "1px solid rgba(124, 175, 255, 0.26)",
+  border: "1px solid var(--app-info-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(4, 13, 28, 0.42)",
+  background:
+    "linear-gradient(180deg, color-mix(in srgb, var(--app-panel-bg-alt) 90%, var(--app-info-bg) 10%) 0%, color-mix(in srgb, var(--app-panel-bg) 96%, var(--app-page-bg) 4%) 100%)",
 } satisfies CSSProperties;
 
 const toolDockHeaderStyle = {
@@ -519,9 +524,9 @@ const toolTileStyle = {
   alignItems: "center",
   textAlign: "left",
   padding: "9px 10px",
-  border: "1px solid rgba(255, 255, 255, 0.14)",
+  border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(255, 255, 255, 0.07)",
+  background: "var(--app-panel-bg)",
   color: "var(--app-text-color)",
   cursor: "pointer",
   font: "inherit",
@@ -553,9 +558,9 @@ const toolGuidePanelStyle = {
   display: "grid",
   gap: 10,
   padding: 12,
-  border: "1px solid rgba(255, 255, 255, 0.12)",
+  border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-card-radius)",
-  background: "rgba(255, 255, 255, 0.06)",
+  background: "var(--app-panel-bg-muted)",
 } satisfies CSSProperties;
 
 const toolGuideGridStyle = {
