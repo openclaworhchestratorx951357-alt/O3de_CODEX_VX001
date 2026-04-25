@@ -6,6 +6,7 @@ param(
         "runner-diagnostics",
         "backend-lint",
         "backend-test",
+        "surface-matrix-check",
         "mission-control",
         "live-status",
         "live-start",
@@ -50,6 +51,7 @@ $BackendVenvPython = Join-Path $BackendDir ".venv\Scripts\python.exe"
 $LiveRuntimeControlScript = Join-Path $BackendDir "runtime\live_verify_control.ps1"
 $MissionControlScript = Join-Path $RepoRoot "scripts\mission_control.ps1"
 $DesktopAppControlScript = Join-Path $RepoRoot "scripts\desktop_app_control.ps1"
+$SurfaceMatrixCheckScript = Join-Path $RepoRoot "scripts\check_surface_matrix.py"
 
 function Get-PrimaryRepoRoot {
     Push-Location $RepoRoot
@@ -285,6 +287,13 @@ function Invoke-BackendTests {
         -Environment @{ PYTHONPATH = $BackendPythonPath }
 }
 
+function Invoke-SurfaceMatrixCheck {
+    Invoke-RepoProcess `
+        -WorkingDirectory $RepoRoot `
+        -FilePath (Get-BackendPython) `
+        -ArgumentList @($SurfaceMatrixCheckScript)
+}
+
 function Invoke-LiveRuntimeControl {
     param(
         [Parameter(Mandatory = $true)]
@@ -489,6 +498,7 @@ switch ($Task) {
     "runner-diagnostics" { Invoke-RunnerDiagnostics }
     "backend-lint" { Invoke-BackendLint }
     "backend-test" { Invoke-BackendTests }
+    "surface-matrix-check" { Invoke-SurfaceMatrixCheck }
     "mission-control" { Invoke-MissionControl }
     "live-status" { Invoke-LiveRuntimeControl -Action "status" }
     "live-start" { Invoke-LiveRuntimeControl -Action "start" }
