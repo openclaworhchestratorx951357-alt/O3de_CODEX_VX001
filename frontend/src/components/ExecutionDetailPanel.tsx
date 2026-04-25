@@ -21,6 +21,7 @@ import {
 } from "../lib/executionTruth";
 import LaneActionsCard, { type LaneActionEntry } from "./LaneActionsCard";
 import OperatorLaneStateBlock, { type OperatorLaneStateEntry } from "./OperatorLaneStateBlock";
+import EditorRestoreBoundarySummary from "./EditorRestoreBoundarySummary";
 import PromptSafetySummaryCard from "./PromptSafetySummaryCard";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
 import RecordLineageStrip from "./RecordLineageStrip";
@@ -140,11 +141,9 @@ export default function ExecutionDetailPanel({
   selectedExecutionId,
   selectedArtifactId,
   pinnedRecordId,
-  pinnedRecordStatusLabel,
   pinnedRecordStatusDetail,
   laneQueueLabel,
   laneQueueDetail,
-  laneCompletionLabel,
   laneCompletionDetail,
   laneRolloverLabel,
   laneRolloverDetail,
@@ -523,6 +522,7 @@ export default function ExecutionDetailPanel({
           </SummaryFacts>
         </article>
         <PromptSafetySummaryCard safetyEnvelope={promptSafetyEnvelope} />
+        <EditorRestoreBoundarySummary details={item?.details ?? null} />
         {item ? (
           <article
             ref={relatedRecordsRef}

@@ -15,6 +15,7 @@ import {
 } from "../lib/executionTruth";
 import LaneActionsCard, { type LaneActionEntry } from "./LaneActionsCard";
 import OperatorLaneStateBlock, { type OperatorLaneStateEntry } from "./OperatorLaneStateBlock";
+import EditorRestoreBoundarySummary from "./EditorRestoreBoundarySummary";
 import PromptSafetySummaryCard from "./PromptSafetySummaryCard";
 import ProjectInspectEvidenceSummary from "./ProjectInspectEvidenceSummary";
 import RecordLineageStrip from "./RecordLineageStrip";
@@ -159,11 +160,9 @@ export default function RunDetailPanel({
   originatingArtifactLabel,
   originatingArtifactKind,
   pinnedRecordId,
-  pinnedRecordStatusLabel,
   pinnedRecordStatusDetail,
   laneQueueLabel,
   laneQueueDetail,
-  laneCompletionLabel,
   laneCompletionDetail,
   laneRolloverLabel,
   laneRolloverDetail,
@@ -544,6 +543,7 @@ export default function RunDetailPanel({
           </SummaryFacts>
         </article>
         <PromptSafetySummaryCard safetyEnvelope={promptSafetyEnvelope} />
+        <EditorRestoreBoundarySummary details={executionDetails} />
         {item?.tool === "settings.patch" && mutationAudit ? (
           <article
             ref={mutationAuditRef}

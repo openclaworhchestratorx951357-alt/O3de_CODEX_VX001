@@ -10,6 +10,24 @@ import type {
 type RunTruthSource = Pick<RunRecord, "execution_mode" | "tool" | "result_summary">
   | Pick<RunListItem, "execution_mode" | "tool">;
 
+export interface EditorRestoreBoundaryEvidence {
+  restore_boundary_id: string;
+  restore_boundary_scope?: string | null;
+  restore_strategy?: string | null;
+  restore_boundary_source_path?: string | null;
+  restore_boundary_backup_path?: string | null;
+  restore_boundary_backup_sha256?: string | null;
+  restore_restored_sha256?: string | null;
+  restore_result?: string | null;
+  restore_trigger?: string | null;
+  restore_boundary_available?: boolean | null;
+  restore_invoked?: boolean | null;
+  restore_attempted?: boolean | null;
+  restore_succeeded?: boolean | null;
+  restore_verification_attempted?: boolean | null;
+  restore_verification_succeeded?: boolean | null;
+}
+
 function readRunResultSummary(item: RunTruthSource): string {
   return "result_summary" in item && typeof item.result_summary === "string"
     ? item.result_summary
@@ -30,6 +48,16 @@ export function getRunExecutionTruthLabel(item: RunTruthSource): string {
   if (item.tool === "editor.entity.create") {
     return item.execution_mode === "real"
       ? "Live-validated real editor entity-create path."
+      : "Simulated path or explicit runtime rejection.";
+  }
+  if (item.tool === "editor.component.add") {
+    return item.execution_mode === "real"
+      ? "Live-validated allowlist-bound editor component-add path."
+      : "Simulated path or explicit runtime rejection.";
+  }
+  if (item.tool === "editor.component.property.get") {
+    return item.execution_mode === "real"
+      ? "Live-validated real editor component property read path."
       : "Simulated path or explicit runtime rejection.";
   }
   if (item.tool === "build.configure") {
@@ -61,6 +89,12 @@ export function getRunTruthBoundaryDescription(item: RunTruthSource): string {
   }
   if (item.execution_mode === "real" && item.tool === "editor.entity.create") {
     return "This run used the admitted bridge-backed real editor entity creation path for root-level named entity creation on the loaded/current level.";
+  }
+  if (item.execution_mode === "real" && item.tool === "editor.component.add") {
+    return "This run used the admitted bridge-backed editor.component.add path for allowlisted component attachment on an explicit entity in the loaded/current level.";
+  }
+  if (item.execution_mode === "real" && item.tool === "editor.component.property.get") {
+    return "This run used the admitted read-only editor.component.property.get path for an explicit component id and property path.";
   }
   if (item.execution_mode === "real" && item.tool === "build.configure") {
     return "This run used the real plan-only build.configure preflight path.";
@@ -96,6 +130,12 @@ export function getExecutionProvenanceLabel(item: ExecutionListItem): string {
     }
     if (item.inspection_surface === "editor_entity_created") {
       return "Real editor entity creation";
+    }
+    if (item.inspection_surface === "editor_component_added") {
+      return "Real editor component attachment";
+    }
+    if (item.inspection_surface === "editor_component_property_read") {
+      return "Real editor component property read";
     }
     if (item.inspection_surface === "build_configure_preflight") {
       return "Real plan-only build.configure preflight";
@@ -138,6 +178,12 @@ export function getArtifactProvenanceLabel(item: ArtifactListItem): string {
   }
   if (item.inspection_surface === "editor_entity_created") {
     return "Real editor entity evidence";
+  }
+  if (item.inspection_surface === "editor_component_added") {
+    return "Real editor component evidence";
+  }
+  if (item.inspection_surface === "editor_component_property_read") {
+    return "Real editor component property evidence";
   }
   if (item.inspection_surface === "build_configure_preflight") {
     return "Real build.configure preflight evidence";
@@ -224,6 +270,94 @@ export function readPromptSafetyEnvelope(
       ? candidate.natural_language_blocker
       : null,
   };
+}
+
+function readOptionalRestoreString(
+  payload: Record<string, unknown>,
+  key: keyof EditorRestoreBoundaryEvidence,
+): string | null {
+  const value = payload[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function readOptionalRestoreBoolean(
+  payload: Record<string, unknown>,
+  key: keyof EditorRestoreBoundaryEvidence,
+): boolean | null {
+  const value = payload[key];
+  return typeof value === "boolean" ? value : null;
+}
+
+export function readEditorRestoreBoundaryEvidence(
+  payload: object | null | undefined,
+): EditorRestoreBoundaryEvidence | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+  const candidate = payload as Record<string, unknown>;
+  const restoreBoundaryId = readOptionalRestoreString(candidate, "restore_boundary_id");
+  if (!restoreBoundaryId) {
+    return null;
+  }
+  return {
+    restore_boundary_id: restoreBoundaryId,
+    restore_boundary_scope: readOptionalRestoreString(candidate, "restore_boundary_scope"),
+    restore_strategy: readOptionalRestoreString(candidate, "restore_strategy"),
+    restore_boundary_source_path: readOptionalRestoreString(
+      candidate,
+      "restore_boundary_source_path",
+    ),
+    restore_boundary_backup_path: readOptionalRestoreString(
+      candidate,
+      "restore_boundary_backup_path",
+    ),
+    restore_boundary_backup_sha256: readOptionalRestoreString(
+      candidate,
+      "restore_boundary_backup_sha256",
+    ),
+    restore_restored_sha256: readOptionalRestoreString(candidate, "restore_restored_sha256"),
+    restore_result: readOptionalRestoreString(candidate, "restore_result"),
+    restore_trigger: readOptionalRestoreString(candidate, "restore_trigger"),
+    restore_boundary_available: readOptionalRestoreBoolean(
+      candidate,
+      "restore_boundary_available",
+    ),
+    restore_invoked: readOptionalRestoreBoolean(candidate, "restore_invoked"),
+    restore_attempted: readOptionalRestoreBoolean(candidate, "restore_attempted"),
+    restore_succeeded: readOptionalRestoreBoolean(candidate, "restore_succeeded"),
+    restore_verification_attempted: readOptionalRestoreBoolean(
+      candidate,
+      "restore_verification_attempted",
+    ),
+    restore_verification_succeeded: readOptionalRestoreBoolean(
+      candidate,
+      "restore_verification_succeeded",
+    ),
+  };
+}
+
+export function getEditorRestoreBoundaryStatusLabel(
+  evidence: EditorRestoreBoundaryEvidence,
+): string {
+  if (evidence.restore_invoked === true && evidence.restore_succeeded === true) {
+    return "Restore invoked and hash-verified.";
+  }
+  if (evidence.restore_invoked === true) {
+    return "Restore invoked but not verified.";
+  }
+  if (evidence.restore_boundary_available === true) {
+    return "Restore boundary captured and available.";
+  }
+  return "Restore boundary metadata recorded.";
+}
+
+export function getEditorRestoreBoundaryLimitLabel(
+  evidence: EditorRestoreBoundaryEvidence,
+): string {
+  if (evidence.restore_invoked === true && evidence.restore_succeeded === true) {
+    return "This proves file-backed loaded-level restore only; it does not prove live Editor undo, viewport reload, or entity absence unless a separate record says so.";
+  }
+  return "This records an available restore boundary only; no cleanup or reversibility is claimed unless restore_invoked and restore_succeeded are both true.";
 }
 
 export function getPromptSafetyTone(
@@ -331,6 +465,16 @@ export function describeExecutionResult(
   }
   if (executionMode === "real" && simulated === false && tool === "editor.entity.create") {
     return "Real bridge-backed editor entity creation ran for editor.entity.create on the admitted root-level named entity path.";
+  }
+  if (executionMode === "real" && simulated === false && tool === "editor.component.add") {
+    return "Real bridge-backed editor component attachment ran for editor.component.add on the admitted allowlist-bound path.";
+  }
+  if (
+    executionMode === "real"
+    && simulated === false
+    && tool === "editor.component.property.get"
+  ) {
+    return "Real bridge-backed editor component property read ran for editor.component.property.get on the admitted read-only path.";
   }
   if (executionMode === "real" && simulated === false && tool === "build.configure") {
     return "Real plan-only build.configure preflight ran; no configure command was executed.";
