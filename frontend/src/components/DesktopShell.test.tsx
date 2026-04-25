@@ -1,0 +1,252 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { SettingsProvider } from "../lib/settings/context";
+import { createSettingsProfile, DEFAULT_ACCENT_COLOR } from "../lib/settings/defaults";
+import { SETTINGS_PROFILE_STORAGE_KEY } from "../types/settings";
+import DesktopShell from "./DesktopShell";
+
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
+describe("DesktopShell", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    document.documentElement.style.colorScheme = "";
+    vi.clearAllMocks();
+  });
+
+  it("renders workspace navigation and forwards selection events", () => {
+    const onSelectWorkspace = vi.fn();
+
+    const { container } = render(
+      <DesktopShell
+        appTitle="O3DE Agent Control App"
+        appSubtitle="Desktop operator shell"
+        workspaceTitle="Home"
+        workspaceSubtitle="Overview and launch surface"
+        activeWorkspaceId="home"
+        navSections={[
+          {
+            id: "start",
+            label: "Start",
+            detail: "Begin with a calmer orientation surface.",
+            items: [
+              {
+                id: "home",
+                label: "Home",
+                subtitle: "Overview and launch surface",
+                badge: "2",
+                tone: "info",
+                helpTooltip: "Start here to orient the operator desktop.",
+              },
+            ],
+          },
+          {
+            id: "inspect",
+            label: "Inspect",
+            detail: "Review persisted evidence and warnings.",
+            items: [
+              {
+                id: "records",
+                label: "Records",
+                subtitle: "Runs, executions, artifacts",
+                badge: "9",
+                tone: "warning",
+                helpTooltip: "Inspect persisted evidence and warnings.",
+              },
+            ],
+          },
+        ]}
+        quickStats={[
+          {
+            label: "Approvals",
+            value: "2",
+            tone: "warning",
+            helpTooltip: "Pending decisions still need review.",
+          },
+          {
+            label: "Bridge",
+            value: "fresh",
+            tone: "success",
+            helpTooltip: "Heartbeat is currently fresh.",
+          },
+        ]}
+        utilityLabel="bridge live"
+        utilityDetail="Heartbeat is fresh."
+        onSelectWorkspace={onSelectWorkspace}
+      >
+        <div>Workspace body</div>
+      </DesktopShell>,
+    );
+
+    const shellRoot = container.firstElementChild as HTMLElement;
+
+    expect(screen.getByText("Control surface")).toBeInTheDocument();
+    expect(screen.getByText("Now open")).toBeInTheDocument();
+    expect(screen.getAllByText("Start").length).toBeGreaterThan(0);
+    expect(screen.getByText("Inspect")).toBeInTheDocument();
+    expect(screen.getByText("Active workspace")).toBeInTheDocument();
+    expect(screen.getByText("Workspace body")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /inspect/i }));
+
+    expect(
+      screen.getByRole("button", { name: /records/i }),
+    ).toHaveAttribute("title", "Inspect persisted evidence and warnings.");
+    expect(screen.getByText("Bridge: fresh")).toHaveAttribute("title", "Heartbeat is currently fresh.");
+    expect(shellRoot).toHaveStyle("height: 100vh");
+    expect(shellRoot).toHaveStyle("overflow: hidden");
+
+    const quickAccessInput = screen.getByRole("combobox", { name: "Quick access app explorer" });
+    fireEvent.focus(quickAccessInput);
+    expect(screen.queryByRole("option")).not.toBeInTheDocument();
+    fireEvent.change(quickAccessInput, { target: { value: "record" } });
+    expect(screen.getByRole("listbox", { name: "Quick access results" })).toBeInTheDocument();
+    expect(screen.queryByText("Type a workspace, tool, or help topic. Use arrows and Enter to jump.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Inspect persisted evidence and warnings.")).not.toBeInTheDocument();
+    fireEvent.change(quickAccessInput, { target: { value: "rds" } });
+    expect(screen.getByRole("option", { name: /records/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("option", { name: /records/i }));
+    expect(onSelectWorkspace).toHaveBeenCalledWith("records");
+    onSelectWorkspace.mockClear();
+
+    fireEvent.change(quickAccessInput, { target: { value: "record" } });
+    expect(screen.getByRole("listbox", { name: "Quick access results" })).toBeInTheDocument();
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole("listbox", { name: "Quick access results" })).not.toBeInTheDocument();
+
+    fireEvent.focus(quickAccessInput);
+    fireEvent.change(quickAccessInput, { target: { value: "home" } });
+    fireEvent.keyDown(quickAccessInput, { key: "Enter" });
+    expect(onSelectWorkspace).toHaveBeenCalledWith("home");
+    onSelectWorkspace.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: /records/i }));
+    expect(onSelectWorkspace).toHaveBeenCalledWith("records");
+
+    fireEvent.click(screen.getByRole("button", { name: /call an agent/i }));
+    const agentCallMenu = screen.getByRole("dialog", { name: "Agent call menu" });
+    expect(agentCallMenu).toBeInTheDocument();
+    expect(agentCallMenu.parentElement).toBe(document.body);
+    fireEvent.mouseDown(document.body);
+    expect(screen.queryByRole("dialog", { name: "Agent call menu" })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /call an agent/i }));
+    expect(screen.getByRole("dialog", { name: "Agent call menu" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Start new chat" }));
+    const agentChatDock = screen.getByRole("region", { name: "Agent chat dock" });
+    expect(agentChatDock).toBeInTheDocument();
+    expect(agentChatDock.parentElement).toBe(document.body);
+    expect(agentChatDock).toHaveStyle("position: fixed");
+    expect(agentChatDock).toHaveStyle("bottom: 18px");
+    expect(screen.getByRole("button", { name: "Attach source" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send agent message" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByRole("region", { name: "Agent chat dock" })).not.toBeInTheDocument();
+  });
+
+  it("consumes saved shell settings for dark compact desktop layout", () => {
+    window.localStorage.setItem(
+      SETTINGS_PROFILE_STORAGE_KEY,
+      JSON.stringify(createSettingsProfile({
+        appearance: {
+          themeMode: "dark",
+          accentColor: DEFAULT_ACCENT_COLOR,
+          density: "compact",
+          contentMaxWidth: "focused",
+          cardRadius: "rounded",
+          reducedMotion: true,
+          fontScale: 1,
+        },
+        layout: {
+          preferredLandingSection: "home",
+          showDesktopTelemetry: true,
+          guidedMode: true,
+          guidedTourCompleted: true,
+        },
+        operatorDefaults: {
+          projectRoot: "",
+          engineRoot: "",
+          dryRun: true,
+          timeoutSeconds: 30,
+          locks: ["project_config"],
+        },
+      })),
+    );
+
+    const { container } = render(
+      <SettingsProvider>
+        <DesktopShell
+          appTitle="O3DE Agent Control App"
+          appSubtitle="Desktop operator shell"
+          workspaceTitle="Runtime Console"
+          workspaceSubtitle="Bridge status, executors, workspaces, and governance health."
+          activeWorkspaceId="runtime"
+          navSections={[
+            {
+              id: "start",
+              label: "Start",
+              detail: "Begin with the overview shell.",
+              items: [
+                {
+                  id: "home",
+                  label: "Home",
+                  subtitle: "Overview and launch surface",
+                },
+              ],
+            },
+            {
+              id: "operate",
+              label: "Operate",
+              detail: "Watch bridge status and workspace health.",
+              items: [
+                {
+                  id: "runtime",
+                  label: "Runtime",
+                  subtitle: "Bridge status and workspace health",
+                  badge: "live",
+                  tone: "success",
+                },
+              ],
+            },
+          ]}
+          quickStats={[
+            {
+              label: "Bridge",
+              value: "fresh",
+              tone: "success",
+            },
+          ]}
+          utilityLabel="bridge live"
+          utilityDetail="Heartbeat is fresh."
+          onSelectWorkspace={vi.fn()}
+        >
+          <div>Runtime workspace body</div>
+        </DesktopShell>
+      </SettingsProvider>,
+    );
+
+    const providerRoot = container.firstElementChild as HTMLElement;
+    const desktopSurface = screen.getByText("Control surface").closest("aside")?.parentElement as HTMLElement;
+
+    expect(document.documentElement.style.colorScheme).toBe("dark");
+    expect(screen.getByText("Runtime workspace body")).toBeInTheDocument();
+    expect(providerRoot.getAttribute("style")).toContain("--app-shell-max-width: 1240px");
+    expect(providerRoot.getAttribute("style")).toContain("--app-transition: none");
+    expect(desktopSurface).toHaveStyle("padding: 18px");
+    expect(desktopSurface).toHaveStyle("width: 100%");
+    expect(desktopSurface).toHaveStyle("overflow: hidden");
+  });
+});

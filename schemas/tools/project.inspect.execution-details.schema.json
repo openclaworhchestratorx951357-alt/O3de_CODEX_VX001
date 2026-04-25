@@ -1,0 +1,196 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/project.inspect.execution-details.schema.json",
+  "title": "project.inspect execution details",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "inspection_surface",
+    "execution_boundary"
+  ],
+  "properties": {
+    "inspection_surface": {
+      "type": "string",
+      "enum": ["simulated", "project_manifest"]
+    },
+    "execution_boundary": { "type": "string", "minLength": 1 },
+    "adapter_family": { "type": "string", "minLength": 1 },
+    "adapter_mode": { "type": "string", "minLength": 1 },
+    "adapter_contract_version": { "type": "string", "minLength": 1 },
+    "real_path_available": { "type": "boolean" },
+    "fallback_category": { "type": "string", "minLength": 1 },
+    "fallback_reason": { "type": "string", "minLength": 1 },
+    "expected_project_manifest_path": { "type": "string", "minLength": 1 },
+    "expected_project_manifest_relative_path": { "type": "string", "minLength": 1 },
+    "inspection_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "project_manifest_path": { "type": "string", "minLength": 1 },
+    "project_root_path": { "type": "string", "minLength": 1 },
+    "project_manifest_relative_path": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "project_manifest_read_mode": { "type": "string", "minLength": 1 },
+    "project_manifest_source_of_truth": { "type": "string", "minLength": 1 },
+    "project_manifest_workspace_local": { "type": "boolean" },
+    "project_manifest_within_project_root": { "type": "boolean" },
+    "manifest_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "project_name": { "type": "string", "minLength": 1 },
+    "include_flags": {
+      "type": "object",
+      "additionalProperties": { "type": "boolean" }
+    },
+    "project_config": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "project_config_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "available_project_config_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "available_project_config_count": { "type": "integer", "minimum": 0 },
+    "available_project_origin": {
+      "type": ["string", "object", "array", "number", "boolean", "null"]
+    },
+    "available_project_origin_type": { "type": "string", "minLength": 1 },
+    "available_project_origin_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "project_origin_present": { "type": "boolean" },
+    "available_project_id": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "project_id_present": { "type": "boolean" },
+    "available_user_tags": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "available_user_tag_count": { "type": "integer", "minimum": 0 },
+    "identity_fields_present": { "type": "boolean" },
+    "available_display_name": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "available_icon_path": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "available_restricted_platform_name": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "presentation_fields_present": { "type": "boolean" },
+    "available_compatible_engines": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "available_compatible_engine_count": { "type": "integer", "minimum": 0 },
+    "available_engine_api_dependency_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "available_engine_api_dependency_count": { "type": "integer", "minimum": 0 },
+    "engine_compatibility_fields_present": { "type": "boolean" },
+    "requested_project_config_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "project_config_selection_mode": { "type": "string", "minLength": 1 },
+    "requested_project_config_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "matched_requested_project_config_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "missing_requested_project_config_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "matched_requested_project_config_count": { "type": "integer", "minimum": 0 },
+    "missing_requested_project_config_count": { "type": "integer", "minimum": 0 },
+    "project_config_fields_present": { "type": "boolean" },
+    "requested_project_config_subset_present": { "type": "boolean" },
+    "requested_settings_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "settings_evidence_source": { "type": "string", "minLength": 1 },
+    "settings_selection_mode": { "type": "string", "minLength": 1 },
+    "requested_settings_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "matched_requested_settings_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "missing_requested_settings_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "matched_requested_settings_count": { "type": "integer", "minimum": 0 },
+    "missing_requested_settings_count": { "type": "integer", "minimum": 0 },
+    "requested_gem_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "gem_evidence_source": { "type": "string", "minLength": 1 },
+    "gem_selection_mode": { "type": "string", "minLength": 1 },
+    "requested_gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "matched_requested_gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "missing_requested_gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "matched_requested_gem_count": { "type": "integer", "minimum": 0 },
+    "missing_requested_gem_count": { "type": "integer", "minimum": 0 },
+    "available_gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "available_gem_count": { "type": "integer", "minimum": 0 },
+    "gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "gem_names_count": { "type": "integer", "minimum": 0 },
+    "gem_entries_present": { "type": "boolean" },
+    "requested_gem_subset_present": { "type": "boolean" },
+    "manifest_settings": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "manifest_settings_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "requested_build_state_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "build_state_evidence_source": { "type": "string", "minLength": 1 },
+    "build_state_selection_mode": { "type": "string", "minLength": 1 },
+    "build_state_real_path_available": { "type": "boolean" },
+    "requested_build_state_subset_present": { "type": "boolean" },
+    "requested_settings_subset_present": { "type": "boolean" }
+  }
+}

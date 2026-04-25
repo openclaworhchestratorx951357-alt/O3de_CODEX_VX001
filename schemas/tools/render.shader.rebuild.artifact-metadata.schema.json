@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/render.shader.rebuild.artifact-metadata.schema.json",
+  "title": "render.shader.rebuild artifact metadata",
+  "allOf": [
+    {
+      "$ref": "./render.shader.rebuild.execution-details.schema.json"
+    },
+    {
+      "type": "object",
+      "required": [
+        "tool",
+        "agent",
+        "execution_mode",
+        "adapter_family",
+        "adapter_mode",
+        "adapter_contract_version"
+      ],
+      "properties": {
+        "tool": { "const": "render.shader.rebuild" },
+        "agent": { "const": "render-lookdev" },
+        "execution_mode": { "enum": ["simulated", "real"] }
+      }
+    }
+  ]
+}

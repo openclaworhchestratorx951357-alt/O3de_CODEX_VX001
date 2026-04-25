@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/project.inspect.result.schema.json",
+  "title": "project.inspect result",
+  "allOf": [
+    { "$ref": "../dispatch-result.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "project.inspect" },
+        "agent": { "const": "project-build" },
+        "approval_class": { "const": "read_only" },
+        "status": {
+          "type": "string",
+          "enum": ["simulated_success", "real_success"]
+        },
+        "execution_mode": {
+          "type": "string",
+          "enum": ["simulated", "real"]
+        },
+        "simulated": { "type": "boolean" }
+      }
+    }
+  ]
+}

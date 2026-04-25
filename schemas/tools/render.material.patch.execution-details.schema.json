@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/render.material.patch.execution-details.schema.json",
+  "title": "render.material.patch execution details",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "inspection_surface",
+    "execution_boundary",
+    "simulated"
+  ],
+  "properties": {
+    "inspection_surface": {
+      "type": "string",
+      "enum": [
+        "simulated",
+        "render_material_patch_preflight",
+        "render_material_patch_mutation"
+      ]
+    },
+    "execution_boundary": { "type": "string", "minLength": 1 },
+    "simulated": { "type": "boolean" },
+    "adapter_family": { "type": "string", "minLength": 1 },
+    "adapter_mode": { "type": "string", "minLength": 1 },
+    "adapter_contract_version": { "type": "string", "minLength": 1 }
+  }
+}

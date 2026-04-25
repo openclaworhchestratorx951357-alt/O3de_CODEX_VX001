@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/test.run.editor_python.args.schema.json",
+  "title": "test.run.editor_python args",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["test_modules"],
+  "properties": {
+    "test_modules": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "editor_args": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "timeout_s": { "type": "integer", "minimum": 1 }
+  }
+}

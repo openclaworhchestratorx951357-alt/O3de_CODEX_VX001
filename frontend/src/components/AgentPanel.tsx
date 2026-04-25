@@ -2,7 +2,8 @@ type AgentPanelProps = {
   name: string;
   role: string;
   lockLabel: string;
-  tools: string[];
+  tools: readonly string[];
+  tooltip?: string;
 };
 
 export default function AgentPanel({
@@ -10,14 +11,17 @@ export default function AgentPanel({
   role,
   lockLabel,
   tools,
+  tooltip,
 }: AgentPanelProps) {
   return (
     <section
+      title={tooltip}
       style={{
-        border: "1px solid #d0d7de",
+        border: "1px solid var(--app-panel-border)",
         borderRadius: 12,
         padding: 16,
         marginBottom: 16,
+        background: "var(--app-panel-bg)",
       }}
     >
       <header style={{ marginBottom: 12 }}>

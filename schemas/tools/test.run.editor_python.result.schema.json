@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/test.run.editor_python.result.schema.json",
+  "title": "test.run.editor_python result",
+  "allOf": [
+    { "$ref": "../dispatch-result.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "test.run.editor_python" },
+        "approval_class": { "const": "test_execute" },
+        "execution_mode": {
+          "type": "string",
+          "enum": ["simulated", "real"]
+        },
+        "simulated": { "type": "boolean" }
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/event.schema.json",
+  "title": "Control Plane Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "category", "severity", "message", "created_at", "details"],
+  "properties": {
+    "id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": ["string", "null"] },
+    "category": { "type": "string", "minLength": 1 },
+    "severity": { "type": "string", "enum": ["info", "warning", "error"] },
+    "message": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "details": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    }
+  }
+}

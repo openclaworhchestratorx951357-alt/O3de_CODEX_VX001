@@ -1,0 +1,586 @@
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { SettingsProvider } from "../lib/settings/context";
+import { createSettingsProfile, DEFAULT_ACCENT_COLOR } from "../lib/settings/defaults";
+import {
+  createDefaultO3DEProjectProfilesStore,
+  createO3DEProjectProfile,
+  saveO3DEProjectProfilesStore,
+  selectO3DEProjectProfile,
+  upsertO3DEProjectProfile,
+} from "../lib/o3deProjectProfiles";
+import { SETTINGS_PROFILE_STORAGE_KEY } from "../types/settings";
+import PromptControlPanel from "./PromptControlPanel";
+import type {
+  PromptCapabilityEntry,
+  PromptSafetyEnvelope,
+  PromptSessionRecord,
+} from "../types/contracts";
+
+const apiMocks = vi.hoisted(() => ({
+  createPromptSession: vi.fn(),
+  executePromptSession: vi.fn(),
+  fetchO3deTarget: vi.fn(),
+  fetchPromptCapabilities: vi.fn(),
+  fetchPromptSession: vi.fn(),
+  fetchPromptSessions: vi.fn(),
+}));
+
+vi.mock("../lib/api", () => apiMocks);
+
+function makeCapability(toolName: string): PromptCapabilityEntry {
+  const capabilityMaturity = "real-authoring";
+  const realAdmissionStage = "real-editor-authoring-active";
+  const safetyEnvelope: PromptSafetyEnvelope = toolName === "editor.session.open"
+    ? {
+        state_scope: "Editor-session attachment scoped to the active project target.",
+        backup_class: "none",
+        rollback_class: "none",
+        verification_class: "editor-session heartbeat and runtime context verification",
+        retention_class: "editor-runtime-evidence",
+        natural_language_status: "prompt-ready-approval-gated",
+        natural_language_blocker: null,
+      }
+    : toolName === "editor.level.open"
+      ? {
+          state_scope: "Explicit level open/create within the current editor project context.",
+          backup_class: "operator-managed-level-snapshot-when-creating-or-overwriting",
+          rollback_class: "manual-level-restore-or-level-delete",
+          verification_class: "loaded-level-context verification",
+          retention_class: "editor-runtime-evidence",
+          natural_language_status: "prompt-ready-approval-gated",
+          natural_language_blocker: null,
+        }
+      : {
+          state_scope: "Explicit entity creation within the currently loaded level.",
+          backup_class: "operator-managed-level-snapshot-before-entity-mutation",
+          rollback_class: "manual-level-restore-or-explicit-entity-removal",
+          verification_class: "entity-readback-and-level-context verification",
+          retention_class: "editor-runtime-evidence",
+          natural_language_status: "prompt-ready-approval-gated",
+          natural_language_blocker: null,
+        };
+  return {
+    tool_name: toolName,
+    agent_family: "editor-control",
+    args_schema: `schemas/tools/${toolName}.args.schema.json`,
+    result_schema: `schemas/tools/${toolName}.result.schema.json`,
+    persisted_execution_details_schema: `schemas/tools/${toolName}.execution-details.schema.json`,
+    persisted_artifact_metadata_schema: `schemas/tools/${toolName}.artifact-metadata.schema.json`,
+    approval_class: toolName === "editor.session.open" ? "project_write" : "content_write",
+    default_locks: ["editor_session"],
+    capability_maturity: capabilityMaturity,
+    capability_status: capabilityMaturity,
+    real_admission_stage: realAdmissionStage,
+    planner_intent_aliases: [],
+    natural_language_affordances: [],
+    allowlisted_parameter_surfaces: toolName === "editor.entity.create" ? ["entity_name", "level_path"] : [],
+    safety_envelope: safetyEnvelope,
+    real_adapter_availability: true,
+    dry_run_availability: false,
+    simulation_fallback_availability: false,
+  };
+}
+
+function makePlannedSession(): PromptSessionRecord {
+  return {
+    prompt_id: "prompt-editor-1",
+    plan_id: "plan-editor-1",
+    status: "planned",
+    prompt_text: 'Open level "Levels/Main.level" in the editor and create entity named "Hero".',
+    project_root: "C:/project",
+    engine_root: "C:/engine",
+    dry_run: false,
+    preferred_domains: ["editor-control"],
+    operator_note: null,
+    child_run_ids: [],
+    child_execution_ids: [],
+    child_artifact_ids: [],
+    child_event_ids: [],
+    workspace_id: "workspace-editor-project",
+    executor_id: "executor-editor-control-real-local",
+    plan_summary: "Compiled 3 typed step(s) from the prompt across 1 capability domain(s).",
+    evidence_summary: null,
+    admitted_capabilities: [
+      "editor.entity.create",
+      "editor.level.open",
+      "editor.session.open",
+    ],
+    refused_capabilities: [],
+    final_result_summary: "Plan preview ready with 3 typed child step(s).",
+    next_step_index: 0,
+    current_step_id: null,
+    pending_approval_id: null,
+    pending_approval_token: null,
+    last_error_code: null,
+    last_error_retryable: false,
+    step_attempts: {},
+    plan: {
+      prompt_id: "prompt-editor-1",
+      plan_id: "plan-editor-1",
+      schema_version: "v0.1",
+      admitted: true,
+      refusal_reason: null,
+      summary: "Compiled 3 typed step(s) from the prompt across 1 capability domain(s).",
+      steps: [
+        {
+          step_id: "editor-session-1",
+          tool: "editor.session.open",
+          agent: "editor-control",
+          args: {
+            session_mode: "attach",
+            project_path: "C:/project",
+            level_path: "Levels/Main.level",
+            timeout_s: 180,
+          },
+          approval_class: "project_write",
+          required_locks: ["editor_session"],
+          capability_status_required: "real-authoring",
+          workspace_id: "workspace-editor-project",
+          executor_id: "executor-editor-control-real-local",
+          simulated_allowed: false,
+          depends_on: [],
+          capability_maturity: "real-authoring",
+          safety_envelope: makeCapability("editor.session.open").safety_envelope,
+          planner_note: "Prompt-driven editor flows always begin from an attached editor session request.",
+        },
+        {
+          step_id: "editor-level-1",
+          tool: "editor.level.open",
+          agent: "editor-control",
+          args: {
+            level_path: "Levels/Main.level",
+            make_writable: true,
+            focus_viewport: true,
+          },
+          approval_class: "content_write",
+          required_locks: ["editor_session"],
+          capability_status_required: "real-authoring",
+          workspace_id: "workspace-editor-project",
+          executor_id: "executor-editor-control-real-local",
+          simulated_allowed: false,
+          depends_on: ["editor-session-1"],
+          capability_maturity: "real-authoring",
+          safety_envelope: makeCapability("editor.level.open").safety_envelope,
+          planner_note: null,
+        },
+        {
+          step_id: "editor-entity-1",
+          tool: "editor.entity.create",
+          agent: "editor-control",
+          args: {
+            entity_name: "Hero",
+            level_path: "Levels/Main.level",
+          },
+          approval_class: "content_write",
+          required_locks: ["editor_session"],
+          capability_status_required: "real-authoring",
+          workspace_id: "workspace-editor-project",
+          executor_id: "executor-editor-control-real-local",
+          simulated_allowed: false,
+          depends_on: ["editor-level-1"],
+          capability_maturity: "real-authoring",
+          safety_envelope: makeCapability("editor.entity.create").safety_envelope,
+          planner_note:
+            "Entity creation remains limited to root-level named entities on the loaded/current level.",
+        },
+      ],
+      refused_capabilities: [],
+      capability_requirements: [
+        "editor.session.open currently resolves through an admitted real-authoring path when editor-runtime prechecks are satisfied; unsupported mutation surfaces remain explicitly non-admitted.",
+        "editor.entity.create remains admitted only for root-level named entity creation on the loaded/current level.",
+      ],
+    },
+    latest_child_responses: [],
+    created_at: "2026-04-20T00:00:00Z",
+    updated_at: "2026-04-20T00:00:00Z",
+  };
+}
+
+describe("PromptControlPanel", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.localStorage.clear();
+    apiMocks.fetchO3deTarget.mockResolvedValue({
+      project_root: "C:/Users/topgu/O3DE/Projects/McpSandbox",
+      engine_root: "C:/src/o3de",
+      editor_runner: "C:/Users/topgu/O3DE/Projects/McpSandbox/build/windows/bin/profile/Editor.exe",
+      runtime_runner: "C:/Users/topgu/O3DE/Projects/McpSandbox/build/windows/bin/profile/Editor.exe",
+      source_label: "repo-configured-local-target",
+      project_root_exists: true,
+      engine_root_exists: true,
+      editor_runner_exists: true,
+      runtime_runner_exists: true,
+    });
+    apiMocks.fetchPromptCapabilities.mockResolvedValue([
+      makeCapability("editor.session.open"),
+      makeCapability("editor.level.open"),
+      makeCapability("editor.entity.create"),
+    ]);
+    apiMocks.fetchPromptSessions.mockResolvedValue([]);
+    apiMocks.fetchPromptSession.mockImplementation(async (promptId: string) => {
+      const session = makePlannedSession();
+      return { ...session, prompt_id: promptId };
+    });
+  });
+
+  it("previews a prompt plan and renders real-authoring truth labels", async () => {
+    const plannedSession = makePlannedSession();
+    apiMocks.createPromptSession.mockResolvedValue(plannedSession);
+
+    render(
+      <PromptControlPanel
+        selectedWorkspaceId="workspace-editor-project"
+        selectedExecutorId="executor-editor-control-real-local"
+      />,
+    );
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(screen.getByDisplayValue("C:\\Users\\topgu\\O3DE\\Projects\\McpSandbox")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("C:\\src\\o3de")).toBeInTheDocument();
+    expect(screen.getByText(/Selected project profile:/i)).toHaveTextContent("McpSandbox canonical target");
+    expect(screen.getByText(/Active local target:/i)).toBeInTheDocument();
+    const promptControlSection = screen.getByRole("heading", { name: "Prompt Control" }).closest("section");
+    expect(promptControlSection).not.toBeNull();
+    expect(
+      within(promptControlSection as HTMLElement).getByTitle(
+        "Use Prompt Control to turn natural-language requests into admitted typed plans, select prompt context, and continue eligible prompt sessions without losing truth markers.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Prompt text")).toHaveAttribute(
+      "title",
+      "Describe the intended operator task in natural language while keeping expectations truthful about admitted, refused, or blocked capability.",
+    );
+    expect(screen.getByLabelText("Project root")).toHaveAttribute(
+      "title",
+      "Confirm the project root matches the intended local target before compiling a prompt plan.",
+    );
+    expect(screen.getByLabelText("Engine root")).toHaveAttribute(
+      "title",
+      "Confirm the engine root matches the intended local target before compiling a prompt plan.",
+    );
+    expect(screen.getByRole("checkbox")).toHaveAttribute(
+      "title",
+      "Leave dry run enabled when you want prompt-generated child steps to prefer dry-run where the admitted capability supports it.",
+    );
+    expect(screen.getByRole("button", { name: "Preview Prompt Plan" })).toHaveAttribute(
+      "title",
+      "Use Preview Prompt Plan to compile the natural-language request into a persisted admitted typed plan without immediately continuing execution.",
+    );
+    expect(screen.getByRole("button", { name: "Refresh Prompt Sessions" })).toHaveAttribute(
+      "title",
+      "Refresh Prompt Sessions when the prompt workspace may be stale or another action changed the selected session.",
+    );
+
+    fireEvent.change(screen.getByLabelText("Prompt text"), {
+      target: { value: plannedSession.prompt_text },
+    });
+    fireEvent.change(screen.getByLabelText("Project root"), {
+      target: { value: plannedSession.project_root },
+    });
+    fireEvent.change(screen.getByLabelText("Engine root"), {
+      target: { value: plannedSession.engine_root },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Preview Prompt Plan" }));
+
+    await screen.findByText("Prompt Plan");
+    expect(apiMocks.createPromptSession).toHaveBeenCalledTimes(1);
+    expect(screen.getAllByText("Maturity: real-authoring").length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("prompt-ready-approval-gated").length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText("real-editor-authoring-active").length).toBeGreaterThan(0);
+    expect(
+      screen.queryByText("prompt-blocked-pending-admission"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Maturity: runtime-reaching")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("runtime-reaching-excluded-from-admitted-real"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Blocker: Excluded from the admitted real set on current tested local targets/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText(/Allowlisted params: entity_name, level_path/i)).toBeInTheDocument();
+    expect(screen.getAllByText("real path preferred").length).toBeGreaterThan(0);
+    const sessionButton = screen.getByRole("button", { name: /prompt-editor-1/i });
+    expect(sessionButton).toHaveTextContent("Workspace: workspace-editor-project");
+    expect(sessionButton).toHaveTextContent("Executor: executor-editor-control-real-local");
+  });
+
+  it("loads a recommended prompt template into editable prompt fields", async () => {
+    render(<PromptControlPanel />);
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(screen.getByText("Prompt template recommendations")).toBeInTheDocument();
+    expect(screen.getByText("Admitted-real editor actions")).toBeInTheDocument();
+    expect(screen.getAllByText("Why this template?").length).toBeGreaterThan(0);
+    expect(screen.getByText("editor.session.open is available")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Use Open current editor session safely" }),
+    );
+
+    expect(screen.getByLabelText("Prompt text")).toHaveValue(
+      "Open an editor session for the selected McpSandbox project profile and report the real editor-session evidence. Do not open a level or mutate content in this prompt.",
+    );
+    expect(screen.getByLabelText("Preferred domains (comma-separated)")).toHaveValue("editor-control");
+    expect(screen.getByLabelText("Operator note")).toHaveValue(
+      "Template recommendation: attach the editor session first and keep this prompt non-mutating.",
+    );
+    await waitFor(() => {
+      expect(screen.getByRole("checkbox")).not.toBeChecked();
+    });
+    expect(
+      screen.getByText("Loaded recommended prompt template: Open current editor session safely."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Loaded template review")).toBeInTheDocument();
+    expect(screen.getByText("Changed fields:")).toBeInTheDocument();
+    expect(screen.getByText("Prompt text, preferred domains, operator note, dry run")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear review" }));
+
+    expect(screen.queryByLabelText("Loaded template review")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Prompt text")).toHaveValue(
+      "Open an editor session for the selected McpSandbox project profile and report the real editor-session evidence. Do not open a level or mutate content in this prompt.",
+    );
+  });
+
+  it("shows approval pause continuity and child lineage after executing a selected prompt", async () => {
+    const plannedSession = makePlannedSession();
+const waitingSession: PromptSessionRecord = {
+      ...plannedSession,
+      status: "waiting_approval",
+      current_step_id: "editor-level-1",
+      pending_approval_id: "approval-2",
+      last_error_code: "APPROVAL_REQUIRED",
+      last_error_retryable: true,
+      next_step_index: 1,
+      evidence_summary: "runs=2, executions=2, artifacts=1, events=5",
+      final_result_summary:
+        "Prompt execution paused at child step editor.level.open pending tool-level approval.",
+      step_attempts: {
+        "editor-session-1": 2,
+        "editor-level-1": 1,
+      },
+      child_run_ids: ["run-1", "run-2"],
+      child_execution_ids: ["exec-1", "exec-2"],
+      child_artifact_ids: ["artifact-1"],
+      child_event_ids: ["event-1", "event-2", "event-3"],
+      latest_child_responses: [
+        {
+          ok: true,
+          result: {
+            tool: "editor.session.open",
+            execution_mode: "real",
+            simulated: false,
+          },
+        },
+        {
+          ok: false,
+          error: {
+            code: "APPROVAL_REQUIRED",
+      },
+        },
+      ],
+    };
+
+    apiMocks.createPromptSession.mockResolvedValue(plannedSession);
+    apiMocks.executePromptSession.mockResolvedValue(waitingSession);
+
+    render(<PromptControlPanel />);
+    await screen.findByText("Prompt Capability Registry");
+
+    fireEvent.change(screen.getByLabelText("Prompt text"), {
+      target: { value: plannedSession.prompt_text },
+    });
+    fireEvent.change(screen.getByLabelText("Project root"), {
+      target: { value: plannedSession.project_root },
+    });
+    fireEvent.change(screen.getByLabelText("Engine root"), {
+      target: { value: plannedSession.engine_root },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Preview Prompt Plan" }));
+    await screen.findByText("Prompt Execution Timeline");
+
+    fireEvent.click(screen.getByRole("button", { name: "Execute Selected Prompt" }));
+
+    await waitFor(() => {
+      expect(apiMocks.executePromptSession).toHaveBeenCalledWith("prompt-editor-1");
+    });
+    expect(screen.getByText("Prompt Execution Timeline")).toBeInTheDocument();
+    expect(screen.getAllByText("waiting_approval").length).toBeGreaterThan(0);
+    expect(screen.getByText("approval-2")).toBeInTheDocument();
+    expect(screen.getByText(/editor-session-1: 2/i)).toBeInTheDocument();
+    expect(screen.getByText(/editor-level-1: 1/i)).toBeInTheDocument();
+    expect(screen.getByText("run-1")).toBeInTheDocument();
+    expect(screen.getByText("exec-1")).toBeInTheDocument();
+    expect(screen.getByText(/execution_mode/i)).toBeInTheDocument();
+  });
+
+  it("keeps the prompt UI rendered when the live backend omits capability safety envelopes", async () => {
+    apiMocks.fetchPromptCapabilities.mockResolvedValue([
+      {
+        ...makeCapability("editor.session.open"),
+        safety_envelope: undefined,
+      },
+    ]);
+
+    render(<PromptControlPanel />);
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(
+      screen.getByText("not reported by current backend"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/Safety envelope metadata is missing from the current backend payload/i),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the prompt plan rendered when a persisted step omits its safety envelope", async () => {
+    const plannedSession = makePlannedSession();
+    const plan = plannedSession.plan!;
+    plan.steps = [
+      {
+        ...plan.steps[0],
+        safety_envelope: undefined,
+      },
+      ...plan.steps.slice(1),
+    ];
+    apiMocks.createPromptSession.mockResolvedValue(plannedSession);
+    apiMocks.fetchPromptSession.mockResolvedValue(plannedSession);
+
+    render(<PromptControlPanel />);
+
+    await screen.findByText("Prompt Capability Registry");
+    fireEvent.change(screen.getByLabelText("Prompt text"), {
+      target: { value: plannedSession.prompt_text },
+    });
+    fireEvent.change(screen.getByLabelText("Project root"), {
+      target: { value: plannedSession.project_root },
+    });
+    fireEvent.change(screen.getByLabelText("Engine root"), {
+      target: { value: plannedSession.engine_root },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Preview Prompt Plan" }));
+
+    await screen.findByText("Prompt Plan");
+    expect(
+      screen.getAllByText("not reported by current backend").length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByText(/prompt-plan detail for this step is incomplete/i),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a truthful manual target hint when live target detection is unavailable", async () => {
+    apiMocks.fetchO3deTarget.mockResolvedValue(null);
+
+    render(<PromptControlPanel />);
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(
+      screen.getByText(/Live target detection is not available yet/i),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Project root")).toHaveAttribute(
+      "placeholder",
+      "Saved default or detected local target project root",
+    );
+    expect(screen.getByLabelText("Engine root")).toHaveAttribute(
+      "placeholder",
+      "Saved default or detected local target engine root",
+    );
+  });
+
+  it("derives preferred domain guidance from the live capability registry", async () => {
+    apiMocks.fetchPromptCapabilities.mockResolvedValue([
+      makeCapability("editor.session.open"),
+      {
+        ...makeCapability("editor.level.open"),
+        agent_family: "project-build",
+      },
+      makeCapability("editor.entity.create"),
+    ]);
+
+    render(<PromptControlPanel />);
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(screen.getByLabelText("Preferred domains (comma-separated)")).toHaveAttribute(
+      "placeholder",
+      "editor-control, project-build",
+    );
+  });
+
+  it("prefills prompt roots and dry-run from the saved operator defaults profile", async () => {
+    window.localStorage.setItem(
+      SETTINGS_PROFILE_STORAGE_KEY,
+      JSON.stringify(createSettingsProfile({
+        appearance: {
+          themeMode: "system",
+          accentColor: DEFAULT_ACCENT_COLOR,
+          density: "comfortable",
+          contentMaxWidth: "wide",
+          cardRadius: "rounded",
+          reducedMotion: false,
+          fontScale: 1,
+        },
+        layout: {
+          preferredLandingSection: "prompt",
+          showDesktopTelemetry: true,
+          guidedMode: true,
+          guidedTourCompleted: true,
+        },
+        operatorDefaults: {
+          projectRoot: "C:/saved-project",
+          engineRoot: "C:/saved-engine",
+          dryRun: false,
+          timeoutSeconds: 30,
+          locks: ["project_config"],
+        },
+      })),
+    );
+
+    render(
+      <SettingsProvider>
+        <PromptControlPanel />
+      </SettingsProvider>,
+    );
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(screen.getByDisplayValue("C:/saved-project")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("C:/saved-engine")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox")).not.toBeChecked();
+  });
+
+  it("prefills prompt roots from the selected O3DE project profile when operator defaults are empty", async () => {
+    const profile = createO3DEProjectProfile({
+      id: "profile-training-project",
+      name: "Training Project",
+      projectRoot: "D:/O3DE/Projects/TrainingProject",
+      engineRoot: "D:/o3de",
+      editorRunner: "D:/O3DE/Projects/TrainingProject/build/windows/bin/profile/Editor.exe",
+    });
+    saveO3DEProjectProfilesStore(
+      selectO3DEProjectProfile(
+        upsertO3DEProjectProfile(createDefaultO3DEProjectProfilesStore(), profile),
+        profile.id,
+      ),
+      window.localStorage,
+    );
+
+    render(<PromptControlPanel />);
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(screen.getByText(/Selected project profile:/i)).toHaveTextContent("Training Project");
+    expect(screen.getByDisplayValue("D:/O3DE/Projects/TrainingProject")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("D:/o3de")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Use Open current editor session safely" }),
+    );
+
+    expect(screen.getByLabelText("Prompt text")).toHaveValue(
+      "Open an editor session for the selected TrainingProject project profile and report the real editor-session evidence. Do not open a level or mutate content in this prompt.",
+    );
+  });
+});

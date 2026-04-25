@@ -6,7 +6,11 @@
   "description": "Customizable operator GUI for the O3DE agent control app.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "lint": "eslint src",
+    "guide:sync": "node ../scripts/sync_operator_guide.mjs",
+    "guide:check": "node ../scripts/sync_operator_guide.mjs --check",
+    "build": "npm run guide:sync && tsc -b && vite build",
+    "test": "npm run guide:check && vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -14,10 +18,21 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/user-event": "^14.6.1",
+    "eslint": "^10.2.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.5.0",
+    "jsdom": "^25.0.1",
     "typescript": "^5.6.3",
-    "vite": "^5.4.10"
+    "typescript-eslint": "^8.58.2",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.9"
   }
 }

@@ -1,8 +1,59 @@
 from fastapi import APIRouter
 
+from app.models.api import HealthStatus, ReadinessStatus, VersionStatus
+from app.services.adapters import adapter_service
+from app.services.db import (
+    get_database_path,
+    get_database_runtime_status,
+    get_database_runtime_warning,
+    get_database_strategy_summary,
+    is_database_ready,
+)
+from app.services.schema_validation import schema_validation_service
+
 router = APIRouter(tags=["health"])
 
 
-@router.get("/health")
-def health() -> dict:
-    return {"ok": True, "service": "backend", "version": "0.1.0"}
+@router.get("/health", response_model=HealthStatus)
+def health() -> HealthStatus:
+    return HealthStatus(ok=True, service="backend", version="0.3.1")
+
+
+@router.get("/ready", response_model=ReadinessStatus)
+def ready() -> ReadinessStatus:
+    runtime_status = get_database_runtime_status()
+    persistence_ready = is_database_ready()
+    adapter_status = adapter_service.get_runtime_status()
+    return ReadinessStatus(
+        ok=persistence_ready and adapter_status.ready,
+        service="backend",
+        execution_mode=adapter_status.active_mode,
+        persistence_ready=persistence_ready,
+        requested_database_strategy=runtime_status.requested_strategy,
+        database_strategy=get_database_strategy_summary(),
+        database_path=str(get_database_path()),
+        persistence_warning=get_database_runtime_warning(),
+        attempted_database_paths=runtime_status.attempted_paths,
+        adapter_mode=adapter_status,
+        schema_validation=schema_validation_service.get_capability_status(),
+        dependencies=[
+            get_database_strategy_summary(),
+            f"adapter mode: {adapter_status.active_mode}",
+            "sqlite approvals store",
+            "sqlite locks store",
+            "sqlite events store",
+            "sqlite execution records store",
+            "sqlite artifact metadata store",
+        ],
+    )
+
+
+@router.get("/version", response_model=VersionStatus)
+def version() -> VersionStatus:
+    adapter_status = adapter_service.get_runtime_status()
+    return VersionStatus(
+        service="backend",
+        version="0.3.1",
+        api_version="v0.3.1",
+        adapter_contract_version=adapter_status.contract_version,
+    )

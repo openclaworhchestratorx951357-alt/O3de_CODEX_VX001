@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/build.compile.args.schema.json",
+  "title": "build.compile args",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["targets"],
+  "properties": {
+    "targets": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "config": { "type": "string", "minLength": 1 },
+    "parallel_jobs": { "type": "integer", "minimum": 1 }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/asset.processor.status.args.schema.json",
+  "title": "asset.processor.status args",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "include_jobs": { "type": "boolean" },
+    "include_platforms": { "type": "boolean" }
+  }
+}

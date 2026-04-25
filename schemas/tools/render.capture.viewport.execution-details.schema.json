@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/render.capture.viewport.execution-details.schema.json",
+  "title": "render.capture.viewport execution details",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "inspection_surface",
+    "execution_boundary",
+    "simulated"
+  ],
+  "properties": {
+    "inspection_surface": {
+      "type": "string",
+      "enum": ["simulated", "render_capture_runtime_probe"]
+    },
+    "execution_boundary": { "type": "string", "minLength": 1 },
+    "simulated": { "type": "boolean" },
+    "adapter_family": { "type": "string", "minLength": 1 },
+    "adapter_mode": { "type": "string", "minLength": 1 },
+    "adapter_contract_version": { "type": "string", "minLength": 1 },
+    "real_path_available": { "type": "boolean" },
+    "capture_request_explicit": { "type": "boolean" },
+    "comparison_read_mode": { "type": "string", "minLength": 1 },
+    "runtime_probe_attempted": { "type": "boolean" },
+    "runtime_probe_method": { "type": ["string", "null"], "minLength": 1 },
+    "runtime_available": { "type": "boolean" },
+    "capture_runtime_mode": { "type": ["string", "null"], "minLength": 1 },
+    "capture_operation_available": { "type": "boolean" },
+    "capture_attempted": { "type": "boolean" },
+    "capture_artifact_produced": { "type": "boolean" },
+    "capture_artifact_path": { "type": ["string", "null"], "minLength": 1 },
+    "capture_artifact_content_type": { "type": ["string", "null"], "minLength": 1 },
+    "capture_artifact_size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+    "capture_unavailable_reason": { "type": ["string", "null"], "minLength": 1 },
+    "output_label": { "type": ["string", "null"], "minLength": 1 },
+    "camera_entity_id": { "type": ["string", "null"], "minLength": 1 },
+    "requested_resolution": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "active_level_path": { "type": ["string", "null"], "minLength": 1 },
+    "inspection_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "unavailable_evidence": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "editor_transport": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_name": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_version": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_available": { "type": "boolean" },
+    "bridge_operation": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_contract_version": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_command_id": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_result_summary": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_error_code": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_heartbeat_seen_at": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_queue_mode": { "type": ["string", "null"], "minLength": 1 },
+    "bridge_selected_entity_count": { "type": ["integer", "null"], "minimum": 0 },
+    "bridge_prefab_context_notes": {
+      "type": ["array", "null"],
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "editor_log_path": { "type": ["string", "null"], "minLength": 1 }
+  }
+}

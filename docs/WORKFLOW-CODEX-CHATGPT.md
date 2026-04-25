@@ -11,6 +11,11 @@ The goals are to:
 - keep implementation aligned with the O3DE control-plane direction already documented in the research batches
 - make progress auditable, reviewable, and production-oriented
 
+Default execution charter:
+- unless the user explicitly chooses a different operating model, use
+  `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md` as the stable default reference
+  for capability maturity, next-packet selection, and truth hierarchy
+
 ---
 
 ## Repository of Record
@@ -137,8 +142,10 @@ At the beginning of every Codex work session:
 2. print current branch
 3. print `git status --short`
 4. fetch latest refs
-5. confirm the exact task being worked on
-6. only then begin edits
+5. re-read `AGENTS.md` and `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md` if the slice changes capability truth or execution priority
+6. reconcile the active branch with GitHub when it is safe to do so
+7. confirm the exact task being worked on
+8. only then begin edits
 
 Recommended session start commands:
 
@@ -147,11 +154,75 @@ git rev-parse --show-toplevel
 git remote get-url origin
 git branch --show-current
 git status --short
-git fetch --all --prune
+git fetch origin --prune
 ```
+
+## Parallel Thread Coordination
+
+When multiple Codex threads are active at the same time, do not place them on
+the same live-edit branch.
+
+Use this pattern instead:
+- stable launchpad branch:
+  `codex/control-plane/o3de-thread-launchpad-stable`
+- one worker branch/worktree per active thread
+- one shared mission-control board under the Git common directory
+
+Mission Control is the repo-owned coordination layer for:
+- worker registration
+- task claims
+- file-scope collision checks
+- exclusive runtime resource claims such as `resource/port-8000`,
+  `resource/o3de-editor`, and `resource/mcpsandbox-bridge`
+- wait queues and notifications when blocked work becomes safe again
+
+Preferred entry point:
+
+```powershell
+pwsh -File .\scripts\dev.ps1 mission-control board
+```
+
+See `docs/MISSION-CONTROL-RUNBOOK.md` for the operating flow.
+
+### Required slice-start sync rule
+
+Every new implementation slice must also apply this rule:
+
+- after `git fetch origin --prune`, if the worktree is clean, update the active branch from GitHub before editing:
+
+```powershell
+git pull --ff-only origin <current-branch>
+```
+
+- if the worktree is dirty, do not pull blindly over local changes
+- instead, report the current local state first and decide whether the slice should:
+  - sync/push the already-existing local work, or
+  - intentionally continue from accepted local changes already present in the worktree
+
+GitHub is the source of truth, so every slice must begin from:
+- a freshly fetched remote view, and
+- a fast-forwarded local branch whenever that can be done safely
+
+See `docs/SLICE-START-CHECKLIST.md` for the standing slice-start preflight.
 
 If working directly on `main`, Codex must say so explicitly.
 If working on a feature branch, Codex must print the branch name before editing.
+
+### Current local-run persistence baseline
+
+Until default non-elevated persistence is fixed for this environment, local backend runs must use an explicit operator-configured writable SQLite path.
+
+Preferred approach:
+- set `O3DE_CONTROL_PLANE_DB_PATH` to a known-good writable `.sqlite3` path
+- treat that explicit path as the current local-run baseline
+- do not claim default LOCALAPPDATA or repo-local persistence is healthy unless it was actually re-verified
+
+If using a directory-based operator fallback instead of an exact file path:
+- set `O3DE_CONTROL_PLANE_DB_FALLBACK_DIR` to a known-good writable directory
+- optionally set `O3DE_CONTROL_PLANE_DB_STRATEGY=operator`
+
+Readiness must report the requested strategy, active path, attempted paths, and actual persistence status truthfully.
+Readiness and operator docs should also report schema-validation capability truthfully, including that the current validator only supports the subset used by the published tool schemas and does not claim full JSON Schema support.
 
 ---
 
@@ -236,6 +307,7 @@ Codex must not:
 - claim tests passed if they were not run
 - claim production readiness without stating what was actually verified
 - overwrite existing local work without checking `git status`
+- skip the per-slice remote fetch/sync preflight
 - commit secrets, tokens, or private credentials
 
 If uncertain, stop and report the exact uncertainty.
@@ -296,6 +368,13 @@ Before making changes, verify that:
 - git remote get-url origin points to openclaworhchestratorx951357-alt/O3de_CODEX_VX001
 If verification fails, stop immediately and report the mismatch.
 
+Before each new slice:
+- print git branch --show-current
+- print git status --short
+- run git fetch origin --prune
+- if the worktree is clean, run git pull --ff-only origin <current-branch>
+- if the worktree is dirty, report that state before editing and do not pull blindly over local changes
+
 Only edit the verified worktree for this repository.
 Do not invent implementation status.
 Do not claim real O3DE integrations unless they are actually implemented and validated.
@@ -316,7 +395,7 @@ After finishing, report:
 
 ## README Pointer
 
-This workflow document should be linked from the root README and docs README so it is easy to find.
+This workflow document and `docs/SLICE-START-CHECKLIST.md` should be linked from the root README and docs README so they are easy to find.
 
 ---
 

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/build.compile.result.schema.json",
+  "title": "build.compile result",
+  "allOf": [
+    { "$ref": "../dispatch-result.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "build.compile" },
+        "approval_class": { "const": "build_execute" },
+        "execution_mode": { "enum": ["simulated", "real"] },
+        "simulated": { "type": "boolean" }
+      }
+    }
+  ]
+}

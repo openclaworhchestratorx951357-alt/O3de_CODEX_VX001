@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/asset.processor.status.result.schema.json",
+  "title": "asset.processor.status result",
+  "allOf": [
+    { "$ref": "../dispatch-result.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "asset.processor.status" },
+        "approval_class": { "const": "read_only" },
+        "execution_mode": {
+          "type": "string",
+          "enum": ["simulated", "real"]
+        },
+        "simulated": { "type": "boolean" }
+      }
+    }
+  ]
+}

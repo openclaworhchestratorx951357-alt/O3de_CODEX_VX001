@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/test.tiaf.sequence.args.schema.json",
+  "title": "test.tiaf.sequence args",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sequence_name"],
+  "properties": {
+    "sequence_name": { "type": "string", "minLength": 1 },
+    "platforms": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "shard_count": { "type": "integer", "minimum": 1 }
+  }
+}

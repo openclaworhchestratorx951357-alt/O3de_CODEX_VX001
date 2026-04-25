@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/render.material.patch.args.schema.json",
+  "title": "render.material.patch args",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["material_path", "property_overrides"],
+  "properties": {
+    "material_path": { "type": "string", "minLength": 1 },
+    "property_overrides": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": true
+    },
+    "create_backup": { "type": "boolean" },
+    "shader_targets_for_review": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

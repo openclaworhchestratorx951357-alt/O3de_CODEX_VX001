@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/bridge/bridge-command.schema.json",
+  "title": "ControlPlaneEditorBridge command envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol_version",
+    "bridge_command_id",
+    "request_id",
+    "tool",
+    "operation",
+    "project_root",
+    "engine_root",
+    "created_at",
+    "ttl_s",
+    "requires_loaded_level",
+    "args"
+  ],
+  "properties": {
+    "protocol_version": { "type": "string", "const": "v1" },
+    "bridge_command_id": { "type": "string", "minLength": 1 },
+    "request_id": { "type": "string", "minLength": 1 },
+    "session_id": { "type": "string", "minLength": 1 },
+    "prompt_id": { "type": "string", "minLength": 1 },
+    "step_id": { "type": "string", "minLength": 1 },
+    "tool": { "type": "string", "minLength": 1 },
+    "operation": { "type": "string", "minLength": 1 },
+    "project_root": { "type": "string", "minLength": 1 },
+    "engine_root": { "type": "string", "minLength": 1 },
+    "workspace_id": { "type": "string", "minLength": 1 },
+    "executor_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "minLength": 1 },
+    "ttl_s": { "type": "integer", "minimum": 1 },
+    "requires_loaded_level": { "type": "boolean" },
+    "args": { "type": "object" }
+  }
+}

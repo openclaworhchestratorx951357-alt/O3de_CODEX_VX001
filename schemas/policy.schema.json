@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/policy.schema.json",
+  "title": "Control Plane Tool Policy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "agent",
+    "tool",
+    "approval_class",
+    "adapter_family",
+    "args_schema",
+    "result_schema",
+    "required_locks",
+    "risk",
+    "requires_approval",
+    "supports_dry_run",
+    "execution_mode"
+  ],
+  "properties": {
+    "agent": { "type": "string", "minLength": 1 },
+    "tool": { "type": "string", "minLength": 1 },
+    "approval_class": {
+      "type": "string",
+      "enum": [
+        "read_only",
+        "project_write",
+        "content_write",
+        "destructive_content_write",
+        "config_write",
+        "build_execute",
+        "test_execute"
+      ]
+    },
+    "adapter_family": { "type": "string", "minLength": 1 },
+    "args_schema": { "type": "string", "minLength": 1 },
+    "result_schema": { "type": "string", "minLength": 1 },
+    "required_locks": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "risk": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "requires_approval": { "type": "boolean" },
+    "supports_dry_run": { "type": "boolean" },
+    "execution_mode": {
+      "type": "string",
+      "enum": ["simulated"]
+    }
+  }
+}

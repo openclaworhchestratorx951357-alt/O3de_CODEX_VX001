@@ -16,9 +16,23 @@
     "ok": {
       "type": "boolean"
     },
+    "operation_id": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "approval_id": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
     "result": {
-      "type": ["object", "null"],
-      "additionalProperties": true
+      "anyOf": [
+        {
+          "$ref": "dispatch-result.schema.json"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "warnings": {
       "type": "array",

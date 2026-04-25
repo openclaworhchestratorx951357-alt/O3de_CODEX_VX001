@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/render.material.inspect.args.schema.json",
+  "title": "render.material.inspect args",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["material_path"],
+  "properties": {
+    "material_path": { "type": "string", "minLength": 1 },
+    "include_shader_data": { "type": "boolean" },
+    "include_references": { "type": "boolean" }
+  }
+}

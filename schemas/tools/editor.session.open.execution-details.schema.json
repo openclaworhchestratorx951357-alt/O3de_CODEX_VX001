@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/editor.session.open.execution-details.schema.json",
+  "title": "editor.session.open execution details",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "inspection_surface",
+    "execution_boundary",
+    "simulated"
+  ],
+  "properties": {
+    "inspection_surface": {
+      "type": "string",
+      "enum": ["simulated", "editor_session_runtime"]
+    },
+    "execution_boundary": { "type": "string", "minLength": 1 },
+    "simulated": { "type": "boolean" },
+    "adapter_family": { "type": "string", "minLength": 1 },
+    "adapter_mode": { "type": "string", "minLength": 1 },
+    "adapter_contract_version": { "type": "string", "minLength": 1 },
+    "real_path_available": { "type": "boolean" },
+    "python_editor_bindings_enabled": { "type": "boolean" },
+    "editor_runtime_available": { "type": "boolean" },
+    "editor_transport": { "type": "string", "enum": ["bridge", "oneshot"] },
+    "runner_family": { "type": "string", "minLength": 1 },
+    "runtime_script": { "type": "string", "minLength": 1 },
+    "editor_session_id": { "type": "string", "minLength": 1 },
+    "loaded_level_path": { "type": "string", "minLength": 1 },
+    "bridge_name": { "type": "string", "minLength": 1 },
+    "bridge_version": { "type": "string", "minLength": 1 },
+    "bridge_available": { "type": "boolean" },
+    "bridge_operation": { "type": "string", "minLength": 1 },
+    "bridge_contract_version": { "type": "string", "minLength": 1 },
+    "bridge_command_id": { "type": "string", "minLength": 1 },
+    "bridge_result_summary": { "type": "string", "minLength": 1 },
+    "bridge_error_code": { "type": "string", "minLength": 1 },
+    "bridge_heartbeat_seen_at": { "type": "string", "minLength": 1 },
+    "bridge_queue_mode": { "type": "string", "enum": ["filesystem-inbox"] },
+    "bridge_selected_entity_count": { "type": "integer" },
+    "bridge_prefab_context_notes": { "type": "string", "minLength": 1 },
+    "editor_log_path": { "type": "string", "minLength": 1 },
+    "exact_editor_apis": { "type": "array" },
+    "refused_operations": { "type": "array" }
+  }
+}

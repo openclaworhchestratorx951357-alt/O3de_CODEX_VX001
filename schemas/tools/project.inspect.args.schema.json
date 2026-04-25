@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/project.inspect.args.schema.json",
+  "title": "project.inspect args",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "include_project_config": { "type": "boolean" },
+    "project_config_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "include_gems": { "type": "boolean" },
+    "requested_gem_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "include_settings": { "type": "boolean" },
+    "requested_settings_keys": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "include_build_state": { "type": "boolean" }
+  }
+}
