@@ -145,9 +145,9 @@
       ],
       "evidence": [
         "The command writes backend\\runtime\\live_editor_authoring_proof_<timestamp>.json.",
-        "summary.succeeded = true and summary.bridge_transport_confirmed = true.",
-        "summary.prompt.status = completed and summary.prompt.approval_count shows the auto-walked approvals.",
-        "summary.records.approval_ids, run_ids, execution_ids, and artifact_ids are populated for editor.session.open, editor.level.open, editor.entity.create, editor.component.add, and editor.component.property.get.",
+        "preflight.bridge.heartbeat_fresh = true and preflight.bridge.heartbeat.bridge_module_loaded = true.",
+        "summary.prompt_session.status = completed and summary.prompt_session.approval_count shows the auto-walked approvals.",
+        "summary.records.run_ids, execution_ids, and artifact_ids are populated for editor.session.open, editor.level.open, editor.entity.create, editor.component.add, and editor.component.property.get.",
         "summary.bridge_command_ids captures the persistent bridge command ids for all admitted real editor steps.",
         "summary.safe_level.selected_level_path names a sandbox/test level rather than relying on DefaultLevel.",
         "summary.entity_name, summary.entity_id, summary.component_id, summary.property_path, and summary.property_value capture the created entity, Mesh attachment, and Controller|Configuration|Model Asset readback.",

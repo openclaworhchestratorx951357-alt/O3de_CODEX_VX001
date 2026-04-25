@@ -26,17 +26,20 @@ As of the current accepted branch state:
 - `editor.session.open` is an admitted real editor-session path on
   `McpSandbox`
 - `editor.level.open` is an admitted real level-open path on `McpSandbox`
-- `editor.entity.create` is still runtime-reaching but not admitted real on
-  `McpSandbox` because a stable prefab-safe create contract has not yet been
-  proven on this build; the latest `CreateNewEntity(EntityId())` recovery pass
-  still failed on both `Levels/DefaultLevel` and a fresh diagnostic level, so
-  the exclusion is currently target/build-wide rather than a single-level issue
+- `editor.entity.create` is an admitted real root-level named entity-create path
+  on `McpSandbox`
+- `editor.component.add` is an admitted real allowlist-bound component attach
+  path on `McpSandbox`
+- `editor.component.property.get` is an admitted hybrid read-only explicit
+  component/property readback path on `McpSandbox`
 - `build.configure` is the current real plan-only hybrid preflight path when
   `dry_run=true` and manifest preconditions are satisfied
 - `settings.patch` now includes a narrow admitted manifest-backed hybrid
   preflight path plus a narrow admitted manifest-backed set-only mutation path
   when its admission criteria are satisfied
-- all remaining published tools still execute through explicitly simulated paths
+- remaining published tools are still limited to their documented read-only,
+  plan-only, execution-gated, mutation-gated, or admitted editor-runtime
+  corridors; none of these exceptions imply broad real O3DE adapter coverage
 
 That means a tool is only eligible for "real" status when the adapter behind it
 has been implemented and validated, not just because the control plane around
@@ -133,8 +136,12 @@ The current admitted exceptions remain narrow:
 - `project.inspect` real read-only manifest-backed inspection
 - `editor.session.open` admitted real editor-session runtime on `McpSandbox`
 - `editor.level.open` admitted real level-open runtime on `McpSandbox`
-- `editor.entity.create` excluded from the admitted real set on `McpSandbox`
-  after repeated live failures, including a fresh-level diagnostic rerun
+- `editor.entity.create` admitted real root-level named entity creation on
+  `McpSandbox`
+- `editor.component.add` admitted real allowlist-bound component attachment on
+  `McpSandbox`
+- `editor.component.property.get` admitted hybrid read-only component property
+  readback on `McpSandbox`
 - `build.configure` real plan-only manifest-backed preflight
 - `settings.patch` narrow manifest-backed preflight plus narrow admitted
   manifest-backed set-only mutation
