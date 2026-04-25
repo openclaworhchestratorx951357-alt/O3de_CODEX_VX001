@@ -1,6 +1,11 @@
 from fastapi import APIRouter, HTTPException, Query
 
-from app.models.api import RunListResponse, RunsResponse, RunsSummaryResponse
+from app.models.api import (
+    RunListResponse,
+    RunsResponse,
+    RunsSummaryResponse,
+    RunSubstrateSummaryResponse,
+)
 from app.models.control_plane import RunRecord
 from app.services.runs import runs_service
 
@@ -35,6 +40,11 @@ def list_run_cards(
         requested_fallback_category=fallback_category,
         requested_manifest_source_of_truth=manifest_source_of_truth,
     )
+
+
+@router.get("/runs/substrate-summary", response_model=RunSubstrateSummaryResponse)
+def list_run_substrate_summaries() -> RunSubstrateSummaryResponse:
+    return runs_service.list_run_substrate_summaries()
 
 
 @router.get("/runs/summary", response_model=RunsSummaryResponse)

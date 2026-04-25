@@ -7,12 +7,25 @@ from app.models.api import (
     RunListItem,
     RunListResponse,
     RunsSummaryResponse,
+    RunSubstrateSummaryItem,
+    RunSubstrateSummaryResponse,
     SettingsPatchAuditSummary,
 )
-from app.models.control_plane import ExecutionRecord, RunRecord, RunStatus
+from app.models.control_plane import (
+    ApprovalRecord,
+    ArtifactRecord,
+    ExecutionRecord,
+    RunRecord,
+    RunStatus,
+)
 from app.models.request_envelope import RequestEnvelope
 from app.repositories.control_plane import control_plane_repository
 from app.services.card_utils import read_string_value
+
+_RUN_SUBSTRATE_TRUTH_NOTE = (
+    "Run substrate summary is a read-only projection over persisted records; "
+    "it does not admit or prove any new real tool surface."
+)
 
 
 class RunsService:
@@ -174,6 +187,88 @@ class RunsService:
     def get_run(self, run_id: str) -> RunRecord | None:
         return control_plane_repository.get_run(run_id)
 
+    def list_run_substrate_summaries(self) -> RunSubstrateSummaryResponse:
+        preferred_executions_by_run_id = self._preferred_executions_by_run_id()
+        executors_by_id = {
+            executor.id: executor for executor in control_plane_repository.list_executors()
+        }
+        workspaces_by_id = {
+            workspace.id: workspace for workspace in control_plane_repository.list_workspaces()
+        }
+        approvals_by_id = {
+            approval.id: approval for approval in control_plane_repository.list_approvals()
+        }
+        active_locks_by_run_id: dict[str, set[str]] = {}
+        for lock in control_plane_repository.list_locks():
+            active_locks_by_run_id.setdefault(lock.owner_run_id, set()).add(lock.name)
+        artifacts_by_execution_id: dict[str, list[ArtifactRecord]] = {}
+        for artifact in control_plane_repository.list_artifacts():
+            artifacts_by_execution_id.setdefault(artifact.execution_id, []).append(artifact)
+
+        summaries: list[RunSubstrateSummaryItem] = []
+        for run in self.list_runs():
+            execution = preferred_executions_by_run_id.get(run.id)
+            executor = (
+                executors_by_id.get(execution.executor_id)
+                if execution and execution.executor_id
+                else None
+            )
+            workspace = (
+                workspaces_by_id.get(execution.workspace_id)
+                if execution and execution.workspace_id
+                else None
+            )
+            artifacts = (
+                artifacts_by_execution_id.get(execution.id, []) if execution else []
+            )
+            summaries.append(
+                RunSubstrateSummaryItem(
+                    run_id=run.id,
+                    tool_name=run.tool,
+                    execution_id=execution.id if execution else None,
+                    run_status=run.status.value,
+                    execution_mode_class=self._execution_mode_class(
+                        run=run,
+                        execution=execution,
+                        executor_mode_class=executor.execution_mode_class
+                        if executor
+                        else None,
+                    ),
+                    runner_family=self._runner_family(
+                        execution=execution,
+                        workspace_runner_family=workspace.runner_family
+                        if workspace
+                        else None,
+                    ),
+                    executor_id=execution.executor_id if execution else None,
+                    executor_label=executor.executor_label if executor else None,
+                    workspace_id=execution.workspace_id if execution else None,
+                    workspace_state=workspace.workspace_state if workspace else None,
+                    execution_attempt_state=execution.execution_attempt_state
+                    if execution
+                    else None,
+                    approval_state_label=self._approval_state_label(
+                        run=run,
+                        approvals_by_id=approvals_by_id,
+                    ),
+                    lock_state_label=self._lock_state_label(
+                        run=run,
+                        active_lock_names=active_locks_by_run_id.get(run.id, set()),
+                    ),
+                    backup_state_label=self._backup_state_label(execution),
+                    rollback_state_label=self._rollback_state_label(execution),
+                    verification_state_label=self._verification_state_label(execution),
+                    primary_log_artifact_id=self._primary_log_artifact_id(artifacts),
+                    summary_artifact_id=self._summary_artifact_id(artifacts),
+                    final_status_reason=self._final_status_reason(
+                        run=run,
+                        execution=execution,
+                    ),
+                    truth_note=_RUN_SUBSTRATE_TRUTH_NOTE,
+                )
+            )
+        return RunSubstrateSummaryResponse(runs=summaries)
+
     def get_runs_summary(
         self,
         *,
@@ -228,6 +323,142 @@ class RunsService:
             run.result_summary = result_summary
         run.updated_at = datetime.now(timezone.utc)
         return control_plane_repository.update_run(run)
+
+    def _execution_mode_class(
+        self,
+        *,
+        run: RunRecord,
+        execution: ExecutionRecord | None,
+        executor_mode_class: str | None,
+    ) -> str:
+        if executor_mode_class:
+            return executor_mode_class
+        if execution:
+            return execution.execution_mode
+        return run.execution_mode
+
+    def _runner_family(
+        self,
+        *,
+        execution: ExecutionRecord | None,
+        workspace_runner_family: str | None,
+    ) -> str | None:
+        if execution and execution.runner_family:
+            return execution.runner_family
+        return workspace_runner_family
+
+    def _approval_state_label(
+        self,
+        *,
+        run: RunRecord,
+        approvals_by_id: dict[str, ApprovalRecord],
+    ) -> str:
+        if not run.approval_id:
+            return "not-attached"
+        approval = approvals_by_id.get(run.approval_id)
+        if approval is None:
+            return "approval-record-missing"
+        return approval.status.value
+
+    def _lock_state_label(
+        self,
+        *,
+        run: RunRecord,
+        active_lock_names: set[str],
+    ) -> str:
+        requested = set(run.requested_locks)
+        if not requested:
+            return "not-requested"
+        granted = set(run.granted_locks) | active_lock_names
+        if requested.issubset(granted):
+            return "granted"
+        if granted:
+            return "partial"
+        return "pending"
+
+    def _backup_state_label(self, execution: ExecutionRecord | None) -> str:
+        if execution is None:
+            return "not-recorded"
+        backup_created = self._read_bool_value(execution.details, "backup_created")
+        if backup_created is True:
+            return "backup-created"
+        if backup_created is False:
+            return "backup-not-created"
+        if execution.backup_class:
+            return "backup-class-recorded"
+        return "not-recorded"
+
+    def _rollback_state_label(self, execution: ExecutionRecord | None) -> str:
+        if execution is None:
+            return "not-recorded"
+        if self._read_bool_value(execution.details, "rollback_applied") is True:
+            return "rollback-completed"
+        if self._read_bool_value(execution.details, "rollback_ready") is True:
+            return "rollback-ready"
+        if execution.rollback_class:
+            return "rollback-class-recorded"
+        return "not-recorded"
+
+    def _verification_state_label(self, execution: ExecutionRecord | None) -> str:
+        if execution is None:
+            return "not-recorded"
+        verification_state = read_string_value(execution.details, "verification_state")
+        if verification_state:
+            return verification_state
+        if self._read_bool_value(execution.details, "post_write_verification_succeeded"):
+            return "verified"
+        if self._read_bool_value(execution.details, "post_write_verification_attempted"):
+            return "verification-failed"
+        return "not-recorded"
+
+    def _primary_log_artifact_id(self, artifacts: list[ArtifactRecord]) -> str | None:
+        for artifact in artifacts:
+            if self._artifact_matches_any(artifact, ("log",)):
+                return artifact.id
+        return None
+
+    def _summary_artifact_id(self, artifacts: list[ArtifactRecord]) -> str | None:
+        for artifact in artifacts:
+            if artifact.artifact_role == "summary" or artifact.kind == "summary":
+                return artifact.id
+        return artifacts[0].id if artifacts else None
+
+    def _artifact_matches_any(
+        self,
+        artifact: ArtifactRecord,
+        needles: tuple[str, ...],
+    ) -> bool:
+        haystack = " ".join(
+            value.lower()
+            for value in (
+                artifact.artifact_role,
+                artifact.kind,
+                artifact.label,
+                artifact.content_type,
+            )
+            if value
+        )
+        return any(needle in haystack for needle in needles)
+
+    def _final_status_reason(
+        self,
+        *,
+        run: RunRecord,
+        execution: ExecutionRecord | None,
+    ) -> str | None:
+        if execution and execution.result_summary:
+            return execution.result_summary
+        if run.result_summary:
+            return run.result_summary
+        if execution and execution.failure_category:
+            return f"Failure category: {execution.failure_category}"
+        return run.status.value
+
+    def _read_bool_value(self, details: dict[str, Any] | None, key: str) -> bool | None:
+        if not isinstance(details, dict):
+            return None
+        value = details.get(key)
+        return value if isinstance(value, bool) else None
 
     def _mutation_audit_from_execution(
         self,

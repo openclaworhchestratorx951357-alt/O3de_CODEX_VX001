@@ -717,6 +717,33 @@ class RunListResponse(BaseModel):
     runs: list[RunListItem] = Field(default_factory=list)
 
 
+class RunSubstrateSummaryItem(BaseModel):
+    run_id: str = Field(..., min_length=1)
+    tool_name: str = Field(..., min_length=1)
+    execution_id: str | None = None
+    run_status: str = Field(..., min_length=1)
+    execution_mode_class: str = Field(..., min_length=1)
+    runner_family: str | None = None
+    executor_id: str | None = None
+    executor_label: str | None = None
+    workspace_id: str | None = None
+    workspace_state: str | None = None
+    execution_attempt_state: str | None = None
+    approval_state_label: str = Field(..., min_length=1)
+    lock_state_label: str = Field(..., min_length=1)
+    backup_state_label: str = Field(..., min_length=1)
+    rollback_state_label: str = Field(..., min_length=1)
+    verification_state_label: str = Field(..., min_length=1)
+    primary_log_artifact_id: str | None = None
+    summary_artifact_id: str | None = None
+    final_status_reason: str | None = None
+    truth_note: str = Field(..., min_length=1)
+
+
+class RunSubstrateSummaryResponse(BaseModel):
+    runs: list[RunSubstrateSummaryItem] = Field(default_factory=list)
+
+
 class SettingsPatchAuditSummary(BaseModel):
     total_runs: int = 0
     preflight: int = 0

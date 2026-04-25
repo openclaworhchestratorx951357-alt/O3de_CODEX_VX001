@@ -61,6 +61,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert "/summary" in payload["routes"]
         assert "/runs" in payload["routes"]
         assert "/runs/cards" in payload["routes"]
+        assert "/runs/substrate-summary" in payload["routes"]
         assert "/runs/summary" in payload["routes"]
         assert "/approvals/cards" in payload["routes"]
         assert "/locks/cards" in payload["routes"]

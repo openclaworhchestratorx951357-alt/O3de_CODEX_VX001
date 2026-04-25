@@ -109,6 +109,7 @@ def root() -> RootStatus:
         "/tools/dispatch",
         "/runs",
         "/runs/cards",
+        "/runs/substrate-summary",
         "/runs/summary",
         "/approvals",
         "/approvals/cards",

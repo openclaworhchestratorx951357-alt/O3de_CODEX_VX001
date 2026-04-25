@@ -35,13 +35,15 @@ contract-only API and event streams.
 The first read-only projection slice now exists:
 - `GET /executors/status` exposes executor status projections.
 - `GET /workspaces/status` exposes workspace status projections.
+- `GET /runs/substrate-summary` exposes run-to-executor/workspace summary
+  projections.
 
 These endpoints are projections over persisted control-plane records. They do
 not provision executors, run tools, mutate workspaces, prove runtime execution,
 or admit any additional real tool surface.
 
-Run-to-executor/workspace summary projections and lifecycle event payload
-streams remain contract-only until implemented in a later slice.
+Lifecycle event payload streams remain contract-only until implemented in a
+later slice.
 
 ## Goals
 
@@ -296,9 +298,10 @@ to distinguish:
 
 ## Suggested Endpoint / Projection Shapes
 
-The current implementation exposes the first two projection families as:
+The current implementation exposes the first three projection families as:
 - `GET /executors/status`
 - `GET /workspaces/status`
+- `GET /runs/substrate-summary`
 
 Future slices should still support projections equivalent to:
 
@@ -307,7 +310,7 @@ Future slices should still support projections equivalent to:
 - run execution substrate summary
 - lifecycle event feed
 
-Remaining projection families may eventually appear as:
+Remaining lifecycle event projections may eventually appear as:
 - dedicated endpoints
 - embedded fields on run/execution detail responses
 - operator summary panels
