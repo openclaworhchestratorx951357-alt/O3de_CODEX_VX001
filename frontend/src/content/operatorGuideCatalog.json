@@ -28,11 +28,12 @@
     "truthNotes": [
       "Simulated versus real wording must remain explicit in both prompts and operator evidence.",
       "The control-plane repo remains the single orchestration and governance substrate.",
-      "Current admitted-real editor proof remains anchored to the canonical local backend on 127.0.0.1:8000 and the repo-owned backend/runtime/prove_live_editor_authoring.cmd command.",
+      "Current admitted-real editor proof remains anchored to the canonical local backend on 127.0.0.1:8000 and the repo-owned scripts/dev.ps1 live-proof lifecycle command.",
       "Current admitted editor-control scope includes real-authoring editor.component.add on its allowlisted surface and hybrid read-only editor.component.property.get on its explicit readback surface.",
       "The admitted prompt-controlled editor chain may now compose editor.session.open, editor.level.open, editor.entity.create, editor.component.add, and mapped editor.component.property.get readback with automatic result binding and structured post-action review.",
       "Restore-boundary evidence is operator-visible in run, execution, and artifact detail only as file-backed loaded-level restore evidence; it does not prove live Editor undo, viewport reload, or entity absence.",
-      "Live bridge success currently depends on the project-local ControlPlaneEditorBridge handler path on the active McpSandbox target."
+      "The repo-owned live-proof lifecycle can start the canonical McpSandbox Editor bridge when no canonical Editor is already running, but this still does not prove live Editor undo, viewport reload, or entity absence.",
+      "Live bridge success still depends on the project-local ControlPlaneEditorBridge handler path on the active McpSandbox target."
     ],
     "maintenance": [
       "Edit this catalog when desktop labels, workflows, or supported surfaces change.",
@@ -141,9 +142,10 @@
         "GET /artifacts"
       ],
       "commands": [
-        ".\\backend\\runtime\\prove_live_editor_authoring.cmd"
+        ".\\scripts\\dev.ps1 live-proof"
       ],
       "evidence": [
+        "The lifecycle command restarts or reuses the canonical backend and can launch the canonical McpSandbox Editor bridge when no canonical Editor is already running.",
         "The command writes backend\\runtime\\live_editor_authoring_proof_<timestamp>.json.",
         "preflight.bridge.heartbeat_fresh = true and preflight.bridge.heartbeat.bridge_module_loaded = true.",
         "summary.prompt_session.status = completed and summary.prompt_session.approval_count shows the auto-walked approvals.",

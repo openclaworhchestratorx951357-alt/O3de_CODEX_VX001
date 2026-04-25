@@ -82,9 +82,12 @@ Operational intent:
   runs.
 - `live-restart` gives operators one clean relaunch path when port collisions or
   stale backend state are suspected.
-- `live-proof` currently restarts the backend and then runs the repo-owned live
-  proof helper. That proof still requires a fresh bridge heartbeat and will
-  fail fast if the editor-side bridge is not already live.
+- `live-proof` restarts the backend, launches the canonical McpSandbox Editor
+  bridge when no canonical `Editor.exe` is already running, waits for a fresh
+  bridge heartbeat, and then runs the repo-owned live proof helper. If an
+  existing canonical Editor is present but its heartbeat stays stale, the proof
+  fails instead of launching a duplicate Editor. Unless `-KeepEditorOpen` is
+  used, the wrapper stops only the Editor process it launched.
 
 When multiple worktrees or Codex threads are active, claim these
 mission-control scopes before running the canonical live backend or proof flow:

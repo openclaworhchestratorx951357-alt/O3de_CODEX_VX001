@@ -41,6 +41,8 @@ $ErrLogPath = Join-Path $RuntimeDir "live-verify-uvicorn.err.log"
 $CanonicalProjectRoot = "C:\Users\topgu\O3DE\Projects\McpSandbox"
 $CanonicalEngineRoot = "C:\src\o3de"
 $CanonicalEditorRunner = "C:\Users\topgu\O3DE\Projects\McpSandbox\build\windows\bin\profile\Editor.exe"
+$CanonicalBridgeBootstrap = Join-Path $CanonicalProjectRoot "Gems\ControlPlaneEditorBridge\Editor\Scripts\control_plane_bridge_bootstrap.py"
+$CanonicalBridgeBootstrapRequest = Join-Path $CanonicalProjectRoot "user\ControlPlaneBridge\bootstrap_request.json"
 
 function Get-BackendPython {
     if (Test-Path $PreferredBackendPython) {
@@ -443,6 +445,70 @@ function Wait-ForCanonicalBackendReady {
     )
 }
 
+function Test-CanonicalBridgeReady {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Status
+    )
+
+    if ($null -eq $Status.backend_listener) {
+        return $false
+    }
+
+    $bridgeProbe = $Status.endpoint_results.bridge
+    if ($bridgeProbe.ok -ne $true) {
+        return $false
+    }
+
+    if ($bridgeProbe.configured -ne $true -or $bridgeProbe.heartbeat_fresh -ne $true) {
+        return $false
+    }
+
+    if ($bridgeProbe.bridge_module_loaded -ne $true) {
+        return $false
+    }
+
+    if ($bridgeProbe.heartbeat_project_root -ne $CanonicalProjectRoot) {
+        return $false
+    }
+
+    if ($bridgeProbe.heartbeat_engine_root -ne $CanonicalEngineRoot) {
+        return $false
+    }
+
+    return $true
+}
+
+function Wait-ForCanonicalBridgeReady {
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$TimeoutSeconds
+    )
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $lastStatus = $null
+
+    while ((Get-Date) -lt $deadline) {
+        $lastStatus = Get-LifecycleStatus
+        if (Test-CanonicalBridgeReady -Status $lastStatus) {
+            return $lastStatus
+        }
+
+        Start-Sleep -Seconds 1
+    }
+
+    $bridgeSummary = if ($null -ne $lastStatus) {
+        ($lastStatus.endpoint_results.bridge | ConvertTo-Json -Depth 8)
+    } else {
+        ""
+    }
+
+    throw (
+        "Timed out waiting for a fresh canonical ControlPlaneEditorBridge heartbeat. bridge_summary={0}" -f
+        $bridgeSummary
+    )
+}
+
 function Stop-ProcessIds {
     param(
         [int[]]$ProcessIds = @()
@@ -472,6 +538,78 @@ function Stop-ProcessIds {
     }
 
     return @($stopped)
+}
+
+function Invoke-StartCanonicalEditorBridge {
+    $preStatus = Get-LifecycleStatus
+    if (Test-CanonicalBridgeReady -Status $preStatus) {
+        return [ordered]@{
+            action = "start-editor-bridge"
+            reused_existing_editor = $true
+            launched_editor_pid = $null
+            status = $preStatus
+        }
+    }
+
+    $existingEditorProcesses = @(Get-CanonicalEditorProcesses)
+    if ($existingEditorProcesses.Count -gt 0) {
+        $status = Wait-ForCanonicalBridgeReady -TimeoutSeconds $StartupTimeoutSeconds
+        return [ordered]@{
+            action = "start-editor-bridge"
+            reused_existing_editor = $true
+            existing_editor_processes = @($existingEditorProcesses)
+            launched_editor_pid = $null
+            status = $status
+        }
+    }
+
+    if (-not (Test-Path $CanonicalEditorRunner -PathType Leaf)) {
+        throw "Canonical Editor runner does not exist at $CanonicalEditorRunner"
+    }
+
+    if (-not (Test-Path $CanonicalBridgeBootstrap -PathType Leaf)) {
+        throw "Canonical bridge bootstrap script does not exist at $CanonicalBridgeBootstrap"
+    }
+
+    if (-not (Test-Path $CanonicalBridgeBootstrapRequest -PathType Leaf)) {
+        throw "Canonical bridge bootstrap request does not exist at $CanonicalBridgeBootstrapRequest"
+    }
+
+    $argumentList = @(
+        "--project-path=$CanonicalProjectRoot",
+        "--engine-path=$CanonicalEngineRoot",
+        "--skipWelcomeScreenDialog",
+        "--runpython",
+        $CanonicalBridgeBootstrap,
+        "--runpythonargs",
+        $CanonicalBridgeBootstrapRequest
+    )
+
+    $launchedProcess = $null
+    try {
+        $launchedProcess = Start-Process `
+            -FilePath $CanonicalEditorRunner `
+            -ArgumentList $argumentList `
+            -WorkingDirectory $CanonicalProjectRoot `
+            -WindowStyle Hidden `
+            -PassThru
+
+        $status = Wait-ForCanonicalBridgeReady -TimeoutSeconds $StartupTimeoutSeconds
+        return [ordered]@{
+            action = "start-editor-bridge"
+            reused_existing_editor = $false
+            launched_editor_pid = $launchedProcess.Id
+            command = @($CanonicalEditorRunner) + $argumentList
+            status = $status
+        }
+    }
+    catch {
+        if ($null -ne $launchedProcess) {
+            Stop-ProcessIds -ProcessIds @([int]$launchedProcess.Id) | Out-Null
+        }
+
+        throw
+    }
 }
 
 function Invoke-StartCanonicalBackend {
@@ -553,6 +691,7 @@ function Invoke-ProofRun {
 
     $existingEditorIds = @((Get-CanonicalEditorProcesses) | ForEach-Object { [int]$_.id })
     $startResult = $null
+    $editorStartResult = $null
 
     if (-not $SkipRestartBeforeProof.IsPresent) {
         Invoke-StopCanonicalBackend | Out-Null
@@ -560,6 +699,8 @@ function Invoke-ProofRun {
     } else {
         $startResult = Invoke-StartCanonicalBackend
     }
+
+    $editorStartResult = Invoke-StartCanonicalEditorBridge
 
     $proofOutput = & $backendPython $ProofHelper 2>&1
     $proofExitCode = $LASTEXITCODE
@@ -588,6 +729,7 @@ function Invoke-ProofRun {
     return [ordered]@{
         action = "proof"
         start_result = $startResult
+        editor_start_result = $editorStartResult
         proof_exit_code = $proofExitCode
         proof_output = $proofText
         proof_output_path = $proofOutputPath

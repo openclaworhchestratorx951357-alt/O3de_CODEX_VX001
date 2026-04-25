@@ -164,7 +164,7 @@ Current truth:
   `editor.session.open` -> `editor.level.open` -> `editor.entity.create` ->
   `editor.component.add` -> `editor.component.property.get`
 - live proof bundle:
-  `backend/runtime/live_editor_authoring_proof_20260425-074627.json`
+  `backend/runtime/live_editor_authoring_proof_20260425-080441.json`
 - the proof verified entity creation, Mesh attachment, and
   `Controller|Configuration|Model Asset` readback through the prompt
   orchestrated path
@@ -172,11 +172,11 @@ Current truth:
   boundary and hash-verified the selected level prefab against the captured
   backup after proof execution
 - latest proof entity/component evidence:
-  `CodexProofEntity_20260425_074627`, entity id `[364952092046]`, Mesh
+  `CodexProofEntity_20260425_080441`, entity id `[362085715539]`, Mesh
   component id
-  `EntityComponentIdPair(EntityId(13417156680699191582), 8017053399990923351)`
+  `EntityComponentIdPair(EntityId(5957391582996336467), 16444678243022057229)`
 - latest proof cleanup boundary:
-  `7f8de8f7da044f5a9b105a11ef53f4ad`,
+  `2ba80761a0e741da9fd728da67c60712`,
   `restore_result = restored_and_verified`
 - no live Editor undo, viewport reload, entity-absence readback, broader
   property write, delete, parenting, prefab, material, asset, render, build, or

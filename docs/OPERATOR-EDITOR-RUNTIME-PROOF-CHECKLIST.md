@@ -61,7 +61,10 @@ Canonical local backend proof path:
 
 ## Preconditions
 
-Before running the proof command, confirm all of the following:
+Before treating the proof as evidence, confirm all of the following. The
+repo-owned lifecycle wrapper can start the canonical backend and can launch the
+canonical McpSandbox Editor bridge when no canonical `Editor.exe` is already
+running, but these are still required proof truths:
 - the repo-owned backend is the process bound to `127.0.0.1:8000`
 - the backend is running in `O3DE_ADAPTER_MODE=hybrid`
 - the backend target wiring resolves to the verified `McpSandbox` paths
@@ -129,6 +132,11 @@ The repo-owned command proves this exact composed chain against
 5. `editor.component.property.get`
 
 The proof command:
+- restarts or reuses the canonical backend
+- launches the canonical McpSandbox Editor bridge when no canonical Editor is
+  already running
+- fails instead of launching a duplicate Editor when an existing canonical
+  Editor is present but its bridge heartbeat remains stale
 - checks `/ready`
 - checks `/o3de/target`
 - checks `/o3de/bridge`
@@ -145,7 +153,7 @@ The output file pattern is:
 ## Latest Verified Repo-Owned Proof
 
 Latest successful proof bundle:
-- `backend/runtime/live_editor_authoring_proof_20260425-074627.json`
+- `backend/runtime/live_editor_authoring_proof_20260425-080441.json`
 
 Latest successful proof summary:
 - `summary.succeeded = true`
@@ -154,43 +162,43 @@ Latest successful proof summary:
 - `summary.prompt_session.execute_attempt_count = 5`
 - `summary.prompt_session.approval_count = 4`
 - `summary.selected_level_path = Levels/TestLoevel01`
-- `summary.entity_name = CodexProofEntity_20260425_074627`
-- `summary.entity_id = [364952092046]`
+- `summary.entity_name = CodexProofEntity_20260425_080441`
+- `summary.entity_id = [362085715539]`
 - `summary.component_name = Mesh`
-- `summary.component_id = EntityComponentIdPair(EntityId(13417156680699191582), 8017053399990923351)`
+- `summary.component_id = EntityComponentIdPair(EntityId(5957391582996336467), 16444678243022057229)`
 - `summary.property_path = Controller|Configuration|Model Asset`
 - `summary.cleanup_restore.restore_result = restored_and_verified`
 
 Latest successful proof run ids:
-- `editor.session.open run_id = run-d56c4b98823a`
-- `editor.level.open run_id = run-21a8428e3c4b`
-- `editor.entity.create run_id = run-4394fcc2a9fb`
-- `editor.component.add run_id = run-49ae7a00a0ec`
-- `editor.component.property.get run_id = run-b02a14b41348`
+- `editor.session.open run_id = run-347b6f0b0916`
+- `editor.level.open run_id = run-ac7cf33b76a1`
+- `editor.entity.create run_id = run-c0ca1421721a`
+- `editor.component.add run_id = run-f5ffdc247902`
+- `editor.component.property.get run_id = run-eaa66db57ae6`
 
 Latest successful proof execution ids:
-- `editor.session.open execution_id = exe-cdbecb259f29`
-- `editor.level.open execution_id = exe-cf92e2d06823`
-- `editor.entity.create execution_id = exe-37581e2ff511`
-- `editor.component.add execution_id = exe-712e4538e666`
-- `editor.component.property.get execution_id = exe-f2e831b83b20`
+- `editor.session.open execution_id = exe-a48cc45d4617`
+- `editor.level.open execution_id = exe-41696ac7c943`
+- `editor.entity.create execution_id = exe-4d48b88ee508`
+- `editor.component.add execution_id = exe-820a04e5310b`
+- `editor.component.property.get execution_id = exe-79ad74504250`
 
 Latest successful proof artifact ids:
-- `editor.session.open artifact_id = art-bb33e9d05863`
-- `editor.level.open artifact_id = art-de66117563cc`
-- `editor.entity.create artifact_id = art-5cb612f1fc23`
-- `editor.component.add artifact_id = art-3eaef0df826d`
-- `editor.component.property.get artifact_id = art-ceb8326970ed`
+- `editor.session.open artifact_id = art-7fce3e7ec783`
+- `editor.level.open artifact_id = art-0eb8cf22c0cf`
+- `editor.entity.create artifact_id = art-b02dd12523b4`
+- `editor.component.add artifact_id = art-6259a814a976`
+- `editor.component.property.get artifact_id = art-db062532ceb9`
 
 Latest successful proof bridge command ids:
-- `editor.session.open bridge_command_id = ba6c0f0cfa8c4af990f93f38c651adf3`
-- `editor.level.open bridge_command_id = 2bf57b2b8c5c42b99109e6a1e44db774`
-- `editor.entity.create bridge_command_id = 16cc6111712e441ab40dd496b563b7a9`
-- `editor.component.add bridge_command_id = 736039137bdf408099de9d4cecb140c1`
-- `editor.component.property.get bridge_command_id = 6fe876a79977479ea1617c978eb2821d`
+- `editor.session.open bridge_command_id = e5c3b024002447eca23155ca548e9f91`
+- `editor.level.open bridge_command_id = 98ea6701e3764df2808547ec323cecad`
+- `editor.entity.create bridge_command_id = 729d56f8de5c448dabcd3b9050a54a77`
+- `editor.component.add bridge_command_id = fb93b401a800433aa519080ea49e0b92`
+- `editor.component.property.get bridge_command_id = c2b4f82bbc884b149a44b3e336620c56`
 
 Latest successful cleanup restore:
-- `restore_boundary_id = 7f8de8f7da044f5a9b105a11ef53f4ad`
+- `restore_boundary_id = 2ba80761a0e741da9fd728da67c60712`
 - `restore_boundary_scope = loaded-level-file`
 - `restore_strategy = restore-loaded-level-file-from-pre-mutation-backup`
 - `restore_trigger = live-proof-success-cleanup`

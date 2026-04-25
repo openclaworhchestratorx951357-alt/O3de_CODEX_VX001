@@ -319,7 +319,7 @@ Current truth on this branch:
   `editor.session.open` -> `editor.level.open` -> `editor.entity.create` ->
   `editor.component.add` -> `editor.component.property.get`
 - the cleanup-enhanced proof bundle
-  `backend/runtime/live_editor_authoring_proof_20260425-074627.json` also
+  `backend/runtime/live_editor_authoring_proof_20260425-080441.json` also
   invoked the pre-entity-create `loaded-level-file` restore boundary and
   hash-verified the selected level prefab against the captured backup
 - the proof does not claim live Editor undo, viewport reload,
