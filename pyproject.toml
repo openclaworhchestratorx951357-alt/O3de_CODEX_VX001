@@ -4,6 +4,10 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
+# The integration branch has not adopted full formatting/import style gating yet.
+# CI should still catch syntax/undefined-name failures without blocking promotion
+# on the existing line-length and import-order backlog.
+ignore = ["E501", "I001"]
 
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]

@@ -27,7 +27,6 @@ import {
   type TaskTimelineActiveState,
   type TaskTimelineEventTypeFilter,
   type TaskTimelineRecoveryAction,
-  type TaskTimelineSaveFeedback,
   type TaskTimelineSavedView,
   type TaskTimelineVerificationFilter,
   useEventTimelineViews,
@@ -238,14 +237,14 @@ export default function TaskTimeline({
       label: `Try ${action.label}`,
       title: action.title,
       provenanceLabel: "preset path",
-      provenanceDetail: `Recovered from the canned preset action \"${action.label}\".`,
+      provenanceDetail: `Recovered from the canned preset action "${action.label}".`,
       onSelect: action.onSelect,
     })),
     ...suggestedSavedViews.map((savedView) => ({
       label: `Open ${savedView.label}`,
       title: `Reopen saved view ${savedView.label}.`,
       provenanceLabel: "saved view",
-      provenanceDetail: `Recovered from the saved browser-session view \"${savedView.label}\".`,
+      provenanceDetail: `Recovered from the saved browser-session view "${savedView.label}".`,
       onSelect: () => applySavedView(savedView),
     })),
   ];
@@ -897,20 +896,6 @@ function formatVerificationOptionLabel(
   }
 }
 
-function buildSavedViewLabel(
-  eventTypeFilter: TaskTimelineEventTypeFilter,
-  verificationFilter: TaskTimelineVerificationFilter,
-  searchValue: string,
-): string {
-  const parts = [
-    eventTypeFilter !== "all" ? formatEventTypeLabel(eventTypeFilter) : null,
-    verificationFilter !== "all" ? formatVerificationOptionLabel(verificationFilter) : null,
-    searchValue.trim() ? `Search ${searchValue.trim()}` : null,
-  ].filter((value): value is string => Boolean(value));
-
-  return parts.length > 0 ? parts.join(" · ") : "Saved event view";
-}
-
 function rankPresetActionsForEmptyState(
   presetActions: TaskTimelineProps["presetActions"] = [],
   eventTypeFilter: TaskTimelineEventTypeFilter,
@@ -1015,22 +1000,6 @@ function getSavedViewRecency(savedView: TaskTimelineSavedView): number {
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
-function createSavedView(
-  eventTypeFilter: TaskTimelineEventTypeFilter,
-  verificationFilter: TaskTimelineVerificationFilter,
-  searchValue: string,
-): TaskTimelineSavedView {
-  return {
-    id: `saved-view-${Date.now()}`,
-    label: buildSavedViewLabel(eventTypeFilter, verificationFilter, searchValue),
-    eventTypeFilter,
-    verificationFilter,
-    searchValue,
-    createdAt: new Date().toISOString(),
-    lastUsedAt: null,
-  };
-}
-
 function getTimelineFilterPressure(filteredCount: number, totalCount: number): "stable" | "light" | "moderate" | "high" {
   if (totalCount <= 0) {
     return "stable";
@@ -1046,116 +1015,6 @@ function getTimelineFilterPressure(filteredCount: number, totalCount: number): "
   return "light";
 }
 
-function upsertSavedView(
-  current: TaskTimelineSavedView[],
-  eventTypeFilter: TaskTimelineEventTypeFilter,
-  verificationFilter: TaskTimelineVerificationFilter,
-  searchValue: string,
-): { views: TaskTimelineSavedView[]; feedback: TaskTimelineSaveFeedback } {
-  const matchingView = current.find((entry) => (
-    entry.eventTypeFilter === eventTypeFilter
-    && entry.verificationFilter === verificationFilter
-    && entry.searchValue === searchValue
-  ));
-
-  if (!matchingView) {
-    const nextView = createSavedView(eventTypeFilter, verificationFilter, searchValue);
-    return {
-      views: [nextView, ...current].slice(0, 6),
-      feedback: {
-        label: "Saved new view",
-        detail: `Saved ${nextView.label} for this browser session.`,
-      },
-    };
-  }
-
-  const refreshedView = {
-    ...matchingView,
-    createdAt: new Date().toISOString(),
-  };
-
-  return {
-    views: [refreshedView, ...current.filter((entry) => entry.id !== matchingView.id)],
-    feedback: {
-      label: "Updated saved view",
-      detail: `Refreshed ${matchingView.label} instead of creating a duplicate saved view.`,
-    },
-  };
-}
-
-function loadSavedViews(storageKey: string | null): TaskTimelineSavedView[] {
-  if (typeof window === "undefined" || !storageKey) {
-    return [];
-  }
-
-  const rawValue = window.sessionStorage.getItem(storageKey);
-  if (!rawValue) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-    return parsed.filter(isTaskTimelineSavedView).slice(0, 6);
-  } catch {
-    return [];
-  }
-}
-
-function isTaskTimelineSavedView(value: unknown): value is TaskTimelineSavedView {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const candidate = value as Partial<TaskTimelineSavedView>;
-  return typeof candidate.id === "string"
-    && typeof candidate.label === "string"
-    && typeof candidate.createdAt === "string"
-    && (candidate.lastUsedAt === undefined || candidate.lastUsedAt === null || typeof candidate.lastUsedAt === "string")
-    && isTaskTimelineEventTypeFilter(candidate.eventTypeFilter)
-    && isTaskTimelineVerificationFilter(candidate.verificationFilter)
-    && typeof candidate.searchValue === "string";
-}
-
-function getActiveTimelineStateStorageKey(savedViewsStorageKey: string | null): string | null {
-  return savedViewsStorageKey ? `${savedViewsStorageKey}-active-state` : null;
-}
-
-function getLastNonEmptyTimelineStateStorageKey(savedViewsStorageKey: string | null): string | null {
-  return savedViewsStorageKey ? `${savedViewsStorageKey}-last-non-empty-state` : null;
-}
-
-function loadActiveTimelineState(storageKey: string | null): TaskTimelineActiveState | null {
-  if (typeof window === "undefined" || !storageKey) {
-    return null;
-  }
-
-  const rawValue = window.sessionStorage.getItem(storageKey);
-  if (!rawValue) {
-    return null;
-  }
-
-  try {
-    const parsed = JSON.parse(rawValue);
-    return isTaskTimelineActiveState(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-function isTaskTimelineActiveState(value: unknown): value is TaskTimelineActiveState {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const candidate = value as Partial<TaskTimelineActiveState>;
-  return isTaskTimelineEventTypeFilter(candidate.eventTypeFilter)
-    && isTaskTimelineVerificationFilter(candidate.verificationFilter)
-    && typeof candidate.searchValue === "string";
-}
-
 function isActiveStateEqual(
   left: TaskTimelineActiveState,
   right: TaskTimelineActiveState,
@@ -1163,20 +1022,6 @@ function isActiveStateEqual(
   return left.eventTypeFilter === right.eventTypeFilter
     && left.verificationFilter === right.verificationFilter
     && left.searchValue === right.searchValue;
-}
-
-function isTaskTimelineEventTypeFilter(value: unknown): value is TaskTimelineEventTypeFilter {
-  return value === "all"
-    || value === "app_control"
-    || value === "app_control_applied"
-    || value === "app_control_reverted";
-}
-
-function isTaskTimelineVerificationFilter(value: unknown): value is TaskTimelineVerificationFilter {
-  return value === "all"
-    || value === "verified_only"
-    || value === "assumed_present"
-    || value === "not_recorded";
 }
 
 const filterGroupStyle = {

@@ -24,7 +24,6 @@ import {
   fetchAdapters,
   fetchApprovalCards,
   fetchArtifact,
-  fetchArtifactCards,
   fetchArtifactCardsForTruthFilter,
   cleanupO3deBridgeResults,
   fetchControlPlaneSummary,
@@ -32,7 +31,6 @@ import {
   fetchExecutor,
   fetchExecutors,
   fetchExecution,
-  fetchExecutionCards,
   fetchExecutionCardsForTruthFilter,
   fetchEvents,
   fetchEventCards,
@@ -62,7 +60,6 @@ import {
   activateExecutionLaneFromOverview,
   activateRunsLaneFromOverview,
   buildOverviewAutoOpenHint,
-  clearFocusedSection,
   createNeutralTruthFilter,
   createFallbackCategoryTruthFilter,
   createInspectionSurfaceTruthFilter,
@@ -7362,11 +7359,6 @@ export default function App() {
     </>
   );
 }
-
-const desktopStackStyle = {
-  display: "grid",
-  gap: 14,
-} satisfies CSSProperties;
 
 const activeWorkspacePaneStyle = {
   display: "grid",

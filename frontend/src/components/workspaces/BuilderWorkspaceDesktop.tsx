@@ -78,7 +78,6 @@ import {
   THREAD_PROFILE_PRESETS,
 } from "./builderWorkspace/defaults";
 import type {
-  AttentionTone,
   AutonomyDraftRecommendation,
   AutonomyJobAttentionSignal,
   AutonomyJobDraft,
@@ -239,9 +238,9 @@ function parseJsonObject(value: string, label: string): Record<string, unknown> 
   try {
     parsed = JSON.parse(trimmed);
   } catch (error) {
-    throw new Error(
+    throw Object.assign(new Error(
       `${label} must be valid JSON. ${error instanceof Error ? error.message : "Parse failed."}`,
-    );
+    ), { cause: error });
   }
 
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
@@ -261,9 +260,9 @@ function parseJsonStringArray(value: string, label: string): string[] {
   try {
     parsed = JSON.parse(trimmed);
   } catch (error) {
-    throw new Error(
+    throw Object.assign(new Error(
       `${label} must be valid JSON. ${error instanceof Error ? error.message : "Parse failed."}`,
-    );
+    ), { cause: error });
   }
 
   if (!Array.isArray(parsed) || parsed.some((entry) => typeof entry !== "string" || !entry.trim())) {
@@ -2123,7 +2122,7 @@ export default function BuilderWorkspaceDesktop() {
       retry_count_before_failure: job.retry_count,
     };
 
-    let recordedObservationId: string | null = null;
+    let recordedObservationId: string | null;
 
     try {
       const observationRequest: AutonomyObservationCreateRequest = {

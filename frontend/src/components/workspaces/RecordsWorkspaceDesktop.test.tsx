@@ -40,8 +40,8 @@ vi.mock("../RunDetailPanel", () => ({
   default: () => <div>RunDetailPanel stub</div>,
 }));
 
-vi.mock("../TaskTimeline", () => ({
-  default: ({
+vi.mock("../TaskTimeline", () => {
+  function TaskTimelineMock({
     onEmptyFilteredStateChange,
     onActiveFiltersChange,
     onEmptyRecoveryChange,
@@ -68,7 +68,7 @@ vi.mock("../TaskTimeline", () => ({
       hasActiveFilters: boolean;
     }) => void) | null;
     clearFiltersSignal?: number;
-  }) => {
+  }) {
     useEffect(() => {
       onEmptyFilteredStateChange?.(true);
       onActiveFiltersChange?.({
@@ -92,8 +92,10 @@ vi.mock("../TaskTimeline", () => ({
     }, [onActiveFiltersChange, onEmptyFilteredStateChange, onEmptyRecoveryChange, onFilterResultsChange]);
 
     return <div>TaskTimeline stub {clearFiltersSignal ?? 0}</div>;
-  },
-}));
+  }
+
+  return { default: TaskTimelineMock };
+});
 
 function renderRecordsWorkspaceDesktop(
   activeSurfaceId: ComponentProps<typeof RecordsWorkspaceDesktop>["activeSurfaceId"],
