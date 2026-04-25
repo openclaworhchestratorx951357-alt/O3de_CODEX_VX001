@@ -834,6 +834,37 @@ class EventListResponse(BaseModel):
     events: list[EventListItem] = Field(default_factory=list)
 
 
+class LifecycleArtifactRef(BaseModel):
+    artifact_id: str = Field(..., min_length=1)
+    artifact_role: str | None = None
+    kind: str = Field(..., min_length=1)
+    uri: str = Field(..., min_length=1)
+    evidence_completeness: str | None = None
+
+
+class LifecycleEventPayload(BaseModel):
+    event_id: str = Field(..., min_length=1)
+    event_type: str | None = None
+    event_timestamp: str = Field(..., min_length=1)
+    run_id: str | None = None
+    execution_id: str | None = None
+    executor_id: str | None = None
+    workspace_id: str | None = None
+    tool_name: str | None = None
+    runner_family: str | None = None
+    execution_mode_class: str | None = None
+    previous_state: str | None = None
+    current_state: str | None = None
+    failure_category: str | None = None
+    summary: str = Field(..., min_length=1)
+    artifact_refs: list[LifecycleArtifactRef] = Field(default_factory=list)
+    truth_note: str = Field(..., min_length=1)
+
+
+class LifecycleEventResponse(BaseModel):
+    events: list[LifecycleEventPayload] = Field(default_factory=list)
+
+
 class AppControlEventSummary(BaseModel):
     total_events: int = 0
     applied_events: int = 0

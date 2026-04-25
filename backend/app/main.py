@@ -117,6 +117,7 @@ def root() -> RootStatus:
         "/locks/cards",
         "/events",
         "/events/cards",
+        "/events/lifecycle",
         "/events/summary",
         "/events/{event_id}",
         "/policies",

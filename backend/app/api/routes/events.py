@@ -1,6 +1,12 @@
 from fastapi import APIRouter, HTTPException
 
-from app.models.api import EventDetailResponse, EventListResponse, EventSummaryResponse, EventsResponse
+from app.models.api import (
+    EventDetailResponse,
+    EventListResponse,
+    EventsResponse,
+    EventSummaryResponse,
+    LifecycleEventResponse,
+)
 from app.services.events import events_service
 
 router = APIRouter(tags=["events"])
@@ -14,6 +20,11 @@ def list_events() -> EventsResponse:
 @router.get("/events/cards", response_model=EventListResponse)
 def list_event_cards() -> EventListResponse:
     return events_service.list_event_cards()
+
+
+@router.get("/events/lifecycle", response_model=LifecycleEventResponse)
+def list_lifecycle_events() -> LifecycleEventResponse:
+    return events_service.list_lifecycle_events()
 
 
 @router.get("/events/summary", response_model=EventSummaryResponse)

@@ -66,6 +66,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert "/approvals/cards" in payload["routes"]
         assert "/locks/cards" in payload["routes"]
         assert "/events/cards" in payload["routes"]
+        assert "/events/lifecycle" in payload["routes"]
         assert "/events/summary" in payload["routes"]
         assert "/events/{event_id}" in payload["routes"]
         assert "/executions/cards" in payload["routes"]
