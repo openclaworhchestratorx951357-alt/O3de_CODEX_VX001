@@ -70,6 +70,17 @@ Current truth:
   on the currently loaded level; it does not imply delete, reload, parenting,
   prefab work, broad scene enumeration, component discovery, property mutation,
   or proof that file-backed restore removed an entity from the live Editor
+- the direct live read-only proof completed on `2026-04-25` against
+  `Levels/TestLoevel01` in `McpSandbox` and verified exact-name existence
+  readback for `Ground` with entity id `[2949498829790842453]`
+- direct entity-exists proof bundle:
+  `backend/runtime/live_editor_entity_exists_proof_20260425-083436.json`
+- direct entity-exists proof lineage:
+  `run-2ae86612d8e0`, `exe-ec24e70a8678`, `art-ff7b77eb135e`
+- the direct entity-exists proof did not execute or need cleanup/restore and
+  did not prove live Editor undo, viewport reload, entity absence after restore,
+  broad entity discovery, component discovery, property mutation, delete,
+  parenting, prefab, material, asset, render, build, or arbitrary Editor Python
 - falls back to simulated when the real manifest path is unavailable
 - remains explicitly labeled as real vs simulated in backend and frontend
 - still does not authorize deeper layered settings discovery or any mutation path
@@ -244,10 +255,11 @@ The operator shell now exposes this boundary through:
   `editor.component.add` on the verified `McpSandbox` target wiring
 - the composed prompt-controlled editor chain remains limited to those admitted
   tools plus explicit admitted `editor.component.property.get` readback; the
-  standalone `editor.entity.exists` read path remains outside cleanup/restore
-  proof and does not imply arbitrary component names, broader property reads or
-  writes, delete, parenting, prefab mutation, broad entity discovery, or
-  arbitrary Editor Python execution
+  standalone `editor.entity.exists` read path now has direct exact-name
+  readback evidence but remains outside cleanup/restore proof and does not
+  imply arbitrary component names, broader property reads or writes, delete,
+  parenting, prefab mutation, broad entity discovery, or arbitrary Editor
+  Python execution
 - `build.configure` is not a real configure execution path
 - `project.inspect` real evidence is still limited to manifest-backed
   project-config, requested-vs-discovered Gem, requested Gem subset matching,

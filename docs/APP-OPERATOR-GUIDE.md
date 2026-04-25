@@ -142,9 +142,40 @@ Use one repo-owned command to prove the admitted prompt-orchestrated editor chai
 - summary.cleanup_restore.restore_invoked = true, restore_succeeded = true, and restore_result = restored_and_verified prove file-backed loaded-level restore against the captured backup hash.
 - summary.missing_proof still states that live Editor undo, viewport reload, and entity-absence readback were not proven.
 
+### Read the direct editor.entity.exists proof as standalone readback evidence
+
+Treat the latest direct live proof as evidence only for session attach, non-default test level open, and exact-name entity existence readback on the loaded/current level.
+
+#### Endpoints
+
+- GET /ready
+- GET /o3de/target
+- GET /o3de/bridge
+- GET /adapters
+- POST /tools/dispatch
+- GET /runs
+- GET /executions
+- GET /artifacts/{artifact_id}
+
+#### Commands
+
+```powershell
+# Direct backend API dispatch sequence used for the latest proof only:
+# editor.session.open -> editor.level.open -> editor.entity.exists
+```
+
+#### Evidence to confirm
+
+- Latest bundle pattern is backend\runtime\live_editor_entity_exists_proof_<timestamp>.json; latest observed bundle was backend\runtime\live_editor_entity_exists_proof_20260425-083436.json.
+- Proof target was Levels/TestLoevel01 with exact entity_name = Ground.
+- editor.entity.exists returned exists = true, lookup_mode = entity_name, matched_count = 1, and entity_id = [2949498829790842453].
+- Recorded lineage: run_id = run-2ae86612d8e0, execution_id = exe-ec24e70a8678, artifact_id = art-ff7b77eb135e.
+- missing_proof states no cleanup or restore was executed or needed by this read-only proof.
+- This proof does not widen into entity creation, component add, property writes, delete, reload, parenting, prefab, material, asset, render, build, or arbitrary Editor Python.
+
 ### Keep the admitted editor surfaces inside the current narrow boundaries
 
-Treat the live proof, capability map, and composed Prompt Studio review flow as evidence only for the currently admitted editor slices: root-level entity creation, allowlisted component attachment, and explicit read-only component property inspection on the loaded/current level.
+Treat the live proofs, capability map, and composed Prompt Studio review flow as evidence only for the currently admitted editor slices: root-level entity creation, exact-name entity existence readback, allowlisted component attachment, and explicit read-only component property inspection on the loaded/current level.
 
 #### Endpoints
 
@@ -181,7 +212,7 @@ Invoke-RestMethod 'http://127.0.0.1:8000/policies'
 - Current admitted-real editor proof remains anchored to the canonical local backend on 127.0.0.1:8000 and the repo-owned scripts/dev.ps1 live-proof lifecycle command.
 - Current admitted editor-control scope includes real-authoring editor.component.add on its allowlisted surface, hybrid read-only editor.entity.exists on its exact lookup surface, and hybrid read-only editor.component.property.get on its explicit readback surface.
 - The admitted prompt-controlled editor chain may now compose editor.session.open, editor.level.open, editor.entity.create, editor.component.add, and mapped editor.component.property.get readback with automatic result binding and structured post-action review.
-- editor.entity.exists is a standalone read-only existence check and does not prove live Editor undo, viewport reload, cleanup, or entity absence after file-backed restore.
+- The latest direct editor.entity.exists proof verifies exact-name readback for Ground on Levels/TestLoevel01 and does not prove live Editor undo, viewport reload, cleanup, broad entity discovery, or entity absence after file-backed restore.
 - Restore-boundary evidence is operator-visible in run, execution, and artifact detail only as file-backed loaded-level restore evidence; it does not prove live Editor undo, viewport reload, or entity absence.
 - The repo-owned live-proof lifecycle can start the canonical McpSandbox Editor bridge when no canonical Editor is already running, but this still does not prove live Editor undo, viewport reload, or entity absence.
 - Live bridge success still depends on the project-local ControlPlaneEditorBridge handler path on the active McpSandbox target.

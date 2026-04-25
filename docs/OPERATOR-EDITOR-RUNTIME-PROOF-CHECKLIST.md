@@ -14,6 +14,10 @@ It proves only:
 - `editor.component.add`
 - `editor.component.property.get`
 
+It also records a separate direct read-only proof for `editor.entity.exists`.
+That proof covers only session attach, level open, and exact entity-name
+existence readback on the loaded/current level.
+
 It does not widen into arbitrary Editor Python, arbitrary components, arbitrary
 property writes, delete, parenting, prefab, material, asset, render, or build
 behavior.
@@ -157,6 +161,9 @@ The proof command:
 The output file pattern is:
 - `backend/runtime/live_editor_authoring_proof_<timestamp>.json`
 
+Standalone direct read-only entity-exists proof bundles use:
+- `backend/runtime/live_editor_entity_exists_proof_<timestamp>.json`
+
 ## Latest Verified Repo-Owned Proof
 
 Latest successful proof bundle:
@@ -213,6 +220,33 @@ Latest successful cleanup restore:
 - `restore_boundary_backup_sha256 = ba0d16a2b61162dac35d411cbeb17a1f1a0c72b04a9b3a8eec7477119d5c9c9c`
 - `restore_restored_sha256 = ba0d16a2b61162dac35d411cbeb17a1f1a0c72b04a9b3a8eec7477119d5c9c9c`
 
+## Latest Direct Read-Only Entity Exists Proof
+
+Latest direct proof bundle:
+- `backend/runtime/live_editor_entity_exists_proof_20260425-083436.json`
+
+Latest direct proof summary:
+- `proof_kind = editor.entity.exists.direct-live-read-only`
+- `scope = editor.session.open -> editor.level.open -> editor.entity.exists only`
+- `target.level_path = Levels/TestLoevel01`
+- `target.entity_name = Ground`
+- `exists = true`
+- `lookup_mode = entity_name`
+- `matched_count = 1`
+- `entity_id = [2949498829790842453]`
+- `bridge.heartbeat_fresh = true`
+
+Latest direct proof lineage:
+- `editor.entity.exists run_id = run-2ae86612d8e0`
+- `editor.entity.exists execution_id = exe-ec24e70a8678`
+- `editor.entity.exists artifact_id = art-ff7b77eb135e`
+- `editor.entity.exists bridge_command_id = 4d4b6668ae4b41e29a576b6151015e5b`
+
+Latest direct proof missing proof:
+- no cleanup or restore was executed or needed by this read-only proof
+- no entity absence after restore, live Editor undo, viewport reload, or broader
+  editor behavior was proven
+
 ## What Does And Does Not Count As Proof
 
 The following do count as proof:
@@ -223,6 +257,8 @@ The following do count as proof:
 - bridge command ids tying the live editor actions to the persistent bridge path
 - hash-verified filesystem restore of the selected loaded-level prefab from the
   runtime-owned backup
+- the direct entity-exists proof bundle proving exact-name existence readback
+  only for the loaded/current level target it records
 
 The following are not sufficient by themselves:
 - a manual editor launch by itself
@@ -231,15 +267,19 @@ The following are not sufficient by themselves:
 - frontend visibility alone
 - a simulated dispatch with successful control-plane bookkeeping
 
-The latest proof still does not prove:
+The latest composed authoring proof still does not prove:
 - live Editor undo
 - viewport reload
 - entity-absence readback after filesystem restore
-- standalone `editor.entity.exists` live readback
 - broader component/property mapping
 - property writes
 - delete, parenting, prefab, material, asset, render, build, or arbitrary Editor
   Python behavior
+
+The latest direct entity-exists proof proves only standalone exact-name
+existence readback for `Ground` on `Levels/TestLoevel01`. It does not prove
+cleanup, restore, absence readback, broad entity discovery, component discovery,
+or any editor mutation.
 
 ## External Dependency Caveat
 
@@ -260,8 +300,9 @@ This checklist is satisfied only when all of the following are true:
 - `editor.session.open` records admitted-real execution evidence
 - `editor.level.open` records admitted-real execution evidence
 - `editor.entity.create` records admitted-real bridge-backed execution evidence
-- `editor.entity.exists` remains a separate admitted read-only surface and must
-  have its own direct evidence before being cited as live-proven
+- `editor.entity.exists` remains a separate admitted read-only surface; the
+  current direct proof covers only exact-name readback on the loaded/current
+  level target it records
 - `editor.component.add` records admitted-real allowlist-bound component attach
   evidence
 - `editor.component.property.get` records admitted real read-only property

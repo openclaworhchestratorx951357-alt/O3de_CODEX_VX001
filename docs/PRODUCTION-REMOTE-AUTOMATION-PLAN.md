@@ -323,10 +323,13 @@ Current truth on this branch:
   `backend/runtime/live_editor_authoring_proof_20260425-080441.json` also
   invoked the pre-entity-create `loaded-level-file` restore boundary and
   hash-verified the selected level prefab against the captured backup
-- the proof does not claim live Editor undo, viewport reload,
-  standalone `editor.entity.exists` live readback, entity-absence readback,
-  broader component or property mutation, delete, parenting, prefab mutation,
-  material, asset, render, build, or arbitrary Editor Python behavior
+- the separate direct read-only proof bundle
+  `backend/runtime/live_editor_entity_exists_proof_20260425-083436.json`
+  verified exact-name `editor.entity.exists` readback for `Ground` on
+  `Levels/TestLoevel01`
+- the proofs do not claim live Editor undo, viewport reload, entity-absence
+  readback, broader component or property mutation, delete, parenting, prefab
+  mutation, material, asset, render, build, or arbitrary Editor Python behavior
 
 Official substrate(s):
 - Python Editor Bindings
