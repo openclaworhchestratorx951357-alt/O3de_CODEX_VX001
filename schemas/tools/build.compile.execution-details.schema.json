@@ -12,7 +12,7 @@
   "properties": {
     "inspection_surface": {
       "type": "string",
-      "enum": ["simulated", "build_compile_preflight"]
+      "enum": ["simulated", "build_compile_preflight", "build_compile_runner"]
     },
     "execution_boundary": { "type": "string", "minLength": 1 },
     "simulated": { "type": "boolean" },
@@ -25,6 +25,7 @@
     "project_root_path": { "type": "string", "minLength": 1 },
     "build_root_path": { "type": "string", "minLength": 1 },
     "build_root_exists": { "type": "boolean" },
+    "selected_build_tree_path": { "type": "string", "minLength": 1 },
     "requested_targets": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
@@ -60,6 +61,23 @@
       "type": "array",
       "items": { "type": "object" }
     },
+    "build_runner_probe_attempted": { "type": "boolean" },
+    "build_runner_probe_method": { "type": "string", "minLength": 1 },
+    "build_runner_available": { "type": "boolean" },
+    "build_runner_path": { "type": ["string", "null"] },
+    "build_runner_source": { "type": ["string", "null"] },
+    "build_runner_exists": { "type": "boolean" },
+    "build_runner_candidate_paths": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "runner_command": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "runner_working_directory": { "type": "string", "minLength": 1 },
+    "runner_timeout_s": { "type": "integer", "minimum": 1 },
+    "runner_timed_out": { "type": "boolean" },
     "execution_attempted": { "type": "boolean" },
     "result_artifact_produced": { "type": "boolean" },
     "result_artifact_path": { "type": ["string", "null"] },
@@ -71,6 +89,8 @@
     "result_summary_available": { "type": "boolean" },
     "result_unavailable_reason": { "type": ["string", "null"] },
     "compile_unavailable_reason": { "type": ["string", "null"] },
+    "compile_output_artifact_available": { "type": "boolean" },
+    "compile_output_artifact_unavailable_reason": { "type": ["string", "null"] },
     "fallback_category": { "type": "string", "minLength": 1 },
     "fallback_reason": { "type": "string", "minLength": 1 }
   }

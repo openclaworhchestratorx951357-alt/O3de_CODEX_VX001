@@ -1,4 +1,5 @@
 import json
+import subprocess
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -928,7 +929,7 @@ def test_prompt_session_plans_test_run_gtest_as_plan_only() -> None:
         assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
 
 
-def test_prompt_session_plans_build_compile_as_plan_only() -> None:
+def test_prompt_session_plans_build_compile_as_execution_gated() -> None:
     with isolated_client() as client:
         response = client.post(
             "/prompt/sessions",
@@ -948,9 +949,12 @@ def test_prompt_session_plans_build_compile_as_plan_only() -> None:
         assert len(payload["plan"]["steps"]) == 1
         step = payload["plan"]["steps"][0]
         assert step["tool"] == "build.compile"
-        assert step["capability_maturity"] == "plan-only"
+        assert step["capability_maturity"] == "execution-gated"
         assert step["args"]["targets"] == ["Editor"]
-        assert step["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
+        assert (
+            step["safety_envelope"]["natural_language_status"]
+            == "prompt-ready-approval-gated"
+        )
 
 
 def test_prompt_session_plans_render_shader_rebuild_as_plan_only() -> None:
@@ -1177,6 +1181,84 @@ def test_prompt_session_executes_build_compile_with_truthful_preflight_evidence(
                 assert details["execution_attempted"] is False
                 assert details["result_artifact_produced"] is False
                 assert str(target_path) in details["resolved_target_candidate_paths"]
+
+
+def test_prompt_session_executes_build_compile_with_truthful_runner_evidence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        cache_path = project_root / "build" / "windows" / "CMakeCache.txt"
+        build_tree = cache_path.parent
+        target_path = build_tree / "bin" / "profile" / "Editor.exe"
+        cmake_path = build_tree / "cmake.exe"
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(
+            f"CMAKE_GENERATOR:INTERNAL=Ninja\nCMAKE_COMMAND:FILEPATH={cmake_path}\n",
+            encoding="utf-8",
+        )
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_bytes(b"build-compile-prompt-target")
+        cmake_path.write_text("", encoding="utf-8")
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+            },
+            clear=False,
+        ):
+            with patch(
+                "app.services.adapters.subprocess.run",
+                return_value=subprocess.CompletedProcess(
+                    args=[str(cmake_path), "--build", str(build_tree), "--target", "Editor"],
+                    returncode=0,
+                    stdout="build ok",
+                    stderr="",
+                ),
+            ):
+                with isolated_client() as client:
+                    create_response = client.post(
+                        "/prompt/sessions",
+                        json={
+                            "prompt_id": "prompt-build-compile-runner-1",
+                            "prompt_text": 'Compile target "Editor".',
+                            "project_root": str(project_root),
+                            "engine_root": "C:/engine",
+                            "dry_run": False,
+                            "preferred_domains": ["project-build"],
+                        },
+                    )
+                    assert create_response.status_code == 200
+
+                    execute_response = client.post(
+                        "/prompt/sessions/prompt-build-compile-runner-1/execute"
+                    )
+                    assert execute_response.status_code == 200
+                    payload = execute_response.json()
+                    assert payload["status"] == "waiting_approval"
+                    approval = approvals_service.get_approval(payload["pending_approval_id"])
+                    assert approval is not None
+                    approvals_service.approve(approval.id)
+
+                    execute_response = client.post(
+                        "/prompt/sessions/prompt-build-compile-runner-1/execute"
+                    )
+                    assert execute_response.status_code == 200
+                    payload = execute_response.json()
+                    assert payload["status"] == "completed"
+                    assert (
+                        "returned exit code 0" in payload["final_result_summary"]
+                    )
+                    assert (
+                        "Build compile runner log evidence was retained"
+                        in payload["final_result_summary"]
+                    )
+                    child_response = payload["latest_child_responses"][-1]
+                    details = child_response["execution_details"]
+                    assert details["inspection_surface"] == "build_compile_runner"
+                    assert details["execution_attempted"] is True
+                    assert details["exit_code_available"] is True
+                    assert details["exit_code"] == 0
+                    assert details["result_artifact_produced"] is True
+                    assert details["result_artifact_path"]
 
 
 def test_prompt_session_executes_gem_enable_with_truthful_preflight_evidence() -> None:

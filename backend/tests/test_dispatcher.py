@@ -4525,6 +4525,85 @@ def test_build_compile_real_persisted_payloads_match_published_schemas() -> None
         )
 
 
+def test_build_compile_uses_real_runner_substrate_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        cache_path = project_root / "build" / "windows" / "CMakeCache.txt"
+        build_tree = cache_path.parent
+        target_path = build_tree / "bin" / "profile" / "Editor.exe"
+        cmake_path = build_tree / "cmake.exe"
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(
+            f"CMAKE_GENERATOR:INTERNAL=Ninja\nCMAKE_COMMAND:FILEPATH={cmake_path}\n",
+            encoding="utf-8",
+        )
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_bytes(b"build-target")
+        cmake_path.write_text("", encoding="utf-8")
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.subprocess.run",
+                return_value=subprocess.CompletedProcess(
+                    args=[str(cmake_path), "--build", str(build_tree), "--target", "Editor"],
+                    returncode=0,
+                    stdout="build ok",
+                    stderr="",
+                ),
+            ):
+                response = dispatcher_service.dispatch(
+                    approve_build_compile_request(
+                        project_root=str(project_root),
+                        dry_run=False,
+                    )
+                )
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is False
+        assert response.result.execution_mode == "real"
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "build_compile_runner"
+        assert execution.details["execution_attempted"] is True
+        assert execution.details["build_runner_available"] is True
+        assert execution.details["exit_code_available"] is True
+        assert execution.details["exit_code"] == 0
+        assert execution.details["result_artifact_produced"] is True
+        assert execution.details["result_artifact_path"]
+        assert execution.details["result_artifact_content_type"] == "text/plain"
+        assert execution.details["result_status"] == "succeeded"
+        assert execution.details["runner_command"][:4] == [
+            str(cmake_path),
+            "--build",
+            str(build_tree),
+            "--target",
+        ]
+        assert artifact is not None
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "build_compile_runner"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="build.compile",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="build.compile",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
 def test_asset_processor_status_simulated_persisted_payloads_match_published_schemas() -> None:
     with isolated_database():
         response = dispatcher_service.dispatch(make_asset_processor_status_request())

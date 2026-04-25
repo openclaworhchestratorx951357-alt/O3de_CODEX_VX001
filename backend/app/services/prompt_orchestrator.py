@@ -965,13 +965,33 @@ class PromptOrchestratorService:
                     "Build compile preflight could not confirm artifact candidate resolution for all explicit build targets."
                 )
             if details.get("execution_attempted") is True:
-                summary_parts.append(
-                    "Real build.compile execution was attempted in this slice."
-                )
+                if details.get("exit_code_available") is True:
+                    summary_parts.append(
+                        f"Real build.compile execution was attempted in this slice and returned exit code {details.get('exit_code')}."
+                    )
+                elif details.get("runner_timed_out") is True:
+                    summary_parts.append(
+                        "Real build.compile execution was attempted in this slice but timed out before an exit code was captured."
+                    )
+                else:
+                    summary_parts.append(
+                        "Real build.compile execution was attempted in this slice."
+                    )
+                if details.get("result_artifact_produced") is True:
+                    summary_parts.append(
+                        "Build compile runner log evidence was retained for this explicit target request."
+                    )
+                else:
+                    summary_parts.append(
+                        "Build compile runner log evidence was not retained for this explicit target request."
+                    )
             else:
                 summary_parts.append(
                     "No real build.compile execution was attempted in this admitted slice."
                 )
+            output_unavailable_reason = details.get("compile_output_artifact_unavailable_reason")
+            if isinstance(output_unavailable_reason, str) and output_unavailable_reason:
+                summary_parts.append(output_unavailable_reason)
             unavailable_reason = details.get("compile_unavailable_reason") or details.get(
                 "result_unavailable_reason"
             )

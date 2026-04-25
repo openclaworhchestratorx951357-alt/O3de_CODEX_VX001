@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 import time
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -812,13 +813,13 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
                 "asset.batch.process",
                 "asset.move.safe",
                 "build.configure",
-                "build.compile",
                 "render.shader.rebuild",
                 "test.run.gtest",
                 "test.run.editor_python",
                 "test.tiaf.sequence",
             ]
             assert payload["adapter_mode"]["gated_tool_paths"] == [
+                "build.compile",
                 "gem.enable",
                 "render.material.patch",
                 "settings.patch",
@@ -876,13 +877,13 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "asset.batch.process",
                 "asset.move.safe",
                 "build.configure",
-                "build.compile",
                 "render.shader.rebuild",
                 "test.run.gtest",
                 "test.run.editor_python",
                 "test.tiaf.sequence",
             ]
             assert payload["gated_tool_paths"] == [
+                "build.compile",
                 "gem.enable",
                 "render.material.patch",
                 "settings.patch",
@@ -920,11 +921,9 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
             )
             assert project_build["supports_real_execution"] is True
             assert project_build["real_tool_paths"] == ["project.inspect"]
-            assert project_build["plan_only_tool_paths"] == [
-                "build.configure",
-                "build.compile",
-            ]
+            assert project_build["plan_only_tool_paths"] == ["build.configure"]
             assert project_build["gated_tool_paths"] == [
+                "build.compile",
                 "gem.enable",
                 "settings.patch",
             ]
@@ -1003,7 +1002,7 @@ def test_prompt_capabilities_reports_test_run_gtest_as_plan_only() -> None:
         assert entry["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
 
 
-def test_prompt_capabilities_reports_build_compile_as_plan_only() -> None:
+def test_prompt_capabilities_reports_build_compile_as_execution_gated() -> None:
     with isolated_client() as client:
         response = client.get("/prompt/capabilities")
         assert response.status_code == 200
@@ -1012,8 +1011,11 @@ def test_prompt_capabilities_reports_build_compile_as_plan_only() -> None:
             item for item in payload["capabilities"] if item["tool_name"] == "build.compile"
         )
         assert entry["agent_family"] == "project-build"
-        assert entry["capability_maturity"] == "plan-only"
-        assert entry["safety_envelope"]["natural_language_status"] == "prompt-ready-plan-only"
+        assert entry["capability_maturity"] == "execution-gated"
+        assert (
+            entry["safety_envelope"]["natural_language_status"]
+            == "prompt-ready-approval-gated"
+        )
 
 
 def test_prompt_capabilities_reports_render_shader_rebuild_as_plan_only() -> None:
@@ -1251,7 +1253,7 @@ def test_policies_route_exposes_truthful_execution_mode_and_dry_run_support() ->
 
         assert policies_by_tool["build.configure"]["execution_mode"] == "plan-only"
         assert policies_by_tool["build.configure"]["supports_dry_run"] is True
-        assert policies_by_tool["build.compile"]["execution_mode"] == "plan-only"
+        assert policies_by_tool["build.compile"]["execution_mode"] == "real"
         assert policies_by_tool["build.compile"]["supports_dry_run"] is True
 
         assert policies_by_tool["editor.entity.create"]["execution_mode"] == "real"
@@ -3804,7 +3806,120 @@ def test_dispatch_route_uses_real_build_compile_preflight_in_hybrid_mode() -> No
                 assert workspace["owner_executor_id"] == executor["id"]
 
 
-def test_dispatch_route_records_build_compile_dry_run_fallback_provenance_in_hybrid_mode() -> None:
+def test_dispatch_route_uses_real_build_compile_runner_in_hybrid_mode() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        cache_path = project_root / "build" / "windows" / "CMakeCache.txt"
+        build_tree = cache_path.parent
+        target_path = build_tree / "bin" / "profile" / "Editor.exe"
+        cmake_path = build_tree / "cmake.exe"
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(
+            f"CMAKE_GENERATOR:INTERNAL=Ninja\nCMAKE_COMMAND:FILEPATH={cmake_path}\n",
+            encoding="utf-8",
+        )
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_bytes(b"api-build-target")
+        cmake_path.write_text("", encoding="utf-8")
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.subprocess.run",
+                return_value=subprocess.CompletedProcess(
+                    args=[str(cmake_path), "--build", str(build_tree), "--target", "Editor"],
+                    returncode=0,
+                    stdout="build ok",
+                    stderr="",
+                ),
+            ):
+                with isolated_client() as client:
+                    dispatch = client.post(
+                        "/tools/dispatch",
+                        json={
+                            "request_id": "api-build-compile-runner-1",
+                            "tool": "build.compile",
+                            "agent": "project-build",
+                            "project_root": str(project_root),
+                            "engine_root": "/tmp/engine",
+                            "dry_run": False,
+                            "locks": [],
+                            "timeout_s": 30,
+                            "args": {"targets": ["Editor"], "config": "profile"},
+                        },
+                    )
+                    approval_id = dispatch.json()["approval_id"]
+                    approval = approvals_service.get_approval(approval_id)
+                    assert approval is not None
+                    client.post(
+                        f"/approvals/{approval_id}/approve",
+                        json={"reason": "Approve build.compile runner for test"},
+                    )
+                    approved_dispatch = client.post(
+                        "/tools/dispatch",
+                        json={
+                            "request_id": "api-build-compile-runner-2",
+                            "tool": "build.compile",
+                            "agent": "project-build",
+                            "project_root": str(project_root),
+                            "engine_root": "/tmp/engine",
+                            "dry_run": False,
+                            "locks": [],
+                            "timeout_s": 30,
+                            "approval_token": approval.token,
+                            "args": {"targets": ["Editor"], "config": "profile"},
+                        },
+                    )
+                    assert approved_dispatch.status_code == 200
+                    payload = approved_dispatch.json()
+                    assert payload["ok"] is True
+                    assert payload["result"]["simulated"] is False
+                    assert payload["result"]["execution_mode"] == "real"
+                    assert "runner evidence completed" in payload["result"]["message"]
+
+                    executions = client.get("/executions")
+                    assert executions.status_code == 200
+                    execution = next(
+                        execution
+                        for execution in executions.json()["executions"]
+                        if execution["run_id"] == payload["operation_id"]
+                    )
+                    assert execution["details"]["inspection_surface"] == "build_compile_runner"
+                    assert execution["details"]["execution_attempted"] is True
+                    assert execution["details"]["exit_code_available"] is True
+                    assert execution["details"]["exit_code"] == 0
+                    assert execution["details"]["result_artifact_produced"] is True
+                    assert execution["details"]["result_artifact_path"]
+
+                    artifacts = client.get("/artifacts")
+                    assert artifacts.status_code == 200
+                    artifact = next(
+                        artifact
+                        for artifact in artifacts.json()["artifacts"]
+                        if artifact["execution_id"] == execution["id"]
+                    )
+                    assert artifact["artifact_role"] == "execution-evidence"
+                    assert artifact["content_type"] == "text/plain"
+                    assert artifact["evidence_completeness"] == "runner-backed"
+
+                    executors = client.get("/executors")
+                    assert executors.status_code == 200
+                    executor = next(
+                        executor
+                        for executor in executors.json()["executors"]
+                        if executor["id"] == execution["executor_id"]
+                    )
+                    workspaces = client.get("/workspaces")
+                    assert workspaces.status_code == 200
+                    workspace = next(
+                        workspace
+                        for workspace in workspaces.json()["workspaces"]
+                        if workspace["id"] == execution["workspace_id"]
+                    )
+                    assert executor["id"] == "executor-project-build-hybrid-execution-gated-local"
+                    assert workspace["workspace_kind"] == "admitted-execution-gated-project-root"
+                    assert workspace["cleanup_policy"] == "operator-managed-build-logs"
+
+
+def test_dispatch_route_records_build_compile_unattempted_runner_evidence_in_hybrid_mode() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)
         with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
@@ -3848,7 +3963,7 @@ def test_dispatch_route_records_build_compile_dry_run_fallback_provenance_in_hyb
                 assert approved_dispatch.status_code == 200
                 payload = approved_dispatch.json()
                 assert payload["ok"] is True
-                assert payload["result"]["simulated"] is True
+                assert payload["result"]["simulated"] is False
 
                 executions = client.get("/executions")
                 assert executions.status_code == 200
@@ -3857,8 +3972,11 @@ def test_dispatch_route_records_build_compile_dry_run_fallback_provenance_in_hyb
                     for execution in executions.json()["executions"]
                     if execution["run_id"] == payload["operation_id"]
                 )
-                assert execution["details"]["real_path_available"] is False
-                assert execution["details"]["fallback_category"] == "dry-run-required"
+                assert execution["details"]["inspection_surface"] == "build_compile_runner"
+                assert execution["details"]["execution_attempted"] is False
+                assert execution["details"]["result_artifact_produced"] is False
+                assert execution["details"]["real_path_available"] is True
+                assert "Build root" in execution["details"]["compile_unavailable_reason"]
                 assert execution["details"]["project_root_path"] == str(project_root.resolve())
                 assert execution["details"]["build_root_path"] == str(
                     project_root.resolve() / "build"

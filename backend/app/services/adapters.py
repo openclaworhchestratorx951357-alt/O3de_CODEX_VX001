@@ -3,7 +3,9 @@ import hashlib
 import json
 import mimetypes
 import os
+import shutil
 import subprocess
+import tempfile
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
@@ -50,7 +52,6 @@ PLAN_ONLY_TOOL_PATHS_BY_MODE = {
         "asset.batch.process",
         "asset.move.safe",
         "build.configure",
-        "build.compile",
         "render.shader.rebuild",
         "test.run.gtest",
         "test.run.editor_python",
@@ -60,6 +61,7 @@ PLAN_ONLY_TOOL_PATHS_BY_MODE = {
 GATED_TOOL_PATHS_BY_MODE = {
     "simulated": [],
     "hybrid": [
+        "build.compile",
         "gem.enable",
         "render.material.patch",
         "settings.patch",
@@ -89,7 +91,7 @@ HYBRID_EXECUTION_BOUNDARY = (
     "editor.component.property.get may use the explicit bridge-backed real "
     "component property read path on McpSandbox, "
     "build.configure may use a real plan-only preflight path, build.compile may "
-    "use a real plan-only explicit target preflight and result-truth substrate, "
+    "use a real execution-gated explicit target runner substrate with bounded exit/log truth, "
     "gem.enable may use a real explicit gem-request preflight substrate and a "
     "first mutation-gated manifest-backed local gem_names insertion path with "
     "backup, rollback, and post-write verification, "
@@ -104,6 +106,7 @@ HYBRID_EXECUTION_BOUNDARY = (
     "may use a real plan-only runner preflight and result-truth substrate for "
     "explicit sequence requests, and all other tools remain simulated."
 )
+BUILD_COMPILE_RUNNER_TIMEOUT_S = 120
 MANIFEST_SETTINGS_KEYS = (
     "project_id",
     "project_name",
@@ -3165,7 +3168,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         requested_targets = self._normalized_string_list(args.get("targets"))
         requested_config = str(args.get("config", "")).strip() or None
         requested_parallel_jobs = self._coerce_positive_int(args.get("parallel_jobs"))
-        if not dry_run:
+        if not requested_targets:
             return self._fallback_build_compile(
                 tool=tool,
                 agent=agent,
@@ -3175,12 +3178,16 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 args=args,
                 approval_class=approval_class,
                 locks_acquired=locks_acquired,
-                reason=(
-                    "Real build.compile substrate evidence is currently limited to "
-                    "dry_run=true preflight requests; actual compile execution remains non-admitted."
-                ),
-                fallback_category="dry-run-required",
+                reason="Real build.compile requires at least one explicit target name.",
+                fallback_category="missing-targets",
             )
+
+        def _as_text(value: Any) -> str:
+            if value is None:
+                return ""
+            if isinstance(value, bytes):
+                return value.decode("utf-8", errors="replace")
+            return str(value)
 
         configure_probe = self._probe_configured_build_tree(build_root=build_root)
         target_probes = [
@@ -3199,13 +3206,47 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             if isinstance(probe.get("artifact_candidate_path"), str)
             and probe["artifact_candidate_path"]
         ]
+        selected_build_tree_path = self._select_configured_build_tree_path(
+            build_root=build_root,
+            configure_probe=configure_probe,
+        )
+        runner_probe: dict[str, Any] = {}
+        build_runner_available = False
+        build_runner_path: str | None = None
+        build_runner_probe_method: str | None = None
+        build_runner_source: str | None = None
+        build_runner_candidate_paths: list[str] = []
+        build_runner_exists = False
+        if not dry_run:
+            runner_probe = self._probe_build_compile_runner(
+                build_root=build_root,
+                configure_probe=configure_probe,
+            )
+            build_runner_available = bool(runner_probe.get("build_runner_available", False))
+            build_runner_path = (
+                str(runner_probe["build_runner_path"])
+                if isinstance(runner_probe.get("build_runner_path"), str)
+                and runner_probe["build_runner_path"]
+                else None
+            )
+            build_runner_probe_method = str(
+                runner_probe.get("build_runner_probe_method", "unavailable")
+            )
+            build_runner_source = (
+                str(runner_probe["build_runner_source"])
+                if isinstance(runner_probe.get("build_runner_source"), str)
+                and runner_probe["build_runner_source"]
+                else None
+            )
+            build_runner_candidate_paths = [
+                str(path)
+                for path in runner_probe.get("build_runner_candidate_paths", [])
+                if isinstance(path, str) and path
+            ]
+            build_runner_exists = bool(runner_probe.get("build_runner_exists", False))
 
         inspection_evidence = ["build_compile_target_request"]
-        unavailable_evidence = [
-            "compile_execution",
-            "compile_result_artifact",
-            "compile_exit_result",
-        ]
+        unavailable_evidence = ["compile_output_artifact"]
         if build_root.exists():
             inspection_evidence.append("build_tree_presence")
         else:
@@ -3220,11 +3261,13 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             inspection_evidence.append("target_artifact_candidate_metadata")
         else:
             unavailable_evidence.append("target_artifact_candidate_metadata")
+        if not dry_run:
+            inspection_evidence.append("build_runner_probe")
 
         compile_unavailable_reasons: list[str] = []
         if not build_root.exists():
             compile_unavailable_reasons.append(
-                f"Build root '{build_root}' is unavailable, so explicit build.compile preflight could not inspect configured targets."
+                f"Build root '{build_root}' is unavailable, so explicit build.compile could not inspect configured targets."
             )
         elif not configure_probe["configured_build_tree_available"]:
             compile_unavailable_reasons.append(
@@ -3242,43 +3285,181 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     + ", ".join(missing_targets)
                     + "."
                 )
+        if not dry_run and not build_runner_available:
+            compile_unavailable_reasons.append(
+                "No admitted build.compile runner could be resolved from the configured build tree or host PATH."
+            )
         compile_unavailable_reason = (
             " ".join(dict.fromkeys(compile_unavailable_reasons))
             if compile_unavailable_reasons
             else None
         )
 
+        execution_attempted = False
+        runner_timed_out = False
+        runner_command: list[str] = []
+        exit_code_available = False
+        exit_code: int | None = None
+        result_status = "not-attempted"
+        result_summary_available = False
+        result_unavailable_reason: str | None = (
+            "No real build.compile execution was attempted in this admitted plan-only preflight slice."
+            if dry_run
+            else "No real build.compile execution was attempted in this admitted execution-gated slice."
+        )
+        result_artifact_produced = False
+        result_artifact_path: str | None = None
+        result_artifact_content_type: str | None = None
+        result_artifact_size_bytes: int | None = None
+
         logs = [
-            "Real build.compile executed through the admitted plan-only preflight substrate.",
+            (
+                "Real build.compile executed through the admitted plan-only preflight substrate."
+                if dry_run
+                else "Real build.compile executed through the admitted execution-gated runner substrate."
+            ),
             f"Build root inspected at '{build_root}'.",
             f"Requested explicit build target count: {len(requested_targets)}.",
-            "No build command was executed in this slice.",
         ]
         warnings = [
-            "This is a real plan-only build.compile preflight path; actual compile execution remains non-admitted.",
+            (
+                "This is a real plan-only build.compile preflight path; actual compile execution remains non-admitted."
+                if dry_run
+                else "This is a real execution-gated build.compile runner path; compiled output verification remains unavailable in this slice."
+            ),
         ]
-        if compile_unavailable_reason:
-            warnings.append(compile_unavailable_reason)
-            logs.append(compile_unavailable_reason)
-        elif resolved_target_candidate_paths:
+        if resolved_target_candidate_paths:
             logs.append(
                 "Resolved explicit build target artifact candidate(s): "
                 + ", ".join(resolved_target_candidate_paths)
             )
+        if not dry_run and build_runner_available and build_runner_path:
+            inspection_evidence.append("build_runner_presence")
+            logs.append(
+                f"Resolved admitted build.compile runner via {build_runner_probe_method}: {build_runner_path}"
+            )
+        elif not dry_run:
+            unavailable_evidence.extend(["build_runner_presence", "compile_execution"])
+            if build_runner_candidate_paths:
+                logs.append(
+                    "Build.compile runner candidates were observed but not admitted: "
+                    + ", ".join(build_runner_candidate_paths)
+                )
+
+        compile_output_artifact_unavailable_reason = (
+            "Compiled output artifact verification remains unavailable in this admitted slice."
+        )
+        can_attempt_execution = (
+            not dry_run
+            and build_root.exists()
+            and configure_probe["configured_build_tree_available"]
+            and build_runner_available
+            and build_runner_path is not None
+        )
+        if can_attempt_execution:
+            if compile_unavailable_reason:
+                warnings.append(compile_unavailable_reason)
+                logs.append(compile_unavailable_reason)
+            runner_command = [
+                build_runner_path,
+                "--build",
+                str(selected_build_tree_path),
+                "--target",
+                *requested_targets,
+            ]
+            if requested_config:
+                runner_command.extend(["--config", requested_config])
+            if requested_parallel_jobs is not None:
+                runner_command.extend(["--parallel", str(requested_parallel_jobs)])
+
+            execution_attempted = True
+            inspection_evidence.append("compile_execution")
+            logs.append("Build.compile runner command: " + " ".join(runner_command))
+
+            combined_stdout = ""
+            combined_stderr = ""
+            try:
+                completed = subprocess.run(
+                    runner_command,
+                    capture_output=True,
+                    text=True,
+                    timeout=BUILD_COMPILE_RUNNER_TIMEOUT_S,
+                    check=False,
+                    cwd=str(selected_build_tree_path),
+                )
+                combined_stdout = _as_text(completed.stdout)
+                combined_stderr = _as_text(completed.stderr)
+                exit_code_available = True
+                exit_code = completed.returncode
+                result_status = "succeeded" if completed.returncode == 0 else "failed"
+                result_summary_available = True
+                result_unavailable_reason = None
+                inspection_evidence.append("compile_exit_result")
+                if completed.returncode != 0:
+                    warnings.append(
+                        f"Build.compile runner returned non-zero exit code {completed.returncode}."
+                    )
+            except subprocess.TimeoutExpired as exc:
+                combined_stdout = _as_text(exc.stdout)
+                combined_stderr = _as_text(exc.stderr)
+                runner_timed_out = True
+                result_status = "timed-out"
+                result_summary_available = True
+                result_unavailable_reason = None
+                unavailable_evidence.append("compile_exit_result")
+                warnings.append(
+                    f"Build.compile runner timed out after {BUILD_COMPILE_RUNNER_TIMEOUT_S} seconds."
+                )
+
+            artifact_path = self._write_build_compile_log_artifact(
+                build_tree_path=selected_build_tree_path,
+                runner_command=runner_command,
+                stdout=combined_stdout,
+                stderr=combined_stderr,
+                exit_code=exit_code,
+                exit_code_available=exit_code_available,
+                timed_out=runner_timed_out,
+                timeout_s=BUILD_COMPILE_RUNNER_TIMEOUT_S,
+            )
+            try:
+                artifact_size_bytes = artifact_path.stat().st_size
+            except OSError:
+                artifact_size_bytes = None
+            result_artifact_produced = True
+            result_artifact_path = str(artifact_path)
+            result_artifact_content_type = "text/plain"
+            result_artifact_size_bytes = artifact_size_bytes
+            inspection_evidence.append("compile_result_artifact")
+            if artifact_size_bytes is not None:
+                logs.append(
+                    f"Persisted build.compile runner log artifact at '{artifact_path}' ({artifact_size_bytes} bytes)."
+                )
+            else:
+                logs.append(
+                    f"Persisted build.compile runner log artifact at '{artifact_path}'."
+                )
+        else:
+            unavailable_evidence.extend(["compile_execution", "compile_result_artifact", "compile_exit_result"])
+            if compile_unavailable_reason:
+                warnings.append(compile_unavailable_reason)
+                logs.append(compile_unavailable_reason)
+            logs.append("No build command was executed in this slice.")
 
         details = {
-            "inspection_surface": "build_compile_preflight",
+            "inspection_surface": (
+                "build_compile_preflight" if dry_run else "build_compile_runner"
+            ),
             "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
             "simulated": False,
             "adapter_family": self.family,
             "adapter_mode": self.mode,
             "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
             "real_path_available": True,
-            "preflight_execution_mode": "plan-only",
             "build_request_explicit": True,
             "project_root_path": str(resolved_project_root),
             "build_root_path": str(build_root),
             "build_root_exists": build_root.exists(),
+            "selected_build_tree_path": str(selected_build_tree_path),
             "requested_targets": requested_targets,
             "requested_config": requested_config,
             "requested_parallel_jobs": requested_parallel_jobs,
@@ -3298,20 +3479,40 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             ),
             "resolved_target_candidate_paths": resolved_target_candidate_paths,
             "target_probe_results": target_probes,
-            "execution_attempted": False,
-            "result_artifact_produced": False,
-            "result_artifact_path": None,
-            "result_artifact_content_type": None,
-            "result_artifact_size_bytes": None,
-            "exit_code_available": False,
-            "exit_code": None,
-            "result_status": "not-attempted",
-            "result_summary_available": False,
-            "result_unavailable_reason": (
-                "No real build.compile execution was attempted in this admitted plan-only slice."
-            ),
+            "execution_attempted": execution_attempted,
+            "result_artifact_produced": result_artifact_produced,
+            "result_artifact_path": result_artifact_path,
+            "result_artifact_content_type": result_artifact_content_type,
+            "result_artifact_size_bytes": result_artifact_size_bytes,
+            "exit_code_available": exit_code_available,
+            "exit_code": exit_code,
+            "result_status": result_status,
+            "result_summary_available": result_summary_available,
+            "result_unavailable_reason": result_unavailable_reason,
             "compile_unavailable_reason": compile_unavailable_reason,
+            "compile_output_artifact_available": False,
+            "compile_output_artifact_unavailable_reason": (
+                compile_output_artifact_unavailable_reason
+            ),
         }
+        if dry_run:
+            details["preflight_execution_mode"] = "plan-only"
+        else:
+            details.update(
+                {
+                    "build_runner_probe_attempted": True,
+                    "build_runner_probe_method": build_runner_probe_method,
+                    "build_runner_available": build_runner_available,
+                    "build_runner_path": build_runner_path,
+                    "build_runner_source": build_runner_source,
+                    "build_runner_exists": build_runner_exists,
+                    "build_runner_candidate_paths": build_runner_candidate_paths,
+                    "runner_command": runner_command,
+                    "runner_working_directory": str(selected_build_tree_path),
+                    "runner_timeout_s": BUILD_COMPILE_RUNNER_TIMEOUT_S,
+                    "runner_timed_out": runner_timed_out,
+                }
+            )
         result = DispatchResult(
             status="real_success",
             tool=tool,
@@ -3325,6 +3526,12 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             locks_acquired=locks_acquired,
             message=(
                 "Real build.compile preflight completed for the explicit target request; no build command was executed."
+                if dry_run
+                else (
+                "Real build.compile runner evidence completed for the explicit target request."
+                if execution_attempted
+                else "Real build.compile runner substrate completed for the explicit target request; no build command was executed."
+                )
             ),
         )
         return AdapterExecutionReport(
@@ -3332,9 +3539,33 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             result=result,
             warnings=warnings,
             logs=logs,
-            artifact_label="Real build compile preflight evidence",
-            artifact_kind="build_compile_preflight",
-            artifact_uri=(build_root if build_root.exists() else resolved_project_root).as_uri(),
+            artifact_label=(
+                "Real build compile preflight evidence"
+                if dry_run
+                else (
+                "Real build compile runner log evidence"
+                if result_artifact_produced
+                else "Real build compile runner evidence"
+                )
+            ),
+            artifact_kind=(
+                "build_compile_preflight"
+                if dry_run
+                else (
+                "build_compile_runner_log"
+                if result_artifact_produced
+                else "build_compile_runner"
+                )
+            ),
+            artifact_uri=(
+                (build_root if build_root.exists() else resolved_project_root).as_uri()
+                if dry_run
+                else (
+                    Path(result_artifact_path).as_uri()
+                    if result_artifact_path
+                    else selected_build_tree_path.as_uri()
+                )
+            ),
             artifact_metadata={
                 "tool": tool,
                 "agent": agent,
@@ -3342,7 +3573,15 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 **details,
             },
             execution_details=details,
-            result_summary="Real build.compile preflight substrate completed successfully.",
+            result_summary=(
+                "Real build.compile preflight substrate completed successfully."
+                if dry_run
+                else (
+                "Real build.compile runner substrate completed successfully."
+                if execution_attempted
+                else "Real build.compile runner substrate produced unattempted runner evidence."
+                )
+            ),
         )
 
     def _execute_gem_enable(
@@ -5348,6 +5587,133 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 if candidate:
                     normalized.append(candidate)
         return normalized
+
+    def _select_configured_build_tree_path(
+        self,
+        *,
+        build_root: Path,
+        configure_probe: dict[str, Any],
+    ) -> Path:
+        candidate_paths: list[Path] = []
+        for marker in configure_probe.get("configured_build_tree_markers", []):
+            if not isinstance(marker, str) or not marker:
+                continue
+            marker_path = Path(marker)
+            candidate_paths.append(marker_path.parent)
+        if not candidate_paths:
+            return build_root
+        return min(candidate_paths, key=lambda path: (len(path.parts), len(str(path))))
+
+    def _probe_build_compile_runner(
+        self,
+        *,
+        build_root: Path,
+        configure_probe: dict[str, Any],
+    ) -> dict[str, Any]:
+        candidate_paths: list[str] = []
+        for marker in configure_probe.get("configured_build_tree_markers", []):
+            if not isinstance(marker, str) or not marker:
+                continue
+            cache_path = Path(marker)
+            if not cache_path.is_file():
+                continue
+            try:
+                cache_lines = cache_path.read_text(encoding="utf-8", errors="replace").splitlines()
+            except OSError:
+                continue
+            for line in cache_lines:
+                if not line.startswith("CMAKE_COMMAND:") or "=" not in line:
+                    continue
+                raw_candidate = line.split("=", 1)[1].strip()
+                if not raw_candidate:
+                    continue
+                candidate_path = str(Path(raw_candidate).expanduser())
+                if candidate_path not in candidate_paths:
+                    candidate_paths.append(candidate_path)
+                if Path(candidate_path).is_file():
+                    return {
+                        "build_runner_available": True,
+                        "build_runner_path": candidate_path,
+                        "build_runner_exists": True,
+                        "build_runner_source": "cmake-cache",
+                        "build_runner_probe_method": "cmake-cache-lookup",
+                        "build_runner_candidate_paths": candidate_paths,
+                    }
+
+        host_path = shutil.which("cmake")
+        if host_path:
+            if host_path not in candidate_paths:
+                candidate_paths.append(host_path)
+            return {
+                "build_runner_available": True,
+                "build_runner_path": host_path,
+                "build_runner_exists": True,
+                "build_runner_source": "host-path",
+                "build_runner_probe_method": (
+                    "cmake-cache-lookup+host-path-fallback"
+                    if candidate_paths[:-1]
+                    else "host-path-lookup"
+                ),
+                "build_runner_candidate_paths": candidate_paths,
+            }
+
+        unresolved_candidate = candidate_paths[0] if candidate_paths else None
+        return {
+            "build_runner_available": False,
+            "build_runner_path": unresolved_candidate,
+            "build_runner_exists": bool(
+                unresolved_candidate and Path(unresolved_candidate).is_file()
+            ),
+            "build_runner_source": "unavailable",
+            "build_runner_probe_method": (
+                "cmake-cache-lookup"
+                if candidate_paths
+                else "cmake-cache-lookup+host-path-lookup"
+            ),
+            "build_runner_candidate_paths": candidate_paths,
+        }
+
+    def _write_build_compile_log_artifact(
+        self,
+        *,
+        build_tree_path: Path,
+        runner_command: list[str],
+        stdout: str,
+        stderr: str,
+        exit_code: int | None,
+        exit_code_available: bool,
+        timed_out: bool,
+        timeout_s: int,
+    ) -> Path:
+        log_dir = build_tree_path / ".codex-control-plane" / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        fd, raw_path = tempfile.mkstemp(
+            prefix="build_compile_",
+            suffix=".log",
+            dir=str(log_dir),
+        )
+        os.close(fd)
+        artifact_path = Path(raw_path)
+        payload = "\n".join(
+            [
+                "build.compile runner log",
+                f"runner_command: {' '.join(runner_command)}",
+                f"runner_working_directory: {build_tree_path}",
+                f"runner_timeout_s: {timeout_s}",
+                f"runner_timed_out: {str(timed_out).lower()}",
+                f"exit_code_available: {str(exit_code_available).lower()}",
+                f"exit_code: {exit_code if exit_code_available else 'unavailable'}",
+                "",
+                "stdout:",
+                stdout.rstrip(),
+                "",
+                "stderr:",
+                stderr.rstrip(),
+                "",
+            ]
+        )
+        artifact_path.write_text(payload, encoding="utf-8")
+        return artifact_path
 
     def _probe_configured_build_tree(self, *, build_root: Path) -> dict[str, Any]:
         if not build_root.exists():
@@ -8993,8 +9359,8 @@ class AdapterService:
                     "McpSandbox, an admitted allowlist-bound editor.component.add "
                     "path on McpSandbox, and an admitted explicit "
                     "editor.component.property.get read path on McpSandbox, "
-                    "real plan-only asset.batch.process, build.configure, "
-                    "and build.compile paths, a real mutation-gated gem.enable "
+                    "real plan-only asset.batch.process and build.configure "
+                    "paths, a real execution-gated build.compile path, a real mutation-gated gem.enable "
                     "path, and a real mutation-gated settings.patch path.",
                 ],
             )
@@ -9051,8 +9417,9 @@ class AdapterService:
                     "Hybrid mode also enables a real plan-only build.configure "
                     "preflight path when dry_run=true and manifest preconditions are "
                     "satisfied.",
-                    "Hybrid mode also enables a real plan-only build.compile "
-                    "preflight/result-truth path for explicit target requests.",
+                    "Hybrid mode also enables a real execution-gated build.compile "
+                    "runner path for explicit target requests, with bounded exit/log truth "
+                    "and dry_run preflight preserved as a real plan-only slice.",
                     "Hybrid mode also enables a real mutation-gated gem.enable "
                     "path for explicit manifest-backed local gem_names insertion requests.",
                     "Hybrid mode also enables a real mutation-gated render.material.patch "
@@ -9205,9 +9572,11 @@ class AdapterService:
             if family_supports_real:
                 if family == "project-build":
                     family_notes.append(
-                        "project.inspect currently has a real read-only path and "
-                        "build.configure and build.compile currently have real "
-                        "plan-only preflight paths, while gem.enable and "
+                        "project.inspect currently has a real read-only path, "
+                        "build.configure currently has a real plan-only "
+                        "preflight path, build.compile currently has a real "
+                        "execution-gated runner path with retained preflight "
+                        "truth, while gem.enable and "
                         "settings.patch currently have narrow real mutation-gated "
                         "paths in this family."
                     )

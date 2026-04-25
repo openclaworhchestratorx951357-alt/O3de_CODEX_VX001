@@ -43,7 +43,7 @@ def tool_real_admission_stage(tool_name: str) -> str:
     if tool_name == "render.shader.rebuild":
         return "real-plan-only-active"
     if tool_name == "build.compile":
-        return "real-plan-only-active"
+        return "real-execution-gated-active"
     return "simulated-only"
 
 
@@ -182,10 +182,10 @@ def tool_next_real_requirement(tool_name: str) -> str:
         )
     if tool_name == "build.compile":
         return (
-            "Keep real execution limited to explicit build.compile preflight and "
-            "result-truth evidence, with actual compile execution, exit semantics, "
-            "and result artifact production marked unavailable unless a real admitted "
-            "compiler runner path is proven."
+            "Keep real execution limited to explicit build.compile runner invocation, "
+            "exit-code truth, and retained log artifact evidence for named targets, "
+            "while compiled output artifact verification remains unavailable unless a "
+            "broader admitted build-result path is proven."
         )
     return "Remain simulated until a tool-specific real adapter gate is admitted."
 
@@ -207,6 +207,7 @@ def tool_policy_execution_mode(tool_name: str) -> str:
     if admission_stage in {
         "real-read-only-active",
         "real-editor-authoring-active",
+        "real-execution-gated-active",
     }:
         return "real"
     if admission_stage == "real-plan-only-active":

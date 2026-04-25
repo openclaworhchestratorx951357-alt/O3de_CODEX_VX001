@@ -537,13 +537,20 @@ class DispatcherService:
         resolved_workspace_id = (
             substrate_assignment["workspace_id"] or request.workspace_id
         )
+        artifact_content_type = "application/json"
+        result_artifact_content_type = adapter_report.artifact_metadata.get(
+            "result_artifact_content_type"
+        )
+        if isinstance(result_artifact_content_type, str) and result_artifact_content_type:
+            artifact_content_type = result_artifact_content_type
+
         artifact = artifacts_service.create_artifact(
             run_id=run.id,
             execution_id=execution.id,
             label=adapter_report.artifact_label,
             kind=adapter_report.artifact_kind,
             uri=adapter_report.artifact_uri.format(run_id=run.id, execution_id=execution.id),
-            content_type="application/json",
+            content_type=artifact_content_type,
             simulated=result.simulated,
             metadata=self._with_prompt_safety(
                 tool_name=request.tool,
@@ -761,23 +768,38 @@ class DispatcherService:
             admitted_tools = ["project.inspect", "build.configure", "build.compile"]
             backup_class = None
             rollback_class = None
-        elif (
-            request.tool == "build.compile"
-            and inspection_surface == "build_compile_preflight"
-        ):
-            executor_id = "executor-project-build-hybrid-readonly-local"
-            executor_kind = "local-admitted-readonly"
-            executor_label = "Admitted local read-only substrate executor"
-            executor_host_label = "local-project-manifest"
-            workspace_kind = "admitted-plan-only-project-root"
-            cleanup_policy = "operator-managed-preflight"
-            artifact_role = "plan-evidence"
-            evidence_completeness = "plan-backed"
-            execution_boundary = "plan-only local compile preflight"
-            workspace_id = f"workspace-build-compile-{execution_id}"
-            admitted_tools = ["project.inspect", "build.configure", "build.compile"]
-            backup_class = None
-            rollback_class = None
+        elif request.tool == "build.compile" and inspection_surface in {
+            "build_compile_preflight",
+            "build_compile_runner",
+        }:
+            if inspection_surface == "build_compile_runner":
+                executor_id = "executor-project-build-hybrid-execution-gated-local"
+                executor_kind = "local-admitted-execution-gated"
+                executor_label = "Admitted local build runner executor"
+                executor_host_label = "local-project-build-runner"
+                workspace_kind = "admitted-execution-gated-project-root"
+                cleanup_policy = "operator-managed-build-logs"
+                artifact_role = "execution-evidence"
+                evidence_completeness = "runner-backed"
+                execution_boundary = "execution-gated local compile runner with exit and log truth"
+                workspace_id = f"workspace-build-compile-{execution_id}"
+                admitted_tools = ["project.inspect", "build.configure", "build.compile"]
+                backup_class = None
+                rollback_class = None
+            else:
+                executor_id = "executor-project-build-hybrid-readonly-local"
+                executor_kind = "local-admitted-readonly"
+                executor_label = "Admitted local read-only substrate executor"
+                executor_host_label = "local-project-manifest"
+                workspace_kind = "admitted-plan-only-project-root"
+                cleanup_policy = "operator-managed-preflight"
+                artifact_role = "plan-evidence"
+                evidence_completeness = "plan-backed"
+                execution_boundary = "plan-only local compile preflight"
+                workspace_id = f"workspace-build-compile-{execution_id}"
+                admitted_tools = ["project.inspect", "build.configure", "build.compile"]
+                backup_class = None
+                rollback_class = None
         elif request.tool == "gem.enable" and inspection_surface in {
             "gem_enable_preflight",
             "gem_enable_mutation",
@@ -1365,6 +1387,12 @@ class DispatcherService:
             return "plan-only asset.batch.process preflight"
         if request.tool == "asset.move.safe" and capability == "plan-only":
             return "plan-only asset.move.safe preflight"
+        if request.tool == "build.compile" and capability == "execution-gated":
+            return (
+                "execution-gated build.compile runner"
+                if not request.dry_run
+                else "plan-only build.compile preflight"
+            )
         if request.tool == "build.compile" and capability == "plan-only":
             return "plan-only build.compile preflight"
         if request.tool == "render.shader.rebuild" and capability == "plan-only":
@@ -1411,7 +1439,11 @@ class DispatcherService:
         if request.tool == "build.configure":
             return "This run used the real plan-only build.configure preflight path."
         if request.tool == "build.compile":
-            return "This run used the real plan-only build.compile preflight path."
+            return (
+                "This run used the real build.compile runner path."
+                if not request.dry_run
+                else "This run used the real plan-only build.compile preflight path."
+            )
         if request.tool == "render.shader.rebuild":
             return (
                 "This run used the real plan-only render.shader.rebuild preflight path."

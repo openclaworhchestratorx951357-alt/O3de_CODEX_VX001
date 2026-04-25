@@ -45,7 +45,7 @@ def tool_capability_status(tool_name: str) -> str:
     if tool_name == "build.configure":
         return "plan-only"
     if tool_name == "build.compile":
-        return "plan-only"
+        return "execution-gated"
     if tool_name == "gem.enable":
         return "mutation-gated"
     if tool_name == "settings.patch":
