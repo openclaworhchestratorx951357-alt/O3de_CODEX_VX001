@@ -9,23 +9,24 @@ from typing import Any
 import prove_live_editor_authoring as authoring
 
 PROOF_NAME = "live_editor_entity_exists_proof"
-SCRIPT_VERSION = "v0.1"
+SCRIPT_VERSION = "v0.2"
 PROOF_ENTITY_NAME_PREFERENCES = ("Ground",)
 PROOF_SESSION_STEP = "editor_session_open"
 PROOF_LEVEL_STEP = "editor_level_open"
 PROOF_EXISTS_STEP = "editor_entity_exists"
+EDITOR_ENTITY_EXISTS_STEP_ID = "editor-entity-exists-1"
 PROOF_STEP_ORDER = [
-    (PROOF_SESSION_STEP, "editor.session.open"),
-    (PROOF_LEVEL_STEP, "editor.level.open"),
-    (PROOF_EXISTS_STEP, "editor.entity.exists"),
+    (PROOF_SESSION_STEP, authoring.EDITOR_SESSION_STEP_ID, "editor.session.open"),
+    (PROOF_LEVEL_STEP, authoring.EDITOR_LEVEL_STEP_ID, "editor.level.open"),
+    (PROOF_EXISTS_STEP, EDITOR_ENTITY_EXISTS_STEP_ID, "editor.entity.exists"),
 ]
 SUCCESS_NEXT_STEP = (
-    "Post-direct-readback proof checkpoint refresh and repeatability alignment"
+    "Post-prompt-readback proof checkpoint refresh and repeatability alignment"
 )
 
 
 class EntityExistsProofError(authoring.ProofError):
-    """Raised when the direct entity-exists proof cannot complete successfully."""
+    """Raised when the prompt-orchestrated entity-exists proof cannot complete."""
 
 
 def _ordered_unique(values: list[str]) -> list[str]:
@@ -132,20 +133,22 @@ def require_adapters_payload(adapters_payload: dict[str, Any]) -> None:
         raise EntityExistsProofError("GET /adapters did not expose real_tool_paths.")
     missing = [
         tool_name
-        for _, tool_name in PROOF_STEP_ORDER
+        for _, _, tool_name in PROOF_STEP_ORDER
         if tool_name not in real_tool_paths
     ]
     if missing:
         raise EntityExistsProofError(
-            "GET /adapters did not report the required real direct proof paths: "
+            "GET /adapters did not report the required real prompt proof paths: "
             f"{missing}."
         )
 
 
-def require_entity_exists_capabilities(capabilities_payload: dict[str, Any]) -> dict[str, Any]:
+def require_entity_exists_capabilities(
+    capabilities_payload: dict[str, Any],
+) -> dict[str, Any]:
     admitted_capabilities = {
         tool_name: authoring.find_capability(capabilities_payload, tool_name=tool_name)
-        for _, tool_name in PROOF_STEP_ORDER
+        for _, _, tool_name in PROOF_STEP_ORDER
     }
     authoring.require_capability_status(
         admitted_capabilities["editor.session.open"],
@@ -168,264 +171,184 @@ def require_entity_exists_capabilities(capabilities_payload: dict[str, Any]) -> 
     return admitted_capabilities
 
 
-def make_request_payload(
+def build_prompt_request(
     *,
-    request_id: str,
-    tool_name: str,
     project_root: str,
     engine_root: str,
-    session_id: str,
-    args: dict[str, Any],
-    timeout_s: int,
-) -> dict[str, Any]:
-    return {
-        "request_id": request_id,
-        "tool": tool_name,
-        "agent": "editor-control",
-        "project_root": project_root,
-        "engine_root": engine_root,
-        "session_id": session_id,
-        "workspace_id": None,
-        "executor_id": None,
-        "dry_run": False,
-        "locks": ["editor_session"],
-        "timeout_s": timeout_s,
-        "args": args,
-    }
-
-
-def build_dispatch_requests(
-    *,
-    run_label: str,
-    project_root: str,
-    engine_root: str,
+    prompt_id: str,
+    workspace_id: str | None,
+    executor_id: str | None,
     level_path: str,
     entity_name: str,
-) -> dict[str, dict[str, Any]]:
-    session_id = f"editor-entity-exists-proof-{run_label}"
-    return {
-        PROOF_SESSION_STEP: make_request_payload(
-            request_id=f"{session_id}-session-open",
-            tool_name="editor.session.open",
-            project_root=project_root,
-            engine_root=engine_root,
-            session_id=session_id,
-            timeout_s=180,
-            args={
-                "session_mode": "attach",
-                "project_path": project_root,
-                "timeout_s": 180,
-            },
-        ),
-        PROOF_LEVEL_STEP: make_request_payload(
-            request_id=f"{session_id}-level-open",
-            tool_name="editor.level.open",
-            project_root=project_root,
-            engine_root=engine_root,
-            session_id=session_id,
-            timeout_s=180,
-            args={
-                "level_path": level_path,
-                "make_writable": False,
-                "focus_viewport": False,
-            },
-        ),
-        PROOF_EXISTS_STEP: make_request_payload(
-            request_id=f"{session_id}-entity-exists",
-            tool_name="editor.entity.exists",
-            project_root=project_root,
-            engine_root=engine_root,
-            session_id=session_id,
-            timeout_s=60,
-            args={
-                "entity_name": entity_name,
-                "level_path": level_path,
-            },
-        ),
-    }
-
-
-def require_dispatch_success(response: dict[str, Any], *, tool_name: str) -> None:
-    if response.get("ok") is not True:
-        raise EntityExistsProofError(f"{tool_name} dispatch did not return ok=true.")
-    result = response.get("result")
-    if not isinstance(result, dict):
-        raise EntityExistsProofError(f"{tool_name} dispatch did not include a result.")
-    if result.get("tool") != tool_name:
-        raise EntityExistsProofError(f"{tool_name} dispatch returned a mismatched tool.")
-    if result.get("simulated") is not False:
-        raise EntityExistsProofError(f"{tool_name} dispatch did not use the real path.")
-    if result.get("status") != "real_success":
-        raise EntityExistsProofError(
-            f"{tool_name} dispatch returned status {result.get('status')!r}."
-        )
-
-
-def dispatch_with_auto_approval(
-    *,
-    base_url: str,
-    payload: dict[str, Any],
 ) -> dict[str, Any]:
-    tool_name = str(payload["tool"])
-    first_response = authoring.json_request(
-        base_url=base_url,
-        method="POST",
-        path="/tools/dispatch",
-        payload=payload,
-        timeout_s=payload["timeout_s"],
-    )
-    if not isinstance(first_response, dict):
-        raise EntityExistsProofError(f"{tool_name} dispatch did not return an object.")
-
-    if first_response.get("ok") is True:
-        require_dispatch_success(first_response, tool_name=tool_name)
-        return {
-            "initial_request_payload": authoring.scrub_secrets(payload),
-            "initial_response": authoring.scrub_secrets(first_response),
-            "approval_response": None,
-            "approved_request_payload": None,
-            "final_response": authoring.scrub_secrets(first_response),
-            "final_response_raw": first_response,
-        }
-
-    error = first_response.get("error")
-    if not isinstance(error, dict) or error.get("code") != "APPROVAL_REQUIRED":
-        raise EntityExistsProofError(
-            f"{tool_name} dispatch failed before approval: {first_response}"
-        )
-    approval_id = first_response.get("approval_id")
-    if not isinstance(approval_id, str) or not approval_id:
-        raise EntityExistsProofError(f"{tool_name} dispatch required approval without an id.")
-
-    approval_response = authoring.json_request(
-        base_url=base_url,
-        method="POST",
-        path=f"/approvals/{approval_id}/approve",
-        payload={
-            "reason": (
-                "Repo-owned bounded direct entity-exists proof auto-approval."
-            )
-        },
-        timeout_s=30,
-    )
-    if not isinstance(approval_response, dict):
-        raise EntityExistsProofError(f"{tool_name} approval did not return an object.")
-    approval_token = approval_response.get("token")
-    if not isinstance(approval_token, str) or not approval_token:
-        details = error.get("details")
-        if isinstance(details, dict):
-            approval_token = details.get("approval_token")
-    if not isinstance(approval_token, str) or not approval_token:
-        raise EntityExistsProofError(f"{tool_name} approval did not expose a token.")
-
-    approved_payload = {
-        **payload,
-        "request_id": f"{payload['request_id']}-approved",
-        "approval_token": approval_token,
-    }
-    final_response = authoring.json_request(
-        base_url=base_url,
-        method="POST",
-        path="/tools/dispatch",
-        payload=approved_payload,
-        timeout_s=payload["timeout_s"],
-    )
-    if not isinstance(final_response, dict):
-        raise EntityExistsProofError(f"{tool_name} approved dispatch returned no object.")
-    require_dispatch_success(final_response, tool_name=tool_name)
     return {
-        "initial_request_payload": authoring.scrub_secrets(payload),
-        "initial_response": authoring.scrub_secrets(first_response),
-        "approval_response": authoring.scrub_secrets(approval_response),
-        "approved_request_payload": authoring.scrub_secrets(approved_payload),
-        "final_response": authoring.scrub_secrets(final_response),
-        "final_response_raw": final_response,
+        "prompt_id": prompt_id,
+        "prompt_text": f'Open level "{level_path}" and verify entity "{entity_name}" exists.',
+        "project_root": project_root,
+        "engine_root": engine_root,
+        "workspace_id": workspace_id,
+        "executor_id": executor_id,
+        "dry_run": False,
+        "preferred_domains": ["editor-control"],
+        "operator_note": (
+            "Repo-owned bounded live proof for the admitted Prompt Studio direct "
+            "editor.entity.exists read-only chain."
+        ),
     }
 
 
-def collect_dispatch_records(
+def require_prompt_plan(
+    session_record: dict[str, Any],
+    *,
+    project_root: str,
+    level_path: str,
+    entity_name: str,
+) -> None:
+    if session_record.get("status") != "planned":
+        raise EntityExistsProofError(
+            "Prompt session create did not return status=planned: "
+            f"{session_record.get('status')}"
+        )
+
+    plan = session_record.get("plan")
+    if not isinstance(plan, dict):
+        raise EntityExistsProofError("Prompt session create did not include a plan.")
+    steps = plan.get("steps")
+    if not isinstance(steps, list):
+        raise EntityExistsProofError("Prompt session plan did not include steps.")
+
+    actual_tools = [step.get("tool") for step in steps if isinstance(step, dict)]
+    expected_tools = [tool_name for _, _, tool_name in PROOF_STEP_ORDER]
+    if actual_tools != expected_tools:
+        raise EntityExistsProofError(
+            "Prompt session plan did not resolve the expected direct readback chain. "
+            f"Expected {expected_tools}, got {actual_tools}."
+        )
+
+    step_by_id: dict[str, dict[str, Any]] = {}
+    for _, step_id, _ in PROOF_STEP_ORDER:
+        step = next(
+            (
+                candidate
+                for candidate in steps
+                if isinstance(candidate, dict) and candidate.get("step_id") == step_id
+            ),
+            None,
+        )
+        if step is None:
+            raise EntityExistsProofError(
+                f"Prompt session plan did not include expected step '{step_id}'."
+            )
+        step_by_id[step_id] = step
+
+    session_args = step_by_id[authoring.EDITOR_SESSION_STEP_ID].get("args")
+    if not isinstance(session_args, dict):
+        raise EntityExistsProofError("Prompt session step lacked structured args.")
+    if session_args.get("session_mode") != "attach":
+        raise EntityExistsProofError("Prompt session step did not stay in attach mode.")
+    if session_args.get("project_path") != project_root:
+        raise EntityExistsProofError("Prompt session step did not preserve project root.")
+    timeout_s = session_args.get("timeout_s")
+    if not isinstance(timeout_s, int) or timeout_s <= 0:
+        raise EntityExistsProofError("Prompt session step did not preserve a timeout.")
+
+    level_step = step_by_id[authoring.EDITOR_LEVEL_STEP_ID]
+    level_args = level_step.get("args")
+    if level_step.get("depends_on") != [authoring.EDITOR_SESSION_STEP_ID]:
+        raise EntityExistsProofError("Prompt level step did not depend on the session step.")
+    if not isinstance(level_args, dict):
+        raise EntityExistsProofError("Prompt level step lacked structured args.")
+    if level_args != {
+        "level_path": level_path,
+        "make_writable": False,
+        "focus_viewport": False,
+    }:
+        raise EntityExistsProofError(
+            "Prompt level step did not stay within the read-only level-open boundary."
+        )
+
+    exists_step = step_by_id[EDITOR_ENTITY_EXISTS_STEP_ID]
+    exists_args = exists_step.get("args")
+    if exists_step.get("approval_class") != "read_only":
+        raise EntityExistsProofError("Prompt entity-exists step was not read-only.")
+    if exists_step.get("depends_on") != [
+        authoring.EDITOR_SESSION_STEP_ID,
+        authoring.EDITOR_LEVEL_STEP_ID,
+    ]:
+        raise EntityExistsProofError(
+            "Prompt entity-exists step did not depend on session and level steps."
+        )
+    if exists_args != {"entity_name": entity_name, "level_path": level_path}:
+        raise EntityExistsProofError(
+            "Prompt entity-exists step did not preserve the exact entity-name lookup."
+        )
+
+    refused_capabilities = session_record.get("refused_capabilities")
+    if isinstance(refused_capabilities, list) and refused_capabilities:
+        raise EntityExistsProofError(
+            "Prompt session plan reported refused capabilities for the direct readback proof."
+        )
+
+
+def build_child_step_records(
     *,
     base_url: str,
-    dispatch_results: dict[str, dict[str, Any]],
-) -> dict[str, dict[str, Any]]:
-    executions_payload = authoring.json_request(
-        base_url=base_url,
-        method="GET",
-        path="/executions",
-    )
-    artifacts_payload = authoring.json_request(
-        base_url=base_url,
-        method="GET",
-        path="/artifacts",
-    )
-    if not isinstance(executions_payload, dict):
-        raise EntityExistsProofError("GET /executions did not return an object.")
-    if not isinstance(artifacts_payload, dict):
-        raise EntityExistsProofError("GET /artifacts did not return an object.")
-
-    records: dict[str, dict[str, Any]] = {}
-    for logical_name, dispatch_result in dispatch_results.items():
-        final_response = dispatch_result["final_response_raw"]
-        run_id = final_response.get("operation_id")
-        if not isinstance(run_id, str) or not run_id:
+    session_record: dict[str, Any],
+) -> dict[str, Any]:
+    records: dict[str, Any] = {}
+    for logical_name, step_id, _ in PROOF_STEP_ORDER:
+        response_record = authoring.latest_successful_response_for_step(
+            session_record,
+            step_id,
+        )
+        if response_record is None:
             raise EntityExistsProofError(
-                f"{logical_name} final dispatch response did not include operation_id."
+                "Prompt session did not produce a successful child response for "
+                f"{step_id}."
             )
-        run_record = authoring.json_request(
+        records[logical_name] = authoring.collect_step_runtime_records(
             base_url=base_url,
-            method="GET",
-            path=f"/runs/{run_id}",
+            response_record=response_record,
         )
-        if not isinstance(run_record, dict):
-            raise EntityExistsProofError(f"GET /runs/{run_id} did not return an object.")
-        execution_record = authoring.extract_execution_for_run(
-            executions_payload,
-            run_id=run_id,
-        )
-        artifact_record = authoring.extract_artifact_for_execution(
-            artifacts_payload,
-            execution_id=execution_record["id"],
-        )
-        artifact_payload = authoring.json_request(
-            base_url=base_url,
-            method="GET",
-            path=f"/artifacts/{artifact_record['id']}",
-        )
-        records[logical_name] = {
-            **dispatch_result,
-            "run_id": run_id,
-            "run_record": authoring.scrub_secrets(run_record),
-            "execution_id": execution_record["id"],
-            "execution_record": authoring.scrub_secrets(execution_record),
-            "artifact_id": artifact_record["id"],
-            "artifact_record": authoring.scrub_secrets(artifact_record),
-            "artifact_payload": authoring.scrub_secrets(artifact_payload),
-        }
-
     return records
 
 
 def _record_ids(
-    dispatch_records: dict[str, dict[str, Any]],
+    step_records: dict[str, dict[str, Any]],
     key: str,
 ) -> dict[str, str | None]:
     return {
-        tool_name: dispatch_records[logical_name].get(key)
-        for logical_name, tool_name in PROOF_STEP_ORDER
+        tool_name: step_records[logical_name].get(key)
+        for logical_name, _, tool_name in PROOF_STEP_ORDER
+    }
+
+
+def _bridge_command_ids(step_records: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    return {
+        tool_name: step_records[logical_name].get("bridge_command_id")
+        for logical_name, _, tool_name in PROOF_STEP_ORDER
     }
 
 
 def require_entity_exists_verified(
-    dispatch_records: dict[str, dict[str, Any]],
+    step_records: dict[str, dict[str, Any]],
     *,
     target: dict[str, Any],
 ) -> dict[str, Any]:
-    exists_record = dispatch_records[PROOF_EXISTS_STEP]
-    execution_details = exists_record["execution_record"].get("details")
+    exists_record = step_records[PROOF_EXISTS_STEP]
+    execution_record = exists_record.get("execution_record")
+    if not isinstance(execution_record, dict):
+        raise EntityExistsProofError("editor.entity.exists execution record was missing.")
+    execution_details = execution_record.get("details")
     if not isinstance(execution_details, dict):
         raise EntityExistsProofError("editor.entity.exists execution lacked details.")
 
-    artifact_metadata = exists_record["artifact_record"].get("metadata")
+    artifact_record = exists_record.get("artifact_record")
+    artifact_metadata = (
+        artifact_record.get("metadata")
+        if isinstance(artifact_record, dict)
+        else {}
+    )
     if not isinstance(artifact_metadata, dict):
         artifact_metadata = {}
 
@@ -476,13 +399,50 @@ def require_entity_exists_verified(
     }
 
 
+def require_prompt_review_summary(
+    session_record: dict[str, Any],
+    *,
+    target: dict[str, Any],
+) -> str:
+    final_result_summary = session_record.get("final_result_summary")
+    if not isinstance(final_result_summary, str) or not final_result_summary.strip():
+        raise EntityExistsProofError("Prompt session did not include a final_result_summary.")
+
+    entity_name = target["selected_entity_name"]
+    required_fragments = [
+        "Review result: succeeded_readback_verified",
+        f"Checked entity existence by entity_name lookup for {entity_name}.",
+        f"Readback confirmed {entity_name}",
+        "via entity_name lookup with matched_count=1.",
+        "No cleanup or restore was executed or needed by this read-only proof.",
+        "This review does not claim entity creation",
+    ]
+    missing_fragments = [
+        fragment for fragment in required_fragments if fragment not in final_result_summary
+    ]
+    if missing_fragments:
+        raise EntityExistsProofError(
+            "Prompt session final_result_summary did not preserve the admitted "
+            "direct entity-exists review flow. "
+            f"Missing fragments: {missing_fragments}"
+        )
+    return final_result_summary
+
+
 def build_success_summary(
     *,
     safe_level_info: dict[str, Any],
     target: dict[str, Any],
-    dispatch_records: dict[str, dict[str, Any]],
+    prompt_payload: dict[str, Any],
+    prompt_execution: dict[str, Any],
+    step_records: dict[str, dict[str, Any]],
     exists_verification: dict[str, Any],
+    final_review_summary: str,
 ) -> dict[str, Any]:
+    session_record = prompt_execution["final_session_record_raw"]
+    approval_count = len(prompt_execution["approval_events"])
+    execute_attempt_count = len(prompt_execution["execute_attempts"])
+
     return {
         "succeeded": True,
         "status": "completed",
@@ -494,13 +454,22 @@ def build_success_summary(
         "exists": exists_verification["exists"],
         "lookup_mode": exists_verification["lookup_mode"],
         "matched_count": exists_verification["matched_count"],
-        "bridge_command_ids": {
-            "editor.entity.exists": exists_verification["bridge_command_id"],
-        },
+        "bridge_command_ids": _bridge_command_ids(step_records),
         "records": {
-            "run_ids": _record_ids(dispatch_records, "run_id"),
-            "execution_ids": _record_ids(dispatch_records, "execution_id"),
-            "artifact_ids": _record_ids(dispatch_records, "artifact_id"),
+            "run_ids": _record_ids(step_records, "run_id"),
+            "execution_ids": _record_ids(step_records, "execution_id"),
+            "artifact_ids": _record_ids(step_records, "artifact_id"),
+            "approval_ids": {
+                tool_name: step_records[logical_name]["response_record"].get("approval_id")
+                for logical_name, _, tool_name in PROOF_STEP_ORDER
+            },
+        },
+        "prompt_session": {
+            "prompt_id": prompt_payload["prompt_id"],
+            "status": session_record.get("status"),
+            "plan_id": session_record.get("plan_id"),
+            "execute_attempt_count": execute_attempt_count,
+            "approval_count": approval_count,
         },
         "target_selection": {
             "selection_rule": target["selection_rule"],
@@ -513,8 +482,12 @@ def build_success_summary(
                 f"{safe_level_info['selected_level_path']} from the canonical project."
             ),
             (
-                "The proof executed only editor.session.open, editor.level.open, "
-                "and editor.entity.exists."
+                "Prompt planning resolved the exact admitted direct read-only chain "
+                "editor.session.open -> editor.level.open -> editor.entity.exists."
+            ),
+            (
+                f"Prompt execution completed after {execute_attempt_count} execute attempt(s) "
+                f"and {approval_count} approval(s)."
             ),
             (
                 "editor.level.open used make_writable=false and focus_viewport=false "
@@ -525,11 +498,15 @@ def build_success_summary(
                 f"{exists_verification['entity_name']} with entity id "
                 f"{exists_verification['entity_id']}."
             ),
+            (
+                "The prompt session final_result_summary preserved the admitted "
+                "direct entity-exists review wording."
+            ),
         ],
         "assumptions": [
             (
                 "The selected entity name is treated as a stable readback target because "
-                "it appears exactly once in the selected level prefab before dispatch."
+                "it appears exactly once in the selected level prefab before prompt execution."
             ),
         ],
         "missing_proof": [
@@ -541,10 +518,7 @@ def build_success_summary(
             ),
         ],
         "safest_next_step": SUCCESS_NEXT_STEP,
-        "result_summary": (
-            "Direct editor.entity.exists live readback completed through the admitted "
-            "bridge-backed read-only path."
-        ),
+        "result_summary": final_review_summary,
     }
 
 
@@ -601,8 +575,9 @@ def build_failure_summary(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Run the canonical live admitted direct editor.entity.exists proof flow "
-            "against the local backend and write one evidence bundle under backend/runtime."
+            "Run the canonical live admitted Prompt Studio direct editor.entity.exists "
+            "proof flow against the local backend and write one evidence bundle under "
+            "backend/runtime."
         )
     )
     parser.add_argument("--base-url", default=authoring.CANONICAL_BASE_URL)
@@ -621,12 +596,13 @@ def main() -> int:
         if args.output
         else runtime_dir / f"live_editor_entity_exists_proof_{run_label}.json"
     )
+    prompt_id = f"editor-entity-exists-proof-{run_label}"
     preflight_facts: list[str] = []
 
     evidence_bundle: dict[str, Any] = {
         "schema_version": SCRIPT_VERSION,
         "proof_name": PROOF_NAME,
-        "proof_kind": "editor.entity.exists.direct-live-read-only",
+        "proof_kind": "editor.entity.exists.prompt-live-read-only",
         "generated_at": authoring.utc_now(),
         "base_url": args.base_url,
         "output_path": str(output_path),
@@ -638,7 +614,7 @@ def main() -> int:
             ),
         },
         "proof_boundary": {
-            "proof_driver": "direct dispatch through admitted tool envelopes",
+            "proof_driver": "prompt_orchestrator direct editor.entity.exists review chain",
             "admitted_surface": [
                 "editor.session.open",
                 "editor.level.open",
@@ -649,6 +625,10 @@ def main() -> int:
                 "entity_name_source": (
                     "unique exact Name entry in selected safe level prefab"
                 ),
+            },
+            "level_open_constraints": {
+                "make_writable": False,
+                "focus_viewport": False,
             },
             "excluded_surface_note": (
                 "This proof does not create entities, add components, write properties, "
@@ -763,26 +743,48 @@ def main() -> int:
             }
         )
 
-        dispatch_requests = build_dispatch_requests(
-            run_label=run_label,
+        prompt_payload = build_prompt_request(
             project_root=args.project_root,
             engine_root=args.engine_root,
+            prompt_id=prompt_id,
+            workspace_id=None,
+            executor_id=None,
             level_path=target["selected_level_path"],
             entity_name=target["selected_entity_name"],
         )
-        dispatch_results = {
-            logical_name: dispatch_with_auto_approval(
-                base_url=args.base_url,
-                payload=payload,
-            )
-            for logical_name, payload in dispatch_requests.items()
-        }
-        dispatch_records = collect_dispatch_records(
+        prompt_create_response = authoring.json_request(
             base_url=args.base_url,
-            dispatch_results=dispatch_results,
+            method="POST",
+            path="/prompt/sessions",
+            payload=prompt_payload,
+            timeout_s=30,
+        )
+        if not isinstance(prompt_create_response, dict):
+            raise EntityExistsProofError(
+                "POST /prompt/sessions did not return an object response."
+            )
+        require_prompt_plan(
+            prompt_create_response,
+            project_root=args.project_root,
+            level_path=target["selected_level_path"],
+            entity_name=target["selected_entity_name"],
+        )
+
+        prompt_execution = authoring.execute_prompt_session_with_approvals(
+            base_url=args.base_url,
+            prompt_id=prompt_id,
+        )
+        final_session_record = prompt_execution["final_session_record_raw"]
+        final_review_summary = require_prompt_review_summary(
+            final_session_record,
+            target=target,
+        )
+        step_records = build_child_step_records(
+            base_url=args.base_url,
+            session_record=final_session_record,
         )
         exists_verification = require_entity_exists_verified(
-            dispatch_records,
+            step_records,
             target=target,
         )
         final_bridge_payload = authoring.json_request(
@@ -791,15 +793,27 @@ def main() -> int:
             path="/o3de/bridge",
         )
 
-        evidence_bundle["steps"] = dispatch_records
+        evidence_bundle["steps"] = {
+            "prompt_session": {
+                "create_request_payload": authoring.scrub_secrets(prompt_payload),
+                "create_response": authoring.scrub_secrets(prompt_create_response),
+                "execute_attempts": prompt_execution["execute_attempts"],
+                "approval_events": prompt_execution["approval_events"],
+                "final_session_record": authoring.scrub_secrets(final_session_record),
+            },
+            **step_records,
+        }
         evidence_bundle["postflight_bridge"] = authoring.scrub_secrets(
             final_bridge_payload
         )
         evidence_bundle["summary"] = build_success_summary(
             safe_level_info=safe_level_info,
             target=target,
-            dispatch_records=dispatch_records,
+            prompt_payload=prompt_payload,
+            prompt_execution=prompt_execution,
+            step_records=step_records,
             exists_verification=exists_verification,
+            final_review_summary=final_review_summary,
         )
     except Exception as exc:  # noqa: BLE001
         evidence_bundle["summary"] = build_failure_summary(

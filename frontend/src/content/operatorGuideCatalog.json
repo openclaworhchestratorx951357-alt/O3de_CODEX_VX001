@@ -34,7 +34,8 @@
       "Current admitted editor-control scope includes real-authoring editor.component.add on its allowlisted surface, hybrid read-only editor.entity.exists on its exact lookup surface, and hybrid read-only editor.component.property.get on its explicit readback surface.",
       "The admitted prompt-controlled editor chain may now compose editor.session.open, editor.level.open, editor.entity.create, editor.component.add, and mapped editor.component.property.get readback with automatic result binding and structured post-action review.",
       "Prompt Studio can also plan direct read-only editor.entity.exists reviews through editor.session.open, read-only editor.level.open, and exact entity-id or exact entity-name lookup without adding editor mutation.",
-      "The latest direct editor.entity.exists proof verifies exact-name readback for Ground on Levels/TestLoevel01 and does not prove live Editor undo, viewport reload, cleanup, broad entity discovery, or entity absence after file-backed restore.",
+      "The repo-owned standalone editor.entity.exists proof helper now uses Prompt Studio so the proof verifies the exact direct plan, approval walk, child lineage, exact-name readback, and bounded final review summary.",
+      "The latest direct editor.entity.exists proof verifies exact-name readback for Ground on Levels/TestLoevel01 through Prompt Studio and does not prove live Editor undo, viewport reload, cleanup, broad entity discovery, or entity absence after file-backed restore.",
       "Restore-boundary evidence is operator-visible in run, execution, and artifact detail only as file-backed loaded-level restore evidence; it does not prove live Editor undo, viewport reload, or entity absence.",
       "The repo-owned live-proof lifecycle can start the canonical McpSandbox Editor bridge when no canonical Editor is already running, but this still does not prove live Editor undo, viewport reload, or entity absence.",
       "Live bridge success still depends on the project-local ControlPlaneEditorBridge handler path on the active McpSandbox target."
@@ -182,12 +183,14 @@
         ".\\scripts\\dev.ps1 live-entity-exists-proof"
       ],
       "evidence": [
-        "Latest bundle pattern is backend\\runtime\\live_editor_entity_exists_proof_<timestamp>.json; latest observed bundle was backend\\runtime\\live_editor_entity_exists_proof_20260425-085754.json.",
+        "Latest bundle pattern is backend\\runtime\\live_editor_entity_exists_proof_<timestamp>.json; latest observed bundle was backend\\runtime\\live_editor_entity_exists_proof_20260425-094047.json.",
+        "The proof helper creates a Prompt Studio session and requires the exact editor.session.open -> editor.level.open -> editor.entity.exists direct read-only plan before execution.",
         "Proof target was Levels/TestLoevel01 with exact entity_name = Ground.",
         "editor.level.open used make_writable=false and focus_viewport=false.",
-        "editor.entity.exists returned exists = true, lookup_mode = entity_name, matched_count = 1, and entity_id = [325428644679998524].",
-        "Recorded lineage: session run_id = run-1f724b6847ea, level run_id = run-c9a903c896b4, exists run_id = run-e8e334fe46f2.",
-        "Recorded exists evidence: execution_id = exe-ba421e29dc5e, artifact_id = art-f78a81a28bfc, bridge_command_id = 1c64099855ea4f5cad51093c12c2662c.",
+        "editor.entity.exists returned exists = true, lookup_mode = entity_name, matched_count = 1, and entity_id = [6840328185757485916].",
+        "Prompt proof session was editor-entity-exists-proof-20260425-094047 with 3 execute attempts and 2 approvals.",
+        "Recorded lineage: session run_id = run-e7eab183ed5c, level run_id = run-bec4acd1da55, exists run_id = run-a3d5b97ed9cf.",
+        "Recorded exists evidence: execution_id = exe-0c54b90c1189, artifact_id = art-601e49da7e6f, bridge_command_id = 93a0d51206d1464ea3c1846b157387a4.",
         "missing_proof states no cleanup or restore was executed or needed by this read-only proof.",
         "This proof does not widen into entity creation, component add, property writes, delete, reload, parenting, prefab, material, asset, render, build, or arbitrary Editor Python."
       ]

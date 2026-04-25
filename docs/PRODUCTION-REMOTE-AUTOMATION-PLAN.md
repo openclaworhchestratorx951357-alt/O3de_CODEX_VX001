@@ -324,10 +324,13 @@ Current truth on this branch:
   invoked the pre-entity-create `loaded-level-file` restore boundary and
   hash-verified the selected level prefab against the captured backup
 - the separate direct read-only proof bundle
-  `backend/runtime/live_editor_entity_exists_proof_20260425-085754.json`
+  `backend/runtime/live_editor_entity_exists_proof_20260425-094047.json`
   verified exact-name `editor.entity.exists` readback for `Ground` on
   `Levels/TestLoevel01` through the repo-owned
   `scripts/dev.ps1 live-entity-exists-proof` lifecycle command
+- the direct entity-exists proof helper now drives that readback through Prompt
+  Studio so the live evidence includes prompt planning, approval walking, child
+  lineage, exact-name readback, and the bounded final review summary
 - Prompt Studio now plans direct read-only entity-exists prompts through
   `editor.session.open` -> read-only `editor.level.open` ->
   `editor.entity.exists`, and its operator review labels exact presence,

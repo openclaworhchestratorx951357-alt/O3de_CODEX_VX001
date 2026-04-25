@@ -14,9 +14,9 @@ It proves only:
 - `editor.component.add`
 - `editor.component.property.get`
 
-It also records a separate direct read-only proof for `editor.entity.exists`.
-That proof covers only session attach, level open, and exact entity-name
-existence readback on the loaded/current level.
+It also records a separate Prompt Studio direct read-only proof for
+`editor.entity.exists`. That proof covers only session attach, read-only level
+open, and exact entity-name existence readback on the loaded/current level.
 
 It does not widen into arbitrary Editor Python, arbitrary components, arbitrary
 property writes, delete, parenting, prefab, material, asset, render, or build
@@ -69,7 +69,7 @@ Canonical local backend proof path:
   `backend/runtime/prove_live_editor_authoring.py`
 - direct entity-exists lifecycle wrapper:
   `scripts/dev.ps1 live-entity-exists-proof`
-- direct entity-exists proof helper:
+- Prompt Studio direct entity-exists proof helper:
   `backend/runtime/prove_live_editor_entity_exists.py`
 
 ## Preconditions
@@ -165,10 +165,10 @@ The proof command:
 The output file pattern is:
 - `backend/runtime/live_editor_authoring_proof_<timestamp>.json`
 
-Standalone direct read-only entity-exists proof bundles use:
+Standalone Prompt Studio direct read-only entity-exists proof bundles use:
 - `backend/runtime/live_editor_entity_exists_proof_<timestamp>.json`
 
-To rerun only the standalone direct read-only entity-exists proof:
+To rerun only the standalone Prompt Studio direct read-only entity-exists proof:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-entity-exists-proof
@@ -179,10 +179,10 @@ That command proves this exact direct chain against `127.0.0.1:8000`:
 2. `editor.level.open`
 3. `editor.entity.exists`
 
-Prompt Studio can now plan and review the same direct read-only chain when the
-operator prompt provides exactly one explicit entity id or exact entity name.
+The proof helper now creates a Prompt Studio session for the same direct
+read-only chain when the selected target provides exactly one exact entity name.
 The generated `editor.level.open` step is read-only (`make_writable=false` and
-`focus_viewport=false`), and the final review summary separates presence,
+`focus_viewport=false`), and the final review summary must separate presence,
 absence, ambiguity, missing target/level, runtime failure, and incomplete
 readback without claiming cleanup, restore, mutation, or reversibility.
 
@@ -193,9 +193,11 @@ The direct proof command:
 - selects a non-default sandbox/test level when one is provable
 - selects a unique exact entity name from the selected level prefab and rejects
   duplicate names as ambiguous proof targets
-- dispatches `editor.level.open` with `make_writable=false` and
+- creates a Prompt Studio session that resolves exactly
+  `editor.session.open` -> `editor.level.open` -> `editor.entity.exists`
+- executes `editor.level.open` with `make_writable=false` and
   `focus_viewport=false`
-- dispatches `editor.entity.exists` with only exact `entity_name` plus
+- executes `editor.entity.exists` with only exact `entity_name` plus
   `level_path`
 - verifies persisted run, execution, and artifact lineage
 - writes one JSON evidence bundle under `backend/runtime`
@@ -259,30 +261,35 @@ Latest successful cleanup restore:
 ## Latest Direct Read-Only Entity Exists Proof
 
 Latest direct proof bundle:
-- `backend/runtime/live_editor_entity_exists_proof_20260425-085754.json`
+- `backend/runtime/live_editor_entity_exists_proof_20260425-094047.json`
 
 Latest direct proof summary:
-- `proof_kind = editor.entity.exists.direct-live-read-only`
+- `proof_kind = editor.entity.exists.prompt-live-read-only`
 - `scope = editor.session.open -> editor.level.open -> editor.entity.exists only`
 - `target.level_path = Levels/TestLoevel01`
 - `target.entity_name = Ground`
 - `exists = true`
 - `lookup_mode = entity_name`
 - `matched_count = 1`
-- `entity_id = [325428644679998524]`
+- `entity_id = [6840328185757485916]`
+- `prompt_id = editor-entity-exists-proof-20260425-094047`
+- `prompt_session.execute_attempt_count = 3`
+- `prompt_session.approval_count = 2`
 - `bridge.heartbeat_fresh = true`
 
 Latest direct proof lineage:
-- `editor.session.open run_id = run-1f724b6847ea`
-- `editor.level.open run_id = run-c9a903c896b4`
-- `editor.entity.exists run_id = run-e8e334fe46f2`
-- `editor.session.open execution_id = exe-3d777a6f74f8`
-- `editor.level.open execution_id = exe-8773ff66a345`
-- `editor.entity.exists execution_id = exe-ba421e29dc5e`
-- `editor.session.open artifact_id = art-5f2ec9faa5eb`
-- `editor.level.open artifact_id = art-95eb81aab8f6`
-- `editor.entity.exists artifact_id = art-f78a81a28bfc`
-- `editor.entity.exists bridge_command_id = 1c64099855ea4f5cad51093c12c2662c`
+- `editor.session.open run_id = run-e7eab183ed5c`
+- `editor.level.open run_id = run-bec4acd1da55`
+- `editor.entity.exists run_id = run-a3d5b97ed9cf`
+- `editor.session.open execution_id = exe-72dbe9614bf6`
+- `editor.level.open execution_id = exe-5ff6668b0e34`
+- `editor.entity.exists execution_id = exe-0c54b90c1189`
+- `editor.session.open artifact_id = art-761afcfb3896`
+- `editor.level.open artifact_id = art-d43b5c9ba78a`
+- `editor.entity.exists artifact_id = art-601e49da7e6f`
+- `editor.session.open bridge_command_id = 773a740b9b5144b292efc3931a1b612d`
+- `editor.level.open bridge_command_id = 1a9669108ff746bea55d6622cfadd032`
+- `editor.entity.exists bridge_command_id = 93a0d51206d1464ea3c1846b157387a4`
 
 Latest direct proof missing proof:
 - no cleanup or restore was executed or needed by this read-only proof
@@ -299,8 +306,8 @@ The following do count as proof:
 - bridge command ids tying the live editor actions to the persistent bridge path
 - hash-verified filesystem restore of the selected loaded-level prefab from the
   runtime-owned backup
-- the direct entity-exists proof bundle proving exact-name existence readback
-  only for the loaded/current level target it records
+- the Prompt Studio direct entity-exists proof bundle proving exact-name
+  existence readback only for the loaded/current level target it records
 - Prompt Studio direct entity-exists review summaries proving only the recorded
   exact read-only lookup result and its persisted child lineage
 

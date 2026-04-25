@@ -72,13 +72,17 @@ Current truth:
   or proof that file-backed restore removed an entity from the live Editor
 - the direct live read-only proof is now repeatable through the repo-owned
   `scripts/dev.ps1 live-entity-exists-proof` lifecycle command
+- the direct live read-only proof helper now runs through Prompt Studio, creates
+  the exact `editor.session.open` -> read-only `editor.level.open` ->
+  `editor.entity.exists` prompt plan, and verifies the final direct readback
+  review summary before treating the proof as complete
 - the latest direct live read-only proof completed on `2026-04-25` against
   `Levels/TestLoevel01` in `McpSandbox` and verified exact-name existence
-  readback for `Ground` with entity id `[325428644679998524]`
+  readback for `Ground` with entity id `[6840328185757485916]`
 - direct entity-exists proof bundle:
-  `backend/runtime/live_editor_entity_exists_proof_20260425-085754.json`
+  `backend/runtime/live_editor_entity_exists_proof_20260425-094047.json`
 - direct entity-exists proof lineage:
-  `run-e8e334fe46f2`, `exe-ba421e29dc5e`, `art-f78a81a28bfc`
+  `run-a3d5b97ed9cf`, `exe-0c54b90c1189`, `art-601e49da7e6f`
 - the direct entity-exists proof did not execute or need cleanup/restore and
   did not prove live Editor undo, viewport reload, entity absence after restore,
   broad entity discovery, component discovery, property mutation, delete,
