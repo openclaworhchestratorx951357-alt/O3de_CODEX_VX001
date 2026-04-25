@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/editor.entity.exists.result.schema.json",
+  "title": "editor.entity.exists result",
+  "allOf": [
+    { "$ref": "../dispatch-result.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "editor.entity.exists" },
+        "approval_class": { "const": "read_only" },
+        "execution_mode": { "enum": ["simulated", "real"] },
+        "simulated": { "type": "boolean" }
+      }
+    }
+  ]
+}

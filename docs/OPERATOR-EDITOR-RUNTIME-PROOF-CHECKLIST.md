@@ -25,6 +25,8 @@ On the current verified local target wiring:
 - `editor.level.open` is admitted real-authoring.
 - `editor.entity.create` is admitted real-authoring through the persistent
   bridge-backed path.
+- `editor.entity.exists` is admitted hybrid read-only only for exactly one
+  explicit entity id or exact entity name on the loaded/current level.
 - `editor.component.add` is admitted real-authoring only for explicit entity id
   plus allowlisted component attachment.
 - `editor.component.property.get` is admitted hybrid read-only only for explicit
@@ -35,6 +37,9 @@ Current editor-authoring boundary:
 - requires a loaded/current level match.
 - selects a non-default sandbox/test level when the proof can prove one.
 - allows only root-level named entity creation for `editor.entity.create`.
+- allows only explicit id or exact-name entity existence readback for
+  `editor.entity.exists`; ambiguous exact-name lookup is not a successful
+  selected match.
 - allows only the proof's allowlisted `Mesh` attachment case for
   `editor.component.add`.
 - allows only `Controller|Configuration|Model Asset` readback for the proof's
@@ -110,6 +115,8 @@ Truth to confirm before the proof run:
   `editor.level.open.real_admission_stage = real-editor-authoring-active`
 - `/prompt/capabilities` reports:
   `editor.entity.create.real_admission_stage = real-editor-authoring-active`
+- `/prompt/capabilities` reports:
+  `editor.entity.exists.capability_maturity = hybrid-read-only`
 - `/prompt/capabilities` reports:
   `editor.component.add.capability_maturity = real-authoring`
 - `/prompt/capabilities` reports:
@@ -228,6 +235,7 @@ The latest proof still does not prove:
 - live Editor undo
 - viewport reload
 - entity-absence readback after filesystem restore
+- standalone `editor.entity.exists` live readback
 - broader component/property mapping
 - property writes
 - delete, parenting, prefab, material, asset, render, build, or arbitrary Editor
@@ -252,6 +260,8 @@ This checklist is satisfied only when all of the following are true:
 - `editor.session.open` records admitted-real execution evidence
 - `editor.level.open` records admitted-real execution evidence
 - `editor.entity.create` records admitted-real bridge-backed execution evidence
+- `editor.entity.exists` remains a separate admitted read-only surface and must
+  have its own direct evidence before being cited as live-proven
 - `editor.component.add` records admitted-real allowlist-bound component attach
   evidence
 - `editor.component.property.get` records admitted real read-only property

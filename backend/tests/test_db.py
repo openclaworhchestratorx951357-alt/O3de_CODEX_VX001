@@ -540,8 +540,8 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
     assert "$schema" in capability.active_metadata_keywords
     assert "allOf" in capability.supported_keywords
     assert "oneOf" in capability.unsupported_keywords
-    assert capability.persisted_execution_details_tool_count == 22
-    assert capability.persisted_artifact_metadata_tool_count == 22
+    assert capability.persisted_execution_details_tool_count == 23
+    assert capability.persisted_artifact_metadata_tool_count == 23
     assert capability.persisted_execution_details_tools == [
         "asset.batch.process",
         "asset.move.safe",
@@ -552,6 +552,7 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
         "editor.component.add",
         "editor.component.property.get",
         "editor.entity.create",
+        "editor.entity.exists",
         "editor.level.open",
         "editor.session.open",
         "gem.enable",
@@ -576,6 +577,7 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
         "editor.component.add",
         "editor.component.property.get",
         "editor.entity.create",
+        "editor.entity.exists",
         "editor.level.open",
         "editor.session.open",
         "gem.enable",
@@ -593,13 +595,14 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
     assert [item.model_dump() for item in capability.persisted_family_coverage] == [
         {
             "family": "editor-control",
-            "total_tools": 5,
-            "execution_details_tools": 5,
-            "artifact_metadata_tools": 5,
+            "total_tools": 6,
+            "execution_details_tools": 6,
+            "artifact_metadata_tools": 6,
             "covered_tools": [
                 "editor.component.add",
                 "editor.component.property.get",
                 "editor.entity.create",
+                "editor.entity.exists",
                 "editor.level.open",
                 "editor.session.open",
             ],

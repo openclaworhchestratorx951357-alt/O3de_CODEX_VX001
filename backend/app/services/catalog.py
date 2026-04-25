@@ -33,7 +33,7 @@ def tool_capability_status(tool_name: str) -> str:
         return "plan-only"
     if tool_name == "test.tiaf.sequence":
         return "plan-only"
-    if tool_name == "editor.component.property.get":
+    if tool_name in {"editor.entity.exists", "editor.component.property.get"}:
         return "hybrid-read-only"
     if tool_name in {
         "editor.session.open",
@@ -100,6 +100,21 @@ CATALOG = ToolsCatalog(
                     default_locks=["editor_session"],
                     risk="medium",
                     tags=["editor", "entity"],
+                ),
+                ToolDefinition(
+                    name="editor.entity.exists",
+                    description=(
+                        "Check whether an explicit entity id or exact entity name "
+                        "exists in the loaded level."
+                    ),
+                    approval_class="read_only",
+                    adapter_family="editor-control",
+                    capability_status=tool_capability_status("editor.entity.exists"),
+                    args_schema=tool_args_schema("editor.entity.exists"),
+                    result_schema=tool_result_schema("editor.entity.exists"),
+                    default_locks=["editor_session"],
+                    risk="low",
+                    tags=["editor", "entity", "read"],
                 ),
                 ToolDefinition(
                     name="editor.component.add",

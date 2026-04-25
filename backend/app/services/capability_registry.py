@@ -57,6 +57,15 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             retention_class="editor-runtime-evidence",
             natural_language_status="prompt-ready-approval-gated",
         )
+    if tool_name == "editor.entity.exists":
+        return _build_safety_envelope(
+            state_scope="Explicit entity existence readback on the currently loaded level.",
+            backup_class="none",
+            rollback_class="none",
+            verification_class="entity existence readback verification",
+            retention_class="editor-runtime-evidence",
+            natural_language_status="prompt-ready-read-only",
+        )
     if tool_name == "editor.component.add":
         return _build_safety_envelope(
             state_scope="Explicit allowlisted component attachment on an existing entity in the currently loaded level.",
@@ -332,6 +341,22 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
             "Create a root-level named entity in the currently loaded level through the admitted real editor path."
         ],
         "allowlisted_parameter_surfaces": ["entity_name", "level_path"],
+        "real_adapter_availability": True,
+        "dry_run_availability": False,
+        "simulation_fallback_availability": False,
+    },
+    "editor.entity.exists": {
+        "capability_maturity": "hybrid-read-only",
+        "planner_intent_aliases": [
+            "check entity exists",
+            "entity exists",
+            "read entity existence",
+            "inspect entity",
+        ],
+        "natural_language_affordances": [
+            "Read whether an explicit entity id or exact entity name exists in the currently loaded level through the admitted real editor path."
+        ],
+        "allowlisted_parameter_surfaces": ["entity_id", "entity_name", "level_path"],
         "real_adapter_availability": True,
         "dry_run_availability": False,
         "simulation_fallback_availability": False,

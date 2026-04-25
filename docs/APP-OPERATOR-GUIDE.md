@@ -9,7 +9,7 @@ Operate the control-plane through focused desktop workspaces instead of one over
 - App title: O3DE Agent Control App
 - App subtitle: Windows-style control-plane workspace for O3DE operators
 - Canonical backend: http://127.0.0.1:8000
-- Admitted real: editor.session.open, editor.level.open, editor.entity.create, editor.component.add, editor.component.property.get
+- Admitted real: editor.session.open, editor.level.open, editor.entity.create, editor.entity.exists, editor.component.add, editor.component.property.get
 - Still bounded: asset execution or mutation beyond admitted slices, render execution or mutation beyond admitted slices, validation execution beyond admitted preflight slices
 
 ## How to move through the app
@@ -79,7 +79,7 @@ Invoke-RestMethod 'http://127.0.0.1:8000/o3de/bridge'
 
 ### Read the admitted-real capability map first
 
-Use the prompt capability registry to confirm that editor.session.open, editor.level.open, editor.entity.create, and editor.component.add are admitted on the canonical backend while editor.component.property.get remains an explicit real read-only path.
+Use the prompt capability registry to confirm that editor.session.open, editor.level.open, editor.entity.create, and editor.component.add are admitted on the canonical backend while editor.entity.exists and editor.component.property.get remain explicit real read-only paths.
 
 #### Endpoints
 
@@ -99,6 +99,8 @@ Invoke-RestMethod 'http://127.0.0.1:8000/prompt/capabilities'
 - editor.session.open.safety_envelope.natural_language_status = prompt-ready-approval-gated
 - editor.level.open.safety_envelope.natural_language_status = prompt-ready-approval-gated
 - editor.entity.create.capability_maturity = real-authoring and editor.entity.create.safety_envelope.natural_language_status = prompt-ready-approval-gated
+- editor.entity.exists.capability_maturity = hybrid-read-only and editor.entity.exists.real_admission_stage = real-read-only-active
+- editor.entity.exists.allowlisted_parameter_surfaces = ["entity_id", "entity_name", "level_path"]
 - editor.component.add.capability_maturity = real-authoring and editor.component.add.real_admission_stage = real-editor-authoring-active
 - editor.component.add.allowlisted_parameter_surfaces = ["entity_id", "components", "level_path"]
 - editor.component.property.get.capability_maturity = hybrid-read-only and editor.component.property.get.real_admission_stage = real-read-only-active
@@ -162,6 +164,8 @@ Invoke-RestMethod 'http://127.0.0.1:8000/policies'
 - The admitted slice still requires an admitted editor session and a loaded/current level match.
 - Only root-level named entity creation is admitted in this slice.
 - parent_entity_id, prefab_asset, and position remain rejected on the admitted real path.
+- editor.entity.exists is admitted hybrid read-only only for exactly one explicit entity_id or exact entity_name on the loaded/current level.
+- editor.entity.exists rejects ambiguous exact-name lookup instead of selecting an arbitrary match.
 - editor.component.add is admitted real-authoring only for explicit entity_id plus allowlisted components Camera, Comment, and Mesh on the loaded/current level.
 - editor.component.add still rejects property mutation, removal, parenting, prefab work, and transform placement.
 - editor.component.property.get is admitted hybrid read-only only for explicit component_id plus property_path on the loaded/current level.
@@ -175,8 +179,9 @@ Invoke-RestMethod 'http://127.0.0.1:8000/policies'
 - Simulated versus real wording must remain explicit in both prompts and operator evidence.
 - The control-plane repo remains the single orchestration and governance substrate.
 - Current admitted-real editor proof remains anchored to the canonical local backend on 127.0.0.1:8000 and the repo-owned scripts/dev.ps1 live-proof lifecycle command.
-- Current admitted editor-control scope includes real-authoring editor.component.add on its allowlisted surface and hybrid read-only editor.component.property.get on its explicit readback surface.
+- Current admitted editor-control scope includes real-authoring editor.component.add on its allowlisted surface, hybrid read-only editor.entity.exists on its exact lookup surface, and hybrid read-only editor.component.property.get on its explicit readback surface.
 - The admitted prompt-controlled editor chain may now compose editor.session.open, editor.level.open, editor.entity.create, editor.component.add, and mapped editor.component.property.get readback with automatic result binding and structured post-action review.
+- editor.entity.exists is a standalone read-only existence check and does not prove live Editor undo, viewport reload, cleanup, or entity absence after file-backed restore.
 - Restore-boundary evidence is operator-visible in run, execution, and artifact detail only as file-backed loaded-level restore evidence; it does not prove live Editor undo, viewport reload, or entity absence.
 - The repo-owned live-proof lifecycle can start the canonical McpSandbox Editor bridge when no canonical Editor is already running, but this still does not prove live Editor undo, viewport reload, or entity absence.
 - Live bridge success still depends on the project-local ControlPlaneEditorBridge handler path on the active McpSandbox target.

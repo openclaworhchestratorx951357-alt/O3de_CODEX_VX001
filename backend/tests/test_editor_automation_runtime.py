@@ -1725,6 +1725,183 @@ def test_execute_component_property_get_queues_bridge_command_and_returns_bridge
         assert saved_state["bridge_heartbeat_seen_at"] == runtime_result["bridge_heartbeat_seen_at"]
 
 
+def test_execute_entity_exists_queues_bridge_command_and_returns_bridge_metadata() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+        write_heartbeat(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        captured: dict[str, object] = {}
+        responder = spawn_bridge_responder(
+            project_root=project_root,
+            expected_operation="editor.entity.exists",
+            response_details={
+                "exists": True,
+                "lookup_mode": "entity_id",
+                "entity_id": "101",
+                "entity_name": "ExampleEntity",
+                "requested_entity_id": "101",
+                "matched_count": 1,
+                "matched_entity_ids": ["101"],
+                "ambiguous": False,
+                "level_path": "Levels/Main.level",
+                "loaded_level_path": "Levels/Main.level",
+                "active_level_path": "Levels/Main.level",
+            },
+            captured=captured,
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_runner_process_is_active",
+                    return_value=False,
+                ):
+                    with patch.object(
+                        editor_automation_runtime_service,
+                        "_bridge_has_live_pulse",
+                        return_value=True,
+                    ):
+                        with patch(
+                            "subprocess.Popen",
+                            side_effect=AssertionError(
+                                "editor.entity.exists should not launch a one-shot editor process when the bridge is healthy."
+                            ),
+                        ):
+                            payload = editor_automation_runtime_service.execute_entity_exists(
+                                request_id="req-entity-exists-1",
+                                session_id="session-1",
+                                workspace_id="workspace-editor-project",
+                                executor_id="executor-editor-control-real-local",
+                                project_root=str(project_root),
+                                engine_root="C:/src/o3de",
+                                dry_run=False,
+                                args={
+                                    "entity_id": "101",
+                                    "level_path": "Levels/Main.level",
+                                },
+                                locks_acquired=["editor_session"],
+                            )
+
+        responder.join(timeout=5)
+        assert not responder.is_alive()
+        runtime_result = payload["runtime_result"]
+        assert runtime_result["editor_transport"] == "bridge"
+        assert runtime_result["bridge_available"] is True
+        assert runtime_result["bridge_operation"] == "editor.entity.exists"
+        assert runtime_result["bridge_queue_mode"] == "filesystem-inbox"
+        assert runtime_result["bridge_command_id"]
+        assert runtime_result["exists"] is True
+        assert runtime_result["lookup_mode"] == "entity_id"
+        assert runtime_result["entity_id"] == "101"
+        assert runtime_result["entity_name"] == "ExampleEntity"
+        assert runtime_result["matched_count"] == 1
+        assert runtime_result["matched_entity_ids"] == ["101"]
+        assert runtime_result["ambiguous"] is False
+        assert runtime_result["level_path"] == "Levels/Main.level"
+        assert runtime_result["loaded_level_path"] == "Levels/Main.level"
+        assert "editor.entity.exists" in runtime_result["exact_editor_apis"]
+        assert payload["runtime_script"].endswith("control_plane_bridge_poller.py")
+
+        bridge_paths = editor_automation_runtime_service._bridge_paths(str(project_root))  # noqa: SLF001
+        consumed_result_path = (
+            bridge_paths["results"] / f"{runtime_result['bridge_command_id']}.json.resp"
+        )
+        assert not consumed_result_path.exists()
+
+        command_payload = captured["command"]
+        assert isinstance(command_payload, dict)
+        assert command_payload["operation"] == "editor.entity.exists"
+        assert command_payload["request_id"] == "req-entity-exists-1"
+        assert command_payload["session_id"] == "session-1"
+        assert command_payload["workspace_id"] == "workspace-editor-project"
+        assert command_payload["executor_id"] == "executor-editor-control-real-local"
+        assert command_payload["requires_loaded_level"] is True
+        assert command_payload["args"]["entity_id"] == "101"
+        assert command_payload["args"]["level_path"] == "Levels/Main.level"
+        assert "entity_name" not in command_payload["args"]
+
+        saved_state = json.loads(state_path.read_text(encoding="utf-8"))
+        assert saved_state["editor_transport"] == "bridge"
+        assert saved_state["bridge_heartbeat_seen_at"] == runtime_result["bridge_heartbeat_seen_at"]
+
+
+def test_execute_entity_exists_rejects_ambiguous_lookup_target() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_host_available",
+                    return_value=True,
+                ):
+                    try:
+                        editor_automation_runtime_service.execute_entity_exists(
+                            request_id="req-entity-exists-ambiguous-target",
+                            session_id="session-1",
+                            workspace_id="workspace-editor-project",
+                            executor_id="executor-editor-control-real-local",
+                            project_root=str(project_root),
+                            engine_root="C:/src/o3de",
+                            dry_run=False,
+                            args={
+                                "entity_id": "101",
+                                "entity_name": "ExampleEntity",
+                            },
+                            locks_acquired=["editor_session"],
+                        )
+                    except AdapterExecutionRejected as exc:
+                        assert exc.details["preflight_reason"] == (
+                            "entity-lookup-target-invalid"
+                        )
+                    else:
+                        raise AssertionError(
+                            "editor.entity.exists should require exactly one lookup target."
+                        )
+
+
 def test_execute_component_property_get_rejects_without_admitted_editor_session() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir) / "project"

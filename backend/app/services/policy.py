@@ -23,7 +23,7 @@ def tool_real_admission_stage(tool_name: str) -> str:
         return "real-plan-only-active"
     if tool_name == "test.tiaf.sequence":
         return "real-plan-only-active"
-    if tool_name == "editor.component.property.get":
+    if tool_name in {"editor.entity.exists", "editor.component.property.get"}:
         return "real-read-only-active"
     if tool_name in {
         "editor.session.open",
@@ -132,6 +132,13 @@ def tool_next_real_requirement(tool_name: str) -> str:
             "creation on the currently loaded level, without parenting, prefab "
             "instantiation, or transform placement."
         )
+    if tool_name == "editor.entity.exists":
+        return (
+            "Keep the admitted real path limited to explicit entity id or exact "
+            "entity name existence readback on the currently loaded level, without "
+            "delete, reload, discovery broadening, parenting, prefab, or property "
+            "mutation."
+        )
     if tool_name == "editor.component.add":
         return (
             "Keep the admitted real path limited to allowlist-bound component "
@@ -195,6 +202,7 @@ def tool_supports_dry_run(tool_name: str) -> bool:
         "editor.session.open",
         "editor.level.open",
         "editor.entity.create",
+        "editor.entity.exists",
         "editor.component.add",
         "editor.component.property.get",
     }:

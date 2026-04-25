@@ -649,8 +649,8 @@ def test_ready_reports_database_status_details() -> None:
         assert "$schema" in payload["schema_validation"]["active_metadata_keywords"]
         assert "allOf" in payload["schema_validation"]["supported_keywords"]
         assert "oneOf" in payload["schema_validation"]["unsupported_keywords"]
-        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 22
-        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 22
+        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 23
+        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 23
         assert payload["schema_validation"]["persisted_execution_details_tools"] == [
             "asset.batch.process",
             "asset.move.safe",
@@ -661,6 +661,7 @@ def test_ready_reports_database_status_details() -> None:
             "editor.component.add",
             "editor.component.property.get",
             "editor.entity.create",
+            "editor.entity.exists",
             "editor.level.open",
             "editor.session.open",
             "gem.enable",
@@ -685,6 +686,7 @@ def test_ready_reports_database_status_details() -> None:
             "editor.component.add",
             "editor.component.property.get",
             "editor.entity.create",
+            "editor.entity.exists",
             "editor.level.open",
             "editor.session.open",
             "gem.enable",
@@ -702,13 +704,14 @@ def test_ready_reports_database_status_details() -> None:
         assert payload["schema_validation"]["persisted_family_coverage"] == [
             {
                 "family": "editor-control",
-                "total_tools": 5,
-                "execution_details_tools": 5,
-                "artifact_metadata_tools": 5,
+                "total_tools": 6,
+                "execution_details_tools": 6,
+                "artifact_metadata_tools": 6,
                 "covered_tools": [
                     "editor.component.add",
                     "editor.component.property.get",
                     "editor.entity.create",
+                    "editor.entity.exists",
                     "editor.level.open",
                     "editor.session.open",
                 ],
@@ -800,6 +803,7 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
                 "editor.session.open",
                 "editor.level.open",
                 "editor.entity.create",
+                "editor.entity.exists",
                 "editor.component.add",
                 "editor.component.property.get",
                 "asset.processor.status",
@@ -864,6 +868,7 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "editor.session.open",
                 "editor.level.open",
                 "editor.entity.create",
+                "editor.entity.exists",
                 "editor.component.add",
                 "editor.component.property.get",
                 "asset.processor.status",
@@ -933,6 +938,7 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "editor.session.open",
                 "editor.level.open",
                 "editor.entity.create",
+                "editor.entity.exists",
                 "editor.component.add",
                 "editor.component.property.get",
             ]
@@ -1258,6 +1264,9 @@ def test_policies_route_exposes_truthful_execution_mode_and_dry_run_support() ->
 
         assert policies_by_tool["editor.entity.create"]["execution_mode"] == "real"
         assert policies_by_tool["editor.entity.create"]["supports_dry_run"] is False
+
+        assert policies_by_tool["editor.entity.exists"]["execution_mode"] == "real"
+        assert policies_by_tool["editor.entity.exists"]["supports_dry_run"] is False
 
         assert policies_by_tool["editor.component.add"]["execution_mode"] == "real"
         assert policies_by_tool["editor.component.add"]["supports_dry_run"] is False

@@ -171,6 +171,11 @@ def test_prompt_session_preview_compiles_typed_steps_across_families() -> None:
         assert editor_component_property_get["safety_envelope"][
             "natural_language_status"
         ] == "prompt-ready-read-only"
+        editor_entity_exists = next(
+            item for item in capabilities if item["tool_name"] == "editor.entity.exists"
+        )
+        assert editor_entity_exists["capability_maturity"] == "hybrid-read-only"
+        assert editor_entity_exists["safety_envelope"]["backup_class"] == "none"
 
 
 def test_prompt_shortcuts_return_fast_contextual_viewport_recommendations() -> None:

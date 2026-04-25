@@ -909,6 +909,7 @@ class DispatcherService:
             "editor.session.open",
             "editor.level.open",
             "editor.entity.create",
+            "editor.entity.exists",
             "editor.component.add",
             "editor.component.property.get",
         } and inspection_surface in {
@@ -916,6 +917,7 @@ class DispatcherService:
             "editor_level_opened",
             "editor_level_created",
             "editor_entity_created",
+            "editor_entity_exists_read",
             "editor_component_added",
             "editor_component_property_read",
         }:
@@ -935,6 +937,7 @@ class DispatcherService:
                 "editor.session.open",
                 "editor.level.open",
                 "editor.entity.create",
+                "editor.entity.exists",
                 "editor.component.add",
                 "editor.component.property.get",
             ]
@@ -973,6 +976,7 @@ class DispatcherService:
                 "editor_level_opened",
                 "editor_level_created",
                 "editor_entity_created",
+                "editor_entity_exists_read",
                 "editor_component_added",
                 "editor_component_property_read",
             }
@@ -1481,6 +1485,11 @@ class DispatcherService:
             return "This run used the admitted real editor.level.open runtime path."
         if request.tool == "editor.entity.create":
             return "This run used the admitted real editor.entity.create bridge-backed path."
+        if request.tool == "editor.entity.exists":
+            return (
+                "This run used the admitted real editor.entity.exists "
+                "bridge-backed read-only path."
+            )
         if request.tool == "editor.component.add":
             return "This run used the admitted real editor.component.add bridge-backed path."
         if request.tool == "editor.component.property.get":

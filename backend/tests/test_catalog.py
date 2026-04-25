@@ -126,6 +126,20 @@ def test_editor_component_property_get_is_cataloged_as_hybrid_read_only() -> Non
     assert "editor_session" in tool.default_locks
 
 
+def test_editor_entity_exists_is_cataloged_as_hybrid_read_only() -> None:
+    tool = catalog_service.get_tool_definition(
+        "editor-control",
+        "editor.entity.exists",
+    )
+    assert tool is not None
+    assert tool.approval_class == "read_only"
+    assert tool.adapter_family == "editor-control"
+    assert tool.capability_status == "hybrid-read-only"
+    assert tool.args_schema.endswith("editor.entity.exists.args.schema.json")
+    assert tool.result_schema.endswith("editor.entity.exists.result.schema.json")
+    assert "editor_session" in tool.default_locks
+
+
 def test_editor_session_open_catalog_timeout_matches_runtime_default() -> None:
     tool = catalog_service.get_tool_definition("editor-control", "editor.session.open")
     assert tool is not None

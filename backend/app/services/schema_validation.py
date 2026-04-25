@@ -381,6 +381,12 @@ class SchemaValidationService:
             ("editor.entity.create", "artifact-metadata"): (
                 "schemas/tools/editor.entity.create.artifact-metadata.schema.json"
             ),
+            ("editor.entity.exists", "execution-details"): (
+                "schemas/tools/editor.entity.exists.execution-details.schema.json"
+            ),
+            ("editor.entity.exists", "artifact-metadata"): (
+                "schemas/tools/editor.entity.exists.artifact-metadata.schema.json"
+            ),
             ("editor.level.open", "execution-details"): (
                 "schemas/tools/editor.level.open.execution-details.schema.json"
             ),

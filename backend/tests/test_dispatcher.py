@@ -725,6 +725,15 @@ def approve_editor_component_add_request() -> RequestEnvelope:
     return approved_request
 
 
+def make_editor_entity_exists_request() -> RequestEnvelope:
+    request = make_request("editor-control", "editor.entity.exists")
+    request.args = {
+        "entity_id": "101",
+        "level_path": "Levels/Main.level",
+    }
+    return request
+
+
 def make_editor_component_property_get_request() -> RequestEnvelope:
     request = make_request("editor-control", "editor.component.property.get")
     request.args = {
@@ -4116,6 +4125,152 @@ def test_editor_component_property_get_uses_real_runtime_in_hybrid_mode() -> Non
         assert (
             schema_validation_service.validate_artifact_metadata(
                 tool_name="editor.component.property.get",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_editor_entity_exists_simulated_persisted_payloads_match_published_schemas() -> None:
+    with isolated_database():
+        response = dispatcher_service.dispatch(make_editor_entity_exists_request())
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "simulated"
+        assert execution.details["simulated"] is True
+        assert artifact is not None
+        assert artifact.simulated is True
+        assert artifact.metadata["execution_mode"] == "simulated"
+        assert artifact.metadata["inspection_surface"] == "simulated"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="editor.entity.exists",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="editor.entity.exists",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_editor_entity_exists_uses_real_runtime_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        write_editor_project_manifest(project_root)
+
+        request = make_editor_entity_exists_request()
+        request.project_root = str(project_root)
+        request.dry_run = False
+
+        session_state_path = editor_state_path_for(project_root)
+        session_state_path.parent.mkdir(parents=True, exist_ok=True)
+        session_state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_entity_exists",
+                return_value={
+                    "runtime_result": {
+                        "ok": True,
+                        "exists": True,
+                        "lookup_mode": "entity_id",
+                        "entity_id": "101",
+                        "entity_name": "ExampleEntity",
+                        "requested_entity_id": "101",
+                        "matched_count": 1,
+                        "matched_entity_ids": ["101"],
+                        "ambiguous": False,
+                        "level_path": "Levels/Main.level",
+                        "loaded_level_path": "Levels/Main.level",
+                        "exact_editor_apis": [
+                            "ControlPlaneEditorBridge filesystem inbox",
+                            "editor.entity.exists",
+                        ],
+                        "bridge_available": True,
+                        "bridge_name": "ControlPlaneEditorBridge",
+                        "bridge_version": "0.1.0",
+                        "bridge_operation": "editor.entity.exists",
+                        "bridge_contract_version": "v1",
+                        "bridge_command_id": "bridge-entity-exists-1",
+                        "bridge_result_summary": "editor.entity.exists completed.",
+                        "bridge_heartbeat_seen_at": "2026-04-22T00:00:01Z",
+                        "bridge_queue_mode": "filesystem-inbox",
+                        "editor_transport": "bridge",
+                    },
+                    "runner_command": ["fake-editor-runner"],
+                    "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+                },
+            ):
+                with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                    response = dispatcher_service.dispatch(request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.execution_mode == "real"
+        assert response.result.simulated is False
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "editor_entity_exists_read"
+        assert execution.details["exists"] is True
+        assert execution.details["lookup_mode"] == "entity_id"
+        assert execution.details["entity_id"] == "101"
+        assert execution.details["entity_name"] == "ExampleEntity"
+        assert execution.details["matched_count"] == 1
+        assert execution.details["matched_entity_ids"] == ["101"]
+        assert execution.details["ambiguous"] is False
+        assert execution.details["bridge_available"] is True
+        assert execution.details["bridge_operation"] == "editor.entity.exists"
+        assert execution.executor_id == "executor-editor-control-real-local"
+        assert execution.workspace_id == f"workspace-editor-{project_root.name.lower()}"
+        assert artifact is not None
+        assert artifact.metadata["execution_mode"] == "real"
+        assert artifact.metadata["inspection_surface"] == "editor_entity_exists_read"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="editor.entity.exists",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="editor.entity.exists",
                 payload=artifact.metadata,
             )
             == []

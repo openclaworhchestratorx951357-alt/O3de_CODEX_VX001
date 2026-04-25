@@ -42,6 +42,7 @@ Real O3DE execution is still narrow.
 - `project.inspect`
 - `asset.processor.status`
 - `asset.source.inspect`
+- `editor.entity.exists`
 - `editor.component.property.get`
 - `render.capture.viewport`
 - `render.material.inspect`
@@ -64,6 +65,11 @@ Current truth:
   render runtime readback or shader/reference expansion
 - `test.visual.diff` remains a narrow admitted real evidence path and does not
   imply broad test runner execution
+- `editor.entity.exists` is a standalone admitted read-only bridge-backed
+  existence check for exactly one explicit entity id or one exact entity name
+  on the currently loaded level; it does not imply delete, reload, parenting,
+  prefab work, broad scene enumeration, component discovery, property mutation,
+  or proof that file-backed restore removed an entity from the live Editor
 - falls back to simulated when the real manifest path is unavailable
 - remains explicitly labeled as real vs simulated in backend and frontend
 - still does not authorize deeper layered settings discovery or any mutation path
@@ -237,9 +243,11 @@ The operator shell now exposes this boundary through:
   `editor.session.open`, `editor.level.open`, `editor.entity.create`, and
   `editor.component.add` on the verified `McpSandbox` target wiring
 - the composed prompt-controlled editor chain remains limited to those admitted
-  tools plus explicit admitted `editor.component.property.get` readback and
-  does not imply arbitrary component names, broader property reads or writes,
-  delete, parenting, prefab mutation, or arbitrary Editor Python execution
+  tools plus explicit admitted `editor.component.property.get` readback; the
+  standalone `editor.entity.exists` read path remains outside cleanup/restore
+  proof and does not imply arbitrary component names, broader property reads or
+  writes, delete, parenting, prefab mutation, broad entity discovery, or
+  arbitrary Editor Python execution
 - `build.configure` is not a real configure execution path
 - `project.inspect` real evidence is still limited to manifest-backed
   project-config, requested-vs-discovered Gem, requested Gem subset matching,

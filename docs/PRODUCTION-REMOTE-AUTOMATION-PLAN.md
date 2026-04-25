@@ -314,7 +314,8 @@ Current truth on this branch:
 - `editor.session.open`, `editor.level.open`, `editor.entity.create`, and
   `editor.component.add` are admitted real editor-authoring/runtime on the
   verified `McpSandbox` target wiring
-- `editor.component.property.get` is admitted hybrid read-only
+- `editor.entity.exists` and `editor.component.property.get` are admitted
+  hybrid read-only on their explicit lookup/readback surfaces
 - the composed prompt-controlled chain was live-proven on `2026-04-25` through
   `editor.session.open` -> `editor.level.open` -> `editor.entity.create` ->
   `editor.component.add` -> `editor.component.property.get`
@@ -323,9 +324,9 @@ Current truth on this branch:
   invoked the pre-entity-create `loaded-level-file` restore boundary and
   hash-verified the selected level prefab against the captured backup
 - the proof does not claim live Editor undo, viewport reload,
-  entity-absence readback, broader component or property mutation, delete,
-  parenting, prefab mutation, material, asset, render, build, or arbitrary
-  Editor Python behavior
+  standalone `editor.entity.exists` live readback, entity-absence readback,
+  broader component or property mutation, delete, parenting, prefab mutation,
+  material, asset, render, build, or arbitrary Editor Python behavior
 
 Official substrate(s):
 - Python Editor Bindings
