@@ -64,6 +64,17 @@ def write_heartbeat(project_root: Path) -> None:
     )
 
 
+def write_loaded_level_file(
+    project_root: Path,
+    *,
+    level_path: str = "Levels/Main.level",
+) -> Path:
+    resolved_level_path = project_root / level_path.replace("\\", "/")
+    resolved_level_path.parent.mkdir(parents=True, exist_ok=True)
+    resolved_level_path.write_text("<LevelStub />\n", encoding="utf-8")
+    return resolved_level_path
+
+
 def spawn_bridge_responder(
     *,
     project_root: Path,
@@ -646,6 +657,7 @@ def test_execute_entity_create_queues_bridge_command_and_persists_created_entity
         project_root.mkdir(parents=True, exist_ok=True)
         write_editor_project_manifest(project_root)
         write_heartbeat(project_root)
+        write_loaded_level_file(project_root)
 
         state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
         state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -920,6 +932,7 @@ def test_execute_component_add_queues_bridge_command_and_returns_bridge_metadata
         project_root.mkdir(parents=True, exist_ok=True)
         write_editor_project_manifest(project_root)
         write_heartbeat(project_root)
+        write_loaded_level_file(project_root)
 
         state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
         state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1052,6 +1065,7 @@ def test_execute_component_add_normalizes_bracketed_entity_ids() -> None:
         project_root.mkdir(parents=True, exist_ok=True)
         write_editor_project_manifest(project_root)
         write_heartbeat(project_root)
+        write_loaded_level_file(project_root)
 
         state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
         state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1132,6 +1146,7 @@ def test_execute_component_add_passes_last_created_entity_name_hint_for_matching
         project_root.mkdir(parents=True, exist_ok=True)
         write_editor_project_manifest(project_root)
         write_heartbeat(project_root)
+        write_loaded_level_file(project_root)
 
         state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
         state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1463,6 +1478,7 @@ def test_execute_component_add_rejects_when_bridge_reports_entity_not_found() ->
         project_root.mkdir(parents=True, exist_ok=True)
         write_editor_project_manifest(project_root)
         write_heartbeat(project_root)
+        write_loaded_level_file(project_root)
 
         state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
         state_path.parent.mkdir(parents=True, exist_ok=True)

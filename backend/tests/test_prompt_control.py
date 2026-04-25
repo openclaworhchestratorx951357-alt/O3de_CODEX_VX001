@@ -12,6 +12,7 @@ from app.main import app
 from app.models.control_plane import ExecutionStatus
 from app.models.request_envelope import RequestEnvelope
 from app.models.response_envelope import ResponseEnvelope, ResponseError
+from app.services.adapters import AdapterExecutionRejected
 from app.services.approvals import approvals_service
 from app.services.artifacts import artifacts_service
 from app.services.editor_runtime_defaults import EDITOR_SESSION_OPEN_DEFAULT_TIMEOUT_S
@@ -2432,6 +2433,13 @@ def test_prompt_session_executes_editor_component_add_with_created_entity_handof
                                     "editor.entity.create",
                                     "editor.component.add",
                                 ]
+                                assert create_payload["refused_capabilities"] == [
+                                    (
+                                        "editor.component.property.get currently admits chained "
+                                        "default property readback only for allowlisted component "
+                                        "cases with a proven property-path mapping."
+                                    )
+                                ]
 
                                 latest_payload = None
                                 for _ in range(4):
@@ -2480,6 +2488,32 @@ def test_prompt_session_executes_editor_component_add_with_created_entity_handof
                                     "Restore boundary component-restore-boundary-1 was captured before admitted editor mutation and remains available for the current subset."
                                     in completed_payload["final_result_summary"]
                                 )
+                                assert (
+                                    "Review result: incomplete_readback_unavailable"
+                                    in completed_payload["final_result_summary"]
+                                )
+                                assert (
+                                    "Requested action:" in completed_payload["final_result_summary"]
+                                )
+                                assert (
+                                    "Executed action:" in completed_payload["final_result_summary"]
+                                )
+                                assert (
+                                    "Verified facts:" in completed_payload["final_result_summary"]
+                                )
+                                assert (
+                                    "Assumptions:" in completed_payload["final_result_summary"]
+                                )
+                                assert (
+                                    "Missing proof:" in completed_payload["final_result_summary"]
+                                )
+                                assert (
+                                    "Safest next step:" in completed_payload["final_result_summary"]
+                                )
+                                assert (
+                                    "editor.component.property.get currently admits chained default property readback only for allowlisted component cases with a proven property-path mapping."
+                                    in completed_payload["final_result_summary"]
+                                )
 
                                 latest_success_by_step = {
                                     response["prompt_step_id"]: response
@@ -2492,6 +2526,221 @@ def test_prompt_session_executes_editor_component_add_with_created_entity_handof
                                 assert latest_success_by_step["editor-component-1"][
                                     "execution_details"
                                 ]["added_components"] == ["Camera"]
+
+
+def test_prompt_session_blocks_editor_component_add_when_component_is_not_allowlisted() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps(
+                {
+                    "project_name": "PromptEditorProject",
+                    "version": "1.0.0",
+                    "gem_names": ["PythonEditorBindings"],
+                }
+            ),
+            encoding="utf-8",
+        )
+        captured_component_args: list[dict[str, object]] = []
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+            },
+            clear=False,
+        ):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_session_open",
+                return_value={
+                    "runtime_result": {
+                        "editor_session_id": "editor-session-runtime",
+                        "loaded_level_path": "Levels/Main.level",
+                        "exact_editor_apis": [
+                            "azlmbr.legacy.general.open_level_no_prompt"
+                        ],
+                        "bridge_available": True,
+                        "bridge_name": "ControlPlaneEditorBridge",
+                        "bridge_version": "0.1.0",
+                        "bridge_operation": "editor.session.open",
+                        "bridge_contract_version": "v1",
+                        "bridge_command_id": "bridge-session-1",
+                        "bridge_result_summary": "editor.session.open completed.",
+                        "bridge_heartbeat_seen_at": "2026-04-20T00:00:00Z",
+                        "bridge_queue_mode": "filesystem-inbox",
+                        "editor_transport": "bridge",
+                    },
+                    "runner_command": ["fake-editor-runner"],
+                    "runtime_script": "control_plane_bridge_bootstrap.py",
+                },
+            ):
+                with patch(
+                    "app.services.adapters.editor_automation_runtime_service.execute_level_open",
+                    return_value={
+                        "runtime_result": {
+                            "loaded_level_path": "Levels/Main.level",
+                            "level_path": "Levels/Main.level",
+                            "created_level": False,
+                            "exact_editor_apis": [
+                                "azlmbr.legacy.general.open_level_no_prompt"
+                            ],
+                            "bridge_available": True,
+                            "bridge_name": "ControlPlaneEditorBridge",
+                            "bridge_version": "0.1.0",
+                            "bridge_operation": "editor.level.open",
+                            "bridge_contract_version": "v1",
+                            "bridge_command_id": "bridge-level-1",
+                            "bridge_result_summary": "editor.level.open completed.",
+                            "bridge_heartbeat_seen_at": "2026-04-20T00:00:01Z",
+                            "bridge_queue_mode": "filesystem-inbox",
+                            "editor_transport": "bridge",
+                        },
+                        "runner_command": ["fake-editor-runner"],
+                        "runtime_script": "control_plane_bridge_bootstrap.py",
+                    },
+                ):
+                    with patch(
+                        "app.services.adapters.editor_automation_runtime_service.execute_entity_create",
+                        return_value={
+                            "runtime_result": {
+                                "ok": True,
+                                "entity_id": "101",
+                                "entity_name": "Hero",
+                                "modified_entities": ["101"],
+                                "level_path": "Levels/Main.level",
+                                "loaded_level_path": "Levels/Main.level",
+                                "entity_id_source": "direct_return_entity_id",
+                                "direct_return_entity_id": "101",
+                                "notification_entity_ids": ["101"],
+                                "selected_entity_count_before_create": 0,
+                                "name_mutation_ran": True,
+                                "name_mutation_succeeded": True,
+                                "exact_editor_apis": [
+                                    "ControlPlaneEditorBridge filesystem inbox",
+                                    "editor.entity.create",
+                                ],
+                                "bridge_available": True,
+                                "bridge_name": "ControlPlaneEditorBridge",
+                                "bridge_version": "0.1.0",
+                                "bridge_operation": "editor.entity.create",
+                                "bridge_contract_version": "v1",
+                                "bridge_command_id": "bridge-entity-1",
+                                "bridge_result_summary": "editor.entity.create completed.",
+                                "bridge_heartbeat_seen_at": "2026-04-20T00:00:02Z",
+                                "bridge_queue_mode": "filesystem-inbox",
+                                "editor_transport": "bridge",
+                                "restore_boundary_created": True,
+                                "restore_boundary_id": "entity-restore-boundary-3",
+                                "restore_boundary_scope": "loaded-level-file",
+                                "restore_boundary_level_path": "Levels/Main.level",
+                                "restore_boundary_source_path": "C:/project/Levels/Main.level",
+                                "restore_boundary_backup_path": "C:/project/runtime/editor_state/restore_boundaries/entity-restore-boundary-3.level",
+                                "restore_boundary_available": True,
+                                "restore_strategy": "restore-loaded-level-file-from-pre-mutation-backup",
+                                "restore_invoked": False,
+                                "restore_result": "available_not_invoked",
+                            },
+                            "runner_command": ["fake-editor-runner"],
+                            "runtime_script": "control_plane_bridge_poller.py",
+                        },
+                    ):
+                        def failing_component_add(*, args, **kwargs):  # type: ignore[no-untyped-def]
+                            captured_component_args.append(args)
+                            raise AdapterExecutionRejected(
+                                "editor.component.add currently admits only the explicit allowlisted component set on the real path.",
+                                details={
+                                    "preflight_reason": "unsupported-component-surface",
+                                    "unsupported_components": ["Transform"],
+                                    "allowlisted_components": ["Camera", "Comment", "Mesh"],
+                                },
+                            )
+
+                        with patch(
+                            "app.services.adapters.editor_automation_runtime_service.execute_component_add",
+                            side_effect=failing_component_add,
+                        ):
+                            with patch(
+                                "app.services.adapters.editor_automation_runtime_service.execute_component_property_get",
+                                side_effect=AssertionError(
+                                    "editor.component.property.get should not run after a blocked component attachment."
+                                ),
+                            ):
+                                with isolated_client() as client:
+                                    create_response = client.post(
+                                        "/prompt/sessions",
+                                        json={
+                                            "prompt_id": "prompt-editor-chain-blocked-1",
+                                            "prompt_text": (
+                                                'Open level "Levels/Main.level", create entity named "Hero", '
+                                                'add a Transform component, then read back the relevant component/property evidence.'
+                                            ),
+                                            "project_root": str(project_root),
+                                            "engine_root": "C:/engine",
+                                            "dry_run": False,
+                                            "preferred_domains": ["editor-control"],
+                                        },
+                                    )
+                                    assert create_response.status_code == 200
+                                    create_payload = create_response.json()
+                                    assert [step["tool"] for step in create_payload["plan"]["steps"]] == [
+                                        "editor.session.open",
+                                        "editor.level.open",
+                                        "editor.entity.create",
+                                        "editor.component.add",
+                                    ]
+
+                                    latest_payload = None
+                                    for _ in range(4):
+                                        execute_response = client.post(
+                                            "/prompt/sessions/prompt-editor-chain-blocked-1/execute"
+                                        )
+                                        assert execute_response.status_code == 200
+                                        latest_payload = execute_response.json()
+                                        assert latest_payload["status"] == "waiting_approval"
+                                        assert latest_payload["pending_approval_id"]
+                                        approval_response = client.post(
+                                            f"/approvals/{latest_payload['pending_approval_id']}/approve",
+                                            json={},
+                                        )
+                                        assert approval_response.status_code == 200
+
+                                    failed_response = client.post(
+                                        "/prompt/sessions/prompt-editor-chain-blocked-1/execute"
+                                    )
+                                    assert failed_response.status_code == 200
+                                    failed_payload = failed_response.json()
+                                    assert failed_payload["status"] == "failed"
+                                    assert captured_component_args == [
+                                        {
+                                            "entity_id": "101",
+                                            "components": ["Transform"],
+                                            "level_path": "Levels/Main.level",
+                                        }
+                                    ]
+                                    assert failed_payload["last_error_code"] == "ADAPTER_PRECHECK_FAILED"
+                                    assert (
+                                        "Review result: blocked_component_not_allowlisted"
+                                        in failed_payload["final_result_summary"]
+                                    )
+                                    assert (
+                                        "Requested component(s) Transform are outside the admitted editor component allowlist."
+                                        in failed_payload["final_result_summary"]
+                                    )
+                                    assert (
+                                        "Stopped before component attachment could be verified."
+                                        in failed_payload["final_result_summary"]
+                                    )
+                                    assert (
+                                        "Readback confirmed entity 'Hero' (101) in Levels/Main.level."
+                                        in failed_payload["final_result_summary"]
+                                    )
+                                    assert (
+                                        "Retry with one of the already admitted allowlisted components"
+                                        in failed_payload["final_result_summary"]
+                                    )
+                                    assert failed_payload["latest_child_responses"][-1]["prompt_step_id"] == (
+                                        "editor-component-1"
+                                    )
+                                    assert failed_payload["latest_child_responses"][-1]["ok"] is False
 
 
 def test_prompt_session_plans_editor_component_property_read_from_added_component_output() -> None:
@@ -2840,6 +3089,28 @@ def test_prompt_session_executes_editor_component_property_read_from_added_compo
                                     assert (
                                         "Readback confirmed Controller|Configuration|Model Asset = objects/example.azmodel."
                                         in completed_payload["final_result_summary"]
+                                    )
+                                    assert (
+                                        "Review result: succeeded_verified"
+                                        in completed_payload["final_result_summary"]
+                                    )
+                                    assert (
+                                        "Bound created entity id 101 into component attachment and added Mesh."
+                                        in completed_payload["final_result_summary"]
+                                    )
+                                    assert (
+                                        "Bound added component id EntityComponentIdPair(EntityId(101), 201) into the admitted property readback step automatically."
+                                        in completed_payload["final_result_summary"]
+                                    )
+                                    assert (
+                                        "Assumptions:" in completed_payload["final_result_summary"]
+                                    )
+                                    assert (
+                                        "Missing proof:\n- None for the requested admitted editor chain; this review does not claim undo, reversibility, or runtime/game-mode activation."
+                                        in completed_payload["final_result_summary"]
+                                    )
+                                    assert (
+                                        "Safest next step:" in completed_payload["final_result_summary"]
                                     )
                                     assert (
                                         "Restore boundary entity-restore-boundary-2 was captured before admitted editor mutation and remains available for the current subset."

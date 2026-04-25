@@ -25,6 +25,14 @@ from app.services.workspaces import workspaces_service
 _STEP_OUTPUT_REF_PATTERN = re.compile(
     r"^\$step:(?P<step_id>[a-z0-9_-]+)\.(?P<path>[A-Za-z0-9_.\[\]-]+)$"
 )
+_EDITOR_CHAIN_STEP_IDS = {
+    "editor-session-1",
+    "editor-level-1",
+    "editor-entity-1",
+    "editor-component-1",
+    "editor-component-property-1",
+}
+_EDITOR_PROPERTY_REFUSAL_PREFIX = "editor.component.property.get"
 
 
 class PromptOrchestratorService:
@@ -139,7 +147,13 @@ class PromptOrchestratorService:
                 self._record_failed_step_state(session, step.step_id, response)
                 session.status = self._status_from_response(response)
                 session.evidence_summary = self._build_evidence_summary(session)
-                session.final_result_summary = self._failure_summary(step.tool, response)
+                failure_summary = self._failure_summary(step.tool, response)
+                review_summary = self._build_operator_review_summary(session)
+                session.final_result_summary = (
+                    f"{failure_summary}\n{review_summary}"
+                    if review_summary
+                    else failure_summary
+                )
                 return prompt_sessions_service.update_session(session)
             session.next_step_index = step_index + 1
             session.current_step_id = None
@@ -462,6 +476,19 @@ class PromptOrchestratorService:
                 return response_record
         return None
 
+    def _latest_failed_response_for_step(
+        self,
+        session: PromptSessionRecord,
+        step_id: str,
+    ) -> dict[str, Any] | None:
+        for response_record in reversed(session.latest_child_responses):
+            if (
+                response_record.get("prompt_step_id") == step_id
+                and response_record.get("ok") is False
+            ):
+                return response_record
+        return None
+
     def _extract_path_value(
         self,
         root: Any,
@@ -503,6 +530,10 @@ class PromptOrchestratorService:
         return None
 
     def _build_operator_review_summary(self, session: PromptSessionRecord) -> str | None:
+        editor_review_summary = self._build_editor_chain_review_summary(session)
+        if editor_review_summary is not None:
+            return editor_review_summary
+
         entity_response = self._latest_successful_response_for_step(session, "editor-entity-1")
         component_response = self._latest_successful_response_for_step(session, "editor-component-1")
         property_response = self._latest_successful_response_for_step(
@@ -1148,31 +1179,389 @@ class PromptOrchestratorService:
             return None
         return " ".join(summary_parts)
 
+    def _build_editor_chain_review_summary(
+        self,
+        session: PromptSessionRecord,
+    ) -> str | None:
+        planned_steps = session.plan.steps if session.plan is not None else []
+        if not any(step.step_id in _EDITOR_CHAIN_STEP_IDS for step in planned_steps):
+            return None
+
+        session_response = self._latest_successful_response_for_step(session, "editor-session-1")
+        level_response = self._latest_successful_response_for_step(session, "editor-level-1")
+        entity_response = self._latest_successful_response_for_step(session, "editor-entity-1")
+        component_response = self._latest_successful_response_for_step(session, "editor-component-1")
+        property_response = self._latest_successful_response_for_step(
+            session, "editor-component-property-1"
+        )
+        failed_response = None
+        if session.status != PromptSessionStatus.COMPLETED:
+            failed_response = next(
+                (
+                    response_record
+                    for response_record in reversed(session.latest_child_responses)
+                    if response_record.get("ok") is False
+                    and response_record.get("prompt_step_id") in _EDITOR_CHAIN_STEP_IDS
+                    and (
+                        not isinstance(response_record.get("error"), dict)
+                        or response_record["error"].get("code") != "APPROVAL_REQUIRED"
+                    )
+                ),
+                None,
+            )
+
+        result_label = self._classify_editor_chain_review(
+            session=session,
+            failed_response=failed_response,
+            property_response=property_response,
+        )
+        executed_actions = self._editor_executed_actions(
+            session_response=session_response,
+            level_response=level_response,
+            entity_response=entity_response,
+            component_response=component_response,
+            property_response=property_response,
+            failed_response=failed_response,
+        )
+        verified_facts = self._editor_verified_facts(
+            entity_response=entity_response,
+            component_response=component_response,
+            property_response=property_response,
+        )
+        assumptions = self._editor_review_assumptions(
+            session=session,
+            entity_response=entity_response,
+            component_response=component_response,
+            property_response=property_response,
+        )
+        missing_proof = self._editor_missing_proof(
+            session=session,
+            result_label=result_label,
+            failed_response=failed_response,
+            property_response=property_response,
+        )
+        safest_next_step = self._editor_safest_next_step(result_label=result_label)
+
+        sections = [
+            f"Review result: {result_label}",
+            f"Requested action: {session.prompt_text}",
+            self._format_review_section("Executed action", executed_actions),
+            self._format_review_section("Verified facts", verified_facts),
+            self._format_review_section("Assumptions", assumptions),
+            self._format_review_section("Missing proof", missing_proof),
+            f"Safest next step: {safest_next_step}",
+        ]
+        return "\n".join(sections)
+
+    def _classify_editor_chain_review(
+        self,
+        *,
+        session: PromptSessionRecord,
+        failed_response: dict[str, Any] | None,
+        property_response: dict[str, Any] | None,
+    ) -> str:
+        if failed_response is not None:
+            step_id = failed_response.get("prompt_step_id")
+            error = failed_response.get("error", {})
+            details = error.get("details") if isinstance(error, dict) else {}
+            details = details if isinstance(details, dict) else {}
+            preflight_reason = details.get("preflight_reason")
+            if preflight_reason == "unsupported-component-surface":
+                return "blocked_component_not_allowlisted"
+            if step_id == "editor-session-1":
+                return "blocked_missing_editor_target"
+            if preflight_reason in {"level-not-loaded", "loaded-level-mismatch"}:
+                return "blocked_missing_level"
+            if step_id == "editor-level-1":
+                return "blocked_missing_level"
+            return "failed_runtime_error"
+
+        requested_property_read = any(
+            refusal.startswith(_EDITOR_PROPERTY_REFUSAL_PREFIX)
+            for refusal in session.refused_capabilities
+        )
+        if requested_property_read and property_response is None:
+            return "incomplete_readback_unavailable"
+        if session.refused_capabilities:
+            return "succeeded_partially_verified"
+        return "succeeded_verified"
+
+    def _editor_executed_actions(
+        self,
+        *,
+        session_response: dict[str, Any] | None,
+        level_response: dict[str, Any] | None,
+        entity_response: dict[str, Any] | None,
+        component_response: dict[str, Any] | None,
+        property_response: dict[str, Any] | None,
+        failed_response: dict[str, Any] | None,
+    ) -> list[str]:
+        actions: list[str] = []
+        if session_response is not None:
+            actions.append(
+                "Attached or validated the editor target through the admitted real editor session path."
+            )
+
+        if level_response is not None:
+            details = level_response.get("execution_details", {})
+            level_path = details.get("level_path") or details.get("loaded_level_path")
+            if details.get("created_level") is True and level_path:
+                actions.append(f"Created and opened level {level_path}.")
+            elif level_path:
+                actions.append(f"Opened level {level_path}.")
+
+        entity_details = entity_response.get("execution_details", {}) if entity_response else {}
+        component_details = (
+            component_response.get("execution_details", {}) if component_response else {}
+        )
+        property_details = (
+            property_response.get("execution_details", {}) if property_response else {}
+        )
+
+        entity_id = entity_details.get("entity_id")
+        entity_name = entity_details.get("entity_name")
+        if entity_id and entity_name:
+            actions.append(f"Created entity '{entity_name}' with id {entity_id}.")
+
+        added_components = component_details.get("added_components")
+        if isinstance(added_components, list) and added_components:
+            component_list = ", ".join(str(item) for item in added_components)
+            if component_details.get("entity_id") == entity_id and entity_id:
+                actions.append(
+                    f"Bound created entity id {entity_id} into component attachment and added {component_list}."
+                )
+            else:
+                actions.append(f"Added component(s) {component_list}.")
+
+        added_component_refs = component_details.get("added_component_refs")
+        property_component_id = property_details.get("component_id")
+        if (
+            isinstance(added_component_refs, list)
+            and added_component_refs
+            and isinstance(added_component_refs[0], dict)
+            and property_component_id
+            and added_component_refs[0].get("component_id") == property_component_id
+        ):
+            actions.append(
+                f"Bound added component id {property_component_id} into the admitted property readback step automatically."
+            )
+        if property_response is not None:
+            property_path = property_details.get("property_path")
+            if property_path:
+                actions.append(f"Read back component property {property_path}.")
+
+        if failed_response is not None:
+            failed_step_id = failed_response.get("prompt_step_id")
+            if failed_step_id == "editor-component-1":
+                actions.append("Stopped before component attachment could be verified.")
+            elif failed_step_id == "editor-component-property-1":
+                actions.append("Stopped before requested component/property readback could be verified.")
+            elif failed_step_id == "editor-level-1":
+                actions.append("Stopped before the requested editor level could be confirmed.")
+            elif failed_step_id == "editor-session-1":
+                actions.append("Stopped before an admitted editor target could be confirmed.")
+
+        return actions
+
+    def _editor_verified_facts(
+        self,
+        *,
+        entity_response: dict[str, Any] | None,
+        component_response: dict[str, Any] | None,
+        property_response: dict[str, Any] | None,
+    ) -> list[str]:
+        facts: list[str] = []
+        if entity_response is not None:
+            details = entity_response.get("execution_details", {})
+            entity_name = details.get("entity_name")
+            entity_id = details.get("entity_id")
+            level_path = details.get("level_path") or details.get("loaded_level_path")
+            if entity_name and entity_id and level_path:
+                facts.append(
+                    f"Readback confirmed entity '{entity_name}' ({entity_id}) in {level_path}."
+                )
+            elif entity_name and entity_id:
+                facts.append(f"Readback confirmed entity '{entity_name}' ({entity_id}).")
+            facts.extend(self._restore_boundary_summary_items(details))
+
+        if component_response is not None:
+            details = component_response.get("execution_details", {})
+            added_components = details.get("added_components")
+            entity_id = details.get("entity_id")
+            if isinstance(added_components, list) and added_components:
+                component_list = ", ".join(str(item) for item in added_components)
+                if entity_id:
+                    facts.append(
+                        f"Readback confirmed added component(s) {component_list} on entity {entity_id}."
+                    )
+                else:
+                    facts.append(f"Readback confirmed added component(s) {component_list}.")
+            facts.extend(self._restore_boundary_summary_items(details))
+
+        if property_response is not None:
+            details = property_response.get("execution_details", {})
+            property_path = details.get("property_path")
+            value = details.get("value")
+            if property_path is not None and value is not None:
+                facts.append(f"Readback confirmed {property_path} = {value}.")
+
+        return facts
+
+    def _editor_review_assumptions(
+        self,
+        *,
+        session: PromptSessionRecord,
+        entity_response: dict[str, Any] | None,
+        component_response: dict[str, Any] | None,
+        property_response: dict[str, Any] | None,
+    ) -> list[str]:
+        assumptions: list[str] = []
+        if entity_response is not None and component_response is not None:
+            assumptions.append(
+                "Automatic handoff relied on the persisted entity id returned by the immediately preceding admitted editor step."
+            )
+        if component_response is not None and property_response is not None:
+            assumptions.append(
+                "Component property readback relied on the persisted component id returned by the immediately preceding admitted component attachment step."
+            )
+        if any(
+            step.planner_note
+            for step in (session.plan.steps if session.plan is not None else [])
+            if step.step_id in {"editor-component-1", "editor-component-property-1"}
+        ) and not assumptions:
+            assumptions.append(
+                "The composed review followed the admitted typed prompt plan without adding any broader editor behavior."
+            )
+        if not assumptions:
+            assumptions.append(
+                "No additional assumptions were introduced beyond the admitted typed prompt plan."
+            )
+        return assumptions
+
+    def _editor_missing_proof(
+        self,
+        *,
+        session: PromptSessionRecord,
+        result_label: str,
+        failed_response: dict[str, Any] | None,
+        property_response: dict[str, Any] | None,
+    ) -> list[str]:
+        missing_proof: list[str] = []
+        error_details: dict[str, Any] = {}
+        if failed_response is not None:
+            error = failed_response.get("error", {})
+            if isinstance(error, dict):
+                details = error.get("details")
+                if isinstance(details, dict):
+                    error_details = details
+
+        if result_label == "blocked_component_not_allowlisted":
+            unsupported = error_details.get("unsupported_components")
+            if isinstance(unsupported, list) and unsupported:
+                missing_proof.append(
+                    "Requested component(s) "
+                    + ", ".join(str(item) for item in unsupported)
+                    + " are outside the admitted editor component allowlist."
+                )
+            else:
+                missing_proof.append(
+                    "The requested component is outside the admitted editor component allowlist."
+                )
+
+        if result_label == "blocked_missing_editor_target":
+            missing_proof.append(
+                "No admitted editor target could be confirmed for the requested authoring chain."
+            )
+        if result_label == "blocked_missing_level":
+            missing_proof.append(
+                "A loaded or explicitly opened level was not proven for the requested authoring chain."
+            )
+        if result_label == "failed_runtime_error":
+            error_message = None
+            error = failed_response.get("error", {}) if failed_response is not None else {}
+            if isinstance(error, dict):
+                error_message = error.get("message")
+            if isinstance(error_message, str) and error_message:
+                missing_proof.append(error_message)
+            else:
+                missing_proof.append(
+                    "The admitted editor chain stopped on a runtime-side failure before full verification completed."
+                )
+
+        if any(
+            refusal.startswith(_EDITOR_PROPERTY_REFUSAL_PREFIX)
+            for refusal in session.refused_capabilities
+        ):
+            missing_proof.extend(session.refused_capabilities)
+        elif property_response is None and any(
+            step.tool == "editor.component.property.get"
+            for step in (session.plan.steps if session.plan is not None else [])
+        ):
+            missing_proof.append(
+                "Requested component/property readback did not produce verified evidence on the admitted path."
+            )
+
+        if not missing_proof:
+            missing_proof.append(
+                "None for the requested admitted editor chain; this review does not claim undo, reversibility, or runtime/game-mode activation."
+            )
+        return missing_proof
+
+    def _editor_safest_next_step(self, *, result_label: str) -> str:
+        if result_label == "blocked_missing_editor_target":
+            return (
+                "Ensure an attachable Editor target is available for this project, then rerun the same admitted chain."
+            )
+        if result_label == "blocked_missing_level":
+            return "Open or confirm an explicit level path before retrying the admitted editor authoring chain."
+        if result_label == "blocked_component_not_allowlisted":
+            return (
+                "Retry with one of the already admitted allowlisted components instead of broadening the editor component surface."
+            )
+        if result_label == "incomplete_readback_unavailable":
+            return (
+                "Retry the readback portion only when the requested component has a proven admitted property-read mapping, or inspect the attached component manually in the Editor."
+            )
+        if result_label == "failed_runtime_error":
+            return "Review the recorded bridge/runtime error details before retrying the same admitted editor chain."
+        if result_label == "succeeded_partially_verified":
+            return "Use the existing admitted read-only editor checks to verify the next missing fact without widening into property writes or arbitrary Editor Python."
+        return "Inspect the created editor objects in the loaded level or continue with another admitted read-only verification step."
+
+    def _format_review_section(self, title: str, items: list[str]) -> str:
+        return "\n".join([f"{title}:"] + [f"- {item}" for item in items])
+
+    def _restore_boundary_summary_items(
+        self,
+        details: dict[str, Any],
+    ) -> list[str]:
+        restore_boundary_id = details.get("restore_boundary_id")
+        if not isinstance(restore_boundary_id, str) or not restore_boundary_id:
+            return []
+
+        if details.get("restore_invoked") is True:
+            restore_result = details.get("restore_result")
+            if isinstance(restore_result, str) and restore_result:
+                return [
+                    f"Restore boundary {restore_boundary_id} was invoked with result {restore_result}."
+                ]
+            return [f"Restore boundary {restore_boundary_id} was invoked."]
+
+        if details.get("restore_boundary_available") is True:
+            return [
+                (
+                    f"Restore boundary {restore_boundary_id} was captured before admitted editor mutation "
+                    "and remains available for the current subset."
+                )
+            ]
+        return []
+
     def _append_restore_boundary_summary(
         self,
         details: dict[str, Any],
         summary_parts: list[str],
     ) -> None:
-        restore_boundary_id = details.get("restore_boundary_id")
-        if not isinstance(restore_boundary_id, str) or not restore_boundary_id:
-            return
-
-        if details.get("restore_invoked") is True:
-            restore_result = details.get("restore_result")
-            if isinstance(restore_result, str) and restore_result:
-                summary_parts.append(
-                    f"Restore boundary {restore_boundary_id} was invoked with result {restore_result}."
-                )
-            else:
-                summary_parts.append(
-                    f"Restore boundary {restore_boundary_id} was invoked."
-                )
-            return
-
-        if details.get("restore_boundary_available") is True:
-            summary_parts.append(
-                f"Restore boundary {restore_boundary_id} was captured before admitted editor mutation and remains available for the current subset."
-            )
+        summary_parts.extend(self._restore_boundary_summary_items(details))
 
 
 prompt_orchestrator_service = PromptOrchestratorService()
