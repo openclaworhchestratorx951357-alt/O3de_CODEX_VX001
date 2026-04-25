@@ -318,9 +318,14 @@ Current truth on this branch:
 - the composed prompt-controlled chain was live-proven on `2026-04-25` through
   `editor.session.open` -> `editor.level.open` -> `editor.entity.create` ->
   `editor.component.add` -> `editor.component.property.get`
-- the proof does not claim cleanup, restore invocation, broader component or
-  property mutation, delete, parenting, prefab mutation, material, asset,
-  render, build, or arbitrary Editor Python behavior
+- the cleanup-enhanced proof bundle
+  `backend/runtime/live_editor_authoring_proof_20260425-073157.json` also
+  invoked the pre-entity-create `loaded-level-file` restore boundary and
+  hash-verified the selected level prefab against the captured backup
+- the proof does not claim live Editor undo, viewport reload,
+  entity-absence readback, broader component or property mutation, delete,
+  parenting, prefab mutation, material, asset, render, build, or arbitrary
+  Editor Python behavior
 
 Official substrate(s):
 - Python Editor Bindings
@@ -333,8 +338,7 @@ Runner type:
 Missing capabilities:
 - broad session lifecycle management beyond the admitted bridge-backed path
 - project/editor compatibility checks beyond the canonical `McpSandbox` target
-- level save boundaries and cleanup/restore execution for editor-authored proof
-  mutations
+- live Editor undo/reload or entity-absence readback after file-backed restore
 - broader entity/component/property mutation classification
 - editor-safe rollback model
 

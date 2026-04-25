@@ -164,13 +164,16 @@ Current truth:
   `editor.session.open` -> `editor.level.open` -> `editor.entity.create` ->
   `editor.component.add` -> `editor.component.property.get`
 - live proof bundle:
-  `backend/runtime/live_editor_authoring_proof_20260425-071735.json`
+  `backend/runtime/live_editor_authoring_proof_20260425-073157.json`
 - the proof verified entity creation, Mesh attachment, and
   `Controller|Configuration|Model Asset` readback through the prompt
   orchestrated path
-- no cleanup, restore invocation, broader property write, delete, parenting,
-  prefab, material, asset, render, build, or arbitrary Editor Python behavior
-  was executed or verified by that proof
+- the proof now also invoked the pre-entity-create `loaded-level-file` restore
+  boundary and hash-verified the selected level prefab against the captured
+  backup after proof execution
+- no live Editor undo, viewport reload, entity-absence readback, broader
+  property write, delete, parenting, prefab, material, asset, render, build, or
+  arbitrary Editor Python behavior was executed or verified by that proof
 - now also produce operator-facing post-action review summaries that separate
   requested action, executed action, verified facts, assumptions, missing
   proof, and safest next step using bounded result labels
@@ -276,6 +279,8 @@ narrow and truthful.
 
 Recommended next boundary:
 - refresh operator-facing proof/checkpoint surfaces around the successful
-  composed editor live proof before widening any capability family
+  composed editor live proof plus hash-verified restore-boundary cleanup before
+  widening any capability family
 - keep the next real editor slice bounded to admitted readback/review depth
-  unless cleanup/restore semantics are explicitly implemented and verified
+  unless live Editor undo/reload or absence-readback semantics are explicitly
+  implemented and verified

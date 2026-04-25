@@ -29,6 +29,32 @@ def create_level(project_root: Path, level_name: str) -> None:
     (level_dir / f"{level_name}.prefab").write_text("{}", encoding="utf-8")
 
 
+def restore_step_records(
+    module,
+    *,
+    source_path: Path,
+    backup_path: Path,
+) -> dict:
+    return {
+        "editor_entity_create": {
+            "execution_record": {
+                "details": {
+                    "restore_boundary_id": "boundary-entity-create",
+                    "restore_boundary_scope": module.RESTORE_BOUNDARY_SCOPE,
+                    "restore_strategy": module.RESTORE_STRATEGY,
+                    "restore_boundary_level_path": "Levels/TestArena",
+                    "restore_boundary_source_path": str(source_path),
+                    "restore_boundary_backup_path": str(backup_path),
+                    "restore_boundary_available": True,
+                    "restore_invoked": False,
+                    "restore_result": "available_not_invoked",
+                    "restore_boundary_backup_sha256": module.file_sha256(backup_path),
+                }
+            }
+        }
+    }
+
+
 def test_select_safe_level_prefers_non_default_test_level(tmp_path):
     module = load_proof_module()
     create_level(tmp_path, "DefaultLevel")
@@ -212,3 +238,42 @@ def test_require_prompt_plan_rejects_non_chained_property_read(tmp_path):
             level_path=level_path,
             entity_name="CodexProofEntity_123",
         )
+
+
+def test_cleanup_restore_replays_pre_entity_boundary(tmp_path):
+    module = load_proof_module()
+    create_level(tmp_path, "TestArena")
+    source_path = tmp_path / "Levels" / "TestArena" / "TestArena.prefab"
+    source_path.write_text('{"after_proof": true}', encoding="utf-8")
+
+    backup_root = tmp_path / "editor_state" / "restore_boundaries"
+    backup_path = backup_root / "project-key" / "boundary-entity-create.prefab"
+    backup_path.parent.mkdir(parents=True)
+    backup_path.write_text('{"before_proof": true}', encoding="utf-8")
+
+    step_records = restore_step_records(
+        module,
+        source_path=source_path,
+        backup_path=backup_path,
+    )
+    safe_level_info = {
+        "selected_level_path": "Levels/TestArena",
+        "selected_prefab_path": str(source_path),
+    }
+
+    boundary = module.select_cleanup_restore_boundary(
+        step_records,
+        project_root=str(tmp_path),
+        safe_level_info=safe_level_info,
+        restore_boundaries_root_path=backup_root,
+    )
+    outcome = module.restore_cleanup_boundary(
+        boundary,
+        project_root=str(tmp_path),
+        restore_boundaries_root_path=backup_root,
+    )
+
+    assert boundary["selected_from_step"] == "editor.entity.create"
+    assert outcome["restore_succeeded"] is True
+    assert outcome["restore_result"] == "restored_and_verified"
+    assert source_path.read_text(encoding="utf-8") == '{"before_proof": true}'

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import shutil
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
@@ -23,9 +25,14 @@ SAFE_LEVEL_TOKEN_RANK = {
 }
 PROOF_COMPONENT = "Mesh"
 PROOF_PROPERTY_PATH = "Controller|Configuration|Model Asset"
+RESTORE_BOUNDARY_SCOPE = "loaded-level-file"
+RESTORE_STRATEGY = "restore-loaded-level-file-from-pre-mutation-backup"
+RESTORE_TRIGGER = "live-proof-success-cleanup"
 PROMPT_EXECUTE_MAX_ATTEMPTS = 16
 SCRIPT_VERSION = "v0.2"
-SUCCESS_NEXT_STEP = "Post-live-proof checkpoint refresh and operator-facing proof alignment"
+SUCCESS_NEXT_STEP = (
+    "Post-cleanup live-proof checkpoint refresh and operator-facing proof alignment"
+)
 
 EDITOR_SESSION_STEP_ID = "editor-session-1"
 EDITOR_LEVEL_STEP_ID = "editor-level-1"
@@ -119,6 +126,30 @@ def load_json_if_present(path: Path) -> dict[str, Any] | None:
     except (OSError, json.JSONDecodeError):
         return None
     return payload if isinstance(payload, dict) else None
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def restore_boundaries_root() -> Path:
+    return Path(__file__).resolve().parent / "editor_state" / "restore_boundaries"
+
+
+def require_path_under(path: Path, root: Path, *, label: str) -> Path:
+    resolved_path = path.expanduser().resolve()
+    resolved_root = root.expanduser().resolve()
+    try:
+        resolved_path.relative_to(resolved_root)
+    except ValueError as exc:
+        raise ProofError(
+            f"{label} '{resolved_path}' is outside expected root '{resolved_root}'."
+        ) from exc
+    return resolved_path
 
 
 def extract_execution_for_run(executions_payload: dict[str, Any], *, run_id: str) -> dict[str, Any]:
@@ -662,6 +693,195 @@ def record_ids(step_records: dict[str, Any], key: str) -> dict[str, Any]:
     }
 
 
+def select_cleanup_restore_boundary(
+    step_records: dict[str, Any],
+    *,
+    project_root: str,
+    safe_level_info: dict[str, Any],
+    restore_boundaries_root_path: Path | None = None,
+) -> dict[str, Any]:
+    entity_record = step_records.get("editor_entity_create")
+    if not isinstance(entity_record, dict):
+        raise ProofError("Cleanup restore could not find the entity-create step record.")
+
+    execution_record = entity_record.get("execution_record")
+    if not isinstance(execution_record, dict):
+        raise ProofError(
+            "Cleanup restore could not find the entity-create execution record."
+        )
+
+    details = execution_record.get("details")
+    if not isinstance(details, dict):
+        raise ProofError(
+            "Cleanup restore could not find entity-create restore-boundary details."
+        )
+
+    boundary_id = details.get("restore_boundary_id")
+    if not isinstance(boundary_id, str) or not boundary_id.strip():
+        raise ProofError("Entity-create did not expose a restore_boundary_id.")
+    if details.get("restore_boundary_available") is not True:
+        raise ProofError(
+            f"Entity-create restore boundary '{boundary_id}' is not available."
+        )
+    if details.get("restore_invoked") is True:
+        raise ProofError(
+            f"Entity-create restore boundary '{boundary_id}' was already invoked."
+        )
+    if details.get("restore_boundary_scope") != RESTORE_BOUNDARY_SCOPE:
+        raise ProofError(
+            "Entity-create restore boundary did not stay within the loaded-level-file scope."
+        )
+    if details.get("restore_strategy") != RESTORE_STRATEGY:
+        raise ProofError(
+            "Entity-create restore boundary did not use the admitted restore strategy."
+        )
+
+    selected_prefab_path = safe_level_info.get("selected_prefab_path")
+    if not isinstance(selected_prefab_path, str) or not selected_prefab_path:
+        raise ProofError("Safe-level selection did not include selected_prefab_path.")
+    selected_prefab = require_path_under(
+        Path(selected_prefab_path),
+        Path(project_root),
+        label="selected level prefab path",
+    )
+
+    source_path_raw = details.get("restore_boundary_source_path")
+    backup_path_raw = details.get("restore_boundary_backup_path")
+    expected_backup_sha256 = details.get("restore_boundary_backup_sha256")
+    if not isinstance(source_path_raw, str) or not source_path_raw:
+        raise ProofError("Entity-create restore boundary did not include a source path.")
+    if not isinstance(backup_path_raw, str) or not backup_path_raw:
+        raise ProofError("Entity-create restore boundary did not include a backup path.")
+    if not isinstance(expected_backup_sha256, str) or not expected_backup_sha256:
+        raise ProofError(
+            "Entity-create restore boundary did not include a backup sha256."
+        )
+
+    source_path = require_path_under(
+        Path(source_path_raw),
+        Path(project_root),
+        label="restore boundary source path",
+    )
+    if source_path != selected_prefab:
+        raise ProofError(
+            "Entity-create restore boundary source did not match the selected safe-level prefab."
+        )
+
+    backup_root = (
+        restore_boundaries_root_path
+        if restore_boundaries_root_path is not None
+        else restore_boundaries_root()
+    )
+    backup_path = require_path_under(
+        Path(backup_path_raw),
+        backup_root,
+        label="restore boundary backup path",
+    )
+
+    boundary = {
+        key: value
+        for key, value in details.items()
+        if key.startswith("restore_")
+    }
+    boundary.update(
+        {
+            "restore_boundary_id": boundary_id,
+            "restore_boundary_source_path": str(source_path),
+            "restore_boundary_backup_path": str(backup_path),
+            "restore_boundary_backup_sha256": expected_backup_sha256,
+            "selected_from_step": "editor.entity.create",
+            "cleanup_scope": RESTORE_BOUNDARY_SCOPE,
+            "cleanup_strategy": RESTORE_STRATEGY,
+            "cleanup_reason": (
+                "Restore the selected level prefab to the boundary captured before "
+                "the proof-created entity and component existed."
+            ),
+        }
+    )
+    return boundary
+
+
+def restore_cleanup_boundary(
+    restore_boundary: dict[str, Any],
+    *,
+    project_root: str,
+    restore_boundaries_root_path: Path | None = None,
+) -> dict[str, Any]:
+    backup_root = (
+        restore_boundaries_root_path
+        if restore_boundaries_root_path is not None
+        else restore_boundaries_root()
+    )
+    outcome = dict(restore_boundary)
+    outcome.update(
+        {
+            "restore_invoked": True,
+            "restore_attempted": True,
+            "restore_trigger": RESTORE_TRIGGER,
+            "restore_verification_attempted": False,
+            "restore_succeeded": False,
+        }
+    )
+
+    try:
+        source_path = require_path_under(
+            Path(str(restore_boundary["restore_boundary_source_path"])),
+            Path(project_root),
+            label="restore source path",
+        )
+        backup_path = require_path_under(
+            Path(str(restore_boundary["restore_boundary_backup_path"])),
+            backup_root,
+            label="restore backup path",
+        )
+        expected_backup_sha256 = restore_boundary.get("restore_boundary_backup_sha256")
+        if not isinstance(expected_backup_sha256, str) or not expected_backup_sha256:
+            raise ProofError("Restore boundary did not include a backup sha256.")
+        if not backup_path.is_file():
+            outcome["restore_result"] = "restore_backup_missing"
+            outcome["restore_error"] = f"Backup path does not exist: {backup_path}"
+            return outcome
+
+        actual_backup_sha256 = file_sha256(backup_path)
+        outcome["restore_backup_sha256"] = actual_backup_sha256
+        outcome["restore_backup_sha256_matches_boundary"] = (
+            actual_backup_sha256 == expected_backup_sha256
+        )
+        if actual_backup_sha256 != expected_backup_sha256:
+            outcome["restore_result"] = "restore_backup_hash_mismatch"
+            outcome["restore_error"] = (
+                "Restore backup sha256 did not match the captured boundary metadata."
+            )
+            return outcome
+
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(backup_path, source_path)
+        outcome["restore_verification_attempted"] = True
+        restored_sha256 = file_sha256(source_path)
+        outcome["restore_restored_sha256"] = restored_sha256
+        outcome["restore_verification_succeeded"] = restored_sha256 == expected_backup_sha256
+        outcome["restore_succeeded"] = bool(outcome["restore_verification_succeeded"])
+        outcome["restore_result"] = (
+            "restored_and_verified"
+            if outcome["restore_succeeded"]
+            else "restore_verification_failed"
+        )
+        return outcome
+    except (OSError, ProofError) as exc:
+        outcome["restore_result"] = "restore_failed"
+        outcome["restore_error"] = str(exc)
+        return outcome
+
+
+def require_cleanup_restore_succeeded(cleanup_restore: dict[str, Any]) -> None:
+    if cleanup_restore.get("restore_succeeded") is True:
+        return
+    raise ProofError(
+        "Cleanup restore did not complete successfully: "
+        f"{cleanup_restore.get('restore_result')}"
+    )
+
+
 def build_success_summary(
     *,
     safe_level_info: dict[str, Any],
@@ -669,6 +889,7 @@ def build_success_summary(
     prompt_execution: dict[str, Any],
     step_records: dict[str, Any],
     final_review_summary: str,
+    cleanup_restore: dict[str, Any],
 ) -> dict[str, Any]:
     session_record = prompt_execution["final_session_record_raw"]
     entity_details = step_records["editor_entity_create"]["execution_record"].get("details", {})
@@ -696,6 +917,9 @@ def build_success_summary(
     approval_count = len(prompt_execution["approval_events"])
     execute_attempt_count = len(prompt_execution["execute_attempts"])
     selected_tokens = ", ".join(safe_level_info["selected_safe_name_tokens"])
+    cleanup_boundary_id = cleanup_restore.get("restore_boundary_id")
+    cleanup_source_path = cleanup_restore.get("restore_boundary_source_path")
+    cleanup_result = cleanup_restore.get("restore_result")
 
     return {
         "succeeded": True,
@@ -724,6 +948,26 @@ def build_success_summary(
             "plan_id": session_record.get("plan_id"),
             "execute_attempt_count": execute_attempt_count,
             "approval_count": approval_count,
+        },
+        "cleanup_restore": {
+            "restore_invoked": cleanup_restore.get("restore_invoked"),
+            "restore_succeeded": cleanup_restore.get("restore_succeeded"),
+            "restore_result": cleanup_result,
+            "restore_trigger": cleanup_restore.get("restore_trigger"),
+            "restore_boundary_id": cleanup_boundary_id,
+            "restore_boundary_scope": cleanup_restore.get("restore_boundary_scope"),
+            "restore_strategy": cleanup_restore.get("restore_strategy"),
+            "restore_boundary_source_path": cleanup_source_path,
+            "restore_boundary_backup_path": cleanup_restore.get(
+                "restore_boundary_backup_path"
+            ),
+            "restore_boundary_backup_sha256": cleanup_restore.get(
+                "restore_boundary_backup_sha256"
+            ),
+            "restore_restored_sha256": cleanup_restore.get(
+                "restore_restored_sha256"
+            ),
+            "selected_from_step": cleanup_restore.get("selected_from_step"),
         },
         "verified_facts": [
             (
@@ -755,6 +999,11 @@ def build_success_summary(
                 "The prompt session final_result_summary preserved the admitted "
                 "post-action review wording."
             ),
+            (
+                "Cleanup restore invoked the entity-create restore boundary "
+                f"{cleanup_boundary_id} and hash-verified {cleanup_source_path} "
+                f"with result {cleanup_result}."
+            ),
         ],
         "assumptions": [
             (
@@ -762,12 +1011,15 @@ def build_success_summary(
                 f"name carries the explicit token(s): {selected_tokens}."
             ),
             (
-                "No cleanup was attempted; this proof assumes the selected sandbox/test level "
-                "can safely retain the created entity and added component after verification."
+                "Cleanup proof is limited to filesystem restore of the selected loaded-level "
+                "prefab from the runtime-owned pre-entity-create backup."
             ),
         ],
         "missing_proof": [
-            "No cleanup or restore invocation was executed or verified by this harness run.",
+            (
+                "No live Editor undo, viewport reload, or entity-absence readback was proven "
+                "after the filesystem restore."
+            ),
             (
                 "No broader component/property mapping was exercised beyond the admitted "
                 f"{PROOF_COMPONENT} -> {PROOF_PROPERTY_PATH} readback case."
@@ -809,7 +1061,24 @@ def build_failure_summary(
     *,
     error: Exception,
     preflight_facts: list[str],
+    cleanup_restore: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    assumptions = []
+    if cleanup_restore is not None and cleanup_restore.get("restore_attempted") is True:
+        assumptions.append(
+            "Cleanup restore was attempted; inspect cleanup_restore for the exact outcome."
+        )
+    else:
+        assumptions.append("No cleanup was attempted during this failed proof run.")
+
+    missing_proof = [
+        "The admitted composed editor chain was not fully proven live in this run.",
+    ]
+    if cleanup_restore is not None and cleanup_restore.get("restore_succeeded") is not True:
+        missing_proof.append(
+            "Cleanup restore did not complete successfully in this failed proof run."
+        )
+
     return {
         "succeeded": False,
         "status": "failed",
@@ -817,12 +1086,8 @@ def build_failure_summary(
         "error_type": error.__class__.__name__,
         "error_message": str(error),
         "verified_facts": preflight_facts,
-        "assumptions": [
-            "No cleanup was attempted during this failed proof run.",
-        ],
-        "missing_proof": [
-            "The admitted composed editor chain was not fully proven live in this run.",
-        ],
+        "assumptions": assumptions,
+        "missing_proof": missing_proof,
         "safest_next_step": failure_next_step(str(error)),
     }
 
@@ -854,6 +1119,7 @@ def main() -> int:
     workspace_id: str | None = None
     executor_id: str | None = None
     preflight_facts: list[str] = []
+    cleanup_restore: dict[str, Any] | None = None
 
     evidence_bundle: dict[str, Any] = {
         "schema_version": SCRIPT_VERSION,
@@ -1050,6 +1316,18 @@ def main() -> int:
             **step_records,
         }
 
+        cleanup_boundary = select_cleanup_restore_boundary(
+            step_records,
+            project_root=args.project_root,
+            safe_level_info=safe_level_info,
+        )
+        cleanup_restore = restore_cleanup_boundary(
+            cleanup_boundary,
+            project_root=args.project_root,
+        )
+        evidence_bundle["cleanup_restore"] = scrub_secrets(cleanup_restore)
+        require_cleanup_restore_succeeded(cleanup_restore)
+
         final_bridge_payload = json_request(
             base_url=args.base_url,
             method="GET",
@@ -1062,11 +1340,13 @@ def main() -> int:
             prompt_execution=prompt_execution,
             step_records=step_records,
             final_review_summary=final_review_summary,
+            cleanup_restore=cleanup_restore,
         )
     except Exception as exc:  # noqa: BLE001
         evidence_bundle["summary"] = build_failure_summary(
             error=exc,
             preflight_facts=preflight_facts,
+            cleanup_restore=cleanup_restore,
         )
     finally:
         output_path.write_text(
