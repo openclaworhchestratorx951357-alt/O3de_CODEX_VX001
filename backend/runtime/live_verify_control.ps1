@@ -29,7 +29,7 @@ $RuntimeDir = Split-Path -Parent $PSCommandPath
 $BackendDir = Split-Path -Parent $RuntimeDir
 $RepoRoot = Split-Path -Parent $BackendDir
 
-$BackendPython = Join-Path $BackendDir ".venv\Scripts\python.exe"
+$PreferredBackendPython = Join-Path $BackendDir ".venv\Scripts\python.exe"
 $LaunchHelper = Join-Path $RuntimeDir "launch_branch_backend_8000_detached.py"
 $ProofHelper = Join-Path $RuntimeDir "prove_live_editor_authoring.py"
 
@@ -41,6 +41,19 @@ $ErrLogPath = Join-Path $RuntimeDir "live-verify-uvicorn.err.log"
 $CanonicalProjectRoot = "C:\Users\topgu\O3DE\Projects\McpSandbox"
 $CanonicalEngineRoot = "C:\src\o3de"
 $CanonicalEditorRunner = "C:\Users\topgu\O3DE\Projects\McpSandbox\build\windows\bin\profile\Editor.exe"
+
+function Get-BackendPython {
+    if (Test-Path $PreferredBackendPython) {
+        return $PreferredBackendPython
+    }
+
+    $pythonCommand = Get-Command python -ErrorAction SilentlyContinue
+    if ($null -ne $pythonCommand) {
+        return $pythonCommand.Source
+    }
+
+    throw "Unable to locate a backend Python interpreter. Expected $PreferredBackendPython or a python executable on PATH."
+}
 
 function Get-UtcTimestamp {
     return [DateTime]::UtcNow.ToString("o")
@@ -462,9 +475,7 @@ function Stop-ProcessIds {
 }
 
 function Invoke-StartCanonicalBackend {
-    if (-not (Test-Path $BackendPython)) {
-        throw "Expected backend python at $BackendPython"
-    }
+    $backendPython = Get-BackendPython
 
     $preStatus = Get-LifecycleStatus
     if (Test-CanonicalBackendReady -Status $preStatus) {
@@ -475,7 +486,7 @@ function Invoke-StartCanonicalBackend {
         }
     }
 
-    $launchOutput = & $BackendPython $LaunchHelper 2>&1
+    $launchOutput = & $backendPython $LaunchHelper 2>&1
     if ($LASTEXITCODE -ne 0) {
         $launchText = ($launchOutput | Out-String).Trim()
         throw "Launch helper failed with exit code ${LASTEXITCODE}: $launchText"
@@ -538,9 +549,7 @@ function Invoke-StopCanonicalEditor {
 }
 
 function Invoke-ProofRun {
-    if (-not (Test-Path $BackendPython)) {
-        throw "Expected backend python at $BackendPython"
-    }
+    $backendPython = Get-BackendPython
 
     $existingEditorIds = @((Get-CanonicalEditorProcesses) | ForEach-Object { [int]$_.id })
     $startResult = $null
@@ -552,7 +561,7 @@ function Invoke-ProofRun {
         $startResult = Invoke-StartCanonicalBackend
     }
 
-    $proofOutput = & $BackendPython $ProofHelper 2>&1
+    $proofOutput = & $backendPython $ProofHelper 2>&1
     $proofExitCode = $LASTEXITCODE
     $proofText = ($proofOutput | Out-String).Trim()
     $proofOutputPath = $null
