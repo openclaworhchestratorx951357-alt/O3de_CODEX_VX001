@@ -163,9 +163,10 @@ When multiple Codex threads are active at the same time, do not place them on
 the same live-edit branch.
 
 Use this pattern instead:
-- stable launchpad branch:
-  `codex/control-plane/o3de-thread-launchpad-stable`
-- one worker branch/worktree per active thread
+- promoted baseline branch:
+  `main`
+- one `codex/<slice>` or worker branch/worktree per active thread, created
+  from freshly fetched and fast-forwarded `origin/main`
 - one shared mission-control board under the Git common directory
 
 Mission Control is the repo-owned coordination layer for:
@@ -194,6 +195,14 @@ Every new implementation slice must also apply this rule:
 git pull --ff-only origin <current-branch>
 ```
 
+- for a brand-new post-promotion slice, start from promoted `main`:
+
+```powershell
+git checkout main
+git pull --ff-only origin main
+git switch -c codex/<slice-name>
+```
+
 - if the worktree is dirty, do not pull blindly over local changes
 - instead, report the current local state first and decide whether the slice should:
   - sync/push the already-existing local work, or
@@ -207,6 +216,9 @@ See `docs/SLICE-START-CHECKLIST.md` for the standing slice-start preflight.
 
 If working directly on `main`, Codex must say so explicitly.
 If working on a feature branch, Codex must print the branch name before editing.
+Do not start new feature work on `codex/control-plane/gui-overhaul-integration`
+or `codex/main-promotion-resolution`; keep them as audit/rollback references
+until explicit cleanup.
 
 ### Current local-run persistence baseline
 
@@ -233,12 +245,12 @@ Do not work on `main` unless explicitly instructed.
 Preferred branch naming:
 
 ```text
-feat/backend-approvals-and-locks
-feat/frontend-run-detail-view
-feat/tool-registry-and-schemas
-fix/dispatcher-request-validation
-docs/codex-chatgpt-workflow
-chore/ci-docker-baseline
+codex/backend-approvals-and-locks
+codex/frontend-run-detail-view
+codex/tool-registry-and-schemas
+codex/dispatcher-request-validation
+codex/codex-chatgpt-workflow
+codex/ci-docker-baseline
 ```
 
 One branch should correspond to one coherent change set.

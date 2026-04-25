@@ -7,7 +7,7 @@ working in parallel from the same repository family without colliding on file
 scope, port `8000`, or the canonical McpSandbox editor session.
 
 Use it when you want:
-- one stable launchpad branch for new thread lanes
+- one promoted `main` baseline for new thread lanes
 - one shared board visible from every worktree
 - explicit task claims
 - wait queues for busy resources
@@ -38,10 +38,14 @@ mission-control script.
 ## Baseline branch model
 
 Use these roles:
-- stable launchpad branch:
-  `codex/control-plane/o3de-thread-launchpad-stable`
+- promoted baseline branch:
+  `main`
 - worker lane branches:
-  one branch per active thread, created from the launchpad branch
+  one `codex/<slice>` or `codex/worker/<worker-id>` branch per active
+  thread, created from a freshly fetched and fast-forwarded `origin/main`
+- audit/rollback references:
+  old integration, promotion, launchpad, and backup branches are not new-work
+  baselines unless the operator explicitly reactivates one
 - mission-control lane:
   the human/operator coordination lane that manages claims and unblock flow
 
@@ -49,8 +53,15 @@ Do not put multiple active worktrees on the exact same Git branch.
 
 ## Create a new worker lane
 
-Create and bootstrap a new worker branch/worktree from the stable launchpad
-baseline:
+Create and bootstrap a new worker branch/worktree from the promoted `main`
+baseline. Before creating a lane, update the primary checkout:
+
+```powershell
+git checkout main
+git pull --ff-only origin main
+```
+
+Then create the lane:
 
 ```powershell
 pwsh -File .\scripts\dev.ps1 mission-control create-lane --worker-id backend-alpha
