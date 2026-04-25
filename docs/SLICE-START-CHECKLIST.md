@@ -59,6 +59,26 @@ The rule is:
 
 > Every slice must begin with a fresh remote fetch, and a fast-forward sync whenever that can be done safely.
 
+## New Slice Branch Rule
+
+After the promotion merge `9e3825dd9faa9bea3550afb14b19fb870b3cb0da`,
+`main` is the official baseline for new work.
+
+For a brand-new slice:
+
+```powershell
+git checkout main
+git pull --ff-only origin main
+git switch -c codex/<slice-name>
+```
+
+Do not start new feature work on:
+- `codex/control-plane/gui-overhaul-integration`
+- `codex/main-promotion-resolution`
+
+Keep the promotion, integration, and backup branches as audit/rollback
+references unless cleanup is explicitly approved.
+
 ## Local State Handling Rule
 
 If `git status --short` is not empty at slice start, classify the state before editing:
@@ -76,6 +96,10 @@ If the state is ambiguous, stop and report it instead of editing through uncerta
 
 These are active standing assumptions for this repository:
 
+- `main` is the official post-promotion baseline after merge commit
+  `9e3825dd9faa9bea3550afb14b19fb870b3cb0da`
+- `.venv/` may appear as local untracked noise and must not be staged,
+  deleted, or modified unless explicitly requested
 - simulated execution must remain explicitly labeled as simulated
 - explicit operator-configured persistence remains the truthful local-run baseline
 - Phase 3 validator support is intentionally frozen at the accepted subset unless a newly published per-tool schema actually requires more

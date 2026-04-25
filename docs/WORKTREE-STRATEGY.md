@@ -9,8 +9,9 @@ Use worktrees when parallel lanes would otherwise collide in one checkout.
 
 ## Default rule
 
-Keep the primary repository checkout as the integration lane for the active
-branch.
+Keep the primary repository checkout on promoted `main` between slices. For
+implementation work, create a fresh `codex/<slice>` branch from updated `main`
+or a separate worktree branch from `origin/main`.
 
 Create separate worktrees only for:
 - risky refactors
@@ -20,12 +21,11 @@ Create separate worktrees only for:
 
 ## Current parallel-thread baseline
 
-Use the current O3DE control-plane stream with:
-- integration lane:
-  `codex/control-plane/o3de-real-integration`
-- stable launchpad branch for new threads:
-  `codex/control-plane/o3de-thread-launchpad-stable`
-- one worker branch per active thread, created from the launchpad branch
+Use the promoted O3DE control-plane baseline with:
+- promoted baseline branch:
+  `main`
+- one feature or worker branch per active thread, created from freshly fetched
+  `origin/main`
 - one shared mission-control board described in
   `docs/MISSION-CONTROL-RUNBOOK.md`
 
@@ -51,31 +51,31 @@ Recommended local structure:
 <repo-parent>\O3de_CODEX_VX001-ci-devx
 ```
 
-The current repo root remains the integration lane.
+The current repo root should return to `main` after a slice is published unless
+it is actively checked out to a focused feature branch.
 
 ## Named lanes
 
-### Integration lane
+### Primary checkout lane
 
 - branch: current accepted working branch
-- purpose: the branch you intend to publish next
+- purpose: `main` between slices, or the focused branch you intend to publish
+  next
 - use for: small coherent slices and accepted follow-on work
 
 ## Current branch map
 
-Use the current desktop/operator stream with one integration branch, one stable
-checkpoint branch, and focused follow-on branches that can diverge safely from
-the same published commit.
+Use focused follow-on branches that diverge from updated `main`. Historical
+integration and checkpoint branches remain audit references unless explicitly
+reactivated.
 
-### Published integration branch
+### Historical published integration branch
 
 - branch: `codex/control-plane/operator-desktop-next`
-- purpose: the active integration lane for the current desktop-shell,
-  operator-guide, and workspace-performance stream
+- purpose: historical desktop-shell, operator-guide, and workspace-performance
+  stream before the promotion to `main`
 - use for:
-  - accepted UI shell slices
-  - verified operator-guide updates
-  - integration-ready performance refinements
+  - audit/reference only unless explicitly reactivated
 
 ### Stable checkpoint branch
 
@@ -102,11 +102,10 @@ the same published commit.
 
 ### Current branch rules
 
-- create new focused slices from
-  `codex/control-plane/o3de-thread-launchpad-stable` unless the work is
-  explicitly intended to extend the active integration lane
-- merge or cherry-pick back into
-  `codex/control-plane/o3de-real-integration` only after local verification
+- create new focused slices from freshly fetched and fast-forwarded `main`
+- publish slices through PRs back to `main` after local verification
+- do not continue new work on `codex/control-plane/gui-overhaul-integration`
+  or `codex/main-promotion-resolution` unless explicitly directed
 - keep admitted-real wording explicit:
   - `editor.session.open` admitted real
   - `editor.level.open` admitted real
@@ -159,10 +158,10 @@ the same published commit.
 From the main repo checkout:
 
 ```powershell
-git worktree add ..\O3de_CODEX_VX001-runtime-adapters -b codex/runtime-adapters origin/feature/production-baseline-v1
-git worktree add ..\O3de_CODEX_VX001-operator-shell -b codex/operator-shell origin/feature/production-baseline-v1
-git worktree add ..\O3de_CODEX_VX001-persistence -b codex/persistence origin/feature/production-baseline-v1
-git worktree add ..\O3de_CODEX_VX001-ci-devx -b codex/ci-devx origin/feature/production-baseline-v1
+git worktree add ..\O3de_CODEX_VX001-runtime-adapters -b codex/runtime-adapters origin/main
+git worktree add ..\O3de_CODEX_VX001-operator-shell -b codex/operator-shell origin/main
+git worktree add ..\O3de_CODEX_VX001-persistence -b codex/persistence origin/main
+git worktree add ..\O3de_CODEX_VX001-ci-devx -b codex/ci-devx origin/main
 ```
 
 If the branch should start from the current local branch tip instead of the
@@ -226,10 +225,10 @@ When multiple threads are active, also:
 ## Recommended usage pattern
 
 Use this pattern for parallel work:
-1. keep the integration lane clean
+1. keep `main` clean and use it as the post-promotion baseline
 2. open one worktree per risky track
 3. finish and verify each lane independently
-4. merge or cherry-pick intentionally back into the integration lane
+4. publish reviewed slices back to `main`
 5. remove stale worktrees after publication
 
 ## Inspect and clean up
@@ -257,5 +256,5 @@ git worktree prune
 Stay in the active checkout when:
 - the slice is small
 - the risk of overlap is low
-- the branch is already the correct integration lane
+- the branch is already the correct focused slice branch
 - adding another worktree would create more coordination overhead than safety

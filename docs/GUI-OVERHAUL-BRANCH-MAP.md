@@ -1,5 +1,11 @@
 # GUI Overhaul Branch Map
 
+> Post-promotion note: This branch map is historical. The GUI/control-plane
+> integration stream was promoted to `main` in merge commit
+> `9e3825dd9faa9bea3550afb14b19fb870b3cb0da`. New slices should branch from
+> updated `main`; old GUI/integration branches are audit/rollback references
+> unless explicitly reactivated.
+
 This document defines the safe branch layout for a full GUI simplification pass while preserving the current feature-complete build.
 
 ## Why this overhaul exists
@@ -97,11 +103,11 @@ follow-on branch for the next narrow slice.
   - frozen preservation branch for the current accepted working UI
   - use this when a known-good fallback is needed
 
-### Integration branch
+### Historical integration branch
 
 - `codex/control-plane/gui-overhaul-integration`
-  - main integration lane for the overhaul
-  - use this to merge tested slices together
+  - historical integration lane for the overhaul before promotion to `main`
+  - keep as an audit/rollback reference unless explicitly reactivated
 
 ### Focused side branches
 
@@ -131,7 +137,7 @@ follow-on branch for the next narrow slice.
 4. Contextual help system
 5. Workspace simplification
 6. Polish and validation
-7. Merge into `codex/control-plane/gui-overhaul-integration`
+7. Open a focused PR back to `main` from a fresh `codex/<slice>` branch
 
 ## Guardrails
 
@@ -141,4 +147,4 @@ follow-on branch for the next narrow slice.
 - Keep help text practical: every help surface should explain what this is, when to use it, a safe next step, and one concrete example.
 - Do not create scrollbar soup. Favor one primary scroll container per workspace view and reserve nested scrolling for isolated lists, logs, inspectors, or code/artifact panels that genuinely need it.
 - Prefer reusable shell patterns over one-off workspace rewrites.
-- Validate desktop and mobile behavior before merging back to integration.
+- Validate desktop and mobile behavior before merging back to `main`.
