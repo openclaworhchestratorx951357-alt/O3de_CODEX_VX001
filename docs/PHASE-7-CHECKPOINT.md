@@ -159,6 +159,18 @@ Current truth:
   that may automatically bind the created entity id into allowlisted
   component attachment and bind the added component id into admitted property
   readback when the planner has a proven mapping
+- the canonical live proof completed on `2026-04-25` against
+  `Levels/TestLoevel01` in `McpSandbox` through the exact composed chain:
+  `editor.session.open` -> `editor.level.open` -> `editor.entity.create` ->
+  `editor.component.add` -> `editor.component.property.get`
+- live proof bundle:
+  `backend/runtime/live_editor_authoring_proof_20260425-071735.json`
+- the proof verified entity creation, Mesh attachment, and
+  `Controller|Configuration|Model Asset` readback through the prompt
+  orchestrated path
+- no cleanup, restore invocation, broader property write, delete, parenting,
+  prefab, material, asset, render, build, or arbitrary Editor Python behavior
+  was executed or verified by that proof
 - now also produce operator-facing post-action review summaries that separate
   requested action, executed action, verified facts, assumptions, missing
   proof, and safest next step using bounded result labels
@@ -263,10 +275,7 @@ Before widening into broader real adapter execution, the next slice should stay
 narrow and truthful.
 
 Recommended next boundary:
-- when a real Editor target is available, prefer a live-proof packet against a
-  sandbox/test level for the admitted composed editor chain before widening
-  other mutation or execution families, and
-- if that live target is unavailable, reselect the single safest next depth
-  step from the now-aligned read-only, plan-only, execution-gated, and narrow
-  mutation-gated baseline without pretending the composed editor chain was
-  live-proven
+- refresh operator-facing proof/checkpoint surfaces around the successful
+  composed editor live proof before widening any capability family
+- keep the next real editor slice bounded to admitted readback/review depth
+  unless cleanup/restore semantics are explicitly implemented and verified

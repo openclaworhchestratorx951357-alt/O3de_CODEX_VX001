@@ -955,18 +955,23 @@ AZ_DECLARE_MODULE_CLASS(Gem_ControlPlaneEditorBridge_Editor, ControlPlaneEditorB
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 from datetime import datetime, timezone
 
 try:
     import azlmbr.bus as bus  # type: ignore
+    import azlmbr.control_plane_editor_bridge as control_plane_editor_bridge  # type: ignore
     import azlmbr.editor as editor  # type: ignore
+    import azlmbr.entity as entity  # type: ignore
     import azlmbr.legacy.general as general  # type: ignore
     from azlmbr.entity import EntityId  # type: ignore
 except Exception:
     bus = None
+    control_plane_editor_bridge = None
     editor = None
+    entity = None
     general = None
     EntityId = None
 
@@ -974,6 +979,18 @@ BRIDGE_NAME = "ControlPlaneEditorBridge"
 BRIDGE_VERSION = "0.1.0"
 PROTOCOL_VERSION = "v1"
 DEFAULT_LEVEL_TEMPLATE = "DefaultLevel"
+COMPONENT_ADD_ALLOWLIST = ("Camera", "Comment", "Mesh")
+COMPONENT_ADD_ALLOWLIST_LOOKUP = {
+    component_name.casefold(): component_name
+    for component_name in COMPONENT_ADD_ALLOWLIST
+}
+COMPONENT_ID_PATTERN = re.compile(
+    r"^EntityComponentIdPair\s*\(\s*"
+    r"(?:EntityId\s*\(\s*(?P<entity_wrapped>\d+)\s*\)|"
+    r"\[\s*(?P<entity_bracket>\d+)\s*\]|"
+    r"(?P<entity_plain>\d+))"
+    r"\s*,\s*(?P<component>\d+)\s*\)$"
+)
 
 
 def utc_now() -> str:
@@ -981,7 +998,13 @@ def utc_now() -> str:
 
 
 def _editor_available() -> bool:
-    return not (bus is None or editor is None or general is None or EntityId is None)
+    return not (
+        bus is None
+        or editor is None
+        or entity is None
+        or general is None
+        or EntityId is None
+    )
 
 
 def _project_root_from_state(runtime_state: dict[str, Any]) -> str:
@@ -1022,6 +1045,10 @@ def _editor_context_writable() -> bool:
     return _editor_available()
 
 
+def _bridge_request_available() -> bool:
+    return _editor_available() and control_plane_editor_bridge is not None
+
+
 def _base_details(runtime_state: dict[str, Any]) -> dict[str, Any]:
     return {
         "project_root": _project_root_from_state(runtime_state),
@@ -1032,6 +1059,22 @@ def _base_details(runtime_state: dict[str, Any]) -> dict[str, Any]:
         "selected_entity_count": _selection_count(),
         "editor_context_writable": _editor_context_writable(),
     }
+
+
+def _merge_bridge_details(
+    runtime_state: dict[str, Any],
+    bridge_payload: dict[str, Any],
+) -> dict[str, Any]:
+    details = _base_details(runtime_state)
+    bridge_details = bridge_payload.get("details")
+    if isinstance(bridge_details, dict):
+        details.update(bridge_details)
+    if "selected_entity_count" in details and "selected_entity_count_before_create" not in details:
+        details["selected_entity_count_before_create"] = details["selected_entity_count"]
+    active_level_path = details.get("active_level_path")
+    if "level_path" not in details and isinstance(active_level_path, str) and active_level_path:
+        details["level_path"] = active_level_path
+    return details
 
 
 def _response(
@@ -1084,6 +1127,734 @@ def _normalize_level_path(value: str | Path) -> str:
     return Path(value).as_posix().lower()
 
 
+def _canonicalize_component_names(
+    components: Any,
+) -> tuple[list[str], list[str], list[str]]:
+    if not isinstance(components, list):
+        return [], [], []
+
+    canonical_components: list[str] = []
+    unsupported_components: list[str] = []
+    duplicate_components: list[str] = []
+    seen_components: set[str] = set()
+
+    for component_value in components:
+        if not isinstance(component_value, str):
+            unsupported_components.append(str(component_value))
+            continue
+
+        normalized_component = component_value.strip()
+        if not normalized_component:
+            unsupported_components.append(normalized_component)
+            continue
+
+        canonical_component = COMPONENT_ADD_ALLOWLIST_LOOKUP.get(
+            normalized_component.casefold()
+        )
+        if canonical_component is None:
+            unsupported_components.append(normalized_component)
+            continue
+
+        if canonical_component in seen_components:
+            duplicate_components.append(canonical_component)
+            continue
+
+        seen_components.add(canonical_component)
+        canonical_components.append(canonical_component)
+
+    return canonical_components, unsupported_components, duplicate_components
+
+
+ENTITY_ID_CACHE: dict[str, Any] = {}
+COMPONENT_PAIR_CACHE: dict[str, Any] = {}
+
+
+def _is_entity_id_like(value: Any) -> bool:
+    return callable(getattr(value, "IsValid", None)) and callable(getattr(value, "ToString", None))
+
+
+def _normalize_entity_id_text(value: Any) -> str | None:
+    if _is_entity_id_like(value):
+        if not value.IsValid():
+            return None
+        value = value.ToString()
+    elif isinstance(value, int):
+        value = str(value)
+    elif not isinstance(value, str):
+        return None
+
+    candidate = value.strip()
+    if candidate.startswith("EntityId(") and candidate.endswith(")"):
+        candidate = candidate[len("EntityId(") : -1].strip()
+    if candidate.startswith("[") and candidate.endswith("]"):
+        candidate = candidate[1:-1].strip()
+    if not candidate or not candidate.isdigit():
+        return None
+    return candidate
+
+
+def _entity_id_cache_keys(*values: Any) -> list[str]:
+    cache_keys: set[str] = set()
+    for value in values:
+        normalized_candidate = _normalize_entity_id_text(value)
+        if normalized_candidate is not None:
+            cache_keys.add(normalized_candidate)
+            cache_keys.add(f"[{normalized_candidate}]")
+            cache_keys.add(f"EntityId({normalized_candidate})")
+        elif isinstance(value, str):
+            stripped_value = value.strip()
+            if stripped_value:
+                cache_keys.add(stripped_value)
+    return sorted(cache_keys)
+
+
+def _remember_entity_id(entity_id: Any, *aliases: Any) -> list[str]:
+    if not _is_entity_id_like(entity_id) or not entity_id.IsValid():
+        return []
+    cache_keys = _entity_id_cache_keys(entity_id, *aliases)
+    for cache_key in cache_keys:
+        ENTITY_ID_CACHE[cache_key] = entity_id
+    return cache_keys
+
+
+def _coerce_entity_id(value: Any, *, entity_name_hint: str | None = None) -> tuple[EntityId | None, dict[str, Any]]:
+    resolution_details: dict[str, Any] = {
+        "requested_entity_id": value,
+        "entity_resolution_attempts": [],
+    }
+    if not _editor_available():
+        resolution_details["entity_resolution_path"] = "editor-unavailable"
+        return None, resolution_details
+
+    if _is_entity_id_like(value):
+        if value.IsValid():
+            resolution_details["requested_entity_id_normalized"] = _normalize_entity_id_text(value)
+            resolution_details["matched_entity_id"] = value.ToString()
+            resolution_details["entity_resolution_path"] = "direct-entity-id-object"
+            resolution_details["entity_id_cache_keys"] = _remember_entity_id(value)
+            return value, resolution_details
+        resolution_details["entity_resolution_path"] = "invalid-entity-id-object"
+        return None, resolution_details
+
+    normalized_candidate = _normalize_entity_id_text(value)
+    resolution_details["requested_entity_id_normalized"] = normalized_candidate
+    if normalized_candidate is None:
+        resolution_details["entity_resolution_path"] = "invalid-request-shape"
+        return None, resolution_details
+
+    cache_keys = _entity_id_cache_keys(value)
+    resolution_details["entity_cache_keys"] = cache_keys
+    resolution_details["entity_cache_size"] = len(ENTITY_ID_CACHE)
+    resolution_details["entity_resolution_attempts"].append("entity_id_cache")
+    for cache_key in cache_keys:
+        cached_entity_id = ENTITY_ID_CACHE.get(cache_key)
+        if not _is_entity_id_like(cached_entity_id) or not cached_entity_id.IsValid():
+            continue
+        try:
+            cached_entity_exists = editor.ToolsApplicationRequestBus(
+                bus.Broadcast,
+                "EntityExists",
+                cached_entity_id,
+            )
+        except Exception as exc:
+            resolution_details["entity_cache_exists_exception"] = repr(exc)
+            continue
+        if not cached_entity_exists:
+            ENTITY_ID_CACHE.pop(cache_key, None)
+            continue
+        resolution_details["entity_cache_hit"] = True
+        resolution_details["entity_cache_hit_key"] = cache_key
+        resolution_details["matched_entity_id"] = cached_entity_id.ToString()
+        resolution_details["matched_entity_exists"] = bool(cached_entity_exists)
+        resolution_details["entity_resolution_path"] = "entity_id_cache"
+        resolution_details["entity_id_cache_keys"] = _remember_entity_id(cached_entity_id, value)
+        return cached_entity_id, resolution_details
+    resolution_details["entity_cache_hit"] = False
+
+    resolution_details["entity_resolution_attempts"].append("entity_id_constructor")
+    try:
+        constructed_entity_id = EntityId(int(normalized_candidate))
+    except Exception as exc:
+        resolution_details["constructor_exception"] = repr(exc)
+    else:
+        resolution_details["constructed_entity_id"] = constructed_entity_id.ToString()
+        resolution_details["constructed_entity_id_valid"] = bool(
+            constructed_entity_id and constructed_entity_id.IsValid()
+        )
+        if constructed_entity_id and constructed_entity_id.IsValid():
+            try:
+                constructed_entity_exists = editor.ToolsApplicationRequestBus(
+                    bus.Broadcast,
+                    "EntityExists",
+                    constructed_entity_id,
+                )
+            except Exception as exc:
+                resolution_details["constructed_entity_exists_exception"] = repr(exc)
+            else:
+                resolution_details["constructed_entity_exists"] = bool(constructed_entity_exists)
+                if constructed_entity_exists:
+                    resolution_details["matched_entity_id"] = constructed_entity_id.ToString()
+                    resolution_details["entity_resolution_path"] = "entity_id_constructor"
+                    resolution_details["entity_id_cache_keys"] = _remember_entity_id(
+                        constructed_entity_id,
+                        value,
+                    )
+                    return constructed_entity_id, resolution_details
+
+    resolution_details["entity_resolution_attempts"].append("search_entities")
+    try:
+        search_results = entity.SearchBus(bus.Broadcast, "SearchEntities", entity.SearchFilter())
+    except Exception as exc:
+        resolution_details["search_entities_exception"] = repr(exc)
+        resolution_details["entity_resolution_path"] = "search-entities-failed"
+        return None, resolution_details
+
+    if isinstance(search_results, list):
+        search_candidates = search_results
+    elif search_results is None:
+        search_candidates = []
+    else:
+        try:
+            search_candidates = list(search_results)
+        except TypeError:
+            search_candidates = []
+
+    resolution_details["search_entities_count"] = len(search_candidates)
+    requested_text_variants = {
+        normalized_candidate,
+        f"[{normalized_candidate}]",
+        f"EntityId({normalized_candidate})",
+    }
+    search_candidate_preview: list[dict[str, Any]] = []
+    for candidate_entity_id in search_candidates:
+        if _is_entity_id_like(candidate_entity_id):
+            if not candidate_entity_id.IsValid():
+                continue
+        try:
+            candidate_text = candidate_entity_id.ToString()
+        except Exception:
+            continue
+        if len(search_candidate_preview) < 10:
+            preview_entry: dict[str, Any] = {"entity_id": candidate_text}
+            candidate_name = _entity_name(candidate_entity_id)
+            if isinstance(candidate_name, str) and candidate_name:
+                preview_entry["entity_name"] = candidate_name
+            search_candidate_preview.append(preview_entry)
+        candidate_normalized = _normalize_entity_id_text(candidate_text)
+        if candidate_text not in requested_text_variants and candidate_normalized != normalized_candidate:
+            continue
+        try:
+            candidate_exists = editor.ToolsApplicationRequestBus(
+                bus.Broadcast,
+                "EntityExists",
+                candidate_entity_id,
+            )
+        except Exception as exc:
+            resolution_details["search_match_entity_exists_exception"] = repr(exc)
+            continue
+        if not candidate_exists:
+            continue
+        resolution_details["matched_entity_id"] = candidate_text
+        resolution_details["matched_entity_exists"] = bool(candidate_exists)
+        resolution_details["entity_resolution_path"] = "search_entities_match"
+        resolution_details["entity_id_cache_keys"] = _remember_entity_id(
+            candidate_entity_id,
+            value,
+        )
+        return candidate_entity_id, resolution_details
+
+    resolution_details["search_candidate_preview"] = search_candidate_preview
+
+    if isinstance(entity_name_hint, str) and entity_name_hint:
+        resolution_details["entity_name_hint"] = entity_name_hint
+        resolution_details["entity_resolution_attempts"].append("entity_name_hint")
+        search_filter = entity.SearchFilter()
+        search_filter.names = [entity_name_hint]
+        search_filter.names_case_sensitive = True
+        try:
+            name_search_results = entity.SearchBus(bus.Broadcast, "SearchEntities", search_filter)
+        except Exception as exc:
+            resolution_details["entity_name_hint_search_exception"] = repr(exc)
+        else:
+            if isinstance(name_search_results, list):
+                name_search_candidates = name_search_results
+            elif name_search_results is None:
+                name_search_candidates = []
+            else:
+                try:
+                    name_search_candidates = list(name_search_results)
+                except TypeError:
+                    name_search_candidates = []
+
+            resolution_details["entity_name_hint_search_count"] = len(name_search_candidates)
+            name_search_preview: list[dict[str, Any]] = []
+            valid_name_candidates: list[EntityId] = []
+            matching_name_candidate = None
+            for candidate_entity_id in name_search_candidates:
+                if not _is_entity_id_like(candidate_entity_id) or not candidate_entity_id.IsValid():
+                    continue
+                candidate_text = candidate_entity_id.ToString()
+                candidate_name = _entity_name(candidate_entity_id)
+                if len(name_search_preview) < 10:
+                    name_search_preview.append(
+                        {
+                            "entity_id": candidate_text,
+                            "entity_name": candidate_name,
+                        }
+                    )
+                try:
+                    candidate_exists = editor.ToolsApplicationRequestBus(
+                        bus.Broadcast,
+                        "EntityExists",
+                        candidate_entity_id,
+                    )
+                except Exception:
+                    candidate_exists = False
+                if not candidate_exists or candidate_name != entity_name_hint:
+                    continue
+                valid_name_candidates.append(candidate_entity_id)
+                if normalized_candidate is not None and _normalize_entity_id_text(candidate_text) == normalized_candidate:
+                    matching_name_candidate = candidate_entity_id
+                    resolution_details["entity_resolution_path"] = "entity_name_hint_id_match"
+                    break
+
+            resolution_details["entity_name_hint_search_candidates"] = name_search_preview
+            if matching_name_candidate is None and len(valid_name_candidates) == 1:
+                matching_name_candidate = valid_name_candidates[0]
+                resolution_details["entity_resolution_path"] = "entity_name_hint_single_candidate"
+
+            if matching_name_candidate is not None:
+                resolution_details["matched_entity_id"] = matching_name_candidate.ToString()
+                resolution_details["matched_entity_name"] = _entity_name(matching_name_candidate)
+                resolution_details["entity_id_cache_keys"] = _remember_entity_id(
+                    matching_name_candidate,
+                    value,
+                    entity_name_hint,
+                )
+                resolved_normalized = _normalize_entity_id_text(matching_name_candidate)
+                resolution_details["entity_name_hint_id_mismatch"] = (
+                    normalized_candidate is not None and resolved_normalized != normalized_candidate
+                )
+                return matching_name_candidate, resolution_details
+
+    resolution_details["entity_resolution_path"] = "unresolved"
+    return None, resolution_details
+
+
+def _entity_name(entity_id: EntityId) -> str | None:
+    if not _editor_available():
+        return None
+    try:
+        entity_name = editor.EditorEntityInfoRequestBus(bus.Event, "GetName", entity_id)
+    except Exception:
+        return None
+    return str(entity_name) if entity_name else None
+
+
+def _resolve_component_type_id(component_name: str) -> Any | None:
+    if not _editor_available():
+        return None
+    try:
+        type_ids = editor.EditorComponentAPIBus(
+            bus.Broadcast,
+            "FindComponentTypeIdsByEntityType",
+            [component_name],
+            entity.EntityType().Game,
+        )
+    except Exception:
+        return None
+    if not isinstance(type_ids, list) or not type_ids:
+        return None
+    return type_ids[0]
+
+
+def _is_component_pair_like(value: Any) -> bool:
+    return callable(getattr(value, "get_entity_id", None)) and callable(
+        getattr(value, "get_component_id", None)
+    )
+
+
+def _is_component_pair_cacheable(value: Any) -> bool:
+    return value is not None
+
+
+def _component_pair_entity_id(value: Any) -> Any | None:
+    getter = getattr(value, "get_entity_id", None)
+    if not callable(getter):
+        return None
+    try:
+        return getter()
+    except Exception:
+        return None
+
+
+def _component_pair_component_id(value: Any) -> int | None:
+    getter = getattr(value, "get_component_id", None)
+    if not callable(getter):
+        return None
+    try:
+        component_id = getter()
+    except Exception:
+        return None
+    if isinstance(component_id, int):
+        return component_id
+    if isinstance(component_id, str) and component_id.strip().isdigit():
+        return int(component_id.strip())
+    for method_name in ("ToString", "to_string"):
+        method = getattr(component_id, method_name, None)
+        if not callable(method):
+            continue
+        try:
+            component_id_text = method()
+        except Exception:
+            continue
+        if isinstance(component_id_text, str) and component_id_text.strip().isdigit():
+            return int(component_id_text.strip())
+    try:
+        component_id_text = str(component_id)
+    except Exception:
+        return None
+    if component_id_text.strip().isdigit():
+        return int(component_id_text.strip())
+    return None
+
+
+def _stringify_component_id_value(value: Any) -> str | None:
+    if value is None:
+        return None
+    for method_name in ("ToString", "to_string"):
+        method = getattr(value, method_name, None)
+        if not callable(method):
+            continue
+        try:
+            text = method()
+        except Exception:
+            continue
+        if text is not None:
+            return str(text)
+    try:
+        return str(value)
+    except Exception:
+        return None
+
+
+def _component_pair_to_string(value: Any) -> str | None:
+    if not _is_component_pair_like(value):
+        return None
+    for method_name in ("to_string", "ToString"):
+        method = getattr(value, method_name, None)
+        if not callable(method):
+            continue
+        try:
+            result = method()
+        except Exception:
+            continue
+        if result:
+            return str(result)
+    try:
+        candidate = str(value)
+    except Exception:
+        candidate = None
+    if isinstance(candidate, str) and COMPONENT_ID_PATTERN.match(candidate.strip()):
+        return candidate.strip()
+    entity_id = _component_pair_entity_id(value)
+    component_id = _component_pair_component_id(value)
+    entity_text = _normalize_entity_id_text(entity_id)
+    if entity_text is None or component_id is None:
+        return None
+    return f"EntityComponentIdPair(EntityId({entity_text}), {component_id})"
+
+
+def _parse_component_id(value: Any) -> tuple[str | None, int | None]:
+    if _is_component_pair_like(value):
+        return (
+            _normalize_entity_id_text(_component_pair_entity_id(value)),
+            _component_pair_component_id(value),
+        )
+    if not isinstance(value, str):
+        return None, None
+    match = COMPONENT_ID_PATTERN.match(value.strip())
+    if match is None:
+        return None, None
+    entity_id = (
+        match.group("entity_wrapped")
+        or match.group("entity_bracket")
+        or match.group("entity_plain")
+    )
+    component_id = match.group("component")
+    if entity_id is None or component_id is None:
+        return None, None
+    return entity_id, int(component_id)
+
+
+def _construct_component_pair(
+    entity_id: EntityId,
+    component_id: int,
+) -> tuple[Any | None, dict[str, Any]]:
+    construction_details: dict[str, Any] = {
+        "component_pair_constructors_tried": [],
+    }
+    if entity is None:
+        construction_details["component_pair_constructor_path"] = "entity-module-unavailable"
+        return None, construction_details
+
+    constructor = getattr(entity, "EntityComponentIdPair", None)
+    if callable(constructor):
+        construction_details["component_pair_constructors_tried"].append(
+            "entity.EntityComponentIdPair(entity_id, component_id)"
+        )
+        try:
+            component_pair = constructor(entity_id, component_id)
+        except Exception as exc:
+            construction_details["component_pair_constructor_exception"] = repr(exc)
+        else:
+            if _is_component_pair_like(component_pair):
+                construction_details["component_pair_constructor_path"] = (
+                    "entity.EntityComponentIdPair(entity_id, component_id)"
+                )
+                return component_pair, construction_details
+            construction_details["component_pair_constructor_shape"] = (
+                type(component_pair).__name__
+            )
+
+    construction_details["component_pair_constructor_path"] = "unavailable"
+    return None, construction_details
+
+
+def _normalize_component_id_text(value: Any) -> str | None:
+    if _is_component_pair_like(value):
+        return _component_pair_to_string(value)
+    if not isinstance(value, str):
+        return None
+    candidate = value.strip()
+    return candidate or None
+
+
+def _component_pair_cache_keys(*values: Any) -> list[str]:
+    cache_keys: set[str] = set()
+    for value in values:
+        candidate = _normalize_component_id_text(value)
+        if candidate is not None:
+            cache_keys.add(candidate)
+        elif isinstance(value, str):
+            stripped_value = value.strip()
+            if stripped_value:
+                cache_keys.add(stripped_value)
+    return sorted(cache_keys)
+
+
+def _remember_component_pair(component_pair: Any, *aliases: Any) -> list[str]:
+    if not _is_component_pair_cacheable(component_pair):
+        return []
+    cache_keys = _component_pair_cache_keys(component_pair, *aliases)
+    if not cache_keys:
+        return []
+    for cache_key in cache_keys:
+        COMPONENT_PAIR_CACHE[cache_key] = component_pair
+    return cache_keys
+
+
+def _coerce_component_pair(value: Any) -> tuple[Any | None, dict[str, Any]]:
+    resolution_details: dict[str, Any] = {
+        "requested_component_id": value,
+        "component_resolution_attempts": [],
+    }
+    if not _editor_available():
+        resolution_details["component_resolution_path"] = "editor-unavailable"
+        return None, resolution_details
+
+    if _is_component_pair_like(value):
+        component_pair = value
+        entity_id = _component_pair_entity_id(component_pair)
+        component_numeric_id = _component_pair_component_id(component_pair)
+        resolution_details["component_resolution_attempts"].append("direct-component-pair")
+    else:
+        resolution_details["component_resolution_attempts"].append("component-id-parse")
+        entity_text, component_numeric_id = _parse_component_id(value)
+        resolution_details["requested_component_id_normalized"] = _normalize_component_id_text(
+            value
+        )
+        resolution_details["requested_entity_id_normalized"] = entity_text
+        resolution_details["requested_component_numeric_id"] = component_numeric_id
+        if entity_text is None or component_numeric_id is None:
+            resolution_details["component_resolution_path"] = "invalid-request-shape"
+            return None, resolution_details
+
+        component_pair = None
+        bridge_pair_text = f"[ [{entity_text}] - {component_numeric_id} ]"
+        cache_keys = _component_pair_cache_keys(value, bridge_pair_text)
+        resolution_details["component_pair_cache_keys"] = cache_keys
+        resolution_details["component_pair_cache_size"] = len(COMPONENT_PAIR_CACHE)
+        resolution_details["component_resolution_attempts"].append("component-pair-cache")
+        for cache_key in cache_keys:
+            cached_component_pair = COMPONENT_PAIR_CACHE.get(cache_key)
+            if not _is_component_pair_cacheable(cached_component_pair):
+                continue
+            resolution_details["component_pair_cache_hit"] = True
+            resolution_details["component_pair_cache_hit_key"] = cache_key
+            component_pair = cached_component_pair
+            cached_component_id = _component_pair_component_id(cached_component_pair)
+            if cached_component_id is not None:
+                component_numeric_id = cached_component_id
+            break
+
+        if component_pair is not None:
+            resolution_details["component_resolution_path"] = "component_pair_cache"
+        else:
+            resolution_details["component_pair_cache_hit"] = False
+
+        resolution_details["component_resolution_attempts"].append("entity-id-resolution")
+        entity_id, entity_resolution_details = _coerce_entity_id(entity_text)
+        resolution_details["component_entity_resolution"] = entity_resolution_details
+        if entity_id is None:
+            resolution_details["component_resolution_path"] = "entity-not-found"
+            return None, resolution_details
+        resolution_details["entity_exists"] = True
+        resolution_details["resolved_entity_id"] = entity_id.ToString()
+
+        if component_pair is None:
+            resolution_details["component_resolution_attempts"].append("component-pair-constructor")
+            component_pair, construction_details = _construct_component_pair(
+                entity_id,
+                component_numeric_id,
+            )
+            resolution_details.update(construction_details)
+            if component_pair is None:
+                resolution_details["component_resolution_path"] = (
+                    "component-pair-constructor-unavailable"
+                )
+                return None, resolution_details
+
+    resolution_details["component_resolution_attempts"].append("component-validity-check")
+    component_id_text = _component_pair_to_string(component_pair)
+    if component_id_text is not None:
+        resolution_details["component_id"] = component_id_text
+    if component_numeric_id is not None:
+        resolution_details["resolved_component_numeric_id"] = component_numeric_id
+
+    entity_id = _component_pair_entity_id(component_pair)
+    entity_id_text = _normalize_entity_id_text(entity_id)
+    if entity_id_text is not None:
+        if _is_entity_id_like(entity_id) and entity_id.IsValid():
+            resolution_details["entity_id"] = entity_id.ToString()
+            resolution_details["entity_id_cache_keys"] = _remember_entity_id(
+                entity_id,
+                value,
+                component_id_text,
+            )
+        else:
+            resolution_details["entity_id"] = str(entity_id)
+
+    try:
+        component_valid = editor.EditorComponentAPIBus(
+            bus.Broadcast,
+            "IsValid",
+            component_pair,
+        )
+    except Exception as exc:
+        resolution_details["component_validity_exception"] = repr(exc)
+        resolution_details["component_resolution_path"] = "component-validity-exception"
+        return None, resolution_details
+    resolution_details["component_valid"] = bool(component_valid)
+    if not component_valid:
+        resolution_details["component_resolution_path"] = "component-not-found"
+        return None, resolution_details
+
+    resolution_details["component_resolution_path"] = "resolved"
+    return component_pair, resolution_details
+
+
+def _json_safe_value(value: Any) -> Any:
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+    if _is_entity_id_like(value):
+        try:
+            return value.ToString()
+        except Exception:
+            return str(value)
+    if _is_component_pair_like(value):
+        component_text = _component_pair_to_string(value)
+        return component_text if component_text is not None else str(value)
+    if isinstance(value, dict):
+        return {str(key): _json_safe_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe_value(item) for item in value]
+    for attribute_names in (
+        ("x", "y", "z", "w"),
+        ("x", "y", "z"),
+        ("r", "g", "b", "a"),
+        ("r", "g", "b"),
+    ):
+        if all(hasattr(value, attribute_name) for attribute_name in attribute_names):
+            converted: dict[str, Any] = {}
+            for attribute_name in attribute_names:
+                try:
+                    converted[attribute_name] = getattr(value, attribute_name)
+                except Exception:
+                    converted = {}
+                    break
+            if converted:
+                return converted
+    for method_name in ("ToString", "to_string"):
+        method = getattr(value, method_name, None)
+        if not callable(method):
+            continue
+        try:
+            method_result = method()
+        except Exception:
+            continue
+        if method_result is not None:
+            return str(method_result)
+    try:
+        json.dumps(value)
+    except TypeError:
+        return str(value)
+    return value
+
+
+def _value_type_from_tree(component_pair: Any, property_path: str) -> str | None:
+    try:
+        property_tree_outcome = editor.EditorComponentAPIBus(
+            bus.Broadcast,
+            "BuildComponentPropertyTreeEditor",
+            component_pair,
+        )
+    except Exception:
+        return None
+    if not property_tree_outcome.IsSuccess():
+        return None
+    try:
+        property_tree = property_tree_outcome.GetValue()
+        path_types = property_tree.build_paths_list_with_types()
+    except Exception:
+        return None
+    if not isinstance(path_types, list):
+        return None
+    for path_entry in path_types:
+        if not isinstance(path_entry, str):
+            continue
+        path_name, separator, typed_suffix = path_entry.rpartition(" (")
+        if not separator or path_name != property_path or not typed_suffix.endswith(")"):
+            continue
+        type_name = typed_suffix[:-1].split(",", 1)[0].strip()
+        return type_name or None
+    return None
+
+
+def _fallback_value_type(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return "bool"
+    if isinstance(value, int):
+        return "int"
+    if isinstance(value, float):
+        return "float"
+    if isinstance(value, str):
+        return "str"
+    return type(value).__name__
+
+
 def _candidate_level_prefab(requested_level_file: Path) -> Path | None:
     if requested_level_file.is_dir():
         prefab_path = requested_level_file / f"{requested_level_file.name}.prefab"
@@ -1118,6 +1889,50 @@ def _wait_for_level_path(
             return current_level
         _idle_wait(poll_interval_s)
     return None
+
+
+def _invoke_bridge_request(operation: str, *args: Any) -> dict[str, Any] | None:
+    if not _bridge_request_available():
+        return None
+    try:
+        raw_result = control_plane_editor_bridge.ControlPlaneEditorBridgeRequestBus(  # type: ignore[union-attr]
+            bus.Broadcast,
+            operation,
+            *args,
+        )
+    except Exception as exc:
+        return {
+            "success": False,
+            "operation": operation,
+            "result_summary": f"Bridge request '{operation}' raised an editor-side exception.",
+            "error_code": "BRIDGE_REQUEST_EXCEPTION",
+            "details": {"exception": repr(exc)},
+        }
+    try:
+        payload = json.loads(raw_result)
+    except Exception as exc:
+        return {
+            "success": False,
+            "operation": operation,
+            "result_summary": f"Bridge request '{operation}' returned invalid JSON.",
+            "error_code": "BRIDGE_RESULT_INVALID_JSON",
+            "details": {
+                "raw_result": raw_result,
+                "exception": repr(exc),
+            },
+        }
+    if not isinstance(payload, dict):
+        return {
+            "success": False,
+            "operation": operation,
+            "result_summary": f"Bridge request '{operation}' returned a non-object payload.",
+            "error_code": "BRIDGE_RESULT_INVALID_SHAPE",
+            "details": {"raw_result": raw_result},
+        }
+    payload_details = payload.get("details")
+    if not isinstance(payload_details, dict):
+        payload["details"] = {}
+    return payload
 
 
 def _ensure_level_open(command: dict[str, Any], runtime_state: dict[str, Any]) -> dict[str, Any]:
@@ -1304,6 +2119,648 @@ def _entity_create_probe(command: dict[str, Any], runtime_state: dict[str, Any])
         )
 
 
+def _create_root_entity(command: dict[str, Any], runtime_state: dict[str, Any]) -> dict[str, Any]:
+    started_at = utc_now()
+    if not _editor_available():
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Editor Python bindings are not available inside the bridge host.",
+            details=_base_details(runtime_state),
+            error_code="EDITOR_BINDINGS_UNAVAILABLE",
+        )
+
+    entity_name = command.get("args", {}).get("entity_name")
+    if not isinstance(entity_name, str) or not entity_name:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.entity.create requires args.entity_name.",
+            details=_base_details(runtime_state),
+            error_code="ENTITY_NAME_MISSING",
+        )
+
+    requested_level = command.get("args", {}).get("level_path")
+    if not isinstance(requested_level, str) or not requested_level:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.entity.create requires args.level_path.",
+            details=_base_details(runtime_state),
+            error_code="LEVEL_PATH_MISSING",
+        )
+
+    bridge_payload = _invoke_bridge_request(
+        "CreateRootEntity",
+        requested_level,
+        entity_name,
+    )
+    if bridge_payload is None:
+        details = _base_details(runtime_state)
+        details["bridge_module_loaded"] = False
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="The bridge request bus is not available inside the editor host.",
+            details=details,
+            error_code="BRIDGE_MODULE_UNAVAILABLE",
+        )
+
+    details = _merge_bridge_details(runtime_state, bridge_payload)
+    if bridge_payload.get("success") is not True:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary=str(
+                bridge_payload.get(
+                    "result_summary",
+                    "Bridge-backed root entity creation failed.",
+                )
+            ),
+            details=details,
+            error_code=str(bridge_payload.get("error_code") or "ENTITY_CREATE_FAILED"),
+        )
+
+    details["post_create_name_search"] = entity_name
+    bridge_entity_id = details.get("entity_id")
+    details["direct_return_entity_id"] = bridge_entity_id
+    expected_entity_id = _normalize_entity_id_text(bridge_entity_id)
+    search_deadline = datetime.now(timezone.utc).timestamp() + 5.0
+    search_attempts = 0
+    search_exception = None
+    last_candidate_preview: list[dict[str, Any]] = []
+    last_search_count = 0
+    matching_candidate = None
+
+    while datetime.now(timezone.utc).timestamp() < search_deadline:
+        search_attempts += 1
+        search_filter = entity.SearchFilter()
+        search_filter.names = [entity_name]
+        search_filter.names_case_sensitive = True
+        try:
+            search_results = entity.SearchBus(bus.Broadcast, "SearchEntities", search_filter)
+        except Exception as exc:
+            search_exception = repr(exc)
+            break
+
+        if isinstance(search_results, list):
+            search_candidates = search_results
+        elif search_results is None:
+            search_candidates = []
+        else:
+            try:
+                search_candidates = list(search_results)
+            except TypeError:
+                search_candidates = []
+
+        last_search_count = len(search_candidates)
+        valid_candidates: list[EntityId] = []
+        candidate_preview: list[dict[str, Any]] = []
+        matching_candidate = None
+        for candidate_entity_id in search_candidates:
+            if not _is_entity_id_like(candidate_entity_id) or not candidate_entity_id.IsValid():
+                continue
+            candidate_text = candidate_entity_id.ToString()
+            candidate_name = _entity_name(candidate_entity_id)
+            candidate_preview.append(
+                {
+                    "entity_id": candidate_text,
+                    "entity_name": candidate_name,
+                }
+            )
+            try:
+                candidate_exists = editor.ToolsApplicationRequestBus(
+                    bus.Broadcast,
+                    "EntityExists",
+                    candidate_entity_id,
+                )
+            except Exception:
+                candidate_exists = False
+            if not candidate_exists:
+                continue
+            valid_candidates.append(candidate_entity_id)
+            if expected_entity_id is not None and _normalize_entity_id_text(candidate_text) == expected_entity_id:
+                matching_candidate = candidate_entity_id
+                break
+
+        last_candidate_preview = candidate_preview[:10]
+        if matching_candidate is None and len(valid_candidates) == 1:
+            matching_candidate = valid_candidates[0]
+            details["post_create_resolution_path"] = "exact-name-single-candidate"
+            break
+        if matching_candidate is not None:
+            details["post_create_resolution_path"] = "exact-name-id-match"
+            break
+        _idle_wait(0.25)
+
+    details["post_create_name_search_attempts"] = search_attempts
+    details["post_create_name_search_count"] = last_search_count
+    details["post_create_name_search_candidates"] = last_candidate_preview
+    if search_exception is not None:
+        details["post_create_name_search_exception"] = search_exception
+    if matching_candidate is None and "post_create_resolution_path" not in details:
+        details["post_create_resolution_path"] = "exact-name-unresolved"
+
+    if matching_candidate is not None:
+        details["resolved_entity_id"] = matching_candidate.ToString()
+        details["entity_id_cache_keys"] = _remember_entity_id(
+            matching_candidate,
+            bridge_entity_id,
+            entity_name,
+        )
+        details["entity_id_cache_populated"] = True
+        resolved_normalized = _normalize_entity_id_text(matching_candidate)
+        details["post_create_id_mismatch"] = (
+            expected_entity_id is not None and resolved_normalized != expected_entity_id
+        )
+    else:
+        details["entity_id_cache_populated"] = False
+
+    return _response(
+        command=command,
+        started_at=started_at,
+        success=True,
+        status="ok",
+        result_summary=str(
+            bridge_payload.get(
+                "result_summary",
+                "Root entity creation succeeded through the persistent bridge session.",
+            )
+        ),
+        details=details,
+    )
+
+
+def _add_components_to_entity(command: dict[str, Any], runtime_state: dict[str, Any]) -> dict[str, Any]:
+    started_at = utc_now()
+    details = _base_details(runtime_state)
+    details["prefab_context_notes"] = (
+        "Explicit existing-entity component attachment through the editor component API; "
+        "property mutation, removal, parenting, prefab work, and transform placement remain out of scope."
+    )
+    details["allowlisted_components"] = list(COMPONENT_ADD_ALLOWLIST)
+    if not _editor_available():
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Editor Python bindings are not available inside the bridge host.",
+            details=details,
+            error_code="EDITOR_BINDINGS_UNAVAILABLE",
+        )
+
+    requested_level = command.get("args", {}).get("level_path")
+    if not isinstance(requested_level, str) or not requested_level:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.add requires args.level_path.",
+            details=details,
+            error_code="LEVEL_PATH_MISSING",
+        )
+
+    active_level_path = details.get("active_level_path")
+    if not isinstance(active_level_path, str) or not active_level_path:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.add requires an open loaded level context.",
+            details=details,
+            error_code="COMPONENT_ADD_LEVEL_CONTEXT_MISSING",
+        )
+    details["loaded_level_path"] = active_level_path
+    details["level_path"] = active_level_path
+    details["requested_level_path"] = requested_level
+    if _normalize_level_path(requested_level) != _normalize_level_path(active_level_path):
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.add level_path must match the currently loaded level.",
+            details=details,
+            error_code="LOADED_LEVEL_MISMATCH",
+        )
+
+    requested_entity_id = command.get("args", {}).get("entity_id")
+    entity_name_hint = command.get("args", {}).get("entity_name_hint")
+    if isinstance(entity_name_hint, str) and entity_name_hint:
+        details["entity_name_hint"] = entity_name_hint
+    else:
+        entity_name_hint = None
+    entity_id, entity_resolution_details = _coerce_entity_id(
+        requested_entity_id,
+        entity_name_hint=entity_name_hint,
+    )
+    details.update(entity_resolution_details)
+    if entity_id is None:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.add requires a valid explicit entity id.",
+            details=details,
+            error_code="ENTITY_ID_INVALID",
+        )
+
+    entity_id_string = entity_id.ToString()
+    details["entity_id"] = entity_id_string
+    details["resolved_entity_id"] = entity_id_string
+    entity_exists = editor.ToolsApplicationRequestBus(bus.Broadcast, "EntityExists", entity_id)
+    details["entity_exists"] = bool(entity_exists)
+    if not entity_exists:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.add could not resolve the requested entity in the loaded level.",
+            details=details,
+            error_code="ENTITY_NOT_FOUND",
+        )
+
+    entity_name = _entity_name(entity_id)
+    if isinstance(entity_name, str) and entity_name:
+        details["entity_name"] = entity_name
+
+    canonical_components, unsupported_components, duplicate_components = (
+        _canonicalize_component_names(command.get("args", {}).get("components"))
+    )
+    details["requested_components"] = command.get("args", {}).get("components")
+    if not canonical_components and not unsupported_components and not duplicate_components:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.add requires at least one allowlisted component.",
+            details=details,
+            error_code="COMPONENTS_MISSING",
+        )
+    if unsupported_components:
+        details["unsupported_components"] = unsupported_components
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.add received a component outside the allowlisted surface.",
+            details=details,
+            error_code="UNSUPPORTED_COMPONENTS",
+        )
+    if duplicate_components:
+        details["duplicate_components"] = duplicate_components
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.add requires each requested component to appear at most once.",
+            details=details,
+            error_code="DUPLICATE_COMPONENT_REQUEST",
+        )
+
+    added_components: list[str] = []
+    added_component_refs: list[dict[str, Any]] = []
+    rejected_components: list[dict[str, Any]] = []
+    for component_name in canonical_components:
+        component_type_id = _resolve_component_type_id(component_name)
+        if component_type_id is None:
+            details["failed_component"] = component_name
+            return _response(
+                command=command,
+                started_at=started_at,
+                success=False,
+                status="failed",
+                result_summary="editor.component.add could not resolve an allowlisted component type on this target.",
+                details=details,
+                error_code="COMPONENT_TYPE_UNRESOLVED",
+            )
+
+        has_component = editor.EditorComponentAPIBus(
+            bus.Broadcast,
+            "HasComponentOfType",
+            entity_id,
+            component_type_id,
+        )
+        if has_component:
+            rejected_components.append(
+                {"component": component_name, "reason": "already_present"}
+            )
+            continue
+
+        add_outcome = editor.EditorComponentAPIBus(
+            bus.Broadcast,
+            "AddComponentsOfType",
+            entity_id,
+            [component_type_id],
+        )
+        if not add_outcome.IsSuccess():
+            rejected_entry: dict[str, Any] = {
+                "component": component_name,
+                "reason": "add_failed",
+            }
+            try:
+                rejected_entry["error"] = str(add_outcome.GetError())
+            except Exception:
+                pass
+            rejected_components.append(rejected_entry)
+            continue
+
+        added_components.append(component_name)
+        component_pairs = add_outcome.GetValue()
+        component_pair = None
+        if isinstance(component_pairs, list) and component_pairs:
+            component_pair = component_pairs[0]
+        get_component_outcome = editor.EditorComponentAPIBus(
+            bus.Broadcast,
+            "GetComponentOfType",
+            entity_id,
+            component_type_id,
+        )
+        if get_component_outcome.IsSuccess():
+            resolved_component_pair = get_component_outcome.GetValue()
+            if _is_component_pair_like(resolved_component_pair):
+                component_pair = resolved_component_pair
+        component_ref: dict[str, Any] = {"component": component_name}
+        component_pair_text = _stringify_component_id_value(component_pair)
+        if component_pair_text:
+            component_ref["component_pair_text"] = component_pair_text
+        component_id_text = None
+        component_numeric_id = _component_pair_component_id(component_pair)
+        normalized_target_entity_text = _normalize_entity_id_text(entity_id_string)
+        if component_numeric_id is not None and normalized_target_entity_text is not None:
+            component_id_text = (
+                f"EntityComponentIdPair(EntityId({normalized_target_entity_text}), "
+                f"{component_numeric_id})"
+            )
+            component_ref["component_numeric_id"] = component_numeric_id
+        if component_id_text is None:
+            component_id_text = _component_pair_to_string(component_pair)
+        if component_id_text is not None:
+            component_ref["component_id"] = component_id_text
+        component_pair_cache_keys = _remember_component_pair(
+            component_pair,
+            component_pair_text,
+            component_id_text,
+        )
+        if component_pair_cache_keys:
+            component_ref["component_pair_cache_keys"] = component_pair_cache_keys
+        component_id_getter = getattr(component_pair, "get_component_id", None)
+        if callable(component_id_getter):
+            try:
+                raw_component_id_value = component_id_getter()
+            except Exception:
+                raw_component_id_value = None
+            raw_component_id_text = _stringify_component_id_value(raw_component_id_value)
+            if raw_component_id_text:
+                component_ref["raw_component_id_text"] = raw_component_id_text
+        if entity_id_string:
+            component_ref["entity_id"] = entity_id_string
+        added_component_refs.append(component_ref)
+
+    modified_entities = [entity_id_string] if added_components else []
+    details["added_components"] = added_components
+    details["added_component_refs"] = added_component_refs
+    details["rejected_components"] = rejected_components
+    details["modified_entities"] = modified_entities
+
+    if added_components and rejected_components:
+        result_summary = (
+            f"Added {len(added_components)} component(s) to entity '{entity_id_string}' "
+            f"and rejected {len(rejected_components)} already-present or failed component request(s)."
+        )
+    elif added_components:
+        result_summary = (
+            f"Added {len(added_components)} component(s) to entity '{entity_id_string}' "
+            "through the persistent bridge session."
+        )
+    elif rejected_components:
+        result_summary = (
+            f"No new components were added to entity '{entity_id_string}'; all requested "
+            "components were already present or failed to attach."
+        )
+    else:
+        result_summary = (
+            f"No component changes were applied to entity '{entity_id_string}'."
+        )
+
+    return _response(
+        command=command,
+        started_at=started_at,
+        success=True,
+        status="ok",
+        result_summary=result_summary,
+        details=details,
+    )
+
+
+def _get_component_property(command: dict[str, Any], runtime_state: dict[str, Any]) -> dict[str, Any]:
+    started_at = utc_now()
+    details = _base_details(runtime_state)
+    details["prefab_context_notes"] = (
+        "Explicit existing-component property readback only through the editor component API; "
+        "property mutation, container edits, and broad component discovery remain out of scope."
+    )
+    if not _editor_available():
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Editor Python bindings are not available inside the bridge host.",
+            details=details,
+            error_code="EDITOR_BINDINGS_UNAVAILABLE",
+        )
+
+    active_level_path = details.get("active_level_path")
+    if not isinstance(active_level_path, str) or not active_level_path:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.property.get requires an open loaded level context.",
+            details=details,
+            error_code="COMPONENT_PROPERTY_LEVEL_CONTEXT_MISSING",
+        )
+
+    details["loaded_level_path"] = active_level_path
+    details["level_path"] = active_level_path
+    requested_level = command.get("args", {}).get("level_path")
+    if isinstance(requested_level, str) and requested_level:
+        details["requested_level_path"] = requested_level
+        if _normalize_level_path(requested_level) != _normalize_level_path(active_level_path):
+            return _response(
+                command=command,
+                started_at=started_at,
+                success=False,
+                status="failed",
+                result_summary="editor.component.property.get level_path must match the currently loaded level.",
+                details=details,
+                error_code="LOADED_LEVEL_MISMATCH",
+            )
+
+    requested_component_id = command.get("args", {}).get("component_id")
+    if not isinstance(requested_component_id, str) or not requested_component_id.strip():
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.property.get requires args.component_id.",
+            details=details,
+            error_code="COMPONENT_ID_MISSING",
+        )
+
+    requested_property_path = command.get("args", {}).get("property_path")
+    if not isinstance(requested_property_path, str) or not requested_property_path.strip():
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.property.get requires args.property_path.",
+            details=details,
+            error_code="PROPERTY_PATH_MISSING",
+        )
+
+    property_path = requested_property_path.strip()
+    details["property_path"] = property_path
+    component_pair, component_resolution_details = _coerce_component_pair(
+        requested_component_id.strip()
+    )
+    details.update(component_resolution_details)
+    if component_pair is None:
+        resolution_path = component_resolution_details.get("component_resolution_path")
+        if resolution_path == "entity-not-found":
+            result_summary = (
+                "editor.component.property.get could not resolve the component's entity "
+                "in the loaded level."
+            )
+            error_code = "COMPONENT_ENTITY_NOT_FOUND"
+        elif resolution_path == "component-not-found":
+            result_summary = (
+                "editor.component.property.get could not resolve the requested explicit "
+                "component in the loaded level."
+            )
+            error_code = "COMPONENT_NOT_FOUND"
+        else:
+            result_summary = (
+                "editor.component.property.get requires a valid explicit component id."
+            )
+            error_code = "COMPONENT_ID_INVALID"
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary=result_summary,
+            details=details,
+            error_code=error_code,
+        )
+
+    component_id_text = _component_pair_to_string(component_pair)
+    if component_id_text is not None:
+        details["component_id"] = component_id_text
+
+    try:
+        property_paths = editor.EditorComponentAPIBus(
+            bus.Broadcast,
+            "BuildComponentPropertyList",
+            component_pair,
+        )
+    except Exception as exc:
+        details["component_property_list_exception"] = repr(exc)
+        property_paths = None
+
+    if isinstance(property_paths, list):
+        details["component_property_count"] = len(property_paths)
+        if property_path not in property_paths:
+            return _response(
+                command=command,
+                started_at=started_at,
+                success=False,
+                status="failed",
+                result_summary=(
+                    "editor.component.property.get could not resolve the requested "
+                    "property_path on the explicit component."
+                ),
+                details=details,
+                error_code="PROPERTY_PATH_NOT_FOUND",
+            )
+
+    try:
+        property_outcome = editor.EditorComponentAPIBus(
+            bus.Broadcast,
+            "GetComponentProperty",
+            component_pair,
+            property_path,
+        )
+    except Exception as exc:
+        details["component_property_get_exception"] = repr(exc)
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.property.get raised an editor-side exception.",
+            details=details,
+            error_code="PROPERTY_GET_EXCEPTION",
+        )
+
+    if not property_outcome.IsSuccess():
+        try:
+            details["component_property_get_error"] = str(property_outcome.GetError())
+        except Exception:
+            pass
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.property.get could not read the requested property.",
+            details=details,
+            error_code="PROPERTY_GET_FAILED",
+        )
+
+    property_value = property_outcome.GetValue()
+    serialized_value = _json_safe_value(property_value)
+    details["value"] = serialized_value
+    value_type = _value_type_from_tree(component_pair, property_path) or _fallback_value_type(
+        property_value
+    )
+    if value_type is not None:
+        details["value_type"] = value_type
+
+    return _response(
+        command=command,
+        started_at=started_at,
+        success=True,
+        status="ok",
+        result_summary=(
+            "Read the requested explicit component property through the persistent bridge session."
+        ),
+        details=details,
+    )
+
+
 def execute_command(command: dict[str, Any], runtime_state: dict[str, Any]) -> dict[str, Any]:
     started_at = utc_now()
     operation = command.get("operation")
@@ -1339,6 +2796,12 @@ def execute_command(command: dict[str, Any], runtime_state: dict[str, Any]) -> d
         )
     if operation == "editor.level.open":
         return _ensure_level_open(command, runtime_state)
+    if operation == "editor.entity.create":
+        return _create_root_entity(command, runtime_state)
+    if operation == "editor.component.add":
+        return _add_components_to_entity(command, runtime_state)
+    if operation == "editor.component.property.get":
+        return _get_component_property(command, runtime_state)
     if operation == "editor.entity.create.probe":
         return _entity_create_probe(command, runtime_state)
     details = _base_details(runtime_state)
@@ -1352,6 +2815,13 @@ def execute_command(command: dict[str, Any], runtime_state: dict[str, Any]) -> d
         details=details,
         error_code="BRIDGE_OPERATION_UNSUPPORTED",
     )
+
+
+
+
+
+
+
 '@ | Set-Content -Path (Join-Path $editorScriptsRoot "control_plane_bridge_ops.py") -Encoding UTF8
 
 @'

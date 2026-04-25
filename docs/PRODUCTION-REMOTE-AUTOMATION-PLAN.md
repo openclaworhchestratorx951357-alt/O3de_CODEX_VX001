@@ -269,7 +269,7 @@ Blockers / dependencies:
 
 Current truth on this branch:
 - `build.configure` is real plan-only when `dry_run=true`
-- real compile execution is not yet admitted
+- `build.compile` is admitted real execution-gated for explicit named targets
 
 Official substrate(s):
 - CMake configure/build
@@ -280,7 +280,8 @@ Runner type:
 
 Missing capabilities:
 - admitted real configure execution
-- admitted real compile execution
+- broader compile target/output verification beyond the current explicit named
+  target and generic artifact-candidate revalidation corridor
 - toolchain and package-path normalization
 - remote build cache and artifact collection contracts
 
@@ -310,6 +311,16 @@ Blockers / dependencies:
 
 Current truth on this branch:
 - no broad admitted real editor automation yet
+- `editor.session.open`, `editor.level.open`, `editor.entity.create`, and
+  `editor.component.add` are admitted real editor-authoring/runtime on the
+  verified `McpSandbox` target wiring
+- `editor.component.property.get` is admitted hybrid read-only
+- the composed prompt-controlled chain was live-proven on `2026-04-25` through
+  `editor.session.open` -> `editor.level.open` -> `editor.entity.create` ->
+  `editor.component.add` -> `editor.component.property.get`
+- the proof does not claim cleanup, restore invocation, broader component or
+  property mutation, delete, parenting, prefab mutation, material, asset,
+  render, build, or arbitrary Editor Python behavior
 
 Official substrate(s):
 - Python Editor Bindings
@@ -320,10 +331,11 @@ Runner type:
 - editor session runner
 
 Missing capabilities:
-- session lifecycle management
-- project/editor compatibility checks
-- level open/save boundaries
-- entity/component/property mutation classification
+- broad session lifecycle management beyond the admitted bridge-backed path
+- project/editor compatibility checks beyond the canonical `McpSandbox` target
+- level save boundaries and cleanup/restore execution for editor-authored proof
+  mutations
+- broader entity/component/property mutation classification
 - editor-safe rollback model
 
 Production admission criteria:
@@ -333,9 +345,10 @@ Production admission criteria:
 - editor mutation actions emit before/after evidence
 
 Required tests/evidence:
-- editor Python smoke tests
-- entity/component inspection tests
-- mutation regression tests for admitted write paths
+- composed editor live-proof harness evidence for the admitted chain
+- bridge/runtime regression tests for entity id, component id, safe level, and
+  property readback handoff
+- mutation regression tests for any newly admitted write paths
 - screenshot/log evidence where appropriate
 
 Rollback / backup requirements if mutating:

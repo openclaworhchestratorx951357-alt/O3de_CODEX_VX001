@@ -7,11 +7,11 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 import pytest
-
 from app.services.adapters import AdapterExecutionRejected
 from app.services.editor_automation_runtime import (
     EDITOR_COMPONENT_ADD_ALLOWLIST,
     RUNTIME_HOST_IS_WINDOWS,
+    _level_paths_match,
     _normalize_engine_root_path,
     editor_automation_runtime_service,
 )
@@ -73,6 +73,49 @@ def write_loaded_level_file(
     resolved_level_path.parent.mkdir(parents=True, exist_ok=True)
     resolved_level_path.write_text("<LevelStub />\n", encoding="utf-8")
     return resolved_level_path
+
+
+def test_level_paths_match_bridge_absolute_path_to_project_relative_request(
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "project"
+    loaded_level_path = write_loaded_level_file(project_root, level_path="Levels/TestLevel")
+
+    assert _level_paths_match(
+        str(project_root),
+        loaded_level_path=str(loaded_level_path),
+        requested_level_path="Levels/TestLevel",
+    )
+    assert not _level_paths_match(
+        str(project_root),
+        loaded_level_path=str(loaded_level_path),
+        requested_level_path="Levels/OtherLevel",
+    )
+
+
+def test_resolve_loaded_level_file_path_uses_level_prefab_for_directory(
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path / "project"
+    level_dir = project_root / "Levels" / "TestLevel"
+    level_dir.mkdir(parents=True)
+    prefab_path = level_dir / "TestLevel.prefab"
+    prefab_path.write_text("{\"level\": \"test\"}\n", encoding="utf-8")
+
+    assert (
+        editor_automation_runtime_service._resolve_loaded_level_file_path(  # noqa: SLF001
+            str(project_root),
+            loaded_level_path="Levels/TestLevel",
+        )
+        == prefab_path
+    )
+    assert (
+        editor_automation_runtime_service._resolve_loaded_level_file_path(  # noqa: SLF001
+            str(project_root),
+            loaded_level_path=str(level_dir),
+        )
+        == prefab_path
+    )
 
 
 def spawn_bridge_responder(
@@ -677,6 +720,7 @@ def test_execute_entity_create_queues_bridge_command_and_persists_created_entity
             expected_operation="editor.entity.create",
             response_details={
                 "entity_id": "101",
+                "resolved_entity_id": "202",
                 "entity_name": "Hero",
                 "entity_id_source": "editor_entity_context_create",
                 "direct_return_entity_id": "101",
@@ -741,8 +785,9 @@ def test_execute_entity_create_queues_bridge_command_and_persists_created_entity
         assert runtime_result["bridge_operation"] == "editor.entity.create"
         assert runtime_result["bridge_queue_mode"] == "filesystem-inbox"
         assert runtime_result["bridge_command_id"]
-        assert runtime_result["entity_id"] == "101"
+        assert runtime_result["entity_id"] == "202"
         assert runtime_result["entity_name"] == "Hero"
+        assert runtime_result["modified_entities"] == ["202"]
         assert runtime_result["level_path"] == "Levels/Main.level"
         assert runtime_result["loaded_level_path"] == "Levels/Main.level"
         assert runtime_result["entity_id_source"] == "editor_entity_context_create"
@@ -770,7 +815,7 @@ def test_execute_entity_create_queues_bridge_command_and_persists_created_entity
         assert command_payload["args"]["level_path"] == "Levels/Main.level"
 
         saved_state = json.loads(state_path.read_text(encoding="utf-8"))
-        assert saved_state["last_created_entity_id"] == "101"
+        assert saved_state["last_created_entity_id"] == "202"
         assert saved_state["last_created_entity_name"] == "Hero"
         assert saved_state["editor_transport"] == "bridge"
         assert saved_state["bridge_heartbeat_seen_at"] == runtime_result["bridge_heartbeat_seen_at"]
@@ -957,7 +1002,7 @@ def test_execute_component_add_queues_bridge_command_and_returns_bridge_metadata
                 "added_component_refs": [
                     {
                         "component": "Mesh",
-                        "component_id": "EntityComponentIdPair(EntityId(101), 201)",
+                        "component_pair_text": "[ [101] - 201 ]",
                         "entity_id": "101",
                     }
                 ],
@@ -1026,6 +1071,7 @@ def test_execute_component_add_queues_bridge_command_and_returns_bridge_metadata
             {
                 "component": "Mesh",
                 "component_id": "EntityComponentIdPair(EntityId(101), 201)",
+                "component_pair_text": "[ [101] - 201 ]",
                 "entity_id": "101",
             }
         ]

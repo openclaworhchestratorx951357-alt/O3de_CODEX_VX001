@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -68,11 +69,66 @@ def _normalize_engine_root_path(engine_root: str) -> str:
     return str(Path(candidate).expanduser().resolve())
 
 
+def _project_relative_level_identity(project_root: str, level_path: str) -> str | None:
+    candidate = level_path.strip()
+    if not candidate:
+        return None
+
+    windows_candidate = PureWindowsPath(candidate)
+    windows_project_root = PureWindowsPath(project_root)
+    if windows_candidate.is_absolute() or windows_project_root.is_absolute():
+        project_root_key = (
+            str(windows_project_root).replace("\\", "/").rstrip("/").casefold()
+        )
+        candidate_key = str(windows_candidate).replace("\\", "/").casefold()
+        if candidate_key == project_root_key:
+            return "."
+        project_prefix = f"{project_root_key}/"
+        if candidate_key.startswith(project_prefix):
+            return candidate_key[len(project_prefix) :]
+        if not windows_candidate.is_absolute():
+            return candidate_key
+        return candidate_key
+
+    project_path = Path(project_root).expanduser().resolve()
+    candidate_path = Path(candidate).expanduser()
+    resolved_candidate = (
+        candidate_path.resolve()
+        if candidate_path.is_absolute()
+        else (project_path / candidate).resolve()
+    )
+    project_key = os.path.normcase(str(project_path)).replace("\\", "/").rstrip("/")
+    candidate_key = os.path.normcase(str(resolved_candidate)).replace("\\", "/")
+    if candidate_key == project_key:
+        return "."
+    project_prefix = f"{project_key}/"
+    if candidate_key.startswith(project_prefix):
+        return candidate_key[len(project_prefix) :]
+    return candidate_key
+
+
+def _level_paths_match(
+    project_root: str,
+    *,
+    loaded_level_path: str,
+    requested_level_path: str,
+) -> bool:
+    loaded_identity = _project_relative_level_identity(project_root, loaded_level_path)
+    requested_identity = _project_relative_level_identity(project_root, requested_level_path)
+    return loaded_identity is not None and loaded_identity == requested_identity
+
+
 EDITOR_COMPONENT_ADD_ALLOWLIST = ("Camera", "Comment", "Mesh")
 EDITOR_COMPONENT_ADD_ALLOWLIST_LOOKUP = {
     component_name.casefold(): component_name
     for component_name in EDITOR_COMPONENT_ADD_ALLOWLIST
 }
+BRACKETED_COMPONENT_PAIR_PATTERN = re.compile(
+    r"^\[\s*\[\s*(?P<entity>\d+)\s*\]\s*-\s*(?P<component>\d+)\s*\]$"
+)
+CANONICAL_COMPONENT_ID_PATTERN = re.compile(
+    r"^EntityComponentIdPair\s*\(\s*EntityId\s*\(\s*\d+\s*\)\s*,\s*\d+\s*\)$"
+)
 
 
 def _canonicalize_component_add_components(
@@ -127,6 +183,42 @@ def _normalize_editor_entity_id(value: Any) -> str | None:
     if not candidate or not candidate.isdigit():
         return None
     return candidate
+
+
+def _component_id_from_component_ref(component_ref: dict[str, Any]) -> str | None:
+    existing_component_id = component_ref.get("component_id")
+    if isinstance(existing_component_id, str) and existing_component_id.strip():
+        candidate = existing_component_id.strip()
+        if CANONICAL_COMPONENT_ID_PATTERN.match(candidate):
+            return candidate
+
+    component_pair_text = component_ref.get("component_pair_text")
+    if not isinstance(component_pair_text, str):
+        return None
+    match = BRACKETED_COMPONENT_PAIR_PATTERN.match(component_pair_text.strip())
+    if match is None:
+        return None
+
+    entity_id = _normalize_editor_entity_id(component_ref.get("entity_id"))
+    if entity_id is None:
+        entity_id = match.group("entity")
+    return f"EntityComponentIdPair(EntityId({entity_id}), {match.group('component')})"
+
+
+def _normalize_added_component_refs(refs: Any) -> list[dict[str, Any]]:
+    if not isinstance(refs, list):
+        return []
+
+    normalized_refs: list[dict[str, Any]] = []
+    for ref in refs:
+        if not isinstance(ref, dict):
+            continue
+        normalized_ref = dict(ref)
+        component_id = _component_id_from_component_ref(normalized_ref)
+        if component_id is not None:
+            normalized_ref["component_id"] = component_id
+        normalized_refs.append(normalized_ref)
+    return normalized_refs
 
 
 class EditorAutomationRuntimeService:
@@ -382,7 +474,11 @@ class EditorAutomationRuntimeService:
         if (
             isinstance(requested_level_path, str)
             and requested_level_path
-            and requested_level_path != loaded_level_path
+            and not _level_paths_match(
+                project_root,
+                loaded_level_path=loaded_level_path,
+                requested_level_path=requested_level_path,
+            )
         ):
             self._reject_preflight(
                 tool="editor.entity.create",
@@ -472,7 +568,10 @@ class EditorAutomationRuntimeService:
             )
             raise
         bridge_details = self._bridge_response_details(bridge_response)
-        created_entity_id = bridge_details.get("entity_id")
+        created_entity_id = bridge_details.get(
+            "resolved_entity_id",
+            bridge_details.get("entity_id"),
+        )
         created_entity_name = bridge_details.get("entity_name", entity_name)
         created_level_path = bridge_details.get("level_path", loaded_level_path)
         modified_entities = (
@@ -562,7 +661,11 @@ class EditorAutomationRuntimeService:
         if (
             isinstance(requested_level_path, str)
             and requested_level_path
-            and requested_level_path != loaded_level_path
+            and not _level_paths_match(
+                project_root,
+                loaded_level_path=loaded_level_path,
+                requested_level_path=requested_level_path,
+            )
         ):
             self._reject_preflight(
                 tool="editor.component.add",
@@ -695,13 +798,16 @@ class EditorAutomationRuntimeService:
             )
             raise
         bridge_details = self._bridge_response_details(bridge_response)
+        added_component_refs = _normalize_added_component_refs(
+            bridge_details.get("added_component_refs", [])
+        )
         runtime_result = {
             "ok": True,
             "message": "Components were processed through the persistent bridge-backed admitted editor authoring path.",
             "entity_id": bridge_details.get("entity_id", normalized_entity_id),
             "entity_name": bridge_details.get("entity_name"),
             "added_components": bridge_details.get("added_components", canonical_components),
-            "added_component_refs": bridge_details.get("added_component_refs", []),
+            "added_component_refs": added_component_refs,
             "rejected_components": bridge_details.get("rejected_components", []),
             "modified_entities": bridge_details.get(
                 "modified_entities",
@@ -786,7 +892,11 @@ class EditorAutomationRuntimeService:
         if (
             isinstance(requested_level_path, str)
             and requested_level_path
-            and requested_level_path != loaded_level_path
+            and not _level_paths_match(
+                project_root,
+                loaded_level_path=loaded_level_path,
+                requested_level_path=requested_level_path,
+            )
         ):
             self._reject_preflight(
                 tool="editor.component.property.get",
@@ -2098,10 +2208,15 @@ class EditorAutomationRuntimeService:
         *,
         loaded_level_path: str,
     ) -> Path:
-        return Path(project_root).expanduser().resolve() / loaded_level_path.replace(
+        candidate_path = Path(project_root).expanduser().resolve() / loaded_level_path.replace(
             "\\",
             "/",
         )
+        if candidate_path.is_dir():
+            prefab_path = candidate_path / f"{candidate_path.name}.prefab"
+            if prefab_path.is_file():
+                return prefab_path
+        return candidate_path
 
     def _file_sha256(self, path: Path) -> str:
         hasher = hashlib.sha256()

@@ -306,8 +306,8 @@ def build_prompt_request(
     project_root: str,
     engine_root: str,
     prompt_id: str,
-    workspace_id: str,
-    executor_id: str,
+    workspace_id: str | None,
+    executor_id: str | None,
     level_path: str,
 ) -> tuple[dict[str, Any], str]:
     entity_name = f"CodexProofEntity_{run_label.replace('-', '_')}"
@@ -851,8 +851,8 @@ def main() -> int:
         else runtime_dir / f"live_editor_authoring_proof_{run_label}.json"
     )
     prompt_id = f"editor-live-proof-{run_label}"
-    workspace_id = "workspace-live-proof"
-    executor_id = "executor-live-proof"
+    workspace_id: str | None = None
+    executor_id: str | None = None
     preflight_facts: list[str] = []
 
     evidence_bundle: dict[str, Any] = {

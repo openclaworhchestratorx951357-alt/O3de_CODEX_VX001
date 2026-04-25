@@ -54,6 +54,23 @@ def test_select_safe_level_rejects_default_only_project(tmp_path):
         module.select_safe_level(str(tmp_path))
 
 
+def test_build_prompt_request_allows_unseeded_workspace_and_executor_ids(tmp_path):
+    module = load_proof_module()
+
+    prompt_payload, _ = module.build_prompt_request(
+        run_label="20260424-010203",
+        project_root=str(tmp_path),
+        engine_root="C:/engine",
+        prompt_id="proof-prompt-1",
+        workspace_id=None,
+        executor_id=None,
+        level_path="Levels/TestArena",
+    )
+
+    assert prompt_payload["workspace_id"] is None
+    assert prompt_payload["executor_id"] is None
+
+
 def test_require_prompt_plan_accepts_expected_composed_chain(tmp_path):
     module = load_proof_module()
     project_root = str(tmp_path)
