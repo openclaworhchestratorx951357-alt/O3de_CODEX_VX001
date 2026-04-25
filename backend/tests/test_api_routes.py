@@ -3873,7 +3873,7 @@ def test_dispatch_route_uses_real_build_compile_runner_in_hybrid_mode() -> None:
                     assert payload["ok"] is True
                     assert payload["result"]["simulated"] is False
                     assert payload["result"]["execution_mode"] == "real"
-                    assert "runner evidence completed" in payload["result"]["message"]
+                    assert "exit/log truth but unverified compiled output evidence" in payload["result"]["message"]
 
                     executions = client.get("/executions")
                     assert executions.status_code == 200
@@ -3886,8 +3886,11 @@ def test_dispatch_route_uses_real_build_compile_runner_in_hybrid_mode() -> None:
                     assert execution["details"]["execution_attempted"] is True
                     assert execution["details"]["exit_code_available"] is True
                     assert execution["details"]["exit_code"] == 0
+                    assert execution["details"]["result_status"] == "attempted_but_output_unverified"
                     assert execution["details"]["result_artifact_produced"] is True
                     assert execution["details"]["result_artifact_path"]
+                    assert execution["details"]["target_candidate_revalidation_attempted"] is True
+                    assert execution["details"]["compiled_output_verified"] is False
 
                     artifacts = client.get("/artifacts")
                     assert artifacts.status_code == 200
@@ -3974,6 +3977,7 @@ def test_dispatch_route_records_build_compile_unattempted_runner_evidence_in_hyb
                 )
                 assert execution["details"]["inspection_surface"] == "build_compile_runner"
                 assert execution["details"]["execution_attempted"] is False
+                assert execution["details"]["result_status"] == "not_attempted_preflight_blocked"
                 assert execution["details"]["result_artifact_produced"] is False
                 assert execution["details"]["real_path_available"] is True
                 assert "Build root" in execution["details"]["compile_unavailable_reason"]

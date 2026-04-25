@@ -3210,6 +3210,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             build_root=build_root,
             configure_probe=configure_probe,
         )
+        build_execution_policy_allowed = dry_run or approval_class == "build_execute"
         runner_probe: dict[str, Any] = {}
         build_runner_available = False
         build_runner_path: str | None = None
@@ -3217,6 +3218,17 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         build_runner_source: str | None = None
         build_runner_candidate_paths: list[str] = []
         build_runner_exists = False
+        pre_run_target_candidate_evidence = self._collect_build_compile_candidate_evidence(
+            candidate_paths=resolved_target_candidate_paths
+        )
+        post_run_target_candidate_evidence: list[dict[str, Any]] = []
+        target_candidate_revalidation_attempted = False
+        target_candidate_revalidation_method: str | None = None
+        target_candidate_revalidation_results: list[dict[str, Any]] = []
+        target_candidate_revalidation_changed_count = 0
+        target_candidate_revalidation_verified_paths: list[str] = []
+        compiled_output_verified = False
+        compiled_output_verification_basis: str | None = None
         if not dry_run:
             runner_probe = self._probe_build_compile_runner(
                 build_root=build_root,
@@ -3285,6 +3297,10 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                     + ", ".join(missing_targets)
                     + "."
                 )
+        if not dry_run and not build_execution_policy_allowed:
+            compile_unavailable_reasons.append(
+                "Real build.compile runner execution is policy-blocked unless a build_execute approval is active for this request."
+            )
         if not dry_run and not build_runner_available:
             compile_unavailable_reasons.append(
                 "No admitted build.compile runner could be resolved from the configured build tree or host PATH."
@@ -3300,7 +3316,13 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
         runner_command: list[str] = []
         exit_code_available = False
         exit_code: int | None = None
-        result_status = "not-attempted"
+        result_status = (
+            "not_attempted_preflight_blocked"
+            if dry_run
+            else "not_attempted_policy_blocked"
+            if not build_execution_policy_allowed
+            else "not_attempted_preflight_blocked"
+        )
         result_summary_available = False
         result_unavailable_reason: str | None = (
             "No real build.compile execution was attempted in this admitted plan-only preflight slice."
@@ -3353,6 +3375,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             not dry_run
             and build_root.exists()
             and configure_probe["configured_build_tree_available"]
+            and build_execution_policy_allowed
             and build_runner_available
             and build_runner_path is not None
         )
@@ -3391,7 +3414,11 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 combined_stderr = _as_text(completed.stderr)
                 exit_code_available = True
                 exit_code = completed.returncode
-                result_status = "succeeded" if completed.returncode == 0 else "failed"
+                result_status = (
+                    "attempted_but_output_unverified"
+                    if completed.returncode == 0
+                    else "failed_exit_code"
+                )
                 result_summary_available = True
                 result_unavailable_reason = None
                 inspection_evidence.append("compile_exit_result")
@@ -3403,7 +3430,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 combined_stdout = _as_text(exc.stdout)
                 combined_stderr = _as_text(exc.stderr)
                 runner_timed_out = True
-                result_status = "timed-out"
+                result_status = "timed_out"
                 result_summary_available = True
                 result_unavailable_reason = None
                 unavailable_evidence.append("compile_exit_result")
@@ -3438,12 +3465,80 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 logs.append(
                     f"Persisted build.compile runner log artifact at '{artifact_path}'."
                 )
+            target_candidate_revalidation_attempted = True
+            target_candidate_revalidation_method = "resolved-target-candidate-stat-compare"
+            post_run_target_candidate_evidence = self._collect_build_compile_candidate_evidence(
+                candidate_paths=resolved_target_candidate_paths
+            )
+            (
+                target_candidate_revalidation_results,
+                target_candidate_revalidation_verified_paths,
+            ) = self._summarize_build_compile_candidate_revalidation(
+                pre_run_evidence=pre_run_target_candidate_evidence,
+                post_run_evidence=post_run_target_candidate_evidence,
+            )
+            target_candidate_revalidation_changed_count = sum(
+                1
+                for candidate_result in target_candidate_revalidation_results
+                if candidate_result["candidate_change_observed"] is True
+            )
+            inspection_evidence.append("target_candidate_revalidation")
+            if resolved_target_candidate_paths:
+                logs.append(
+                    "Generic post-run build candidate revalidation compared "
+                    f"{len(resolved_target_candidate_paths)} pre-discovered candidate path(s)."
+                )
+            else:
+                logs.append(
+                    "Generic post-run build candidate revalidation had no pre-discovered candidate paths to compare."
+                )
+            if (
+                exit_code_available
+                and exit_code == 0
+                and target_candidate_revalidation_verified_paths
+            ):
+                compiled_output_verified = True
+                compiled_output_verification_basis = (
+                    "Generic post-run candidate revalidation observed build output evidence at: "
+                    + ", ".join(target_candidate_revalidation_verified_paths)
+                )
+                result_status = "succeeded"
+                logs.append(compiled_output_verification_basis)
+            elif exit_code_available and exit_code == 0:
+                warnings.append(
+                    "Build.compile runner returned exit code 0, but generic post-run candidate revalidation did not prove output changes."
+                )
+                logs.append(
+                    "Generic post-run candidate revalidation did not prove output changes across the pre-discovered candidate paths."
+                )
         else:
             unavailable_evidence.extend(["compile_execution", "compile_result_artifact", "compile_exit_result"])
+            if not dry_run and build_execution_policy_allowed and build_root.exists() and configure_probe[
+                "configured_build_tree_available"
+            ] and not build_runner_available:
+                result_status = "not_attempted_missing_runner"
             if compile_unavailable_reason:
                 warnings.append(compile_unavailable_reason)
                 logs.append(compile_unavailable_reason)
             logs.append("No build command was executed in this slice.")
+
+        if compiled_output_verified:
+            compile_output_artifact_unavailable_reason = (
+                "No retained compiled output artifact was produced; only generic post-run candidate revalidation evidence is available in this admitted slice."
+            )
+        elif execution_attempted and exit_code_available and exit_code == 0:
+            if resolved_target_candidate_paths:
+                compile_output_artifact_unavailable_reason = (
+                    "Generic post-run candidate revalidation did not prove compiled output changes across the pre-discovered candidate paths in this admitted slice."
+                )
+            else:
+                compile_output_artifact_unavailable_reason = (
+                    "No pre-discovered target artifact candidate paths were available for generic post-run compiled output revalidation in this admitted slice."
+                )
+        elif execution_attempted:
+            compile_output_artifact_unavailable_reason = (
+                "Compiled output verification remains unavailable because the admitted runner did not complete with verified successful exit evidence in this slice."
+            )
 
         details = {
             "inspection_surface": (
@@ -3463,6 +3558,7 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "requested_targets": requested_targets,
             "requested_config": requested_config,
             "requested_parallel_jobs": requested_parallel_jobs,
+            "build_execution_policy_allowed": build_execution_policy_allowed,
             "inspection_evidence": inspection_evidence,
             "unavailable_evidence": unavailable_evidence,
             "configure_marker_probe_attempted": True,
@@ -3479,6 +3575,17 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             ),
             "resolved_target_candidate_paths": resolved_target_candidate_paths,
             "target_probe_results": target_probes,
+            "pre_run_target_candidate_evidence": pre_run_target_candidate_evidence,
+            "target_candidate_revalidation_attempted": target_candidate_revalidation_attempted,
+            "target_candidate_revalidation_method": target_candidate_revalidation_method,
+            "post_run_target_candidate_evidence": post_run_target_candidate_evidence,
+            "target_candidate_revalidation_results": target_candidate_revalidation_results,
+            "target_candidate_revalidation_changed_count": (
+                target_candidate_revalidation_changed_count
+            ),
+            "target_candidate_revalidation_verified_paths": (
+                target_candidate_revalidation_verified_paths
+            ),
             "execution_attempted": execution_attempted,
             "result_artifact_produced": result_artifact_produced,
             "result_artifact_path": result_artifact_path,
@@ -3491,6 +3598,8 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "result_unavailable_reason": result_unavailable_reason,
             "compile_unavailable_reason": compile_unavailable_reason,
             "compile_output_artifact_available": False,
+            "compiled_output_verified": compiled_output_verified,
+            "compiled_output_verification_basis": compiled_output_verification_basis,
             "compile_output_artifact_unavailable_reason": (
                 compile_output_artifact_unavailable_reason
             ),
@@ -3528,9 +3637,19 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "Real build.compile preflight completed for the explicit target request; no build command was executed."
                 if dry_run
                 else (
-                "Real build.compile runner evidence completed for the explicit target request."
-                if execution_attempted
-                else "Real build.compile runner substrate completed for the explicit target request; no build command was executed."
+                    "Real build.compile runner completed for the explicit target request with generically revalidated output evidence."
+                    if result_status == "succeeded"
+                    else "Real build.compile runner completed for the explicit target request with exit/log truth but unverified compiled output evidence."
+                    if result_status == "attempted_but_output_unverified"
+                    else "Real build.compile runner completed for the explicit target request with non-zero exit evidence."
+                    if result_status == "failed_exit_code"
+                    else "Real build.compile runner completed for the explicit target request with timeout evidence."
+                    if result_status == "timed_out"
+                    else "Real build.compile runner substrate completed for the explicit target request; no build command was executed because execution was policy-blocked."
+                    if result_status == "not_attempted_policy_blocked"
+                    else "Real build.compile runner substrate completed for the explicit target request; no build command was executed because no admitted runner was available."
+                    if result_status == "not_attempted_missing_runner"
+                    else "Real build.compile runner substrate completed for the explicit target request; no build command was executed."
                 )
             ),
         )
@@ -3577,9 +3696,19 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
                 "Real build.compile preflight substrate completed successfully."
                 if dry_run
                 else (
-                "Real build.compile runner substrate completed successfully."
-                if execution_attempted
-                else "Real build.compile runner substrate produced unattempted runner evidence."
+                    "Real build.compile runner substrate completed with generic candidate revalidation evidence."
+                    if result_status == "succeeded"
+                    else "Real build.compile runner substrate completed with output-unverified execution evidence."
+                    if result_status == "attempted_but_output_unverified"
+                    else "Real build.compile runner substrate completed with failed-exit evidence."
+                    if result_status == "failed_exit_code"
+                    else "Real build.compile runner substrate completed with timeout evidence."
+                    if result_status == "timed_out"
+                    else "Real build.compile runner substrate produced policy-blocked evidence."
+                    if result_status == "not_attempted_policy_blocked"
+                    else "Real build.compile runner substrate produced missing-runner evidence."
+                    if result_status == "not_attempted_missing_runner"
+                    else "Real build.compile runner substrate produced preflight-blocked evidence."
                 )
             ),
         )
@@ -5801,6 +5930,128 @@ class ProjectBuildHybridAdapter(ToolExecutionAdapter):
             "artifact_candidate_path": str(selected),
             "artifact_candidate_size_bytes": artifact_candidate_size_bytes,
         }
+
+    def _collect_build_compile_candidate_evidence(
+        self,
+        *,
+        candidate_paths: list[str],
+    ) -> list[dict[str, Any]]:
+        evidence: list[dict[str, Any]] = []
+        for candidate_path in candidate_paths:
+            resolved_path = Path(candidate_path).expanduser()
+            exists = False
+            is_file = False
+            size_bytes: int | None = None
+            modified_time_ns: int | None = None
+            stat_error: str | None = None
+            try:
+                exists = resolved_path.exists()
+                if exists:
+                    is_file = resolved_path.is_file()
+                    if is_file:
+                        stat_result = resolved_path.stat()
+                        size_bytes = stat_result.st_size
+                        modified_time_ns = stat_result.st_mtime_ns
+            except OSError as exc:
+                stat_error = str(exc)
+            evidence.append(
+                {
+                    "candidate_path": str(resolved_path),
+                    "exists": exists,
+                    "is_file": is_file,
+                    "size_bytes": size_bytes,
+                    "modified_time_ns": modified_time_ns,
+                    "stat_error": stat_error,
+                }
+            )
+        return evidence
+
+    def _summarize_build_compile_candidate_revalidation(
+        self,
+        *,
+        pre_run_evidence: list[dict[str, Any]],
+        post_run_evidence: list[dict[str, Any]],
+    ) -> tuple[list[dict[str, Any]], list[str]]:
+        pre_run_by_path = {
+            str(entry["candidate_path"]): entry
+            for entry in pre_run_evidence
+            if isinstance(entry.get("candidate_path"), str)
+            and entry["candidate_path"]
+        }
+        post_run_by_path = {
+            str(entry["candidate_path"]): entry
+            for entry in post_run_evidence
+            if isinstance(entry.get("candidate_path"), str)
+            and entry["candidate_path"]
+        }
+        comparison_paths = sorted(set(pre_run_by_path) | set(post_run_by_path))
+        comparison_results: list[dict[str, Any]] = []
+        verified_paths: list[str] = []
+        for candidate_path in comparison_paths:
+            before = pre_run_by_path.get(
+                candidate_path,
+                {
+                    "exists": False,
+                    "is_file": False,
+                    "size_bytes": None,
+                    "modified_time_ns": None,
+                    "stat_error": "Missing pre-run candidate evidence.",
+                },
+            )
+            after = post_run_by_path.get(
+                candidate_path,
+                {
+                    "exists": False,
+                    "is_file": False,
+                    "size_bytes": None,
+                    "modified_time_ns": None,
+                    "stat_error": "Missing post-run candidate evidence.",
+                },
+            )
+            existence_changed = bool(before["exists"]) != bool(after["exists"])
+            size_changed = (
+                int(before["size_bytes"]) != int(after["size_bytes"])
+                if isinstance(before.get("size_bytes"), int)
+                and isinstance(after.get("size_bytes"), int)
+                else None
+            )
+            modified_time_changed = (
+                int(before["modified_time_ns"]) != int(after["modified_time_ns"])
+                if isinstance(before.get("modified_time_ns"), int)
+                and isinstance(after.get("modified_time_ns"), int)
+                else None
+            )
+            change_basis: list[str] = []
+            if existence_changed:
+                change_basis.append("existence")
+            if size_changed is True:
+                change_basis.append("size_bytes")
+            if modified_time_changed is True:
+                change_basis.append("modified_time_ns")
+            change_observed = bool(change_basis)
+            if change_observed and after.get("exists") is True and after.get("is_file") is True:
+                verified_paths.append(candidate_path)
+            comparison_results.append(
+                {
+                    "candidate_path": candidate_path,
+                    "exists_before": bool(before["exists"]),
+                    "exists_after": bool(after["exists"]),
+                    "is_file_before": bool(before["is_file"]),
+                    "is_file_after": bool(after["is_file"]),
+                    "size_bytes_before": before.get("size_bytes"),
+                    "size_bytes_after": after.get("size_bytes"),
+                    "modified_time_ns_before": before.get("modified_time_ns"),
+                    "modified_time_ns_after": after.get("modified_time_ns"),
+                    "stat_error_before": before.get("stat_error"),
+                    "stat_error_after": after.get("stat_error"),
+                    "existence_changed": existence_changed,
+                    "size_changed": size_changed,
+                    "modified_time_changed": modified_time_changed,
+                    "candidate_change_observed": change_observed,
+                    "candidate_change_basis": change_basis,
+                }
+            )
+        return comparison_results, verified_paths
 
     def _manifest_settings_snapshot(
         self,

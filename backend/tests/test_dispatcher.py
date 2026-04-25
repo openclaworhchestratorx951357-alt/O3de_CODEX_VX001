@@ -14,7 +14,7 @@ from app.models.control_plane import ExecutionStatus
 from app.models.request_envelope import RequestEnvelope
 from app.services.approvals import approvals_service
 from app.services.artifacts import artifacts_service
-from app.services.adapters import AdapterExecutionRejected
+from app.services.adapters import AdapterExecutionRejected, adapter_service
 from app.services.editor_automation_runtime import editor_automation_runtime_service
 from app.services.db import configure_database, initialize_database, reset_database
 from app.services.dispatcher import dispatcher_service
@@ -4507,7 +4507,9 @@ def test_build_compile_real_persisted_payloads_match_published_schemas() -> None
         )
         artifact = artifacts_service.get_artifact(response.artifacts[0])
         assert execution.details["execution_attempted"] is False
-        assert execution.details["result_status"] == "not-attempted"
+        assert execution.details["result_status"] == "not_attempted_preflight_blocked"
+        assert execution.details["build_execution_policy_allowed"] is True
+        assert execution.details["pre_run_target_candidate_evidence"]
         assert artifact is not None
         assert (
             schema_validation_service.validate_execution_details(
@@ -4578,7 +4580,10 @@ def test_build_compile_uses_real_runner_substrate_in_hybrid_mode() -> None:
         assert execution.details["result_artifact_produced"] is True
         assert execution.details["result_artifact_path"]
         assert execution.details["result_artifact_content_type"] == "text/plain"
-        assert execution.details["result_status"] == "succeeded"
+        assert execution.details["result_status"] == "attempted_but_output_unverified"
+        assert execution.details["target_candidate_revalidation_attempted"] is True
+        assert execution.details["target_candidate_revalidation_changed_count"] == 0
+        assert execution.details["compiled_output_verified"] is False
         assert execution.details["runner_command"][:4] == [
             str(cmake_path),
             "--build",
@@ -4602,6 +4607,238 @@ def test_build_compile_uses_real_runner_substrate_in_hybrid_mode() -> None:
             )
             == []
         )
+
+
+def test_build_compile_marks_succeeded_when_generic_candidate_revalidation_proves_output_change() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        cache_path = project_root / "build" / "windows" / "CMakeCache.txt"
+        build_tree = cache_path.parent
+        target_path = build_tree / "bin" / "profile" / "Editor.exe"
+        cmake_path = build_tree / "cmake.exe"
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(
+            f"CMAKE_GENERATOR:INTERNAL=Ninja\nCMAKE_COMMAND:FILEPATH={cmake_path}\n",
+            encoding="utf-8",
+        )
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_bytes(b"build-target")
+        cmake_path.write_text("", encoding="utf-8")
+
+        def _run_and_update_target(*args, **kwargs) -> subprocess.CompletedProcess[str]:
+            target_path.write_bytes(b"build-target-updated")
+            target_path.touch()
+            return subprocess.CompletedProcess(
+                args=[str(cmake_path), "--build", str(build_tree), "--target", "Editor"],
+                returncode=0,
+                stdout="build ok",
+                stderr="",
+            )
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.subprocess.run",
+                side_effect=_run_and_update_target,
+            ):
+                response = dispatcher_service.dispatch(
+                    approve_build_compile_request(
+                        project_root=str(project_root),
+                        dry_run=False,
+                    )
+                )
+
+        assert response.ok is True
+        assert response.result is not None
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        assert execution.details["result_status"] == "succeeded"
+        assert execution.details["compiled_output_verified"] is True
+        assert str(target_path) in execution.details["target_candidate_revalidation_verified_paths"]
+        assert execution.details["target_candidate_revalidation_changed_count"] >= 1
+        assert execution.details["compiled_output_verification_basis"]
+
+
+def test_build_compile_records_failed_exit_code_runner_evidence() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        cache_path = project_root / "build" / "windows" / "CMakeCache.txt"
+        build_tree = cache_path.parent
+        target_path = build_tree / "bin" / "profile" / "Editor.exe"
+        cmake_path = build_tree / "cmake.exe"
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(
+            f"CMAKE_GENERATOR:INTERNAL=Ninja\nCMAKE_COMMAND:FILEPATH={cmake_path}\n",
+            encoding="utf-8",
+        )
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_bytes(b"build-target")
+        cmake_path.write_text("", encoding="utf-8")
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.subprocess.run",
+                return_value=subprocess.CompletedProcess(
+                    args=[str(cmake_path), "--build", str(build_tree), "--target", "Editor"],
+                    returncode=2,
+                    stdout="build failed",
+                    stderr="compile error",
+                ),
+            ):
+                response = dispatcher_service.dispatch(
+                    approve_build_compile_request(
+                        project_root=str(project_root),
+                        dry_run=False,
+                    )
+                )
+
+        assert response.ok is True
+        assert response.result is not None
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        assert execution.details["execution_attempted"] is True
+        assert execution.details["result_status"] == "failed_exit_code"
+        assert execution.details["exit_code_available"] is True
+        assert execution.details["exit_code"] == 2
+        assert execution.details["compiled_output_verified"] is False
+
+
+def test_build_compile_records_timed_out_runner_evidence() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        cache_path = project_root / "build" / "windows" / "CMakeCache.txt"
+        build_tree = cache_path.parent
+        target_path = build_tree / "bin" / "profile" / "Editor.exe"
+        cmake_path = build_tree / "cmake.exe"
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(
+            f"CMAKE_GENERATOR:INTERNAL=Ninja\nCMAKE_COMMAND:FILEPATH={cmake_path}\n",
+            encoding="utf-8",
+        )
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_bytes(b"build-target")
+        cmake_path.write_text("", encoding="utf-8")
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.subprocess.run",
+                side_effect=subprocess.TimeoutExpired(
+                    cmd=[str(cmake_path), "--build", str(build_tree), "--target", "Editor"],
+                    timeout=120,
+                    output="partial stdout",
+                    stderr="partial stderr",
+                ),
+            ):
+                response = dispatcher_service.dispatch(
+                    approve_build_compile_request(
+                        project_root=str(project_root),
+                        dry_run=False,
+                    )
+                )
+
+        assert response.ok is True
+        assert response.result is not None
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        assert execution.details["execution_attempted"] is True
+        assert execution.details["result_status"] == "timed_out"
+        assert execution.details["runner_timed_out"] is True
+        assert execution.details["exit_code_available"] is False
+        assert execution.details["compiled_output_verified"] is False
+
+
+def test_build_compile_records_missing_runner_classification() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        cache_path = project_root / "build" / "windows" / "CMakeCache.txt"
+        target_path = project_root / "build" / "windows" / "bin" / "profile" / "Editor.exe"
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text("CMAKE_GENERATOR:INTERNAL=Ninja\n", encoding="utf-8")
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_bytes(b"build-target")
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.ProjectBuildHybridAdapter._probe_build_compile_runner",
+                return_value={
+                    "build_runner_available": False,
+                    "build_runner_path": None,
+                    "build_runner_exists": False,
+                    "build_runner_source": "unavailable",
+                    "build_runner_probe_method": "cmake-cache-lookup+host-path-lookup",
+                    "build_runner_candidate_paths": [],
+                },
+            ):
+                response = dispatcher_service.dispatch(
+                    approve_build_compile_request(
+                        project_root=str(project_root),
+                        dry_run=False,
+                    )
+                )
+
+        assert response.ok is True
+        assert response.result is not None
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        assert execution.details["execution_attempted"] is False
+        assert execution.details["result_status"] == "not_attempted_missing_runner"
+        assert execution.details["build_runner_available"] is False
+
+
+def test_build_compile_records_policy_blocked_classification_when_runner_execution_is_not_admitted() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        cache_path = project_root / "build" / "windows" / "CMakeCache.txt"
+        build_tree = cache_path.parent
+        target_path = build_tree / "bin" / "profile" / "Editor.exe"
+        cmake_path = build_tree / "cmake.exe"
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(
+            f"CMAKE_GENERATOR:INTERNAL=Ninja\nCMAKE_COMMAND:FILEPATH={cmake_path}\n",
+            encoding="utf-8",
+        )
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_bytes(b"build-target")
+        cmake_path.write_text("", encoding="utf-8")
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            report = adapter_service.execute(
+                request_id="build-compile-policy-blocked-1",
+                session_id=None,
+                workspace_id=None,
+                executor_id=None,
+                tool="build.compile",
+                agent="project-build",
+                project_root=str(project_root),
+                engine_root="/tmp/engine",
+                dry_run=False,
+                args={"targets": ["Editor"]},
+                approval_class="read_only",
+                locks_acquired=[],
+            )
+
+        assert report.execution_details["execution_attempted"] is False
+        assert report.execution_details["result_status"] == "not_attempted_policy_blocked"
+        assert report.execution_details["build_execution_policy_allowed"] is False
 
 
 def test_asset_processor_status_simulated_persisted_payloads_match_published_schemas() -> None:

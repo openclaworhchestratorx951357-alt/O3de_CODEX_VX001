@@ -964,12 +964,21 @@ class PromptOrchestratorService:
                 summary_parts.append(
                     "Build compile preflight could not confirm artifact candidate resolution for all explicit build targets."
                 )
+            result_status = str(details.get("result_status", "")).strip()
             if details.get("execution_attempted") is True:
-                if details.get("exit_code_available") is True:
+                if result_status == "succeeded":
+                    summary_parts.append(
+                        "Real build.compile execution was attempted in this slice, returned exit code 0, and generic post-run candidate revalidation observed build-output evidence."
+                    )
+                elif result_status == "attempted_but_output_unverified":
+                    summary_parts.append(
+                        "Real build.compile execution was attempted in this slice, returned exit code 0, but generic post-run candidate revalidation did not prove compiled output changes."
+                    )
+                elif result_status == "failed_exit_code" and details.get("exit_code_available") is True:
                     summary_parts.append(
                         f"Real build.compile execution was attempted in this slice and returned exit code {details.get('exit_code')}."
                     )
-                elif details.get("runner_timed_out") is True:
+                elif result_status == "timed_out" or details.get("runner_timed_out") is True:
                     summary_parts.append(
                         "Real build.compile execution was attempted in this slice but timed out before an exit code was captured."
                     )
@@ -977,6 +986,13 @@ class PromptOrchestratorService:
                     summary_parts.append(
                         "Real build.compile execution was attempted in this slice."
                     )
+                if details.get("target_candidate_revalidation_attempted") is True:
+                    changed_count = details.get("target_candidate_revalidation_changed_count")
+                    if isinstance(changed_count, int):
+                        summary_parts.append(
+                            "Generic post-run candidate revalidation compared the pre-discovered build artifact candidates and observed "
+                            f"{changed_count} provable change(s)."
+                        )
                 if details.get("result_artifact_produced") is True:
                     summary_parts.append(
                         "Build compile runner log evidence was retained for this explicit target request."
@@ -986,9 +1002,22 @@ class PromptOrchestratorService:
                         "Build compile runner log evidence was not retained for this explicit target request."
                     )
             else:
-                summary_parts.append(
-                    "No real build.compile execution was attempted in this admitted slice."
-                )
+                if result_status == "not_attempted_missing_runner":
+                    summary_parts.append(
+                        "No real build.compile execution was attempted because no admitted build runner was available for the explicit target request."
+                    )
+                elif result_status == "not_attempted_policy_blocked":
+                    summary_parts.append(
+                        "No real build.compile execution was attempted because policy did not admit runner execution for this explicit target request."
+                    )
+                else:
+                    summary_parts.append(
+                        "No real build.compile execution was attempted in this admitted slice."
+                    )
+            if details.get("compiled_output_verified") is True:
+                verification_basis = details.get("compiled_output_verification_basis")
+                if isinstance(verification_basis, str) and verification_basis:
+                    summary_parts.append(verification_basis)
             output_unavailable_reason = details.get("compile_output_artifact_unavailable_reason")
             if isinstance(output_unavailable_reason, str) and output_unavailable_reason:
                 summary_parts.append(output_unavailable_reason)

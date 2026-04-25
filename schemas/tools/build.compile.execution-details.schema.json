@@ -32,6 +32,7 @@
     },
     "requested_config": { "type": ["string", "null"] },
     "requested_parallel_jobs": { "type": ["integer", "null"], "minimum": 1 },
+    "build_execution_policy_allowed": { "type": "boolean" },
     "inspection_evidence": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
@@ -60,6 +61,28 @@
     "target_probe_results": {
       "type": "array",
       "items": { "type": "object" }
+    },
+    "pre_run_target_candidate_evidence": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "target_candidate_revalidation_attempted": { "type": "boolean" },
+    "target_candidate_revalidation_method": { "type": ["string", "null"] },
+    "post_run_target_candidate_evidence": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "target_candidate_revalidation_results": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "target_candidate_revalidation_changed_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "target_candidate_revalidation_verified_paths": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
     },
     "build_runner_probe_attempted": { "type": "boolean" },
     "build_runner_probe_method": { "type": "string", "minLength": 1 },
@@ -90,6 +113,8 @@
     "result_unavailable_reason": { "type": ["string", "null"] },
     "compile_unavailable_reason": { "type": ["string", "null"] },
     "compile_output_artifact_available": { "type": "boolean" },
+    "compiled_output_verified": { "type": "boolean" },
+    "compiled_output_verification_basis": { "type": ["string", "null"] },
     "compile_output_artifact_unavailable_reason": { "type": ["string", "null"] },
     "fallback_category": { "type": "string", "minLength": 1 },
     "fallback_reason": { "type": "string", "minLength": 1 }

@@ -1179,6 +1179,7 @@ def test_prompt_session_executes_build_compile_with_truthful_preflight_evidence(
                     is True
                 )
                 assert details["execution_attempted"] is False
+                assert details["result_status"] == "not_attempted_preflight_blocked"
                 assert details["result_artifact_produced"] is False
                 assert str(target_path) in details["resolved_target_candidate_paths"]
 
@@ -1248,6 +1249,10 @@ def test_prompt_session_executes_build_compile_with_truthful_runner_evidence() -
                         "returned exit code 0" in payload["final_result_summary"]
                     )
                     assert (
+                        "did not prove compiled output changes"
+                        in payload["final_result_summary"]
+                    )
+                    assert (
                         "Build compile runner log evidence was retained"
                         in payload["final_result_summary"]
                     )
@@ -1257,6 +1262,9 @@ def test_prompt_session_executes_build_compile_with_truthful_runner_evidence() -
                     assert details["execution_attempted"] is True
                     assert details["exit_code_available"] is True
                     assert details["exit_code"] == 0
+                    assert details["result_status"] == "attempted_but_output_unverified"
+                    assert details["target_candidate_revalidation_attempted"] is True
+                    assert details["compiled_output_verified"] is False
                     assert details["result_artifact_produced"] is True
                     assert details["result_artifact_path"]
 

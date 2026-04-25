@@ -21,8 +21,9 @@ As of the current accepted branch state:
 - approvals, runs, locks, events, executions, and artifacts are real records
 - adapter mode selection is real and config-driven
 - adapter registry reporting is real
-- operator-facing status now separates read-only, plan-only, and
-  mutation-gated real lanes instead of collapsing them into one hybrid bucket
+- operator-facing status now separates read-only, editor-authoring/runtime,
+  plan-only, execution-gated, and mutation-gated real lanes instead of
+  collapsing them into one hybrid bucket
 - operator visibility for adapter mode, capability gating, provenance, and
   approval/policy meaning is in place
 - operator visibility now also includes persisted settings.patch audit summary,
@@ -41,6 +42,7 @@ Real O3DE execution is still narrow.
 - `project.inspect`
 - `asset.processor.status`
 - `asset.source.inspect`
+- `editor.component.property.get`
 - `render.capture.viewport`
 - `render.material.inspect`
 - `test.visual.diff`
@@ -69,7 +71,6 @@ Current truth:
 ### Real plan-only
 
 - `build.configure`
-- `build.compile`
 - `asset.batch.process`
 - `asset.move.safe`
 - `render.shader.rebuild`
@@ -85,8 +86,6 @@ Current truth:
 - now also records explicit simulated-fallback provenance including
   `dry-run-required`, `manifest-missing`, and `manifest-unreadable`
   categorization when the real preflight path is unavailable
-- `build.compile` now has an admitted real preflight/result-truth corridor for
-  explicit build target requests
 - `asset.batch.process` and `asset.move.safe` now have admitted real
   preflight/result-truth corridors for explicit project-local source-glob and
   identity-corridor requests
@@ -97,6 +96,23 @@ Current truth:
   requests without implying actual test execution
 - does not execute a real configure mutation
 - falls back to simulated when preconditions are not satisfied
+
+### Real execution-gated
+
+- `build.compile`
+
+Current truth:
+- `dry_run=true` remains an admitted real plan-only preflight path for explicit
+  named targets
+- `dry_run=false` now uses an admitted real execution-gated runner path for
+  explicit named targets only
+- preserves truthful attempted/not-attempted status, exit code truth, timeout
+  truth, and retained log artifact path/content type/size evidence
+- now also records generic before/after candidate revalidation against the
+  pre-discovered target artifact candidate paths after runner exit
+- still does not imply broad compile execution, arbitrary build command
+  execution, or compiled-output verification unless the generic revalidation
+  evidence actually proves more
 
 ### Real mutation-gated
 
@@ -126,10 +142,12 @@ Current truth:
 - falls back to simulated when the admitted real path is unavailable or
   preconditions are not satisfied
 
-### Real editor-runtime
+### Real editor-authoring/runtime
 
 - `editor.session.open`
 - `editor.level.open`
+- `editor.entity.create`
+- `editor.component.add`
 
 Current truth:
 - are admitted real only on the verified `McpSandbox` target wiring
@@ -138,18 +156,8 @@ Current truth:
 - were re-verified through the canonical repo-owned backend bound to
   `127.0.0.1:8000`
 - remain explicitly labeled real vs simulated in backend and frontend evidence
-- do not imply a broad real editor-control family beyond the admitted tools
-
-### Editor-runtime excluded from admitted real
-
-- `editor.entity.create`
-
-Current truth:
-- remains excluded from the admitted-real set on the current tested local
-  targets
-- must continue to be described as excluded rather than partially-real or
-  implied-real
-- should not be widened until a stable prefab-safe create contract is proven
+- do not imply a broad real editor-control family beyond the admitted tools,
+  broader component/property mutation, or arbitrary Editor Python execution
 
 ### Simulated-only
 
@@ -184,10 +192,10 @@ The operator shell now exposes this boundary through:
   for admitted real-path failures
 - explicit manifest/root/source-of-truth provenance for admitted real preflight
   and mutation evidence
-- explicit operator-visible separation between plan-only and mutation-gated
-  lanes in adapter and readiness rollups
+- explicit operator-visible separation between plan-only, execution-gated, and
+  mutation-gated lanes in adapter and readiness rollups
 - explicit bridge heartbeat, queue, cleanup history, and lag-note visibility
-  for the admitted editor-runtime boundary
+  for the admitted editor-authoring/runtime boundary
 - local operator-lane state, action rails, and detail-panel carry-through for
   pinned-lane navigation
 - explicit preset restore, preset drift, local note, local clipboard, and local
@@ -196,20 +204,20 @@ The operator shell now exposes this boundary through:
 ## What remains intentionally limited
 
 - broad real O3DE adapters are still not implemented
-- admitted real editor-runtime remains limited to `editor.session.open` and
-  `editor.level.open` on the verified `McpSandbox` target wiring
-- `editor.entity.create` remains excluded from the admitted-real set on the
-  current tested local targets
+- admitted real editor-authoring/runtime remains limited to
+  `editor.session.open`, `editor.level.open`, `editor.entity.create`, and
+  `editor.component.add` on the verified `McpSandbox` target wiring
 - `build.configure` is not a real configure execution path
-- `build.compile` is not a real compile execution path
 - `project.inspect` real evidence is still limited to manifest-backed
   project-config, requested-vs-discovered Gem, requested Gem subset matching,
   requested settings subset matching, top-level settings fields, explicit
   engine compatibility inventory, explicit project origin provenance, and
   explicit presentation metadata inventory, and explicit identity/tag inventory
   rather than broader layered config discovery
-- `build.compile` remains a preflight/result-truth path and does not imply
-  actual compile execution, exit semantics, or build artifact production
+- `build.compile` remains limited to explicit named targets, bounded runner
+  invocation, exit/timeout/log truth, and generic candidate revalidation; it
+  still does not imply arbitrary build execution or broad compiled-output
+  verification
 - `asset.batch.process` and `asset.move.safe` remain preflight-only and do not
   imply real asset processing or real asset move/reference-repair execution
 - `test.run.gtest`, `test.run.editor_python`, and `test.tiaf.sequence` remain
@@ -230,8 +238,9 @@ The operator shell now exposes this boundary through:
 - default non-container persistence is still not claimed healthy; explicit
   operator-configured persistence remains the truthful baseline for
   non-container local runs
-- the canonical local backend verification path for the admitted editor-runtime
-  boundary is `backend/runtime/launch_branch_backend_8000.cmd` on
+- the canonical local backend verification path for the admitted
+  editor-authoring/runtime boundary is
+  `backend/runtime/launch_branch_backend_8000.cmd` on
   `127.0.0.1:8000`
 - operator-lane notes, preset restore memory, handoff summaries, clipboard copy,
   and local reset remain frontend browser-session helpers rather than backend

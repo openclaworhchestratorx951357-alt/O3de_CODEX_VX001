@@ -15,15 +15,16 @@ It does not imply broader real-adapter support.
 ## Current truthful status
 
 As of the current accepted branch state:
-- persisted execution-details schema coverage is published for 21 tools
-- persisted artifact-metadata schema coverage is published for the same 21 tools
+- persisted execution-details schema coverage is published for 22 tools
+- persisted artifact-metadata schema coverage is published for the same 22 tools
 - `/ready` and schema-validation status report per-tool and per-family rollout
   explicitly
 - five published families are now fully covered for persisted payload contracts:
   `editor-control`, `asset-pipeline`, `project-build`, `render-lookdev`, and
   `validation`
 - all covered tools still remain truthful about whether they are real,
-  plan-only, or simulated
+  read-only, authoring/runtime, plan-only, execution-gated, mutation-gated,
+  or simulated
 
 ## Covered tools
 
@@ -33,6 +34,7 @@ As of the current accepted branch state:
 - `editor.level.open`
 - `editor.entity.create`
 - `editor.component.add`
+- `editor.component.property.get`
 
 ### `asset-pipeline`
 
@@ -82,10 +84,15 @@ Current execution truth is still:
 - `project.inspect`, `asset.processor.status`, `asset.source.inspect`,
   `render.capture.viewport`, `render.material.inspect`, `test.visual.diff`,
   and `editor.component.property.get` may use admitted real read-only paths
-- `build.configure`, `build.compile`, `asset.batch.process`,
-  `asset.move.safe`, `render.shader.rebuild`, `test.run.gtest`,
-  `test.run.editor_python`, and `test.tiaf.sequence` may use admitted real
-  plan-only preflight/result-truth paths
+- `editor.session.open`, `editor.level.open`, `editor.entity.create`, and
+  `editor.component.add` now have admitted real editor-authoring/runtime
+  boundaries on the verified local bridge wiring
+- `build.configure`, `asset.batch.process`, `asset.move.safe`,
+  `render.shader.rebuild`, `test.run.gtest`, `test.run.editor_python`, and
+  `test.tiaf.sequence` may use admitted real plan-only preflight/result-truth
+  paths
+- `build.compile` now has an admitted real execution-gated runner path for
+  explicit named targets, while `dry_run=true` remains plan-only
 - `settings.patch`, `gem.enable`, and `render.material.patch` now have
   admitted narrow real mutation boundaries with backup, verification, and
   rollback visibility
