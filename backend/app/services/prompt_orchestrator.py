@@ -1516,7 +1516,10 @@ class PromptOrchestratorService:
                 "No cleanup or restore was executed or needed by this read-only proof."
             )
         missing_proof.append(
-            "This review does not claim entity creation, component changes, property writes, delete, parenting, prefab, material, asset, render, build, arbitrary Editor Python, live Editor undo, viewport reload, or reversibility."
+            "This review does not claim entity creation, component changes, property "
+            "writes, delete, parenting, prefab, material, asset, render, build, "
+            "arbitrary Editor Python, live Editor undo, viewport reload, entity "
+            "absence after restore, or reversibility."
         )
         return missing_proof
 

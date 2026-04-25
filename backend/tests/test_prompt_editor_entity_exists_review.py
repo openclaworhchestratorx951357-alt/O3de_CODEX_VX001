@@ -4,12 +4,13 @@ import json
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
 from unittest.mock import patch
-
-from fastapi.testclient import TestClient
 
 from app.main import app
 from app.services.db import configure_database, initialize_database, reset_database
+from app.services.prompt_orchestrator import prompt_orchestrator_service
+from fastapi.testclient import TestClient
 
 
 @contextmanager
@@ -26,49 +27,51 @@ def isolated_client() -> TestClient:
             configure_database(None)
 
 
-def test_prompt_session_plans_editor_entity_exists_as_read_only_review() -> None:
-    with isolated_client() as client:
-        response = client.post(
-            "/prompt/sessions",
-            json={
-                "prompt_id": "prompt-editor-entity-exists-plan-1",
-                "prompt_text": (
-                    'Open level "Levels/Main.level" and verify entity "Ground" exists.'
-                ),
-                "project_root": "C:/project",
-                "engine_root": "C:/engine",
-                "dry_run": False,
-                "preferred_domains": ["editor-control"],
-            },
-        )
-
-        assert response.status_code == 200
-        payload = response.json()
-        assert payload["status"] == "planned"
-        assert [step["tool"] for step in payload["plan"]["steps"]] == [
-            "editor.session.open",
-            "editor.level.open",
+def _entity_exists_runtime_result(
+    *,
+    entity_name: str,
+    exists: bool,
+) -> dict[str, Any]:
+    runtime_result: dict[str, Any] = {
+        "ok": True,
+        "exists": exists,
+        "lookup_mode": "entity_name",
+        "requested_entity_name": entity_name,
+        "matched_count": 1 if exists else 0,
+        "matched_entity_ids": ["[123]"] if exists else [],
+        "level_path": "Levels/Main.level",
+        "loaded_level_path": "Levels/Main.level",
+        "exact_editor_apis": [
+            "ControlPlaneEditorBridge filesystem inbox",
             "editor.entity.exists",
-        ]
-        assert payload["plan"]["steps"][1]["args"] == {
-            "level_path": "Levels/Main.level",
-            "make_writable": False,
-            "focus_viewport": False,
-        }
-        assert payload["plan"]["steps"][2]["step_id"] == "editor-entity-exists-1"
-        assert payload["plan"]["steps"][2]["args"] == {
-            "entity_name": "Ground",
-            "level_path": "Levels/Main.level",
-        }
-        assert payload["plan"]["steps"][2]["approval_class"] == "read_only"
-        assert payload["plan"]["steps"][2]["depends_on"] == [
-            "editor-session-1",
-            "editor-level-1",
-        ]
-        assert payload["refused_capabilities"] == []
+        ],
+        "bridge_available": True,
+        "bridge_name": "ControlPlaneEditorBridge",
+        "bridge_version": "0.1.0",
+        "bridge_operation": "editor.entity.exists",
+        "bridge_contract_version": "v1",
+        "bridge_command_id": "bridge-entity-exists-1",
+        "bridge_result_summary": (
+            "The requested exact entity name exists."
+            if exists
+            else "The requested exact entity name was not found."
+        ),
+        "bridge_heartbeat_seen_at": "2026-04-20T00:00:02Z",
+        "bridge_queue_mode": "filesystem-inbox",
+        "editor_transport": "bridge",
+    }
+    if exists:
+        runtime_result["entity_name"] = entity_name
+        runtime_result["entity_id"] = "[123]"
+    return runtime_result
 
 
-def test_prompt_session_reviews_editor_entity_exists_readback_without_writes() -> None:
+def _execute_entity_exists_review(
+    *,
+    prompt_id: str,
+    entity_name: str,
+    exists_runtime_result: dict[str, Any],
+) -> tuple[dict[str, Any], list[dict[str, object]], list[dict[str, object]]]:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)
         (project_root / "project.json").write_text(
@@ -113,32 +116,7 @@ def test_prompt_session_reviews_editor_entity_exists_readback_without_writes() -
         def fake_entity_exists(*, args, **kwargs):  # type: ignore[no-untyped-def]
             captured_exists_args.append(args)
             return {
-                "runtime_result": {
-                    "ok": True,
-                    "exists": True,
-                    "lookup_mode": "entity_name",
-                    "requested_entity_name": "Ground",
-                    "entity_name": "Ground",
-                    "entity_id": "[123]",
-                    "matched_count": 1,
-                    "matched_entity_ids": ["[123]"],
-                    "level_path": "Levels/Main.level",
-                    "loaded_level_path": "Levels/Main.level",
-                    "exact_editor_apis": [
-                        "ControlPlaneEditorBridge filesystem inbox",
-                        "editor.entity.exists",
-                    ],
-                    "bridge_available": True,
-                    "bridge_name": "ControlPlaneEditorBridge",
-                    "bridge_version": "0.1.0",
-                    "bridge_operation": "editor.entity.exists",
-                    "bridge_contract_version": "v1",
-                    "bridge_command_id": "bridge-entity-exists-1",
-                    "bridge_result_summary": "The requested exact entity name exists.",
-                    "bridge_heartbeat_seen_at": "2026-04-20T00:00:02Z",
-                    "bridge_queue_mode": "filesystem-inbox",
-                    "editor_transport": "bridge",
-                },
+                "runtime_result": exists_runtime_result,
                 "runner_command": ["fake-editor-runner"],
                 "runtime_script": "control_plane_bridge_poller.py",
             }
@@ -187,10 +165,10 @@ def test_prompt_session_reviews_editor_entity_exists_readback_without_writes() -
                             create_response = client.post(
                                 "/prompt/sessions",
                                 json={
-                                    "prompt_id": "prompt-editor-entity-exists-execute-1",
+                                    "prompt_id": prompt_id,
                                     "prompt_text": (
                                         'Open level "Levels/Main.level" and verify '
-                                        'entity "Ground" exists.'
+                                        f'entity "{entity_name}" exists.'
                                     ),
                                     "project_root": str(project_root),
                                     "engine_root": "C:/engine",
@@ -200,64 +178,191 @@ def test_prompt_session_reviews_editor_entity_exists_readback_without_writes() -
                             )
                             assert create_response.status_code == 200
 
-                            execute_1 = client.post(
-                                "/prompt/sessions/prompt-editor-entity-exists-execute-1/execute"
-                            )
-                            payload_1 = execute_1.json()
-                            assert payload_1["status"] == "waiting_approval"
-                            approve_1 = client.post(
-                                f"/approvals/{payload_1['pending_approval_id']}/approve",
-                                json={},
-                            )
-                            assert approve_1.status_code == 200
+                            completed_payload: dict[str, Any] | None = None
+                            for _ in range(5):
+                                execute_response = client.post(
+                                    f"/prompt/sessions/{prompt_id}/execute"
+                                )
+                                assert execute_response.status_code == 200
+                                payload = execute_response.json()
+                                if payload["status"] == "waiting_approval":
+                                    approve_response = client.post(
+                                        f"/approvals/{payload['pending_approval_id']}/approve",
+                                        json={},
+                                    )
+                                    assert approve_response.status_code == 200
+                                    continue
+                                completed_payload = payload
+                                break
 
-                            execute_2 = client.post(
-                                "/prompt/sessions/prompt-editor-entity-exists-execute-1/execute"
-                            )
-                            payload_2 = execute_2.json()
-                            assert payload_2["status"] == "waiting_approval"
-                            approve_2 = client.post(
-                                f"/approvals/{payload_2['pending_approval_id']}/approve",
-                                json={},
-                            )
-                            assert approve_2.status_code == 200
+        assert completed_payload is not None
+        return completed_payload, captured_level_args, captured_exists_args
 
-                            completed_response = client.post(
-                                "/prompt/sessions/prompt-editor-entity-exists-execute-1/execute"
-                            )
-                            assert completed_response.status_code == 200
-                            completed_payload = completed_response.json()
 
-        assert captured_level_args == [
-            {
-                "level_path": "Levels/Main.level",
-                "make_writable": False,
-                "focus_viewport": False,
-            }
+def test_prompt_session_plans_editor_entity_exists_as_read_only_review() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-editor-entity-exists-plan-1",
+                "prompt_text": (
+                    'Open level "Levels/Main.level" and verify entity "Ground" exists.'
+                ),
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": False,
+                "preferred_domains": ["editor-control"],
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "planned"
+        assert [step["tool"] for step in payload["plan"]["steps"]] == [
+            "editor.session.open",
+            "editor.level.open",
+            "editor.entity.exists",
         ]
-        assert captured_exists_args == [
-            {
-                "entity_name": "Ground",
-                "level_path": "Levels/Main.level",
-            }
+        assert payload["plan"]["steps"][1]["args"] == {
+            "level_path": "Levels/Main.level",
+            "make_writable": False,
+            "focus_viewport": False,
+        }
+        assert payload["plan"]["steps"][2]["step_id"] == "editor-entity-exists-1"
+        assert payload["plan"]["steps"][2]["args"] == {
+            "entity_name": "Ground",
+            "level_path": "Levels/Main.level",
+        }
+        assert payload["plan"]["steps"][2]["approval_class"] == "read_only"
+        assert payload["plan"]["steps"][2]["depends_on"] == [
+            "editor-session-1",
+            "editor-level-1",
         ]
-        assert completed_payload["status"] == "completed"
-        assert "Review result: succeeded_readback_verified" in (
-            completed_payload["final_result_summary"]
+        assert payload["refused_capabilities"] == []
+
+
+def test_prompt_session_reviews_editor_entity_exists_readback_without_writes() -> None:
+    completed_payload, captured_level_args, captured_exists_args = (
+        _execute_entity_exists_review(
+            prompt_id="prompt-editor-entity-exists-execute-1",
+            entity_name="Ground",
+            exists_runtime_result=_entity_exists_runtime_result(
+                entity_name="Ground",
+                exists=True,
+            ),
         )
-        assert (
-            "Checked entity existence by entity_name lookup for Ground."
-            in completed_payload["final_result_summary"]
+    )
+
+    assert captured_level_args == [
+        {
+            "level_path": "Levels/Main.level",
+            "make_writable": False,
+            "focus_viewport": False,
+        }
+    ]
+    assert captured_exists_args == [
+        {
+            "entity_name": "Ground",
+            "level_path": "Levels/Main.level",
+        }
+    ]
+    assert completed_payload["status"] == "completed"
+    assert "Review result: succeeded_readback_verified" in (
+        completed_payload["final_result_summary"]
+    )
+    assert (
+        "Checked entity existence by entity_name lookup for Ground."
+        in completed_payload["final_result_summary"]
+    )
+    assert (
+        "Readback confirmed Ground ([123]) exists in Levels/Main.level "
+        "via entity_name lookup with matched_count=1."
+        in completed_payload["final_result_summary"]
+    )
+    assert "No cleanup or restore was executed or needed by this read-only proof." in (
+        completed_payload["final_result_summary"]
+    )
+    assert "This review does not claim entity creation" in (
+        completed_payload["final_result_summary"]
+    )
+    assert "entity absence after restore" in completed_payload["final_result_summary"]
+    assert "Created entity" not in completed_payload["final_result_summary"]
+
+
+def test_prompt_session_reviews_editor_entity_absence_without_restore_claim() -> None:
+    completed_payload, captured_level_args, captured_exists_args = (
+        _execute_entity_exists_review(
+            prompt_id="prompt-editor-entity-absence-execute-1",
+            entity_name="MissingGround",
+            exists_runtime_result=_entity_exists_runtime_result(
+                entity_name="MissingGround",
+                exists=False,
+            ),
         )
-        assert (
-            "Readback confirmed Ground ([123]) exists in Levels/Main.level "
-            "via entity_name lookup with matched_count=1."
-            in completed_payload["final_result_summary"]
-        )
-        assert "No cleanup or restore was executed or needed by this read-only proof." in (
-            completed_payload["final_result_summary"]
-        )
-        assert "This review does not claim entity creation" in (
-            completed_payload["final_result_summary"]
-        )
-        assert "Created entity" not in completed_payload["final_result_summary"]
+    )
+
+    assert captured_level_args == [
+        {
+            "level_path": "Levels/Main.level",
+            "make_writable": False,
+            "focus_viewport": False,
+        }
+    ]
+    assert captured_exists_args == [
+        {
+            "entity_name": "MissingGround",
+            "level_path": "Levels/Main.level",
+        }
+    ]
+    assert completed_payload["status"] == "completed"
+    assert "Review result: succeeded_absence_verified" in (
+        completed_payload["final_result_summary"]
+    )
+    assert (
+        "Checked entity existence by entity_name lookup for MissingGround."
+        in completed_payload["final_result_summary"]
+    )
+    assert (
+        "Readback confirmed MissingGround was not found in Levels/Main.level "
+        "on the admitted exact lookup path."
+        in completed_payload["final_result_summary"]
+    )
+    assert "No cleanup or restore was executed or needed by this read-only proof." in (
+        completed_payload["final_result_summary"]
+    )
+    assert "entity absence after restore" in completed_payload["final_result_summary"]
+    assert "Created entity" not in completed_payload["final_result_summary"]
+
+
+def test_editor_entity_exists_review_blocks_ambiguous_lookup_without_scene_discovery() -> None:
+    failed_response = {
+        "prompt_step_id": "editor-entity-exists-1",
+        "error": {
+            "code": "REAL_EXECUTION_REJECTED",
+            "message": "Exact entity-name lookup matched multiple entities.",
+            "details": {
+                "preflight_reason": "ambiguous-entity-lookup",
+            },
+        },
+    }
+
+    result_label = prompt_orchestrator_service._classify_editor_entity_exists_review(
+        failed_response=failed_response,
+        exists_response=None,
+    )
+    missing_proof = prompt_orchestrator_service._editor_entity_exists_missing_proof(
+        result_label=result_label,
+        failed_response=failed_response,
+        exists_response=None,
+    )
+    safest_next_step = prompt_orchestrator_service._editor_entity_exists_safest_next_step(
+        result_label=result_label,
+    )
+
+    assert result_label == "blocked_ambiguous_entity_lookup"
+    assert (
+        "The exact-name lookup was ambiguous and no arbitrary entity selection was made."
+        in missing_proof
+    )
+    assert any("does not claim entity creation" in item for item in missing_proof)
+    assert "scene discovery" in safest_next_step
