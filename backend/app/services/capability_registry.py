@@ -17,6 +17,9 @@ def _build_safety_envelope(
     retention_class: str,
     natural_language_status: str,
     natural_language_blocker: str | None = None,
+    mutation_surface_class: str = "not-mutating",
+    restore_boundary_class: str = "not-applicable",
+    candidate_expansion_boundary: str | None = None,
 ) -> PromptSafetyEnvelope:
     return PromptSafetyEnvelope(
         state_scope=state_scope,
@@ -26,6 +29,9 @@ def _build_safety_envelope(
         retention_class=retention_class,
         natural_language_status=natural_language_status,
         natural_language_blocker=natural_language_blocker,
+        mutation_surface_class=mutation_surface_class,
+        restore_boundary_class=restore_boundary_class,
+        candidate_expansion_boundary=candidate_expansion_boundary,
     )
 
 
@@ -47,6 +53,11 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             verification_class="loaded-level-context verification",
             retention_class="editor-runtime-evidence",
             natural_language_status="prompt-ready-approval-gated",
+            mutation_surface_class="admitted-editor-level-open-or-create",
+            restore_boundary_class="operator-managed-level-snapshot-when-creating-or-overwriting",
+            candidate_expansion_boundary=(
+                "Level content mutation outside explicit open/create remains non-admitted."
+            ),
         )
     if tool_name == "editor.entity.create":
         return _build_safety_envelope(
@@ -56,6 +67,12 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             verification_class="entity-readback-and-level-context verification",
             retention_class="editor-runtime-evidence",
             natural_language_status="prompt-ready-approval-gated",
+            mutation_surface_class="admitted-editor-authoring-loaded-level",
+            restore_boundary_class="loaded-level-file-restore-boundary",
+            candidate_expansion_boundary=(
+                "No parenting, prefab, transform placement, delete, property writes, "
+                "or arbitrary Editor Python are admitted from this envelope."
+            ),
         )
     if tool_name == "editor.entity.exists":
         return _build_safety_envelope(
@@ -74,6 +91,13 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             verification_class="entity-component readback verification",
             retention_class="editor-runtime-evidence",
             natural_language_status="prompt-ready-approval-gated",
+            mutation_surface_class="admitted-editor-authoring-allowlisted-component",
+            restore_boundary_class="loaded-level-file-restore-boundary",
+            candidate_expansion_boundary=(
+                "Only allowlisted component attachment is admitted; component removal, "
+                "property writes, parenting, prefab, and arbitrary Editor Python remain "
+                "outside this envelope."
+            ),
         )
     if tool_name == "editor.component.property.get":
         return _build_safety_envelope(
@@ -182,6 +206,8 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             verification_class="post-write manifest readback verification",
             retention_class="mutation-verification-evidence",
             natural_language_status="prompt-ready-approval-gated",
+            mutation_surface_class="admitted-manifest-mutation-gated",
+            restore_boundary_class="file-backup-restore",
         )
     if tool_name == "build.configure":
         return _build_safety_envelope(
@@ -209,6 +235,8 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             verification_class="post-write manifest gem_names readback verification",
             retention_class="mutation-verification-evidence",
             natural_language_status="prompt-ready-approval-gated",
+            mutation_surface_class="admitted-manifest-mutation-gated",
+            restore_boundary_class="file-backup-restore",
         )
     if tool_name == "build.compile":
         return _build_safety_envelope(
@@ -227,6 +255,8 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             verification_class="post-write material propertyValues readback verification",
             retention_class="render-mutation-evidence",
             natural_language_status="prompt-ready-approval-gated",
+            mutation_surface_class="admitted-material-file-mutation-gated",
+            restore_boundary_class="file-backup-restore",
         )
     if tool_name == "render.shader.rebuild":
         return _build_safety_envelope(

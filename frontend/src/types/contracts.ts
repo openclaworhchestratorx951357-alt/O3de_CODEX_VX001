@@ -82,6 +82,9 @@ export interface PromptSafetyEnvelope {
   retention_class: string;
   natural_language_status: string;
   natural_language_blocker?: string | null;
+  mutation_surface_class?: string | null;
+  restore_boundary_class?: string | null;
+  candidate_expansion_boundary?: string | null;
 }
 
 export interface PromptPlanStep {

@@ -36,8 +36,14 @@ As of the current accepted branch state:
 - `settings.patch` has a narrow admitted real path
 - `editor.session.open` is admitted real on the verified `McpSandbox` target
 - `editor.level.open` is admitted real on the verified `McpSandbox` target
-- `editor.entity.create` is still runtime-reaching and excluded from the
-  admitted real set on current tested local targets
+- `editor.entity.create` and `editor.component.add` are admitted real-authoring
+  only inside the bounded editor-authoring/runtime boundary on the verified
+  `McpSandbox` target wiring
+- `editor.entity.exists` and `editor.component.property.get` are admitted
+  read-only editor checks on their explicit lookup/readback surfaces
+- the composed editor proof chain is admitted only for
+  `editor.session.open` -> `editor.level.open` -> `editor.entity.create` ->
+  `editor.component.add` -> `editor.component.property.get`
 - simulated vs real wording must remain explicit
 
 This program must not blur those truths.
@@ -266,7 +272,16 @@ Concrete targets:
 - add candidate mutation metadata for editor-domain prompt steps
 - add operator-visible backup/rollback/verification labels for candidate editor
   mutations
-- keep `editor.entity.create` excluded until prefab-safe conformance is proven
+- keep new or wider editor mutations excluded until prefab-safe, restore,
+  reload, and absence-readback conformance is proven
+
+Initial implementation target:
+- extend prompt safety envelopes with explicit `mutation_surface_class`,
+  `restore_boundary_class`, and `candidate_expansion_boundary` labels
+- populate those labels for already-admitted editor authoring steps without
+  admitting any additional editor behavior
+- render the labels in prompt capability, prompt plan, and persisted safety
+  evidence views so operators can see the boundary before and after dispatch
 
 ## Definition Of Done For This Planning Slice
 

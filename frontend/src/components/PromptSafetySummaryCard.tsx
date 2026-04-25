@@ -37,9 +37,20 @@ export default function PromptSafetySummaryCard({
         <SummaryFact label="State scope">{safetyEnvelope.state_scope}</SummaryFact>
         <SummaryFact label="Backup class">{safetyEnvelope.backup_class}</SummaryFact>
         <SummaryFact label="Rollback class">{safetyEnvelope.rollback_class}</SummaryFact>
+        <SummaryFact label="Mutation class">
+          {safetyEnvelope.mutation_surface_class ?? "not reported by current backend"}
+        </SummaryFact>
+        <SummaryFact label="Restore boundary">
+          {safetyEnvelope.restore_boundary_class ?? "not reported by current backend"}
+        </SummaryFact>
         <SummaryFact label="Verification class">{safetyEnvelope.verification_class}</SummaryFact>
         <SummaryFact label="Retention class">{safetyEnvelope.retention_class}</SummaryFact>
       </SummaryFacts>
+      {safetyEnvelope.candidate_expansion_boundary ? (
+        <div style={summaryCalloutStyle}>
+          <strong>Expansion boundary:</strong> {safetyEnvelope.candidate_expansion_boundary}
+        </div>
+      ) : null}
       {safetyEnvelope.natural_language_blocker ? (
         <div style={summaryCalloutStyle}>
           <strong>Blocker:</strong> {safetyEnvelope.natural_language_blocker}

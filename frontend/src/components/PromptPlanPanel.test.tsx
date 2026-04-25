@@ -16,6 +16,9 @@ const safetyEnvelope: PromptSafetyEnvelope = {
   retention_class: "prompt-evidence",
   natural_language_status: "prompt-ready-approval-gated",
   natural_language_blocker: null,
+  mutation_surface_class: "admitted-editor-authoring-loaded-level",
+  restore_boundary_class: "loaded-level-file-restore-boundary",
+  candidate_expansion_boundary: "No broader editor mutation is admitted from this envelope.",
 };
 
 const session: PromptSessionRecord = {
@@ -172,6 +175,14 @@ describe("PromptPlanPanel", () => {
     expect(
       within(levelStep as HTMLElement).getByText(/Natural-language status:/),
     ).toHaveTextContent("Natural-language status: prompt-ready-approval-gated");
+    expect(
+      within(levelStep as HTMLElement).getByText(/Mutation \/ restore boundary:/),
+    ).toHaveTextContent(
+      "Mutation / restore boundary: admitted-editor-authoring-loaded-level / loaded-level-file-restore-boundary",
+    );
+    expect(
+      within(levelStep as HTMLElement).getByText(/Expansion boundary:/),
+    ).toHaveTextContent("No broader editor mutation is admitted from this envelope.");
     expect(
       within(levelStep as HTMLElement).getByText(/Execution truth:/),
     ).toHaveTextContent("Execution truth: real path preferred");
