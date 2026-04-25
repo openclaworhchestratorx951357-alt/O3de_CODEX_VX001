@@ -8,7 +8,8 @@ param(
         "stop-editor",
         "stop-all",
         "restart",
-        "proof"
+        "proof",
+        "entity-exists-proof"
     )]
     [string]$Action = "status",
     [string]$ApiHost = "127.0.0.1",
@@ -32,6 +33,7 @@ $RepoRoot = Split-Path -Parent $BackendDir
 $PreferredBackendPython = Join-Path $BackendDir ".venv\Scripts\python.exe"
 $LaunchHelper = Join-Path $RuntimeDir "launch_branch_backend_8000_detached.py"
 $ProofHelper = Join-Path $RuntimeDir "prove_live_editor_authoring.py"
+$EntityExistsProofHelper = Join-Path $RuntimeDir "prove_live_editor_entity_exists.py"
 
 $PidPath = Join-Path $RuntimeDir "live-verify-uvicorn.pid"
 $LaunchManifestPath = Join-Path $RuntimeDir "live-verify-launch.json"
@@ -687,6 +689,13 @@ function Invoke-StopCanonicalEditor {
 }
 
 function Invoke-ProofRun {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$SelectedProofHelper,
+        [Parameter(Mandatory = $true)]
+        [string]$ProofAction
+    )
+
     $backendPython = Get-BackendPython
 
     $existingEditorIds = @((Get-CanonicalEditorProcesses) | ForEach-Object { [int]$_.id })
@@ -702,7 +711,7 @@ function Invoke-ProofRun {
 
     $editorStartResult = Invoke-StartCanonicalEditorBridge
 
-    $proofOutput = & $backendPython $ProofHelper 2>&1
+    $proofOutput = & $backendPython $SelectedProofHelper 2>&1
     $proofExitCode = $LASTEXITCODE
     $proofText = ($proofOutput | Out-String).Trim()
     $proofOutputPath = $null
@@ -727,7 +736,8 @@ function Invoke-ProofRun {
     }
 
     return [ordered]@{
-        action = "proof"
+        action = $ProofAction
+        proof_helper = $SelectedProofHelper
         start_result = $startResult
         editor_start_result = $editorStartResult
         proof_exit_code = $proofExitCode
@@ -760,12 +770,19 @@ $result = switch ($Action) {
             status = Get-LifecycleStatus
         }
     }
-    "proof" { Invoke-ProofRun }
+    "proof" {
+        Invoke-ProofRun -SelectedProofHelper $ProofHelper -ProofAction "proof"
+    }
+    "entity-exists-proof" {
+        Invoke-ProofRun `
+            -SelectedProofHelper $EntityExistsProofHelper `
+            -ProofAction "entity-exists-proof"
+    }
 }
 
 Write-Output (ConvertTo-JsonOutput -Value $result)
 
-if ($Action -eq "proof") {
+if ($Action -in @("proof", "entity-exists-proof")) {
     $proofExitCode = 0
     $proofExitCodeRaw = Get-OptionalMemberValue -InputObject $result -Name "proof_exit_code"
     if ($null -ne $proofExitCodeRaw) {

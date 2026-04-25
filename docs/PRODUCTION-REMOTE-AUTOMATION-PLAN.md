@@ -324,9 +324,10 @@ Current truth on this branch:
   invoked the pre-entity-create `loaded-level-file` restore boundary and
   hash-verified the selected level prefab against the captured backup
 - the separate direct read-only proof bundle
-  `backend/runtime/live_editor_entity_exists_proof_20260425-083436.json`
+  `backend/runtime/live_editor_entity_exists_proof_20260425-085754.json`
   verified exact-name `editor.entity.exists` readback for `Ground` on
-  `Levels/TestLoevel01`
+  `Levels/TestLoevel01` through the repo-owned
+  `scripts/dev.ps1 live-entity-exists-proof` lifecycle command
 - the proofs do not claim live Editor undo, viewport reload, entity-absence
   readback, broader component or property mutation, delete, parenting, prefab
   mutation, material, asset, render, build, or arbitrary Editor Python behavior

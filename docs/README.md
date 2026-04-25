@@ -59,7 +59,8 @@ Current Phase 7 checkpoint truth:
 - the canonical local verification path for that admitted editor-runtime
   boundary is the repo-owned backend on `127.0.0.1:8000`, launched via
   `backend/runtime/launch_branch_backend_8000.cmd`, with the repeatable proof
-  command at `backend/runtime/prove_live_editor_authoring.cmd`
+  commands at `backend/runtime/prove_live_editor_authoring.cmd` and
+  `backend/runtime/prove_live_editor_entity_exists.cmd`
 - the operator proof checklist for the admitted editor-runtime boundary lives in
   `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` and now points operators to
   the repo-owned proof command plus the generated evidence bundle path

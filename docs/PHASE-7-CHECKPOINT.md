@@ -70,13 +70,15 @@ Current truth:
   on the currently loaded level; it does not imply delete, reload, parenting,
   prefab work, broad scene enumeration, component discovery, property mutation,
   or proof that file-backed restore removed an entity from the live Editor
-- the direct live read-only proof completed on `2026-04-25` against
+- the direct live read-only proof is now repeatable through the repo-owned
+  `scripts/dev.ps1 live-entity-exists-proof` lifecycle command
+- the latest direct live read-only proof completed on `2026-04-25` against
   `Levels/TestLoevel01` in `McpSandbox` and verified exact-name existence
-  readback for `Ground` with entity id `[2949498829790842453]`
+  readback for `Ground` with entity id `[325428644679998524]`
 - direct entity-exists proof bundle:
-  `backend/runtime/live_editor_entity_exists_proof_20260425-083436.json`
+  `backend/runtime/live_editor_entity_exists_proof_20260425-085754.json`
 - direct entity-exists proof lineage:
-  `run-2ae86612d8e0`, `exe-ec24e70a8678`, `art-ff7b77eb135e`
+  `run-e8e334fe46f2`, `exe-ba421e29dc5e`, `art-f78a81a28bfc`
 - the direct entity-exists proof did not execute or need cleanup/restore and
   did not prove live Editor undo, viewport reload, entity absence after restore,
   broad entity discovery, component discovery, property mutation, delete,

@@ -12,6 +12,7 @@ param(
         "live-stop",
         "live-restart",
         "live-proof",
+        "live-entity-exists-proof",
         "desktop-status",
         "desktop-start",
         "desktop-stop",
@@ -494,6 +495,7 @@ switch ($Task) {
     "live-stop" { Invoke-LiveRuntimeControl -Action "stop-all" }
     "live-restart" { Invoke-LiveRuntimeControl -Action "restart" }
     "live-proof" { Invoke-LiveRuntimeControl -Action "proof" }
+    "live-entity-exists-proof" { Invoke-LiveRuntimeControl -Action "entity-exists-proof" }
     "desktop-status" { Invoke-DesktopAppControl -DesktopAction "status" }
     "desktop-start" { Invoke-DesktopAppControl -DesktopAction "start" }
     "desktop-stop" { Invoke-DesktopAppControl -DesktopAction "stop" }

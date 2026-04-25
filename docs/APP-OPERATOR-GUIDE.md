@@ -142,7 +142,7 @@ Use one repo-owned command to prove the admitted prompt-orchestrated editor chai
 - summary.cleanup_restore.restore_invoked = true, restore_succeeded = true, and restore_result = restored_and_verified prove file-backed loaded-level restore against the captured backup hash.
 - summary.missing_proof still states that live Editor undo, viewport reload, and entity-absence readback were not proven.
 
-### Read the direct editor.entity.exists proof as standalone readback evidence
+### Run the repo-owned direct editor.entity.exists proof
 
 Treat the latest direct live proof as evidence only for session attach, non-default test level open, and exact-name entity existence readback on the loaded/current level.
 
@@ -160,16 +160,17 @@ Treat the latest direct live proof as evidence only for session attach, non-defa
 #### Commands
 
 ```powershell
-# Direct backend API dispatch sequence used for the latest proof only:
-# editor.session.open -> editor.level.open -> editor.entity.exists
+.\scripts\dev.ps1 live-entity-exists-proof
 ```
 
 #### Evidence to confirm
 
-- Latest bundle pattern is backend\runtime\live_editor_entity_exists_proof_<timestamp>.json; latest observed bundle was backend\runtime\live_editor_entity_exists_proof_20260425-083436.json.
+- Latest bundle pattern is backend\runtime\live_editor_entity_exists_proof_<timestamp>.json; latest observed bundle was backend\runtime\live_editor_entity_exists_proof_20260425-085754.json.
 - Proof target was Levels/TestLoevel01 with exact entity_name = Ground.
-- editor.entity.exists returned exists = true, lookup_mode = entity_name, matched_count = 1, and entity_id = [2949498829790842453].
-- Recorded lineage: run_id = run-2ae86612d8e0, execution_id = exe-ec24e70a8678, artifact_id = art-ff7b77eb135e.
+- editor.level.open used make_writable=false and focus_viewport=false.
+- editor.entity.exists returned exists = true, lookup_mode = entity_name, matched_count = 1, and entity_id = [325428644679998524].
+- Recorded lineage: session run_id = run-1f724b6847ea, level run_id = run-c9a903c896b4, exists run_id = run-e8e334fe46f2.
+- Recorded exists evidence: execution_id = exe-ba421e29dc5e, artifact_id = art-f78a81a28bfc, bridge_command_id = 1c64099855ea4f5cad51093c12c2662c.
 - missing_proof states no cleanup or restore was executed or needed by this read-only proof.
 - This proof does not widen into entity creation, component add, property writes, delete, reload, parenting, prefab, material, asset, render, build, or arbitrary Editor Python.
 
@@ -210,6 +211,7 @@ Invoke-RestMethod 'http://127.0.0.1:8000/policies'
 - Simulated versus real wording must remain explicit in both prompts and operator evidence.
 - The control-plane repo remains the single orchestration and governance substrate.
 - Current admitted-real editor proof remains anchored to the canonical local backend on 127.0.0.1:8000 and the repo-owned scripts/dev.ps1 live-proof lifecycle command.
+- Standalone editor.entity.exists readback is repeatable through the repo-owned scripts/dev.ps1 live-entity-exists-proof lifecycle command.
 - Current admitted editor-control scope includes real-authoring editor.component.add on its allowlisted surface, hybrid read-only editor.entity.exists on its exact lookup surface, and hybrid read-only editor.component.property.get on its explicit readback surface.
 - The admitted prompt-controlled editor chain may now compose editor.session.open, editor.level.open, editor.entity.create, editor.component.add, and mapped editor.component.property.get readback with automatic result binding and structured post-action review.
 - The latest direct editor.entity.exists proof verifies exact-name readback for Ground on Levels/TestLoevel01 and does not prove live Editor undo, viewport reload, cleanup, broad entity discovery, or entity absence after file-backed restore.
@@ -1011,4 +1013,5 @@ Records is the evidence workspace. When you need persisted truth, this is where 
 - Edit this catalog when desktop labels, workflows, or supported surfaces change.
 - Run npm run guide:sync in frontend to regenerate docs/APP-OPERATOR-GUIDE.md from the same source.
 - Re-run .\backend\runtime\prove_live_editor_authoring.cmd when the admitted real editor boundary changes so the latest evidence bundle stays fresh.
+- Re-run .\backend\runtime\prove_live_editor_entity_exists.cmd or .\scripts\dev.ps1 live-entity-exists-proof when the standalone entity-exists proof evidence needs refresh.
 - Frontend tests run a guide drift check so catalog changes are not silently shipped without synced docs.

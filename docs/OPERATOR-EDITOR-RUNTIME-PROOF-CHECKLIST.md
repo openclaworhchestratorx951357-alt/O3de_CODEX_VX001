@@ -67,6 +67,10 @@ Canonical local backend proof path:
   `scripts/dev.ps1 live-proof`
 - proof helper:
   `backend/runtime/prove_live_editor_authoring.py`
+- direct entity-exists lifecycle wrapper:
+  `scripts/dev.ps1 live-entity-exists-proof`
+- direct entity-exists proof helper:
+  `backend/runtime/prove_live_editor_entity_exists.py`
 
 ## Preconditions
 
@@ -164,6 +168,31 @@ The output file pattern is:
 Standalone direct read-only entity-exists proof bundles use:
 - `backend/runtime/live_editor_entity_exists_proof_<timestamp>.json`
 
+To rerun only the standalone direct read-only entity-exists proof:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-entity-exists-proof
+```
+
+That command proves this exact direct chain against `127.0.0.1:8000`:
+1. `editor.session.open`
+2. `editor.level.open`
+3. `editor.entity.exists`
+
+The direct proof command:
+- restarts or reuses the canonical backend
+- launches the canonical McpSandbox Editor bridge when no canonical Editor is
+  already running
+- selects a non-default sandbox/test level when one is provable
+- selects a unique exact entity name from the selected level prefab and rejects
+  duplicate names as ambiguous proof targets
+- dispatches `editor.level.open` with `make_writable=false` and
+  `focus_viewport=false`
+- dispatches `editor.entity.exists` with only exact `entity_name` plus
+  `level_path`
+- verifies persisted run, execution, and artifact lineage
+- writes one JSON evidence bundle under `backend/runtime`
+
 ## Latest Verified Repo-Owned Proof
 
 Latest successful proof bundle:
@@ -223,7 +252,7 @@ Latest successful cleanup restore:
 ## Latest Direct Read-Only Entity Exists Proof
 
 Latest direct proof bundle:
-- `backend/runtime/live_editor_entity_exists_proof_20260425-083436.json`
+- `backend/runtime/live_editor_entity_exists_proof_20260425-085754.json`
 
 Latest direct proof summary:
 - `proof_kind = editor.entity.exists.direct-live-read-only`
@@ -233,14 +262,20 @@ Latest direct proof summary:
 - `exists = true`
 - `lookup_mode = entity_name`
 - `matched_count = 1`
-- `entity_id = [2949498829790842453]`
+- `entity_id = [325428644679998524]`
 - `bridge.heartbeat_fresh = true`
 
 Latest direct proof lineage:
-- `editor.entity.exists run_id = run-2ae86612d8e0`
-- `editor.entity.exists execution_id = exe-ec24e70a8678`
-- `editor.entity.exists artifact_id = art-ff7b77eb135e`
-- `editor.entity.exists bridge_command_id = 4d4b6668ae4b41e29a576b6151015e5b`
+- `editor.session.open run_id = run-1f724b6847ea`
+- `editor.level.open run_id = run-c9a903c896b4`
+- `editor.entity.exists run_id = run-e8e334fe46f2`
+- `editor.session.open execution_id = exe-3d777a6f74f8`
+- `editor.level.open execution_id = exe-8773ff66a345`
+- `editor.entity.exists execution_id = exe-ba421e29dc5e`
+- `editor.session.open artifact_id = art-5f2ec9faa5eb`
+- `editor.level.open artifact_id = art-95eb81aab8f6`
+- `editor.entity.exists artifact_id = art-f78a81a28bfc`
+- `editor.entity.exists bridge_command_id = 1c64099855ea4f5cad51093c12c2662c`
 
 Latest direct proof missing proof:
 - no cleanup or restore was executed or needed by this read-only proof
