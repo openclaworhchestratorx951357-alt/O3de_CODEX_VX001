@@ -10,7 +10,6 @@ import pytest
 from app.services.adapters import AdapterExecutionRejected
 from app.services.editor_automation_runtime import (
     EDITOR_COMPONENT_ADD_ALLOWLIST,
-    RUNTIME_HOST_IS_WINDOWS,
     _level_paths_match,
     _normalize_engine_root_path,
     editor_automation_runtime_service,
@@ -280,7 +279,6 @@ def test_execute_session_open_bootstraps_bridge_and_returns_bridge_metadata() ->
 
 
 def test_engine_root_normalization_preserves_windows_absolute_paths_on_posix() -> None:
-    assert RUNTIME_HOST_IS_WINDOWS is True
     with patch("app.services.editor_automation_runtime.RUNTIME_HOST_IS_WINDOWS", False):
         assert _normalize_engine_root_path("C:/src/o3de") == "C:/src/o3de"
         assert _normalize_engine_root_path(r"C:\src\o3de") == "C:/src/o3de"
