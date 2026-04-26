@@ -9,8 +9,6 @@ This packet adds repo-owned proof-only scaffolding for the operation in:
 - `scripts/setup_control_plane_editor_bridge.ps1`
 - `backend/app/services/editor_automation_runtime.py`
 
-It does not refresh the canonical live bridge on disk.
-
 It does not add a dispatcher/catalog adapter route.
 
 It does not run or claim live proof.
@@ -66,7 +64,10 @@ Candidate family:
 Candidate status:
 - repo-owned proof-only runtime wrapper added
 - repo-owned bridge setup script operation added
-- canonical live bridge not refreshed or proven
+- canonical live bridge refreshed from the repo-owned setup script on
+  `2026-04-26`
+- canonical bridge heartbeat recovered after restarting the Editor bridge host
+- canonical bridge not live-proven for this operation
 - not dispatcher/catalog-admitted
 - not prompt-admitted
 - proof-only read-only candidate before property target discovery admission
@@ -138,8 +139,8 @@ Implemented in this packet:
   no property value readback field, and malformed `property_paths` rejection
 
 Still required before runtime proof or admission:
-- refresh canonical McpSandbox bridge source from the repo-owned setup packet
-- restore bridge heartbeat freshness
+- add a repo-owned live proof command or bounded proof harness for this
+  operation
 - add a dispatcher/catalog adapter route only when proof-only execution is
   explicitly admitted
 - add schemas for args, result, execution details, and artifact metadata when
@@ -150,6 +151,65 @@ Still required before runtime proof or admission:
 Do not use this operation to select a property write target until one
 proof-only read-only run records the exact property path list and either
 selects a target or records the exact blocker.
+
+## Canonical Bridge Readiness Checkpoint
+
+Observed on `2026-04-26`.
+
+Repo-owned refresh command:
+- `powershell -ExecutionPolicy Bypass -File .\scripts\setup_control_plane_editor_bridge.ps1 -ProjectRoot 'C:\Users\topgu\O3DE\Projects\McpSandbox'`
+
+Canonical bridge source:
+- path:
+  `C:\Users\topgu\O3DE\Projects\McpSandbox\Gems\ControlPlaneEditorBridge\Editor\Scripts\control_plane_bridge_ops.py`
+- pre-refresh SHA-256:
+  `3B0ABA69408A07815B1D3B4E62AC81095E4428D76709001FA9B676B9E96B90C8`
+- post-refresh SHA-256:
+  `29374D2A1FD5EC3D6DCAA41368ED2F9479A2DB26EAE7C51FF8BF306F17826E15`
+- post-refresh source now contains:
+  `def _list_component_properties(...)`,
+  `EditorComponentAPIBus.BuildComponentPropertyList`, and
+  dispatch for `editor.component.property.list`
+
+Bridge restart/readiness commands:
+- `powershell -ExecutionPolicy Bypass -File .\backend\runtime\live_verify_control.ps1 stop-editor`
+- `powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-bridge-start`
+- `powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-status`
+
+Restart result:
+- old canonical `Editor.exe` PID stopped: `31776`
+- new canonical `Editor.exe` PID launched: `17364`
+- backend listener remained present on port `8000`, PID `28512`
+- canonical target remained `C:\Users\topgu\O3DE\Projects\McpSandbox`
+- final `live-status` observed at `2026-04-26T04:10:16Z`
+- bridge configured: true
+- bridge module loaded: true
+- bridge heartbeat fresh: true
+
+Stability sample after restart:
+- six `/o3de/bridge` samples from `2026-04-26T04:09:04Z` through
+  `2026-04-26T04:09:30Z`
+- every sample reported `heartbeat_fresh: true`
+- heartbeat age stayed below one second
+
+Current adapter boundary:
+- `/adapters` still does not expose `editor.component.property.list`
+- this is expected because the dispatcher/catalog route has not been admitted
+
+What this checkpoint proves:
+- canonical bridge source on disk was refreshed from the repo-owned setup
+  packet
+- the running canonical Editor bridge host was restarted and loaded a fresh
+  bridge session
+- backend, canonical Editor, and bridge heartbeat readiness are available for a
+  future bounded property-list proof
+
+What this checkpoint does not prove:
+- no `editor.component.property.list` live command was executed
+- no property path list was returned by the live bridge
+- no Prompt Studio or `/adapters` admission occurred
+- no property write, entity mutation, component mutation, restore, cleanup, or
+  reversibility behavior was exercised
 
 ## Explicit Non-Scope
 
