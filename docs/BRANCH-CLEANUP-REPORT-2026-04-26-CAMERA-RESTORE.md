@@ -1,13 +1,19 @@
 # Branch Cleanup Report - Camera Restore
 
-Status: report-only branch cleanup refresh
+Status: single-branch deletion audit plus branch cleanup report refresh
 
 Inspection date: 2026-04-26
 
 This report refreshes branch cleanup truth after the Camera bool restore
 proof/admission/review/examples sequence, including PRs #55-#57.
 
-No branch deletion was performed by this packet.
+This update records the approved deletion of exactly one remote branch:
+
+```text
+codex/phase-8-camera-write-restore-examples-refresh
+```
+
+No other branch deletion was performed by this packet.
 
 ## Inspection Baseline
 
@@ -21,7 +27,7 @@ Refresh Camera bool write and restore operator examples
 Current local branch for this report:
 
 ```text
-codex/branch-cleanup-report-after-camera-restore
+codex/delete-merged-camera-write-restore-examples-branch
 ```
 
 Required inspection commands used:
@@ -35,12 +41,45 @@ git log --oneline origin/main..<candidate-branch>
 git rev-list --left-right --count origin/main...<candidate-branch>
 ```
 
+Single-branch deletion verification commands used:
+
+```powershell
+git fetch origin --prune
+git rev-parse HEAD
+git rev-parse origin/main
+git branch -r --list origin/codex/phase-8-camera-write-restore-examples-refresh
+git branch -r --merged origin/main --no-color
+git log --oneline origin/main..origin/codex/phase-8-camera-write-restore-examples-refresh
+git rev-list --left-right --count origin/main...origin/codex/phase-8-camera-write-restore-examples-refresh
+git push origin --delete codex/phase-8-camera-write-restore-examples-refresh
+git fetch origin --prune
+git branch -r --list origin/codex/phase-8-camera-write-restore-examples-refresh
+git ls-remote --heads origin codex/phase-8-camera-write-restore-examples-refresh
+```
+
 Remote branch inventory after `git fetch origin --prune`:
 
 - remote branch refs, excluding `origin/HEAD`: 64
 - merged into `origin/main`: 62
 - not merged into `origin/main`: 2
 - open GitHub PRs found by the public PR endpoint: 0
+
+Deletion verification results:
+
+- `HEAD` and `origin/main` both pointed to
+  `b3819c347cf343f4f8641c2a94b7f7dd025b462a` before deletion.
+- `origin/codex/phase-8-camera-write-restore-examples-refresh` existed before
+  deletion.
+- The branch appeared in `git branch -r --merged origin/main --no-color`.
+- `git log --oneline origin/main..origin/codex/phase-8-camera-write-restore-examples-refresh`
+  returned no commits.
+- `git rev-list --left-right --count origin/main...origin/codex/phase-8-camera-write-restore-examples-refresh`
+  returned `3 0`; the right-side `0` confirms the branch had no unique commits
+  outside `origin/main`.
+- `git push origin --delete codex/phase-8-camera-write-restore-examples-refresh`
+  deleted only that remote branch.
+- After `git fetch origin --prune`, both `git branch -r --list` and
+  `git ls-remote --heads` returned no matching branch.
 
 ## Already Absent / Deleted
 
@@ -50,6 +89,7 @@ These branches are already absent from `origin` after `git fetch origin
 | Branch | Evidence | Notes |
 | --- | --- | --- |
 | `codex/phase-8-camera-bool-write-public-corridor` | `git branch -r --list origin/codex/phase-8-camera-bool-write-public-corridor` returned no branch. | Deleted by the earlier approved single-branch cleanup audit after it was proven merged with no unique commits. |
+| `codex/phase-8-camera-write-restore-examples-refresh` | `git branch -r --list origin/codex/phase-8-camera-write-restore-examples-refresh` and `git ls-remote --heads origin codex/phase-8-camera-write-restore-examples-refresh` returned no branch after deletion. | Deleted by this approved single-branch cleanup audit after it was proven merged and had no unique commits. |
 | PR #31-#43 branches listed in `docs/BRANCH-CLEANUP-REPORT-2026-04-26-PHASE-8-CAMERA-WRITE.md` as absent | Previous report plus current remote inventory. | Still absent; not reclassified here. |
 
 ## Definitely Safe Cleanup Candidates
@@ -57,8 +97,6 @@ These branches are already absent from `origin` after `git fetch origin
 These remote branches are merged into `origin/main`, and
 `git log --oneline origin/main..<branch>` returned no commits. They are safe
 single-branch cleanup candidates if the operator wants a tidier remote.
-
-No branch was deleted in this report.
 
 | Branch | PR / packet | Unique commits vs `origin/main` | Evidence |
 | --- | --- | --- | --- |
@@ -71,7 +109,7 @@ No branch was deleted in this report.
 | `origin/codex/phase-8-camera-restore-admission-decision` | #54 restore admission decision | 0 | Merged; `origin/main..branch` returned no commits. |
 | `origin/codex/phase-8-camera-bool-restore-public-corridor` | #55 exact public restore corridor | 0 | Merged; `origin/main..branch` returned no commits. |
 | `origin/codex/phase-8-camera-restore-review-status` | #56 restore review/status refinement | 0 | Merged; `origin/main..branch` returned no commits. |
-| `origin/codex/phase-8-camera-write-restore-examples-refresh` | #57 operator examples/checkpoint refresh | 0 | Merged; `origin/main..branch` returned no commits. |
+| `origin/codex/branch-cleanup-report-after-camera-restore` | #58 branch cleanup report | 0 | Merged; `origin/main..branch` returned no commits. |
 
 Detailed count spot checks for the recent restore sequence:
 
@@ -80,7 +118,7 @@ origin/codex/phase-8-camera-bool-restore-proof-only: origin/main...branch = 9 0
 origin/codex/phase-8-camera-restore-admission-decision: origin/main...branch = 7 0
 origin/codex/phase-8-camera-bool-restore-public-corridor: origin/main...branch = 5 0
 origin/codex/phase-8-camera-restore-review-status: origin/main...branch = 3 0
-origin/codex/phase-8-camera-write-restore-examples-refresh: origin/main...branch = 1 0
+origin/codex/phase-8-camera-write-restore-examples-refresh: origin/main...branch = 3 0 before deletion
 ```
 
 The right-side `0` in each count means the branch has no unique commits not
@@ -175,7 +213,7 @@ table above.
 Recommended first candidate:
 
 ```text
-codex/phase-8-camera-write-restore-examples-refresh
+codex/phase-8-camera-restore-review-status
 ```
 
 Before deleting any branch, rerun:
