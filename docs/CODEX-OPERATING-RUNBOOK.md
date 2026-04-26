@@ -15,6 +15,7 @@ Use it to answer:
 This runbook complements:
 - `AGENTS.md`
 - `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`
+- `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`
 - `README.md`
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/SLICE-START-CHECKLIST.md`
@@ -27,6 +28,10 @@ Default standing guidance:
 - the evergreen execution charter in `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`
   is the default decision framework for choosing the next slice unless the user
   explicitly overrides it
+- for all project phases, use
+  `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` as the future-thread start
+  checklist for syncing main, classifying risk, validating, publishing, and
+  reporting work
 - for Phase 8 component/property work, read
   `docs/PHASE-8-ADMITTED-SURFACES-QUICK-REFERENCE.md` before changing planner,
   dispatcher, adapter, runtime, prompt, or documentation surfaces

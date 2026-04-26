@@ -13,6 +13,8 @@ rounding up capability claims.
   and next likely packets.
 - `docs/REPOSITORY-OPERATIONS.md` - low-friction Codex admin workflow,
   validation expectations, and self-merge rules.
+- `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` - repo-wide workflow
+  checklist for future Codex threads across all phases.
 - `docs/BRANCH-AND-PR-HYGIENE.md` - branch, PR, cleanup, and rollback hygiene.
 - `docs/VALIDATION-MATRIX.md` - validation command matrix and proof boundaries.
 - `docs/CAPABILITY-MATURITY-MATRIX.md` - conservative capability maturity
@@ -41,6 +43,7 @@ rounding up capability claims.
 
 ## Operating Guides
 
+- `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`
 - `docs/CODEX-OPERATING-RUNBOOK.md`
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/WORKTREE-STRATEGY.md`
