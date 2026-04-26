@@ -9,6 +9,13 @@ phase. It captures the current low-friction build workflow: move quickly on
 small verified packets, keep capability truth conservative, and avoid silent
 runtime expansion.
 
+## Use The Normalized Phase Workflow
+
+Future threads must start from `docs/NORMALIZED-PHASE-WORKFLOW.md` before
+implementing a new phase or widening a capability. Phase 8 is the reference
+example for how to promote a capability safely, but future phases must adapt
+the pattern to their own domain and risk level.
+
 ## Start Every Slice From Truth
 
 Before changing files:
@@ -26,6 +33,7 @@ Primary truth sources:
 
 - code, tests, and observed runtime behavior
 - `docs/CURRENT-STATUS.md`
+- `docs/NORMALIZED-PHASE-WORKFLOW.md`
 - `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
 - `docs/CAPABILITY-MATURITY-MATRIX.md`
 - relevant phase checkpoint or proof docs

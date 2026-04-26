@@ -16,6 +16,7 @@ This runbook complements:
 - `AGENTS.md`
 - `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`
 - `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`
+- `docs/NORMALIZED-PHASE-WORKFLOW.md`
 - `README.md`
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/SLICE-START-CHECKLIST.md`
@@ -32,6 +33,12 @@ Default standing guidance:
   `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` as the future-thread start
   checklist for syncing main, classifying risk, validating, publishing, and
   reporting work
+- when a user says "continue the project", "start the next phase", "make the
+  next slice", or "move forward", Codex must read
+  `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`, read
+  `docs/NORMALIZED-PHASE-WORKFLOW.md`, read the relevant phase quick reference
+  or checkpoint, identify the current workflow stage, and propose or execute
+  exactly one next packet
 - for Phase 8 component/property work, read
   `docs/PHASE-8-ADMITTED-SURFACES-QUICK-REFERENCE.md` before changing planner,
   dispatcher, adapter, runtime, prompt, or documentation surfaces

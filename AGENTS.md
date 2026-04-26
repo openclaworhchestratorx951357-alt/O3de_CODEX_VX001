@@ -17,6 +17,10 @@ Use this priority order when instructions conflict:
 
 Default standing rule:
 - Use the evergreen charter until the user explicitly replaces or supersedes it.
+- For any new phase, next slice, or "continue the project" request, start from
+  `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` and
+  `docs/NORMALIZED-PHASE-WORKFLOW.md` before choosing or implementing the next
+  packet.
 
 Operational defaults for repo work:
 - Prefer one small verifiable packet over broad speculative changes.
