@@ -44,16 +44,17 @@ Current broad property discovery behavior also remains refused:
 - No component property list bridge operation is dispatcher/catalog-admitted.
 
 Current bridge readiness blocker:
-- `BuildComponentPropertyList` exists only as an internal check inside
-  `editor.component.property.get` in the current canonical live bridge.
 - the repo-owned setup script now defines a proof-only
-  `editor.component.property.list` operation, but the canonical live bridge has
-  not been refreshed or proven from that source yet.
-- the canonical bridge dispatch currently observed live does not expose
-  `editor.component.property.list`.
+  `editor.component.property.list` operation.
+- the canonical McpSandbox bridge source was refreshed from that setup packet
+  and the Editor bridge host was restarted on `2026-04-26`.
+- backend, canonical Editor, and bridge heartbeat readiness were recovered for
+  a future proof-only property-list run.
+- the operation is still not dispatcher/catalog-admitted, not prompt-admitted,
+  and not live-proven.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-LIST-BRIDGE-CANDIDATE.md`
-  defines the candidate read-only bridge operation and the remaining proof
-  gates before this discovery packet can run.
+  records the readiness checkpoint and the remaining proof gates before this
+  discovery packet can run.
 
 ## Discovery Goal
 
