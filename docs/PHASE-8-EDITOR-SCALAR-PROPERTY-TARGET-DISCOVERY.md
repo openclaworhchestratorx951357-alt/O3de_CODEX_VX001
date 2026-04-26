@@ -69,6 +69,17 @@ Still outside this packet:
 
 ## Recommended Next Packet
 
-Provision or discover a stable non-render component fixture in the canonical
-McpSandbox level, then use read-only live evidence to list/read one concrete
-scalar or text-like property without admitting writes.
+The first non-render attempt used the existing `Comment` component-add
+allowlist entry and is recorded in
+`docs/PHASE-8-EDITOR-COMMENT-SCALAR-TARGET-DISCOVERY.md`.
+
+Result:
+- `Comment` target provisioning succeeded through admitted temporary
+  entity/create and component/add
+- loaded-level file restore was verified
+- no scalar/text-like target was selected
+- blocker code: `comment_property_list_unavailable`
+
+The next packet should choose another already-allowlisted non-render component,
+such as `Camera`, or add a typed `Comment` property discovery fix without
+widening into property writes or public property-list admission.
