@@ -87,6 +87,14 @@ Current blocker:
   only an empty live Comment path, root `PropertyTreeEditor.get_value("")`
   returns a non-scalar object, and source-guided named readbacks fail; blocker
   code: `comment_root_string_readback_failed`
+- the follow-up scalar discovery matrix is proof-only and may select a
+  readback-only candidate from another already-allowlisted low-risk component,
+  currently starting with `Camera`; any selected target remains review evidence
+  only and does not admit `editor.component.property.write`
+- the scalar discovery matrix selected the `Camera` bool path
+  `Controller|Configuration|Make active camera on activation?` as
+  `readback_only_candidate`; this is a target-discovery result, not a write
+  admission
 
 Do not use `Mesh` `Controller|Configuration|Model Asset` as the first write
 target unless a separate asset-reference proof exists. It is already useful as

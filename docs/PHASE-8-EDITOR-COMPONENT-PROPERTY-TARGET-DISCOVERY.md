@@ -119,6 +119,17 @@ Current live component target-binding behavior:
   `GetComponentProperty` readbacks also failed, so no stable scalar/text target
   was selected; blocker code: `comment_root_string_readback_failed`. See
   `docs/PHASE-8-EDITOR-COMMENT-SCALAR-TARGET-DISCOVERY.md`.
+- The next target-selection packet is the proof-only scalar discovery matrix in
+  `docs/PHASE-8-EDITOR-SCALAR-PROPERTY-TARGET-DISCOVERY.md`. It probes only
+  already-allowlisted temporary component targets, starts with `Camera`, keeps
+  `Comment` as regression evidence, excludes `Mesh` as render/asset-adjacent,
+  and still does not admit property writes or public property-list behavior.
+- The scalar discovery matrix live proof selected a readback-only `Camera`
+  bool candidate:
+  `Controller|Configuration|Make active camera on activation?`.
+  The selected component id came from admitted runtime component add provenance
+  `admitted_runtime_component_add_result`, restore was
+  `restored_and_verified`, and the candidate remains review evidence only.
 
 ## Discovery Goal
 

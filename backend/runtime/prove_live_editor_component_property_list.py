@@ -350,7 +350,7 @@ def target_info_from_runtime_steps(
     return {
         "selection_rule": (
             "Create a temporary proof entity through admitted editor.entity.create, add "
-            "the allowlisted Mesh component through admitted editor.component.add, and "
+            f"the allowlisted {component_family} component through admitted editor.component.add, and "
             "use the returned live component_id for the proof-only property-list read."
         ),
         "selected": selected,
