@@ -16,6 +16,7 @@ param(
         "live-proof",
         "live-entity-exists-proof",
         "live-component-find-proof",
+        "live-property-target-readback-proof",
         "live-property-list-proof",
         "desktop-status",
         "desktop-start",
@@ -511,6 +512,7 @@ switch ($Task) {
     "live-proof" { Invoke-LiveRuntimeControl -Action "proof" }
     "live-entity-exists-proof" { Invoke-LiveRuntimeControl -Action "entity-exists-proof" }
     "live-component-find-proof" { Invoke-LiveRuntimeControl -Action "component-find-proof" }
+    "live-property-target-readback-proof" { Invoke-LiveRuntimeControl -Action "property-target-readback-proof" }
     "live-property-list-proof" { Invoke-LiveRuntimeControl -Action "property-list-proof" }
     "desktop-status" { Invoke-DesktopAppControl -DesktopAction "status" }
     "desktop-start" { Invoke-DesktopAppControl -DesktopAction "start" }

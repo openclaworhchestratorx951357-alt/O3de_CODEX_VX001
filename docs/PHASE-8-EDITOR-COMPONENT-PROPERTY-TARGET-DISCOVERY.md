@@ -93,6 +93,13 @@ Current live component target-binding behavior:
 - That composed readback is evidence only. It does not admit
   `editor.component.property.list`, does not select a write target, and does
   not imply prefab-derived component ids are valid live Editor ids.
+- `powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-property-target-readback-proof`
+  succeeded on `2026-04-26`; the committed checkpoint is
+  `docs/PHASE-8-EDITOR-PROPERTY-TARGET-READBACK-PROOF.md`.
+- The proof used serialized prefab records only as non-live hints, selected the
+  exact entity name `Ground`, obtained the live Mesh component id from
+  `editor.component.find`, and read `Controller|Configuration|Model Asset`
+  through `editor.component.property.get` without selecting a write target.
 
 ## Discovery Goal
 
@@ -194,6 +201,8 @@ Target selected:
 - before value
 - proof artifact path or committed checkpoint
 - recommendation for a later proof-only write harness
+- whether the selected evidence is readback-only or safe to consider for a
+  later write proof
 
 Target not selected:
 - exact blocker
