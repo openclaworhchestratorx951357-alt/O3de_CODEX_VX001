@@ -87,10 +87,10 @@ See `docs/REPOSITORY-OPERATIONS.md` and
 
 1. Finish review of any open Phase 8 proof PRs before widening property-write
    candidate work.
-2. Backfill reconstructed Phase 1, Phase 2, Phase 4, and Phase 5 docs without
-   inventing missing history.
-3. Align validation and capability maturity docs so future agents can continue
-   from repo-native references.
+2. Produce a branch cleanup report before deleting any uncertain historical,
+   checkpoint, promotion, or active proof branches.
+3. Continue repository professionalization in small docs-only packets when the
+   change does not alter runtime capability or GitHub settings.
 
 Do not turn this file into a substitute for proof artifacts. Update it only
 when mainline truth changes enough that future agents would otherwise be misled.

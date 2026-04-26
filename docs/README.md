@@ -15,6 +15,8 @@ rounding up capability claims.
   validation expectations, and self-merge rules.
 - `docs/BRANCH-AND-PR-HYGIENE.md` - branch, PR, cleanup, and rollback hygiene.
 - `docs/VALIDATION-MATRIX.md` - validation command matrix and proof boundaries.
+- `docs/CAPABILITY-MATURITY-MATRIX.md` - conservative capability maturity
+  baseline.
 - `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md` - stable capability truth and
   maturity model.
 - `docs/SLICE-START-CHECKLIST.md` - required start gate for repo work.

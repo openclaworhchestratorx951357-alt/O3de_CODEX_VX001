@@ -1,0 +1,82 @@
+# Capability Maturity Matrix
+
+Status: documentation baseline
+
+Purpose: give future agents a conservative capability map using the maturity
+ladder from `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`.
+
+This document does not admit new behavior. Code, targeted tests, runtime proofs,
+and `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md` remain stronger evidence than
+this summary.
+
+## Maturity Labels
+
+| Level | Label | Meaning |
+| --- | --- | --- |
+| M0 | missing | No meaningful implementation path exists. |
+| M1 | contract-only | Names, contracts, schemas, policy, or roadmap exist without dependable execution. |
+| M2 | simulated fallback | The system can produce a simulated result, but not the real operation. |
+| M3 | plan-only | The system can truthfully preflight or plan, but not safely execute the operation. |
+| M4 | gated real | A real path exists only inside a tightly admitted or proof-only scope. |
+| M5 | real but narrow | A dependable real path exists for a constrained production subset. |
+| M6 | reviewable real | Real behavior has truthful readback, verification, or operator-facing evidence. |
+| M7 | reversible real | Reviewable real behavior has tested rollback, reverse, or restore semantics. |
+| M8 | scalable admitted-real | The capability is narrow, documented, ergonomic, and safe to widen incrementally. |
+
+## Current Baseline
+
+| Capability or surface | Current maturity | Evidence | Notes |
+| --- | --- | --- | --- |
+| `project.inspect` | M6 reviewable real | `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`, Phase 7 docs | Real read-only hybrid path with provenance and requested-vs-discovered evidence. |
+| `settings.patch` | M7 reversible real, narrow | surface matrix, Phase 7 docs/tests | Manifest-backed mutation lane with backup, readback, and rollback expectations. Keep scope narrow. |
+| `gem.enable` | M7 reversible real, narrow | surface matrix | Explicit local `project.json` top-level `gem_names` insertion only. |
+| `render.material.patch` | M7 reversible real, narrow | surface matrix | Explicit local `.material` top-level `propertyValues` overrides only. |
+| `build.configure` | M3 plan-only | surface matrix | Real preflight/planning when `dry_run=true`; no configure mutation admission. |
+| `build.compile` | M4 gated real | surface matrix | Real execution-gated for explicit named targets; no broad cleanup or rollback claim. |
+| `asset.processor.status` | M5 real but narrow | surface matrix | Narrow read-only runtime/process evidence. |
+| `asset.source.inspect` | M5 real but narrow | surface matrix | Narrow project-local source metadata evidence. |
+| `asset.batch.process` | M3 plan-only | surface matrix | Real preflight/result-truth corridor, no asset processing execution. |
+| `asset.move.safe` | M3 plan-only | surface matrix | Real identity/preflight corridor, no move/reference-repair mutation. |
+| `render.capture.viewport` | M5 real but narrow | surface matrix | Narrow runtime-probe evidence; does not imply broad render automation. |
+| `render.material.inspect` | M5 real but narrow | surface matrix | Local `.material` readback evidence; no shader-state expansion. |
+| `render.shader.rebuild` | M3 plan-only | surface matrix | Shader preflight/result-truth only. |
+| `test.visual.diff` | M5 real but narrow | surface matrix | Narrow read-only image artifact evidence. |
+| `test.run.gtest` | M3 plan-only | surface matrix | Runner inventory/preflight truth only; no broad test execution admission. |
+| `test.run.editor_python` | M3 plan-only | surface matrix | Editor Python test preflight truth only; not arbitrary Editor Python execution. |
+| `test.tiaf.sequence` | M3 plan-only | surface matrix | TIAF sequence preflight/result-truth only. |
+| `editor.session.open` | M5 real but narrow | Phase 8 docs, surface matrix | Real on verified `McpSandbox` bridge wiring. |
+| `editor.level.open` | M5 real but narrow | Phase 8 docs, surface matrix | Real on verified `McpSandbox` bridge wiring. |
+| `editor.entity.create` | M6 reviewable real, narrow | Phase 8 proof docs, surface matrix | Root-level named entity creation inside bounded proof/admitted chain. Restore discipline exists for proof scope, but no generalized undo claim. |
+| `editor.component.add` | M6 reviewable real, narrow | Phase 8 proof docs, surface matrix | Allowlisted component add inside bounded proof/admitted chain; returned component ids carry live provenance. |
+| `editor.entity.exists` | M6 reviewable real | Phase 8 docs, surface matrix | Hybrid read-only exact entity id/name lookup on loaded/current level. |
+| `editor.component.find` | M6 reviewable real | `docs/PHASE-8-EDITOR-COMPONENT-FIND-LIVE-PROOF.md`, surface matrix | Read-only live component target binding with `admitted_runtime_component_discovery_result`. |
+| `editor.component.property.get` | M6 reviewable real | `docs/PHASE-8-EDITOR-PROPERTY-TARGET-READBACK-PROOF.md`, surface matrix | Explicit runtime-proven component id plus known property path. |
+| `editor.component.property.list` | M4 proof-only gated real | `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-LIST-BRIDGE-CANDIDATE.md` | Live-proven proof-only bridge/runtime path. Not Prompt Studio, dispatcher/catalog, or `/adapters` admitted. |
+| scalar property target discovery | M4 proof-only gated real | Phase 8 scalar/comment target docs | Read-only discovery/proof corridor only. No write target admitted on `main` through PR #30. |
+| `editor.component.property.write` | M1 contract/candidate only | `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` | Refused/unimplemented. Requires exact live target, property allowlist, before/after readback, and restore proof before admission. |
+| editor candidate mutation envelope | M1 contract/candidate only | `docs/PHASE-8-EDITOR-CANDIDATE-MUTATION-ENVELOPE.md` | Broader editor mutation remains refused. |
+| remote executor substrate | M0/M1 missing to contract-only | surface matrix, Phase 6B docs | Contracts exist, production-grade remote executor is not implemented. |
+| approval, policy, and lock bookkeeping | M5 real but surface-dependent | backend services/tests, surface matrix | Core bookkeeping is real; per-surface hardening varies by tool row. |
+| artifact/log/summary bookkeeping | M5 real but surface-dependent | backend services/tests, surface matrix | Persistence/linkage exists; release-grade remote streaming remains incomplete. |
+| frontend operator console | M5 real but narrow | frontend code/tests/docs | Frontend is real; several operator-lane aids are browser-session local and must not be described as backend persistence. |
+
+## Non-Admitted Or Needs Verification
+
+| Area | Classification | Required next evidence |
+| --- | --- | --- |
+| arbitrary shell execution as prompt surface | forbidden | Do not implement without explicit high-risk approval. |
+| arbitrary Python execution as prompt surface | forbidden | Do not implement without explicit high-risk approval. |
+| arbitrary Editor Python as prompt surface | forbidden | Keep refused outside proof-only typed bridge operations. |
+| asset/material/render broad mutation | not admitted | Dedicated proof, review, backup, and rollback plan per surface. |
+| broad property writes | not admitted | Read-only scalar target proof, exact allowlist, write proof, restore proof. |
+| live Editor undo | not proven | Explicit live undo or restore proof before any claim. |
+| viewport reload after restore | not proven | Explicit proof before any claim. |
+| generalized cleanup/reversibility | not proven | Per-operation restore/rollback evidence before any claim. |
+
+## Maintenance Rule
+
+Update this matrix when a PR changes capability maturity or when a proof
+meaningfully downgrades a claim.
+
+Do not update this matrix to "round up" a capability. If evidence is unclear,
+mark the row as needs verification.
