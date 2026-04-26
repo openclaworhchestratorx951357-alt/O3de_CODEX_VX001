@@ -3,7 +3,10 @@ from __future__ import annotations
 from app.models.prompt_control import PromptRequest
 from app.models.prompt_step import PromptPlanStep
 from app.services.planners.asset_pipeline_planner import plan_asset_pipeline_prompt
-from app.services.planners.editor_planner import plan_editor_prompt
+from app.services.planners.editor_planner import (
+    CANDIDATE_EDITOR_MUTATION_REFUSAL,
+    plan_editor_prompt,
+)
 from app.services.planners.project_build_planner import plan_project_build_prompt
 from app.services.planners.render_lookdev_planner import plan_render_lookdev_prompt
 from app.services.planners.validation_planner import plan_validation_prompt
@@ -58,11 +61,18 @@ class GlobalIntentPlanner:
             refusal_reason = (
                 "The prompt did not resolve to any admitted typed O3DE capability. Provide a concrete project, editor, asset, render, or validation action that maps to the published tool catalog."
             )
-            if "editor.entity.create" in refusals:
+            if CANDIDATE_EDITOR_MUTATION_REFUSAL in refusals:
                 refusal_reason = (
-                    "editor.entity.create remains runtime-reaching and excluded from "
-                    "the admitted real set on current tested local targets, so this "
-                    "prompt cannot yet compile into an admitted typed editor plan."
+                    "The requested editor mutation is outside the admitted Phase 8 "
+                    "editor envelope. Candidate mutation surfaces must first prove "
+                    "backup, restore/reload, post-restore verification, and "
+                    "operator-visible review before prompt admission."
+                )
+            elif "editor.entity.create" in refusals:
+                refusal_reason = (
+                    "editor.entity.create is admitted only through the bounded "
+                    "editor authoring prompt contract; this prompt did not provide "
+                    "the supported inputs for an admitted typed editor plan."
                 )
             return [], refusals or ["no-admitted-capability-match"], requirements, refusal_reason
 

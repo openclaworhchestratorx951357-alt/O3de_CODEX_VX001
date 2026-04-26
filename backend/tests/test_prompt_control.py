@@ -1924,6 +1924,59 @@ def test_prompt_session_refuses_arbitrary_command_execution() -> None:
         assert payload["refused_capabilities"] == ["arbitrary-command-execution"]
 
 
+@pytest.mark.parametrize(
+    ("prompt_id", "prompt_text"),
+    [
+        (
+            "prompt-editor-candidate-delete-1",
+            'Delete entity named "Hero" from level "Levels/Main.level".',
+        ),
+        (
+            "prompt-editor-candidate-property-write-1",
+            'Set component property "Controller|Configuration|Model Asset" '
+            "on entity id 101 in the editor.",
+        ),
+        (
+            "prompt-editor-candidate-prefab-1",
+            'Open prefab "Prefabs/Crate.prefab" in the editor.',
+        ),
+    ],
+)
+def test_prompt_session_refuses_candidate_editor_mutation_intents_without_session_plan(
+    prompt_id: str,
+    prompt_text: str,
+) -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": prompt_id,
+                "prompt_text": prompt_text,
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": False,
+                "preferred_domains": ["editor-control"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "refused"
+        assert payload["admitted_capabilities"] == []
+        assert payload["refused_capabilities"] == [
+            "editor.candidate_mutation.unsupported"
+        ]
+        assert payload["plan"]["admitted"] is False
+        assert payload["plan"]["steps"] == []
+        assert (
+            "outside the admitted Phase 8 editor envelope"
+            in payload["plan"]["refusal_reason"]
+        )
+        assert any(
+            "restore/reload verification" in requirement
+            for requirement in payload["plan"]["capability_requirements"]
+        )
+
+
 def test_prompt_session_plans_admitted_real_editor_entity_create() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)
