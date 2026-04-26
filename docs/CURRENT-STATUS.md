@@ -125,11 +125,15 @@ The completed Phase 8 Camera bool corridor sequence is checkpointed in
 that checkpoint as the concise handoff for the exact Camera bool corridor and
 the first normalized-phase reference example.
 
+Rollback and restore expectations for the exact Camera bool corridor are
+designed in `docs/PHASE-8-CAMERA-BOOL-ROLLBACK-RESTORE-DESIGN.md`. That design
+does not implement rollback, generalized undo, or any wider write surface.
+
 ## Recommended Next Packets
 
-1. Continue exact Camera bool corridor hardening only through review/status,
-   safety, or operator UX slices unless a new high-risk admission is explicitly
-   approved.
+1. If Phase 8 continues, run a readiness audit before implementing any exact
+   Camera bool restore/revert capability. Do not jump from design directly to
+   runtime rollback claims.
 2. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 3. Continue repository professionalization in small docs-only packets when the

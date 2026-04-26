@@ -39,6 +39,8 @@ rounding up capability claims.
   admitted public component-property write corridor.
 - `docs/PHASE-8-CAMERA-BOOL-CORRIDOR-CHECKPOINT.md` records the completed
   normalized Phase 8 Camera bool corridor sequence.
+- `docs/PHASE-8-CAMERA-BOOL-ROLLBACK-RESTORE-DESIGN.md` defines the current
+  narrow restore/revert language and future rollback gates for that corridor.
 - `docs/PHASE-8-CAMERA-BOOL-OPERATOR-EXAMPLES.md` gives safe operator prompt
   examples for the exact Camera bool readback/write corridor.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
@@ -100,6 +102,7 @@ rounding up capability claims.
 - `docs/PHASE-8-CAMERA-SCALAR-WRITE-ADMISSION-DECISION.md`
 - `docs/PHASE-8-CAMERA-BOOL-WRITE-PUBLIC-CORRIDOR.md`
 - `docs/PHASE-8-CAMERA-BOOL-CORRIDOR-CHECKPOINT.md`
+- `docs/PHASE-8-CAMERA-BOOL-ROLLBACK-RESTORE-DESIGN.md`
 - `docs/PHASE-8-CAMERA-BOOL-OPERATOR-EXAMPLES.md`
 - `docs/PHASE-8-EDITOR-COMPONENT-FIND-LIVE-PROOF.md`
 - `docs/PHASE-8-EDITOR-PROPERTY-TARGET-READBACK-PROOF.md`
