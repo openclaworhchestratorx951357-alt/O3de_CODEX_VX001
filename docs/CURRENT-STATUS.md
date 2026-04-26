@@ -18,10 +18,10 @@ Use this order when status sources disagree:
 
 ## Mainline Baseline
 
-At the time this status snapshot was added, `main` includes PR #30:
+At the time this status snapshot was updated, `main` includes PR #40:
 
-- Merge commit: `9a012a6f7e3969cae7cd2c3f3643a02d965f8d79`
-- PR title: `Probe Comment root string readback`
+- Merge commit: `8c44904ba18d66001c49b46232b8f65a308daaf5`
+- PR title: `Add proof-only Camera scalar write harness`
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -43,20 +43,37 @@ Current admitted editor/runtime truth:
   binding.
 - `editor.component.property.get` is admitted hybrid read-only for explicit
   runtime-proven component ids and known property paths.
+- a private proof-only Camera bool scalar write harness exists for exactly
+  `Camera :: Controller|Configuration|Make active camera on activation? :: bool`.
 
 Current non-admitted editor/property truth:
 
 - `editor.component.property.list` remains proof-only.
-- `editor.component.property.write` remains unimplemented and unadmitted.
+- public `editor.component.property.write` remains unimplemented and
+  unadmitted.
 - Broad property discovery is not exposed through Prompt Studio, dispatcher,
   catalog, or `/adapters`.
+- The proof-only Camera bool write harness is not exposed through Prompt
+  Studio, dispatcher/catalog, or `/adapters`.
 - Arbitrary Editor Python remains forbidden as a prompt surface.
 - Asset, material, render, build, TIAF, and broad editor mutation remain outside
   the current property-write candidate work.
 
 ## Current Phase 8 Evidence
 
-The Comment component is blocked as the first scalar/text write target:
+The Camera component is the first live-proven scalar write/restore proof target:
+
+- PR #40 ran
+  `powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-camera-scalar-write-proof`.
+- The proof target was
+  `Camera :: Controller|Configuration|Make active camera on activation? :: bool`.
+- The proof read original `true`, wrote inverse `false`, read changed `false`,
+  restored original `true`, and read restored `true`.
+- Loaded-level prefab restore completed with `restored_and_verified`.
+- Runtime proof JSON remained ignored/uncommitted.
+- Public property writes remain unadmitted.
+
+The Comment component remains blocked as a scalar/text write target:
 
 - Property-tree discovery exposed an empty root path with `AZStd::string`
   metadata.
@@ -65,8 +82,8 @@ The Comment component is blocked as the first scalar/text write target:
 - No Comment write target was selected.
 - Restore was verified in the proof packet.
 
-The next successful target must be selected by live read-only evidence, not by
-docs, source guesses, or prefab-derived component ids.
+Live proof evidence outranks docs, source guesses, and prefab-derived component
+ids.
 
 ## Repo Hygiene Baseline
 
@@ -85,8 +102,9 @@ See `docs/REPOSITORY-OPERATIONS.md` and
 
 ## Recommended Next Packets
 
-1. Finish review of any open Phase 8 proof PRs before widening property-write
-   candidate work.
+1. Decide whether the exact PR #40 Camera bool proof should remain proof-only
+   or become the basis for a separate, narrow, operator-approved public
+   admission packet.
 2. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 3. Continue repository professionalization in small docs-only packets when the
