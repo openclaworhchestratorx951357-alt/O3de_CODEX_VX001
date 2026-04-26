@@ -16,6 +16,7 @@ them.
 - `docs/REPOSITORY-OPERATIONS.md` - Codex admin workflow, PR policy, and
   self-merge rules.
 - `docs/BRANCH-AND-PR-HYGIENE.md` - branch, PR, cleanup, and revert hygiene.
+- `docs/VALIDATION-MATRIX.md` - validation commands and proof boundaries.
 - `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md` - stable execution charter and
   capability maturity model.
 - `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md` - canonical admitted automation
