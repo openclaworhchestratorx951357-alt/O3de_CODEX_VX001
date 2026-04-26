@@ -129,6 +129,9 @@ BRACKETED_COMPONENT_PAIR_PATTERN = re.compile(
 CANONICAL_COMPONENT_ID_PATTERN = re.compile(
     r"^EntityComponentIdPair\s*\(\s*EntityId\s*\(\s*\d+\s*\)\s*,\s*\d+\s*\)$"
 )
+CANONICAL_COMPONENT_ID_ENTITY_PATTERN = re.compile(
+    r"EntityComponentIdPair\s*\(\s*EntityId\s*\(\s*(?P<entity>\d+)\s*\)"
+)
 COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT = (
     "admitted_runtime_component_add_result"
 )
@@ -221,6 +224,22 @@ def _component_id_from_component_ref(component_ref: dict[str, Any]) -> str | Non
     if entity_id is None:
         entity_id = match.group("entity")
     return f"EntityComponentIdPair(EntityId({entity_id}), {match.group('component')})"
+
+
+def _entity_id_from_component_id_text(value: Any) -> str | None:
+    if not isinstance(value, str):
+        return None
+
+    candidate = value.strip()
+    canonical_match = CANONICAL_COMPONENT_ID_ENTITY_PATTERN.search(candidate)
+    if canonical_match is not None:
+        return canonical_match.group("entity")
+
+    bracketed_match = BRACKETED_COMPONENT_PAIR_PATTERN.match(candidate)
+    if bracketed_match is not None:
+        return bracketed_match.group("entity")
+
+    return None
 
 
 def _normalize_added_component_refs(refs: Any) -> list[dict[str, Any]]:
@@ -1886,6 +1905,23 @@ class EditorAutomationRuntimeService:
             runtime_result.get("write_verified") is True
             and restored_readback is before_value
         )
+        component_id = runtime_result.get("component_id") or args.get("component_id")
+        target_entity_id = (
+            _normalize_editor_entity_id(args.get("entity_id"))
+            or _normalize_editor_entity_id(runtime_result.get("entity_id"))
+            or _entity_id_from_component_id_text(component_id)
+        )
+        target_entity_name = args.get("entity_name") or runtime_result.get("entity_name")
+        if not isinstance(target_entity_name, str) or not target_entity_name.strip():
+            target_entity_name = None
+        target_entity = target_entity_name or (
+            f"EntityId({target_entity_id})" if target_entity_id else "unknown Camera entity"
+        )
+        verification_status = (
+            "restored_readback_verified"
+            if restore_verified
+            else "restored_readback_mismatch"
+        )
         runtime_result.update(
             {
                 "message": (
@@ -1904,18 +1940,31 @@ class EditorAutomationRuntimeService:
                 "generalized_undo_available": False,
                 "property_list_admission": False,
                 "target_status": "admitted_exact_camera_bool_restore",
+                "target_entity": target_entity,
+                "target_entity_id": target_entity_id,
+                "target_entity_name": target_entity_name,
+                "before_value_evidence": "recorded_before_value",
                 "before_value": before_value,
                 "current_value": current_readback,
+                "current_value_before_restore": current_readback,
+                "restore_value": before_value,
                 "restored_value": before_value,
                 "restored_readback": restored_readback,
                 "restore_verified": restore_verified,
-                "verification_status": (
-                    "restored_readback_verified"
-                    if restore_verified
-                    else "restored_readback_mismatch"
-                ),
+                "verification_status": verification_status,
+                "verification_result": verification_status,
                 "write_occurred": True,
                 "restore_occurred": True,
+                "write_occurred_semantics": (
+                    "true only because this exact restore corridor performs one "
+                    "bounded write of the recorded before_value; this does not "
+                    "admit generic property writes."
+                ),
+                "restore_occurred_semantics": (
+                    "true because the exact Camera bool restore corridor wrote the "
+                    "recorded before_value and verified restored readback."
+                ),
+                "restore_scope": "exact_camera_bool_make_active_on_activation",
                 "restore_or_revert_guidance": (
                     "This is not generalized undo. This corridor only restores "
                     "the exact Camera bool path to the recorded before_value "

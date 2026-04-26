@@ -2718,12 +2718,29 @@ def test_exact_camera_bool_restore_review_summary_is_operator_facing() -> None:
                     "component_name": "Camera",
                     "component_id": "EntityComponentIdPair(EntityId(101), 301)",
                     "property_path": property_path,
+                    "target_entity": "ShotCamera",
+                    "target_entity_id": "101",
+                    "before_value_evidence": "recorded_before_value",
                     "before_value": True,
                     "current_value": False,
+                    "current_value_before_restore": False,
+                    "restore_value": True,
                     "restored_value": True,
                     "restored_readback": True,
                     "verification_status": "restored_readback_verified",
+                    "verification_result": "restored_readback_verified",
                     "restore_verified": True,
+                    "write_occurred": True,
+                    "restore_occurred": True,
+                    "write_occurred_semantics": (
+                        "true only because this exact restore corridor performs one "
+                        "bounded write of the recorded before_value; this does not "
+                        "admit generic property writes."
+                    ),
+                    "restore_occurred_semantics": (
+                        "true because the exact Camera bool restore corridor wrote "
+                        "the recorded before_value and verified restored readback."
+                    ),
                     "admission_class": "content_write",
                     "generalized_undo_available": False,
                     "restore_or_revert_guidance": (
@@ -2751,9 +2768,18 @@ def test_exact_camera_bool_restore_review_summary_is_operator_facing() -> None:
     assert capability_name in summary
     assert "targeted entity ShotCamera, component Camera" in summary
     assert f"property {property_path}" in summary
-    assert "before=True, current=False, restored=True, restored_readback=True" in summary
-    assert "verification_status=restored_readback_verified" in summary
+    assert "before_value_evidence=recorded_before_value" in summary
+    assert (
+        "before=True, current_before_restore=False, restore_value=True, "
+        "restored_readback=True"
+    ) in summary
+    assert "verification_result=restored_readback_verified" in summary
     assert "admission_class=content_write" in summary
+    assert "write_occurred=True" in summary
+    assert "restore_occurred=True" in summary
+    assert "Write/restore semantics:" in summary
+    assert "does not admit generic property writes" in summary
+    assert "verified restored readback" in summary
     assert "generalized_undo_available=False" in summary
     assert "Restore/revert guidance: This is not generalized undo." in summary
     assert "generic property restore" in summary

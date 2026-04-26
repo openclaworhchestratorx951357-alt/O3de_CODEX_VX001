@@ -1983,6 +1983,7 @@ class PromptOrchestratorService:
             entity_label = (
                 entity_details.get("entity_name")
                 or entity_details.get("entity_id")
+                or details.get("target_entity")
                 or details.get("entity_name")
                 or details.get("entity_id")
                 or "the live Camera target"
@@ -2053,11 +2054,20 @@ class PromptOrchestratorService:
             )
             component_name = details.get("component_name") or "Camera"
             property_path = details.get("property_path")
+            before_value_evidence = details.get("before_value_evidence")
             before_value = details.get("before_value")
-            current_value = details.get("current_value")
-            restored_value = details.get("restored_value")
+            current_value = details.get(
+                "current_value_before_restore",
+                details.get("current_value"),
+            )
+            restored_value = details.get("restore_value", details.get("restored_value"))
             restored_readback = details.get("restored_readback")
-            verification_status = details.get("verification_status")
+            verification_status = details.get(
+                "verification_result",
+                details.get("verification_status"),
+            )
+            write_occurred = details.get("write_occurred")
+            restore_occurred = details.get("restore_occurred")
             admission_class = details.get("admission_class") or result.get(
                 "approval_class",
                 "content_write",
@@ -2070,11 +2080,29 @@ class PromptOrchestratorService:
                 facts.append(
                     f"Capability {capability_name} targeted entity {entity_label}, "
                     f"component {component_name}, property {property_path}; "
-                    f"before={before_value}, current={current_value}, "
-                    f"restored={restored_value}, restored_readback={restored_readback}, "
-                    f"verification_status={verification_status}, "
+                    f"before_value_evidence={before_value_evidence}, "
+                    f"before={before_value}, current_before_restore={current_value}, "
+                    f"restore_value={restored_value}, "
+                    f"restored_readback={restored_readback}, "
+                    f"verification_result={verification_status}, "
                     f"admission_class={admission_class}, "
+                    f"write_occurred={write_occurred}, "
+                    f"restore_occurred={restore_occurred}, "
                     f"generalized_undo_available={generalized_undo_available}."
+                )
+            write_semantics = details.get("write_occurred_semantics")
+            restore_semantics = details.get("restore_occurred_semantics")
+            if (
+                isinstance(write_semantics, str)
+                and write_semantics
+                and isinstance(restore_semantics, str)
+                and restore_semantics
+            ):
+                facts.append(
+                    "Write/restore semantics: "
+                    f"write_occurred={write_occurred}; "
+                    f"restore_occurred={restore_occurred}; "
+                    f"{write_semantics} {restore_semantics}"
                 )
             restore_or_revert_guidance = details.get("restore_or_revert_guidance")
             if isinstance(restore_or_revert_guidance, str) and restore_or_revert_guidance:

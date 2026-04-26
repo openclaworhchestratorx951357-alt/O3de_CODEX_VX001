@@ -214,11 +214,14 @@ Every admitted exact Camera bool restore must return reviewable evidence:
 - property path `Controller|Configuration|Make active camera on activation?`
 - recorded before value
 - current value before restore
+- before-value evidence: `recorded_before_value`
 - restored value
 - restored readback
-- verification status or `restore_verified`
+- verification result or `restore_verified`
 - approval/admission class
 - `restore_occurred: true`
+- `write_occurred: true` only because the exact restore corridor performs one
+  bounded write of the recorded before value
 - `write_admission: false`
 - `generic_property_write_admission: false`
 - `property_list_admission: false`
