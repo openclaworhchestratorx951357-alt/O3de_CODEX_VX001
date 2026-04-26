@@ -1212,6 +1212,190 @@ class EditorAutomationRuntimeService:
             "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
         }
 
+    def execute_component_property_list(
+        self,
+        *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        locks_acquired: list[str],
+    ) -> dict[str, Any]:
+        manifest = self._load_project_manifest(project_root)
+        self._ensure_python_editor_bindings_enabled(manifest, project_root=project_root)
+        normalized_engine_root = _normalize_engine_root_path(engine_root)
+        if dry_run:
+            self._reject_preflight(
+                tool="editor.component.property.list",
+                project_root=project_root,
+                reason="editor-component-property-list-dry-run-not-admitted",
+                message=(
+                    "editor.component.property.list currently requires dry_run=false "
+                    "on the proof-only real read path."
+                ),
+                extra_details={"python_editor_bindings_enabled": True},
+            )
+        runner_command = self._resolve_bridge_runner()
+        state = self._load_editor_state(project_root)
+        if not state.get("session_active"):
+            self._reject_preflight(
+                tool="editor.component.property.list",
+                project_root=project_root,
+                reason="editor-session-not-ensured",
+                message=(
+                    "editor.component.property.list requires an admitted editor "
+                    "session before component property paths can be listed."
+                ),
+                extra_details={"python_editor_bindings_enabled": True},
+            )
+        loaded_level_path = state.get("loaded_level_path")
+        requested_level_path = args.get("level_path")
+        if not isinstance(loaded_level_path, str) or not loaded_level_path:
+            self._reject_preflight(
+                tool="editor.component.property.list",
+                project_root=project_root,
+                reason="level-not-loaded",
+                message=(
+                    "editor.component.property.list requires a loaded level before "
+                    "component property paths can be listed."
+                ),
+                extra_details={"python_editor_bindings_enabled": True},
+            )
+        if (
+            isinstance(requested_level_path, str)
+            and requested_level_path
+            and not _level_paths_match(
+                project_root,
+                loaded_level_path=loaded_level_path,
+                requested_level_path=requested_level_path,
+            )
+        ):
+            self._reject_preflight(
+                tool="editor.component.property.list",
+                project_root=project_root,
+                reason="loaded-level-mismatch",
+                message=(
+                    "editor.component.property.list level_path must match the "
+                    "currently loaded level on the proof-only real read path."
+                ),
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "requested_level_path": requested_level_path,
+                },
+            )
+        if not self._bridge_host_available(project_root, runner_command=runner_command):
+            self._reject_preflight(
+                tool="editor.component.property.list",
+                project_root=project_root,
+                reason="bridge-not-running",
+                message=(
+                    "editor.component.property.list requires an active "
+                    "ControlPlaneEditorBridge session; run editor.session.open first."
+                ),
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                },
+            )
+
+        raw_component_id = args.get("component_id")
+        if not isinstance(raw_component_id, str) or not raw_component_id.strip():
+            self._reject_preflight(
+                tool="editor.component.property.list",
+                project_root=project_root,
+                reason="component-id-missing",
+                message=(
+                    "editor.component.property.list requires an explicit non-empty "
+                    "component_id on the proof-only real read path."
+                ),
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "provided_component_id": raw_component_id,
+                },
+            )
+        component_id = raw_component_id.strip()
+
+        bridge_response = self._invoke_bridge_command(
+            tool="editor.component.property.list",
+            operation="editor.component.property.list",
+            project_root=project_root,
+            engine_root=normalized_engine_root,
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
+            args={
+                "component_id": component_id,
+                "level_path": loaded_level_path,
+            },
+            timeout_s=90,
+        )
+        bridge_details = self._bridge_response_details(bridge_response)
+        raw_property_paths = bridge_details.get("property_paths")
+        if not isinstance(raw_property_paths, list) or any(
+            not isinstance(item, str) or not item.strip()
+            for item in raw_property_paths
+        ):
+            self._reject_preflight(
+                tool="editor.component.property.list",
+                project_root=project_root,
+                reason="bridge-property-list-invalid",
+                message=(
+                    "editor.component.property.list requires the bridge to return "
+                    "a typed string-only property_paths list."
+                ),
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "component_id": component_id,
+                    "bridge_response": bridge_response,
+                    **self._bridge_result_metadata(bridge_response),
+                },
+            )
+        property_paths = [item.strip() for item in raw_property_paths]
+        runtime_result = {
+            "ok": True,
+            "message": (
+                "Component property paths were listed through the persistent "
+                "bridge-backed proof-only editor read path."
+            ),
+            "component_id": bridge_details.get("component_id", component_id),
+            "entity_id": bridge_details.get("entity_id"),
+            "component_type": bridge_details.get("component_type"),
+            "property_paths": property_paths,
+            "component_property_count": bridge_details.get(
+                "component_property_count",
+                len(property_paths),
+            ),
+            "level_path": bridge_details.get("level_path", loaded_level_path),
+            "loaded_level_path": bridge_details.get(
+                "loaded_level_path",
+                bridge_details.get("level_path", loaded_level_path),
+            ),
+            "exact_editor_apis": [
+                "ControlPlaneEditorBridge filesystem inbox",
+                "editor.component.property.list",
+                "EditorComponentAPIBus.BuildComponentPropertyList",
+            ],
+            "editor_transport": "bridge",
+            **self._bridge_result_metadata(bridge_response),
+        }
+        state["editor_transport"] = "bridge"
+        state["bridge_heartbeat_seen_at"] = runtime_result.get("bridge_heartbeat_seen_at")
+        self._save_editor_state(project_root, state)
+        return {
+            "runtime_result": runtime_result,
+            "runner_command": runner_command,
+            "manifest": manifest,
+            "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+        }
+
     def execute_render_capture_viewport(
         self,
         *,
@@ -1939,6 +2123,7 @@ class EditorAutomationRuntimeService:
             in {
                 "editor.component.add",
                 "editor.component.property.get",
+                "editor.component.property.list",
                 "editor.entity.exists",
                 "editor.entity.create",
                 "editor.entity.create.probe",

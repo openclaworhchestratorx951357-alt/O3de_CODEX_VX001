@@ -2824,6 +2824,146 @@ def _entity_exists(command: dict[str, Any], runtime_state: dict[str, Any]) -> di
     )
 
 
+def _list_component_properties(command: dict[str, Any], runtime_state: dict[str, Any]) -> dict[str, Any]:
+    started_at = utc_now()
+    details = _base_details(runtime_state)
+    details["prefab_context_notes"] = (
+        "Explicit existing-component property path listing only through the editor component API; "
+        "property value bulk reads, property mutation, container edits, and broad component discovery remain out of scope."
+    )
+    if not _editor_available():
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Editor Python bindings are not available inside the bridge host.",
+            details=details,
+            error_code="EDITOR_BINDINGS_UNAVAILABLE",
+        )
+
+    active_level_path = details.get("active_level_path")
+    if not isinstance(active_level_path, str) or not active_level_path:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.property.list requires an open loaded level context.",
+            details=details,
+            error_code="COMPONENT_PROPERTY_LIST_LEVEL_CONTEXT_MISSING",
+        )
+
+    details["loaded_level_path"] = active_level_path
+    details["level_path"] = active_level_path
+    requested_level = command.get("args", {}).get("level_path")
+    if isinstance(requested_level, str) and requested_level:
+        details["requested_level_path"] = requested_level
+        if _normalize_level_path(requested_level) != _normalize_level_path(active_level_path):
+            return _response(
+                command=command,
+                started_at=started_at,
+                success=False,
+                status="failed",
+                result_summary="editor.component.property.list level_path must match the currently loaded level.",
+                details=details,
+                error_code="LOADED_LEVEL_MISMATCH",
+            )
+
+    requested_component_id = command.get("args", {}).get("component_id")
+    if not isinstance(requested_component_id, str) or not requested_component_id.strip():
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.property.list requires args.component_id.",
+            details=details,
+            error_code="COMPONENT_ID_MISSING",
+        )
+
+    component_pair, component_resolution_details = _coerce_component_pair(
+        requested_component_id.strip()
+    )
+    details.update(component_resolution_details)
+    if component_pair is None:
+        resolution_path = component_resolution_details.get("component_resolution_path")
+        if resolution_path == "entity-not-found":
+            result_summary = (
+                "editor.component.property.list could not resolve the component's entity "
+                "in the loaded level."
+            )
+            error_code = "COMPONENT_ENTITY_NOT_FOUND"
+        elif resolution_path == "component-not-found":
+            result_summary = (
+                "editor.component.property.list could not resolve the requested explicit "
+                "component in the loaded level."
+            )
+            error_code = "COMPONENT_NOT_FOUND"
+        else:
+            result_summary = (
+                "editor.component.property.list requires a valid explicit component id."
+            )
+            error_code = "COMPONENT_ID_INVALID"
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary=result_summary,
+            details=details,
+            error_code=error_code,
+        )
+
+    component_id_text = _component_pair_to_string(component_pair)
+    if component_id_text is not None:
+        details["component_id"] = component_id_text
+
+    try:
+        property_paths = editor.EditorComponentAPIBus(
+            bus.Broadcast,
+            "BuildComponentPropertyList",
+            component_pair,
+        )
+    except Exception as exc:
+        details["component_property_list_exception"] = repr(exc)
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.property.list raised an editor-side exception.",
+            details=details,
+            error_code="PROPERTY_LIST_EXCEPTION",
+        )
+
+    if not isinstance(property_paths, list):
+        details["component_property_list_shape"] = type(property_paths).__name__
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.property.list did not return a property path list.",
+            details=details,
+            error_code="PROPERTY_LIST_UNAVAILABLE",
+        )
+
+    normalized_property_paths = [str(property_path) for property_path in property_paths]
+    details["property_paths"] = normalized_property_paths
+    details["component_property_count"] = len(normalized_property_paths)
+    return _response(
+        command=command,
+        started_at=started_at,
+        success=True,
+        status="ok",
+        result_summary=(
+            "Listed explicit component property paths through the persistent bridge session."
+        ),
+        details=details,
+    )
+
+
 def _get_component_property(command: dict[str, Any], runtime_state: dict[str, Any]) -> dict[str, Any]:
     started_at = utc_now()
     details = _base_details(runtime_state)
@@ -3055,6 +3195,8 @@ def execute_command(command: dict[str, Any], runtime_state: dict[str, Any]) -> d
         return _entity_exists(command, runtime_state)
     if operation == "editor.component.add":
         return _add_components_to_entity(command, runtime_state)
+    if operation == "editor.component.property.list":
+        return _list_component_properties(command, runtime_state)
     if operation == "editor.component.property.get":
         return _get_component_property(command, runtime_state)
     if operation == "editor.entity.create.probe":

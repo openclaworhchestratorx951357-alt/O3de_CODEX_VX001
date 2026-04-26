@@ -41,16 +41,19 @@ Current broad property discovery behavior also remains refused:
 - Prompt Studio property-list or property-path discovery intents must return
   `editor.component.property.list.unsupported`.
 - No editor session plan should be compiled for those prompts.
-- No component property list bridge operation is admitted.
+- No component property list bridge operation is dispatcher/catalog-admitted.
 
 Current bridge readiness blocker:
 - `BuildComponentPropertyList` exists only as an internal check inside
-  `editor.component.property.get`.
-- the canonical bridge dispatch does not expose
+  `editor.component.property.get` in the current canonical live bridge.
+- the repo-owned setup script now defines a proof-only
+  `editor.component.property.list` operation, but the canonical live bridge has
+  not been refreshed or proven from that source yet.
+- the canonical bridge dispatch currently observed live does not expose
   `editor.component.property.list`.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-LIST-BRIDGE-CANDIDATE.md`
-  defines the candidate read-only bridge operation that must exist before this
-  discovery packet can run.
+  defines the candidate read-only bridge operation and the remaining proof
+  gates before this discovery packet can run.
 
 ## Discovery Goal
 
