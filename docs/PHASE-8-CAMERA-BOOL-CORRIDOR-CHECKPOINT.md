@@ -184,6 +184,9 @@ Operator and workflow docs created or updated during this corridor:
 Detailed rollback and restore expectations are now designed in
 `docs/PHASE-8-CAMERA-BOOL-ROLLBACK-RESTORE-DESIGN.md`.
 
+Readiness for a future exact restore/revert packet is audited in
+`docs/PHASE-8-CAMERA-BOOL-RESTORE-READINESS-AUDIT.md`.
+
 If the exact Camera bool corridor causes problems:
 
 1. Revert the merge commit that admitted the exact public corridor.
@@ -204,7 +207,8 @@ the public corridor when available.
 
 Safe next packets:
 
-- readiness audit for an exact Camera corridor restore/revert capability
+- proof-only restore harness for the exact Camera corridor only if explicitly
+  approved
 - next readback-only scalar discovery packet
 - report-first branch cleanup packets only
 
