@@ -15,7 +15,8 @@ param(
         "property-target-readback-proof",
         "property-list-proof",
         "comment-scalar-target-proof",
-        "scalar-target-discovery-proof"
+        "scalar-target-discovery-proof",
+        "camera-scalar-write-proof"
     )]
     [string]$Action = "status",
     [string]$ApiHost = "127.0.0.1",
@@ -45,6 +46,8 @@ $PropertyTargetReadbackProofHelper = Join-Path $RuntimeDir "prove_live_editor_pr
 $PropertyListProofHelper = Join-Path $RuntimeDir "prove_live_editor_component_property_list.py"
 $CommentScalarTargetProofHelper = Join-Path $RuntimeDir "prove_live_editor_comment_scalar_target.py"
 $ScalarTargetDiscoveryProofHelper = Join-Path $RuntimeDir "prove_live_editor_scalar_target_discovery.py"
+$CameraScalarWriteProofHelper = Join-Path $RuntimeDir "prove_live_editor_camera_scalar_write.py"
+$BridgeSetupScript = Join-Path $RepoRoot "scripts\setup_control_plane_editor_bridge.ps1"
 
 $PidPath = Join-Path $RuntimeDir "live-verify-uvicorn.pid"
 $LaunchManifestPath = Join-Path $RuntimeDir "live-verify-launch.json"
@@ -711,15 +714,48 @@ function Invoke-StopCanonicalEditor {
     }
 }
 
+function Invoke-RefreshCanonicalBridgeSetup {
+    if (-not (Test-Path $BridgeSetupScript -PathType Leaf)) {
+        throw "Expected bridge setup script at $BridgeSetupScript"
+    }
+
+    if (-not (Test-Path $CanonicalProjectRoot -PathType Container)) {
+        throw "Canonical project root does not exist at $CanonicalProjectRoot"
+    }
+
+    $setupOutput = & powershell -ExecutionPolicy Bypass -File $BridgeSetupScript -ProjectRoot $CanonicalProjectRoot 2>&1
+    $setupExitCode = $LASTEXITCODE
+    if ($setupExitCode -ne 0) {
+        throw "Bridge setup refresh failed with exit code $setupExitCode`: $($setupOutput | Out-String)"
+    }
+
+    $stoppedEditorResult = Invoke-StopCanonicalEditor
+
+    return [ordered]@{
+        action = "refresh-canonical-bridge-setup"
+        setup_script = $BridgeSetupScript
+        project_root = $CanonicalProjectRoot
+        setup_exit_code = $setupExitCode
+        setup_output = ($setupOutput | Out-String).Trim()
+        stopped_existing_editor_processes = $stoppedEditorResult.stopped_processes
+    }
+}
+
 function Invoke-ProofRun {
     param(
         [Parameter(Mandatory = $true)]
         [string]$SelectedProofHelper,
         [Parameter(Mandatory = $true)]
-        [string]$ProofAction
+        [string]$ProofAction,
+        [switch]$RefreshBridgeBeforeProof
     )
 
     $backendPython = Get-BackendPython
+
+    $bridgeRefreshResult = $null
+    if ($RefreshBridgeBeforeProof.IsPresent) {
+        $bridgeRefreshResult = Invoke-RefreshCanonicalBridgeSetup
+    }
 
     $existingEditorIds = @((Get-CanonicalEditorProcesses) | ForEach-Object { [int]$_.id })
     $startResult = $null
@@ -763,6 +799,7 @@ function Invoke-ProofRun {
         proof_helper = $SelectedProofHelper
         start_result = $startResult
         editor_start_result = $editorStartResult
+        bridge_refresh_result = $bridgeRefreshResult
         proof_exit_code = $proofExitCode
         proof_output = $proofText
         proof_output_path = $proofOutputPath
@@ -827,11 +864,17 @@ $result = switch ($Action) {
             -SelectedProofHelper $ScalarTargetDiscoveryProofHelper `
             -ProofAction "scalar-target-discovery-proof"
     }
+    "camera-scalar-write-proof" {
+        Invoke-ProofRun `
+            -SelectedProofHelper $CameraScalarWriteProofHelper `
+            -ProofAction "camera-scalar-write-proof" `
+            -RefreshBridgeBeforeProof
+    }
 }
 
 Write-Output (ConvertTo-JsonOutput -Value $result)
 
-if ($Action -in @("proof", "entity-exists-proof", "component-find-proof", "property-target-readback-proof", "property-list-proof", "comment-scalar-target-proof", "scalar-target-discovery-proof")) {
+if ($Action -in @("proof", "entity-exists-proof", "component-find-proof", "property-target-readback-proof", "property-list-proof", "comment-scalar-target-proof", "scalar-target-discovery-proof", "camera-scalar-write-proof")) {
     $proofExitCode = 0
     $proofExitCodeRaw = Get-OptionalMemberValue -InputObject $result -Name "proof_exit_code"
     if ($null -ne $proofExitCodeRaw) {

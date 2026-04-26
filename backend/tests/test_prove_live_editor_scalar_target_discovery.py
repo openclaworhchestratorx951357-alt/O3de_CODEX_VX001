@@ -103,7 +103,8 @@ def test_live_control_scripts_expose_scalar_target_discovery_command() -> None:
     bridge_text = bridge_setup.read_text(encoding="utf-8")
     assert "include_scalar_target_discovery" in bridge_text
     assert "PropertyTreeEditor.get_value" in bridge_text
-    assert "SetComponentProperty" not in bridge_text
+    assert "editor.component.property.write" not in bridge_text
+    assert "editor.camera.scalar.write.proof" in bridge_text
     assert "set_value" not in bridge_text
 
 

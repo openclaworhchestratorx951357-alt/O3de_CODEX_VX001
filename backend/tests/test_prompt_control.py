@@ -1961,6 +1961,11 @@ def test_prompt_session_refuses_arbitrary_command_execution() -> None:
             "Modify the component property on entity id 101 in the editor.",
         ),
         (
+            "prompt-editor-candidate-property-write-5",
+            'Toggle Camera property "Controller|Configuration|Make active camera on activation?" '
+            "on entity id 101 in the editor.",
+        ),
+        (
             "prompt-editor-candidate-prefab-1",
             'Open prefab "Prefabs/Crate.prefab" in the editor.',
         ),
@@ -2077,6 +2082,8 @@ def test_prompt_session_refuses_component_property_discovery_without_session_pla
             for item in capabilities_response.json()["capabilities"]
         }
         assert "editor.component.property.list" not in capability_names
+        assert "editor.component.property.write" not in capability_names
+        assert "editor.camera.scalar.write.proof" not in capability_names
 
 
 def test_prompt_session_plans_admitted_real_editor_entity_create() -> None:

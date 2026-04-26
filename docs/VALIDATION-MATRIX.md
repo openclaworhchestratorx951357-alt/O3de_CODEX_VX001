@@ -126,6 +126,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-component-find-p
 powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-property-target-readback-proof
 powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-property-list-proof
 powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-comment-scalar-target-proof
+powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-scalar-target-discovery-proof
+powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-camera-scalar-write-proof
 ```
 
 Live proofs can prove only their bounded admitted or proof-only corridor. They

@@ -126,6 +126,22 @@ def test_editor_component_property_get_is_cataloged_as_hybrid_read_only() -> Non
     assert "editor_session" in tool.default_locks
 
 
+def test_editor_component_property_write_list_and_proof_tools_are_not_cataloged() -> None:
+    forbidden_tools = [
+        "editor.component.property.list",
+        "editor.component.property.write",
+        "editor.component.property.set",
+        "editor.camera.scalar.write.proof",
+    ]
+
+    for tool_name in forbidden_tools:
+        assert catalog_service.get_tool_definition("editor-control", tool_name) is None
+        assert catalog_service.is_allowed_tool_for_agent(
+            "editor-control",
+            tool_name,
+        ) is False
+
+
 def test_editor_component_find_is_cataloged_as_hybrid_read_only() -> None:
     tool = catalog_service.get_tool_definition(
         "editor-control",

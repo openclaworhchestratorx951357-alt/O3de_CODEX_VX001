@@ -920,6 +920,27 @@ def test_dispatch_rejects_invalid_tool_for_agent() -> None:
         assert response.error.code == "INVALID_TOOL"
 
 
+@pytest.mark.parametrize(
+    "tool_name",
+    [
+        "editor.component.property.list",
+        "editor.component.property.write",
+        "editor.component.property.set",
+        "editor.camera.scalar.write.proof",
+    ],
+)
+def test_dispatch_rejects_property_list_write_and_proof_only_tools(
+    tool_name: str,
+) -> None:
+    with isolated_database():
+        response = dispatcher_service.dispatch(
+            make_request("editor-control", tool_name)
+        )
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_TOOL"
+
+
 def test_dispatch_requires_approval_for_mutating_tool() -> None:
     with isolated_database():
         response = dispatcher_service.dispatch(

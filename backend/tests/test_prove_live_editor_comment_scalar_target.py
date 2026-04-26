@@ -46,7 +46,8 @@ def test_live_control_scripts_expose_comment_scalar_target_proof_command() -> No
     assert "BuildComponentPropertyTreeEditor" in bridge_text
     assert "PropertyTreeEditor.build_paths_list_with_types" in bridge_text
     assert 'property_tree.get_value("")' in bridge_text
-    assert "SetComponentProperty" not in bridge_text
+    assert "editor.component.property.write" not in bridge_text
+    assert "editor.camera.scalar.write.proof" in bridge_text
     assert "set_value" not in bridge_text
 
 

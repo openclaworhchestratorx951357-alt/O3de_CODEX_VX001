@@ -135,6 +135,12 @@ COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT = (
 COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_DISCOVERY_RESULT = (
     "admitted_runtime_component_discovery_result"
 )
+CAMERA_SCALAR_WRITE_PROOF_OPERATION = "editor.camera.scalar.write.proof"
+CAMERA_SCALAR_WRITE_PROOF_COMPONENT = "Camera"
+CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH = (
+    "Controller|Configuration|Make active camera on activation?"
+)
+CAMERA_SCALAR_WRITE_PROOF_VALUE_TYPE = "bool"
 
 
 def _canonicalize_component_add_components(
@@ -1481,6 +1487,281 @@ class EditorAutomationRuntimeService:
             "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
         }
 
+    def execute_camera_scalar_write_proof(
+        self,
+        *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        locks_acquired: list[str],
+    ) -> dict[str, Any]:
+        manifest = self._load_project_manifest(project_root)
+        self._ensure_python_editor_bindings_enabled(manifest, project_root=project_root)
+        normalized_engine_root = _normalize_engine_root_path(engine_root)
+        tool = CAMERA_SCALAR_WRITE_PROOF_OPERATION
+        if dry_run:
+            self._reject_preflight(
+                tool=tool,
+                project_root=project_root,
+                reason="camera-scalar-write-proof-dry-run-not-admitted",
+                message=(
+                    "Camera scalar write proof requires dry_run=false because it is a "
+                    "proof-only live mutation corridor."
+                ),
+                extra_details={"python_editor_bindings_enabled": True},
+            )
+        runner_command = self._resolve_bridge_runner()
+        state = self._load_editor_state(project_root)
+        if not state.get("session_active"):
+            self._reject_preflight(
+                tool=tool,
+                project_root=project_root,
+                reason="editor-session-not-ensured",
+                message=(
+                    "Camera scalar write proof requires an admitted editor session "
+                    "before the proof-only mutation can proceed."
+                ),
+                extra_details={"python_editor_bindings_enabled": True},
+            )
+        loaded_level_path = state.get("loaded_level_path")
+        requested_level_path = args.get("level_path")
+        if not isinstance(loaded_level_path, str) or not loaded_level_path:
+            self._reject_preflight(
+                tool=tool,
+                project_root=project_root,
+                reason="level-not-loaded",
+                message=(
+                    "Camera scalar write proof requires a loaded level before "
+                    "component properties can be written."
+                ),
+                extra_details={"python_editor_bindings_enabled": True},
+            )
+        if (
+            isinstance(requested_level_path, str)
+            and requested_level_path
+            and not _level_paths_match(
+                project_root,
+                loaded_level_path=loaded_level_path,
+                requested_level_path=requested_level_path,
+            )
+        ):
+            self._reject_preflight(
+                tool=tool,
+                project_root=project_root,
+                reason="loaded-level-mismatch",
+                message=(
+                    "Camera scalar write proof level_path must match the currently "
+                    "loaded level."
+                ),
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "requested_level_path": requested_level_path,
+                },
+            )
+        if not self._bridge_host_available(project_root, runner_command=runner_command):
+            self._reject_preflight(
+                tool=tool,
+                project_root=project_root,
+                reason="bridge-not-running",
+                message=(
+                    "Camera scalar write proof requires an active "
+                    "ControlPlaneEditorBridge session; run editor.session.open first."
+                ),
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                },
+            )
+
+        component_name = args.get("component_name")
+        if component_name != CAMERA_SCALAR_WRITE_PROOF_COMPONENT:
+            self._reject_preflight(
+                tool=tool,
+                project_root=project_root,
+                reason="camera-scalar-write-proof-component-unsupported",
+                message="Camera scalar write proof only allows the Camera component.",
+                extra_details={
+                    "provided_component_name": component_name,
+                    "allowed_component_name": CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
+                },
+            )
+
+        raw_component_id = args.get("component_id")
+        if not isinstance(raw_component_id, str) or not raw_component_id.strip():
+            self._reject_preflight(
+                tool=tool,
+                project_root=project_root,
+                reason="component-id-missing",
+                message=(
+                    "Camera scalar write proof requires the live component_id returned "
+                    "by admitted editor.component.add."
+                ),
+                extra_details={"provided_component_id": raw_component_id},
+            )
+        component_id = raw_component_id.strip()
+        component_id_provenance = args.get("component_id_provenance")
+        if (
+            component_id_provenance
+            != COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+        ):
+            self._reject_preflight(
+                tool=tool,
+                project_root=project_root,
+                reason="component-id-provenance-not-admitted-runtime-add",
+                message=(
+                    "Camera scalar write proof requires component_id provenance from "
+                    "admitted editor.component.add."
+                ),
+                extra_details={
+                    "component_id": component_id,
+                    "component_id_provenance": component_id_provenance,
+                    "required_component_id_provenance": (
+                        COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+                    ),
+                },
+            )
+
+        property_path = args.get("property_path")
+        if property_path != CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH:
+            self._reject_preflight(
+                tool=tool,
+                project_root=project_root,
+                reason="camera-scalar-write-proof-property-unsupported",
+                message=(
+                    "Camera scalar write proof only allows the selected bool property "
+                    "path."
+                ),
+                extra_details={
+                    "provided_property_path": property_path,
+                    "allowed_property_path": CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
+                },
+            )
+
+        requested_value = args.get("value")
+        if not isinstance(requested_value, bool):
+            self._reject_preflight(
+                tool=tool,
+                project_root=project_root,
+                reason="camera-scalar-write-proof-value-not-bool",
+                message="Camera scalar write proof only allows bool values.",
+                extra_details={"provided_value": requested_value},
+            )
+        expected_current_value = args.get("expected_current_value")
+        if expected_current_value is not None and not isinstance(
+            expected_current_value,
+            bool,
+        ):
+            self._reject_preflight(
+                tool=tool,
+                project_root=project_root,
+                reason="camera-scalar-write-proof-expected-value-not-bool",
+                message=(
+                    "Camera scalar write proof expected_current_value must be a bool "
+                    "when provided."
+                ),
+                extra_details={"provided_expected_current_value": expected_current_value},
+            )
+
+        restore_boundary_id = args.get("restore_boundary_id")
+        if not isinstance(restore_boundary_id, str) or not restore_boundary_id.strip():
+            self._reject_preflight(
+                tool=tool,
+                project_root=project_root,
+                reason="camera-scalar-write-proof-restore-boundary-missing",
+                message=(
+                    "Camera scalar write proof requires a fresh restore boundary id "
+                    "before mutation."
+                ),
+                extra_details={"provided_restore_boundary_id": restore_boundary_id},
+            )
+
+        bridge_response = self._invoke_bridge_command(
+            tool=tool,
+            operation=CAMERA_SCALAR_WRITE_PROOF_OPERATION,
+            project_root=project_root,
+            engine_root=normalized_engine_root,
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
+            args={
+                "component_name": CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
+                "component_id": component_id,
+                "component_id_provenance": component_id_provenance,
+                "property_path": CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
+                "value": requested_value,
+                "expected_current_value": expected_current_value,
+                "level_path": loaded_level_path,
+                "restore_boundary_id": restore_boundary_id,
+                "proof_only": True,
+            },
+            timeout_s=90,
+        )
+        bridge_details = self._bridge_response_details(bridge_response)
+        exact_editor_apis = bridge_details.get("exact_editor_apis")
+        if not isinstance(exact_editor_apis, list):
+            exact_editor_apis = [
+                "ControlPlaneEditorBridge filesystem inbox",
+                CAMERA_SCALAR_WRITE_PROOF_OPERATION,
+                "EditorComponentAPIBus.GetComponentProperty",
+                "EditorComponentAPIBus.SetComponentProperty",
+            ]
+        runtime_result = {
+            "ok": True,
+            "message": (
+                "Camera scalar bool property was written through a proof-only "
+                "persistent bridge path."
+            ),
+            "proof_only": True,
+            "public_admission": False,
+            "write_admission": False,
+            "property_list_admission": False,
+            "component_name": bridge_details.get(
+                "component_name",
+                CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
+            ),
+            "component_id": bridge_details.get("component_id", component_id),
+            "component_id_provenance": component_id_provenance,
+            "property_path": bridge_details.get(
+                "property_path",
+                CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
+            ),
+            "value_type": bridge_details.get(
+                "value_type",
+                CAMERA_SCALAR_WRITE_PROOF_VALUE_TYPE,
+            ),
+            "expected_current_value": expected_current_value,
+            "previous_value": bridge_details.get("previous_value"),
+            "requested_value": bridge_details.get("requested_value", requested_value),
+            "value": bridge_details.get("value"),
+            "changed": bridge_details.get("changed"),
+            "write_verified": bridge_details.get("write_verified"),
+            "restore_boundary_id": restore_boundary_id,
+            "level_path": bridge_details.get("level_path", loaded_level_path),
+            "loaded_level_path": bridge_details.get(
+                "loaded_level_path",
+                bridge_details.get("level_path", loaded_level_path),
+            ),
+            "exact_editor_apis": exact_editor_apis,
+            "editor_transport": "bridge",
+            **self._bridge_result_metadata(bridge_response),
+        }
+        state["editor_transport"] = "bridge"
+        state["bridge_heartbeat_seen_at"] = runtime_result.get("bridge_heartbeat_seen_at")
+        self._save_editor_state(project_root, state)
+        return {
+            "runtime_result": runtime_result,
+            "runner_command": runner_command,
+            "manifest": manifest,
+            "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+        }
+
     def execute_component_property_list(
         self,
         *,
@@ -2414,6 +2695,7 @@ class EditorAutomationRuntimeService:
             "ttl_s": timeout_s,
             "requires_loaded_level": operation
             in {
+                CAMERA_SCALAR_WRITE_PROOF_OPERATION,
                 "editor.component.add",
                 "editor.component.find",
                 "editor.component.property.get",
