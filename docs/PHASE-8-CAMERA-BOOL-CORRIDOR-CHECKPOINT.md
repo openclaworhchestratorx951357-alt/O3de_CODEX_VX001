@@ -9,7 +9,7 @@ Date: 2026-04-26
 This checkpoint was prepared from:
 
 ```text
-3bbd3cd41ad867c6850cf94aa5e171611b947228
+b9abe3943a00cc2fd539934ca3f4a83eacdb4c71
 ```
 
 ## Phase Workflow Stage
@@ -29,9 +29,9 @@ unknown -> discovered -> designed -> audited -> proof-only -> admission decision
 ```
 
 The Camera bool corridor is the first completed example of that pattern. It
-promoted one exact live-proven property target into one exact public admitted
-write corridor while keeping broad property writes, public property listing,
-arbitrary Editor Python, and generalized undo blocked.
+promoted one exact live-proven property target into exact public admitted write
+and restore corridors while keeping broad property writes, generic restore,
+public property listing, arbitrary Editor Python, and generalized undo blocked.
 
 ## Completed PR Sequence
 
@@ -50,6 +50,13 @@ arbitrary Editor Python, and generalized undo blocked.
 | #47 | Document Camera bool readback and write examples | operator examples packet | Added safe and refused prompt examples for operators. |
 | #48 | Document project workflow and Phase 8 surfaces quick references | quick reference packet | Added repo-wide workflow and Phase 8 admitted-surface quick references. |
 | #49 | Normalize phase workflow pattern across all phases | normalized workflow packet | Generalized the Phase 8 workflow pattern across all future phases. |
+| #50 | Add Phase 8 Camera corridor checkpoint | checkpoint packet | Recorded the Camera bool corridor as the first normalized-phase reference checkpoint. |
+| #51 | Design Camera bool corridor rollback and restore expectations | design packet | Documented restore/revert expectations without claiming generalized undo. |
+| #52 | Audit Camera bool corridor restore readiness | readiness audit packet | Audited gates for a future exact restore capability without implementing it. |
+| #53 | Add proof-only Camera bool restore harness | proof-only harness packet | Live-proved exact reverse-write restore/readback evidence privately. |
+| #54 | Decide Camera bool restore admission boundary | admission decision packet | Documented exact restore admission boundaries and blocked generic undo/restore. |
+| #55 | Admit exact Camera bool restore corridor | exact public admission packet | Admitted only `editor.component.property.restore.camera_bool_make_active_on_activation`. |
+| #56 | Refine Camera bool restore review status | post-admission review/status refinement packet | Improved operator-facing restore evidence and separated write/restore semantics. |
 
 ## What Is Admitted
 
@@ -59,7 +66,14 @@ One exact public write corridor is admitted:
 editor.component.property.write.camera_bool_make_active_on_activation
 ```
 
-This is not a general property-write capability.
+One exact public restore corridor is admitted:
+
+```text
+editor.component.property.restore.camera_bool_make_active_on_activation
+```
+
+Neither corridor is a general property-write, generic restore, or generalized
+undo capability.
 
 ## Exact Admitted Target
 
@@ -101,6 +115,7 @@ These remain proof-only and are not public Prompt Studio, dispatcher/catalog, or
 - `editor.component.property.list`
 - scalar target discovery proofs
 - private Camera scalar write proof harness artifacts
+- private Camera bool restore proof harness artifacts
 - Comment scalar target discovery proofs
 - component property-list bridge candidate proofs
 
@@ -132,6 +147,8 @@ Live proof artifact names recorded in Phase 8 docs:
 - `backend/runtime/live_editor_scalar_target_discovery_proof_20260426-154425.json`
 - `backend/runtime/live_editor_camera_scalar_write_proof_20260426-163915.json`
 - `backend/runtime/live_editor_camera_scalar_write_proof_20260426-173312.json`
+- `backend/runtime/live_editor_camera_bool_restore_proof_20260426-214147.json`
+- `backend/runtime/live_editor_camera_bool_restore_proof_20260426-222106.json`
 - `backend/runtime/live_editor_component_property_list_proof_20260426-043614.json`
 - `backend/runtime/live_editor_component_find_proof_20260426-064626.json`
 - `backend/runtime/live_editor_property_target_readback_proof_20260426-074101.json`
@@ -165,6 +182,11 @@ Proof outcomes recorded:
   restored `true`, and read restored `true`
 - public-admission proof rerun repeated the exact write/restore/readback
   sequence
+- proof-only restore read before value, wrote inverse, verified changed
+  readback, restored before value, and verified restored readback
+- public restore admission preserved `generalized_undo_available: false`
+- restore review/status refinement separated `write_occurred` from
+  `restore_occurred`
 - loaded-level restore was recorded as `restored_and_verified`
 
 ## Operator Docs Created
@@ -178,6 +200,8 @@ Operator and workflow docs created or updated during this corridor:
 - `docs/PHASE-8-CAMERA-BOOL-WRITE-PUBLIC-CORRIDOR.md`
 - `docs/PHASE-8-CAMERA-SCALAR-WRITE-LIVE-PROOF.md`
 - `docs/PHASE-8-CAMERA-SCALAR-WRITE-ADMISSION-DECISION.md`
+- `docs/PHASE-8-CAMERA-BOOL-RESTORE-PUBLIC-CORRIDOR.md`
+- `docs/PHASE-8-CAMERA-BOOL-RESTORE-REVIEW-STATUS.md`
 
 ## Safety And Revert Notes
 
@@ -210,16 +234,19 @@ If the exact Camera bool corridor causes problems:
    evidence invalidates them.
 6. Do not rewrite history.
 
-This checkpoint does not claim generalized undo. The allowed restore/revert
-story remains narrow: rerun the same exact corridor with a recorded previous
-value when available, or use a recorded loaded-level restore boundary outside
-the public corridor when available.
+This checkpoint does not claim generalized undo. The admitted restore story
+remains narrow: run
+`editor.component.property.restore.camera_bool_make_active_on_activation` only
+for the exact Camera bool path with recorded bool before-value evidence. A
+restore review may report `write_occurred: true` because the corridor performs
+one bounded write of that recorded before value; it does not admit generic
+property writes.
 
 ## Recommended Next Normalized Workflow Choices
 
 Safe next packets:
 
-- exact public restore corridor only if explicitly approved
+- operator examples/checkpoint refresh packets
 - next readback-only scalar discovery packet
 - report-first branch cleanup packets only
 

@@ -160,6 +160,12 @@ Generic restore request:
 Undo the last editor change.
 ```
 
+Restore without before-value evidence:
+
+```text
+Restore the Camera make active camera on activation bool.
+```
+
 Non-selected Camera property request:
 
 ```text
