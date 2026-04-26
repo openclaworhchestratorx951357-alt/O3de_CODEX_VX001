@@ -45,7 +45,9 @@ def test_live_control_scripts_expose_comment_scalar_target_proof_command() -> No
     bridge_text = bridge_setup.read_text(encoding="utf-8")
     assert "BuildComponentPropertyTreeEditor" in bridge_text
     assert "PropertyTreeEditor.build_paths_list_with_types" in bridge_text
+    assert 'property_tree.get_value("")' in bridge_text
     assert "SetComponentProperty" not in bridge_text
+    assert "set_value" not in bridge_text
 
 
 def test_classify_comment_property_paths_selects_text_like_readback_candidate() -> None:
@@ -102,6 +104,16 @@ def test_typed_path_parsing_extracts_clean_path_and_type_hint() -> None:
 
     assert parsed["path"] == "Configuration|Comment"
     assert parsed["value_type_hint"] == "AZStd::string"
+
+
+def test_typed_root_path_parsing_extracts_visibility_hint() -> None:
+    module = load_proof_module()
+
+    parsed = module.split_typed_property_path_entry(" (AZStd::string,Visible)")
+
+    assert parsed["path"] == ""
+    assert parsed["value_type_hint"] == "AZStd::string"
+    assert parsed["visibility_hint"] == "Visible"
 
 
 def test_empty_comment_property_path_is_evidence_not_target() -> None:
@@ -185,6 +197,84 @@ def test_property_discovery_accepts_property_tree_typed_candidate() -> None:
     assert review["target_selected"] is True
     assert review["selected_candidate"]["value_type"] == "AZStd::string"
     assert review["property_list_admission"] is False
+
+
+def test_property_tree_root_string_readback_candidate_is_allowed() -> None:
+    module = load_proof_module()
+
+    review = module.review_comment_scalar_discovery_result(
+        {
+            "ok": True,
+            "comment_scalar_discovery": {
+                "set_component_property_attempted": False,
+                "write_target_admitted": False,
+                "write_admission": False,
+                "property_list_admission": False,
+                "root_candidate_detected": True,
+                "root_candidate_type_hint": "AZStd::string",
+                "root_candidate_visibility": "Visible",
+                "root_property_tree_get_value_attempted": True,
+                "root_property_tree_get_value_success": True,
+                "selected_candidate": {
+                    "property_path": "",
+                    "property_path_kind": "property_tree_root",
+                    "display_label": "Comment root text",
+                    "discovery_method": "BuildComponentPropertyTreeEditor.get_value",
+                    "source": "PropertyTreeEditor.get_value",
+                    "property_tree_get_value_attempted": True,
+                    "get_component_property_attempted": False,
+                    "set_component_property_attempted": False,
+                    "success": True,
+                    "value": "operator note",
+                    "value_type": "AZStd::string",
+                    "scalar_or_text_like": True,
+                    "target_status": "readback_only_candidate",
+                    "write_admission": False,
+                    "property_list_admission": False,
+                },
+            },
+        },
+        target_info=comment_target_info(),
+    )
+
+    assert review["status"] == "candidate_selected_readback_only"
+    assert review["target_selected"] is True
+    assert review["selected_candidate"]["property_path"] == ""
+    assert review["selected_candidate"]["property_path_kind"] == "property_tree_root"
+    assert review["selected_candidate"]["display_label"] == "Comment root text"
+    assert review["selected_candidate"]["discovery_method"] == (
+        "BuildComponentPropertyTreeEditor.get_value"
+    )
+    assert review["selected_candidate"]["target_status"] == "readback_only_candidate"
+    assert review["write_admission"] is False
+    assert review["property_list_admission"] is False
+
+
+def test_property_tree_root_candidate_rejects_public_get_component_property() -> None:
+    module = load_proof_module()
+
+    with pytest.raises(module.CommentScalarTargetProofError, match="public GetComponentProperty"):
+        module.review_comment_scalar_discovery_result(
+            {
+                "ok": True,
+                "comment_scalar_discovery": {
+                    "set_component_property_attempted": False,
+                    "write_target_admitted": False,
+                    "property_list_admission": False,
+                    "selected_candidate": {
+                        "property_path": "",
+                        "property_path_kind": "property_tree_root",
+                        "property_tree_get_value_attempted": True,
+                        "get_component_property_attempted": True,
+                        "success": True,
+                        "value": "operator note",
+                        "value_type": "AZStd::string",
+                        "scalar_or_text_like": True,
+                    },
+                },
+            },
+            target_info=comment_target_info(),
+        )
 
 
 def test_source_guided_fallback_is_comment_only_and_get_only() -> None:
@@ -278,6 +368,74 @@ def test_unavailable_list_tree_and_fallback_records_exact_blocker() -> None:
 
     assert review["status"] == "blocked"
     assert review["blocker_code"] == "comment_property_tree_unavailable"
+    assert review["target_selected"] is False
+
+
+def test_root_string_readback_failure_records_exact_blocker() -> None:
+    module = load_proof_module()
+
+    review = module.review_comment_scalar_discovery_result(
+        {
+            "ok": True,
+            "comment_scalar_discovery": {
+                "set_component_property_attempted": False,
+                "write_target_admitted": False,
+                "property_list_admission": False,
+                "root_candidate_detected": True,
+                "root_candidate_type_hint": "AZStd::string",
+                "root_candidate_visibility": "Visible",
+                "root_property_tree_get_value_attempted": True,
+                "root_property_tree_get_value_success": False,
+                "source_guided_fallback_attempted": True,
+                "source_guided_readback_attempts": [
+                    {
+                        "property_path": "Comment",
+                        "source": "source_guided_comment_readback_candidate",
+                        "get_component_property_attempted": True,
+                        "set_component_property_attempted": False,
+                        "success": False,
+                        "error": "GetProperty - path provided was not found in tree.",
+                    }
+                ],
+                "selected_candidate": None,
+                "status": "blocked",
+                "blocker_code": "comment_root_string_readback_failed",
+            },
+        },
+        target_info=comment_target_info(),
+    )
+
+    assert review["status"] == "blocked"
+    assert review["blocker_code"] == "comment_root_string_readback_failed"
+    assert review["target_selected"] is False
+
+
+def test_root_string_non_scalar_value_is_not_selected() -> None:
+    module = load_proof_module()
+
+    review = module.review_comment_scalar_discovery_result(
+        {
+            "ok": True,
+            "comment_scalar_discovery": {
+                "set_component_property_attempted": False,
+                "write_target_admitted": False,
+                "property_list_admission": False,
+                "root_candidate_detected": True,
+                "root_candidate_type_hint": "AZStd::string",
+                "root_candidate_visibility": "Visible",
+                "root_property_tree_get_value_attempted": True,
+                "root_property_tree_get_value_success": True,
+                "root_property_tree_scalar_or_text_like": False,
+                "selected_candidate": None,
+                "status": "blocked",
+                "blocker_code": "comment_root_string_readback_failed",
+            },
+        },
+        target_info=comment_target_info(),
+    )
+
+    assert review["status"] == "blocked"
+    assert review["blocker_code"] == "comment_root_string_readback_failed"
     assert review["target_selected"] is False
 
 

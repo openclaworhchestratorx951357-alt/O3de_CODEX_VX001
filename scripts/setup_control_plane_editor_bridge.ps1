@@ -1897,14 +1897,22 @@ def _split_typed_property_path(path_entry: Any) -> dict[str, Any]:
     raw_entry = "" if path_entry is None else str(path_entry)
     path = raw_entry
     value_type_hint = None
+    visibility_hint = None
     path_name, separator, typed_suffix = raw_entry.rpartition(" (")
     if separator and typed_suffix.endswith(")"):
         path = path_name
-        value_type_hint = typed_suffix[:-1].split(",", 1)[0].strip() or None
+        typed_parts = [part.strip() for part in typed_suffix[:-1].split(",")]
+        value_type_hint = typed_parts[0] if typed_parts and typed_parts[0] else None
+        visibility_hint = (
+            typed_parts[1]
+            if len(typed_parts) > 1 and typed_parts[1]
+            else None
+        )
     return {
         "raw_entry": raw_entry,
         "path": path.strip(),
         "value_type_hint": value_type_hint,
+        "visibility_hint": visibility_hint,
     }
 
 
@@ -1952,7 +1960,9 @@ def _comment_value_is_scalar_or_text_like(value: Any, value_type: Any) -> bool:
     if isinstance(value, (str, bool, int, float)):
         return True
     value_type_text = "" if value_type is None else str(value_type).lower()
-    return any(marker in value_type_text for marker in COMMENT_SCALAR_VALUE_TYPE_MARKERS)
+    return value is None and any(
+        marker in value_type_text for marker in COMMENT_SCALAR_VALUE_TYPE_MARKERS
+    )
 
 
 def _comment_discovery_rank(attempt: dict[str, Any]) -> tuple[int, int, str]:
@@ -2014,6 +2024,12 @@ def _build_property_tree_evidence(component_pair: Any) -> dict[str, Any]:
         "paths_count": None,
         "raw_typed_path_preview": [],
         "raw_path_preview": [],
+        "root_candidate_detected": False,
+        "root_candidate_type_hint": None,
+        "root_candidate_visibility": None,
+        "root_property_tree_get_value_attempted": False,
+        "root_property_tree_get_value_success": False,
+        "root_property_tree_get_value_preview": None,
     }
     try:
         property_tree_outcome = editor.EditorComponentAPIBus(
@@ -2057,6 +2073,83 @@ def _build_property_tree_evidence(component_pair: Any) -> dict[str, Any]:
         evidence["raw_path_preview"] = [str(path_entry) for path_entry in paths[:25]]
     else:
         evidence["paths_shape"] = type(paths).__name__
+
+    root_candidate: dict[str, Any] | None = None
+    if isinstance(paths_with_types, list):
+        for path_entry in paths_with_types:
+            parsed = _split_typed_property_path(path_entry)
+            type_hint_text = str(parsed.get("value_type_hint") or "").lower()
+            visibility_text = str(parsed.get("visibility_hint") or "").lower()
+            visibility_ok = not visibility_text or "visible" in visibility_text
+            string_like = any(
+                marker in type_hint_text
+                for marker in ("string", "azstd::string")
+            )
+            if parsed.get("path") == "" and string_like and visibility_ok:
+                root_candidate = parsed
+                break
+
+    if root_candidate is None:
+        return evidence
+
+    evidence.update(
+        {
+            "root_candidate_detected": True,
+            "root_candidate_type_hint": root_candidate.get("value_type_hint"),
+            "root_candidate_visibility": root_candidate.get("visibility_hint"),
+            "root_candidate_raw_entry": root_candidate.get("raw_entry"),
+            "root_property_tree_get_value_attempted": True,
+        }
+    )
+    try:
+        root_value = property_tree.get_value("")
+    except Exception as exc:
+        evidence.update(
+            {
+                "root_property_tree_get_value_success": False,
+                "root_property_tree_get_value_exception": repr(exc),
+            }
+        )
+        return evidence
+
+    serialized_value = _json_safe_value(root_value)
+    value_type = root_candidate.get("value_type_hint") or _fallback_value_type(root_value)
+    scalar_or_text_like = _comment_value_is_scalar_or_text_like(
+        serialized_value,
+        value_type,
+    )
+    value_preview = None if serialized_value is None else str(serialized_value)[:160]
+    evidence.update(
+        {
+            "root_property_tree_get_value_success": True,
+            "root_property_tree_get_value_preview": value_preview,
+            "root_property_tree_value": serialized_value,
+            "root_property_tree_value_type": value_type,
+            "root_property_tree_scalar_or_text_like": scalar_or_text_like,
+        }
+    )
+    if scalar_or_text_like:
+        evidence["root_selected_candidate"] = {
+            "property_path": "",
+            "property_path_kind": "property_tree_root",
+            "display_label": "Comment root text",
+            "discovery_method": "BuildComponentPropertyTreeEditor.get_value",
+            "source": "PropertyTreeEditor.get_value",
+            "property_tree_get_value_attempted": True,
+            "root_property_tree_get_value_success": True,
+            "get_component_property_attempted": False,
+            "set_component_property_attempted": False,
+            "success": True,
+            "value": serialized_value,
+            "value_type": value_type,
+            "value_type_hint": root_candidate.get("value_type_hint"),
+            "visibility": root_candidate.get("visibility_hint"),
+            "scalar_or_text_like": scalar_or_text_like,
+            "target_status": "readback_only_candidate",
+            "write_target_admitted": False,
+            "write_admission": False,
+            "property_list_admission": False,
+        }
     return evidence
 
 
@@ -2084,6 +2177,7 @@ def _normalize_comment_discovery_entries(
                 "raw_entry": parsed["raw_entry"],
                 "property_path": parsed["path"],
                 "value_type_hint": parsed.get("value_type_hint"),
+                "visibility_hint": parsed.get("visibility_hint"),
                 **review,
             }
         )
@@ -2182,32 +2276,49 @@ def _run_comment_scalar_discovery_ladder(
     entries = _normalize_comment_discovery_entries(property_paths, tree_evidence)
     readback_attempts: list[dict[str, Any]] = []
     attempted_paths: set[str] = set()
-
-    for entry in entries:
-        if entry.get("readback_candidate") is not True:
-            continue
-        property_path = str(entry.get("property_path") or "").strip()
-        if not property_path or property_path in attempted_paths:
-            continue
-        attempted_paths.add(property_path)
-        readback_attempts.append(
-            _read_comment_property_candidate(
-                component_pair,
-                property_path,
-                source=str(entry.get("source") or "live_property_discovery"),
-                value_type_hint=entry.get("value_type_hint"),
-            )
-        )
-
-    selected = next(
-        (
-            attempt
-            for attempt in sorted(readback_attempts, key=_comment_discovery_rank)
-            if attempt.get("success") is True
-            and attempt.get("scalar_or_text_like") is True
-        ),
-        None,
+    root_candidate_detected = tree_evidence.get("root_candidate_detected") is True
+    root_get_value_attempted = (
+        tree_evidence.get("root_property_tree_get_value_attempted") is True
     )
+    root_get_value_success = (
+        tree_evidence.get("root_property_tree_get_value_success") is True
+    )
+    root_value_scalar_or_text_like = (
+        tree_evidence.get("root_property_tree_scalar_or_text_like") is True
+    )
+    selected = tree_evidence.get("root_selected_candidate")
+    if not (
+        isinstance(selected, dict)
+        and selected.get("success") is True
+        and selected.get("scalar_or_text_like") is True
+    ):
+        selected = None
+
+    if selected is None:
+        for entry in entries:
+            if entry.get("readback_candidate") is not True:
+                continue
+            property_path = str(entry.get("property_path") or "").strip()
+            if not property_path or property_path in attempted_paths:
+                continue
+            attempted_paths.add(property_path)
+            readback_attempts.append(
+                _read_comment_property_candidate(
+                    component_pair,
+                    property_path,
+                    source=str(entry.get("source") or "live_property_discovery"),
+                    value_type_hint=entry.get("value_type_hint"),
+                )
+            )
+        selected = next(
+            (
+                attempt
+                for attempt in sorted(readback_attempts, key=_comment_discovery_rank)
+                if attempt.get("success") is True
+                and attempt.get("scalar_or_text_like") is True
+            ),
+            None,
+        )
 
     source_guided_fallback_attempted = False
     source_guided_attempts: list[dict[str, Any]] = []
@@ -2242,6 +2353,13 @@ def _run_comment_scalar_discovery_ladder(
     elif not list_worked and not tree_worked:
         status = "blocked"
         blocker_code = "comment_property_tree_unavailable"
+    elif (
+        root_candidate_detected
+        and root_get_value_attempted
+        and not (root_get_value_success and root_value_scalar_or_text_like)
+    ):
+        status = "blocked"
+        blocker_code = "comment_root_string_readback_failed"
     elif source_guided_fallback_attempted and source_guided_attempts:
         status = "blocked"
         blocker_code = "comment_source_guided_readback_failed"
@@ -2259,6 +2377,15 @@ def _run_comment_scalar_discovery_ladder(
         "build_component_property_list": property_list_evidence,
         "build_component_property_tree_editor": tree_evidence,
         "normalized_entries": entries,
+        "root_candidate_detected": root_candidate_detected,
+        "root_candidate_type_hint": tree_evidence.get("root_candidate_type_hint"),
+        "root_candidate_visibility": tree_evidence.get("root_candidate_visibility"),
+        "root_property_tree_get_value_attempted": root_get_value_attempted,
+        "root_property_tree_get_value_success": root_get_value_success,
+        "root_property_tree_scalar_or_text_like": root_value_scalar_or_text_like,
+        "root_property_tree_get_value_preview": tree_evidence.get(
+            "root_property_tree_get_value_preview"
+        ),
         "readback_attempts": readback_attempts,
         "source_guided_fallback_attempted": source_guided_fallback_attempted,
         "source_guided_readback_attempts": source_guided_attempts,

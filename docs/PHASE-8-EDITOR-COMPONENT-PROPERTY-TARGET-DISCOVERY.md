@@ -110,12 +110,14 @@ Current live component target-binding behavior:
   render-adjacent, asset-reference, derived/statistical, or grouping evidence.
   See `docs/PHASE-8-EDITOR-SCALAR-PROPERTY-TARGET-DISCOVERY.md`.
 - The first non-render allowlisted `Comment` attempt reached temporary
-  component provisioning and verified restore, then the follow-up typed
-  property-tree discovery fix proved that `BuildComponentPropertyList` and
+  component provisioning and verified restore, then follow-up proof-only
+  packets proved that `BuildComponentPropertyList` and
   `BuildComponentPropertyTreeEditor` both expose the Comment text field only as
-  an empty live property path. Source-guided named `GetComponentProperty`
-  readbacks also failed, so no stable scalar/text target was selected; blocker
-  code: `comment_source_guided_readback_failed`. See
+  an empty live property path. The root
+  `PropertyTreeEditor.get_value("")` call was reachable, but returned a
+  non-scalar object rather than a scalar/text-like value. Source-guided named
+  `GetComponentProperty` readbacks also failed, so no stable scalar/text target
+  was selected; blocker code: `comment_root_string_readback_failed`. See
   `docs/PHASE-8-EDITOR-COMMENT-SCALAR-TARGET-DISCOVERY.md`.
 
 ## Discovery Goal
