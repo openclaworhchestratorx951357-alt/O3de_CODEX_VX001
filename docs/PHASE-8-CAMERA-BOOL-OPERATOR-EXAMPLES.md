@@ -1,22 +1,22 @@
 # Phase 8 Camera Bool Operator Examples
 
-Status: operator examples for one exact admitted corridor
+Status: operator examples for the exact admitted Camera bool corridors
 
 Date: 2026-04-26
 
-This guide gives operators safe prompt wording for inspecting, changing, or
+This guide gives operators safe prompt wording for inspecting, changing, and
 restoring the one admitted Camera bool target without implying broad
-component-property editing support.
+component-property editing, generic restore, or generalized undo support.
 
 ## Current Truth
 
-The only admitted public component-property write corridor is:
+The admitted public component-property write corridor is:
 
 ```text
 editor.component.property.write.camera_bool_make_active_on_activation
 ```
 
-The only admitted public component-property restore corridor is:
+The admitted public component-property restore corridor is:
 
 ```text
 editor.component.property.restore.camera_bool_make_active_on_activation
@@ -37,6 +37,9 @@ editor.component.find -> editor.component.property.get
 That readback path inspects the current value only. It does not perform a
 write, does not list properties, and does not admit generic property editing.
 
+Together, these are exact corridors for one bool property. They are not a
+general property system.
+
 ## Safe Readback Prompts
 
 Use readback prompts when you want to inspect the current value on an existing
@@ -56,12 +59,16 @@ Open level "Levels/Main.level", get the current value of Controller|Configuratio
 
 Expected readback review fields:
 
+- capability path or chain:
+  `editor.component.find -> editor.component.property.get`
 - entity target
 - component `Camera`
 - property path `Controller|Configuration|Make active camera on activation?`
+- value type `bool`
 - current value
 - `read_only: true`
 - `write_occurred: false`
+- public property list remains unavailable
 
 ## Safe Write Prompts
 
@@ -80,42 +87,59 @@ Open level "Levels/Main.level", create entity named "CameraWriteProof", attach a
 
 Expected write review fields:
 
+- capability name:
+  `editor.component.property.write.camera_bool_make_active_on_activation`
 - entity target
 - component `Camera`
 - property path `Controller|Configuration|Make active camera on activation?`
 - requested value
 - before value
 - after value
-- verification status
+- verification result or `write_verified`
+- approval/admission class
 - `write_occurred: true`
+- `property_list_admission: false`
 - `generalized_undo_available: false`
 
 The write corridor is approval-gated. A successful write should include
-before/write/after evidence and narrow restore or revert guidance.
+before/write/after evidence and narrow restore or revert guidance. The guidance
+must not claim generalized undo.
 
 ## Safe Restore Prompts
 
 Use restore prompts only for the exact same-chain flow that creates the
 temporary target, adds the Camera component, and includes recorded bool
-before-value evidence. This is not generalized undo.
+before-value evidence. This is not generalized undo and cannot restore any
+other property.
 
 ```text
 Open level "Levels/Main.level", create entity named "CameraRestoreProof", add a Camera component, then restore the Camera make active camera on activation bool to the recorded before value true.
 ```
 
+```text
+Open level "Levels/Main.level", create entity named "CameraRestoreProof", attach a Camera component, then restore Controller|Configuration|Make active camera on activation? to its recorded before value false.
+```
+
 Expected restore review fields:
 
+- capability name:
+  `editor.component.property.restore.camera_bool_make_active_on_activation`
 - entity target
 - component `Camera`
 - property path `Controller|Configuration|Make active camera on activation?`
+- before-value evidence: `recorded_before_value`
 - recorded before value
 - current value before restore
-- restored value
+- restore value
 - restored readback
-- verification status
+- verification result or `restore_verified`
+- approval/admission class
+- `write_occurred: true` only because the exact restore corridor performs one
+  bounded write of the recorded before value
 - `restore_occurred: true`
 - `write_admission: false`
 - `generic_property_write_admission: false`
+- `property_list_admission: false`
 - `generalized_undo_available: false`
 
 ## Unsafe Or Refused Prompts
@@ -127,6 +151,12 @@ List all Camera properties.
 ```
 
 Reason: public `editor.component.property.list` remains unavailable.
+
+```text
+Discover every writable property on this Camera component.
+```
+
+Reason: public property discovery/listing remains unavailable.
 
 ```text
 Set any Camera property I name to false.
@@ -166,6 +196,37 @@ Restore any property on this Camera component.
 Reason: generic restore remains unadmitted; only the exact Camera bool restore
 corridor with recorded before-value evidence is admitted.
 
+```text
+Restore the Camera make active camera on activation bool.
+```
+
+Reason: restore requests must include recorded bool before-value evidence.
+
+```text
+Restore the Mesh component to its previous value.
+```
+
+Reason: non-Camera restores remain unadmitted.
+
+```text
+Restore the Camera field of view to the old value.
+```
+
+Reason: other Camera property restores remain unadmitted.
+
+```text
+Use Editor Python to restore the Camera bool.
+```
+
+Reason: arbitrary Editor Python remains forbidden, even when the requested end
+state resembles the exact corridor.
+
+```text
+Change a material, render setting, asset reference, build setting, or TIAF state.
+```
+
+Reason: asset/material/render/build/TIAF mutation remains outside this corridor.
+
 ## Troubleshooting
 
 No level loaded:
@@ -195,6 +256,10 @@ Restore or revert expectations:
 This is not generalized undo. The exact restore corridor may restore only the
 same Camera bool property to recorded bool before-value evidence. Do not treat
 this as live Editor undo, viewport reload, or broad cleanup.
+
+If a restore review reports `write_occurred: true`, read it narrowly: the
+restore corridor performed one bounded write of the recorded before value to the
+exact Camera bool path. It does not mean generic property writes are admitted.
 
 ## Safety Guidance
 

@@ -18,12 +18,12 @@ Use this order when status sources disagree:
 
 ## Mainline Baseline
 
-At the time this status snapshot was updated, `main` includes PR #55 and the
-current Phase 8 packet refines review/status output for the exact Camera bool
-restore corridor:
+At the time this status snapshot was updated, `main` includes PR #56 and the
+current Phase 8 packet refreshes operator examples/checkpoint docs for the
+paired exact Camera bool write and restore corridors:
 
-- Merge commit: `7b263d28524fa392de66a2ceee7a86ceb2e0c5fb`
-- PR title: `Admit exact Camera bool restore corridor`
+- Merge commit: `b9abe3943a00cc2fd539934ca3f4a83eacdb4c71`
+- PR title: `Refine Camera bool restore review status`
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -64,6 +64,9 @@ Current admitted editor/runtime truth:
   `write_occurred` from `restore_occurred`: the restore corridor performs one
   bounded write of the recorded before value, but this does not admit generic
   property writes or generalized undo.
+- `docs/PHASE-8-CAMERA-BOOL-OPERATOR-EXAMPLES.md` is the operator-facing
+  prompt guide for safe readback, exact write, exact restore, and refused
+  generic/broad requests.
 
 Current non-admitted editor/property truth:
 
@@ -90,9 +93,9 @@ The Camera component is the first live-proven scalar write/restore proof target:
   restored original `true`, and read restored `true`.
 - Loaded-level prefab restore completed with `restored_and_verified`.
 - Runtime proof JSON remained ignored/uncommitted.
-- The exact Camera bool corridor now has a high-risk public-admission packet,
+- The exact Camera bool write corridor has a high-risk public-admission packet,
   but broad property writes remain unadmitted.
-- The public-admission packet reran the proof and produced ignored artifact
+- The write public-admission packet reran the proof and produced ignored artifact
   `backend/runtime/live_editor_camera_scalar_write_proof_20260426-173312.json`
   with `status: succeeded_verified`, original `true`, proof write `false`,
   restored `true`, and cleanup restore `restored_and_verified`.
@@ -139,15 +142,15 @@ designed in `docs/PHASE-8-CAMERA-BOOL-ROLLBACK-RESTORE-DESIGN.md`. That design
 does not implement rollback, generalized undo, or any wider write surface.
 
 The restore readiness audit is recorded in
-`docs/PHASE-8-CAMERA-BOOL-RESTORE-READINESS-AUDIT.md`. It finds the repo ready
-for a future proof-only restore harness only with explicit operator approval,
-and not ready for public restore admission without a separate high-risk packet.
+`docs/PHASE-8-CAMERA-BOOL-RESTORE-READINESS-AUDIT.md`. It was the readiness
+gate before the explicitly approved proof-only restore harness and later public
+restore admission packets.
 
 The proof-only restore harness is recorded in
 `docs/PHASE-8-CAMERA-BOOL-RESTORE-LIVE-PROOF.md`. It live-proved before value
 `true`, inverse write `false`, restored value `true`, restored readback `true`,
-and loaded-level cleanup restore `restored_and_verified`. Public restore/revert
-remains unadmitted and generalized undo remains unproven.
+and loaded-level cleanup restore `restored_and_verified`. Generic restore and
+generalized undo remain unadmitted.
 
 The restore admission decision is recorded in
 `docs/PHASE-8-CAMERA-BOOL-RESTORE-ADMISSION-DECISION.md`. That decision kept
@@ -165,10 +168,17 @@ and produced ignored artifact
 with before `true`, inverse write `false`, restored readback `true`, and
 loaded-level cleanup restore `restored_and_verified`.
 
+The restore review/status refinement is recorded in
+`docs/PHASE-8-CAMERA-BOOL-RESTORE-REVIEW-STATUS.md`. It clarifies that
+`write_occurred: true` in a restore review means only the bounded write of the
+recorded before value on the exact Camera bool path; it does not admit generic
+property writes.
+
 ## Recommended Next Packets
 
-1. If Phase 8 continues, use a post-admission review/status refinement packet
-   before adding any new restore targets or broader undo behavior.
+1. If Phase 8 continues, refresh operator/checkpoint docs or start the next
+   read-only discovery packet before adding any new restore targets or broader
+   undo behavior.
 2. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 3. Continue repository professionalization in small docs-only packets when the
