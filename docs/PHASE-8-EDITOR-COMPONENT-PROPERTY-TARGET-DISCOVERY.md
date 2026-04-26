@@ -105,6 +105,10 @@ Current live component target-binding behavior:
   target-selection packet must discover a non-asset scalar, boolean, numeric,
   or text-like property through read-only live evidence, or record the exact
   blocker if no such target can be proven.
+- The Mesh property-list evidence is now classified with
+  `no_non_asset_non_render_scalar_target`; scalar-like Mesh paths are still
+  render-adjacent, asset-reference, derived/statistical, or grouping evidence.
+  See `docs/PHASE-8-EDITOR-SCALAR-PROPERTY-TARGET-DISCOVERY.md`.
 
 ## Discovery Goal
 
@@ -153,6 +157,8 @@ Reject a target when:
 - the component id comes only from prefab JSON, a serialized prefab record, a
   stale artifact, or a guessed/inferred source rather than live runtime evidence
 - the only candidate is an asset reference such as `Model Asset`
+- the candidate is scalar-like but belongs to Mesh render configuration, such
+  as LOD, lighting channel, sort key, reflection, or ray tracing paths
 - the target exists only because an earlier mutation in the same packet created
   it
 - the current level cannot be proven

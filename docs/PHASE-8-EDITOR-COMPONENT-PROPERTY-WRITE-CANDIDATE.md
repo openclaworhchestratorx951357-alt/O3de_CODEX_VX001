@@ -76,6 +76,11 @@ Current blocker:
   selected through read-only live evidence
 - Mesh `Controller|Configuration|Model Asset` is readback evidence only and is
   blocked as a first write target because it is asset-reference behavior
+- scalar-like Mesh paths from the proof-only property-list evidence remain
+  blocked as first write targets because they are render-adjacent or
+  derived/statistical evidence
+- current target-selection blocker code:
+  `no_non_asset_non_render_scalar_target`
 
 Do not use `Mesh` `Controller|Configuration|Model Asset` as the first write
 target unless a separate asset-reference proof exists. It is already useful as
