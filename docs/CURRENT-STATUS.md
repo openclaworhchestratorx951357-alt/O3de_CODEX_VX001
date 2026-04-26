@@ -18,7 +18,8 @@ Use this order when status sources disagree:
 
 ## Mainline Baseline
 
-At the time this status snapshot was updated, `main` includes PR #40:
+At the time this status snapshot was updated, `main` includes PR #40 and the
+current Phase 8 packet admits the next exact Camera bool public corridor:
 
 - Merge commit: `8c44904ba18d66001c49b46232b8f65a308daaf5`
 - PR title: `Add proof-only Camera scalar write harness`
@@ -45,16 +46,19 @@ Current admitted editor/runtime truth:
   runtime-proven component ids and known property paths.
 - a private proof-only Camera bool scalar write harness exists for exactly
   `Camera :: Controller|Configuration|Make active camera on activation? :: bool`.
+- one exact public, approval-gated Camera bool write corridor is admitted:
+  corridor:
+  `editor.component.property.write.camera_bool_make_active_on_activation`.
 
 Current non-admitted editor/property truth:
 
 - `editor.component.property.list` remains proof-only.
-- public `editor.component.property.write` remains unimplemented and
+- broad public `editor.component.property.write` remains unimplemented and
   unadmitted.
 - Broad property discovery is not exposed through Prompt Studio, dispatcher,
   catalog, or `/adapters`.
-- The proof-only Camera bool write harness is not exposed through Prompt
-  Studio, dispatcher/catalog, or `/adapters`.
+- Only the exact Camera bool corridor may be exposed through Prompt Studio,
+  dispatcher/catalog, and `/adapters`; no other property write is admitted.
 - Arbitrary Editor Python remains forbidden as a prompt surface.
 - Asset, material, render, build, TIAF, and broad editor mutation remain outside
   the current property-write candidate work.
@@ -71,7 +75,12 @@ The Camera component is the first live-proven scalar write/restore proof target:
   restored original `true`, and read restored `true`.
 - Loaded-level prefab restore completed with `restored_and_verified`.
 - Runtime proof JSON remained ignored/uncommitted.
-- Public property writes remain unadmitted.
+- The exact Camera bool corridor now has a high-risk public-admission packet,
+  but broad property writes remain unadmitted.
+- The public-admission packet reran the proof and produced ignored artifact
+  `backend/runtime/live_editor_camera_scalar_write_proof_20260426-173312.json`
+  with `status: succeeded_verified`, original `true`, proof write `false`,
+  restored `true`, and cleanup restore `restored_and_verified`.
 
 The Comment component remains blocked as a scalar/text write target:
 
@@ -102,9 +111,8 @@ See `docs/REPOSITORY-OPERATIONS.md` and
 
 ## Recommended Next Packets
 
-1. Decide whether the exact PR #40 Camera bool proof should remain proof-only
-   or become the basis for a separate, narrow, operator-approved public
-   admission packet.
+1. Validate and review the exact Camera bool public corridor admission packet
+   without widening into generic property writes.
 2. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 3. Continue repository professionalization in small docs-only packets when the

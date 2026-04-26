@@ -4,6 +4,14 @@ Status: proof-only live checkpoint
 
 Date: 2026-04-26
 
+Admission note:
+
+This proof remains a proof-only live checkpoint. A later packet admits the exact
+public Camera bool corridor documented in
+`docs/PHASE-8-CAMERA-BOOL-WRITE-PUBLIC-CORRIDOR.md`. The proof still does not
+admit generic `editor.component.property.write`, public property list, or
+arbitrary component/property writes.
+
 This checkpoint records the first bounded live scalar property write proof for
 the Phase 8 editor property-write candidate work. It is evidence for one exact
 Camera bool property on a temporary proof target. It is not public admission of

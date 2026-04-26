@@ -9,6 +9,17 @@ It does not implement the tool.
 
 It does not admit component property writes from Prompt Studio.
 
+Superseding admission note:
+
+- The exact corridor
+  `editor.component.property.write.camera_bool_make_active_on_activation` is now
+  admitted separately for only
+  `Camera :: Controller|Configuration|Make active camera on activation? :: bool`.
+- This document still governs the broader `editor.component.property.write`
+  candidate, which remains unimplemented and unadmitted.
+- Do not read the exact Camera bool admission as permission for arbitrary
+  component/property writes.
+
 It exists to keep the next property-write discussion narrow enough that a
 future implementation can prove one safe corridor without widening into
 arbitrary Editor Python, arbitrary components, arbitrary property paths,
@@ -18,6 +29,7 @@ Read this together with:
 - `docs/PHASE-8-EDITOR-CANDIDATE-MUTATION-ENVELOPE.md`
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-TARGET-DISCOVERY.md`
 - `docs/PHASE-8-CAMERA-SCALAR-WRITE-CANDIDATE-DESIGN.md`
+- `docs/PHASE-8-CAMERA-BOOL-WRITE-PUBLIC-CORRIDOR.md`
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md`
 - `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
 
@@ -32,11 +44,13 @@ Current admitted editor property behavior is read-only:
   live `editor.component.find` provenance, but classified it as
   `asset_reference_readback_only` and did not select it as a write target.
 
-Current prompt behavior for property writes remains:
+Current prompt behavior for property writes is now split:
+- the exact Camera bool corridor may be planned only when the prompt creates
+  the live Camera component target in the same admitted chain
 - broader property-write prompts are refused at planning time with
   `editor.candidate_mutation.unsupported`
-- no editor session plan should be created for a property-write prompt
-- no component property write bridge operation is admitted
+- no editor session plan should be created for arbitrary property-write prompts
+- no generic component property write bridge operation is admitted
 
 ## Candidate Tool Shape
 
@@ -106,9 +120,12 @@ target unless a separate asset-reference proof exists. It is already useful as
 readback evidence, but writing it may imply asset identity, material, or product
 dependency behavior that this candidate does not cover.
 
-Do not treat the Camera bool path as prompt-admitted. Prompts that ask to set,
-change, toggle, or modify a component property must remain refused unless a
-future write corridor is explicitly implemented, proven, reviewed, and admitted.
+Do not treat the Camera bool path as a generic prompt admission. Prompts that
+ask to set, change, toggle, or modify arbitrary component properties must remain
+refused. Only the exact
+`editor.component.property.write.camera_bool_make_active_on_activation`
+corridor may be admitted, and only under its own same-chain live-target
+requirements.
 
 ## Explicit Non-Scope
 

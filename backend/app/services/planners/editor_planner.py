@@ -18,7 +18,18 @@ from app.services.planners._common import (
 
 _CREATED_ENTITY_ID_REF = "$step:editor-entity-1.entity_id"
 _ADDED_COMPONENT_ID_REF = "$step:editor-component-1.added_component_refs[0].component_id"
+_ADDED_COMPONENT_ID_PROVENANCE_REF = (
+    "$step:editor-component-1.added_component_refs[0].component_id_provenance"
+)
+_ADDED_COMPONENT_RESTORE_BOUNDARY_REF = "$step:editor-component-1.restore_boundary_id"
 _FOUND_COMPONENT_ID_REF = "$step:editor-component-find-1.component_id"
+_CAMERA_BOOL_WRITE_CAPABILITY = (
+    "editor.component.property.write.camera_bool_make_active_on_activation"
+)
+_CAMERA_BOOL_WRITE_PROPERTY_PATH = (
+    "Controller|Configuration|Make active camera on activation?"
+)
+_CAMERA_BOOL_WRITE_BEFORE_VALUE_REF = "$step:editor-camera-bool-before-1.value"
 _ADMITTED_COMPONENT_PROPERTY_READ_PATHS = {
     "Mesh": "Controller|Configuration|Model Asset",
 }
@@ -36,6 +47,13 @@ _EDITOR_PROPERTY_DISCOVERY_REQUIREMENT = (
     "Component property target discovery requires a dedicated typed read-only "
     "property-list packet with exact entity, component, level, and bridge "
     "evidence before prompt admission."
+)
+_CAMERA_BOOL_WRITE_REQUIREMENT = (
+    "The admitted Camera bool write corridor requires the exact Camera component, "
+    "the exact Controller|Configuration|Make active camera on activation? path, "
+    "a bool value, live component id provenance from admitted editor.component.add, "
+    "approval, before/write/after readback evidence, and a loaded-level restore "
+    "boundary. It does not admit generic property writes."
 )
 _CANDIDATE_EDITOR_MUTATION_PATTERNS = (
     re.compile(
@@ -175,10 +193,48 @@ def _requires_property_discovery_admission(prompt_text: str) -> bool:
     )
 
 
+def _extract_requested_bool_value(prompt_text: str) -> bool | None:
+    normalized = prompt_text.lower()
+    match = re.search(r"\b(?:to|as|value)\s+(true|false)\b", normalized)
+    if match is None:
+        match = re.search(r"\b(true|false)\b", normalized)
+    if match is None:
+        return None
+    return match.group(1) == "true"
+
+
+def _extract_camera_bool_write_request(prompt_text: str) -> dict[str, object] | None:
+    normalized = prompt_text.lower()
+    if "camera" not in normalized:
+        return None
+    if (
+        _CAMERA_BOOL_WRITE_PROPERTY_PATH.lower() not in normalized
+        and "make active camera on activation" not in normalized
+        and "make-active-on-activation" not in normalized
+        and "active camera on activation" not in normalized
+    ):
+        return None
+    if not contains_any(prompt_text, ["set", "write", "change", "update", "modify"]):
+        return None
+    requested_value = _extract_requested_bool_value(prompt_text)
+    if requested_value is None:
+        return None
+    return {"value": requested_value}
+
+
+def _requests_same_chain_camera_component(prompt_text: str) -> bool:
+    return re.search(
+        r"\b(?:add|attach)\s+(?:a|an|the)?\s*camera\s+component\b",
+        prompt_text,
+        flags=re.IGNORECASE,
+    ) is not None
+
+
 def plan_editor_prompt(
     request: PromptRequest,
 ) -> tuple[list[PromptPlanStep], list[str], list[str]]:
     prompt_text = request.prompt_text
+    camera_bool_write_request = _extract_camera_bool_write_request(prompt_text)
     wants_entity_create = contains_any(
         prompt_text,
         ["create entity", "spawn entity", "add entity"],
@@ -229,6 +285,7 @@ def plan_editor_prompt(
             "editor.component.add",
             "editor.component.find",
             "editor.component.property.get",
+            _CAMERA_BOOL_WRITE_CAPABILITY,
         )
     }
     steps: list[PromptPlanStep] = []
@@ -242,7 +299,20 @@ def plan_editor_prompt(
     if not wants_editor:
         return steps, refusals, requirements
 
-    if _requires_candidate_editor_mutation_admission(prompt_text):
+    if camera_bool_write_request is not None and not (
+        wants_entity_create and _requests_same_chain_camera_component(prompt_text)
+    ):
+        refusals.append(
+            f"{_CAMERA_BOOL_WRITE_CAPABILITY} requires a same-chain temporary "
+            "entity plus admitted Camera component add before the exact bool write."
+        )
+        requirements.append(_CAMERA_BOOL_WRITE_REQUIREMENT)
+        return steps, refusals, requirements
+
+    if (
+        _requires_candidate_editor_mutation_admission(prompt_text)
+        and camera_bool_write_request is None
+    ):
         refusals.append(CANDIDATE_EDITOR_MUTATION_REFUSAL)
         requirements.append(_CANDIDATE_EDITOR_MUTATION_REQUIREMENT)
         return steps, refusals, requirements
@@ -483,6 +553,83 @@ def plan_editor_prompt(
                 requirement = capability_requirement_note(component_capability)
                 if requirement:
                     requirements.append(requirement)
+
+    if camera_bool_write_request is not None:
+        property_capability = capabilities["editor.component.property.get"]
+        write_capability = capabilities[_CAMERA_BOOL_WRITE_CAPABILITY]
+        if (
+            planned_component_name == "Camera"
+            and property_capability is not None
+            and write_capability is not None
+        ):
+            read_args: dict[str, object] = {
+                "component_id": _ADDED_COMPONENT_ID_REF,
+                "property_path": _CAMERA_BOOL_WRITE_PROPERTY_PATH,
+            }
+            if level_path:
+                read_args["level_path"] = level_path
+            steps.append(
+                make_step(
+                    step_id="editor-camera-bool-before-1",
+                    capability=property_capability,
+                    request=request,
+                    args=read_args,
+                    depends_on=["editor-component-1"],
+                    planner_note=(
+                        "Pre-read the exact admitted Camera bool property before "
+                        "the approval-gated write."
+                    ),
+                )
+            )
+            write_args: dict[str, object] = {
+                "component_name": "Camera",
+                "component_id": _ADDED_COMPONENT_ID_REF,
+                "component_id_provenance": _ADDED_COMPONENT_ID_PROVENANCE_REF,
+                "property_path": _CAMERA_BOOL_WRITE_PROPERTY_PATH,
+                "value": camera_bool_write_request["value"],
+                "expected_current_value": _CAMERA_BOOL_WRITE_BEFORE_VALUE_REF,
+                "restore_boundary_id": _ADDED_COMPONENT_RESTORE_BOUNDARY_REF,
+            }
+            if level_path:
+                write_args["level_path"] = level_path
+            steps.append(
+                make_step(
+                    step_id="editor-camera-bool-write-1",
+                    capability=write_capability,
+                    request=request,
+                    args=write_args,
+                    depends_on=["editor-camera-bool-before-1"],
+                    planner_note=(
+                        "Write only the exact admitted Camera bool property using "
+                        "the live component id and restore boundary returned by "
+                        "the preceding admitted Camera component add step."
+                    ),
+                )
+            )
+            after_args = dict(read_args)
+            steps.append(
+                make_step(
+                    step_id="editor-camera-bool-after-1",
+                    capability=property_capability,
+                    request=request,
+                    args=after_args,
+                    depends_on=["editor-camera-bool-write-1"],
+                    planner_note=(
+                        "Post-read the exact admitted Camera bool property to "
+                        "verify the requested value."
+                    ),
+                )
+            )
+            for capability in (property_capability, write_capability):
+                requirement = capability_requirement_note(capability)
+                if requirement:
+                    requirements.append(requirement)
+        else:
+            refusals.append(
+                f"{_CAMERA_BOOL_WRITE_CAPABILITY} requires an admitted Camera "
+                "component add step in the same prompt chain."
+            )
+            requirements.append(_CAMERA_BOOL_WRITE_REQUIREMENT)
 
     if wants_property_read:
         property_capability = capabilities["editor.component.property.get"]

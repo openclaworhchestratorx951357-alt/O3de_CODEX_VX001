@@ -1,8 +1,16 @@
 # Phase 8 Camera Scalar Write Admission Decision
 
-Status: admission decision packet only
+Status: historical admission decision packet, superseded by exact public corridor
 
 Date: 2026-04-26
+
+Superseding note:
+
+The future corridor proposed here is now implemented as the exact public,
+approval-gated capability
+`editor.component.property.write.camera_bool_make_active_on_activation`.
+See `docs/PHASE-8-CAMERA-BOOL-WRITE-PUBLIC-CORRIDOR.md` for the current
+admitted boundary. Broad `editor.component.property.write` remains unadmitted.
 
 This document decides the boundary for the proof-only Camera bool scalar write
 evidence from PR #40.

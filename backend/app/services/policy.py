@@ -29,6 +29,11 @@ def tool_real_admission_stage(tool_name: str) -> str:
         "editor.component.property.get",
     }:
         return "real-read-only-active"
+    if (
+        tool_name
+        == "editor.component.property.write.camera_bool_make_active_on_activation"
+    ):
+        return "real-mutation-preflight-active"
     if tool_name in {
         "editor.session.open",
         "editor.level.open",
@@ -164,6 +169,17 @@ def tool_next_real_requirement(tool_name: str) -> str:
             "property mutation, container edits, or component discovery "
             "broadening."
         )
+    if (
+        tool_name
+        == "editor.component.property.write.camera_bool_make_active_on_activation"
+    ):
+        return (
+            "Keep real execution limited to the exact Camera bool path "
+            "Controller|Configuration|Make active camera on activation? using a "
+            "live component id returned by admitted editor.component.add, with "
+            "before/write/after readback evidence and no public property list or "
+            "generic property write admission."
+        )
     if tool_name == "build.configure":
         return (
             "Keep real execution limited to dry-run preflight until configure "
@@ -217,6 +233,7 @@ def tool_supports_dry_run(tool_name: str) -> bool:
         "editor.component.find",
         "editor.component.add",
         "editor.component.property.get",
+        "editor.component.property.write.camera_bool_make_active_on_activation",
     }:
         return False
     return True

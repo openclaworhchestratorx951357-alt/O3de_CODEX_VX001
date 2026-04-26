@@ -31,6 +31,9 @@ _EDITOR_CHAIN_STEP_IDS = {
     "editor-entity-1",
     "editor-component-1",
     "editor-component-property-1",
+    "editor-camera-bool-before-1",
+    "editor-camera-bool-write-1",
+    "editor-camera-bool-after-1",
 }
 _EDITOR_ENTITY_EXISTS_STEP_IDS = {
     "editor-session-1",
@@ -1224,9 +1227,21 @@ class PromptOrchestratorService:
         component_find_response = self._latest_successful_response_for_step(
             session, "editor-component-find-1"
         )
+        camera_bool_before_response = self._latest_successful_response_for_step(
+            session,
+            "editor-camera-bool-before-1",
+        )
+        camera_bool_write_response = self._latest_successful_response_for_step(
+            session,
+            "editor-camera-bool-write-1",
+        )
+        camera_bool_after_response = self._latest_successful_response_for_step(
+            session,
+            "editor-camera-bool-after-1",
+        )
         property_response = self._latest_successful_response_for_step(
             session, "editor-component-property-1"
-        )
+        ) or camera_bool_after_response
         failed_response = None
         if session.status != PromptSessionStatus.COMPLETED:
             failed_response = next(
@@ -1247,6 +1262,7 @@ class PromptOrchestratorService:
             session=session,
             failed_response=failed_response,
             property_response=property_response,
+            camera_bool_write_response=camera_bool_write_response,
         )
         executed_actions = self._editor_executed_actions(
             session_response=session_response,
@@ -1255,6 +1271,9 @@ class PromptOrchestratorService:
             component_response=component_response,
             component_find_response=component_find_response,
             property_response=property_response,
+            camera_bool_before_response=camera_bool_before_response,
+            camera_bool_write_response=camera_bool_write_response,
+            camera_bool_after_response=camera_bool_after_response,
             failed_response=failed_response,
         )
         verified_facts = self._editor_verified_facts(
@@ -1262,6 +1281,9 @@ class PromptOrchestratorService:
             component_response=component_response,
             component_find_response=component_find_response,
             property_response=property_response,
+            camera_bool_before_response=camera_bool_before_response,
+            camera_bool_write_response=camera_bool_write_response,
+            camera_bool_after_response=camera_bool_after_response,
         )
         assumptions = self._editor_review_assumptions(
             session=session,
@@ -1269,12 +1291,14 @@ class PromptOrchestratorService:
             component_response=component_response,
             component_find_response=component_find_response,
             property_response=property_response,
+            camera_bool_write_response=camera_bool_write_response,
         )
         missing_proof = self._editor_missing_proof(
             session=session,
             result_label=result_label,
             failed_response=failed_response,
             property_response=property_response,
+            camera_bool_write_response=camera_bool_write_response,
         )
         safest_next_step = self._editor_safest_next_step(result_label=result_label)
 
@@ -1579,6 +1603,7 @@ class PromptOrchestratorService:
         session: PromptSessionRecord,
         failed_response: dict[str, Any] | None,
         property_response: dict[str, Any] | None,
+        camera_bool_write_response: dict[str, Any] | None,
     ) -> str:
         if failed_response is not None:
             step_id = failed_response.get("prompt_step_id")
@@ -1602,6 +1627,12 @@ class PromptOrchestratorService:
         )
         if requested_property_read and property_response is None:
             return "incomplete_readback_unavailable"
+        requested_camera_bool_write = any(
+            step.step_id == "editor-camera-bool-write-1"
+            for step in (session.plan.steps if session.plan is not None else [])
+        )
+        if requested_camera_bool_write and camera_bool_write_response is None:
+            return "incomplete_write_unavailable"
         if session.refused_capabilities:
             return "succeeded_partially_verified"
         return "succeeded_verified"
@@ -1615,6 +1646,9 @@ class PromptOrchestratorService:
         component_response: dict[str, Any] | None,
         component_find_response: dict[str, Any] | None,
         property_response: dict[str, Any] | None,
+        camera_bool_before_response: dict[str, Any] | None,
+        camera_bool_write_response: dict[str, Any] | None,
+        camera_bool_after_response: dict[str, Any] | None,
         failed_response: dict[str, Any] | None,
     ) -> list[str]:
         actions: list[str] = []
@@ -1697,6 +1731,31 @@ class PromptOrchestratorService:
             property_path = property_details.get("property_path")
             if property_path:
                 actions.append(f"Read back component property {property_path}.")
+        if camera_bool_before_response is not None:
+            details = camera_bool_before_response.get("execution_details", {})
+            property_path = details.get("property_path")
+            value = details.get("value")
+            if property_path is not None:
+                actions.append(
+                    f"Pre-read exact Camera bool property {property_path} = {value}."
+                )
+        if camera_bool_write_response is not None:
+            details = camera_bool_write_response.get("execution_details", {})
+            property_path = details.get("property_path")
+            requested_value = details.get("requested_value")
+            if property_path is not None:
+                actions.append(
+                    "Wrote exact admitted Camera bool property "
+                    f"{property_path} to {requested_value}."
+                )
+        if camera_bool_after_response is not None:
+            details = camera_bool_after_response.get("execution_details", {})
+            property_path = details.get("property_path")
+            value = details.get("value")
+            if property_path is not None:
+                actions.append(
+                    f"Post-read exact Camera bool property {property_path} = {value}."
+                )
 
         if failed_response is not None:
             failed_step_id = failed_response.get("prompt_step_id")
@@ -1704,6 +1763,18 @@ class PromptOrchestratorService:
                 actions.append("Stopped before component attachment could be verified.")
             elif failed_step_id == "editor-component-property-1":
                 actions.append("Stopped before requested component/property readback could be verified.")
+            elif failed_step_id == "editor-camera-bool-before-1":
+                actions.append(
+                    "Stopped before exact Camera bool pre-write readback could be verified."
+                )
+            elif failed_step_id == "editor-camera-bool-write-1":
+                actions.append(
+                    "Stopped before exact Camera bool write verification could complete."
+                )
+            elif failed_step_id == "editor-camera-bool-after-1":
+                actions.append(
+                    "Stopped before exact Camera bool post-write readback could be verified."
+                )
             elif failed_step_id == "editor-level-1":
                 actions.append("Stopped before the requested editor level could be confirmed.")
             elif failed_step_id == "editor-session-1":
@@ -1718,6 +1789,9 @@ class PromptOrchestratorService:
         component_response: dict[str, Any] | None,
         component_find_response: dict[str, Any] | None,
         property_response: dict[str, Any] | None,
+        camera_bool_before_response: dict[str, Any] | None,
+        camera_bool_write_response: dict[str, Any] | None,
+        camera_bool_after_response: dict[str, Any] | None,
     ) -> list[str]:
         facts: list[str] = []
         if entity_response is not None:
@@ -1773,6 +1847,34 @@ class PromptOrchestratorService:
             value = details.get("value")
             if property_path is not None and value is not None:
                 facts.append(f"Readback confirmed {property_path} = {value}.")
+        if camera_bool_before_response is not None:
+            details = camera_bool_before_response.get("execution_details", {})
+            property_path = details.get("property_path")
+            value = details.get("value")
+            if property_path is not None and isinstance(value, bool):
+                facts.append(
+                    f"Pre-write readback confirmed exact Camera bool {property_path} = {value}."
+                )
+        if camera_bool_write_response is not None:
+            details = camera_bool_write_response.get("execution_details", {})
+            property_path = details.get("property_path")
+            requested_value = details.get("requested_value")
+            write_verified = details.get("write_verified")
+            value = details.get("value")
+            if property_path is not None:
+                facts.append(
+                    "Write evidence confirmed exact Camera bool "
+                    f"{property_path} requested={requested_value}, "
+                    f"readback={value}, write_verified={write_verified}."
+                )
+        if camera_bool_after_response is not None:
+            details = camera_bool_after_response.get("execution_details", {})
+            property_path = details.get("property_path")
+            value = details.get("value")
+            if property_path is not None and isinstance(value, bool):
+                facts.append(
+                    f"Post-write readback confirmed exact Camera bool {property_path} = {value}."
+                )
 
         return facts
 
@@ -1784,6 +1886,7 @@ class PromptOrchestratorService:
         component_response: dict[str, Any] | None,
         component_find_response: dict[str, Any] | None,
         property_response: dict[str, Any] | None,
+        camera_bool_write_response: dict[str, Any] | None,
     ) -> list[str]:
         assumptions: list[str] = []
         if entity_response is not None and component_response is not None:
@@ -1797,6 +1900,10 @@ class PromptOrchestratorService:
         if component_find_response is not None and property_response is not None:
             assumptions.append(
                 "Component property readback relied on the persisted live component id returned by the immediately preceding admitted target-binding step."
+            )
+        if camera_bool_write_response is not None:
+            assumptions.append(
+                "The Camera bool write relied on live component id provenance and the restore boundary returned by the immediately preceding admitted component add step."
             )
         if any(
             step.planner_note
@@ -1819,6 +1926,7 @@ class PromptOrchestratorService:
         result_label: str,
         failed_response: dict[str, Any] | None,
         property_response: dict[str, Any] | None,
+        camera_bool_write_response: dict[str, Any] | None,
     ) -> list[str]:
         missing_proof: list[str] = []
         error_details: dict[str, Any] = {}
@@ -1874,6 +1982,16 @@ class PromptOrchestratorService:
             missing_proof.append(
                 "Requested component/property readback did not produce verified evidence on the admitted path."
             )
+        if result_label == "incomplete_write_unavailable":
+            missing_proof.append(
+                "Requested exact Camera bool write did not produce verified write evidence."
+            )
+        if camera_bool_write_response is not None:
+            missing_proof.append(
+                "No generalized undo, arbitrary property write, public property listing, "
+                "asset/material/render/build/TIAF behavior, or arbitrary Editor Python "
+                "was admitted or proven by this exact Camera bool corridor."
+            )
 
         if not missing_proof:
             missing_proof.append(
@@ -1898,6 +2016,8 @@ class PromptOrchestratorService:
             )
         if result_label == "failed_runtime_error":
             return "Review the recorded bridge/runtime error details before retrying the same admitted editor chain."
+        if result_label == "incomplete_write_unavailable":
+            return "Retry only the same exact Camera bool write corridor after confirming bridge readiness and approval state."
         if result_label == "succeeded_partially_verified":
             return "Use the existing admitted read-only editor checks to verify the next missing fact without widening into property writes or arbitrary Editor Python."
         return "Inspect the created editor objects in the loaded level or continue with another admitted read-only verification step."
