@@ -17,6 +17,7 @@ materials, assets, prefab work, hierarchy mutation, or build behavior.
 Read this together with:
 - `docs/PHASE-8-EDITOR-CANDIDATE-MUTATION-ENVELOPE.md`
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-TARGET-DISCOVERY.md`
+- `docs/PHASE-8-CAMERA-SCALAR-WRITE-CANDIDATE-DESIGN.md`
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md`
 - `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
 
@@ -95,11 +96,19 @@ Current blocker:
   `Controller|Configuration|Make active camera on activation?` as
   `readback_only_candidate`; this is a target-discovery result, not a write
   admission
+- the Camera bool path now has a design-only packet in
+  `docs/PHASE-8-CAMERA-SCALAR-WRITE-CANDIDATE-DESIGN.md`; that packet defines
+  future proof requirements but still does not implement, expose, or admit
+  property writes
 
 Do not use `Mesh` `Controller|Configuration|Model Asset` as the first write
 target unless a separate asset-reference proof exists. It is already useful as
 readback evidence, but writing it may imply asset identity, material, or product
 dependency behavior that this candidate does not cover.
+
+Do not treat the Camera bool path as prompt-admitted. Prompts that ask to set,
+change, toggle, or modify a component property must remain refused unless a
+future write corridor is explicitly implemented, proven, reviewed, and admitted.
 
 ## Explicit Non-Scope
 

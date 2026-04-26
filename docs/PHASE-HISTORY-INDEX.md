@@ -34,7 +34,7 @@ This index is based on:
 | Phase 5 | `docs/PHASE-5-CHECKPOINT.md` | reconstructed checkpoint | Production engineering baseline from README, local stack runbook, CI/Docker commits. |
 | Phase 6B | `docs/PHASE-6B-*` | contract/checkpoint family | Remote executor and execution-record planning/contracts. |
 | Phase 7 | `docs/PHASE-7-CHECKPOINT.md` | original checkpoint | Real adapter gate and narrow admitted hybrid/real paths. |
-| Phase 8 | `docs/PHASE-8-*` | active proof/checkpoint family | Editor guarded-autonomy and component/property target discovery. |
+| Phase 8 | `docs/PHASE-8-*` | active proof/checkpoint family | Editor guarded-autonomy, component/property target discovery, and design-only Camera scalar write candidate review. |
 
 ## Known Gaps
 
