@@ -58,10 +58,10 @@ _CANDIDATE_EDITOR_MUTATION_PATTERNS = (
         r"(?:the\s+|an?\s+)?(?:entity|object)\b"
     ),
     re.compile(
-        r"\b(?:set|update|write|change|modify)\s+"
+        r"\b(?:set|update|write|change|modify|toggle)\s+"
         r"(?:the\s+)?(?:component\s+)?property\b"
     ),
-    re.compile(r"\b(?:set|update|write|change|modify)\s+.+\bproperty\b"),
+    re.compile(r"\b(?:set|update|write|change|modify|toggle)\s+.+\bproperty\b"),
     re.compile(r"\b(?:set|update|write|change|modify|assign)\s+.+\bmodel asset\b"),
     re.compile(
         r"\b(?:remove|detach)\s+(?:the\s+|an?\s+)?"
