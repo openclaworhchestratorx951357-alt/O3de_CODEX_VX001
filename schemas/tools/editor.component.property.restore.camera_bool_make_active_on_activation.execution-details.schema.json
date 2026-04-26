@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/editor.component.property.restore.camera_bool_make_active_on_activation.execution-details.schema.json",
+  "title": "editor.component.property.restore.camera_bool_make_active_on_activation execution details",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "inspection_surface",
+    "execution_boundary",
+    "simulated"
+  ],
+  "properties": {
+    "inspection_surface": {
+      "type": "string",
+      "enum": ["simulated", "editor_camera_bool_property_restore"]
+    },
+    "execution_boundary": { "type": "string", "minLength": 1 },
+    "simulated": { "const": false },
+    "adapter_family": { "const": "editor-control" },
+    "adapter_mode": { "type": "string", "minLength": 1 },
+    "adapter_contract_version": { "type": "string", "minLength": 1 },
+    "capability_name": {
+      "const": "editor.component.property.restore.camera_bool_make_active_on_activation"
+    },
+    "approval_class": { "const": "content_write" },
+    "admission_class": { "const": "content_write" },
+    "real_path_available": { "type": "boolean" },
+    "component_name": { "const": "Camera" },
+    "component_id": { "type": "string", "minLength": 1 },
+    "component_id_provenance": {
+      "const": "admitted_runtime_component_add_result"
+    },
+    "property_path": {
+      "const": "Controller|Configuration|Make active camera on activation?"
+    },
+    "value_type": { "const": "bool" },
+    "before_value": { "type": "boolean" },
+    "current_value": { "type": "boolean" },
+    "restored_value": { "type": "boolean" },
+    "restored_readback": { "type": "boolean" },
+    "restore_verified": { "type": "boolean" },
+    "verification_status": {
+      "type": "string",
+      "enum": ["restored_readback_verified", "restored_readback_mismatch"]
+    },
+    "write_occurred": { "type": "boolean" },
+    "restore_occurred": { "type": "boolean" },
+    "proof_only": { "const": false },
+    "public_admission": { "const": true },
+    "restore_admission": { "const": true },
+    "write_admission": { "const": false },
+    "generic_property_write_admission": { "const": false },
+    "generalized_undo_available": { "const": false },
+    "property_list_admission": { "const": false },
+    "target_status": { "const": "admitted_exact_camera_bool_restore" },
+    "restore_boundary_id": { "type": "string", "minLength": 1 },
+    "restore_or_revert_guidance": { "type": "string", "minLength": 1 },
+    "loaded_level_path": { "type": "string", "minLength": 1 },
+    "level_path": { "type": "string", "minLength": 1 },
+    "editor_transport": { "type": "string", "enum": ["bridge"] },
+    "bridge_name": { "type": "string", "minLength": 1 },
+    "bridge_version": { "type": "string", "minLength": 1 },
+    "bridge_available": { "type": "boolean" },
+    "bridge_operation": { "const": "editor.camera.scalar.write.proof" },
+    "proof_bridge_operation": { "const": "editor.camera.scalar.write.proof" },
+    "bridge_contract_version": { "type": "string", "minLength": 1 },
+    "bridge_command_id": { "type": "string", "minLength": 1 },
+    "bridge_result_summary": { "type": "string", "minLength": 1 },
+    "bridge_error_code": { "type": "string", "minLength": 1 },
+    "bridge_heartbeat_seen_at": { "type": "string", "minLength": 1 },
+    "bridge_queue_mode": { "type": "string", "enum": ["filesystem-inbox"] },
+    "bridge_selected_entity_count": { "type": "integer" },
+    "bridge_prefab_context_notes": { "type": "string", "minLength": 1 },
+    "editor_log_path": { "type": "string", "minLength": 1 },
+    "exact_editor_apis": { "type": "array" }
+  }
+}

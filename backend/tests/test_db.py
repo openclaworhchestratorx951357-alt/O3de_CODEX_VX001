@@ -540,8 +540,8 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
     assert "$schema" in capability.active_metadata_keywords
     assert "allOf" in capability.supported_keywords
     assert "oneOf" in capability.unsupported_keywords
-    assert capability.persisted_execution_details_tool_count == 25
-    assert capability.persisted_artifact_metadata_tool_count == 25
+    assert capability.persisted_execution_details_tool_count == 26
+    assert capability.persisted_artifact_metadata_tool_count == 26
     assert capability.persisted_execution_details_tools == [
         "asset.batch.process",
         "asset.move.safe",
@@ -552,6 +552,7 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
         "editor.component.add",
         "editor.component.find",
         "editor.component.property.get",
+        "editor.component.property.restore.camera_bool_make_active_on_activation",
         "editor.component.property.write.camera_bool_make_active_on_activation",
         "editor.entity.create",
         "editor.entity.exists",
@@ -579,6 +580,7 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
         "editor.component.add",
         "editor.component.find",
         "editor.component.property.get",
+        "editor.component.property.restore.camera_bool_make_active_on_activation",
         "editor.component.property.write.camera_bool_make_active_on_activation",
         "editor.entity.create",
         "editor.entity.exists",
@@ -599,13 +601,14 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
     assert [item.model_dump() for item in capability.persisted_family_coverage] == [
         {
             "family": "editor-control",
-            "total_tools": 8,
-            "execution_details_tools": 8,
-            "artifact_metadata_tools": 8,
+            "total_tools": 9,
+            "execution_details_tools": 9,
+            "artifact_metadata_tools": 9,
             "covered_tools": [
                 "editor.component.add",
                 "editor.component.find",
                 "editor.component.property.get",
+                "editor.component.property.restore.camera_bool_make_active_on_activation",
                 "editor.component.property.write.camera_bool_make_active_on_activation",
                 "editor.entity.create",
                 "editor.entity.exists",

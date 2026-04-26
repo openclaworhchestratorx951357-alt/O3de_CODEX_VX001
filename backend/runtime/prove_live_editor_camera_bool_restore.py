@@ -40,6 +40,9 @@ def require_adapters_boundary(adapters_payload: dict[str, Any]) -> dict[str, Any
     real_tool_paths = _adapter_payload(adapters_payload).get("real_tool_paths")
     if not isinstance(real_tool_paths, list):
         raise CameraBoolRestoreProofError("GET /adapters did not expose real_tool_paths.")
+    gated_tool_paths = _adapter_payload(adapters_payload).get("gated_tool_paths")
+    if not isinstance(gated_tool_paths, list):
+        gated_tool_paths = []
     forbidden_paths = {
         "editor.component.property.list",
         "editor.component.property.write",
@@ -47,13 +50,21 @@ def require_adapters_boundary(adapters_payload: dict[str, Any]) -> dict[str, Any
         "editor.component.property.set",
         camera_write.CAMERA_SCALAR_WRITE_PROOF_OPERATION,
         RESTORE_PROOF_OPERATION,
-        PROPOSED_PUBLIC_RESTORE_CAPABILITY,
     }
-    exposed = sorted(forbidden_paths.intersection(str(item) for item in real_tool_paths))
+    exposed = sorted(
+        forbidden_paths.intersection(
+            str(item) for item in [*real_tool_paths, *gated_tool_paths]
+        )
+    )
     if exposed:
         raise CameraBoolRestoreProofError(
             f"GET /adapters exposes proof-only, write, or restore paths: {exposed}."
         )
+    public_restore_admitted = (
+        PROPOSED_PUBLIC_RESTORE_CAPABILITY in {str(item) for item in gated_tool_paths}
+    )
+    adapter_status = dict(adapter_status)
+    adapter_status["public_restore_capability_admitted"] = public_restore_admitted
     return adapter_status
 
 
@@ -237,7 +248,10 @@ def build_success_summary(
         "property_list_admission": False,
         "public_admission": False,
         "public_restore_capability": PROPOSED_PUBLIC_RESTORE_CAPABILITY,
-        "public_restore_capability_admitted": False,
+        "public_restore_capability_admitted": adapters_boundary.get(
+            "public_restore_capability_admitted",
+            False,
+        ),
         "private_write_bridge_operation": camera_write.CAMERA_SCALAR_WRITE_PROOF_OPERATION,
         "private_restore_proof_operation": RESTORE_PROOF_OPERATION,
         "adapters_boundary": {
@@ -247,6 +261,10 @@ def build_success_summary(
             "property_write_exposed": False,
             "property_restore_exposed": False,
             "camera_restore_proof_exposed": False,
+            "public_restore_capability_admitted": adapters_boundary.get(
+                "public_restore_capability_admitted",
+                False,
+            ),
         },
         "mutation_occurred": True,
         "verified_facts": [
@@ -273,7 +291,10 @@ def build_success_summary(
             ),
         ],
         "missing_proof": [
-            "No public restore/revert corridor was admitted.",
+            (
+                "The proof driver did not execute the public restore corridor; "
+                "it reran the private proof-only restore path for admission evidence."
+            ),
             "No generalized undo, arbitrary scene rollback, or viewport reload was proven.",
             "No generic property write or generic property restore was admitted.",
             "No public editor.component.property.list admission occurred.",

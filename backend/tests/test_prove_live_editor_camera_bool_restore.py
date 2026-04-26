@@ -190,7 +190,6 @@ def test_allowed_restore_target_rejects_generic_or_unproven_restore(
         "editor.component.property.list",
         "editor.component.property.write",
         "editor.component.property.restore",
-        "editor.component.property.restore.camera_bool_make_active_on_activation",
         "editor.camera.bool.restore.proof",
     ],
 )
@@ -271,14 +270,41 @@ def test_restored_readback_mismatch_prevents_success_summary() -> None:
         )
 
 
-def test_public_restore_capability_remains_unadmitted_in_public_surfaces() -> None:
+def test_adapters_boundary_allows_exact_public_restore_corridor_when_gated() -> None:
+    module = load_proof_module()
     capability = "editor.component.property.restore.camera_bool_make_active_on_activation"
-    public_surface_files = [
-        REPO_ROOT / "backend" / "app" / "services" / "capability_registry.py",
-        REPO_ROOT / "backend" / "app" / "services" / "catalog.py",
-        REPO_ROOT / "backend" / "app" / "api" / "routes" / "adapters.py",
-        REPO_ROOT / "backend" / "app" / "services" / "prompt_orchestrator.py",
-    ]
 
-    for path in public_surface_files:
-        assert capability not in path.read_text(encoding="utf-8")
+    boundary = module.require_adapters_boundary(
+        {
+            "adapters": {
+                "configured_mode": "hybrid",
+                "active_mode": "hybrid",
+                "real_tool_paths": [
+                    "editor.session.open",
+                    "editor.level.open",
+                ],
+                "gated_tool_paths": [capability],
+            }
+        }
+    )
+
+    assert boundary["public_restore_capability_admitted"] is True
+
+
+def test_success_summary_records_public_restore_admission_when_adapter_gated() -> None:
+    module = load_proof_module()
+
+    summary = module.build_success_summary(
+        safe_level_info={"selected_level_path": "Levels/TestLoevel01"},
+        runtime_steps=runtime_steps(),
+        adapters_boundary={
+            "active_mode": "hybrid",
+            "configured_mode": "hybrid",
+            "public_restore_capability_admitted": True,
+        },
+    )
+
+    assert summary["proof_only"] is True
+    assert summary["restore_admission"] is False
+    assert summary["public_restore_capability_admitted"] is True
+    assert "proof-only restore path" in summary["missing_proof"][0]

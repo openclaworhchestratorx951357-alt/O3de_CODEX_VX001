@@ -26,10 +26,14 @@ _FOUND_COMPONENT_ID_REF = "$step:editor-component-find-1.component_id"
 _CAMERA_BOOL_WRITE_CAPABILITY = (
     "editor.component.property.write.camera_bool_make_active_on_activation"
 )
+_CAMERA_BOOL_RESTORE_CAPABILITY = (
+    "editor.component.property.restore.camera_bool_make_active_on_activation"
+)
 _CAMERA_BOOL_WRITE_PROPERTY_PATH = (
     "Controller|Configuration|Make active camera on activation?"
 )
 _CAMERA_BOOL_WRITE_BEFORE_VALUE_REF = "$step:editor-camera-bool-before-1.value"
+_CAMERA_BOOL_RESTORE_CURRENT_VALUE_REF = "$step:editor-camera-bool-current-1.value"
 _ADMITTED_COMPONENT_PROPERTY_READ_PATHS = {
     "Camera": _CAMERA_BOOL_WRITE_PROPERTY_PATH,
     "Mesh": "Controller|Configuration|Model Asset",
@@ -39,6 +43,7 @@ _ENTITY_EXISTS_STEP_ID = "editor-entity-exists-1"
 _COMPONENT_FIND_STEP_ID = "editor-component-find-1"
 CANDIDATE_EDITOR_MUTATION_REFUSAL = "editor.candidate_mutation.unsupported"
 EDITOR_PROPERTY_DISCOVERY_REFUSAL = "editor.component.property.list.unsupported"
+EDITOR_GENERIC_RESTORE_REFUSAL = "editor.restore.unsupported"
 _CANDIDATE_EDITOR_MUTATION_REQUIREMENT = (
     "Candidate editor mutation surfaces require explicit backup, restore/reload "
     "verification, post-restore absence or readback verification, and "
@@ -55,6 +60,18 @@ _CAMERA_BOOL_WRITE_REQUIREMENT = (
     "a bool value, live component id provenance from admitted editor.component.add, "
     "approval, before/write/after readback evidence, and a loaded-level restore "
     "boundary. It does not admit generic property writes."
+)
+_CAMERA_BOOL_RESTORE_REQUIREMENT = (
+    "The admitted Camera bool restore corridor requires the exact Camera component, "
+    "the exact Controller|Configuration|Make active camera on activation? path, "
+    "a recorded bool before_value, live component id provenance from admitted "
+    "editor.component.add, approval, current/restore/readback evidence, and no "
+    "generic restore or generalized undo."
+)
+_GENERIC_RESTORE_REQUIREMENT = (
+    "Restore or undo prompts require a separately admitted exact corridor with "
+    "recorded before-value evidence; generic restore and generalized undo are not "
+    "admitted."
 )
 _CANDIDATE_EDITOR_MUTATION_PATTERNS = (
     re.compile(
@@ -194,6 +211,11 @@ def _requires_property_discovery_admission(prompt_text: str) -> bool:
     )
 
 
+def _requires_generic_restore_admission(prompt_text: str) -> bool:
+    normalized = prompt_text.lower()
+    return re.search(r"\b(?:undo|restore|revert|rollback)\b", normalized) is not None
+
+
 def _extract_requested_bool_value(prompt_text: str) -> bool | None:
     normalized = prompt_text.lower()
     match = re.search(r"\b(?:to|as|value)\s+(true|false)\b", normalized)
@@ -221,6 +243,25 @@ def _extract_camera_bool_write_request(prompt_text: str) -> dict[str, object] | 
     if requested_value is None:
         return None
     return {"value": requested_value}
+
+
+def _extract_camera_bool_restore_request(prompt_text: str) -> dict[str, object] | None:
+    normalized = prompt_text.lower()
+    if "camera" not in normalized:
+        return None
+    if (
+        _CAMERA_BOOL_WRITE_PROPERTY_PATH.lower() not in normalized
+        and "make active camera on activation" not in normalized
+        and "make-active-on-activation" not in normalized
+        and "active camera on activation" not in normalized
+    ):
+        return None
+    if not contains_any(prompt_text, ["restore", "revert"]):
+        return None
+    before_value = _extract_requested_bool_value(prompt_text)
+    if before_value is None:
+        return {"missing_before_value": True}
+    return {"before_value": before_value}
 
 
 def _extract_camera_bool_read_request(prompt_text: str) -> dict[str, object] | None:
@@ -291,6 +332,7 @@ def plan_editor_prompt(
 ) -> tuple[list[PromptPlanStep], list[str], list[str]]:
     prompt_text = request.prompt_text
     camera_bool_write_request = _extract_camera_bool_write_request(prompt_text)
+    camera_bool_restore_request = _extract_camera_bool_restore_request(prompt_text)
     camera_bool_read_request = _extract_camera_bool_read_request(prompt_text)
     wants_entity_create = contains_any(
         prompt_text,
@@ -343,6 +385,7 @@ def plan_editor_prompt(
             "editor.component.find",
             "editor.component.property.get",
             _CAMERA_BOOL_WRITE_CAPABILITY,
+            _CAMERA_BOOL_RESTORE_CAPABILITY,
         )
     }
     steps: list[PromptPlanStep] = []
@@ -366,9 +409,39 @@ def plan_editor_prompt(
         requirements.append(_CAMERA_BOOL_WRITE_REQUIREMENT)
         return steps, refusals, requirements
 
+    if camera_bool_restore_request is not None and camera_bool_restore_request.get(
+        "missing_before_value"
+    ):
+        refusals.append(
+            f"{_CAMERA_BOOL_RESTORE_CAPABILITY} requires recorded bool "
+            "before_value evidence in the prompt."
+        )
+        requirements.append(_CAMERA_BOOL_RESTORE_REQUIREMENT)
+        return steps, refusals, requirements
+
+    if camera_bool_restore_request is not None and not (
+        wants_entity_create and _requests_same_chain_camera_component(prompt_text)
+    ):
+        refusals.append(
+            f"{_CAMERA_BOOL_RESTORE_CAPABILITY} requires a same-chain temporary "
+            "entity plus admitted Camera component add and recorded before_value "
+            "evidence before the exact bool restore."
+        )
+        requirements.append(_CAMERA_BOOL_RESTORE_REQUIREMENT)
+        return steps, refusals, requirements
+
+    if (
+        _requires_generic_restore_admission(prompt_text)
+        and camera_bool_restore_request is None
+    ):
+        refusals.append(EDITOR_GENERIC_RESTORE_REFUSAL)
+        requirements.append(_GENERIC_RESTORE_REQUIREMENT)
+        return steps, refusals, requirements
+
     if (
         _requires_candidate_editor_mutation_admission(prompt_text)
         and camera_bool_write_request is None
+        and camera_bool_restore_request is None
     ):
         refusals.append(CANDIDATE_EDITOR_MUTATION_REFUSAL)
         requirements.append(_CANDIDATE_EDITOR_MUTATION_REQUIREMENT)
@@ -688,6 +761,83 @@ def plan_editor_prompt(
                 "component add step in the same prompt chain."
             )
             requirements.append(_CAMERA_BOOL_WRITE_REQUIREMENT)
+
+    if camera_bool_restore_request is not None:
+        property_capability = capabilities["editor.component.property.get"]
+        restore_capability = capabilities[_CAMERA_BOOL_RESTORE_CAPABILITY]
+        if (
+            planned_component_name == "Camera"
+            and property_capability is not None
+            and restore_capability is not None
+        ):
+            read_args: dict[str, object] = {
+                "component_id": _ADDED_COMPONENT_ID_REF,
+                "property_path": _CAMERA_BOOL_WRITE_PROPERTY_PATH,
+            }
+            if level_path:
+                read_args["level_path"] = level_path
+            steps.append(
+                make_step(
+                    step_id="editor-camera-bool-current-1",
+                    capability=property_capability,
+                    request=request,
+                    args=read_args,
+                    depends_on=["editor-component-1"],
+                    planner_note=(
+                        "Read the exact Camera bool property immediately before "
+                        "the approval-gated restore."
+                    ),
+                )
+            )
+            restore_args: dict[str, object] = {
+                "component_name": "Camera",
+                "component_id": _ADDED_COMPONENT_ID_REF,
+                "component_id_provenance": _ADDED_COMPONENT_ID_PROVENANCE_REF,
+                "property_path": _CAMERA_BOOL_WRITE_PROPERTY_PATH,
+                "before_value": camera_bool_restore_request["before_value"],
+                "expected_current_value": _CAMERA_BOOL_RESTORE_CURRENT_VALUE_REF,
+                "restore_boundary_id": _ADDED_COMPONENT_RESTORE_BOUNDARY_REF,
+            }
+            if level_path:
+                restore_args["level_path"] = level_path
+            steps.append(
+                make_step(
+                    step_id="editor-camera-bool-restore-1",
+                    capability=restore_capability,
+                    request=request,
+                    args=restore_args,
+                    depends_on=["editor-camera-bool-current-1"],
+                    planner_note=(
+                        "Restore only the exact admitted Camera bool property to "
+                        "the recorded before_value using the live component id and "
+                        "restore boundary returned by admitted Camera component add."
+                    ),
+                )
+            )
+            restored_args = dict(read_args)
+            steps.append(
+                make_step(
+                    step_id="editor-camera-bool-restored-1",
+                    capability=property_capability,
+                    request=request,
+                    args=restored_args,
+                    depends_on=["editor-camera-bool-restore-1"],
+                    planner_note=(
+                        "Post-read the exact admitted Camera bool property to "
+                        "verify the restored value."
+                    ),
+                )
+            )
+            for capability in (property_capability, restore_capability):
+                requirement = capability_requirement_note(capability)
+                if requirement:
+                    requirements.append(requirement)
+        else:
+            refusals.append(
+                f"{_CAMERA_BOOL_RESTORE_CAPABILITY} requires an admitted Camera "
+                "component add step in the same prompt chain."
+            )
+            requirements.append(_CAMERA_BOOL_RESTORE_REQUIREMENT)
 
     if wants_property_read:
         property_capability = capabilities["editor.component.property.get"]

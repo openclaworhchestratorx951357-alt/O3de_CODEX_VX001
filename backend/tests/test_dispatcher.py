@@ -15,6 +15,7 @@ from app.services.approvals import approvals_service
 from app.services.artifacts import artifacts_service
 from app.services.adapters import AdapterExecutionRejected, adapter_service
 from app.services.editor_automation_runtime import (
+    CAMERA_BOOL_RESTORE_CAPABILITY,
     CAMERA_BOOL_WRITE_CAPABILITY,
     CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
     CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
@@ -784,6 +785,34 @@ def make_camera_bool_write_request(
     return request
 
 
+def make_camera_bool_restore_request(
+    *,
+    project_root: str = "/tmp/project",
+    component_name: str = CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
+    property_path: str = CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
+    before_value: object = False,
+) -> RequestEnvelope:
+    request = make_request(
+        "editor-control",
+        CAMERA_BOOL_RESTORE_CAPABILITY,
+        project_root=project_root,
+        dry_run=False,
+    )
+    request.args = {
+        "component_name": component_name,
+        "component_id": "EntityComponentIdPair(EntityId(101), 301)",
+        "component_id_provenance": (
+            COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+        ),
+        "property_path": property_path,
+        "before_value": before_value,
+        "expected_current_value": True,
+        "level_path": "Levels/Main.level",
+        "restore_boundary_id": "restore-boundary-1",
+    }
+    return request
+
+
 def approve_camera_bool_write_request(**overrides: object) -> RequestEnvelope:
     first = dispatcher_service.dispatch(make_camera_bool_write_request(**overrides))
     approval = approvals_service.get_approval(first.approval_id or "")
@@ -791,6 +820,17 @@ def approve_camera_bool_write_request(**overrides: object) -> RequestEnvelope:
     approvals_service.approve(approval.id)
 
     approved_request = make_camera_bool_write_request(**overrides)
+    approved_request.approval_token = approval.token
+    return approved_request
+
+
+def approve_camera_bool_restore_request(**overrides: object) -> RequestEnvelope:
+    first = dispatcher_service.dispatch(make_camera_bool_restore_request(**overrides))
+    approval = approvals_service.get_approval(first.approval_id or "")
+    assert approval is not None
+    approvals_service.approve(approval.id)
+
+    approved_request = make_camera_bool_restore_request(**overrides)
     approved_request.approval_token = approval.token
     return approved_request
 
@@ -4363,6 +4403,113 @@ def test_exact_camera_bool_write_uses_real_runtime_in_hybrid_mode() -> None:
         assert artifact is not None
         assert artifact.metadata["inspection_surface"] == "editor_camera_bool_property_write"
         assert artifact.metadata["capability_name"] == CAMERA_BOOL_WRITE_CAPABILITY
+
+
+def test_exact_camera_bool_restore_uses_real_runtime_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        write_editor_project_manifest(project_root)
+
+        request = approve_camera_bool_restore_request(project_root=str(project_root))
+        runtime_result = {
+            "ok": True,
+            "message": (
+                "Camera bool scalar property was restored through the exact "
+                "admitted public restore corridor."
+            ),
+            "tool": CAMERA_BOOL_RESTORE_CAPABILITY,
+            "capability_name": CAMERA_BOOL_RESTORE_CAPABILITY,
+            "proof_bridge_operation": "editor.camera.scalar.write.proof",
+            "proof_only": False,
+            "public_admission": True,
+            "restore_admission": True,
+            "write_admission": False,
+            "generic_property_write_admission": False,
+            "admission_class": "content_write",
+            "generalized_undo_available": False,
+            "property_list_admission": False,
+            "component_name": CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
+            "component_id": "EntityComponentIdPair(EntityId(101), 301)",
+            "component_id_provenance": (
+                COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+            ),
+            "property_path": CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
+            "value_type": "bool",
+            "before_value": False,
+            "current_value": True,
+            "restored_value": False,
+            "restored_readback": False,
+            "restore_verified": True,
+            "verification_status": "restored_readback_verified",
+            "write_occurred": True,
+            "restore_occurred": True,
+            "restore_boundary_id": "restore-boundary-1",
+            "target_status": "admitted_exact_camera_bool_restore",
+            "restore_or_revert_guidance": (
+                "This is not generalized undo. Restore only the recorded before_value."
+            ),
+            "level_path": "Levels/Main.level",
+            "loaded_level_path": "Levels/Main.level",
+            "exact_editor_apis": [
+                "ControlPlaneEditorBridge filesystem inbox",
+                "editor.camera.scalar.write.proof",
+                "EditorComponentAPIBus.GetComponentProperty",
+                "EditorComponentAPIBus.SetComponentProperty",
+            ],
+            "bridge_available": True,
+            "bridge_name": "ControlPlaneEditorBridge",
+            "bridge_version": "0.1.0",
+            "bridge_operation": "editor.camera.scalar.write.proof",
+            "bridge_contract_version": "v1",
+            "bridge_command_id": "bridge-camera-bool-restore-1",
+            "bridge_result_summary": "Camera scalar bool property restore was verified.",
+            "bridge_heartbeat_seen_at": "2026-04-26T00:00:01Z",
+            "bridge_queue_mode": "filesystem-inbox",
+            "editor_transport": "bridge",
+        }
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_camera_bool_make_active_on_activation_restore",
+                return_value={
+                    "runtime_result": runtime_result,
+                    "runner_command": ["fake-editor-runner"],
+                    "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+                },
+            ):
+                response = dispatcher_service.dispatch(request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.tool == CAMERA_BOOL_RESTORE_CAPABILITY
+        assert response.result.execution_mode == "real"
+        assert response.result.simulated is False
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == response.operation_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "editor_camera_bool_property_restore"
+        assert execution.details["component_name"] == CAMERA_SCALAR_WRITE_PROOF_COMPONENT
+        assert execution.details["property_path"] == CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH
+        assert execution.details["before_value"] is False
+        assert execution.details["current_value"] is True
+        assert execution.details["restored_readback"] is False
+        assert execution.details["restore_verified"] is True
+        assert execution.details["capability_name"] == CAMERA_BOOL_RESTORE_CAPABILITY
+        assert execution.details["approval_class"] == "content_write"
+        assert execution.details["admission_class"] == "content_write"
+        assert execution.details["generalized_undo_available"] is False
+        assert execution.details["public_admission"] is True
+        assert execution.details["restore_admission"] is True
+        assert execution.details["write_admission"] is False
+        assert execution.details["property_list_admission"] is False
+        assert artifact is not None
+        assert artifact.metadata["inspection_surface"] == (
+            "editor_camera_bool_property_restore"
+        )
+        assert artifact.metadata["capability_name"] == CAMERA_BOOL_RESTORE_CAPABILITY
 
 
 def test_editor_component_find_uses_real_runtime_with_live_provenance() -> None:

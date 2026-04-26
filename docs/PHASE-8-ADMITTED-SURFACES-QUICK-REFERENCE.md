@@ -15,6 +15,7 @@ Phase 8 is focused on guarded O3DE Editor component/property automation.
 The current truth is narrow:
 
 - one exact Camera bool write corridor is publicly admitted
+- one exact Camera bool restore corridor is publicly admitted
 - the same exact Camera bool property has a read-only operator affordance
 - broad property writes remain blocked
 - public property listing remains unavailable
@@ -53,6 +54,16 @@ This reads the same exact Camera bool property on one explicit target entity.
 It reports current value evidence and must state that it is read-only and that
 no write occurred.
 
+Exact Camera bool restore corridor:
+
+```text
+editor.component.property.restore.camera_bool_make_active_on_activation
+```
+
+This is approval-gated and is not generic restore or generalized undo. It may
+restore only the same exact Camera bool property to recorded bool before-value
+evidence.
+
 ## Proof-Only Surfaces
 
 These are evidence-producing or regression-proof surfaces only. They must not
@@ -66,12 +77,6 @@ admission.
 - Comment scalar target discovery proofs
 - component property-list bridge candidate proofs
 
-The proposed future restore capability remains unadmitted:
-
-```text
-editor.component.property.restore.camera_bool_make_active_on_activation
-```
-
 Runtime proof JSON remains ignored unless a separate checkpoint summary is
 intentionally committed.
 
@@ -80,12 +85,13 @@ intentionally committed.
 These remain blocked or unadmitted:
 
 - generic `editor.component.property.write`
-- public `editor.component.property.restore`
+- generic `editor.component.property.restore`
 - generic property discovery/listing
 - non-Camera property writes
 - non-bool Camera writes
 - arbitrary Camera property writes
 - arbitrary property paths
+- restore without recorded before-value evidence
 - discovery-before-write flows for unknown existing targets
 - prefab-derived component ids as live write targets
 
@@ -127,6 +133,13 @@ Open level "Levels/Main.level", create entity named "CameraWriteProof", add a Ca
 Open level "Levels/Main.level", create entity named "CameraWriteProof", attach a Camera component, then change Controller|Configuration|Make active camera on activation? to true.
 ```
 
+Approval-gated exact Camera bool restore on a same-chain temporary target with
+recorded before-value evidence:
+
+```text
+Open level "Levels/Main.level", create entity named "CameraRestoreProof", add a Camera component, then restore the Camera make active camera on activation bool to the recorded before value true.
+```
+
 ## Refused Prompt Examples
 
 Public property list request:
@@ -139,6 +152,12 @@ Generic write request:
 
 ```text
 Set any component property I ask for.
+```
+
+Generic restore request:
+
+```text
+Undo the last editor change.
 ```
 
 Non-selected Camera property request:
@@ -183,6 +202,27 @@ Every admitted exact Camera bool write must return reviewable evidence:
 - `property_list_admission: false`
 - `generalized_undo_available: false`
 - restore or revert guidance that does not claim generalized undo
+
+## Required Evidence For Admitted Camera Bool Restore
+
+Every admitted exact Camera bool restore must return reviewable evidence:
+
+- capability name
+  `editor.component.property.restore.camera_bool_make_active_on_activation`
+- target entity from the same admitted prompt chain
+- component `Camera`
+- property path `Controller|Configuration|Make active camera on activation?`
+- recorded before value
+- current value before restore
+- restored value
+- restored readback
+- verification status or `restore_verified`
+- approval/admission class
+- `restore_occurred: true`
+- `write_admission: false`
+- `generic_property_write_admission: false`
+- `property_list_admission: false`
+- `generalized_undo_available: false`
 
 ## Required Evidence For Readback-Only Request
 
