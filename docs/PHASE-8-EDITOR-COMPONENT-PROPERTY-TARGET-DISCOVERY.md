@@ -43,18 +43,22 @@ Current broad property discovery behavior also remains refused:
 - No editor session plan should be compiled for those prompts.
 - No component property list bridge operation is dispatcher/catalog-admitted.
 
-Current bridge readiness blocker:
+Current bridge/property-list proof status:
 - the repo-owned setup script now defines a proof-only
   `editor.component.property.list` operation.
 - the canonical McpSandbox bridge source was refreshed from that setup packet
   and the Editor bridge host was restarted on `2026-04-26`.
 - backend, canonical Editor, and bridge heartbeat readiness were recovered for
-  a future proof-only property-list run.
+  a proof-only property-list run.
+- `powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-property-list-proof`
+  succeeded on `2026-04-26`.
+- the proof used already-admitted temporary target provisioning
+  (`editor.entity.create` plus Mesh-only `editor.component.add`) because
+  prefab-derived component ids are not stable live Editor entity ids.
 - the operation is still not dispatcher/catalog-admitted, not prompt-admitted,
-  and not live-proven.
+  and not exposed through `/adapters`.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-LIST-BRIDGE-CANDIDATE.md`
-  records the readiness checkpoint and the remaining proof gates before this
-  discovery packet can run.
+  records the proof artifact path, restore boundary, and remaining non-scope.
 
 ## Discovery Goal
 
