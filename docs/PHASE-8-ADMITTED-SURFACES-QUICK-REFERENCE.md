@@ -66,6 +66,12 @@ admission.
 - Comment scalar target discovery proofs
 - component property-list bridge candidate proofs
 
+The proposed future restore capability remains unadmitted:
+
+```text
+editor.component.property.restore.camera_bool_make_active_on_activation
+```
+
 Runtime proof JSON remains ignored unless a separate checkpoint summary is
 intentionally committed.
 

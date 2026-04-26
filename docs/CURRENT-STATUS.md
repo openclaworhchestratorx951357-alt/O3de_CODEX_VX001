@@ -140,11 +140,17 @@ The proof-only restore harness is recorded in
 and loaded-level cleanup restore `restored_and_verified`. Public restore/revert
 remains unadmitted and generalized undo remains unproven.
 
+The restore admission decision is recorded in
+`docs/PHASE-8-CAMERA-BOOL-RESTORE-ADMISSION-DECISION.md`. It keeps restore
+proof-only for now while allowing the proof to become the basis for a future
+exact public restore corridor only after explicit high-risk approval.
+
 ## Recommended Next Packets
 
 1. If Phase 8 continues, use an admission decision packet before any public
-   Camera bool restore/revert corridor. Do not jump from proof-only restore
-   evidence to public restore admission.
+   Camera bool restore/revert corridor. The decision now exists; do not start
+   implementation without explicit high-risk approval for the exact public
+   restore corridor.
 2. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 3. Continue repository professionalization in small docs-only packets when the

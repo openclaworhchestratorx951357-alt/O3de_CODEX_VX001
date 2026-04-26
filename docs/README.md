@@ -45,6 +45,8 @@ rounding up capability claims.
   exact corridor is ready for a future proof-only restore/revert packet.
 - `docs/PHASE-8-CAMERA-BOOL-RESTORE-LIVE-PROOF.md` records the proof-only
   reverse-write restore evidence for the exact Camera bool corridor.
+- `docs/PHASE-8-CAMERA-BOOL-RESTORE-ADMISSION-DECISION.md` keeps that restore
+  evidence proof-only while naming the future exact public corridor candidate.
 - `docs/PHASE-8-CAMERA-BOOL-OPERATOR-EXAMPLES.md` gives safe operator prompt
   examples for the exact Camera bool readback/write corridor.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
@@ -109,6 +111,7 @@ rounding up capability claims.
 - `docs/PHASE-8-CAMERA-BOOL-ROLLBACK-RESTORE-DESIGN.md`
 - `docs/PHASE-8-CAMERA-BOOL-RESTORE-READINESS-AUDIT.md`
 - `docs/PHASE-8-CAMERA-BOOL-RESTORE-LIVE-PROOF.md`
+- `docs/PHASE-8-CAMERA-BOOL-RESTORE-ADMISSION-DECISION.md`
 - `docs/PHASE-8-CAMERA-BOOL-OPERATOR-EXAMPLES.md`
 - `docs/PHASE-8-EDITOR-COMPONENT-FIND-LIVE-PROOF.md`
 - `docs/PHASE-8-EDITOR-PROPERTY-TARGET-READBACK-PROOF.md`
