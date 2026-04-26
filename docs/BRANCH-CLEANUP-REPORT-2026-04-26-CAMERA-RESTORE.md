@@ -7,6 +7,10 @@ Inspection date: 2026-04-26
 This report refreshes branch cleanup truth after the Camera bool restore
 proof/admission/review/examples sequence, including PRs #55-#57.
 
+The next repo-wide supervisor cleanup report is
+`docs/BRANCH-CLEANUP-REPORT-SUPERVISOR-BATCH-01.md`. It records a broader
+15-branch cleanup batch after the Camera restore-specific cleanup packets.
+
 This report records four approved single-branch deletion audits and one
 supervisor-controlled batch deletion audit. The earlier single-branch audits
 deleted:
