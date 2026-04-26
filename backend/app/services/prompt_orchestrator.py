@@ -1845,8 +1845,54 @@ class PromptOrchestratorService:
             details = property_response.get("execution_details", {})
             property_path = details.get("property_path")
             value = details.get("value")
+            value_type = details.get("value_type")
+            read_only = details.get("read_only", True)
+            write_occurred = details.get("write_occurred", False)
             if property_path is not None and value is not None:
-                facts.append(f"Readback confirmed {property_path} = {value}.")
+                component_id = details.get("component_id")
+                component_find_details = (
+                    component_find_response.get("execution_details", {})
+                    if component_find_response
+                    else {}
+                )
+                component_details = (
+                    component_response.get("execution_details", {})
+                    if component_response
+                    else {}
+                )
+                component_name = component_find_details.get("component_name")
+                entity_label = (
+                    component_find_details.get("entity_name")
+                    or component_find_details.get("entity_id")
+                )
+                if not component_name:
+                    added_refs = component_details.get("added_component_refs")
+                    added_components = component_details.get("added_components")
+                    if (
+                        isinstance(added_refs, list)
+                        and added_refs
+                        and isinstance(added_refs[0], dict)
+                        and added_refs[0].get("component_id") == component_id
+                        and isinstance(added_components, list)
+                        and added_components
+                    ):
+                        component_name = str(added_components[0])
+                    entity_label = entity_label or component_details.get("entity_id")
+                if (
+                    component_name == "Camera"
+                    and property_path
+                    == "Controller|Configuration|Make active camera on activation?"
+                    and isinstance(value, bool)
+                ):
+                    facts.append(
+                        "Camera bool readback target "
+                        f"entity {entity_label or 'unknown'}, component Camera, "
+                        f"property {property_path}; value_type={value_type or 'bool'}, "
+                        f"current_value={value}, read_only={read_only}, "
+                        f"write_occurred={write_occurred}."
+                    )
+                else:
+                    facts.append(f"Readback confirmed {property_path} = {value}.")
         if camera_bool_before_response is not None:
             details = camera_bool_before_response.get("execution_details", {})
             property_path = details.get("property_path")

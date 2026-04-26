@@ -4198,6 +4198,8 @@ def test_editor_component_property_get_uses_real_runtime_in_hybrid_mode() -> Non
                         "property_path": "Controller|Configuration|Model Asset",
                         "value": "objects/example.azmodel",
                         "value_type": "AZ::Data::Asset<AZ::Data::AssetData>",
+                        "read_only": True,
+                        "write_occurred": False,
                         "entity_id": "101",
                         "level_path": "Levels/Main.level",
                         "loaded_level_path": "Levels/Main.level",
@@ -4240,6 +4242,8 @@ def test_editor_component_property_get_uses_real_runtime_in_hybrid_mode() -> Non
         assert execution.details["property_path"] == "Controller|Configuration|Model Asset"
         assert execution.details["value"] == "objects/example.azmodel"
         assert execution.details["value_type"] == "AZ::Data::Asset<AZ::Data::AssetData>"
+        assert execution.details["read_only"] is True
+        assert execution.details["write_occurred"] is False
         assert execution.details["entity_id"] == "101"
         assert execution.details["bridge_available"] is True
         assert execution.details["bridge_operation"] == "editor.component.property.get"

@@ -44,6 +44,9 @@ Current admitted editor/runtime truth:
   binding.
 - `editor.component.property.get` is admitted hybrid read-only for explicit
   runtime-proven component ids and known property paths.
+- the exact Camera bool property can now be inspected read-only through the
+  admitted `editor.component.find` -> `editor.component.property.get` chain;
+  the review states `read_only: true` and `write_occurred: false`.
 - a private proof-only Camera bool scalar write harness exists for exactly
   `Camera :: Controller|Configuration|Make active camera on activation? :: bool`.
 - one exact public, approval-gated Camera bool write corridor is admitted:

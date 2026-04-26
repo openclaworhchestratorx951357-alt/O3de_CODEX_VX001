@@ -1756,6 +1756,10 @@ def test_execute_component_property_get_queues_bridge_command_and_returns_bridge
         assert runtime_result["property_path"] == "Controller|Configuration|Model Asset"
         assert runtime_result["value"] == "objects/example.azmodel"
         assert runtime_result["value_type"] == "AZ::Data::Asset<AZ::Data::AssetData>"
+        assert runtime_result["read_only"] is True
+        assert runtime_result["write_occurred"] is False
+        assert runtime_result["write_admission"] is False
+        assert runtime_result["property_list_admission"] is False
         assert runtime_result["entity_id"] == "101"
         assert runtime_result["level_path"] == "Levels/Main.level"
         assert runtime_result["loaded_level_path"] == "Levels/Main.level"

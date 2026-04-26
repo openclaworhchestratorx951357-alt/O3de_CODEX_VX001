@@ -105,6 +105,34 @@ The review should name:
 Generic property-write prompts must still be refused. Public property-list
 access must still be unavailable.
 
+## Read-Only Operator Affordance
+
+Operators may inspect the current value of the same exact Camera bool property
+without performing a write by using the admitted read-only chain:
+
+```text
+editor.component.find -> editor.component.property.get
+```
+
+This affordance still targets only:
+
+```text
+Camera :: Controller|Configuration|Make active camera on activation? :: bool
+```
+
+The review should report:
+
+- entity target
+- component `Camera`
+- property path `Controller|Configuration|Make active camera on activation?`
+- value type `bool`
+- current value
+- `read_only: true`
+- `write_occurred: false`
+
+This does not admit public property listing, generic property writes, arbitrary
+Camera properties, or any additional write target.
+
 The allowed restore/revert statement is narrow:
 
 ```text

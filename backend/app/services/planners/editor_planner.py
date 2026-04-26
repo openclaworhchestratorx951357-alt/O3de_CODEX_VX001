@@ -31,6 +31,7 @@ _CAMERA_BOOL_WRITE_PROPERTY_PATH = (
 )
 _CAMERA_BOOL_WRITE_BEFORE_VALUE_REF = "$step:editor-camera-bool-before-1.value"
 _ADMITTED_COMPONENT_PROPERTY_READ_PATHS = {
+    "Camera": _CAMERA_BOOL_WRITE_PROPERTY_PATH,
     "Mesh": "Controller|Configuration|Model Asset",
 }
 _ADMITTED_COMPONENT_TARGET_NAMES = ("Camera", "Comment", "Mesh")
@@ -222,6 +223,61 @@ def _extract_camera_bool_write_request(prompt_text: str) -> dict[str, object] | 
     return {"value": requested_value}
 
 
+def _extract_camera_bool_read_request(prompt_text: str) -> dict[str, object] | None:
+    normalized = prompt_text.lower()
+    if "camera" not in normalized:
+        return None
+    if (
+        _CAMERA_BOOL_WRITE_PROPERTY_PATH.lower() not in normalized
+        and "make active camera on activation" not in normalized
+        and "make-active-on-activation" not in normalized
+        and "active camera on activation" not in normalized
+    ):
+        return None
+    if contains_any(prompt_text, ["set", "write", "change", "update", "modify", "toggle"]):
+        return None
+    if not contains_any(
+        prompt_text,
+        ["read", "read back", "readback", "inspect", "show", "current value", "what is", "get"],
+    ):
+        return None
+    return {"property_path": _CAMERA_BOOL_WRITE_PROPERTY_PATH}
+
+
+def _extract_camera_bool_read_find_args(prompt_text: str) -> dict[str, object] | None:
+    args: dict[str, object] = {"component_name": "Camera"}
+    entity_id = extract_value_after_phrase(prompt_text, "entity id ")
+    if entity_id:
+        args["entity_id"] = entity_id
+        return args
+
+    for phrase in ("entity named ", "entity called "):
+        entity_name = extract_value_after_phrase(prompt_text, phrase)
+        if entity_name and not _is_path_like(entity_name):
+            args["entity_name"] = entity_name
+            return args
+
+    quoted_values = [
+        value for value in extract_quoted_values(prompt_text) if not _is_path_like(value)
+    ]
+    if quoted_values:
+        args["entity_name"] = quoted_values[0]
+        return args
+    return None
+
+
+def _admitted_component_property_read_path(
+    component_name: str | None,
+    *,
+    camera_bool_read_request: dict[str, object] | None,
+) -> str | None:
+    if component_name is None:
+        return None
+    if component_name == "Camera" and camera_bool_read_request is None:
+        return None
+    return _ADMITTED_COMPONENT_PROPERTY_READ_PATHS.get(component_name)
+
+
 def _requests_same_chain_camera_component(prompt_text: str) -> bool:
     return re.search(
         r"\b(?:add|attach)\s+(?:a|an|the)?\s*camera\s+component\b",
@@ -235,6 +291,7 @@ def plan_editor_prompt(
 ) -> tuple[list[PromptPlanStep], list[str], list[str]]:
     prompt_text = request.prompt_text
     camera_bool_write_request = _extract_camera_bool_write_request(prompt_text)
+    camera_bool_read_request = _extract_camera_bool_read_request(prompt_text)
     wants_entity_create = contains_any(
         prompt_text,
         ["create entity", "spawn entity", "add entity"],
@@ -262,7 +319,7 @@ def plan_editor_prompt(
             "find camera component",
             "find comment component",
         ],
-    )
+    ) or camera_bool_read_request is not None
     wants_property_read = contains_any(
         prompt_text,
         [
@@ -274,7 +331,7 @@ def plan_editor_prompt(
             "read component property",
             "inspect component property",
         ],
-    )
+    ) or camera_bool_read_request is not None
     capabilities = {
         tool: capability_registry_service.get_capability(tool)
         for tool in (
@@ -407,6 +464,8 @@ def plan_editor_prompt(
         component_find_capability = capabilities["editor.component.find"]
         property_capability = capabilities["editor.component.property.get"]
         component_find_args = _extract_component_find_args(prompt_text)
+        if component_find_args is None and camera_bool_read_request is not None:
+            component_find_args = _extract_camera_bool_read_find_args(prompt_text)
         if component_find_capability is not None and component_find_args is not None:
             if level_path:
                 component_find_args["level_path"] = level_path
@@ -434,10 +493,9 @@ def plan_editor_prompt(
             requirement = capability_requirement_note(component_find_capability)
             if requirement:
                 requirements.append(requirement)
-            property_path = (
-                _ADMITTED_COMPONENT_PROPERTY_READ_PATHS.get(planned_component_name)
-                if planned_component_name is not None
-                else None
+            property_path = _admitted_component_property_read_path(
+                planned_component_name,
+                camera_bool_read_request=camera_bool_read_request,
             )
             if wants_property_read and property_capability is not None and property_path:
                 property_args: dict[str, object] = {
@@ -634,10 +692,9 @@ def plan_editor_prompt(
     if wants_property_read:
         property_capability = capabilities["editor.component.property.get"]
         if property_capability is not None:
-            property_path = (
-                _ADMITTED_COMPONENT_PROPERTY_READ_PATHS.get(planned_component_name)
-                if planned_component_name is not None
-                else None
+            property_path = _admitted_component_property_read_path(
+                planned_component_name,
+                camera_bool_read_request=camera_bool_read_request,
             )
             if property_path is not None:
                 property_args: dict[str, object] = {

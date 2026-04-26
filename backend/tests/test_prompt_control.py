@@ -2197,6 +2197,153 @@ def test_prompt_session_refuses_exact_camera_bool_write_without_same_chain_camer
         )
 
 
+def test_prompt_session_plans_exact_camera_bool_readback_without_write() -> None:
+    property_path = "Controller|Configuration|Make active camera on activation?"
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-camera-bool-readback-plan-1",
+                "prompt_text": (
+                    'Open level "Levels/Main.level", then show the current '
+                    "value of the Camera make active camera on activation bool "
+                    "on entity id 101."
+                ),
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": False,
+                "preferred_domains": ["editor-control"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "planned"
+        assert payload["refused_capabilities"] == []
+        assert [step["tool"] for step in payload["plan"]["steps"]] == [
+            "editor.session.open",
+            "editor.level.open",
+            "editor.component.find",
+            "editor.component.property.get",
+        ]
+        assert payload["plan"]["steps"][1]["args"] == {
+            "level_path": "Levels/Main.level",
+            "make_writable": False,
+            "focus_viewport": False,
+        }
+        assert payload["plan"]["steps"][2]["args"] == {
+            "component_name": "Camera",
+            "entity_id": "101",
+            "level_path": "Levels/Main.level",
+        }
+        assert payload["plan"]["steps"][3]["args"] == {
+            "component_id": "$step:editor-component-find-1.component_id",
+            "property_path": property_path,
+            "level_path": "Levels/Main.level",
+        }
+        assert "editor.component.property.write" not in (
+            step["tool"] for step in payload["plan"]["steps"]
+        )
+        assert "editor.component.property.list" not in (
+            step["tool"] for step in payload["plan"]["steps"]
+        )
+
+
+def test_exact_camera_bool_readback_review_summary_is_read_only() -> None:
+    def step(step_id: str, tool: str) -> PromptPlanStep:
+        return PromptPlanStep(
+            step_id=step_id,
+            tool=tool,
+            agent="editor-control",
+            args={},
+            approval_class="read_only",
+            capability_status_required="hybrid-read-only",
+            capability_maturity="hybrid-read-only",
+        )
+
+    property_path = "Controller|Configuration|Make active camera on activation?"
+    component_id = "EntityComponentIdPair(EntityId(101), 301)"
+    session = PromptSessionRecord(
+        prompt_id="prompt-camera-bool-readback-review-1",
+        plan_id="plan-camera-bool-readback-review-1",
+        status=PromptSessionStatus.COMPLETED,
+        prompt_text=(
+            'Open level "Levels/Main.level", then show the current value of '
+            "the Camera make active camera on activation bool on entity id 101."
+        ),
+        project_root="C:/project",
+        engine_root="C:/engine",
+        plan=PromptPlan(
+            prompt_id="prompt-camera-bool-readback-review-1",
+            plan_id="plan-camera-bool-readback-review-1",
+            admitted=True,
+            summary="Exact Camera bool readback plan.",
+            steps=[
+                step("editor-session-1", "editor.session.open"),
+                step("editor-level-1", "editor.level.open"),
+                step("editor-component-find-1", "editor.component.find"),
+                step("editor-component-property-1", "editor.component.property.get"),
+            ],
+        ),
+        latest_child_responses=[
+            {
+                "prompt_step_id": "editor-session-1",
+                "ok": True,
+                "execution_details": {"loaded_level_path": "Levels/Main.level"},
+            },
+            {
+                "prompt_step_id": "editor-level-1",
+                "ok": True,
+                "execution_details": {"level_path": "Levels/Main.level"},
+            },
+            {
+                "prompt_step_id": "editor-component-find-1",
+                "ok": True,
+                "execution_details": {
+                    "found": True,
+                    "entity_id": "101",
+                    "entity_name": "ShotCamera",
+                    "component_name": "Camera",
+                    "component_id": component_id,
+                    "component_id_provenance": (
+                        "admitted_runtime_component_discovery_result"
+                    ),
+                    "level_path": "Levels/Main.level",
+                },
+            },
+            {
+                "prompt_step_id": "editor-component-property-1",
+                "ok": True,
+                "execution_details": {
+                    "component_id": component_id,
+                    "property_path": property_path,
+                    "value": True,
+                    "value_type": "bool",
+                    "read_only": True,
+                    "write_occurred": False,
+                    "write_admission": False,
+                    "property_list_admission": False,
+                    "level_path": "Levels/Main.level",
+                },
+            },
+        ],
+    )
+
+    summary = PromptOrchestratorService()._build_editor_chain_review_summary(session)
+
+    assert summary is not None
+    assert "Review result: succeeded_verified" in summary
+    assert "Camera bool readback target entity ShotCamera, component Camera" in summary
+    assert f"property {property_path}" in summary
+    assert "value_type=bool" in summary
+    assert "current_value=True" in summary
+    assert "read_only=True" in summary
+    assert "write_occurred=False" in summary
+    assert "editor.component.property.write.camera_bool_make_active_on_activation" not in (
+        summary
+    )
+    assert "public property listing" not in summary
+
+
 def test_exact_camera_bool_write_review_summary_is_operator_facing() -> None:
     def step(
         step_id: str,

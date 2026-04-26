@@ -734,6 +734,8 @@ class EditorControlHybridAdapter(ToolExecutionAdapter):
             "property_path",
             "value",
             "value_type",
+            "read_only",
+            "write_occurred",
             "capability_name",
             "previous_value",
             "requested_value",
