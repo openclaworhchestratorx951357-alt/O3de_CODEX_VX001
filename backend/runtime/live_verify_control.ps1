@@ -16,7 +16,8 @@ param(
         "property-list-proof",
         "comment-scalar-target-proof",
         "scalar-target-discovery-proof",
-        "camera-scalar-write-proof"
+        "camera-scalar-write-proof",
+        "camera-bool-restore-proof"
     )]
     [string]$Action = "status",
     [string]$ApiHost = "127.0.0.1",
@@ -47,6 +48,7 @@ $PropertyListProofHelper = Join-Path $RuntimeDir "prove_live_editor_component_pr
 $CommentScalarTargetProofHelper = Join-Path $RuntimeDir "prove_live_editor_comment_scalar_target.py"
 $ScalarTargetDiscoveryProofHelper = Join-Path $RuntimeDir "prove_live_editor_scalar_target_discovery.py"
 $CameraScalarWriteProofHelper = Join-Path $RuntimeDir "prove_live_editor_camera_scalar_write.py"
+$CameraBoolRestoreProofHelper = Join-Path $RuntimeDir "prove_live_editor_camera_bool_restore.py"
 $BridgeSetupScript = Join-Path $RepoRoot "scripts\setup_control_plane_editor_bridge.ps1"
 
 $PidPath = Join-Path $RuntimeDir "live-verify-uvicorn.pid"
@@ -870,11 +872,17 @@ $result = switch ($Action) {
             -ProofAction "camera-scalar-write-proof" `
             -RefreshBridgeBeforeProof
     }
+    "camera-bool-restore-proof" {
+        Invoke-ProofRun `
+            -SelectedProofHelper $CameraBoolRestoreProofHelper `
+            -ProofAction "camera-bool-restore-proof" `
+            -RefreshBridgeBeforeProof
+    }
 }
 
 Write-Output (ConvertTo-JsonOutput -Value $result)
 
-if ($Action -in @("proof", "entity-exists-proof", "component-find-proof", "property-target-readback-proof", "property-list-proof", "comment-scalar-target-proof", "scalar-target-discovery-proof", "camera-scalar-write-proof")) {
+if ($Action -in @("proof", "entity-exists-proof", "component-find-proof", "property-target-readback-proof", "property-list-proof", "comment-scalar-target-proof", "scalar-target-discovery-proof", "camera-scalar-write-proof", "camera-bool-restore-proof")) {
     $proofExitCode = 0
     $proofExitCodeRaw = Get-OptionalMemberValue -InputObject $result -Name "proof_exit_code"
     if ($null -ne $proofExitCodeRaw) {

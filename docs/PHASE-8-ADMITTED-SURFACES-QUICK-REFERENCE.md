@@ -61,6 +61,7 @@ admission.
 
 - `editor.component.property.list`
 - Camera scalar write proof harness
+- Camera bool restore proof harness
 - scalar target discovery proofs
 - Comment scalar target discovery proofs
 - component property-list bridge candidate proofs
@@ -73,6 +74,7 @@ intentionally committed.
 These remain blocked or unadmitted:
 
 - generic `editor.component.property.write`
+- public `editor.component.property.restore`
 - generic property discovery/listing
 - non-Camera property writes
 - non-bool Camera writes

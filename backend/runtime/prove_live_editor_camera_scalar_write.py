@@ -244,17 +244,19 @@ def execute_runtime_steps(
     project_root: str,
     engine_root: str,
     level_path: str,
+    request_prefix: str = REQUEST_PREFIX,
+    proof_entity_prefix: str = PROOF_ENTITY_PREFIX,
+    workspace_id: str = "workspace-live-camera-scalar-write-proof",
 ) -> dict[str, Any]:
-    session_id = f"{REQUEST_PREFIX}-session-{run_label}"
-    workspace_id = "workspace-live-camera-scalar-write-proof"
+    session_id = f"{request_prefix}-session-{run_label}"
     executor_id = "executor-editor-control-real-local"
-    entity_name = f"{PROOF_ENTITY_PREFIX}_{run_label.replace('-', '_')}"
+    entity_name = f"{proof_entity_prefix}_{run_label.replace('-', '_')}"
     runtime_steps: dict[str, Any] = {}
     restore_boundary: dict[str, Any] | None = None
 
     try:
         session_payload = editor_automation_runtime_service.execute_session_open(
-            request_id=f"{REQUEST_PREFIX}-session-open-{run_label}",
+            request_id=f"{request_prefix}-session-open-{run_label}",
             session_id=session_id,
             workspace_id=workspace_id,
             executor_id=executor_id,
@@ -271,7 +273,7 @@ def execute_runtime_steps(
         runtime_steps["session"] = authoring.scrub_secrets(session_payload)
 
         level_payload = editor_automation_runtime_service.execute_level_open(
-            request_id=f"{REQUEST_PREFIX}-level-open-{run_label}",
+            request_id=f"{request_prefix}-level-open-{run_label}",
             session_id=session_id,
             workspace_id=workspace_id,
             executor_id=executor_id,
@@ -288,7 +290,7 @@ def execute_runtime_steps(
         runtime_steps["level"] = authoring.scrub_secrets(level_payload)
 
         entity_payload = editor_automation_runtime_service.execute_entity_create(
-            request_id=f"{REQUEST_PREFIX}-entity-create-{run_label}",
+            request_id=f"{request_prefix}-entity-create-{run_label}",
             session_id=session_id,
             workspace_id=workspace_id,
             executor_id=executor_id,
@@ -313,7 +315,7 @@ def execute_runtime_steps(
             )
 
         component_payload = editor_automation_runtime_service.execute_component_add(
-            request_id=f"{REQUEST_PREFIX}-component-add-{run_label}",
+            request_id=f"{request_prefix}-component-add-{run_label}",
             session_id=session_id,
             workspace_id=workspace_id,
             executor_id=executor_id,
@@ -342,7 +344,7 @@ def execute_runtime_steps(
 
         before_get_payload = (
             editor_automation_runtime_service.execute_component_property_get(
-                request_id=f"{REQUEST_PREFIX}-before-get-{run_label}",
+                request_id=f"{request_prefix}-before-get-{run_label}",
                 session_id=session_id,
                 workspace_id=workspace_id,
                 executor_id=executor_id,
@@ -367,7 +369,7 @@ def execute_runtime_steps(
         requested_value = not original_value
 
         write_inverse_payload = _write_proof_step(
-            request_id=f"{REQUEST_PREFIX}-write-inverse-{run_label}",
+            request_id=f"{request_prefix}-write-inverse-{run_label}",
             session_id=session_id,
             workspace_id=workspace_id,
             executor_id=executor_id,
@@ -389,7 +391,7 @@ def execute_runtime_steps(
         )
 
         after_get_payload = editor_automation_runtime_service.execute_component_property_get(
-            request_id=f"{REQUEST_PREFIX}-after-get-{run_label}",
+            request_id=f"{request_prefix}-after-get-{run_label}",
             session_id=session_id,
             workspace_id=workspace_id,
             executor_id=executor_id,
@@ -412,7 +414,7 @@ def execute_runtime_steps(
         )
 
         restore_value_payload = _write_proof_step(
-            request_id=f"{REQUEST_PREFIX}-restore-value-{run_label}",
+            request_id=f"{request_prefix}-restore-value-{run_label}",
             session_id=session_id,
             workspace_id=workspace_id,
             executor_id=executor_id,
@@ -435,7 +437,7 @@ def execute_runtime_steps(
 
         restored_get_payload = (
             editor_automation_runtime_service.execute_component_property_get(
-                request_id=f"{REQUEST_PREFIX}-restored-get-{run_label}",
+                request_id=f"{request_prefix}-restored-get-{run_label}",
                 session_id=session_id,
                 workspace_id=workspace_id,
                 executor_id=executor_id,

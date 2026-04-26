@@ -21,6 +21,7 @@ param(
         "live-comment-scalar-target-proof",
         "live-scalar-target-discovery-proof",
         "live-camera-scalar-write-proof",
+        "live-camera-bool-restore-proof",
         "desktop-status",
         "desktop-start",
         "desktop-stop",
@@ -520,6 +521,7 @@ switch ($Task) {
     "live-comment-scalar-target-proof" { Invoke-LiveRuntimeControl -Action "comment-scalar-target-proof" }
     "live-scalar-target-discovery-proof" { Invoke-LiveRuntimeControl -Action "scalar-target-discovery-proof" }
     "live-camera-scalar-write-proof" { Invoke-LiveRuntimeControl -Action "camera-scalar-write-proof" }
+    "live-camera-bool-restore-proof" { Invoke-LiveRuntimeControl -Action "camera-bool-restore-proof" }
     "desktop-status" { Invoke-DesktopAppControl -DesktopAction "status" }
     "desktop-start" { Invoke-DesktopAppControl -DesktopAction "start" }
     "desktop-stop" { Invoke-DesktopAppControl -DesktopAction "stop" }
