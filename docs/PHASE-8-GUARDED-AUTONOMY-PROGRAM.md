@@ -24,6 +24,7 @@ Read this together with:
 - `docs/PHASE-6B-RELEASE-AND-CONFORMANCE-PLAN.md`
 - `docs/PHASE-7-REAL-ADAPTER-GATE.md`
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md`
+- `docs/PHASE-8-EDITOR-CANDIDATE-MUTATION-ENVELOPE.md`
 
 ## Current Truth To Preserve
 
@@ -282,6 +283,14 @@ Initial implementation target:
   admitting any additional editor behavior
 - render the labels in prompt capability, prompt plan, and persisted safety
   evidence views so operators can see the boundary before and after dispatch
+
+Follow-on candidate gate:
+- use `docs/PHASE-8-EDITOR-CANDIDATE-MUTATION-ENVELOPE.md` before any future
+  delete, parenting, prefab, transform, property-write, material, asset, render,
+  build, or broader editor mutation slice starts
+- keep those intents refused at prompt-planning time until their exact target
+  identity, backup, restore/reload, post-restore verification, and
+  operator-visible review evidence are proven
 
 ## Definition Of Done For This Planning Slice
 
