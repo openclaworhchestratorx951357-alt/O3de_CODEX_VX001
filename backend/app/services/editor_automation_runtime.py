@@ -1797,10 +1797,13 @@ class EditorAutomationRuntimeService:
                     "admitted public corridor."
                 ),
                 "tool": CAMERA_BOOL_WRITE_CAPABILITY,
+                "capability_name": CAMERA_BOOL_WRITE_CAPABILITY,
                 "proof_bridge_operation": CAMERA_SCALAR_WRITE_PROOF_OPERATION,
                 "proof_only": False,
                 "public_admission": True,
                 "write_admission": True,
+                "admission_class": "content_write",
+                "generalized_undo_available": False,
                 "property_list_admission": False,
                 "target_status": "admitted_exact_camera_bool_write",
                 "restore_or_revert_guidance": (

@@ -1857,16 +1857,47 @@ class PromptOrchestratorService:
                 )
         if camera_bool_write_response is not None:
             details = camera_bool_write_response.get("execution_details", {})
+            result = camera_bool_write_response.get("result", {})
+            result = result if isinstance(result, dict) else {}
+            entity_details = entity_response.get("execution_details", {}) if entity_response else {}
+            entity_label = (
+                entity_details.get("entity_name")
+                or entity_details.get("entity_id")
+                or details.get("entity_name")
+                or details.get("entity_id")
+                or "the live Camera target"
+            )
+            capability_name = (
+                details.get("capability_name")
+                or result.get("tool")
+                or "editor.component.property.write.camera_bool_make_active_on_activation"
+            )
+            component_name = details.get("component_name") or "Camera"
             property_path = details.get("property_path")
+            previous_value = details.get("previous_value")
             requested_value = details.get("requested_value")
             write_verified = details.get("write_verified")
             value = details.get("value")
+            admission_class = details.get("admission_class") or result.get(
+                "approval_class",
+                "content_write",
+            )
+            generalized_undo_available = details.get(
+                "generalized_undo_available",
+                False,
+            )
             if property_path is not None:
                 facts.append(
-                    "Write evidence confirmed exact Camera bool "
-                    f"{property_path} requested={requested_value}, "
-                    f"readback={value}, write_verified={write_verified}."
+                    f"Capability {capability_name} targeted entity {entity_label}, "
+                    f"component {component_name}, property {property_path}; "
+                    f"before={previous_value}, requested={requested_value}, "
+                    f"after={value}, write_verified={write_verified}, "
+                    f"admission_class={admission_class}, "
+                    f"generalized_undo_available={generalized_undo_available}."
                 )
+            restore_or_revert_guidance = details.get("restore_or_revert_guidance")
+            if isinstance(restore_or_revert_guidance, str) and restore_or_revert_guidance:
+                facts.append(f"Restore/revert guidance: {restore_or_revert_guidance}")
         if camera_bool_after_response is not None:
             details = camera_bool_after_response.get("execution_details", {})
             property_path = details.get("property_path")

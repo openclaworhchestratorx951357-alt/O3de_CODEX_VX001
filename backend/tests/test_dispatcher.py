@@ -4277,10 +4277,13 @@ def test_exact_camera_bool_write_uses_real_runtime_in_hybrid_mode() -> None:
                 "admitted public corridor."
             ),
             "tool": CAMERA_BOOL_WRITE_CAPABILITY,
+            "capability_name": CAMERA_BOOL_WRITE_CAPABILITY,
             "proof_bridge_operation": "editor.camera.scalar.write.proof",
             "proof_only": False,
             "public_admission": True,
             "write_admission": True,
+            "admission_class": "content_write",
+            "generalized_undo_available": False,
             "property_list_admission": False,
             "component_name": CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
             "component_id": "EntityComponentIdPair(EntityId(101), 301)",
@@ -4296,7 +4299,9 @@ def test_exact_camera_bool_write_uses_real_runtime_in_hybrid_mode() -> None:
             "write_verified": True,
             "restore_boundary_id": "restore-boundary-1",
             "target_status": "admitted_exact_camera_bool_write",
-            "restore_or_revert_guidance": "Rerun exact corridor with previous_value.",
+            "restore_or_revert_guidance": (
+                "This is not generalized undo. Rerun exact corridor with previous_value."
+            ),
             "level_path": "Levels/Main.level",
             "loaded_level_path": "Levels/Main.level",
             "exact_editor_apis": [
@@ -4344,10 +4349,16 @@ def test_exact_camera_bool_write_uses_real_runtime_in_hybrid_mode() -> None:
         assert execution.details["property_path"] == CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH
         assert execution.details["value"] is True
         assert execution.details["write_verified"] is True
+        assert execution.details["capability_name"] == CAMERA_BOOL_WRITE_CAPABILITY
+        assert execution.details["approval_class"] == "content_write"
+        assert execution.details["admission_class"] == "content_write"
+        assert execution.details["generalized_undo_available"] is False
+        assert "not generalized undo" in execution.details["restore_or_revert_guidance"]
         assert execution.details["public_admission"] is True
         assert execution.details["property_list_admission"] is False
         assert artifact is not None
         assert artifact.metadata["inspection_surface"] == "editor_camera_bool_property_write"
+        assert artifact.metadata["capability_name"] == CAMERA_BOOL_WRITE_CAPABILITY
 
 
 def test_editor_component_find_uses_real_runtime_with_live_provenance() -> None:

@@ -3038,10 +3038,13 @@ def test_execute_exact_camera_bool_write_wrapper_marks_public_admission() -> Non
     proof_method.assert_called_once()
     runtime_result = payload["runtime_result"]
     assert runtime_result["tool"] == CAMERA_BOOL_WRITE_CAPABILITY
+    assert runtime_result["capability_name"] == CAMERA_BOOL_WRITE_CAPABILITY
     assert runtime_result["proof_bridge_operation"] == CAMERA_SCALAR_WRITE_PROOF_OPERATION
     assert runtime_result["proof_only"] is False
     assert runtime_result["public_admission"] is True
     assert runtime_result["write_admission"] is True
+    assert runtime_result["admission_class"] == "content_write"
+    assert runtime_result["generalized_undo_available"] is False
     assert runtime_result["property_list_admission"] is False
     assert runtime_result["target_status"] == "admitted_exact_camera_bool_write"
     assert "not generalized undo" in runtime_result["restore_or_revert_guidance"]
