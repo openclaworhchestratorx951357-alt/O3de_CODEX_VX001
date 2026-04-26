@@ -78,8 +78,13 @@ Result:
   entity/create and component/add
 - loaded-level file restore was verified
 - no scalar/text-like target was selected
-- blocker code: `comment_property_list_unavailable`
+- typed property-list and property-tree evidence both exposed only an empty
+  live Comment property path, which is recorded as evidence but not selected as
+  a stable operator target
+- Comment-only source-guided named readbacks failed
+- blocker code: `comment_source_guided_readback_failed`
 
 The next packet should choose another already-allowlisted non-render component,
-such as `Camera`, or add a typed `Comment` property discovery fix without
-widening into property writes or public property-list admission.
+such as `Camera`, or design a separate proof-only strategy for components whose
+live reflected property path is the empty string. Do not widen into property
+writes or public property-list admission.

@@ -483,6 +483,7 @@ def _execute_runtime_steps(
     component_family: str = PROOF_COMPONENT_FAMILY,
     entity_prefix: str = PROOF_ENTITY_PREFIX,
     request_prefix: str = "property-list-proof",
+    property_list_args: dict[str, Any] | None = None,
     property_read_selector: Callable[[list[str]], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     session_id = f"{request_prefix}-session-{run_label}"
@@ -579,6 +580,7 @@ def _execute_runtime_steps(
                 args={
                     "component_id": component_id,
                     "level_path": level_path,
+                    **(property_list_args or {}),
                 },
                 locks_acquired=["editor_session"],
             )

@@ -32,6 +32,7 @@ def test_live_control_scripts_expose_comment_scalar_target_proof_command() -> No
     live_control = REPO_ROOT / "backend" / "runtime" / "live_verify_control.ps1"
     dev_script = REPO_ROOT / "scripts" / "dev.ps1"
     gitignore = REPO_ROOT / ".gitignore"
+    bridge_setup = REPO_ROOT / "scripts" / "setup_control_plane_editor_bridge.ps1"
 
     assert "prove_live_editor_comment_scalar_target.py" in live_control.read_text(
         encoding="utf-8"
@@ -41,6 +42,10 @@ def test_live_control_scripts_expose_comment_scalar_target_proof_command() -> No
     assert "live_editor_comment_scalar_target_proof_*.json" in gitignore.read_text(
         encoding="utf-8"
     )
+    bridge_text = bridge_setup.read_text(encoding="utf-8")
+    assert "BuildComponentPropertyTreeEditor" in bridge_text
+    assert "PropertyTreeEditor.build_paths_list_with_types" in bridge_text
+    assert "SetComponentProperty" not in bridge_text
 
 
 def test_classify_comment_property_paths_selects_text_like_readback_candidate() -> None:
@@ -86,6 +91,211 @@ def test_classify_comment_property_paths_blocks_when_no_scalar_candidate() -> No
     assert review["target_selected"] is False
     assert review["blocker_code"] == "comment_scalar_target_unavailable"
     assert review["write_target_admitted"] is False
+
+
+def test_typed_path_parsing_extracts_clean_path_and_type_hint() -> None:
+    module = load_proof_module()
+
+    parsed = module.split_typed_property_path_entry(
+        "Configuration|Comment (AZStd::string)"
+    )
+
+    assert parsed["path"] == "Configuration|Comment"
+    assert parsed["value_type_hint"] == "AZStd::string"
+
+
+def test_empty_comment_property_path_is_evidence_not_target() -> None:
+    module = load_proof_module()
+
+    review = module.classify_comment_property_paths(["", "   "])
+
+    assert review["target_selected"] is False
+    assert review["write_target_admitted"] is False
+
+
+def comment_target_info(component_id: str = "EntityComponentIdPair(EntityId(101), 201)"):
+    return {
+        "selected": {
+            "component_id": component_id,
+            "component_id_provenance": "admitted_runtime_component_add_result",
+        }
+    }
+
+
+def test_property_discovery_prefers_build_component_property_list_candidate() -> None:
+    module = load_proof_module()
+
+    review = module.review_comment_scalar_discovery_result(
+        {
+            "ok": True,
+            "comment_scalar_discovery": {
+                "set_component_property_attempted": False,
+                "write_target_admitted": False,
+                "property_list_admission": False,
+                "selected_candidate": {
+                    "property_path": "Configuration|Comment",
+                    "source": "BuildComponentPropertyList",
+                    "success": True,
+                    "value": "operator note",
+                    "value_type": "AZStd::string",
+                    "scalar_or_text_like": True,
+                },
+            },
+        },
+        target_info=comment_target_info(),
+    )
+
+    assert review["status"] == "candidate_selected_readback_only"
+    assert review["target_selected"] is True
+    assert review["selected_candidate"]["property_path"] == "Configuration|Comment"
+    assert review["selected_candidate"]["source"] == "BuildComponentPropertyList"
+    assert review["write_target_admitted"] is False
+
+
+def test_property_discovery_accepts_property_tree_typed_candidate() -> None:
+    module = load_proof_module()
+
+    review = module.review_comment_scalar_discovery_result(
+        {
+            "ok": True,
+            "comment_scalar_discovery": {
+                "set_component_property_attempted": False,
+                "write_target_admitted": False,
+                "property_list_admission": False,
+                "build_component_property_tree_editor": {
+                    "tree_success": True,
+                    "paths_with_types_count": 1,
+                    "raw_typed_path_preview": [
+                        "Configuration|Comment (AZStd::string)"
+                    ],
+                },
+                "selected_candidate": {
+                    "property_path": "Configuration|Comment",
+                    "source": "PropertyTreeEditor.build_paths_list_with_types",
+                    "success": True,
+                    "value": "",
+                    "value_type": "AZStd::string",
+                    "scalar_or_text_like": True,
+                },
+            },
+        },
+        target_info=comment_target_info(),
+    )
+
+    assert review["target_selected"] is True
+    assert review["selected_candidate"]["value_type"] == "AZStd::string"
+    assert review["property_list_admission"] is False
+
+
+def test_source_guided_fallback_is_comment_only_and_get_only() -> None:
+    module = load_proof_module()
+
+    review = module.review_comment_scalar_discovery_result(
+        {
+            "ok": True,
+            "comment_scalar_discovery": {
+                "component_family": "Comment",
+                "source_guided_fallback_attempted": True,
+                "source_guided_readback_attempts": [
+                    {
+                        "property_path": "Configuration",
+                        "source": "source_guided_comment_readback_candidate",
+                        "get_component_property_attempted": True,
+                        "set_component_property_attempted": False,
+                        "success": True,
+                        "value": "comment text",
+                        "value_type": "AZStd::string",
+                        "scalar_or_text_like": True,
+                    }
+                ],
+                "set_component_property_attempted": False,
+                "write_target_admitted": False,
+                "property_list_admission": False,
+                "selected_candidate": {
+                    "property_path": "Configuration",
+                    "source": "source_guided_comment_readback_candidate",
+                    "get_component_property_attempted": True,
+                    "set_component_property_attempted": False,
+                    "success": True,
+                    "value": "comment text",
+                    "value_type": "AZStd::string",
+                    "scalar_or_text_like": True,
+                },
+            },
+        },
+        target_info=comment_target_info(),
+    )
+
+    assert review["target_selected"] is True
+    assert review["selected_candidate"]["source"] == (
+        "source_guided_comment_readback_candidate"
+    )
+    assert review["write_admission"] is False
+
+
+def test_source_guided_fallback_does_not_select_render_or_asset_paths() -> None:
+    module = load_proof_module()
+
+    with pytest.raises(module.CommentScalarTargetProofError, match="out-of-scope"):
+        module.review_comment_scalar_discovery_result(
+            {
+                "ok": True,
+                "comment_scalar_discovery": {
+                    "set_component_property_attempted": False,
+                    "write_target_admitted": False,
+                    "property_list_admission": False,
+                    "selected_candidate": {
+                        "property_path": "Configuration|Render Asset",
+                        "source": "source_guided_comment_readback_candidate",
+                        "success": True,
+                        "value": "unsafe",
+                        "value_type": "AZStd::string",
+                        "scalar_or_text_like": True,
+                    },
+                },
+            },
+            target_info=comment_target_info(),
+        )
+
+
+def test_unavailable_list_tree_and_fallback_records_exact_blocker() -> None:
+    module = load_proof_module()
+
+    review = module.review_comment_scalar_discovery_result(
+        {
+            "ok": True,
+            "comment_scalar_discovery": {
+                "set_component_property_attempted": False,
+                "write_target_admitted": False,
+                "property_list_admission": False,
+                "selected_candidate": None,
+                "status": "blocked",
+                "blocker_code": "comment_property_tree_unavailable",
+            },
+        },
+        target_info=comment_target_info(),
+    )
+
+    assert review["status"] == "blocked"
+    assert review["blocker_code"] == "comment_property_tree_unavailable"
+    assert review["target_selected"] is False
+
+
+def test_no_write_admission_fields_are_accepted_as_true() -> None:
+    module = load_proof_module()
+
+    with pytest.raises(module.CommentScalarTargetProofError, match="SetComponentProperty"):
+        module.review_comment_scalar_discovery_result(
+            {
+                "ok": True,
+                "comment_scalar_discovery": {
+                    "set_component_property_attempted": True,
+                    "write_target_admitted": False,
+                    "property_list_admission": False,
+                },
+            },
+            target_info=comment_target_info(),
+        )
 
 
 def test_require_comment_readback_preserves_read_only_future_candidate_boundary() -> None:
@@ -147,3 +357,18 @@ def test_property_list_unavailable_blocker_is_successful_discovery_outcome() -> 
     assert summary["write_target_admitted"] is False
     assert summary["blocker_code"] == "comment_property_list_unavailable"
     assert summary["restore_or_cleanup_verified"] is True
+
+
+def test_restore_failure_prevents_candidate_success() -> None:
+    module = load_proof_module()
+    error = RuntimeError("restore failed after candidate discovery")
+    error.cleanup_restore = {"restore_succeeded": False}  # type: ignore[attr-defined]
+
+    summary = module.build_failure_summary(
+        error=error,
+        preflight_facts=["Candidate discovery ran before restore failure."],
+    )
+
+    assert summary["succeeded"] is False
+    assert summary["future_write_candidate_selected"] is False
+    assert summary["restore_or_cleanup_verified"] is False

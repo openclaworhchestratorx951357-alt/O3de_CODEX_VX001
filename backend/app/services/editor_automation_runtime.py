@@ -1590,6 +1590,19 @@ class EditorAutomationRuntimeService:
             )
         component_id = raw_component_id.strip()
 
+        bridge_args: dict[str, Any] = {
+            "component_id": component_id,
+            "level_path": loaded_level_path,
+        }
+        for optional_key in (
+            "proof_component_family",
+            "include_property_tree_evidence",
+            "source_guided_readback_paths",
+            "source_inspection_evidence",
+        ):
+            if optional_key in args:
+                bridge_args[optional_key] = args[optional_key]
+
         bridge_response = self._invoke_bridge_command(
             tool="editor.component.property.list",
             operation="editor.component.property.list",
@@ -1599,10 +1612,7 @@ class EditorAutomationRuntimeService:
             session_id=session_id,
             workspace_id=workspace_id,
             executor_id=executor_id,
-            args={
-                "component_id": component_id,
-                "level_path": loaded_level_path,
-            },
+            args=bridge_args,
             timeout_s=90,
         )
         bridge_details = self._bridge_response_details(bridge_response)
@@ -1628,6 +1638,14 @@ class EditorAutomationRuntimeService:
                 },
             )
         property_paths = [item.strip() for item in raw_property_paths]
+        exact_editor_apis = bridge_details.get("exact_editor_apis")
+        if not isinstance(exact_editor_apis, list):
+            exact_editor_apis = [
+                "ControlPlaneEditorBridge filesystem inbox",
+                "editor.component.property.list",
+                "EditorComponentAPIBus.BuildComponentPropertyList",
+            ]
+
         runtime_result = {
             "ok": True,
             "message": (
@@ -1647,14 +1665,18 @@ class EditorAutomationRuntimeService:
                 "loaded_level_path",
                 bridge_details.get("level_path", loaded_level_path),
             ),
-            "exact_editor_apis": [
-                "ControlPlaneEditorBridge filesystem inbox",
-                "editor.component.property.list",
-                "EditorComponentAPIBus.BuildComponentPropertyList",
-            ],
+            "exact_editor_apis": exact_editor_apis,
             "editor_transport": "bridge",
             **self._bridge_result_metadata(bridge_response),
         }
+        for optional_key in (
+            "raw_property_paths",
+            "property_discovery_ladder",
+            "comment_scalar_discovery",
+            "source_inspection_evidence",
+        ):
+            if optional_key in bridge_details:
+                runtime_result[optional_key] = bridge_details[optional_key]
         state["editor_transport"] = "bridge"
         state["bridge_heartbeat_seen_at"] = runtime_result.get("bridge_heartbeat_seen_at")
         self._save_editor_state(project_root, state)

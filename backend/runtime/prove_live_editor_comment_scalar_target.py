@@ -16,9 +16,30 @@ REQUEST_PREFIX = "comment-scalar-target-proof"
 TARGET_PROVENANCE = "admitted_runtime_component_add_result"
 BLOCKER_CODE = "comment_scalar_target_unavailable"
 PROPERTY_LIST_UNAVAILABLE_BLOCKER_CODE = "comment_property_list_unavailable"
+PROPERTY_TREE_UNAVAILABLE_BLOCKER_CODE = "comment_property_tree_unavailable"
+SCALAR_CANDIDATE_NOT_FOUND_BLOCKER_CODE = "comment_scalar_candidate_not_found"
+SOURCE_GUIDED_READBACK_FAILED_BLOCKER_CODE = (
+    "comment_source_guided_readback_failed"
+)
 SUCCESS_NEXT_STEP = (
     "Review the Comment scalar readback evidence before any proof-only property-write "
     "packet."
+)
+COMMENT_SOURCE_RELATIVE_PATH = (
+    "Gems/LmbrCentral/Code/Source/Editor/EditorCommentComponent.cpp"
+)
+SOURCE_GUIDED_COMMENT_PATHS = (
+    "Comment",
+    "Comment text",
+    "Comment Text",
+    "Comment text box",
+    "Comment Text Box",
+    "Comment|Comment text box",
+    "Comment|Comment Text Box",
+    "Configuration",
+    "Configuration|Comment",
+    "Configuration|Comment text",
+    "Configuration|Comment text box",
 )
 
 PREFERRED_PATH_MARKERS = ("comment", "text", "description", "note")
@@ -60,36 +81,76 @@ def _path_prefixes(property_paths: list[str]) -> set[str]:
     }
 
 
+def split_typed_property_path_entry(path_entry: str) -> dict[str, Any]:
+    raw_entry = str(path_entry)
+    path = raw_entry
+    value_type_hint = None
+    path_name, separator, typed_suffix = raw_entry.rpartition(" (")
+    if separator and typed_suffix.endswith(")"):
+        path = path_name
+        value_type_hint = typed_suffix[:-1].split(",", 1)[0].strip() or None
+    return {
+        "raw_entry": raw_entry,
+        "path": path.strip(),
+        "value_type_hint": value_type_hint,
+    }
+
+
+def _path_review(path: str, value_type_hint: Any = None) -> dict[str, Any]:
+    stripped_path = path.strip()
+    lowered = stripped_path.lower()
+    value_type_text = "" if value_type_hint is None else str(value_type_hint).lower()
+    if not stripped_path:
+        return {
+            "evidence_class": "empty_or_unreviewable_property_path",
+            "provisional_readback_candidate": False,
+            "reason": (
+                "The live API exposed an empty Comment property path. It is recorded "
+                "as evidence, not treated as a stable scalar target."
+            ),
+        }
+    if any(marker in lowered for marker in REJECT_PATH_MARKERS):
+        return {
+            "evidence_class": "out_of_scope_property_path",
+            "provisional_readback_candidate": False,
+            "reason": (
+                "The path is asset, material, render, transform, or derived-stat "
+                "adjacent and is outside the Comment scalar discovery boundary."
+            ),
+        }
+    preferred = any(marker in lowered for marker in PREFERRED_PATH_MARKERS)
+    scalar_hint = any(
+        marker in value_type_text for marker in SCALAR_VALUE_TYPE_MARKERS
+    )
+    return {
+        "evidence_class": (
+            "preferred_text_like_candidate"
+            if preferred or scalar_hint
+            else "non_render_candidate_requires_readback"
+        ),
+        "provisional_readback_candidate": True,
+        "reason": (
+            "The path is non-asset and non-render by name; live value readback "
+            "must still prove scalar/text-like type before any write proof."
+        ),
+    }
+
+
 def classify_comment_property_paths(property_paths: list[str]) -> dict[str, Any]:
     normalized_paths = [path.strip() for path in property_paths if path.strip()]
     prefixes = _path_prefixes(normalized_paths)
     reviews: list[dict[str, Any]] = []
 
     for path in normalized_paths:
-        lowered = path.lower()
         if path in prefixes:
             evidence_class = "container_or_group"
             provisional = False
             reason = "Grouping paths are not concrete scalar property targets."
-        elif any(marker in lowered for marker in REJECT_PATH_MARKERS):
-            evidence_class = "out_of_scope_property_path"
-            provisional = False
-            reason = (
-                "The path is asset, material, render, transform, or derived-stat "
-                "adjacent and is outside the Comment scalar discovery boundary."
-            )
         else:
-            preferred = any(marker in lowered for marker in PREFERRED_PATH_MARKERS)
-            evidence_class = (
-                "preferred_text_like_candidate"
-                if preferred
-                else "non_render_candidate_requires_readback"
-            )
-            provisional = True
-            reason = (
-                "The path is non-asset and non-render by name; live value readback "
-                "must still prove scalar/text-like type before any write proof."
-            )
+            review = _path_review(path)
+            evidence_class = review["evidence_class"]
+            provisional = review["provisional_readback_candidate"]
+            reason = review["reason"]
         reviews.append(
             {
                 "property_path": path,
@@ -136,6 +197,153 @@ def _value_is_scalar_or_text_like(value: Any, value_type: Any) -> bool:
         return True
     value_type_text = "" if value_type is None else str(value_type).lower()
     return any(marker in value_type_text for marker in SCALAR_VALUE_TYPE_MARKERS)
+
+
+def collect_comment_source_inspection_evidence(engine_root: str) -> dict[str, Any]:
+    source_path = Path(engine_root) / COMMENT_SOURCE_RELATIVE_PATH
+    evidence: dict[str, Any] = {
+        "source_path": str(source_path),
+        "source_path_exists": source_path.is_file(),
+        "reflected_serialize_field": None,
+        "edit_context_data_element_label": None,
+        "edit_context_description": None,
+        "field_type": None,
+        "source_guided_candidate_paths": list(SOURCE_GUIDED_COMMENT_PATHS),
+    }
+    if not source_path.is_file():
+        return evidence
+
+    try:
+        lines = source_path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError as exc:
+        evidence["source_read_error"] = str(exc)
+        return evidence
+
+    matched_lines: list[dict[str, Any]] = []
+    for line_number, line in enumerate(lines, start=1):
+        stripped = line.strip()
+        if '->Field("Configuration", &EditorCommentComponent::m_comment)' in stripped:
+            evidence["reflected_serialize_field"] = "Configuration"
+            evidence["field_type"] = "AZStd::string"
+            matched_lines.append(
+                {
+                    "line": line_number,
+                    "evidence": 'Field("Configuration", &EditorCommentComponent::m_comment)',
+                }
+            )
+        if (
+            "DataElement" in stripped
+            and "&EditorCommentComponent::m_comment" in stripped
+        ):
+            evidence["edit_context_data_element_label"] = ""
+            evidence["edit_context_description"] = "Comment"
+            matched_lines.append(
+                {
+                    "line": line_number,
+                    "evidence": "DataElement(..., &EditorCommentComponent::m_comment, \"\", \"Comment\")",
+                }
+            )
+        if "AZStd::string m_comment" in stripped:
+            evidence["field_type"] = "AZStd::string"
+
+    evidence["matched_lines"] = matched_lines
+    evidence["source_guided"] = bool(matched_lines)
+    return evidence
+
+
+def review_comment_scalar_discovery_result(
+    runtime_result: dict[str, Any],
+    *,
+    target_info: dict[str, Any],
+) -> dict[str, Any]:
+    discovery = runtime_result.get("comment_scalar_discovery")
+    if not isinstance(discovery, dict):
+        raise CommentScalarTargetProofError(
+            "Comment scalar proof did not return discovery ladder evidence."
+        )
+    if discovery.get("set_component_property_attempted") is True:
+        raise CommentScalarTargetProofError(
+            "Comment scalar discovery attempted SetComponentProperty."
+        )
+    if discovery.get("write_target_admitted") is True or discovery.get("write_admission") is True:
+        raise CommentScalarTargetProofError(
+            "Comment scalar discovery admitted a property write target."
+        )
+    if discovery.get("property_list_admission") is True:
+        raise CommentScalarTargetProofError(
+            "Comment scalar discovery admitted property.list."
+        )
+
+    selected_target = target_info["selected"]
+    selected_candidate = discovery.get("selected_candidate")
+    common: dict[str, Any] = {
+        "component_family": PROOF_COMPONENT_FAMILY,
+        "component_id": selected_target["component_id"],
+        "component_id_provenance": selected_target["component_id_provenance"],
+        "discovery_ladder": discovery,
+        "write_target_admitted": False,
+        "write_admission": False,
+        "property_list_admission": False,
+    }
+    if isinstance(selected_candidate, dict):
+        property_path = str(selected_candidate.get("property_path") or "").strip()
+        if not property_path:
+            raise CommentScalarTargetProofError(
+                "Comment scalar discovery selected an empty property path."
+            )
+        if any(marker in property_path.lower() for marker in REJECT_PATH_MARKERS):
+            raise CommentScalarTargetProofError(
+                "Comment scalar discovery selected an out-of-scope property path."
+            )
+        if selected_candidate.get("success") is not True:
+            raise CommentScalarTargetProofError(
+                "Comment scalar discovery selected a candidate without readback success."
+            )
+        if selected_candidate.get("scalar_or_text_like") is not True:
+            raise CommentScalarTargetProofError(
+                "Comment scalar discovery selected a non-scalar value."
+            )
+        value = selected_candidate.get("value")
+        value_type = selected_candidate.get("value_type")
+        if not _value_is_scalar_or_text_like(value, value_type):
+            raise CommentScalarTargetProofError(
+                "Comment scalar discovery selected a non-scalar/text-like value."
+            )
+        return {
+            **common,
+            "status": "candidate_selected_readback_only",
+            "blocker_code": None,
+            "target_selected": True,
+            "future_write_candidate_selected": True,
+            "selected_candidate": {
+                "component": PROOF_COMPONENT_FAMILY,
+                "property_path": property_path,
+                "value_type": value_type,
+                "value_preview": str(value)[:160] if value is not None else None,
+                "target_status": "readback_only_candidate",
+                "write_admission": False,
+                "property_list_admission": False,
+                "source": selected_candidate.get("source"),
+            },
+        }
+
+    blocker_code = discovery.get("blocker_code") or BLOCKER_CODE
+    if blocker_code not in {
+        PROPERTY_TREE_UNAVAILABLE_BLOCKER_CODE,
+        SCALAR_CANDIDATE_NOT_FOUND_BLOCKER_CODE,
+        SOURCE_GUIDED_READBACK_FAILED_BLOCKER_CODE,
+        PROPERTY_LIST_UNAVAILABLE_BLOCKER_CODE,
+        BLOCKER_CODE,
+    }:
+        blocker_code = BLOCKER_CODE
+    return {
+        **common,
+        "status": "blocked",
+        "blocker_code": blocker_code,
+        "target_selected": False,
+        "future_write_candidate_selected": False,
+        "selected_candidate": None,
+    }
 
 
 def require_comment_readback(
@@ -214,19 +422,20 @@ def build_success_summary(
     target_info: dict[str, Any],
     runtime_steps: dict[str, Any],
     adapters_boundary: dict[str, Any],
-    readback_review: dict[str, Any] | None,
+    discovery_review: dict[str, Any],
 ) -> dict[str, Any]:
     selected = target_info["selected"]
     property_result = runtime_steps["property_list"]["runtime_result"]
-    property_paths = property_result["property_paths"]
+    property_paths = property_result.get("property_paths", [])
     cleanup_restore = runtime_steps["cleanup_restore"]
-    selection = runtime_steps.get("property_target_selection", {})
-    target_selected = readback_review is not None and readback_review.get(
+    target_selected = discovery_review.get(
         "future_write_candidate_selected"
     ) is True
+    selected_candidate = discovery_review.get("selected_candidate")
+    status = discovery_review["status"]
     return {
         "succeeded": True,
-        "status": "succeeded",
+        "status": status,
         "completed_at": authoring.utc_now(),
         "selected_level_path": safe_level_info["selected_level_path"],
         "entity_name": selected.get("entity_name"),
@@ -235,10 +444,14 @@ def build_success_summary(
         "component_id": selected["component_id"],
         "component_id_provenance": TARGET_PROVENANCE,
         "property_path_count": len(property_paths),
-        "property_target_selection": selection,
-        "readback_review": readback_review,
+        "property_discovery_review": discovery_review,
+        "selected_candidate": selected_candidate,
+        "target_selected": target_selected,
+        "blocker_code": None if target_selected else discovery_review.get("blocker_code"),
         "future_write_candidate_selected": target_selected,
         "write_target_admitted": False,
+        "write_admission": False,
+        "property_list_admission": False,
         "adapters_boundary": {
             "active_mode": adapters_boundary.get("active_mode"),
             "configured_mode": adapters_boundary.get("configured_mode"),
@@ -263,13 +476,16 @@ def build_success_summary(
                 "component/add."
             ),
             (
-                "Listed Comment property paths through proof-only "
+                "Ran the Comment property discovery ladder through proof-only "
                 "editor.component.property.list without adapter admission."
             ),
             (
-                "Selected and read one non-render Comment property candidate."
-                if readback_review
-                else "No Comment property candidate was selected for readback."
+                "Selected one readback-only non-render Comment property candidate."
+                if target_selected
+                else (
+                    "No stable Comment scalar/text-like property candidate was "
+                    "selected from list/tree/source-guided readback evidence."
+                )
             ),
             (
                 "Restored the selected loaded-level prefab from the pre-mutation "
@@ -298,6 +514,7 @@ def build_failure_summary(
     error: Exception,
     preflight_facts: list[str],
 ) -> dict[str, Any]:
+    details = getattr(error, "details", None)
     cleanup_restore = getattr(error, "cleanup_restore", None)
     cleanup_verified = (
         isinstance(cleanup_restore, dict)
@@ -315,6 +532,9 @@ def build_failure_summary(
         "failed_at": None if blocker_verified else authoring.utc_now(),
         "error_type": error.__class__.__name__,
         "error_message": str(error),
+        "error_details": (
+            authoring.scrub_secrets(details) if isinstance(details, dict) else None
+        ),
         "target_selected": False,
         "future_write_candidate_selected": False,
         "write_target_admitted": False,
@@ -399,7 +619,13 @@ def main() -> int:
 
     try:
         safe_level_info = authoring.select_safe_level(args.project_root)
+        source_inspection_evidence = collect_comment_source_inspection_evidence(
+            args.engine_root
+        )
         evidence_bundle["preflight"]["safe_level_selection"] = safe_level_info
+        evidence_bundle["preflight"]["source_inspection_evidence"] = (
+            source_inspection_evidence
+        )
         preflight_facts.append(
             f"Selected safe non-default proof level {safe_level_info['selected_level_path']}."
         )
@@ -468,7 +694,12 @@ def main() -> int:
             component_family=PROOF_COMPONENT_FAMILY,
             entity_prefix=PROOF_ENTITY_PREFIX,
             request_prefix=REQUEST_PREFIX,
-            property_read_selector=classify_comment_property_paths,
+            property_list_args={
+                "proof_component_family": PROOF_COMPONENT_FAMILY,
+                "include_property_tree_evidence": True,
+                "source_guided_readback_paths": list(SOURCE_GUIDED_COMMENT_PATHS),
+                "source_inspection_evidence": source_inspection_evidence,
+            },
         )
         target_info = property_list.target_info_from_runtime_steps(
             runtime_steps,
@@ -476,17 +707,14 @@ def main() -> int:
         )
         evidence_bundle["preflight"]["component_target_selection"] = target_info
         property_result = runtime_steps["property_list"]["runtime_result"]
-        property_list.require_property_list_result(
-            property_result,
-            target=target_info["selected"],
-            expected_property_path=None,
-        )
-        readback_review = None
-        if runtime_steps.get("property_get") is not None:
-            readback_review = require_comment_readback(
-                runtime_steps,
-                target_info=target_info,
+        if property_result.get("ok") is not True:
+            raise CommentScalarTargetProofError(
+                "Comment property discovery did not report ok=true."
             )
+        discovery_review = review_comment_scalar_discovery_result(
+            property_result,
+            target_info=target_info,
+        )
 
         evidence_bundle["steps"] = runtime_steps
         authoring.require_cleanup_restore_succeeded(runtime_steps["cleanup_restore"])
@@ -503,7 +731,7 @@ def main() -> int:
             target_info=target_info,
             runtime_steps=runtime_steps,
             adapters_boundary=adapters_boundary,
-            readback_review=readback_review,
+            discovery_review=discovery_review,
         )
     except Exception as exc:  # noqa: BLE001
         partial_runtime_steps = getattr(exc, "partial_runtime_steps", None)

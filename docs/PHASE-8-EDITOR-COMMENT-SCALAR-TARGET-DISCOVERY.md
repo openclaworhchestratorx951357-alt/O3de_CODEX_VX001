@@ -1,22 +1,22 @@
 # Phase 8 Editor Comment Scalar Target Discovery
 
-## Proof Checkpoint - 2026-04-26
+## Property Tree Discovery Fix Checkpoint - 2026-04-26
 
 Proof command:
 - `powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-comment-scalar-target-proof`
 
 Proof artifact:
-- `backend/runtime/live_editor_comment_scalar_target_proof_20260426-081548.json`
+- `backend/runtime/live_editor_comment_scalar_target_proof_20260426-085446.json`
 
 Runtime restore boundary artifact:
-- `backend/runtime/editor_state/restore_boundaries/3474cf9464f71663/e06de4e1b0b14f389ae92c5cc87039eb.prefab`
+- `backend/runtime/editor_state/restore_boundaries/3474cf9464f71663/dc6fdd30bb2342c48eb5af1ca7560088.prefab`
 
 Canonical proof target:
 - project: `C:\Users\topgu\O3DE\Projects\McpSandbox`
 - engine: `C:\src\o3de`
 - level: `Levels/TestLoevel01`
-- backend listener after proof: PID `31700`
-- canonical `Editor.exe` after proof: PID `11664`
+- backend listener after proof: PID `30092`
+- canonical `Editor.exe` after proof: PID `15708`
 - bridge heartbeat after proof: `heartbeat_fresh: true`
 
 Executed proof-only chain:
@@ -27,10 +27,10 @@ Executed proof-only chain:
 - proof-only `editor.component.property.list`
 
 Temporary proof target:
-- entity: `CodexCommentScalarTargetProofEntity_20260426_081548`
+- entity: `CodexCommentScalarTargetProofEntity_20260426_085446`
 - component: `Comment`
 - component id:
-  `EntityComponentIdPair(EntityId(17875031211073446309), 16741731683267750339)`
+  `EntityComponentIdPair(EntityId(16667653815670659382), 10682108348765234871)`
 - component id provenance:
   `admitted_runtime_component_add_result`
 
@@ -39,10 +39,35 @@ Discovery result:
 - succeeded: `true`
 - target selected: `false`
 - future write candidate selected: `false`
-- blocker code: `comment_property_list_unavailable`
+- blocker code: `comment_source_guided_readback_failed`
 - blocker:
-  the bridge did not return a typed string-only `property_paths` list for the
-  temporary `Comment` component
+  `BuildComponentPropertyList` and `BuildComponentPropertyTreeEditor` both
+  returned only an empty Comment property path, and every source-guided named
+  `GetComponentProperty` readback attempt failed with "path provided was not
+  found in tree"
+
+Discovery ladder evidence:
+- `EditorComponentAPIBus.BuildComponentPropertyList` succeeded and returned
+  one raw path: `""`
+- `EditorComponentAPIBus.BuildComponentPropertyTreeEditor` succeeded
+- `PropertyTreeEditor.build_paths_list()` returned one raw path: `""`
+- `PropertyTreeEditor.build_paths_list_with_types()` returned one typed entry:
+  ` (AZStd::string,Visible)`
+- the empty path is recorded as live evidence for the Comment field, but is not
+  treated as a stable operator target
+- source-guided fallback was attempted with Comment-only paths derived from
+  local O3DE source inspection, including `Comment`, `Configuration`, and
+  `Configuration|Comment`; all readback attempts failed
+- `SetComponentProperty` was not called
+
+Source inspection evidence:
+- source file:
+  `C:\src\o3de\Gems\LmbrCentral\Code\Source\Editor\EditorCommentComponent.cpp`
+- serialize field:
+  `Field("Configuration", &EditorCommentComponent::m_comment)`
+- edit-context data element:
+  `DataElement(..., &EditorCommentComponent::m_comment, "", "Comment")`
+- field type: `AZStd::string`
 
 Mutation and restore truth:
 - mutation occurred: temporary root entity creation plus allowlisted `Comment`
@@ -56,10 +81,12 @@ Mutation and restore truth:
 
 What this proof verifies:
 - `Comment` is reachable through the existing admitted component-add allowlist.
-- The proof can attempt non-render component property discovery without
-  admitting property writes.
-- The current bridge/property-list corridor does not yet provide usable
-  property path evidence for `Comment`.
+- The proof can attempt non-render component property discovery through
+  `BuildComponentPropertyList`, `PropertyTreeEditor`, and Comment-only
+  source-guided readback without admitting property writes.
+- The current live Editor API exposes the `Comment` text field as an empty
+  property path in both list and tree evidence, so the proof correctly refuses
+  to select it as a stable scalar target.
 - `/adapters` still does not expose `editor.component.property.list` or
   `editor.component.property.write`.
 - Prompt Studio property writes remain unadmitted.
@@ -75,5 +102,15 @@ Explicitly not proven:
 
 Recommended next packet:
 - choose another already-allowlisted non-render component, such as `Camera`, or
-  add a typed `Comment` property discovery fix without widening into property
-  writes or public property-list admission
+  design a separate proof-only strategy for handling O3DE components whose live
+  reflected property path is the empty string; do not widen into property writes
+  or public property-list admission
+
+## Previous Comment Discovery Blocker - 2026-04-26
+
+The earlier artifact
+`backend/runtime/live_editor_comment_scalar_target_proof_20260426-081548.json`
+blocked at `comment_property_list_unavailable` before the property tree ladder
+was added. That was not a failed safety slice: it proved temporary Comment
+component provisioning and restore, but did not yet collect enough typed live
+property evidence.

@@ -110,9 +110,12 @@ Current live component target-binding behavior:
   render-adjacent, asset-reference, derived/statistical, or grouping evidence.
   See `docs/PHASE-8-EDITOR-SCALAR-PROPERTY-TARGET-DISCOVERY.md`.
 - The first non-render allowlisted `Comment` attempt reached temporary
-  component provisioning and verified restore, but did not produce typed
-  property paths through `editor.component.property.list`; blocker code:
-  `comment_property_list_unavailable`. See
+  component provisioning and verified restore, then the follow-up typed
+  property-tree discovery fix proved that `BuildComponentPropertyList` and
+  `BuildComponentPropertyTreeEditor` both expose the Comment text field only as
+  an empty live property path. Source-guided named `GetComponentProperty`
+  readbacks also failed, so no stable scalar/text target was selected; blocker
+  code: `comment_source_guided_readback_failed`. See
   `docs/PHASE-8-EDITOR-COMMENT-SCALAR-TARGET-DISCOVERY.md`.
 
 ## Discovery Goal
@@ -200,6 +203,8 @@ Stop before target selection if any of these are true:
   through the admitted `property.get` path
 - every readable property is asset-like, material-like, prefab-like, transform,
   hierarchy, render, or build adjacent
+- the only live-reflected property path is the empty string and no named
+  source-guided readback can verify a stable operator-facing path
 - selecting the target would require a mutation
 
 When a stop condition is hit, the packet should produce a blocker summary, not
