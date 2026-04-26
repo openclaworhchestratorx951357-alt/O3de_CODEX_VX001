@@ -129,11 +129,16 @@ Rollback and restore expectations for the exact Camera bool corridor are
 designed in `docs/PHASE-8-CAMERA-BOOL-ROLLBACK-RESTORE-DESIGN.md`. That design
 does not implement rollback, generalized undo, or any wider write surface.
 
+The restore readiness audit is recorded in
+`docs/PHASE-8-CAMERA-BOOL-RESTORE-READINESS-AUDIT.md`. It finds the repo ready
+for a future proof-only restore harness only with explicit operator approval,
+and not ready for public restore admission without a separate high-risk packet.
+
 ## Recommended Next Packets
 
-1. If Phase 8 continues, run a readiness audit before implementing any exact
-   Camera bool restore/revert capability. Do not jump from design directly to
-   runtime rollback claims.
+1. If Phase 8 continues and the operator explicitly approves it, use a
+   proof-only restore harness packet for the exact Camera bool path. Do not
+   jump from readiness audit to public restore admission.
 2. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 3. Continue repository professionalization in small docs-only packets when the
