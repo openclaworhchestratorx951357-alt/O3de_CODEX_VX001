@@ -50,6 +50,23 @@ Then:
 Never stage `.venv/`, runtime proof JSON, logs, caches, build outputs, local
 databases, or secrets.
 
+## Post-Admission Review Packet
+
+After any high-risk runtime/capability admission is merged, make the next slice
+a bounded post-admission review/status packet before widening the capability
+again.
+
+That packet should:
+
+- improve operator-facing result/review wording
+- update status or matrix docs if mainline truth changed
+- add tests for the review/status output when code is touched
+- confirm the old refusal boundaries still hold
+- avoid admitting new tools, targets, adapters, or mutation surfaces
+
+This gives the operator a clearer handoff and keeps capability expansion from
+running ahead of reviewability.
+
 ## Risk Classes
 
 Low-risk changes Codex may self-merge after validation:

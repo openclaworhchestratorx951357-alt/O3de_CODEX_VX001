@@ -47,8 +47,11 @@ Current admitted editor/runtime truth:
 - a private proof-only Camera bool scalar write harness exists for exactly
   `Camera :: Controller|Configuration|Make active camera on activation? :: bool`.
 - one exact public, approval-gated Camera bool write corridor is admitted:
-  corridor:
   `editor.component.property.write.camera_bool_make_active_on_activation`.
+- the exact Camera bool corridor review/status output names the capability,
+  same-chain target entity, Camera component, property path,
+  before/requested/after values, verification result, `content_write`
+  admission class, restore guidance, and `generalized_undo_available: false`.
 
 Current non-admitted editor/property truth:
 
@@ -111,8 +114,9 @@ See `docs/REPOSITORY-OPERATIONS.md` and
 
 ## Recommended Next Packets
 
-1. Validate and review the exact Camera bool public corridor admission packet
-   without widening into generic property writes.
+1. Continue exact Camera bool corridor hardening only through review/status,
+   safety, or operator UX slices unless a new high-risk admission is explicitly
+   approved.
 2. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 3. Continue repository professionalization in small docs-only packets when the

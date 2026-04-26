@@ -82,6 +82,29 @@ Every successful dispatch result must preserve reviewable evidence:
 - `property_list_admission: false`
 - restore or revert guidance
 
+## Operator Review Status
+
+Prompt-level operator review for this exact corridor should make the write
+status readable without opening raw execution details.
+
+The review should name:
+
+- capability
+  `editor.component.property.write.camera_bool_make_active_on_activation`
+- target entity from the same admitted prompt chain
+- component `Camera`
+- property path `Controller|Configuration|Make active camera on activation?`
+- before value
+- requested bool value
+- after/readback value
+- `write_verified`
+- admission class `content_write`
+- `generalized_undo_available: false`
+- restore/revert guidance
+
+Generic property-write prompts must still be refused. Public property-list
+access must still be unavailable.
+
 The allowed restore/revert statement is narrow:
 
 ```text
