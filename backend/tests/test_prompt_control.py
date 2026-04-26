@@ -1940,6 +1940,26 @@ def test_prompt_session_refuses_arbitrary_command_execution() -> None:
             "prompt-editor-candidate-prefab-1",
             'Open prefab "Prefabs/Crate.prefab" in the editor.',
         ),
+        (
+            "prompt-editor-candidate-reparent-1",
+            'Reparent entity named "Wheel" under entity named "Car" in the editor.',
+        ),
+        (
+            "prompt-editor-candidate-transform-1",
+            'Move entity named "Hero" to position 1, 2, 3 in the editor.',
+        ),
+        (
+            "prompt-editor-candidate-component-remove-1",
+            "Remove Mesh component from entity id 101 in the editor.",
+        ),
+        (
+            "prompt-editor-candidate-material-assign-1",
+            'Assign material "Materials/Hero.material" to entity id 101 in the editor.',
+        ),
+        (
+            "prompt-editor-candidate-editor-command-1",
+            "Execute an editor command to change the selected entity.",
+        ),
     ],
 )
 def test_prompt_session_refuses_candidate_editor_mutation_intents_without_session_plan(
