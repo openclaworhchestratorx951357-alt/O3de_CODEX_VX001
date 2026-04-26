@@ -53,6 +53,7 @@ _CANDIDATE_EDITOR_MUTATION_PATTERNS = (
         r"(?:the\s+)?(?:component\s+)?property\b"
     ),
     re.compile(r"\b(?:set|update|write|change|modify)\s+.+\bproperty\b"),
+    re.compile(r"\b(?:set|update|write|change|modify|assign)\s+.+\bmodel asset\b"),
     re.compile(
         r"\b(?:remove|detach)\s+(?:the\s+|an?\s+)?"
         r"[a-z0-9_ -]*component\b"

@@ -1937,6 +1937,19 @@ def test_prompt_session_refuses_arbitrary_command_execution() -> None:
             "on entity id 101 in the editor.",
         ),
         (
+            "prompt-editor-candidate-property-write-2",
+            'Write component property "Comment|Configuration|Text" '
+            "on entity id 101 in the editor.",
+        ),
+        (
+            "prompt-editor-candidate-property-write-3",
+            "Change the Mesh model asset on entity id 101 in the editor.",
+        ),
+        (
+            "prompt-editor-candidate-property-write-4",
+            "Modify the component property on entity id 101 in the editor.",
+        ),
+        (
             "prompt-editor-candidate-prefab-1",
             'Open prefab "Prefabs/Crate.prefab" in the editor.',
         ),
