@@ -15,6 +15,9 @@ rounding up capability claims.
   validation expectations, and self-merge rules.
 - `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` - repo-wide workflow
   checklist for future Codex threads across all phases.
+- `docs/NORMALIZED-PHASE-WORKFLOW.md` - reusable phase promotion pattern from
+  baseline truth through discovery, proof-only evidence, exact admission,
+  operator docs, checkpoint, and report-first cleanup.
 - `docs/BRANCH-AND-PR-HYGIENE.md` - branch, PR, cleanup, and rollback hygiene.
 - `docs/VALIDATION-MATRIX.md` - validation command matrix and proof boundaries.
 - `docs/CAPABILITY-MATURITY-MATRIX.md` - conservative capability maturity
@@ -44,6 +47,7 @@ rounding up capability claims.
 ## Operating Guides
 
 - `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`
+- `docs/NORMALIZED-PHASE-WORKFLOW.md`
 - `docs/CODEX-OPERATING-RUNBOOK.md`
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/WORKTREE-STRATEGY.md`

@@ -115,6 +115,11 @@ Preferred governance right now is low-friction:
 See `docs/REPOSITORY-OPERATIONS.md` and
 `docs/BRANCH-AND-PR-HYGIENE.md`.
 
+Future phase work should also start from
+`docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` and
+`docs/NORMALIZED-PHASE-WORKFLOW.md` so every phase follows the same
+evidence-based promotion pattern before capability admission.
+
 ## Recommended Next Packets
 
 1. Continue exact Camera bool corridor hardening only through review/status,
