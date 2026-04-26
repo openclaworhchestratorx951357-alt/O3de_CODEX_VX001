@@ -5,6 +5,7 @@ from app.models.prompt_step import PromptPlanStep
 from app.services.planners.asset_pipeline_planner import plan_asset_pipeline_prompt
 from app.services.planners.editor_planner import (
     CANDIDATE_EDITOR_MUTATION_REFUSAL,
+    EDITOR_PROPERTY_DISCOVERY_REFUSAL,
     plan_editor_prompt,
 )
 from app.services.planners.project_build_planner import plan_project_build_prompt
@@ -67,6 +68,13 @@ class GlobalIntentPlanner:
                     "editor envelope. Candidate mutation surfaces must first prove "
                     "backup, restore/reload, post-restore verification, and "
                     "operator-visible review before prompt admission."
+                )
+            elif EDITOR_PROPERTY_DISCOVERY_REFUSAL in refusals:
+                refusal_reason = (
+                    "Component property listing is not admitted yet. The Phase 8 "
+                    "property target discovery packet must first prove a typed "
+                    "read-only property-list corridor before Prompt Studio can "
+                    "plan this request."
                 )
             elif "editor.entity.create" in refusals:
                 refusal_reason = (

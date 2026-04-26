@@ -2010,6 +2010,57 @@ def test_prompt_session_refuses_candidate_editor_mutation_intents_without_sessio
         )
 
 
+@pytest.mark.parametrize(
+    ("prompt_id", "prompt_text"),
+    [
+        (
+            "prompt-editor-property-discovery-1",
+            "List component properties for entity id 101 in the editor.",
+        ),
+        (
+            "prompt-editor-property-discovery-2",
+            "Discover property paths on the Mesh component in the editor.",
+        ),
+        (
+            "prompt-editor-property-discovery-3",
+            "Show me the component property list for entity id 101.",
+        ),
+    ],
+)
+def test_prompt_session_refuses_component_property_discovery_without_session_plan(
+    prompt_id: str,
+    prompt_text: str,
+) -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": prompt_id,
+                "prompt_text": prompt_text,
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": False,
+                "preferred_domains": ["editor-control"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "refused"
+        assert payload["admitted_capabilities"] == []
+        assert payload["refused_capabilities"] == [
+            "editor.component.property.list.unsupported"
+        ]
+        assert payload["plan"]["admitted"] is False
+        assert payload["plan"]["steps"] == []
+        assert "Component property listing is not admitted yet" in payload["plan"][
+            "refusal_reason"
+        ]
+        assert any(
+            "typed read-only property-list packet" in requirement
+            for requirement in payload["plan"]["capability_requirements"]
+        )
+
+
 def test_prompt_session_plans_admitted_real_editor_entity_create() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)
