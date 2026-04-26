@@ -67,10 +67,11 @@ Candidate status:
 - canonical live bridge refreshed from the repo-owned setup script on
   `2026-04-26`
 - canonical bridge heartbeat recovered after restarting the Editor bridge host
-- canonical bridge not live-proven for this operation
+- proof-only live run succeeded on the canonical bridge on `2026-04-26`
 - not dispatcher/catalog-admitted
 - not prompt-admitted
-- proof-only read-only candidate before property target discovery admission
+- proof-only candidate remains outside dispatcher/catalog and Prompt Studio
+  admission
 
 Required args:
 - `component_id`
@@ -138,19 +139,18 @@ Implemented in this packet:
 - runtime tests prove command payload shape, bridge result mapping,
   no property value readback field, and malformed `property_paths` rejection
 
-Still required before runtime proof or admission:
-- add a repo-owned live proof command or bounded proof harness for this
-  operation
+Still required before admission:
 - add a dispatcher/catalog adapter route only when proof-only execution is
   explicitly admitted
 - add schemas for args, result, execution details, and artifact metadata when
   the dispatcher/catalog route is introduced
 - prompt tests proving Prompt Studio still refuses property discovery
-- live proof command and evidence bundle path
+- keep the proof bundle path and remaining non-scope visible to operators
 
 Do not use this operation to select a property write target until one
 proof-only read-only run records the exact property path list and either
-selects a target or records the exact blocker.
+selects a target or records the exact blocker. The first proof-only run now
+exists; target-discovery admission still remains separate.
 
 ## Canonical Bridge Readiness Checkpoint
 
@@ -201,15 +201,63 @@ What this checkpoint proves:
   packet
 - the running canonical Editor bridge host was restarted and loaded a fresh
   bridge session
-- backend, canonical Editor, and bridge heartbeat readiness are available for a
-  future bounded property-list proof
+- backend, canonical Editor, and bridge heartbeat readiness were made available
+  for the subsequent bounded property-list proof
 
-What this checkpoint does not prove:
+What this readiness checkpoint by itself does not prove:
 - no `editor.component.property.list` live command was executed
 - no property path list was returned by the live bridge
 - no Prompt Studio or `/adapters` admission occurred
 - no property write, entity mutation, component mutation, restore, cleanup, or
   reversibility behavior was exercised
+
+## Live Proof Checkpoint - 2026-04-26
+
+Proof command:
+- `powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-property-list-proof`
+
+Proof artifact:
+- `backend/runtime/live_editor_component_property_list_proof_20260426-043614.json`
+
+Runtime restore boundary artifact:
+- `backend/runtime/editor_state/restore_boundaries/3474cf9464f71663/f2de0e13140b4f1caa9f214417d6a65e.prefab`
+
+Canonical proof target:
+- project: `C:\Users\topgu\O3DE\Projects\McpSandbox`
+- level: `Levels/TestLoevel01`
+- backend listener after proof: PID `30612`
+- canonical Editor.exe during proof: PID `17364`
+- post-proof bridge heartbeat: `heartbeat_fresh: true`
+
+Executed chain:
+- `editor.session.open`
+- `editor.level.open`
+- `editor.entity.create`
+- `editor.component.add`
+- proof-only `editor.component.property.list`
+
+Temporary proof target:
+- entity: `CodexPropertyListProofEntity_20260426_043614`
+- component: `Mesh`
+- component id: `EntityComponentIdPair(EntityId(8825628972962341928), 16304053675892170807)`
+
+Verified result:
+- `editor.component.property.list` executed through the typed
+  ControlPlaneEditorBridge filesystem inbox
+- returned `23` property paths
+- included `Controller|Configuration|Model Asset`
+- did not return property values
+- `/adapters` still did not expose `editor.component.property.list`
+- Prompt Studio, dispatcher, and catalog admission were not changed
+
+Mutation and restore truth:
+- mutation occurred through already-admitted temporary target provisioning:
+  root entity creation plus allowlisted Mesh component add
+- restore result: `restored_and_verified`
+- restore scope: filesystem restoration of selected loaded-level prefab from
+  the pre-entity-create backup
+- no live Editor undo, viewport reload, or post-restore entity-absence
+  readback was proven
 
 ## Explicit Non-Scope
 
@@ -219,7 +267,8 @@ This candidate does not cover:
 - property allowlist implementation
 - write-target selection
 - component discovery by type or broad scene enumeration
-- entity creation for fixture setup
+- arbitrary entity creation beyond the admitted temporary root proof target
 - arbitrary Editor Python
 - prefab, material, asset, render, build, validation, or TIAF behavior
-- restore, cleanup, or reversibility claims
+- restore, cleanup, or reversibility claims beyond the hash-verified
+  loaded-level prefab file restore recorded above

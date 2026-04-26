@@ -10,7 +10,8 @@ param(
         "restart",
         "start-bridge",
         "proof",
-        "entity-exists-proof"
+        "entity-exists-proof",
+        "property-list-proof"
     )]
     [string]$Action = "status",
     [string]$ApiHost = "127.0.0.1",
@@ -35,6 +36,7 @@ $PreferredBackendPython = Join-Path $BackendDir ".venv\Scripts\python.exe"
 $LaunchHelper = Join-Path $RuntimeDir "launch_branch_backend_8000_detached.py"
 $ProofHelper = Join-Path $RuntimeDir "prove_live_editor_authoring.py"
 $EntityExistsProofHelper = Join-Path $RuntimeDir "prove_live_editor_entity_exists.py"
+$PropertyListProofHelper = Join-Path $RuntimeDir "prove_live_editor_component_property_list.py"
 
 $PidPath = Join-Path $RuntimeDir "live-verify-uvicorn.pid"
 $LaunchManifestPath = Join-Path $RuntimeDir "live-verify-launch.json"
@@ -791,6 +793,11 @@ $result = switch ($Action) {
         Invoke-ProofRun `
             -SelectedProofHelper $EntityExistsProofHelper `
             -ProofAction "entity-exists-proof"
+    }
+    "property-list-proof" {
+        Invoke-ProofRun `
+            -SelectedProofHelper $PropertyListProofHelper `
+            -ProofAction "property-list-proof"
     }
 }
 
