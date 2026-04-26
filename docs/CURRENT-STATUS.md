@@ -120,6 +120,11 @@ Future phase work should also start from
 `docs/NORMALIZED-PHASE-WORKFLOW.md` so every phase follows the same
 evidence-based promotion pattern before capability admission.
 
+The completed Phase 8 Camera bool corridor sequence is checkpointed in
+`docs/PHASE-8-CAMERA-BOOL-CORRIDOR-CHECKPOINT.md`. Future threads should treat
+that checkpoint as the concise handoff for the exact Camera bool corridor and
+the first normalized-phase reference example.
+
 ## Recommended Next Packets
 
 1. Continue exact Camera bool corridor hardening only through review/status,
