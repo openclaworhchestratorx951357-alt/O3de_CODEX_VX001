@@ -9,6 +9,9 @@ from unittest.mock import patch
 import pytest
 from app.services.adapters import AdapterExecutionRejected
 from app.services.editor_automation_runtime import (
+    CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
+    CAMERA_SCALAR_WRITE_PROOF_OPERATION,
+    CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
     COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT,
     COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_DISCOVERY_RESULT,
     EDITOR_COMPONENT_ADD_ALLOWLIST,
@@ -76,6 +79,24 @@ def write_loaded_level_file(
     return resolved_level_path
 
 
+def write_loaded_editor_state(
+    project_root: Path,
+    *,
+    level_path: str = "Levels/Main.level",
+) -> None:
+    state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(
+        json.dumps(
+            {
+                "session_active": True,
+                "loaded_level_path": level_path,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+
 def test_bridge_setup_script_contains_property_list_operation() -> None:
     repo_root = Path(__file__).resolve().parents[2]
     setup_script = repo_root / "scripts" / "setup_control_plane_editor_bridge.ps1"
@@ -84,6 +105,19 @@ def test_bridge_setup_script_contains_property_list_operation() -> None:
     assert "def _list_component_properties(" in script_text
     assert 'if operation == "editor.component.property.list":' in script_text
     assert '"BuildComponentPropertyList"' in script_text
+
+
+def test_bridge_setup_script_contains_camera_scalar_write_proof_operation() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    setup_script = repo_root / "scripts" / "setup_control_plane_editor_bridge.ps1"
+    script_text = setup_script.read_text(encoding="utf-8")
+
+    assert "def _write_camera_scalar_bool_property_proof(" in script_text
+    assert 'operation_name = "editor.camera.scalar.write.proof"' in script_text
+    assert "Controller|Configuration|Make active camera on activation?" in script_text
+    assert "EditorComponentAPIBus.SetComponentProperty" in script_text
+    assert "editor.component.property.write" not in script_text
+    assert "PropertyTreeEditor.set_value" not in script_text
 
 
 def test_bridge_setup_script_contains_component_find_operation() -> None:
@@ -2771,6 +2805,187 @@ def test_execute_component_property_get_rejects_when_bridge_reports_component_no
         command_payload = captured["command"]
         assert isinstance(command_payload, dict)
         assert command_payload["operation"] == "editor.component.property.get"
+
+
+def camera_scalar_write_args(**overrides: object) -> dict[str, object]:
+    args: dict[str, object] = {
+        "component_name": CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
+        "component_id": "EntityComponentIdPair(EntityId(101), 201)",
+        "component_id_provenance": (
+            COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+        ),
+        "property_path": CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
+        "value": True,
+        "expected_current_value": False,
+        "level_path": "Levels/Main.level",
+        "restore_boundary_id": "restore-boundary-1",
+    }
+    args.update(overrides)
+    return args
+
+
+def test_execute_camera_scalar_write_proof_queues_exact_proof_bridge_operation() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+        write_loaded_editor_state(project_root)
+
+        bridge_response = {
+            "operation": CAMERA_SCALAR_WRITE_PROOF_OPERATION,
+            "bridge_command_id": "bridge-camera-write-1",
+            "success": True,
+            "bridge_name": "ControlPlaneEditorBridge",
+            "bridge_version": "0.1.0",
+            "finished_at": "2026-04-26T00:00:01Z",
+            "result_summary": "Camera scalar bool property write was verified.",
+            "details": {
+                "component_name": CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
+                "component_id": "EntityComponentIdPair(EntityId(101), 201)",
+                "component_id_provenance": (
+                    COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+                ),
+                "property_path": CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
+                "previous_value": False,
+                "requested_value": True,
+                "value": True,
+                "value_type": "bool",
+                "changed": True,
+                "write_verified": True,
+                "restore_boundary_id": "restore-boundary-1",
+                "level_path": "Levels/Main.level",
+                "loaded_level_path": "Levels/Main.level",
+                "exact_editor_apis": [
+                    "ControlPlaneEditorBridge filesystem inbox",
+                    CAMERA_SCALAR_WRITE_PROOF_OPERATION,
+                    "EditorComponentAPIBus.GetComponentProperty",
+                    "EditorComponentAPIBus.SetComponentProperty",
+                ],
+            },
+        }
+
+        with patch.dict(
+            "os.environ",
+            {"O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner"},
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_host_available",
+                    return_value=True,
+                ):
+                    with patch.object(
+                        editor_automation_runtime_service,
+                        "_invoke_bridge_command",
+                        return_value=bridge_response,
+                    ) as invoke_bridge_command:
+                        payload = (
+                            editor_automation_runtime_service.execute_camera_scalar_write_proof(
+                                request_id="req-camera-scalar-write-proof-1",
+                                session_id="session-1",
+                                workspace_id="workspace-editor-project",
+                                executor_id="executor-editor-control-real-local",
+                                project_root=str(project_root),
+                                engine_root="C:/src/o3de",
+                                dry_run=False,
+                                args=camera_scalar_write_args(),
+                                locks_acquired=["editor_session"],
+                            )
+                        )
+
+        runtime_result = payload["runtime_result"]
+        assert runtime_result["ok"] is True
+        assert runtime_result["proof_only"] is True
+        assert runtime_result["public_admission"] is False
+        assert runtime_result["write_admission"] is False
+        assert runtime_result["property_list_admission"] is False
+        assert runtime_result["bridge_operation"] == CAMERA_SCALAR_WRITE_PROOF_OPERATION
+        assert runtime_result["component_name"] == CAMERA_SCALAR_WRITE_PROOF_COMPONENT
+        assert runtime_result["property_path"] == CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH
+        assert runtime_result["previous_value"] is False
+        assert runtime_result["requested_value"] is True
+        assert runtime_result["value"] is True
+        assert runtime_result["write_verified"] is True
+
+        command_kwargs = invoke_bridge_command.call_args.kwargs
+        assert command_kwargs["tool"] == CAMERA_SCALAR_WRITE_PROOF_OPERATION
+        assert command_kwargs["operation"] == CAMERA_SCALAR_WRITE_PROOF_OPERATION
+        assert command_kwargs["args"] == {
+            "component_name": CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
+            "component_id": "EntityComponentIdPair(EntityId(101), 201)",
+            "component_id_provenance": (
+                COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+            ),
+            "property_path": CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
+            "value": True,
+            "expected_current_value": False,
+            "level_path": "Levels/Main.level",
+            "restore_boundary_id": "restore-boundary-1",
+            "proof_only": True,
+        }
+
+
+@pytest.mark.parametrize(
+    ("overrides", "preflight_reason"),
+    [
+        (
+            {"component_name": "Mesh"},
+            "camera-scalar-write-proof-component-unsupported",
+        ),
+        (
+            {"property_path": "Controller|Configuration|Field of view"},
+            "camera-scalar-write-proof-property-unsupported",
+        ),
+        (
+            {"value": "true"},
+            "camera-scalar-write-proof-value-not-bool",
+        ),
+        (
+            {"component_id_provenance": "serialized_prefab_record"},
+            "component-id-provenance-not-admitted-runtime-add",
+        ),
+    ],
+)
+def test_execute_camera_scalar_write_proof_rejects_arbitrary_targets(
+    overrides: dict[str, object],
+    preflight_reason: str,
+) -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+        write_loaded_editor_state(project_root)
+
+        with patch.dict(
+            "os.environ",
+            {"O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner"},
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_host_available",
+                    return_value=True,
+                ):
+                    try:
+                        editor_automation_runtime_service.execute_camera_scalar_write_proof(
+                            request_id="req-camera-scalar-write-proof-reject",
+                            session_id="session-1",
+                            workspace_id="workspace-editor-project",
+                            executor_id="executor-editor-control-real-local",
+                            project_root=str(project_root),
+                            engine_root="C:/src/o3de",
+                            dry_run=False,
+                            args=camera_scalar_write_args(**overrides),
+                            locks_acquired=["editor_session"],
+                        )
+                    except AdapterExecutionRejected as exc:
+                        assert exc.details["preflight_reason"] == preflight_reason
+                    else:
+                        raise AssertionError(
+                            "Camera scalar write proof should reject arbitrary targets."
+                        )
 
 
 def test_bridge_queue_counts_use_unique_command_ids_per_queue() -> None:

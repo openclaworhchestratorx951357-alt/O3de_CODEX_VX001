@@ -17,6 +17,7 @@ backend/runtime/live_editor_component_property_list_proof_*.json
 backend/runtime/live_editor_property_target_readback_proof_*.json
 backend/runtime/live_editor_comment_scalar_target_proof_*.json
 backend/runtime/live_editor_scalar_target_discovery_proof_*.json
+backend/runtime/live_editor_camera_scalar_write_proof_*.json
 backend/runtime/live_component_add_validation_*.json
 backend/runtime/*.log
 backend/runtime/*.pid

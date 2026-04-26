@@ -885,6 +885,13 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "project.inspect",
                 "test.visual.diff",
             ]
+            forbidden_editor_property_paths = {
+                "editor.component.property.list",
+                "editor.component.property.write",
+                "editor.component.property.set",
+                "editor.camera.scalar.write.proof",
+            }
+            assert forbidden_editor_property_paths.isdisjoint(payload["real_tool_paths"])
             assert payload["plan_only_tool_paths"] == [
                 "asset.batch.process",
                 "asset.move.safe",
@@ -950,6 +957,9 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "editor.component.find",
                 "editor.component.property.get",
             ]
+            assert forbidden_editor_property_paths.isdisjoint(
+                editor_control["real_tool_paths"]
+            )
             assert editor_control["plan_only_tool_paths"] == []
             assert editor_control["simulated_tool_paths"] == []
             assert any(

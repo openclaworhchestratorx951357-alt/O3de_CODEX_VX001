@@ -4594,6 +4594,387 @@ def _get_component_property(command: dict[str, Any], runtime_state: dict[str, An
     )
 
 
+def _write_camera_scalar_bool_property_proof(command: dict[str, Any], runtime_state: dict[str, Any]) -> dict[str, Any]:
+    started_at = utc_now()
+    details = _base_details(runtime_state)
+    allowed_component_name = "Camera"
+    allowed_property_path = "Controller|Configuration|Make active camera on activation?"
+    allowed_provenance = "admitted_runtime_component_add_result"
+    operation_name = "editor.camera.scalar.write.proof"
+    details["prefab_context_notes"] = (
+        "Proof-only Camera bool property write for one exact live component id and one "
+        "exact property path; public property-write admission, arbitrary component "
+        "writes, arbitrary property writes, and broad property listing remain out of scope."
+    )
+    details["proof_only"] = True
+    details["public_admission"] = False
+    details["write_admission"] = False
+    details["property_list_admission"] = False
+    details["allowed_component_name"] = allowed_component_name
+    details["allowed_property_path"] = allowed_property_path
+    if not _editor_available():
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Editor Python bindings are not available inside the bridge host.",
+            details=details,
+            error_code="EDITOR_BINDINGS_UNAVAILABLE",
+        )
+
+    active_level_path = details.get("active_level_path")
+    if not isinstance(active_level_path, str) or not active_level_path:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof requires an open loaded level context.",
+            details=details,
+            error_code="CAMERA_WRITE_LEVEL_CONTEXT_MISSING",
+        )
+
+    details["loaded_level_path"] = active_level_path
+    details["level_path"] = active_level_path
+    args = command.get("args", {})
+    requested_level = args.get("level_path")
+    if isinstance(requested_level, str) and requested_level:
+        details["requested_level_path"] = requested_level
+        if _normalize_level_path(requested_level) != _normalize_level_path(active_level_path):
+            return _response(
+                command=command,
+                started_at=started_at,
+                success=False,
+                status="failed",
+                result_summary="Camera scalar write proof level_path must match the currently loaded level.",
+                details=details,
+                error_code="LOADED_LEVEL_MISMATCH",
+            )
+
+    requested_component_name = args.get("component_name")
+    details["requested_component_name"] = requested_component_name
+    if requested_component_name != allowed_component_name:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof only allows the Camera component.",
+            details=details,
+            error_code="CAMERA_WRITE_COMPONENT_UNSUPPORTED",
+        )
+    details["component_name"] = allowed_component_name
+
+    component_id_provenance = args.get("component_id_provenance")
+    details["component_id_provenance"] = component_id_provenance
+    if component_id_provenance != allowed_provenance:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof requires live component id provenance from admitted component add.",
+            details=details,
+            error_code="CAMERA_WRITE_COMPONENT_PROVENANCE_UNSUPPORTED",
+        )
+
+    requested_property_path = args.get("property_path")
+    details["property_path"] = requested_property_path
+    if requested_property_path != allowed_property_path:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof only allows the selected Camera bool path.",
+            details=details,
+            error_code="CAMERA_WRITE_PROPERTY_PATH_UNSUPPORTED",
+        )
+
+    requested_value = args.get("value")
+    details["requested_value"] = requested_value
+    if not isinstance(requested_value, bool):
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof only allows bool values.",
+            details=details,
+            error_code="CAMERA_WRITE_VALUE_NOT_BOOL",
+        )
+
+    expected_current_value = args.get("expected_current_value")
+    if expected_current_value is not None and not isinstance(expected_current_value, bool):
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof expected_current_value must be bool when provided.",
+            details=details,
+            error_code="CAMERA_WRITE_EXPECTED_VALUE_NOT_BOOL",
+        )
+    details["expected_current_value"] = expected_current_value
+
+    restore_boundary_id = args.get("restore_boundary_id")
+    details["restore_boundary_id"] = restore_boundary_id
+    if not isinstance(restore_boundary_id, str) or not restore_boundary_id.strip():
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof requires a restore boundary id before mutation.",
+            details=details,
+            error_code="CAMERA_WRITE_RESTORE_BOUNDARY_MISSING",
+        )
+
+    requested_component_id = args.get("component_id")
+    if not isinstance(requested_component_id, str) or not requested_component_id.strip():
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof requires args.component_id.",
+            details=details,
+            error_code="COMPONENT_ID_MISSING",
+        )
+
+    component_pair, component_resolution_details = _coerce_component_pair(
+        requested_component_id.strip()
+    )
+    details.update(component_resolution_details)
+    if component_pair is None:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof requires a valid explicit live component id.",
+            details=details,
+            error_code="COMPONENT_ID_INVALID",
+        )
+
+    component_id_text = _component_pair_to_string(component_pair)
+    if component_id_text is not None:
+        details["component_id"] = component_id_text
+
+    entity_id = _component_pair_entity_id(component_pair)
+    component_numeric_id = _component_pair_component_id(component_pair)
+    component_type_id = _resolve_component_type_id(allowed_component_name)
+    if entity_id is None or component_type_id is None:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof could not resolve the Camera component type.",
+            details=details,
+            error_code="CAMERA_COMPONENT_TYPE_UNRESOLVED",
+        )
+    try:
+        camera_component_outcome = editor.EditorComponentAPIBus(
+            bus.Broadcast,
+            "GetComponentOfType",
+            entity_id,
+            component_type_id,
+        )
+    except Exception as exc:
+        details["camera_component_lookup_exception"] = repr(exc)
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof could not verify the component type.",
+            details=details,
+            error_code="CAMERA_COMPONENT_LOOKUP_FAILED",
+        )
+    if not camera_component_outcome.IsSuccess():
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof did not find a Camera component on the target entity.",
+            details=details,
+            error_code="CAMERA_COMPONENT_NOT_FOUND",
+        )
+    camera_component_pair = camera_component_outcome.GetValue()
+    camera_component_numeric_id = _component_pair_component_id(camera_component_pair)
+    details["camera_component_id"] = _component_pair_to_string(camera_component_pair)
+    if (
+        component_numeric_id is not None
+        and camera_component_numeric_id is not None
+        and component_numeric_id != camera_component_numeric_id
+    ):
+        details["requested_component_numeric_id"] = component_numeric_id
+        details["camera_component_numeric_id"] = camera_component_numeric_id
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof component_id does not identify the live Camera component.",
+            details=details,
+            error_code="CAMERA_COMPONENT_ID_MISMATCH",
+        )
+
+    try:
+        property_paths = editor.EditorComponentAPIBus(
+            bus.Broadcast,
+            "BuildComponentPropertyList",
+            component_pair,
+        )
+    except Exception as exc:
+        details["component_property_list_exception"] = repr(exc)
+        property_paths = None
+    if not isinstance(property_paths, list) or allowed_property_path not in property_paths:
+        details["component_property_count"] = len(property_paths) if isinstance(property_paths, list) else None
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof could not verify the allowlisted property path on the live Camera component.",
+            details=details,
+            error_code="CAMERA_WRITE_PROPERTY_PATH_NOT_FOUND",
+        )
+    details["component_property_count"] = len(property_paths)
+
+    def read_bool_property(label: str) -> tuple[bool, bool | None, str | None]:
+        try:
+            property_outcome = editor.EditorComponentAPIBus(
+                bus.Broadcast,
+                "GetComponentProperty",
+                component_pair,
+                allowed_property_path,
+            )
+        except Exception as exc:
+            details[f"{label}_read_exception"] = repr(exc)
+            return False, None, None
+        if not property_outcome.IsSuccess():
+            try:
+                details[f"{label}_read_error"] = str(property_outcome.GetError())
+            except Exception:
+                pass
+            return False, None, None
+        raw_value = property_outcome.GetValue()
+        value = _json_safe_value(raw_value)
+        value_type = _value_type_from_tree(component_pair, allowed_property_path) or _fallback_value_type(raw_value)
+        details[f"{label}_value"] = value
+        details[f"{label}_value_type"] = value_type
+        if not isinstance(value, bool):
+            return False, None, value_type
+        return True, value, value_type
+
+    before_success, before_value, before_value_type = read_bool_property("before")
+    if not before_success:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof could not read the bool property before mutation.",
+            details=details,
+            error_code="CAMERA_WRITE_BEFORE_READBACK_FAILED",
+        )
+    if expected_current_value is not None and before_value != expected_current_value:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof before value did not match the expected current value.",
+            details=details,
+            error_code="CAMERA_WRITE_EXPECTED_VALUE_MISMATCH",
+        )
+
+    try:
+        set_outcome = editor.EditorComponentAPIBus(
+            bus.Broadcast,
+            "SetComponentProperty",
+            component_pair,
+            allowed_property_path,
+            requested_value,
+        )
+    except Exception as exc:
+        details["component_property_set_exception"] = repr(exc)
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof raised while setting the bool property.",
+            details=details,
+            error_code="CAMERA_WRITE_SET_EXCEPTION",
+        )
+    set_success = bool(set_outcome)
+    if hasattr(set_outcome, "IsSuccess"):
+        try:
+            set_success = bool(set_outcome.IsSuccess())
+        except Exception:
+            set_success = False
+    details["set_component_property_success"] = set_success
+    if not set_success:
+        if hasattr(set_outcome, "GetError"):
+            try:
+                details["component_property_set_error"] = str(set_outcome.GetError())
+            except Exception:
+                pass
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof could not set the bool property.",
+            details=details,
+            error_code="CAMERA_WRITE_SET_FAILED",
+        )
+
+    after_success, after_value, after_value_type = read_bool_property("after")
+    if not after_success or after_value != requested_value:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Camera scalar write proof did not verify the changed bool value.",
+            details=details,
+            error_code="CAMERA_WRITE_AFTER_READBACK_FAILED",
+        )
+
+    details.update(
+        {
+            "previous_value": before_value,
+            "requested_value": requested_value,
+            "value": after_value,
+            "value_type": after_value_type or before_value_type or "bool",
+            "changed": before_value != after_value,
+            "write_verified": True,
+            "exact_editor_apis": [
+                "ControlPlaneEditorBridge filesystem inbox",
+                operation_name,
+                "EditorComponentAPIBus.GetComponentOfType",
+                "EditorComponentAPIBus.BuildComponentPropertyList",
+                "EditorComponentAPIBus.GetComponentProperty",
+                "EditorComponentAPIBus.SetComponentProperty",
+            ],
+        }
+    )
+    return _response(
+        command=command,
+        started_at=started_at,
+        success=True,
+        status="ok",
+        result_summary="Proof-only Camera bool property write was applied and read back.",
+        details=details,
+    )
+
+
 def execute_command(command: dict[str, Any], runtime_state: dict[str, Any]) -> dict[str, Any]:
     started_at = utc_now()
     operation = command.get("operation")
@@ -4641,6 +5022,8 @@ def execute_command(command: dict[str, Any], runtime_state: dict[str, Any]) -> d
         return _list_component_properties(command, runtime_state)
     if operation == "editor.component.property.get":
         return _get_component_property(command, runtime_state)
+    if operation == "editor.camera.scalar.write.proof":
+        return _write_camera_scalar_bool_property_proof(command, runtime_state)
     if operation == "editor.entity.create.probe":
         return _entity_create_probe(command, runtime_state)
     details = _base_details(runtime_state)
