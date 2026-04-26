@@ -1597,6 +1597,7 @@ class EditorAutomationRuntimeService:
         for optional_key in (
             "proof_component_family",
             "include_property_tree_evidence",
+            "include_scalar_target_discovery",
             "source_guided_readback_paths",
             "source_inspection_evidence",
         ):
@@ -1673,6 +1674,7 @@ class EditorAutomationRuntimeService:
             "raw_property_paths",
             "property_discovery_ladder",
             "comment_scalar_discovery",
+            "scalar_target_discovery",
             "source_inspection_evidence",
         ):
             if optional_key in bridge_details:

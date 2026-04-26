@@ -14,7 +14,8 @@ param(
         "component-find-proof",
         "property-target-readback-proof",
         "property-list-proof",
-        "comment-scalar-target-proof"
+        "comment-scalar-target-proof",
+        "scalar-target-discovery-proof"
     )]
     [string]$Action = "status",
     [string]$ApiHost = "127.0.0.1",
@@ -43,6 +44,7 @@ $ComponentFindProofHelper = Join-Path $RuntimeDir "prove_live_editor_component_f
 $PropertyTargetReadbackProofHelper = Join-Path $RuntimeDir "prove_live_editor_property_target_readback.py"
 $PropertyListProofHelper = Join-Path $RuntimeDir "prove_live_editor_component_property_list.py"
 $CommentScalarTargetProofHelper = Join-Path $RuntimeDir "prove_live_editor_comment_scalar_target.py"
+$ScalarTargetDiscoveryProofHelper = Join-Path $RuntimeDir "prove_live_editor_scalar_target_discovery.py"
 
 $PidPath = Join-Path $RuntimeDir "live-verify-uvicorn.pid"
 $LaunchManifestPath = Join-Path $RuntimeDir "live-verify-launch.json"
@@ -820,11 +822,16 @@ $result = switch ($Action) {
             -SelectedProofHelper $CommentScalarTargetProofHelper `
             -ProofAction "comment-scalar-target-proof"
     }
+    "scalar-target-discovery-proof" {
+        Invoke-ProofRun `
+            -SelectedProofHelper $ScalarTargetDiscoveryProofHelper `
+            -ProofAction "scalar-target-discovery-proof"
+    }
 }
 
 Write-Output (ConvertTo-JsonOutput -Value $result)
 
-if ($Action -in @("proof", "entity-exists-proof", "component-find-proof", "property-target-readback-proof", "property-list-proof", "comment-scalar-target-proof")) {
+if ($Action -in @("proof", "entity-exists-proof", "component-find-proof", "property-target-readback-proof", "property-list-proof", "comment-scalar-target-proof", "scalar-target-discovery-proof")) {
     $proofExitCode = 0
     $proofExitCodeRaw = Get-OptionalMemberValue -InputObject $result -Name "proof_exit_code"
     if ($null -ne $proofExitCodeRaw) {

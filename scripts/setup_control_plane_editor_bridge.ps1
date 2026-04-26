@@ -1022,6 +1022,44 @@ COMMENT_SCALAR_VALUE_TYPE_MARKERS = (
     "u32",
     "s32",
 )
+SCALAR_TARGET_REJECT_PATH_MARKERS = (
+    "asset",
+    "material",
+    "mesh",
+    "model",
+    "render",
+    "ray",
+    "lod",
+    "lighting",
+    "shader",
+    "texture",
+    "pipeline",
+    "transform",
+)
+SCALAR_TARGET_REJECT_TYPE_MARKERS = (
+    "asset",
+    "material",
+    "mesh",
+    "model",
+    "vector",
+    "quaternion",
+    "color",
+    "transform",
+    "container",
+)
+SCALAR_TARGET_VALUE_TYPE_MARKERS = (
+    "string",
+    "azstd::string",
+    "str",
+    "bool",
+    "boolean",
+    "int",
+    "float",
+    "double",
+    "number",
+    "u32",
+    "s32",
+)
 COMPONENT_ID_PATTERN = re.compile(
     r"^EntityComponentIdPair\s*\(\s*"
     r"(?:EntityId\s*\(\s*(?P<entity_wrapped>\d+)\s*\)|"
@@ -2022,6 +2060,8 @@ def _build_property_tree_evidence(component_pair: Any) -> dict[str, Any]:
         "tree_success": False,
         "paths_with_types_count": None,
         "paths_count": None,
+        "raw_typed_paths": [],
+        "raw_paths": [],
         "raw_typed_path_preview": [],
         "raw_path_preview": [],
         "root_candidate_detected": False,
@@ -2056,6 +2096,7 @@ def _build_property_tree_evidence(component_pair: Any) -> dict[str, Any]:
         evidence["paths_with_types_exception"] = repr(exc)
         paths_with_types = None
     if isinstance(paths_with_types, list):
+        evidence["raw_typed_paths"] = [str(path_entry) for path_entry in paths_with_types]
         evidence["paths_with_types_count"] = len(paths_with_types)
         evidence["raw_typed_path_preview"] = [
             str(path_entry) for path_entry in paths_with_types[:25]
@@ -2069,6 +2110,7 @@ def _build_property_tree_evidence(component_pair: Any) -> dict[str, Any]:
         evidence["paths_exception"] = repr(exc)
         paths = None
     if isinstance(paths, list):
+        evidence["raw_paths"] = [str(path_entry) for path_entry in paths]
         evidence["paths_count"] = len(paths)
         evidence["raw_path_preview"] = [str(path_entry) for path_entry in paths[:25]]
     else:
@@ -2389,6 +2431,401 @@ def _run_comment_scalar_discovery_ladder(
         "readback_attempts": readback_attempts,
         "source_guided_fallback_attempted": source_guided_fallback_attempted,
         "source_guided_readback_attempts": source_guided_attempts,
+        "selected_candidate": selected,
+        "target_selected": selected is not None,
+        "future_write_candidate_selected": selected is not None,
+        "write_target_admitted": False,
+        "write_admission": False,
+        "property_list_admission": False,
+        "set_component_property_attempted": False,
+    }
+
+
+def _scalar_target_value_shape(value: Any) -> str:
+    if isinstance(value, dict):
+        keys = {str(key).lower() for key in value}
+        if keys and keys.issubset({"x", "y", "z", "w"}):
+            return "xyzw_object"
+        if keys and keys.issubset({"r", "g", "b", "a"}):
+            return "rgba_object"
+        return "object"
+    if isinstance(value, list):
+        return "list"
+    if isinstance(value, tuple):
+        return "tuple"
+    if isinstance(value, set):
+        return "set"
+    return "scalar" if isinstance(value, (str, bool, int, float)) else type(value).__name__
+
+
+def _scalar_target_value_is_scalar_or_text_like(value: Any, value_type: Any) -> bool:
+    if isinstance(value, (str, bool, int, float)):
+        return True
+    value_type_text = "" if value_type is None else str(value_type).lower()
+    return value is None and any(
+        marker in value_type_text for marker in SCALAR_TARGET_VALUE_TYPE_MARKERS
+    )
+
+
+def _scalar_target_path_prefixes(property_paths: list[str]) -> set[str]:
+    return {
+        "|".join(parts[:index])
+        for path in property_paths
+        for parts in [path.split("|")]
+        for index in range(1, len(parts))
+    }
+
+
+def _scalar_target_path_review(
+    path: str,
+    *,
+    value_type_hint: Any = None,
+    visibility_hint: Any = None,
+    path_prefixes: set[str] | None = None,
+) -> dict[str, Any]:
+    stripped_path = path.strip()
+    lowered = stripped_path.lower()
+    value_type_text = "" if value_type_hint is None else str(value_type_hint).lower()
+    visibility_text = "" if visibility_hint is None else str(visibility_hint).lower()
+    if not stripped_path:
+        return {
+            "readback_candidate": False,
+            "evidence_class": "empty_property_path_evidence",
+            "reason": "Empty/root paths are recorded as evidence only and are not selected.",
+        }
+    if path_prefixes and stripped_path in path_prefixes:
+        return {
+            "readback_candidate": False,
+            "evidence_class": "container_or_group",
+            "reason": "Grouping paths are not concrete scalar property targets.",
+        }
+    if visibility_text and "visible" not in visibility_text:
+        return {
+            "readback_candidate": False,
+            "evidence_class": "hidden_or_unavailable_property_path",
+            "reason": "The property tree reported a non-visible path.",
+        }
+    if any(marker in lowered for marker in SCALAR_TARGET_REJECT_PATH_MARKERS):
+        return {
+            "readback_candidate": False,
+            "evidence_class": "out_of_scope_property_path",
+            "reason": "The path is asset, material, mesh/model, render, or transform adjacent.",
+        }
+    if any(marker in value_type_text for marker in SCALAR_TARGET_REJECT_TYPE_MARKERS):
+        return {
+            "readback_candidate": False,
+            "evidence_class": "out_of_scope_value_type",
+            "reason": "The value type hint is vector, color, transform, asset, or container adjacent.",
+        }
+    scalar_hint = any(
+        marker in value_type_text for marker in SCALAR_TARGET_VALUE_TYPE_MARKERS
+    )
+    return {
+        "readback_candidate": True,
+        "evidence_class": (
+            "scalar_or_text_like_candidate"
+            if scalar_hint
+            else "non_asset_non_render_candidate_requires_readback"
+        ),
+        "reason": "The path passed proof-only name/type screening; live readback must still prove scalar shape.",
+    }
+
+
+def _normalize_scalar_target_entries(
+    property_paths: list[Any] | None,
+    tree_evidence: dict[str, Any],
+    *,
+    component_family: str,
+) -> list[dict[str, Any]]:
+    raw_items: list[tuple[str, Any, bool]] = []
+    if isinstance(property_paths, list):
+        raw_items.extend(("BuildComponentPropertyList", path, False) for path in property_paths)
+    tree_paths = tree_evidence.get("raw_paths")
+    if not isinstance(tree_paths, list):
+        tree_paths = tree_evidence.get("raw_path_preview", [])
+    raw_items.extend(
+        ("PropertyTreeEditor.build_paths_list", path, False) for path in tree_paths
+    )
+    typed_tree_paths = tree_evidence.get("raw_typed_paths")
+    if not isinstance(typed_tree_paths, list):
+        typed_tree_paths = tree_evidence.get("raw_typed_path_preview", [])
+    raw_items.extend(
+        ("PropertyTreeEditor.build_paths_list_with_types", path, True)
+        for path in typed_tree_paths
+    )
+
+    non_empty_paths: list[str] = []
+    for _, raw_entry, typed in raw_items:
+        parsed = _split_typed_property_path(raw_entry) if typed else {
+            "path": ("" if raw_entry is None else str(raw_entry)).strip()
+        }
+        path = str(parsed.get("path") or "").strip()
+        if path:
+            non_empty_paths.append(path)
+    path_prefixes = _scalar_target_path_prefixes(non_empty_paths)
+
+    entries: list[dict[str, Any]] = []
+    seen: set[tuple[str, str | None, str]] = set()
+    for source, raw_entry, typed in raw_items:
+        parsed = _split_typed_property_path(raw_entry) if typed else {
+            "raw_entry": "" if raw_entry is None else str(raw_entry),
+            "path": ("" if raw_entry is None else str(raw_entry)).strip(),
+            "value_type_hint": None,
+            "visibility_hint": None,
+        }
+        property_path = str(parsed.get("path") or "").strip()
+        value_type_hint = parsed.get("value_type_hint")
+        key = (property_path, value_type_hint, source)
+        if key in seen:
+            continue
+        seen.add(key)
+        review = _scalar_target_path_review(
+            property_path,
+            value_type_hint=value_type_hint,
+            visibility_hint=parsed.get("visibility_hint"),
+            path_prefixes=path_prefixes,
+        )
+        entries.append(
+            {
+                "component_name": component_family,
+                "source": source,
+                "discovery_method": source,
+                "raw_entry": parsed.get("raw_entry"),
+                "property_path": property_path,
+                "property_path_kind": (
+                    "property_tree_root" if property_path == "" else "named_component_property"
+                ),
+                "value_type_hint": value_type_hint,
+                "visibility_hint": parsed.get("visibility_hint"),
+                **review,
+            }
+        )
+    return entries
+
+
+def _build_scalar_property_tree_evidence(component_pair: Any) -> tuple[Any | None, dict[str, Any]]:
+    evidence: dict[str, Any] = {
+        "method": "BuildComponentPropertyTreeEditor",
+        "tree_success": False,
+        "paths_with_types_count": None,
+        "paths_count": None,
+        "raw_typed_paths": [],
+        "raw_paths": [],
+        "raw_typed_path_preview": [],
+        "raw_path_preview": [],
+    }
+    try:
+        property_tree_outcome = editor.EditorComponentAPIBus(
+            bus.Broadcast,
+            "BuildComponentPropertyTreeEditor",
+            component_pair,
+        )
+    except Exception as exc:
+        evidence["tree_exception"] = repr(exc)
+        return None, evidence
+    if not property_tree_outcome.IsSuccess():
+        try:
+            evidence["tree_error"] = str(property_tree_outcome.GetError())
+        except Exception:
+            pass
+        return None, evidence
+    property_tree = property_tree_outcome.GetValue()
+    evidence["tree_success"] = True
+    try:
+        paths_with_types = property_tree.build_paths_list_with_types()
+    except Exception as exc:
+        evidence["paths_with_types_exception"] = repr(exc)
+        paths_with_types = None
+    if isinstance(paths_with_types, list):
+        evidence["raw_typed_paths"] = [str(path_entry) for path_entry in paths_with_types]
+        evidence["paths_with_types_count"] = len(paths_with_types)
+        evidence["raw_typed_path_preview"] = evidence["raw_typed_paths"][:25]
+    else:
+        evidence["paths_with_types_shape"] = type(paths_with_types).__name__
+
+    try:
+        paths = property_tree.build_paths_list()
+    except Exception as exc:
+        evidence["paths_exception"] = repr(exc)
+        paths = None
+    if isinstance(paths, list):
+        evidence["raw_paths"] = [str(path_entry) for path_entry in paths]
+        evidence["paths_count"] = len(paths)
+        evidence["raw_path_preview"] = evidence["raw_paths"][:25]
+    else:
+        evidence["paths_shape"] = type(paths).__name__
+    return property_tree, evidence
+
+
+def _read_scalar_target_candidate(
+    component_pair: Any,
+    property_tree: Any | None,
+    entry: dict[str, Any],
+) -> dict[str, Any]:
+    property_path = str(entry.get("property_path") or "").strip()
+    source = str(entry.get("source") or "")
+    use_tree = source.startswith("PropertyTreeEditor")
+    attempt: dict[str, Any] = {
+        "component_name": entry.get("component_name"),
+        "property_path": property_path,
+        "property_path_kind": entry.get("property_path_kind"),
+        "source": source,
+        "discovery_method": source,
+        "value_type_hint": entry.get("value_type_hint"),
+        "visibility_hint": entry.get("visibility_hint"),
+        "get_component_property_attempted": not use_tree,
+        "property_tree_get_value_attempted": use_tree,
+        "set_component_property_attempted": False,
+        "success": False,
+        "write_target_admitted": False,
+        "write_admission": False,
+        "property_list_admission": False,
+    }
+    if entry.get("readback_candidate") is not True or not property_path:
+        attempt.update(
+            {
+                "readback_skipped": True,
+                "evidence_class": entry.get("evidence_class"),
+                "reason": entry.get("reason"),
+                "get_component_property_attempted": False,
+                "property_tree_get_value_attempted": False,
+            }
+        )
+        return attempt
+
+    try:
+        if use_tree:
+            if property_tree is None:
+                attempt["error"] = "PropertyTreeEditor instance unavailable."
+                return attempt
+            value = property_tree.get_value(property_path)
+            readback_api = "PropertyTreeEditor.get_value"
+        else:
+            property_outcome = editor.EditorComponentAPIBus(
+                bus.Broadcast,
+                "GetComponentProperty",
+                component_pair,
+                property_path,
+            )
+            readback_api = "EditorComponentAPIBus.GetComponentProperty"
+            if not property_outcome.IsSuccess():
+                try:
+                    attempt["error"] = str(property_outcome.GetError())
+                except Exception:
+                    pass
+                return attempt
+            value = property_outcome.GetValue()
+    except Exception as exc:
+        attempt["exception"] = repr(exc)
+        return attempt
+
+    serialized_value = _json_safe_value(value)
+    value_type = entry.get("value_type_hint")
+    if value_type is None:
+        value_type = _value_type_from_tree(component_pair, property_path)
+    if value_type is None:
+        value_type = _fallback_value_type(value)
+    value_shape = _scalar_target_value_shape(serialized_value)
+    scalar_or_text_like = _scalar_target_value_is_scalar_or_text_like(
+        serialized_value,
+        value_type,
+    )
+    attempt.update(
+        {
+            "success": True,
+            "readback_api": readback_api,
+            "value": serialized_value,
+            "value_type": value_type,
+            "runtime_value_type": _fallback_value_type(value),
+            "runtime_value_shape": value_shape,
+            "value_preview": None if serialized_value is None else str(serialized_value)[:160],
+            "scalar_or_text_like": scalar_or_text_like,
+            "target_status": "readback_only_candidate",
+        }
+    )
+    return attempt
+
+
+def _scalar_target_rank(attempt: dict[str, Any]) -> tuple[int, int, str]:
+    value_type = str(attempt.get("value_type") or attempt.get("value_type_hint") or "").lower()
+    source = str(attempt.get("source") or "")
+    path = str(attempt.get("property_path") or "")
+    if "string" in value_type or value_type == "str":
+        type_rank = 0
+    elif "bool" in value_type:
+        type_rank = 1
+    elif any(marker in value_type for marker in ("int", "float", "double", "number", "u32", "s32")):
+        type_rank = 2
+    else:
+        type_rank = 3
+    source_rank = 0 if "with_types" in source else 1 if source == "BuildComponentPropertyList" else 2
+    return (type_rank, source_rank, path.lower())
+
+
+def _run_scalar_target_discovery_ladder(
+    command: dict[str, Any],
+    component_pair: Any,
+    property_paths: list[Any] | None,
+    property_list_evidence: dict[str, Any],
+) -> dict[str, Any]:
+    component_family = str(
+        command.get("args", {}).get("proof_component_family") or "unknown"
+    )
+    property_tree, tree_evidence = _build_scalar_property_tree_evidence(component_pair)
+    entries = _normalize_scalar_target_entries(
+        property_paths,
+        tree_evidence,
+        component_family=component_family,
+    )
+    readback_attempts = [
+        _read_scalar_target_candidate(component_pair, property_tree, entry)
+        for entry in entries
+        if entry.get("readback_candidate") is True
+    ]
+    selected = next(
+        (
+            attempt
+            for attempt in sorted(readback_attempts, key=_scalar_target_rank)
+            if attempt.get("success") is True
+            and attempt.get("scalar_or_text_like") is True
+            and str(attempt.get("property_path") or "").strip()
+            and attempt.get("runtime_value_shape") == "scalar"
+        ),
+        None,
+    )
+    root_entries = [
+        entry
+        for entry in entries
+        if entry.get("property_path_kind") == "property_tree_root"
+    ]
+    any_paths = any(str(entry.get("property_path") or "").strip() for entry in entries)
+    if selected is not None:
+        status = "candidate_selected_readback_only"
+        blocker_code = None
+    elif component_family == "Comment" and root_entries:
+        status = "blocked"
+        blocker_code = "comment_root_string_readback_failed"
+    elif any_paths:
+        status = "blocked"
+        blocker_code = f"{component_family.lower()}_scalar_candidate_not_found"
+    elif (
+        property_list_evidence.get("success") is not True
+        and tree_evidence.get("tree_success") is not True
+    ):
+        status = "blocked"
+        blocker_code = "component_property_paths_unavailable"
+    else:
+        status = "blocked"
+        blocker_code = "scalar_candidate_not_found"
+
+    return {
+        "component_family": component_family,
+        "status": status,
+        "blocker_code": blocker_code,
+        "build_component_property_list": property_list_evidence,
+        "build_component_property_tree_editor": tree_evidence,
+        "normalized_entries": entries,
+        "readback_attempts": readback_attempts,
         "selected_candidate": selected,
         "target_selected": selected is not None,
         "future_write_candidate_selected": selected is not None,
@@ -3820,6 +4257,59 @@ def _list_component_properties(command: dict[str, Any], runtime_state: dict[str,
         "build_component_property_list": property_list_evidence,
     }
     proof_component_family = command.get("args", {}).get("proof_component_family")
+    include_scalar_target_discovery = (
+        command.get("args", {}).get("include_scalar_target_discovery") is True
+    )
+    if include_scalar_target_discovery:
+        scalar_target_discovery = _run_scalar_target_discovery_ladder(
+            command,
+            component_pair,
+            property_paths,
+            property_list_evidence,
+        )
+        details["scalar_target_discovery"] = scalar_target_discovery
+        details["property_discovery_ladder"]["build_component_property_tree_editor"] = (
+            scalar_target_discovery["build_component_property_tree_editor"]
+        )
+        source_inspection_evidence = command.get("args", {}).get(
+            "source_inspection_evidence"
+        )
+        if isinstance(source_inspection_evidence, dict):
+            details["source_inspection_evidence"] = source_inspection_evidence
+        normalized_property_paths = [
+            str(entry.get("property_path")).strip()
+            for entry in scalar_target_discovery.get("normalized_entries", [])
+            if str(entry.get("property_path") or "").strip()
+        ]
+        details["raw_property_paths"] = (
+            [str(path) for path in property_paths]
+            if isinstance(property_paths, list)
+            else None
+        )
+        details["property_paths"] = list(dict.fromkeys(normalized_property_paths))
+        details["component_property_count"] = len(details["property_paths"])
+        details["exact_editor_apis"] = [
+            "ControlPlaneEditorBridge filesystem inbox",
+            "editor.component.property.list",
+            "EditorComponentAPIBus.BuildComponentPropertyList",
+            "EditorComponentAPIBus.BuildComponentPropertyTreeEditor",
+            "PropertyTreeEditor.build_paths_list_with_types",
+            "PropertyTreeEditor.build_paths_list",
+            "PropertyTreeEditor.get_value",
+            "EditorComponentAPIBus.GetComponentProperty",
+        ]
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=True,
+            status="ok",
+            result_summary=(
+                "Collected proof-only scalar target discovery matrix evidence "
+                "through the persistent bridge session."
+            ),
+            details=details,
+        )
+
     include_property_tree_evidence = (
         proof_component_family == "Comment"
         and command.get("args", {}).get("include_property_tree_evidence") is True
