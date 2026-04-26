@@ -184,6 +184,17 @@ def test_prompt_session_preview_compiles_typed_steps_across_families() -> None:
         assert editor_component_add["safety_envelope"]["restore_boundary_class"] == (
             "loaded-level-file-restore-boundary"
         )
+        editor_component_find = next(
+            item for item in capabilities if item["tool_name"] == "editor.component.find"
+        )
+        assert editor_component_find["capability_maturity"] == "hybrid-read-only"
+        assert editor_component_find["safety_envelope"][
+            "natural_language_status"
+        ] == "prompt-ready-read-only"
+        assert (
+            "prefab-derived ids"
+            in editor_component_find["safety_envelope"]["candidate_expansion_boundary"]
+        )
         editor_component_property_get = next(
             item
             for item in capabilities
@@ -2976,6 +2987,66 @@ def test_prompt_session_plans_editor_component_property_read_from_added_componen
                     == "Read back the admitted default verification property from the newly added component using the component id returned by the preceding component attachment step."
                 )
                 assert create_payload["refused_capabilities"] == []
+
+
+def test_prompt_session_plans_live_component_find_without_property_list() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps(
+                {
+                    "project_name": "PromptEditorProject",
+                    "version": "1.0.0",
+                    "gem_names": ["PythonEditorBindings"],
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                create_response = client.post(
+                    "/prompt/sessions",
+                    json={
+                        "prompt_id": "prompt-editor-component-find-1",
+                        "prompt_text": (
+                            'Open level "Levels/Main.level" and find Mesh component '
+                            "on entity id 101."
+                        ),
+                        "project_root": str(project_root),
+                        "engine_root": "C:/engine",
+                        "dry_run": False,
+                        "preferred_domains": ["editor-control"],
+                    },
+                )
+                assert create_response.status_code == 200
+                create_payload = create_response.json()
+                assert create_payload["status"] == "planned"
+                assert [step["tool"] for step in create_payload["plan"]["steps"]] == [
+                    "editor.session.open",
+                    "editor.level.open",
+                    "editor.component.find",
+                ]
+                assert create_payload["plan"]["steps"][2]["args"] == {
+                    "component_name": "Mesh",
+                    "entity_id": "101",
+                    "level_path": "Levels/Main.level",
+                }
+                assert create_payload["plan"]["steps"][1]["args"]["make_writable"] is False
+                assert create_payload["plan"]["steps"][1]["args"]["focus_viewport"] is False
+                assert (
+                    create_payload["plan"]["steps"][2]["planner_note"]
+                    == "Use the admitted read-only live component target-binding path for one exact entity and one allowlisted component; do not rely on prefab-derived component ids."
+                )
+                assert create_payload["refused_capabilities"] == []
+                assert "editor.component.property.list" not in (
+                    step["tool"] for step in create_payload["plan"]["steps"]
+                )
 
 
 def test_prompt_session_executes_editor_component_property_read_from_added_component_output() -> None:

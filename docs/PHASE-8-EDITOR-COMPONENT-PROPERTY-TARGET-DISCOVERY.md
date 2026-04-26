@@ -65,6 +65,22 @@ Current bridge/property-list proof status:
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-LIST-BRIDGE-CANDIDATE.md`
   records the proof artifact path, restore boundary, and remaining non-scope.
 
+Current live component target-binding behavior:
+- `editor.component.find` is the admitted read-only corridor for binding one
+  allowlisted live component target on one explicit live entity id or exact
+  entity name.
+- discovered component ids must come from live Editor runtime evidence and are
+  stamped with provenance
+  `admitted_runtime_component_discovery_result`.
+- `added_component_refs` from the admitted `editor.component.add` path remain
+  valid runtime component id sources with provenance
+  `admitted_runtime_component_add_result`.
+- prefab JSON, serialized prefab records, stale artifacts, and guessed or
+  inferred component records remain serialized/file evidence only; they must
+  not be treated as live Editor component ids.
+- `editor.component.property.list` remains proof-only and is not admitted to
+  Prompt Studio or `/adapters`.
+
 ## Discovery Goal
 
 The discovery packet must identify exactly one possible first write target by
@@ -78,6 +94,12 @@ read-only evidence only:
 - level path
 - bridge command or artifact ids
 - reason the property is safer than alternatives
+
+Live component target binding should use `editor.component.find` for existing
+entities or the `added_component_refs` returned by admitted
+`editor.component.add` for newly added components. It must not reuse component
+ids mined from loaded-level prefab JSON or other serialized records as live
+Editor property targets.
 
 The output may also be "no target selected" when the read-only evidence is not
 strong enough. That is a valid successful discovery outcome.

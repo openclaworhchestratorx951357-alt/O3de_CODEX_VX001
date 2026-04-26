@@ -33,7 +33,11 @@ def tool_capability_status(tool_name: str) -> str:
         return "plan-only"
     if tool_name == "test.tiaf.sequence":
         return "plan-only"
-    if tool_name in {"editor.entity.exists", "editor.component.property.get"}:
+    if tool_name in {
+        "editor.entity.exists",
+        "editor.component.find",
+        "editor.component.property.get",
+    }:
         return "hybrid-read-only"
     if tool_name in {
         "editor.session.open",
@@ -127,6 +131,21 @@ CATALOG = ToolsCatalog(
                     default_locks=["editor_session"],
                     risk="medium",
                     tags=["editor", "component"],
+                ),
+                ToolDefinition(
+                    name="editor.component.find",
+                    description=(
+                        "Find one allowlisted live component target on an explicit "
+                        "entity id or exact entity name."
+                    ),
+                    approval_class="read_only",
+                    adapter_family="editor-control",
+                    capability_status=tool_capability_status("editor.component.find"),
+                    args_schema=tool_args_schema("editor.component.find"),
+                    result_schema=tool_result_schema("editor.component.find"),
+                    default_locks=["editor_session"],
+                    risk="low",
+                    tags=["editor", "component", "read", "target"],
                 ),
                 ToolDefinition(
                     name="editor.component.property.get",

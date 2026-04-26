@@ -99,6 +99,23 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
                 "outside this envelope."
             ),
         )
+    if tool_name == "editor.component.find":
+        return _build_safety_envelope(
+            state_scope=(
+                "Explicit allowlisted component target discovery on one live entity "
+                "in the currently loaded level."
+            ),
+            backup_class="none",
+            rollback_class="none",
+            verification_class="live component target readback verification",
+            retention_class="editor-runtime-evidence",
+            natural_language_status="prompt-ready-read-only",
+            candidate_expansion_boundary=(
+                "Only exact entity id or exact entity-name component target binding "
+                "is admitted; property listing, property writes, prefab-derived ids, "
+                "and broad component enumeration remain outside this envelope."
+            ),
+        )
     if tool_name == "editor.component.property.get":
         return _build_safety_envelope(
             state_scope="Explicit component property readback on an existing component in the currently loaded level.",
@@ -398,6 +415,27 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
             "Attach allowlisted components to an explicit existing entity id in the currently loaded level through the admitted real editor path."
         ],
         "allowlisted_parameter_surfaces": ["entity_id", "components", "level_path"],
+        "real_adapter_availability": True,
+        "dry_run_availability": False,
+        "simulation_fallback_availability": False,
+    },
+    "editor.component.find": {
+        "capability_maturity": "hybrid-read-only",
+        "planner_intent_aliases": [
+            "find component",
+            "locate component",
+            "discover component target",
+            "bind component target",
+        ],
+        "natural_language_affordances": [
+            "Find one allowlisted live component target on an explicit entity id or exact entity name in the currently loaded level."
+        ],
+        "allowlisted_parameter_surfaces": [
+            "entity_id",
+            "entity_name",
+            "component_name",
+            "level_path",
+        ],
         "real_adapter_availability": True,
         "dry_run_availability": False,
         "simulation_fallback_availability": False,

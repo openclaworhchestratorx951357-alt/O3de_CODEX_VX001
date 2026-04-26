@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/editor.component.find.execution-details.schema.json",
+  "title": "editor.component.find execution details",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "inspection_surface",
+    "execution_boundary",
+    "simulated"
+  ],
+  "properties": {
+    "inspection_surface": {
+      "type": "string",
+      "enum": ["simulated", "editor_component_discovery_read"]
+    },
+    "execution_boundary": { "type": "string", "minLength": 1 },
+    "simulated": { "type": "boolean" },
+    "adapter_family": { "type": "string", "minLength": 1 },
+    "adapter_mode": { "type": "string", "minLength": 1 },
+    "adapter_contract_version": { "type": "string", "minLength": 1 },
+    "real_path_available": { "type": "boolean" },
+    "python_editor_bindings_enabled": { "type": "boolean" },
+    "editor_runtime_available": { "type": "boolean" },
+    "editor_transport": { "type": "string", "enum": ["bridge", "oneshot"] },
+    "runner_family": { "type": "string", "minLength": 1 },
+    "runtime_script": { "type": "string", "minLength": 1 },
+    "found": { "type": "boolean" },
+    "lookup_mode": { "type": "string", "enum": ["entity_id", "entity_name"] },
+    "entity_id": { "type": ["string", "integer"] },
+    "entity_name": { "type": "string" },
+    "requested_entity_id": { "type": ["string", "integer"] },
+    "requested_entity_name": { "type": "string" },
+    "component_name": { "type": "string", "minLength": 1 },
+    "requested_component_name": { "type": "string", "minLength": 1 },
+    "component_id": { "type": "string", "minLength": 1 },
+    "component_id_provenance": {
+      "type": "string",
+      "enum": ["admitted_runtime_component_discovery_result"]
+    },
+    "component_refs": { "type": "array" },
+    "matched_count": { "type": "integer" },
+    "ambiguous": { "type": "boolean" },
+    "loaded_level_path": { "type": "string", "minLength": 1 },
+    "level_path": { "type": "string", "minLength": 1 },
+    "bridge_name": { "type": "string", "minLength": 1 },
+    "bridge_version": { "type": "string", "minLength": 1 },
+    "bridge_available": { "type": "boolean" },
+    "bridge_operation": { "type": "string", "minLength": 1 },
+    "bridge_contract_version": { "type": "string", "minLength": 1 },
+    "bridge_command_id": { "type": "string", "minLength": 1 },
+    "bridge_result_summary": { "type": "string", "minLength": 1 },
+    "bridge_error_code": { "type": "string", "minLength": 1 },
+    "bridge_heartbeat_seen_at": { "type": "string", "minLength": 1 },
+    "bridge_queue_mode": { "type": "string", "enum": ["filesystem-inbox"] },
+    "bridge_selected_entity_count": { "type": "integer" },
+    "bridge_prefab_context_notes": { "type": "string", "minLength": 1 },
+    "editor_log_path": { "type": "string", "minLength": 1 },
+    "exact_editor_apis": { "type": "array" },
+    "refused_operations": { "type": "array" }
+  }
+}

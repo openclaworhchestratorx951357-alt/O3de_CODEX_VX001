@@ -139,6 +139,16 @@ Implemented in this packet:
 - runtime tests prove command payload shape, bridge result mapping,
   no property value readback field, and malformed `property_paths` rejection
 
+Adjacent target-binding corridor:
+- `editor.component.find` is the admitted read-only path for obtaining a live
+  Editor component id on one explicit live entity and one allowlisted component
+  name.
+- discovered ids from that path carry provenance
+  `admitted_runtime_component_discovery_result`.
+- this does not admit `editor.component.property.list`; property listing remains
+  proof-only and must not be exposed through Prompt Studio or `/adapters` until
+  a separate admission packet exists.
+
 Still required before admission:
 - add a dispatcher/catalog adapter route only when proof-only execution is
   explicitly admitted

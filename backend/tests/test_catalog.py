@@ -126,6 +126,20 @@ def test_editor_component_property_get_is_cataloged_as_hybrid_read_only() -> Non
     assert "editor_session" in tool.default_locks
 
 
+def test_editor_component_find_is_cataloged_as_hybrid_read_only() -> None:
+    tool = catalog_service.get_tool_definition(
+        "editor-control",
+        "editor.component.find",
+    )
+    assert tool is not None
+    assert tool.approval_class == "read_only"
+    assert tool.adapter_family == "editor-control"
+    assert tool.capability_status == "hybrid-read-only"
+    assert tool.args_schema.endswith("editor.component.find.args.schema.json")
+    assert tool.result_schema.endswith("editor.component.find.result.schema.json")
+    assert "editor_session" in tool.default_locks
+
+
 def test_editor_entity_exists_is_cataloged_as_hybrid_read_only() -> None:
     tool = catalog_service.get_tool_definition(
         "editor-control",
