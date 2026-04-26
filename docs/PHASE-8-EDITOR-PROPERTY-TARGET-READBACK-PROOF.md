@@ -63,6 +63,17 @@ Readback evidence:
 - value: `{"w": null, "x": null, "y": null, "z": null}`
 - write target selected: `false`
 
+Write target classification:
+- status: `blocked`
+- blocker code: `asset_reference_readback_only`
+- reason:
+  `Mesh` `Controller|Configuration|Model Asset` is asset-reference readback
+  evidence; writing it would imply asset identity, product, material, or
+  dependency behavior outside the Phase 8 property-target boundary.
+- required next evidence:
+  a non-asset scalar, boolean, numeric, or text-like component property proven
+  through read-only live evidence before any proof-only property-write packet
+
 What this proof verifies:
 - Prompt Studio composed the read-only live target-binding chain into property
   readback without inserting `editor.component.property.list`.
@@ -70,6 +81,8 @@ What this proof verifies:
   `admitted_runtime_component_discovery_result` provenance.
 - `editor.component.property.get` used that live discovered component id.
 - Prefab-derived component ids remained serialized/file evidence only.
+- The observed Mesh `Model Asset` readback was explicitly rejected as a write
+  target.
 - `/adapters` exposed `editor.component.find` and
   `editor.component.property.get`, but not `editor.component.property.list`.
 - Prompt capabilities kept `editor.component.property.list` unadmitted.
