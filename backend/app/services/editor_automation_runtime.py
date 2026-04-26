@@ -139,6 +139,9 @@ CAMERA_SCALAR_WRITE_PROOF_OPERATION = "editor.camera.scalar.write.proof"
 CAMERA_BOOL_WRITE_CAPABILITY = (
     "editor.component.property.write.camera_bool_make_active_on_activation"
 )
+CAMERA_BOOL_RESTORE_CAPABILITY = (
+    "editor.component.property.restore.camera_bool_make_active_on_activation"
+)
 CAMERA_SCALAR_WRITE_PROOF_COMPONENT = "Camera"
 CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH = (
     "Controller|Configuration|Make active camera on activation?"
@@ -1815,6 +1818,108 @@ class EditorAutomationRuntimeService:
                     "the same exact Camera bool corridor with the recorded "
                     "previous_value when available, or restore the recorded "
                     "loaded-level restore boundary outside the public corridor."
+                ),
+            }
+        )
+        return {
+            **payload,
+            "runtime_result": runtime_result,
+        }
+
+    def execute_camera_bool_make_active_on_activation_restore(
+        self,
+        *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        locks_acquired: list[str],
+    ) -> dict[str, Any]:
+        before_value = args.get("before_value")
+        if not isinstance(before_value, bool):
+            self._reject_preflight(
+                tool=CAMERA_BOOL_RESTORE_CAPABILITY,
+                project_root=project_root,
+                reason="camera-bool-restore-before-value-missing",
+                message=(
+                    "Exact Camera bool restore requires recorded before-value "
+                    "evidence before it can write the restore value."
+                ),
+                extra_details={"provided_before_value": before_value},
+            )
+        current_value = args.get("current_value", args.get("expected_current_value"))
+        if current_value is not None and not isinstance(current_value, bool):
+            self._reject_preflight(
+                tool=CAMERA_BOOL_RESTORE_CAPABILITY,
+                project_root=project_root,
+                reason="camera-bool-restore-current-value-not-bool",
+                message=(
+                    "Exact Camera bool restore current_value must be a bool when "
+                    "provided."
+                ),
+                extra_details={"provided_current_value": current_value},
+            )
+
+        restore_args = dict(args)
+        restore_args["value"] = before_value
+        if current_value is not None:
+            restore_args["expected_current_value"] = current_value
+        payload = self.execute_camera_scalar_write_proof(
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=restore_args,
+            locks_acquired=locks_acquired,
+        )
+        runtime_result = dict(payload["runtime_result"])
+        current_readback = runtime_result.get("previous_value")
+        restored_readback = runtime_result.get("value")
+        restore_verified = (
+            runtime_result.get("write_verified") is True
+            and restored_readback is before_value
+        )
+        runtime_result.update(
+            {
+                "message": (
+                    "Camera bool scalar property was restored through the exact "
+                    "admitted public restore corridor."
+                ),
+                "tool": CAMERA_BOOL_RESTORE_CAPABILITY,
+                "capability_name": CAMERA_BOOL_RESTORE_CAPABILITY,
+                "proof_bridge_operation": CAMERA_SCALAR_WRITE_PROOF_OPERATION,
+                "proof_only": False,
+                "public_admission": True,
+                "restore_admission": True,
+                "write_admission": False,
+                "generic_property_write_admission": False,
+                "admission_class": "content_write",
+                "generalized_undo_available": False,
+                "property_list_admission": False,
+                "target_status": "admitted_exact_camera_bool_restore",
+                "before_value": before_value,
+                "current_value": current_readback,
+                "restored_value": before_value,
+                "restored_readback": restored_readback,
+                "restore_verified": restore_verified,
+                "verification_status": (
+                    "restored_readback_verified"
+                    if restore_verified
+                    else "restored_readback_mismatch"
+                ),
+                "write_occurred": True,
+                "restore_occurred": True,
+                "restore_or_revert_guidance": (
+                    "This is not generalized undo. This corridor only restores "
+                    "the exact Camera bool path to the recorded before_value "
+                    "provided as evidence."
                 ),
             }
         )

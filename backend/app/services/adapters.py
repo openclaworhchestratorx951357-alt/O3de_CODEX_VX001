@@ -23,6 +23,7 @@ from app.models.response_envelope import DispatchResult
 from app.services.artifacts import artifacts_service
 from app.services.catalog import catalog_service
 from app.services.editor_automation_runtime import (
+    CAMERA_BOOL_RESTORE_CAPABILITY,
     CAMERA_BOOL_WRITE_CAPABILITY,
     EDITOR_RUNTIME_BOUNDARY,
     editor_automation_runtime_service,
@@ -65,6 +66,7 @@ GATED_TOOL_PATHS_BY_MODE = {
     "simulated": [],
     "hybrid": [
         "build.compile",
+        CAMERA_BOOL_RESTORE_CAPABILITY,
         CAMERA_BOOL_WRITE_CAPABILITY,
         "gem.enable",
         "render.material.patch",
@@ -621,6 +623,42 @@ class EditorControlHybridAdapter(ToolExecutionAdapter):
                 artifact_uri="editor-runtime://runs/{run_id}/executions/{execution_id}/camera-bool-property-write",
                 runtime_script="ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
             )
+        if tool == CAMERA_BOOL_RESTORE_CAPABILITY:
+            runtime_payload = (
+                editor_automation_runtime_service.execute_camera_bool_make_active_on_activation_restore(
+                    request_id=request_id,
+                    session_id=session_id,
+                    workspace_id=workspace_id,
+                    executor_id=executor_id,
+                    project_root=project_root,
+                    engine_root=engine_root,
+                    dry_run=dry_run,
+                    args=args,
+                    locks_acquired=locks_acquired,
+                )
+            )
+            return self._build_real_editor_report(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                runtime_payload=runtime_payload,
+                inspection_surface="editor_camera_bool_property_restore",
+                message=(
+                    "Exact admitted Camera bool property restore completed through "
+                    "the bridge-backed editor corridor."
+                ),
+                result_summary=(
+                    "Exact Camera bool scalar property restore completed with "
+                    "before/current/restore/readback evidence."
+                ),
+                artifact_label="Exact Camera bool property restore evidence",
+                artifact_kind="editor_runtime_result",
+                artifact_uri="editor-runtime://runs/{run_id}/executions/{execution_id}/camera-bool-property-restore",
+                runtime_script="ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+            )
 
         simulated = self._simulated.execute(
             request_id=request_id,
@@ -744,12 +782,21 @@ class EditorControlHybridAdapter(ToolExecutionAdapter):
             "proof_only",
             "public_admission",
             "write_admission",
+            "restore_admission",
+            "generic_property_write_admission",
             "admission_class",
             "generalized_undo_available",
             "property_list_admission",
             "target_status",
             "restore_or_revert_guidance",
             "proof_bridge_operation",
+            "before_value",
+            "current_value",
+            "restored_value",
+            "restored_readback",
+            "restore_verified",
+            "verification_status",
+            "restore_occurred",
             "added_components",
             "added_component_refs",
             "rejected_components",
@@ -9765,7 +9812,8 @@ class AdapterService:
                     "read path on McpSandbox, an admitted explicit "
                     "editor.component.find target-binding read path on McpSandbox, and an admitted explicit "
                     "editor.component.property.get read path on McpSandbox, "
-                    "an exact approval-gated Camera bool property write corridor, "
+    "an exact approval-gated Camera bool property write corridor, "
+    "an exact approval-gated Camera bool property restore corridor, "
                     "real plan-only asset.batch.process and build.configure "
                     "paths, a real execution-gated build.compile path, a real mutation-gated gem.enable "
                     "path, and a real mutation-gated settings.patch path.",
@@ -9824,8 +9872,9 @@ class AdapterService:
                     "editor.component.property.get read path when editor preflight "
                     "requirements are satisfied.",
                     "Hybrid mode also enables the exact approval-gated Camera bool "
-                    "property write corridor for Controller|Configuration|Make "
-                    "active camera on activation? only; broad property writes and "
+                    "property write corridor and exact restore corridor for "
+                    "Controller|Configuration|Make active camera on activation? only; "
+                    "broad property writes, generic restore, generalized undo, and "
                     "public property listing remain unavailable.",
                     "Hybrid mode also enables a real plan-only build.configure "
                     "preflight path when dry_run=true and manifest preconditions are "

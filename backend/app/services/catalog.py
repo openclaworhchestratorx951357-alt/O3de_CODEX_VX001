@@ -44,6 +44,11 @@ def tool_capability_status(tool_name: str) -> str:
         == "editor.component.property.write.camera_bool_make_active_on_activation"
     ):
         return "mutation-gated"
+    if (
+        tool_name
+        == "editor.component.property.restore.camera_bool_make_active_on_activation"
+    ):
+        return "mutation-gated"
     if tool_name in {
         "editor.session.open",
         "editor.level.open",
@@ -189,6 +194,35 @@ CATALOG = ToolsCatalog(
                         "component",
                         "property",
                         "write",
+                        "camera",
+                        "bool",
+                    ],
+                ),
+                ToolDefinition(
+                    name="editor.component.property.restore.camera_bool_make_active_on_activation",
+                    description=(
+                        "Restore only the exact Camera bool property "
+                        "Controller|Configuration|Make active camera on activation? "
+                        "from recorded before-value evidence."
+                    ),
+                    approval_class="content_write",
+                    adapter_family="editor-control",
+                    capability_status=tool_capability_status(
+                        "editor.component.property.restore.camera_bool_make_active_on_activation"
+                    ),
+                    args_schema=tool_args_schema(
+                        "editor.component.property.restore.camera_bool_make_active_on_activation"
+                    ),
+                    result_schema=tool_result_schema(
+                        "editor.component.property.restore.camera_bool_make_active_on_activation"
+                    ),
+                    default_locks=["editor_session"],
+                    risk="high",
+                    tags=[
+                        "editor",
+                        "component",
+                        "property",
+                        "restore",
                         "camera",
                         "bool",
                     ],

@@ -193,6 +193,12 @@ Proof-only reverse-write restore evidence is recorded in
 The restore admission decision is recorded in
 `docs/PHASE-8-CAMERA-BOOL-RESTORE-ADMISSION-DECISION.md`.
 
+The exact public restore corridor is recorded in
+`docs/PHASE-8-CAMERA-BOOL-RESTORE-PUBLIC-CORRIDOR.md`. It admits only
+`editor.component.property.restore.camera_bool_make_active_on_activation` for
+the exact Camera bool path with recorded before-value evidence; it does not
+admit generalized undo or generic restore.
+
 If the exact Camera bool corridor causes problems:
 
 1. Revert the merge commit that admitted the exact public corridor.

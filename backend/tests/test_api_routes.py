@@ -651,8 +651,8 @@ def test_ready_reports_database_status_details() -> None:
         assert "$schema" in payload["schema_validation"]["active_metadata_keywords"]
         assert "allOf" in payload["schema_validation"]["supported_keywords"]
         assert "oneOf" in payload["schema_validation"]["unsupported_keywords"]
-        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 25
-        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 25
+        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 26
+        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 26
         assert payload["schema_validation"]["persisted_execution_details_tools"] == [
             "asset.batch.process",
             "asset.move.safe",
@@ -663,6 +663,7 @@ def test_ready_reports_database_status_details() -> None:
             "editor.component.add",
             "editor.component.find",
             "editor.component.property.get",
+            "editor.component.property.restore.camera_bool_make_active_on_activation",
             "editor.component.property.write.camera_bool_make_active_on_activation",
             "editor.entity.create",
             "editor.entity.exists",
@@ -690,6 +691,7 @@ def test_ready_reports_database_status_details() -> None:
             "editor.component.add",
             "editor.component.find",
             "editor.component.property.get",
+            "editor.component.property.restore.camera_bool_make_active_on_activation",
             "editor.component.property.write.camera_bool_make_active_on_activation",
             "editor.entity.create",
             "editor.entity.exists",
@@ -710,13 +712,14 @@ def test_ready_reports_database_status_details() -> None:
         assert payload["schema_validation"]["persisted_family_coverage"] == [
             {
                 "family": "editor-control",
-                "total_tools": 8,
-                "execution_details_tools": 8,
-                "artifact_metadata_tools": 8,
+                "total_tools": 9,
+                "execution_details_tools": 9,
+                "artifact_metadata_tools": 9,
                 "covered_tools": [
                     "editor.component.add",
                     "editor.component.find",
                     "editor.component.property.get",
+                    "editor.component.property.restore.camera_bool_make_active_on_activation",
                     "editor.component.property.write.camera_bool_make_active_on_activation",
                     "editor.entity.create",
                     "editor.entity.exists",
@@ -833,6 +836,7 @@ def test_ready_reports_hybrid_mode_truthfully() -> None:
             ]
             assert payload["adapter_mode"]["gated_tool_paths"] == [
                 "build.compile",
+                "editor.component.property.restore.camera_bool_make_active_on_activation",
                 "editor.component.property.write.camera_bool_make_active_on_activation",
                 "gem.enable",
                 "render.material.patch",
@@ -892,6 +896,7 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
             forbidden_editor_property_paths = {
                 "editor.component.property.list",
                 "editor.component.property.write",
+                "editor.component.property.restore",
                 "editor.component.property.set",
                 "editor.camera.scalar.write.proof",
             }
@@ -907,6 +912,7 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
             ]
             assert payload["gated_tool_paths"] == [
                 "build.compile",
+                "editor.component.property.restore.camera_bool_make_active_on_activation",
                 "editor.component.property.write.camera_bool_make_active_on_activation",
                 "gem.enable",
                 "render.material.patch",
@@ -970,6 +976,7 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
             )
             assert editor_control["plan_only_tool_paths"] == []
             assert editor_control["gated_tool_paths"] == [
+                "editor.component.property.restore.camera_bool_make_active_on_activation",
                 "editor.component.property.write.camera_bool_make_active_on_activation"
             ]
             assert forbidden_editor_property_paths.isdisjoint(
@@ -1318,6 +1325,12 @@ def test_policies_route_exposes_truthful_execution_mode_and_dry_run_support() ->
         assert camera_write_policy["execution_mode"] == "gated"
         assert camera_write_policy["supports_dry_run"] is False
         assert camera_write_policy["approval_class"] == "content_write"
+        camera_restore_policy = policies_by_tool[
+            "editor.component.property.restore.camera_bool_make_active_on_activation"
+        ]
+        assert camera_restore_policy["execution_mode"] == "gated"
+        assert camera_restore_policy["supports_dry_run"] is False
+        assert camera_restore_policy["approval_class"] == "content_write"
 
         assert policies_by_tool["settings.patch"]["execution_mode"] == "gated"
         assert policies_by_tool["settings.patch"]["supports_dry_run"] is True

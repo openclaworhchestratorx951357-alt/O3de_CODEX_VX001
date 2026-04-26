@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/editor.component.property.restore.camera_bool_make_active_on_activation.result.schema.json",
+  "title": "editor.component.property.restore.camera_bool_make_active_on_activation result",
+  "allOf": [
+    { "$ref": "../dispatch-result.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "const": "editor.component.property.restore.camera_bool_make_active_on_activation"
+        },
+        "approval_class": { "const": "content_write" },
+        "execution_mode": { "enum": ["real"] },
+        "simulated": { "const": false }
+      }
+    }
+  ]
+}

@@ -51,6 +51,10 @@ Current admitted editor/runtime truth:
   `Camera :: Controller|Configuration|Make active camera on activation? :: bool`.
 - one exact public, approval-gated Camera bool write corridor is admitted:
   `editor.component.property.write.camera_bool_make_active_on_activation`.
+- one exact public, approval-gated Camera bool restore corridor is admitted:
+  `editor.component.property.restore.camera_bool_make_active_on_activation`.
+  It restores only the exact Camera bool path from recorded bool before-value
+  evidence and does not claim generalized undo.
 - the exact Camera bool corridor review/status output names the capability,
   same-chain target entity, Camera component, property path,
   before/requested/after values, verification result, `content_write`
@@ -141,16 +145,25 @@ and loaded-level cleanup restore `restored_and_verified`. Public restore/revert
 remains unadmitted and generalized undo remains unproven.
 
 The restore admission decision is recorded in
-`docs/PHASE-8-CAMERA-BOOL-RESTORE-ADMISSION-DECISION.md`. It keeps restore
-proof-only for now while allowing the proof to become the basis for a future
-exact public restore corridor only after explicit high-risk approval.
+`docs/PHASE-8-CAMERA-BOOL-RESTORE-ADMISSION-DECISION.md`. That decision kept
+restore proof-only until explicit high-risk approval was granted for the exact
+public restore corridor.
+
+The exact public restore corridor is recorded in
+`docs/PHASE-8-CAMERA-BOOL-RESTORE-PUBLIC-CORRIDOR.md`. It admits only
+`editor.component.property.restore.camera_bool_make_active_on_activation` for
+the exact Camera bool path, with recorded before-value evidence required.
+The admission packet reran
+`powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-camera-bool-restore-proof`
+and produced ignored artifact
+`backend/runtime/live_editor_camera_bool_restore_proof_20260426-222106.json`
+with before `true`, inverse write `false`, restored readback `true`, and
+loaded-level cleanup restore `restored_and_verified`.
 
 ## Recommended Next Packets
 
-1. If Phase 8 continues, use an admission decision packet before any public
-   Camera bool restore/revert corridor. The decision now exists; do not start
-   implementation without explicit high-risk approval for the exact public
-   restore corridor.
+1. If Phase 8 continues, use a post-admission review/status refinement packet
+   before adding any new restore targets or broader undo behavior.
 2. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 3. Continue repository professionalization in small docs-only packets when the

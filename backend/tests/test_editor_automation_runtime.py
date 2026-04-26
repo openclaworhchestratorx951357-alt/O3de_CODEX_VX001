@@ -9,6 +9,7 @@ from unittest.mock import patch
 import pytest
 from app.services.adapters import AdapterExecutionRejected
 from app.services.editor_automation_runtime import (
+    CAMERA_BOOL_RESTORE_CAPABILITY,
     CAMERA_BOOL_WRITE_CAPABILITY,
     CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
     CAMERA_SCALAR_WRITE_PROOF_OPERATION,
@@ -3051,6 +3052,110 @@ def test_execute_exact_camera_bool_write_wrapper_marks_public_admission() -> Non
     assert runtime_result["generalized_undo_available"] is False
     assert runtime_result["property_list_admission"] is False
     assert runtime_result["target_status"] == "admitted_exact_camera_bool_write"
+    assert "not generalized undo" in runtime_result["restore_or_revert_guidance"]
+
+
+def test_execute_exact_camera_bool_restore_wrapper_requires_before_value_evidence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+
+        with pytest.raises(AdapterExecutionRejected) as exc_info:
+            editor_automation_runtime_service.execute_camera_bool_make_active_on_activation_restore(
+                request_id="req-camera-bool-restore-missing-before",
+                session_id="session-1",
+                workspace_id="workspace-editor-project",
+                executor_id="executor-editor-control-real-local",
+                project_root=str(project_root),
+                engine_root="C:/src/o3de",
+                dry_run=False,
+                args={
+                    key: value
+                    for key, value in camera_scalar_write_args().items()
+                    if key != "value"
+                },
+                locks_acquired=["editor_session"],
+            )
+
+    assert exc_info.value.details["preflight_reason"] == (
+        "camera-bool-restore-before-value-missing"
+    )
+
+
+def test_execute_exact_camera_bool_restore_wrapper_marks_public_restore_admission() -> None:
+    proof_payload = {
+        "runtime_result": {
+            "ok": True,
+            "message": "Camera scalar bool property was written through a proof-only persistent bridge path.",
+            "proof_only": True,
+            "public_admission": False,
+            "write_admission": False,
+            "property_list_admission": False,
+            "component_name": CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
+            "component_id": "EntityComponentIdPair(EntityId(101), 201)",
+            "component_id_provenance": (
+                COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+            ),
+            "property_path": CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
+            "value_type": "bool",
+            "previous_value": True,
+            "requested_value": False,
+            "value": False,
+            "changed": True,
+            "write_verified": True,
+            "bridge_operation": CAMERA_SCALAR_WRITE_PROOF_OPERATION,
+            "restore_boundary_id": "restore-boundary-1",
+        },
+        "runner_command": ["fake-editor-runner"],
+        "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+    }
+    with patch.object(
+        editor_automation_runtime_service,
+        "execute_camera_scalar_write_proof",
+        return_value=proof_payload,
+    ) as proof_method:
+        payload = (
+            editor_automation_runtime_service.execute_camera_bool_make_active_on_activation_restore(
+                request_id="req-camera-bool-restore",
+                session_id="session-1",
+                workspace_id="workspace-editor-project",
+                executor_id="executor-editor-control-real-local",
+                project_root="C:/project",
+                engine_root="C:/src/o3de",
+                dry_run=False,
+                args={
+                    **camera_scalar_write_args(value=True),
+                    "before_value": False,
+                    "expected_current_value": True,
+                },
+                locks_acquired=["editor_session"],
+            )
+        )
+
+    proof_method.assert_called_once()
+    proof_args = proof_method.call_args.kwargs["args"]
+    assert proof_args["value"] is False
+    assert proof_args["expected_current_value"] is True
+    runtime_result = payload["runtime_result"]
+    assert runtime_result["tool"] == CAMERA_BOOL_RESTORE_CAPABILITY
+    assert runtime_result["capability_name"] == CAMERA_BOOL_RESTORE_CAPABILITY
+    assert runtime_result["proof_bridge_operation"] == CAMERA_SCALAR_WRITE_PROOF_OPERATION
+    assert runtime_result["proof_only"] is False
+    assert runtime_result["public_admission"] is True
+    assert runtime_result["restore_admission"] is True
+    assert runtime_result["write_admission"] is False
+    assert runtime_result["generic_property_write_admission"] is False
+    assert runtime_result["admission_class"] == "content_write"
+    assert runtime_result["generalized_undo_available"] is False
+    assert runtime_result["property_list_admission"] is False
+    assert runtime_result["target_status"] == "admitted_exact_camera_bool_restore"
+    assert runtime_result["before_value"] is False
+    assert runtime_result["current_value"] is True
+    assert runtime_result["restored_value"] is False
+    assert runtime_result["restored_readback"] is False
+    assert runtime_result["restore_verified"] is True
+    assert runtime_result["verification_status"] == "restored_readback_verified"
     assert "not generalized undo" in runtime_result["restore_or_revert_guidance"]
 
 

@@ -149,6 +149,31 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
                 "Python remain outside this envelope."
             ),
         )
+    if (
+        tool_name
+        == "editor.component.property.restore.camera_bool_make_active_on_activation"
+    ):
+        return _build_safety_envelope(
+            state_scope=(
+                "Exact Camera component bool property restore for "
+                "Controller|Configuration|Make active camera on activation? "
+                "on one live component id in the currently loaded level."
+            ),
+            backup_class="recorded-before-value-evidence-required",
+            rollback_class="exact-value-restore-only",
+            verification_class="current/restore/restored-readback verification",
+            retention_class="editor-runtime-evidence",
+            natural_language_status="prompt-ready-approval-gated",
+            mutation_surface_class="admitted-editor-camera-bool-property-restore",
+            restore_boundary_class="recorded-before-value-restore",
+            candidate_expansion_boundary=(
+                "Only the exact Camera bool property path can be restored from "
+                "recorded before-value evidence; generic restore, generalized undo, "
+                "broad property writes, public property listing, arbitrary "
+                "components, asset/material/render/build/TIAF mutation, and "
+                "arbitrary Editor Python remain outside this envelope."
+            ),
+        )
     if tool_name == "project.inspect":
         return _build_safety_envelope(
             state_scope="Manifest-backed project/config/settings/gem read scope.",
@@ -499,6 +524,35 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
             "component_id_provenance",
             "property_path",
             "value",
+            "expected_current_value",
+            "restore_boundary_id",
+            "level_path",
+        ],
+        "real_adapter_availability": True,
+        "dry_run_availability": False,
+        "simulation_fallback_availability": False,
+    },
+    "editor.component.property.restore.camera_bool_make_active_on_activation": {
+        "capability_maturity": "hybrid-mutation",
+        "planner_intent_aliases": [
+            "restore camera make active on activation",
+            "revert camera make active camera on activation bool",
+            "restore Camera Controller|Configuration|Make active camera on activation?",
+        ],
+        "natural_language_affordances": [
+            (
+                "Restore the exact Camera bool property "
+                "Controller|Configuration|Make active camera on activation? "
+                "to a recorded before-value using the live component id returned "
+                "by admitted component add."
+            )
+        ],
+        "allowlisted_parameter_surfaces": [
+            "component_name",
+            "component_id",
+            "component_id_provenance",
+            "property_path",
+            "before_value",
             "expected_current_value",
             "restore_boundary_id",
             "level_path",

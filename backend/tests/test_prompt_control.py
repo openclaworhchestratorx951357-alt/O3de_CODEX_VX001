@@ -2197,6 +2197,115 @@ def test_prompt_session_refuses_exact_camera_bool_write_without_same_chain_camer
         )
 
 
+def test_prompt_session_plans_exact_camera_bool_restore_corridor_only() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-camera-bool-restore-plan-1",
+                "prompt_text": (
+                    'Open level "Levels/Main.level", create entity named "ShotCamera", '
+                    "add a Camera component, then restore the Camera make active camera "
+                    "on activation bool to the recorded before value false."
+                ),
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": False,
+                "preferred_domains": ["editor-control"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "planned"
+        assert payload["refused_capabilities"] == []
+        assert [step["tool"] for step in payload["plan"]["steps"]] == [
+            "editor.session.open",
+            "editor.level.open",
+            "editor.entity.create",
+            "editor.component.add",
+            "editor.component.property.get",
+            "editor.component.property.restore.camera_bool_make_active_on_activation",
+            "editor.component.property.get",
+        ]
+        restore_step = next(
+            step
+            for step in payload["plan"]["steps"]
+            if step["tool"]
+            == "editor.component.property.restore.camera_bool_make_active_on_activation"
+        )
+        assert restore_step["step_id"] == "editor-camera-bool-restore-1"
+        assert restore_step["args"] == {
+            "component_name": "Camera",
+            "component_id": "$step:editor-component-1.added_component_refs[0].component_id",
+            "component_id_provenance": (
+                "$step:editor-component-1.added_component_refs[0].component_id_provenance"
+            ),
+            "property_path": (
+                "Controller|Configuration|Make active camera on activation?"
+            ),
+            "before_value": False,
+            "expected_current_value": "$step:editor-camera-bool-current-1.value",
+            "restore_boundary_id": "$step:editor-component-1.restore_boundary_id",
+            "level_path": "Levels/Main.level",
+        }
+        assert restore_step["approval_class"] == "content_write"
+        assert restore_step["capability_status_required"] == "mutation-gated"
+
+
+def test_prompt_session_refuses_exact_camera_bool_restore_without_before_value() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-camera-bool-restore-refuse-before-1",
+                "prompt_text": (
+                    'Open level "Levels/Main.level", create entity named "ShotCamera", '
+                    "add a Camera component, then restore the Camera make active camera "
+                    "on activation bool."
+                ),
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": False,
+                "preferred_domains": ["editor-control"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "refused"
+        assert payload["admitted_capabilities"] == []
+        assert payload["plan"]["steps"] == []
+        assert payload["refused_capabilities"] == [
+            (
+                "editor.component.property.restore.camera_bool_make_active_on_activation "
+                "requires recorded bool before_value evidence in the prompt."
+            )
+        ]
+
+
+def test_prompt_session_refuses_generic_undo_prompt() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-generic-undo-refuse-1",
+                "prompt_text": "Undo the last editor change in the level.",
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": False,
+                "preferred_domains": ["editor-control"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "refused"
+        assert payload["admitted_capabilities"] == []
+        assert payload["refused_capabilities"] == ["editor.restore.unsupported"]
+        assert any(
+            "generic restore and generalized undo are not admitted" in requirement
+            for requirement in payload["plan"]["capability_requirements"]
+        )
+
+
 def test_prompt_session_plans_exact_camera_bool_readback_without_write() -> None:
     property_path = "Controller|Configuration|Make active camera on activation?"
     with isolated_client() as client:
@@ -2513,6 +2622,141 @@ def test_exact_camera_bool_write_review_summary_is_operator_facing() -> None:
     assert "generalized_undo_available=False" in summary
     assert "Restore/revert guidance: This is not generalized undo." in summary
     assert "public property listing" in summary
+    assert "arbitrary property write" in summary
+
+
+def test_exact_camera_bool_restore_review_summary_is_operator_facing() -> None:
+    def step(
+        step_id: str,
+        tool: str,
+        *,
+        approval_class: str = "read_only",
+        capability_status_required: str = "hybrid-read-only",
+    ) -> PromptPlanStep:
+        return PromptPlanStep(
+            step_id=step_id,
+            tool=tool,
+            agent="editor-control",
+            args={},
+            approval_class=approval_class,
+            capability_status_required=capability_status_required,
+            capability_maturity="hybrid-read-only",
+        )
+
+    capability_name = (
+        "editor.component.property.restore.camera_bool_make_active_on_activation"
+    )
+    property_path = "Controller|Configuration|Make active camera on activation?"
+    session = PromptSessionRecord(
+        prompt_id="prompt-camera-bool-restore-review-1",
+        plan_id="plan-camera-bool-restore-review-1",
+        status=PromptSessionStatus.COMPLETED,
+        prompt_text=(
+            'Open level "Levels/Main.level", create entity named "ShotCamera", '
+            "add a Camera component, then restore the Camera make active camera "
+            "on activation bool to the recorded before value true."
+        ),
+        project_root="C:/project",
+        engine_root="C:/engine",
+        plan=PromptPlan(
+            prompt_id="prompt-camera-bool-restore-review-1",
+            plan_id="plan-camera-bool-restore-review-1",
+            admitted=True,
+            summary="Exact Camera bool restore plan.",
+            steps=[
+                step("editor-session-1", "editor.session.open"),
+                step("editor-level-1", "editor.level.open"),
+                step("editor-entity-1", "editor.entity.create"),
+                step("editor-component-1", "editor.component.add"),
+                step("editor-camera-bool-current-1", "editor.component.property.get"),
+                step(
+                    "editor-camera-bool-restore-1",
+                    capability_name,
+                    approval_class="content_write",
+                    capability_status_required="mutation-gated",
+                ),
+                step("editor-camera-bool-restored-1", "editor.component.property.get"),
+            ],
+        ),
+        latest_child_responses=[
+            {
+                "prompt_step_id": "editor-entity-1",
+                "ok": True,
+                "execution_details": {
+                    "entity_name": "ShotCamera",
+                    "entity_id": "101",
+                    "level_path": "Levels/Main.level",
+                },
+            },
+            {
+                "prompt_step_id": "editor-component-1",
+                "ok": True,
+                "execution_details": {
+                    "entity_id": "101",
+                    "added_components": ["Camera"],
+                    "restore_boundary_id": "restore-boundary-1",
+                    "restore_boundary_available": True,
+                },
+            },
+            {
+                "prompt_step_id": "editor-camera-bool-current-1",
+                "ok": True,
+                "execution_details": {
+                    "component_name": "Camera",
+                    "component_id": "EntityComponentIdPair(EntityId(101), 301)",
+                    "property_path": property_path,
+                    "value": False,
+                    "value_type": "bool",
+                },
+            },
+            {
+                "prompt_step_id": "editor-camera-bool-restore-1",
+                "ok": True,
+                "result": {"tool": capability_name, "approval_class": "content_write"},
+                "execution_details": {
+                    "capability_name": capability_name,
+                    "component_name": "Camera",
+                    "component_id": "EntityComponentIdPair(EntityId(101), 301)",
+                    "property_path": property_path,
+                    "before_value": True,
+                    "current_value": False,
+                    "restored_value": True,
+                    "restored_readback": True,
+                    "verification_status": "restored_readback_verified",
+                    "restore_verified": True,
+                    "admission_class": "content_write",
+                    "generalized_undo_available": False,
+                    "restore_or_revert_guidance": (
+                        "This is not generalized undo. Restore only the recorded before_value."
+                    ),
+                },
+            },
+            {
+                "prompt_step_id": "editor-camera-bool-restored-1",
+                "ok": True,
+                "execution_details": {
+                    "component_name": "Camera",
+                    "component_id": "EntityComponentIdPair(EntityId(101), 301)",
+                    "property_path": property_path,
+                    "value": True,
+                },
+            },
+        ],
+    )
+
+    summary = PromptOrchestratorService()._build_editor_chain_review_summary(session)
+
+    assert summary is not None
+    assert "Review result: succeeded_verified" in summary
+    assert capability_name in summary
+    assert "targeted entity ShotCamera, component Camera" in summary
+    assert f"property {property_path}" in summary
+    assert "before=True, current=False, restored=True, restored_readback=True" in summary
+    assert "verification_status=restored_readback_verified" in summary
+    assert "admission_class=content_write" in summary
+    assert "generalized_undo_available=False" in summary
+    assert "Restore/revert guidance: This is not generalized undo." in summary
+    assert "generic property restore" in summary
     assert "arbitrary property write" in summary
 
 

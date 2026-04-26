@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/editor.component.property.restore.camera_bool_make_active_on_activation.args.schema.json",
+  "title": "editor.component.property.restore.camera_bool_make_active_on_activation args",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "component_name",
+    "component_id",
+    "component_id_provenance",
+    "property_path",
+    "before_value",
+    "restore_boundary_id"
+  ],
+  "properties": {
+    "component_name": { "const": "Camera" },
+    "component_id": { "type": "string", "minLength": 1 },
+    "component_id_provenance": {
+      "const": "admitted_runtime_component_add_result"
+    },
+    "property_path": {
+      "const": "Controller|Configuration|Make active camera on activation?"
+    },
+    "before_value": { "type": "boolean" },
+    "expected_current_value": { "type": "boolean" },
+    "current_value": { "type": "boolean" },
+    "level_path": { "type": "string", "minLength": 1 },
+    "restore_boundary_id": { "type": "string", "minLength": 1 }
+  }
+}
