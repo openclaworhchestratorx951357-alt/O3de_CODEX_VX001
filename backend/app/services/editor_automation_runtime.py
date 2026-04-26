@@ -1467,6 +1467,10 @@ class EditorAutomationRuntimeService:
             "property_path": bridge_details.get("property_path", property_path),
             "value": bridge_details.get("value"),
             "value_type": bridge_details.get("value_type"),
+            "read_only": True,
+            "write_occurred": False,
+            "write_admission": False,
+            "property_list_admission": False,
             "entity_id": bridge_details.get("entity_id"),
             "level_path": bridge_details.get("level_path", loaded_level_path),
             "loaded_level_path": bridge_details.get(
