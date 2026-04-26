@@ -13,6 +13,10 @@ const entityCreateSafetyEnvelope: PromptSafetyEnvelope = {
   retention_class: "editor-runtime-evidence",
   natural_language_status: "prompt-ready-approval-gated",
   natural_language_blocker: null,
+  mutation_surface_class: "admitted-editor-authoring-loaded-level",
+  restore_boundary_class: "loaded-level-file-restore-boundary",
+  candidate_expansion_boundary:
+    "No parenting, prefab, transform placement, delete, property writes, or arbitrary Editor Python are admitted from this envelope.",
 };
 
 const approvalGatedSafetyEnvelope: PromptSafetyEnvelope = {
@@ -57,6 +61,11 @@ describe("prompt safety detail panels", () => {
       screen.queryByText(/Excluded from the admitted real set on current tested local targets/i),
     ).not.toBeInTheDocument();
     expect(screen.getByText(entityCreateSafetyEnvelope.state_scope)).toBeInTheDocument();
+    expect(screen.getByText("admitted-editor-authoring-loaded-level")).toBeInTheDocument();
+    expect(screen.getByText("loaded-level-file-restore-boundary")).toBeInTheDocument();
+    expect(
+      screen.getByText(/arbitrary Editor Python are admitted from this envelope/i),
+    ).toBeInTheDocument();
   });
 
   it("renders persisted prompt safety evidence in artifact detail", () => {

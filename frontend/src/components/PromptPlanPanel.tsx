@@ -147,8 +147,16 @@ export default function PromptPlanPanel({
                       Backup / rollback: {safetyEnvelope?.backup_class ?? missingSafetyEnvelopeDetail} / {safetyEnvelope?.rollback_class ?? missingSafetyEnvelopeDetail}
                     </div>
                     <div style={subtleTextStyle}>
+                      Mutation / restore boundary: {safetyEnvelope?.mutation_surface_class ?? missingSafetyEnvelopeDetail} / {safetyEnvelope?.restore_boundary_class ?? missingSafetyEnvelopeDetail}
+                    </div>
+                    <div style={subtleTextStyle}>
                       Verification / retention: {safetyEnvelope?.verification_class ?? missingSafetyEnvelopeDetail} / {safetyEnvelope?.retention_class ?? missingSafetyEnvelopeDetail}
                     </div>
+                    {safetyEnvelope?.candidate_expansion_boundary ? (
+                      <div style={blockerTextStyle}>
+                        Expansion boundary: {safetyEnvelope.candidate_expansion_boundary}
+                      </div>
+                    ) : null}
                     {!safetyEnvelope ? (
                       <div style={blockerTextStyle}>
                         Safety envelope metadata is missing from the current backend payload; prompt-plan detail for this step is incomplete.

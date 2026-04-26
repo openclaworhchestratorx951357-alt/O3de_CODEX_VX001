@@ -162,12 +162,27 @@ def test_prompt_session_preview_compiles_typed_steps_across_families() -> None:
             "prompt-ready-approval-gated"
         )
         assert editor_entity_create["safety_envelope"]["natural_language_blocker"] is None
+        assert editor_entity_create["safety_envelope"]["mutation_surface_class"] == (
+            "admitted-editor-authoring-loaded-level"
+        )
+        assert editor_entity_create["safety_envelope"]["restore_boundary_class"] == (
+            "loaded-level-file-restore-boundary"
+        )
+        assert "arbitrary Editor Python" in (
+            editor_entity_create["safety_envelope"]["candidate_expansion_boundary"]
+        )
         editor_component_add = next(
             item for item in capabilities if item["tool_name"] == "editor.component.add"
         )
         assert editor_component_add["capability_maturity"] == "real-authoring"
         assert editor_component_add["safety_envelope"]["natural_language_status"] == (
             "prompt-ready-approval-gated"
+        )
+        assert editor_component_add["safety_envelope"]["mutation_surface_class"] == (
+            "admitted-editor-authoring-allowlisted-component"
+        )
+        assert editor_component_add["safety_envelope"]["restore_boundary_class"] == (
+            "loaded-level-file-restore-boundary"
         )
         editor_component_property_get = next(
             item
@@ -178,6 +193,10 @@ def test_prompt_session_preview_compiles_typed_steps_across_families() -> None:
         assert editor_component_property_get["safety_envelope"][
             "natural_language_status"
         ] == "prompt-ready-read-only"
+        assert (
+            editor_component_property_get["safety_envelope"]["mutation_surface_class"]
+            == "not-mutating"
+        )
         editor_entity_exists = next(
             item for item in capabilities if item["tool_name"] == "editor.entity.exists"
         )

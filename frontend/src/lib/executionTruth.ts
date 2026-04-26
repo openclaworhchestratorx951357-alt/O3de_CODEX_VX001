@@ -269,6 +269,15 @@ export function readPromptSafetyEnvelope(
     natural_language_blocker: typeof candidate.natural_language_blocker === "string"
       ? candidate.natural_language_blocker
       : null,
+    mutation_surface_class: typeof candidate.mutation_surface_class === "string"
+      ? candidate.mutation_surface_class
+      : null,
+    restore_boundary_class: typeof candidate.restore_boundary_class === "string"
+      ? candidate.restore_boundary_class
+      : null,
+    candidate_expansion_boundary: typeof candidate.candidate_expansion_boundary === "string"
+      ? candidate.candidate_expansion_boundary
+      : null,
   };
 }
 
