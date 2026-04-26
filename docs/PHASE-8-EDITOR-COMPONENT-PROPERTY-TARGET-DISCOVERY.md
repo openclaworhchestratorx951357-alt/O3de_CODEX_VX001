@@ -83,6 +83,16 @@ Current live component target-binding behavior:
   not be treated as live Editor component ids.
 - `editor.component.property.list` remains proof-only and is not admitted to
   Prompt Studio or `/adapters`.
+- Prompt Studio may now compose the already admitted read-only
+  `editor.component.find` target-binding step into the already admitted
+  `editor.component.property.get` readback step for a known allowlisted
+  component/property mapping. The first admitted mapping remains Mesh
+  `Controller|Configuration|Model Asset`, and the component id must come from
+  the immediately preceding live `editor.component.find` result with provenance
+  `admitted_runtime_component_discovery_result`.
+- That composed readback is evidence only. It does not admit
+  `editor.component.property.list`, does not select a write target, and does
+  not imply prefab-derived component ids are valid live Editor ids.
 
 ## Discovery Goal
 
@@ -103,6 +113,11 @@ entities or the `added_component_refs` returned by admitted
 `editor.component.add` for newly added components. It must not reuse component
 ids mined from loaded-level prefab JSON or other serialized records as live
 Editor property targets.
+
+When a known property readback is requested after live target binding, the
+prompt plan must bind `$step:editor-component-find-1.component_id` directly into
+`editor.component.property.get`. It must not insert `editor.component.property.list`
+or infer a component id from prefab JSON.
 
 The output may also be "no target selected" when the read-only evidence is not
 strong enough. That is a valid successful discovery outcome.

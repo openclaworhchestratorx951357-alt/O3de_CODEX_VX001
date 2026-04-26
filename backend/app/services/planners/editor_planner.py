@@ -18,6 +18,7 @@ from app.services.planners._common import (
 
 _CREATED_ENTITY_ID_REF = "$step:editor-entity-1.entity_id"
 _ADDED_COMPONENT_ID_REF = "$step:editor-component-1.added_component_refs[0].component_id"
+_FOUND_COMPONENT_ID_REF = "$step:editor-component-find-1.component_id"
 _ADMITTED_COMPONENT_PROPERTY_READ_PATHS = {
     "Mesh": "Controller|Configuration|Model Asset",
 }
@@ -206,6 +207,18 @@ def plan_editor_prompt(
             "find comment component",
         ],
     )
+    wants_property_read = contains_any(
+        prompt_text,
+        [
+            "read back",
+            "readback",
+            "component/property evidence",
+            "property evidence",
+            "component property",
+            "read component property",
+            "inspect component property",
+        ],
+    )
     capabilities = {
         tool: capability_registry_service.get_capability(tool)
         for tool in (
@@ -322,10 +335,15 @@ def plan_editor_prompt(
 
     if wants_component_find and not wants_entity_create:
         component_find_capability = capabilities["editor.component.find"]
+        property_capability = capabilities["editor.component.property.get"]
         component_find_args = _extract_component_find_args(prompt_text)
         if component_find_capability is not None and component_find_args is not None:
             if level_path:
                 component_find_args["level_path"] = level_path
+            planned_component_name = component_find_args.get("component_name")
+            planned_component_name = (
+                planned_component_name if isinstance(planned_component_name, str) else None
+            )
             depends_on = ["editor-session-1"] if session_capability else []
             if level_path:
                 depends_on.append("editor-level-1")
@@ -346,6 +364,39 @@ def plan_editor_prompt(
             requirement = capability_requirement_note(component_find_capability)
             if requirement:
                 requirements.append(requirement)
+            property_path = (
+                _ADMITTED_COMPONENT_PROPERTY_READ_PATHS.get(planned_component_name)
+                if planned_component_name is not None
+                else None
+            )
+            if wants_property_read and property_capability is not None and property_path:
+                property_args: dict[str, object] = {
+                    "component_id": _FOUND_COMPONENT_ID_REF,
+                    "property_path": property_path,
+                }
+                if level_path:
+                    property_args["level_path"] = level_path
+                steps.append(
+                    make_step(
+                        step_id="editor-component-property-1",
+                        capability=property_capability,
+                        request=request,
+                        args=property_args,
+                        depends_on=[_COMPONENT_FIND_STEP_ID],
+                        planner_note=(
+                            "Read back the admitted default verification property using "
+                            "the live component id returned by the preceding target-binding "
+                            "step; do not list properties or rely on prefab-derived ids."
+                        ),
+                    )
+                )
+                requirement = capability_requirement_note(property_capability)
+                if requirement:
+                    requirements.append(requirement)
+            elif wants_property_read and planned_component_name is not None:
+                refusals.append(
+                    "editor.component.property.get currently admits target-bound readback only for allowlisted component cases with a proven property-path mapping."
+                )
         else:
             refusals.append(
                 "editor.component.find requires one allowlisted component name plus exactly one explicit entity id or exact entity name."
@@ -433,18 +484,6 @@ def plan_editor_prompt(
                 if requirement:
                     requirements.append(requirement)
 
-    wants_property_read = contains_any(
-        prompt_text,
-        [
-            "read back",
-            "readback",
-            "component/property evidence",
-            "property evidence",
-            "component property",
-            "read component property",
-            "inspect component property",
-        ],
-    )
     if wants_property_read:
         property_capability = capabilities["editor.component.property.get"]
         if property_capability is not None:
