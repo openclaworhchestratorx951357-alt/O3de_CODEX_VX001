@@ -1,21 +1,25 @@
 # Branch Cleanup Report - Phase 8 Camera Write
 
-Status: report only
+Status: report plus one approved single-branch deletion audit
 
 Inspection date: 2026-04-26
 
-This report refreshes branch cleanup truth after PRs #31-#43, including the
-repo-professionalization docs packets and Phase 8 Camera scalar proof,
-admission, and post-admission review/status packets.
+This report refreshes branch cleanup truth after PRs #31-#44, including the
+repo-professionalization docs packets, Phase 8 Camera scalar proof/admission
+packets, the post-admission review/status packet, and the report-only cleanup
+refresh.
 
-No branch deletion is authorized or performed by this report.
+This update records the approved deletion of exactly one remote branch:
+`codex/phase-8-camera-bool-write-public-corridor`.
+
+No other branch deletion is authorized or performed by this update.
 
 ## Inspection Baseline
 
 `origin/main` at inspection time:
 
-- `f08cfde8dff7fafd64b75cde39df4dd58066364f`
-- `Merge pull request #43 from openclaworhchestratorx951357-alt/codex/phase-8-camera-write-review-status`
+- `b044038200b44c25ba96eadecfe64a2fbcd650e8`
+- `Refresh branch cleanup report after Camera write admission`
 
 Inspection commands:
 
@@ -27,6 +31,33 @@ git branch -r --no-merged origin/main --no-color
 git for-each-ref --format='%(refname:short)|%(objectname:short)|%(committerdate:short)|%(subject)' refs/remotes/origin refs/heads
 ```
 
+Single-branch deletion verification commands:
+
+```powershell
+git branch -r --list origin/codex/phase-8-camera-bool-write-public-corridor
+git branch -r --merged origin/main --no-color
+git log --oneline origin/main..origin/codex/phase-8-camera-bool-write-public-corridor
+git push origin --delete codex/phase-8-camera-bool-write-public-corridor
+git fetch origin --prune
+git branch -r --list origin/codex/phase-8-camera-bool-write-public-corridor
+git ls-remote --heads origin codex/phase-8-camera-bool-write-public-corridor
+```
+
+Verification results:
+
+- `origin/main` and local `main` both pointed to
+  `b044038200b44c25ba96eadecfe64a2fbcd650e8` before deletion.
+- `origin/codex/phase-8-camera-bool-write-public-corridor` existed before
+  deletion.
+- `origin/codex/phase-8-camera-bool-write-public-corridor` appeared in
+  `git branch -r --merged origin/main --no-color`.
+- `git log --oneline origin/main..origin/codex/phase-8-camera-bool-write-public-corridor`
+  returned no commits.
+- `git push origin --delete codex/phase-8-camera-bool-write-public-corridor`
+  deleted only that remote branch.
+- After `git fetch origin --prune`, both `git branch -r --list` and
+  `git ls-remote --heads` returned no matching remote branch.
+
 GitHub PR inspection found no open PRs at the time of this report.
 
 ## Definitely Safe To Delete
@@ -36,11 +67,12 @@ and do not appear to be backup, checkpoint, stable-baseline, or active handoff
 branches. They are safe candidates for single-branch cleanup if the operator
 wants a tidier remote.
 
-No deletion is performed in this PR.
+After the approved Camera bool branch cleanup, there are no new PR #31-#44
+branches in this category.
 
 | Branch | PR | Evidence | Recommendation |
 | --- | --- | --- | --- |
-| `origin/codex/phase-8-camera-bool-write-public-corridor` | #42 | PR #42 merged into `main`; exact Camera bool write corridor is now on `main`; PR #43 completed the post-admission review/status packet. | Safe to delete in a cleanup command after operator confirms branch cleanup. |
+| None | - | - | - |
 
 ## Already Absent Or Deleted
 
@@ -61,6 +93,7 @@ merged PRs.
 | #39 | `codex/phase-8-camera-write-readiness-audit` | 2026-04-26 16:16 UTC | Absent remotely; readiness audit is merged. |
 | #40 | `codex/phase-8-camera-scalar-write-proof-only` | 2026-04-26 16:51 UTC | Absent remotely; proof-only Camera write harness is merged. |
 | #41 | `codex/phase-8-camera-write-admission-decision` | 2026-04-26 17:04 UTC | Absent remotely; admission decision packet is merged. |
+| #42 | `codex/phase-8-camera-bool-write-public-corridor` | 2026-04-26 17:41 UTC | Deleted in approved single-branch cleanup after proving it was merged and had no unique commits. |
 | #43 | `codex/phase-8-camera-write-review-status` | 2026-04-26 17:59 UTC | Absent remotely; post-admission review/status packet is merged. |
 
 ## Preserve Because Open Or Unmerged
@@ -100,6 +133,7 @@ not marked as definitely safe in this report because bulk branch cleanup should
 be handled as its own operator-approved packet.
 
 - `origin/codex/admitted-composed-editor-live-proof`
+- `origin/codex/branch-cleanup-report-after-phase-8-camera-write`
 - `origin/codex/control-plane/app-os-review-evidence`
 - `origin/codex/control-plane/desktop-shell`
 - `origin/codex/control-plane/gui-overhaul-contextual-help`
@@ -150,14 +184,8 @@ inspection view and may be attached to separate local worktrees.
 
 ## Recommended Next Cleanup Packet
 
-If the operator wants cleanup now, the smallest safe next packet is a
-single-branch deletion of:
-
-```powershell
-git push origin --delete codex/phase-8-camera-bool-write-public-corridor
-```
-
-Before running that command, re-check:
+If the operator wants more cleanup, the next safest packet is another
+single-branch cleanup, selected from a fresh report after re-checking:
 
 ```powershell
 git fetch --prune origin
