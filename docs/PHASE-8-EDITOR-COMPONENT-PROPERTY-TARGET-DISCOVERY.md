@@ -109,6 +109,11 @@ Current live component target-binding behavior:
   `no_non_asset_non_render_scalar_target`; scalar-like Mesh paths are still
   render-adjacent, asset-reference, derived/statistical, or grouping evidence.
   See `docs/PHASE-8-EDITOR-SCALAR-PROPERTY-TARGET-DISCOVERY.md`.
+- The first non-render allowlisted `Comment` attempt reached temporary
+  component provisioning and verified restore, but did not produce typed
+  property paths through `editor.component.property.list`; blocker code:
+  `comment_property_list_unavailable`. See
+  `docs/PHASE-8-EDITOR-COMMENT-SCALAR-TARGET-DISCOVERY.md`.
 
 ## Discovery Goal
 

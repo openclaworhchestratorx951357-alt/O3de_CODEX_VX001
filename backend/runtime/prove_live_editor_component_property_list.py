@@ -5,7 +5,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import prove_live_editor_authoring as authoring
 
@@ -318,7 +318,11 @@ def restore_after_mutation(
         return outcome
 
 
-def target_info_from_runtime_steps(runtime_steps: dict[str, Any]) -> dict[str, Any]:
+def target_info_from_runtime_steps(
+    runtime_steps: dict[str, Any],
+    *,
+    component_family: str = PROOF_COMPONENT_FAMILY,
+) -> dict[str, Any]:
     entity_result = runtime_steps["entity_create"]["runtime_result"]
     component_result = runtime_steps["component_add"]["runtime_result"]
     component_id = component_id_from_component_add_payload(runtime_steps["component_add"])
@@ -333,7 +337,7 @@ def target_info_from_runtime_steps(runtime_steps: dict[str, Any]) -> dict[str, A
     selected = {
         "entity_id": entity_result.get("entity_id"),
         "entity_name": entity_result.get("entity_name"),
-        "component": selected_ref.get("component", PROOF_COMPONENT_FAMILY),
+        "component": selected_ref.get("component", component_family),
         "component_id": component_id,
         "component_id_provenance": (
             COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
@@ -358,6 +362,7 @@ def require_property_list_result(
     runtime_result: dict[str, Any],
     *,
     target: dict[str, Any],
+    expected_property_path: str | None = PROOF_PROPERTY_PATH_FRAGMENT,
 ) -> None:
     if runtime_result.get("ok") is not True:
         raise ComponentPropertyListProofError("Property-list runtime result did not report ok=true.")
@@ -388,10 +393,10 @@ def require_property_list_result(
         raise ComponentPropertyListProofError(
             "Property-list proof did not record BuildComponentPropertyList evidence."
         )
-    if PROOF_PROPERTY_PATH_FRAGMENT not in property_paths:
+    if expected_property_path is not None and expected_property_path not in property_paths:
         raise ComponentPropertyListProofError(
             f"Property-list proof did not include expected Mesh path "
-            f"{PROOF_PROPERTY_PATH_FRAGMENT!r}."
+            f"{expected_property_path!r}."
         )
     returned_component_id = runtime_result.get("component_id")
     if not isinstance(returned_component_id, str) or not returned_component_id.strip():
@@ -475,17 +480,21 @@ def _execute_runtime_steps(
     project_root: str,
     engine_root: str,
     level_path: str,
+    component_family: str = PROOF_COMPONENT_FAMILY,
+    entity_prefix: str = PROOF_ENTITY_PREFIX,
+    request_prefix: str = "property-list-proof",
+    property_read_selector: Callable[[list[str]], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    session_id = f"property-list-proof-session-{run_label}"
+    session_id = f"{request_prefix}-session-{run_label}"
     workspace_id = "workspace-live-property-list-proof"
     executor_id = "executor-editor-control-real-local"
-    entity_name = f"{PROOF_ENTITY_PREFIX}_{run_label.replace('-', '_')}"
+    entity_name = f"{entity_prefix}_{run_label.replace('-', '_')}"
     runtime_steps: dict[str, Any] = {}
     restore_boundary: dict[str, Any] | None = None
 
     try:
         session_payload = editor_automation_runtime_service.execute_session_open(
-            request_id=f"property-list-proof-session-open-{run_label}",
+            request_id=f"{request_prefix}-session-open-{run_label}",
             session_id=session_id,
             workspace_id=workspace_id,
             executor_id=executor_id,
@@ -502,7 +511,7 @@ def _execute_runtime_steps(
         runtime_steps["session"] = authoring.scrub_secrets(session_payload)
 
         level_payload = editor_automation_runtime_service.execute_level_open(
-            request_id=f"property-list-proof-level-open-{run_label}",
+            request_id=f"{request_prefix}-level-open-{run_label}",
             session_id=session_id,
             workspace_id=workspace_id,
             executor_id=executor_id,
@@ -519,7 +528,7 @@ def _execute_runtime_steps(
         runtime_steps["level"] = authoring.scrub_secrets(level_payload)
 
         entity_payload = editor_automation_runtime_service.execute_entity_create(
-            request_id=f"property-list-proof-entity-create-{run_label}",
+            request_id=f"{request_prefix}-entity-create-{run_label}",
             session_id=session_id,
             workspace_id=workspace_id,
             executor_id=executor_id,
@@ -541,7 +550,7 @@ def _execute_runtime_steps(
             )
 
         component_payload = editor_automation_runtime_service.execute_component_add(
-            request_id=f"property-list-proof-component-add-{run_label}",
+            request_id=f"{request_prefix}-component-add-{run_label}",
             session_id=session_id,
             workspace_id=workspace_id,
             executor_id=executor_id,
@@ -550,7 +559,7 @@ def _execute_runtime_steps(
             dry_run=False,
             args={
                 "entity_id": entity_id,
-                "components": [PROOF_COMPONENT_FAMILY],
+                "components": [component_family],
                 "level_path": level_path,
             },
             locks_acquired=["editor_session"],
@@ -560,7 +569,7 @@ def _execute_runtime_steps(
 
         property_list_payload = (
             editor_automation_runtime_service.execute_component_property_list(
-                request_id=f"property-list-proof-read-{run_label}",
+                request_id=f"{request_prefix}-read-{run_label}",
                 session_id=session_id,
                 workspace_id=workspace_id,
                 executor_id=executor_id,
@@ -575,6 +584,47 @@ def _execute_runtime_steps(
             )
         )
         runtime_steps["property_list"] = authoring.scrub_secrets(property_list_payload)
+
+        if property_read_selector is not None:
+            raw_property_paths = property_list_payload["runtime_result"].get(
+                "property_paths"
+            )
+            if not isinstance(raw_property_paths, list) or any(
+                not isinstance(item, str) for item in raw_property_paths
+            ):
+                raise ComponentPropertyListProofError(
+                    "Property-read selector requires a string property_paths list."
+                )
+            property_read_selection = property_read_selector(
+                [item for item in raw_property_paths if item.strip()]
+            )
+            runtime_steps["property_target_selection"] = authoring.scrub_secrets(
+                property_read_selection
+            )
+            selected_property_path = property_read_selection.get(
+                "selected_property_path"
+            )
+            if isinstance(selected_property_path, str) and selected_property_path.strip():
+                property_get_payload = (
+                    editor_automation_runtime_service.execute_component_property_get(
+                        request_id=f"{request_prefix}-property-get-{run_label}",
+                        session_id=session_id,
+                        workspace_id=workspace_id,
+                        executor_id=executor_id,
+                        project_root=project_root,
+                        engine_root=engine_root,
+                        dry_run=False,
+                        args={
+                            "component_id": component_id,
+                            "property_path": selected_property_path.strip(),
+                            "level_path": level_path,
+                        },
+                        locks_acquired=["editor_session"],
+                    )
+                )
+                runtime_steps["property_get"] = authoring.scrub_secrets(
+                    property_get_payload
+                )
     except Exception as exc:  # noqa: BLE001
         if restore_boundary is not None:
             cleanup_restore = restore_after_mutation(

@@ -81,6 +81,10 @@ Current blocker:
   derived/statistical evidence
 - current target-selection blocker code:
   `no_non_asset_non_render_scalar_target`
+- the first non-render `Comment` target discovery proof reached allowlisted
+  temporary component provisioning and verified restore, but did not select a
+  target because the bridge did not return typed Comment property paths;
+  blocker code: `comment_property_list_unavailable`
 
 Do not use `Mesh` `Controller|Configuration|Model Asset` as the first write
 target unless a separate asset-reference proof exists. It is already useful as

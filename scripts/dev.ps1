@@ -18,6 +18,7 @@ param(
         "live-component-find-proof",
         "live-property-target-readback-proof",
         "live-property-list-proof",
+        "live-comment-scalar-target-proof",
         "desktop-status",
         "desktop-start",
         "desktop-stop",
@@ -514,6 +515,7 @@ switch ($Task) {
     "live-component-find-proof" { Invoke-LiveRuntimeControl -Action "component-find-proof" }
     "live-property-target-readback-proof" { Invoke-LiveRuntimeControl -Action "property-target-readback-proof" }
     "live-property-list-proof" { Invoke-LiveRuntimeControl -Action "property-list-proof" }
+    "live-comment-scalar-target-proof" { Invoke-LiveRuntimeControl -Action "comment-scalar-target-proof" }
     "desktop-status" { Invoke-DesktopAppControl -DesktopAction "status" }
     "desktop-start" { Invoke-DesktopAppControl -DesktopAction "start" }
     "desktop-stop" { Invoke-DesktopAppControl -DesktopAction "stop" }
