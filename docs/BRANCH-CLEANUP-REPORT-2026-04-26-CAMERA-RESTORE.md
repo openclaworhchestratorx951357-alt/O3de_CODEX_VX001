@@ -1,16 +1,24 @@
 # Branch Cleanup Report - Camera Restore
 
-Status: single-branch deletion audit plus branch cleanup report refresh
+Status: single-branch deletion audits plus branch cleanup report refresh
 
 Inspection date: 2026-04-26
 
 This report refreshes branch cleanup truth after the Camera bool restore
 proof/admission/review/examples sequence, including PRs #55-#57.
 
-This update records the approved deletion of exactly one remote branch:
+This report now records two approved single-branch deletion audits. The prior
+audit deleted:
 
 ```text
 codex/phase-8-camera-write-restore-examples-refresh
+```
+
+This update records the approved deletion of exactly one additional remote
+branch:
+
+```text
+codex/phase-8-camera-restore-review-status
 ```
 
 No other branch deletion was performed by this packet.
@@ -20,14 +28,14 @@ No other branch deletion was performed by this packet.
 `origin/main` at inspection time:
 
 ```text
-bf365acda89eea395e4942c16a3ec86696aac244
-Refresh Camera bool write and restore operator examples
+ede866a72ed912960592f5f8fe6b02c5628bf599
+Record deletion of merged Camera write restore examples branch
 ```
 
 Current local branch for this report:
 
 ```text
-codex/delete-merged-camera-write-restore-examples-branch
+codex/delete-merged-camera-restore-review-status-branch
 ```
 
 Required inspection commands used:
@@ -57,6 +65,22 @@ git branch -r --list origin/codex/phase-8-camera-write-restore-examples-refresh
 git ls-remote --heads origin codex/phase-8-camera-write-restore-examples-refresh
 ```
 
+Latest single-branch deletion verification commands used:
+
+```powershell
+git fetch origin --prune
+git rev-parse HEAD
+git rev-parse origin/main
+git branch -r --list origin/codex/phase-8-camera-restore-review-status
+git branch -r --merged origin/main --no-color
+git log --oneline origin/main..origin/codex/phase-8-camera-restore-review-status
+git rev-list --left-right --count origin/main...origin/codex/phase-8-camera-restore-review-status
+git push origin --delete codex/phase-8-camera-restore-review-status
+git fetch origin --prune
+git branch -r --list origin/codex/phase-8-camera-restore-review-status
+git ls-remote --heads origin codex/phase-8-camera-restore-review-status
+```
+
 Remote branch inventory after `git fetch origin --prune`:
 
 - remote branch refs, excluding `origin/HEAD`: 64
@@ -64,7 +88,7 @@ Remote branch inventory after `git fetch origin --prune`:
 - not merged into `origin/main`: 2
 - open GitHub PRs found by the public PR endpoint: 0
 
-Deletion verification results:
+Previous deletion verification results:
 
 - `HEAD` and `origin/main` both pointed to
   `b3819c347cf343f4f8641c2a94b7f7dd025b462a` before deletion.
@@ -81,6 +105,22 @@ Deletion verification results:
 - After `git fetch origin --prune`, both `git branch -r --list` and
   `git ls-remote --heads` returned no matching branch.
 
+Latest deletion verification results:
+
+- `HEAD` and `origin/main` both pointed to
+  `ede866a72ed912960592f5f8fe6b02c5628bf599` before deletion.
+- `origin/codex/phase-8-camera-restore-review-status` existed before deletion.
+- The branch appeared in `git branch -r --merged origin/main --no-color`.
+- `git log --oneline origin/main..origin/codex/phase-8-camera-restore-review-status`
+  returned no commits.
+- `git rev-list --left-right --count origin/main...origin/codex/phase-8-camera-restore-review-status`
+  returned `7 0`; the right-side `0` confirms the branch had no unique commits
+  outside `origin/main`.
+- `git push origin --delete codex/phase-8-camera-restore-review-status`
+  deleted only that remote branch.
+- After `git fetch origin --prune`, both `git branch -r --list` and
+  `git ls-remote --heads` returned no matching branch.
+
 ## Already Absent / Deleted
 
 These branches are already absent from `origin` after `git fetch origin
@@ -90,6 +130,7 @@ These branches are already absent from `origin` after `git fetch origin
 | --- | --- | --- |
 | `codex/phase-8-camera-bool-write-public-corridor` | `git branch -r --list origin/codex/phase-8-camera-bool-write-public-corridor` returned no branch. | Deleted by the earlier approved single-branch cleanup audit after it was proven merged with no unique commits. |
 | `codex/phase-8-camera-write-restore-examples-refresh` | `git branch -r --list origin/codex/phase-8-camera-write-restore-examples-refresh` and `git ls-remote --heads origin codex/phase-8-camera-write-restore-examples-refresh` returned no branch after deletion. | Deleted by this approved single-branch cleanup audit after it was proven merged and had no unique commits. |
+| `codex/phase-8-camera-restore-review-status` | `git branch -r --list origin/codex/phase-8-camera-restore-review-status` and `git ls-remote --heads origin codex/phase-8-camera-restore-review-status` returned no branch after deletion. | Deleted by this approved single-branch cleanup audit after it was proven merged and had no unique commits. |
 | PR #31-#43 branches listed in `docs/BRANCH-CLEANUP-REPORT-2026-04-26-PHASE-8-CAMERA-WRITE.md` as absent | Previous report plus current remote inventory. | Still absent; not reclassified here. |
 
 ## Definitely Safe Cleanup Candidates
@@ -108,8 +149,8 @@ single-branch cleanup candidates if the operator wants a tidier remote.
 | `origin/codex/phase-8-camera-bool-restore-proof-only` | #53 proof-only restore harness | 0 | Merged; `origin/main..branch` returned no commits. |
 | `origin/codex/phase-8-camera-restore-admission-decision` | #54 restore admission decision | 0 | Merged; `origin/main..branch` returned no commits. |
 | `origin/codex/phase-8-camera-bool-restore-public-corridor` | #55 exact public restore corridor | 0 | Merged; `origin/main..branch` returned no commits. |
-| `origin/codex/phase-8-camera-restore-review-status` | #56 restore review/status refinement | 0 | Merged; `origin/main..branch` returned no commits. |
 | `origin/codex/branch-cleanup-report-after-camera-restore` | #58 branch cleanup report | 0 | Merged; `origin/main..branch` returned no commits. |
+| `origin/codex/delete-merged-camera-write-restore-examples-branch` | #59 single-branch deletion audit | 0 | Merged; `origin/main..branch` returned no commits. |
 
 Detailed count spot checks for the recent restore sequence:
 
@@ -117,7 +158,7 @@ Detailed count spot checks for the recent restore sequence:
 origin/codex/phase-8-camera-bool-restore-proof-only: origin/main...branch = 9 0
 origin/codex/phase-8-camera-restore-admission-decision: origin/main...branch = 7 0
 origin/codex/phase-8-camera-bool-restore-public-corridor: origin/main...branch = 5 0
-origin/codex/phase-8-camera-restore-review-status: origin/main...branch = 3 0
+origin/codex/phase-8-camera-restore-review-status: origin/main...branch = 7 0 before deletion
 origin/codex/phase-8-camera-write-restore-examples-refresh: origin/main...branch = 3 0 before deletion
 ```
 
@@ -213,7 +254,7 @@ table above.
 Recommended first candidate:
 
 ```text
-codex/phase-8-camera-restore-review-status
+codex/phase-8-camera-bool-restore-public-corridor
 ```
 
 Before deleting any branch, rerun:
