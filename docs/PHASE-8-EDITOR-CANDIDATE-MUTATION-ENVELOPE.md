@@ -19,6 +19,7 @@ Read this together with:
 - `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
 - `docs/PHASE-6B-POLICY-AND-ADMISSION-CONTRACT.md`
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md`
+- `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-TARGET-DISCOVERY.md`
 
 ## Current Truth To Preserve
 
@@ -56,7 +57,7 @@ These surfaces are candidates only. They are not admitted prompt behavior.
 | Prefab open, instantiate, connect, save, or propagate | Refused before editor session planning | prefab identity, instance identity, file and entity ownership boundary, backup, mutation evidence, reload proof, reference/instance readback | no prefab authoring is admitted |
 | Move, place, position, rotate, scale, or transform entity/object | Refused before editor session planning | exact target identity, transform before-state, mutation evidence, post-write transform readback, restore/reload proof, post-restore transform readback | no transform/property write is admitted |
 | Arbitrary component add, component remove, or component swap | Mostly runtime allowlist-gated or refused depending on prompt shape | component allowlist expansion proposal, exact component identity, before/after component list readback, backup, restore/reload proof | no arbitrary component surface is admitted |
-| Component property write | Refused before editor session planning | component id, property path allowlist, type/schema validation, before-value readback, mutation evidence, after-value readback, restore/reload proof, restored-value readback; first design packet: `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` | current `editor.component.property.get` remains read-only |
+| Component property write | Refused before editor session planning | read-only target discovery, component id, property path allowlist, type/schema validation, before-value readback, mutation evidence, after-value readback, restore/reload proof, restored-value readback; design packets: `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` and `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-TARGET-DISCOVERY.md` | current `editor.component.property.get` remains read-only |
 | Material assignment or material mutation through editor context | Refused before editor session planning | entity/component/material identity, material source provenance, before/after material readback, backup, restore/reload proof | no editor material assignment is admitted |
 | Asset, render, build, or TIAF behavior triggered from an editor prompt | Refused or routed only through existing non-editor typed surfaces | separate matrix row and proof path in the owning family | editor prompt wording does not admit cross-family behavior |
 | Arbitrary Editor Python, script, command, hotkey, or GUI automation | Refused as arbitrary command execution | none; must be decomposed into typed capability rows first | arbitrary editor execution is not a candidate surface |

@@ -16,6 +16,7 @@ materials, assets, prefab work, hierarchy mutation, or build behavior.
 
 Read this together with:
 - `docs/PHASE-8-EDITOR-CANDIDATE-MUTATION-ENVELOPE.md`
+- `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-TARGET-DISCOVERY.md`
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md`
 - `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
 
@@ -60,6 +61,11 @@ Recommended first target class:
   a `Comment`-style component property, only after its exact property path and
   value type are proven by read-only introspection on the canonical sandbox
   target.
+
+No exact first write target is selected by this document. The target must be
+chosen by the read-only discovery packet in
+`docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-TARGET-DISCOVERY.md`, or the discovery
+packet must record the exact blocker instead of guessing a path.
 
 Do not use `Mesh` `Controller|Configuration|Model Asset` as the first write
 target unless a separate asset-reference proof exists. It is already useful as
@@ -194,10 +200,11 @@ these are true:
 ## Exit Condition
 
 This candidate can move from `documented-candidate` to
-`runtime-reaching-proof-only` only when the next packet names:
+`runtime-reaching-proof-only` only when a prior discovery packet names:
 - the exact allowlisted component type
 - the exact allowlisted property path
 - the exact value type and sample values
+- the read-only discovery evidence path or exact blocker that was resolved
 - the proof harness path
 - the restore/reload verification strategy
 - the runtime artifact paths
