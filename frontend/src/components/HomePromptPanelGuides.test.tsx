@@ -49,7 +49,7 @@ const promptSession: PromptSessionRecord = {
   plan_summary: "Compiled 2 admitted typed steps.",
   evidence_summary: "runs=1, executions=1, artifacts=1, events=1",
   admitted_capabilities: ["editor.session.open", "editor.level.open"],
-  refused_capabilities: ["editor.entity.create"],
+  refused_capabilities: [],
   final_result_summary: "Paused awaiting approval for level open.",
   next_step_index: 1,
   current_step_id: "step-level-open",
@@ -107,7 +107,7 @@ const promptSession: PromptSessionRecord = {
         planner_note: null,
       },
     ],
-    refused_capabilities: ["editor.entity.create"],
+    refused_capabilities: [],
     capability_requirements: ["editor.level.open remains admitted real on the canonical local backend."],
   },
   latest_child_responses: [

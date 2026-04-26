@@ -243,7 +243,8 @@ describe("PromptPlanPanel", () => {
           plan: {
             ...session.plan!,
             admitted: false,
-            refusal_reason: "entity creation remains excluded from the admitted real set",
+            refusal_reason:
+              "The requested editor mutation is outside the admitted Phase 8 editor envelope.",
           },
         }}
         capabilities={capabilities}
@@ -254,7 +255,7 @@ describe("PromptPlanPanel", () => {
     expect(
       screen.getByText(/Refusal reason:/).parentElement,
     ).toHaveTextContent(
-      "Refusal reason: entity creation remains excluded from the admitted real set",
+      "Refusal reason: The requested editor mutation is outside the admitted Phase 8 editor envelope.",
     );
   });
 });
