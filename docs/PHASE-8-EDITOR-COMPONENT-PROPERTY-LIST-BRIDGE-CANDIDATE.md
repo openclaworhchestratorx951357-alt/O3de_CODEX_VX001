@@ -5,7 +5,15 @@
 This document defines the candidate typed read-only bridge operation needed
 before component property target discovery can become executable.
 
-It does not implement the operation.
+This packet adds repo-owned proof-only scaffolding for the operation in:
+- `scripts/setup_control_plane_editor_bridge.ps1`
+- `backend/app/services/editor_automation_runtime.py`
+
+It does not refresh the canonical live bridge on disk.
+
+It does not add a dispatcher/catalog adapter route.
+
+It does not run or claim live proof.
 
 It does not admit Prompt Studio property discovery.
 
@@ -56,9 +64,12 @@ Candidate family:
 - `editor-control`
 
 Candidate status:
-- not implemented
+- repo-owned proof-only runtime wrapper added
+- repo-owned bridge setup script operation added
+- canonical live bridge not refreshed or proven
+- not dispatcher/catalog-admitted
 - not prompt-admitted
-- proof-only read-only candidate after bridge support exists
+- proof-only read-only candidate before property target discovery admission
 
 Required args:
 - `component_id`
@@ -117,14 +128,22 @@ The refused plan must have:
 - no editor bridge execution step
 - operator-facing text that says property listing is not admitted yet
 
-## Proof-Only Exit Criteria
+## Current Proof-Only Packet
 
-Do not move this candidate into runtime proof until a later packet names:
-- repo-owned or canonical bridge source change that adds
+Implemented in this packet:
+- repo-owned bridge setup source can dispatch
   `editor.component.property.list`
-- backend runtime wrapper and adapter route
-- schemas for args, result, execution details, and artifact metadata
-- tests proving preflight rejection and bridge result mapping
+- backend runtime wrapper can queue the typed bridge operation directly
+- runtime tests prove command payload shape, bridge result mapping,
+  no property value readback field, and malformed `property_paths` rejection
+
+Still required before runtime proof or admission:
+- refresh canonical McpSandbox bridge source from the repo-owned setup packet
+- restore bridge heartbeat freshness
+- add a dispatcher/catalog adapter route only when proof-only execution is
+  explicitly admitted
+- add schemas for args, result, execution details, and artifact metadata when
+  the dispatcher/catalog route is introduced
 - prompt tests proving Prompt Studio still refuses property discovery
 - live proof command and evidence bundle path
 

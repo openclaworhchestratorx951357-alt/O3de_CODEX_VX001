@@ -74,6 +74,16 @@ def write_loaded_level_file(
     return resolved_level_path
 
 
+def test_bridge_setup_script_contains_property_list_operation() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    setup_script = repo_root / "scripts" / "setup_control_plane_editor_bridge.ps1"
+    script_text = setup_script.read_text(encoding="utf-8")
+
+    assert "def _list_component_properties(" in script_text
+    assert 'if operation == "editor.component.property.list":' in script_text
+    assert '"BuildComponentPropertyList"' in script_text
+
+
 def test_level_paths_match_bridge_absolute_path_to_project_relative_request(
     tmp_path: Path,
 ) -> None:
@@ -1721,6 +1731,261 @@ def test_execute_component_property_get_queues_bridge_command_and_returns_bridge
         saved_state = json.loads(state_path.read_text(encoding="utf-8"))
         assert saved_state["editor_transport"] == "bridge"
         assert saved_state["bridge_heartbeat_seen_at"] == runtime_result["bridge_heartbeat_seen_at"]
+
+
+def test_execute_component_property_list_queues_bridge_command_without_reading_values() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+        write_heartbeat(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        captured: dict[str, object] = {}
+        component_id = "EntityComponentIdPair(EntityId(101), 201)"
+        property_paths = [
+            "Controller|Configuration|Model Asset",
+            "Controller|Configuration|Sort Key",
+        ]
+        responder = spawn_bridge_responder(
+            project_root=project_root,
+            expected_operation="editor.component.property.list",
+            response_details={
+                "component_id": component_id,
+                "entity_id": "101",
+                "component_type": "Mesh",
+                "property_paths": property_paths,
+                "component_property_count": len(property_paths),
+                "level_path": "Levels/Main.level",
+                "loaded_level_path": "Levels/Main.level",
+                "active_level_path": "Levels/Main.level",
+            },
+            captured=captured,
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_runner_process_is_active",
+                    return_value=False,
+                ):
+                    with patch.object(
+                        editor_automation_runtime_service,
+                        "_bridge_has_live_pulse",
+                        return_value=True,
+                    ):
+                        with patch(
+                            "subprocess.Popen",
+                            side_effect=AssertionError(
+                                "editor.component.property.list should not launch a one-shot editor process when the bridge is healthy."
+                            ),
+                        ):
+                            payload = (
+                                editor_automation_runtime_service.execute_component_property_list(
+                                    request_id="req-component-property-list-1",
+                                    session_id="session-1",
+                                    workspace_id="workspace-editor-project",
+                                    executor_id="executor-editor-control-real-local",
+                                    project_root=str(project_root),
+                                    engine_root="C:/src/o3de",
+                                    dry_run=False,
+                                    args={
+                                        "component_id": component_id,
+                                        "level_path": "Levels/Main.level",
+                                    },
+                                    locks_acquired=["editor_session"],
+                                )
+                            )
+
+        responder.join(timeout=5)
+        assert not responder.is_alive()
+        runtime_result = payload["runtime_result"]
+        assert runtime_result["editor_transport"] == "bridge"
+        assert runtime_result["bridge_available"] is True
+        assert runtime_result["bridge_operation"] == "editor.component.property.list"
+        assert runtime_result["bridge_queue_mode"] == "filesystem-inbox"
+        assert runtime_result["bridge_command_id"]
+        assert runtime_result["component_id"] == component_id
+        assert runtime_result["entity_id"] == "101"
+        assert runtime_result["component_type"] == "Mesh"
+        assert runtime_result["property_paths"] == property_paths
+        assert runtime_result["component_property_count"] == len(property_paths)
+        assert "value" not in runtime_result
+        assert "EditorComponentAPIBus.BuildComponentPropertyList" in runtime_result[
+            "exact_editor_apis"
+        ]
+        assert payload["runtime_script"].endswith("control_plane_bridge_poller.py")
+
+        command_payload = captured["command"]
+        assert isinstance(command_payload, dict)
+        assert command_payload["operation"] == "editor.component.property.list"
+        assert command_payload["request_id"] == "req-component-property-list-1"
+        assert command_payload["session_id"] == "session-1"
+        assert command_payload["workspace_id"] == "workspace-editor-project"
+        assert command_payload["executor_id"] == "executor-editor-control-real-local"
+        assert command_payload["requires_loaded_level"] is True
+        assert command_payload["args"]["component_id"] == component_id
+        assert command_payload["args"]["level_path"] == "Levels/Main.level"
+        assert "property_path" not in command_payload["args"]
+
+        saved_state = json.loads(state_path.read_text(encoding="utf-8"))
+        assert saved_state["editor_transport"] == "bridge"
+        assert saved_state["bridge_heartbeat_seen_at"] == runtime_result[
+            "bridge_heartbeat_seen_at"
+        ]
+
+
+def test_execute_component_property_list_rejects_without_component_id() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_host_available",
+                    return_value=True,
+                ):
+                    try:
+                        editor_automation_runtime_service.execute_component_property_list(
+                            request_id="req-component-property-list-no-component-id",
+                            session_id="session-1",
+                            workspace_id="workspace-editor-project",
+                            executor_id="executor-editor-control-real-local",
+                            project_root=str(project_root),
+                            engine_root="C:/src/o3de",
+                            dry_run=False,
+                            args={"level_path": "Levels/Main.level"},
+                            locks_acquired=["editor_session"],
+                        )
+                    except AdapterExecutionRejected as exc:
+                        assert exc.details["preflight_reason"] == "component-id-missing"
+                    else:
+                        raise AssertionError(
+                            "editor.component.property.list should require an explicit component_id."
+                        )
+
+
+def test_execute_component_property_list_rejects_untyped_bridge_property_paths() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+        write_heartbeat(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        component_id = "EntityComponentIdPair(EntityId(101), 201)"
+        captured: dict[str, object] = {}
+        responder = spawn_bridge_responder(
+            project_root=project_root,
+            expected_operation="editor.component.property.list",
+            response_details={
+                "component_id": component_id,
+                "property_paths": ["Controller|Configuration|Model Asset", 123],
+                "level_path": "Levels/Main.level",
+                "loaded_level_path": "Levels/Main.level",
+            },
+            captured=captured,
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_runner_process_is_active",
+                    return_value=False,
+                ):
+                    with patch.object(
+                        editor_automation_runtime_service,
+                        "_bridge_has_live_pulse",
+                        return_value=True,
+                    ):
+                        try:
+                            editor_automation_runtime_service.execute_component_property_list(
+                                request_id="req-component-property-list-invalid",
+                                session_id="session-1",
+                                workspace_id="workspace-editor-project",
+                                executor_id="executor-editor-control-real-local",
+                                project_root=str(project_root),
+                                engine_root="C:/src/o3de",
+                                dry_run=False,
+                                args={
+                                    "component_id": component_id,
+                                    "level_path": "Levels/Main.level",
+                                },
+                                locks_acquired=["editor_session"],
+                            )
+                        except AdapterExecutionRejected as exc:
+                            assert (
+                                exc.details["preflight_reason"]
+                                == "bridge-property-list-invalid"
+                            )
+                            assert exc.details["bridge_operation"] == (
+                                "editor.component.property.list"
+                            )
+                        else:
+                            raise AssertionError(
+                                "editor.component.property.list should reject non-string property paths."
+                            )
+
+        responder.join(timeout=5)
+        assert not responder.is_alive()
+        assert isinstance(captured.get("command"), dict)
 
 
 def test_execute_entity_exists_queues_bridge_command_and_returns_bridge_metadata() -> None:
