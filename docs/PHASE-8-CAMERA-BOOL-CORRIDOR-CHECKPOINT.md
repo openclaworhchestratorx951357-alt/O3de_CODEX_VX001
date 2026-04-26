@@ -187,6 +187,9 @@ Detailed rollback and restore expectations are now designed in
 Readiness for a future exact restore/revert packet is audited in
 `docs/PHASE-8-CAMERA-BOOL-RESTORE-READINESS-AUDIT.md`.
 
+Proof-only reverse-write restore evidence is recorded in
+`docs/PHASE-8-CAMERA-BOOL-RESTORE-LIVE-PROOF.md`.
+
 If the exact Camera bool corridor causes problems:
 
 1. Revert the merge commit that admitted the exact public corridor.
@@ -207,8 +210,7 @@ the public corridor when available.
 
 Safe next packets:
 
-- proof-only restore harness for the exact Camera corridor only if explicitly
-  approved
+- admission decision for an exact Camera corridor restore/revert capability
 - next readback-only scalar discovery packet
 - report-first branch cleanup packets only
 

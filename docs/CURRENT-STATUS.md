@@ -134,11 +134,17 @@ The restore readiness audit is recorded in
 for a future proof-only restore harness only with explicit operator approval,
 and not ready for public restore admission without a separate high-risk packet.
 
+The proof-only restore harness is recorded in
+`docs/PHASE-8-CAMERA-BOOL-RESTORE-LIVE-PROOF.md`. It live-proved before value
+`true`, inverse write `false`, restored value `true`, restored readback `true`,
+and loaded-level cleanup restore `restored_and_verified`. Public restore/revert
+remains unadmitted and generalized undo remains unproven.
+
 ## Recommended Next Packets
 
-1. If Phase 8 continues and the operator explicitly approves it, use a
-   proof-only restore harness packet for the exact Camera bool path. Do not
-   jump from readiness audit to public restore admission.
+1. If Phase 8 continues, use an admission decision packet before any public
+   Camera bool restore/revert corridor. Do not jump from proof-only restore
+   evidence to public restore admission.
 2. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 3. Continue repository professionalization in small docs-only packets when the
