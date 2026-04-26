@@ -547,6 +547,9 @@ class PromptOrchestratorService:
 
         entity_response = self._latest_successful_response_for_step(session, "editor-entity-1")
         component_response = self._latest_successful_response_for_step(session, "editor-component-1")
+        component_find_response = self._latest_successful_response_for_step(
+            session, "editor-component-find-1"
+        )
         property_response = self._latest_successful_response_for_step(
             session, "editor-component-property-1"
         )
@@ -619,6 +622,22 @@ class PromptOrchestratorService:
                         f"Readback confirmed added component(s) {component_list}."
                     )
             self._append_restore_boundary_summary(details, summary_parts)
+
+        if component_find_response is not None:
+            details = component_find_response.get("execution_details", {})
+            found = details.get("found")
+            component_name = details.get("component_name")
+            component_id = details.get("component_id")
+            provenance = details.get("component_id_provenance")
+            entity_label = details.get("entity_name") or details.get("entity_id")
+            if found is True and component_name and component_id:
+                summary_parts.append(
+                    f"Readback bound live {component_name} component {component_id} on entity {entity_label} with provenance {provenance}."
+                )
+            elif found is False and component_name:
+                summary_parts.append(
+                    f"Readback confirmed no live {component_name} component target was found on entity {entity_label}."
+                )
 
         if property_response is not None:
             details = property_response.get("execution_details", {})

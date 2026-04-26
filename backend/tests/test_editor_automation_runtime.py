@@ -10,6 +10,7 @@ import pytest
 from app.services.adapters import AdapterExecutionRejected
 from app.services.editor_automation_runtime import (
     COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT,
+    COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_DISCOVERY_RESULT,
     EDITOR_COMPONENT_ADD_ALLOWLIST,
     _level_paths_match,
     _normalize_engine_root_path,
@@ -83,6 +84,16 @@ def test_bridge_setup_script_contains_property_list_operation() -> None:
     assert "def _list_component_properties(" in script_text
     assert 'if operation == "editor.component.property.list":' in script_text
     assert '"BuildComponentPropertyList"' in script_text
+
+
+def test_bridge_setup_script_contains_component_find_operation() -> None:
+    repo_root = Path(__file__).resolve().parents[2]
+    setup_script = repo_root / "scripts" / "setup_control_plane_editor_bridge.ps1"
+    script_text = setup_script.read_text(encoding="utf-8")
+
+    assert "def _find_component(" in script_text
+    assert 'if operation == "editor.component.find":' in script_text
+    assert '"GetComponentOfType"' in script_text
 
 
 def test_level_paths_match_bridge_absolute_path_to_project_relative_request(
@@ -1735,6 +1746,192 @@ def test_execute_component_property_get_queues_bridge_command_and_returns_bridge
         saved_state = json.loads(state_path.read_text(encoding="utf-8"))
         assert saved_state["editor_transport"] == "bridge"
         assert saved_state["bridge_heartbeat_seen_at"] == runtime_result["bridge_heartbeat_seen_at"]
+
+
+def test_execute_component_find_returns_live_discovery_provenance() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+        write_heartbeat(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        captured: dict[str, object] = {}
+        component_id = "EntityComponentIdPair(EntityId(101), 201)"
+        responder = spawn_bridge_responder(
+            project_root=project_root,
+            expected_operation="editor.component.find",
+            response_details={
+                "found": True,
+                "lookup_mode": "entity_id",
+                "entity_id": "101",
+                "entity_name": "Hero",
+                "requested_entity_id": "101",
+                "component_name": "Mesh",
+                "requested_component_name": "Mesh",
+                "component_id": component_id,
+                "component_refs": [
+                    {
+                        "component": "Mesh",
+                        "component_pair_text": "[ [101] - 201 ]",
+                        "entity_id": "101",
+                        "entity_name": "Hero",
+                    }
+                ],
+                "matched_count": 1,
+                "ambiguous": False,
+                "level_path": "Levels/Main.level",
+                "loaded_level_path": "Levels/Main.level",
+                "active_level_path": "Levels/Main.level",
+            },
+            captured=captured,
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_runner_process_is_active",
+                    return_value=False,
+                ):
+                    with patch.object(
+                        editor_automation_runtime_service,
+                        "_bridge_has_live_pulse",
+                        return_value=True,
+                    ):
+                        with patch(
+                            "subprocess.Popen",
+                            side_effect=AssertionError(
+                                "editor.component.find should not launch a one-shot editor process when the bridge is healthy."
+                            ),
+                        ):
+                            payload = (
+                                editor_automation_runtime_service.execute_component_find(
+                                    request_id="req-component-find-1",
+                                    session_id="session-1",
+                                    workspace_id="workspace-editor-project",
+                                    executor_id="executor-editor-control-real-local",
+                                    project_root=str(project_root),
+                                    engine_root="C:/src/o3de",
+                                    dry_run=False,
+                                    args={
+                                        "entity_id": "101",
+                                        "component_name": "mesh",
+                                        "level_path": "Levels/Main.level",
+                                    },
+                                    locks_acquired=["editor_session"],
+                                )
+                            )
+
+        responder.join(timeout=5)
+        assert not responder.is_alive()
+        runtime_result = payload["runtime_result"]
+        assert runtime_result["editor_transport"] == "bridge"
+        assert runtime_result["bridge_available"] is True
+        assert runtime_result["bridge_operation"] == "editor.component.find"
+        assert runtime_result["found"] is True
+        assert runtime_result["component_name"] == "Mesh"
+        assert runtime_result["component_id"] == component_id
+        assert (
+            runtime_result["component_id_provenance"]
+            == COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_DISCOVERY_RESULT
+        )
+        assert runtime_result["component_refs"] == [
+            {
+                "component": "Mesh",
+                "component_id": component_id,
+                "component_id_provenance": (
+                    COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_DISCOVERY_RESULT
+                ),
+                "component_pair_text": "[ [101] - 201 ]",
+                "entity_id": "101",
+                "entity_name": "Hero",
+            }
+        ]
+        assert "EditorComponentAPIBus.GetComponentOfType" in runtime_result[
+            "exact_editor_apis"
+        ]
+
+        command_payload = captured["command"]
+        assert isinstance(command_payload, dict)
+        assert command_payload["operation"] == "editor.component.find"
+        assert command_payload["requires_loaded_level"] is True
+        assert command_payload["args"]["entity_id"] == "101"
+        assert command_payload["args"]["component_name"] == "Mesh"
+        assert command_payload["args"]["level_path"] == "Levels/Main.level"
+        assert "property_path" not in command_payload["args"]
+
+
+def test_execute_component_find_rejects_unsupported_component() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_host_available",
+                    return_value=True,
+                ):
+                    try:
+                        editor_automation_runtime_service.execute_component_find(
+                            request_id="req-component-find-unsupported",
+                            session_id="session-1",
+                            workspace_id="workspace-editor-project",
+                            executor_id="executor-editor-control-real-local",
+                            project_root=str(project_root),
+                            engine_root="C:/src/o3de",
+                            dry_run=False,
+                            args={
+                                "entity_id": "101",
+                                "component_name": "Physics",
+                                "level_path": "Levels/Main.level",
+                            },
+                            locks_acquired=["editor_session"],
+                        )
+                    except AdapterExecutionRejected as exc:
+                        assert exc.details["preflight_reason"] == "unsupported-component"
+                    else:
+                        raise AssertionError(
+                            "editor.component.find should reject unsupported components."
+                        )
 
 
 def test_execute_component_property_list_queues_bridge_command_without_reading_values() -> None:

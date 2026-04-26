@@ -750,6 +750,16 @@ def make_editor_component_property_get_request() -> RequestEnvelope:
     return request
 
 
+def make_editor_component_find_request() -> RequestEnvelope:
+    request = make_request("editor-control", "editor.component.find")
+    request.args = {
+        "entity_id": "101",
+        "component_name": "Mesh",
+        "level_path": "Levels/Main.level",
+    }
+    return request
+
+
 @contextmanager
 def isolated_database() -> Path:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
@@ -4137,6 +4147,124 @@ def test_editor_component_property_get_uses_real_runtime_in_hybrid_mode() -> Non
         )
 
 
+def test_editor_component_find_uses_real_runtime_with_live_provenance() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        write_editor_project_manifest(project_root)
+
+        request = make_editor_component_find_request()
+        request.project_root = str(project_root)
+        request.dry_run = False
+        component_id = "EntityComponentIdPair(EntityId(101), 201)"
+
+        session_state_path = editor_state_path_for(project_root)
+        session_state_path.parent.mkdir(parents=True, exist_ok=True)
+        session_state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_component_find",
+                return_value={
+                    "runtime_result": {
+                        "ok": True,
+                        "found": True,
+                        "lookup_mode": "entity_id",
+                        "entity_id": "101",
+                        "entity_name": "ExampleEntity",
+                        "component_name": "Mesh",
+                        "component_id": component_id,
+                        "component_id_provenance": "admitted_runtime_component_discovery_result",
+                        "component_refs": [
+                            {
+                                "component": "Mesh",
+                                "component_id": component_id,
+                                "component_id_provenance": "admitted_runtime_component_discovery_result",
+                                "entity_id": "101",
+                                "entity_name": "ExampleEntity",
+                            }
+                        ],
+                        "matched_count": 1,
+                        "ambiguous": False,
+                        "level_path": "Levels/Main.level",
+                        "loaded_level_path": "Levels/Main.level",
+                        "exact_editor_apis": [
+                            "ControlPlaneEditorBridge filesystem inbox",
+                            "editor.component.find",
+                            "EditorComponentAPIBus.HasComponentOfType",
+                            "EditorComponentAPIBus.GetComponentOfType",
+                        ],
+                        "bridge_available": True,
+                        "bridge_name": "ControlPlaneEditorBridge",
+                        "bridge_version": "0.1.0",
+                        "bridge_operation": "editor.component.find",
+                        "bridge_contract_version": "v1",
+                        "bridge_command_id": "bridge-component-find-1",
+                        "bridge_result_summary": "editor.component.find completed.",
+                        "bridge_heartbeat_seen_at": "2026-04-22T00:00:01Z",
+                        "bridge_queue_mode": "filesystem-inbox",
+                        "editor_transport": "bridge",
+                    },
+                    "runner_command": ["fake-editor-runner"],
+                    "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+                },
+            ):
+                with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                    response = dispatcher_service.dispatch(request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.execution_mode == "real"
+        assert response.result.simulated is False
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "editor_component_discovery_read"
+        assert execution.details["found"] is True
+        assert execution.details["component_id"] == component_id
+        assert (
+            execution.details["component_id_provenance"]
+            == "admitted_runtime_component_discovery_result"
+        )
+        assert execution.details["component_refs"][0]["component_id"] == component_id
+        assert execution.details["bridge_operation"] == "editor.component.find"
+        assert artifact is not None
+        assert artifact.metadata["inspection_surface"] == "editor_component_discovery_read"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="editor.component.find",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="editor.component.find",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
 def test_editor_entity_exists_simulated_persisted_payloads_match_published_schemas() -> None:
     with isolated_database():
         response = dispatcher_service.dispatch(make_editor_entity_exists_request())
@@ -7011,6 +7139,43 @@ def test_editor_component_add_simulated_persisted_payloads_match_published_schem
         assert (
             schema_validation_service.validate_artifact_metadata(
                 tool_name="editor.component.add",
+                payload=artifact.metadata,
+            )
+            == []
+        )
+
+
+def test_editor_component_find_simulated_persisted_payloads_match_published_schemas() -> None:
+    with isolated_database():
+        response = dispatcher_service.dispatch(make_editor_component_find_request())
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.simulated is True
+        run_id = response.operation_id
+        assert run_id is not None
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == run_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "simulated"
+        assert execution.details["simulated"] is True
+        assert artifact is not None
+        assert artifact.simulated is True
+        assert artifact.metadata["execution_mode"] == "simulated"
+        assert artifact.metadata["inspection_surface"] == "simulated"
+        assert (
+            schema_validation_service.validate_execution_details(
+                tool_name="editor.component.find",
+                payload=execution.details,
+            )
+            == []
+        )
+        assert (
+            schema_validation_service.validate_artifact_metadata(
+                tool_name="editor.component.find",
                 payload=artifact.metadata,
             )
             == []

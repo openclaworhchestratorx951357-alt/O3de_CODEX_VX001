@@ -21,7 +21,9 @@ _ADDED_COMPONENT_ID_REF = "$step:editor-component-1.added_component_refs[0].comp
 _ADMITTED_COMPONENT_PROPERTY_READ_PATHS = {
     "Mesh": "Controller|Configuration|Model Asset",
 }
+_ADMITTED_COMPONENT_TARGET_NAMES = ("Camera", "Comment", "Mesh")
 _ENTITY_EXISTS_STEP_ID = "editor-entity-exists-1"
+_COMPONENT_FIND_STEP_ID = "editor-component-find-1"
 CANDIDATE_EDITOR_MUTATION_REFUSAL = "editor.candidate_mutation.unsupported"
 EDITOR_PROPERTY_DISCOVERY_REFUSAL = "editor.component.property.list.unsupported"
 _CANDIDATE_EDITOR_MUTATION_REQUIREMENT = (
@@ -110,6 +112,52 @@ def _extract_entity_exists_lookup(prompt_text: str) -> dict[str, object] | None:
     return None
 
 
+def _extract_component_name(prompt_text: str) -> str | None:
+    normalized_prompt = prompt_text.lower()
+    for component_name in _ADMITTED_COMPONENT_TARGET_NAMES:
+        if re.search(
+            rf"\b{re.escape(component_name.lower())}\s+component\b",
+            normalized_prompt,
+        ):
+            return component_name
+
+    match = re.search(
+        r"\b(?:component|component type|component named)\s+([A-Za-z0-9_ -]+)",
+        prompt_text,
+        flags=re.IGNORECASE,
+    )
+    if match:
+        raw_component_name = match.group(1).strip(" :,-.")
+        for component_name in _ADMITTED_COMPONENT_TARGET_NAMES:
+            if raw_component_name.casefold() == component_name.casefold():
+                return component_name
+    return None
+
+
+def _extract_component_find_args(prompt_text: str) -> dict[str, object] | None:
+    component_name = _extract_component_name(prompt_text)
+    if component_name is None:
+        return None
+
+    args: dict[str, object] = {"component_name": component_name}
+    entity_id = extract_value_after_phrase(prompt_text, "entity id ")
+    if entity_id:
+        args["entity_id"] = entity_id
+        return args
+
+    for phrase in ("entity named ", "entity called "):
+        entity_name = extract_value_after_phrase(prompt_text, phrase)
+        if entity_name and not _is_path_like(entity_name):
+            args["entity_name"] = entity_name
+            return args
+
+    quoted_values = [value for value in extract_quoted_values(prompt_text) if not _is_path_like(value)]
+    if quoted_values:
+        args["entity_name"] = quoted_values[0]
+        return args
+    return None
+
+
 def _requires_candidate_editor_mutation_admission(prompt_text: str) -> bool:
     normalized = prompt_text.lower()
     return any(
@@ -145,6 +193,19 @@ def plan_editor_prompt(
             "does entity",
         ],
     )
+    wants_component_find = contains_any(
+        prompt_text,
+        [
+            "find component",
+            "locate component",
+            "discover component target",
+            "bind component target",
+            "find mesh component",
+            "locate mesh component",
+            "find camera component",
+            "find comment component",
+        ],
+    )
     capabilities = {
         tool: capability_registry_service.get_capability(tool)
         for tool in (
@@ -153,6 +214,7 @@ def plan_editor_prompt(
             "editor.entity.create",
             "editor.entity.exists",
             "editor.component.add",
+            "editor.component.find",
             "editor.component.property.get",
         )
     }
@@ -205,7 +267,9 @@ def plan_editor_prompt(
         if level_path:
             level_capability = capabilities["editor.level.open"]
             if level_capability is not None:
-                read_only_level_open = wants_entity_exists and not wants_entity_create
+                read_only_level_open = (
+                    wants_entity_exists or wants_component_find
+                ) and not wants_entity_create
                 steps.append(
                     make_step(
                         step_id="editor-level-1",
@@ -253,6 +317,38 @@ def plan_editor_prompt(
         else:
             refusals.append(
                 "editor.entity.exists requires exactly one explicit entity id or exact entity name in the prompt."
+        )
+        return steps, refusals, requirements
+
+    if wants_component_find and not wants_entity_create:
+        component_find_capability = capabilities["editor.component.find"]
+        component_find_args = _extract_component_find_args(prompt_text)
+        if component_find_capability is not None and component_find_args is not None:
+            if level_path:
+                component_find_args["level_path"] = level_path
+            depends_on = ["editor-session-1"] if session_capability else []
+            if level_path:
+                depends_on.append("editor-level-1")
+            steps.append(
+                make_step(
+                    step_id=_COMPONENT_FIND_STEP_ID,
+                    capability=component_find_capability,
+                    request=request,
+                    args=component_find_args,
+                    depends_on=depends_on,
+                    planner_note=(
+                        "Use the admitted read-only live component target-binding "
+                        "path for one exact entity and one allowlisted component; "
+                        "do not rely on prefab-derived component ids."
+                    ),
+                )
+            )
+            requirement = capability_requirement_note(component_find_capability)
+            if requirement:
+                requirements.append(requirement)
+        else:
+            refusals.append(
+                "editor.component.find requires one allowlisted component name plus exactly one explicit entity id or exact entity name."
             )
         return steps, refusals, requirements
 

@@ -911,6 +911,7 @@ class DispatcherService:
             "editor.entity.create",
             "editor.entity.exists",
             "editor.component.add",
+            "editor.component.find",
             "editor.component.property.get",
         } and inspection_surface in {
             "editor_session_runtime",
@@ -919,6 +920,7 @@ class DispatcherService:
             "editor_entity_created",
             "editor_entity_exists_read",
             "editor_component_added",
+            "editor_component_discovery_read",
             "editor_component_property_read",
         }:
             executor_id = "executor-editor-control-real-local"
@@ -939,6 +941,7 @@ class DispatcherService:
                 "editor.entity.create",
                 "editor.entity.exists",
                 "editor.component.add",
+                "editor.component.find",
                 "editor.component.property.get",
             ]
             backup_class = (
@@ -978,6 +981,7 @@ class DispatcherService:
                 "editor_entity_created",
                 "editor_entity_exists_read",
                 "editor_component_added",
+                "editor_component_discovery_read",
                 "editor_component_property_read",
             }
             else "cli"
@@ -1492,6 +1496,11 @@ class DispatcherService:
             )
         if request.tool == "editor.component.add":
             return "This run used the admitted real editor.component.add bridge-backed path."
+        if request.tool == "editor.component.find":
+            return (
+                "This run used the admitted real editor.component.find "
+                "bridge-backed read-only path."
+            )
         if request.tool == "editor.component.property.get":
             return (
                 "This run used the admitted real editor.component.property.get "

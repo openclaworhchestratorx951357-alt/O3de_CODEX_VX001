@@ -2824,6 +2824,358 @@ def _entity_exists(command: dict[str, Any], runtime_state: dict[str, Any]) -> di
     )
 
 
+def _find_component(command: dict[str, Any], runtime_state: dict[str, Any]) -> dict[str, Any]:
+    started_at = utc_now()
+    details = _base_details(runtime_state)
+    details["prefab_context_notes"] = (
+        "Explicit live component target discovery only for one entity and one "
+        "allowlisted component type; prefab-derived component ids, property listing, "
+        "property values, property mutation, and broad scene/component enumeration remain out of scope."
+    )
+    details["allowlisted_components"] = list(COMPONENT_ADD_ALLOWLIST)
+    if not _editor_available():
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="Editor Python bindings are not available inside the bridge host.",
+            details=details,
+            error_code="EDITOR_BINDINGS_UNAVAILABLE",
+        )
+
+    active_level_path = details.get("active_level_path")
+    if not isinstance(active_level_path, str) or not active_level_path:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.find requires an open loaded level context.",
+            details=details,
+            error_code="COMPONENT_FIND_LEVEL_CONTEXT_MISSING",
+        )
+
+    details["loaded_level_path"] = active_level_path
+    details["level_path"] = active_level_path
+    requested_level = command.get("args", {}).get("level_path")
+    if isinstance(requested_level, str) and requested_level:
+        details["requested_level_path"] = requested_level
+        if _normalize_level_path(requested_level) != _normalize_level_path(active_level_path):
+            return _response(
+                command=command,
+                started_at=started_at,
+                success=False,
+                status="failed",
+                result_summary="editor.component.find level_path must match the currently loaded level.",
+                details=details,
+                error_code="LOADED_LEVEL_MISMATCH",
+            )
+
+    args = command.get("args", {})
+    requested_entity_id = args.get("entity_id")
+    requested_entity_name = args.get("entity_name")
+    has_entity_id = requested_entity_id is not None and not (
+        isinstance(requested_entity_id, str) and not requested_entity_id.strip()
+    )
+    has_entity_name = isinstance(requested_entity_name, str) and bool(
+        requested_entity_name.strip()
+    )
+    if has_entity_id == has_entity_name:
+        details["requested_entity_id"] = requested_entity_id
+        details["requested_entity_name"] = requested_entity_name
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.find requires exactly one explicit entity_id or exact entity_name.",
+            details=details,
+            error_code="COMPONENT_FIND_ENTITY_TARGET_INVALID",
+        )
+
+    raw_component_name = args.get("component_name")
+    details["requested_component_name"] = raw_component_name
+    canonical_components, unsupported_components, duplicate_components = (
+        _canonicalize_component_names([raw_component_name])
+    )
+    if unsupported_components or duplicate_components or not canonical_components:
+        if unsupported_components:
+            details["unsupported_components"] = unsupported_components
+        if duplicate_components:
+            details["duplicate_components"] = duplicate_components
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.find requires exactly one allowlisted component_name.",
+            details=details,
+            error_code="COMPONENT_FIND_COMPONENT_UNSUPPORTED",
+        )
+    component_name = canonical_components[0]
+    details["component_name"] = component_name
+    details["requested_component_name"] = component_name
+
+    if has_entity_id:
+        details["lookup_mode"] = "entity_id"
+        entity_id, entity_resolution_details = _coerce_entity_id(requested_entity_id)
+        details.update(entity_resolution_details)
+        if entity_id is None:
+            return _response(
+                command=command,
+                started_at=started_at,
+                success=False,
+                status="failed",
+                result_summary="editor.component.find requires a valid explicit entity_id.",
+                details=details,
+                error_code="ENTITY_ID_INVALID",
+            )
+    else:
+        entity_name = requested_entity_name.strip()
+        details["lookup_mode"] = "entity_name"
+        details["requested_entity_name"] = entity_name
+        search_filter = entity.SearchFilter()
+        search_filter.names = [entity_name]
+        search_filter.names_case_sensitive = True
+        try:
+            search_results = entity.SearchBus(bus.Broadcast, "SearchEntities", search_filter)
+        except Exception as exc:
+            details["entity_name_search_exception"] = repr(exc)
+            return _response(
+                command=command,
+                started_at=started_at,
+                success=False,
+                status="failed",
+                result_summary="editor.component.find exact-name lookup raised an editor-side exception.",
+                details=details,
+                error_code="ENTITY_NAME_LOOKUP_FAILED",
+            )
+        if isinstance(search_results, list):
+            search_candidates = search_results
+        elif search_results is None:
+            search_candidates = []
+        else:
+            try:
+                search_candidates = list(search_results)
+            except TypeError:
+                search_candidates = []
+
+        matching_candidates: list[EntityId] = []
+        candidate_preview: list[dict[str, Any]] = []
+        for candidate_entity_id in search_candidates:
+            if not _is_entity_id_like(candidate_entity_id) or not candidate_entity_id.IsValid():
+                continue
+            candidate_name = _entity_name(candidate_entity_id)
+            if len(candidate_preview) < 10:
+                candidate_preview.append(
+                    {
+                        "entity_id": candidate_entity_id.ToString(),
+                        "entity_name": candidate_name,
+                    }
+                )
+            try:
+                candidate_exists = editor.ToolsApplicationRequestBus(
+                    bus.Broadcast,
+                    "EntityExists",
+                    candidate_entity_id,
+                )
+            except Exception:
+                candidate_exists = False
+            if candidate_exists and candidate_name == entity_name:
+                matching_candidates.append(candidate_entity_id)
+        details["entity_name_search_candidates"] = candidate_preview
+        details["matched_entity_ids"] = [
+            candidate_entity_id.ToString() for candidate_entity_id in matching_candidates
+        ]
+        if not matching_candidates:
+            details["found"] = False
+            details["matched_count"] = 0
+            details["component_refs"] = []
+            return _response(
+                command=command,
+                started_at=started_at,
+                success=True,
+                status="ok",
+                result_summary="The requested exact entity name was not found in the loaded level.",
+                details=details,
+            )
+        if len(matching_candidates) > 1:
+            details["ambiguous"] = True
+            details["matched_count"] = len(matching_candidates)
+            return _response(
+                command=command,
+                started_at=started_at,
+                success=False,
+                status="failed",
+                result_summary="editor.component.find exact-name lookup matched multiple live entities.",
+                details=details,
+                error_code="ENTITY_NAME_AMBIGUOUS",
+            )
+        entity_id = matching_candidates[0]
+
+    entity_id_string = entity_id.ToString()
+    details["entity_id"] = entity_id_string
+    details["resolved_entity_id"] = entity_id_string
+    entity_name = _entity_name(entity_id)
+    if isinstance(entity_name, str) and entity_name:
+        details["entity_name"] = entity_name
+    details["entity_id_cache_keys"] = _remember_entity_id(
+        entity_id,
+        requested_entity_id,
+        requested_entity_name,
+    )
+
+    try:
+        entity_exists = editor.ToolsApplicationRequestBus(
+            bus.Broadcast,
+            "EntityExists",
+            entity_id,
+        )
+    except Exception as exc:
+        details["entity_exists_exception"] = repr(exc)
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.find raised an editor-side entity lookup exception.",
+            details=details,
+            error_code="ENTITY_EXISTS_QUERY_FAILED",
+        )
+    if not entity_exists:
+        details["found"] = False
+        details["matched_count"] = 0
+        details["component_refs"] = []
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=True,
+            status="ok",
+            result_summary="The requested entity was not found in the loaded level.",
+            details=details,
+        )
+
+    component_type_id = _resolve_component_type_id(component_name)
+    if component_type_id is None:
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.find could not resolve an allowlisted component type on this target.",
+            details=details,
+            error_code="COMPONENT_TYPE_UNRESOLVED",
+        )
+
+    try:
+        has_component = editor.EditorComponentAPIBus(
+            bus.Broadcast,
+            "HasComponentOfType",
+            entity_id,
+            component_type_id,
+        )
+    except Exception as exc:
+        details["component_has_exception"] = repr(exc)
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.find raised an editor-side component lookup exception.",
+            details=details,
+            error_code="COMPONENT_FIND_QUERY_FAILED",
+        )
+
+    details["found"] = bool(has_component)
+    if not has_component:
+        details["matched_count"] = 0
+        details["component_refs"] = []
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=True,
+            status="ok",
+            result_summary="The requested component was not found on the live entity.",
+            details=details,
+        )
+
+    try:
+        get_component_outcome = editor.EditorComponentAPIBus(
+            bus.Broadcast,
+            "GetComponentOfType",
+            entity_id,
+            component_type_id,
+        )
+    except Exception as exc:
+        details["component_get_exception"] = repr(exc)
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.find could not obtain a live component id.",
+            details=details,
+            error_code="COMPONENT_ID_LOOKUP_FAILED",
+        )
+    if not get_component_outcome.IsSuccess():
+        return _response(
+            command=command,
+            started_at=started_at,
+            success=False,
+            status="failed",
+            result_summary="editor.component.find component lookup did not return a live component id.",
+            details=details,
+            error_code="COMPONENT_ID_LOOKUP_FAILED",
+        )
+
+    component_pair = get_component_outcome.GetValue()
+    component_ref: dict[str, Any] = {"component": component_name}
+    component_pair_text = _stringify_component_id_value(component_pair)
+    if component_pair_text:
+        component_ref["component_pair_text"] = component_pair_text
+    component_id_text = None
+    component_numeric_id = _component_pair_component_id(component_pair)
+    normalized_entity_text = _normalize_entity_id_text(entity_id_string)
+    if component_numeric_id is not None and normalized_entity_text is not None:
+        component_id_text = (
+            f"EntityComponentIdPair(EntityId({normalized_entity_text}), "
+            f"{component_numeric_id})"
+        )
+        component_ref["component_numeric_id"] = component_numeric_id
+    if component_id_text is None:
+        component_id_text = _component_pair_to_string(component_pair)
+    if component_id_text is not None:
+        component_ref["component_id"] = component_id_text
+        details["component_id"] = component_id_text
+        details["component_id_provenance"] = "admitted_runtime_component_discovery_result"
+    component_pair_cache_keys = _remember_component_pair(
+        component_pair,
+        component_pair_text,
+        component_id_text,
+    )
+    if component_pair_cache_keys:
+        component_ref["component_pair_cache_keys"] = component_pair_cache_keys
+    if entity_id_string:
+        component_ref["entity_id"] = entity_id_string
+    if entity_name:
+        component_ref["entity_name"] = entity_name
+    component_ref["component_id_provenance"] = "admitted_runtime_component_discovery_result"
+    component_ref["source_operation"] = "editor.component.find"
+    details["component_refs"] = [component_ref]
+    details["matched_count"] = 1
+    details["ambiguous"] = False
+
+    return _response(
+        command=command,
+        started_at=started_at,
+        success=True,
+        status="ok",
+        result_summary="The requested live component target was found in the loaded level.",
+        details=details,
+    )
+
+
 def _list_component_properties(command: dict[str, Any], runtime_state: dict[str, Any]) -> dict[str, Any]:
     started_at = utc_now()
     details = _base_details(runtime_state)
@@ -3195,6 +3547,8 @@ def execute_command(command: dict[str, Any], runtime_state: dict[str, Any]) -> d
         return _entity_exists(command, runtime_state)
     if operation == "editor.component.add":
         return _add_components_to_entity(command, runtime_state)
+    if operation == "editor.component.find":
+        return _find_component(command, runtime_state)
     if operation == "editor.component.property.list":
         return _list_component_properties(command, runtime_state)
     if operation == "editor.component.property.get":

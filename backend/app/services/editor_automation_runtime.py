@@ -132,6 +132,9 @@ CANONICAL_COMPONENT_ID_PATTERN = re.compile(
 COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT = (
     "admitted_runtime_component_add_result"
 )
+COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_DISCOVERY_RESULT = (
+    "admitted_runtime_component_discovery_result"
+)
 
 
 def _canonicalize_component_add_components(
@@ -222,6 +225,25 @@ def _normalize_added_component_refs(refs: Any) -> list[dict[str, Any]]:
             normalized_ref["component_id"] = component_id
             normalized_ref["component_id_provenance"] = (
                 COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+            )
+        normalized_refs.append(normalized_ref)
+    return normalized_refs
+
+
+def _normalize_discovered_component_refs(refs: Any) -> list[dict[str, Any]]:
+    if not isinstance(refs, list):
+        return []
+
+    normalized_refs: list[dict[str, Any]] = []
+    for ref in refs:
+        if not isinstance(ref, dict):
+            continue
+        normalized_ref = dict(ref)
+        component_id = _component_id_from_component_ref(normalized_ref)
+        if component_id is not None:
+            normalized_ref["component_id"] = component_id
+            normalized_ref["component_id_provenance"] = (
+                COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_DISCOVERY_RESULT
             )
         normalized_refs.append(normalized_ref)
     return normalized_refs
@@ -1026,6 +1048,247 @@ class EditorAutomationRuntimeService:
             "exact_editor_apis": [
                 "ControlPlaneEditorBridge filesystem inbox",
                 "editor.entity.exists",
+            ],
+            "editor_transport": "bridge",
+            **self._bridge_result_metadata(bridge_response),
+        }
+        state["editor_transport"] = "bridge"
+        state["bridge_heartbeat_seen_at"] = runtime_result.get("bridge_heartbeat_seen_at")
+        self._save_editor_state(project_root, state)
+        return {
+            "runtime_result": runtime_result,
+            "runner_command": runner_command,
+            "manifest": manifest,
+            "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+        }
+
+    def execute_component_find(
+        self,
+        *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        locks_acquired: list[str],
+    ) -> dict[str, Any]:
+        manifest = self._load_project_manifest(project_root)
+        self._ensure_python_editor_bindings_enabled(manifest, project_root=project_root)
+        normalized_engine_root = _normalize_engine_root_path(engine_root)
+        if dry_run:
+            self._reject_preflight(
+                tool="editor.component.find",
+                project_root=project_root,
+                reason="editor-component-find-dry-run-not-admitted",
+                message=(
+                    "editor.component.find currently requires dry_run=false "
+                    "on the admitted real read-only path."
+                ),
+                extra_details={"python_editor_bindings_enabled": True},
+            )
+        runner_command = self._resolve_bridge_runner()
+        state = self._load_editor_state(project_root)
+        if not state.get("session_active"):
+            self._reject_preflight(
+                tool="editor.component.find",
+                project_root=project_root,
+                reason="editor-session-not-ensured",
+                message=(
+                    "editor.component.find requires an admitted editor session "
+                    "before component target discovery can proceed."
+                ),
+                extra_details={"python_editor_bindings_enabled": True},
+            )
+        loaded_level_path = state.get("loaded_level_path")
+        requested_level_path = args.get("level_path")
+        if not isinstance(loaded_level_path, str) or not loaded_level_path:
+            self._reject_preflight(
+                tool="editor.component.find",
+                project_root=project_root,
+                reason="level-not-loaded",
+                message=(
+                    "editor.component.find requires a loaded level before "
+                    "component target discovery can proceed."
+                ),
+                extra_details={"python_editor_bindings_enabled": True},
+            )
+        if (
+            isinstance(requested_level_path, str)
+            and requested_level_path
+            and not _level_paths_match(
+                project_root,
+                loaded_level_path=loaded_level_path,
+                requested_level_path=requested_level_path,
+            )
+        ):
+            self._reject_preflight(
+                tool="editor.component.find",
+                project_root=project_root,
+                reason="loaded-level-mismatch",
+                message=(
+                    "editor.component.find level_path must match the currently "
+                    "loaded level on the admitted real read-only path."
+                ),
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "requested_level_path": requested_level_path,
+                },
+            )
+        if not self._bridge_host_available(project_root, runner_command=runner_command):
+            self._reject_preflight(
+                tool="editor.component.find",
+                project_root=project_root,
+                reason="bridge-not-running",
+                message=(
+                    "editor.component.find requires an active ControlPlaneEditorBridge "
+                    "session; run editor.session.open first."
+                ),
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                },
+            )
+
+        raw_entity_id = args.get("entity_id")
+        raw_entity_name = args.get("entity_name")
+        has_entity_id = raw_entity_id is not None and not (
+            isinstance(raw_entity_id, str) and not raw_entity_id.strip()
+        )
+        has_entity_name = isinstance(raw_entity_name, str) and bool(raw_entity_name.strip())
+        if has_entity_id == has_entity_name:
+            self._reject_preflight(
+                tool="editor.component.find",
+                project_root=project_root,
+                reason="component-find-target-invalid",
+                message=(
+                    "editor.component.find requires exactly one explicit entity_id "
+                    "or exact entity_name."
+                ),
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "provided_entity_id": raw_entity_id,
+                    "provided_entity_name": raw_entity_name,
+                },
+            )
+
+        raw_component_name = args.get("component_name")
+        if not isinstance(raw_component_name, str) or not raw_component_name.strip():
+            self._reject_preflight(
+                tool="editor.component.find",
+                project_root=project_root,
+                reason="component-name-missing",
+                message=(
+                    "editor.component.find requires one explicit allowlisted "
+                    "component_name."
+                ),
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "provided_component_name": raw_component_name,
+                },
+            )
+        canonical_components, unsupported_components, _duplicate_components = (
+            _canonicalize_component_add_components([raw_component_name])
+        )
+        if unsupported_components or not canonical_components:
+            self._reject_preflight(
+                tool="editor.component.find",
+                project_root=project_root,
+                reason="unsupported-component",
+                message=(
+                    "editor.component.find currently admits only the explicit "
+                    "allowlisted component names on the real read-only path."
+                ),
+                extra_details={
+                    "python_editor_bindings_enabled": True,
+                    "loaded_level_path": loaded_level_path,
+                    "unsupported_components": unsupported_components,
+                    "allowlisted_components": list(EDITOR_COMPONENT_ADD_ALLOWLIST),
+                },
+            )
+        component_name = canonical_components[0]
+
+        bridge_args: dict[str, Any] = {
+            "component_name": component_name,
+            "level_path": loaded_level_path,
+        }
+        if has_entity_id:
+            bridge_args["entity_id"] = raw_entity_id
+        else:
+            bridge_args["entity_name"] = raw_entity_name.strip()
+
+        bridge_response = self._invoke_bridge_command(
+            tool="editor.component.find",
+            operation="editor.component.find",
+            project_root=project_root,
+            engine_root=normalized_engine_root,
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
+            args=bridge_args,
+            timeout_s=90,
+        )
+        bridge_details = self._bridge_response_details(bridge_response)
+        component_refs = _normalize_discovered_component_refs(
+            bridge_details.get("component_refs", [])
+        )
+        first_component_ref = component_refs[0] if component_refs else {}
+        component_id = (
+            first_component_ref.get("component_id")
+            if isinstance(first_component_ref, dict)
+            else None
+        )
+        runtime_result = {
+            "ok": True,
+            "message": (
+                "Component target discovery was checked through the persistent "
+                "bridge-backed admitted editor read-only path."
+            ),
+            "found": bool(bridge_details.get("found", False)),
+            "lookup_mode": bridge_details.get(
+                "lookup_mode",
+                "entity_id" if has_entity_id else "entity_name",
+            ),
+            "entity_id": bridge_details.get("entity_id", bridge_args.get("entity_id")),
+            "entity_name": bridge_details.get("entity_name", bridge_args.get("entity_name")),
+            "requested_entity_id": bridge_details.get(
+                "requested_entity_id",
+                bridge_args.get("entity_id"),
+            ),
+            "requested_entity_name": bridge_details.get(
+                "requested_entity_name",
+                bridge_args.get("entity_name"),
+            ),
+            "component_name": bridge_details.get("component_name", component_name),
+            "requested_component_name": bridge_details.get(
+                "requested_component_name",
+                component_name,
+            ),
+            "component_id": bridge_details.get("component_id", component_id),
+            "component_id_provenance": (
+                COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_DISCOVERY_RESULT
+                if component_id
+                else bridge_details.get("component_id_provenance")
+            ),
+            "component_refs": component_refs,
+            "matched_count": bridge_details.get("matched_count"),
+            "ambiguous": bridge_details.get("ambiguous"),
+            "level_path": bridge_details.get("level_path", loaded_level_path),
+            "loaded_level_path": bridge_details.get(
+                "loaded_level_path",
+                bridge_details.get("level_path", loaded_level_path),
+            ),
+            "exact_editor_apis": [
+                "ControlPlaneEditorBridge filesystem inbox",
+                "editor.component.find",
+                "EditorComponentAPIBus.HasComponentOfType",
+                "EditorComponentAPIBus.GetComponentOfType",
             ],
             "editor_transport": "bridge",
             **self._bridge_result_metadata(bridge_response),
@@ -2128,6 +2391,7 @@ class EditorAutomationRuntimeService:
             "requires_loaded_level": operation
             in {
                 "editor.component.add",
+                "editor.component.find",
                 "editor.component.property.get",
                 "editor.component.property.list",
                 "editor.entity.exists",
