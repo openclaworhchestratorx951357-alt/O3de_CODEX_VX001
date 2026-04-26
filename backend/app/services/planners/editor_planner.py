@@ -22,6 +22,45 @@ _ADMITTED_COMPONENT_PROPERTY_READ_PATHS = {
     "Mesh": "Controller|Configuration|Model Asset",
 }
 _ENTITY_EXISTS_STEP_ID = "editor-entity-exists-1"
+CANDIDATE_EDITOR_MUTATION_REFUSAL = "editor.candidate_mutation.unsupported"
+_CANDIDATE_EDITOR_MUTATION_REQUIREMENT = (
+    "Candidate editor mutation surfaces require explicit backup, restore/reload "
+    "verification, post-restore absence or readback verification, and "
+    "operator-visible review before prompt admission."
+)
+_CANDIDATE_EDITOR_MUTATION_PATTERNS = (
+    re.compile(
+        r"\b(?:delete|destroy|erase|remove)\s+"
+        r"(?:the\s+|an?\s+)?(?:entity|object)\b"
+    ),
+    re.compile(r"\b(?:parent|reparent)\s+(?:the\s+|an?\s+)?(?:entity|object)\b"),
+    re.compile(r"\battach\s+(?:the\s+|an?\s+)?(?:entity|object)\s+(?:to|under)\b"),
+    re.compile(
+        r"\b(?:make|set)\s+(?:the\s+|an?\s+)?"
+        r"(?:entity|object).*\b(?:child|parent)\b"
+    ),
+    re.compile(
+        r"\b(?:instantiate|spawn|place|create|open)\s+"
+        r"(?:the\s+|an?\s+)?prefab\b"
+    ),
+    re.compile(r"\bprefab\b"),
+    re.compile(
+        r"\b(?:move|translate|rotate|scale|place|position)\s+"
+        r"(?:the\s+|an?\s+)?(?:entity|object)\b"
+    ),
+    re.compile(
+        r"\b(?:set|update|write|change|modify)\s+"
+        r"(?:the\s+)?(?:component\s+)?property\b"
+    ),
+    re.compile(r"\b(?:set|update|write|change|modify)\s+.+\bproperty\b"),
+    re.compile(
+        r"\b(?:remove|detach)\s+(?:the\s+|an?\s+)?"
+        r"[a-z0-9_ -]*component\b"
+    ),
+    re.compile(r"\b(?:set|assign|update|change|modify)\s+.*\bmaterial\b"),
+    re.compile(r"\barbitrary\s+editor\s+(?:python|command|script)\b"),
+    re.compile(r"\bexecute\s+(?:an?\s+)?editor\s+(?:python|command|script)\b"),
+)
 
 
 def _is_path_like(value: str) -> bool:
@@ -54,6 +93,14 @@ def _extract_entity_exists_lookup(prompt_text: str) -> dict[str, object] | None:
             return {"entity_name": entity_name}
 
     return None
+
+
+def _requires_candidate_editor_mutation_admission(prompt_text: str) -> bool:
+    normalized = prompt_text.lower()
+    return any(
+        pattern.search(normalized) is not None
+        for pattern in _CANDIDATE_EDITOR_MUTATION_PATTERNS
+    )
 
 
 def plan_editor_prompt(
@@ -95,6 +142,11 @@ def plan_editor_prompt(
         ["editor", "level", "entity", "component"],
     )
     if not wants_editor:
+        return steps, refusals, requirements
+
+    if _requires_candidate_editor_mutation_admission(prompt_text):
+        refusals.append(CANDIDATE_EDITOR_MUTATION_REFUSAL)
+        requirements.append(_CANDIDATE_EDITOR_MUTATION_REQUIREMENT)
         return steps, refusals, requirements
 
     session_capability = capabilities["editor.session.open"]
