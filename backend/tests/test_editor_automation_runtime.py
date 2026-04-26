@@ -9,6 +9,7 @@ from unittest.mock import patch
 import pytest
 from app.services.adapters import AdapterExecutionRejected
 from app.services.editor_automation_runtime import (
+    COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT,
     EDITOR_COMPONENT_ADD_ALLOWLIST,
     _level_paths_match,
     _normalize_engine_root_path,
@@ -1079,6 +1080,9 @@ def test_execute_component_add_queues_bridge_command_and_returns_bridge_metadata
             {
                 "component": "Mesh",
                 "component_id": "EntityComponentIdPair(EntityId(101), 201)",
+                "component_id_provenance": (
+                    COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+                ),
                 "component_pair_text": "[ [101] - 201 ]",
                 "entity_id": "101",
             }

@@ -40,7 +40,7 @@ def write_level_prefab(tmp_path: Path, payload: dict) -> dict:
     }
 
 
-def test_select_property_list_target_prefers_existing_ground_mesh(tmp_path):
+def test_prefab_component_records_are_serialized_non_live_evidence(tmp_path):
     module = load_proof_module()
     safe_level_info = write_level_prefab(
         tmp_path,
@@ -71,17 +71,24 @@ def test_select_property_list_target_prefers_existing_ground_mesh(tmp_path):
         },
     )
 
-    target_info = module.select_property_list_target(safe_level_info)
+    records = module.collect_serialized_prefab_component_records(safe_level_info)
 
-    selected = target_info["selected"]
+    selected = records[0]
     assert selected["entity_name"] == "Ground"
     assert selected["entity_id"] == "101"
     assert selected["component_numeric_id"] == "201"
-    assert selected["component_id"] == "EntityComponentIdPair(EntityId(101), 201)"
-    assert len(target_info["candidates"]) == 2
+    assert (
+        selected["serialized_component_id"]
+        == "EntityComponentIdPair(EntityId(101), 201)"
+    )
+    assert selected["component_id_provenance"] == "serialized_prefab_record"
+    assert selected["evidence_class"] == "serialized_file_evidence"
+    assert selected["live_property_target"] is False
+    assert "component_id" not in selected
+    assert len(records) == 2
 
 
-def test_select_property_list_target_rejects_without_existing_mesh(tmp_path):
+def test_prefab_component_records_do_not_invent_live_targets(tmp_path):
     module = load_proof_module()
     safe_level_info = write_level_prefab(
         tmp_path,
@@ -100,8 +107,7 @@ def test_select_property_list_target_rejects_without_existing_mesh(tmp_path):
         },
     )
 
-    with pytest.raises(module.ComponentPropertyListProofError, match="Mesh component target"):
-        module.select_property_list_target(safe_level_info)
+    assert module.collect_serialized_prefab_component_records(safe_level_info) == []
 
 
 def test_require_adapters_boundary_preserves_unadmitted_property_list():
@@ -189,6 +195,9 @@ def test_component_id_from_component_add_payload_uses_live_component_ref():
                     {
                         "component": "Mesh",
                         "component_id": "EntityComponentIdPair(EntityId(101), 201)",
+                        "component_id_provenance": (
+                            "admitted_runtime_component_add_result"
+                        ),
                     }
                 ]
             }
@@ -196,6 +205,29 @@ def test_component_id_from_component_add_payload_uses_live_component_ref():
     )
 
     assert component_id == "EntityComponentIdPair(EntityId(101), 201)"
+
+
+def test_component_id_from_component_add_payload_requires_live_provenance():
+    module = load_proof_module()
+
+    with pytest.raises(
+        module.ComponentPropertyListProofError,
+        match="admitted runtime component_id provenance",
+    ):
+        module.component_id_from_component_add_payload(
+            {
+                "runtime_result": {
+                    "added_component_refs": [
+                        {
+                            "component": "Mesh",
+                            "component_id": (
+                                "EntityComponentIdPair(EntityId(101), 201)"
+                            ),
+                        }
+                    ]
+                }
+            }
+        )
 
 
 def test_restore_boundary_from_entity_create_payload_requires_available_boundary():
@@ -224,6 +256,9 @@ def test_target_info_from_runtime_steps_records_admitted_target_source():
                         {
                             "component": "Mesh",
                             "component_id": "EntityComponentIdPair(EntityId(101), 201)",
+                            "component_id_provenance": (
+                                "admitted_runtime_component_add_result"
+                            ),
                             "component_numeric_id": 201,
                         }
                     ]
@@ -236,6 +271,10 @@ def test_target_info_from_runtime_steps_records_admitted_target_source():
     assert selected["entity_name"] == "ProofEntity"
     assert selected["component"] == "Mesh"
     assert selected["selection_source"] == "admitted_runtime_component_add_result"
+    assert (
+        selected["component_id_provenance"]
+        == "admitted_runtime_component_add_result"
+    )
 
 
 def test_require_property_list_result_accepts_path_only_bridge_result():

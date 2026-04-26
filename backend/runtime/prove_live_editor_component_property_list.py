@@ -16,6 +16,7 @@ if str(BACKEND_ROOT) not in sys.path:
 
 from app.services.adapters import AdapterExecutionRejected  # noqa: E402
 from app.services.editor_automation_runtime import (  # noqa: E402
+    COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT,
     editor_automation_runtime_service,
 )
 
@@ -25,6 +26,7 @@ PROOF_COMPONENT_TYPE_FRAGMENT = "EditorMeshComponent"
 PROOF_COMPONENT_FAMILY = "Mesh"
 PROOF_PROPERTY_PATH_FRAGMENT = "Controller|Configuration|Model Asset"
 PROOF_ENTITY_PREFIX = "CodexPropertyListProofEntity"
+SERIALIZED_PREFAB_COMPONENT_EVIDENCE = "serialized_prefab_record"
 SUCCESS_NEXT_STEP = (
     "Post-property-list proof checkpoint refresh and read-only target discovery alignment"
 )
@@ -82,7 +84,9 @@ def _target_sort_key(candidate: dict[str, Any]) -> tuple[int, str, str]:
     )
 
 
-def collect_property_list_targets(safe_level_info: dict[str, Any]) -> list[dict[str, Any]]:
+def collect_serialized_prefab_component_records(
+    safe_level_info: dict[str, Any],
+) -> list[dict[str, Any]]:
     prefab_path_raw = safe_level_info.get("selected_prefab_path")
     level_path = safe_level_info.get("selected_level_path")
     if not isinstance(prefab_path_raw, str) or not prefab_path_raw:
@@ -120,7 +124,7 @@ def collect_property_list_targets(safe_level_info: dict[str, Any]) -> list[dict[
                 or PROOF_COMPONENT_TYPE_FRAGMENT not in component_type
             ):
                 continue
-            component_id = (
+            serialized_component_id = (
                 f"EntityComponentIdPair(EntityId({entity_id}), {component_numeric_id})"
             )
             candidates.append(
@@ -129,32 +133,20 @@ def collect_property_list_targets(safe_level_info: dict[str, Any]) -> list[dict[
                     "prefab_path": str(prefab_path),
                     "entity_id": entity_id,
                     "entity_name": entity_name if isinstance(entity_name, str) else None,
-                    "component_id": component_id,
+                    "serialized_component_id": serialized_component_id,
                     "component_numeric_id": component_numeric_id,
                     "component_type": component_type,
-                    "selection_source": "selected_safe_level_prefab",
+                    "component_id_provenance": SERIALIZED_PREFAB_COMPONENT_EVIDENCE,
+                    "evidence_class": "serialized_file_evidence",
+                    "live_property_target": False,
+                    "selection_source": SERIALIZED_PREFAB_COMPONENT_EVIDENCE,
+                    "non_live_reason": (
+                        "Prefab component records are serialized level-file evidence "
+                        "only; they are not live Editor component ids."
+                    ),
                 }
             )
     return sorted(candidates, key=_target_sort_key)
-
-
-def select_property_list_target(safe_level_info: dict[str, Any]) -> dict[str, Any]:
-    candidates = collect_property_list_targets(safe_level_info)
-    if not candidates:
-        raise ComponentPropertyListProofError(
-            "Could not prove an explicit Mesh component target from the selected safe "
-            "level prefab without creating a fixture entity."
-        )
-    selected = candidates[0]
-    return {
-        "selection_rule": (
-            "Read the selected safe level prefab and choose an existing "
-            "AZ::Render::EditorMeshComponent, preferring a unique Ground entity when present. "
-            "No entity or component is created for this proof."
-        ),
-        "selected": selected,
-        "candidates": candidates,
-    }
 
 
 def _adapter_payload(adapters_payload: dict[str, Any]) -> dict[str, Any]:
@@ -236,6 +228,15 @@ def component_id_from_component_add_payload(component_payload: dict[str, Any]) -
         raise ComponentPropertyListProofError(
             "Component-add proof step did not return a live component_id."
         )
+    component_id_provenance = first_ref.get("component_id_provenance")
+    if (
+        component_id_provenance
+        != COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+    ):
+        raise ComponentPropertyListProofError(
+            "Component-add proof step did not return an admitted runtime component_id "
+            "provenance marker."
+        )
     return component_id.strip()
 
 
@@ -314,8 +315,13 @@ def target_info_from_runtime_steps(runtime_steps: dict[str, Any]) -> dict[str, A
         "entity_name": entity_result.get("entity_name"),
         "component": selected_ref.get("component", PROOF_COMPONENT_FAMILY),
         "component_id": component_id,
+        "component_id_provenance": (
+            COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+        ),
         "component_numeric_id": selected_ref.get("component_numeric_id"),
-        "selection_source": "admitted_runtime_component_add_result",
+        "selection_source": (
+            COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+        ),
     }
     return {
         "selection_rule": (
