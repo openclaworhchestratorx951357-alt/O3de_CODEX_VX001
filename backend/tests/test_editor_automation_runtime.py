@@ -678,21 +678,26 @@ def test_execute_level_open_queues_bridge_command_with_workspace_and_executor_li
                     "_bridge_has_live_pulse",
                     return_value=True,
                 ):
-                    payload = editor_automation_runtime_service.execute_level_open(
-                        request_id="req-level-1",
-                        session_id="session-1",
-                        workspace_id="workspace-editor-project",
-                        executor_id="executor-editor-control-real-local",
-                        project_root=str(project_root),
-                        engine_root="C:/src/o3de",
-                        dry_run=False,
-                        args={
-                            "level_path": "Levels/Main.level",
-                            "make_writable": True,
-                            "focus_viewport": True,
-                        },
-                        locks_acquired=["editor_session"],
-                    )
+                    with patch.object(
+                        editor_automation_runtime_service,
+                        "_bridge_runner_process_is_active",
+                        return_value=False,
+                    ):
+                        payload = editor_automation_runtime_service.execute_level_open(
+                            request_id="req-level-1",
+                            session_id="session-1",
+                            workspace_id="workspace-editor-project",
+                            executor_id="executor-editor-control-real-local",
+                            project_root=str(project_root),
+                            engine_root="C:/src/o3de",
+                            dry_run=False,
+                            args={
+                                "level_path": "Levels/Main.level",
+                                "make_writable": True,
+                                "focus_viewport": True,
+                            },
+                            locks_acquired=["editor_session"],
+                        )
 
         responder.join(timeout=5)
         assert not responder.is_alive()

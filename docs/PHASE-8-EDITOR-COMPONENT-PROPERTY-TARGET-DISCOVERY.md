@@ -69,6 +69,9 @@ Current live component target-binding behavior:
 - `editor.component.find` is the admitted read-only corridor for binding one
   allowlisted live component target on one explicit live entity id or exact
   entity name.
+- `powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-component-find-proof`
+  succeeded on `2026-04-26`; the committed checkpoint is
+  `docs/PHASE-8-EDITOR-COMPONENT-FIND-LIVE-PROOF.md`.
 - discovered component ids must come from live Editor runtime evidence and are
   stamped with provenance
   `admitted_runtime_component_discovery_result`.

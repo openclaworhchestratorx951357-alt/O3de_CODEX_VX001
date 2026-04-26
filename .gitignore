@@ -12,6 +12,7 @@ backend/runtime/*.sqlite3
 backend/runtime/*.sqlite3-*
 backend/runtime/live_editor_authoring_proof_*.json
 backend/runtime/live_editor_entity_exists_proof_*.json
+backend/runtime/live_editor_component_find_proof_*.json
 backend/runtime/live_editor_component_property_list_proof_*.json
 backend/runtime/live_component_add_validation_*.json
 backend/runtime/*.log
