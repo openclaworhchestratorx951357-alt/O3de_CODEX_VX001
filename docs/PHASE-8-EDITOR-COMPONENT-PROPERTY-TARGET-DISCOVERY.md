@@ -100,6 +100,11 @@ Current live component target-binding behavior:
   exact entity name `Ground`, obtained the live Mesh component id from
   `editor.component.find`, and read `Controller|Configuration|Model Asset`
   through `editor.component.property.get` without selecting a write target.
+- The readback property is classified as `asset_reference_readback_only`, so it
+  remains evidence and is explicitly blocked as a first write target. The next
+  target-selection packet must discover a non-asset scalar, boolean, numeric,
+  or text-like property through read-only live evidence, or record the exact
+  blocker if no such target can be proven.
 
 ## Discovery Goal
 
@@ -199,6 +204,7 @@ Target selected:
 - exact value type
 - exact entity and component identity
 - before value
+- write target blocker classification if the observed readback is rejected
 - proof artifact path or committed checkpoint
 - recommendation for a later proof-only write harness
 - whether the selected evidence is readback-only or safe to consider for a

@@ -99,6 +99,22 @@ def test_select_serialized_hint_target_marks_prefab_record_non_live(tmp_path: Pa
     assert serialized_hint["live_property_target"] is False
 
 
+def test_write_target_candidate_rejects_asset_reference_readback() -> None:
+    module = load_proof_module()
+
+    candidate = module.classify_write_target_candidate(
+        property_path="Controller|Configuration|Model Asset",
+        value_type="Asset<ModelAsset>",
+    )
+
+    assert candidate["selected"] is False
+    assert candidate["status"] == "blocked"
+    assert candidate["blocker_code"] == "asset_reference_readback_only"
+    assert candidate["value_class"] == "asset_reference"
+    assert candidate["observed_value_type_mentions_asset"] is True
+    assert "non-asset scalar" in candidate["required_next_evidence"]
+
+
 def test_require_adapters_and_capabilities_keep_property_list_unadmitted() -> None:
     module = load_proof_module()
 

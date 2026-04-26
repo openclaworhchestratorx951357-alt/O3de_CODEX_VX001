@@ -30,7 +30,19 @@ PROOF_STEP_ORDER = [
 ]
 PREFERRED_ENTITY_NAMES = ("Ground",)
 SUCCESS_NEXT_STEP = (
-    "Read-only target evidence review before any property-write proof packet"
+    "Read-only discovery of a non-asset scalar or text-like property before any "
+    "proof-only property-write packet"
+)
+WRITE_TARGET_BLOCKER_CODE = "asset_reference_readback_only"
+WRITE_TARGET_BLOCKER_REASON = (
+    "Mesh Controller|Configuration|Model Asset is an asset-reference readback. "
+    "Writing it would imply asset identity, product, material, or dependency "
+    "behavior outside the admitted Phase 8 property-target boundary."
+)
+WRITE_TARGET_REQUIRED_NEXT_EVIDENCE = (
+    "Discover a non-asset scalar, boolean, numeric, or text-like component property "
+    "through read-only live evidence before starting any proof-only property-write "
+    "packet."
 )
 
 
@@ -105,6 +117,26 @@ def select_serialized_hint_target(
         ),
         "live_component_id_source_required": LIVE_DISCOVERY_PROVENANCE,
         "write_target_selected": False,
+    }
+
+
+def classify_write_target_candidate(
+    *,
+    property_path: str,
+    value_type: Any,
+) -> dict[str, Any]:
+    """Classify the readback as evidence without promoting it to a write target."""
+    value_type_text = "" if value_type is None else str(value_type)
+    return {
+        "selected": False,
+        "status": "blocked",
+        "blocker_code": WRITE_TARGET_BLOCKER_CODE,
+        "property_path": property_path,
+        "value_type": value_type,
+        "value_class": "asset_reference",
+        "reason": WRITE_TARGET_BLOCKER_REASON,
+        "required_next_evidence": WRITE_TARGET_REQUIRED_NEXT_EVIDENCE,
+        "observed_value_type_mentions_asset": "asset" in value_type_text.lower(),
     }
 
 
@@ -444,6 +476,10 @@ def build_success_summary(
     approval_count = len(prompt_execution["approval_events"])
     execute_attempt_count = len(prompt_execution["execute_attempts"])
     value_rendered = "<null>" if verification["value"] is None else str(verification["value"])
+    write_target_review = classify_write_target_candidate(
+        property_path=str(verification["property_path"]),
+        value_type=verification["value_type"],
+    )
 
     return {
         "succeeded": True,
@@ -459,7 +495,8 @@ def build_success_summary(
         "property_path": verification["property_path"],
         "value": verification["value"],
         "value_type": verification["value_type"],
-        "write_target_selected": False,
+        "write_target_selected": write_target_review["selected"],
+        "write_target_candidate_review": write_target_review,
         "bridge_command_ids": _bridge_command_ids(step_records),
         "records": {
             "run_ids": _record_ids(step_records, "run_id"),
@@ -508,6 +545,10 @@ def build_success_summary(
                 f"{verification['property_path']} = {value_rendered}."
             ),
             (
+                "The observed property was classified as "
+                f"{write_target_review['value_class']} and blocked as a write target."
+            ),
+            (
                 "The prompt session final_result_summary preserved target-bound "
                 "readback review wording."
             ),
@@ -526,7 +567,10 @@ def build_success_summary(
         "missing_proof": [
             "No cleanup or restore was executed or needed by this read-only proof.",
             "No editor.component.property.list command was executed.",
-            "No property write target was selected or admitted.",
+            (
+                "No property write target was selected or admitted because the only "
+                "observed property was asset-reference readback evidence."
+            ),
             (
                 "No live Editor undo, viewport reload, delete, parenting, prefab, "
                 "material, asset, render, build, or TIAF behavior was proven."

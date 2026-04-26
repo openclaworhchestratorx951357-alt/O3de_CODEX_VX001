@@ -26,6 +26,10 @@ Current admitted editor property behavior is read-only:
 - `editor.component.property.get` is admitted hybrid read-only.
 - The composed live proof read back only
   `Controller|Configuration|Model Asset` from the newly added `Mesh` component.
+- The target-bound readback proof later read the same Mesh
+  `Controller|Configuration|Model Asset` path from an existing entity through
+  live `editor.component.find` provenance, but classified it as
+  `asset_reference_readback_only` and did not select it as a write target.
 
 Current prompt behavior for property writes remains:
 - broader property-write prompts are refused at planning time with
@@ -66,6 +70,12 @@ No exact first write target is selected by this document. The target must be
 chosen by the read-only discovery packet in
 `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-TARGET-DISCOVERY.md`, or the discovery
 packet must record the exact blocker instead of guessing a path.
+
+Current blocker:
+- no non-asset scalar, boolean, numeric, or text-like property has been
+  selected through read-only live evidence
+- Mesh `Controller|Configuration|Model Asset` is readback evidence only and is
+  blocked as a first write target because it is asset-reference behavior
 
 Do not use `Mesh` `Controller|Configuration|Model Asset` as the first write
 target unless a separate asset-reference proof exists. It is already useful as
