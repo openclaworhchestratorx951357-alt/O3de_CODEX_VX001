@@ -57,8 +57,13 @@ rounding up capability claims.
 
 ## Phase Checkpoints And Proof Notes
 
+- `docs/PHASE-HISTORY-INDEX.md`
 - `docs/PHASE-0-REPO-AUDIT.md`
+- `docs/PHASE-1-HISTORICAL-RECONSTRUCTION.md`
+- `docs/PHASE-2-HISTORICAL-RECONSTRUCTION.md`
 - `docs/PHASE-3-CHECKPOINT.md`
+- `docs/PHASE-4-HISTORICAL-RECONSTRUCTION.md`
+- `docs/PHASE-5-CHECKPOINT.md`
 - `docs/PHASE-7-CHECKPOINT.md`
 - `docs/PHASE-7-REAL-ADAPTER-GATE.md`
 - `docs/PHASE-7-FIRST-MUTATION-CANDIDATE.md`
