@@ -26,6 +26,8 @@ rounding up capability claims.
 
 - `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md` is the canonical admitted-surface
   matrix.
+- `docs/PHASE-8-ADMITTED-SURFACES-QUICK-REFERENCE.md` is the short future-thread
+  guide for Phase 8 admitted, proof-only, blocked, and forbidden surfaces.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-TARGET-DISCOVERY.md` is the current
   editor component/property targeting truth source.
 - `docs/PHASE-8-CAMERA-BOOL-WRITE-PUBLIC-CORRIDOR.md` tracks the only exact
@@ -81,6 +83,7 @@ rounding up capability claims.
 - `docs/PHASE-7-SETTINGS-GEM-INSPECTION-CHECKLIST.md`
 - `docs/PHASE-7-SETTINGS-GEM-CANDIDATES.md`
 - `docs/PHASE-8-GUARDED-AUTONOMY-PROGRAM.md`
+- `docs/PHASE-8-ADMITTED-SURFACES-QUICK-REFERENCE.md`
 - `docs/PHASE-8-EDITOR-CANDIDATE-MUTATION-ENVELOPE.md`
 - `docs/PHASE-8-CAMERA-SCALAR-WRITE-CANDIDATE-DESIGN.md`
 - `docs/PHASE-8-CAMERA-SCALAR-WRITE-READINESS-AUDIT.md`

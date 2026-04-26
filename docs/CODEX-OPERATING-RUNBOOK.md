@@ -20,12 +20,16 @@ This runbook complements:
 - `docs/SLICE-START-CHECKLIST.md`
 - `docs/LOCAL-STACK-RUNBOOK.md`
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md`
+- `docs/PHASE-8-ADMITTED-SURFACES-QUICK-REFERENCE.md`
 - `docs/WORKTREE-STRATEGY.md`
 
 Default standing guidance:
 - the evergreen execution charter in `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`
   is the default decision framework for choosing the next slice unless the user
   explicitly overrides it
+- for Phase 8 component/property work, read
+  `docs/PHASE-8-ADMITTED-SURFACES-QUICK-REFERENCE.md` before changing planner,
+  dispatcher, adapter, runtime, prompt, or documentation surfaces
 
 ## Standing truths that must not drift
 
