@@ -12,6 +12,7 @@ param(
         "proof",
         "entity-exists-proof",
         "component-find-proof",
+        "property-target-readback-proof",
         "property-list-proof"
     )]
     [string]$Action = "status",
@@ -38,6 +39,7 @@ $LaunchHelper = Join-Path $RuntimeDir "launch_branch_backend_8000_detached.py"
 $ProofHelper = Join-Path $RuntimeDir "prove_live_editor_authoring.py"
 $EntityExistsProofHelper = Join-Path $RuntimeDir "prove_live_editor_entity_exists.py"
 $ComponentFindProofHelper = Join-Path $RuntimeDir "prove_live_editor_component_find.py"
+$PropertyTargetReadbackProofHelper = Join-Path $RuntimeDir "prove_live_editor_property_target_readback.py"
 $PropertyListProofHelper = Join-Path $RuntimeDir "prove_live_editor_component_property_list.py"
 
 $PidPath = Join-Path $RuntimeDir "live-verify-uvicorn.pid"
@@ -801,6 +803,11 @@ $result = switch ($Action) {
             -SelectedProofHelper $ComponentFindProofHelper `
             -ProofAction "component-find-proof"
     }
+    "property-target-readback-proof" {
+        Invoke-ProofRun `
+            -SelectedProofHelper $PropertyTargetReadbackProofHelper `
+            -ProofAction "property-target-readback-proof"
+    }
     "property-list-proof" {
         Invoke-ProofRun `
             -SelectedProofHelper $PropertyListProofHelper `
@@ -810,7 +817,7 @@ $result = switch ($Action) {
 
 Write-Output (ConvertTo-JsonOutput -Value $result)
 
-if ($Action -in @("proof", "entity-exists-proof", "component-find-proof", "property-list-proof")) {
+if ($Action -in @("proof", "entity-exists-proof", "component-find-proof", "property-target-readback-proof", "property-list-proof")) {
     $proofExitCode = 0
     $proofExitCodeRaw = Get-OptionalMemberValue -InputObject $result -Name "proof_exit_code"
     if ($null -ne $proofExitCodeRaw) {
