@@ -267,6 +267,10 @@ Verified result:
 - returned `23` property paths
 - included `Controller|Configuration|Model Asset`
 - did not return property values
+- the Mesh property path set does not select a first write target; scalar-like
+  Mesh paths are classified as asset-reference, derived/statistical,
+  container/group, or render-adjacent evidence
+- blocker code: `no_non_asset_non_render_scalar_target`
 - `/adapters` still did not expose `editor.component.property.list`
 - Prompt Studio, dispatcher, and catalog admission were not changed
 
@@ -286,6 +290,8 @@ This candidate does not cover:
 - property value bulk reads
 - property allowlist implementation
 - write-target selection
+- safe scalar write-target selection; see
+  `docs/PHASE-8-EDITOR-SCALAR-PROPERTY-TARGET-DISCOVERY.md`
 - component discovery by type or broad scene enumeration
 - arbitrary entity creation beyond the admitted temporary root proof target
 - arbitrary Editor Python

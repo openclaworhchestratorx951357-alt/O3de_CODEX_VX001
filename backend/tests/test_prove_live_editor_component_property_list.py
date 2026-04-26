@@ -303,6 +303,38 @@ def test_require_property_list_result_accepts_path_only_bridge_result():
     )
 
 
+def test_property_path_review_blocks_mesh_asset_render_and_group_paths():
+    module = load_proof_module()
+
+    review = module.classify_property_paths_for_write_target(
+        [
+            "Controller",
+            "Controller|Configuration|Model Asset",
+            "Controller|Configuration|Sort Key",
+            "Controller|Configuration|Lod Configuration|Minimum Screen Coverage",
+            "Model Stats|Mesh Stats",
+        ]
+    )
+
+    assert review["target_selected"] is False
+    assert review["status"] == "blocked"
+    assert review["blocker_code"] == "no_non_asset_non_render_scalar_target"
+    assert "non-asset, non-render" in review["required_next_evidence"]
+    path_classes = {
+        item["property_path"]: item["evidence_class"]
+        for item in review["reviewed_paths"]
+    }
+    assert path_classes["Controller"] == "container_or_group"
+    assert path_classes["Controller|Configuration|Model Asset"] == (
+        "asset_or_material_reference"
+    )
+    assert path_classes["Controller|Configuration|Sort Key"] == (
+        "render_adjacent_scalar_candidate"
+    )
+    assert path_classes["Model Stats|Mesh Stats"] == "derived_or_read_only_stats"
+    assert all(item["write_target_allowed"] is False for item in review["reviewed_paths"])
+
+
 def test_require_property_list_result_rejects_value_readback():
     module = load_proof_module()
 

@@ -28,7 +28,27 @@ PROOF_PROPERTY_PATH_FRAGMENT = "Controller|Configuration|Model Asset"
 PROOF_ENTITY_PREFIX = "CodexPropertyListProofEntity"
 SERIALIZED_PREFAB_COMPONENT_EVIDENCE = "serialized_prefab_record"
 SUCCESS_NEXT_STEP = (
-    "Post-property-list proof checkpoint refresh and read-only target discovery alignment"
+    "Provision or discover a non-asset, non-render scalar/text-like component "
+    "property before any proof-only property-write packet"
+)
+WRITE_TARGET_BLOCKER_CODE = "no_non_asset_non_render_scalar_target"
+WRITE_TARGET_REQUIRED_NEXT_EVIDENCE = (
+    "Read-only live evidence for a non-asset, non-render, non-derived scalar or "
+    "text-like property on an allowlisted component outside the Mesh render surface."
+)
+ASSET_PATH_MARKERS = ("asset", "material")
+DERIVED_OR_CONTAINER_MARKERS = ("stats",)
+RENDER_ADJACENT_PATH_MARKERS = (
+    "ray tracing",
+    "reflection",
+    "forward pass",
+    "lighting channel",
+    "sort key",
+    "lod",
+    "screen coverage",
+    "quality decay",
+    "always moving",
+    "mesh",
 )
 
 
@@ -384,6 +404,71 @@ def require_property_list_result(
         )
 
 
+def classify_property_paths_for_write_target(
+    property_paths: list[str],
+) -> dict[str, Any]:
+    normalized_paths = [path.strip() for path in property_paths if path.strip()]
+    path_prefixes = {
+        "|".join(path.split("|")[:index])
+        for path in normalized_paths
+        for index in range(1, len(path.split("|")))
+    }
+    reviews: list[dict[str, Any]] = []
+
+    for path in normalized_paths:
+        lowered = path.lower()
+        if path in path_prefixes:
+            evidence_class = "container_or_group"
+            reason = (
+                "The path is a grouping/container path in the Mesh property tree, "
+                "not a concrete scalar write target."
+            )
+        elif any(marker in lowered for marker in ASSET_PATH_MARKERS):
+            evidence_class = "asset_or_material_reference"
+            reason = (
+                "The path is asset/material-adjacent and would require separate "
+                "asset identity proof before any write."
+            )
+        elif any(marker in lowered for marker in DERIVED_OR_CONTAINER_MARKERS):
+            evidence_class = "derived_or_read_only_stats"
+            reason = (
+                "The path is derived/statistical readback evidence, not a stable "
+                "operator-selected write target."
+            )
+        elif any(marker in lowered for marker in RENDER_ADJACENT_PATH_MARKERS):
+            evidence_class = "render_adjacent_scalar_candidate"
+            reason = (
+                "The path may be scalar-like, but it belongs to the Mesh render "
+                "configuration surface and is outside the first property-write target "
+                "boundary."
+            )
+        else:
+            evidence_class = "unclassified_mesh_property"
+            reason = (
+                "The path is not enough evidence by itself; live value type and "
+                "non-render safety still need proof before target selection."
+            )
+
+        reviews.append(
+            {
+                "property_path": path,
+                "evidence_class": evidence_class,
+                "write_target_allowed": False,
+                "reason": reason,
+            }
+        )
+
+    return {
+        "target_selected": False,
+        "status": "blocked",
+        "blocker_code": WRITE_TARGET_BLOCKER_CODE,
+        "component_family": PROOF_COMPONENT_FAMILY,
+        "reviewed_property_count": len(reviews),
+        "reviewed_paths": reviews,
+        "required_next_evidence": WRITE_TARGET_REQUIRED_NEXT_EVIDENCE,
+    }
+
+
 def _execute_runtime_steps(
     *,
     run_label: str,
@@ -519,6 +604,9 @@ def build_success_summary(
     selected = target_info["selected"]
     property_result = runtime_steps["property_list"]["runtime_result"]
     property_paths = property_result["property_paths"]
+    write_target_discovery_review = classify_property_paths_for_write_target(
+        property_paths
+    )
     cleanup_restore = runtime_steps["cleanup_restore"]
     return {
         "succeeded": True,
@@ -539,6 +627,10 @@ def build_success_summary(
                 f"Returned {len(property_paths)} property path(s), including "
                 f"{PROOF_PROPERTY_PATH_FRAGMENT}."
             ),
+            (
+                "Classified Mesh property paths for first-write suitability and "
+                f"blocked target selection with {WRITE_TARGET_BLOCKER_CODE}."
+            ),
             "Confirmed /adapters still does not expose editor.component.property.list.",
             (
                 "Restored the selected loaded-level prefab from the pre-mutation "
@@ -552,6 +644,7 @@ def build_success_summary(
         },
         "mutation_occurred": True,
         "restore_or_cleanup_verified": cleanup_restore.get("restore_succeeded") is True,
+        "write_target_discovery_review": write_target_discovery_review,
         "cleanup_restore": {
             "restore_invoked": cleanup_restore.get("restore_invoked"),
             "restore_succeeded": cleanup_restore.get("restore_succeeded"),
@@ -583,6 +676,10 @@ def build_success_summary(
         "missing_proof": [
             "No Prompt Studio, dispatcher, catalog, or /adapters admission was proven.",
             "No property values were read by this property-list proof.",
+            (
+                "No non-asset, non-render scalar/text-like property target was selected "
+                "from the Mesh property path set."
+            ),
             "No property writes, arbitrary Editor Python, delete, parenting, prefab, material, asset, render, build, or TIAF behavior was exercised.",
             "No live Editor undo, viewport reload, or post-restore entity-absence readback was proven.",
         ],
