@@ -136,6 +136,9 @@ COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_DISCOVERY_RESULT = (
     "admitted_runtime_component_discovery_result"
 )
 CAMERA_SCALAR_WRITE_PROOF_OPERATION = "editor.camera.scalar.write.proof"
+CAMERA_BOOL_WRITE_CAPABILITY = (
+    "editor.component.property.write.camera_bool_make_active_on_activation"
+)
 CAMERA_SCALAR_WRITE_PROOF_COMPONENT = "Camera"
 CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH = (
     "Controller|Configuration|Make active camera on activation?"
@@ -1760,6 +1763,57 @@ class EditorAutomationRuntimeService:
             "runner_command": runner_command,
             "manifest": manifest,
             "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+        }
+
+    def execute_camera_bool_make_active_on_activation_write(
+        self,
+        *,
+        request_id: str,
+        session_id: str | None,
+        workspace_id: str | None,
+        executor_id: str | None,
+        project_root: str,
+        engine_root: str,
+        dry_run: bool,
+        args: dict[str, Any],
+        locks_acquired: list[str],
+    ) -> dict[str, Any]:
+        payload = self.execute_camera_scalar_write_proof(
+            request_id=request_id,
+            session_id=session_id,
+            workspace_id=workspace_id,
+            executor_id=executor_id,
+            project_root=project_root,
+            engine_root=engine_root,
+            dry_run=dry_run,
+            args=args,
+            locks_acquired=locks_acquired,
+        )
+        runtime_result = dict(payload["runtime_result"])
+        runtime_result.update(
+            {
+                "message": (
+                    "Camera bool scalar property was written through the exact "
+                    "admitted public corridor."
+                ),
+                "tool": CAMERA_BOOL_WRITE_CAPABILITY,
+                "proof_bridge_operation": CAMERA_SCALAR_WRITE_PROOF_OPERATION,
+                "proof_only": False,
+                "public_admission": True,
+                "write_admission": True,
+                "property_list_admission": False,
+                "target_status": "admitted_exact_camera_bool_write",
+                "restore_or_revert_guidance": (
+                    "This is not generalized undo. To revert the value, rerun "
+                    "the same exact Camera bool corridor with the recorded "
+                    "previous_value when available, or restore the recorded "
+                    "loaded-level restore boundary outside the public corridor."
+                ),
+            }
+        )
+        return {
+            **payload,
+            "runtime_result": runtime_result,
         }
 
     def execute_component_property_list(

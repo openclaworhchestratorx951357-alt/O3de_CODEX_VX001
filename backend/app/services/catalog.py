@@ -39,6 +39,11 @@ def tool_capability_status(tool_name: str) -> str:
         "editor.component.property.get",
     }:
         return "hybrid-read-only"
+    if (
+        tool_name
+        == "editor.component.property.write.camera_bool_make_active_on_activation"
+    ):
+        return "mutation-gated"
     if tool_name in {
         "editor.session.open",
         "editor.level.open",
@@ -158,6 +163,35 @@ CATALOG = ToolsCatalog(
                     default_locks=["editor_session"],
                     risk="low",
                     tags=["editor", "component", "property", "read"],
+                ),
+                ToolDefinition(
+                    name="editor.component.property.write.camera_bool_make_active_on_activation",
+                    description=(
+                        "Write only the exact Camera bool property "
+                        "Controller|Configuration|Make active camera on activation? "
+                        "on a live Camera component id returned by admitted component add."
+                    ),
+                    approval_class="content_write",
+                    adapter_family="editor-control",
+                    capability_status=tool_capability_status(
+                        "editor.component.property.write.camera_bool_make_active_on_activation"
+                    ),
+                    args_schema=tool_args_schema(
+                        "editor.component.property.write.camera_bool_make_active_on_activation"
+                    ),
+                    result_schema=tool_result_schema(
+                        "editor.component.property.write.camera_bool_make_active_on_activation"
+                    ),
+                    default_locks=["editor_session"],
+                    risk="high",
+                    tags=[
+                        "editor",
+                        "component",
+                        "property",
+                        "write",
+                        "camera",
+                        "bool",
+                    ],
                 ),
             ],
         ),

@@ -9,6 +9,7 @@ from unittest.mock import patch
 import pytest
 from app.services.adapters import AdapterExecutionRejected
 from app.services.editor_automation_runtime import (
+    CAMERA_BOOL_WRITE_CAPABILITY,
     CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
     CAMERA_SCALAR_WRITE_PROOF_OPERATION,
     CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
@@ -2986,6 +2987,64 @@ def test_execute_camera_scalar_write_proof_rejects_arbitrary_targets(
                         raise AssertionError(
                             "Camera scalar write proof should reject arbitrary targets."
                         )
+
+
+def test_execute_exact_camera_bool_write_wrapper_marks_public_admission() -> None:
+    proof_payload = {
+        "runtime_result": {
+            "ok": True,
+            "message": "Camera scalar bool property was written through a proof-only persistent bridge path.",
+            "proof_only": True,
+            "public_admission": False,
+            "write_admission": False,
+            "property_list_admission": False,
+            "component_name": CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
+            "component_id": "EntityComponentIdPair(EntityId(101), 201)",
+            "component_id_provenance": (
+                COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+            ),
+            "property_path": CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
+            "value_type": "bool",
+            "previous_value": False,
+            "requested_value": True,
+            "value": True,
+            "changed": True,
+            "write_verified": True,
+            "bridge_operation": CAMERA_SCALAR_WRITE_PROOF_OPERATION,
+            "restore_boundary_id": "restore-boundary-1",
+        },
+        "runner_command": ["fake-editor-runner"],
+        "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+    }
+    with patch.object(
+        editor_automation_runtime_service,
+        "execute_camera_scalar_write_proof",
+        return_value=proof_payload,
+    ) as proof_method:
+        payload = (
+            editor_automation_runtime_service.execute_camera_bool_make_active_on_activation_write(
+                request_id="req-camera-bool-write",
+                session_id="session-1",
+                workspace_id="workspace-editor-project",
+                executor_id="executor-editor-control-real-local",
+                project_root="C:/project",
+                engine_root="C:/src/o3de",
+                dry_run=False,
+                args=camera_scalar_write_args(),
+                locks_acquired=["editor_session"],
+            )
+        )
+
+    proof_method.assert_called_once()
+    runtime_result = payload["runtime_result"]
+    assert runtime_result["tool"] == CAMERA_BOOL_WRITE_CAPABILITY
+    assert runtime_result["proof_bridge_operation"] == CAMERA_SCALAR_WRITE_PROOF_OPERATION
+    assert runtime_result["proof_only"] is False
+    assert runtime_result["public_admission"] is True
+    assert runtime_result["write_admission"] is True
+    assert runtime_result["property_list_admission"] is False
+    assert runtime_result["target_status"] == "admitted_exact_camera_bool_write"
+    assert "not generalized undo" in runtime_result["restore_or_revert_guidance"]
 
 
 def test_bridge_queue_counts_use_unique_command_ids_per_queue() -> None:

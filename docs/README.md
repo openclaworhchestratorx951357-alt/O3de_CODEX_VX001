@@ -28,7 +28,9 @@ rounding up capability claims.
   matrix.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-TARGET-DISCOVERY.md` is the current
   editor component/property targeting truth source.
-- `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why
+- `docs/PHASE-8-CAMERA-BOOL-WRITE-PUBLIC-CORRIDOR.md` tracks the only exact
+  admitted public component-property write corridor.
+- `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
   operator steps and boundaries.
@@ -82,6 +84,7 @@ rounding up capability claims.
 - `docs/PHASE-8-CAMERA-SCALAR-WRITE-READINESS-AUDIT.md`
 - `docs/PHASE-8-CAMERA-SCALAR-WRITE-LIVE-PROOF.md`
 - `docs/PHASE-8-CAMERA-SCALAR-WRITE-ADMISSION-DECISION.md`
+- `docs/PHASE-8-CAMERA-BOOL-WRITE-PUBLIC-CORRIDOR.md`
 - `docs/PHASE-8-EDITOR-COMPONENT-FIND-LIVE-PROOF.md`
 - `docs/PHASE-8-EDITOR-PROPERTY-TARGET-READBACK-PROOF.md`
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-LIST-BRIDGE-CANDIDATE.md`

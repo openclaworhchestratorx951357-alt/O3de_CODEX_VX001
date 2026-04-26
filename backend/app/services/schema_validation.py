@@ -381,6 +381,18 @@ class SchemaValidationService:
             ("editor.component.property.get", "artifact-metadata"): (
                 "schemas/tools/editor.component.property.get.artifact-metadata.schema.json"
             ),
+            (
+                "editor.component.property.write.camera_bool_make_active_on_activation",
+                "execution-details",
+            ): (
+                "schemas/tools/editor.component.property.write.camera_bool_make_active_on_activation.execution-details.schema.json"
+            ),
+            (
+                "editor.component.property.write.camera_bool_make_active_on_activation",
+                "artifact-metadata",
+            ): (
+                "schemas/tools/editor.component.property.write.camera_bool_make_active_on_activation.artifact-metadata.schema.json"
+            ),
             ("editor.entity.create", "execution-details"): (
                 "schemas/tools/editor.entity.create.execution-details.schema.json"
             ),

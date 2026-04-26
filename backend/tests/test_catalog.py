@@ -142,6 +142,25 @@ def test_editor_component_property_write_list_and_proof_tools_are_not_cataloged(
         ) is False
 
 
+def test_exact_camera_bool_property_write_is_cataloged_as_mutation_gated() -> None:
+    tool = catalog_service.get_tool_definition(
+        "editor-control",
+        "editor.component.property.write.camera_bool_make_active_on_activation",
+    )
+    assert tool is not None
+    assert tool.approval_class == "content_write"
+    assert tool.adapter_family == "editor-control"
+    assert tool.capability_status == "mutation-gated"
+    assert tool.args_schema.endswith(
+        "editor.component.property.write.camera_bool_make_active_on_activation.args.schema.json"
+    )
+    assert tool.result_schema.endswith(
+        "editor.component.property.write.camera_bool_make_active_on_activation.result.schema.json"
+    )
+    assert "editor_session" in tool.default_locks
+    assert tool.risk == "high"
+
+
 def test_editor_component_find_is_cataloged_as_hybrid_read_only() -> None:
     tool = catalog_service.get_tool_definition(
         "editor-control",

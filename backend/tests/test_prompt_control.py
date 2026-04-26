@@ -208,6 +208,23 @@ def test_prompt_session_preview_compiles_typed_steps_across_families() -> None:
             editor_component_property_get["safety_envelope"]["mutation_surface_class"]
             == "not-mutating"
         )
+        camera_bool_write = next(
+            item
+            for item in capabilities
+            if item["tool_name"]
+            == "editor.component.property.write.camera_bool_make_active_on_activation"
+        )
+        assert camera_bool_write["capability_maturity"] == "hybrid-mutation"
+        assert camera_bool_write["capability_status"] == "mutation-gated"
+        assert camera_bool_write["approval_class"] == "content_write"
+        assert (
+            camera_bool_write["safety_envelope"]["mutation_surface_class"]
+            == "admitted-editor-camera-bool-property-write"
+        )
+        assert (
+            "broad property writes"
+            in camera_bool_write["safety_envelope"]["candidate_expansion_boundary"]
+        )
         editor_entity_exists = next(
             item for item in capabilities if item["tool_name"] == "editor.entity.exists"
         )
@@ -2084,6 +2101,96 @@ def test_prompt_session_refuses_component_property_discovery_without_session_pla
         assert "editor.component.property.list" not in capability_names
         assert "editor.component.property.write" not in capability_names
         assert "editor.camera.scalar.write.proof" not in capability_names
+
+
+def test_prompt_session_plans_exact_camera_bool_write_corridor_only() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-camera-bool-write-plan-1",
+                "prompt_text": (
+                    'Open level "Levels/Main.level", create entity named "ShotCamera", '
+                    "add a Camera component, then set the Camera make active camera "
+                    "on activation bool to false."
+                ),
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": False,
+                "preferred_domains": ["editor-control"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "planned"
+        assert payload["refused_capabilities"] == []
+        assert [step["tool"] for step in payload["plan"]["steps"]] == [
+            "editor.session.open",
+            "editor.level.open",
+            "editor.entity.create",
+            "editor.component.add",
+            "editor.component.property.get",
+            "editor.component.property.write.camera_bool_make_active_on_activation",
+            "editor.component.property.get",
+        ]
+        write_step = next(
+            step
+            for step in payload["plan"]["steps"]
+            if step["tool"]
+            == "editor.component.property.write.camera_bool_make_active_on_activation"
+        )
+        assert write_step["step_id"] == "editor-camera-bool-write-1"
+        assert write_step["args"] == {
+            "component_name": "Camera",
+            "component_id": "$step:editor-component-1.added_component_refs[0].component_id",
+            "component_id_provenance": (
+                "$step:editor-component-1.added_component_refs[0].component_id_provenance"
+            ),
+            "property_path": (
+                "Controller|Configuration|Make active camera on activation?"
+            ),
+            "value": False,
+            "expected_current_value": "$step:editor-camera-bool-before-1.value",
+            "restore_boundary_id": "$step:editor-component-1.restore_boundary_id",
+            "level_path": "Levels/Main.level",
+        }
+        assert write_step["approval_class"] == "content_write"
+        assert write_step["capability_status_required"] == "mutation-gated"
+
+
+def test_prompt_session_refuses_exact_camera_bool_write_without_same_chain_camera_add() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-camera-bool-write-refuse-1",
+                "prompt_text": (
+                    "Set the Camera make active camera on activation bool to true "
+                    "on entity id 101 in the editor."
+                ),
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": False,
+                "preferred_domains": ["editor-control"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "refused"
+        assert payload["admitted_capabilities"] == []
+        assert payload["plan"]["steps"] == []
+        assert payload["refused_capabilities"] == [
+            (
+                "editor.component.property.write.camera_bool_make_active_on_activation "
+                "requires a same-chain temporary entity plus admitted Camera component "
+                "add before the exact bool write."
+            )
+        ]
+        assert any(
+            "does not admit generic property writes"
+            in requirement
+            for requirement in payload["plan"]["capability_requirements"]
+        )
 
 
 def test_prompt_session_plans_admitted_real_editor_entity_create() -> None:

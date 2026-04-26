@@ -23,6 +23,7 @@ from app.models.response_envelope import DispatchResult
 from app.services.artifacts import artifacts_service
 from app.services.catalog import catalog_service
 from app.services.editor_automation_runtime import (
+    CAMERA_BOOL_WRITE_CAPABILITY,
     EDITOR_RUNTIME_BOUNDARY,
     editor_automation_runtime_service,
 )
@@ -64,6 +65,7 @@ GATED_TOOL_PATHS_BY_MODE = {
     "simulated": [],
     "hybrid": [
         "build.compile",
+        CAMERA_BOOL_WRITE_CAPABILITY,
         "gem.enable",
         "render.material.patch",
         "settings.patch",
@@ -94,7 +96,9 @@ HYBRID_EXECUTION_BOUNDARY = (
     "existence read path on McpSandbox, editor.component.find may use the "
     "explicit bridge-backed real component target discovery path on McpSandbox, "
     "editor.component.property.get may use the explicit bridge-backed real "
-    "component property read path on McpSandbox, "
+    "component property read path on McpSandbox, the exact Camera bool "
+    "property write corridor may use the proven bridge-backed Camera-only "
+    "mutation path when approval-gated, "
     "build.configure may use a real plan-only preflight path, build.compile may "
     "use a real execution-gated explicit target runner substrate with bounded exit/log truth, "
     "gem.enable may use a real explicit gem-request preflight substrate and a "
@@ -581,6 +585,42 @@ class EditorControlHybridAdapter(ToolExecutionAdapter):
                 artifact_uri="editor-runtime://runs/{run_id}/executions/{execution_id}/component-property",
                 runtime_script="ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
             )
+        if tool == CAMERA_BOOL_WRITE_CAPABILITY:
+            runtime_payload = (
+                editor_automation_runtime_service.execute_camera_bool_make_active_on_activation_write(
+                    request_id=request_id,
+                    session_id=session_id,
+                    workspace_id=workspace_id,
+                    executor_id=executor_id,
+                    project_root=project_root,
+                    engine_root=engine_root,
+                    dry_run=dry_run,
+                    args=args,
+                    locks_acquired=locks_acquired,
+                )
+            )
+            return self._build_real_editor_report(
+                tool=tool,
+                agent=agent,
+                project_root=project_root,
+                engine_root=engine_root,
+                approval_class=approval_class,
+                locks_acquired=locks_acquired,
+                runtime_payload=runtime_payload,
+                inspection_surface="editor_camera_bool_property_write",
+                message=(
+                    "Exact admitted Camera bool property write completed through "
+                    "the bridge-backed editor corridor."
+                ),
+                result_summary=(
+                    "Exact Camera bool scalar property write completed with "
+                    "before/write/after evidence."
+                ),
+                artifact_label="Exact Camera bool property write evidence",
+                artifact_kind="editor_runtime_result",
+                artifact_uri="editor-runtime://runs/{run_id}/executions/{execution_id}/camera-bool-property-write",
+                runtime_script="ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+            )
 
         simulated = self._simulated.execute(
             request_id=request_id,
@@ -691,6 +731,17 @@ class EditorControlHybridAdapter(ToolExecutionAdapter):
             "property_path",
             "value",
             "value_type",
+            "previous_value",
+            "requested_value",
+            "changed",
+            "write_verified",
+            "proof_only",
+            "public_admission",
+            "write_admission",
+            "property_list_admission",
+            "target_status",
+            "restore_or_revert_guidance",
+            "proof_bridge_operation",
             "added_components",
             "added_component_refs",
             "rejected_components",
@@ -9580,6 +9631,11 @@ class AdapterService:
                 for tool_name in self._real_tool_paths_for_mode(active_mode)
                 if tool_name.startswith("editor.")
             }
+            family_gated = {
+                tool_name
+                for tool_name in self._gated_tool_paths_for_mode(active_mode)
+                if tool_name.startswith("editor.")
+            }
         if active_mode == "hybrid" and family == "validation":
             family_real = {
                 tool_name
@@ -9701,6 +9757,7 @@ class AdapterService:
                     "read path on McpSandbox, an admitted explicit "
                     "editor.component.find target-binding read path on McpSandbox, and an admitted explicit "
                     "editor.component.property.get read path on McpSandbox, "
+                    "an exact approval-gated Camera bool property write corridor, "
                     "real plan-only asset.batch.process and build.configure "
                     "paths, a real execution-gated build.compile path, a real mutation-gated gem.enable "
                     "path, and a real mutation-gated settings.patch path.",
@@ -9758,6 +9815,10 @@ class AdapterService:
                     "target-binding read path, and the explicit "
                     "editor.component.property.get read path when editor preflight "
                     "requirements are satisfied.",
+                    "Hybrid mode also enables the exact approval-gated Camera bool "
+                    "property write corridor for Controller|Configuration|Make "
+                    "active camera on activation? only; broad property writes and "
+                    "public property listing remain unavailable.",
                     "Hybrid mode also enables a real plan-only build.configure "
                     "preflight path when dry_run=true and manifest preconditions are "
                     "satisfied.",
@@ -9902,6 +9963,7 @@ class AdapterService:
                         family == "project-build"
                         and tool_name.startswith(("project.", "build.", "settings.", "gem."))
                     )
+                    or (family == "editor-control" and tool_name.startswith("editor."))
                     or (family == "validation" and tool_name.startswith("test."))
                     or (family == "render-lookdev" and tool_name.startswith("render."))
                 ]
@@ -9935,8 +9997,9 @@ class AdapterService:
                     family_notes.append(
                         "editor.session.open, editor.level.open, "
                         "editor.entity.create, editor.entity.exists, editor.component.add, "
-                        "editor.component.find, and editor.component.property.get currently have admitted real "
-                        "runtime-owned editor paths in this family."
+                        "editor.component.find, editor.component.property.get, and "
+                        "the exact Camera bool property write corridor currently have "
+                        "admitted runtime-owned editor paths in this family."
                     )
                 if family == "validation":
                     family_notes.append(

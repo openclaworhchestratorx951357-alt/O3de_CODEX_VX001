@@ -14,7 +14,13 @@ from app.models.request_envelope import RequestEnvelope
 from app.services.approvals import approvals_service
 from app.services.artifacts import artifacts_service
 from app.services.adapters import AdapterExecutionRejected, adapter_service
-from app.services.editor_automation_runtime import editor_automation_runtime_service
+from app.services.editor_automation_runtime import (
+    CAMERA_BOOL_WRITE_CAPABILITY,
+    CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
+    CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
+    COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT,
+    editor_automation_runtime_service,
+)
 from app.services.db import configure_database, initialize_database, reset_database
 from app.services.dispatcher import dispatcher_service
 from app.services.events import events_service
@@ -750,6 +756,45 @@ def make_editor_component_property_get_request() -> RequestEnvelope:
     return request
 
 
+def make_camera_bool_write_request(
+    *,
+    project_root: str = "/tmp/project",
+    component_name: str = CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
+    property_path: str = CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
+    value: object = True,
+) -> RequestEnvelope:
+    request = make_request(
+        "editor-control",
+        CAMERA_BOOL_WRITE_CAPABILITY,
+        project_root=project_root,
+        dry_run=False,
+    )
+    request.args = {
+        "component_name": component_name,
+        "component_id": "EntityComponentIdPair(EntityId(101), 301)",
+        "component_id_provenance": (
+            COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+        ),
+        "property_path": property_path,
+        "value": value,
+        "expected_current_value": False,
+        "level_path": "Levels/Main.level",
+        "restore_boundary_id": "restore-boundary-1",
+    }
+    return request
+
+
+def approve_camera_bool_write_request(**overrides: object) -> RequestEnvelope:
+    first = dispatcher_service.dispatch(make_camera_bool_write_request(**overrides))
+    approval = approvals_service.get_approval(first.approval_id or "")
+    assert approval is not None
+    approvals_service.approve(approval.id)
+
+    approved_request = make_camera_bool_write_request(**overrides)
+    approved_request.approval_token = approval.token
+    return approved_request
+
+
 def make_editor_component_find_request() -> RequestEnvelope:
     request = make_request("editor-control", "editor.component.find")
     request.args = {
@@ -939,6 +984,57 @@ def test_dispatch_rejects_property_list_write_and_proof_only_tools(
         assert response.ok is False
         assert response.error is not None
         assert response.error.code == "INVALID_TOOL"
+
+
+def test_dispatch_requires_approval_for_exact_camera_bool_write_corridor() -> None:
+    with isolated_database():
+        response = dispatcher_service.dispatch(make_camera_bool_write_request())
+        assert response.ok is False
+        assert response.approval_id is not None
+        assert response.error is not None
+        assert response.error.code == "APPROVAL_REQUIRED"
+
+
+@pytest.mark.parametrize(
+    "envelope",
+    [
+        make_request("editor-control", "editor.component.property.write"),
+        make_request("editor-control", "editor.component.property.set"),
+        make_request("editor-control", "editor.component.property.list"),
+    ],
+)
+def test_dispatch_keeps_broad_property_write_and_list_surfaces_unavailable(
+    envelope: RequestEnvelope,
+) -> None:
+    with isolated_database():
+        response = dispatcher_service.dispatch(envelope)
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_TOOL"
+
+
+@pytest.mark.parametrize(
+    ("overrides", "expected_detail"),
+    [
+        ({"component_name": "Mesh"}, "component_name"),
+        ({"property_path": "Controller|Configuration|Field of view"}, "property_path"),
+        ({"value": "true"}, "value"),
+    ],
+)
+def test_dispatch_schema_rejects_non_exact_camera_bool_write_args(
+    overrides: dict[str, object],
+    expected_detail: str,
+) -> None:
+    with isolated_database():
+        request = make_camera_bool_write_request(**overrides)
+        response = dispatcher_service.dispatch(request)
+        assert response.ok is False
+        assert response.error is not None
+        assert response.error.code == "INVALID_ARGS"
+        assert response.error.details is not None
+        assert expected_detail in "\n".join(
+            response.error.details["arg_validation_errors"]
+        )
 
 
 def test_dispatch_requires_approval_for_mutating_tool() -> None:
@@ -4166,6 +4262,92 @@ def test_editor_component_property_get_uses_real_runtime_in_hybrid_mode() -> Non
             )
             == []
         )
+
+
+def test_exact_camera_bool_write_uses_real_runtime_in_hybrid_mode() -> None:
+    with isolated_database(), TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        write_editor_project_manifest(project_root)
+
+        request = approve_camera_bool_write_request(project_root=str(project_root))
+        runtime_result = {
+            "ok": True,
+            "message": (
+                "Camera bool scalar property was written through the exact "
+                "admitted public corridor."
+            ),
+            "tool": CAMERA_BOOL_WRITE_CAPABILITY,
+            "proof_bridge_operation": "editor.camera.scalar.write.proof",
+            "proof_only": False,
+            "public_admission": True,
+            "write_admission": True,
+            "property_list_admission": False,
+            "component_name": CAMERA_SCALAR_WRITE_PROOF_COMPONENT,
+            "component_id": "EntityComponentIdPair(EntityId(101), 301)",
+            "component_id_provenance": (
+                COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+            ),
+            "property_path": CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH,
+            "value_type": "bool",
+            "previous_value": False,
+            "requested_value": True,
+            "value": True,
+            "changed": True,
+            "write_verified": True,
+            "restore_boundary_id": "restore-boundary-1",
+            "target_status": "admitted_exact_camera_bool_write",
+            "restore_or_revert_guidance": "Rerun exact corridor with previous_value.",
+            "level_path": "Levels/Main.level",
+            "loaded_level_path": "Levels/Main.level",
+            "exact_editor_apis": [
+                "ControlPlaneEditorBridge filesystem inbox",
+                "editor.camera.scalar.write.proof",
+                "EditorComponentAPIBus.GetComponentProperty",
+                "EditorComponentAPIBus.SetComponentProperty",
+            ],
+            "bridge_available": True,
+            "bridge_name": "ControlPlaneEditorBridge",
+            "bridge_version": "0.1.0",
+            "bridge_operation": "editor.camera.scalar.write.proof",
+            "bridge_contract_version": "v1",
+            "bridge_command_id": "bridge-camera-bool-write-1",
+            "bridge_result_summary": "Camera scalar bool property write was verified.",
+            "bridge_heartbeat_seen_at": "2026-04-26T00:00:01Z",
+            "bridge_queue_mode": "filesystem-inbox",
+            "editor_transport": "bridge",
+        }
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_camera_bool_make_active_on_activation_write",
+                return_value={
+                    "runtime_result": runtime_result,
+                    "runner_command": ["fake-editor-runner"],
+                    "runtime_script": "ControlPlaneEditorBridge/Editor/Scripts/control_plane_bridge_poller.py",
+                },
+            ):
+                response = dispatcher_service.dispatch(request)
+
+        assert response.ok is True
+        assert response.result is not None
+        assert response.result.tool == CAMERA_BOOL_WRITE_CAPABILITY
+        assert response.result.execution_mode == "real"
+        assert response.result.simulated is False
+        execution = next(
+            execution
+            for execution in executions_service.list_executions()
+            if execution.run_id == response.operation_id
+        )
+        artifact = artifacts_service.get_artifact(response.artifacts[0])
+        assert execution.details["inspection_surface"] == "editor_camera_bool_property_write"
+        assert execution.details["component_name"] == CAMERA_SCALAR_WRITE_PROOF_COMPONENT
+        assert execution.details["property_path"] == CAMERA_SCALAR_WRITE_PROOF_PROPERTY_PATH
+        assert execution.details["value"] is True
+        assert execution.details["write_verified"] is True
+        assert execution.details["public_admission"] is True
+        assert execution.details["property_list_admission"] is False
+        assert artifact is not None
+        assert artifact.metadata["inspection_surface"] == "editor_camera_bool_property_write"
 
 
 def test_editor_component_find_uses_real_runtime_with_live_provenance() -> None:
