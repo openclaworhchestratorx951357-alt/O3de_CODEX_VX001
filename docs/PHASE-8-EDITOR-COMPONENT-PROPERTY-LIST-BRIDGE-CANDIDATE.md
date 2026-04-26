@@ -240,6 +240,16 @@ Temporary proof target:
 - entity: `CodexPropertyListProofEntity_20260426_043614`
 - component: `Mesh`
 - component id: `EntityComponentIdPair(EntityId(8825628972962341928), 16304053675892170807)`
+- component id provenance: `admitted_runtime_component_add_result`
+
+Property target identity truth:
+- prefab component records are serialized loaded-level file evidence only
+- prefab-derived component ids must not be treated as valid live Editor
+  component ids
+- the current valid live component id source is `added_component_refs`
+  returned by the admitted `editor.component.add` runtime step
+- `editor.component.property.list` remains proof-only and must not be
+  inferred as Prompt Studio, dispatcher, catalog, or `/adapters` admission
 
 Verified result:
 - `editor.component.property.list` executed through the typed

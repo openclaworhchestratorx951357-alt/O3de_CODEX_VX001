@@ -2059,6 +2059,13 @@ def test_prompt_session_refuses_component_property_discovery_without_session_pla
             "typed read-only property-list packet" in requirement
             for requirement in payload["plan"]["capability_requirements"]
         )
+        capabilities_response = client.get("/prompt/capabilities")
+        assert capabilities_response.status_code == 200
+        capability_names = {
+            item["tool_name"]
+            for item in capabilities_response.json()["capabilities"]
+        }
+        assert "editor.component.property.list" not in capability_names
 
 
 def test_prompt_session_plans_admitted_real_editor_entity_create() -> None:

@@ -129,6 +129,9 @@ BRACKETED_COMPONENT_PAIR_PATTERN = re.compile(
 CANONICAL_COMPONENT_ID_PATTERN = re.compile(
     r"^EntityComponentIdPair\s*\(\s*EntityId\s*\(\s*\d+\s*\)\s*,\s*\d+\s*\)$"
 )
+COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT = (
+    "admitted_runtime_component_add_result"
+)
 
 
 def _canonicalize_component_add_components(
@@ -217,6 +220,9 @@ def _normalize_added_component_refs(refs: Any) -> list[dict[str, Any]]:
         component_id = _component_id_from_component_ref(normalized_ref)
         if component_id is not None:
             normalized_ref["component_id"] = component_id
+            normalized_ref["component_id_provenance"] = (
+                COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
+            )
         normalized_refs.append(normalized_ref)
     return normalized_refs
 

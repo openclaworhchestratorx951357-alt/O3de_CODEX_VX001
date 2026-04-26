@@ -55,6 +55,11 @@ Current bridge/property-list proof status:
 - the proof used already-admitted temporary target provisioning
   (`editor.entity.create` plus Mesh-only `editor.component.add`) because
   prefab-derived component ids are not stable live Editor entity ids.
+- prefab component records are serialized loaded-level file evidence only;
+  live property targeting must use runtime evidence, currently the
+  `added_component_refs` component id returned by the admitted
+  `editor.component.add` step with provenance
+  `admitted_runtime_component_add_result`.
 - the operation is still not dispatcher/catalog-admitted, not prompt-admitted,
   and not exposed through `/adapters`.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-LIST-BRIDGE-CANDIDATE.md`
@@ -93,6 +98,8 @@ Reject a target when:
 - the property path is inferred but not observed
 - the value type is unknown
 - the entity or component identity is ambiguous
+- the component id comes only from prefab JSON, a serialized prefab record, a
+  stale artifact, or a guessed/inferred source rather than live runtime evidence
 - the only candidate is an asset reference such as `Model Asset`
 - the target exists only because an earlier mutation in the same packet created
   it
