@@ -2059,6 +2059,130 @@ def test_execute_component_property_list_queues_bridge_command_without_reading_v
         ]
 
 
+def test_execute_component_property_list_passes_comment_tree_discovery_options() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "project"
+        project_root.mkdir(parents=True, exist_ok=True)
+        write_editor_project_manifest(project_root)
+        write_heartbeat(project_root)
+
+        state_path = editor_automation_runtime_service._state_path(str(project_root))  # noqa: SLF001
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(
+            json.dumps(
+                {
+                    "session_active": True,
+                    "loaded_level_path": "Levels/Main.level",
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        captured: dict[str, object] = {}
+        component_id = "EntityComponentIdPair(EntityId(101), 201)"
+        discovery = {
+            "component_family": "Comment",
+            "status": "candidate_selected_readback_only",
+            "selected_candidate": {
+                "property_path": "Configuration",
+                "success": True,
+                "value": "",
+                "value_type": "AZStd::string",
+                "scalar_or_text_like": True,
+            },
+            "write_target_admitted": False,
+            "property_list_admission": False,
+            "set_component_property_attempted": False,
+        }
+        responder = spawn_bridge_responder(
+            project_root=project_root,
+            expected_operation="editor.component.property.list",
+            response_details={
+                "component_id": component_id,
+                "property_paths": [],
+                "raw_property_paths": [""],
+                "component_property_count": 0,
+                "comment_scalar_discovery": discovery,
+                "source_inspection_evidence": {
+                    "reflected_serialize_field": "Configuration"
+                },
+                "exact_editor_apis": [
+                    "ControlPlaneEditorBridge filesystem inbox",
+                    "editor.component.property.list",
+                    "EditorComponentAPIBus.BuildComponentPropertyList",
+                    "EditorComponentAPIBus.BuildComponentPropertyTreeEditor",
+                    "EditorComponentAPIBus.GetComponentProperty",
+                ],
+                "level_path": "Levels/Main.level",
+                "loaded_level_path": "Levels/Main.level",
+            },
+            captured=captured,
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_TARGET_EDITOR_RUNNER": "fake-editor-runner",
+            },
+            clear=False,
+        ):
+            with patch("shutil.which", return_value="C:/fake/fake-editor-runner.exe"):
+                with patch.object(
+                    editor_automation_runtime_service,
+                    "_bridge_runner_process_is_active",
+                    return_value=False,
+                ):
+                    with patch.object(
+                        editor_automation_runtime_service,
+                        "_bridge_has_live_pulse",
+                        return_value=True,
+                    ):
+                        payload = (
+                            editor_automation_runtime_service.execute_component_property_list(
+                                request_id="req-comment-property-tree-discovery-1",
+                                session_id="session-1",
+                                workspace_id="workspace-editor-project",
+                                executor_id="executor-editor-control-real-local",
+                                project_root=str(project_root),
+                                engine_root="C:/src/o3de",
+                                dry_run=False,
+                                args={
+                                    "component_id": component_id,
+                                    "level_path": "Levels/Main.level",
+                                    "proof_component_family": "Comment",
+                                    "include_property_tree_evidence": True,
+                                    "source_guided_readback_paths": ["Configuration"],
+                                    "source_inspection_evidence": {
+                                        "reflected_serialize_field": "Configuration"
+                                    },
+                                },
+                                locks_acquired=["editor_session"],
+                            )
+                        )
+
+        responder.join(timeout=5)
+        assert not responder.is_alive()
+        runtime_result = payload["runtime_result"]
+        assert runtime_result["property_paths"] == []
+        assert runtime_result["raw_property_paths"] == [""]
+        assert runtime_result["comment_scalar_discovery"] == discovery
+        assert runtime_result["source_inspection_evidence"][
+            "reflected_serialize_field"
+        ] == "Configuration"
+        assert "EditorComponentAPIBus.GetComponentProperty" in runtime_result[
+            "exact_editor_apis"
+        ]
+
+        command_payload = captured["command"]
+        assert isinstance(command_payload, dict)
+        assert command_payload["args"]["proof_component_family"] == "Comment"
+        assert command_payload["args"]["include_property_tree_evidence"] is True
+        assert command_payload["args"]["source_guided_readback_paths"] == [
+            "Configuration"
+        ]
+        assert "property_path" not in command_payload["args"]
+
+
 def test_execute_component_property_list_rejects_without_component_id() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir) / "project"
