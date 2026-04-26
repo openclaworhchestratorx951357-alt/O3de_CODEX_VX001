@@ -3049,6 +3049,328 @@ def test_prompt_session_plans_live_component_find_without_property_list() -> Non
                 )
 
 
+def test_prompt_session_plans_component_find_property_readback_without_property_list() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps(
+                {
+                    "project_name": "PromptEditorProject",
+                    "version": "1.0.0",
+                    "gem_names": ["PythonEditorBindings"],
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                create_response = client.post(
+                    "/prompt/sessions",
+                    json={
+                        "prompt_id": "prompt-editor-component-find-property-1",
+                        "prompt_text": (
+                            'Open level "Levels/Main.level", find Mesh component '
+                            "on entity id 101, then read back the relevant "
+                            "component/property evidence."
+                        ),
+                        "project_root": str(project_root),
+                        "engine_root": "C:/engine",
+                        "dry_run": False,
+                        "preferred_domains": ["editor-control"],
+                    },
+                )
+                assert create_response.status_code == 200
+                create_payload = create_response.json()
+                assert create_payload["status"] == "planned"
+                assert [step["tool"] for step in create_payload["plan"]["steps"]] == [
+                    "editor.session.open",
+                    "editor.level.open",
+                    "editor.component.find",
+                    "editor.component.property.get",
+                ]
+                assert create_payload["plan"]["steps"][2]["args"] == {
+                    "component_name": "Mesh",
+                    "entity_id": "101",
+                    "level_path": "Levels/Main.level",
+                }
+                assert create_payload["plan"]["steps"][3]["args"] == {
+                    "component_id": "$step:editor-component-find-1.component_id",
+                    "property_path": "Controller|Configuration|Model Asset",
+                    "level_path": "Levels/Main.level",
+                }
+                assert create_payload["plan"]["steps"][3]["depends_on"] == [
+                    "editor-component-find-1"
+                ]
+                assert (
+                    create_payload["plan"]["steps"][3]["planner_note"]
+                    == "Read back the admitted default verification property using the live component id returned by the preceding target-binding step; do not list properties or rely on prefab-derived ids."
+                )
+                assert create_payload["refused_capabilities"] == []
+                assert "editor.component.property.list" not in (
+                    step["tool"] for step in create_payload["plan"]["steps"]
+                )
+
+
+def test_prompt_session_executes_component_property_read_from_found_component_output() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps(
+                {
+                    "project_name": "PromptEditorProject",
+                    "version": "1.0.0",
+                    "gem_names": ["PythonEditorBindings"],
+                }
+            ),
+            encoding="utf-8",
+        )
+        captured_find_args: list[dict[str, object]] = []
+        captured_property_args: list[dict[str, object]] = []
+        component_id = "EntityComponentIdPair(EntityId(101), 201)"
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+            },
+            clear=False,
+        ):
+            with patch(
+                "app.services.adapters.editor_automation_runtime_service.execute_session_open",
+                return_value={
+                    "runtime_result": {
+                        "editor_session_id": "editor-session-runtime",
+                        "loaded_level_path": "Levels/Main.level",
+                        "exact_editor_apis": [
+                            "azlmbr.legacy.general.open_level_no_prompt"
+                        ],
+                        "bridge_available": True,
+                        "bridge_name": "ControlPlaneEditorBridge",
+                        "bridge_version": "0.1.0",
+                        "bridge_operation": "editor.session.open",
+                        "bridge_contract_version": "v1",
+                        "bridge_command_id": "bridge-session-1",
+                        "bridge_result_summary": "editor.session.open completed.",
+                        "bridge_heartbeat_seen_at": "2026-04-20T00:00:00Z",
+                        "bridge_queue_mode": "filesystem-inbox",
+                        "editor_transport": "bridge",
+                    },
+                    "runner_command": ["fake-editor-runner"],
+                    "runtime_script": "control_plane_bridge_bootstrap.py",
+                },
+            ):
+                with patch(
+                    "app.services.adapters.editor_automation_runtime_service.execute_level_open",
+                    return_value={
+                        "runtime_result": {
+                            "loaded_level_path": "Levels/Main.level",
+                            "level_path": "Levels/Main.level",
+                            "created_level": False,
+                            "exact_editor_apis": [
+                                "azlmbr.legacy.general.open_level_no_prompt"
+                            ],
+                            "bridge_available": True,
+                            "bridge_name": "ControlPlaneEditorBridge",
+                            "bridge_version": "0.1.0",
+                            "bridge_operation": "editor.level.open",
+                            "bridge_contract_version": "v1",
+                            "bridge_command_id": "bridge-level-1",
+                            "bridge_result_summary": "editor.level.open completed.",
+                            "bridge_heartbeat_seen_at": "2026-04-20T00:00:01Z",
+                            "bridge_queue_mode": "filesystem-inbox",
+                            "editor_transport": "bridge",
+                        },
+                        "runner_command": ["fake-editor-runner"],
+                        "runtime_script": "control_plane_bridge_bootstrap.py",
+                    },
+                ):
+
+                    def fake_component_find(*, args, **kwargs):  # type: ignore[no-untyped-def]
+                        captured_find_args.append(args)
+                        assert args["component_name"] == "Mesh"
+                        assert args["entity_id"] == "101"
+                        assert args["level_path"] == "Levels/Main.level"
+                        return {
+                            "runtime_result": {
+                                "ok": True,
+                                "found": True,
+                                "entity_id": "101",
+                                "entity_name": "Hero",
+                                "component_name": "Mesh",
+                                "component_id": component_id,
+                                "component_id_provenance": (
+                                    "admitted_runtime_component_discovery_result"
+                                ),
+                                "level_path": "Levels/Main.level",
+                                "loaded_level_path": "Levels/Main.level",
+                                "exact_editor_apis": [
+                                    "ControlPlaneEditorBridge filesystem inbox",
+                                    "editor.component.find",
+                                    "EditorComponentAPIBus.GetComponentOfType",
+                                ],
+                                "bridge_available": True,
+                                "bridge_name": "ControlPlaneEditorBridge",
+                                "bridge_version": "0.1.0",
+                                "bridge_operation": "editor.component.find",
+                                "bridge_contract_version": "v1",
+                                "bridge_command_id": "bridge-component-find-1",
+                                "bridge_result_summary": (
+                                    "editor.component.find completed."
+                                ),
+                                "bridge_heartbeat_seen_at": "2026-04-20T00:00:02Z",
+                                "bridge_queue_mode": "filesystem-inbox",
+                                "editor_transport": "bridge",
+                            },
+                            "runner_command": ["fake-editor-runner"],
+                            "runtime_script": "control_plane_bridge_poller.py",
+                        }
+
+                    def fake_component_property_get(*, args, **kwargs):  # type: ignore[no-untyped-def]
+                        captured_property_args.append(args)
+                        assert args["component_id"] == component_id
+                        assert (
+                            args["property_path"]
+                            == "Controller|Configuration|Model Asset"
+                        )
+                        assert args["level_path"] == "Levels/Main.level"
+                        return {
+                            "runtime_result": {
+                                "ok": True,
+                                "component_id": component_id,
+                                "property_path": "Controller|Configuration|Model Asset",
+                                "value": "objects/example.azmodel",
+                                "value_type": "AZ::Data::Asset<AZ::Data::AssetData>",
+                                "entity_id": "101",
+                                "level_path": "Levels/Main.level",
+                                "loaded_level_path": "Levels/Main.level",
+                                "exact_editor_apis": [
+                                    "ControlPlaneEditorBridge filesystem inbox",
+                                    "editor.component.property.get",
+                                ],
+                                "bridge_available": True,
+                                "bridge_name": "ControlPlaneEditorBridge",
+                                "bridge_version": "0.1.0",
+                                "bridge_operation": "editor.component.property.get",
+                                "bridge_contract_version": "v1",
+                                "bridge_command_id": "bridge-component-property-1",
+                                "bridge_result_summary": (
+                                    "editor.component.property.get completed."
+                                ),
+                                "bridge_heartbeat_seen_at": "2026-04-20T00:00:03Z",
+                                "bridge_queue_mode": "filesystem-inbox",
+                                "editor_transport": "bridge",
+                            },
+                            "runner_command": ["fake-editor-runner"],
+                            "runtime_script": "control_plane_bridge_poller.py",
+                        }
+
+                    with patch(
+                        "app.services.adapters.editor_automation_runtime_service.execute_component_find",
+                        side_effect=fake_component_find,
+                    ):
+                        with patch(
+                            "app.services.adapters.editor_automation_runtime_service.execute_component_property_get",
+                            side_effect=fake_component_property_get,
+                        ):
+                            with isolated_client() as client:
+                                create_response = client.post(
+                                    "/prompt/sessions",
+                                    json={
+                                        "prompt_id": (
+                                            "prompt-editor-component-find-property-execute-1"
+                                        ),
+                                        "prompt_text": (
+                                            'Open level "Levels/Main.level", find Mesh '
+                                            "component on entity id 101, then read back "
+                                            "the relevant component/property evidence."
+                                        ),
+                                        "project_root": str(project_root),
+                                        "engine_root": "C:/engine",
+                                        "dry_run": False,
+                                        "preferred_domains": ["editor-control"],
+                                    },
+                                )
+                                assert create_response.status_code == 200
+                                create_payload = create_response.json()
+                                assert [
+                                    step["tool"]
+                                    for step in create_payload["plan"]["steps"]
+                                ] == [
+                                    "editor.session.open",
+                                    "editor.level.open",
+                                    "editor.component.find",
+                                    "editor.component.property.get",
+                                ]
+
+                                completed_payload = None
+                                for _ in range(8):
+                                    execute_response = client.post(
+                                        "/prompt/sessions/"
+                                        "prompt-editor-component-find-property-execute-1"
+                                        "/execute"
+                                    )
+                                    assert execute_response.status_code == 200
+                                    execute_payload = execute_response.json()
+                                    if execute_payload["status"] == "waiting_approval":
+                                        approval_response = client.post(
+                                            f"/approvals/{execute_payload['pending_approval_id']}/approve",
+                                            json={},
+                                        )
+                                        assert approval_response.status_code == 200
+                                        continue
+                                    completed_payload = execute_payload
+                                    break
+
+                                assert completed_payload is not None
+                                assert completed_payload["status"] == "completed"
+                                assert captured_find_args == [
+                                    {
+                                        "component_name": "Mesh",
+                                        "entity_id": "101",
+                                        "level_path": "Levels/Main.level",
+                                    }
+                                ]
+                                assert captured_property_args == [
+                                    {
+                                        "component_id": component_id,
+                                        "property_path": (
+                                            "Controller|Configuration|Model Asset"
+                                        ),
+                                        "level_path": "Levels/Main.level",
+                                    }
+                                ]
+                                assert (
+                                    "Bound live Mesh component "
+                                    f"{component_id} on entity Hero."
+                                    in completed_payload["final_result_summary"]
+                                )
+                                assert (
+                                    "Bound discovered component id "
+                                    f"{component_id} into the admitted property "
+                                    "readback step automatically."
+                                    in completed_payload["final_result_summary"]
+                                )
+                                assert (
+                                    "Readback bound live Mesh component "
+                                    f"{component_id} on entity Hero with provenance "
+                                    "admitted_runtime_component_discovery_result."
+                                    in completed_payload["final_result_summary"]
+                                )
+                                assert (
+                                    "Readback confirmed Controller|Configuration|Model Asset = objects/example.azmodel."
+                                    in completed_payload["final_result_summary"]
+                                )
+                                assert (
+                                    "editor.component.property.list"
+                                    not in completed_payload["admitted_capabilities"]
+                                )
+
+
 def test_prompt_session_executes_editor_component_property_read_from_added_component_output() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)

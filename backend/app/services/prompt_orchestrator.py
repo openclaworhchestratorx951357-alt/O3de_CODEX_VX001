@@ -1221,6 +1221,9 @@ class PromptOrchestratorService:
         level_response = self._latest_successful_response_for_step(session, "editor-level-1")
         entity_response = self._latest_successful_response_for_step(session, "editor-entity-1")
         component_response = self._latest_successful_response_for_step(session, "editor-component-1")
+        component_find_response = self._latest_successful_response_for_step(
+            session, "editor-component-find-1"
+        )
         property_response = self._latest_successful_response_for_step(
             session, "editor-component-property-1"
         )
@@ -1250,18 +1253,21 @@ class PromptOrchestratorService:
             level_response=level_response,
             entity_response=entity_response,
             component_response=component_response,
+            component_find_response=component_find_response,
             property_response=property_response,
             failed_response=failed_response,
         )
         verified_facts = self._editor_verified_facts(
             entity_response=entity_response,
             component_response=component_response,
+            component_find_response=component_find_response,
             property_response=property_response,
         )
         assumptions = self._editor_review_assumptions(
             session=session,
             entity_response=entity_response,
             component_response=component_response,
+            component_find_response=component_find_response,
             property_response=property_response,
         )
         missing_proof = self._editor_missing_proof(
@@ -1607,6 +1613,7 @@ class PromptOrchestratorService:
         level_response: dict[str, Any] | None,
         entity_response: dict[str, Any] | None,
         component_response: dict[str, Any] | None,
+        component_find_response: dict[str, Any] | None,
         property_response: dict[str, Any] | None,
         failed_response: dict[str, Any] | None,
     ) -> list[str]:
@@ -1627,6 +1634,11 @@ class PromptOrchestratorService:
         entity_details = entity_response.get("execution_details", {}) if entity_response else {}
         component_details = (
             component_response.get("execution_details", {}) if component_response else {}
+        )
+        component_find_details = (
+            component_find_response.get("execution_details", {})
+            if component_find_response
+            else {}
         )
         property_details = (
             property_response.get("execution_details", {}) if property_response else {}
@@ -1657,7 +1669,29 @@ class PromptOrchestratorService:
             and added_component_refs[0].get("component_id") == property_component_id
         ):
             actions.append(
-                f"Bound added component id {property_component_id} into the admitted property readback step automatically."
+                f"Bound added component id {property_component_id} into the "
+                "admitted property readback step automatically."
+            )
+        found_component_id = component_find_details.get("component_id")
+        found_component_name = component_find_details.get("component_name")
+        found_entity_label = (
+            component_find_details.get("entity_name")
+            or component_find_details.get("entity_id")
+        )
+        if found_component_id and found_component_name:
+            if found_entity_label:
+                actions.append(
+                    f"Bound live {found_component_name} component {found_component_id} "
+                    f"on entity {found_entity_label}."
+                )
+            else:
+                actions.append(
+                    f"Bound live {found_component_name} component {found_component_id}."
+                )
+        if found_component_id and property_component_id == found_component_id:
+            actions.append(
+                f"Bound discovered component id {property_component_id} into the "
+                "admitted property readback step automatically."
             )
         if property_response is not None:
             property_path = property_details.get("property_path")
@@ -1682,6 +1716,7 @@ class PromptOrchestratorService:
         *,
         entity_response: dict[str, Any] | None,
         component_response: dict[str, Any] | None,
+        component_find_response: dict[str, Any] | None,
         property_response: dict[str, Any] | None,
     ) -> list[str]:
         facts: list[str] = []
@@ -1709,8 +1744,28 @@ class PromptOrchestratorService:
                         f"Readback confirmed added component(s) {component_list} on entity {entity_id}."
                     )
                 else:
-                    facts.append(f"Readback confirmed added component(s) {component_list}.")
+                    facts.append(
+                        f"Readback confirmed added component(s) {component_list}."
+                    )
             facts.extend(self._restore_boundary_summary_items(details))
+
+        if component_find_response is not None:
+            details = component_find_response.get("execution_details", {})
+            found = details.get("found")
+            component_name = details.get("component_name")
+            component_id = details.get("component_id")
+            provenance = details.get("component_id_provenance")
+            entity_label = details.get("entity_name") or details.get("entity_id")
+            if found is True and component_name and component_id:
+                facts.append(
+                    f"Readback bound live {component_name} component {component_id} "
+                    f"on entity {entity_label} with provenance {provenance}."
+                )
+            elif found is False and component_name:
+                facts.append(
+                    f"Readback confirmed no live {component_name} component target "
+                    f"was found on entity {entity_label}."
+                )
 
         if property_response is not None:
             details = property_response.get("execution_details", {})
@@ -1727,6 +1782,7 @@ class PromptOrchestratorService:
         session: PromptSessionRecord,
         entity_response: dict[str, Any] | None,
         component_response: dict[str, Any] | None,
+        component_find_response: dict[str, Any] | None,
         property_response: dict[str, Any] | None,
     ) -> list[str]:
         assumptions: list[str] = []
@@ -1737,6 +1793,10 @@ class PromptOrchestratorService:
         if component_response is not None and property_response is not None:
             assumptions.append(
                 "Component property readback relied on the persisted component id returned by the immediately preceding admitted component attachment step."
+            )
+        if component_find_response is not None and property_response is not None:
+            assumptions.append(
+                "Component property readback relied on the persisted live component id returned by the immediately preceding admitted target-binding step."
             )
         if any(
             step.planner_note
