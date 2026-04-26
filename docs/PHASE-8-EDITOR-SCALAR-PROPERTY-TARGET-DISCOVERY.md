@@ -81,8 +81,10 @@ Result:
 - typed property-list and property-tree evidence both exposed only an empty
   live Comment property path, which is recorded as evidence but not selected as
   a stable operator target
+- root `PropertyTreeEditor.get_value("")` was attempted and API-successful, but
+  the returned value was not scalar/text-like
 - Comment-only source-guided named readbacks failed
-- blocker code: `comment_source_guided_readback_failed`
+- blocker code: `comment_root_string_readback_failed`
 
 The next packet should choose another already-allowlisted non-render component,
 such as `Camera`, or design a separate proof-only strategy for components whose

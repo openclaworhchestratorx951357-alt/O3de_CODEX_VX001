@@ -83,9 +83,10 @@ Current blocker:
   `no_non_asset_non_render_scalar_target`
 - the non-render `Comment` target discovery proof reached allowlisted
   temporary component provisioning and verified restore, then the typed
-  property-tree discovery fix proved that list/tree evidence exposes only an
-  empty live Comment path and source-guided named readbacks fail; blocker code:
-  `comment_source_guided_readback_failed`
+  property-tree/root-readback packets proved that list/tree evidence exposes
+  only an empty live Comment path, root `PropertyTreeEditor.get_value("")`
+  returns a non-scalar object, and source-guided named readbacks fail; blocker
+  code: `comment_root_string_readback_failed`
 
 Do not use `Mesh` `Controller|Configuration|Model Asset` as the first write
 target unless a separate asset-reference proof exists. It is already useful as

@@ -21,6 +21,7 @@ SCALAR_CANDIDATE_NOT_FOUND_BLOCKER_CODE = "comment_scalar_candidate_not_found"
 SOURCE_GUIDED_READBACK_FAILED_BLOCKER_CODE = (
     "comment_source_guided_readback_failed"
 )
+ROOT_STRING_READBACK_FAILED_BLOCKER_CODE = "comment_root_string_readback_failed"
 SUCCESS_NEXT_STEP = (
     "Review the Comment scalar readback evidence before any proof-only property-write "
     "packet."
@@ -85,14 +86,22 @@ def split_typed_property_path_entry(path_entry: str) -> dict[str, Any]:
     raw_entry = str(path_entry)
     path = raw_entry
     value_type_hint = None
+    visibility_hint = None
     path_name, separator, typed_suffix = raw_entry.rpartition(" (")
     if separator and typed_suffix.endswith(")"):
         path = path_name
-        value_type_hint = typed_suffix[:-1].split(",", 1)[0].strip() or None
+        typed_parts = [part.strip() for part in typed_suffix[:-1].split(",")]
+        value_type_hint = typed_parts[0] if typed_parts and typed_parts[0] else None
+        visibility_hint = (
+            typed_parts[1]
+            if len(typed_parts) > 1 and typed_parts[1]
+            else None
+        )
     return {
         "raw_entry": raw_entry,
         "path": path.strip(),
         "value_type_hint": value_type_hint,
+        "visibility_hint": visibility_hint,
     }
 
 
@@ -196,7 +205,9 @@ def _value_is_scalar_or_text_like(value: Any, value_type: Any) -> bool:
     if isinstance(value, (str, bool, int, float)):
         return True
     value_type_text = "" if value_type is None else str(value_type).lower()
-    return any(marker in value_type_text for marker in SCALAR_VALUE_TYPE_MARKERS)
+    return value is None and any(
+        marker in value_type_text for marker in SCALAR_VALUE_TYPE_MARKERS
+    )
 
 
 def collect_comment_source_inspection_evidence(engine_root: str) -> dict[str, Any]:
@@ -286,8 +297,11 @@ def review_comment_scalar_discovery_result(
         "property_list_admission": False,
     }
     if isinstance(selected_candidate, dict):
-        property_path = str(selected_candidate.get("property_path") or "").strip()
-        if not property_path:
+        raw_property_path = selected_candidate.get("property_path")
+        property_path = "" if raw_property_path is None else str(raw_property_path)
+        property_path_kind = selected_candidate.get("property_path_kind")
+        is_root_path = property_path_kind == "property_tree_root"
+        if not property_path.strip() and not is_root_path:
             raise CommentScalarTargetProofError(
                 "Comment scalar discovery selected an empty property path."
             )
@@ -295,6 +309,15 @@ def review_comment_scalar_discovery_result(
             raise CommentScalarTargetProofError(
                 "Comment scalar discovery selected an out-of-scope property path."
             )
+        if is_root_path:
+            if selected_candidate.get("property_tree_get_value_attempted") is not True:
+                raise CommentScalarTargetProofError(
+                    "Comment root discovery did not use PropertyTreeEditor.get_value."
+                )
+            if selected_candidate.get("get_component_property_attempted") is True:
+                raise CommentScalarTargetProofError(
+                    "Comment root discovery used public GetComponentProperty."
+                )
         if selected_candidate.get("success") is not True:
             raise CommentScalarTargetProofError(
                 "Comment scalar discovery selected a candidate without readback success."
@@ -318,6 +341,9 @@ def review_comment_scalar_discovery_result(
             "selected_candidate": {
                 "component": PROOF_COMPONENT_FAMILY,
                 "property_path": property_path,
+                "property_path_kind": property_path_kind,
+                "display_label": selected_candidate.get("display_label"),
+                "discovery_method": selected_candidate.get("discovery_method"),
                 "value_type": value_type,
                 "value_preview": str(value)[:160] if value is not None else None,
                 "target_status": "readback_only_candidate",
@@ -332,6 +358,7 @@ def review_comment_scalar_discovery_result(
         PROPERTY_TREE_UNAVAILABLE_BLOCKER_CODE,
         SCALAR_CANDIDATE_NOT_FOUND_BLOCKER_CODE,
         SOURCE_GUIDED_READBACK_FAILED_BLOCKER_CODE,
+        ROOT_STRING_READBACK_FAILED_BLOCKER_CODE,
         PROPERTY_LIST_UNAVAILABLE_BLOCKER_CODE,
         BLOCKER_CODE,
     }:
