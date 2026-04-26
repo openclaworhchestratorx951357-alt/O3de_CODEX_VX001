@@ -13,6 +13,8 @@ rounding up capability claims.
   and next likely packets.
 - `docs/REPOSITORY-OPERATIONS.md` - low-friction Codex admin workflow,
   validation expectations, and self-merge rules.
+- `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` - repo-wide workflow
+  checklist for future Codex threads across all phases.
 - `docs/BRANCH-AND-PR-HYGIENE.md` - branch, PR, cleanup, and rollback hygiene.
 - `docs/VALIDATION-MATRIX.md` - validation command matrix and proof boundaries.
 - `docs/CAPABILITY-MATURITY-MATRIX.md` - conservative capability maturity
@@ -26,6 +28,8 @@ rounding up capability claims.
 
 - `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md` is the canonical admitted-surface
   matrix.
+- `docs/PHASE-8-ADMITTED-SURFACES-QUICK-REFERENCE.md` is the short future-thread
+  guide for Phase 8 admitted, proof-only, blocked, and forbidden surfaces.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-TARGET-DISCOVERY.md` is the current
   editor component/property targeting truth source.
 - `docs/PHASE-8-CAMERA-BOOL-WRITE-PUBLIC-CORRIDOR.md` tracks the only exact
@@ -39,6 +43,7 @@ rounding up capability claims.
 
 ## Operating Guides
 
+- `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`
 - `docs/CODEX-OPERATING-RUNBOOK.md`
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
 - `docs/WORKTREE-STRATEGY.md`
@@ -81,6 +86,7 @@ rounding up capability claims.
 - `docs/PHASE-7-SETTINGS-GEM-INSPECTION-CHECKLIST.md`
 - `docs/PHASE-7-SETTINGS-GEM-CANDIDATES.md`
 - `docs/PHASE-8-GUARDED-AUTONOMY-PROGRAM.md`
+- `docs/PHASE-8-ADMITTED-SURFACES-QUICK-REFERENCE.md`
 - `docs/PHASE-8-EDITOR-CANDIDATE-MUTATION-ENVELOPE.md`
 - `docs/PHASE-8-CAMERA-SCALAR-WRITE-CANDIDATE-DESIGN.md`
 - `docs/PHASE-8-CAMERA-SCALAR-WRITE-READINESS-AUDIT.md`
