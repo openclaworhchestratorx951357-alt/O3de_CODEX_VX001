@@ -16,6 +16,7 @@ a property path by static guess, stale memory, or broad Editor Python access.
 
 Read this together with:
 - `docs/PHASE-8-EDITOR-CANDIDATE-MUTATION-ENVELOPE.md`
+- `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-LIST-BRIDGE-CANDIDATE.md`
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md`
 - `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md`
@@ -41,6 +42,15 @@ Current broad property discovery behavior also remains refused:
   `editor.component.property.list.unsupported`.
 - No editor session plan should be compiled for those prompts.
 - No component property list bridge operation is admitted.
+
+Current bridge readiness blocker:
+- `BuildComponentPropertyList` exists only as an internal check inside
+  `editor.component.property.get`.
+- the canonical bridge dispatch does not expose
+  `editor.component.property.list`.
+- `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-LIST-BRIDGE-CANDIDATE.md`
+  defines the candidate read-only bridge operation that must exist before this
+  discovery packet can run.
 
 ## Discovery Goal
 
