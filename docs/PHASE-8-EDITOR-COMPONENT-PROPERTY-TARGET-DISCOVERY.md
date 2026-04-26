@@ -36,6 +36,12 @@ Current property write behavior remains refused:
 - No editor session plan should be compiled for those prompts.
 - No component property write bridge operation is admitted.
 
+Current broad property discovery behavior also remains refused:
+- Prompt Studio property-list or property-path discovery intents must return
+  `editor.component.property.list.unsupported`.
+- No editor session plan should be compiled for those prompts.
+- No component property list bridge operation is admitted.
+
 ## Discovery Goal
 
 The discovery packet must identify exactly one possible first write target by
@@ -153,3 +159,4 @@ blocker that must be solved first.
 
 Until then, the correct behavior is still refusal:
 - `editor.candidate_mutation.unsupported`
+- `editor.component.property.list.unsupported`

@@ -23,10 +23,16 @@ _ADMITTED_COMPONENT_PROPERTY_READ_PATHS = {
 }
 _ENTITY_EXISTS_STEP_ID = "editor-entity-exists-1"
 CANDIDATE_EDITOR_MUTATION_REFUSAL = "editor.candidate_mutation.unsupported"
+EDITOR_PROPERTY_DISCOVERY_REFUSAL = "editor.component.property.list.unsupported"
 _CANDIDATE_EDITOR_MUTATION_REQUIREMENT = (
     "Candidate editor mutation surfaces require explicit backup, restore/reload "
     "verification, post-restore absence or readback verification, and "
     "operator-visible review before prompt admission."
+)
+_EDITOR_PROPERTY_DISCOVERY_REQUIREMENT = (
+    "Component property target discovery requires a dedicated typed read-only "
+    "property-list packet with exact entity, component, level, and bridge "
+    "evidence before prompt admission."
 )
 _CANDIDATE_EDITOR_MUTATION_PATTERNS = (
     re.compile(
@@ -61,6 +67,14 @@ _CANDIDATE_EDITOR_MUTATION_PATTERNS = (
     re.compile(r"\b(?:set|assign|update|change|modify)\s+.*\bmaterial\b"),
     re.compile(r"\barbitrary\s+editor\s+(?:python|command|script)\b"),
     re.compile(r"\bexecute\s+(?:an?\s+)?editor\s+(?:python|command|script)\b"),
+)
+_EDITOR_PROPERTY_DISCOVERY_PATTERNS = (
+    re.compile(
+        r"\b(?:list|show|discover|enumerate)\s+(?:the\s+)?"
+        r"(?:component\s+)?propert(?:y|ies|y\s+paths|ies\s+paths)\b"
+    ),
+    re.compile(r"\bcomponent\s+property\s+(?:list|paths|path\s+list)\b"),
+    re.compile(r"\bwhat\s+(?:component\s+)?propert(?:y|ies)\b"),
 )
 
 
@@ -101,6 +115,14 @@ def _requires_candidate_editor_mutation_admission(prompt_text: str) -> bool:
     return any(
         pattern.search(normalized) is not None
         for pattern in _CANDIDATE_EDITOR_MUTATION_PATTERNS
+    )
+
+
+def _requires_property_discovery_admission(prompt_text: str) -> bool:
+    normalized = prompt_text.lower()
+    return any(
+        pattern.search(normalized) is not None
+        for pattern in _EDITOR_PROPERTY_DISCOVERY_PATTERNS
     )
 
 
@@ -148,6 +170,11 @@ def plan_editor_prompt(
     if _requires_candidate_editor_mutation_admission(prompt_text):
         refusals.append(CANDIDATE_EDITOR_MUTATION_REFUSAL)
         requirements.append(_CANDIDATE_EDITOR_MUTATION_REQUIREMENT)
+        return steps, refusals, requirements
+
+    if _requires_property_discovery_admission(prompt_text):
+        refusals.append(EDITOR_PROPERTY_DISCOVERY_REFUSAL)
+        requirements.append(_EDITOR_PROPERTY_DISCOVERY_REQUIREMENT)
         return steps, refusals, requirements
 
     session_capability = capabilities["editor.session.open"]
