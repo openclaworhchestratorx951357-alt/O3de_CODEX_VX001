@@ -18,11 +18,12 @@ Use this order when status sources disagree:
 
 ## Mainline Baseline
 
-At the time this status snapshot was updated, `main` includes PR #40 and the
-current Phase 8 packet admits the next exact Camera bool public corridor:
+At the time this status snapshot was updated, `main` includes PR #55 and the
+current Phase 8 packet refines review/status output for the exact Camera bool
+restore corridor:
 
-- Merge commit: `8c44904ba18d66001c49b46232b8f65a308daaf5`
-- PR title: `Add proof-only Camera scalar write harness`
+- Merge commit: `7b263d28524fa392de66a2ceee7a86ceb2e0c5fb`
+- PR title: `Admit exact Camera bool restore corridor`
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -59,6 +60,10 @@ Current admitted editor/runtime truth:
   same-chain target entity, Camera component, property path,
   before/requested/after values, verification result, `content_write`
   admission class, restore guidance, and `generalized_undo_available: false`.
+- the exact Camera bool restore review/status output separates
+  `write_occurred` from `restore_occurred`: the restore corridor performs one
+  bounded write of the recorded before value, but this does not admit generic
+  property writes or generalized undo.
 
 Current non-admitted editor/property truth:
 

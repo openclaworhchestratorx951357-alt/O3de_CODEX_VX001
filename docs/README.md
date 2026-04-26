@@ -49,6 +49,8 @@ rounding up capability claims.
   evidence proof-only while naming the future exact public corridor candidate.
 - `docs/PHASE-8-CAMERA-BOOL-RESTORE-PUBLIC-CORRIDOR.md` tracks the exact
   admitted public restore corridor for the Camera bool path.
+- `docs/PHASE-8-CAMERA-BOOL-RESTORE-REVIEW-STATUS.md` defines the
+  operator-facing review/status fields for that exact restore corridor.
 - `docs/PHASE-8-CAMERA-BOOL-OPERATOR-EXAMPLES.md` gives safe operator prompt
   examples for the exact Camera bool readback/write/restore corridor.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
@@ -115,6 +117,7 @@ rounding up capability claims.
 - `docs/PHASE-8-CAMERA-BOOL-RESTORE-LIVE-PROOF.md`
 - `docs/PHASE-8-CAMERA-BOOL-RESTORE-ADMISSION-DECISION.md`
 - `docs/PHASE-8-CAMERA-BOOL-RESTORE-PUBLIC-CORRIDOR.md`
+- `docs/PHASE-8-CAMERA-BOOL-RESTORE-REVIEW-STATUS.md`
 - `docs/PHASE-8-CAMERA-BOOL-OPERATOR-EXAMPLES.md`
 - `docs/PHASE-8-EDITOR-COMPONENT-FIND-LIVE-PROOF.md`
 - `docs/PHASE-8-EDITOR-PROPERTY-TARGET-READBACK-PROOF.md`

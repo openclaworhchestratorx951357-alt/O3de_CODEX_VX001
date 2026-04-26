@@ -3150,12 +3150,30 @@ def test_execute_exact_camera_bool_restore_wrapper_marks_public_restore_admissio
     assert runtime_result["generalized_undo_available"] is False
     assert runtime_result["property_list_admission"] is False
     assert runtime_result["target_status"] == "admitted_exact_camera_bool_restore"
+    assert runtime_result["target_entity"] == "EntityId(101)"
+    assert runtime_result["target_entity_id"] == "101"
+    assert runtime_result["before_value_evidence"] == "recorded_before_value"
     assert runtime_result["before_value"] is False
     assert runtime_result["current_value"] is True
+    assert runtime_result["current_value_before_restore"] is True
+    assert runtime_result["restore_value"] is False
     assert runtime_result["restored_value"] is False
     assert runtime_result["restored_readback"] is False
     assert runtime_result["restore_verified"] is True
     assert runtime_result["verification_status"] == "restored_readback_verified"
+    assert runtime_result["verification_result"] == "restored_readback_verified"
+    assert runtime_result["write_occurred"] is True
+    assert runtime_result["restore_occurred"] is True
+    assert "bounded write of the recorded before_value" in (
+        runtime_result["write_occurred_semantics"]
+    )
+    assert "verified restored readback" in (
+        runtime_result["restore_occurred_semantics"]
+    )
+    assert (
+        runtime_result["restore_scope"]
+        == "exact_camera_bool_make_active_on_activation"
+    )
     assert "not generalized undo" in runtime_result["restore_or_revert_guidance"]
 
 
