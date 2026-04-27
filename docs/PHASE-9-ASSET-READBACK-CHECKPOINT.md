@@ -44,6 +44,13 @@ Live proof against `McpSandbox` confirmed:
 The follow-up catalog proof added an additive read-only cross-check for the
 same product path through `assetcatalog.xml-read-only`.
 
+Live proof then confirmed that the same `McpSandbox` source returns
+`asset_catalog_evidence_available=true` with one catalog presence row:
+
+```text
+pc/levels/bridgelevel01/bridgelevel01.spawnable -> levels/bridgelevel01/bridgelevel01.spawnable (platform=pc, present=True, match_count=1)
+```
+
 ## Guarded Prompt Boundaries
 
 Prompt Studio now refuses unsafe natural asset prompts for:
@@ -77,6 +84,7 @@ readback for one explicit source asset.
 - `docs/PHASE-9-ASSET-CATALOG-SUBSTRATE-DISCOVERY.md`
 - `docs/PHASE-9-ASSET-CATALOG-PARSER-DESIGN.md`
 - `docs/PHASE-9-ASSET-CATALOG-PATH-PRESENCE-PROOF.md`
+- `docs/PHASE-9-ASSET-CATALOG-PATH-PRESENCE-LIVE-PROOF.md`
 - `backend/tests/test_dispatcher.py`
 - `backend/tests/test_prompt_control.py`
 
@@ -103,3 +111,6 @@ Asset Catalog product-path presence proof is now tracked in
 `docs/PHASE-9-ASSET-CATALOG-PATH-PRESENCE-PROOF.md`; it adds an additive
 read-only cross-check behind `asset.source.inspect` without admitting broad
 catalog resolve.
+
+Live proof of that cross-check is now tracked in
+`docs/PHASE-9-ASSET-CATALOG-PATH-PRESENCE-LIVE-PROOF.md`.
