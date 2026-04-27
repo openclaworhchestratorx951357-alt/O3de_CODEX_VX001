@@ -69,6 +69,9 @@ rounding up capability claims.
 - `docs/PHASE-8-CAMERA-NON-BOOL-READBACK-PROOF.md` records the proof-only
   implementation boundary for Camera non-bool scalar readback, including the
   exact bool-path exclusion and unchanged public admission blocks.
+- `docs/PHASE-8-CAMERA-NON-BOOL-LIVE-PROOF-PENDING-CHECKPOINT.md` records that
+  the proof-only implementation is merged, but live Editor proof is pending
+  because the local bridge heartbeat was stale.
 - `docs/PHASE-9-ASSET-READBACK-BASELINE.md` starts Phase 9 with the current
   asset/pipeline readback truth before any new asset runtime surface is widened.
 - `docs/PHASE-9-ASSET-READBACK-DISCOVERY.md` records the candidate-only Phase 9
@@ -161,6 +164,7 @@ rounding up capability claims.
 - `docs/PHASE-8-CAMERA-NON-BOOL-READBACK-DESIGN.md`
 - `docs/PHASE-8-CAMERA-NON-BOOL-READBACK-READINESS-AUDIT.md`
 - `docs/PHASE-8-CAMERA-NON-BOOL-READBACK-PROOF.md`
+- `docs/PHASE-8-CAMERA-NON-BOOL-LIVE-PROOF-PENDING-CHECKPOINT.md`
 - `docs/PHASE-9-ASSET-READBACK-BASELINE.md`
 - `docs/PHASE-9-ASSET-READBACK-DISCOVERY.md`
 - `docs/PHASE-9-ASSET-READBACK-DESIGN.md`
