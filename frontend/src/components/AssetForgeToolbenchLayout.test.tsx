@@ -96,6 +96,9 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getAllByText("Levels/BridgeLevel01/BridgeLevel01.prefab").length).toBeGreaterThan(0);
     expect(within(shell).getByText("Typed sample fixture data (read-only preview; not live)")).toBeInTheDocument();
     expect(within(shell).getAllByText("Not connected - placeholder only - no execution").length).toBeGreaterThan(0);
+    expect(within(shell).getByLabelText("Asset freshness severity")).toBeInTheDocument();
+    expect(within(shell).getByLabelText("Overall freshness stale")).toBeInTheDocument();
+    expect(within(shell).getByText(/Bridge heartbeat age cue: unavailable because bridge connection is not active\./i)).toBeInTheDocument();
     expect(within(shell).queryByText("Prompt request")).not.toBeInTheDocument();
     expect(within(shell).queryByLabelText("Forge command strip")).not.toBeInTheDocument();
     expect(within(shell).getByRole("button", { name: "Import selected asset" })).toBeDisabled();
@@ -222,6 +225,9 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByLabelText("Forge operator review packet full page")).toBeInTheDocument();
     expect(within(shell).getByLabelText("Forge operator review packet")).toBeInTheDocument();
     expect(within(shell).getByText("Typed sample fixture data (read-only preview; not live)")).toBeInTheDocument();
+    expect(within(shell).getByText("Freshness severity")).toBeInTheDocument();
+    expect(within(shell).getByLabelText("Review freshness severity")).toBeInTheDocument();
+    expect(within(shell).getByLabelText("Overall freshness stale")).toBeInTheDocument();
     expect(within(shell).getByText("Evidence summary")).toBeInTheDocument();
     expect(within(shell).getAllByText("Unknown / unavailable").length).toBeGreaterThan(0);
     expect(within(shell).getAllByText("Safest next step").length).toBeGreaterThan(0);
@@ -342,6 +348,7 @@ describe("AssetForgeToolbenchLayout", () => {
 
     fireEvent.click(within(shell).getByRole("button", { name: "Assets" }));
     expect(within(shell).getByText(/Connected \(read-only\) queue inbox 1 \| processing 0 \| results 3 \| deadletter 0; placeholder only - no execution/i)).toBeInTheDocument();
+    expect(within(shell).getByText("Bridge heartbeat age cue: fresh (4s).")).toBeInTheDocument();
 
     fireEvent.click(within(shell).getByRole("button", { name: "Help" }));
     expect(within(shell).getByText("Bridge connection: Connected (read-only)")).toBeInTheDocument();

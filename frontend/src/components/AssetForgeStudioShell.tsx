@@ -50,11 +50,25 @@ type AssetRowEntry = {
 type BridgeSnapshot = {
   connectionState: string;
   heartbeatState: string;
+  heartbeatFresh: boolean | null;
+  heartbeatAgeSeconds: number | null;
   runnerState: string;
   queueSummary: string;
   sourceLabel: string;
   projectRoot: string;
   bridgeRoot: string;
+};
+type FreshnessSeverity = "current" | "stale" | "unknown";
+type FreshnessSignal = {
+  status: string;
+  severity: FreshnessSeverity;
+  cue: string;
+};
+type FreshnessOverview = {
+  assetDatabase: FreshnessSignal;
+  assetCatalog: FreshnessSignal;
+  overall: FreshnessSignal;
+  bridgeHeartbeatCue: string;
 };
 
 const UNKNOWN_VALUE = "Unknown / unavailable";
@@ -95,6 +109,8 @@ function buildBridgeSnapshot(bridgeStatus?: O3DEBridgeStatus | null): BridgeSnap
     return {
       connectionState: "Not connected",
       heartbeatState: UNKNOWN_VALUE,
+      heartbeatFresh: null,
+      heartbeatAgeSeconds: null,
       runnerState: UNKNOWN_VALUE,
       queueSummary: UNKNOWN_VALUE,
       sourceLabel: "Not connected",
@@ -109,11 +125,100 @@ function buildBridgeSnapshot(bridgeStatus?: O3DEBridgeStatus | null): BridgeSnap
   return {
     connectionState: bridgeStatus.configured ? "Connected (read-only)" : "Not connected",
     heartbeatState: formatHeartbeatState(bridgeStatus.heartbeat_fresh, bridgeStatus.heartbeat_age_s),
+    heartbeatFresh: bridgeStatus.heartbeat_fresh,
+    heartbeatAgeSeconds: typeof bridgeStatus.heartbeat_age_s === "number" && Number.isFinite(bridgeStatus.heartbeat_age_s)
+      ? Math.max(0, Math.round(bridgeStatus.heartbeat_age_s))
+      : null,
     runnerState: bridgeStatus.runner_process_active ? "Active" : "Inactive / unavailable",
     queueSummary,
     sourceLabel: safeText(bridgeStatus.source_label),
     projectRoot: safeText(bridgeStatus.project_root),
     bridgeRoot: safeText(bridgeStatus.bridge_root),
+  };
+}
+
+function classifyFreshnessStatus(status: string): FreshnessSignal {
+  const normalized = status.trim().toLowerCase();
+  if (!normalized || normalized.startsWith("unknown / unavailable")) {
+    return {
+      status,
+      severity: "unknown",
+      cue: "Freshness evidence is unavailable in this packet view.",
+    };
+  }
+
+  if (normalized.includes("stale") || normalized.includes("unverified") || normalized.includes("out_of_date")) {
+    return {
+      status,
+      severity: "stale",
+      cue: "Evidence appears stale or unverified. Refresh the asset pipeline outside Codex, then retry readback.",
+    };
+  }
+
+  if (normalized.includes("fresh") || normalized.includes("current") || normalized.includes("ready")) {
+    return {
+      status,
+      severity: "current",
+      cue: "Freshness appears current for this read-only evidence snapshot.",
+    };
+  }
+
+  return {
+    status,
+    severity: "unknown",
+    cue: "Freshness status is present but cannot be confidently classified.",
+  };
+}
+
+function mergeFreshnessSignals(assetDatabase: FreshnessSignal, assetCatalog: FreshnessSignal): FreshnessSignal {
+  if (assetDatabase.severity === "stale" || assetCatalog.severity === "stale") {
+    return {
+      status: "Stale attention required",
+      severity: "stale",
+      cue: "At least one freshness signal is stale or unverified. Treat evidence as review-only until refreshed.",
+    };
+  }
+  if (assetDatabase.severity === "current" && assetCatalog.severity === "current") {
+    return {
+      status: "Current",
+      severity: "current",
+      cue: "Asset DB and catalog freshness both look current in this read-only snapshot.",
+    };
+  }
+  return {
+    status: "Partial / unknown",
+    severity: "unknown",
+    cue: "Freshness is mixed or unavailable. Continue with operator review and verify before mutation corridors.",
+  };
+}
+
+function buildBridgeHeartbeatCue(bridgeSnapshot: BridgeSnapshot): string {
+  if (!bridgeSnapshot.connectionState.startsWith("Connected")) {
+    return "Bridge heartbeat age cue: unavailable because bridge connection is not active.";
+  }
+
+  const age = bridgeSnapshot.heartbeatAgeSeconds;
+  if (bridgeSnapshot.heartbeatFresh === true) {
+    return age === null
+      ? "Bridge heartbeat age cue: fresh (age unavailable)."
+      : `Bridge heartbeat age cue: fresh (${age}s).`;
+  }
+  if (bridgeSnapshot.heartbeatFresh === false) {
+    return age === null
+      ? "Bridge heartbeat age cue: stale (age unavailable)."
+      : `Bridge heartbeat age cue: stale (${age}s). Refresh bridge state outside Codex before trusting freshness.`;
+  }
+  return "Bridge heartbeat age cue: unknown.";
+}
+
+function buildFreshnessOverview(packet: PacketViewModel, bridgeSnapshot: BridgeSnapshot): FreshnessOverview {
+  const assetDatabase = classifyFreshnessStatus(packet.freshnessStatus.assetDatabaseFreshness);
+  const assetCatalog = classifyFreshnessStatus(packet.freshnessStatus.assetCatalogFreshness);
+  return {
+    assetDatabase,
+    assetCatalog,
+    overall: mergeFreshnessSignals(assetDatabase, assetCatalog),
+    bridgeHeartbeatCue: buildBridgeHeartbeatCue(bridgeSnapshot),
   };
 }
 
@@ -321,6 +426,18 @@ function badgeTone(gate: GateState): CSSProperties {
   }
 }
 
+function freshnessTone(severity: FreshnessSeverity): CSSProperties {
+  switch (severity) {
+    case "current":
+      return { borderColor: "#2f8c5e", color: "#8ff0b5", background: "rgba(18, 85, 57, 0.42)" };
+    case "stale":
+      return { borderColor: "#a66c22", color: "#ffd58a", background: "rgba(101, 64, 18, 0.42)" };
+    case "unknown":
+    default:
+      return { borderColor: "#6a7280", color: "#d3dde9", background: "rgba(78, 88, 104, 0.3)" };
+  }
+}
+
 function gateIndicatorColor(gate: GateState): string {
   switch (gate) {
     case "read-only":
@@ -345,6 +462,19 @@ function Badge({ gate }: { gate: GateState }) {
   return <span style={{ ...s.badge, ...badgeTone(gate) }}>{gate}</span>;
 }
 
+function FreshnessBadge({ label, signal }: { label: string; signal: FreshnessSignal }) {
+  return (
+    <span
+      aria-label={`${label} freshness ${signal.severity}`}
+      title={`${label}: ${signal.status}. ${signal.cue}`}
+      style={{ ...s.freshnessBadge, ...freshnessTone(signal.severity) }}
+    >
+      <strong style={s.freshnessBadgeLabel}>{label}</strong>
+      <span>{signal.severity}</span>
+    </span>
+  );
+}
+
 export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStudio, onOpenRuntimeOverview, onOpenBuilder, onOpenReviewPacketOriginRecord, reviewPacketData, reviewPacketSource, reviewPacketOrigin, bridgeStatus }: AssetForgeStudioShellProps) {
   const [activeTopMenu, setActiveTopMenu] = useState<TopMenu>(() => readSavedMenu() ?? "Create");
   const [activeAssetCategory, setActiveAssetCategory] = useState<AssetCategory>("Source assets");
@@ -358,6 +488,10 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
   );
   const assetRows = useMemo(
     () => buildAssetRows(packet, bridgeSnapshot),
+    [packet, bridgeSnapshot],
+  );
+  const freshnessOverview = useMemo(
+    () => buildFreshnessOverview(packet, bridgeSnapshot),
     [packet, bridgeSnapshot],
   );
   const resolvedPacketOrigin = reviewPacketOrigin ?? buildDefaultPacketOrigin(reviewPacketSource);
@@ -386,13 +520,13 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
         {activeTopMenu === "File" && <FilePage projectProfile={projectProfile} activeTopMenu={activeTopMenu} saveLayout={saveLayout} resetLayout={resetLayout} bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} />}
         {activeTopMenu === "Edit" && <EditPage />}
         {activeTopMenu === "Create" && <CreatePage onOpenPromptStudio={onOpenPromptStudio} onOpenRuntimeOverview={onOpenRuntimeOverview} onOpenBuilder={onOpenBuilder} />}
-        {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} assetRows={assetRows} assetProcessorStatusLabel={assetProcessorStatusLabel} />}
+        {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} assetRows={assetRows} assetProcessorStatusLabel={assetProcessorStatusLabel} freshnessOverview={freshnessOverview} />}
         {activeTopMenu === "Entity" && <EntityPage activeTool={activeTool} setActiveTool={setActiveTool} />}
         {activeTopMenu === "Components" && <ComponentsPage readbackStatus={packet.readbackStatus} />}
         {activeTopMenu === "Materials" && <MaterialsPage packet={packet} />}
         {activeTopMenu === "Lighting" && <LightingPage />}
         {activeTopMenu === "Camera" && <CameraPage cameraMode={cameraMode} setCameraMode={setCameraMode} />}
-        {activeTopMenu === "Review" && <ReviewPage reviewPacketData={reviewPacketData} reviewPacketSource={reviewPacketSource} packet={packet} reviewPacketOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} />}
+        {activeTopMenu === "Review" && <ReviewPage reviewPacketData={reviewPacketData} reviewPacketSource={reviewPacketSource} packet={packet} reviewPacketOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} freshnessOverview={freshnessOverview} />}
         {activeTopMenu === "Help" && <HelpPage bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} />}
       </main>
     </section>
@@ -426,12 +560,12 @@ function CreatePage({ onOpenPromptStudio, onOpenRuntimeOverview, onOpenBuilder }
   </Page>;
 }
 
-function AssetsPage({ activeAssetCategory, setActiveAssetCategory, packet, assetRows, assetProcessorStatusLabel }: { activeAssetCategory: AssetCategory; setActiveAssetCategory: (category: AssetCategory) => void; packet: PacketViewModel; assetRows: Record<AssetCategory, AssetRowEntry[]>; assetProcessorStatusLabel: string }) {
+function AssetsPage({ activeAssetCategory, setActiveAssetCategory, packet, assetRows, assetProcessorStatusLabel, freshnessOverview }: { activeAssetCategory: AssetCategory; setActiveAssetCategory: (category: AssetCategory) => void; packet: PacketViewModel; assetRows: Record<AssetCategory, AssetRowEntry[]>; assetProcessorStatusLabel: string; freshnessOverview: FreshnessOverview }) {
   return <Page title="Assets" gate="read-only" detail="Full content browser for source assets, products, dependency evidence, Asset Catalog evidence, and read-only Asset Processor status.">
     <div aria-label="Forge assets content browser" style={s.assetsGrid}>
       <aside style={s.rail}>{assetCategories.map((category) => <button key={category} type="button" onClick={() => setActiveAssetCategory(category)} style={activeAssetCategory === category ? s.activeRailButton : s.railButton}>{category}</button>)}</aside>
       <section style={s.browser}><div style={s.panelHeader}>{activeAssetCategory} <Badge gate="read-only" /></div><div style={s.assetTiles}>{assetRows[activeAssetCategory].map((row, index) => <article key={`${row.name}-${index}`} style={s.assetTile}><strong>{row.name}</strong><Badge gate={row.gate} /><span>{row.detail}</span></article>)}</div></section>
-      <Panel title="Evidence readback" gate="proof-only"><Rows rows={[["Packet source", packet.dataSourceLabel], ["Source path", packet.sourceEvidence.normalizedSourcePath], ["Product path", packet.productEvidence.productPath], ["Dependency count", packet.dependencyEvidence.dependencyCount], ["Catalog presence", packet.catalogEvidence.catalogPresence], ["Asset DB freshness", packet.freshnessStatus.assetDatabaseFreshness], ["Catalog freshness", packet.freshnessStatus.assetCatalogFreshness], ["Asset Processor", assetProcessorStatusLabel]]} /><div style={s.buttonRow}><button type="button" disabled style={s.disabledButton}>Import selected asset</button><button type="button" disabled style={s.disabledButton}>Stage source asset</button><button type="button" disabled style={s.disabledButton}>Execute Asset Processor</button></div></Panel>
+      <Panel title="Evidence readback" gate="proof-only"><div aria-label="Asset freshness severity" style={s.freshnessStrip}><FreshnessBadge label="Asset DB" signal={freshnessOverview.assetDatabase} /><FreshnessBadge label="Catalog" signal={freshnessOverview.assetCatalog} /><FreshnessBadge label="Overall" signal={freshnessOverview.overall} /></div><p style={s.mutedCompact}>{freshnessOverview.overall.cue}</p><p style={s.mutedCompact}>{freshnessOverview.bridgeHeartbeatCue}</p><Rows rows={[["Packet source", packet.dataSourceLabel], ["Source path", packet.sourceEvidence.normalizedSourcePath], ["Product path", packet.productEvidence.productPath], ["Dependency count", packet.dependencyEvidence.dependencyCount], ["Catalog presence", packet.catalogEvidence.catalogPresence], ["Asset DB freshness", packet.freshnessStatus.assetDatabaseFreshness], ["Catalog freshness", packet.freshnessStatus.assetCatalogFreshness], ["Freshness overall", freshnessOverview.overall.status], ["Asset Processor", assetProcessorStatusLabel]]} /><div style={s.buttonRow}><button type="button" disabled style={s.disabledButton}>Import selected asset</button><button type="button" disabled style={s.disabledButton}>Stage source asset</button><button type="button" disabled style={s.disabledButton}>Execute Asset Processor</button></div></Panel>
     </div>
   </Page>;
 }
@@ -507,11 +641,11 @@ function CameraPage({ cameraMode, setCameraMode }: { cameraMode: CameraMode; set
   return <Page title="Camera" gate="local preview" detail="Camera list, camera/perspective preview, and cinematic shot list. No O3DE camera mutation."><div style={s.cameraGrid}><Panel title="Camera list" gate="read-only"><List items={["EditorCamera_Main", "PreviewCamera_Cinematic", "AssetReviewCamera_01"]} /><div style={s.buttonRow}>{modes.map((mode) => <button key={mode} type="button" onClick={() => setCameraMode(mode)} style={cameraMode === mode ? s.activeSmallButton : s.smallButton}>{mode}</button>)}</div></Panel><Panel title="Camera / perspective preview" gate="local preview"><ViewportPreview label={cameraMode + " preview"} /></Panel><Panel title="Cinematic shot list" gate="plan-only"><List items={["Shot 010: Establish bridge silhouette", "Shot 020: Orbit candidate detail", "Shot 030: Evidence capture still", "Camera mutation blocked"]} /><button type="button" disabled style={s.disabledWideButton}>Write camera to O3DE scene</button></Panel></div></Page>;
 }
 
-function ReviewPage({ reviewPacketData, reviewPacketSource, packet, reviewPacketOrigin, onOpenReviewPacketOriginRecord }: Pick<AssetForgeStudioShellProps, "reviewPacketData" | "reviewPacketSource" | "reviewPacketOrigin" | "onOpenReviewPacketOriginRecord"> & { packet: PacketViewModel }) {
+function ReviewPage({ reviewPacketData, reviewPacketSource, packet, reviewPacketOrigin, onOpenReviewPacketOriginRecord, freshnessOverview }: Pick<AssetForgeStudioShellProps, "reviewPacketData" | "reviewPacketSource" | "reviewPacketOrigin" | "onOpenReviewPacketOriginRecord"> & { packet: PacketViewModel; freshnessOverview: FreshnessOverview }) {
   const packetOrigin = reviewPacketOrigin ?? buildDefaultPacketOrigin(reviewPacketSource);
   const canOpenOriginRecord = canOpenPacketOriginRecord(packetOrigin) && Boolean(onOpenReviewPacketOriginRecord);
 
-  return <Page title="Review" gate="proof-only" detail="Full-page operator review packet, evidence summary, warnings, approval state, and safest next step." review><div style={s.reviewGrid}><section aria-label="Forge operator review packet full page" style={s.reviewPacketFrame}><AssetForgeReviewPacketPanel packetData={reviewPacketData} packetSource={reviewPacketSource} /></section><aside style={s.reviewAside}><Panel title="Evidence summary" gate="proof-only"><Rows rows={[["Source evidence", packet.sourceEvidence.sourceExists], ["Product evidence", packet.productEvidence.evidenceAvailable], ["Catalog evidence", packet.catalogEvidence.catalogPresence], ["Dependency evidence", packet.dependencyEvidence.evidenceAvailable], ...buildPacketOriginRows(packetOrigin)]} /><div style={s.buttonRow}><button type="button" aria-label="Open source record in Records" disabled={!canOpenOriginRecord} onClick={() => onOpenReviewPacketOriginRecord?.(packetOrigin)} style={canOpenOriginRecord ? s.darkButton : s.disabledButton}>Open source record in Records</button></div></Panel><Panel title="Unknown / unavailable" gate="requires approval"><Rows rows={[["License", packet.unavailableFields.licenseStatus], ["Quality", packet.unavailableFields.qualityStatus], ["Placement readiness", packet.unavailableFields.placementReadiness], ["Production approval", packet.unavailableFields.productionApproval]]} /></Panel><Panel title="Operator state" gate="requires approval"><Rows rows={[["Approval", packet.operatorApprovalState], ["Safest next step", packet.safestNextStep]]} /><button type="button" disabled style={s.disabledWideButton}>Approve production import</button></Panel></aside></div></Page>;
+  return <Page title="Review" gate="proof-only" detail="Full-page operator review packet, evidence summary, warnings, approval state, and safest next step." review><div style={s.reviewGrid}><section aria-label="Forge operator review packet full page" style={s.reviewPacketFrame}><AssetForgeReviewPacketPanel packetData={reviewPacketData} packetSource={reviewPacketSource} /></section><aside style={s.reviewAside}><Panel title="Freshness severity" gate="proof-only"><div aria-label="Review freshness severity" style={s.freshnessStrip}><FreshnessBadge label="Asset DB" signal={freshnessOverview.assetDatabase} /><FreshnessBadge label="Catalog" signal={freshnessOverview.assetCatalog} /><FreshnessBadge label="Overall" signal={freshnessOverview.overall} /></div><Rows rows={[["Asset DB freshness", freshnessOverview.assetDatabase.status], ["Catalog freshness", freshnessOverview.assetCatalog.status], ["Overall freshness", freshnessOverview.overall.status], ["Bridge heartbeat", freshnessOverview.bridgeHeartbeatCue]]} /><p style={s.mutedCompact}>{freshnessOverview.overall.cue}</p></Panel><Panel title="Evidence summary" gate="proof-only"><Rows rows={[["Source evidence", packet.sourceEvidence.sourceExists], ["Product evidence", packet.productEvidence.evidenceAvailable], ["Catalog evidence", packet.catalogEvidence.catalogPresence], ["Dependency evidence", packet.dependencyEvidence.evidenceAvailable], ...buildPacketOriginRows(packetOrigin)]} /><div style={s.buttonRow}><button type="button" aria-label="Open source record in Records" disabled={!canOpenOriginRecord} onClick={() => onOpenReviewPacketOriginRecord?.(packetOrigin)} style={canOpenOriginRecord ? s.darkButton : s.disabledButton}>Open source record in Records</button></div></Panel><Panel title="Unknown / unavailable" gate="requires approval"><Rows rows={[["License", packet.unavailableFields.licenseStatus], ["Quality", packet.unavailableFields.qualityStatus], ["Placement readiness", packet.unavailableFields.placementReadiness], ["Production approval", packet.unavailableFields.productionApproval]]} /></Panel><Panel title="Operator state" gate="requires approval"><Rows rows={[["Approval", packet.operatorApprovalState], ["Safest next step", packet.safestNextStep]]} /><button type="button" disabled style={s.disabledWideButton}>Approve production import</button></Panel></aside></div></Page>;
 }
 
 function HelpPage({ bridgeSnapshot, packetDataSourceLabel, packetOrigin }: { bridgeSnapshot: BridgeSnapshot; packetDataSourceLabel: string; packetOrigin: AssetForgeReviewPacketOrigin }) {
@@ -615,6 +749,10 @@ const s = {
   panelHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: "0 10px", borderBottom: "1px solid #2b3e55", background: "#101820", color: "#eef5ff", fontWeight: 900 },
   panelBody: { minWidth: 0, minHeight: 0, overflow: "auto", padding: 10 },
   muted: { margin: "0 0 10px", color: "#9fb0c5" },
+  mutedCompact: { margin: "8px 0 0", color: "#9fb0c5", fontSize: 12, lineHeight: 1.35 },
+  freshnessStrip: { display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 8 },
+  freshnessBadge: { display: "inline-flex", alignItems: "center", gap: 6, borderWidth: 1, borderStyle: "solid", borderRadius: 3, padding: "2px 7px", fontSize: 11, fontWeight: 800, textTransform: "lowercase" },
+  freshnessBadgeLabel: { textTransform: "none", color: "#eef5ff" },
   textarea: { width: "100%", minHeight: 145, boxSizing: "border-box", resize: "none", border: "1px solid #344961", borderRadius: 4, padding: 10, background: "#0b1118", color: "#eef5ff", fontWeight: 800 },
   buttonRow: { display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 10 },
   primaryButton: { minHeight: 30, border: "1px solid #6baeff", borderRadius: 4, padding: "0 10px", background: "#3a8eff", color: "#06101d", fontWeight: 900, cursor: "pointer" },
