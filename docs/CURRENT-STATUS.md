@@ -77,6 +77,11 @@ Recent handoff-relevant packets:
   admitted, preserving readback-only status.
 - PR #89 checkpointed the broader Phase 8 readback target map across admitted,
   readback-only, and blocked targets.
+- The far clip prompt refusal guard is recorded in
+  `docs/PHASE-8-FAR-CLIP-PROMPT-REFUSAL-GUARD.md`. Natural operator requests
+  to set or change Camera far clip stay on the existing
+  `editor.candidate_mutation.unsupported` refusal path; far clip restore stays
+  on `editor.restore.unsupported`.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
