@@ -164,6 +164,11 @@ raw GLB/OBJ/FBX candidate.
 
 No O3DE project mutation.
 
+Status:
+Completed in `docs/AI-ASSET-FORGE-LOCAL-GENERATION-PROOF.md` using TripoSR
+CPU execution against the upstream `examples/chair.png` input. The generated
+OBJ stayed outside the repo and outside O3DE projects.
+
 ### Forge Phase 2 - Cleanup/conversion proof
 
 Goal:
@@ -261,16 +266,12 @@ Every generated asset must eventually track:
 
 ## Next recommended implementation sequence
 
-1. Open a proof-only local TripoSR generation packet outside the repo and
-   outside O3DE, with explicit operator approval before downloads or dependency
-   installation.
-2. Add cleanup/conversion proof after one raw generated output exists outside
-   O3DE.
-3. Design O3DE import readiness only after cleanup/conversion is proven.
-4. Use Phase 9 readback for generated source/product/dependency/catalog
+1. Add cleanup/conversion proof after the raw TripoSR OBJ exists outside O3DE.
+2. Design O3DE import readiness only after cleanup/conversion is proven.
+3. Use Phase 9 readback for generated source/product/dependency/catalog
    validation after an explicitly approved proof-only O3DE source-asset staging
    packet.
-5. Keep public import, assignment, placement, and production corridor admission
+4. Keep public import, assignment, placement, and production corridor admission
    blocked until provenance and operator review are implemented.
 
 ## Reference links
@@ -280,3 +281,4 @@ Every generated asset must eventually track:
 - Stable Fast 3D: <https://github.com/Stability-AI/stable-fast-3d>
 - TripoSR: <https://github.com/VAST-AI-Research/TripoSR>
 - Forge Phase 0 audit: `docs/AI-ASSET-FORGE-LOCAL-MODEL-SUBSTRATE-AUDIT.md`
+- Forge Phase 1 proof: `docs/AI-ASSET-FORGE-LOCAL-GENERATION-PROOF.md`
