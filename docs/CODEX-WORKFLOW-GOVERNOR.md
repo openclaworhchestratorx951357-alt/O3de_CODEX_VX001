@@ -71,6 +71,13 @@ model-download, dependency, generation, generated-asset, import, or placement
 PRs before the Forge model substrate audit selects a proof-only path and records
 license, hardware, storage, provenance, and no-mutation boundaries.
 
+After the substrate audit, generation work is still gated: the first allowed
+Forge implementation packet is a proof-only local generation run outside the
+repo and outside O3DE, with explicit operator approval before downloads or
+dependency installation. The audit selection does not admit production
+generation, generated-asset import, Asset Processor execution, assignment, or
+placement.
+
 ## Blocked-Status Gate
 
 Codex may not open a "blocked" docs/status PR unless it has completed the O3DE

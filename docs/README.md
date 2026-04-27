@@ -160,6 +160,10 @@ rounding up capability claims.
   source/product/dependency/catalog readback.
 - `docs/PHASE-9-AI-ASSET-FORGE-INTEGRATION.md` explains why Phase 9 is the
   validation backbone for future O3DE AI Asset Forge generated assets.
+- `docs/AI-ASSET-FORGE-LOCAL-MODEL-SUBSTRATE-AUDIT.md` selects TripoSR as the
+  first proof-only local generation candidate and records the license,
+  hardware, storage, provenance, and no-mutation gates before any download or
+  asset generation.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
@@ -186,6 +190,7 @@ rounding up capability claims.
 
 - `docs/AI-ASSET-FORGE-PRODUCTION-ROADMAP.md`
 - `docs/AI-ASSET-FORGE-O3DE-INTEGRATION-ARCHITECTURE.md`
+- `docs/AI-ASSET-FORGE-LOCAL-MODEL-SUBSTRATE-AUDIT.md`
 - `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
 - `docs/PHASE-6B-REMOTE-EXECUTOR-CONTRACT.md`
