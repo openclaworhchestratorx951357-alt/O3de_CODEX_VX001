@@ -21,13 +21,14 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-e00746f1dc4178083b18dff7f7063a17f912ee24
+eb092764d83932217699ae03c2839eceeaad9a4b
 ```
 
 The latest runtime/capability movement remains the completed Phase 8 Camera
-bool write and restore corridor sequence. Later mainline work has been repo
-hygiene, UI layout hardening, branch-purpose review, and future-thread
-supervisor startup documentation.
+bool write and restore corridor sequence plus readback-only Camera far clip
+evidence. Later mainline work has been repo hygiene, UI layout hardening,
+branch-purpose review, future-thread supervisor startup documentation, and
+refusal-coverage hardening that does not widen capability admission.
 
 Recent handoff-relevant packets:
 
@@ -77,7 +78,9 @@ Recent handoff-relevant packets:
   admitted, preserving readback-only status.
 - PR #89 checkpointed the broader Phase 8 readback target map across admitted,
   readback-only, and blocked targets.
-- The far clip prompt refusal guard is recorded in
+- PR #90 refreshed readback operator examples for known safe readback and
+  refusal outcomes.
+- PR #91 added the far clip prompt refusal guard recorded in
   `docs/PHASE-8-FAR-CLIP-PROMPT-REFUSAL-GUARD.md`. Natural operator requests
   to set or change Camera far clip stay on the existing
   `editor.candidate_mutation.unsupported` refusal path; far clip restore stays
@@ -206,16 +209,21 @@ That checkpoint does not add a public corridor; it preserves the readback-only
 evidence and keeps the exact Camera bool path as the only admitted Camera
 property write/restore surface.
 
-The broader Phase 8 readback target map is being checkpointed in
+The broader Phase 8 readback target map is checkpointed in
 `docs/PHASE-8-READBACK-TARGETS-CHECKPOINT.md`. It keeps Camera bool as the only
 admitted write/restore target, Mesh model asset as readback-only asset evidence,
 Comment root string metadata as blocked scalar evidence, and Camera far clip as
 readback-only discovered evidence.
 
-Operator examples for the readback map are being refreshed in
+Operator examples for the readback map are refreshed in
 `docs/PHASE-8-READBACK-OPERATOR-EXAMPLES.md`. Those examples preserve far clip
 as readback-only and keep generic writes, restore, property listing, and
 arbitrary Editor Python refused.
+
+The far clip prompt refusal guard is recorded in
+`docs/PHASE-8-FAR-CLIP-PROMPT-REFUSAL-GUARD.md`. Natural far clip write wording
+must refuse as `editor.candidate_mutation.unsupported`, and far clip restore
+wording must refuse as `editor.restore.unsupported`.
 
 ## Repo Hygiene Baseline
 
@@ -288,10 +296,10 @@ property writes.
    `codex/phase-9-asset-readback-substrate-audit` before any proof-only or
    implementation work.
 3. If Phase 8 continues without explicit write approval, select another
-   already-allowlisted read-only target discovery candidate or audit refusal
-   tests/examples for generic property writes and public property listing. Do
-   not widen writes, restore, property-list admission, or public prompts without
-   a separate approval gate.
+   already-allowlisted read-only target discovery candidate or add narrow
+   refusal/readback examples for a documented gap. Do not widen writes,
+   restore, property-list admission, or public prompts without a separate
+   approval gate.
 4. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 5. Continue repository professionalization in small docs-only packets when the
