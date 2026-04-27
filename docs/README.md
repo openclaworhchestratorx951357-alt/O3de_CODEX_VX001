@@ -57,6 +57,9 @@ rounding up capability claims.
 - `docs/PHASE-8-CAMERA-BOOL-OPERATOR-EXAMPLES.md` gives paired safe/refused
   operator prompt examples for the exact Camera bool readback, write, and
   restore corridors.
+- `docs/PHASE-8-READBACK-OPERATOR-EXAMPLES.md` gives safe/refused operator
+  examples for the current Phase 8 readback target map, including Camera far
+  clip as readback-only.
 - `docs/PHASE-8-NEXT-READ-ONLY-TARGET-DISCOVERY.md` selects Camera non-bool
   scalar readback as the next candidate-only Phase 8 read-only discovery
   direction without widening public prompts or writes.
@@ -164,6 +167,7 @@ rounding up capability claims.
 - `docs/PHASE-8-CAMERA-BOOL-RESTORE-PUBLIC-CORRIDOR.md`
 - `docs/PHASE-8-CAMERA-BOOL-RESTORE-REVIEW-STATUS.md`
 - `docs/PHASE-8-CAMERA-BOOL-OPERATOR-EXAMPLES.md`
+- `docs/PHASE-8-READBACK-OPERATOR-EXAMPLES.md`
 - `docs/PHASE-8-EDITOR-COMPONENT-FIND-LIVE-PROOF.md`
 - `docs/PHASE-8-EDITOR-PROPERTY-TARGET-READBACK-PROOF.md`
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-LIST-BRIDGE-CANDIDATE.md`
