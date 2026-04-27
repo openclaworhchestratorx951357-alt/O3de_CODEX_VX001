@@ -266,6 +266,10 @@ def make_asset_source_inspect_request() -> RequestEnvelope:
 
 
 def create_asset_source_inspect_assetdb_fixture(project_root: Path) -> None:
+    (project_root / "project.json").write_text(
+        json.dumps({"project_name": "McpSandbox"}),
+        encoding="utf-8",
+    )
     cache_dir = project_root / "Cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(cache_dir / "assetdb.sqlite")
@@ -402,6 +406,14 @@ def create_asset_source_inspect_catalog_fixture(project_root: Path) -> None:
         b"levels/bridgelevel01/bridgelevel01.spawnable"
         b"\x00other-product"
     )
+
+
+def list_project_files(project_root: Path) -> set[str]:
+    return {
+        str(path.relative_to(project_root)).replace("\\", "/")
+        for path in project_root.rglob("*")
+        if path.is_file()
+    }
 
 
 def make_asset_batch_process_request(
@@ -5987,6 +5999,8 @@ def test_asset_source_inspect_real_persisted_payloads_match_published_schemas() 
         source_path.parent.mkdir(parents=True, exist_ok=True)
         source_bytes = b"real-asset-source"
         source_path.write_bytes(source_bytes)
+        create_asset_source_inspect_assetdb_fixture(project_root)
+        create_asset_source_inspect_catalog_fixture(project_root)
 
         with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
             with isolated_database():
@@ -6047,6 +6061,7 @@ def test_asset_source_inspect_reads_bounded_assetdb_product_dependency_evidence(
         source_path.parent.mkdir(parents=True, exist_ok=True)
         source_path.write_text("prefab-fixture", encoding="utf-8")
         create_asset_source_inspect_assetdb_fixture(project_root)
+        create_asset_source_inspect_catalog_fixture(project_root)
 
         with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
             with isolated_database():
@@ -6070,11 +6085,37 @@ def test_asset_source_inspect_reads_bounded_assetdb_product_dependency_evidence(
                 assert execution.details["source_path_relative_to_project_root"] == (
                     "Levels/BridgeLevel01/BridgeLevel01.prefab"
                 )
+                assert execution.details["readiness_status"] == (
+                    "ready_for_asset_source_inspect"
+                )
+                assert execution.details["proof_status"] == (
+                    "asset_source_inspect_proven"
+                )
+                assert execution.details["original_source_path"] == (
+                    "Levels/BridgeLevel01/BridgeLevel01.prefab"
+                )
+                assert execution.details["normalized_source_path"] == (
+                    "Levels/BridgeLevel01/BridgeLevel01.prefab"
+                )
+                assert execution.details["read_only"] is True
+                assert execution.details["mutation_occurred"] is False
+                assert execution.details["source_id"] == 3214
+                assert execution.details["source_guid"] == (
+                    "439941DB330C530FAD3E5A36C19A1519"
+                )
+                assert execution.details["product_path"] == (
+                    "pc/levels/bridgelevel01/bridgelevel01.spawnable"
+                )
+                assert execution.details["product_id"] == 10608
+                assert execution.details["product_sub_id"] == -575275456
                 assert execution.details["product_evidence_available"] is True
                 assert execution.details["product_evidence_source"] == (
                     "assetdb.sqlite-read-only"
                 )
                 assert execution.details["product_count"] == 1
+                assert execution.details["product_rows"][0]["product_path"] == (
+                    "pc/levels/bridgelevel01/bridgelevel01.spawnable"
+                )
                 assert "pc/levels/bridgelevel01/bridgelevel01.spawnable" in (
                     execution.details["products"][0]
                 )
@@ -6083,6 +6124,9 @@ def test_asset_source_inspect_reads_bounded_assetdb_product_dependency_evidence(
                     "assetdb.sqlite-read-only"
                 )
                 assert execution.details["dependency_count"] == 1
+                assert execution.details["dependency_rows"][0][
+                    "dependency_source_guid"
+                ] == "215E47FDD1815832B1AB91673ABF6399"
                 assert "dependency_source_guid=215E47FDD1815832B1AB91673ABF6399" in (
                     execution.details["dependencies"][0]
                 )
@@ -6140,6 +6184,7 @@ def test_asset_source_inspect_cross_checks_asset_catalog_product_path_presence()
                 assert execution.details["asset_catalog_evidence_source"] == (
                     "assetcatalog.xml-read-only"
                 )
+                assert execution.details["catalog_presence"] is True
                 assert execution.details["asset_catalog_product_path_count"] == 1
                 assert "pc/levels/bridgelevel01/bridgelevel01.spawnable" in (
                     execution.details["asset_catalog_product_path_presence"][0]
@@ -6170,6 +6215,227 @@ def test_asset_source_inspect_cross_checks_asset_catalog_product_path_presence()
                     )
                     == []
                 )
+
+
+def test_asset_source_inspect_uses_project_general_discovery_for_windows_source_path() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = (
+            project_root / "Levels" / "BridgeLevel01" / "BridgeLevel01.prefab"
+        )
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_text("prefab-fixture", encoding="utf-8")
+        create_asset_source_inspect_assetdb_fixture(project_root)
+        create_asset_source_inspect_catalog_fixture(project_root)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_database():
+                request = make_asset_source_inspect_request()
+                request.project_root = str(project_root)
+                request.args["source_path"] = (
+                    r"Levels\BridgeLevel01\BridgeLevel01.prefab"
+                )
+                response = dispatcher_service.dispatch(request)
+                assert response.ok is True
+                run_id = response.operation_id
+                assert run_id is not None
+                execution = next(
+                    execution
+                    for execution in executions_service.list_executions()
+                    if execution.run_id == run_id
+                )
+
+                assert execution.details["original_source_path"] == (
+                    r"Levels\BridgeLevel01\BridgeLevel01.prefab"
+                )
+                assert execution.details["normalized_source_path"] == (
+                    "Levels/BridgeLevel01/BridgeLevel01.prefab"
+                )
+                assert execution.details["source_path_relative_to_project_root"] == (
+                    "Levels/BridgeLevel01/BridgeLevel01.prefab"
+                )
+                assert execution.details["proof_status"] == (
+                    "asset_source_inspect_proven"
+                )
+                assert execution.details["product_path"] == (
+                    "pc/levels/bridgelevel01/bridgelevel01.spawnable"
+                )
+                assert execution.details["catalog_presence"] is True
+
+
+def test_asset_source_inspect_accepts_source_asset_path_alias() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = (
+            project_root / "Levels" / "BridgeLevel01" / "BridgeLevel01.prefab"
+        )
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_text("prefab-fixture", encoding="utf-8")
+        create_asset_source_inspect_assetdb_fixture(project_root)
+        create_asset_source_inspect_catalog_fixture(project_root)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_database():
+                request = make_asset_source_inspect_request()
+                request.project_root = str(project_root)
+                request.args.pop("source_path")
+                request.args["source_asset_path"] = (
+                    "Levels/BridgeLevel01/BridgeLevel01.prefab"
+                )
+                response = dispatcher_service.dispatch(request)
+                assert response.ok is True
+                run_id = response.operation_id
+                assert run_id is not None
+                execution = next(
+                    execution
+                    for execution in executions_service.list_executions()
+                    if execution.run_id == run_id
+                )
+
+                assert execution.details["normalized_source_path"] == (
+                    "Levels/BridgeLevel01/BridgeLevel01.prefab"
+                )
+                assert execution.details["proof_status"] == (
+                    "asset_source_inspect_proven"
+                )
+                assert execution.details["product_path"] == (
+                    "pc/levels/bridgelevel01/bridgelevel01.spawnable"
+                )
+
+
+def test_asset_source_inspect_opens_asset_database_read_only() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = (
+            project_root / "Levels" / "BridgeLevel01" / "BridgeLevel01.prefab"
+        )
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_text("prefab-fixture", encoding="utf-8")
+        create_asset_source_inspect_assetdb_fixture(project_root)
+        create_asset_source_inspect_catalog_fixture(project_root)
+        connect_calls: list[tuple[str, bool]] = []
+        real_connect = sqlite3.connect
+
+        def recording_connect(database, *args, **kwargs):
+            connect_calls.append((str(database), bool(kwargs.get("uri"))))
+            return real_connect(database, *args, **kwargs)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with patch("app.services.adapters.sqlite3.connect", recording_connect):
+                with isolated_database():
+                    request = make_asset_source_inspect_request()
+                    request.project_root = str(project_root)
+                    request.args["source_path"] = (
+                        "Levels/BridgeLevel01/BridgeLevel01.prefab"
+                    )
+                    response = dispatcher_service.dispatch(request)
+                    assert response.ok is True
+
+        assert any(
+            uri_enabled and call.startswith("file:") and call.endswith("?mode=ro")
+            for call, uri_enabled in connect_calls
+        )
+
+
+@pytest.mark.parametrize(
+    ("fixture_kind", "expected_status", "expected_proof_status"),
+    [
+        ("missing_project_root", "project_root_missing", "project_root_missing"),
+        ("missing_project_json", "project_json_missing", "project_json_missing"),
+        ("missing_cache", "asset_cache_missing", "asset_cache_missing"),
+        ("missing_assetdb", "asset_database_missing", "asset_database_missing"),
+        ("missing_catalog", "asset_catalog_missing", "asset_catalog_missing"),
+        ("missing_source", "source_asset_path_missing", "source_not_found"),
+        (
+            "unsafe_source",
+            "source_asset_path_escapes_project",
+            "unsafe_source_path",
+        ),
+    ],
+)
+def test_asset_source_inspect_project_general_readiness_blocks(
+    fixture_kind: str,
+    expected_status: str,
+    expected_proof_status: str,
+) -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "McpSandbox"
+        source_arg = "Levels/BridgeLevel01/BridgeLevel01.prefab"
+        if fixture_kind != "missing_project_root":
+            project_root.mkdir(parents=True)
+            if fixture_kind != "missing_project_json":
+                (project_root / "project.json").write_text(
+                    json.dumps({"project_name": "McpSandbox"}),
+                    encoding="utf-8",
+                )
+            if fixture_kind not in {"missing_project_json", "missing_cache"}:
+                cache_path = project_root / "Cache"
+                cache_path.mkdir()
+                if fixture_kind != "missing_assetdb":
+                    create_asset_source_inspect_assetdb_fixture(project_root)
+                if fixture_kind != "missing_catalog":
+                    create_asset_source_inspect_catalog_fixture(project_root)
+                else:
+                    (cache_path / "pc").mkdir(exist_ok=True)
+            if fixture_kind not in {
+                "missing_project_json",
+                "missing_cache",
+                "missing_assetdb",
+                "missing_catalog",
+                "missing_source",
+            }:
+                source_path = (
+                    project_root / "Levels" / "BridgeLevel01" / "BridgeLevel01.prefab"
+                )
+                source_path.parent.mkdir(parents=True, exist_ok=True)
+                source_path.write_text("prefab-fixture", encoding="utf-8")
+        if fixture_kind == "unsafe_source":
+            source_arg = "../outside.prefab"
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_database():
+                request = make_asset_source_inspect_request()
+                request.project_root = str(project_root)
+                request.args["source_path"] = source_arg
+                response = dispatcher_service.dispatch(request)
+                assert response.ok is True
+                run_id = response.operation_id
+                assert run_id is not None
+                execution = next(
+                    execution
+                    for execution in executions_service.list_executions()
+                    if execution.run_id == run_id
+                )
+
+                assert execution.details["readiness_status"] == expected_status
+                assert execution.details["proof_status"] == expected_proof_status
+                assert execution.details["read_only"] is True
+                assert execution.details["mutation_occurred"] is False
+
+
+def test_asset_source_inspect_does_not_write_project_files() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = (
+            project_root / "Levels" / "BridgeLevel01" / "BridgeLevel01.prefab"
+        )
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_text("prefab-fixture", encoding="utf-8")
+        create_asset_source_inspect_assetdb_fixture(project_root)
+        create_asset_source_inspect_catalog_fixture(project_root)
+        files_before = list_project_files(project_root)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_database():
+                request = make_asset_source_inspect_request()
+                request.project_root = str(project_root)
+                request.args["source_path"] = (
+                    "Levels/BridgeLevel01/BridgeLevel01.prefab"
+                )
+                response = dispatcher_service.dispatch(request)
+                assert response.ok is True
+
+        assert list_project_files(project_root) == files_before
 
 
 def test_render_material_inspect_simulated_persisted_payloads_match_published_schemas(

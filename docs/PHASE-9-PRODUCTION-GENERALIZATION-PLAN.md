@@ -59,9 +59,9 @@ dynamic source-asset inputs, not only the current `BridgeLevel01` proof target.
 `BridgeLevel01` remains valuable because it proves the current substrate; it
 must not become a hidden production assumption for AI Asset Forge.
 
-## Required future packet
+## Completed discovery packet
 
-The next required Phase 9 production-generalization packet is:
+The first Phase 9 production-generalization packet was:
 
 ```text
 Branch:
@@ -82,6 +82,46 @@ through user/project discovery before any production-general wording is used.
 
 This discovery packet is now tracked in
 `docs/PHASE-9-PROJECT-ASSET-READBACK-DISCOVERY.md`.
+
+## Completed proof packet
+
+The next proof packet was:
+
+```text
+Branch:
+codex/phase-9-project-general-asset-source-inspect-proof
+
+PR title:
+Prove project-general asset source inspect
+```
+
+Purpose:
+
+Use the project-general discovery helper inside the proof-only
+`asset.source.inspect` path, query `assetdb.sqlite` read-only, cross-check
+`assetcatalog.xml`, and return structured readiness/proof metadata without
+mutating project assets.
+
+This proof packet is tracked in
+`docs/PHASE-9-PROJECT-GENERAL-ASSET-SOURCE-INSPECT-PROOF.md`.
+
+## Required future packet
+
+The next required Phase 9 production-generalization packet should be:
+
+```text
+Branch:
+codex/phase-9-asset-source-inspect-schema-hardening
+
+PR title:
+Harden asset source inspect proof schema
+```
+
+Purpose:
+
+Make the structured source/product/dependency/catalog proof fields explicit in
+the published schemas and decide which readiness/proof states are part of the
+stable public readback contract.
 
 ## Future production flow
 
@@ -172,7 +212,7 @@ Use these labels when documenting Phase 8 and Phase 9 capability status:
 Current Phase 9 label:
 
 ```text
-local proof target + project-general discovery helper + project-general readback candidate
+local proof target + project-general proof-only readback candidate
 ```
 
 Current Phase 8 Camera bool label:

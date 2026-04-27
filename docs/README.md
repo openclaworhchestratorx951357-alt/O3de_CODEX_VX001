@@ -142,6 +142,9 @@ rounding up capability claims.
 - `docs/PHASE-9-PROJECT-ASSET-READBACK-DISCOVERY.md` records the read-only
   backend discovery helper for project root, cache, database, platform catalog,
   and source-asset readiness.
+- `docs/PHASE-9-PROJECT-GENERAL-ASSET-SOURCE-INSPECT-PROOF.md` records the
+  proof-only integration of project-general discovery into `asset.source.inspect`
+  source/product/dependency/catalog readback.
 - `docs/PHASE-9-AI-ASSET-FORGE-INTEGRATION.md` explains why Phase 9 is the
   validation backbone for future O3DE AI Asset Forge generated assets.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad

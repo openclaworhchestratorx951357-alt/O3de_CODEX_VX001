@@ -4,9 +4,9 @@
   "title": "asset.source.inspect args",
   "type": "object",
   "additionalProperties": false,
-  "required": ["source_path"],
   "properties": {
     "source_path": { "type": "string", "minLength": 1 },
+    "source_asset_path": { "type": "string", "minLength": 1 },
     "include_products": { "type": "boolean" },
     "include_dependencies": { "type": "boolean" }
   }

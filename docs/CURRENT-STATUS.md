@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-5f934250ffc57aa5ed7029dfa7e8f055936869a8
+389655e599fdaea94729478f2dcbbda058c09bef
 ```
 
 The latest runtime/capability movement is the Phase 9
@@ -134,10 +134,19 @@ Recent handoff-relevant packets:
 - PR #116 added the read-only project-general asset readback discovery helper
   for project root, `project.json`, `Cache`, `assetdb.sqlite`, platform
   catalogs, and source-asset readiness.
+- PR #117 integrated O3DE AI Asset Forge into the Phase 9 roadmap as a planned
+  private/O3DE-native production feature stream.
+- PR #118 fixed Windows-style relative source path normalization on Linux/CI
+  for the Phase 9 discovery helper.
+- The current packet integrates project-general discovery into the proof-only
+  `asset.source.inspect` source/product/dependency/catalog readback path and is
+  recorded in
+  `docs/PHASE-9-PROJECT-GENERAL-ASSET-SOURCE-INSPECT-PROOF.md`.
 
 Phase 9 product/dependency readback is no longer blocked on absence of a local
-sample. It remains a local proof target and project-general readback candidate,
-not a production-general adapter. A read-only substrate audit found
+sample. It remains a local proof target and project-general proof-only readback
+candidate, not a public production-general adapter. A read-only substrate audit
+found
 `C:\Users\topgu\O3DE\Projects\McpSandbox\Cache\assetdb.sqlite` with source,
 product, job, scan-folder, source-dependency, and product-dependency tables.
 The audited sample maps
@@ -153,11 +162,12 @@ completeness, Asset Processor execution, cache mutation, and
 `asset.product.resolve` remain unadmitted. Operator-facing examples now define
 safe and refused prompts for the exact read-only Phase 9 asset
 source/product/dependency readback corridor. Production generalization is
-tracked in `docs/PHASE-9-PRODUCTION-GENERALIZATION-PLAN.md`; the required next
-packet, `codex/phase-9-project-asset-readback-discovery`, adds the first
-backend discovery helper for project-root/source-asset inputs and explicit
-blocked/readiness states. That helper is tracked in
-`docs/PHASE-9-PROJECT-ASSET-READBACK-DISCOVERY.md`.
+tracked in `docs/PHASE-9-PRODUCTION-GENERALIZATION-PLAN.md`; the discovery
+helper is tracked in `docs/PHASE-9-PROJECT-ASSET-READBACK-DISCOVERY.md`, and
+the project-general `asset.source.inspect` proof is tracked in
+`docs/PHASE-9-PROJECT-GENERAL-ASSET-SOURCE-INSPECT-PROOF.md`. The next
+normalized Phase 9 packet should harden the `asset.source.inspect` structured
+proof schema before any public readback admission decision.
 `docs/PHASE-9-ASSET-READBACK-CHECKPOINT.md` is the compact current checkpoint
 for this Phase 9 state.
 

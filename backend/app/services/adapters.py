@@ -22,6 +22,10 @@ except ImportError:  # pragma: no cover - runtime fallback when Pillow is unavai
 from app.models.api import AdapterFamilyStatus, AdapterModeStatus, AdaptersResponse
 from app.models.response_envelope import DispatchResult
 from app.services.artifacts import artifacts_service
+from app.services.asset_readback_discovery import (
+    ASSET_READBACK_READY,
+    discover_project_asset_readback_inputs,
+)
 from app.services.catalog import catalog_service
 from app.services.editor_automation_runtime import (
     CAMERA_BOOL_RESTORE_CAPABILITY,
@@ -1254,60 +1258,28 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
         approval_class: str,
         locks_acquired: list[str],
     ) -> AdapterExecutionReport:
-        resolved_project_root = Path(project_root).expanduser().resolve()
-        source_path_input = str(args.get("source_path", "")).strip()
+        source_path_input = str(
+            args.get("source_asset_path") or args.get("source_path", "")
+        ).strip()
         include_products = bool(args.get("include_products", False))
         include_dependencies = bool(args.get("include_dependencies", False))
 
-        if not source_path_input:
-            return self._fallback_asset_source_inspect(
-                tool=tool,
-                agent=agent,
-                project_root=project_root,
-                engine_root=engine_root,
-                dry_run=dry_run,
-                args=args,
-                approval_class=approval_class,
-                locks_acquired=locks_acquired,
-                reason=(
-                    "Real asset inspection was unavailable because no explicit source "
-                    "path was provided."
-                ),
-                fallback_category="missing-source-path",
-            )
-
-        source_candidate = Path(source_path_input).expanduser()
-        resolved_source_path = (
-            source_candidate.resolve()
-            if source_candidate.is_absolute()
-            else (resolved_project_root / source_candidate).resolve()
+        discovery = discover_project_asset_readback_inputs(
+            project_root=project_root,
+            source_asset_path=source_path_input,
         )
-        try:
-            source_relative_path = str(
-                resolved_source_path.relative_to(resolved_project_root)
-            ).replace("\\", "/")
-            source_within_project_root = True
-        except ValueError:
-            source_relative_path = None
-            source_within_project_root = False
-
-        if not source_within_project_root:
-            return self._fallback_asset_source_inspect(
-                tool=tool,
-                agent=agent,
-                project_root=project_root,
-                engine_root=engine_root,
-                dry_run=dry_run,
-                args=args,
-                approval_class=approval_class,
-                locks_acquired=locks_acquired,
-                reason=(
-                    "Real asset inspection is limited to explicit source paths within "
-                    f"the current project root; '{source_path_input}' resolved outside "
-                    "that admitted boundary."
-                ),
-                fallback_category="outside-project-root",
-            )
+        resolved_project_root = Path(
+            discovery["project_root"] or project_root
+        ).expanduser().resolve()
+        source_status = str(discovery["readiness_status"])
+        proof_status = self._asset_source_inspect_proof_status(source_status)
+        source_relative_path = discovery.get("normalized_source_path")
+        resolved_source_path = (
+            Path(str(discovery["source_asset_path"]))
+            if discovery.get("source_asset_path")
+            else resolved_project_root / (source_path_input or ".")
+        )
+        source_within_project_root = proof_status != "unsafe_source_path"
 
         source_exists = resolved_source_path.exists()
         source_is_file = resolved_source_path.is_file()
@@ -1318,17 +1290,26 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
         unavailable_evidence: list[str] = []
         warnings: list[str] = []
         logs = [
-            "Real asset.source.inspect resolved the requested path against the project root.",
+            "Real asset.source.inspect used project-general readback discovery.",
             f"Resolved source path: {resolved_source_path}",
         ]
+        if discovery["blocked_reason"]:
+            warnings.append(str(discovery["blocked_reason"]))
+            logs.append(str(discovery["blocked_reason"]))
 
-        if source_exists and source_is_file:
+        if source_status == ASSET_READBACK_READY and source_exists and source_is_file:
             source_resolution_status = "resolved-file"
             source_size_bytes = resolved_source_path.stat().st_size
             source_sha256 = hashlib.sha256(resolved_source_path.read_bytes()).hexdigest()
-            inspection_evidence.extend(["source_file_stat", "source_file_hash"])
+            inspection_evidence.extend(
+                [
+                    "project_general_readback_discovery",
+                    "source_file_stat",
+                    "source_file_hash",
+                ]
+            )
             logs.append("Read-only source-file metadata and content hash were captured.")
-        elif source_exists:
+        elif source_status == ASSET_READBACK_READY and source_exists:
             source_resolution_status = "resolved-non-file"
             warnings.append(
                 "The requested source path resolved within the project root but is not a file."
@@ -1383,13 +1364,22 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
 
         products: list[str] = []
         dependencies: list[str] = []
+        source_id: int | None = None
+        source_guid: str | None = None
+        product_rows: list[dict[str, Any]] = []
+        dependency_rows: list[dict[str, Any]] = []
+        product_path: str | None = None
+        product_id: int | None = None
+        product_sub_id: int | None = None
+        catalog_presence = False
         if (
-            source_exists
+            source_status == ASSET_READBACK_READY
+            and source_exists
             and source_is_file
             and source_relative_path is not None
             and (include_products or include_dependencies)
         ):
-            assetdb_path = resolved_project_root / "Cache" / "assetdb.sqlite"
+            assetdb_path = Path(str(discovery["asset_database_path"]))
             assetdb_evidence = self._read_asset_source_assetdb_evidence(
                 assetdb_path=assetdb_path,
                 project_root=resolved_project_root,
@@ -1401,8 +1391,16 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             warnings.extend(assetdb_evidence["warnings"])
             if assetdb_evidence["source_found"]:
                 inspection_evidence.append("assetdb.sqlite_source_mapping")
+                source_id = assetdb_evidence["source_id"]
+                source_guid = assetdb_evidence["source_guid"]
             if include_products:
                 products = assetdb_evidence["products"]
+                product_rows = assetdb_evidence["product_rows"]
+                if product_rows:
+                    first_product = product_rows[0]
+                    product_path = str(first_product["product_path"])
+                    product_id = int(first_product["product_id"])
+                    product_sub_id = first_product["sub_id"]
                 if products:
                     unavailable_evidence = [
                         item for item in unavailable_evidence if item != "products"
@@ -1440,6 +1438,7 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
                     catalog_evidence_available = bool(
                         catalog_evidence["catalog_evidence_available"]
                     )
+                    catalog_presence = catalog_evidence_available
                     catalog_evidence_source = str(
                         catalog_evidence["catalog_evidence_source"]
                     )
@@ -1453,6 +1452,7 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
                         unavailable_evidence.append("asset_catalog")
             if include_dependencies:
                 dependencies = assetdb_evidence["dependencies"]
+                dependency_rows = assetdb_evidence["dependency_rows"]
                 if dependencies:
                     unavailable_evidence = [
                         item
@@ -1472,9 +1472,27 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
                     dependency_unavailable_reason = assetdb_evidence[
                         "dependency_unavailable_reason"
                     ]
+            if not assetdb_evidence["source_found"]:
+                proof_status = "source_not_found"
+            elif include_products and not products:
+                proof_status = "product_not_found"
+            elif (
+                include_dependencies
+                and products
+                and dependency_evidence_source
+                == "unavailable-unsupported-index-shape"
+            ):
+                proof_status = "schema_mismatch"
+            elif source_status == ASSET_READBACK_READY:
+                proof_status = "asset_source_inspect_proven"
 
         message = "Read-only asset source inspection completed against real project files."
-        if source_resolution_status == "missing":
+        if source_status != ASSET_READBACK_READY:
+            message = (
+                "Read-only asset source inspection stopped at a project-general "
+                f"readiness gate: {proof_status}."
+            )
+        elif source_resolution_status == "missing":
             message = (
                 "Read-only asset source inspection completed against real project files, "
                 "but the requested source path was not found."
@@ -1494,6 +1512,23 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             "adapter_contract_version": ADAPTER_CONTRACT_VERSION,
             "real_path_available": True,
             "project_root_path": str(resolved_project_root),
+            "project_root": str(resolved_project_root),
+            "project_json_path": discovery["project_json_path"],
+            "project_name": discovery["project_name"],
+            "cache_path": discovery["cache_path"],
+            "database_path": discovery["asset_database_path"],
+            "asset_database_path": discovery["asset_database_path"],
+            "asset_database_read_mode": "read-only",
+            "available_platforms": discovery["available_platforms"],
+            "selected_platform": discovery["selected_platform"],
+            "catalog_path": discovery["asset_catalog_path"],
+            "original_source_path": discovery["original_source_path"],
+            "normalized_source_path": discovery["normalized_source_path"],
+            "read_only": True,
+            "mutation_occurred": False,
+            "readiness_status": source_status,
+            "proof_status": proof_status,
+            "blocked_reason": discovery["blocked_reason"],
             "source_path_input": source_path_input,
             "source_path_resolved": str(resolved_source_path),
             "source_path_relative_to_project_root": source_relative_path,
@@ -1511,6 +1546,8 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             "source_extension": resolved_source_path.suffix or None,
             "source_size_bytes": source_size_bytes,
             "source_sha256": source_sha256,
+            "source_id": source_id,
+            "source_guid": source_guid,
             "include_flags": {
                 "include_products": include_products,
                 "include_dependencies": include_dependencies,
@@ -1518,6 +1555,10 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             "inspection_evidence": inspection_evidence,
             "unavailable_evidence": unavailable_evidence,
             "products": products,
+            "product_rows": product_rows,
+            "product_path": product_path,
+            "product_id": product_id,
+            "product_sub_id": product_sub_id,
             "product_count": len(products),
             "product_evidence_requested": include_products,
             "product_evidence_available": bool(products),
@@ -1529,8 +1570,10 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             "asset_catalog_unavailable_reason": catalog_unavailable_reason,
             "asset_catalog_product_path_presence": catalog_product_path_presence,
             "asset_catalog_product_path_count": catalog_product_path_count,
+            "catalog_presence": catalog_presence,
             **catalog_metadata,
             "dependencies": dependencies,
+            "dependency_rows": dependency_rows,
             "dependency_count": len(dependencies),
             "dependency_evidence_requested": include_dependencies,
             "dependency_evidence_available": bool(dependencies),
@@ -1573,6 +1616,15 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             result_summary="Real asset source inspection completed successfully.",
         )
 
+    def _asset_source_inspect_proof_status(self, readiness_status: str) -> str:
+        if readiness_status == ASSET_READBACK_READY:
+            return ASSET_READBACK_READY
+        if readiness_status == "source_asset_path_missing":
+            return "source_not_found"
+        if readiness_status == "source_asset_path_escapes_project":
+            return "unsafe_source_path"
+        return readiness_status
+
     def _read_asset_source_assetdb_evidence(
         self,
         *,
@@ -1584,11 +1636,21 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
     ) -> dict[str, Any]:
         unavailable_no_index = "unavailable-no-admitted-product-index"
         unavailable_no_dependency_index = "unavailable-no-admitted-dependency-index"
+
+        def int_or_none(value: Any) -> int | None:
+            if value is None:
+                return None
+            return int(value)
+
         result: dict[str, Any] = {
             "source_found": False,
+            "source_id": None,
+            "source_guid": None,
             "products": [],
             "product_names": [],
+            "product_rows": [],
             "dependencies": [],
+            "dependency_rows": [],
             "product_evidence_source": unavailable_no_index,
             "dependency_evidence_source": unavailable_no_dependency_index,
             "product_unavailable_reason": (
@@ -1687,6 +1749,8 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             result["source_found"] = True
             source_id = int(source_row["SourceID"])
             source_guid = str(source_row["SourceGuid"])
+            result["source_id"] = source_id
+            result["source_guid"] = source_guid
             result["logs"].append(
                 "Cache/assetdb.sqlite was opened read-only and mapped the source "
                 f"to SourceID {source_id}."
@@ -1714,6 +1778,21 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             ).fetchall()
             if include_products:
                 result["product_names"] = [str(row["ProductName"]) for row in product_rows]
+                result["product_rows"] = [
+                    {
+                        "product_id": int(row["ProductID"]),
+                        "product_path": str(row["ProductName"]),
+                        "sub_id": int_or_none(row["SubID"]),
+                        "hash": int_or_none(row["Hash"]),
+                        "platform": str(row["Platform"]),
+                        "job_status": int_or_none(row["Status"]),
+                        "job_key": str(row["JobKey"]),
+                        "fingerprint": int_or_none(row["Fingerprint"]),
+                        "last_log_time": int_or_none(row["LastLogTime"]),
+                        "source_guid": source_guid,
+                    }
+                    for row in product_rows
+                ]
                 result["products"] = [
                     (
                         f"{row['ProductName']} "
@@ -1752,6 +1831,21 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
                     """,
                     (*product_ids, ASSET_SOURCE_INSPECT_INDEX_ENTRY_LIMIT),
                 ).fetchall()
+                result["dependency_rows"] = [
+                    {
+                        "product_id": int(row["ProductPK"]),
+                        "platform": str(row["Platform"]),
+                        "dependency_source_guid": str(row["DependencySourceGuid"]),
+                        "dependency_sub_id": int_or_none(row["DependencySubID"]),
+                        "dependency_flags": int_or_none(row["DependencyFlags"]),
+                        "from_asset_id": int_or_none(row["FromAssetId"]),
+                        "unresolved_path": str(row["UnresolvedPath"] or ""),
+                        "unresolved_dependency_type": int_or_none(
+                            row["UnresolvedDependencyType"]
+                        ),
+                    }
+                    for row in dependency_rows
+                ]
                 result["dependencies"] = [
                     (
                         "product_dependency "
