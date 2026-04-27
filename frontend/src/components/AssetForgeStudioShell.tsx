@@ -3,6 +3,7 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import AssetForgeReviewPacketPanel from "./AssetForgeReviewPacketPanel";
 import { mapAssetForgeToolbenchReviewPacket } from "../lib/assetForgeReviewPacketMapper";
 import type { AssetForgeReviewPacketSource } from "../types/assetForgeReviewPacket";
+import type { O3DEBridgeStatus } from "../types/contracts";
 import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 
 type GateState =
@@ -21,6 +22,7 @@ type AssetForgeStudioShellProps = {
   onOpenBuilder?: () => void;
   reviewPacketData: unknown;
   reviewPacketSource: AssetForgeReviewPacketSource;
+  bridgeStatus?: O3DEBridgeStatus | null;
 };
 
 const topMenus = ["File", "Edit", "Create", "Assets", "Entity", "Components", "Materials", "Lighting", "Camera", "Review", "Help"] as const;
@@ -34,6 +36,15 @@ type ToolShelfItem = {
   shortLabel: string;
   gate: GateState;
   detail: string;
+};
+type BridgeSnapshot = {
+  connectionState: string;
+  heartbeatState: string;
+  runnerState: string;
+  queueSummary: string;
+  sourceLabel: string;
+  projectRoot: string;
+  bridgeRoot: string;
 };
 
 const UNKNOWN_VALUE = "Unknown / unavailable";
@@ -88,6 +99,41 @@ function safeText(value: string | null | undefined): string {
   return trimmed ? trimmed : UNKNOWN_VALUE;
 }
 
+function formatHeartbeatState(heartbeatFresh: boolean, heartbeatAgeSeconds?: number | null): string {
+  const hasAge = typeof heartbeatAgeSeconds === "number" && Number.isFinite(heartbeatAgeSeconds);
+  if (heartbeatFresh) {
+    return hasAge ? `Fresh (${Math.max(0, Math.round(heartbeatAgeSeconds))}s)` : "Fresh";
+  }
+  return hasAge ? `Stale (${Math.max(0, Math.round(heartbeatAgeSeconds))}s)` : "Stale / unavailable";
+}
+
+function buildBridgeSnapshot(bridgeStatus?: O3DEBridgeStatus | null): BridgeSnapshot {
+  if (!bridgeStatus) {
+    return {
+      connectionState: "Not connected",
+      heartbeatState: UNKNOWN_VALUE,
+      runnerState: UNKNOWN_VALUE,
+      queueSummary: UNKNOWN_VALUE,
+      sourceLabel: "Not connected",
+      projectRoot: UNKNOWN_VALUE,
+      bridgeRoot: UNKNOWN_VALUE,
+    };
+  }
+
+  const { queue_counts: queueCounts } = bridgeStatus;
+  const queueSummary = `inbox ${queueCounts.inbox} | processing ${queueCounts.processing} | results ${queueCounts.results} | deadletter ${queueCounts.deadletter}`;
+
+  return {
+    connectionState: bridgeStatus.configured ? "Connected (read-only)" : "Not connected",
+    heartbeatState: formatHeartbeatState(bridgeStatus.heartbeat_fresh, bridgeStatus.heartbeat_age_s),
+    runnerState: bridgeStatus.runner_process_active ? "Active" : "Inactive / unavailable",
+    queueSummary,
+    sourceLabel: safeText(bridgeStatus.source_label),
+    projectRoot: safeText(bridgeStatus.project_root),
+    bridgeRoot: safeText(bridgeStatus.bridge_root),
+  };
+}
+
 function readSavedMenu(): TopMenu | null {
   if (typeof window === "undefined") return null;
   const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -131,12 +177,13 @@ function Badge({ gate }: { gate: GateState }) {
   return <span style={{ ...s.badge, ...badgeTone(gate) }}>{gate}</span>;
 }
 
-export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStudio, onOpenRuntimeOverview, onOpenBuilder, reviewPacketData, reviewPacketSource }: AssetForgeStudioShellProps) {
+export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStudio, onOpenRuntimeOverview, onOpenBuilder, reviewPacketData, reviewPacketSource, bridgeStatus }: AssetForgeStudioShellProps) {
   const [activeTopMenu, setActiveTopMenu] = useState<TopMenu>(() => readSavedMenu() ?? "Create");
   const [activeAssetCategory, setActiveAssetCategory] = useState<AssetCategory>("Source assets");
   const [activeTool, setActiveTool] = useState("Select");
   const [cameraMode, setCameraMode] = useState<CameraMode>("Perspective");
   const packet = useMemo(() => mapAssetForgeToolbenchReviewPacket(reviewPacketData, reviewPacketSource), [reviewPacketData, reviewPacketSource]);
+  const bridgeSnapshot = useMemo(() => buildBridgeSnapshot(bridgeStatus), [bridgeStatus]);
 
   const saveLayout = () => window.localStorage.setItem(STORAGE_KEY, activeTopMenu);
   const resetLayout = () => {
@@ -159,7 +206,7 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
         <span style={s.topStatus}>preview - non-mutating control surface</span>
       </nav>
       <main aria-label="Asset Forge active page" style={s.pageHost}>
-        {activeTopMenu === "File" && <FilePage projectProfile={projectProfile} activeTopMenu={activeTopMenu} saveLayout={saveLayout} resetLayout={resetLayout} />}
+        {activeTopMenu === "File" && <FilePage projectProfile={projectProfile} activeTopMenu={activeTopMenu} saveLayout={saveLayout} resetLayout={resetLayout} bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} />}
         {activeTopMenu === "Edit" && <EditPage />}
         {activeTopMenu === "Create" && <CreatePage onOpenPromptStudio={onOpenPromptStudio} onOpenRuntimeOverview={onOpenRuntimeOverview} onOpenBuilder={onOpenBuilder} />}
         {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} />}
@@ -169,17 +216,18 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
         {activeTopMenu === "Lighting" && <LightingPage />}
         {activeTopMenu === "Camera" && <CameraPage cameraMode={cameraMode} setCameraMode={setCameraMode} />}
         {activeTopMenu === "Review" && <ReviewPage reviewPacketData={reviewPacketData} reviewPacketSource={reviewPacketSource} packet={packet} />}
-        {activeTopMenu === "Help" && <HelpPage />}
+        {activeTopMenu === "Help" && <HelpPage bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} />}
       </main>
     </section>
   );
 }
 
-function FilePage({ projectProfile, activeTopMenu, saveLayout, resetLayout }: { projectProfile?: O3DEProjectProfile; activeTopMenu: TopMenu; saveLayout: () => void; resetLayout: () => void }) {
+function FilePage({ projectProfile, activeTopMenu, saveLayout, resetLayout, bridgeSnapshot, packetDataSourceLabel }: { projectProfile?: O3DEProjectProfile; activeTopMenu: TopMenu; saveLayout: () => void; resetLayout: () => void; bridgeSnapshot: BridgeSnapshot; packetDataSourceLabel: string }) {
   return <Page title="File" gate="local preview" detail="Project/session information and harmless local layout preferences. No file mutation.">
     <div style={s.twoCols}>
       <Panel title="Project session" gate="read-only"><Rows rows={[["Project", safeText(projectProfile?.name)], ["Project root", safeText(projectProfile?.projectRoot)], ["Engine root", safeText(projectProfile?.engineRoot)], ["Profile source", safeText(projectProfile?.sourceLabel)]]} /></Panel>
       <Panel title="Local layout controls" gate="local preview"><p style={s.muted}>Stores only harmless UI menu preference state in localStorage.</p><div style={s.buttonRow}><button type="button" onClick={saveLayout} style={s.primaryButton}>Save Layout</button><button type="button" onClick={resetLayout} style={s.darkButton}>Reset Layout</button><button type="button" disabled style={s.disabledButton}>Write project file</button></div><Rows rows={[["Saved menu target", activeTopMenu], ["Backend persistence", "Not connected"], ["File mutation", "Blocked"]]} /></Panel>
+      <Panel title="Bridge read-only snapshot" gate="proof-only"><Rows rows={[["Connection", bridgeSnapshot.connectionState], ["Heartbeat", bridgeSnapshot.heartbeatState], ["Runner process", bridgeSnapshot.runnerState], ["Queue status", bridgeSnapshot.queueSummary], ["Bridge source", bridgeSnapshot.sourceLabel], ["Project root", bridgeSnapshot.projectRoot], ["Bridge root", bridgeSnapshot.bridgeRoot], ["Packet source", packetDataSourceLabel]]} /></Panel>
     </div><BlockedSummary />
   </Page>;
 }
@@ -284,8 +332,8 @@ function ReviewPage({ reviewPacketData, reviewPacketSource, packet }: Pick<Asset
   return <Page title="Review" gate="proof-only" detail="Full-page operator review packet, evidence summary, warnings, approval state, and safest next step." review><div style={s.reviewGrid}><section aria-label="Forge operator review packet full page" style={s.reviewPacketFrame}><AssetForgeReviewPacketPanel packetData={reviewPacketData} packetSource={reviewPacketSource} /></section><aside style={s.reviewAside}><Panel title="Evidence summary" gate="proof-only"><Rows rows={[["Source evidence", packet.sourceEvidence.sourceExists], ["Product evidence", packet.productEvidence.evidenceAvailable], ["Catalog evidence", packet.catalogEvidence.catalogPresence], ["Dependency evidence", packet.dependencyEvidence.evidenceAvailable]]} /></Panel><Panel title="Unknown / unavailable" gate="requires approval"><Rows rows={[["License", packet.unavailableFields.licenseStatus], ["Quality", packet.unavailableFields.qualityStatus], ["Placement readiness", packet.unavailableFields.placementReadiness], ["Production approval", packet.unavailableFields.productionApproval]]} /></Panel><Panel title="Operator state" gate="requires approval"><Rows rows={[["Approval", packet.operatorApprovalState], ["Safest next step", packet.safestNextStep]]} /><button type="button" disabled style={s.disabledWideButton}>Approve production import</button></Panel></aside></div></Page>;
 }
 
-function HelpPage() {
-  return <Page title="Help" gate="read-only" detail="Connected vs preview explanation, gate legend, and safe workflow guide."><div style={s.threeCols}><Panel title="Connected vs preview" gate="read-only"><List items={["Frontend shell is connected", "Phase 9 review packet fixture is preview by default", "Renderer connection unavailable", "Backend mutation corridors are not widened"]} /></Panel><Panel title="Gate legend" gate="read-only"><List items={["read-only: can inspect data", "local preview: UI state only", "plan-only: draft or instruction", "proof-only: evidence display", "blocked/not admitted: disabled"]} /></Panel><Panel title="Workflow guide" gate="plan-only"><List items={["Create: draft prompt and plan", "Assets: inspect evidence", "Review: inspect packet", "Use Prompt Studio/Runtime/Builder only through existing safe navigation"]} /></Panel></div><BlockedSummary /></Page>;
+function HelpPage({ bridgeSnapshot, packetDataSourceLabel }: { bridgeSnapshot: BridgeSnapshot; packetDataSourceLabel: string }) {
+  return <Page title="Help" gate="read-only" detail="Connected vs preview explanation, gate legend, and safe workflow guide."><div style={s.threeCols}><Panel title="Connected vs preview" gate="read-only"><List items={[`Bridge connection: ${bridgeSnapshot.connectionState}`, `Bridge heartbeat: ${bridgeSnapshot.heartbeatState}`, `Bridge queue: ${bridgeSnapshot.queueSummary}`, `Review packet source: ${packetDataSourceLabel}`, "Viewport preview is local UI only - renderer not connected", "Backend mutation corridors remain blocked"]} /></Panel><Panel title="Gate legend" gate="read-only"><List items={["read-only: can inspect data", "local preview: UI state only", "plan-only: draft or instruction", "proof-only: evidence display", "blocked/not admitted: disabled"]} /></Panel><Panel title="Workflow guide" gate="plan-only"><List items={["Create: draft prompt and plan", "Assets: inspect evidence", "Review: inspect packet", "Use Prompt Studio/Runtime/Builder only through existing safe navigation"]} /></Panel></div><BlockedSummary /></Page>;
 }
 
 function Page({ title, detail, gate, children, review = false }: { title: string; detail: string; gate: GateState; children: ReactNode; review?: boolean }) {

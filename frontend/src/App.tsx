@@ -7365,6 +7365,7 @@ export default function App() {
                 onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
+                bridgeStatus={o3deBridgeStatus}
               />
             </Suspense>
           </div>
