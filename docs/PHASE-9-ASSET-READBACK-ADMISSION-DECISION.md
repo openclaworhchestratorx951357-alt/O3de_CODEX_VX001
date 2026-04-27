@@ -131,9 +131,9 @@ packet that shows:
 - operator approval state
 - mutation flags
 
-## Required Next Packet
+## Completed Readiness Contract Packet
 
-Next normalized packet:
+The next normalized packet named by this decision is:
 
 ```text
 Branch:
@@ -149,6 +149,27 @@ Define the operator-facing readiness/review packet for project-general asset
 readback, including freshness, platform, missing-substrate guidance, and the
 fields AI Asset Forge will need before generated assets can be considered
 usable.
+
+That contract is recorded in
+`docs/PHASE-9-ASSET-READBACK-READINESS-REVIEW-CONTRACT.md`.
+
+## Required Next Packet
+
+Next normalized packet:
+
+```text
+Branch:
+codex/phase-9-asset-readback-review-packet-implementation
+
+PR title:
+Implement Phase 9 asset readback review packet
+```
+
+Purpose:
+
+Carry the readiness/review contract into operator-facing runtime output without
+widening mutation, asset processing, generated asset import, or public asset
+write capability.
 
 ## Revisit Gate
 

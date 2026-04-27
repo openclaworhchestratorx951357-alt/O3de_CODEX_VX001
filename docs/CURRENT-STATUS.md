@@ -21,15 +21,16 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-419866f2658a6258e9a9272ca31098439d59e3b8
+2549b8daef459239f3d063538344675efe37fe34
 ```
 
 The latest runtime/capability movement is the Phase 9
-`asset.source.inspect` read-only product/dependency evidence corridor through
-project-local `Cache/assetdb.sqlite`, followed by live proof, operator
-examples, and prompt refusal coverage that preserves the non-mutation boundary.
-The completed Phase 8 Camera bool write/restore corridor and readback-only
-Camera far clip evidence remain admitted as previously recorded.
+`asset.source.inspect` project-general proof path, structured schema hardening,
+and admission decision. The existing narrow read-only surface remains active,
+but production-general public admission is withheld pending the
+operator-facing readiness/review contract. The completed Phase 8 Camera bool
+write/restore corridor and readback-only Camera far clip evidence remain
+admitted as previously recorded.
 
 Recent handoff-relevant packets:
 
@@ -150,6 +151,10 @@ Recent handoff-relevant packets:
   public admission pending freshness, platform, and operator readiness/review
   work. It is recorded in
   `docs/PHASE-9-ASSET-READBACK-ADMISSION-DECISION.md`.
+- The current readiness-review contract packet defines the operator-facing
+  review shape needed before any production-general Phase 9 admission. It is
+  recorded in
+  `docs/PHASE-9-ASSET-READBACK-READINESS-REVIEW-CONTRACT.md`.
 
 Phase 9 product/dependency readback is no longer blocked on absence of a local
 sample. It remains a local proof target and project-general proof-only readback
@@ -177,10 +182,13 @@ the project-general `asset.source.inspect` proof is tracked in
 schema hardening is tracked in
 `docs/PHASE-9-ASSET-SOURCE-INSPECT-SCHEMA-HARDENING.md`. The admission decision
 is tracked in `docs/PHASE-9-ASSET-READBACK-ADMISSION-DECISION.md`: do not
-promote the corridor to production-general public admission yet. The next
-normalized Phase 9 packet should define the operator-facing readiness/review
-contract for freshness, platform choice, missing-substrate guidance, and AI
-Asset Forge validation fields.
+promote the corridor to production-general public admission yet. The
+readiness/review contract is tracked in
+`docs/PHASE-9-ASSET-READBACK-READINESS-REVIEW-CONTRACT.md`; it defines the
+operator-facing fields for freshness, platform choice, missing-substrate
+guidance, mutation flags, and AI Asset Forge validation handoff. The next
+normalized Phase 9 packet should implement that review packet in the
+operator-facing runtime/output path without widening mutation capability.
 `docs/PHASE-9-ASSET-READBACK-CHECKPOINT.md` is the compact current checkpoint
 for this Phase 9 state.
 
@@ -423,15 +431,15 @@ property writes.
 
 ## Recommended Next Packets
 
-1. Continue Phase 9 with a project-general asset source inspect proof packet:
-   integrate the read-only discovery helper into `asset.source.inspect`, return
-   structured readiness evidence, and prove fail-closed behavior for missing
-   project/cache/catalog/source conditions.
+1. Continue Phase 9 with the asset readback review packet implementation:
+   carry `docs/PHASE-9-ASSET-READBACK-READINESS-REVIEW-CONTRACT.md` into the
+   operator-facing output path, including freshness labels, selected platform,
+   missing-substrate guidance, mutation flags, and safest next step.
 2. Keep Phase 9 product/dependency readback read-only until tests prove exact
    source mapping, bounded entries, freshness provenance, discovery readiness,
-   and fail-closed unavailable behavior. Do not run Asset Processor or mutate
-   cache/source files.
-3. After the Phase 9 proof path is stable, run the first O3DE AI Asset Forge
+   review output, and fail-closed unavailable behavior. Do not run Asset
+   Processor or mutate cache/source files.
+3. After the Phase 9 review output exists, run the first O3DE AI Asset Forge
    packet: `codex/ai-asset-forge-local-model-substrate-audit`, a docs-only
    audit of local/private 3D generation candidates with no model download and
    no asset generation.

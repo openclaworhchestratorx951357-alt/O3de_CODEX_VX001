@@ -9,7 +9,8 @@ Current Phase 9 state:
 - project-general discovery is integrated into the proof-only
   `asset.source.inspect` path
 - structured proof schema hardening exists
-- production-general admission is withheld pending readiness/review contract
+- readiness/review contract exists
+- production-general admission is withheld pending review packet implementation
 
 The helper is recorded in
 `docs/PHASE-9-PROJECT-ASSET-READBACK-DISCOVERY.md` and implemented in
@@ -32,6 +33,12 @@ The public admission decision is recorded in
 read-only `asset.source.inspect` surface active, but do not promote it to a
 production-general public adapter until freshness, platform, and operator
 readiness/review gaps are closed.
+
+The readiness/review contract is recorded in
+`docs/PHASE-9-ASSET-READBACK-READINESS-REVIEW-CONTRACT.md`. It defines the
+operator-facing review fields needed for freshness, selected platform,
+missing-substrate guidance, mutation flags, safest next step, and future AI
+Asset Forge provenance handoff.
 
 ## Why AI Asset Forge depends on Phase 9
 
@@ -115,9 +122,9 @@ Do not promote to production-general public admission yet. Keep the existing
 narrow read-only corridor active while the next packet defines the
 operator-facing readiness/review contract.
 
-## Required next Phase 9 packet
+## Completed Phase 9 readiness contract packet
 
-Next packet:
+This packet is now documented:
 
 ```text
 Branch:
@@ -134,9 +141,27 @@ readback, including freshness, platform, missing-substrate guidance, and the
 fields AI Asset Forge will need before generated assets can be considered
 usable.
 
+## Required next Phase 9 packet
+
+Next packet:
+
+```text
+Branch:
+codex/phase-9-asset-readback-review-packet-implementation
+
+PR title:
+Implement Phase 9 asset readback review packet
+```
+
+Purpose:
+
+Carry the readiness/review contract into the operator-facing output path while
+remaining read-only and preserving all asset mutation, Asset Processor, import,
+assignment, and placement boundaries.
+
 ## Required later Forge packet
 
-After Phase 9 proof path is stable:
+After Phase 9 review output exists:
 
 ```text
 Branch:

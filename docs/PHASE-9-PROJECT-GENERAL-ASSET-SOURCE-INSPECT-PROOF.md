@@ -56,8 +56,8 @@ The execution details and artifact metadata now include:
 - `catalog_presence`
 
 The existing string-array `products` and `dependencies` evidence remains for
-compatibility. A later schema-hardening packet should decide whether the new
-structured rows become the preferred public contract.
+compatibility. The schema-hardening packet recorded the structured rows in the
+published persisted payload schemas.
 
 The request args schema also accepts `source_asset_path` as a project-general
 alias for the existing `source_path` field.
@@ -157,7 +157,7 @@ project_root + source_path
 ## Still Pending
 
 - live proof artifact command, if a future packet chooses to add one
-- public readback admission decision beyond the current proof-only corridor
+- review packet implementation before production-general public admission
 - AI Asset Forge model substrate audit
 
 ## Validation

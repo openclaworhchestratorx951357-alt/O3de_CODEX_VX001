@@ -105,9 +105,9 @@ mutating project assets.
 This proof packet is tracked in
 `docs/PHASE-9-PROJECT-GENERAL-ASSET-SOURCE-INSPECT-PROOF.md`.
 
-## Required future packet
+## Completed schema packet
 
-The next required Phase 9 production-generalization packet should be:
+The schema-hardening packet was:
 
 ```text
 Branch:
@@ -122,6 +122,68 @@ Purpose:
 Make the structured source/product/dependency/catalog proof fields explicit in
 the published schemas and decide which readiness/proof states are part of the
 stable public readback contract.
+
+It is tracked in
+`docs/PHASE-9-ASSET-SOURCE-INSPECT-SCHEMA-HARDENING.md`.
+
+## Completed admission decision packet
+
+The admission decision packet was:
+
+```text
+Branch:
+codex/phase-9-asset-readback-admission-decision
+
+PR title:
+Decide Phase 9 asset readback public admission
+```
+
+Purpose:
+
+Keep the existing narrow read-only corridor active while withholding
+production-general public admission until freshness, platform choice, and
+operator readiness/review are made explicit.
+
+It is tracked in `docs/PHASE-9-ASSET-READBACK-ADMISSION-DECISION.md`.
+
+## Completed readiness contract packet
+
+The readiness/review contract packet was:
+
+```text
+Branch:
+codex/phase-9-asset-readback-readiness-review-contract
+
+PR title:
+Define Phase 9 asset readback readiness review contract
+```
+
+Purpose:
+
+Define the operator-facing review packet fields for freshness, selected
+platform, missing-substrate guidance, mutation flags, safest next step, and AI
+Asset Forge generated-asset validation handoff.
+
+It is tracked in
+`docs/PHASE-9-ASSET-READBACK-READINESS-REVIEW-CONTRACT.md`.
+
+## Required future packet
+
+The next required Phase 9 production-generalization packet should be:
+
+```text
+Branch:
+codex/phase-9-asset-readback-review-packet-implementation
+
+PR title:
+Implement Phase 9 asset readback review packet
+```
+
+Purpose:
+
+Carry the readiness/review contract into operator-facing runtime output while
+remaining read-only and preserving all current mutation and Asset Processor
+boundaries.
 
 ## Future production flow
 

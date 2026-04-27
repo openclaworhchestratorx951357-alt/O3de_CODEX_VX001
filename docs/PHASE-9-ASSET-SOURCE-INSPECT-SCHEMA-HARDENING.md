@@ -131,27 +131,26 @@ Results:
 - diff checks passed
 - docs link/path check passed
 
-## Next Normalized Packet
+## Follow-Up Packets
 
 The public readback admission decision is now tracked in
 `docs/PHASE-9-ASSET-READBACK-ADMISSION-DECISION.md`.
 
-The next Phase 9 packet should define the readiness/review contract named by
-that decision.
+The readiness/review contract named by that decision is now tracked in
+`docs/PHASE-9-ASSET-READBACK-READINESS-REVIEW-CONTRACT.md`.
 
-Recommended packet:
+Recommended next implementation packet:
 
 ```text
 Branch:
-codex/phase-9-asset-readback-readiness-review-contract
+codex/phase-9-asset-readback-review-packet-implementation
 
 PR title:
-Define Phase 9 asset readback readiness review contract
+Implement Phase 9 asset readback review packet
 ```
 
 Purpose:
 
-Define the operator-facing readiness/review packet for project-general asset
-readback, including freshness, platform, missing-substrate guidance, and the
-fields AI Asset Forge will need before generated assets can be considered
-usable.
+Carry the readiness/review contract into operator-facing runtime output while
+remaining read-only and preserving all asset mutation and Asset Processor
+boundaries.
