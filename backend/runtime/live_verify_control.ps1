@@ -864,7 +864,8 @@ $result = switch ($Action) {
     "scalar-target-discovery-proof" {
         Invoke-ProofRun `
             -SelectedProofHelper $ScalarTargetDiscoveryProofHelper `
-            -ProofAction "scalar-target-discovery-proof"
+            -ProofAction "scalar-target-discovery-proof" `
+            -RefreshBridgeBeforeProof
     }
     "camera-scalar-write-proof" {
         Invoke-ProofRun `

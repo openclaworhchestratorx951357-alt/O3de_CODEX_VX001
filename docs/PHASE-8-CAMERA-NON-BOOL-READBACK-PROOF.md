@@ -43,18 +43,23 @@ does not call `SetComponentProperty`.
 
 ## Live Proof Status
 
-No live Editor proof artifact is committed by this packet.
+Live proof evidence is now recorded in:
 
-If the local Editor target is available, the appropriate follow-up validation
-is:
+```text
+docs/PHASE-8-CAMERA-NON-BOOL-READBACK-LIVE-PROOF.md
+```
+
+The successful proof command was:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 live-scalar-target-discovery-proof
 ```
 
-Any generated
-`backend/runtime/live_editor_scalar_target_discovery_proof_*.json` file must
-remain ignored unless a later checkpoint intentionally commits a short summary.
+It selected `Camera :: Controller|Configuration|Far clip distance :: float` as
+a read-only candidate and kept write, restore, and property-list admission
+false. The generated
+`backend/runtime/live_editor_scalar_target_discovery_proof_*.json` artifact
+remains ignored.
 
 ## Validation Expectations
 

@@ -161,11 +161,23 @@ Camera candidates, keep public property listing blocked, keep writes blocked,
 keep restore admission blocked, and return a precise Camera non-bool blocker if
 no non-bool scalar candidate is live-proven.
 
-Live Camera non-bool proof evidence remains pending. At the checkpoint after PR
-#84, backend readiness was available and the configured project/engine/editor
-paths existed, but the Editor bridge heartbeat was stale and the runner process
-was inactive. No live proof command was run and no runtime proof JSON was
-committed.
+At the checkpoint after PR #84, live Camera non-bool proof evidence was pending
+because the Editor bridge heartbeat was stale and the runner process was
+inactive.
+
+The next live proof slice proved a Camera non-bool read-only target after
+refreshing the project-local bridge setup. The selected target was:
+
+```text
+Camera :: Controller|Configuration|Far clip distance :: float
+```
+
+The proof read value preview `1024.0`, used component id provenance
+`admitted_runtime_component_add_result`, kept `read_only: true`,
+`write_occurred: false`, `write_admission: false`,
+`restore_admission: false`, and `property_list_admission: false`, and restored
+the loaded-level prefab boundary with `restored_and_verified`. Runtime proof
+JSON remains ignored/uncommitted.
 
 ## Repo Hygiene Baseline
 
@@ -237,10 +249,12 @@ property writes.
 2. If such a sample is provided, create
    `codex/phase-9-asset-readback-substrate-audit` before any proof-only or
    implementation work.
-3. If Phase 8 continues, make the Editor bridge heartbeat fresh and run only
-   the proof-only Camera non-bool scalar target discovery command. Accept either
-   a read-only non-bool candidate or a precise blocked result; do not widen
-   writes, restore, property-list admission, or public prompts.
+3. If Phase 8 continues, audit whether
+   `Camera :: Controller|Configuration|Far clip distance :: float` should stay
+   readback-only, receive an explicit future write-candidate design packet, or
+   be checkpointed as a discovered-but-not-admitted target. Do not widen writes,
+   restore, property-list admission, or public prompts without a separate
+   approval gate.
 4. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 5. Continue repository professionalization in small docs-only packets when the
