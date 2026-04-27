@@ -132,6 +132,9 @@ rounding up capability claims.
 - `docs/PHASE-9-ASSET-CATALOG-PATH-PRESENCE-PROOF.md` records the proof-only
   implementation of read-only Asset Catalog product-path presence cross-checks
   behind `asset.source.inspect`.
+- `docs/PHASE-9-ASSET-CATALOG-PATH-PRESENCE-LIVE-PROOF.md` records the live
+  read-only `McpSandbox` proof of that Asset Catalog product-path presence
+  cross-check.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
