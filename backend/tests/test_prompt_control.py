@@ -1987,6 +1987,16 @@ def test_prompt_session_refuses_arbitrary_command_execution() -> None:
             "on entity id 101 in the editor.",
         ),
         (
+            "prompt-editor-candidate-camera-far-clip-write-1",
+            'Open level "Levels/Main.level", set the Camera far clip distance '
+            'on entity named "ShotCamera" to 512.',
+        ),
+        (
+            "prompt-editor-candidate-camera-far-clip-write-2",
+            'Open level "Levels/Main.level", change far clip distance on the '
+            'Camera component for entity named "ShotCamera" to 512.',
+        ),
+        (
             "prompt-editor-candidate-prefab-1",
             'Open prefab "Prefabs/Crate.prefab" in the editor.',
         ),
@@ -2282,13 +2292,30 @@ def test_prompt_session_refuses_exact_camera_bool_restore_without_before_value()
         ]
 
 
-def test_prompt_session_refuses_generic_undo_prompt() -> None:
+@pytest.mark.parametrize(
+    ("prompt_id", "prompt_text"),
+    [
+        (
+            "prompt-generic-undo-refuse-1",
+            "Undo the last editor change in the level.",
+        ),
+        (
+            "prompt-camera-far-clip-restore-refuse-1",
+            'Restore the Camera far clip distance on entity named "ShotCamera" '
+            "to its previous value.",
+        ),
+    ],
+)
+def test_prompt_session_refuses_generic_restore_prompts(
+    prompt_id: str,
+    prompt_text: str,
+) -> None:
     with isolated_client() as client:
         response = client.post(
             "/prompt/sessions",
             json={
-                "prompt_id": "prompt-generic-undo-refuse-1",
-                "prompt_text": "Undo the last editor change in the level.",
+                "prompt_id": prompt_id,
+                "prompt_text": prompt_text,
                 "project_root": "C:/project",
                 "engine_root": "C:/engine",
                 "dry_run": False,

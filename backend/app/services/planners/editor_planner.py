@@ -211,6 +211,18 @@ def _requires_property_discovery_admission(prompt_text: str) -> bool:
     )
 
 
+def _requires_camera_far_clip_write_admission(prompt_text: str) -> bool:
+    normalized = prompt_text.lower()
+    return (
+        "camera" in normalized
+        and "far clip" in normalized
+        and contains_any(
+            prompt_text,
+            ["set", "write", "change", "update", "modify", "toggle"],
+        )
+    )
+
+
 def _requires_generic_restore_admission(prompt_text: str) -> bool:
     normalized = prompt_text.lower()
     return re.search(r"\b(?:undo|restore|revert|rollback)\b", normalized) is not None
@@ -439,7 +451,10 @@ def plan_editor_prompt(
         return steps, refusals, requirements
 
     if (
-        _requires_candidate_editor_mutation_admission(prompt_text)
+        (
+            _requires_candidate_editor_mutation_admission(prompt_text)
+            or _requires_camera_far_clip_write_admission(prompt_text)
+        )
         and camera_bool_write_request is None
         and camera_bool_restore_request is None
     ):
