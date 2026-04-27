@@ -265,7 +265,7 @@ staging assets or mutating an O3DE project.
 
 ## Required next Forge packet
 
-After import-readiness design:
+After import-readiness design, this packet was implemented:
 
 ```text
 Branch:
@@ -281,6 +281,35 @@ With explicit operator approval for that mutation packet, copy exactly one
 generated GLB and one provenance metadata file into the sandbox
 `Assets/Generated/<asset_slug>/` folder. Do not run Asset Processor, assign the
 asset, or place it in a level unless separately approved.
+
+Result:
+
+The proof is recorded in
+`docs/AI-ASSET-FORGE-O3DE-SOURCE-STAGING-PROOF.md`. One generated GLB and one
+`.forge.json` provenance metadata file were staged into
+`McpSandbox/Assets/Generated/triposr_chair_001/`. Phase 9 discovery now returns
+`ready_for_asset_source_inspect` for the staged source path, but read-only Asset
+Database inspection found zero source rows because Asset Processor was not run
+in that packet.
+
+## Required next Forge packet
+
+After proof-only O3DE source staging:
+
+```text
+Branch:
+codex/ai-asset-forge-asset-processor-validation
+
+PR title:
+Validate AI Asset Forge staged source with Asset Processor
+```
+
+Purpose:
+
+Run or otherwise observe Asset Processor processing for the staged generated GLB
+with explicit operator approval, then use Phase 9 readback to verify
+source/product/dependency/catalog evidence while keeping assignment, placement,
+and production admission blocked.
 
 ## Final rule
 
