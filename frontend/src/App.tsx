@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState, type CSSProperties } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import DesktopShell from "./components/DesktopShell";
 import FirstRunTour from "./components/FirstRunTour";
@@ -70,6 +70,7 @@ import {
   resetLaneFocus,
   resetPresetLaneFocus,
 } from "./lib/laneController";
+import { resolveAssetForgeLivePacketSelection } from "./lib/assetForgeLivePacketResolver";
 import { buildHomeRecommendationDescriptors, type HomeRecommendationActionId } from "./lib/recommendations";
 import { useSettings } from "./lib/settings/hooks";
 import type { FocusedSection, TruthFilterState } from "./lib/laneController";
@@ -7276,6 +7277,15 @@ export default function App() {
     </Suspense>
   );
 
+  const assetForgeLivePacket = useMemo(
+    () => resolveAssetForgeLivePacketSelection({
+      selectedArtifact,
+      selectedExecution,
+      selectedExecutionDetails,
+    }),
+    [selectedArtifact, selectedExecution, selectedExecutionDetails],
+  );
+
   if (activeWorkspaceId === "asset-forge") {
     const assetForgeWorkspacePageHeight = assetForgeHeaderHeight > 0
       ? `calc(100vh - ${assetForgeHeaderHeight}px)`
@@ -7365,6 +7375,8 @@ export default function App() {
                 onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
+                reviewPacketData={assetForgeLivePacket.reviewPacketData}
+                reviewPacketSource={assetForgeLivePacket.reviewPacketSource}
                 bridgeStatus={o3deBridgeStatus}
               />
             </Suspense>
