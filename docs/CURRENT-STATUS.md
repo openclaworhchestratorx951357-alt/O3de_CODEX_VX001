@@ -1,6 +1,6 @@
 # Current Status
 
-Status date: 2026-04-26
+Status date: 2026-04-27
 
 This file is a human and agent handoff snapshot. It summarizes the latest
 repository truth without replacing code, tests, runtime proof artifacts, or the
@@ -18,12 +18,25 @@ Use this order when status sources disagree:
 
 ## Mainline Baseline
 
-At the time this status snapshot was updated, `main` includes PR #56 and the
-current Phase 8 packet refreshes operator examples/checkpoint docs for the
-paired exact Camera bool write and restore corridors:
+At the time this status snapshot was updated, `main` is:
 
-- Merge commit: `b9abe3943a00cc2fd539934ca3f4a83eacdb4c71`
-- PR title: `Refine Camera bool restore review status`
+```text
+99f9c42ed4486d7a8a7f12d68f488e905c58b3a2
+```
+
+The latest runtime/capability movement remains the completed Phase 8 Camera
+bool write and restore corridor sequence. Later mainline work has been repo
+hygiene, UI layout hardening, branch-purpose review, and future-thread
+supervisor startup documentation.
+
+Recent handoff-relevant packets:
+
+- PR #71 fixed the Windows taskbar bottom safe area and clamped the Call an
+  agent menu.
+- PR #72 reviewed `feature/production-baseline-v1` and preserved it as an
+  intentional production-baseline / historical archive candidate pending
+  operator decision.
+- PR #73 added the future-thread Supervisor Mode startup protocol.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -176,12 +189,16 @@ property writes.
 
 ## Recommended Next Packets
 
-1. If Phase 8 continues, refresh operator/checkpoint docs or start the next
-   read-only discovery packet before adding any new restore targets or broader
-   undo behavior.
-2. Produce a branch cleanup report before deleting any uncertain historical,
+1. Start the next phase with a baseline/current-truth packet before any runtime
+   surface is widened. The safest candidate is Phase 9 asset readback baseline:
+   classify current asset/material/prefab surfaces, admitted read paths,
+   proof-only paths, blockers, forbidden mutation surfaces, and validation
+   commands.
+2. If Phase 8 continues instead, start the next read-only discovery packet
+   before adding any new restore targets or broader undo behavior.
+3. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
-3. Continue repository professionalization in small docs-only packets when the
+4. Continue repository professionalization in small docs-only packets when the
    change does not alter runtime capability or GitHub settings.
 
 Do not turn this file into a substitute for proof artifacts. Update it only
