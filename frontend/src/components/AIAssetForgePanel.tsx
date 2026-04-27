@@ -15,36 +15,41 @@ const defaultCreativePrompt =
 type ForgeViewMode = "preview" | "products" | "review";
 type ForgeOrbitView = "front" | "side" | "top" | "orbit";
 type ForgeRenderMode = "material" | "wireframe" | "proof";
-type ForgeControlMode = "generate" | "validate" | "review" | "blocked";
+type ForgeControlMode = "plan" | "readback" | "review" | "blocked";
 
 const forgeStages = [
   {
-    label: "Generate",
-    detail: "Local/private model output only; no external proprietary generator by default.",
-    state: "planned",
+    label: "Plan request",
+    detail: "Toolbench converts creative intent into typed adapter requests and review goals.",
+    state: "active",
   },
   {
-    label: "Convert",
-    detail: "Normalize mesh scale, format, and metadata before O3DE staging.",
-    state: "proven",
+    label: "Generation corridor",
+    detail: "Future admitted corridor only; this control-surface slice does not run generation.",
+    state: "blocked",
   },
   {
-    label: "Stage",
-    detail: "Place source under Assets/Generated/<asset_slug>/ with provenance.",
-    state: "proven",
+    label: "Normalize corridor",
+    detail: "Toolbench normalization stays typed and O3DE-native with no external DCC assumption.",
+    state: "design",
   },
   {
-    label: "Validate",
-    detail: "Asset Processor plus Phase 9 source/product/dependency/catalog readback.",
-    state: "proven",
+    label: "Stage and process",
+    detail: "Source staging and Asset Processor execution remain blocked unless later admitted.",
+    state: "blocked",
   },
   {
-    label: "Review",
-    detail: "Operator packet checks warnings, license, quality, and approval state.",
-    state: "contract",
+    label: "Readback",
+    detail: "Phase 9 read-only Asset Database and Asset Catalog evidence corridor.",
+    state: "active",
   },
   {
-    label: "Place",
+    label: "Review packet",
+    detail: "Operator packet tracks provenance, warnings, and decision state before future placement.",
+    state: "active",
+  },
+  {
+    label: "Assign and place",
     detail: "Future admitted corridor only after review and explicit approval.",
     state: "blocked",
   },
@@ -52,9 +57,14 @@ const forgeStages = [
 
 const o3deFeatureRows = [
   {
+    label: "Typed backend adapters",
+    state: "required",
+    detail: "Backend calls stay typed; no arbitrary Python/shell/O3DE script passthrough.",
+  },
+  {
     label: "Asset Processor",
     state: "required",
-    detail: "Process staged source assets before any product is treated as usable.",
+    detail: "Process staged source assets before any product is treated as usable when admitted.",
   },
   {
     label: "Asset Catalog",
@@ -178,13 +188,13 @@ export default function AIAssetForgePanel({
       <div style={forgeHeaderStyle}>
         <div>
           <span style={eyebrowStyle}>O3DE AI Asset Forge</span>
-          <strong style={titleStyle}>Creative prompts to validated O3DE assets</strong>
+          <strong style={titleStyle}>Creative prompts to O3DE-native Toolbench corridors</strong>
           <p style={mutedParagraphStyle}>
-            Describe the asset naturally. Forge turns the prompt into generation, cleanup, staging,
-            Asset Processor validation, Phase 9 readback, and operator review work.
+            Describe the asset naturally. Forge turns the prompt into typed Toolbench planning,
+            O3DE validation/readback corridors, and operator review packet work.
           </p>
         </div>
-        <span style={reviewPillStyle}>Review required before placement</span>
+        <span style={reviewPillStyle}>Control-surface slice: non-mutating</span>
       </div>
 
       <div style={forgeGridStyle}>
@@ -223,11 +233,11 @@ export default function AIAssetForgePanel({
           </div>
         </section>
 
-        <section style={requestPanelStyle} aria-label="Forge edit tools">
+        <section style={requestPanelStyle} aria-label="Forge Toolbench edit tools">
           <div>
-            <span style={eyebrowStyle}>Edit tools</span>
+            <span style={eyebrowStyle}>Toolbench edit tools</span>
             <p style={mutedParagraphStyle}>
-              Shape the structured request before generation, staging, validation, or review.
+              Shape the structured request before any future admitted generation, staging, or placement mutation.
             </p>
           </div>
           <div style={editGridStyle}>
@@ -297,20 +307,20 @@ export default function AIAssetForgePanel({
         <div style={viewerHeaderStyle}>
           <div>
             <span style={eyebrowStyle}>Dedicated viewer</span>
-            <strong>Generated asset review bay</strong>
+            <strong>Toolbench evidence bay</strong>
             <p style={mutedParagraphStyle}>
-              Preview the selected generated asset candidate with proof status, product outputs, and
-              review blockers before any scene placement work begins.
+              Preview the selected candidate with proof status, product outputs, and blocked-corridor
+              guidance before any scene placement work begins.
             </p>
           </div>
-          <span style={projectPillStyle}>triposr_chair_001</span>
+          <span style={projectPillStyle}>triposr_chair_001 evidence</span>
         </div>
 
         <div style={toolSuiteStyle} aria-label="Forge control, view, and edit tools">
           <section style={toolSuitePanelStyle} aria-label="Forge control tools">
-            <span style={eyebrowStyle}>Control tools</span>
+            <span style={eyebrowStyle}>Toolbench control tools</span>
             <div style={segmentedGridStyle}>
-              {(["generate", "validate", "review", "blocked"] as ForgeControlMode[]).map((mode) => (
+              {(["plan", "readback", "review", "blocked"] as ForgeControlMode[]).map((mode) => (
                 <button
                   key={mode}
                   type="button"
@@ -323,9 +333,9 @@ export default function AIAssetForgePanel({
               ))}
             </div>
             <div style={controlActionGridStyle}>
-              <button type="button" style={primaryButtonStyle}>Prepare request</button>
-              <button type="button" style={secondaryButtonStyle}>Queue validation</button>
-              <button type="button" style={secondaryButtonStyle}>Open review packet</button>
+              <button type="button" style={primaryButtonStyle}>Draft typed request</button>
+              <button type="button" style={secondaryButtonStyle}>Draft readback check</button>
+              <button type="button" style={secondaryButtonStyle}>Open operator packet</button>
               <button type="button" disabled title="Placement requires review and a later admitted corridor." style={disabledButtonStyle}>
                 Place in level
               </button>
@@ -413,7 +423,7 @@ export default function AIAssetForgePanel({
               <div style={{ ...assetLegRightStyle, filter: `brightness(${lightingLevel + 34}%)` }} />
               <div style={axisGizmoStyle}>XYZ</div>
               <div style={viewerStatusCardStyle}>
-                <strong>O3DE-processed candidate</strong>
+                <strong>O3DE evidence candidate</strong>
                 <span>Not approved for placement</span>
               </div>
             </div>
@@ -441,12 +451,12 @@ export default function AIAssetForgePanel({
         </div>
       </section>
 
-      <section style={stagePanelStyle} aria-label="Forge validation pipeline">
+      <section style={stagePanelStyle} aria-label="Forge Toolbench pipeline">
         <div style={stagePanelHeaderStyle}>
           <div>
-            <span style={eyebrowStyle}>Validation pipeline</span>
+            <span style={eyebrowStyle}>Toolbench pipeline</span>
             <p style={mutedParagraphStyle}>
-              A single creative prompt fans out into gated steps. It cannot silently skip validation or review.
+              A single creative prompt fans out into gated steps. This slice is non-mutating and cannot silently skip review.
             </p>
           </div>
           <span style={projectPillStyle}>{activeProjectName}</span>
@@ -467,7 +477,7 @@ export default function AIAssetForgePanel({
           <div>
             <span style={eyebrowStyle}>O3DE feature coverage</span>
             <p style={mutedParagraphStyle}>
-              Forge uses O3DE-native evidence paths and keeps our own app style as the operator control surface.
+              Forge uses O3DE-native evidence paths, typed adapters, and our own app control surface.
             </p>
           </div>
           <span style={projectPillStyle}>No silent scene mutation</span>
@@ -485,19 +495,19 @@ export default function AIAssetForgePanel({
 
       <div style={evidenceGridStyle}>
         <section style={evidencePanelStyle} aria-label="Current Forge proof status">
-          <span style={eyebrowStyle}>Current proof target</span>
+          <span style={eyebrowStyle}>Current proof evidence</span>
           <strong>triposr_chair_001</strong>
           <p style={mutedParagraphStyle}>
-            The sandbox GLB has Asset Processor and Phase 9 readback evidence: source row, product rows,
-            dependency rows, catalog presence, and warnings captured for review.
+            The sandbox GLB evidence remains read-only here: source row, product rows, dependency rows,
+            catalog presence, and warnings captured for review.
           </p>
         </section>
         <section style={evidencePanelStyle} aria-label="Forge blocked boundaries">
           <span style={eyebrowStyle}>Still blocked</span>
-          <strong>Assignment and placement</strong>
+          <strong>Generation, import, staging, assignment, and placement</strong>
           <p style={mutedParagraphStyle}>
-            Create-and-place prompts must split into generation, validation, review, approval, then a later
-            admitted placement corridor.
+            Create-and-place prompts must remain split into planning, readback evidence, review, approval,
+            then later admitted mutation corridors.
           </p>
         </section>
         <section style={evidencePanelStyle} aria-label="Forge review next step">

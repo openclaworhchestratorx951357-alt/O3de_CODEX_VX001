@@ -26,8 +26,8 @@ Why TripoSR first:
   output directory
 - documented default inference budget is small enough to make a local proof more
   practical than larger model families
-- output can feed a later Blender cleanup/conversion proof before any O3DE
-  import is considered
+- output can feed a later Toolbench normalization/readback proof corridor
+  before any O3DE import is considered
 
 Stable Fast 3D is the strongest second proof candidate because its output shape
 is likely a better fit for O3DE source-asset import, but its Stability AI
@@ -38,8 +38,9 @@ Hunyuan3D-2 and TRELLIS remain promising later candidates for higher-quality or
 more versatile generation, but they need additional license, hardware,
 dependency, and output-format review before they are used in this project.
 
-Blender automation is selected as the likely cleanup/conversion layer, not as a
-generation backend.
+Cleanup/conversion direction is the O3DE Asset Forge Toolbench normalization
+corridor, not an external DCC automation dependency and not a generation
+backend.
 
 ## Candidate comparison
 
@@ -49,7 +50,7 @@ generation backend.
 | TRELLIS | Image-to-3D and text-to-3D. | Structured 3D latent outputs, including mesh, radiance-field, and 3D Gaussian style representations. | Likely NVIDIA/Linux/VRAM-heavy for practical local proof; exact local Windows feasibility must be audited. | Upstream repo marks the main models/code as MIT, but submodules have separate licenses that must be reviewed. | Promising for later high-fidelity research lanes after conversion to O3DE-friendly formats. | Later research candidate, not first proof. |
 | Stable Fast 3D | Image-to-3D. | Mesh with UV/material-oriented output suitable for GLB-style proof flows. | Intended for fast reconstruction, but local GPU/Windows requirements must still be verified. | Stability AI Community License allows limited free commercial use below a revenue threshold and requires registration for commercial use; production use needs operator/legal approval. | Strong O3DE import fit candidate after cleanup/conversion because UV/material output is directly useful. | Strong second candidate after license review. |
 | TripoSR | Single-image-to-3D. | Reconstructed 3D model output in an operator-selected output directory, with texture baking options. | Upstream README states the default single-image path takes about 6 GB VRAM. | Upstream repository is MIT licensed; model weights and any third-party dependencies still need capture in the proof packet. | Good first raw mesh proof candidate; cleanup/conversion will be needed before O3DE import. | First proof-only candidate. |
-| Blender automation | Generated GLB, OBJ, FBX, textures, material maps, and metadata. | Normalized GLB/FBX/source-asset candidates plus metadata. | CPU is enough for many conversion tasks; GPU may help preview/rendering but must not be required without audit. | Blender itself is GPL; scripts using Blender APIs need license review before distribution, and generated asset/model licenses remain separate. | Central conversion layer for scale, pivot, mesh cleanup, texture packing, format export, and later collision/LOD preparation. | Cleanup/conversion layer, not generator. |
+| O3DE Asset Forge Toolbench normalization corridor | Generated GLB, OBJ, FBX, textures, material maps, metadata, and operator quality policy inputs. | Normalized source-asset candidates plus structured review/readback packet evidence. | Must run on operator workstations without requiring an external DCC host. | Project-owned frontend and typed adapter dependencies require normal dependency/license review, and generated asset/model licenses remain separate. | Primary cleanup/conversion direction for scale, pivot, mesh cleanup, texture packing, format export, and later collision/LOD preparation. | Primary cleanup/conversion direction, not generator. |
 
 ## First proof-only path
 
@@ -191,5 +192,5 @@ installation.
 - Stable Fast 3D repository: <https://github.com/Stability-AI/stable-fast-3d>
 - Stable Fast 3D license: <https://raw.githubusercontent.com/Stability-AI/stable-fast-3d/main/LICENSE.md>
 - TripoSR repository: <https://github.com/VAST-AI-Research/TripoSR>
-- Blender Python API documentation: <https://docs.blender.org/api/current/index.html>
-- Blender license documentation: <https://developer.blender.org/docs/license>
+- O3DE integration architecture: `docs/AI-ASSET-FORGE-O3DE-INTEGRATION-ARCHITECTURE.md`
+- O3DE production roadmap: `docs/AI-ASSET-FORGE-PRODUCTION-ROADMAP.md`

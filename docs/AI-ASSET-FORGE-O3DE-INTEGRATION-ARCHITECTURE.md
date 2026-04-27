@@ -6,20 +6,45 @@ O3DE AI Asset Forge is a private O3DE-native asset generation pipeline. It
 must use O3DE's source asset, Asset Processor, Asset Database, Asset Catalog,
 and operator-review flow instead of bypassing the engine.
 
+Current direction:
+
+- do not use Blender as the cleanup/conversion workflow
+- do not assume any external DCC tool dependency
+- use the project frontend as the Asset Forge Toolbench control surface
+- keep backend corridors typed and bounded
+- rely on O3DE Asset Processor, Asset Database, Asset Catalog, Phase 9 readback,
+  and operator review packets as validation corridors
+
+Current slice boundaries:
+
+- no generation/import/staging/assignment/placement mutation admitted
+- no Asset Processor execution admitted
+- no source/product/cache mutation admitted
+- no arbitrary Python, shell, or O3DE script passthrough admitted
+
 Planned components:
 
-1. Prompt Planner
-2. Generation Backend Adapter
-3. Mesh Cleanup Adapter
-4. O3DE Source Asset Stager
-5. Asset Processor Readiness Monitor
-6. Phase 9 Asset Readback Adapter
-7. Asset Catalog Cross-checker
-8. Provenance Store
-9. Operator Review Packet
-10. Future Entity Placement Corridor
+1. Asset Forge Toolbench Frontend
+2. Prompt Planner
+3. Typed Generation Backend Adapter
+4. Typed Normalization Adapter
+5. O3DE Source Asset Stager
+6. Asset Processor Readiness Monitor
+7. Phase 9 Asset Readback Adapter
+8. Asset Catalog Cross-checker
+9. Provenance Store
+10. Operator Review Packet
+11. Future Entity Placement Corridor
 
 ## Component responsibilities
+
+### Asset Forge Toolbench Frontend
+
+Provides the operator-facing control surface for prompt intake, typed request
+preview, corridor selection, readback visibility, and review packet handoff.
+
+The Toolbench must remain explicit about blocked vs admitted corridors and must
+not present generation/import/staging/placement as silently active behavior.
 
 ### Prompt Planner
 
@@ -34,12 +59,13 @@ tavern chair with green cushions for a medieval village" is a Forge prompt;
 "Run asset.source.inspect against assetdb.sqlite and verify catalog presence"
 is an engine-control/readback prompt.
 
-The Prompt Planner translates creative input into structured internal fields
-such as `creative_prompt`, `asset_type`, `style_profile`, `quality_profile`,
-`scale_hint`, `target_format`, `reference_image_path`, `project_root`,
-`staging_folder`, and `requires_operator_review`.
+The Prompt Planner translates creative input into structured internal fields and
+typed adapter payloads such as `creative_prompt`, `asset_type`,
+`style_profile`, `quality_profile`, `scale_hint`, `target_format`,
+`reference_image_path`, `project_root`, `staging_folder`, and
+`requires_operator_review`.
 
-### Generation Backend Adapter
+### Typed Generation Backend Adapter
 
 Calls a local/private 3D generation backend selected by the substrate audit.
 The default production path must not call Meshy APIs or rely on external
@@ -51,14 +77,16 @@ authorizes a future local-generation proof outside the repository and outside
 O3DE after explicit operator approval for any downloads or dependency
 installation. It does not admit production generation.
 
-### Mesh Cleanup Adapter
+### Typed Normalization Adapter
 
 Normalizes generated output into O3DE-friendly source assets. Future work may
-use Blender automation for scale normalization, pivot correction, mesh cleanup,
-texture packing, format export, and later collision/LOD preparation.
+use project-owned typed adapters for scale normalization, pivot correction, mesh
+cleanup, texture packing, format conversion, and later collision/LOD
+preparation.
 
-Blender automation is the likely cleanup/conversion layer after the first raw
-generated asset proof exists. It is not the generation backend.
+This direction does not assume Blender automation or any external DCC
+dependency. Any future tool integration must remain optional, typed, and
+separately admitted.
 
 ### O3DE Source Asset Stager
 
@@ -115,16 +143,16 @@ Create a mossy stone bridge prop for this level
 
 Flow:
 
-- prompt interpreted
-- structured generation request created
-- local model generates mesh
-- cleanup prepares asset
-- source asset staged
-- Asset Processor processes it
+- prompt interpreted by the Toolbench
+- structured typed request created
+- generation and normalization corridors prepared through typed adapters
+- source asset staging remains blocked unless explicitly admitted
+- Asset Processor execution remains blocked unless explicitly admitted
 - `assetdb.sqlite` confirms source/product
 - `assetcatalog.xml` confirms product availability
 - operator review packet created
-- later entity assignment/placement is approved separately
+- later entity assignment/placement is approved separately and remains blocked
+  in this slice
 
 ## Integration with Phase 9
 
@@ -154,6 +182,7 @@ Before AI Asset Forge can be production-ready:
 - arbitrary source asset input must be safe/path-normalized
 - platform cache selection must be explicit
 - schema mismatch must be handled
+- typed backend adapters must prevent arbitrary passthrough execution
 - generated asset provenance must be stored
 - generated assets must be reviewed before use
 - no generated asset should be silently placed in a level

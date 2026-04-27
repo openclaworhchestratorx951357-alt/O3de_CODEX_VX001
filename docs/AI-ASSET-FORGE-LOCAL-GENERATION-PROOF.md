@@ -225,8 +225,8 @@ Purpose:
 
 Use the generated OBJ as a local proof input and prove a cleanup/conversion
 step outside O3DE. The next proof should inspect mesh scale/origin/material
-state, produce normalized metadata, and decide whether Blender automation is the
-right conversion layer before any O3DE import is designed.
+state, produce normalized metadata, and refine the O3DE Asset Forge Toolbench
+normalization corridor before any O3DE import is designed.
 
 ## Final rule
 

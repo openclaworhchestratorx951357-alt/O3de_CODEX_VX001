@@ -95,8 +95,8 @@ describe("HomeWorkspaceView", () => {
 
     const forgePanel = screen.getByLabelText("AI Asset Forge");
     expect(within(forgePanel).getByText("O3DE AI Asset Forge")).toBeInTheDocument();
-    expect(within(forgePanel).getByText("Creative prompts to validated O3DE assets")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Forge edit tools")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("Creative prompts to O3DE-native Toolbench corridors")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Forge Toolbench edit tools")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Forge internal request preview")).toHaveTextContent(
       "creative_prompt",
     );

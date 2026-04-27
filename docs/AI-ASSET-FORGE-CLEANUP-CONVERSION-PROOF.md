@@ -18,9 +18,9 @@ production-admission packet.
 The first cleanup/conversion proof succeeded using the external Python/trimesh
 toolchain already installed for the local generation proof.
 
-Blender was checked and was not available on PATH, so this packet does not claim
-a Blender automation proof. Blender remains the likely later automation layer
-for richer cleanup, preview, collision, LOD, material, and export workflows.
+This packet does not assume Blender or any external DCC automation dependency.
+Future cleanup/conversion direction remains the project Toolbench normalization
+corridor with typed backend adapters and O3DE validation/readback handoff.
 
 ## Boundaries preserved
 
@@ -71,13 +71,6 @@ Observed tooling:
 ```text
 Python 3.11.9
 trimesh 4.0.5
-```
-
-Blender availability check:
-
-```text
-blender : The term 'blender' is not recognized as the name of a cmdlet,
-function, script file, or operable program.
 ```
 
 ## Proof operation
@@ -167,7 +160,7 @@ The first cleanup/conversion proof demonstrates:
 
 The proof does not demonstrate:
 
-- Blender automation
+- Toolbench typed adapter implementation
 - production-grade mesh repair
 - material or texture baking
 - pivot policy beyond bounding-box centering

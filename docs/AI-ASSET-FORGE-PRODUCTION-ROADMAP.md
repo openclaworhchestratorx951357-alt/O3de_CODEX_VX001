@@ -4,33 +4,39 @@
 
 Build a private O3DE-native alternative to Meshy-style AI 3D asset generation.
 
-This system should generate, clean, import, validate, catalog, review, and
-eventually place 3D assets inside O3DE projects using natural language.
+This system should use our own frontend Toolbench to plan and orchestrate
+generation, normalization, O3DE validation, catalog/readback evidence, and
+operator review corridors for 3D assets using natural language.
 
 ## Non-goals
 
 - Not Meshy integration.
 - Not Meshy API usage.
+- Not Blender dependency.
+- Not Blender automation.
+- Not external DCC tool assumptions.
 - Not external proprietary service dependency.
 - Not immediate foundation-model training from scratch.
 - Not immediate generated asset import.
 - Not immediate O3DE project mutation.
 - Not bypassing O3DE Asset Processor.
+- Not arbitrary Python/shell/O3DE script passthrough.
 - Not committing generated assets, Cache files, or model weights without
   explicit approval.
 
 ## Production pipeline
 
 1. Creative prompt/image/reference input.
-2. Local/private generation backend produces a raw 3D asset.
-3. Cleanup/conversion layer prepares mesh/material/textures.
-4. Source asset is staged into an O3DE project asset folder.
-5. Asset Processor processes the source asset.
-6. Phase 9 asset readback verifies source/product/dependency evidence.
-7. Asset catalog cross-check verifies runtime product availability.
-8. Operator review confirms provenance, quality, scale, naming, and safety.
-9. Later admitted corridor assigns generated asset to an entity.
-10. Later admitted corridor places/updates the entity in a level.
+2. Toolbench translates input into typed backend adapter requests.
+3. Local/private generation backend produces a raw 3D asset (future admitted).
+4. Toolbench normalization corridor prepares mesh/material/textures.
+5. Source asset is staged into an O3DE project asset folder (future admitted).
+6. Asset Processor processes the source asset (future admitted).
+7. Phase 9 asset readback verifies source/product/dependency evidence.
+8. Asset catalog cross-check verifies runtime product availability.
+9. Operator review confirms provenance, quality, scale, naming, and safety.
+10. Later admitted corridor assigns generated asset to an entity and
+    places/updates it in a level.
 
 ## Prompt Input Model
 
@@ -51,9 +57,9 @@ Run asset.source.inspect against assetdb.sqlite and verify catalog presence.
 
 The prompt input model is defined in
 `docs/AI-ASSET-FORGE-PROMPT-INPUT-MODEL.md`. Forge prompts are translated
-internally into structured generation, cleanup/conversion, staging, Asset
-Processor validation, Phase 9 readback, and operator review requests. A single
-creative prompt must not silently skip validation or review.
+internally into structured generation, Toolbench normalization, staging,
+Asset Processor validation, Phase 9 readback, and operator review requests.
+A single creative prompt must not silently skip validation or review.
 
 ## Why Phase 9 matters
 
@@ -96,7 +102,7 @@ O3DE project mutation.
 - license/commercial risk: community license and model terms must be reviewed
   before production or commercial use
 - expected O3DE import fit: promising for source mesh generation followed by
-  Blender cleanup/conversion and O3DE Asset Processor validation
+  Toolbench normalization and O3DE Asset Processor validation
 - proof-only first step: document install, license, hardware, output format,
   and isolation requirements without downloading weights
 - audit disposition: later high-quality candidate, not first proof
@@ -111,7 +117,7 @@ O3DE project mutation.
 - license/commercial risk: code/model/submodule licenses must be reviewed,
   especially for commercial use and bundled dependencies
 - expected O3DE import fit: potentially useful for higher-fidelity generated
-  assets after conversion to O3DE-friendly mesh/material formats
+  assets after Toolbench normalization to O3DE-friendly mesh/material formats
 - proof-only first step: audit local inference path, license stack, expected
   export formats, and hardware requirements
 - audit disposition: later high-fidelity research candidate, not first proof
@@ -126,7 +132,8 @@ O3DE project mutation.
 - license/commercial risk: Stability AI license and commercial thresholds must
   be reviewed before production use
 - expected O3DE import fit: useful as a fast image-to-mesh candidate because
-  UV/material-oriented output can feed cleanup and O3DE import experiments
+  UV/material-oriented output can feed Toolbench normalization and O3DE import
+  experiments
 - proof-only first step: audit license, offline use, output format, and whether
   generated files can remain outside the repo and outside O3DE projects
 - audit disposition: strong second proof candidate after license/commercial
@@ -142,25 +149,28 @@ O3DE project mutation.
 - license/commercial risk: license and model-card terms must be reviewed before
   production use
 - expected O3DE import fit: useful as a fast fallback candidate for raw mesh
-  creation followed by cleanup/conversion
+  creation followed by Toolbench normalization
 - proof-only first step: audit source, model weights, license, output quality,
   and conversion requirements
 - audit disposition: first proof-only local generation candidate
 
-### Blender automation
+### O3DE Asset Forge Toolbench normalization corridor
 
-- input types: generated GLB, OBJ, FBX, textures, material maps, and metadata
-- output formats: normalized GLB/FBX/source assets plus metadata
-- hardware needs: CPU is enough for many conversion tasks; GPU may help
-  rendering/preview but must not be required without audit
-- license/commercial risk: Blender automation scripts are project-owned, but
-  imported asset/model licenses still govern final use
-- expected O3DE import fit: central cleanup layer for conversion, scale
+- input types: generated GLB, OBJ, FBX, textures, material maps, metadata, and
+  operator quality policies
+- output formats: normalized source-asset candidates plus structured review
+  evidence
+- hardware needs: must run on operator workstations without requiring an
+  external DCC host
+- license/commercial risk: project-owned frontend and typed adapters still
+  require dependency/license review before widening
+- expected O3DE import fit: primary cleanup/conversion direction for scale
   normalization, pivot correction, mesh cleanup, texture packing, format export,
   and later collision/LOD preparation
-- proof-only first step: design a read-only conversion plan against one
-  generated asset outside O3DE, without staging it into a project
-- audit disposition: cleanup/conversion layer, not generation backend
+- proof-only first step: maintain read-only normalization planning and evidence
+  packets without admitting mutation in this slice
+- audit disposition: primary cleanup/conversion direction, with no external DCC
+  assumption
 
 ## Production feature phases
 
