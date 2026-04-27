@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-47852f2d53cbc662c3abf07e78b0b67020ff01f6
+a12a3a79935197140600753eb20fbd487e679491
 ```
 
 The latest runtime/capability movement is the Phase 9
@@ -191,6 +191,14 @@ Recent handoff-relevant packets:
   rules, and first proof-target mapping before any assignment or placement
   design. It is recorded in
   `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET.md`.
+- The current O3DE AI Asset Forge prompt input model defines Forge user input
+  as regular creative prompts by default, not O3DE engine-control syntax. It is
+  recorded in `docs/AI-ASSET-FORGE-PROMPT-INPUT-MODEL.md`.
+- The current app GUI packet adds a professional AI Asset Forge section to the
+  O3DE creation desk with creative prompt editing, structured request controls,
+  a dedicated generated-asset viewer, control/view tools, O3DE feature
+  coverage, and explicit placement/review gates. It does not admit generation,
+  import, assignment, or placement mutation.
 
 Phase 9 product/dependency readback is no longer blocked on absence of a local
 sample. It remains a local proof target and project-general proof-only readback
@@ -243,8 +251,12 @@ row, one scene-compilation job with zero errors and four warnings, 15 product
 rows, 21 product-dependency rows, product-cache files, and representative Asset
 Catalog product-path presence. The operator review contract now defines how to
 present that evidence, warnings, license/commercial status, quality notes, and
-approval state. The asset is an O3DE-processed candidate, not a
-production-approved or placeable asset.
+approval state. The prompt input model now clarifies that users should provide
+creative asset prompts, while Forge internally translates them into structured
+generation, staging, validation, readback, and review requests. The asset is an
+O3DE-processed candidate, not a production-approved or placeable asset. The app
+now exposes a Forge-focused control surface and dedicated viewer in the O3DE
+creation desk while preserving those gates.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.

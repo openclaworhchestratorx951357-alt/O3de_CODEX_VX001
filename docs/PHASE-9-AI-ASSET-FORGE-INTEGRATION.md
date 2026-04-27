@@ -51,6 +51,12 @@ metadata without widening mutation or asset-processing capability.
 Generated assets must be validated through the same source/product/dependency
 and catalog readback path.
 
+Forge user input should still be creative and natural. The user should ask for
+an asset, not for Phase 9 mechanics. The prompt input model is defined in
+`docs/AI-ASSET-FORGE-PROMPT-INPUT-MODEL.md`: creative prompts are translated
+internally into generation, cleanup/conversion, staging, Asset Processor
+validation, Phase 9 readback, and operator review requests.
+
 AI Asset Forge should not treat a generated GLB, OBJ, FBX, material, or texture
 as O3DE-ready until O3DE has processed the source asset and Phase 9 can prove:
 

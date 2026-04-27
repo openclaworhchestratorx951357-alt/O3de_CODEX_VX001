@@ -21,7 +21,7 @@ eventually place 3D assets inside O3DE projects using natural language.
 
 ## Production pipeline
 
-1. Prompt/image/reference input.
+1. Creative prompt/image/reference input.
 2. Local/private generation backend produces a raw 3D asset.
 3. Cleanup/conversion layer prepares mesh/material/textures.
 4. Source asset is staged into an O3DE project asset folder.
@@ -31,6 +31,29 @@ eventually place 3D assets inside O3DE projects using natural language.
 8. Operator review confirms provenance, quality, scale, naming, and safety.
 9. Later admitted corridor assigns generated asset to an entity.
 10. Later admitted corridor places/updates the entity in a level.
+
+## Prompt Input Model
+
+AI Asset Forge user input should be a regular creative prompt by default, not
+O3DE engine-control syntax.
+
+Good Forge prompt:
+
+```text
+Create a worn wooden tavern chair with green cushions for a medieval village.
+```
+
+Bad Forge prompt:
+
+```text
+Run asset.source.inspect against assetdb.sqlite and verify catalog presence.
+```
+
+The prompt input model is defined in
+`docs/AI-ASSET-FORGE-PROMPT-INPUT-MODEL.md`. Forge prompts are translated
+internally into structured generation, cleanup/conversion, staging, Asset
+Processor validation, Phase 9 readback, and operator review requests. A single
+creative prompt must not silently skip validation or review.
 
 ## Why Phase 9 matters
 
@@ -319,3 +342,4 @@ Every generated asset must eventually track:
 - Forge Phase 4 proof: `docs/AI-ASSET-FORGE-O3DE-SOURCE-STAGING-PROOF.md`
 - Forge Phase 5 proof: `docs/AI-ASSET-FORGE-ASSET-PROCESSOR-VALIDATION.md`
 - Forge Phase 6 contract: `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET.md`
+- Prompt input model: `docs/AI-ASSET-FORGE-PROMPT-INPUT-MODEL.md`

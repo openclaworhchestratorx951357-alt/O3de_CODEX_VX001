@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import HomeWorkspaceView from "./HomeWorkspaceView";
@@ -92,6 +92,29 @@ describe("HomeWorkspaceView", () => {
     expect(screen.getByLabelText("Source context upload")).toBeInTheDocument();
     expect(screen.getByLabelText("Quick prompt shortcuts")).toHaveTextContent("Analyze viewport and recommend");
     expect(screen.getByLabelText("Quick prompt shortcuts")).toHaveTextContent("frontend-local-shortcuts-v1");
+
+    const forgePanel = screen.getByLabelText("AI Asset Forge");
+    expect(within(forgePanel).getByText("O3DE AI Asset Forge")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("Creative prompts to validated O3DE assets")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Forge edit tools")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Forge internal request preview")).toHaveTextContent(
+      "creative_prompt",
+    );
+    expect(within(forgePanel).getByLabelText("AI Asset Forge dedicated viewer")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Forge control, view, and edit tools")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("AI Asset Forge O3DE feature coverage")).toHaveTextContent(
+      "Asset Processor",
+    );
+    expect(within(forgePanel).getByRole("button", { name: "Place in level" })).toBeDisabled();
+    fireEvent.click(within(forgePanel).getByRole("button", { name: "products" }));
+    expect(within(forgePanel).getByLabelText("Generated asset preview")).toHaveTextContent("products view | orbit");
+    fireEvent.change(within(forgePanel).getByLabelText("Asset type"), {
+      target: { value: "environment set piece" },
+    });
+    expect(within(forgePanel).getByLabelText("Forge internal request preview")).toHaveTextContent(
+      "environment set piece",
+    );
+
     fireEvent.change(screen.getByLabelText("Source context notes"), {
       target: { value: "Use a lighthouse puzzle where the player redirects light beams." },
     });

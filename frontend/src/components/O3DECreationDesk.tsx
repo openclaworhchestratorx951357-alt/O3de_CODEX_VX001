@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState, type CSSProperties } from "react";
 
+import AIAssetForgePanel from "./AIAssetForgePanel";
 import type { O3DEProductionMode } from "./O3DEProductionPlanner";
 import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 
@@ -133,6 +134,13 @@ export default function O3DECreationDesk({
           onOpenBuilder={onOpenBuilder}
         />
       </Suspense>
+
+      <AIAssetForgePanel
+        projectProfile={projectProfile}
+        onOpenPromptStudio={onOpenPromptStudio}
+        onOpenRuntimeOverview={onOpenRuntimeOverview}
+        onOpenBuilder={onOpenBuilder}
+      />
 
       {actions.length > 0 ? (
         <div aria-label="O3DE creation desk actions" style={actionBarStyle}>
