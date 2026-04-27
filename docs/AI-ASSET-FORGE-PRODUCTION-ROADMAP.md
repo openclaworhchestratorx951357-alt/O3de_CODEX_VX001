@@ -55,6 +55,13 @@ These candidates are planning inputs only. This roadmap does not download
 models, add dependencies, run inference, generate assets, or select a production
 backend.
 
+The Forge Phase 0 substrate audit is recorded in
+`docs/AI-ASSET-FORGE-LOCAL-MODEL-SUBSTRATE-AUDIT.md`. It selects TripoSR as the
+first proof-only local generation candidate because it has the narrowest first
+proof surface and a permissive upstream license. That decision does not admit
+production use, generated asset import, model downloads, dependency changes, or
+O3DE project mutation.
+
 ### Hunyuan3D-2
 
 - input types: text-to-3D, image-to-3D, and texturing workflows depending on the
@@ -69,6 +76,7 @@ backend.
   Blender cleanup/conversion and O3DE Asset Processor validation
 - proof-only first step: document install, license, hardware, output format,
   and isolation requirements without downloading weights
+- audit disposition: later high-quality candidate, not first proof
 
 ### TRELLIS
 
@@ -83,6 +91,7 @@ backend.
   assets after conversion to O3DE-friendly mesh/material formats
 - proof-only first step: audit local inference path, license stack, expected
   export formats, and hardware requirements
+- audit disposition: later high-fidelity research candidate, not first proof
 
 ### Stable Fast 3D
 
@@ -97,6 +106,8 @@ backend.
   UV/material-oriented output can feed cleanup and O3DE import experiments
 - proof-only first step: audit license, offline use, output format, and whether
   generated files can remain outside the repo and outside O3DE projects
+- audit disposition: strong second proof candidate after license/commercial
+  review
 
 ### TripoSR
 
@@ -111,6 +122,7 @@ backend.
   creation followed by cleanup/conversion
 - proof-only first step: audit source, model weights, license, output quality,
   and conversion requirements
+- audit disposition: first proof-only local generation candidate
 
 ### Blender automation
 
@@ -125,6 +137,7 @@ backend.
   and later collision/LOD preparation
 - proof-only first step: design a read-only conversion plan against one
   generated asset outside O3DE, without staging it into a project
+- audit disposition: cleanup/conversion layer, not generation backend
 
 ## Production feature phases
 
@@ -137,6 +150,9 @@ Output:
 docs-only model substrate audit.
 
 No model download yet.
+
+Status:
+Completed in `docs/AI-ASSET-FORGE-LOCAL-MODEL-SUBSTRATE-AUDIT.md`.
 
 ### Forge Phase 1 - Local generation proof
 
@@ -245,15 +261,22 @@ Every generated asset must eventually track:
 
 ## Next recommended implementation sequence
 
-1. Continue Phase 9 project-general asset readback proof.
-2. Harden asset source inspect schema.
-3. Add project-general asset source inspect adapter.
-4. Add Forge model substrate audit.
-5. Add local generation proof only after substrate audit.
+1. Open a proof-only local TripoSR generation packet outside the repo and
+   outside O3DE, with explicit operator approval before downloads or dependency
+   installation.
+2. Add cleanup/conversion proof after one raw generated output exists outside
+   O3DE.
+3. Design O3DE import readiness only after cleanup/conversion is proven.
+4. Use Phase 9 readback for generated source/product/dependency/catalog
+   validation after an explicitly approved proof-only O3DE source-asset staging
+   packet.
+5. Keep public import, assignment, placement, and production corridor admission
+   blocked until provenance and operator review are implemented.
 
-## Reference links for future audit
+## Reference links
 
 - Hunyuan3D-2: <https://github.com/Tencent-Hunyuan/Hunyuan3D-2>
 - TRELLIS: <https://github.com/microsoft/TRELLIS>
 - Stable Fast 3D: <https://github.com/Stability-AI/stable-fast-3d>
 - TripoSR: <https://github.com/VAST-AI-Research/TripoSR>
+- Forge Phase 0 audit: `docs/AI-ASSET-FORGE-LOCAL-MODEL-SUBSTRATE-AUDIT.md`

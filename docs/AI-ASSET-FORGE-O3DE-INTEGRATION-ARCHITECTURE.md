@@ -29,15 +29,24 @@ expectations, and safety boundaries before any generation backend runs.
 
 ### Generation Backend Adapter
 
-Calls a local/private 3D generation backend selected by a later substrate audit.
+Calls a local/private 3D generation backend selected by the substrate audit.
 The default production path must not call Meshy APIs or rely on external
 proprietary asset-generation services.
+
+The first proof-only backend candidate is TripoSR, selected by
+`docs/AI-ASSET-FORGE-LOCAL-MODEL-SUBSTRATE-AUDIT.md`. That selection only
+authorizes a future local-generation proof outside the repository and outside
+O3DE after explicit operator approval for any downloads or dependency
+installation. It does not admit production generation.
 
 ### Mesh Cleanup Adapter
 
 Normalizes generated output into O3DE-friendly source assets. Future work may
 use Blender automation for scale normalization, pivot correction, mesh cleanup,
 texture packing, format export, and later collision/LOD preparation.
+
+Blender automation is the likely cleanup/conversion layer after the first raw
+generated asset proof exists. It is not the generation backend.
 
 ### O3DE Source Asset Stager
 
@@ -130,6 +139,8 @@ Before AI Asset Forge can be production-ready:
 - generated asset provenance must be stored
 - generated assets must be reviewed before use
 - no generated asset should be silently placed in a level
+- the selected generation backend must pass the license, hardware, storage, and
+  provenance gates in `docs/AI-ASSET-FORGE-LOCAL-MODEL-SUBSTRATE-AUDIT.md`
 
 ## O3DE-specific conventions
 

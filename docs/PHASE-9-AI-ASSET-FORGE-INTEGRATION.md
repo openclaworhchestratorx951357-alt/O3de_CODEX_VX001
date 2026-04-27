@@ -165,9 +165,9 @@ Carry the readiness/review contract into the operator-facing output path while
 remaining read-only and preserving all asset mutation, Asset Processor, import,
 assignment, and placement boundaries.
 
-## Required next Forge packet
+## Completed Forge Phase 0 audit
 
-After Phase 9 review output exists:
+This packet is now documented:
 
 ```text
 Branch:
@@ -182,10 +182,29 @@ Purpose:
 Choose the first private/local 3D generation backend for a proof-only asset
 generation pipeline.
 
-That audit must review candidate licenses, hardware needs, offline/local
-operation, output formats, dependency footprint, storage isolation, and whether
-the first proof can produce a raw asset outside O3DE without committing model
-weights or generated files.
+The audit is recorded in
+`docs/AI-ASSET-FORGE-LOCAL-MODEL-SUBSTRATE-AUDIT.md`. It selects TripoSR as the
+first proof-only local generation candidate while keeping all model downloads,
+dependency changes, generated assets, O3DE import, Asset Processor execution,
+assignment, placement, and production admission blocked.
+
+## Required next Forge packet
+
+After the model substrate audit:
+
+```text
+Branch:
+codex/ai-asset-forge-local-generation-proof
+
+PR title:
+Prove local AI asset generation outside O3DE
+```
+
+Purpose:
+
+Generate one proof-only raw asset candidate outside the repository and outside
+any O3DE project, using the audited TripoSR path and explicit operator approval
+before any model download or dependency installation.
 
 ## Final rule
 
