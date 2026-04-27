@@ -190,7 +190,7 @@ assignment, placement, and production admission blocked.
 
 ## Required next Forge packet
 
-After the model substrate audit:
+After the model substrate audit, this packet was implemented:
 
 ```text
 Branch:
@@ -205,6 +205,30 @@ Purpose:
 Generate one proof-only raw asset candidate outside the repository and outside
 any O3DE project, using the audited TripoSR path and explicit operator approval
 before any model download or dependency installation.
+
+Result:
+
+The proof is recorded in `docs/AI-ASSET-FORGE-LOCAL-GENERATION-PROOF.md`.
+TripoSR generated one OBJ mesh from the upstream chair example outside the repo
+and outside O3DE projects. The generated asset is not committed and is not
+admitted for O3DE import, assignment, placement, or production use.
+
+## Required next Forge packet
+
+After local generation proof:
+
+```text
+Branch:
+codex/ai-asset-forge-cleanup-conversion-proof
+
+PR title:
+Prove AI Asset Forge cleanup conversion outside O3DE
+```
+
+Purpose:
+
+Use the generated OBJ as a proof-only input and validate cleanup/conversion
+outside O3DE before any import-readiness design or O3DE project mutation.
 
 ## Final rule
 

@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-0b3bfd7afbd21bf31eb6b21a4ee1f228dbf126ae
+d98846964cfe6e1ed3613a83aaaf3ad7c790cd38
 ```
 
 The latest runtime/capability movement is the Phase 9
@@ -165,6 +165,9 @@ Recent handoff-relevant packets:
   proof-only local generation candidate and records license, hardware, storage,
   provenance, no-mutation, and O3DE import gates. It is recorded in
   `docs/AI-ASSET-FORGE-LOCAL-MODEL-SUBSTRATE-AUDIT.md`.
+- The current O3DE AI Asset Forge local generation proof confirms TripoSR can
+  generate one raw OBJ mesh outside the repo and outside O3DE projects. It is
+  recorded in `docs/AI-ASSET-FORGE-LOCAL-GENERATION-PROOF.md`.
 
 Phase 9 product/dependency readback is no longer blocked on absence of a local
 sample. It remains a local proof target and project-general proof-only readback
@@ -212,8 +215,9 @@ project-general validation backbone for generated source assets: source
 existence, product rows, dependency rows, Asset Catalog presence, and operator
 review must be proven before generated assets can be treated as usable. The
 Forge Phase 0 substrate audit selects TripoSR as the first proof-only local
-generation candidate, but no model has been downloaded, no dependency has been
-changed, no generated asset exists in the repo, and no O3DE import is admitted.
+generation candidate. Forge Phase 1 local generation proof now confirms TripoSR
+can produce one raw OBJ outside the repo and outside O3DE projects, but no
+generated asset exists in the repo and no O3DE import is admitted.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -447,9 +451,8 @@ property writes.
 ## Recommended Next Packets
 
 1. Open the next O3DE AI Asset Forge packet:
-   `codex/ai-asset-forge-local-generation-proof`, a proof-only TripoSR local
-   generation run outside the repo and outside O3DE, with explicit operator
-   approval before model downloads or dependency installation.
+   `codex/ai-asset-forge-cleanup-conversion-proof`, a proof-only cleanup and
+   conversion pass on the generated TripoSR OBJ outside O3DE.
 2. Keep Phase 9 product/dependency readback read-only until any later
    production-general admission packet proves exact source mapping, bounded
    entries, freshness provenance, discovery readiness, review output, and
