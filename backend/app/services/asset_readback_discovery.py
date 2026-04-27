@@ -1,5 +1,5 @@
 import json
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any
 
 
@@ -33,6 +33,8 @@ def discover_project_asset_readback_inputs(
         "available_platforms": [],
         "selected_platform": selected_platform,
         "asset_catalog_path": None,
+        "original_source_path": None,
+        "normalized_source_path": None,
         "source_asset_path": None,
         "source_asset_path_relative": None,
         "read_only": True,
@@ -147,16 +149,26 @@ def discover_project_asset_readback_inputs(
             "source_asset_path_missing",
             "No source_asset_path was provided.",
         )
+    result["original_source_path"] = source_input
 
-    resolved_source_path = _resolve_source_path(
-        project_root=resolved_project_root,
-        source_asset_path=source_input,
-    )
+    try:
+        resolved_source_path = _resolve_source_path(
+            project_root=resolved_project_root,
+            source_asset_path=source_input,
+        )
+    except ValueError:
+        return _blocked(
+            result,
+            "source_asset_path_escapes_project",
+            "The requested source_asset_path resolves outside the project root.",
+        )
     result["source_asset_path"] = str(resolved_source_path)
     try:
-        result["source_asset_path_relative"] = str(
+        normalized_source_path = str(
             resolved_source_path.relative_to(resolved_project_root)
         ).replace("\\", "/")
+        result["normalized_source_path"] = normalized_source_path
+        result["source_asset_path_relative"] = normalized_source_path
     except ValueError:
         return _blocked(
             result,
@@ -211,7 +223,20 @@ def _is_platform_cache_dir(path: Path, *, selected_platform: str | None) -> bool
 
 
 def _resolve_source_path(*, project_root: Path, source_asset_path: str) -> Path:
-    candidate = Path(source_asset_path).expanduser()
-    if candidate.is_absolute():
-        return candidate.resolve()
-    return (project_root / candidate).resolve()
+    native_candidate = Path(source_asset_path).expanduser()
+    if native_candidate.is_absolute():
+        return native_candidate.resolve()
+
+    windows_candidate = PureWindowsPath(source_asset_path)
+    if windows_candidate.drive or windows_candidate.root:
+        raise ValueError("Windows absolute source asset paths are not project-relative.")
+
+    normalized_source_asset_path = source_asset_path.replace("\\", "/")
+    safe_parts = []
+    for part in normalized_source_asset_path.split("/"):
+        if part in {"", "."}:
+            continue
+        if part == "..":
+            raise ValueError("Source asset path traversal is not allowed.")
+        safe_parts.append(part)
+    return project_root.joinpath(*safe_parts).resolve()
