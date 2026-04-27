@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-eefbb5ab107eea45ce4b26ecd8856b9bab63715b
+47852f2d53cbc662c3abf07e78b0b67020ff01f6
 ```
 
 The latest runtime/capability movement is the Phase 9
@@ -186,6 +186,11 @@ Recent handoff-relevant packets:
   source/product/dependency rows, and cross-checked representative product
   paths in `assetcatalog.xml`. It is recorded in
   `docs/AI-ASSET-FORGE-ASSET-PROCESSOR-VALIDATION.md`.
+- The current O3DE AI Asset Forge operator review packet contract defines the
+  required review fields, review statuses, operator decisions, blocked review
+  rules, and first proof-target mapping before any assignment or placement
+  design. It is recorded in
+  `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET.md`.
 
 Phase 9 product/dependency readback is no longer blocked on absence of a local
 sample. It remains a local proof target and project-general proof-only readback
@@ -236,7 +241,9 @@ review must be proven before generated assets can be treated as usable. The
 bounded `McpSandbox` `triposr_chair_001` proof now has one generated GLB source
 row, one scene-compilation job with zero errors and four warnings, 15 product
 rows, 21 product-dependency rows, product-cache files, and representative Asset
-Catalog product-path presence. The asset is an O3DE-processed candidate, not a
+Catalog product-path presence. The operator review contract now defines how to
+present that evidence, warnings, license/commercial status, quality notes, and
+approval state. The asset is an O3DE-processed candidate, not a
 production-approved or placeable asset.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
@@ -471,10 +478,10 @@ property writes.
 ## Recommended Next Packets
 
 1. Open the next O3DE AI Asset Forge packet:
-   `codex/ai-asset-forge-operator-review-packet`, a proof/design packet to
-   define the operator-facing review packet for generated asset provenance,
-   source/product/dependency/catalog evidence, Asset Processor warnings, hashes,
-   license/commercial status, and approval state.
+   `codex/ai-asset-forge-operator-review-packet-implementation`, a narrow
+   implementation packet to create the first structured review-packet output for
+   the bounded `triposr_chair_001` proof target while keeping assignment,
+   placement, and production admission blocked.
 2. Keep Phase 9 product/dependency readback read-only until any later
    production-general admission packet proves exact source mapping, bounded
    entries, freshness provenance, discovery readiness, review output, and

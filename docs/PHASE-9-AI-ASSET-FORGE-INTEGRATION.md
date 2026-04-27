@@ -323,7 +323,7 @@ public import admission, and production use remain blocked.
 
 ## Required next Forge packet
 
-After Asset Processor validation:
+After Asset Processor validation, this packet was documented:
 
 ```text
 Branch:
@@ -339,6 +339,33 @@ Define the operator-facing review packet that collects generated-asset
 provenance, source/product/dependency/catalog evidence, Asset Processor
 warnings, hashes, license/commercial status, and approval state before any
 entity assignment or placement design.
+
+Result:
+
+The contract is recorded in
+`docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET.md`. It defines required fields,
+review statuses, operator decisions, blocked review rules, and the first
+`triposr_chair_001` proof-target mapping while keeping assignment, placement,
+public import admission, and production use blocked.
+
+## Required next Forge packet
+
+After operator-review contract definition:
+
+```text
+Branch:
+codex/ai-asset-forge-operator-review-packet-implementation
+
+PR title:
+Implement AI Asset Forge generated asset review packet
+```
+
+Purpose:
+
+Create the first structured review-packet output for the bounded
+`triposr_chair_001` proof target using existing provenance, Asset Processor,
+Phase 9 readback, and catalog evidence. Keep assignment, placement, and
+production admission blocked.
 
 ## Final rule
 
