@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-de1f4204d68f0ecf74fd390b29ea061484680aaf
+cff8605faca4f3ad4d3e5b6713fcfca5b7a5ce68
 ```
 
 The latest runtime/capability movement is the Phase 9
@@ -176,6 +176,11 @@ Recent handoff-relevant packets:
   generated source staging convention, provenance metadata, approval gates, and
   Phase 9 readback requirements. It is recorded in
   `docs/AI-ASSET-FORGE-O3DE-IMPORT-READINESS-DESIGN.md`.
+- The current O3DE AI Asset Forge source staging proof copied one generated GLB
+  and one `.forge.json` provenance metadata file into
+  `McpSandbox/Assets/Generated/triposr_chair_001/` with explicit operator
+  approval. It is recorded in
+  `docs/AI-ASSET-FORGE-O3DE-SOURCE-STAGING-PROOF.md`.
 
 Phase 9 product/dependency readback is no longer blocked on absence of a local
 sample. It remains a local proof target and project-general proof-only readback
@@ -228,8 +233,10 @@ can produce one raw OBJ outside the repo and outside O3DE projects, but no
 generated asset exists in the repo and no O3DE import is admitted. Forge Phase
 2 cleanup/conversion proof now confirms that the generated OBJ can be inspected,
 normalized to unit scale, and exported as a GLB outside O3DE; import readiness
-design now exists, but proof-only source staging still requires explicit
-operator approval before any project mutation.
+design now exists. The proof-only source staging mutation has now staged one GLB
+and provenance file into `McpSandbox`, but Asset Processor has not run,
+`assetdb.sqlite` has zero source rows for the generated GLB, and the asset is
+not yet O3DE-usable.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -463,10 +470,10 @@ property writes.
 ## Recommended Next Packets
 
 1. Open the next O3DE AI Asset Forge packet:
-   `codex/ai-asset-forge-proof-only-o3de-source-staging`, an explicitly
-   approved mutation packet to copy exactly one generated GLB and provenance
-   metadata file into the sandbox generated-assets folder without running Asset
-   Processor, assigning, or placing the asset.
+   `codex/ai-asset-forge-asset-processor-validation`, an explicitly approved
+   packet to run or observe Asset Processor for the staged generated GLB and use
+   Phase 9 readback for source/product/dependency/catalog evidence while
+   keeping assignment, placement, and production admission blocked.
 2. Keep Phase 9 product/dependency readback read-only until any later
    production-general admission packet proves exact source mapping, bounded
    entries, freshness provenance, discovery readiness, review output, and
