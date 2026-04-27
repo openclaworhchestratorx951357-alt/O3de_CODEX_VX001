@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-2fac490653b13dd31a90c8d50e207e273089edd5
+c41f9e1c9b1263f1fdd1a7807694a81a1d81c6a9
 ```
 
 The latest runtime/capability movement remains the completed Phase 8 Camera
@@ -70,6 +70,9 @@ Recent handoff-relevant packets:
   stale at that moment.
 - PR #86 recorded the successful live proof-only Camera non-bool readback target
   and refreshed the bridge setup before scalar target discovery proofs.
+- PR #87 audited the live-proven Camera far clip float target disposition and
+  kept it readback-only unless a future design-only packet and explicit
+  approval gate change that.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -189,6 +192,11 @@ public writes, public restore, or property listing. A future write path must
 start with a separate design-only packet and explicit high-risk approval before
 any public admission.
 
+The far clip target is now being checkpointed as discovered-but-not-admitted.
+That checkpoint does not add a public corridor; it preserves the readback-only
+evidence and keeps the exact Camera bool path as the only admitted Camera
+property write/restore surface.
+
 ## Repo Hygiene Baseline
 
 Preferred governance right now is low-friction:
@@ -259,11 +267,11 @@ property writes.
 2. If such a sample is provided, create
    `codex/phase-9-asset-readback-substrate-audit` before any proof-only or
    implementation work.
-3. If Phase 8 continues, use
-   `docs/PHASE-8-CAMERA-FAR-CLIP-DISPOSITION-AUDIT.md` to either checkpoint the
-   discovered far clip target as readback-only or draft a design-only future
-   write-candidate packet. Do not widen writes, restore, property-list
-   admission, or public prompts without a separate approval gate.
+3. If Phase 8 continues without explicit write approval, select another
+   already-allowlisted read-only target discovery candidate or produce a
+   broader readback-only checkpoint across the current Phase 8 discovered
+   targets. Do not widen writes, restore, property-list admission, or public
+   prompts without a separate approval gate.
 4. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 5. Continue repository professionalization in small docs-only packets when the
