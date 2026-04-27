@@ -116,6 +116,21 @@ mutation_occurred: false
 This proves the discovery helper can recognize the current proof target without
 hardcoding `McpSandbox`, `BridgeLevel01`, or `pc` as universal assumptions.
 
+## AI Asset Forge Relevance
+
+This discovery helper is the first Phase 9 prerequisite for O3DE AI Asset
+Forge.
+
+Future generated assets must be inspected as ordinary O3DE project source
+assets. The helper gives the future Forge pipeline a read-only way to discover
+project root, cache, database, selected platform, catalog, and requested source
+asset readiness before any generated asset can be reviewed, imported, assigned,
+or placed.
+
+This packet does not generate, import, stage, or assign AI assets. It only
+prepares the project-general readback inputs that AI Asset Forge will need
+later.
+
 ## Validation
 
 Targeted tests:
@@ -170,3 +185,7 @@ Use the discovery helper inside the read-only `asset.source.inspect` path,
 return structured discovery readiness alongside source/product/dependency
 evidence, and prove the adapter fails closed for missing project/cache/catalog
 conditions without mutating assets.
+
+That proof path should be shaped so a future generated source asset can be
+validated by the same project/source inputs, while keeping actual generation
+and import in later AI Asset Forge packets.

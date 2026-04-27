@@ -53,6 +53,24 @@ readiness note:
 
 If the answers are weak, stop and choose a stronger slice.
 
+## Meaningful Capability Streams
+
+The following are examples of meaningful project-moving streams when the packet
+advances a real gate instead of repeating status:
+
+- Phase 9 project-general asset readback proof and schema hardening
+- O3DE AI Asset Forge planning, substrate audit, local proof, import readiness,
+  O3DE readback validation, provenance, review, and later exact placement
+  admission
+- Phase 8 component/property portability and exact-corridor review
+- operator UX that makes capability truth, proof evidence, or refusal reasons
+  clearer
+
+O3DE AI Asset Forge packets must follow the normalized phase gates. Do not open
+model-download, dependency, generation, generated-asset, import, or placement
+PRs before the Forge model substrate audit selects a proof-only path and records
+license, hardware, storage, provenance, and no-mutation boundaries.
+
 ## Blocked-Status Gate
 
 Codex may not open a "blocked" docs/status PR unless it has completed the O3DE
