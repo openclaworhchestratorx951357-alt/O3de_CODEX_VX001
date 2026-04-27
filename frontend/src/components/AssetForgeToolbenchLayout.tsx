@@ -11,6 +11,7 @@ type AssetForgeToolbenchLayoutProps = {
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenBuilder?: () => void;
+  onOpenReviewPacketOriginRecord?: (origin: AssetForgeReviewPacketOrigin) => void;
   reviewPacketData: unknown;
   reviewPacketSource: AssetForgeReviewPacketSource;
   reviewPacketOrigin?: AssetForgeReviewPacketOrigin;

@@ -196,6 +196,61 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(screen.getByRole("button", { name: "Run command" })).toBeDisabled();
   });
 
+  it("opens packet-origin record navigation from File and Review pages", () => {
+    const onOpenReviewPacketOriginRecord = vi.fn();
+
+    renderToolbench({
+      onOpenReviewPacketOriginRecord,
+      reviewPacketSource: "live_phase9_packet_data",
+      reviewPacketOrigin: {
+        kind: "selected_artifact_metadata",
+        label: "Selected artifact metadata",
+        detail: "Artifact artifact-live-001 | Execution exec-live-001 | Run run-live-001",
+        runId: "run-live-001",
+        executionId: "exec-live-001",
+        artifactId: "artifact-live-001",
+      },
+    });
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+
+    fireEvent.click(within(shell).getByRole("button", { name: "File" }));
+    fireEvent.click(within(shell).getByRole("button", { name: "Open source record in Records" }));
+    expect(onOpenReviewPacketOriginRecord).toHaveBeenCalledTimes(1);
+    expect(onOpenReviewPacketOriginRecord).toHaveBeenLastCalledWith(expect.objectContaining({
+      artifactId: "artifact-live-001",
+      executionId: "exec-live-001",
+      runId: "run-live-001",
+    }));
+
+    fireEvent.click(within(shell).getByRole("button", { name: "Review" }));
+    fireEvent.click(within(shell).getByRole("button", { name: "Open source record in Records" }));
+    expect(onOpenReviewPacketOriginRecord).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps packet-origin record navigation disabled when no record ids are available", () => {
+    const onOpenReviewPacketOriginRecord = vi.fn();
+
+    renderToolbench({
+      onOpenReviewPacketOriginRecord,
+      reviewPacketSource: "typed_fixture_data",
+      reviewPacketOrigin: {
+        kind: "typed_fixture_preview",
+        label: "Typed fixture preview",
+        detail: "No live Phase 9 packet is connected. Showing local typed fixture preview only.",
+      },
+    });
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+
+    fireEvent.click(within(shell).getByRole("button", { name: "File" }));
+    expect(within(shell).getByRole("button", { name: "Open source record in Records" })).toBeDisabled();
+
+    fireEvent.click(within(shell).getByRole("button", { name: "Review" }));
+    expect(within(shell).getByRole("button", { name: "Open source record in Records" })).toBeDisabled();
+    expect(onOpenReviewPacketOriginRecord).not.toHaveBeenCalled();
+  });
+
   it("saves and resets harmless local menu preference only", () => {
     renderToolbench();
 

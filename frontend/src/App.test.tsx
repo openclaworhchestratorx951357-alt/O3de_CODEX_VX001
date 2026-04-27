@@ -294,6 +294,7 @@ describe("App desktop smoke", () => {
     expect(within(forgePanel).getByLabelText("Forge operator review packet full page")).toBeInTheDocument();
     expect(within(forgePanel).getByText("Typed sample fixture data (read-only preview; not live)")).toBeInTheDocument();
     expect(within(forgePanel).queryByLabelText("Forge assets content browser")).not.toBeInTheDocument();
+    expect(within(forgePanel).getByRole("button", { name: "Open source record in Records" })).toBeDisabled();
     expect(within(forgePanel).getByRole("button", { name: "Approve production import" })).toBeDisabled();
   });
 

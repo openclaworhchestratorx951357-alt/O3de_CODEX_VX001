@@ -74,6 +74,7 @@ import { resolveAssetForgeLivePacketSelection } from "./lib/assetForgeLivePacket
 import { buildHomeRecommendationDescriptors, type HomeRecommendationActionId } from "./lib/recommendations";
 import { useSettings } from "./lib/settings/hooks";
 import type { FocusedSection, TruthFilterState } from "./lib/laneController";
+import type { AssetForgeReviewPacketOrigin } from "./types/assetForgeReviewPacket";
 import type {
   ArtifactListItem,
   ArtifactRecord,
@@ -7287,6 +7288,36 @@ export default function App() {
     [selectedRunId, selectedArtifact, selectedExecution, selectedExecutionDetails],
   );
 
+  function openAssetForgePacketOriginRecord(origin: AssetForgeReviewPacketOrigin): void {
+    const breadcrumbNote = `Auto-opened from Asset Forge packet origin: ${origin.label}.`;
+
+    if (origin.artifactId) {
+      setActiveWorkspaceId("records");
+      setActiveRecordsSurface("artifacts");
+      openArtifactDetail(origin.artifactId, {
+        autoOpenedFromOverview: breadcrumbNote,
+      });
+      return;
+    }
+
+    if (origin.executionId) {
+      setActiveWorkspaceId("records");
+      setActiveRecordsSurface("executions");
+      openExecutionDetail(origin.executionId, {
+        autoOpenedFromOverview: breadcrumbNote,
+      });
+      return;
+    }
+
+    if (origin.runId) {
+      setActiveWorkspaceId("records");
+      setActiveRecordsSurface("runs");
+      openRunDetail(origin.runId, {
+        autoOpenedFromOverview: breadcrumbNote,
+      });
+    }
+  }
+
   if (activeWorkspaceId === "asset-forge") {
     const assetForgeWorkspacePageHeight = assetForgeHeaderHeight > 0
       ? `calc(100vh - ${assetForgeHeaderHeight}px)`
@@ -7376,6 +7407,7 @@ export default function App() {
                 onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
+                onOpenReviewPacketOriginRecord={openAssetForgePacketOriginRecord}
                 reviewPacketData={assetForgeLivePacket.reviewPacketData}
                 reviewPacketSource={assetForgeLivePacket.reviewPacketSource}
                 reviewPacketOrigin={assetForgeLivePacket.reviewPacketOrigin}

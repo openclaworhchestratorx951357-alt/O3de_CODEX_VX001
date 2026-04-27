@@ -14,6 +14,7 @@ type AIAssetForgePanelProps = {
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenBuilder?: () => void;
+  onOpenReviewPacketOriginRecord?: (origin: AssetForgeReviewPacketOrigin) => void;
   reviewPacketData?: unknown;
   reviewPacketSource?: AssetForgeReviewPacketSource;
   reviewPacketOrigin?: AssetForgeReviewPacketOrigin;
@@ -58,6 +59,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
         onOpenPromptStudio={props.onOpenPromptStudio}
         onOpenRuntimeOverview={props.onOpenRuntimeOverview}
         onOpenBuilder={props.onOpenBuilder}
+        onOpenReviewPacketOriginRecord={props.onOpenReviewPacketOriginRecord}
         reviewPacketData={resolvedReviewPacketData}
         reviewPacketSource={resolvedReviewPacketSource}
         reviewPacketOrigin={resolvedReviewPacketOrigin}
