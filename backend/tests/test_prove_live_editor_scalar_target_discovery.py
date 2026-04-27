@@ -57,8 +57,8 @@ def selected_candidate(
     *,
     property_path: str = "Controller|Configuration|Field of view",
     source: str = "PropertyTreeEditor.build_paths_list_with_types",
-    value=True,
-    value_type: str = "bool",
+    value=75.0,
+    value_type: str = "float",
 ) -> dict:
     use_tree = source.startswith("PropertyTreeEditor")
     return {
@@ -108,13 +108,14 @@ def test_live_control_scripts_expose_scalar_target_discovery_command() -> None:
     assert "set_value" not in bridge_text
 
 
-def test_probe_plan_uses_allowlisted_camera_and_comment_but_excludes_mesh() -> None:
+def test_probe_plan_uses_only_allowlisted_camera_and_excludes_mesh() -> None:
     module = load_proof_module()
 
     plan = module.component_probe_plan()
 
-    assert plan["candidate_components"] == ["Camera", "Comment"]
+    assert plan["candidate_components"] == ["Camera"]
     excluded = {item["component_name"]: item["reason"] for item in plan["excluded_components"]}
+    assert "Comment" in excluded
     assert "Mesh" in excluded
     assert "render-adjacent" in excluded["Mesh"]
 
@@ -176,13 +177,12 @@ def test_named_string_path_with_successful_readback_is_selected() -> None:
 @pytest.mark.parametrize(
     ("value", "value_type"),
     [
-        (True, "bool"),
         (12, "int"),
         (75.0, "float"),
     ],
 )
 def test_named_scalar_paths_with_successful_readback_are_selected(
-    value: bool | int | float,
+    value: int | float,
     value_type: str,
 ) -> None:
     module = load_proof_module()
@@ -198,6 +198,62 @@ def test_named_scalar_paths_with_successful_readback_are_selected(
         "named_component_property"
     )
     assert review["selected_candidate"]["write_admission"] is False
+    assert review["selected_candidate"]["restore_admission"] is False
+    assert review["selected_candidate"]["read_only"] is True
+    assert review["selected_candidate"]["write_occurred"] is False
+
+
+def test_admitted_camera_bool_path_is_excluded_from_non_bool_readback() -> None:
+    module = load_proof_module()
+
+    with pytest.raises(module.ScalarTargetDiscoveryProofError, match="admitted bool path"):
+        module.review_component_scalar_discovery_result(
+            discovery(
+                selected_candidate(
+                    property_path=module.ADMITTED_CAMERA_BOOL_PROPERTY_PATH,
+                    value=True,
+                    value_type="bool",
+                )
+            ),
+            target_info=target_info(),
+            component_name="Camera",
+        )
+
+
+def test_other_camera_bool_paths_are_not_non_bool_candidates() -> None:
+    module = load_proof_module()
+
+    with pytest.raises(module.ScalarTargetDiscoveryProofError, match="bool candidate"):
+        module.review_component_scalar_discovery_result(
+            discovery(
+                selected_candidate(
+                    property_path="Controller|Configuration|A future bool option",
+                    value=False,
+                    value_type="bool",
+                )
+            ),
+            target_info=target_info(),
+            component_name="Camera",
+        )
+
+
+def test_camera_blocked_output_uses_precise_non_bool_blocker() -> None:
+    module = load_proof_module()
+
+    review = module.review_component_scalar_discovery_result(
+        discovery(None, blocker="camera_scalar_candidate_not_found"),
+        target_info=target_info(),
+        component_name="Camera",
+    )
+
+    assert review["status"] == "blocked"
+    assert review["blocker_code"] == "camera_non_bool_scalar_candidate_not_found"
+    assert review["selected_candidate"] is None
+    assert review["read_only"] is True
+    assert review["write_occurred"] is False
+    assert review["write_admission"] is False
+    assert review["restore_admission"] is False
+    assert review["property_list_admission"] is False
 
 
 @pytest.mark.parametrize(
@@ -278,6 +334,7 @@ def test_per_component_blockers_are_recorded() -> None:
     }
     assert summary["property_list_admission"] is False
     assert summary["write_admission"] is False
+    assert summary["restore_admission"] is False
 
 
 def test_no_write_admission_fields_are_accepted_as_true() -> None:
