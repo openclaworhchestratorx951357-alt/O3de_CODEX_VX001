@@ -16,6 +16,11 @@ describe("AssetForgeToolbenchLayout", () => {
     const toolbench = screen.getByLabelText("Asset Forge Toolbench layout");
     expect(within(toolbench).getByText("O3DE AI Asset Forge Toolbench")).toBeInTheDocument();
 
+    const integrationDock = within(toolbench).getByLabelText("Forge integration dock");
+    ["Prompt Studio", "Runtime", "Builder", "Records", "Mission Control", "Guidebook"].forEach((label) => {
+      expect(within(integrationDock).getByRole("button", { name: new RegExp(label, "i") })).toBeInTheDocument();
+    });
+
     const topMenu = within(toolbench).getByLabelText("Forge top application menu");
     [
       "File",
@@ -52,6 +57,13 @@ describe("AssetForgeToolbenchLayout", () => {
     );
 
     const outliner = within(toolbench).getByLabelText("Forge scene and entity outliner");
+    const sceneTabs = within(outliner).getByLabelText("Forge scene tabs");
+    ["Forge Scene", "Evidence Layout", "Review Targets"].forEach((label) => {
+      expect(within(sceneTabs).getByRole("tab", { name: label })).toBeInTheDocument();
+    });
+    fireEvent.click(within(sceneTabs).getByRole("tab", { name: "Review Targets" }));
+    expect(within(outliner).getByText("Operator-targeted candidate set for proof corridors and safest-next-step review.")).toBeInTheDocument();
+    const outlinerTree = within(outliner).getByLabelText("Forge outliner tree");
     [
       "Level Root",
       "Cameras",
@@ -61,7 +73,7 @@ describe("AssetForgeToolbenchLayout", () => {
       "Generated Preview Candidate",
       "O3DE Import Review",
     ].forEach((label) => {
-      expect(within(outliner).getByText(label)).toBeInTheDocument();
+      expect(within(outlinerTree).getByText(label)).toBeInTheDocument();
     });
     expect(within(outliner).getByText("Toolbench preview data - not authoritative live O3DE scene truth.")).toBeInTheDocument();
 
@@ -103,6 +115,14 @@ describe("AssetForgeToolbenchLayout", () => {
 
     const timelineStatus = within(toolbench).getByLabelText("Forge timeline evidence status");
     expect(within(timelineStatus).getByLabelText("Forge timeline strip")).toBeInTheDocument();
+    expect(within(timelineStatus).getByRole("tab", { name: "X-Sheet" })).toBeInTheDocument();
+    fireEvent.click(within(timelineStatus).getByRole("tab", { name: "X-Sheet" }));
+    const xSheetPanel = within(timelineStatus).getByLabelText("Forge xsheet timeline panel");
+    expect(within(xSheetPanel).getByText("X-sheet / timeline board")).toBeInTheDocument();
+    expect(within(xSheetPanel).getByText("Camera Cut")).toBeInTheDocument();
+    expect(within(xSheetPanel).getByText("Asset Candidate")).toBeInTheDocument();
+    expect(within(xSheetPanel).getByText("Collision Track")).toBeInTheDocument();
+    fireEvent.click(within(timelineStatus).getByRole("tab", { name: "Status board" }));
     expect(within(timelineStatus).getByText("Review packet status")).toBeInTheDocument();
     expect(within(timelineStatus).getByText("Asset Processor status placeholder")).toBeInTheDocument();
     expect(within(timelineStatus).getByText("Catalog evidence status")).toBeInTheDocument();

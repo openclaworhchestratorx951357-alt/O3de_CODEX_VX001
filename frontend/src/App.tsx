@@ -599,7 +599,7 @@ export default function App() {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<DesktopWorkspaceId>(
     settings.layout.preferredLandingSection as DesktopWorkspaceId,
   );
-  const [homeTaskModeId, setHomeTaskModeId] = useState<HomeTaskModeId>("app");
+  const [homeTaskModeId, setHomeTaskModeId] = useState<HomeTaskModeId>("o3de-game");
   const [visitedWorkspaceIds, setVisitedWorkspaceIds] = useState<DesktopWorkspaceId[]>([
     settings.layout.preferredLandingSection as DesktopWorkspaceId,
   ]);
@@ -2351,7 +2351,7 @@ export default function App() {
   function selectDesktopNavigation(navItemId: string): void {
     switch (navItemId as DesktopNavItemId) {
       case "home":
-        setHomeTaskModeId("app");
+        setHomeTaskModeId("o3de-game");
         setActiveWorkspaceId("home");
         return;
       case "home-o3de-game":
@@ -2374,7 +2374,7 @@ export default function App() {
         setActiveWorkspaceId(navItemId as DesktopWorkspaceId);
         return;
       default:
-        setHomeTaskModeId("app");
+        setHomeTaskModeId("o3de-game");
         setActiveWorkspaceId("home");
     }
   }

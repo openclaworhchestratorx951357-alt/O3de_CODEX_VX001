@@ -32,7 +32,19 @@ type OutlinerSection = {
   nodes: string[];
 };
 
-type EvidenceTab = "Timeline" | "Status board" | "Review packet";
+type IntegrationDockAction = {
+  label: string;
+  gate: GateState;
+  detail: string;
+};
+
+type XSheetTrack = {
+  label: string;
+  gate: GateState;
+  cells: string[];
+};
+
+type EvidenceTab = "Timeline" | "X-Sheet" | "Status board" | "Review packet";
 
 type AssetForgeToolbenchLayoutProps = {
   projectProfile?: O3DEProjectProfile;
@@ -107,6 +119,29 @@ const timelineRows: Array<{ label: string; gate: GateState; detail: string }> = 
   { label: "Mutation corridors", gate: "blocked", detail: "Generation/import/staging/placement remain blocked." },
 ];
 
+const integrationDockActions: IntegrationDockAction[] = [
+  { label: "Prompt Studio", gate: "plan-only", detail: "Compose and refine natural-language plans." },
+  { label: "Runtime", gate: "proof-only", detail: "Verify bridge/runtime health and readback truth." },
+  { label: "Builder", gate: "plan-only", detail: "Coordinate slices and mission-control tasks." },
+  { label: "Records", gate: "proof-only", detail: "Inspect runs, artifacts, and timeline evidence." },
+  { label: "Mission Control", gate: "local preview", detail: "Docked status strip for app-wide signals." },
+  { label: "Guidebook", gate: "local preview", detail: "Context guidance for Toolbench operators." },
+];
+
+const sceneTabs = ["Forge Scene", "Evidence Layout", "Review Targets"] as const;
+const xSheetFrames = ["090", "100", "110", "120", "130", "140", "150", "160"];
+const xSheetTracks: XSheetTrack[] = [
+  { label: "Camera Cut", gate: "local preview", cells: ["A001", "A001", "A002", "A002", "A003", "A003", "A003", "A004"] },
+  { label: "Asset Candidate", gate: "proof-only", cells: ["cand-a", "cand-a", "cand-b", "cand-b", "cand-b", "review", "review", "review"] },
+  { label: "Material Check", gate: "requires approval", cells: ["-", "-", "queued", "queued", "blocked", "blocked", "blocked", "blocked"] },
+  { label: "Collision Track", gate: "not admitted", cells: ["n/a", "n/a", "n/a", "n/a", "n/a", "n/a", "n/a", "n/a"] },
+];
+const sceneTabDetail: Record<(typeof sceneTabs)[number], string> = {
+  "Forge Scene": "Editor-style composition view with local preview controls and read-only evidence context.",
+  "Evidence Layout": "Phase 9 evidence framing for source/product/dependency/catalog review packets.",
+  "Review Targets": "Operator-targeted candidate set for proof corridors and safest-next-step review.",
+};
+
 function ensureDisplayValue(value: string | null | undefined): string {
   if (!value) {
     return UNKNOWN_VALUE;
@@ -178,6 +213,8 @@ export default function AssetForgeToolbenchLayout({
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceRow["label"]>("Forge");
   const [activeTool, setActiveTool] = useState<ToolRow["label"]>("Select");
   const [activeOutlinerSection, setActiveOutlinerSection] = useState<OutlinerSection["label"]>("Asset Candidates");
+  const [activeSceneTab, setActiveSceneTab] = useState<(typeof sceneTabs)[number]>("Forge Scene");
+  const [activeIntegrationAction, setActiveIntegrationAction] = useState<IntegrationDockAction["label"]>("Prompt Studio");
   const [activeNavigationControl, setActiveNavigationControl] = useState<"Orbit" | "Pan" | "Zoom">("Orbit");
   const [activeCameraMode, setActiveCameraMode] = useState<"Perspective" | "Orthographic">("Perspective");
   const [activeLightingMode, setActiveLightingMode] = useState<"Lit" | "Wireframe" | "Proof">("Lit");
@@ -194,6 +231,7 @@ export default function AssetForgeToolbenchLayout({
   >("Source Assets");
   const [activeEvidenceTab, setActiveEvidenceTab] = useState<EvidenceTab>("Status board");
   const [timelineCursor, setTimelineCursor] = useState(2);
+  const [xSheetPlayhead, setXSheetPlayhead] = useState(3);
   const [commandDraft, setCommandDraft] = useState(defaultCommandDraft);
 
   const packet = useMemo(
@@ -202,6 +240,8 @@ export default function AssetForgeToolbenchLayout({
   );
 
   const activeWorkspaceRow = workspaceRows.find((row) => row.label === activeWorkspace) ?? workspaceRows[0];
+  const activeXSheetFrame = xSheetFrames[xSheetPlayhead] ?? xSheetFrames[0];
+  const activeIntegrationRow = integrationDockActions.find((row) => row.label === activeIntegrationAction) ?? integrationDockActions[0];
 
   const assetBrowserRows: Record<typeof activeAssetCategory, string[]> = {
     "Source Assets": [
@@ -329,6 +369,50 @@ export default function AssetForgeToolbenchLayout({
         </div>
       </header>
 
+      <section aria-label="Forge integration dock" style={integrationDockStyle}>
+        <div style={panelHeaderStyle}>
+          <strong>Integrated workspaces</strong>
+          <GateBadge gate={activeIntegrationRow.gate} />
+        </div>
+        <div style={integrationActionStripStyle}>
+          {integrationDockActions.map((action) => {
+            const isActive = action.label === activeIntegrationAction;
+            const opensPrompt = action.label === "Prompt Studio";
+            const opensRuntime = action.label === "Runtime";
+            const opensBuilder = action.label === "Builder";
+            const handler = opensPrompt
+              ? onOpenPromptStudio
+              : opensRuntime
+                ? onOpenRuntimeOverview
+                : opensBuilder
+                  ? onOpenBuilder
+                  : undefined;
+            const canOpen = typeof handler === "function";
+            return (
+              <button
+                key={action.label}
+                type="button"
+                onClick={() => {
+                  setActiveIntegrationAction(action.label);
+                  if (canOpen) {
+                    handler();
+                  }
+                }}
+                disabled={!canOpen && (opensPrompt || opensRuntime || opensBuilder)}
+                title={action.detail}
+                style={isActive ? activeIntegrationButtonStyle : integrationButtonStyle}
+              >
+                <span>{action.label}</span>
+                <GateBadge gate={action.gate} />
+              </button>
+            );
+          })}
+        </div>
+        <p style={mutedParagraphStyle}>
+          {activeIntegrationRow.detail} Local routing only; no direct generation/import/staging/placement execution.
+        </p>
+      </section>
+
       <section aria-label="Forge top application menu" style={topMenuBarStyle}>
         {topMenuRows.map((menuLabel) => (
           <button
@@ -395,8 +479,23 @@ export default function AssetForgeToolbenchLayout({
             <strong>Scene / Entity Outliner</strong>
             <GateBadge gate="local preview" />
           </div>
+          <div style={sceneTabStripStyle} aria-label="Forge scene tabs">
+            {sceneTabs.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={activeSceneTab === tab}
+                onClick={() => setActiveSceneTab(tab)}
+                style={activeSceneTab === tab ? activeSceneTabStyle : sceneTabStyle}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+          <p style={mutedParagraphStyle}>{sceneTabDetail[activeSceneTab]}</p>
           <p style={mutedParagraphStyle}>Toolbench preview data - not authoritative live O3DE scene truth.</p>
-          <div style={outlinerTreeStyle}>
+          <div style={outlinerTreeStyle} aria-label="Forge outliner tree">
             {outlinerSections.map((section) => (
               <article key={section.label} style={outlinerSectionStyle}>
                 <button
@@ -499,12 +598,12 @@ export default function AssetForgeToolbenchLayout({
           </div>
           <dl style={inspectorProjectStripStyle}>
             <div style={inspectorRowStyle}>
-              <dt>Project</dt>
-              <dd>{projectProfile?.name ?? ensureDisplayValue(packet.selectedProject.projectName)}</dd>
+              <dt style={inspectorTermStyle}>Project</dt>
+              <dd style={inspectorDefinitionStyle}>{projectProfile?.name ?? ensureDisplayValue(packet.selectedProject.projectName)}</dd>
             </div>
             <div style={inspectorRowStyle}>
-              <dt>Project root</dt>
-              <dd>{projectProfile?.projectRoot ?? ensureDisplayValue(packet.selectedProject.projectRoot)}</dd>
+              <dt style={inspectorTermStyle}>Project root</dt>
+              <dd style={inspectorDefinitionStyle}>{projectProfile?.projectRoot ?? ensureDisplayValue(packet.selectedProject.projectRoot)}</dd>
             </div>
           </dl>
           <div style={inspectorSectionsStyle}>
@@ -514,8 +613,8 @@ export default function AssetForgeToolbenchLayout({
                 <dl style={inspectorSectionRowsStyle}>
                   {section.rows.map(([label, value]) => (
                     <div key={label} style={inspectorRowStyle}>
-                      <dt>{label}</dt>
-                      <dd>{ensureDisplayValue(value)}</dd>
+                      <dt style={inspectorTermStyle}>{label}</dt>
+                      <dd style={inspectorDefinitionStyle}>{ensureDisplayValue(value)}</dd>
                     </div>
                   ))}
                 </dl>
@@ -630,7 +729,7 @@ export default function AssetForgeToolbenchLayout({
         </div>
 
         <div style={evidenceTabStripStyle}>
-          {(["Timeline", "Status board", "Review packet"] as EvidenceTab[]).map((tab) => (
+          {(["Timeline", "X-Sheet", "Status board", "Review packet"] as EvidenceTab[]).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -649,6 +748,67 @@ export default function AssetForgeToolbenchLayout({
             <strong>{timelineRows[timelineCursor].label}</strong>
             <p style={mutedParagraphStyle}>{timelineRows[timelineCursor].detail}</p>
             <GateBadge gate={timelineRows[timelineCursor].gate} />
+          </article>
+        ) : null}
+
+        {activeEvidenceTab === "X-Sheet" ? (
+          <article style={xSheetPanelStyle} aria-label="Forge xsheet timeline panel">
+            <div style={panelHeaderStyle}>
+              <strong>X-sheet / timeline board</strong>
+              <GateBadge gate="local preview" />
+            </div>
+            <p style={mutedParagraphStyle}>
+              Local preview timeline sheet for shot/action planning. Frame {activeXSheetFrame} selected.
+            </p>
+            <label style={rangeLabelStyle}>
+              X-sheet playhead ({activeXSheetFrame})
+              <input
+                type="range"
+                min={0}
+                max={Math.max(xSheetFrames.length - 1, 0)}
+                value={xSheetPlayhead}
+                onChange={(event) => setXSheetPlayhead(Number(event.currentTarget.value))}
+                style={rangeInputStyle}
+              />
+            </label>
+            <div style={xSheetGridStyle}>
+              <div style={xSheetHeaderCellStyle}>Track</div>
+              {xSheetFrames.map((frame, index) => (
+                <button
+                  key={frame}
+                  type="button"
+                  onClick={() => setXSheetPlayhead(index)}
+                  aria-pressed={xSheetPlayhead === index}
+                  style={xSheetPlayhead === index ? activeXSheetFrameButtonStyle : xSheetFrameButtonStyle}
+                >
+                  {frame}
+                </button>
+              ))}
+              {xSheetTracks.map((track) => (
+                <div key={track.label} style={xSheetTrackRowStyle}>
+                  <div style={xSheetTrackLabelStyle}>
+                    <span>{track.label}</span>
+                    <GateBadge gate={track.gate} />
+                  </div>
+                  {track.cells.map((cell, index) => (
+                    <button
+                      key={`${track.label}-${xSheetFrames[index] ?? index}`}
+                      type="button"
+                      onClick={() => setXSheetPlayhead(index)}
+                      aria-pressed={xSheetPlayhead === index}
+                      style={xSheetPlayhead === index ? activeXSheetCellStyle : xSheetCellStyle}
+                      title={`${track.label} frame ${xSheetFrames[index] ?? index}: ${cell}`}
+                    >
+                      {cell}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <p style={mutedParagraphStyle}>
+              X-sheet updates remain local preview only. No generation, import, staging, assignment, placement,
+              Asset Processor execution, or source/product/cache mutation is admitted.
+            </p>
           </article>
         ) : null}
 
@@ -756,6 +916,42 @@ const headerPillStyle = {
   fontWeight: 800,
 } satisfies CSSProperties;
 
+const integrationDockStyle = {
+  display: "grid",
+  gap: 8,
+  padding: 10,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
+  background: "var(--app-panel-bg)",
+} satisfies CSSProperties;
+
+const integrationActionStripStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+  gap: 6,
+} satisfies CSSProperties;
+
+const integrationButtonStyle = {
+  display: "grid",
+  gap: 5,
+  justifyItems: "start",
+  minHeight: 54,
+  padding: "7px 10px",
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
+  background: "var(--app-panel-bg-muted)",
+  color: "var(--app-text-color)",
+  fontWeight: 700,
+  textAlign: "left",
+  cursor: "pointer",
+} satisfies CSSProperties;
+
+const activeIntegrationButtonStyle = {
+  ...integrationButtonStyle,
+  border: "1px solid var(--app-accent-strong)",
+  background: "color-mix(in srgb, var(--app-info-bg) 78%, var(--app-panel-bg) 22%)",
+} satisfies CSSProperties;
+
 const topMenuBarStyle = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(74px, 1fr))",
@@ -838,9 +1034,10 @@ const workspaceFocusStyle = {
 
 const mainWorkspaceGridStyle = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 92px) minmax(0, 1fr) minmax(0, 1.7fr) minmax(0, 1fr)",
+  gridTemplateColumns: "88px minmax(250px, 1.1fr) minmax(420px, 1.8fr) minmax(300px, 1.2fr)",
   gap: 8,
   alignItems: "start",
+  overflowX: "auto",
 } satisfies CSSProperties;
 
 const toolShelfStyle = {
@@ -892,6 +1089,30 @@ const panelHeaderStyle = {
   gap: 8,
   alignItems: "center",
   flexWrap: "wrap",
+} satisfies CSSProperties;
+
+const sceneTabStripStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+  gap: 5,
+} satisfies CSSProperties;
+
+const sceneTabStyle = {
+  minHeight: 32,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
+  background: "var(--app-panel-bg-muted)",
+  color: "var(--app-text-color)",
+  fontSize: 12,
+  fontWeight: 700,
+  cursor: "pointer",
+} satisfies CSSProperties;
+
+const activeSceneTabStyle = {
+  ...sceneTabStyle,
+  border: "1px solid var(--app-accent-strong)",
+  background: "var(--app-info-bg)",
+  color: "var(--app-info-text)",
 } satisfies CSSProperties;
 
 const outlinerTreeStyle = {
@@ -1132,11 +1353,24 @@ const inspectorSectionRowsStyle = {
 
 const inspectorRowStyle = {
   display: "grid",
-  gridTemplateColumns: "minmax(120px, 0.8fr) minmax(0, 1fr)",
+  gridTemplateColumns: "minmax(130px, 0.72fr) minmax(0, 1fr)",
   gap: 8,
   color: "var(--app-muted-color)",
   margin: 0,
+  alignItems: "start",
+} satisfies CSSProperties;
+
+const inspectorTermStyle = {
+  margin: 0,
+  color: "var(--app-subtle-color)",
+  fontWeight: 700,
+} satisfies CSSProperties;
+
+const inspectorDefinitionStyle = {
+  margin: 0,
+  minWidth: 0,
   overflowWrap: "anywhere",
+  wordBreak: "break-word",
 } satisfies CSSProperties;
 
 const commandStripStyle = {
@@ -1299,6 +1533,93 @@ const activeEvidenceTabStyle = {
   ...evidenceTabStyle,
   border: "1px solid var(--app-accent-strong)",
   background: "var(--app-info-bg)",
+  color: "var(--app-info-text)",
+} satisfies CSSProperties;
+
+const xSheetPanelStyle = {
+  display: "grid",
+  gap: 8,
+  padding: 10,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
+  background: "var(--app-panel-bg-muted)",
+} satisfies CSSProperties;
+
+const xSheetGridStyle = {
+  display: "grid",
+  gridTemplateColumns: `minmax(160px, 1.2fr) repeat(${xSheetFrames.length}, minmax(62px, 1fr))`,
+  gap: 4,
+  alignItems: "stretch",
+  overflowX: "auto",
+  paddingBottom: 2,
+} satisfies CSSProperties;
+
+const xSheetTrackRowStyle = {
+  display: "contents",
+} satisfies CSSProperties;
+
+const xSheetHeaderCellStyle = {
+  display: "grid",
+  alignItems: "center",
+  padding: "6px 8px",
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
+  background: "color-mix(in srgb, var(--app-panel-bg) 86%, var(--app-page-bg) 14%)",
+  color: "var(--app-subtle-color)",
+  fontSize: 11,
+  fontWeight: 800,
+} satisfies CSSProperties;
+
+const xSheetTrackLabelStyle = {
+  display: "grid",
+  gap: 4,
+  alignContent: "center",
+  padding: "7px 8px",
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
+  background: "var(--app-panel-bg)",
+  color: "var(--app-text-color)",
+  fontSize: 12,
+  fontWeight: 700,
+} satisfies CSSProperties;
+
+const xSheetFrameButtonStyle = {
+  minHeight: 34,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
+  background: "var(--app-panel-bg)",
+  color: "var(--app-text-color)",
+  fontSize: 11,
+  fontWeight: 700,
+  cursor: "pointer",
+} satisfies CSSProperties;
+
+const activeXSheetFrameButtonStyle = {
+  ...xSheetFrameButtonStyle,
+  border: "1px solid var(--app-accent-strong)",
+  background: "var(--app-info-bg)",
+  color: "var(--app-info-text)",
+} satisfies CSSProperties;
+
+const xSheetCellStyle = {
+  minHeight: 34,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-card-radius)",
+  background: "var(--app-panel-bg)",
+  color: "var(--app-muted-color)",
+  fontSize: 11,
+  fontWeight: 700,
+  cursor: "pointer",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+  padding: "0 4px",
+} satisfies CSSProperties;
+
+const activeXSheetCellStyle = {
+  ...xSheetCellStyle,
+  border: "1px solid var(--app-accent-strong)",
+  background: "color-mix(in srgb, var(--app-info-bg) 84%, var(--app-panel-bg) 16%)",
   color: "var(--app-info-text)",
 } satisfies CSSProperties;
 
