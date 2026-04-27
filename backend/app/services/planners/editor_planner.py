@@ -111,8 +111,12 @@ _CANDIDATE_EDITOR_MUTATION_PATTERNS = (
         r"[a-z0-9_ -]*component\b"
     ),
     re.compile(r"\b(?:set|assign|update|change|modify)\s+.*\bmaterial\b"),
+    re.compile(r"\b(?:set|assign|update|change|modify)\s+.*\brender\s+setting\b"),
+    re.compile(r"\b(?:set|assign|update|change|modify)\s+.*\bbuild\s+setting\b"),
+    re.compile(r"\b(?:set|assign|update|change|modify)\s+.*\btiaf\s+state\b"),
     re.compile(r"\barbitrary\s+editor\s+(?:python|command|script)\b"),
     re.compile(r"\bexecute\s+(?:an?\s+)?editor\s+(?:python|command|script)\b"),
+    re.compile(r"\bexecute\s+(?:an?\s+)?(?:python|command|script)\s+in\s+the\s+editor\b"),
 )
 _EDITOR_PROPERTY_DISCOVERY_PATTERNS = (
     re.compile(

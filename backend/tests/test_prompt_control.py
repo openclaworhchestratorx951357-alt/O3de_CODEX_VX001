@@ -2032,8 +2032,28 @@ def test_prompt_session_refuses_arbitrary_command_execution() -> None:
             'Assign material "Materials/Hero.material" to entity id 101 in the editor.',
         ),
         (
+            "prompt-editor-candidate-render-setting-1",
+            'Open level "Levels/Main.level", change render setting exposure '
+            "to 1.0 in the editor.",
+        ),
+        (
+            "prompt-editor-candidate-build-setting-1",
+            'Open level "Levels/Main.level", change build setting "profile" '
+            "in the editor.",
+        ),
+        (
+            "prompt-editor-candidate-tiaf-state-1",
+            'Open level "Levels/Main.level", update TIAF state for the current '
+            "level.",
+        ),
+        (
             "prompt-editor-candidate-editor-command-1",
             "Execute an editor command to change the selected entity.",
+        ),
+        (
+            "prompt-editor-candidate-editor-python-1",
+            'Open level "Levels/Main.level", execute Python in the editor to '
+            "change the selected entity.",
         ),
     ],
 )
