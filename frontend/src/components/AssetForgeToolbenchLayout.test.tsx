@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import AssetForgeToolbenchLayout from "./AssetForgeToolbenchLayout";
 import { assetForgeReviewPacketFixture } from "../fixtures/assetForgeReviewPacketFixture";
+import type { O3DEBridgeStatus } from "../types/contracts";
 
 function renderToolbench(overrides = {}) {
   return render(
@@ -13,6 +14,32 @@ function renderToolbench(overrides = {}) {
     />,
   );
 }
+
+const bridgeStatusFixture: O3DEBridgeStatus = {
+  project_root: "C:/Projects/BridgeTraining",
+  project_root_exists: true,
+  bridge_root: "C:/Projects/BridgeTraining/.o3de/bridge",
+  inbox_path: "C:/Projects/BridgeTraining/.o3de/bridge/inbox",
+  processing_path: "C:/Projects/BridgeTraining/.o3de/bridge/processing",
+  results_path: "C:/Projects/BridgeTraining/.o3de/bridge/results",
+  deadletter_path: "C:/Projects/BridgeTraining/.o3de/bridge/deadletter",
+  heartbeat_path: "C:/Projects/BridgeTraining/.o3de/bridge/heartbeat.json",
+  log_path: "C:/Projects/BridgeTraining/.o3de/bridge/bridge.log",
+  source_label: "live_o3de_bridge",
+  configured: true,
+  heartbeat_fresh: true,
+  heartbeat_age_s: 4,
+  runner_process_active: true,
+  queue_counts: {
+    inbox: 1,
+    processing: 0,
+    results: 3,
+    deadletter: 0,
+  },
+  heartbeat: null,
+  last_results_cleanup: null,
+  recent_deadletters: [],
+};
 
 describe("AssetForgeToolbenchLayout", () => {
   beforeEach(() => {
@@ -180,5 +207,26 @@ describe("AssetForgeToolbenchLayout", () => {
     fireEvent.click(within(shell).getByRole("button", { name: "Reset Layout" }));
     expect(window.localStorage.getItem("o3de-asset-forge-page-shell-menu-v1")).toBeNull();
     expect(within(shell).getByLabelText("Asset Forge Create page")).toBeInTheDocument();
+  });
+
+  it("shows read-only bridge connection truth when live bridge status is provided", () => {
+    renderToolbench({
+      bridgeStatus: bridgeStatusFixture,
+      reviewPacketSource: "live_phase9_packet_data",
+    });
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+
+    fireEvent.click(within(shell).getByRole("button", { name: "File" }));
+    expect(within(shell).getByText("Bridge read-only snapshot")).toBeInTheDocument();
+    expect(within(shell).getByText("Connected (read-only)")).toBeInTheDocument();
+    expect(within(shell).getByText("Fresh (4s)")).toBeInTheDocument();
+    expect(within(shell).getByText("inbox 1 | processing 0 | results 3 | deadletter 0")).toBeInTheDocument();
+    expect(within(shell).getByText("Live Phase 9 packet data (read-only)")).toBeInTheDocument();
+
+    fireEvent.click(within(shell).getByRole("button", { name: "Help" }));
+    expect(within(shell).getByText("Bridge connection: Connected (read-only)")).toBeInTheDocument();
+    expect(within(shell).getByText("Bridge queue: inbox 1 | processing 0 | results 3 | deadletter 0")).toBeInTheDocument();
+    expect(within(shell).getByText("Review packet source: Live Phase 9 packet data (read-only)")).toBeInTheDocument();
   });
 });
