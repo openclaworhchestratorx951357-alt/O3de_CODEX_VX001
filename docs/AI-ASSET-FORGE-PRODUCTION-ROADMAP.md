@@ -195,6 +195,13 @@ staging folder convention, provenance metadata, naming convention.
 
 No import yet.
 
+Status:
+Completed in `docs/AI-ASSET-FORGE-O3DE-IMPORT-READINESS-DESIGN.md`. The design
+selects `Assets/Generated/<asset_slug>/` as the future staging convention,
+defines provenance metadata, names approval gates, and keeps import,
+assignment, placement, and Asset Processor execution blocked until later
+approved proof packets.
+
 ### Forge Phase 4 - Proof-only O3DE import
 
 Goal:
@@ -272,8 +279,8 @@ Every generated asset must eventually track:
 
 ## Next recommended implementation sequence
 
-1. Design O3DE import readiness now that cleanup/conversion has been proven
-   outside O3DE.
+1. Open a proof-only O3DE source staging packet with explicit operator approval
+   for exactly one generated GLB and provenance metadata file.
 2. Use Phase 9 readback for generated source/product/dependency/catalog
    validation after an explicitly approved proof-only O3DE source-asset staging
    packet.
@@ -289,3 +296,4 @@ Every generated asset must eventually track:
 - Forge Phase 0 audit: `docs/AI-ASSET-FORGE-LOCAL-MODEL-SUBSTRATE-AUDIT.md`
 - Forge Phase 1 proof: `docs/AI-ASSET-FORGE-LOCAL-GENERATION-PROOF.md`
 - Forge Phase 2 proof: `docs/AI-ASSET-FORGE-CLEANUP-CONVERSION-PROOF.md`
+- Forge Phase 3 design: `docs/AI-ASSET-FORGE-O3DE-IMPORT-READINESS-DESIGN.md`
