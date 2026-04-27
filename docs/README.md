@@ -60,6 +60,9 @@ rounding up capability claims.
 - `docs/PHASE-8-NEXT-READ-ONLY-TARGET-DISCOVERY.md` selects Camera non-bool
   scalar readback as the next candidate-only Phase 8 read-only discovery
   direction without widening public prompts or writes.
+- `docs/PHASE-8-CAMERA-NON-BOOL-READBACK-DESIGN.md` designs a future proof-only
+  read-only Camera non-bool scalar readback harness while preserving all current
+  write, restore, and property-list boundaries.
 - `docs/PHASE-9-ASSET-READBACK-BASELINE.md` starts Phase 9 with the current
   asset/pipeline readback truth before any new asset runtime surface is widened.
 - `docs/PHASE-9-ASSET-READBACK-DISCOVERY.md` records the candidate-only Phase 9
@@ -149,6 +152,7 @@ rounding up capability claims.
 - `docs/PHASE-8-EDITOR-SCALAR-PROPERTY-TARGET-DISCOVERY.md`
 - `docs/PHASE-8-EDITOR-COMMENT-SCALAR-TARGET-DISCOVERY.md`
 - `docs/PHASE-8-NEXT-READ-ONLY-TARGET-DISCOVERY.md`
+- `docs/PHASE-8-CAMERA-NON-BOOL-READBACK-DESIGN.md`
 - `docs/PHASE-9-ASSET-READBACK-BASELINE.md`
 - `docs/PHASE-9-ASSET-READBACK-DISCOVERY.md`
 - `docs/PHASE-9-ASSET-READBACK-DESIGN.md`
