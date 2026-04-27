@@ -124,6 +124,9 @@ rounding up capability claims.
 - `docs/PHASE-9-ASSET-READBACK-SCHEMA-REVIEW.md` records the current decision
   to keep string-array product/dependency evidence while reserving an additive
   structured schema packet for later.
+- `docs/PHASE-9-ASSET-CATALOG-SUBSTRATE-DISCOVERY.md` records read-only
+  discovery of `McpSandbox/Cache/pc/assetcatalog.xml` as a binary/serialized
+  product-path substrate, not yet ready for implementation.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
