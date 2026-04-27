@@ -206,13 +206,67 @@ codex/phase-8-camera-corridor-checkpoint
 codex/phase-8-scalar-property-target-discovery
 ```
 
+## Final Phase 8 Scalar Branch Cleanup
+
+A follow-up single-branch cleanup packet deleted the last ordinary merged
+Phase 8 branch left by the Batch 02 cap:
+
+```text
+codex/phase-8-scalar-property-target-discovery
+```
+
+This deletion was performed separately so the Batch 02 15-branch cap remained
+intact.
+
+Verification before deletion:
+
+- `HEAD` and `origin/main` both pointed to
+  `c60220ecf979fe6744b286031b56feafb638182b`.
+- `git branch -r --list origin/codex/phase-8-scalar-property-target-discovery`
+  confirmed the branch existed.
+- `git branch -r --merged origin/main --no-color` listed the branch as merged.
+- `git log --oneline origin/main..origin/codex/phase-8-scalar-property-target-discovery`
+  returned no commits.
+- `git rev-list --left-right --count origin/main...origin/codex/phase-8-scalar-property-target-discovery`
+  returned `80 0`, so the branch-side unique commit count was `0`.
+- The public GitHub open-PR check for the branch returned `0`.
+
+Deletion command:
+
+```powershell
+git push origin --delete codex/phase-8-scalar-property-target-discovery
+```
+
+Post-delete absence confirmation:
+
+- `git branch -r --list origin/codex/phase-8-scalar-property-target-discovery`
+  returned no branch.
+- `git ls-remote --heads origin codex/phase-8-scalar-property-target-discovery`
+  returned no ref.
+
+Restore command if this branch is ever needed again:
+
+```powershell
+git push origin 277fdb482ee54acc9b87304738fa97dc07fdd92e:refs/heads/codex/phase-8-scalar-property-target-discovery
+```
+
+Remote branch heads after the final scalar cleanup:
+
+```text
+30
+```
+
+Remaining `codex/phase-8-*` remote branches after the final scalar cleanup:
+
+```text
+codex/phase-8-camera-corridor-checkpoint
+```
+
 ## Recommended Next Cleanup Batch
 
 Recommended next cleanup direction:
 
-- Run a tiny cleanup packet for
-  `codex/phase-8-scalar-property-target-discovery` if it still passes every
-  merge/no-unique/open-PR gate.
+- Ordinary merged Phase 8 work-branch cleanup is complete.
 - Keep `codex/phase-8-camera-corridor-checkpoint` preserved.
 - Treat `codex/control-plane/*` branches as a separate review batch because
   some names indicate integration, baseline, stable, or long-term product
