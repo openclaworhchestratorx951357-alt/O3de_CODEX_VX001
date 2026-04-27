@@ -102,9 +102,13 @@ describe("HomeWorkspaceView", () => {
     );
     expect(within(forgePanel).getByLabelText("AI Asset Forge dedicated viewer")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Forge control, view, and edit tools")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Forge operator review packet")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("Typed sample fixture data (read-only preview; not live)")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("AI Asset Forge O3DE feature coverage")).toHaveTextContent(
       "Asset Processor",
     );
+    expect(within(forgePanel).getByLabelText("Forge Toolbench pipeline")).toHaveTextContent("Generation corridor");
+    expect(within(forgePanel).getByLabelText("Forge Toolbench pipeline")).toHaveTextContent("blocked");
     expect(within(forgePanel).getByRole("button", { name: "Place in level" })).toBeDisabled();
     fireEvent.click(within(forgePanel).getByRole("button", { name: "products" }));
     expect(within(forgePanel).getByLabelText("Generated asset preview")).toHaveTextContent("products view | orbit");

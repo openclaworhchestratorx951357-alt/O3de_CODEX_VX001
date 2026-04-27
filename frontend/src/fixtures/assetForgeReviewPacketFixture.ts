@@ -1,0 +1,77 @@
+import type { Phase9AssetReadbackReviewPacket } from "../types/assetForgeReviewPacket";
+
+export const assetForgeReviewPacketFixture: Phase9AssetReadbackReviewPacket = {
+  capability: "asset.source.inspect",
+  review_contract_version: "phase-9-asset-readback-review-v1",
+  readiness_status: "ready_for_asset_source_inspect",
+  proof_status: "asset_source_inspect_proven",
+  read_only: true,
+  mutation_occurred: false,
+  selected_project: {
+    project_root: "C:/Projects/McpSandbox",
+    project_json_path: "C:/Projects/McpSandbox/project.json",
+    project_name: "McpSandbox",
+  },
+  selected_platform: {
+    platform: "pc",
+    cache_path: "C:/Projects/McpSandbox/Cache",
+    asset_catalog_path: "C:/Projects/McpSandbox/Cache/pc/assetcatalog.xml",
+    asset_catalog_freshness_status: "stale_or_unverified",
+  },
+  asset_database: {
+    path: "C:/Projects/McpSandbox/Cache/assetdb.sqlite",
+    read_mode: "read-only",
+    freshness_status: "stale_or_unverified",
+  },
+  source: {
+    original_source_path: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+    normalized_source_path: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+    source_id: 3214,
+    source_guid: "439941DB330C530FAD3E5A36C19A1519",
+    source_exists: true,
+    source_is_file: true,
+  },
+  products: {
+    product_path: "pc/levels/bridgelevel01/bridgelevel01.spawnable",
+    product_id: 10608,
+    product_sub_id: -575275456,
+    product_rows: [],
+    product_count: 1,
+    evidence_available: true,
+  },
+  dependencies: {
+    dependency_rows: [],
+    dependency_count: 1,
+    evidence_available: true,
+  },
+  catalog: {
+    catalog_presence: true,
+    asset_catalog_product_path_presence: [
+      "pc/levels/bridgelevel01/bridgelevel01.spawnable -> levels/bridgelevel01/bridgelevel01.spawnable (platform=pc, present=True, match_count=1)",
+    ],
+    asset_catalog_product_path_count: 1,
+  },
+  warnings: [
+    "Freshness is stale_or_unverified until an operator confirms current pipeline state.",
+  ],
+  blocked_reason: null,
+  missing_substrate_guidance: null,
+  safest_next_step: "operator_review",
+  operator_approval_state: "not_requested",
+  forge_handoff: {
+    generated_asset_id: null,
+    asset_slug: null,
+    generation_backend: null,
+    model_name: null,
+    model_version: null,
+    prompt: null,
+    source_asset_path: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+    product_asset_path: "pc/levels/bridgelevel01/bridgelevel01.spawnable",
+    catalog_presence: true,
+    operator_approval_state: "not_requested",
+    license_status: null,
+    quality_status: null,
+    placement_readiness: null,
+    production_approval_state: null,
+  },
+};
