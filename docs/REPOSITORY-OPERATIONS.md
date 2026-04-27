@@ -30,6 +30,12 @@ start with `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`. That protocol
 is the repo-local source of truth for activating Supervisor Mode, verifying repo
 state, checking local dependencies, and reporting readiness before edits.
 
+Then apply `docs/CODEX-WORKFLOW-GOVERNOR.md` before creating a branch or PR. A
+PR must move a meaningful capability, proof, admission, operator UX, blocker,
+validation, or governance outcome forward. Do not create standalone status SHA
+refreshes, trivial docs echoes, or refusal-only checkpoint PRs unless the
+operator explicitly requests that exact packet.
+
 Use this flow for most repo work:
 
 ```powershell
@@ -44,13 +50,15 @@ Then:
 
 1. Make the narrow change.
 2. Run validation appropriate to the change.
-3. Stage only intentional files.
-4. Run `git diff --cached --check`.
-5. Commit.
-6. Push.
-7. Open a PR.
-8. Self-merge only if the self-merge rule below allows it.
-9. Pull updated `main` after merge.
+3. Confirm the workflow-governor value and bundle incidental docs/status/index
+   updates into the same PR.
+4. Stage only intentional files.
+5. Run `git diff --cached --check`.
+6. Commit.
+7. Push.
+8. Open a PR.
+9. Self-merge only if the self-merge rule below allows it.
+10. Pull updated `main` after merge.
 
 Never stage `.venv/`, runtime proof JSON, logs, caches, build outputs, local
 databases, or secrets.
@@ -118,6 +126,9 @@ Low-risk changes Codex may self-merge after validation:
 - repo operation guides
 - comments, typos, and documentation formatting
 - non-behavioral cleanup
+
+Low-risk does not automatically mean worth a PR. The packet must still pass
+`docs/CODEX-WORKFLOW-GOVERNOR.md`.
 
 Medium-risk changes Codex may self-merge only with strong validation:
 
@@ -214,6 +225,8 @@ Every PR should include:
 ## Self-merge decision
 
 ## Boundaries
+
+## Workflow-governor value
 
 ## Revert path
 ```

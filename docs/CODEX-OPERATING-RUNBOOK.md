@@ -15,6 +15,7 @@ Use it to answer:
 This runbook complements:
 - `AGENTS.md`
 - `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`
+- `docs/CODEX-WORKFLOW-GOVERNOR.md`
 - `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`
 - `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`
 - `docs/NORMALIZED-PHASE-WORKFLOW.md`
@@ -35,6 +36,11 @@ Default standing guidance:
   editing; that protocol defines the required supervisor/worker roles, startup
   git checks, project-local dependency bootstrap rules, readiness report, and
   safety boundaries for future threads
+- before creating any branch, commit, or PR, Codex must apply
+  `docs/CODEX-WORKFLOW-GOVERNOR.md`; do not spend operator attention or CI on
+  trivial status-refresh, docs-echo, or refusal-only PRs that do not move a
+  meaningful capability, proof, operator UX, validation, blocker, or governance
+  outcome forward
 - for all project phases, use
   `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` as the future-thread start
   checklist for syncing main, classifying risk, validating, publishing, and
@@ -42,6 +48,7 @@ Default standing guidance:
 - when a user says "continue the project", "start the next phase", "make the
   next slice", or "move forward", Codex must read
   `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`, read
+  `docs/CODEX-WORKFLOW-GOVERNOR.md`, read
   `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`, read
   `docs/NORMALIZED-PHASE-WORKFLOW.md`, read the relevant phase quick reference
   or checkpoint, identify the current workflow stage, and propose or execute
@@ -109,6 +116,12 @@ When a slice touches any of these surfaces, verify both:
 ## Slice assignment model
 
 Each slice should have exactly one primary intent.
+
+Each slice must also pass the workflow-governor meaningful packet test. Bundle
+incidental status, index, and handoff updates into the same project-moving PR
+that created the new truth. Standalone status refreshes and refusal-only
+checkpoints are allowed only when explicitly requested or when they consolidate
+multiple facts that would otherwise mislead the next thread.
 
 Good slice categories:
 - backend contract or persistence work
@@ -339,7 +352,7 @@ When a slice is ready:
 
 ```powershell
 git status --short
-git add -A
+git add <intended files only>
 git commit -m "<intentional scope>"
 git push origin <branch>
 ```
@@ -354,6 +367,7 @@ In the final summary for a slice, always report:
 - implemented
 - still stubbed / unverified
 - next recommended step
+- workflow-governor value
 
 ## Recovery guide
 
