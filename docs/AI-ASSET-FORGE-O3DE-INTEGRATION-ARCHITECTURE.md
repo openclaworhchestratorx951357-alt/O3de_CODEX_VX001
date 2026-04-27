@@ -27,6 +27,18 @@ Turns an operator prompt, image, or reference packet into a bounded generation
 request. It must capture intent, target asset type, naming constraints, license
 expectations, and safety boundaries before any generation backend runs.
 
+The user-facing input should be a normal creative prompt, not O3DE
+engine-control syntax. The prompt input contract is defined in
+`docs/AI-ASSET-FORGE-PROMPT-INPUT-MODEL.md`. For example, "Create a worn wooden
+tavern chair with green cushions for a medieval village" is a Forge prompt;
+"Run asset.source.inspect against assetdb.sqlite and verify catalog presence"
+is an engine-control/readback prompt.
+
+The Prompt Planner translates creative input into structured internal fields
+such as `creative_prompt`, `asset_type`, `style_profile`, `quality_profile`,
+`scale_hint`, `target_format`, `reference_image_path`, `project_root`,
+`staging_folder`, and `requires_operator_review`.
+
 ### Generation Backend Adapter
 
 Calls a local/private 3D generation backend selected by the substrate audit.
@@ -104,7 +116,7 @@ Create a mossy stone bridge prop for this level
 Flow:
 
 - prompt interpreted
-- generation request created
+- structured generation request created
 - local model generates mesh
 - cleanup prepares asset
 - source asset staged

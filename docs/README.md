@@ -164,6 +164,8 @@ rounding up capability claims.
   first proof-only local generation candidate and records the license,
   hardware, storage, provenance, and no-mutation gates before any download or
   asset generation.
+- `docs/AI-ASSET-FORGE-PROMPT-INPUT-MODEL.md` defines creative/natural Forge
+  prompts and the internal request translation model.
 - `docs/AI-ASSET-FORGE-LOCAL-GENERATION-PROOF.md` records the first proof-only
   TripoSR local generation run outside the repo and outside O3DE projects.
 - `docs/AI-ASSET-FORGE-CLEANUP-CONVERSION-PROOF.md` records the first
@@ -206,6 +208,7 @@ rounding up capability claims.
 
 - `docs/AI-ASSET-FORGE-PRODUCTION-ROADMAP.md`
 - `docs/AI-ASSET-FORGE-O3DE-INTEGRATION-ARCHITECTURE.md`
+- `docs/AI-ASSET-FORGE-PROMPT-INPUT-MODEL.md`
 - `docs/AI-ASSET-FORGE-LOCAL-MODEL-SUBSTRATE-AUDIT.md`
 - `docs/AI-ASSET-FORGE-LOCAL-GENERATION-PROOF.md`
 - `docs/AI-ASSET-FORGE-CLEANUP-CONVERSION-PROOF.md`
