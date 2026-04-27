@@ -128,6 +128,9 @@ rounding up capability claims.
 - `docs/PHASE-9-ASSET-SOURCE-INSPECT-SCHEMA-HARDENING.md` records the
   structured schema fields for project-general `asset.source.inspect` proof
   payloads.
+- `docs/PHASE-9-ASSET-READBACK-ADMISSION-DECISION.md` records the decision to
+  keep the narrow read-only surface active while withholding production-general
+  public admission pending freshness, platform, and operator review work.
 - `docs/PHASE-9-ASSET-CATALOG-SUBSTRATE-DISCOVERY.md` records read-only
   discovery of `McpSandbox/Cache/pc/assetcatalog.xml` as a binary/serialized
   product-path substrate, not yet ready for implementation.
