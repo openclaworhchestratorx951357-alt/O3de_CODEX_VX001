@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-ac47ac316afd1e968a2af7afee01fe4917ec8399
+dcb2bc4a7b7dfd5aef1d072922ea309fe322dc2d
 ```
 
 The latest runtime/capability movement remains the completed Phase 8 Camera
@@ -40,6 +40,9 @@ Recent handoff-relevant packets:
 - PR #74 refreshed this status handoff and selected Phase 9 asset readback
   baseline/current truth as the next safe normalized packet.
 - PR #75 added the Phase 9 asset readback baseline/current-truth packet.
+- PR #76 added the candidate-only Phase 9 asset readback discovery packet and
+  selected `asset.source.inspect` product/dependency evidence readback as the
+  next design target.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -192,10 +195,10 @@ property writes.
 
 ## Recommended Next Packets
 
-1. Continue Phase 9 with a design packet from
-   `docs/PHASE-9-ASSET-READBACK-DISCOVERY.md`. Focus only on
-   `asset.source.inspect` product/dependency evidence readback, with explicit
-   fallback states and no asset mutation or processor execution.
+1. Continue Phase 9 with a readiness audit from
+   `docs/PHASE-9-ASSET-READBACK-DESIGN.md`. Audit the exact read-only substrate
+   for `asset.source.inspect` product/dependency evidence before any code
+   implementation.
 2. If Phase 8 continues instead, start the next read-only discovery packet
    before adding any new restore targets or broader undo behavior.
 3. Produce a branch cleanup report before deleting any uncertain historical,
