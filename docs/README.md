@@ -78,6 +78,9 @@ rounding up capability claims.
 - `docs/PHASE-8-CAMERA-FAR-CLIP-DISPOSITION-AUDIT.md` keeps the live-proven
   Camera far clip float target readback-only and names the gates for any future
   design-only write-candidate packet.
+- `docs/PHASE-8-CAMERA-FAR-CLIP-READBACK-CHECKPOINT.md` checkpoints the
+  live-proven Camera far clip float target as discovered-but-not-admitted and
+  readback-only.
 - `docs/PHASE-9-ASSET-READBACK-BASELINE.md` starts Phase 9 with the current
   asset/pipeline readback truth before any new asset runtime surface is widened.
 - `docs/PHASE-9-ASSET-READBACK-DISCOVERY.md` records the candidate-only Phase 9
@@ -173,6 +176,7 @@ rounding up capability claims.
 - `docs/PHASE-8-CAMERA-NON-BOOL-LIVE-PROOF-PENDING-CHECKPOINT.md`
 - `docs/PHASE-8-CAMERA-NON-BOOL-READBACK-LIVE-PROOF.md`
 - `docs/PHASE-8-CAMERA-FAR-CLIP-DISPOSITION-AUDIT.md`
+- `docs/PHASE-8-CAMERA-FAR-CLIP-READBACK-CHECKPOINT.md`
 - `docs/PHASE-9-ASSET-READBACK-BASELINE.md`
 - `docs/PHASE-9-ASSET-READBACK-DISCOVERY.md`
 - `docs/PHASE-9-ASSET-READBACK-DESIGN.md`
