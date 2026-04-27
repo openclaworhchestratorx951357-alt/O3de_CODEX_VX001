@@ -242,6 +242,13 @@ Goal:
 Show generated asset provenance, paths, hash, source/product mapping,
 dependencies, warnings, and approval state.
 
+Status:
+Contract defined in `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET.md`. The
+required packet fields, review statuses, operator decisions, blocked review
+rules, and first proof-target mapping are documented. Runtime/UI implementation
+is still pending, and assignment, placement, public import admission, and
+production use remain blocked.
+
 ### Forge Phase 7 - Entity assignment design
 
 Goal:
@@ -293,9 +300,9 @@ Every generated asset must eventually track:
 
 ## Next recommended implementation sequence
 
-1. Define the generated-asset operator review packet using the staged source,
-   Asset Processor products, dependency rows, catalog presence, warnings,
-   hashes, license/commercial status, and approval state.
+1. Implement the generated-asset operator review packet for the bounded
+   `triposr_chair_001` proof target using existing provenance, Asset Processor,
+   Phase 9 readback, and catalog evidence.
 2. Keep public import, assignment, placement, and production corridor admission
    blocked until provenance and operator review are implemented.
 
@@ -311,3 +318,4 @@ Every generated asset must eventually track:
 - Forge Phase 3 design: `docs/AI-ASSET-FORGE-O3DE-IMPORT-READINESS-DESIGN.md`
 - Forge Phase 4 proof: `docs/AI-ASSET-FORGE-O3DE-SOURCE-STAGING-PROOF.md`
 - Forge Phase 5 proof: `docs/AI-ASSET-FORGE-ASSET-PROCESSOR-VALIDATION.md`
+- Forge Phase 6 contract: `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET.md`

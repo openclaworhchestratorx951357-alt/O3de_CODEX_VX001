@@ -81,6 +81,12 @@ presence, and operator approval state.
 Presents the generated asset, provenance, readback evidence, warnings, quality
 notes, and approval state before any entity assignment or level placement.
 
+The review contract is defined in
+`docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET.md`. It requires provenance,
+source/product/dependency/catalog evidence, Asset Processor warnings,
+license/commercial status, quality notes, and an explicit operator decision
+before any future assignment or placement corridor may proceed.
+
 ### Future Entity Placement Corridor
 
 Later exact corridors may assign generated assets to entities or place/update

@@ -178,6 +178,8 @@ rounding up capability claims.
 - `docs/AI-ASSET-FORGE-ASSET-PROCESSOR-VALIDATION.md` records the first
   proof-only Asset Processor validation and Phase 9 readback for a generated
   Forge GLB.
+- `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET.md` defines the required
+  generated-asset operator review packet before assignment or placement design.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
@@ -210,6 +212,7 @@ rounding up capability claims.
 - `docs/AI-ASSET-FORGE-O3DE-IMPORT-READINESS-DESIGN.md`
 - `docs/AI-ASSET-FORGE-O3DE-SOURCE-STAGING-PROOF.md`
 - `docs/AI-ASSET-FORGE-ASSET-PROCESSOR-VALIDATION.md`
+- `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET.md`
 - `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
 - `docs/PHASE-6B-REMOTE-EXECUTOR-CONTRACT.md`
