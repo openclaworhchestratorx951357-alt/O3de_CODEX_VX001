@@ -266,8 +266,13 @@ describe("App desktop smoke", () => {
     fireEvent.click(getDesktopNavButton(/Asset Forge/i));
 
     const forgePanel = await screen.findByLabelText("AI Asset Forge");
-    expect(screen.getAllByText("Asset Forge").length).toBeGreaterThan(0);
-    expect(screen.getByText("O3DE game creation desk")).not.toBeVisible();
+    expect(screen.getByLabelText("AppHeader")).toBeInTheDocument();
+    expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
+    expect(screen.getAllByText(/Asset Forge/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText("ACTIVE WORKSPACE Home")).toBeNull();
+    expect(screen.queryByText("Control surface")).toBeNull();
+    expect(screen.queryByText("Create Game")).toBeNull();
+    expect(screen.queryByLabelText("O3DE game creation desk")).toBeNull();
     const forgeTopMenu = within(forgePanel).getByLabelText("Forge top application menu");
     expect(within(forgeTopMenu).getByRole("button", { name: "Create" })).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Asset Forge Create page")).toBeInTheDocument();
@@ -290,6 +295,40 @@ describe("App desktop smoke", () => {
     expect(within(forgePanel).getByText("Typed sample fixture data (read-only preview; not live)")).toBeInTheDocument();
     expect(within(forgePanel).queryByLabelText("Forge assets content browser")).not.toBeInTheDocument();
     expect(within(forgePanel).getByRole("button", { name: "Approve production import" })).toBeDisabled();
+  });
+
+  it("opens the full Asset Forge workspace from Create Game launcher", async () => {
+    render(<App />);
+
+    fireEvent.click(getDesktopNavButton(/Create Game/i));
+    const assetForgeLauncher = await screen.findByLabelText("Asset Forge workspace launcher");
+    const launchButton = within(assetForgeLauncher).getByRole("button", { name: "Open Asset Forge workspace" });
+
+    fireEvent.click(launchButton);
+
+    const forgePanel = await screen.findByLabelText("AI Asset Forge");
+    expect(screen.getByLabelText("AppHeader")).toBeInTheDocument();
+    expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
+    expect(screen.queryByLabelText("O3DE game creation desk")).toBeNull();
+    expect(screen.queryByText("ACTIVE WORKSPACE Home")).toBeNull();
+    expect(screen.queryByText("Control surface")).toBeNull();
+    expect(screen.queryByText("Create Game")).toBeNull();
+    expect(within(forgePanel).getByLabelText("Forge top application menu")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge Create page")).toBeInTheDocument();
+  });
+
+  it("returns to Home from the Asset Forge app header", async () => {
+    render(<App />);
+
+    fireEvent.click(getDesktopNavButton(/Asset Forge/i));
+
+    await screen.findByLabelText("AssetForgeWorkspacePage");
+    const backToHomeButton = screen.getByRole("button", { name: "Back to Home" });
+    fireEvent.click(backToHomeButton);
+
+    expect(await screen.findByRole("button", { name: /Home/i })).toBeInTheDocument();
+    expect(getDesktopNavButton(/Home/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText("AssetForgeWorkspacePage")).toBeNull();
   });
 
   it("shows a truthful empty catalog state instead of fallback agent data when live catalog data is unavailable", async () => {

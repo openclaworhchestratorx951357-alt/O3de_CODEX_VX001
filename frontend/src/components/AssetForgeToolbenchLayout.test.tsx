@@ -27,6 +27,7 @@ describe("AssetForgeToolbenchLayout", () => {
     ["File", "Edit", "Create", "Assets", "Entity", "Components", "Materials", "Lighting", "Camera", "Review", "Help"].forEach((menuName) => {
       expect(within(topMenu).getByRole("button", { name: menuName })).toBeInTheDocument();
     });
+    expect(within(topMenu).getByText("preview - non-mutating control surface")).toBeInTheDocument();
 
     expect(within(shell).getByLabelText("Asset Forge active page")).toBeInTheDocument();
     expect(within(shell).getByLabelText("Asset Forge Create page")).toBeInTheDocument();
@@ -80,6 +81,57 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).queryByText("Source assets")).not.toBeInTheDocument();
     expect(within(shell).queryByText(/live O3DE/i)).not.toBeInTheDocument();
     expect(within(shell).getByRole("button", { name: "Assign material" })).toBeDisabled();
+  });
+
+  it("renders Lighting with full panel columns and no entity tool-shelf rail", () => {
+    renderToolbench();
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    fireEvent.click(within(shell).getByRole("button", { name: "Lighting" }));
+
+    expect(within(shell).getByLabelText("Asset Forge Lighting page")).toBeInTheDocument();
+    expect(within(shell).getByText("Light list")).toBeInTheDocument();
+    expect(within(shell).getByText("Lookdev preview")).toBeInTheDocument();
+    expect(within(shell).getByText("Lighting plan notes")).toBeInTheDocument();
+    expect(within(shell).getByText("Blocked lighting actions")).toBeInTheDocument();
+    expect(within(shell).queryByLabelText("Forge left tool shelf")).not.toBeInTheDocument();
+    expect(within(shell).getByRole("button", { name: "Apply lighting to level" })).toBeDisabled();
+  });
+
+  it("renders a compact left tool shelf with short labels and hidden gate text pills", () => {
+    renderToolbench();
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    fireEvent.click(within(shell).getByRole("button", { name: "Entity" }));
+
+    const toolShelf = within(shell).getByLabelText("Forge left tool shelf");
+    ["SEL", "MOV", "ROT", "SCL", "SNP", "MSR", "ORB", "CAM", "LGT", "ENT", "CMP", "MAT", "COL"].forEach((code) => {
+      expect(within(toolShelf).getByText(code)).toBeInTheDocument();
+    });
+    expect(within(toolShelf).queryByText("not admitted")).not.toBeInTheDocument();
+    expect(within(toolShelf).queryByText("local preview")).not.toBeInTheDocument();
+    expect(within(toolShelf).getByRole("button", { name: /Select tool - read-only/i })).toBeInTheDocument();
+    expect(within(shell).getByRole("button", { name: "Place selected candidate" })).toBeDisabled();
+  });
+
+  it("supports an entity full viewport mode while keeping the tool shelf visible", () => {
+    renderToolbench();
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    fireEvent.click(within(shell).getByRole("button", { name: "Entity" }));
+
+    expect(within(shell).getByText("Entity outliner")).toBeInTheDocument();
+    expect(within(shell).getByText("Transform readback")).toBeInTheDocument();
+    expect(within(shell).getByRole("button", { name: "Full viewport" })).toBeInTheDocument();
+
+    fireEvent.click(within(shell).getByRole("button", { name: "Full viewport" }));
+
+    expect(within(shell).queryByText("Entity outliner")).not.toBeInTheDocument();
+    expect(within(shell).queryByText("Transform readback")).not.toBeInTheDocument();
+    expect(within(shell).getByText("Selected entity preview (focus)")).toBeInTheDocument();
+    expect(within(shell).getByRole("button", { name: "Exit full viewport" })).toBeInTheDocument();
+    expect(within(shell).getByLabelText("Forge left tool shelf")).toBeInTheDocument();
+    expect(within(shell).getByText(/renderer not connected/i)).toBeInTheDocument();
   });
 
   it("gives Review a full-page operator packet surface", () => {

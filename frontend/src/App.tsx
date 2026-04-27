@@ -653,6 +653,7 @@ export default function App() {
   const [selectedWorkspaceLoading, setSelectedWorkspaceLoading] = useState(false);
   const [selectedEventLoading, setSelectedEventLoading] = useState(false);
   const [dashboardRefreshing, setDashboardRefreshing] = useState(false);
+  const [assetForgeHeaderHeight, setAssetForgeHeaderHeight] = useState(0);
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
   const [selectedExecutionError, setSelectedExecutionError] = useState<string | null>(null);
   const [selectedArtifactError, setSelectedArtifactError] = useState<string | null>(null);
@@ -755,6 +756,7 @@ export default function App() {
   const artifactDetailSectionRef = useRef<HTMLDivElement | null>(null);
   const eventDetailSectionRef = useRef<HTMLDivElement | null>(null);
   const workspaceDetailSectionRef = useRef<HTMLDivElement | null>(null);
+  const assetForgeHeaderRef = useRef<HTMLElement | null>(null);
   const announceRunDetailRefreshRef = useRef(false);
   const bridgeFollowupRefreshTimeoutRef = useRef<number | null>(null);
   const relatedExecutionPriority = selectedRunId
@@ -2388,6 +2390,39 @@ export default function App() {
         ? currentWorkspaceIds
         : [...currentWorkspaceIds, activeWorkspaceId]
     ));
+  }, [activeWorkspaceId]);
+
+  useEffect(() => {
+    if (activeWorkspaceId !== "asset-forge") {
+      return;
+    }
+
+    const headerElement = assetForgeHeaderRef.current;
+    if (!headerElement) {
+      return;
+    }
+
+    const updateHeaderHeight = () => {
+      const nextHeight = Math.ceil(headerElement.getBoundingClientRect().height);
+      setAssetForgeHeaderHeight((currentHeight) => (
+        currentHeight === nextHeight ? currentHeight : nextHeight
+      ));
+    };
+
+    updateHeaderHeight();
+
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      updateHeaderHeight();
+    });
+    observer.observe(headerElement);
+
+    return () => {
+      observer.disconnect();
+    };
   }, [activeWorkspaceId]);
 
   useEffect(() => {
@@ -7240,6 +7275,104 @@ export default function App() {
       />
     </Suspense>
   );
+
+  if (activeWorkspaceId === "asset-forge") {
+    const assetForgeWorkspacePageHeight = assetForgeHeaderHeight > 0
+      ? `calc(100vh - ${assetForgeHeaderHeight}px)`
+      : "calc(100vh - 88px)";
+
+    return (
+      <section
+        aria-label="Asset Forge full workspace"
+        style={{
+          height: "100vh",
+          minHeight: "100vh",
+          display: "grid",
+          gridTemplateRows: "auto 1fr",
+          background: "var(--app-shell-bg)",
+          color: "var(--app-text-color)",
+          fontFamily: '"Segoe UI Variable", "Segoe UI", "Trebuchet MS", sans-serif',
+          overflow: "hidden",
+        }}
+      >
+        <header
+          aria-label="AppHeader"
+          ref={assetForgeHeaderRef}
+          style={{
+            padding: "14px 18px",
+            borderBottom: "1px solid var(--app-panel-border)",
+            background: "var(--app-panel-bg)",
+            boxShadow: "var(--app-shadow-soft)",
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 14,
+            }}
+          >
+            <div>
+              <strong style={{ fontSize: 20, color: "var(--app-text-color)" }}>
+                {operatorGuideShellApp.title}
+              </strong>
+              <p style={{ margin: "6px 0 0 0", color: "var(--app-subtle-color)" }}>
+                {operatorGuideShellApp.subtitle}
+              </p>
+            </div>
+            <button
+              type="button"
+              aria-label="Back to Home"
+              onClick={() => setActiveWorkspaceId("home")}
+              style={{
+                minHeight: 32,
+                border: "1px solid #61adff",
+                borderRadius: 8,
+                padding: "0 12px",
+                background: "var(--app-panel-elevated)",
+                color: "var(--app-text-color)",
+                fontWeight: 700,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                boxShadow: "0 0 0 1px rgba(97, 173, 255, 0.45), 0 0 14px rgba(44, 138, 255, 0.35)",
+              }}
+            >
+              Back to Home
+            </button>
+          </div>
+        </header>
+        <main
+          aria-label="AssetForgeWorkspacePage"
+          style={{
+            minHeight: 0,
+            height: assetForgeWorkspacePageHeight,
+            overflow: "auto",
+            padding: "10px 12px 14px",
+            boxSizing: "border-box",
+          }}
+        >
+          <div style={{ height: "100%", minHeight: 0 }}>
+            <Suspense
+              fallback={renderWorkspaceLoadingFallback(
+                "Asset Forge",
+                "Loading the O3DE-native asset studio workspace.",
+              )}
+            >
+              <AIAssetForgePanel
+                onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
+                onOpenRuntimeOverview={openRuntimeOverview}
+                onOpenBuilder={() => setActiveWorkspaceId("builder")}
+              />
+            </Suspense>
+          </div>
+        </main>
+      </section>
+    );
+  }
+
   return (
     <>
       <DesktopShell
@@ -7299,26 +7432,6 @@ export default function App() {
               onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
               onActiveTaskModeChange={setHomeTaskModeId}
             />
-          </div>
-        ) : null}
-
-        {visitedWorkspaceIds.includes("asset-forge") ? (
-          <div
-            aria-hidden={activeWorkspaceId !== "asset-forge"}
-            style={activeWorkspaceId === "asset-forge" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
-          >
-            <Suspense
-              fallback={renderWorkspaceLoadingFallback(
-                "Asset Forge",
-                "Loading the O3DE-native asset studio workspace.",
-              )}
-            >
-              <AIAssetForgePanel
-                onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
-                onOpenRuntimeOverview={openRuntimeOverview}
-                onOpenBuilder={() => setActiveWorkspaceId("builder")}
-              />
-            </Suspense>
           </div>
         ) : null}
 

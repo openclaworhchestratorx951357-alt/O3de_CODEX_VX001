@@ -27,23 +27,33 @@ const topMenus = ["File", "Edit", "Create", "Assets", "Entity", "Components", "M
 type TopMenu = (typeof topMenus)[number];
 type AssetCategory = "Source assets" | "Product assets" | "Dependencies" | "Catalog evidence" | "Review packets";
 type CameraMode = "Perspective" | "Camera" | "Shot list";
+type EntityViewportMode = "docked" | "focus";
 type PacketViewModel = ReturnType<typeof mapAssetForgeToolbenchReviewPacket>;
+type ToolShelfItem = {
+  id: string;
+  shortLabel: string;
+  gate: GateState;
+  detail: string;
+};
 
 const UNKNOWN_VALUE = "Unknown / unavailable";
 const STORAGE_KEY = "o3de-asset-forge-page-shell-menu-v1";
 const blockedMutations = ["generation", "import", "staging", "assignment", "placement", "material mutation", "prefab mutation", "Asset Processor execution", "source/product/cache mutation"];
 const assetCategories: AssetCategory[] = ["Source assets", "Product assets", "Dependencies", "Catalog evidence", "Review packets"];
-const tools: Array<{ label: string; gate: GateState; detail: string }> = [
-  { label: "Select", gate: "read-only", detail: "Selection preview only" },
-  { label: "Move", gate: "blocked", detail: "Transform mutation is not admitted" },
-  { label: "Rotate", gate: "blocked", detail: "Transform mutation is not admitted" },
-  { label: "Scale", gate: "blocked", detail: "Transform mutation is not admitted" },
-  { label: "Measure", gate: "local preview", detail: "Viewport measurement guide" },
-  { label: "Camera", gate: "local preview", detail: "Preview camera controls only" },
-  { label: "Light", gate: "plan-only", detail: "Lighting notes only" },
-  { label: "Component", gate: "not admitted", detail: "Component mutation is blocked" },
-  { label: "Material", gate: "not admitted", detail: "Material mutation is blocked" },
-  { label: "Collision", gate: "not admitted", detail: "Collision authoring is blocked" },
+const tools: ToolShelfItem[] = [
+  { id: "Select", shortLabel: "SEL", gate: "read-only", detail: "Selection preview only" },
+  { id: "Move", shortLabel: "MOV", gate: "blocked", detail: "Transform mutation is not admitted" },
+  { id: "Rotate", shortLabel: "ROT", gate: "blocked", detail: "Transform mutation is not admitted" },
+  { id: "Scale", shortLabel: "SCL", gate: "blocked", detail: "Transform mutation is not admitted" },
+  { id: "Snap", shortLabel: "SNP", gate: "local preview", detail: "Snap guide preview only" },
+  { id: "Measure", shortLabel: "MSR", gate: "local preview", detail: "Viewport measurement guide" },
+  { id: "Orbit", shortLabel: "ORB", gate: "local preview", detail: "Preview orbit controls only" },
+  { id: "Camera", shortLabel: "CAM", gate: "local preview", detail: "Preview camera controls only" },
+  { id: "Light", shortLabel: "LGT", gate: "plan-only", detail: "Lighting notes only" },
+  { id: "Entity", shortLabel: "ENT", gate: "blocked", detail: "Entity placement mutation is blocked" },
+  { id: "Component", shortLabel: "CMP", gate: "not admitted", detail: "Component mutation is blocked" },
+  { id: "Material", shortLabel: "MAT", gate: "not admitted", detail: "Material mutation is blocked" },
+  { id: "Collision", shortLabel: "COL", gate: "not admitted", detail: "Collision authoring is blocked" },
 ];
 const assetRows: Record<AssetCategory, Array<{ name: string; gate: GateState; detail: string }>> = {
   "Source assets": [
@@ -97,6 +107,26 @@ function badgeTone(gate: GateState): CSSProperties {
   }
 }
 
+function gateIndicatorColor(gate: GateState): string {
+  switch (gate) {
+    case "read-only":
+      return "#52d691";
+    case "local preview":
+      return "#67b7ff";
+    case "plan-only":
+      return "#d3dde9";
+    case "proof-only":
+      return "#9eaeff";
+    case "requires approval":
+      return "#ffd58a";
+    case "blocked":
+      return "#ff9cae";
+    case "not admitted":
+    default:
+      return "#ff7f97";
+  }
+}
+
 function Badge({ gate }: { gate: GateState }) {
   return <span style={{ ...s.badge, ...badgeTone(gate) }}>{gate}</span>;
 }
@@ -126,7 +156,7 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
             {menu}
           </button>
         ))}
-        <span style={s.topStatus}>page shell - preview - non-mutating</span>
+        <span style={s.topStatus}>preview - non-mutating control surface</span>
       </nav>
       <main aria-label="Asset Forge active page" style={s.pageHost}>
         {activeTopMenu === "File" && <FilePage projectProfile={projectProfile} activeTopMenu={activeTopMenu} saveLayout={saveLayout} resetLayout={resetLayout} />}
@@ -180,7 +210,57 @@ function AssetsPage({ activeAssetCategory, setActiveAssetCategory, packet }: { a
 }
 
 function EntityPage({ activeTool, setActiveTool }: { activeTool: string; setActiveTool: (tool: string) => void }) {
-  return <Page title="Entity" gate="read-only" detail="Entity outliner, selected entity preview, read-only transform state, and placement gate."><div style={s.editorGrid}><ToolShelf activeTool={activeTool} setActiveTool={setActiveTool} /><Panel title="Entity outliner" gate="local preview"><p style={s.muted}>Toolbench preview data - not authoritative O3DE scene truth.</p><Tree groups={[["Level Root", ["BridgeTrainingLevel", "GameplayRoot", "EnvironmentRoot"]], ["Cameras", ["EditorCamera_Main", "PreviewCamera_Cinematic"]], ["Lights", ["KeyLight", "FillLight", "RimLight"]], ["Asset Candidates", ["bridge_segment_candidate_a", "bridge_segment_candidate_b"]], ["Review Targets", ["asset_readback_review_packet", "catalog_evidence_summary"]], ["Generated Preview Candidate", ["bridge_segment_preview_001"]], ["O3DE Import Review", ["source staging blocked", "asset processor execution blocked"]]]} /></Panel><Panel title="Selected entity preview" gate="local preview"><ViewportPreview label="Entity placement preview" /></Panel><Panel title="Transform readback" gate="read-only"><Rows rows={[["Position", UNKNOWN_VALUE], ["Rotation", UNKNOWN_VALUE], ["Scale", UNKNOWN_VALUE], ["Placement", "Blocked"]]} /><button type="button" disabled style={s.disabledWideButton}>Place selected candidate</button></Panel></div></Page>;
+  const [viewportMode, setViewportMode] = useState<EntityViewportMode>("docked");
+  const isFocusMode = viewportMode === "focus";
+
+  return (
+    <Page
+      title="Entity"
+      gate="read-only"
+      detail="Entity outliner, selected entity preview, read-only transform state, and placement gate."
+    >
+      <section style={s.entityToolbar}>
+        <span>
+          Viewport mode: <strong>{isFocusMode ? "Full viewport" : "Docked viewport"}</strong>
+        </span>
+        <button
+          type="button"
+          onClick={() => setViewportMode(isFocusMode ? "docked" : "focus")}
+          style={isFocusMode ? s.activeSmallButton : s.smallButton}
+        >
+          {isFocusMode ? "Exit full viewport" : "Full viewport"}
+        </button>
+      </section>
+      <div style={isFocusMode ? s.entityFocusGrid : s.entityEditorGrid}>
+        <ToolShelf activeTool={activeTool} setActiveTool={setActiveTool} />
+        {!isFocusMode && (
+          <Panel title="Entity outliner" gate="local preview">
+            <p style={s.muted}>Toolbench preview data - not authoritative O3DE scene truth.</p>
+            <Tree
+              groups={[
+                ["Level Root", ["BridgeTrainingLevel", "GameplayRoot", "EnvironmentRoot"]],
+                ["Cameras", ["EditorCamera_Main", "PreviewCamera_Cinematic"]],
+                ["Lights", ["KeyLight", "FillLight", "RimLight"]],
+                ["Asset Candidates", ["bridge_segment_candidate_a", "bridge_segment_candidate_b"]],
+                ["Review Targets", ["asset_readback_review_packet", "catalog_evidence_summary"]],
+                ["Generated Preview Candidate", ["bridge_segment_preview_001"]],
+                ["O3DE Import Review", ["source staging blocked", "asset processor execution blocked"]],
+              ]}
+            />
+          </Panel>
+        )}
+        <Panel title={isFocusMode ? "Selected entity preview (focus)" : "Selected entity preview"} gate="local preview">
+          <ViewportPreview label={isFocusMode ? "Entity placement preview (focus mode)" : "Entity placement preview"} />
+        </Panel>
+        {!isFocusMode && (
+          <Panel title="Transform readback" gate="read-only">
+            <Rows rows={[["Position", UNKNOWN_VALUE], ["Rotation", UNKNOWN_VALUE], ["Scale", UNKNOWN_VALUE], ["Placement", "Blocked"]]} />
+            <button type="button" disabled style={s.disabledWideButton}>Place selected candidate</button>
+          </Panel>
+        )}
+      </div>
+    </Page>
+  );
 }
 
 function ComponentsPage({ readbackStatus }: { readbackStatus: string }) {
@@ -192,7 +272,7 @@ function MaterialsPage({ packet }: { packet: PacketViewModel }) {
 }
 
 function LightingPage() {
-  return <Page title="Lighting" gate="plan-only" detail="Light list, lookdev preview controls, and lighting plan notes. No scene mutation."><div style={s.editorGrid}><Panel title="Light list" gate="local preview"><List items={["KeyLight", "FillLight", "RimLight", "Environment probe: Unknown / unavailable"]} /></Panel><Panel title="Lookdev preview" gate="local preview"><ViewportPreview label="Lighting capture preview" /></Panel><Panel title="Lighting plan notes" gate="plan-only"><List items={["Warm key, cool fill", "Review shadow readability", "Capture preview only", "No O3DE light write"]} /></Panel><Panel title="Blocked lighting actions" gate="blocked"><button type="button" disabled style={s.disabledWideButton}>Apply lighting to level</button></Panel></div></Page>;
+  return <Page title="Lighting" gate="plan-only" detail="Light list, lookdev preview controls, and lighting plan notes. No scene mutation."><div style={s.lightingGrid}><Panel title="Light list" gate="local preview"><List items={["KeyLight", "FillLight", "RimLight", "Environment probe: Unknown / unavailable"]} /></Panel><Panel title="Lookdev preview" gate="local preview"><ViewportPreview label="Lighting capture preview" /></Panel><Panel title="Lighting plan notes" gate="plan-only"><List items={["Warm key, cool fill", "Review shadow readability", "Capture preview only", "No O3DE light write"]} /></Panel><Panel title="Blocked lighting actions" gate="blocked"><button type="button" disabled style={s.disabledWideButton}>Apply lighting to level</button></Panel></div></Page>;
 }
 
 function CameraPage({ cameraMode, setCameraMode }: { cameraMode: CameraMode; setCameraMode: (mode: CameraMode) => void }) {
@@ -229,7 +309,36 @@ function Tree({ groups }: { groups: Array<[string, string[]]> }) {
 }
 
 function ToolShelf({ activeTool, setActiveTool }: { activeTool: string; setActiveTool: (tool: string) => void }) {
-  return <aside aria-label="Forge left tool shelf" style={s.toolShelf}>{tools.map((tool) => <button key={tool.label} type="button" aria-label={tool.label} title={tool.detail} onClick={() => setActiveTool(tool.label)} style={activeTool === tool.label ? s.activeToolButton : s.toolButton}><span>{tool.label}</span><Badge gate={tool.gate} /></button>)}</aside>;
+  return (
+    <aside aria-label="Forge left tool shelf" style={s.toolShelf}>
+      {tools.map((tool) => {
+        const gateColor = gateIndicatorColor(tool.gate);
+        const isActive = activeTool === tool.id;
+
+        return (
+          <button
+            key={tool.id}
+            type="button"
+            aria-label={`${tool.id} tool - ${tool.gate}. ${tool.detail}`}
+            title={`${tool.id} | ${tool.gate} | ${tool.detail}`}
+            onClick={() => setActiveTool(tool.id)}
+            style={isActive ? s.activeToolButton : s.toolButton}
+          >
+            <span style={s.toolShortLabel}>{tool.shortLabel}</span>
+            <span
+              aria-hidden
+              style={{
+                ...s.toolGateDot,
+                background: gateColor,
+                borderColor: gateColor,
+                boxShadow: isActive ? `0 0 0 2px ${gateColor}44` : "none",
+              }}
+            />
+          </button>
+        );
+      })}
+    </aside>
+  );
 }
 
 function ViewportPreview({ label }: { label: string }) {
@@ -245,15 +354,15 @@ function BlockedSummary() {
 }
 
 const s = {
-  shell: { display: "grid", gridTemplateRows: "34px minmax(0, 1fr)", minWidth: 0, height: "min(820px, calc(100vh - 150px))", minHeight: 660, overflow: "hidden", border: "1px solid #26384f", borderRadius: 6, background: "#0b1017", color: "#c3cfdd", boxShadow: "0 18px 55px rgba(3, 12, 25, 0.35)", fontSize: 13, lineHeight: 1.35 },
+  shell: { display: "grid", gridTemplateRows: "34px minmax(0, 1fr)", minWidth: 0, height: "100%", minHeight: 0, overflow: "hidden", border: "1px solid #26384f", borderRadius: 6, background: "#0b1017", color: "#c3cfdd", boxShadow: "0 18px 55px rgba(3, 12, 25, 0.35)", fontSize: 13, lineHeight: 1.35 },
   topMenu: { display: "flex", alignItems: "center", gap: 4, minWidth: 0, padding: "0 8px", borderBottom: "1px solid #27384b", background: "#101820", overflow: "hidden" },
   brand: { flex: "0 0 auto", marginRight: 10, color: "#eef5ff", whiteSpace: "nowrap" },
   menuButton: { flex: "0 1 auto", minWidth: 0, height: 24, padding: "0 6px", borderWidth: 1, borderStyle: "solid", borderColor: "transparent", borderRadius: 3, background: "transparent", color: "#c3cfdd", fontSize: 12, fontWeight: 800, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   activeMenuButton: { flex: "0 1 auto", minWidth: 0, height: 24, padding: "0 6px", borderWidth: 1, borderStyle: "solid", borderColor: "#4fa3ff", borderRadius: 3, background: "#173a5d", color: "#ffffff", fontSize: 12, fontWeight: 800, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  topStatus: { flex: "0 1 auto", minWidth: 0, maxWidth: 170, marginLeft: "auto", color: "#8fa3bc", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: 12 },
-  pageHost: { minWidth: 0, minHeight: 0, overflow: "hidden" },
-  page: { display: "grid", gridTemplateRows: "auto minmax(0, 1fr) auto", gap: 10, height: "100%", minWidth: 0, minHeight: 0, padding: 10, overflow: "hidden", background: "#0b1017" },
-  reviewPage: { display: "grid", gridTemplateRows: "auto minmax(0, 1fr)", gap: 10, height: "100%", minWidth: 0, minHeight: 0, padding: 10, overflow: "hidden", background: "#0b1017" },
+  topStatus: { flex: "0 0 auto", marginLeft: "auto", color: "#8fa3bc", whiteSpace: "nowrap", fontSize: 11 },
+  pageHost: { minWidth: 0, minHeight: 0, overflow: "auto" },
+  page: { display: "grid", gridTemplateRows: "auto minmax(0, 1fr) auto", gap: 10, height: "100%", minWidth: 0, minHeight: 0, padding: 10, overflow: "auto", background: "#0b1017", boxSizing: "border-box" },
+  reviewPage: { display: "grid", gridTemplateRows: "auto minmax(0, 1fr)", gap: 10, height: "100%", minWidth: 0, minHeight: 0, padding: 10, overflow: "auto", background: "#0b1017", boxSizing: "border-box" },
   pageHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, padding: "10px 12px", border: "1px solid #26384f", borderRadius: 5, background: "#121b25" },
   eyebrow: { color: "#7f95ad", textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 11, fontWeight: 900 },
   pageTitle: { margin: "2px 0", color: "#f2f7ff", fontSize: 24, lineHeight: 1.1 },
@@ -262,7 +371,11 @@ const s = {
   threeCols: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, minWidth: 0, minHeight: 0 },
   createGrid: { display: "grid", gridTemplateColumns: "minmax(0, 0.8fr) minmax(0, 0.7fr) minmax(0, 1.4fr) minmax(0, 0.8fr)", gap: 10, minWidth: 0, minHeight: 0 },
   assetsGrid: { display: "grid", gridTemplateColumns: "160px minmax(0, 1fr) minmax(0, 0.45fr)", gap: 10, minWidth: 0, minHeight: 0 },
-  editorGrid: { display: "grid", gridTemplateColumns: "82px minmax(0, 0.8fr) minmax(0, 1.3fr) minmax(0, 0.9fr)", gap: 10, minWidth: 0, minHeight: 0 },
+  editorGrid: { display: "grid", gridTemplateColumns: "64px minmax(0, 0.8fr) minmax(0, 1.3fr) minmax(0, 0.9fr)", gap: 10, minWidth: 0, minHeight: 0 },
+  entityEditorGrid: { display: "grid", gridTemplateColumns: "64px minmax(0, 0.8fr) minmax(0, 1.3fr) minmax(0, 0.9fr)", gap: 10, minWidth: 0, minHeight: 0 },
+  entityFocusGrid: { display: "grid", gridTemplateColumns: "64px minmax(0, 1fr)", gap: 10, minWidth: 0, minHeight: 0 },
+  lightingGrid: { display: "grid", gridTemplateColumns: "minmax(0, 0.85fr) minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1fr)", gap: 10, minWidth: 0, minHeight: 0 },
+  entityToolbar: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, minWidth: 0, border: "1px solid #2b3e55", borderRadius: 5, padding: "8px 10px", background: "#111923", color: "#aebbd0" },
   materialsGrid: { display: "grid", gridTemplateColumns: "minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 0.8fr)", gap: 10, minWidth: 0, minHeight: 0 },
   cameraGrid: { display: "grid", gridTemplateColumns: "minmax(0, 0.7fr) minmax(0, 1.4fr) minmax(0, 0.9fr)", gap: 10, minWidth: 0, minHeight: 0 },
   reviewGrid: { display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 0.42fr)", gap: 10, minWidth: 0, minHeight: 0 },
@@ -283,9 +396,11 @@ const s = {
   list: { margin: 0, padding: "0 0 0 18px", color: "#b8c6d7" },
   tree: { display: "grid", gap: 6 },
   summary: { cursor: "pointer", color: "#f2f7ff", fontWeight: 900 },
-  toolShelf: { display: "grid", alignContent: "start", gap: 5, minWidth: 0, minHeight: 0, overflow: "hidden", border: "1px solid #2b3e55", borderRadius: 5, padding: 6, background: "#111923" },
-  toolButton: { display: "grid", gap: 4, justifyItems: "center", minHeight: 48, border: "1px solid #2f4054", borderRadius: 4, background: "#17212d", color: "#d6e2ee", fontSize: 11, fontWeight: 900, cursor: "pointer" },
-  activeToolButton: { display: "grid", gap: 4, justifyItems: "center", minHeight: 48, border: "1px solid #5aa9ff", borderRadius: 4, background: "#183f63", color: "#d6e2ee", fontSize: 11, fontWeight: 900, cursor: "pointer" },
+  toolShelf: { display: "grid", alignContent: "start", gap: 4, width: 64, minWidth: 64, maxWidth: 64, minHeight: 0, overflow: "hidden", border: "1px solid #2b3e55", borderRadius: 5, padding: 5, background: "#111923" },
+  toolButton: { display: "grid", justifyItems: "center", alignContent: "center", gap: 4, minHeight: 38, border: "1px solid #2f4054", borderRadius: 4, background: "#17212d", color: "#d6e2ee", fontSize: 10, fontWeight: 900, cursor: "pointer", padding: "4px 0", overflow: "hidden" },
+  activeToolButton: { display: "grid", justifyItems: "center", alignContent: "center", gap: 4, minHeight: 38, border: "1px solid #5aa9ff", borderRadius: 4, background: "#183f63", color: "#d6e2ee", fontSize: 10, fontWeight: 900, cursor: "pointer", padding: "4px 0", overflow: "hidden" },
+  toolShortLabel: { fontSize: 10, fontWeight: 900, letterSpacing: "0.04em", lineHeight: 1 },
+  toolGateDot: { width: 7, height: 7, borderRadius: "50%", borderWidth: 1, borderStyle: "solid" },
   viewport: { position: "relative", minHeight: 300, height: "100%", overflow: "hidden", border: "1px solid #35506e", borderRadius: 5, background: "linear-gradient(180deg, #0d2740 0%, #071019 58%, #05080d 100%)" },
   gridFloor: { position: "absolute", inset: "48% 0 0 0", backgroundImage: "linear-gradient(rgba(98, 167, 255, 0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(98, 167, 255, 0.18) 1px, transparent 1px)", backgroundSize: "34px 34px", transform: "perspective(380px) rotateX(60deg)", transformOrigin: "top center" },
   horizon: { position: "absolute", left: 0, right: 0, top: "48%", height: 1, background: "rgba(179, 212, 255, 0.42)" },
