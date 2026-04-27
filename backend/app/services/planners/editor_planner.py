@@ -34,6 +34,13 @@ _CAMERA_BOOL_WRITE_PROPERTY_PATH = (
 )
 _CAMERA_BOOL_WRITE_BEFORE_VALUE_REF = "$step:editor-camera-bool-before-1.value"
 _CAMERA_BOOL_RESTORE_CURRENT_VALUE_REF = "$step:editor-camera-bool-current-1.value"
+_CAMERA_SCALAR_WRITE_TERMS = (
+    "field of view",
+    "near clip",
+    "far clip",
+    "clip distance",
+    "frustum width",
+)
 _ADMITTED_COMPONENT_PROPERTY_READ_PATHS = {
     "Camera": _CAMERA_BOOL_WRITE_PROPERTY_PATH,
     "Mesh": "Controller|Configuration|Model Asset",
@@ -211,11 +218,11 @@ def _requires_property_discovery_admission(prompt_text: str) -> bool:
     )
 
 
-def _requires_camera_far_clip_write_admission(prompt_text: str) -> bool:
+def _requires_camera_scalar_write_admission(prompt_text: str) -> bool:
     normalized = prompt_text.lower()
     return (
         "camera" in normalized
-        and "far clip" in normalized
+        and any(term in normalized for term in _CAMERA_SCALAR_WRITE_TERMS)
         and contains_any(
             prompt_text,
             ["set", "write", "change", "update", "modify", "toggle"],
@@ -453,7 +460,7 @@ def plan_editor_prompt(
     if (
         (
             _requires_candidate_editor_mutation_admission(prompt_text)
-            or _requires_camera_far_clip_write_admission(prompt_text)
+            or _requires_camera_scalar_write_admission(prompt_text)
         )
         and camera_bool_write_request is None
         and camera_bool_restore_request is None

@@ -1997,6 +1997,21 @@ def test_prompt_session_refuses_arbitrary_command_execution() -> None:
             'Camera component for entity named "ShotCamera" to 512.',
         ),
         (
+            "prompt-editor-candidate-camera-field-of-view-write-1",
+            'Open level "Levels/Main.level", set the Camera field of view '
+            'on entity named "ShotCamera" to 60.',
+        ),
+        (
+            "prompt-editor-candidate-camera-near-clip-write-1",
+            'Open level "Levels/Main.level", change near clip distance on the '
+            'Camera component for entity named "ShotCamera" to 0.1.',
+        ),
+        (
+            "prompt-editor-candidate-camera-frustum-width-write-1",
+            'Open level "Levels/Main.level", modify the Camera frustum width '
+            'on entity named "ShotCamera" to 20.',
+        ),
+        (
             "prompt-editor-candidate-prefab-1",
             'Open prefab "Prefabs/Crate.prefab" in the editor.',
         ),
