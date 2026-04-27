@@ -109,6 +109,9 @@ rounding up capability claims.
 - `docs/PHASE-9-ASSET-READBACK-SUBSTRATE-AUDIT.md` audits the local
   `McpSandbox` Asset Processor database as the exact read-only substrate that
   unblocks a future proof-only product/dependency reader packet.
+- `docs/PHASE-9-ASSET-READBACK-PROOF-ONLY.md` records the bounded proof-only
+  `asset.source.inspect` product/dependency readback path through
+  project-local `Cache/assetdb.sqlite`.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
