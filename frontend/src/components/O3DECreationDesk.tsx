@@ -1,6 +1,5 @@
 import { lazy, Suspense, useState, type CSSProperties } from "react";
 
-import AIAssetForgePanel from "./AIAssetForgePanel";
 import type { O3DEProductionMode } from "./O3DEProductionPlanner";
 import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 
@@ -17,6 +16,7 @@ type O3DECreationDeskProps = {
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenBuilder?: () => void;
+  onOpenAssetForge?: () => void;
 };
 
 type O3DEToolGuide = {
@@ -83,6 +83,7 @@ export default function O3DECreationDesk({
   onOpenPromptStudio,
   onOpenRuntimeOverview,
   onOpenBuilder,
+  onOpenAssetForge,
 }: O3DECreationDeskProps) {
   const [activeToolId, setActiveToolId] = useState(toolGuides[0].id);
   const activeTool = toolGuides.find((tool) => tool.id === activeToolId) ?? toolGuides[0];
@@ -135,12 +136,24 @@ export default function O3DECreationDesk({
         />
       </Suspense>
 
-      <AIAssetForgePanel
-        projectProfile={projectProfile}
-        onOpenPromptStudio={onOpenPromptStudio}
-        onOpenRuntimeOverview={onOpenRuntimeOverview}
-        onOpenBuilder={onOpenBuilder}
-      />
+      <section aria-label="Asset Forge workspace launcher" style={assetForgeLauncherStyle}>
+        <div>
+          <span style={eyebrowStyle}>Separate production workspace</span>
+          <strong>Asset Forge has its own page</strong>
+          <p style={mutedParagraphStyle}>
+            Use the dedicated Asset Forge workspace for O3DE-native asset evidence, review packets,
+            viewport previews, content-browser views, and gated creation planning.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenAssetForge}
+          disabled={!onOpenAssetForge}
+          style={onOpenAssetForge ? launchAssetForgeButtonStyle : disabledLaunchAssetForgeButtonStyle}
+        >
+          Open Asset Forge workspace
+        </button>
+      </section>
 
       {actions.length > 0 ? (
         <div aria-label="O3DE creation desk actions" style={actionBarStyle}>
@@ -328,6 +341,35 @@ const plannerFallbackStyle = {
   background: "color-mix(in srgb, var(--app-info-bg) 70%, var(--app-panel-bg) 30%)",
   color: "var(--app-info-text)",
   fontWeight: 700,
+} satisfies CSSProperties;
+
+const assetForgeLauncherStyle = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  gap: 12,
+  alignItems: "center",
+  padding: 12,
+  border: "1px solid var(--app-info-border)",
+  borderRadius: "var(--app-card-radius)",
+  background: "color-mix(in srgb, var(--app-info-bg) 58%, var(--app-panel-bg) 42%)",
+  color: "var(--app-info-text)",
+} satisfies CSSProperties;
+
+const launchAssetForgeButtonStyle = {
+  border: "1px solid var(--app-accent-strong)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "8px 14px",
+  background: "var(--app-accent)",
+  color: "var(--app-accent-contrast)",
+  fontWeight: 800,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+} satisfies CSSProperties;
+
+const disabledLaunchAssetForgeButtonStyle = {
+  ...launchAssetForgeButtonStyle,
+  opacity: 0.62,
+  cursor: "not-allowed",
 } satisfies CSSProperties;
 
 const actionBarStyle = {

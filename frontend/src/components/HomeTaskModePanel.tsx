@@ -59,6 +59,7 @@ type HomeTaskModePanelProps = {
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenBuilder?: () => void;
+  onOpenAssetForge?: () => void;
   onActiveModeChange?: (modeId: HomeTaskModeId) => void;
 };
 
@@ -83,6 +84,7 @@ export default function HomeTaskModePanel({
   onOpenPromptStudio,
   onOpenRuntimeOverview,
   onOpenBuilder,
+  onOpenAssetForge,
   onActiveModeChange,
 }: HomeTaskModePanelProps) {
   const { settings, saveSettings } = useSettings();
@@ -239,6 +241,7 @@ export default function HomeTaskModePanel({
             onOpenPromptStudio={onOpenPromptStudio}
             onOpenRuntimeOverview={onOpenRuntimeOverview}
             onOpenBuilder={onOpenBuilder}
+            onOpenAssetForge={onOpenAssetForge}
             checklist={[
               "Start with session and level readiness before changing entities.",
               "Use natural language for root-level entity and component work that the bridge admits.",
@@ -257,6 +260,7 @@ export default function HomeTaskModePanel({
             onOpenPromptStudio={onOpenPromptStudio}
             onOpenRuntimeOverview={onOpenRuntimeOverview}
             onOpenBuilder={onOpenBuilder}
+            onOpenAssetForge={onOpenAssetForge}
             checklist={[
               "Start with level, camera, lighting, and sequence planning before asset mutation.",
               "Keep shot setup, animation, lookdev, and render validation as separate safe tasks.",

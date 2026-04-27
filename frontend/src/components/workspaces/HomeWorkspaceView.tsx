@@ -16,6 +16,7 @@ type HomeWorkspaceViewProps = {
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenBuilder?: () => void;
+  onOpenAssetForge?: () => void;
   onActiveTaskModeChange?: (modeId: HomeTaskModeId) => void;
 };
 
@@ -56,6 +57,7 @@ export default function HomeWorkspaceView({
   onOpenPromptStudio,
   onOpenRuntimeOverview,
   onOpenBuilder,
+  onOpenAssetForge,
   onActiveTaskModeChange,
 }: HomeWorkspaceViewProps) {
   const [activeSurfaceId, setActiveSurfaceId] = useState<HomeSurfaceId>("start");
@@ -94,6 +96,7 @@ export default function HomeWorkspaceView({
               onOpenPromptStudio={onOpenPromptStudio}
               onOpenRuntimeOverview={onOpenRuntimeOverview}
               onOpenBuilder={onOpenBuilder}
+              onOpenAssetForge={onOpenAssetForge}
               onActiveModeChange={onActiveTaskModeChange}
             />
           </Suspense>

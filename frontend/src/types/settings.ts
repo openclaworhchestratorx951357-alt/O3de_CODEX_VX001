@@ -9,6 +9,7 @@ export const CONTENT_MAX_WIDTH_VALUES = ["focused", "wide", "full"] as const;
 export const CARD_RADIUS_VALUES = ["soft", "rounded", "pillowed"] as const;
 export const LANDING_SECTION_VALUES = [
   "home",
+  "asset-forge",
   "prompt",
   "builder",
   "operations",

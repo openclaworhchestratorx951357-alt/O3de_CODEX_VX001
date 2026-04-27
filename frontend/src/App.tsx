@@ -100,6 +100,7 @@ import type {
 } from "./types/contracts";
 
 const OperationsWorkspaceDesktop = lazy(() => import("./components/workspaces/OperationsWorkspaceDesktop"));
+const AIAssetForgePanel = lazy(() => import("./components/AIAssetForgePanel"));
 const HomeOverviewPanelDeck = lazy(() => import("./components/HomeOverviewPanelDeck"));
 const OperatorGuidePanel = lazy(() => import("./components/OperatorGuidePanel"));
 const BuilderWorkspaceDesktop = lazy(() => import("./components/workspaces/BuilderWorkspaceDesktop"));
@@ -223,6 +224,7 @@ type LanePresetSource = "manual" | "session";
 
 type DesktopWorkspaceId =
   | "home"
+  | "asset-forge"
   | "prompt"
   | "builder"
   | "operations"
@@ -2366,6 +2368,7 @@ export default function App() {
         setHomeTaskModeId("load-project");
         setActiveWorkspaceId("home");
         return;
+      case "asset-forge":
       case "prompt":
       case "builder":
       case "operations":
@@ -4755,6 +4758,10 @@ export default function App() {
       title: homeWorkspaceGuide.workspaceTitle,
       subtitle: homeWorkspaceGuide.workspaceSubtitle,
     },
+    "asset-forge": {
+      title: "Asset Forge",
+      subtitle: "O3DE-native production asset toolbench with read-only evidence, review, and gated creation planning.",
+    },
     prompt: {
       title: promptWorkspaceGuide.workspaceTitle,
       subtitle: promptWorkspaceGuide.workspaceSubtitle,
@@ -4830,6 +4837,14 @@ export default function App() {
           badge: null,
           tone: "neutral",
           helpTooltip: "Open Home directly into the guided O3DE project loading surface for existing projects.",
+        },
+        {
+          id: "asset-forge",
+          label: "Asset Forge",
+          subtitle: "Open the O3DE-native asset studio workspace",
+          badge: null,
+          tone: "info",
+          helpTooltip: "Open Asset Forge as its own production workspace for read-only asset evidence, preview pages, and gated operator review.",
         },
         {
           id: "prompt",
@@ -7281,8 +7296,29 @@ export default function App() {
               onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
               onOpenRuntimeOverview={openRuntimeOverview}
               onOpenBuilder={() => setActiveWorkspaceId("builder")}
+              onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
               onActiveTaskModeChange={setHomeTaskModeId}
             />
+          </div>
+        ) : null}
+
+        {visitedWorkspaceIds.includes("asset-forge") ? (
+          <div
+            aria-hidden={activeWorkspaceId !== "asset-forge"}
+            style={activeWorkspaceId === "asset-forge" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
+          >
+            <Suspense
+              fallback={renderWorkspaceLoadingFallback(
+                "Asset Forge",
+                "Loading the O3DE-native asset studio workspace.",
+              )}
+            >
+              <AIAssetForgePanel
+                onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
+                onOpenRuntimeOverview={openRuntimeOverview}
+                onOpenBuilder={() => setActiveWorkspaceId("builder")}
+              />
+            </Suspense>
           </div>
         ) : null}
 
