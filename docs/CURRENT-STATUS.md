@@ -85,6 +85,12 @@ Recent handoff-relevant packets:
   to set or change Camera far clip stay on the existing
   `editor.candidate_mutation.unsupported` refusal path; far clip restore stays
   on `editor.restore.unsupported`.
+- The Camera scalar prompt refusal guard is recorded in
+  `docs/PHASE-8-CAMERA-SCALAR-PROMPT-REFUSAL-GUARD.md`. Natural operator
+  requests to set or change Camera scalar properties such as field of view,
+  near clip, far clip, or frustum width stay on the existing
+  `editor.candidate_mutation.unsupported` refusal path unless they are the
+  exact admitted Camera bool corridor.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -224,6 +230,11 @@ The far clip prompt refusal guard is recorded in
 `docs/PHASE-8-FAR-CLIP-PROMPT-REFUSAL-GUARD.md`. Natural far clip write wording
 must refuse as `editor.candidate_mutation.unsupported`, and far clip restore
 wording must refuse as `editor.restore.unsupported`.
+
+The Camera scalar prompt refusal guard is recorded in
+`docs/PHASE-8-CAMERA-SCALAR-PROMPT-REFUSAL-GUARD.md`. Natural Camera scalar
+write wording must refuse as `editor.candidate_mutation.unsupported` unless it
+targets the exact admitted Camera bool write corridor.
 
 ## Repo Hygiene Baseline
 
