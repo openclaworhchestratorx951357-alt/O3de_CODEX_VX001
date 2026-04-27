@@ -17,7 +17,13 @@ Use this priority order when instructions conflict:
 
 Default standing rule:
 - Use the evergreen charter until the user explicitly replaces or supersedes it.
+- If the user says "use supervisor mode", immediately activate the startup
+  protocol in `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`: verify repo
+  state, organize explicit supervisor/worker roles, check project-local
+  dependencies, read the required startup docs, report readiness, and then
+  continue into the normalized phase workflow.
 - For any new phase, next slice, or "continue the project" request, start from
+  `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`,
   `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` and
   `docs/NORMALIZED-PHASE-WORKFLOW.md` before choosing or implementing the next
   packet.
@@ -27,6 +33,10 @@ Operational defaults for repo work:
 - Do not widen capability claims beyond what code, tests, and runtime prove.
 - Finish the next missing gate on the critical path before adding breadth.
 - Keep docs aligned with code truth after a capability is promoted.
+- Bootstrap only project-local, repo-declared dependencies when validation needs
+  them. Do not perform global/system installs, dependency upgrades, lockfile
+  rewrites, or package additions without the risk review and approvals described
+  in the startup protocol.
 
 Completion footer default for work packets:
 - Capabilities moved

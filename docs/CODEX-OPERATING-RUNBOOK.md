@@ -14,6 +14,7 @@ Use it to answer:
 
 This runbook complements:
 - `AGENTS.md`
+- `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`
 - `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`
 - `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`
 - `docs/NORMALIZED-PHASE-WORKFLOW.md`
@@ -29,12 +30,18 @@ Default standing guidance:
 - the evergreen execution charter in `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`
   is the default decision framework for choosing the next slice unless the user
   explicitly overrides it
+- when a user says "use supervisor mode", Codex must read and activate
+  `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md` before planning or
+  editing; that protocol defines the required supervisor/worker roles, startup
+  git checks, project-local dependency bootstrap rules, readiness report, and
+  safety boundaries for future threads
 - for all project phases, use
   `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` as the future-thread start
   checklist for syncing main, classifying risk, validating, publishing, and
   reporting work
 - when a user says "continue the project", "start the next phase", "make the
   next slice", or "move forward", Codex must read
+  `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`, read
   `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`, read
   `docs/NORMALIZED-PHASE-WORKFLOW.md`, read the relevant phase quick reference
   or checkpoint, identify the current workflow stage, and propose or execute
@@ -135,8 +142,21 @@ Before each slice:
 6. classify any dirty state before editing
 
 Required references:
+- `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`
 - `docs/SLICE-START-CHECKLIST.md`
 - `docs/WORKFLOW-CODEX-CHATGPT.md`
+
+If local dependencies are missing, bootstrap only project-local,
+repo-declared dependencies:
+- backend Python uses `backend/.venv` plus `backend/requirements.txt`
+- frontend Node uses `frontend/package-lock.json` plus local
+  `frontend/node_modules`
+- secondary worktrees should prefer
+  `powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 bootstrap-worktree`
+
+Do not perform global/system installs, dependency version changes, lockfile
+rewrites, or package upgrades without the approval and risk handling described
+in the future-thread startup protocol.
 
 If another thread or workspace touched the repo:
 - stop and audit `git status --short`

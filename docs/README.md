@@ -11,6 +11,9 @@ rounding up capability claims.
 
 - `docs/CURRENT-STATUS.md` - current repo status, active capability boundaries,
   and next likely packets.
+- `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md` - startup rules for new
+  Codex threads, Supervisor Mode activation, repo-state checks, and
+  project-local dependency bootstrap.
 - `docs/REPOSITORY-OPERATIONS.md` - low-friction Codex admin workflow,
   validation expectations, and self-merge rules.
 - `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` - repo-wide workflow
@@ -61,6 +64,7 @@ rounding up capability claims.
 
 ## Operating Guides
 
+- `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`
 - `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`
 - `docs/NORMALIZED-PHASE-WORKFLOW.md`
 - `docs/CODEX-OPERATING-RUNBOOK.md`
