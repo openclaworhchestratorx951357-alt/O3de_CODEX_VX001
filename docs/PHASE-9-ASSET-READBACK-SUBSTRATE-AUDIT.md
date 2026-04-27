@@ -27,6 +27,13 @@ changing schemas, or admitting a public product/dependency readback surface.
 Phase 9 is no longer blocked at the "no substrate exists" gate for the local
 `McpSandbox` target.
 
+This is a local proof target, not a production-general assumption. Production
+generalization is tracked separately in
+`docs/PHASE-9-PRODUCTION-GENERALIZATION-PLAN.md`; future packets must discover
+the user project root, `project.json`, cache directory, `assetdb.sqlite`,
+platform cache folders, `assetcatalog.xml`, and requested source path
+dynamically before describing the adapter as production-general.
+
 The following read-only substrate is sufficient to start a narrow proof-only
 reader packet:
 
@@ -188,6 +195,7 @@ that should be a separate schema packet.
 This audit does not admit:
 
 - public product/dependency completeness claims
+- production-general project discovery
 - prefab/reference graph readback
 - product cache mutation
 - Asset Processor execution
