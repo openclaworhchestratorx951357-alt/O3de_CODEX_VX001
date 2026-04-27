@@ -686,6 +686,7 @@ def main() -> int:
                 component_family=component_name,
             )
             property_result = runtime_steps["property_list"]["runtime_result"]
+            evidence_bundle["steps"][component_name] = runtime_steps
             if property_result.get("ok") is not True:
                 raise ScalarTargetDiscoveryProofError(
                     f"{component_name} scalar discovery did not report ok=true."
@@ -699,7 +700,6 @@ def main() -> int:
                 runtime_steps["cleanup_restore"]
             )
             cleanup_restore = runtime_steps["cleanup_restore"]
-            evidence_bundle["steps"][component_name] = runtime_steps
             component_results.append(
                 {
                     "component_name": component_name,

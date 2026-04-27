@@ -2775,7 +2775,9 @@ def _run_scalar_target_discovery_ladder(
     args = command.get("args", {})
     if not isinstance(args, dict):
         args = {}
-    require_non_bool_scalar = args.get("require_non_bool_scalar") is True
+    require_non_bool_scalar = (
+        args.get("require_non_bool_scalar") is True or component_family == "Camera"
+    )
     excluded_property_paths = {
         str(path)
         for path in (args.get("excluded_property_paths") or [])
@@ -2789,7 +2791,13 @@ def _run_scalar_target_discovery_ladder(
     )
     for entry in entries:
         property_path = str(entry.get("property_path") or "").strip()
-        if property_path in excluded_property_paths:
+        if (
+            property_path in excluded_property_paths
+            or (
+                component_family == "Camera"
+                and property_path == ADMITTED_CAMERA_BOOL_PROPERTY_PATH
+            )
+        ):
             entry.update(
                 {
                     "readback_candidate": False,
