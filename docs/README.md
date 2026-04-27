@@ -66,6 +66,9 @@ rounding up capability claims.
 - `docs/PHASE-9-ASSET-READBACK-READINESS-AUDIT.md` records that the Phase 9
   product/dependency readback corridor is not ready for implementation until an
   exact read-only substrate and freshness model are identified.
+- `docs/PHASE-9-ASSET-READBACK-SUBSTRATE-RESEARCH.md` records the follow-up
+  substrate search and keeps product/dependency readback blocked until an
+  operator-provided exact read-only sample is audited.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
@@ -144,6 +147,7 @@ rounding up capability claims.
 - `docs/PHASE-9-ASSET-READBACK-DISCOVERY.md`
 - `docs/PHASE-9-ASSET-READBACK-DESIGN.md`
 - `docs/PHASE-9-ASSET-READBACK-READINESS-AUDIT.md`
+- `docs/PHASE-9-ASSET-READBACK-SUBSTRATE-RESEARCH.md`
 
 ## Evidence And Inventory
 

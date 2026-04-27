@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-265eb2e8a1b9730b975cf25108d7fd18995431cb
+49a0ee0b31d148d50c0b9ccc0451a26ebd631ded
 ```
 
 The latest runtime/capability movement remains the completed Phase 8 Camera
@@ -46,6 +46,9 @@ Recent handoff-relevant packets:
 - PR #77 added the Phase 9 asset readback design packet for a future read-only
   `asset.source.inspect` product/dependency evidence corridor, while keeping
   implementation and public admission blocked pending readiness audit.
+- PR #78 added the Phase 9 asset readback readiness audit and recorded that
+  product/dependency evidence is not ready for implementation until an exact
+  read-only substrate, mapping, and freshness model are identified.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -198,18 +201,19 @@ property writes.
 
 ## Recommended Next Packets
 
-1. Continue Phase 9 with a substrate research packet from
-   `docs/PHASE-9-ASSET-READBACK-READINESS-AUDIT.md`. Product/dependency
-   evidence behind `asset.source.inspect` is not ready for implementation until
-   an exact read-only substrate, source-to-product mapping, and freshness model
-   are identified.
-2. If an operator provides a concrete project/cache substrate sample, audit it
-   before creating `codex/phase-9-asset-readback-proof-only`.
-3. If Phase 8 continues instead, start the next read-only discovery packet
+1. Pause Phase 9 product/dependency readback at the substrate gate unless an
+   operator provides a concrete read-only project/cache substrate sample.
+2. If such a sample is provided, create
+   `codex/phase-9-asset-readback-substrate-audit` before any proof-only or
+   implementation work.
+3. If no sample is available, checkpoint Phase 9 as blocked at
+   `codex/phase-9-asset-readback-blocked-checkpoint` and move to another
+   low-risk discovery slice.
+4. If Phase 8 continues instead, start the next read-only discovery packet
    before adding any new restore targets or broader undo behavior.
-4. Produce a branch cleanup report before deleting any uncertain historical,
+5. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
-5. Continue repository professionalization in small docs-only packets when the
+6. Continue repository professionalization in small docs-only packets when the
    change does not alter runtime capability or GitHub settings.
 
 Do not turn this file into a substitute for proof artifacts. Update it only
