@@ -110,6 +110,20 @@ Recent handoff-relevant packets:
   enable/disable, or entity activation/deactivation stay on
   `editor.candidate_mutation.unsupported`.
 - PR #99 merged that editor state-toggle prompt refusal guard.
+- PR #101 added the repo-wide workflow governor and future-thread Supervisor
+  Mode startup contract.
+
+Phase 9 product/dependency readback is no longer blocked on absence of a local
+sample. A read-only substrate audit found
+`C:\Users\topgu\O3DE\Projects\McpSandbox\Cache\assetdb.sqlite` with source,
+product, job, scan-folder, source-dependency, and product-dependency tables.
+The audited sample maps
+`Levels/BridgeLevel01/BridgeLevel01.prefab` to
+`pc/levels/bridgelevel01/bridgelevel01.spawnable` with five bounded
+product-dependency rows. The next safe Phase 9 packet is proof-only reader work
+behind `asset.source.inspect`; public product/dependency completeness,
+Asset Processor execution, cache mutation, and `asset.product.resolve` remain
+unadmitted.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -334,12 +348,13 @@ property writes.
 
 ## Recommended Next Packets
 
-1. Treat Phase 9 product/dependency readback as blocked at the substrate gate
-   unless an operator provides a concrete read-only project/cache substrate
-   sample.
-2. If such a sample is provided, create
-   `codex/phase-9-asset-readback-substrate-audit` before any proof-only or
-   implementation work.
+1. Continue Phase 9 with
+   `codex/phase-9-asset-readback-proof-only`, using the audited local
+   `McpSandbox` `assetdb.sqlite` substrate as a read-only proof target for
+   bounded product/dependency evidence behind `asset.source.inspect`.
+2. Keep Phase 9 product/dependency proof-only until tests prove exact source
+   mapping, bounded entries, freshness provenance, and fail-closed unavailable
+   behavior. Do not run Asset Processor or mutate cache/source files.
 3. If Phase 8 continues without explicit write approval, select another
    already-allowlisted read-only target discovery candidate or add narrow
    refusal/readback examples for a documented gap. Do not widen writes,
