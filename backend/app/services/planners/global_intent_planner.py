@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from app.models.prompt_control import PromptRequest
 from app.models.prompt_step import PromptPlanStep
-from app.services.planners.asset_pipeline_planner import plan_asset_pipeline_prompt
+from app.services.planners.asset_pipeline_planner import (
+    ASSET_CACHE_MUTATION_REFUSAL,
+    ASSET_PROCESSOR_EXECUTION_REFUSAL,
+    ASSET_PRODUCT_RESOLVE_REFUSAL,
+    ASSET_SOURCE_MUTATION_REFUSAL,
+    plan_asset_pipeline_prompt,
+)
 from app.services.planners.editor_planner import (
     CANDIDATE_EDITOR_MUTATION_REFUSAL,
     EDITOR_PROPERTY_DISCOVERY_REFUSAL,
@@ -81,6 +87,30 @@ class GlobalIntentPlanner:
                     "editor.entity.create is admitted only through the bounded "
                     "editor authoring prompt contract; this prompt did not provide "
                     "the supported inputs for an admitted typed editor plan."
+                )
+            elif ASSET_PROCESSOR_EXECUTION_REFUSAL in refusals:
+                refusal_reason = (
+                    "Asset Processor execution is not admitted from Prompt Studio. "
+                    "The Phase 9 asset corridor can only inspect an explicit source "
+                    "asset and read existing project-local assetdb.sqlite evidence."
+                )
+            elif ASSET_CACHE_MUTATION_REFUSAL in refusals:
+                refusal_reason = (
+                    "Asset cache or asset database mutation is not admitted. "
+                    "Cache/assetdb.sqlite may be inspected only as a read-only "
+                    "evidence substrate."
+                )
+            elif ASSET_PRODUCT_RESOLVE_REFUSAL in refusals:
+                refusal_reason = (
+                    "Broad product/dependency catalog resolution is not admitted. "
+                    "asset.product.resolve remains unavailable; use exact "
+                    "asset.source.inspect readback for one explicit source asset."
+                )
+            elif ASSET_SOURCE_MUTATION_REFUSAL in refusals:
+                refusal_reason = (
+                    "Source and product asset mutation is outside the Phase 9 "
+                    "read-only readback corridor. Use asset.source.inspect for "
+                    "evidence readback without modifying project files."
                 )
             return [], refusals or ["no-admitted-capability-match"], requirements, refusal_reason
 
