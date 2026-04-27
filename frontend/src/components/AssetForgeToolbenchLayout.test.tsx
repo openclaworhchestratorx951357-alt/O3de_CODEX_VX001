@@ -103,6 +103,44 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByRole("button", { name: "Execute Asset Processor" })).toBeDisabled();
   });
 
+  it("renders packet product/dependency row previews when Phase 9 row arrays are present", () => {
+    renderToolbench({
+      reviewPacketSource: "live_phase9_packet_data",
+      reviewPacketData: {
+        asset_readback_review_packet: {
+          ...assetForgeReviewPacketFixture,
+          products: {
+            ...assetForgeReviewPacketFixture.products,
+            product_rows: [
+              {
+                product_path: "pc/bridge_segment.azmodel",
+                product_id: 401,
+              },
+            ],
+          },
+          dependencies: {
+            ...assetForgeReviewPacketFixture.dependencies,
+            dependency_rows: [
+              {
+                dependency_path: "textures/bridge_albedo.png",
+                dependency_type: "source",
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    fireEvent.click(within(shell).getByRole("button", { name: "Assets" }));
+
+    fireEvent.click(within(shell).getByRole("button", { name: "Product assets" }));
+    expect(within(shell).getByText(/Product row 1: .*product_path=pc\/bridge_segment\.azmodel/i)).toBeInTheDocument();
+
+    fireEvent.click(within(shell).getByRole("button", { name: "Dependencies" }));
+    expect(within(shell).getByText(/Dependency row 1: .*dependency_path=textures\/bridge_albedo\.png/i)).toBeInTheDocument();
+  });
+
   it("switches Materials into a material inspector page and hides Assets-only content", () => {
     renderToolbench();
 

@@ -139,10 +139,12 @@ export interface AssetForgeToolbenchReviewPacketViewModel {
     productSubId: string;
     productCount: string;
     evidenceAvailable: string;
+    evidenceRows: string[];
   };
   dependencyEvidence: {
     dependencyCount: string;
     evidenceAvailable: string;
+    evidenceRows: string[];
   };
   catalogEvidence: {
     catalogPresence: string;

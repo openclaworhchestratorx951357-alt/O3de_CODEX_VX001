@@ -189,6 +189,17 @@ function buildAssetRows(
         gate: gateFromYesNo(packet.productEvidence.evidenceAvailable),
         detail: packet.productEvidence.evidenceAvailable,
       },
+      ...(packet.productEvidence.evidenceRows.length > 0
+        ? packet.productEvidence.evidenceRows.map((row, index) => ({
+          name: `Product row ${index + 1}`,
+          gate: "proof-only" as const,
+          detail: row,
+        }))
+        : [{
+          name: "Product rows",
+          gate: "proof-only" as const,
+          detail: "No product row details in current packet payload.",
+        }]),
     ],
     Dependencies: [
       {
@@ -201,11 +212,17 @@ function buildAssetRows(
         gate: gateFromYesNo(packet.dependencyEvidence.evidenceAvailable),
         detail: packet.dependencyEvidence.evidenceAvailable,
       },
-      {
-        name: "Dependency detail rows",
-        gate: "requires approval",
-        detail: "Detailed dependency rows are not connected in this preview view.",
-      },
+      ...(packet.dependencyEvidence.evidenceRows.length > 0
+        ? packet.dependencyEvidence.evidenceRows.map((row, index) => ({
+          name: `Dependency row ${index + 1}`,
+          gate: "proof-only" as const,
+          detail: row,
+        }))
+        : [{
+          name: "Dependency rows",
+          gate: "requires approval" as const,
+          detail: "No dependency row details in current packet payload.",
+        }]),
     ],
     "Catalog evidence": [
       {
