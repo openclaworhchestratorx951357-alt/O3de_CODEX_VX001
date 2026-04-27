@@ -69,6 +69,8 @@ rounding up capability claims.
 - `docs/PHASE-9-ASSET-READBACK-SUBSTRATE-RESEARCH.md` records the follow-up
   substrate search and keeps product/dependency readback blocked until an
   operator-provided exact read-only sample is audited.
+- `docs/PHASE-9-ASSET-READBACK-BLOCKED-CHECKPOINT.md` checkpoints Phase 9
+  product/dependency readback as blocked at the substrate gate.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
@@ -148,6 +150,7 @@ rounding up capability claims.
 - `docs/PHASE-9-ASSET-READBACK-DESIGN.md`
 - `docs/PHASE-9-ASSET-READBACK-READINESS-AUDIT.md`
 - `docs/PHASE-9-ASSET-READBACK-SUBSTRATE-RESEARCH.md`
+- `docs/PHASE-9-ASSET-READBACK-BLOCKED-CHECKPOINT.md`
 
 ## Evidence And Inventory
 
