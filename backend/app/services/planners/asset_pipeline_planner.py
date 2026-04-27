@@ -12,6 +12,87 @@ from app.services.planners._common import (
     make_step,
 )
 
+ASSET_PROCESSOR_EXECUTION_REFUSAL = "asset.processor.execution.unsupported"
+ASSET_CACHE_MUTATION_REFUSAL = "asset.cache.mutation.unsupported"
+ASSET_PRODUCT_RESOLVE_REFUSAL = "asset.product.resolve.unsupported"
+ASSET_SOURCE_MUTATION_REFUSAL = "asset.source.mutation.unsupported"
+_ASSET_READBACK_SAFE_ALTERNATIVE = (
+    "I can inspect an explicit source asset and read any existing "
+    "product/dependency evidence from the project-local Asset Processor "
+    "database, but I cannot run Asset Processor or mutate cache, source, or "
+    "product files."
+)
+
+
+def _contains_asset_processor_execution_intent(prompt_text: str) -> bool:
+    normalized = prompt_text.lower()
+    if "asset processor" not in normalized and "assetprocessorbatch" not in normalized:
+        return False
+    execution_markers = (
+        "run ",
+        "start ",
+        "launch ",
+        "execute ",
+        "process ",
+        "generate ",
+        "build ",
+        "rebuild ",
+        "refresh ",
+    )
+    return any(marker in normalized for marker in execution_markers)
+
+
+def _contains_asset_cache_mutation_intent(prompt_text: str) -> bool:
+    normalized = prompt_text.lower()
+    cache_markers = (
+        "asset database",
+        "assetdb.sqlite",
+        "asset db",
+        "cache",
+    )
+    mutation_markers = (
+        "fix ",
+        "update ",
+        "edit ",
+        "change ",
+        "write ",
+        "repair ",
+        "delete ",
+        "clean ",
+        "clear ",
+        "regenerate ",
+    )
+    return any(marker in normalized for marker in cache_markers) and any(
+        marker in normalized for marker in mutation_markers
+    )
+
+
+def _contains_broad_product_resolve_intent(prompt_text: str) -> bool:
+    normalized = prompt_text.lower()
+    if "resolve" not in normalized:
+        return False
+    broad_markers = ("every ", "all ", "whole ", "entire ", "catalog")
+    product_markers = ("product", "dependency", "asset catalog")
+    return any(marker in normalized for marker in broad_markers) and any(
+        marker in normalized for marker in product_markers
+    )
+
+
+def _contains_asset_source_mutation_intent(prompt_text: str) -> bool:
+    normalized = prompt_text.lower()
+    if "source asset" not in normalized and "asset file" not in normalized:
+        return False
+    mutation_markers = (
+        "change ",
+        "modify ",
+        "edit ",
+        "rewrite ",
+        "repair ",
+        "fix ",
+        "update ",
+    )
+    return any(marker in normalized for marker in mutation_markers)
+
 
 def plan_asset_pipeline_prompt(
     request: PromptRequest,
@@ -29,6 +110,46 @@ def plan_asset_pipeline_prompt(
     steps: list[PromptPlanStep] = []
     refusals: list[str] = []
     requirements: list[str] = []
+
+    if _contains_asset_processor_execution_intent(prompt_text):
+        return (
+            [],
+            [ASSET_PROCESSOR_EXECUTION_REFUSAL],
+            [
+                "Asset Processor and AssetProcessorBatch execution are not admitted from Prompt Studio.",
+                _ASSET_READBACK_SAFE_ALTERNATIVE,
+            ],
+        )
+
+    if _contains_asset_cache_mutation_intent(prompt_text):
+        return (
+            [],
+            [ASSET_CACHE_MUTATION_REFUSAL],
+            [
+                "Asset cache/database mutation is not admitted; project-local Cache/assetdb.sqlite is read-only evidence only.",
+                _ASSET_READBACK_SAFE_ALTERNATIVE,
+            ],
+        )
+
+    if _contains_broad_product_resolve_intent(prompt_text):
+        return (
+            [],
+            [ASSET_PRODUCT_RESOLVE_REFUSAL],
+            [
+                "Broad product/dependency catalog resolution and asset.product.resolve are not admitted.",
+                _ASSET_READBACK_SAFE_ALTERNATIVE,
+            ],
+        )
+
+    if _contains_asset_source_mutation_intent(prompt_text):
+        return (
+            [],
+            [ASSET_SOURCE_MUTATION_REFUSAL],
+            [
+                "Source/product asset mutation is outside the Phase 9 read-only readback corridor.",
+                _ASSET_READBACK_SAFE_ALTERNATIVE,
+            ],
+        )
 
     if contains_any(prompt_text, ["asset processor status", "asset processor"]):
         capability = capabilities["asset.processor.status"]

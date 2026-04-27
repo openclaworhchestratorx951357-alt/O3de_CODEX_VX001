@@ -665,6 +665,67 @@ def test_prompt_session_executes_asset_source_inspect_with_assetdb_evidence() ->
                 )
 
 
+@pytest.mark.parametrize(
+    ("prompt_id", "prompt_text", "refused_capability", "reason_fragment"),
+    [
+        (
+            "prompt-asset-run-processor-refused-1",
+            "Run Asset Processor to generate missing products for BridgeLevel01.",
+            "asset.processor.execution.unsupported",
+            "Asset Processor execution is not admitted",
+        ),
+        (
+            "prompt-asset-cache-mutation-refused-1",
+            "Fix the asset database so BridgeLevel01 has dependency rows.",
+            "asset.cache.mutation.unsupported",
+            "Asset cache or asset database mutation is not admitted",
+        ),
+        (
+            "prompt-asset-product-resolve-refused-1",
+            "Resolve every product and dependency in the whole asset catalog.",
+            "asset.product.resolve.unsupported",
+            "Broad product/dependency catalog resolution is not admitted",
+        ),
+        (
+            "prompt-asset-source-mutation-refused-1",
+            "Change the source asset based on the dependency readback.",
+            "asset.source.mutation.unsupported",
+            "Source and product asset mutation is outside",
+        ),
+    ],
+)
+def test_prompt_session_refuses_unadmitted_phase_9_asset_mutation_intents(
+    prompt_id: str,
+    prompt_text: str,
+    refused_capability: str,
+    reason_fragment: str,
+) -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": prompt_id,
+                "prompt_text": prompt_text,
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": True,
+                "preferred_domains": ["asset-pipeline"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "refused"
+        assert payload["admitted_capabilities"] == []
+        assert payload["refused_capabilities"] == [refused_capability]
+        assert payload["plan"]["admitted"] is False
+        assert payload["plan"]["steps"] == []
+        assert reason_fragment in payload["plan"]["refusal_reason"]
+        assert any(
+            "read any existing product/dependency evidence" in requirement
+            for requirement in payload["plan"]["capability_requirements"]
+        )
+
+
 def test_prompt_session_executes_asset_batch_process_with_truthful_preflight_evidence() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)
