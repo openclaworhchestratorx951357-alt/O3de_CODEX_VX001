@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-import AssetForgeToolbenchLayout from "./AssetForgeToolbenchLayout";
+import AssetForgeStudioShell from "./AssetForgeStudioShell";
 import { assetForgeReviewPacketFixture } from "../fixtures/assetForgeReviewPacketFixture";
 import type { AssetForgeReviewPacketSource } from "../types/assetForgeReviewPacket";
 import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
@@ -14,24 +14,17 @@ type AIAssetForgePanelProps = {
   reviewPacketSource?: AssetForgeReviewPacketSource;
 };
 
-export default function AIAssetForgePanel({
-  projectProfile,
-  onOpenPromptStudio,
-  onOpenRuntimeOverview,
-  onOpenBuilder,
-  reviewPacketData,
-  reviewPacketSource,
-}: AIAssetForgePanelProps) {
-  const resolvedReviewPacketData = reviewPacketData ?? assetForgeReviewPacketFixture;
-  const resolvedReviewPacketSource = reviewPacketSource ?? "typed_fixture_data";
+export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
+  const resolvedReviewPacketData = props.reviewPacketData ?? assetForgeReviewPacketFixture;
+  const resolvedReviewPacketSource = props.reviewPacketSource ?? "typed_fixture_data";
 
   return (
     <section aria-label="AI Asset Forge" style={panelStyle}>
-      <AssetForgeToolbenchLayout
-        projectProfile={projectProfile}
-        onOpenPromptStudio={onOpenPromptStudio}
-        onOpenRuntimeOverview={onOpenRuntimeOverview}
-        onOpenBuilder={onOpenBuilder}
+      <AssetForgeStudioShell
+        projectProfile={props.projectProfile}
+        onOpenPromptStudio={props.onOpenPromptStudio}
+        onOpenRuntimeOverview={props.onOpenRuntimeOverview}
+        onOpenBuilder={props.onOpenBuilder}
         reviewPacketData={resolvedReviewPacketData}
         reviewPacketSource={resolvedReviewPacketSource}
       />
@@ -41,5 +34,5 @@ export default function AIAssetForgePanel({
 
 const panelStyle = {
   display: "grid",
-  gap: 10,
+  minWidth: 0,
 } satisfies CSSProperties;
