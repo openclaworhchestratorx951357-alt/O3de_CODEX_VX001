@@ -184,6 +184,8 @@ Use the low-friction repo governance:
 - Do not delete `main`.
 - Do not delete uncertain or unmerged branches.
 - Do not change GitHub settings unless explicitly approved.
+- Recommended branch hygiene setting, if the operator chooses to enable it:
+  `docs/GITHUB-BRANCH-HYGIENE-SETTINGS-RECOMMENDATION.md`.
 
 ## Future Thread Handoff
 

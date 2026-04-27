@@ -192,7 +192,8 @@ Recommended current settings:
 - allow squash merge: yes
 - allow merge commits: yes if operator wants PR context
 - allow rebase merge: optional
-- automatically delete head branches: yes if comfortable
+- automatically delete head branches: yes if comfortable; see
+  `docs/GITHUB-BRANCH-HYGIENE-SETTINGS-RECOMMENDATION.md`
 - allow auto-merge: optional
 - require PR reviews: no
 - require conversation resolution: no
