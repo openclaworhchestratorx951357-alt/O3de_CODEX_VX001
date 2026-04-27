@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-dcb2bc4a7b7dfd5aef1d072922ea309fe322dc2d
+265eb2e8a1b9730b975cf25108d7fd18995431cb
 ```
 
 The latest runtime/capability movement remains the completed Phase 8 Camera
@@ -43,6 +43,9 @@ Recent handoff-relevant packets:
 - PR #76 added the candidate-only Phase 9 asset readback discovery packet and
   selected `asset.source.inspect` product/dependency evidence readback as the
   next design target.
+- PR #77 added the Phase 9 asset readback design packet for a future read-only
+  `asset.source.inspect` product/dependency evidence corridor, while keeping
+  implementation and public admission blocked pending readiness audit.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -195,15 +198,18 @@ property writes.
 
 ## Recommended Next Packets
 
-1. Continue Phase 9 with a readiness audit from
-   `docs/PHASE-9-ASSET-READBACK-DESIGN.md`. Audit the exact read-only substrate
-   for `asset.source.inspect` product/dependency evidence before any code
-   implementation.
-2. If Phase 8 continues instead, start the next read-only discovery packet
+1. Continue Phase 9 with a substrate research packet from
+   `docs/PHASE-9-ASSET-READBACK-READINESS-AUDIT.md`. Product/dependency
+   evidence behind `asset.source.inspect` is not ready for implementation until
+   an exact read-only substrate, source-to-product mapping, and freshness model
+   are identified.
+2. If an operator provides a concrete project/cache substrate sample, audit it
+   before creating `codex/phase-9-asset-readback-proof-only`.
+3. If Phase 8 continues instead, start the next read-only discovery packet
    before adding any new restore targets or broader undo behavior.
-3. Produce a branch cleanup report before deleting any uncertain historical,
+4. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
-4. Continue repository professionalization in small docs-only packets when the
+5. Continue repository professionalization in small docs-only packets when the
    change does not alter runtime capability or GitHub settings.
 
 Do not turn this file into a substitute for proof artifacts. Update it only

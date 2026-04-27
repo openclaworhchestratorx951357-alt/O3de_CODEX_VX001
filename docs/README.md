@@ -63,6 +63,9 @@ rounding up capability claims.
   discovery decision for product/dependency evidence behind `asset.source.inspect`.
 - `docs/PHASE-9-ASSET-READBACK-DESIGN.md` designs the future read-only
   `asset.source.inspect` product/dependency evidence corridor before code work.
+- `docs/PHASE-9-ASSET-READBACK-READINESS-AUDIT.md` records that the Phase 9
+  product/dependency readback corridor is not ready for implementation until an
+  exact read-only substrate and freshness model are identified.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
@@ -140,6 +143,7 @@ rounding up capability claims.
 - `docs/PHASE-9-ASSET-READBACK-BASELINE.md`
 - `docs/PHASE-9-ASSET-READBACK-DISCOVERY.md`
 - `docs/PHASE-9-ASSET-READBACK-DESIGN.md`
+- `docs/PHASE-9-ASSET-READBACK-READINESS-AUDIT.md`
 
 ## Evidence And Inventory
 
