@@ -131,6 +131,10 @@ rounding up capability claims.
 - `docs/PHASE-9-ASSET-READBACK-ADMISSION-DECISION.md` records the decision to
   keep the narrow read-only surface active while withholding production-general
   public admission pending freshness, platform, and operator review work.
+- `docs/PHASE-9-ASSET-READBACK-READINESS-REVIEW-CONTRACT.md` defines the
+  operator-facing review contract for Phase 9 freshness, selected platform,
+  missing-substrate guidance, mutation flags, safest next step, and AI Asset
+  Forge validation handoff.
 - `docs/PHASE-9-ASSET-CATALOG-SUBSTRATE-DISCOVERY.md` records read-only
   discovery of `McpSandbox/Cache/pc/assetcatalog.xml` as a binary/serialized
   product-path substrate, not yet ready for implementation.
