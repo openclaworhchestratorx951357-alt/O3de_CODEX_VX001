@@ -1,5 +1,8 @@
 import { useState, type CSSProperties } from "react";
 
+import AssetForgeReviewPacketPanel from "./AssetForgeReviewPacketPanel";
+import { assetForgeReviewPacketFixture } from "../fixtures/assetForgeReviewPacketFixture";
+import type { AssetForgeReviewPacketSource } from "../types/assetForgeReviewPacket";
 import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 
 type AIAssetForgePanelProps = {
@@ -7,6 +10,8 @@ type AIAssetForgePanelProps = {
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenBuilder?: () => void;
+  reviewPacketData?: unknown;
+  reviewPacketSource?: AssetForgeReviewPacketSource;
 };
 
 const defaultCreativePrompt =
@@ -146,6 +151,8 @@ export default function AIAssetForgePanel({
   onOpenPromptStudio,
   onOpenRuntimeOverview,
   onOpenBuilder,
+  reviewPacketData,
+  reviewPacketSource,
 }: AIAssetForgePanelProps) {
   const [creativePrompt, setCreativePrompt] = useState(defaultCreativePrompt);
   const [assetType, setAssetType] = useState(() => inferAssetType(defaultCreativePrompt));
@@ -163,6 +170,8 @@ export default function AIAssetForgePanel({
   const [lightingLevel, setLightingLevel] = useState(64);
   const activeProjectName = projectProfile?.name ?? "Select an O3DE project";
   const projectRoot = projectProfile?.projectRoot ?? "Project root required before staging";
+  const resolvedReviewPacketData = reviewPacketData ?? assetForgeReviewPacketFixture;
+  const resolvedReviewPacketSource = reviewPacketSource ?? "typed_fixture_data";
 
   const internalRequestRows = [
     ["creative_prompt", creativePrompt],
@@ -450,6 +459,11 @@ export default function AIAssetForgePanel({
           </div>
         </div>
       </section>
+
+      <AssetForgeReviewPacketPanel
+        packetData={resolvedReviewPacketData}
+        packetSource={resolvedReviewPacketSource}
+      />
 
       <section style={stagePanelStyle} aria-label="Forge Toolbench pipeline">
         <div style={stagePanelHeaderStyle}>
