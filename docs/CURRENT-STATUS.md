@@ -92,6 +92,11 @@ Recent handoff-relevant packets:
   `editor.candidate_mutation.unsupported` refusal path unless they are the
   exact admitted Camera bool corridor.
 - PR #93 merged that Camera scalar prompt refusal guard.
+- The editor blocked-surface prompt refusal guard is recorded in
+  `docs/PHASE-8-EDITOR-BLOCKED-SURFACE-PROMPT-REFUSAL-GUARD.md`. Editor-control
+  requests to mutate render settings, build settings, TIAF state, or execute
+  Python in the editor stay on `editor.candidate_mutation.unsupported` instead
+  of planning only session/level setup.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -236,6 +241,11 @@ The Camera scalar prompt refusal guard is recorded in
 `docs/PHASE-8-CAMERA-SCALAR-PROMPT-REFUSAL-GUARD.md`. Natural Camera scalar
 write wording must refuse as `editor.candidate_mutation.unsupported` unless it
 targets the exact admitted Camera bool write corridor.
+
+The editor blocked-surface prompt refusal guard is recorded in
+`docs/PHASE-8-EDITOR-BLOCKED-SURFACE-PROMPT-REFUSAL-GUARD.md`. Editor-control
+render setting, build setting, TIAF state, and in-editor Python execution
+requests must refuse as `editor.candidate_mutation.unsupported`.
 
 ## Repo Hygiene Baseline
 
