@@ -139,6 +139,9 @@ rounding up capability claims.
 - `docs/PHASE-9-PRODUCTION-GENERALIZATION-PLAN.md` defines how Phase 9 moves
   from local proof targets to project-general readback and names the future
   Phase 8 portability audit.
+- `docs/PHASE-9-PROJECT-ASSET-READBACK-DISCOVERY.md` records the read-only
+  backend discovery helper for project root, cache, database, platform catalog,
+  and source-asset readiness.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof

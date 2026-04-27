@@ -65,6 +65,9 @@ That packet should discover project-local readback inputs, define blocked or
 readiness results for missing substrates, and prove one non-hardcoded path
 through user/project discovery before any production-general wording is used.
 
+This discovery packet is now tracked in
+`docs/PHASE-9-PROJECT-ASSET-READBACK-DISCOVERY.md`.
+
 ## Future production flow
 
 1. User selects or registers an O3DE project.
@@ -154,7 +157,7 @@ Use these labels when documenting Phase 8 and Phase 9 capability status:
 Current Phase 9 label:
 
 ```text
-local proof target + project-general readback candidate
+local proof target + project-general discovery helper + project-general readback candidate
 ```
 
 Current Phase 8 Camera bool label:
