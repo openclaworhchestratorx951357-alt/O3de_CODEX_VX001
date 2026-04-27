@@ -102,6 +102,9 @@ rounding up capability claims.
   operator-provided exact read-only sample is audited.
 - `docs/PHASE-9-ASSET-READBACK-BLOCKED-CHECKPOINT.md` checkpoints Phase 9
   product/dependency readback as blocked at the substrate gate.
+- `docs/PHASE-9-ASSET-READBACK-SUBSTRATE-AUDIT.md` audits the local
+  `McpSandbox` Asset Processor database as the exact read-only substrate that
+  unblocks a future proof-only product/dependency reader packet.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
@@ -193,6 +196,7 @@ rounding up capability claims.
 - `docs/PHASE-9-ASSET-READBACK-READINESS-AUDIT.md`
 - `docs/PHASE-9-ASSET-READBACK-SUBSTRATE-RESEARCH.md`
 - `docs/PHASE-9-ASSET-READBACK-BLOCKED-CHECKPOINT.md`
+- `docs/PHASE-9-ASSET-READBACK-SUBSTRATE-AUDIT.md`
 
 ## Evidence And Inventory
 
