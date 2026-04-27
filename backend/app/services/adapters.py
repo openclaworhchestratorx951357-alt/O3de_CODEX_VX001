@@ -147,6 +147,7 @@ MANIFEST_PROJECT_CONFIG_KEYS = (
     "restricted_platform_name",
 )
 ASSET_SOURCE_INSPECT_INDEX_ENTRY_LIMIT = 25
+ASSET_SOURCE_INSPECT_CATALOG_ENTRY_LIMIT = 25
 
 
 @dataclass(slots=True)
@@ -1355,6 +1356,16 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
         dependency_unavailable_reason = (
             "No readable project Asset Processor database dependency evidence is available."
         )
+        catalog_product_path_presence: list[str] = []
+        catalog_product_path_count = 0
+        catalog_evidence_requested = False
+        catalog_evidence_available = False
+        catalog_evidence_source = "unavailable-no-assetdb-product-rows"
+        catalog_unavailable_reason = (
+            "Asset Catalog product-path presence was not checked because no "
+            "Asset Processor database product rows were available."
+        )
+        catalog_metadata: dict[str, Any] = {}
         if not source_exists:
             product_unavailable_reason = (
                 "The requested source path was not found, so no product evidence could be proven."
@@ -1409,6 +1420,37 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
                     product_unavailable_reason = assetdb_evidence[
                         "product_unavailable_reason"
                     ]
+                product_names = assetdb_evidence.get("product_names", [])
+                if product_names:
+                    catalog_evidence_requested = True
+                    catalog_evidence = self._read_asset_catalog_path_presence(
+                        project_root=resolved_project_root,
+                        product_paths=[
+                            str(product_name) for product_name in product_names
+                        ],
+                    )
+                    logs.extend(catalog_evidence["logs"])
+                    warnings.extend(catalog_evidence["warnings"])
+                    catalog_product_path_presence = catalog_evidence[
+                        "catalog_product_path_presence"
+                    ]
+                    catalog_product_path_count = catalog_evidence[
+                        "catalog_product_path_count"
+                    ]
+                    catalog_evidence_available = bool(
+                        catalog_evidence["catalog_evidence_available"]
+                    )
+                    catalog_evidence_source = str(
+                        catalog_evidence["catalog_evidence_source"]
+                    )
+                    catalog_unavailable_reason = str(
+                        catalog_evidence["catalog_unavailable_reason"]
+                    )
+                    catalog_metadata = dict(catalog_evidence["catalog_metadata"])
+                    if catalog_evidence_available:
+                        inspection_evidence.append("assetcatalog.xml_product_path_presence")
+                    else:
+                        unavailable_evidence.append("asset_catalog")
             if include_dependencies:
                 dependencies = assetdb_evidence["dependencies"]
                 if dependencies:
@@ -1481,6 +1523,13 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             "product_evidence_available": bool(products),
             "product_evidence_source": product_evidence_source,
             "product_unavailable_reason": product_unavailable_reason,
+            "asset_catalog_evidence_requested": catalog_evidence_requested,
+            "asset_catalog_evidence_available": catalog_evidence_available,
+            "asset_catalog_evidence_source": catalog_evidence_source,
+            "asset_catalog_unavailable_reason": catalog_unavailable_reason,
+            "asset_catalog_product_path_presence": catalog_product_path_presence,
+            "asset_catalog_product_path_count": catalog_product_path_count,
+            **catalog_metadata,
             "dependencies": dependencies,
             "dependency_count": len(dependencies),
             "dependency_evidence_requested": include_dependencies,
@@ -1538,6 +1587,7 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
         result: dict[str, Any] = {
             "source_found": False,
             "products": [],
+            "product_names": [],
             "dependencies": [],
             "product_evidence_source": unavailable_no_index,
             "dependency_evidence_source": unavailable_no_dependency_index,
@@ -1663,6 +1713,7 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
                 (source_id, ASSET_SOURCE_INSPECT_INDEX_ENTRY_LIMIT),
             ).fetchall()
             if include_products:
+                result["product_names"] = [str(row["ProductName"]) for row in product_rows]
                 result["products"] = [
                     (
                         f"{row['ProductName']} "
@@ -1737,6 +1788,132 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             result["warnings"].append(reason)
         finally:
             connection.close()
+        return result
+
+    def _read_asset_catalog_path_presence(
+        self,
+        *,
+        project_root: Path,
+        product_paths: list[str],
+    ) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "catalog_product_path_presence": [],
+            "catalog_product_path_count": 0,
+            "catalog_evidence_available": False,
+            "catalog_evidence_source": "unavailable-no-product-path-query",
+            "catalog_unavailable_reason": (
+                "No product path query was available for Asset Catalog readback."
+            ),
+            "catalog_metadata": {},
+            "warnings": [],
+            "logs": [],
+        }
+        normalized_queries: list[tuple[str, str, str]] = []
+        for product_path in product_paths[:ASSET_SOURCE_INSPECT_CATALOG_ENTRY_LIMIT]:
+            normalized_product_path = product_path.replace("\\", "/").strip("/")
+            if "/" not in normalized_product_path:
+                continue
+            platform, catalog_relative_path = normalized_product_path.split("/", 1)
+            if not platform or not catalog_relative_path:
+                continue
+            normalized_queries.append(
+                (platform, normalized_product_path, catalog_relative_path)
+            )
+
+        resolved_cache_root = (project_root / "Cache").resolve()
+        if not normalized_queries:
+            result["catalog_evidence_source"] = "unavailable-no-catalog-relative-product-paths"
+            result["catalog_unavailable_reason"] = (
+                "Asset Catalog readback requires product paths with a platform prefix."
+            )
+            return result
+
+        catalog_paths = {
+            platform: (project_root / "Cache" / platform / "assetcatalog.xml").resolve()
+            for platform, _, _ in normalized_queries
+        }
+        catalog_bytes_by_platform: dict[str, bytes] = {}
+        metadata_by_platform: dict[str, dict[str, Any]] = {}
+        for platform, catalog_path in catalog_paths.items():
+            try:
+                catalog_path.relative_to(resolved_cache_root)
+            except ValueError:
+                result["catalog_evidence_source"] = "unavailable-catalog-outside-cache"
+                result["catalog_unavailable_reason"] = (
+                    "Asset Catalog readback was refused because the catalog path "
+                    "resolved outside the project Cache directory."
+                )
+                result["warnings"].append(result["catalog_unavailable_reason"])
+                return result
+            if not catalog_path.exists():
+                result["catalog_evidence_source"] = "unavailable-catalog-missing"
+                result["catalog_unavailable_reason"] = (
+                    f"No project Asset Catalog was found at Cache/{platform}/assetcatalog.xml."
+                )
+                result["logs"].append(result["catalog_unavailable_reason"])
+                continue
+            if not catalog_path.is_file():
+                result["catalog_evidence_source"] = "unavailable-catalog-unsupported"
+                result["catalog_unavailable_reason"] = (
+                    f"Cache/{platform}/assetcatalog.xml exists but is not a file."
+                )
+                result["warnings"].append(result["catalog_unavailable_reason"])
+                continue
+            try:
+                catalog_bytes = catalog_path.read_bytes()
+                catalog_stat = catalog_path.stat()
+            except OSError as exc:
+                result["catalog_evidence_source"] = "unavailable-catalog-unreadable"
+                result["catalog_unavailable_reason"] = (
+                    f"Cache/{platform}/assetcatalog.xml could not be read: {exc}"
+                )
+                result["warnings"].append(result["catalog_unavailable_reason"])
+                continue
+            catalog_bytes_by_platform[platform] = catalog_bytes.lower()
+            metadata_by_platform[platform] = {
+                "asset_catalog_path": str(catalog_path),
+                "asset_catalog_size_bytes": catalog_stat.st_size,
+                "asset_catalog_sha256": hashlib.sha256(catalog_bytes).hexdigest(),
+                "asset_catalog_last_write_time": catalog_stat.st_mtime,
+                "asset_catalog_read_mode": "read-only",
+                "asset_catalog_format_observed": "binary-or-serialized",
+                "asset_catalog_parser_limit": ASSET_SOURCE_INSPECT_CATALOG_ENTRY_LIMIT,
+            }
+
+        presence_rows: list[str] = []
+        for platform, product_path, catalog_relative_path in normalized_queries:
+            catalog_bytes = catalog_bytes_by_platform.get(platform)
+            if catalog_bytes is None:
+                continue
+            query_bytes = catalog_relative_path.lower().encode("utf-8")
+            match_count = catalog_bytes.count(query_bytes)
+            presence_rows.append(
+                f"{product_path} -> {catalog_relative_path} "
+                f"(platform={platform}, present={match_count > 0}, match_count={match_count})"
+            )
+
+        if presence_rows:
+            result["catalog_product_path_presence"] = presence_rows
+            result["catalog_product_path_count"] = len(presence_rows)
+            result["catalog_evidence_available"] = any(
+                "present=True" in row for row in presence_rows
+            )
+            result["catalog_evidence_source"] = "assetcatalog.xml-read-only"
+            result["catalog_unavailable_reason"] = (
+                "Asset Catalog product-path presence was checked read-only."
+            )
+            result["logs"].append(
+                "Cache/<platform>/assetcatalog.xml was read-only scanned for bounded product path presence."
+            )
+            first_metadata = next(iter(metadata_by_platform.values()), {})
+            result["catalog_metadata"] = first_metadata
+        elif catalog_bytes_by_platform:
+            result["catalog_evidence_source"] = "unavailable-no-catalog-path-matches"
+            result["catalog_unavailable_reason"] = (
+                "Asset Catalog files were readable, but no bounded product path presence rows were produced."
+            )
+            result["logs"].append(result["catalog_unavailable_reason"])
+
         return result
 
     def _fallback_asset_source_inspect(

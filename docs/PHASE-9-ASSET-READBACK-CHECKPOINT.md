@@ -15,12 +15,18 @@ When the requested source exists under the project root and the caller asks for
 product or dependency evidence, the adapter may inspect project-local
 `Cache/assetdb.sqlite` in SQLite read-only URI mode.
 
+When product rows are already proven through `Cache/assetdb.sqlite`, the
+adapter may also perform a proof-only read-only product-path presence
+cross-check against `Cache/<platform>/assetcatalog.xml`.
+
 The reader may return:
 
 - source path identity
 - source file metadata and SHA-256
 - bounded product rows from `Jobs` and `Products`
 - bounded dependency rows from `ProductDependencies`
+- bounded Asset Catalog product-path presence evidence derived only from
+  already-proven product rows
 - explicit unavailable evidence for missing, unreadable, unsupported, or
   source-not-indexed database cases
 
@@ -34,6 +40,9 @@ Live proof against `McpSandbox` confirmed:
 - dependency count: `5`
 - evidence source: `assetdb.sqlite-read-only`
 - unavailable evidence: none
+
+The follow-up catalog proof added an additive read-only cross-check for the
+same product path through `assetcatalog.xml-read-only`.
 
 ## Guarded Prompt Boundaries
 
@@ -55,7 +64,7 @@ readback for one explicit source asset.
 - `AssetProcessorBatch` execution
 - cache mutation
 - source or product asset mutation
-- broad asset catalog queries
+- broad asset catalog queries or source/product mapping from the catalog alone
 - `asset.product.resolve`
 - dependency repair or product generation
 
@@ -67,6 +76,7 @@ readback for one explicit source asset.
 - `docs/PHASE-9-ASSET-READBACK-OPERATOR-EXAMPLES.md`
 - `docs/PHASE-9-ASSET-CATALOG-SUBSTRATE-DISCOVERY.md`
 - `docs/PHASE-9-ASSET-CATALOG-PARSER-DESIGN.md`
+- `docs/PHASE-9-ASSET-CATALOG-PATH-PRESENCE-PROOF.md`
 - `backend/tests/test_dispatcher.py`
 - `backend/tests/test_prompt_control.py`
 
@@ -88,3 +98,8 @@ Asset Catalog parser design is now tracked in
 `docs/PHASE-9-ASSET-CATALOG-PARSER-DESIGN.md`; it keeps catalog work
 proof-only and limits the first implementation candidate to product-path
 presence evidence.
+
+Asset Catalog product-path presence proof is now tracked in
+`docs/PHASE-9-ASSET-CATALOG-PATH-PRESENCE-PROOF.md`; it adds an additive
+read-only cross-check behind `asset.source.inspect` without admitting broad
+catalog resolve.

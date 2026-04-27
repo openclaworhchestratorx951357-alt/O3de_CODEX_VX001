@@ -129,6 +129,9 @@ rounding up capability claims.
   product-path substrate, not yet ready for implementation.
 - `docs/PHASE-9-ASSET-CATALOG-PARSER-DESIGN.md` defines the no-runtime parser
   boundary for future proof-only Asset Catalog product-path presence evidence.
+- `docs/PHASE-9-ASSET-CATALOG-PATH-PRESENCE-PROOF.md` records the proof-only
+  implementation of read-only Asset Catalog product-path presence cross-checks
+  behind `asset.source.inspect`.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof

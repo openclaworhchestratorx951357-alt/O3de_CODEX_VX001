@@ -394,6 +394,16 @@ def create_asset_source_inspect_assetdb_fixture(project_root: Path) -> None:
         connection.close()
 
 
+def create_asset_source_inspect_catalog_fixture(project_root: Path) -> None:
+    catalog_path = project_root / "Cache" / "pc" / "assetcatalog.xml"
+    catalog_path.parent.mkdir(parents=True, exist_ok=True)
+    catalog_path.write_bytes(
+        b"\x00serialized-catalog\x00"
+        b"levels/bridgelevel01/bridgelevel01.spawnable"
+        b"\x00other-product"
+    )
+
+
 def make_asset_batch_process_request(
     *,
     project_root: str = "/tmp/project",
@@ -6078,6 +6088,74 @@ def test_asset_source_inspect_reads_bounded_assetdb_product_dependency_evidence(
                 )
                 assert artifact is not None
                 assert artifact.simulated is False
+                assert (
+                    schema_validation_service.validate_execution_details(
+                        tool_name="asset.source.inspect",
+                        payload=execution.details,
+                    )
+                    == []
+                )
+                assert (
+                    schema_validation_service.validate_artifact_metadata(
+                        tool_name="asset.source.inspect",
+                        payload=artifact.metadata,
+                    )
+                    == []
+                )
+
+
+def test_asset_source_inspect_cross_checks_asset_catalog_product_path_presence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = (
+            project_root / "Levels" / "BridgeLevel01" / "BridgeLevel01.prefab"
+        )
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_text("prefab-fixture", encoding="utf-8")
+        create_asset_source_inspect_assetdb_fixture(project_root)
+        create_asset_source_inspect_catalog_fixture(project_root)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_database():
+                request = make_asset_source_inspect_request()
+                request.project_root = str(project_root)
+                request.args["source_path"] = (
+                    "Levels/BridgeLevel01/BridgeLevel01.prefab"
+                )
+                response = dispatcher_service.dispatch(request)
+                assert response.ok is True
+                assert response.result is not None
+                assert response.result.simulated is False
+                run_id = response.operation_id
+                assert run_id is not None
+                execution = next(
+                    execution
+                    for execution in executions_service.list_executions()
+                    if execution.run_id == run_id
+                )
+                artifact = artifacts_service.get_artifact(response.artifacts[0])
+                assert execution.details["product_evidence_available"] is True
+                assert execution.details["asset_catalog_evidence_requested"] is True
+                assert execution.details["asset_catalog_evidence_available"] is True
+                assert execution.details["asset_catalog_evidence_source"] == (
+                    "assetcatalog.xml-read-only"
+                )
+                assert execution.details["asset_catalog_product_path_count"] == 1
+                assert "pc/levels/bridgelevel01/bridgelevel01.spawnable" in (
+                    execution.details["asset_catalog_product_path_presence"][0]
+                )
+                assert "present=True" in (
+                    execution.details["asset_catalog_product_path_presence"][0]
+                )
+                assert execution.details["asset_catalog_read_mode"] == "read-only"
+                assert execution.details["asset_catalog_format_observed"] == (
+                    "binary-or-serialized"
+                )
+                assert "assetcatalog.xml_product_path_presence" in (
+                    execution.details["inspection_evidence"]
+                )
+                assert artifact is not None
+                assert artifact.metadata["asset_catalog_evidence_available"] is True
                 assert (
                     schema_validation_service.validate_execution_details(
                         tool_name="asset.source.inspect",
