@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-5b033aa1dd537d45ceb04759a0209381173b2875
+629326626e5542a63ac2a6ce95ceb5d75afa09a7
 ```
 
 The latest runtime/capability movement remains the completed Phase 8 Camera
@@ -97,6 +97,7 @@ Recent handoff-relevant packets:
   requests to mutate render settings, build settings, TIAF state, or execute
   Python in the editor stay on `editor.candidate_mutation.unsupported` instead
   of planning only session/level setup.
+- PR #95 merged that editor blocked-surface prompt refusal guard.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
