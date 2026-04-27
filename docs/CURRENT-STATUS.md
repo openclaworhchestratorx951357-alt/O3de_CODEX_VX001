@@ -127,7 +127,9 @@ exists under the project root. Live proof against `McpSandbox` confirmed the
 BridgeLevel prefab maps to one spawnable product and five product-dependency
 rows through read-only `assetdb.sqlite` inspection. Public product/dependency
 completeness, Asset Processor execution, cache mutation, and
-`asset.product.resolve` remain unadmitted.
+`asset.product.resolve` remain unadmitted. Operator-facing examples now define
+safe and refused prompts for the exact read-only Phase 9 asset
+source/product/dependency readback corridor.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
