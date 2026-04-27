@@ -16,6 +16,10 @@ The inventory used fresh remote refs from `origin`, checked merge status against
 `origin/main`, checked branch-side unique commits, and checked whether any open
 pull request referenced each branch.
 
+Follow-up cleanup is recorded in
+`docs/BRANCH-CLEANUP-REPORT-SUPERVISOR-BATCH-03-CONTROL-PLANE.md`. That packet
+deleted the 16 delete-safe candidates after re-verifying every branch.
+
 ## Current Main SHA
 
 Local `HEAD` and `origin/main` both pointed to:
