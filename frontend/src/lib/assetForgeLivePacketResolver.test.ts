@@ -57,6 +57,7 @@ describe("resolveAssetForgeLivePacketSelection", () => {
     });
 
     const resolved = resolveAssetForgeLivePacketSelection({
+      selectedRunId: "run-live-001",
       selectedArtifact: artifact,
       selectedExecution: execution,
       selectedExecutionDetails: null,
@@ -64,6 +65,10 @@ describe("resolveAssetForgeLivePacketSelection", () => {
 
     expect(resolved.reviewPacketData).toBe(artifact.metadata);
     expect(resolved.reviewPacketSource).toBe("live_phase9_packet_data");
+    expect(resolved.reviewPacketOrigin?.kind).toBe("selected_artifact_metadata");
+    expect(resolved.reviewPacketOrigin?.artifactId).toBe("artifact-live-001");
+    expect(resolved.reviewPacketOrigin?.executionId).toBe("exec-live-001");
+    expect(resolved.reviewPacketOrigin?.runId).toBe("run-live-001");
   });
 
   it("falls back to selected execution details when no artifact packet exists", () => {
@@ -75,6 +80,7 @@ describe("resolveAssetForgeLivePacketSelection", () => {
     };
 
     const resolved = resolveAssetForgeLivePacketSelection({
+      selectedRunId: "run-live-001",
       selectedArtifact: null,
       selectedExecution: buildExecution(executionPacket),
       selectedExecutionDetails: null,
@@ -82,6 +88,10 @@ describe("resolveAssetForgeLivePacketSelection", () => {
 
     expect(resolved.reviewPacketData).toBe(executionPacket);
     expect(resolved.reviewPacketSource).toBe("live_phase9_packet_data");
+    expect(resolved.reviewPacketOrigin?.kind).toBe("selected_execution_details");
+    expect(resolved.reviewPacketOrigin?.artifactId).toBeNull();
+    expect(resolved.reviewPacketOrigin?.executionId).toBe("exec-live-001");
+    expect(resolved.reviewPacketOrigin?.runId).toBe("run-live-001");
   });
 
   it("falls back to selected run execution details when available", () => {
@@ -95,6 +105,7 @@ describe("resolveAssetForgeLivePacketSelection", () => {
     };
 
     const resolved = resolveAssetForgeLivePacketSelection({
+      selectedRunId: "run-live-001",
       selectedArtifact: null,
       selectedExecution: null,
       selectedExecutionDetails: runExecutionPacket,
@@ -102,10 +113,15 @@ describe("resolveAssetForgeLivePacketSelection", () => {
 
     expect(resolved.reviewPacketData).toBe(runExecutionPacket);
     expect(resolved.reviewPacketSource).toBe("live_phase9_packet_data");
+    expect(resolved.reviewPacketOrigin?.kind).toBe("selected_run_execution_details");
+    expect(resolved.reviewPacketOrigin?.artifactId).toBeNull();
+    expect(resolved.reviewPacketOrigin?.executionId).toBeNull();
+    expect(resolved.reviewPacketOrigin?.runId).toBe("run-live-001");
   });
 
   it("returns empty resolution when no packet evidence exists", () => {
     const resolved = resolveAssetForgeLivePacketSelection({
+      selectedRunId: "run-live-001",
       selectedArtifact: buildArtifact({
         note: "no packet payload",
       }),
@@ -119,5 +135,6 @@ describe("resolveAssetForgeLivePacketSelection", () => {
 
     expect(resolved.reviewPacketData).toBeUndefined();
     expect(resolved.reviewPacketSource).toBeUndefined();
+    expect(resolved.reviewPacketOrigin).toBeUndefined();
   });
 });

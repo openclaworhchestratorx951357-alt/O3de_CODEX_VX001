@@ -3,6 +3,23 @@ export type AssetForgeReviewPacketSource =
   | "existing_frontend_packet_data"
   | "live_phase9_packet_data";
 
+export type AssetForgeReviewPacketOriginKind =
+  | "typed_fixture_preview"
+  | "existing_frontend_packet_payload"
+  | "selected_artifact_metadata"
+  | "selected_execution_details"
+  | "selected_run_execution_details"
+  | "unknown_live_packet_origin";
+
+export interface AssetForgeReviewPacketOrigin {
+  kind: AssetForgeReviewPacketOriginKind;
+  label: string;
+  detail: string;
+  runId?: string | null;
+  executionId?: string | null;
+  artifactId?: string | null;
+}
+
 export interface Phase9AssetReadbackReviewPacketSelectedProject {
   project_root?: string | null;
   project_json_path?: string | null;

@@ -2,7 +2,10 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 
 import AssetForgeReviewPacketPanel from "./AssetForgeReviewPacketPanel";
 import { mapAssetForgeToolbenchReviewPacket } from "../lib/assetForgeReviewPacketMapper";
-import type { AssetForgeReviewPacketSource } from "../types/assetForgeReviewPacket";
+import type {
+  AssetForgeReviewPacketOrigin,
+  AssetForgeReviewPacketSource,
+} from "../types/assetForgeReviewPacket";
 import type { O3DEBridgeStatus } from "../types/contracts";
 import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 
@@ -22,6 +25,7 @@ type AssetForgeStudioShellProps = {
   onOpenBuilder?: () => void;
   reviewPacketData: unknown;
   reviewPacketSource: AssetForgeReviewPacketSource;
+  reviewPacketOrigin?: AssetForgeReviewPacketOrigin;
   bridgeStatus?: O3DEBridgeStatus | null;
 };
 
@@ -140,6 +144,42 @@ function readSavedMenu(): TopMenu | null {
   return topMenus.includes(saved as TopMenu) ? (saved as TopMenu) : null;
 }
 
+function buildDefaultPacketOrigin(
+  source: AssetForgeReviewPacketSource,
+): AssetForgeReviewPacketOrigin {
+  switch (source) {
+    case "live_phase9_packet_data":
+      return {
+        kind: "unknown_live_packet_origin",
+        label: "Live packet payload",
+        detail: "Live packet source connected, but selected record origin is not available in this view.",
+      };
+    case "existing_frontend_packet_data":
+      return {
+        kind: "existing_frontend_packet_payload",
+        label: "Existing frontend packet payload",
+        detail: "Packet data came from existing frontend payload wiring.",
+      };
+    case "typed_fixture_data":
+    default:
+      return {
+        kind: "typed_fixture_preview",
+        label: "Typed fixture preview",
+        detail: "No live Phase 9 packet is connected. Showing local typed fixture preview only.",
+      };
+  }
+}
+
+function buildPacketOriginRows(packetOrigin: AssetForgeReviewPacketOrigin): Array<[string, string]> {
+  return [
+    ["Origin", packetOrigin.label],
+    ["Origin detail", packetOrigin.detail],
+    ["Run ID", safeText(packetOrigin.runId)],
+    ["Execution ID", safeText(packetOrigin.executionId)],
+    ["Artifact ID", safeText(packetOrigin.artifactId)],
+  ];
+}
+
 function badgeTone(gate: GateState): CSSProperties {
   switch (gate) {
     case "read-only": return { borderColor: "#2f8c5e", color: "#8ff0b5", background: "rgba(18, 85, 57, 0.42)" };
@@ -177,13 +217,14 @@ function Badge({ gate }: { gate: GateState }) {
   return <span style={{ ...s.badge, ...badgeTone(gate) }}>{gate}</span>;
 }
 
-export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStudio, onOpenRuntimeOverview, onOpenBuilder, reviewPacketData, reviewPacketSource, bridgeStatus }: AssetForgeStudioShellProps) {
+export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStudio, onOpenRuntimeOverview, onOpenBuilder, reviewPacketData, reviewPacketSource, reviewPacketOrigin, bridgeStatus }: AssetForgeStudioShellProps) {
   const [activeTopMenu, setActiveTopMenu] = useState<TopMenu>(() => readSavedMenu() ?? "Create");
   const [activeAssetCategory, setActiveAssetCategory] = useState<AssetCategory>("Source assets");
   const [activeTool, setActiveTool] = useState("Select");
   const [cameraMode, setCameraMode] = useState<CameraMode>("Perspective");
   const packet = useMemo(() => mapAssetForgeToolbenchReviewPacket(reviewPacketData, reviewPacketSource), [reviewPacketData, reviewPacketSource]);
   const bridgeSnapshot = useMemo(() => buildBridgeSnapshot(bridgeStatus), [bridgeStatus]);
+  const resolvedPacketOrigin = reviewPacketOrigin ?? buildDefaultPacketOrigin(reviewPacketSource);
 
   const saveLayout = () => window.localStorage.setItem(STORAGE_KEY, activeTopMenu);
   const resetLayout = () => {
@@ -206,7 +247,7 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
         <span style={s.topStatus}>preview - non-mutating control surface</span>
       </nav>
       <main aria-label="Asset Forge active page" style={s.pageHost}>
-        {activeTopMenu === "File" && <FilePage projectProfile={projectProfile} activeTopMenu={activeTopMenu} saveLayout={saveLayout} resetLayout={resetLayout} bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} />}
+        {activeTopMenu === "File" && <FilePage projectProfile={projectProfile} activeTopMenu={activeTopMenu} saveLayout={saveLayout} resetLayout={resetLayout} bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} />}
         {activeTopMenu === "Edit" && <EditPage />}
         {activeTopMenu === "Create" && <CreatePage onOpenPromptStudio={onOpenPromptStudio} onOpenRuntimeOverview={onOpenRuntimeOverview} onOpenBuilder={onOpenBuilder} />}
         {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} />}
@@ -215,19 +256,19 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
         {activeTopMenu === "Materials" && <MaterialsPage packet={packet} />}
         {activeTopMenu === "Lighting" && <LightingPage />}
         {activeTopMenu === "Camera" && <CameraPage cameraMode={cameraMode} setCameraMode={setCameraMode} />}
-        {activeTopMenu === "Review" && <ReviewPage reviewPacketData={reviewPacketData} reviewPacketSource={reviewPacketSource} packet={packet} />}
-        {activeTopMenu === "Help" && <HelpPage bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} />}
+        {activeTopMenu === "Review" && <ReviewPage reviewPacketData={reviewPacketData} reviewPacketSource={reviewPacketSource} packet={packet} reviewPacketOrigin={resolvedPacketOrigin} />}
+        {activeTopMenu === "Help" && <HelpPage bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} />}
       </main>
     </section>
   );
 }
 
-function FilePage({ projectProfile, activeTopMenu, saveLayout, resetLayout, bridgeSnapshot, packetDataSourceLabel }: { projectProfile?: O3DEProjectProfile; activeTopMenu: TopMenu; saveLayout: () => void; resetLayout: () => void; bridgeSnapshot: BridgeSnapshot; packetDataSourceLabel: string }) {
+function FilePage({ projectProfile, activeTopMenu, saveLayout, resetLayout, bridgeSnapshot, packetDataSourceLabel, packetOrigin }: { projectProfile?: O3DEProjectProfile; activeTopMenu: TopMenu; saveLayout: () => void; resetLayout: () => void; bridgeSnapshot: BridgeSnapshot; packetDataSourceLabel: string; packetOrigin: AssetForgeReviewPacketOrigin }) {
   return <Page title="File" gate="local preview" detail="Project/session information and harmless local layout preferences. No file mutation.">
     <div style={s.twoCols}>
       <Panel title="Project session" gate="read-only"><Rows rows={[["Project", safeText(projectProfile?.name)], ["Project root", safeText(projectProfile?.projectRoot)], ["Engine root", safeText(projectProfile?.engineRoot)], ["Profile source", safeText(projectProfile?.sourceLabel)]]} /></Panel>
       <Panel title="Local layout controls" gate="local preview"><p style={s.muted}>Stores only harmless UI menu preference state in localStorage.</p><div style={s.buttonRow}><button type="button" onClick={saveLayout} style={s.primaryButton}>Save Layout</button><button type="button" onClick={resetLayout} style={s.darkButton}>Reset Layout</button><button type="button" disabled style={s.disabledButton}>Write project file</button></div><Rows rows={[["Saved menu target", activeTopMenu], ["Backend persistence", "Not connected"], ["File mutation", "Blocked"]]} /></Panel>
-      <Panel title="Bridge read-only snapshot" gate="proof-only"><Rows rows={[["Connection", bridgeSnapshot.connectionState], ["Heartbeat", bridgeSnapshot.heartbeatState], ["Runner process", bridgeSnapshot.runnerState], ["Queue status", bridgeSnapshot.queueSummary], ["Bridge source", bridgeSnapshot.sourceLabel], ["Project root", bridgeSnapshot.projectRoot], ["Bridge root", bridgeSnapshot.bridgeRoot], ["Packet source", packetDataSourceLabel]]} /></Panel>
+      <Panel title="Bridge read-only snapshot" gate="proof-only"><Rows rows={[["Connection", bridgeSnapshot.connectionState], ["Heartbeat", bridgeSnapshot.heartbeatState], ["Runner process", bridgeSnapshot.runnerState], ["Queue status", bridgeSnapshot.queueSummary], ["Bridge source", bridgeSnapshot.sourceLabel], ["Project root", bridgeSnapshot.projectRoot], ["Bridge root", bridgeSnapshot.bridgeRoot], ["Packet source", packetDataSourceLabel], ...buildPacketOriginRows(packetOrigin)]} /></Panel>
     </div><BlockedSummary />
   </Page>;
 }
@@ -328,12 +369,12 @@ function CameraPage({ cameraMode, setCameraMode }: { cameraMode: CameraMode; set
   return <Page title="Camera" gate="local preview" detail="Camera list, camera/perspective preview, and cinematic shot list. No O3DE camera mutation."><div style={s.cameraGrid}><Panel title="Camera list" gate="read-only"><List items={["EditorCamera_Main", "PreviewCamera_Cinematic", "AssetReviewCamera_01"]} /><div style={s.buttonRow}>{modes.map((mode) => <button key={mode} type="button" onClick={() => setCameraMode(mode)} style={cameraMode === mode ? s.activeSmallButton : s.smallButton}>{mode}</button>)}</div></Panel><Panel title="Camera / perspective preview" gate="local preview"><ViewportPreview label={cameraMode + " preview"} /></Panel><Panel title="Cinematic shot list" gate="plan-only"><List items={["Shot 010: Establish bridge silhouette", "Shot 020: Orbit candidate detail", "Shot 030: Evidence capture still", "Camera mutation blocked"]} /><button type="button" disabled style={s.disabledWideButton}>Write camera to O3DE scene</button></Panel></div></Page>;
 }
 
-function ReviewPage({ reviewPacketData, reviewPacketSource, packet }: Pick<AssetForgeStudioShellProps, "reviewPacketData" | "reviewPacketSource"> & { packet: PacketViewModel }) {
-  return <Page title="Review" gate="proof-only" detail="Full-page operator review packet, evidence summary, warnings, approval state, and safest next step." review><div style={s.reviewGrid}><section aria-label="Forge operator review packet full page" style={s.reviewPacketFrame}><AssetForgeReviewPacketPanel packetData={reviewPacketData} packetSource={reviewPacketSource} /></section><aside style={s.reviewAside}><Panel title="Evidence summary" gate="proof-only"><Rows rows={[["Source evidence", packet.sourceEvidence.sourceExists], ["Product evidence", packet.productEvidence.evidenceAvailable], ["Catalog evidence", packet.catalogEvidence.catalogPresence], ["Dependency evidence", packet.dependencyEvidence.evidenceAvailable]]} /></Panel><Panel title="Unknown / unavailable" gate="requires approval"><Rows rows={[["License", packet.unavailableFields.licenseStatus], ["Quality", packet.unavailableFields.qualityStatus], ["Placement readiness", packet.unavailableFields.placementReadiness], ["Production approval", packet.unavailableFields.productionApproval]]} /></Panel><Panel title="Operator state" gate="requires approval"><Rows rows={[["Approval", packet.operatorApprovalState], ["Safest next step", packet.safestNextStep]]} /><button type="button" disabled style={s.disabledWideButton}>Approve production import</button></Panel></aside></div></Page>;
+function ReviewPage({ reviewPacketData, reviewPacketSource, packet, reviewPacketOrigin }: Pick<AssetForgeStudioShellProps, "reviewPacketData" | "reviewPacketSource" | "reviewPacketOrigin"> & { packet: PacketViewModel }) {
+  return <Page title="Review" gate="proof-only" detail="Full-page operator review packet, evidence summary, warnings, approval state, and safest next step." review><div style={s.reviewGrid}><section aria-label="Forge operator review packet full page" style={s.reviewPacketFrame}><AssetForgeReviewPacketPanel packetData={reviewPacketData} packetSource={reviewPacketSource} /></section><aside style={s.reviewAside}><Panel title="Evidence summary" gate="proof-only"><Rows rows={[["Source evidence", packet.sourceEvidence.sourceExists], ["Product evidence", packet.productEvidence.evidenceAvailable], ["Catalog evidence", packet.catalogEvidence.catalogPresence], ["Dependency evidence", packet.dependencyEvidence.evidenceAvailable], ...buildPacketOriginRows(reviewPacketOrigin ?? buildDefaultPacketOrigin(reviewPacketSource))]} /></Panel><Panel title="Unknown / unavailable" gate="requires approval"><Rows rows={[["License", packet.unavailableFields.licenseStatus], ["Quality", packet.unavailableFields.qualityStatus], ["Placement readiness", packet.unavailableFields.placementReadiness], ["Production approval", packet.unavailableFields.productionApproval]]} /></Panel><Panel title="Operator state" gate="requires approval"><Rows rows={[["Approval", packet.operatorApprovalState], ["Safest next step", packet.safestNextStep]]} /><button type="button" disabled style={s.disabledWideButton}>Approve production import</button></Panel></aside></div></Page>;
 }
 
-function HelpPage({ bridgeSnapshot, packetDataSourceLabel }: { bridgeSnapshot: BridgeSnapshot; packetDataSourceLabel: string }) {
-  return <Page title="Help" gate="read-only" detail="Connected vs preview explanation, gate legend, and safe workflow guide."><div style={s.threeCols}><Panel title="Connected vs preview" gate="read-only"><List items={[`Bridge connection: ${bridgeSnapshot.connectionState}`, `Bridge heartbeat: ${bridgeSnapshot.heartbeatState}`, `Bridge queue: ${bridgeSnapshot.queueSummary}`, `Review packet source: ${packetDataSourceLabel}`, "Viewport preview is local UI only - renderer not connected", "Backend mutation corridors remain blocked"]} /></Panel><Panel title="Gate legend" gate="read-only"><List items={["read-only: can inspect data", "local preview: UI state only", "plan-only: draft or instruction", "proof-only: evidence display", "blocked/not admitted: disabled"]} /></Panel><Panel title="Workflow guide" gate="plan-only"><List items={["Create: draft prompt and plan", "Assets: inspect evidence", "Review: inspect packet", "Use Prompt Studio/Runtime/Builder only through existing safe navigation"]} /></Panel></div><BlockedSummary /></Page>;
+function HelpPage({ bridgeSnapshot, packetDataSourceLabel, packetOrigin }: { bridgeSnapshot: BridgeSnapshot; packetDataSourceLabel: string; packetOrigin: AssetForgeReviewPacketOrigin }) {
+  return <Page title="Help" gate="read-only" detail="Connected vs preview explanation, gate legend, and safe workflow guide."><div style={s.threeCols}><Panel title="Connected vs preview" gate="read-only"><List items={[`Bridge connection: ${bridgeSnapshot.connectionState}`, `Bridge heartbeat: ${bridgeSnapshot.heartbeatState}`, `Bridge queue: ${bridgeSnapshot.queueSummary}`, `Review packet source: ${packetDataSourceLabel}`, `Review packet origin: ${packetOrigin.label}`, `Origin detail: ${packetOrigin.detail}`, "Viewport preview is local UI only - renderer not connected", "Backend mutation corridors remain blocked"]} /></Panel><Panel title="Gate legend" gate="read-only"><List items={["read-only: can inspect data", "local preview: UI state only", "plan-only: draft or instruction", "proof-only: evidence display", "blocked/not admitted: disabled"]} /></Panel><Panel title="Workflow guide" gate="plan-only"><List items={["Create: draft prompt and plan", "Assets: inspect evidence", "Review: inspect packet", "Use Prompt Studio/Runtime/Builder only through existing safe navigation"]} /></Panel></div><BlockedSummary /></Page>;
 }
 
 function Page({ title, detail, gate, children, review = false }: { title: string; detail: string; gate: GateState; children: ReactNode; review?: boolean }) {

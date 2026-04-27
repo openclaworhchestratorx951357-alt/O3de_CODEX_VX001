@@ -1,5 +1,8 @@
 import AssetForgeStudioShell from "./AssetForgeStudioShell";
-import type { AssetForgeReviewPacketSource } from "../types/assetForgeReviewPacket";
+import type {
+  AssetForgeReviewPacketOrigin,
+  AssetForgeReviewPacketSource,
+} from "../types/assetForgeReviewPacket";
 import type { O3DEBridgeStatus } from "../types/contracts";
 import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 
@@ -10,6 +13,7 @@ type AssetForgeToolbenchLayoutProps = {
   onOpenBuilder?: () => void;
   reviewPacketData: unknown;
   reviewPacketSource: AssetForgeReviewPacketSource;
+  reviewPacketOrigin?: AssetForgeReviewPacketOrigin;
   bridgeStatus?: O3DEBridgeStatus | null;
 };
 

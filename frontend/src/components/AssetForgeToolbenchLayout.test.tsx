@@ -213,6 +213,14 @@ describe("AssetForgeToolbenchLayout", () => {
     renderToolbench({
       bridgeStatus: bridgeStatusFixture,
       reviewPacketSource: "live_phase9_packet_data",
+      reviewPacketOrigin: {
+        kind: "selected_artifact_metadata",
+        label: "Selected artifact metadata",
+        detail: "Artifact artifact-live-001 | Execution exec-live-001 | Run run-live-001",
+        runId: "run-live-001",
+        executionId: "exec-live-001",
+        artifactId: "artifact-live-001",
+      },
     });
 
     const shell = screen.getByLabelText("Asset Forge Studio Shell");
@@ -223,10 +231,13 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByText("Fresh (4s)")).toBeInTheDocument();
     expect(within(shell).getByText("inbox 1 | processing 0 | results 3 | deadletter 0")).toBeInTheDocument();
     expect(within(shell).getByText("Live Phase 9 packet data (read-only)")).toBeInTheDocument();
+    expect(within(shell).getByText("Selected artifact metadata")).toBeInTheDocument();
+    expect(within(shell).getByText("artifact-live-001")).toBeInTheDocument();
 
     fireEvent.click(within(shell).getByRole("button", { name: "Help" }));
     expect(within(shell).getByText("Bridge connection: Connected (read-only)")).toBeInTheDocument();
     expect(within(shell).getByText("Bridge queue: inbox 1 | processing 0 | results 3 | deadletter 0")).toBeInTheDocument();
     expect(within(shell).getByText("Review packet source: Live Phase 9 packet data (read-only)")).toBeInTheDocument();
+    expect(within(shell).getByText("Review packet origin: Selected artifact metadata")).toBeInTheDocument();
   });
 });

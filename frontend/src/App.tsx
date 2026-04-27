@@ -7279,11 +7279,12 @@ export default function App() {
 
   const assetForgeLivePacket = useMemo(
     () => resolveAssetForgeLivePacketSelection({
+      selectedRunId,
       selectedArtifact,
       selectedExecution,
       selectedExecutionDetails,
     }),
-    [selectedArtifact, selectedExecution, selectedExecutionDetails],
+    [selectedRunId, selectedArtifact, selectedExecution, selectedExecutionDetails],
   );
 
   if (activeWorkspaceId === "asset-forge") {
@@ -7377,6 +7378,7 @@ export default function App() {
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
                 reviewPacketData={assetForgeLivePacket.reviewPacketData}
                 reviewPacketSource={assetForgeLivePacket.reviewPacketSource}
+                reviewPacketOrigin={assetForgeLivePacket.reviewPacketOrigin}
                 bridgeStatus={o3deBridgeStatus}
               />
             </Suspense>
