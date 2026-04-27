@@ -71,6 +71,16 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByLabelText("Forge blocked mutation summary")).toHaveTextContent("placement");
   });
 
+  it("hydrates the Review page from saved local menu preference", () => {
+    window.localStorage.setItem("o3de-asset-forge-page-shell-menu-v1", "Review");
+    renderToolbench();
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    expect(within(shell).getByLabelText("Asset Forge Review page")).toBeInTheDocument();
+    expect(within(shell).queryByLabelText("Asset Forge Create page")).not.toBeInTheDocument();
+    expect(within(shell).getByLabelText("Forge operator review packet full page")).toBeInTheDocument();
+  });
+
   it("switches Assets into a full content-browser page and hides Create-only content", () => {
     renderToolbench();
 

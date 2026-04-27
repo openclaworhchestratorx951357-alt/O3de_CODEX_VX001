@@ -7292,6 +7292,9 @@ export default function App() {
   );
 
   function openAssetForgeWorkspaceFromRecords(): void {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("o3de-asset-forge-page-shell-menu-v1", "Review");
+    }
     setActiveWorkspaceId("asset-forge");
   }
 
