@@ -436,6 +436,20 @@ Future phases should not copy Camera-specific behavior. They should copy the
 workflow discipline: narrow gates, explicit evidence, exact admission labels,
 strong refusal boundaries, and honest rollback claims.
 
+## AI Asset Forge Application
+
+O3DE AI Asset Forge must use the same normalized gates before it becomes
+runtime behavior.
+
+The Forge stream starts as planning and substrate audit work, then moves through
+local generation proof outside O3DE, cleanup/conversion proof, O3DE import
+readiness design, proof-only import with explicit approval, Asset Processor and
+Phase 9 readback validation, operator review, entity assignment design, exact
+assignment proof, and only then a production corridor decision.
+
+Do not skip from roadmap to model downloads, generated asset commits, O3DE
+project mutation, Asset Processor execution, or entity placement.
+
 ## Final Rule
 
 Every future phase should move from:

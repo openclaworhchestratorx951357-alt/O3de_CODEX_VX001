@@ -142,6 +142,8 @@ rounding up capability claims.
 - `docs/PHASE-9-PROJECT-ASSET-READBACK-DISCOVERY.md` records the read-only
   backend discovery helper for project root, cache, database, platform catalog,
   and source-asset readiness.
+- `docs/PHASE-9-AI-ASSET-FORGE-INTEGRATION.md` explains why Phase 9 is the
+  validation backbone for future O3DE AI Asset Forge generated assets.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
@@ -166,6 +168,8 @@ rounding up capability claims.
 
 ## Roadmaps And Contracts
 
+- `docs/AI-ASSET-FORGE-PRODUCTION-ROADMAP.md`
+- `docs/AI-ASSET-FORGE-O3DE-INTEGRATION-ARCHITECTURE.md`
 - `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
 - `docs/PHASE-6B-REMOTE-EXECUTOR-CONTRACT.md`

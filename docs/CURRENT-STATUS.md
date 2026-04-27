@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-df2849b62d53707460f403f947eb72894cddc1d0
+5f934250ffc57aa5ed7029dfa7e8f055936869a8
 ```
 
 The latest runtime/capability movement is the Phase 9
@@ -128,6 +128,12 @@ Recent handoff-relevant packets:
   substrate discovery, parser design, product-path presence implementation,
   live proof, and operator examples while keeping catalog work proof-only and
   read-only.
+- PR #115 documented the Phase 9 production-generalization plan and made clear
+  that `McpSandbox` and `BridgeLevel01` are proof targets, not production
+  assumptions.
+- PR #116 added the read-only project-general asset readback discovery helper
+  for project root, `project.json`, `Cache`, `assetdb.sqlite`, platform
+  catalogs, and source-asset readiness.
 
 Phase 9 product/dependency readback is no longer blocked on absence of a local
 sample. It remains a local proof target and project-general readback candidate,
@@ -154,6 +160,14 @@ blocked/readiness states. That helper is tracked in
 `docs/PHASE-9-PROJECT-ASSET-READBACK-DISCOVERY.md`.
 `docs/PHASE-9-ASSET-READBACK-CHECKPOINT.md` is the compact current checkpoint
 for this Phase 9 state.
+
+O3DE AI Asset Forge is now a planned production feature stream, but it is
+architecture/planning only. No local model generation, generated asset import,
+Asset Processor execution, generated-asset assignment, or entity placement is
+admitted. The planned Forge pipeline depends on Phase 9 becoming the
+project-general validation backbone for generated source assets: source
+existence, product rows, dependency rows, Asset Catalog presence, and operator
+review must be proven before generated assets can be treated as usable.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -394,14 +408,18 @@ property writes.
    source mapping, bounded entries, freshness provenance, discovery readiness,
    and fail-closed unavailable behavior. Do not run Asset Processor or mutate
    cache/source files.
-3. If Phase 8 continues without explicit write approval, select another
+3. After the Phase 9 proof path is stable, run the first O3DE AI Asset Forge
+   packet: `codex/ai-asset-forge-local-model-substrate-audit`, a docs-only
+   audit of local/private 3D generation candidates with no model download and
+   no asset generation.
+4. If Phase 8 continues without explicit write approval, select another
    already-allowlisted read-only target discovery candidate or add narrow
    refusal/readback examples for a documented gap. Do not widen writes,
    restore, property-list admission, or public prompts without a separate
    approval gate.
-4. Produce a branch cleanup report before deleting any uncertain historical,
+5. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
-5. Continue repository professionalization in small docs-only packets when the
+6. Continue repository professionalization in small docs-only packets when the
    change does not alter runtime capability or GitHub settings.
 
 Do not turn this file into a substitute for proof artifacts. Update it only

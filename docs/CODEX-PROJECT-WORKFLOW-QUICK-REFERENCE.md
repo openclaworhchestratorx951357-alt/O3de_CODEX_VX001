@@ -66,6 +66,11 @@ implementing a new phase or widening a capability. Phase 8 is the reference
 example for how to promote a capability safely, but future phases must adapt
 the pattern to their own domain and risk level.
 
+O3DE AI Asset Forge is a planned production feature stream, not an admitted
+runtime path. Continue Phase 9 project-general readback first; do not download
+models, generate assets, import assets, run Asset Processor, or place generated
+assets before the relevant Forge audit, design, proof, and admission gates.
+
 ## Start Every Slice From Truth
 
 Before changing files:

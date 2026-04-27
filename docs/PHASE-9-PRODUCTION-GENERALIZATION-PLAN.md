@@ -44,6 +44,21 @@ A production adapter must discover or be configured with:
 The production adapter must treat each of those as runtime project facts, not
 as hardcoded `McpSandbox` or `BridgeLevel01` assumptions.
 
+## AI Asset Forge validation backbone
+
+Phase 9 is the required validation backbone for O3DE AI Asset Forge.
+
+The future Forge pipeline will generate or convert source assets before they
+enter an O3DE project. Those generated assets are not considered usable until
+Phase 9 can prove, read-only, that the selected project and platform contain the
+expected source asset, product rows, product dependency rows, and Asset Catalog
+presence.
+
+The next Phase 9 proof must therefore support future generated assets as
+dynamic source-asset inputs, not only the current `BridgeLevel01` proof target.
+`BridgeLevel01` remains valuable because it proves the current substrate; it
+must not become a hidden production assumption for AI Asset Forge.
+
 ## Required future packet
 
 The next required Phase 9 production-generalization packet is:
@@ -171,3 +186,8 @@ local proof target + exact public admitted corridor, portability audit pending
 No future PR may describe a proof target as production-general unless the
 adapter accepts project/source inputs dynamically and has blocked/readiness
 behavior for missing project, cache, schema, component, or property conditions.
+
+This rule applies directly to O3DE AI Asset Forge: no generated asset may be
+described as production-ready until the adapter can validate that asset through
+project-general source/product/dependency/catalog readback and report truthful
+blocked/readiness states.
