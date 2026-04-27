@@ -95,29 +95,20 @@ describe("HomeWorkspaceView", () => {
 
     const forgePanel = screen.getByLabelText("AI Asset Forge");
     expect(within(forgePanel).getByText("O3DE AI Asset Forge")).toBeInTheDocument();
-    expect(within(forgePanel).getByText("Creative prompts to O3DE-native Toolbench corridors")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Forge Toolbench edit tools")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Forge internal request preview")).toHaveTextContent(
-      "creative_prompt",
-    );
-    expect(within(forgePanel).getByLabelText("AI Asset Forge dedicated viewer")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Forge control, view, and edit tools")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("O3DE AI Asset Forge Toolbench")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Forge top application menu")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Forge workspace strip")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Forge left tool shelf")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Forge scene and entity outliner")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Forge viewport preview")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("Toolbench viewport preview — not a live O3DE render")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Forge properties inspector")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Forge asset browser")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Forge timeline evidence status")).toBeInTheDocument();
+    expect(within(forgePanel).getByRole("button", { name: "Place candidate in level" })).toBeDisabled();
+    fireEvent.click(within(forgePanel).getByRole("button", { name: "Review Evidence" }));
     expect(within(forgePanel).getByLabelText("Forge operator review packet")).toBeInTheDocument();
     expect(within(forgePanel).getByText("Typed sample fixture data (read-only preview; not live)")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("AI Asset Forge O3DE feature coverage")).toHaveTextContent(
-      "Asset Processor",
-    );
-    expect(within(forgePanel).getByLabelText("Forge Toolbench pipeline")).toHaveTextContent("Generation corridor");
-    expect(within(forgePanel).getByLabelText("Forge Toolbench pipeline")).toHaveTextContent("blocked");
-    expect(within(forgePanel).getByRole("button", { name: "Place in level" })).toBeDisabled();
-    fireEvent.click(within(forgePanel).getByRole("button", { name: "products" }));
-    expect(within(forgePanel).getByLabelText("Generated asset preview")).toHaveTextContent("products view | orbit");
-    fireEvent.change(within(forgePanel).getByLabelText("Asset type"), {
-      target: { value: "environment set piece" },
-    });
-    expect(within(forgePanel).getByLabelText("Forge internal request preview")).toHaveTextContent(
-      "environment set piece",
-    );
 
     fireEvent.change(screen.getByLabelText("Source context notes"), {
       target: { value: "Use a lighthouse puzzle where the player redirects light beams." },
