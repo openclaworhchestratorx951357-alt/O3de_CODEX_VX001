@@ -294,7 +294,7 @@ in that packet.
 
 ## Required next Forge packet
 
-After proof-only O3DE source staging:
+After proof-only O3DE source staging, this packet was implemented:
 
 ```text
 Branch:
@@ -310,6 +310,35 @@ Run or otherwise observe Asset Processor processing for the staged generated GLB
 with explicit operator approval, then use Phase 9 readback to verify
 source/product/dependency/catalog evidence while keeping assignment, placement,
 and production admission blocked.
+
+Result:
+
+The proof is recorded in
+`docs/AI-ASSET-FORGE-ASSET-PROCESSOR-VALIDATION.md`. Asset Processor processed
+the staged generated GLB for `pc`; read-only Asset Database inspection found
+one GLB source row, one scene-compilation job with zero errors and four
+warnings, 15 product rows, and 21 product-dependency rows. Asset Catalog
+inspection found representative generated product paths. Assignment, placement,
+public import admission, and production use remain blocked.
+
+## Required next Forge packet
+
+After Asset Processor validation:
+
+```text
+Branch:
+codex/ai-asset-forge-operator-review-packet
+
+PR title:
+Define AI Asset Forge generated asset operator review packet
+```
+
+Purpose:
+
+Define the operator-facing review packet that collects generated-asset
+provenance, source/product/dependency/catalog evidence, Asset Processor
+warnings, hashes, license/commercial status, and approval state before any
+entity assignment or placement design.
 
 ## Final rule
 

@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-cff8605faca4f3ad4d3e5b6713fcfca5b7a5ce68
+eefbb5ab107eea45ce4b26ecd8856b9bab63715b
 ```
 
 The latest runtime/capability movement is the Phase 9
@@ -181,6 +181,11 @@ Recent handoff-relevant packets:
   `McpSandbox/Assets/Generated/triposr_chair_001/` with explicit operator
   approval. It is recorded in
   `docs/AI-ASSET-FORGE-O3DE-SOURCE-STAGING-PROOF.md`.
+- The current O3DE AI Asset Forge Asset Processor validation processed the
+  staged generated GLB for `pc`, verified read-only `assetdb.sqlite`
+  source/product/dependency rows, and cross-checked representative product
+  paths in `assetcatalog.xml`. It is recorded in
+  `docs/AI-ASSET-FORGE-ASSET-PROCESSOR-VALIDATION.md`.
 
 Phase 9 product/dependency readback is no longer blocked on absence of a local
 sample. It remains a local proof target and project-general proof-only readback
@@ -197,7 +202,7 @@ read-only mode for bounded product/dependency evidence when the requested source
 exists under the project root. Live proof against `McpSandbox` confirmed the
 BridgeLevel prefab maps to one spawnable product and five product-dependency
 rows through read-only `assetdb.sqlite` inspection. Public product/dependency
-completeness, Asset Processor execution, cache mutation, and
+completeness, broad Asset Processor execution, cache mutation, and
 `asset.product.resolve` remain unadmitted. Operator-facing examples now define
 safe and refused prompts for the exact read-only Phase 9 asset
 source/product/dependency readback corridor. Production generalization is
@@ -220,23 +225,19 @@ boundaries.
 `docs/PHASE-9-ASSET-READBACK-CHECKPOINT.md` is the compact current checkpoint
 for this Phase 9 state.
 
-O3DE AI Asset Forge is now a planned production feature stream, but it is
-architecture/planning only. No local model generation, generated asset import,
-Asset Processor execution, generated-asset assignment, or entity placement is
-admitted. The planned Forge pipeline depends on Phase 9 becoming the
-project-general validation backbone for generated source assets: source
-existence, product rows, dependency rows, Asset Catalog presence, and operator
+O3DE AI Asset Forge is now a proof-only production feature stream. It has local
+TripoSR generation, cleanup/conversion, sandbox source staging, and bounded
+Asset Processor validation evidence, but no production import, generated-asset
+assignment, entity placement, or public generated-asset use is admitted. The
+planned Forge pipeline depends on Phase 9 as the project-general validation
+backbone for generated source assets: source existence, product rows,
+dependency rows, Asset Catalog presence, warnings, provenance, and operator
 review must be proven before generated assets can be treated as usable. The
-Forge Phase 0 substrate audit selects TripoSR as the first proof-only local
-generation candidate. Forge Phase 1 local generation proof now confirms TripoSR
-can produce one raw OBJ outside the repo and outside O3DE projects, but no
-generated asset exists in the repo and no O3DE import is admitted. Forge Phase
-2 cleanup/conversion proof now confirms that the generated OBJ can be inspected,
-normalized to unit scale, and exported as a GLB outside O3DE; import readiness
-design now exists. The proof-only source staging mutation has now staged one GLB
-and provenance file into `McpSandbox`, but Asset Processor has not run,
-`assetdb.sqlite` has zero source rows for the generated GLB, and the asset is
-not yet O3DE-usable.
+bounded `McpSandbox` `triposr_chair_001` proof now has one generated GLB source
+row, one scene-compilation job with zero errors and four warnings, 15 product
+rows, 21 product-dependency rows, product-cache files, and representative Asset
+Catalog product-path presence. The asset is an O3DE-processed candidate, not a
+production-approved or placeable asset.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -470,10 +471,10 @@ property writes.
 ## Recommended Next Packets
 
 1. Open the next O3DE AI Asset Forge packet:
-   `codex/ai-asset-forge-asset-processor-validation`, an explicitly approved
-   packet to run or observe Asset Processor for the staged generated GLB and use
-   Phase 9 readback for source/product/dependency/catalog evidence while
-   keeping assignment, placement, and production admission blocked.
+   `codex/ai-asset-forge-operator-review-packet`, a proof/design packet to
+   define the operator-facing review packet for generated asset provenance,
+   source/product/dependency/catalog evidence, Asset Processor warnings, hashes,
+   license/commercial status, and approval state.
 2. Keep Phase 9 product/dependency readback read-only until any later
    production-general admission packet proves exact source mapping, bounded
    entries, freshness provenance, discovery readiness, review output, and

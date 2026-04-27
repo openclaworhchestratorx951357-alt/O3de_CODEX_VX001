@@ -229,6 +229,13 @@ dependencies -> catalog.
 Output:
 assetdb/catalog proof.
 
+Status:
+Completed in `docs/AI-ASSET-FORGE-ASSET-PROCESSOR-VALIDATION.md` for the
+bounded `McpSandbox/Assets/Generated/triposr_chair_001/` target. Asset
+Processor produced source, product, dependency, product-cache, and catalog
+evidence for the generated GLB. Assignment, placement, public import
+admission, and production use remain blocked.
+
 ### Forge Phase 6 - Operator review
 
 Goal:
@@ -286,9 +293,9 @@ Every generated asset must eventually track:
 
 ## Next recommended implementation sequence
 
-1. Run or observe Asset Processor validation for the staged generated GLB with
-   explicit operator approval, then use Phase 9 readback for
-   source/product/dependency/catalog evidence.
+1. Define the generated-asset operator review packet using the staged source,
+   Asset Processor products, dependency rows, catalog presence, warnings,
+   hashes, license/commercial status, and approval state.
 2. Keep public import, assignment, placement, and production corridor admission
    blocked until provenance and operator review are implemented.
 
@@ -303,3 +310,4 @@ Every generated asset must eventually track:
 - Forge Phase 2 proof: `docs/AI-ASSET-FORGE-CLEANUP-CONVERSION-PROOF.md`
 - Forge Phase 3 design: `docs/AI-ASSET-FORGE-O3DE-IMPORT-READINESS-DESIGN.md`
 - Forge Phase 4 proof: `docs/AI-ASSET-FORGE-O3DE-SOURCE-STAGING-PROOF.md`
+- Forge Phase 5 proof: `docs/AI-ASSET-FORGE-ASSET-PROCESSOR-VALIDATION.md`
