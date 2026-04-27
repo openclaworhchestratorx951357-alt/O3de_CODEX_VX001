@@ -92,6 +92,7 @@ describe("DesktopShell", () => {
     );
 
     const shellRoot = container.firstElementChild as HTMLElement;
+    const workspaceCanvas = screen.getByText("Workspace body").parentElement as HTMLElement;
 
     expect(screen.getByText("Control surface")).toBeInTheDocument();
     expect(screen.getByText("Now open")).toBeInTheDocument();
@@ -107,7 +108,10 @@ describe("DesktopShell", () => {
     ).toHaveAttribute("title", "Inspect persisted evidence and warnings.");
     expect(screen.getByText("Bridge: fresh")).toHaveAttribute("title", "Heartbeat is currently fresh.");
     expect(shellRoot).toHaveStyle("height: 100vh");
+    expect(shellRoot).toHaveStyle("max-height: 100dvh");
     expect(shellRoot).toHaveStyle("overflow: hidden");
+    expect(workspaceCanvas).toHaveStyle("padding-bottom: 72px");
+    expect(workspaceCanvas).toHaveStyle("scroll-padding-bottom: 72px");
 
     const quickAccessInput = screen.getByRole("combobox", { name: "Quick access app explorer" });
     fireEvent.focus(quickAccessInput);
@@ -140,6 +144,9 @@ describe("DesktopShell", () => {
     const agentCallMenu = screen.getByRole("dialog", { name: "Agent call menu" });
     expect(agentCallMenu).toBeInTheDocument();
     expect(agentCallMenu.parentElement).toBe(document.body);
+    expect(agentCallMenu).toHaveStyle("max-height: 662px");
+    expect(agentCallMenu).toHaveStyle("overflow: hidden");
+    expect(screen.getByText("Mission Control").parentElement?.parentElement).toHaveStyle("overflow-y: auto");
     fireEvent.mouseDown(document.body);
     expect(screen.queryByRole("dialog", { name: "Agent call menu" })).not.toBeInTheDocument();
 
@@ -245,7 +252,10 @@ describe("DesktopShell", () => {
     expect(screen.getByText("Runtime workspace body")).toBeInTheDocument();
     expect(providerRoot.getAttribute("style")).toContain("--app-shell-max-width: 1240px");
     expect(providerRoot.getAttribute("style")).toContain("--app-transition: none");
-    expect(desktopSurface).toHaveStyle("padding: 18px");
+    expect(desktopSurface).toHaveStyle("padding-top: 18px");
+    expect(desktopSurface).toHaveStyle("padding-right: 18px");
+    expect(desktopSurface).toHaveStyle("padding-bottom: 76px");
+    expect(desktopSurface).toHaveStyle("padding-left: 18px");
     expect(desktopSurface).toHaveStyle("width: 100%");
     expect(desktopSurface).toHaveStyle("overflow: hidden");
   });

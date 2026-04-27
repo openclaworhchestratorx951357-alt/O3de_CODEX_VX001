@@ -88,6 +88,7 @@ export default function DesktopShell({
         style={{
           ...desktopSurfaceStyle,
           padding: themeTokens.compactDensity ? 18 : 24,
+          paddingBottom: themeTokens.compactDensity ? 76 : 88,
           width: "100%",
           margin: 0,
           boxSizing: "border-box",
@@ -123,6 +124,7 @@ export default function DesktopShell({
 
 const shellStyle = {
   height: "100vh",
+  maxHeight: "100dvh",
   minHeight: 0,
   display: "grid",
   gridTemplateRows: "auto 1fr",
@@ -270,4 +272,6 @@ const workspaceCanvasStyle = {
   overflow: "auto",
   alignContent: "start",
   paddingRight: 4,
+  paddingBottom: 72,
+  scrollPaddingBottom: 72,
 } satisfies CSSProperties;
