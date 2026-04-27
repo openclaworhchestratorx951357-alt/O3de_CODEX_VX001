@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-ff6c9d04bf873f6bcd6ad5ba1ef7ee3b0b66a5f9
+df2849b62d53707460f403f947eb72894cddc1d0
 ```
 
 The latest runtime/capability movement is the Phase 9
@@ -124,9 +124,14 @@ Recent handoff-relevant packets:
   source/product/dependency readback corridor.
 - PR #107 added prompt refusal coverage for unsafe Phase 9 asset execution,
   cache mutation, broad resolve, and source/product mutation intents.
+- PR #108 through PR #114 extended Phase 9 with schema review, Asset Catalog
+  substrate discovery, parser design, product-path presence implementation,
+  live proof, and operator examples while keeping catalog work proof-only and
+  read-only.
 
 Phase 9 product/dependency readback is no longer blocked on absence of a local
-sample. A read-only substrate audit found
+sample. It remains a local proof target and project-general readback candidate,
+not a production-general adapter. A read-only substrate audit found
 `C:\Users\topgu\O3DE\Projects\McpSandbox\Cache\assetdb.sqlite` with source,
 product, job, scan-folder, source-dependency, and product-dependency tables.
 The audited sample maps
@@ -141,7 +146,11 @@ rows through read-only `assetdb.sqlite` inspection. Public product/dependency
 completeness, Asset Processor execution, cache mutation, and
 `asset.product.resolve` remain unadmitted. Operator-facing examples now define
 safe and refused prompts for the exact read-only Phase 9 asset
-source/product/dependency readback corridor.
+source/product/dependency readback corridor. Production generalization is
+tracked in `docs/PHASE-9-PRODUCTION-GENERALIZATION-PLAN.md`; the required next
+packet is `codex/phase-9-project-asset-readback-discovery`, which must replace
+local proof assumptions with project-root/source-asset discovery and explicit
+blocked/readiness states.
 `docs/PHASE-9-ASSET-READBACK-CHECKPOINT.md` is the compact current checkpoint
 for this Phase 9 state.
 
@@ -329,6 +338,13 @@ The completed Phase 8 Camera bool corridor sequence is checkpointed in
 `docs/PHASE-8-CAMERA-BOOL-CORRIDOR-CHECKPOINT.md`. Future threads should treat
 that checkpoint as the concise handoff for the exact Camera bool corridor and
 the first normalized-phase reference example.
+
+The Phase 8 Camera bool corridor is exact and admitted, but local
+`McpSandbox` Camera proof targets must not be treated as universal component
+or property assumptions. A future optional packet,
+`codex/phase-8-component-property-portability-audit`, should audit component
+availability, property-path stability, type checks, and refusal behavior across
+projects.
 
 Rollback and restore expectations for the exact Camera bool corridor are
 designed in `docs/PHASE-8-CAMERA-BOOL-ROLLBACK-RESTORE-DESIGN.md`. That design

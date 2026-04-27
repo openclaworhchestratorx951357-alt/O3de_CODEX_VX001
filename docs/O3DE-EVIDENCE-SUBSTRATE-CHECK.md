@@ -164,3 +164,8 @@ capability is blocked.
 
 First check whether O3DE already records the evidence somewhere safe to
 inspect.
+
+Do not describe a local proof target as production-general. A production-general
+claim also requires dynamic project/source discovery and blocked/readiness
+behavior for missing project roots, `project.json`, cache directories,
+databases, catalogs, schemas, components, or property paths.

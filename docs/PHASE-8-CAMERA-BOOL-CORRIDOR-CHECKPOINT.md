@@ -33,6 +33,14 @@ promoted one exact live-proven property target into exact public admitted write
 and restore corridors while keeping broad property writes, generic restore,
 public property listing, arbitrary Editor Python, and generalized undo blocked.
 
+The local `McpSandbox` Camera bool proof target is not a universal production
+assumption. Phase 8 production generalization requires portability checks for
+the current user project/editor, component availability, exact property-path
+availability, and property type before read, write, or restore. That future
+optional audit is named in
+`docs/PHASE-9-PRODUCTION-GENERALIZATION-PLAN.md` as
+`codex/phase-8-component-property-portability-audit`.
+
 ## Completed PR Sequence
 
 | PR | Packet | Normalized workflow stage | Outcome |
@@ -248,6 +256,8 @@ Safe next packets:
 
 - operator examples/checkpoint refresh packets
 - next readback-only scalar discovery packet
+- optional component/property portability audit packet for exact Camera bool
+  corridor behavior across projects and property-path variations
 - report-first branch cleanup packets only
 
 Do not start with broad public admission. Future phases should begin by reading

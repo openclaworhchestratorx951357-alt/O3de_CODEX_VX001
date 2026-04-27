@@ -136,6 +136,9 @@ rounding up capability claims.
 - `docs/PHASE-9-ASSET-CATALOG-PATH-PRESENCE-LIVE-PROOF.md` records the live
   read-only `McpSandbox` proof of that Asset Catalog product-path presence
   cross-check.
+- `docs/PHASE-9-PRODUCTION-GENERALIZATION-PLAN.md` defines how Phase 9 moves
+  from local proof targets to project-general readback and names the future
+  Phase 8 portability audit.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
