@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-3916ec06cad4ababe4bb5c441b92c6fc3b434c17
+2fac490653b13dd31a90c8d50e207e273089edd5
 ```
 
 The latest runtime/capability movement remains the completed Phase 8 Camera
@@ -66,6 +66,10 @@ Recent handoff-relevant packets:
 - PR #84 implemented the proof-only Camera non-bool scalar readback scope in
   the private proof helper and future bridge setup path while preserving public
   prompt, write, restore, and property-list boundaries.
+- PR #85 checkpointed live proof as pending because the bridge heartbeat was
+  stale at that moment.
+- PR #86 recorded the successful live proof-only Camera non-bool readback target
+  and refreshed the bridge setup before scalar target discovery proofs.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -179,6 +183,12 @@ The proof read value preview `1024.0`, used component id provenance
 the loaded-level prefab boundary with `restored_and_verified`. Runtime proof
 JSON remains ignored/uncommitted.
 
+The current disposition is readback-only. Far clip is a valid future
+write-candidate design target, but it is not admitted for public prompts,
+public writes, public restore, or property listing. A future write path must
+start with a separate design-only packet and explicit high-risk approval before
+any public admission.
+
 ## Repo Hygiene Baseline
 
 Preferred governance right now is low-friction:
@@ -249,12 +259,11 @@ property writes.
 2. If such a sample is provided, create
    `codex/phase-9-asset-readback-substrate-audit` before any proof-only or
    implementation work.
-3. If Phase 8 continues, audit whether
-   `Camera :: Controller|Configuration|Far clip distance :: float` should stay
-   readback-only, receive an explicit future write-candidate design packet, or
-   be checkpointed as a discovered-but-not-admitted target. Do not widen writes,
-   restore, property-list admission, or public prompts without a separate
-   approval gate.
+3. If Phase 8 continues, use
+   `docs/PHASE-8-CAMERA-FAR-CLIP-DISPOSITION-AUDIT.md` to either checkpoint the
+   discovered far clip target as readback-only or draft a design-only future
+   write-candidate packet. Do not widen writes, restore, property-list
+   admission, or public prompts without a separate approval gate.
 4. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 5. Continue repository professionalization in small docs-only packets when the
