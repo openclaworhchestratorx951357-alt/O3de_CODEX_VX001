@@ -118,6 +118,9 @@ rounding up capability claims.
 - `docs/PHASE-9-ASSET-READBACK-OPERATOR-EXAMPLES.md` gives safe/refused
   operator prompt examples for the exact Phase 9 asset source/product/dependency
   readback corridor.
+- `docs/PHASE-9-ASSET-READBACK-CHECKPOINT.md` summarizes the current Phase 9
+  read-only assetdb corridor, live proof, prompt guards, and remaining
+  non-admitted surfaces.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
