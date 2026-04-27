@@ -17,6 +17,7 @@ export default function AgentCallSurface({
     top: number;
     left: number;
     width: number;
+    maxHeight: number;
   } | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const popoverRef = useRef<HTMLDivElement | null>(null);
@@ -49,11 +50,15 @@ export default function AgentCallSurface({
         window.innerWidth - width - 18,
         Math.max(18, buttonBounds.right - width),
       );
+      const top = buttonBounds.bottom + 10;
+      const bottomSafeArea = 96;
+      const maxHeight = Math.max(260, window.innerHeight - top - bottomSafeArea);
 
       setAgentCallPopoverPosition({
-        top: buttonBounds.bottom + 10,
+        top,
         left,
         width,
+        maxHeight,
       });
     }
 
@@ -100,6 +105,7 @@ export default function AgentCallSurface({
             top: agentCallPopoverPosition.top,
             left: agentCallPopoverPosition.left,
             width: agentCallPopoverPosition.width,
+            maxHeight: agentCallPopoverPosition.maxHeight,
           }}
         >
           <div style={agentCallPopoverHeaderStyle}>
@@ -238,13 +244,16 @@ const agentCallPopoverStyle = {
   position: "fixed",
   zIndex: 40,
   display: "grid",
+  gridTemplateRows: "auto minmax(0, 1fr) auto",
   gap: 12,
   padding: 14,
+  boxSizing: "border-box",
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-window-radius)",
   background: "var(--app-panel-bg)",
   boxShadow: "var(--app-shadow-strong)",
   backdropFilter: "blur(22px)",
+  overflow: "hidden",
 } satisfies CSSProperties;
 
 const agentCallPopoverHeaderStyle = {
@@ -256,6 +265,9 @@ const agentCallPopoverHeaderStyle = {
 const agentCallListStyle = {
   display: "grid",
   gap: 8,
+  minHeight: 0,
+  overflowY: "auto",
+  paddingRight: 2,
 } satisfies CSSProperties;
 
 const agentCallListButtonStyle = {

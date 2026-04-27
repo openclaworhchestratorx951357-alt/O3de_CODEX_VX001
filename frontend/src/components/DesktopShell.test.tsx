@@ -144,6 +144,9 @@ describe("DesktopShell", () => {
     const agentCallMenu = screen.getByRole("dialog", { name: "Agent call menu" });
     expect(agentCallMenu).toBeInTheDocument();
     expect(agentCallMenu.parentElement).toBe(document.body);
+    expect(agentCallMenu).toHaveStyle("max-height: 662px");
+    expect(agentCallMenu).toHaveStyle("overflow: hidden");
+    expect(screen.getByText("Mission Control").parentElement?.parentElement).toHaveStyle("overflow-y: auto");
     fireEvent.mouseDown(document.body);
     expect(screen.queryByRole("dialog", { name: "Agent call menu" })).not.toBeInTheDocument();
 
