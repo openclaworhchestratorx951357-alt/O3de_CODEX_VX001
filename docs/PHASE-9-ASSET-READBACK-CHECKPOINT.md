@@ -114,3 +114,7 @@ catalog resolve.
 
 Live proof of that cross-check is now tracked in
 `docs/PHASE-9-ASSET-CATALOG-PATH-PRESENCE-LIVE-PROOF.md`.
+
+Operator examples for the exact catalog cross-check wording and refused broad
+catalog prompts are tracked in
+`docs/PHASE-9-ASSET-READBACK-OPERATOR-EXAMPLES.md`.
