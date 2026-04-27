@@ -123,9 +123,11 @@ The audited sample maps
 product-dependency rows. A proof-only reader path now lets
 `asset.source.inspect` inspect project-local `Cache/assetdb.sqlite` in
 read-only mode for bounded product/dependency evidence when the requested source
-exists under the project root. Public product/dependency completeness, Asset
-Processor execution, cache mutation, and `asset.product.resolve` remain
-unadmitted.
+exists under the project root. Live proof against `McpSandbox` confirmed the
+BridgeLevel prefab maps to one spawnable product and five product-dependency
+rows through read-only `assetdb.sqlite` inspection. Public product/dependency
+completeness, Asset Processor execution, cache mutation, and
+`asset.product.resolve` remain unadmitted.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.

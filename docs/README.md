@@ -112,6 +112,9 @@ rounding up capability claims.
 - `docs/PHASE-9-ASSET-READBACK-PROOF-ONLY.md` records the bounded proof-only
   `asset.source.inspect` product/dependency readback path through
   project-local `Cache/assetdb.sqlite`.
+- `docs/PHASE-9-ASSET-READBACK-LIVE-PROOF.md` records the successful live
+  proof of that read-only product/dependency readback path against
+  `McpSandbox`.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
