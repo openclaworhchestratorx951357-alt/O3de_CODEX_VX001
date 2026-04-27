@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-eb092764d83932217699ae03c2839eceeaad9a4b
+5b033aa1dd537d45ceb04759a0209381173b2875
 ```
 
 The latest runtime/capability movement remains the completed Phase 8 Camera
@@ -91,6 +91,7 @@ Recent handoff-relevant packets:
   near clip, far clip, or frustum width stay on the existing
   `editor.candidate_mutation.unsupported` refusal path unless they are the
   exact admitted Camera bool corridor.
+- PR #93 merged that Camera scalar prompt refusal guard.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
