@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-629326626e5542a63ac2a6ce95ceb5d75afa09a7
+86f059deb96536f8660284effe9dab28f453e1a0
 ```
 
 The latest runtime/capability movement remains the completed Phase 8 Camera
@@ -103,6 +103,7 @@ Recent handoff-relevant packets:
   requests for in-editor Python/script execution, hotkeys, toolbar/click
   automation, selection, duplication, or renaming stay on
   `editor.candidate_mutation.unsupported`.
+- PR #97 merged that editor UI/script prompt refusal guard.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
