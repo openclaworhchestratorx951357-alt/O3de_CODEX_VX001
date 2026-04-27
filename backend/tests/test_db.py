@@ -655,6 +655,91 @@ def make_asset_source_inspect_structured_details() -> dict:
         "dependency_unavailable_reason": (
             "Dependency evidence was available from the read-only database."
         ),
+        "asset_database_freshness_status": "stale_or_unverified",
+        "asset_catalog_freshness_status": "stale_or_unverified",
+        "asset_processor_rerun_required": False,
+        "safest_next_step": "operator_review",
+        "operator_approval_state": "not_requested",
+        "missing_substrate_guidance": None,
+        "asset_readback_review_packet": {
+            "capability": "asset.source.inspect",
+            "review_contract_version": "phase-9-asset-readback-review-v1",
+            "readiness_status": "ready_for_asset_source_inspect",
+            "proof_status": "asset_source_inspect_proven",
+            "read_only": True,
+            "mutation_occurred": False,
+            "selected_project": {
+                "project_root": "C:/Projects/McpSandbox",
+                "project_json_path": "C:/Projects/McpSandbox/project.json",
+                "project_name": "McpSandbox",
+            },
+            "selected_platform": {
+                "platform": "pc",
+                "cache_path": "C:/Projects/McpSandbox/Cache",
+                "asset_catalog_path": (
+                    "C:/Projects/McpSandbox/Cache/pc/assetcatalog.xml"
+                ),
+                "asset_catalog_freshness_status": "stale_or_unverified",
+            },
+            "asset_database": {
+                "path": "C:/Projects/McpSandbox/Cache/assetdb.sqlite",
+                "read_mode": "read-only",
+                "freshness_status": "stale_or_unverified",
+            },
+            "source": {
+                "original_source_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                "normalized_source_path": (
+                    "Levels/BridgeLevel01/BridgeLevel01.prefab"
+                ),
+                "source_id": 3214,
+                "source_guid": "439941DB330C530FAD3E5A36C19A1519",
+                "source_exists": True,
+                "source_is_file": True,
+            },
+            "products": {
+                "product_path": "pc/levels/bridgelevel01/bridgelevel01.spawnable",
+                "product_id": 10608,
+                "product_sub_id": -575275456,
+                "product_rows": [],
+                "product_count": 1,
+                "evidence_available": True,
+            },
+            "dependencies": {
+                "dependency_rows": [],
+                "dependency_count": 1,
+                "evidence_available": True,
+            },
+            "catalog": {
+                "catalog_presence": True,
+                "asset_catalog_product_path_presence": [
+                    (
+                        "pc/levels/bridgelevel01/bridgelevel01.spawnable -> "
+                        "levels/bridgelevel01/bridgelevel01.spawnable "
+                        "(platform=pc, present=True, match_count=1)"
+                    )
+                ],
+                "asset_catalog_product_path_count": 1,
+            },
+            "warnings": [],
+            "blocked_reason": None,
+            "missing_substrate_guidance": None,
+            "safest_next_step": "operator_review",
+            "operator_approval_state": "not_requested",
+            "forge_handoff": {
+                "generated_asset_id": None,
+                "asset_slug": None,
+                "generation_backend": None,
+                "model_name": None,
+                "model_version": None,
+                "prompt": None,
+                "source_asset_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                "product_asset_path": (
+                    "pc/levels/bridgelevel01/bridgelevel01.spawnable"
+                ),
+                "catalog_presence": True,
+                "operator_approval_state": "not_requested",
+            },
+        },
     }
 
 

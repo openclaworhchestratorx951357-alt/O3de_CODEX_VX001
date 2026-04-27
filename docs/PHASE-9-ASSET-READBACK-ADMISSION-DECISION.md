@@ -153,9 +153,9 @@ usable.
 That contract is recorded in
 `docs/PHASE-9-ASSET-READBACK-READINESS-REVIEW-CONTRACT.md`.
 
-## Required Next Packet
+## Completed Review Packet Implementation
 
-Next normalized packet:
+The implementation packet after the readiness/review contract was:
 
 ```text
 Branch:
@@ -171,10 +171,14 @@ Carry the readiness/review contract into operator-facing runtime output without
 widening mutation, asset processing, generated asset import, or public asset
 write capability.
 
+It is recorded in
+`docs/PHASE-9-ASSET-READBACK-REVIEW-PACKET-IMPLEMENTATION.md`.
+
 ## Revisit Gate
 
-Revisit production-general public admission after the readiness review contract
-exists and the corridor can explain these states clearly:
+Revisit production-general public admission only after reviewing the runtime
+review packet against enough project/source/platform cases to trust these
+states:
 
 - selected project and platform
 - database/catalog freshness unknown vs acceptable

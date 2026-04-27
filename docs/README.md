@@ -135,6 +135,9 @@ rounding up capability claims.
   operator-facing review contract for Phase 9 freshness, selected platform,
   missing-substrate guidance, mutation flags, safest next step, and AI Asset
   Forge validation handoff.
+- `docs/PHASE-9-ASSET-READBACK-REVIEW-PACKET-IMPLEMENTATION.md` records the
+  runtime implementation of that review packet in `asset.source.inspect`
+  execution details and artifact metadata.
 - `docs/PHASE-9-ASSET-CATALOG-SUBSTRATE-DISCOVERY.md` records read-only
   discovery of `McpSandbox/Cache/pc/assetcatalog.xml` as a binary/serialized
   product-path substrate, not yet ready for implementation.

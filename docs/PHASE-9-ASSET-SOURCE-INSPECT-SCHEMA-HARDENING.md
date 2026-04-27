@@ -136,21 +136,24 @@ Results:
 The public readback admission decision is now tracked in
 `docs/PHASE-9-ASSET-READBACK-ADMISSION-DECISION.md`.
 
-The readiness/review contract named by that decision is now tracked in
+The readiness/review contract named by that decision is tracked in
 `docs/PHASE-9-ASSET-READBACK-READINESS-REVIEW-CONTRACT.md`.
 
-Recommended next implementation packet:
+The review packet implementation is tracked in
+`docs/PHASE-9-ASSET-READBACK-REVIEW-PACKET-IMPLEMENTATION.md`.
+
+Recommended next project-moving packet:
 
 ```text
 Branch:
-codex/phase-9-asset-readback-review-packet-implementation
+codex/ai-asset-forge-local-model-substrate-audit
 
 PR title:
-Implement Phase 9 asset readback review packet
+Audit local AI 3D model substrate options
 ```
 
 Purpose:
 
-Carry the readiness/review contract into operator-facing runtime output while
-remaining read-only and preserving all asset mutation and Asset Processor
-boundaries.
+Choose the first private/local 3D generation backend candidate for O3DE AI
+Asset Forge without downloading models, changing dependencies, generating
+assets, importing assets, or mutating an O3DE project.

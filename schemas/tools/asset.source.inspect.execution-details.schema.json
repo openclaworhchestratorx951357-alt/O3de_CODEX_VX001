@@ -237,6 +237,85 @@
     "dependency_evidence_requested": { "type": "boolean" },
     "dependency_evidence_available": { "type": "boolean" },
     "dependency_evidence_source": { "type": "string", "minLength": 1 },
-    "dependency_unavailable_reason": { "type": "string", "minLength": 1 }
+    "dependency_unavailable_reason": { "type": "string", "minLength": 1 },
+    "asset_database_freshness_status": {
+      "type": "string",
+      "enum": ["fresh_enough_for_readback", "stale_or_unverified", "unknown", "missing"]
+    },
+    "asset_catalog_freshness_status": {
+      "type": "string",
+      "enum": ["fresh_enough_for_readback", "stale_or_unverified", "unknown", "missing"]
+    },
+    "asset_processor_rerun_required": { "type": "boolean" },
+    "safest_next_step": { "type": "string", "minLength": 1 },
+    "operator_approval_state": {
+      "type": "string",
+      "enum": ["not_requested", "pending", "approved", "rejected"]
+    },
+    "missing_substrate_guidance": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "asset_readback_review_packet": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "capability": { "type": "string", "const": "asset.source.inspect" },
+        "review_contract_version": { "type": "string", "minLength": 1 },
+        "readiness_status": { "type": "string", "minLength": 1 },
+        "proof_status": { "type": "string", "minLength": 1 },
+        "read_only": { "type": "boolean" },
+        "mutation_occurred": { "type": "boolean" },
+        "selected_project": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "selected_platform": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "asset_database": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "products": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "dependencies": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "catalog": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "blocked_reason": {
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "missing_substrate_guidance": {
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "safest_next_step": { "type": "string", "minLength": 1 },
+        "operator_approval_state": {
+          "type": "string",
+          "enum": ["not_requested", "pending", "approved", "rejected"]
+        },
+        "forge_handoff": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
   }
 }

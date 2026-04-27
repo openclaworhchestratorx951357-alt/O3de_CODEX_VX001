@@ -21,16 +21,16 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-2549b8daef459239f3d063538344675efe37fe34
+9e9ac28a154c0beccb8f5a6811b7d10d87964a9b
 ```
 
 The latest runtime/capability movement is the Phase 9
 `asset.source.inspect` project-general proof path, structured schema hardening,
-and admission decision. The existing narrow read-only surface remains active,
-but production-general public admission is withheld pending the
-operator-facing readiness/review contract. The completed Phase 8 Camera bool
-write/restore corridor and readback-only Camera far clip evidence remain
-admitted as previously recorded.
+admission decision, and operator-facing readiness/review packet implementation.
+The existing narrow read-only surface remains active and now reports explicit
+review guidance, but production-general public admission is still withheld. The
+completed Phase 8 Camera bool write/restore corridor and readback-only Camera
+far clip evidence remain admitted as previously recorded.
 
 Recent handoff-relevant packets:
 
@@ -155,6 +155,12 @@ Recent handoff-relevant packets:
   review shape needed before any production-general Phase 9 admission. It is
   recorded in
   `docs/PHASE-9-ASSET-READBACK-READINESS-REVIEW-CONTRACT.md`.
+- The current review packet implementation carries that contract into
+  `asset.source.inspect` execution details and artifact metadata, including
+  freshness labels, selected project/platform summaries, missing-substrate
+  guidance, safest next step, mutation flags, and AI Asset Forge handoff
+  placeholders. It is recorded in
+  `docs/PHASE-9-ASSET-READBACK-REVIEW-PACKET-IMPLEMENTATION.md`.
 
 Phase 9 product/dependency readback is no longer blocked on absence of a local
 sample. It remains a local proof target and project-general proof-only readback
@@ -186,9 +192,11 @@ promote the corridor to production-general public admission yet. The
 readiness/review contract is tracked in
 `docs/PHASE-9-ASSET-READBACK-READINESS-REVIEW-CONTRACT.md`; it defines the
 operator-facing fields for freshness, platform choice, missing-substrate
-guidance, mutation flags, and AI Asset Forge validation handoff. The next
-normalized Phase 9 packet should implement that review packet in the
-operator-facing runtime/output path without widening mutation capability.
+guidance, mutation flags, and AI Asset Forge validation handoff. The review
+packet implementation is tracked in
+`docs/PHASE-9-ASSET-READBACK-REVIEW-PACKET-IMPLEMENTATION.md`; the runtime
+output now carries the review packet while preserving read-only/no-mutation
+boundaries.
 `docs/PHASE-9-ASSET-READBACK-CHECKPOINT.md` is the compact current checkpoint
 for this Phase 9 state.
 
@@ -431,18 +439,18 @@ property writes.
 
 ## Recommended Next Packets
 
-1. Continue Phase 9 with the asset readback review packet implementation:
-   carry `docs/PHASE-9-ASSET-READBACK-READINESS-REVIEW-CONTRACT.md` into the
-   operator-facing output path, including freshness labels, selected platform,
-   missing-substrate guidance, mutation flags, and safest next step.
-2. Keep Phase 9 product/dependency readback read-only until tests prove exact
-   source mapping, bounded entries, freshness provenance, discovery readiness,
-   review output, and fail-closed unavailable behavior. Do not run Asset
-   Processor or mutate cache/source files.
-3. After the Phase 9 review output exists, run the first O3DE AI Asset Forge
+1. Run the first O3DE AI Asset Forge
    packet: `codex/ai-asset-forge-local-model-substrate-audit`, a docs-only
    audit of local/private 3D generation candidates with no model download and
    no asset generation.
+2. Keep Phase 9 product/dependency readback read-only until any later
+   production-general admission packet proves exact source mapping, bounded
+   entries, freshness provenance, discovery readiness, review output, and
+   fail-closed unavailable behavior. Do not run Asset Processor or mutate
+   cache/source files.
+3. If Phase 9 continues before Forge, consider a production-general public
+   admission revisit packet only after reviewing live output from multiple
+   project/source/platform cases.
 4. If Phase 8 continues without explicit write approval, select another
    already-allowlisted read-only target discovery candidate or add narrow
    refusal/readback examples for a documented gap. Do not widen writes,
