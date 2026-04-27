@@ -21,15 +21,22 @@ Default standing rule:
   protocol in `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`: verify repo
   state, organize explicit supervisor/worker roles, check project-local
   dependencies, read the required startup docs, report readiness, and then
-  continue into the normalized phase workflow.
+  apply `docs/CODEX-WORKFLOW-GOVERNOR.md` before creating a branch, commit, or
+  PR.
 - For any new phase, next slice, or "continue the project" request, start from
   `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`,
+  `docs/CODEX-WORKFLOW-GOVERNOR.md`,
   `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` and
   `docs/NORMALIZED-PHASE-WORKFLOW.md` before choosing or implementing the next
   packet.
 
 Operational defaults for repo work:
 - Prefer one small verifiable packet over broad speculative changes.
+- The packet must be project-moving. Do not create standalone PRs only to
+  refresh status SHAs, echo existing docs, or add another refusal-only note
+  unless the operator explicitly asks for that exact packet.
+- Bundle incidental status, index, and handoff updates into the same meaningful
+  PR that caused the truth change.
 - Do not widen capability claims beyond what code, tests, and runtime prove.
 - Finish the next missing gate on the critical path before adding breadth.
 - Keep docs aligned with code truth after a capability is promoted.

@@ -32,6 +32,16 @@ This PR does not:
 
 - TBD
 
+## Workflow-governor value
+
+Why this PR is project-moving rather than trivial status/docs churn:
+
+- TBD
+
+Incidental status/index updates bundled here:
+
+- TBD
+
 ## Revert path
 
 How to undo this PR if needed:

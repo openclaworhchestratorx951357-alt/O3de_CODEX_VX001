@@ -18,6 +18,11 @@ Every phase must progress through narrow, reviewable gates. If a phase skips a
 gate, the PR must explain why the gate is not applicable and what evidence
 replaces it.
 
+Every phase packet must also pass `docs/CODEX-WORKFLOW-GOVERNOR.md`. A packet
+that only refreshes a status SHA, echoes existing docs, or adds refusal-only
+paperwork without new evidence or tests should be bundled into a meaningful
+packet instead of becoming its own PR.
+
 ## The Normalized Phase Pipeline
 
 Every phase should use this order unless there is a documented reason not to.
@@ -249,6 +254,10 @@ Required output:
 - revert and safety notes
 - recommended next safe slices
 
+Checkpoint packets should consolidate meaningful phase truth. Do not create a
+new checkpoint solely because another small PR merged unless the operator asks
+for a handoff packet or stale docs would materially mislead the next thread.
+
 ### 12. Report-First Cleanup Packet
 
 Purpose:
@@ -329,6 +338,7 @@ Every PR must include:
 - Boundaries
 - Revert path
 - Recommended next slice
+- Workflow-governor value
 
 ## Required Boundaries Section
 

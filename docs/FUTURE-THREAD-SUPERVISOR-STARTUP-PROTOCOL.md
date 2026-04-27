@@ -2,11 +2,11 @@
 
 ## Purpose
 
-New Codex threads do not inherit chat history from older threads. Therefore,
-this repository must carry its own startup rules.
+New Codex threads do not inherit previous chat context. Therefore, this
+repository carries its own startup rules.
 
-If the operator says "use supervisor mode," Codex must activate Supervisor Mode
-from this protocol.
+If the operator says "use supervisor mode," Codex must activate Supervisor
+Low-Friction Mode from this protocol.
 
 This protocol is documentation only. It does not broaden runtime capability,
 change dependency versions, or authorize global/system installs.
@@ -19,27 +19,39 @@ If the operator prompt begins with or clearly includes:
 use supervisor mode
 ```
 
-Codex must immediately enter Supervisor Mode before planning or editing.
+Codex must immediately enter Supervisor Low-Friction Mode before planning,
+editing, deleting branches, admitting capabilities, or running destructive
+commands.
 
-If the phrase appears with a specific task, activate Supervisor Mode and execute
-the task using the repo workflow. Do not ask the operator to restate the task
-unless the request is unsafe or genuinely ambiguous.
+If the phrase appears with a specific task, activate Supervisor Low-Friction
+Mode and execute the task using the repo workflow. Do not ask the operator to
+restate the task unless the request is unsafe or genuinely ambiguous.
 
-## Supervisor Mode Structure
+## Supervisor Low-Friction Mode
+
+Supervisor Low-Friction Mode means:
+
+- move quickly on low-risk repo, documentation, and test work
+- use multiple worker roles for parallel inspection
+- keep final authority centralized in the Supervisor Agent
+- do not interrupt the operator for low-risk, already-approved workflow actions
+- still require explicit approval for high-risk, destructive, security, or
+  runtime-broadening actions
+
+## Required Roles
 
 When Supervisor Mode is active, Codex must organize work into explicit roles.
 The roles may be mental roles in the main thread, or separate worker agents when
 the current environment and operator instructions allow delegation.
 
-Required roles:
-
 1. Supervisor Agent
-   - owns the final decision
+   - owns final decisions
    - assigns worker roles
    - reviews all worker findings
    - controls destructive actions
    - controls branch deletion
    - controls public capability admission
+   - controls merge/self-merge decisions
    - produces final report
 
 2. Repository State Agent
@@ -52,7 +64,7 @@ Required roles:
 
 3. Dependency Bootstrap Agent
    - checks project-local dependencies
-   - creates a local virtual environment if needed
+   - creates local virtual environment if needed
    - installs repo-declared dependencies only
    - does not install system/global packages without explicit approval
 
@@ -69,13 +81,13 @@ Required roles:
 
 6. Risk/Boundary Agent
    - checks high-risk actions
-   - blocks broadening
+   - blocks unsafe broadening
    - verifies forbidden actions are not happening
    - requires explicit operator approval for high-risk work
 
 7. Implementation Agent
    - edits only within approved scope
-   - does not broaden the task
+   - does not broaden task
    - does not stage local artifacts
 
 Supervisor rule:
@@ -86,7 +98,7 @@ merge decisions, or GitHub-setting changes.
 
 ## Mandatory Startup Sequence
 
-Every future Codex thread should begin with:
+Every future Codex thread must begin with:
 
 ```powershell
 git rev-parse --show-toplevel
@@ -124,11 +136,13 @@ project work, read:
 
 1. `AGENTS.md`
 2. `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`
-3. `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`
-4. `docs/NORMALIZED-PHASE-WORKFLOW.md`
-5. `docs/CODEX-OPERATING-RUNBOOK.md`
-6. `docs/CURRENT-STATUS.md`
-7. the relevant phase checkpoint, quick reference, or readiness/audit doc
+3. `docs/CODEX-WORKFLOW-GOVERNOR.md`
+4. `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`
+5. `docs/NORMALIZED-PHASE-WORKFLOW.md`
+6. `docs/CODEX-OPERATING-RUNBOOK.md`
+7. `docs/CURRENT-STATUS.md`
+8. the relevant phase checkpoint, quick reference, readiness/audit, or blocker
+   doc
 
 If the request is branch hygiene, also read:
 
@@ -143,8 +157,10 @@ If the request touches admitted surfaces, also read:
 
 ## Dependency Bootstrap Rules
 
-Dependency bootstrap is allowed only for project-local, repo-declared
-dependencies.
+Dependency bootstrap checking is required at startup. Actual installation or
+sync is required only when validation or implementation needs local
+dependencies that are missing or stale. Bootstrap is allowed only for
+project-local, repo-declared dependencies.
 
 This section defines the safe scope for dependency bootstrap. It does not
 override active system/developer/tool confirmation rules. If the current agent
@@ -163,9 +179,17 @@ Never perform these actions unless the operator explicitly approves them:
 Do not add a dependency just because the local environment is stale. First check
 whether the dependency is already declared in repo-owned files.
 
+Declared dependency sources currently include:
+
+- `pyproject.toml`
+- `backend/requirements.txt`
+- `frontend/package.json`
+- `frontend/package-lock.json`
+
 For backend Python:
 
 ```powershell
+Test-Path pyproject.toml
 Test-Path backend\.venv\Scripts\python.exe
 Test-Path backend\requirements.txt
 ```
@@ -189,8 +213,8 @@ Test-Path frontend\package-lock.json
 Test-Path frontend\node_modules
 ```
 
-If `frontend/node_modules` is missing and the task requires frontend validation,
-use only repo-declared frontend dependencies:
+If `frontend/node_modules` is missing and the task requires frontend
+validation, use only repo-declared frontend dependencies:
 
 ```powershell
 cd frontend
@@ -217,9 +241,23 @@ When a validation command fails with a missing package:
 4. If already declared, treat the local environment as stale.
 5. If optional, prefer lazy/guarded imports so unrelated tests can collect.
 6. If truly required and undeclared, use the correct repo-owned dependency file
-   in a dedicated dependency-change packet with explicit risk classification.
+   in a dedicated dependency-change packet with explicit risk classification and
+   operator approval.
 
 Do not hide local stale-environment truth. Report it plainly.
+
+## Workflow Governor Gate
+
+After startup and before creating a branch or PR, Codex must apply
+`docs/CODEX-WORKFLOW-GOVERNOR.md`.
+
+A new PR must move the project toward a meaningful capability, proof,
+admission, operator UX, blocker removal, validation improvement, or workflow
+governance improvement. Do not create standalone PRs whose only purpose is a
+status SHA refresh, a trivial doc echo, or another refusal-only checkpoint
+unless the operator explicitly requests that exact packet.
+
+Bundle incidental status/index updates into the meaningful PR that caused them.
 
 ## Startup Readiness Report
 
@@ -234,7 +272,7 @@ Before editing files, report:
 - whether `.venv/`, `backend/.venv/`, or `frontend/node_modules/` are present
 - docs read for the task
 - selected risk level
-- intended next packet
+- intended next packet and why it passes the workflow-governor gate
 - validation plan
 
 This can be concise, but it must be specific.
@@ -250,9 +288,10 @@ Do not jump directly from an idea to broad admission. Use the normalized gates:
 unknown -> discovered -> designed -> audited -> proof-only -> admission decision -> exact admission -> reviewed -> documented -> checkpointed
 ```
 
-For low-risk documentation and hygiene work, proceed quickly after validation.
-For high-risk runtime, security, destructive, dependency, or public capability
-changes, require explicit operator approval.
+For low-risk documentation and hygiene work, proceed quickly after validation
+when the workflow governor says the packet has real project value. For high-risk
+runtime, security, destructive, dependency, or public capability changes,
+require explicit operator approval.
 
 ## Non-Negotiable Boundaries
 

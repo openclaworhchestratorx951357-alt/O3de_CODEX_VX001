@@ -24,8 +24,27 @@ Supervisor Mode requires Codex to:
 - bootstrap only repo-declared local dependencies when needed
 - avoid global/system installs and dependency changes unless explicitly
   approved
+- apply `docs/CODEX-WORKFLOW-GOVERNOR.md` before creating a branch or PR
 - report startup readiness before editing
 - continue into the normalized phase workflow
+
+## Use The Workflow Governor
+
+Before creating a branch, commit, or PR, read
+`docs/CODEX-WORKFLOW-GOVERNOR.md`.
+
+Every PR must move the project toward a meaningful capability, proof,
+admission, operator UX, blocker removal, validation improvement, or workflow
+governance improvement.
+
+Do not create standalone PRs only to:
+
+- refresh `CURRENT-STATUS.md` after every merge
+- add a trivial docs/index echo
+- add another refusal-only checkpoint with no new probe, test, guard, or
+  operator-requested value
+
+Bundle incidental status/index updates into the meaningful PR that caused them.
 
 ## Use The Normalized Phase Workflow
 
@@ -51,6 +70,7 @@ Primary truth sources:
 
 - code, tests, and observed runtime behavior
 - `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`
+- `docs/CODEX-WORKFLOW-GOVERNOR.md`
 - `docs/CURRENT-STATUS.md`
 - `docs/NORMALIZED-PHASE-WORKFLOW.md`
 - `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
@@ -78,13 +98,15 @@ Then:
 
 1. Make the smallest safe change.
 2. Run validation appropriate to the touched area.
-3. Stage only intended files.
-4. Commit with a clear message.
-5. Push the branch.
-6. Open a PR with summary, scope, validation, risk, boundaries, and revert path.
-7. Self-merge only when allowed by risk and validation.
-8. Update local main after merge.
-9. Delete only the just-merged branch when Git confirms it is merged and has no
+3. Confirm the packet passes the workflow-governor meaningful packet test.
+4. Stage only intended files.
+5. Commit with a clear message.
+6. Push the branch.
+7. Open a PR with summary, scope, validation, risk, boundaries, revert path, and
+   workflow-governor value.
+8. Self-merge only when allowed by risk and validation.
+9. Update local main after merge.
+10. Delete only the just-merged branch when Git confirms it is merged and has no
    unique commits. Do not perform branch bulk deletion without an explicit
    cleanup packet.
 
@@ -220,6 +242,7 @@ End each slice with:
 - branch cleanup performed yes/no
 - recommended next slice
 - revert path
+- why the packet passed the workflow-governor gate
 
 This keeps future threads from relying on stale memory. The next thread should
 trust the local repo state and current docs over old conversation context.
