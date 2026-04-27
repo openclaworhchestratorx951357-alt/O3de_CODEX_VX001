@@ -168,7 +168,6 @@ The corridor is still not a public production-general adapter.
 
 Still pending:
 
-- decide whether the discovery result needs first-class schema fields
 - decide whether this readback corridor is ready for public admission beyond
   the current exact read-only proof corridor
 
@@ -177,12 +176,12 @@ Still pending:
 The next normalized packet should be:
 
 ```text
-asset source inspect schema hardening
+asset readback public admission decision
 ```
 
 Purpose:
 
-Promote the structured project/source/product/dependency/catalog proof fields
-into the published `asset.source.inspect` schemas, keep compatibility with the
-existing string-array evidence, and decide whether any additional readiness
-states need first-class schema treatment before public readback admission.
+Decide whether the project-general, read-only `asset.source.inspect`
+source/product/dependency/catalog corridor is ready to be described as a public
+admitted readback corridor, or whether additional schema, freshness, platform,
+or operator UX work is required first.

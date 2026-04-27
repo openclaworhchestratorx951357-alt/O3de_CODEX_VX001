@@ -526,6 +526,185 @@ def test_schema_validation_service_validates_project_inspect_persisted_payload_h
     assert artifact_metadata_errors == []
 
 
+def make_asset_source_inspect_structured_details() -> dict:
+    return {
+        "inspection_surface": "asset_source_file",
+        "execution_boundary": "read-only local source asset inspection",
+        "simulated": False,
+        "adapter_family": "asset-pipeline",
+        "adapter_mode": "hybrid",
+        "adapter_contract_version": "v0.1",
+        "real_path_available": True,
+        "project_root_path": "C:/Projects/McpSandbox",
+        "project_root": "C:/Projects/McpSandbox",
+        "project_json_path": "C:/Projects/McpSandbox/project.json",
+        "project_name": "McpSandbox",
+        "cache_path": "C:/Projects/McpSandbox/Cache",
+        "database_path": "C:/Projects/McpSandbox/Cache/assetdb.sqlite",
+        "asset_database_path": "C:/Projects/McpSandbox/Cache/assetdb.sqlite",
+        "asset_database_read_mode": "read-only",
+        "available_platforms": ["pc"],
+        "selected_platform": "pc",
+        "catalog_path": "C:/Projects/McpSandbox/Cache/pc/assetcatalog.xml",
+        "original_source_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+        "normalized_source_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+        "read_only": True,
+        "mutation_occurred": False,
+        "readiness_status": "ready_for_asset_source_inspect",
+        "proof_status": "asset_source_inspect_proven",
+        "blocked_reason": None,
+        "source_path_input": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+        "source_path_resolved": (
+            "C:/Projects/McpSandbox/Levels/BridgeLevel01/BridgeLevel01.prefab"
+        ),
+        "source_path_relative_to_project_root": (
+            "Levels/BridgeLevel01/BridgeLevel01.prefab"
+        ),
+        "source_path_source_of_truth": (
+            "project_root/Levels/BridgeLevel01/BridgeLevel01.prefab"
+        ),
+        "source_path_within_project_root": True,
+        "source_read_mode": "read-only",
+        "source_exists": True,
+        "source_is_file": True,
+        "source_resolution_status": "resolved-file",
+        "source_name": "BridgeLevel01.prefab",
+        "source_extension": ".prefab",
+        "source_size_bytes": 42,
+        "source_sha256": "abc123",
+        "source_id": 3214,
+        "source_guid": "439941DB330C530FAD3E5A36C19A1519",
+        "include_flags": {
+            "include_products": True,
+            "include_dependencies": True,
+        },
+        "inspection_evidence": [
+            "project_general_readback_discovery",
+            "assetdb.sqlite_source_mapping",
+        ],
+        "unavailable_evidence": [],
+        "products": [
+            (
+                "pc/levels/bridgelevel01/bridgelevel01.spawnable "
+                "(product_id=10608)"
+            )
+        ],
+        "product_rows": [
+            {
+                "product_id": 10608,
+                "product_path": "pc/levels/bridgelevel01/bridgelevel01.spawnable",
+                "sub_id": -575275456,
+                "hash": -7827569063961660435,
+                "platform": "pc",
+                "job_status": 4,
+                "job_key": "Prefabs",
+                "fingerprint": 123456,
+                "last_log_time": 1776972479705,
+                "source_guid": "439941DB330C530FAD3E5A36C19A1519",
+            }
+        ],
+        "product_path": "pc/levels/bridgelevel01/bridgelevel01.spawnable",
+        "product_id": 10608,
+        "product_sub_id": -575275456,
+        "product_count": 1,
+        "product_evidence_requested": True,
+        "product_evidence_available": True,
+        "product_evidence_source": "assetdb.sqlite-read-only",
+        "product_unavailable_reason": (
+            "Product evidence was available from the read-only database."
+        ),
+        "asset_catalog_evidence_requested": True,
+        "asset_catalog_evidence_available": True,
+        "asset_catalog_evidence_source": "assetcatalog.xml-read-only",
+        "asset_catalog_unavailable_reason": (
+            "Asset Catalog product-path presence was checked read-only."
+        ),
+        "asset_catalog_product_path_presence": [
+            (
+                "pc/levels/bridgelevel01/bridgelevel01.spawnable -> "
+                "levels/bridgelevel01/bridgelevel01.spawnable "
+                "(platform=pc, present=True, match_count=1)"
+            )
+        ],
+        "asset_catalog_product_path_count": 1,
+        "catalog_presence": True,
+        "asset_catalog_path": "C:/Projects/McpSandbox/Cache/pc/assetcatalog.xml",
+        "asset_catalog_size_bytes": 128,
+        "asset_catalog_sha256": "def456",
+        "asset_catalog_last_write_time": 1776972479.705,
+        "asset_catalog_read_mode": "read-only",
+        "asset_catalog_format_observed": "binary-or-serialized",
+        "asset_catalog_parser_limit": 25,
+        "dependencies": ["product_dependency (product_id=10608)"],
+        "dependency_rows": [
+            {
+                "product_id": 10608,
+                "platform": "pc",
+                "dependency_source_guid": "215E47FDD1815832B1AB91673ABF6399",
+                "dependency_sub_id": 1000,
+                "dependency_flags": 1,
+                "from_asset_id": 1,
+                "unresolved_path": "",
+                "unresolved_dependency_type": 0,
+            }
+        ],
+        "dependency_count": 1,
+        "dependency_evidence_requested": True,
+        "dependency_evidence_available": True,
+        "dependency_evidence_source": "assetdb.sqlite-read-only",
+        "dependency_unavailable_reason": (
+            "Dependency evidence was available from the read-only database."
+        ),
+    }
+
+
+def test_schema_validation_service_accepts_structured_asset_source_inspect_details() -> None:
+    errors = schema_validation_service.validate_execution_details(
+        tool_name="asset.source.inspect",
+        payload=make_asset_source_inspect_structured_details(),
+    )
+
+    assert errors == []
+
+
+def test_schema_validation_service_accepts_structured_asset_source_inspect_metadata() -> None:
+    payload = {
+        "tool": "asset.source.inspect",
+        "agent": "asset-pipeline",
+        "execution_mode": "real",
+        **make_asset_source_inspect_structured_details(),
+    }
+
+    errors = schema_validation_service.validate_artifact_metadata(
+        tool_name="asset.source.inspect",
+        payload=payload,
+    )
+
+    assert errors == []
+
+
+def test_schema_validation_service_rejects_invalid_asset_source_structured_fields() -> None:
+    payload = make_asset_source_inspect_structured_details()
+    payload["product_rows"][0]["product_id"] = "10608"
+    payload["catalog_presence"] = "yes"
+    payload["readiness_status"] = "not-a-readiness-state"
+
+    errors = schema_validation_service.validate_execution_details(
+        tool_name="asset.source.inspect",
+        payload=payload,
+    )
+
+    assert any(
+        error.startswith("$.product_rows[0].product_id: expected type integer")
+        for error in errors
+    )
+    assert any(
+        error.startswith("$.catalog_presence: expected type boolean")
+        for error in errors
+    )
+    assert "$.readiness_status: expected one of" in "\n".join(errors)
+
+
 def test_schema_validation_service_reports_subset_capabilities_truthfully() -> None:
     capability = schema_validation_service.get_capability_status()
 

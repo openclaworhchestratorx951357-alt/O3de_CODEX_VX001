@@ -123,8 +123,11 @@ rounding up capability claims.
   read-only assetdb corridor, live proof, prompt guards, and remaining
   non-admitted surfaces.
 - `docs/PHASE-9-ASSET-READBACK-SCHEMA-REVIEW.md` records the current decision
-  to keep string-array product/dependency evidence while reserving an additive
-  structured schema packet for later.
+  to keep string-array product/dependency evidence while allowing additive
+  structured schema fields.
+- `docs/PHASE-9-ASSET-SOURCE-INSPECT-SCHEMA-HARDENING.md` records the
+  structured schema fields for project-general `asset.source.inspect` proof
+  payloads.
 - `docs/PHASE-9-ASSET-CATALOG-SUBSTRATE-DISCOVERY.md` records read-only
   discovery of `McpSandbox/Cache/pc/assetcatalog.xml` as a binary/serialized
   product-path substrate, not yet ready for implementation.

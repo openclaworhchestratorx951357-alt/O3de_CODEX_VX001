@@ -62,6 +62,9 @@ structured rows become the preferred public contract.
 The request args schema also accepts `source_asset_path` as a project-general
 alias for the existing `source_path` field.
 
+The structured fields are now covered by the published persisted payload
+schemas. See `docs/PHASE-9-ASSET-SOURCE-INSPECT-SCHEMA-HARDENING.md`.
+
 ## Proof Target
 
 The current bounded proof target still works:
@@ -153,7 +156,6 @@ project_root + source_path
 
 ## Still Pending
 
-- schema hardening for structured `asset.source.inspect` execution details
 - live proof artifact command, if a future packet chooses to add one
 - public readback admission decision beyond the current proof-only corridor
 - AI Asset Forge model substrate audit
