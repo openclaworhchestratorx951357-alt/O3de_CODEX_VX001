@@ -76,6 +76,12 @@ def test_valid_mcpsandbox_style_project_root_returns_ready_state() -> None:
         assert result["source_asset_path_relative"] == (
             "Levels/BridgeLevel01/BridgeLevel01.prefab"
         )
+        assert result["original_source_path"] == (
+            "Levels/BridgeLevel01/BridgeLevel01.prefab"
+        )
+        assert result["normalized_source_path"] == (
+            "Levels/BridgeLevel01/BridgeLevel01.prefab"
+        )
         assert result["read_only"] is True
         assert result["mutation_occurred"] is False
 
@@ -173,6 +179,19 @@ def test_unsafe_source_path_escaping_project_root_blocks() -> None:
         assert result["readiness_status"] == "source_asset_path_escapes_project"
 
 
+def test_windows_style_traversal_source_path_blocks() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "McpSandbox"
+        make_project_fixture(project_root)
+
+        result = discover_project_asset_readback_inputs(
+            project_root=str(project_root),
+            source_asset_path=r"..\outside.prefab",
+        )
+
+        assert result["readiness_status"] == "source_asset_path_escapes_project"
+
+
 def test_windows_style_source_path_normalization_works() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir) / "McpSandbox"
@@ -184,9 +203,44 @@ def test_windows_style_source_path_normalization_works() -> None:
         )
 
         assert result["readiness_status"] == ASSET_READBACK_READY
+        assert result["original_source_path"] == (
+            r"Levels\BridgeLevel01\BridgeLevel01.prefab"
+        )
+        assert result["normalized_source_path"] == (
+            "Levels/BridgeLevel01/BridgeLevel01.prefab"
+        )
         assert result["source_asset_path_relative"] == (
             "Levels/BridgeLevel01/BridgeLevel01.prefab"
         )
+
+
+def test_mixed_separator_source_path_normalization_works() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "McpSandbox"
+        make_project_fixture(project_root)
+
+        result = discover_project_asset_readback_inputs(
+            project_root=str(project_root),
+            source_asset_path=r"Levels\BridgeLevel01/BridgeLevel01.prefab",
+        )
+
+        assert result["readiness_status"] == ASSET_READBACK_READY
+        assert result["normalized_source_path"] == (
+            "Levels/BridgeLevel01/BridgeLevel01.prefab"
+        )
+
+
+def test_windows_absolute_source_path_outside_project_blocks() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "McpSandbox"
+        make_project_fixture(project_root)
+
+        result = discover_project_asset_readback_inputs(
+            project_root=str(project_root),
+            source_asset_path=r"C:\outside\BridgeLevel01.prefab",
+        )
+
+        assert result["readiness_status"] == "source_asset_path_escapes_project"
 
 
 def test_source_asset_not_checked_state_is_explicit() -> None:
@@ -214,6 +268,22 @@ def test_source_asset_path_missing_blocks() -> None:
         )
 
         assert result["readiness_status"] == "source_asset_path_missing"
+
+
+def test_missing_windows_style_source_asset_path_blocks() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir) / "McpSandbox"
+        make_project_fixture(project_root)
+
+        result = discover_project_asset_readback_inputs(
+            project_root=str(project_root),
+            source_asset_path=r"Levels\BridgeLevel01\Missing.prefab",
+        )
+
+        assert result["readiness_status"] == "source_asset_path_missing"
+        assert result["normalized_source_path"] == (
+            "Levels/BridgeLevel01/Missing.prefab"
+        )
 
 
 def test_discovery_does_not_write_files() -> None:
