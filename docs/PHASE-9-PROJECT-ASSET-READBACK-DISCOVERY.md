@@ -159,14 +159,15 @@ Results:
 
 ## Still Not Production-General
 
-This packet creates the project-general discovery layer, but it does not yet
-make the public adapter production-general.
+This packet created the project-general discovery layer. A later packet
+integrated that helper into the proof-only `asset.source.inspect` path and is
+recorded in
+`docs/PHASE-9-PROJECT-GENERAL-ASSET-SOURCE-INSPECT-PROOF.md`.
+
+The corridor is still not a public production-general adapter.
 
 Still pending:
 
-- integrate the discovery helper into `asset.source.inspect` execution details
-- prove project-general asset source inspection using dynamic project/source
-  inputs
 - decide whether the discovery result needs first-class schema fields
 - decide whether this readback corridor is ready for public admission beyond
   the current exact read-only proof corridor
@@ -176,16 +177,12 @@ Still pending:
 The next normalized packet should be:
 
 ```text
-project-general asset source inspect proof
+asset source inspect schema hardening
 ```
 
 Purpose:
 
-Use the discovery helper inside the read-only `asset.source.inspect` path,
-return structured discovery readiness alongside source/product/dependency
-evidence, and prove the adapter fails closed for missing project/cache/catalog
-conditions without mutating assets.
-
-That proof path should be shaped so a future generated source asset can be
-validated by the same project/source inputs, while keeping actual generation
-and import in later AI Asset Forge packets.
+Promote the structured project/source/product/dependency/catalog proof fields
+into the published `asset.source.inspect` schemas, keep compatibility with the
+existing string-array evidence, and decide whether any additional readiness
+states need first-class schema treatment before public readback admission.

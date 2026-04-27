@@ -111,6 +111,10 @@ def create_test_image(
 
 
 def create_asset_source_inspect_assetdb_fixture(project_root: Path) -> None:
+    (project_root / "project.json").write_text(
+        json.dumps({"project_name": "McpSandbox"}),
+        encoding="utf-8",
+    )
     cache_dir = project_root / "Cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(cache_dir / "assetdb.sqlite")
@@ -245,6 +249,16 @@ def create_asset_source_inspect_assetdb_fixture(project_root: Path) -> None:
         connection.commit()
     finally:
         connection.close()
+
+
+def create_asset_source_inspect_catalog_fixture(project_root: Path) -> None:
+    catalog_path = project_root / "Cache" / "pc" / "assetcatalog.xml"
+    catalog_path.parent.mkdir(parents=True, exist_ok=True)
+    catalog_path.write_bytes(
+        b"\x00serialized-catalog\x00"
+        b"levels/bridgelevel01/bridgelevel01.spawnable"
+        b"\x00other-product"
+    )
 
 def test_prompt_session_preview_compiles_typed_steps_across_families() -> None:
     with isolated_client() as client:
@@ -557,6 +571,8 @@ def test_prompt_session_executes_asset_source_inspect_with_truthful_evidence() -
         source_path = project_root / "Assets" / "Textures" / "example.png"
         source_path.parent.mkdir(parents=True, exist_ok=True)
         source_path.write_bytes(b"asset-source")
+        create_asset_source_inspect_assetdb_fixture(project_root)
+        create_asset_source_inspect_catalog_fixture(project_root)
         with patch.dict(
             "os.environ",
             {
@@ -614,6 +630,7 @@ def test_prompt_session_executes_asset_source_inspect_with_assetdb_evidence() ->
         source_path.parent.mkdir(parents=True, exist_ok=True)
         source_path.write_text("prefab-fixture", encoding="utf-8")
         create_asset_source_inspect_assetdb_fixture(project_root)
+        create_asset_source_inspect_catalog_fixture(project_root)
 
         with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
             with isolated_client() as client:

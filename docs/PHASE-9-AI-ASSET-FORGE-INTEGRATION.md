@@ -6,9 +6,10 @@ Current Phase 9 state:
 
 - project-general asset readback discovery helper exists
 - `McpSandbox` proof target still works
-- adapter integration pending
+- project-general discovery is integrated into the proof-only
+  `asset.source.inspect` path
 - schema hardening pending
-- production-general proof pending
+- public production-general admission pending
 
 The helper is recorded in
 `docs/PHASE-9-PROJECT-ASSET-READBACK-DISCOVERY.md` and implemented in
@@ -16,6 +17,12 @@ The helper is recorded in
 `project.json`, `Cache`, `assetdb.sqlite`, available platform cache folders,
 platform `assetcatalog.xml`, and source-asset readiness without mutating the
 project.
+
+The proof-only adapter integration is recorded in
+`docs/PHASE-9-PROJECT-GENERAL-ASSET-SOURCE-INSPECT-PROOF.md`. It carries
+project-general discovery metadata through `asset.source.inspect`, opens
+`assetdb.sqlite` read-only, queries source/product/dependency evidence, and
+cross-checks Asset Catalog product-path presence.
 
 ## Why AI Asset Forge depends on Phase 9
 
@@ -32,9 +39,9 @@ as O3DE-ready until O3DE has processed the source asset and Phase 9 can prove:
 - the review packet can report provenance and readiness honestly
 - no mutation occurred outside an admitted corridor
 
-## Required next Phase 9 packet
+## Completed Phase 9 packet
 
-Next packet remains:
+This packet is now implemented:
 
 ```text
 Branch:
@@ -49,11 +56,30 @@ Purpose:
 Integrate project-general discovery into `asset.source.inspect` proof path,
 still read-only.
 
-That packet should use dynamic project-root and source-asset inputs rather than
-hardcoded `McpSandbox` or `BridgeLevel01` assumptions. It should prove
-fail-closed readiness behavior for missing project root, `project.json`,
-`Cache`, `assetdb.sqlite`, platform catalog, source path, schema, product rows,
-and dependency rows.
+The proof uses dynamic project-root and source-asset inputs rather than
+hardcoded `McpSandbox` or `BridgeLevel01` assumptions. It proves fail-closed
+readiness behavior for missing project root, `project.json`, `Cache`,
+`assetdb.sqlite`, platform catalog, unsafe source path, missing source, and
+missing product evidence.
+
+## Required next Phase 9 packet
+
+Next packet:
+
+```text
+Branch:
+codex/phase-9-asset-source-inspect-schema-hardening
+
+PR title:
+Harden asset source inspect proof schema
+```
+
+Purpose:
+
+Promote the newly returned structured source/product/dependency/catalog proof
+fields into the published `asset.source.inspect` execution-details and
+artifact-metadata schemas, while preserving compatibility with existing string
+evidence.
 
 ## Required later Forge packet
 
