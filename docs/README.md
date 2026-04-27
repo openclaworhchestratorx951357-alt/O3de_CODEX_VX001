@@ -59,6 +59,8 @@ rounding up capability claims.
   restore corridors.
 - `docs/PHASE-9-ASSET-READBACK-BASELINE.md` starts Phase 9 with the current
   asset/pipeline readback truth before any new asset runtime surface is widened.
+- `docs/PHASE-9-ASSET-READBACK-DISCOVERY.md` records the candidate-only Phase 9
+  discovery decision for product/dependency evidence behind `asset.source.inspect`.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
@@ -134,6 +136,7 @@ rounding up capability claims.
 - `docs/PHASE-8-EDITOR-SCALAR-PROPERTY-TARGET-DISCOVERY.md`
 - `docs/PHASE-8-EDITOR-COMMENT-SCALAR-TARGET-DISCOVERY.md`
 - `docs/PHASE-9-ASSET-READBACK-BASELINE.md`
+- `docs/PHASE-9-ASSET-READBACK-DISCOVERY.md`
 
 ## Evidence And Inventory
 
