@@ -100,6 +100,9 @@ _CANDIDATE_EDITOR_MUTATION_PATTERNS = (
         r"\b(?:move|translate|rotate|scale|place|position)\s+"
         r"(?:the\s+|an?\s+)?(?:entity|object)\b"
     ),
+    re.compile(r"\b(?:set|update|change|modify)\s+transform\b"),
+    re.compile(r"\b(?:hide|show|lock|unlock|activate|deactivate)\s+(?:the\s+|an?\s+)?(?:entity|object)\b"),
+    re.compile(r"\b(?:enable|disable|activate|deactivate)\s+.+\bcomponent\b"),
     re.compile(
         r"\b(?:set|update|write|change|modify|toggle)\s+"
         r"(?:the\s+)?(?:component\s+)?property\b"

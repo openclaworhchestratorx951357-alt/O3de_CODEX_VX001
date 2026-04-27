@@ -2024,6 +2024,30 @@ def test_prompt_session_refuses_arbitrary_command_execution() -> None:
             'Move entity named "Hero" to position 1, 2, 3 in the editor.',
         ),
         (
+            "prompt-editor-candidate-transform-2",
+            'Open level "Levels/Main.level", set transform on entity named '
+            '"Hero" to origin.',
+        ),
+        (
+            "prompt-editor-candidate-visibility-1",
+            'Open level "Levels/Main.level", hide entity named "Hero" in '
+            "the editor.",
+        ),
+        (
+            "prompt-editor-candidate-lock-1",
+            'Open level "Levels/Main.level", lock entity named "Hero" in '
+            "the editor.",
+        ),
+        (
+            "prompt-editor-candidate-component-enable-1",
+            'Open level "Levels/Main.level", enable Mesh component on entity '
+            'named "Hero".',
+        ),
+        (
+            "prompt-editor-candidate-entity-activate-1",
+            'Open level "Levels/Main.level", activate entity named "Hero".',
+        ),
+        (
             "prompt-editor-candidate-component-remove-1",
             "Remove Mesh component from entity id 101 in the editor.",
         ),
