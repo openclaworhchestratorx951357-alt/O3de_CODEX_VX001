@@ -45,6 +45,7 @@ describe("HomeWorkspaceView", () => {
     const openPromptStudio = vi.fn();
     const openRuntimeOverview = vi.fn();
     const openBuilder = vi.fn();
+    const openAssetForge = vi.fn();
 
     render(
       <HomeWorkspaceView
@@ -55,6 +56,7 @@ describe("HomeWorkspaceView", () => {
         onOpenPromptStudio={openPromptStudio}
         onOpenRuntimeOverview={openRuntimeOverview}
         onOpenBuilder={openBuilder}
+        onOpenAssetForge={openAssetForge}
       />,
     );
 
@@ -93,31 +95,13 @@ describe("HomeWorkspaceView", () => {
     expect(screen.getByLabelText("Quick prompt shortcuts")).toHaveTextContent("Analyze viewport and recommend");
     expect(screen.getByLabelText("Quick prompt shortcuts")).toHaveTextContent("frontend-local-shortcuts-v1");
 
-    const forgePanel = screen.getByLabelText("AI Asset Forge");
-    expect(within(forgePanel).getByText("O3DE AI Asset Forge")).toBeInTheDocument();
-    expect(within(forgePanel).getByText("Creative prompts to O3DE-native Toolbench corridors")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Forge Toolbench edit tools")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Forge internal request preview")).toHaveTextContent(
-      "creative_prompt",
-    );
-    expect(within(forgePanel).getByLabelText("AI Asset Forge dedicated viewer")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Forge control, view, and edit tools")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Forge operator review packet")).toBeInTheDocument();
-    expect(within(forgePanel).getByText("Typed sample fixture data (read-only preview; not live)")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("AI Asset Forge O3DE feature coverage")).toHaveTextContent(
-      "Asset Processor",
-    );
-    expect(within(forgePanel).getByLabelText("Forge Toolbench pipeline")).toHaveTextContent("Generation corridor");
-    expect(within(forgePanel).getByLabelText("Forge Toolbench pipeline")).toHaveTextContent("blocked");
-    expect(within(forgePanel).getByRole("button", { name: "Place in level" })).toBeDisabled();
-    fireEvent.click(within(forgePanel).getByRole("button", { name: "products" }));
-    expect(within(forgePanel).getByLabelText("Generated asset preview")).toHaveTextContent("products view | orbit");
-    fireEvent.change(within(forgePanel).getByLabelText("Asset type"), {
-      target: { value: "environment set piece" },
-    });
-    expect(within(forgePanel).getByLabelText("Forge internal request preview")).toHaveTextContent(
-      "environment set piece",
-    );
+    const assetForgeLauncher = screen.getByLabelText("Asset Forge workspace launcher");
+    expect(assetForgeLauncher).toHaveTextContent("Asset Forge has its own page");
+    expect(assetForgeLauncher).toHaveTextContent("dedicated Asset Forge workspace");
+    expect(screen.queryByLabelText("AI Asset Forge")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Forge top application menu")).not.toBeInTheDocument();
+    fireEvent.click(within(assetForgeLauncher).getByRole("button", { name: "Open Asset Forge workspace" }));
+    expect(openAssetForge).toHaveBeenCalledTimes(1);
 
     fireEvent.change(screen.getByLabelText("Source context notes"), {
       target: { value: "Use a lighthouse puzzle where the player redirects light beams." },
@@ -155,6 +139,7 @@ describe("HomeWorkspaceView", () => {
     expect(openPromptStudio).toHaveBeenCalledTimes(1);
     expect(openRuntimeOverview).toHaveBeenCalledTimes(1);
     expect(openBuilder).toHaveBeenCalledTimes(1);
+    expect(openAssetForge).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole("tab", { name: /Create Movie/i }));
 
