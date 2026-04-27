@@ -93,6 +93,9 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByText("Product assets")).toBeInTheDocument();
     expect(within(shell).getByText("Dependency count")).toBeInTheDocument();
     expect(within(shell).getByText("Asset Processor")).toBeInTheDocument();
+    expect(within(shell).getAllByText("Levels/BridgeLevel01/BridgeLevel01.prefab").length).toBeGreaterThan(0);
+    expect(within(shell).getByText("Typed sample fixture data (read-only preview; not live)")).toBeInTheDocument();
+    expect(within(shell).getAllByText("Not connected - placeholder only - no execution").length).toBeGreaterThan(0);
     expect(within(shell).queryByText("Prompt request")).not.toBeInTheDocument();
     expect(within(shell).queryByLabelText("Forge command strip")).not.toBeInTheDocument();
     expect(within(shell).getByRole("button", { name: "Import selected asset" })).toBeDisabled();
@@ -298,6 +301,9 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByText("Live Phase 9 packet data (read-only)")).toBeInTheDocument();
     expect(within(shell).getByText("Selected artifact metadata")).toBeInTheDocument();
     expect(within(shell).getByText("artifact-live-001")).toBeInTheDocument();
+
+    fireEvent.click(within(shell).getByRole("button", { name: "Assets" }));
+    expect(within(shell).getByText(/Connected \(read-only\) queue inbox 1 \| processing 0 \| results 3 \| deadletter 0; placeholder only - no execution/i)).toBeInTheDocument();
 
     fireEvent.click(within(shell).getByRole("button", { name: "Help" }));
     expect(within(shell).getByText("Bridge connection: Connected (read-only)")).toBeInTheDocument();

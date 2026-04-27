@@ -42,6 +42,11 @@ type ToolShelfItem = {
   gate: GateState;
   detail: string;
 };
+type AssetRowEntry = {
+  name: string;
+  gate: GateState;
+  detail: string;
+};
 type BridgeSnapshot = {
   connectionState: string;
   heartbeatState: string;
@@ -71,33 +76,6 @@ const tools: ToolShelfItem[] = [
   { id: "Material", shortLabel: "MAT", gate: "not admitted", detail: "Material mutation is blocked" },
   { id: "Collision", shortLabel: "COL", gate: "not admitted", detail: "Collision authoring is blocked" },
 ];
-const assetRows: Record<AssetCategory, Array<{ name: string; gate: GateState; detail: string }>> = {
-  "Source assets": [
-    { name: "Assets/Bridge/bridge_segment_source.fbx", gate: "read-only", detail: "Source evidence path from preview packet" },
-    { name: "Assets/Bridge/bridge_segment_reference.png", gate: "read-only", detail: "Reference only" },
-    { name: "Source GUID", gate: "proof-only", detail: "Resolved by Phase 9 evidence when connected" },
-  ],
-  "Product assets": [
-    { name: "Cache/pc/bridge_segment.azmodel", gate: "proof-only", detail: "Product evidence preview" },
-    { name: "Cache/pc/bridge_segment.procprefab", gate: "blocked", detail: "Prefab mutation is not admitted" },
-    { name: "Product count", gate: "proof-only", detail: "Readback summary only" },
-  ],
-  Dependencies: [
-    { name: "Texture dependency rows", gate: "proof-only", detail: "Dependency evidence from packet" },
-    { name: "Material dependency rows", gate: "proof-only", detail: "Dependency evidence from packet" },
-    { name: "Missing dependencies", gate: "requires approval", detail: UNKNOWN_VALUE },
-  ],
-  "Catalog evidence": [
-    { name: "Asset Catalog presence", gate: "read-only", detail: "Catalog evidence only" },
-    { name: "Catalog product paths", gate: "read-only", detail: "Read-only path list" },
-    { name: "Asset Processor status", gate: "blocked", detail: "Placeholder only - no execution" },
-  ],
-  "Review packets": [
-    { name: "asset_readback_review_packet", gate: "proof-only", detail: "Typed review packet preview" },
-    { name: "catalog_evidence_summary", gate: "proof-only", detail: "Catalog proof summary" },
-    { name: "operator_approval_state", gate: "requires approval", detail: UNKNOWN_VALUE },
-  ],
-};
 
 function safeText(value: string | null | undefined): string {
   const trimmed = value?.trim();
@@ -136,6 +114,134 @@ function buildBridgeSnapshot(bridgeStatus?: O3DEBridgeStatus | null): BridgeSnap
     sourceLabel: safeText(bridgeStatus.source_label),
     projectRoot: safeText(bridgeStatus.project_root),
     bridgeRoot: safeText(bridgeStatus.bridge_root),
+  };
+}
+
+function isUnknownDisplayValue(value: string): boolean {
+  return value.trim().toLowerCase().startsWith("unknown / unavailable");
+}
+
+function gateFromYesNo(value: string): GateState {
+  if (value === "Yes") {
+    return "read-only";
+  }
+  if (value === "No") {
+    return "requires approval";
+  }
+  return "proof-only";
+}
+
+function buildAssetProcessorStatusLabel(bridgeSnapshot: BridgeSnapshot): string {
+  if (bridgeSnapshot.connectionState.startsWith("Connected")) {
+    return `Connected (read-only) queue ${bridgeSnapshot.queueSummary}; placeholder only - no execution`;
+  }
+  return "Not connected - placeholder only - no execution";
+}
+
+function buildAssetRows(
+  packet: PacketViewModel,
+  bridgeSnapshot: BridgeSnapshot,
+): Record<AssetCategory, AssetRowEntry[]> {
+  const assetProcessorStatusLabel = buildAssetProcessorStatusLabel(bridgeSnapshot);
+  const catalogPathRows = packet.catalogEvidence.catalogProductPaths.length > 0
+    ? packet.catalogEvidence.catalogProductPaths.slice(0, 4).map((path, index) => ({
+      name: `Catalog path ${index + 1}`,
+      gate: "read-only" as const,
+      detail: path,
+    }))
+    : [{
+      name: "Catalog paths",
+      gate: "requires approval" as const,
+      detail: UNKNOWN_VALUE,
+    }];
+
+  return {
+    "Source assets": [
+      {
+        name: "Normalized source path",
+        gate: isUnknownDisplayValue(packet.sourceEvidence.normalizedSourcePath) ? "proof-only" : "read-only",
+        detail: packet.sourceEvidence.normalizedSourcePath,
+      },
+      {
+        name: "Original source path",
+        gate: isUnknownDisplayValue(packet.sourceEvidence.originalSourcePath) ? "proof-only" : "read-only",
+        detail: packet.sourceEvidence.originalSourcePath,
+      },
+      {
+        name: "Source GUID",
+        gate: isUnknownDisplayValue(packet.sourceEvidence.sourceGuid) ? "proof-only" : "read-only",
+        detail: packet.sourceEvidence.sourceGuid,
+      },
+    ],
+    "Product assets": [
+      {
+        name: "Product path",
+        gate: isUnknownDisplayValue(packet.productEvidence.productPath) ? "proof-only" : "read-only",
+        detail: packet.productEvidence.productPath,
+      },
+      {
+        name: "Product count",
+        gate: "proof-only",
+        detail: packet.productEvidence.productCount,
+      },
+      {
+        name: "Product evidence available",
+        gate: gateFromYesNo(packet.productEvidence.evidenceAvailable),
+        detail: packet.productEvidence.evidenceAvailable,
+      },
+    ],
+    Dependencies: [
+      {
+        name: "Dependency count",
+        gate: "proof-only",
+        detail: packet.dependencyEvidence.dependencyCount,
+      },
+      {
+        name: "Dependency evidence available",
+        gate: gateFromYesNo(packet.dependencyEvidence.evidenceAvailable),
+        detail: packet.dependencyEvidence.evidenceAvailable,
+      },
+      {
+        name: "Dependency detail rows",
+        gate: "requires approval",
+        detail: "Detailed dependency rows are not connected in this preview view.",
+      },
+    ],
+    "Catalog evidence": [
+      {
+        name: "Asset Catalog presence",
+        gate: gateFromYesNo(packet.catalogEvidence.catalogPresence),
+        detail: packet.catalogEvidence.catalogPresence,
+      },
+      {
+        name: "Catalog path count",
+        gate: "proof-only",
+        detail: packet.catalogEvidence.catalogProductPathCount,
+      },
+      ...catalogPathRows,
+      {
+        name: "Asset Processor status",
+        gate: bridgeSnapshot.connectionState.startsWith("Connected") ? "proof-only" : "blocked",
+        detail: assetProcessorStatusLabel,
+      },
+    ],
+    "Review packets": [
+      {
+        name: "asset_readback_review_packet",
+        gate: "proof-only",
+        detail: packet.contractVersion,
+      },
+      {
+        name: "proof_status",
+        gate: "proof-only",
+        detail: packet.proofStatus,
+      },
+      {
+        name: "operator_approval_state",
+        gate: "requires approval",
+        detail: packet.operatorApprovalState,
+      },
+    ],
   };
 }
 
@@ -229,6 +335,14 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
   const [cameraMode, setCameraMode] = useState<CameraMode>("Perspective");
   const packet = useMemo(() => mapAssetForgeToolbenchReviewPacket(reviewPacketData, reviewPacketSource), [reviewPacketData, reviewPacketSource]);
   const bridgeSnapshot = useMemo(() => buildBridgeSnapshot(bridgeStatus), [bridgeStatus]);
+  const assetProcessorStatusLabel = useMemo(
+    () => buildAssetProcessorStatusLabel(bridgeSnapshot),
+    [bridgeSnapshot],
+  );
+  const assetRows = useMemo(
+    () => buildAssetRows(packet, bridgeSnapshot),
+    [packet, bridgeSnapshot],
+  );
   const resolvedPacketOrigin = reviewPacketOrigin ?? buildDefaultPacketOrigin(reviewPacketSource);
 
   const saveLayout = () => window.localStorage.setItem(STORAGE_KEY, activeTopMenu);
@@ -255,7 +369,7 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
         {activeTopMenu === "File" && <FilePage projectProfile={projectProfile} activeTopMenu={activeTopMenu} saveLayout={saveLayout} resetLayout={resetLayout} bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} />}
         {activeTopMenu === "Edit" && <EditPage />}
         {activeTopMenu === "Create" && <CreatePage onOpenPromptStudio={onOpenPromptStudio} onOpenRuntimeOverview={onOpenRuntimeOverview} onOpenBuilder={onOpenBuilder} />}
-        {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} />}
+        {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} assetRows={assetRows} assetProcessorStatusLabel={assetProcessorStatusLabel} />}
         {activeTopMenu === "Entity" && <EntityPage activeTool={activeTool} setActiveTool={setActiveTool} />}
         {activeTopMenu === "Components" && <ComponentsPage readbackStatus={packet.readbackStatus} />}
         {activeTopMenu === "Materials" && <MaterialsPage packet={packet} />}
@@ -295,12 +409,12 @@ function CreatePage({ onOpenPromptStudio, onOpenRuntimeOverview, onOpenBuilder }
   </Page>;
 }
 
-function AssetsPage({ activeAssetCategory, setActiveAssetCategory, packet }: { activeAssetCategory: AssetCategory; setActiveAssetCategory: (category: AssetCategory) => void; packet: PacketViewModel }) {
-  return <Page title="Assets" gate="read-only" detail="Full content browser for source assets, products, dependency evidence, Asset Catalog evidence, and Asset Processor placeholders.">
+function AssetsPage({ activeAssetCategory, setActiveAssetCategory, packet, assetRows, assetProcessorStatusLabel }: { activeAssetCategory: AssetCategory; setActiveAssetCategory: (category: AssetCategory) => void; packet: PacketViewModel; assetRows: Record<AssetCategory, AssetRowEntry[]>; assetProcessorStatusLabel: string }) {
+  return <Page title="Assets" gate="read-only" detail="Full content browser for source assets, products, dependency evidence, Asset Catalog evidence, and read-only Asset Processor status.">
     <div aria-label="Forge assets content browser" style={s.assetsGrid}>
       <aside style={s.rail}>{assetCategories.map((category) => <button key={category} type="button" onClick={() => setActiveAssetCategory(category)} style={activeAssetCategory === category ? s.activeRailButton : s.railButton}>{category}</button>)}</aside>
-      <section style={s.browser}><div style={s.panelHeader}>{activeAssetCategory} <Badge gate="read-only" /></div><div style={s.assetTiles}>{assetRows[activeAssetCategory].map((row) => <article key={row.name} style={s.assetTile}><strong>{row.name}</strong><Badge gate={row.gate} /><span>{row.detail}</span></article>)}</div></section>
-      <Panel title="Evidence readback" gate="proof-only"><Rows rows={[["Source path", packet.sourceEvidence.normalizedSourcePath], ["Product path", packet.productEvidence.productPath], ["Dependency count", packet.dependencyEvidence.dependencyCount], ["Catalog presence", packet.catalogEvidence.catalogPresence], ["Asset Processor", "Placeholder only - no execution"]]} /><div style={s.buttonRow}><button type="button" disabled style={s.disabledButton}>Import selected asset</button><button type="button" disabled style={s.disabledButton}>Stage source asset</button><button type="button" disabled style={s.disabledButton}>Execute Asset Processor</button></div></Panel>
+      <section style={s.browser}><div style={s.panelHeader}>{activeAssetCategory} <Badge gate="read-only" /></div><div style={s.assetTiles}>{assetRows[activeAssetCategory].map((row, index) => <article key={`${row.name}-${index}`} style={s.assetTile}><strong>{row.name}</strong><Badge gate={row.gate} /><span>{row.detail}</span></article>)}</div></section>
+      <Panel title="Evidence readback" gate="proof-only"><Rows rows={[["Packet source", packet.dataSourceLabel], ["Source path", packet.sourceEvidence.normalizedSourcePath], ["Product path", packet.productEvidence.productPath], ["Dependency count", packet.dependencyEvidence.dependencyCount], ["Catalog presence", packet.catalogEvidence.catalogPresence], ["Asset DB freshness", packet.freshnessStatus.assetDatabaseFreshness], ["Catalog freshness", packet.freshnessStatus.assetCatalogFreshness], ["Asset Processor", assetProcessorStatusLabel]]} /><div style={s.buttonRow}><button type="button" disabled style={s.disabledButton}>Import selected asset</button><button type="button" disabled style={s.disabledButton}>Stage source asset</button><button type="button" disabled style={s.disabledButton}>Execute Asset Processor</button></div></Panel>
     </div>
   </Page>;
 }
