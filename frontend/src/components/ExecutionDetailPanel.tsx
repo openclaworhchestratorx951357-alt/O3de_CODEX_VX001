@@ -117,6 +117,7 @@ type ExecutionDetailPanelProps = {
   onOpenLaneRolloverRecord?: (() => void) | null;
   onReturnToLane?: (() => void) | null;
   onOpenLaneHistoryEntry?: ((entry: { kind: "run" | "execution" | "artifact"; id: string; label: string; detail: string }) => void) | null;
+  onOpenAssetForgeWorkspace?: (() => void) | null;
   refreshHint?: string | null;
   lastRefreshedAt?: string | null;
   onRefresh?: (() => void) | null;
@@ -184,6 +185,7 @@ export default function ExecutionDetailPanel({
   onOpenLaneRolloverRecord,
   onReturnToLane,
   onOpenLaneHistoryEntry,
+  onOpenAssetForgeWorkspace,
   refreshHint,
   lastRefreshedAt,
   onRefresh,
@@ -280,6 +282,10 @@ export default function ExecutionDetailPanel({
     evidenceSummaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const jumpLabel = relatedArtifacts.length > 0 ? "Jump to related records" : "Jump to evidence";
+  const openedFromAssetForgePacket = (refreshHint ?? "").startsWith(
+    "Auto-opened from Asset Forge packet origin:",
+  );
+  const canReturnToAssetForge = openedFromAssetForgePacket && Boolean(onOpenAssetForgeWorkspace);
 
   return (
     <SummarySection
@@ -330,6 +336,16 @@ export default function ExecutionDetailPanel({
         />
         {refreshHint ? (
           <div style={summaryCalloutStyle}>{refreshHint}</div>
+        ) : null}
+        {canReturnToAssetForge ? (
+          <button
+            type="button"
+            style={summaryActionButtonStyle}
+            title="Return to the Asset Forge workspace to continue review continuity."
+            onClick={() => onOpenAssetForgeWorkspace?.()}
+          >
+            Return to Asset Forge workspace
+          </button>
         ) : null}
         {lastRefreshedAt ? (
           <div style={summaryTimestampNoteStyle}>

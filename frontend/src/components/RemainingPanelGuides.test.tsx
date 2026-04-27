@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import AdaptersPanel from "./AdaptersPanel";
@@ -186,5 +186,21 @@ describe("remaining panel guides", () => {
       "title",
       "Use the related record buttons to open the first linked execution, run, or artifact from the workspace view.",
     );
+  });
+
+  it("shows a return action when run detail is auto-opened from Asset Forge packet origin", () => {
+    const onOpenAssetForgeWorkspace = vi.fn();
+    render(
+      <RunDetailPanel
+        item={run}
+        loading={false}
+        error={null}
+        refreshHint="Auto-opened from Asset Forge packet origin: run evidence."
+        onOpenAssetForgeWorkspace={onOpenAssetForgeWorkspace}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Return to Asset Forge workspace" }));
+    expect(onOpenAssetForgeWorkspace).toHaveBeenCalledTimes(1);
   });
 });

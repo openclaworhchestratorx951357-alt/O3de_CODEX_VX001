@@ -6759,6 +6759,7 @@ export default function App() {
       onOpenRun: openRunDetail,
       onOpenExecution: openExecutionDetail,
       onOpenArtifact: openArtifactDetail,
+      onOpenAssetForgeWorkspace: openAssetForgeWorkspaceFromRecords,
       onOpenPriorityRecord: selectedArtifactSiblingPriority
         ? () => openArtifactDetail(selectedArtifactSiblingPriority.id)
         : null,
@@ -6891,6 +6892,7 @@ export default function App() {
       originatingArtifactKind: executionOriginArtifact?.kind ?? null,
       onOpenRun: openRunDetail,
       onOpenArtifact: openArtifactDetail,
+      onOpenAssetForgeWorkspace: openAssetForgeWorkspaceFromRecords,
       onOpenPriorityRecord: selectedExecutionPreferredArtifact
         ? () => openArtifactDetail(selectedExecutionPreferredArtifact.id)
         : null,
@@ -7036,6 +7038,7 @@ export default function App() {
       lanePresetDriftDetail: lanePresetStatus?.driftDetail ?? null,
       onOpenExecution: openExecutionDetail,
       onOpenArtifact: openArtifactDetail,
+      onOpenAssetForgeWorkspace: openAssetForgeWorkspaceFromRecords,
       onOpenPriorityRecord: selectedRunPreferredExecution
         ? () => openExecutionDetail(selectedRunPreferredExecution.id)
         : null,
@@ -7287,6 +7290,10 @@ export default function App() {
     }),
     [selectedRunId, selectedArtifact, selectedExecution, selectedExecutionDetails],
   );
+
+  function openAssetForgeWorkspaceFromRecords(): void {
+    setActiveWorkspaceId("asset-forge");
+  }
 
   function openAssetForgePacketOriginRecord(origin: AssetForgeReviewPacketOrigin): void {
     const breadcrumbNote = `Auto-opened from Asset Forge packet origin: ${origin.label}.`;

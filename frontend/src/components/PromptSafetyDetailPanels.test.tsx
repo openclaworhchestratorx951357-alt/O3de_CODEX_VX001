@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import ArtifactDetailPanel from "./ArtifactDetailPanel";
 import ExecutionDetailPanel from "./ExecutionDetailPanel";
@@ -95,5 +95,68 @@ describe("prompt safety detail panels", () => {
     expect(
       screen.getByText(approvalGatedSafetyEnvelope.verification_class),
     ).toBeInTheDocument();
+  });
+
+  it("shows a return action when execution detail is auto-opened from Asset Forge packet origin", () => {
+    const onOpenAssetForgeWorkspace = vi.fn();
+    const execution: ExecutionRecord = {
+      id: "exec-forge-1",
+      run_id: "run-forge-1",
+      request_id: "req-forge-1",
+      agent: "editor-control",
+      tool: "project.inspect",
+      execution_mode: "real",
+      status: "succeeded",
+      started_at: "2026-04-21T00:00:00Z",
+      finished_at: "2026-04-21T00:00:03Z",
+      warnings: [],
+      logs: [],
+      artifact_ids: [],
+      details: {},
+      result_summary: "Execution detail opened from Asset Forge packet origin.",
+    };
+
+    render(
+      <ExecutionDetailPanel
+        item={execution}
+        loading={false}
+        error={null}
+        refreshHint="Auto-opened from Asset Forge packet origin: execution evidence."
+        onOpenAssetForgeWorkspace={onOpenAssetForgeWorkspace}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Return to Asset Forge workspace" }));
+    expect(onOpenAssetForgeWorkspace).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows a return action when artifact detail is auto-opened from Asset Forge packet origin", () => {
+    const onOpenAssetForgeWorkspace = vi.fn();
+    const artifact: ArtifactRecord = {
+      id: "art-forge-1",
+      run_id: "run-forge-1",
+      execution_id: "exec-forge-1",
+      label: "Asset Forge artifact evidence",
+      kind: "asset_readback_review_packet",
+      uri: "artifact://exec-forge-1/packet",
+      path: null,
+      content_type: "application/json",
+      simulated: false,
+      created_at: "2026-04-21T00:00:10Z",
+      metadata: {},
+    };
+
+    render(
+      <ArtifactDetailPanel
+        item={artifact}
+        loading={false}
+        error={null}
+        refreshHint="Auto-opened from Asset Forge packet origin: artifact evidence."
+        onOpenAssetForgeWorkspace={onOpenAssetForgeWorkspace}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Return to Asset Forge workspace" }));
+    expect(onOpenAssetForgeWorkspace).toHaveBeenCalledTimes(1);
   });
 });
