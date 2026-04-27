@@ -74,3 +74,6 @@ The next safe Phase 9 packet is schema/evidence-shape review for whether the
 string-array product/dependency evidence should remain sufficient or become a
 structured readback schema. That packet should be design/audit first and must
 not change runtime behavior unless a later implementation packet is approved.
+
+That review is now tracked in
+`docs/PHASE-9-ASSET-READBACK-SCHEMA-REVIEW.md`.

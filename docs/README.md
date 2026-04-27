@@ -121,6 +121,9 @@ rounding up capability claims.
 - `docs/PHASE-9-ASSET-READBACK-CHECKPOINT.md` summarizes the current Phase 9
   read-only assetdb corridor, live proof, prompt guards, and remaining
   non-admitted surfaces.
+- `docs/PHASE-9-ASSET-READBACK-SCHEMA-REVIEW.md` records the current decision
+  to keep string-array product/dependency evidence while reserving an additive
+  structured schema packet for later.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
