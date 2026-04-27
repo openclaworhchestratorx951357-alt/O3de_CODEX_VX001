@@ -4,6 +4,7 @@ import json
 import mimetypes
 import os
 import shutil
+import sqlite3
 import subprocess
 import tempfile
 from abc import ABC, abstractmethod
@@ -79,7 +80,8 @@ ADAPTER_EXECUTION_BOUNDARY = (
 HYBRID_EXECUTION_BOUNDARY = (
     "Control-plane bookkeeping is real. In hybrid mode, asset.processor.status may "
     "use a real read-only host runtime probe, asset.source.inspect may "
-    "use a real read-only project-local source inspection path, asset.batch.process may "
+    "use a real read-only project-local source inspection path and proof-only "
+    "Asset Processor database product/dependency readback, asset.batch.process may "
     "use a real plan-only explicit source-glob asset batch preflight and result-truth substrate, "
     "asset.move.safe may use a real plan-only explicit source-to-destination asset "
     "identity corridor and reference-unavailable preflight/result-truth substrate, "
@@ -144,6 +146,7 @@ MANIFEST_PROJECT_CONFIG_KEYS = (
     "icon_path",
     "restricted_platform_name",
 )
+ASSET_SOURCE_INSPECT_INDEX_ENTRY_LIMIT = 25
 
 
 @dataclass(slots=True)
@@ -1347,10 +1350,10 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             else "unavailable-no-admitted-dependency-index"
         )
         product_unavailable_reason = (
-            "No admitted real product index or asset database is available in this slice."
+            "No readable project Asset Processor database product evidence is available."
         )
         dependency_unavailable_reason = (
-            "No admitted real dependency index or asset database is available in this slice."
+            "No readable project Asset Processor database dependency evidence is available."
         )
         if not source_exists:
             product_unavailable_reason = (
@@ -1366,6 +1369,67 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
         if include_dependencies:
             unavailable_evidence.append("dependencies")
             logs.append(dependency_unavailable_reason)
+
+        products: list[str] = []
+        dependencies: list[str] = []
+        if (
+            source_exists
+            and source_is_file
+            and source_relative_path is not None
+            and (include_products or include_dependencies)
+        ):
+            assetdb_path = resolved_project_root / "Cache" / "assetdb.sqlite"
+            assetdb_evidence = self._read_asset_source_assetdb_evidence(
+                assetdb_path=assetdb_path,
+                project_root=resolved_project_root,
+                source_relative_path=source_relative_path,
+                include_products=include_products,
+                include_dependencies=include_dependencies,
+            )
+            logs.extend(assetdb_evidence["logs"])
+            warnings.extend(assetdb_evidence["warnings"])
+            if assetdb_evidence["source_found"]:
+                inspection_evidence.append("assetdb.sqlite_source_mapping")
+            if include_products:
+                products = assetdb_evidence["products"]
+                if products:
+                    unavailable_evidence = [
+                        item for item in unavailable_evidence if item != "products"
+                    ]
+                    product_evidence_source = "assetdb.sqlite-read-only"
+                    product_unavailable_reason = (
+                        "Product evidence was available from the read-only "
+                        "project Asset Processor database."
+                    )
+                    inspection_evidence.append("assetdb.sqlite_product_rows")
+                else:
+                    product_evidence_source = assetdb_evidence[
+                        "product_evidence_source"
+                    ]
+                    product_unavailable_reason = assetdb_evidence[
+                        "product_unavailable_reason"
+                    ]
+            if include_dependencies:
+                dependencies = assetdb_evidence["dependencies"]
+                if dependencies:
+                    unavailable_evidence = [
+                        item
+                        for item in unavailable_evidence
+                        if item != "dependencies"
+                    ]
+                    dependency_evidence_source = "assetdb.sqlite-read-only"
+                    dependency_unavailable_reason = (
+                        "Dependency evidence was available from the read-only "
+                        "project Asset Processor database."
+                    )
+                    inspection_evidence.append("assetdb.sqlite_dependency_rows")
+                else:
+                    dependency_evidence_source = assetdb_evidence[
+                        "dependency_evidence_source"
+                    ]
+                    dependency_unavailable_reason = assetdb_evidence[
+                        "dependency_unavailable_reason"
+                    ]
 
         message = "Read-only asset source inspection completed against real project files."
         if source_resolution_status == "missing":
@@ -1411,16 +1475,16 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             },
             "inspection_evidence": inspection_evidence,
             "unavailable_evidence": unavailable_evidence,
-            "products": [],
-            "product_count": 0,
+            "products": products,
+            "product_count": len(products),
             "product_evidence_requested": include_products,
-            "product_evidence_available": False,
+            "product_evidence_available": bool(products),
             "product_evidence_source": product_evidence_source,
             "product_unavailable_reason": product_unavailable_reason,
-            "dependencies": [],
-            "dependency_count": 0,
+            "dependencies": dependencies,
+            "dependency_count": len(dependencies),
             "dependency_evidence_requested": include_dependencies,
-            "dependency_evidence_available": False,
+            "dependency_evidence_available": bool(dependencies),
             "dependency_evidence_source": dependency_evidence_source,
             "dependency_unavailable_reason": dependency_unavailable_reason,
         }
@@ -1459,6 +1523,221 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             execution_details=details,
             result_summary="Real asset source inspection completed successfully.",
         )
+
+    def _read_asset_source_assetdb_evidence(
+        self,
+        *,
+        assetdb_path: Path,
+        project_root: Path,
+        source_relative_path: str,
+        include_products: bool,
+        include_dependencies: bool,
+    ) -> dict[str, Any]:
+        unavailable_no_index = "unavailable-no-admitted-product-index"
+        unavailable_no_dependency_index = "unavailable-no-admitted-dependency-index"
+        result: dict[str, Any] = {
+            "source_found": False,
+            "products": [],
+            "dependencies": [],
+            "product_evidence_source": unavailable_no_index,
+            "dependency_evidence_source": unavailable_no_dependency_index,
+            "product_unavailable_reason": (
+                "No project Asset Processor database was found at Cache/assetdb.sqlite."
+            ),
+            "dependency_unavailable_reason": (
+                "No project Asset Processor database was found at Cache/assetdb.sqlite."
+            ),
+            "warnings": [],
+            "logs": [],
+        }
+        if not assetdb_path.exists():
+            result["logs"].append(
+                "No project-local Asset Processor database was found at Cache/assetdb.sqlite."
+            )
+            return result
+        if not assetdb_path.is_file():
+            result["product_evidence_source"] = "unavailable-index-unsupported"
+            result["dependency_evidence_source"] = "unavailable-index-unsupported"
+            result["product_unavailable_reason"] = (
+                "Cache/assetdb.sqlite exists but is not a file."
+            )
+            result["dependency_unavailable_reason"] = (
+                "Cache/assetdb.sqlite exists but is not a file."
+            )
+            result["warnings"].append("Cache/assetdb.sqlite exists but is not a file.")
+            return result
+
+        try:
+            assetdb_path.relative_to(project_root)
+        except ValueError:
+            result["product_evidence_source"] = "unavailable-index-outside-project"
+            result["dependency_evidence_source"] = "unavailable-index-outside-project"
+            result["product_unavailable_reason"] = (
+                "The Asset Processor database path resolved outside the project root."
+            )
+            result["dependency_unavailable_reason"] = (
+                "The Asset Processor database path resolved outside the project root."
+            )
+            result["warnings"].append(
+                "Asset Processor database readback was refused because the database path resolved outside the project root."
+            )
+            return result
+
+        db_uri = f"{assetdb_path.as_uri()}?mode=ro"
+        try:
+            connection = sqlite3.connect(db_uri, uri=True)
+            connection.row_factory = sqlite3.Row
+        except sqlite3.Error as exc:
+            reason = f"Cache/assetdb.sqlite could not be opened read-only: {exc}"
+            result["product_evidence_source"] = "unavailable-index-unreadable"
+            result["dependency_evidence_source"] = "unavailable-index-unreadable"
+            result["product_unavailable_reason"] = reason
+            result["dependency_unavailable_reason"] = reason
+            result["warnings"].append(reason)
+            return result
+
+        normalized_source = source_relative_path.replace("\\", "/").casefold()
+        try:
+            source_row = connection.execute(
+                """
+                SELECT
+                    s.SourceID,
+                    s.SourceName,
+                    hex(s.SourceGuid) AS SourceGuid,
+                    s.AnalysisFingerprint,
+                    sf.ScanFolder,
+                    sf.DisplayName,
+                    sf.PortableKey
+                FROM Sources s
+                JOIN ScanFolders sf ON sf.ScanFolderID = s.ScanFolderPK
+                WHERE lower(replace(s.SourceName, '\\', '/')) = ?
+                ORDER BY
+                    CASE
+                        WHEN lower(replace(sf.ScanFolder, '\\', '/')) = ? THEN 0
+                        ELSE 1
+                    END,
+                    s.SourceID DESC
+                LIMIT 1
+                """,
+                (normalized_source, project_root.as_posix().casefold()),
+            ).fetchone()
+            if source_row is None:
+                result["product_evidence_source"] = "unavailable-source-not-indexed"
+                result["dependency_evidence_source"] = "unavailable-source-not-indexed"
+                result["product_unavailable_reason"] = (
+                    "The source path was not found in the project Asset Processor database."
+                )
+                result["dependency_unavailable_reason"] = (
+                    "The source path was not found in the project Asset Processor database."
+                )
+                result["logs"].append(
+                    "Cache/assetdb.sqlite was opened read-only, but the source path was not indexed."
+                )
+                return result
+            result["source_found"] = True
+            source_id = int(source_row["SourceID"])
+            source_guid = str(source_row["SourceGuid"])
+            result["logs"].append(
+                "Cache/assetdb.sqlite was opened read-only and mapped the source "
+                f"to SourceID {source_id}."
+            )
+
+            product_rows = connection.execute(
+                """
+                SELECT
+                    p.ProductID,
+                    p.ProductName,
+                    p.SubID,
+                    p.Hash,
+                    j.Platform,
+                    j.Status,
+                    j.JobKey,
+                    j.Fingerprint,
+                    j.LastLogTime
+                FROM Jobs j
+                JOIN Products p ON p.JobPK = j.JobID
+                WHERE j.SourcePK = ?
+                ORDER BY p.ProductID
+                LIMIT ?
+                """,
+                (source_id, ASSET_SOURCE_INSPECT_INDEX_ENTRY_LIMIT),
+            ).fetchall()
+            if include_products:
+                result["products"] = [
+                    (
+                        f"{row['ProductName']} "
+                        f"(product_id={row['ProductID']}, sub_id={row['SubID']}, "
+                        f"platform={row['Platform']}, job_key={row['JobKey']}, "
+                        f"job_status={row['Status']}, hash={row['Hash']}, "
+                        f"last_log_time={row['LastLogTime']}, "
+                        f"source_guid={source_guid})"
+                    )
+                    for row in product_rows
+                ]
+                if not result["products"]:
+                    result["product_evidence_source"] = "unavailable-no-product-rows"
+                    result["product_unavailable_reason"] = (
+                        "The source was indexed, but no bounded product rows were found."
+                    )
+
+            if include_dependencies and product_rows:
+                product_ids = [int(row["ProductID"]) for row in product_rows]
+                placeholders = ",".join("?" for _ in product_ids)
+                dependency_rows = connection.execute(
+                    f"""
+                    SELECT
+                        ProductPK,
+                        Platform,
+                        hex(DependencySourceGuid) AS DependencySourceGuid,
+                        DependencySubID,
+                        DependencyFlags,
+                        UnresolvedPath,
+                        UnresolvedDependencyType,
+                        FromAssetId
+                    FROM ProductDependencies
+                    WHERE ProductPK IN ({placeholders})
+                    ORDER BY ProductDependencyID
+                    LIMIT ?
+                    """,
+                    (*product_ids, ASSET_SOURCE_INSPECT_INDEX_ENTRY_LIMIT),
+                ).fetchall()
+                result["dependencies"] = [
+                    (
+                        "product_dependency "
+                        f"(product_id={row['ProductPK']}, platform={row['Platform']}, "
+                        f"dependency_source_guid={row['DependencySourceGuid']}, "
+                        f"dependency_sub_id={row['DependencySubID']}, "
+                        f"flags={row['DependencyFlags']}, "
+                        f"from_asset_id={row['FromAssetId']}, "
+                        f"unresolved_path={row['UnresolvedPath'] or ''}, "
+                        f"unresolved_type={row['UnresolvedDependencyType']})"
+                    )
+                    for row in dependency_rows
+                ]
+                if not result["dependencies"]:
+                    result["dependency_evidence_source"] = (
+                        "unavailable-no-product-dependency-rows"
+                    )
+                    result["dependency_unavailable_reason"] = (
+                        "The source was indexed with product rows, but no bounded product dependency rows were found."
+                    )
+            elif include_dependencies:
+                result["dependency_evidence_source"] = "unavailable-no-product-rows"
+                result["dependency_unavailable_reason"] = (
+                    "The source was indexed, but no product rows were available for dependency lookup."
+                )
+        except sqlite3.Error as exc:
+            reason = f"Cache/assetdb.sqlite has an unsupported or unreadable shape: {exc}"
+            result["products"] = []
+            result["dependencies"] = []
+            result["product_evidence_source"] = "unavailable-unsupported-index-shape"
+            result["dependency_evidence_source"] = "unavailable-unsupported-index-shape"
+            result["product_unavailable_reason"] = reason
+            result["dependency_unavailable_reason"] = reason
+            result["warnings"].append(reason)
+        finally:
+            connection.close()
+        return result
 
     def _fallback_asset_source_inspect(
         self,

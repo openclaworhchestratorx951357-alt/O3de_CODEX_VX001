@@ -1,5 +1,6 @@
 import hashlib
 import json
+import sqlite3
 import subprocess
 from collections import deque
 from contextlib import contextmanager
@@ -262,6 +263,135 @@ def make_asset_source_inspect_request() -> RequestEnvelope:
         "include_dependencies": True,
     }
     return request
+
+
+def create_asset_source_inspect_assetdb_fixture(project_root: Path) -> None:
+    cache_dir = project_root / "Cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(cache_dir / "assetdb.sqlite")
+    try:
+        connection.executescript(
+            """
+            CREATE TABLE ScanFolders (
+                ScanFolderID INTEGER PRIMARY KEY,
+                ScanFolder TEXT,
+                DisplayName TEXT,
+                PortableKey TEXT,
+                IsRoot INTEGER
+            );
+            CREATE TABLE Sources (
+                SourceID INTEGER PRIMARY KEY,
+                ScanFolderPK INTEGER,
+                SourceName TEXT,
+                SourceGuid BLOB,
+                AnalysisFingerprint TEXT
+            );
+            CREATE TABLE Jobs (
+                JobID INTEGER PRIMARY KEY,
+                SourcePK INTEGER,
+                JobKey TEXT,
+                Fingerprint INTEGER,
+                Platform TEXT,
+                BuilderGuid BLOB,
+                Status INTEGER,
+                JobRunKey INTEGER,
+                FailureCauseSourcePK INTEGER,
+                FailureCauseFingerprint INTEGER,
+                FirstFailLogTime INTEGER,
+                FirstFailLogFile TEXT,
+                LastFailLogTime INTEGER,
+                LastFailLogFile TEXT,
+                LastLogTime INTEGER,
+                LastLogFile TEXT,
+                ErrorCount INTEGER,
+                WarningCount INTEGER
+            );
+            CREATE TABLE Products (
+                ProductID INTEGER PRIMARY KEY,
+                JobPK INTEGER,
+                ProductName TEXT,
+                SubID INTEGER,
+                AssetType BLOB,
+                LegacyGuid BLOB,
+                Hash INTEGER,
+                Flags INTEGER
+            );
+            CREATE TABLE ProductDependencies (
+                ProductDependencyID INTEGER PRIMARY KEY,
+                ProductPK INTEGER,
+                DependencySourceGuid BLOB,
+                DependencySubID INTEGER,
+                Platform TEXT,
+                DependencyFlags INTEGER,
+                UnresolvedPath TEXT,
+                UnresolvedDependencyType INTEGER,
+                FromAssetId INTEGER
+            );
+            """
+        )
+        source_guid = bytes.fromhex("439941DB330C530FAD3E5A36C19A1519")
+        dependency_guid = bytes.fromhex("215E47FDD1815832B1AB91673ABF6399")
+        connection.execute(
+            "INSERT INTO ScanFolders VALUES (?, ?, ?, ?, ?)",
+            (4, project_root.as_posix(), "McpSandbox", "Project/Assets", 0),
+        )
+        connection.execute(
+            "INSERT INTO Sources VALUES (?, ?, ?, ?, ?)",
+            (
+                3214,
+                4,
+                "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                source_guid,
+                "test-analysis-fingerprint",
+            ),
+        )
+        connection.execute(
+            """
+            INSERT INTO Jobs VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            )
+            """,
+            (
+                901,
+                3214,
+                "Prefabs",
+                123456,
+                "pc",
+                b"builder-guid-0001",
+                4,
+                77,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                1776972479705,
+                "assetprocessor.log",
+                0,
+                0,
+            ),
+        )
+        connection.execute(
+            "INSERT INTO Products VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                10608,
+                901,
+                "pc/levels/bridgelevel01/bridgelevel01.spawnable",
+                -575275456,
+                b"asset-type-000001",
+                b"legacy-guid-0001",
+                -7827569063961660435,
+                2,
+            ),
+        )
+        connection.execute(
+            "INSERT INTO ProductDependencies VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (1, 10608, dependency_guid, 1000, "pc", 1, "", 0, 1),
+        )
+        connection.commit()
+    finally:
+        connection.close()
 
 
 def make_asset_batch_process_request(
@@ -5882,6 +6012,72 @@ def test_asset_source_inspect_real_persisted_payloads_match_published_schemas() 
                 assert artifact.simulated is False
                 assert artifact.metadata["execution_mode"] == "real"
                 assert artifact.metadata["inspection_surface"] == "asset_source_file"
+                assert (
+                    schema_validation_service.validate_execution_details(
+                        tool_name="asset.source.inspect",
+                        payload=execution.details,
+                    )
+                    == []
+                )
+                assert (
+                    schema_validation_service.validate_artifact_metadata(
+                        tool_name="asset.source.inspect",
+                        payload=artifact.metadata,
+                    )
+                    == []
+                )
+
+
+def test_asset_source_inspect_reads_bounded_assetdb_product_dependency_evidence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = (
+            project_root / "Levels" / "BridgeLevel01" / "BridgeLevel01.prefab"
+        )
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_text("prefab-fixture", encoding="utf-8")
+        create_asset_source_inspect_assetdb_fixture(project_root)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_database():
+                request = make_asset_source_inspect_request()
+                request.project_root = str(project_root)
+                request.args["source_path"] = (
+                    "Levels/BridgeLevel01/BridgeLevel01.prefab"
+                )
+                response = dispatcher_service.dispatch(request)
+                assert response.ok is True
+                assert response.result is not None
+                assert response.result.simulated is False
+                run_id = response.operation_id
+                assert run_id is not None
+                execution = next(
+                    execution
+                    for execution in executions_service.list_executions()
+                    if execution.run_id == run_id
+                )
+                artifact = artifacts_service.get_artifact(response.artifacts[0])
+                assert execution.details["source_path_relative_to_project_root"] == (
+                    "Levels/BridgeLevel01/BridgeLevel01.prefab"
+                )
+                assert execution.details["product_evidence_available"] is True
+                assert execution.details["product_evidence_source"] == (
+                    "assetdb.sqlite-read-only"
+                )
+                assert execution.details["product_count"] == 1
+                assert "pc/levels/bridgelevel01/bridgelevel01.spawnable" in (
+                    execution.details["products"][0]
+                )
+                assert execution.details["dependency_evidence_available"] is True
+                assert execution.details["dependency_evidence_source"] == (
+                    "assetdb.sqlite-read-only"
+                )
+                assert execution.details["dependency_count"] == 1
+                assert "dependency_source_guid=215E47FDD1815832B1AB91673ABF6399" in (
+                    execution.details["dependencies"][0]
+                )
+                assert artifact is not None
+                assert artifact.simulated is False
                 assert (
                     schema_validation_service.validate_execution_details(
                         tool_name="asset.source.inspect",

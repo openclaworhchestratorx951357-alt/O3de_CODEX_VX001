@@ -1,4 +1,5 @@
 import json
+import sqlite3
 import subprocess
 from contextlib import contextmanager
 from pathlib import Path
@@ -107,6 +108,143 @@ def create_test_image(
 
     image = Image.new("RGBA", size, color)
     image.save(path, format="PNG")
+
+
+def create_asset_source_inspect_assetdb_fixture(project_root: Path) -> None:
+    cache_dir = project_root / "Cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(cache_dir / "assetdb.sqlite")
+    try:
+        connection.executescript(
+            """
+            CREATE TABLE ScanFolders (
+                ScanFolderID INTEGER PRIMARY KEY,
+                ScanFolder TEXT,
+                DisplayName TEXT,
+                PortableKey TEXT,
+                IsRoot INTEGER
+            );
+            CREATE TABLE Sources (
+                SourceID INTEGER PRIMARY KEY,
+                ScanFolderPK INTEGER,
+                SourceName TEXT,
+                SourceGuid BLOB,
+                AnalysisFingerprint TEXT
+            );
+            CREATE TABLE Jobs (
+                JobID INTEGER PRIMARY KEY,
+                SourcePK INTEGER,
+                JobKey TEXT,
+                Fingerprint INTEGER,
+                Platform TEXT,
+                BuilderGuid BLOB,
+                Status INTEGER,
+                JobRunKey INTEGER,
+                FailureCauseSourcePK INTEGER,
+                FailureCauseFingerprint INTEGER,
+                FirstFailLogTime INTEGER,
+                FirstFailLogFile TEXT,
+                LastFailLogTime INTEGER,
+                LastFailLogFile TEXT,
+                LastLogTime INTEGER,
+                LastLogFile TEXT,
+                ErrorCount INTEGER,
+                WarningCount INTEGER
+            );
+            CREATE TABLE Products (
+                ProductID INTEGER PRIMARY KEY,
+                JobPK INTEGER,
+                ProductName TEXT,
+                SubID INTEGER,
+                AssetType BLOB,
+                LegacyGuid BLOB,
+                Hash INTEGER,
+                Flags INTEGER
+            );
+            CREATE TABLE ProductDependencies (
+                ProductDependencyID INTEGER PRIMARY KEY,
+                ProductPK INTEGER,
+                DependencySourceGuid BLOB,
+                DependencySubID INTEGER,
+                Platform TEXT,
+                DependencyFlags INTEGER,
+                UnresolvedPath TEXT,
+                UnresolvedDependencyType INTEGER,
+                FromAssetId INTEGER
+            );
+            """
+        )
+        connection.execute(
+            "INSERT INTO ScanFolders VALUES (?, ?, ?, ?, ?)",
+            (4, project_root.as_posix(), "McpSandbox", "Project/Assets", 0),
+        )
+        connection.execute(
+            "INSERT INTO Sources VALUES (?, ?, ?, ?, ?)",
+            (
+                3214,
+                4,
+                "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                bytes.fromhex("439941DB330C530FAD3E5A36C19A1519"),
+                "test-analysis-fingerprint",
+            ),
+        )
+        connection.execute(
+            """
+            INSERT INTO Jobs VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            )
+            """,
+            (
+                901,
+                3214,
+                "Prefabs",
+                123456,
+                "pc",
+                b"builder-guid-0001",
+                4,
+                77,
+                None,
+                None,
+                None,
+                None,
+                None,
+                None,
+                1776972479705,
+                "assetprocessor.log",
+                0,
+                0,
+            ),
+        )
+        connection.execute(
+            "INSERT INTO Products VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                10608,
+                901,
+                "pc/levels/bridgelevel01/bridgelevel01.spawnable",
+                -575275456,
+                b"asset-type-000001",
+                b"legacy-guid-0001",
+                -7827569063961660435,
+                2,
+            ),
+        )
+        connection.execute(
+            "INSERT INTO ProductDependencies VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                1,
+                10608,
+                bytes.fromhex("215E47FDD1815832B1AB91673ABF6399"),
+                1000,
+                "pc",
+                1,
+                "",
+                0,
+                1,
+            ),
+        )
+        connection.commit()
+    finally:
+        connection.close()
 
 def test_prompt_session_preview_compiles_typed_steps_across_families() -> None:
     with isolated_client() as client:
@@ -465,6 +603,66 @@ def test_prompt_session_executes_asset_source_inspect_with_truthful_evidence() -
                 )
                 assert "Product evidence remains unavailable" in payload["final_result_summary"]
                 assert "Dependency evidence remains unavailable" in payload["final_result_summary"]
+
+
+def test_prompt_session_executes_asset_source_inspect_with_assetdb_evidence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        source_path = (
+            project_root / "Levels" / "BridgeLevel01" / "BridgeLevel01.prefab"
+        )
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_text("prefab-fixture", encoding="utf-8")
+        create_asset_source_inspect_assetdb_fixture(project_root)
+
+        with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+            with isolated_client() as client:
+                create_response = client.post(
+                    "/prompt/sessions",
+                    json={
+                        "prompt_id": "prompt-asset-source-inspect-assetdb-execute-1",
+                        "prompt_text": (
+                            'Inspect asset "Levels/BridgeLevel01/BridgeLevel01.prefab".'
+                        ),
+                        "project_root": str(project_root),
+                        "engine_root": "C:/engine",
+                        "dry_run": True,
+                        "preferred_domains": ["asset-pipeline"],
+                    },
+                )
+                assert create_response.status_code == 200
+
+                execute_response = client.post(
+                    "/prompt/sessions/"
+                    "prompt-asset-source-inspect-assetdb-execute-1/execute"
+                )
+                assert execute_response.status_code == 200
+                payload = execute_response.json()
+                assert payload["status"] == "completed"
+                assert payload["latest_child_responses"][0]["ok"] is True
+                assert (
+                    payload["latest_child_responses"][0]["result"]["execution_mode"]
+                    == "real"
+                )
+                details = payload["latest_child_responses"][0]["execution_details"]
+                assert details["product_evidence_available"] is True
+                assert details["product_evidence_source"] == "assetdb.sqlite-read-only"
+                assert details["product_count"] == 1
+                assert details["dependency_evidence_available"] is True
+                assert details["dependency_evidence_source"] == "assetdb.sqlite-read-only"
+                assert details["dependency_count"] == 1
+                assert (
+                    "Readback confirmed source asset "
+                    "Levels/BridgeLevel01/BridgeLevel01.prefab."
+                ) in payload["final_result_summary"]
+                assert (
+                    "Product readback confirmed 1 related product entry(ies)."
+                    in payload["final_result_summary"]
+                )
+                assert (
+                    "Dependency readback confirmed 1 related dependency entry(ies)."
+                    in payload["final_result_summary"]
+                )
 
 
 def test_prompt_session_executes_asset_batch_process_with_truthful_preflight_evidence() -> None:

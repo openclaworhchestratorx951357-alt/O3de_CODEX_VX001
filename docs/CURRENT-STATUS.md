@@ -120,9 +120,11 @@ product, job, scan-folder, source-dependency, and product-dependency tables.
 The audited sample maps
 `Levels/BridgeLevel01/BridgeLevel01.prefab` to
 `pc/levels/bridgelevel01/bridgelevel01.spawnable` with five bounded
-product-dependency rows. The next safe Phase 9 packet is proof-only reader work
-behind `asset.source.inspect`; public product/dependency completeness,
-Asset Processor execution, cache mutation, and `asset.product.resolve` remain
+product-dependency rows. A proof-only reader path now lets
+`asset.source.inspect` inspect project-local `Cache/assetdb.sqlite` in
+read-only mode for bounded product/dependency evidence when the requested source
+exists under the project root. Public product/dependency completeness, Asset
+Processor execution, cache mutation, and `asset.product.resolve` remain
 unadmitted.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
