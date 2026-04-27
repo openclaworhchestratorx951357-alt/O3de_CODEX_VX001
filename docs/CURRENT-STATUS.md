@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-99f9c42ed4486d7a8a7f12d68f488e905c58b3a2
+3e35b26de6cce5bb44eb38f544d825ac01d8e570
 ```
 
 The latest runtime/capability movement remains the completed Phase 8 Camera
@@ -37,6 +37,8 @@ Recent handoff-relevant packets:
   intentional production-baseline / historical archive candidate pending
   operator decision.
 - PR #73 added the future-thread Supervisor Mode startup protocol.
+- PR #74 refreshed this status handoff and selected Phase 9 asset readback
+  baseline/current truth as the next safe normalized packet.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -189,11 +191,10 @@ property writes.
 
 ## Recommended Next Packets
 
-1. Start the next phase with a baseline/current-truth packet before any runtime
-   surface is widened. The safest candidate is Phase 9 asset readback baseline:
-   classify current asset/material/prefab surfaces, admitted read paths,
-   proof-only paths, blockers, forbidden mutation surfaces, and validation
-   commands.
+1. Continue Phase 9 with a candidate-only asset readback discovery packet from
+   `docs/PHASE-9-ASSET-READBACK-BASELINE.md`. Focus on product/dependency
+   evidence substrates for `asset.source.inspect` and prefab/reference graph
+   blockers without mutating assets or references.
 2. If Phase 8 continues instead, start the next read-only discovery packet
    before adding any new restore targets or broader undo behavior.
 3. Produce a branch cleanup report before deleting any uncertain historical,

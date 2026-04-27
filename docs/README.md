@@ -57,6 +57,8 @@ rounding up capability claims.
 - `docs/PHASE-8-CAMERA-BOOL-OPERATOR-EXAMPLES.md` gives paired safe/refused
   operator prompt examples for the exact Camera bool readback, write, and
   restore corridors.
+- `docs/PHASE-9-ASSET-READBACK-BASELINE.md` starts Phase 9 with the current
+  asset/pipeline readback truth before any new asset runtime surface is widened.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
@@ -131,6 +133,7 @@ rounding up capability claims.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md`
 - `docs/PHASE-8-EDITOR-SCALAR-PROPERTY-TARGET-DISCOVERY.md`
 - `docs/PHASE-8-EDITOR-COMMENT-SCALAR-TARGET-DISCOVERY.md`
+- `docs/PHASE-9-ASSET-READBACK-BASELINE.md`
 
 ## Evidence And Inventory
 
