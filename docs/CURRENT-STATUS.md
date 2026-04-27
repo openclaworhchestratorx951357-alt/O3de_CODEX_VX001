@@ -145,6 +145,11 @@ Recent handoff-relevant packets:
 - The current schema-hardening packet promotes those structured proof fields
   into the published persisted payload schemas and is recorded in
   `docs/PHASE-9-ASSET-SOURCE-INSPECT-SCHEMA-HARDENING.md`.
+- The current admission-decision packet keeps the existing narrow read-only
+  `asset.source.inspect` surface active, but withholds production-general
+  public admission pending freshness, platform, and operator readiness/review
+  work. It is recorded in
+  `docs/PHASE-9-ASSET-READBACK-ADMISSION-DECISION.md`.
 
 Phase 9 product/dependency readback is no longer blocked on absence of a local
 sample. It remains a local proof target and project-general proof-only readback
@@ -170,10 +175,12 @@ helper is tracked in `docs/PHASE-9-PROJECT-ASSET-READBACK-DISCOVERY.md`, and
 the project-general `asset.source.inspect` proof is tracked in
 `docs/PHASE-9-PROJECT-GENERAL-ASSET-SOURCE-INSPECT-PROOF.md`. The structured
 schema hardening is tracked in
-`docs/PHASE-9-ASSET-SOURCE-INSPECT-SCHEMA-HARDENING.md`. The next normalized
-Phase 9 packet should decide public readback admission for the project-general,
-read-only `asset.source.inspect` corridor, or document why additional freshness,
-platform, or operator UX work is required first.
+`docs/PHASE-9-ASSET-SOURCE-INSPECT-SCHEMA-HARDENING.md`. The admission decision
+is tracked in `docs/PHASE-9-ASSET-READBACK-ADMISSION-DECISION.md`: do not
+promote the corridor to production-general public admission yet. The next
+normalized Phase 9 packet should define the operator-facing readiness/review
+contract for freshness, platform choice, missing-substrate guidance, and AI
+Asset Forge validation fields.
 `docs/PHASE-9-ASSET-READBACK-CHECKPOINT.md` is the compact current checkpoint
 for this Phase 9 state.
 

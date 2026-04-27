@@ -133,21 +133,25 @@ Results:
 
 ## Next Normalized Packet
 
-The next Phase 9 packet should be a public readback admission decision.
+The public readback admission decision is now tracked in
+`docs/PHASE-9-ASSET-READBACK-ADMISSION-DECISION.md`.
+
+The next Phase 9 packet should define the readiness/review contract named by
+that decision.
 
 Recommended packet:
 
 ```text
 Branch:
-codex/phase-9-asset-readback-admission-decision
+codex/phase-9-asset-readback-readiness-review-contract
 
 PR title:
-Decide Phase 9 asset readback public admission
+Define Phase 9 asset readback readiness review contract
 ```
 
 Purpose:
 
-Decide whether the current project-general, read-only
-`asset.source.inspect` source/product/dependency/catalog corridor is ready to
-be described as a public admitted readback corridor, or whether additional
-schema, freshness, platform, or operator UX work is required first.
+Define the operator-facing readiness/review packet for project-general asset
+readback, including freshness, platform, missing-substrate guidance, and the
+fields AI Asset Forge will need before generated assets can be considered
+usable.

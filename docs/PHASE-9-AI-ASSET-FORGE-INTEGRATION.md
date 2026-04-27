@@ -9,7 +9,7 @@ Current Phase 9 state:
 - project-general discovery is integrated into the proof-only
   `asset.source.inspect` path
 - structured proof schema hardening exists
-- public production-general admission pending
+- production-general admission is withheld pending readiness/review contract
 
 The helper is recorded in
 `docs/PHASE-9-PROJECT-ASSET-READBACK-DISCOVERY.md` and implemented in
@@ -26,6 +26,12 @@ cross-checks Asset Catalog product-path presence.
 
 The structured proof schema hardening is recorded in
 `docs/PHASE-9-ASSET-SOURCE-INSPECT-SCHEMA-HARDENING.md`.
+
+The public admission decision is recorded in
+`docs/PHASE-9-ASSET-READBACK-ADMISSION-DECISION.md`: keep the existing narrow
+read-only `asset.source.inspect` surface active, but do not promote it to a
+production-general public adapter until freshness, platform, and operator
+readiness/review gaps are closed.
 
 ## Why AI Asset Forge depends on Phase 9
 
@@ -84,9 +90,9 @@ fields into the published `asset.source.inspect` execution-details and
 artifact-metadata schemas, while preserving compatibility with existing string
 evidence.
 
-## Required next Phase 9 packet
+## Completed Phase 9 admission decision
 
-Next packet:
+This packet is now implemented:
 
 ```text
 Branch:
@@ -102,6 +108,31 @@ Decide whether the current project-general, read-only
 `asset.source.inspect` source/product/dependency/catalog corridor is ready to
 be described as a public admitted readback corridor, or whether additional
 schema, freshness, platform, or operator UX work is required first.
+
+Decision:
+
+Do not promote to production-general public admission yet. Keep the existing
+narrow read-only corridor active while the next packet defines the
+operator-facing readiness/review contract.
+
+## Required next Phase 9 packet
+
+Next packet:
+
+```text
+Branch:
+codex/phase-9-asset-readback-readiness-review-contract
+
+PR title:
+Define Phase 9 asset readback readiness review contract
+```
+
+Purpose:
+
+Define the operator-facing readiness/review packet for project-general asset
+readback, including freshness, platform, missing-substrate guidance, and the
+fields AI Asset Forge will need before generated assets can be considered
+usable.
 
 ## Required later Forge packet
 
