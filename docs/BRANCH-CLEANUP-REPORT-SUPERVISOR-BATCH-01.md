@@ -214,6 +214,9 @@ Unmerged remote branches remaining after deletion:
 
 Recommended next cleanup direction:
 
+- Follow-up completed in
+  `docs/BRANCH-CLEANUP-REPORT-SUPERVISOR-BATCH-02.md`, which records the
+  second supervisor-controlled batch for ordinary merged Phase 8 branches.
 - Continue with ordinary merged Phase 8 packet branches that do not contain
   checkpoint, backup, stable, production, baseline, release, main, active, or
   unmerged signals.
