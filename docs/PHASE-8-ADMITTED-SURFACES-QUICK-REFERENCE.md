@@ -17,6 +17,8 @@ The current truth is narrow:
 - one exact Camera bool write corridor is publicly admitted
 - one exact Camera bool restore corridor is publicly admitted
 - the same exact Camera bool property has a read-only operator affordance
+- Camera far clip distance is live-proven readback-only and not admitted for
+  writes or restore
 - broad property writes remain blocked
 - public property listing remains unavailable
 - proof-only harnesses remain evidence, not public prompt surfaces
@@ -54,6 +56,15 @@ This reads the same exact Camera bool property on one explicit target entity.
 It reports current value evidence and must state that it is read-only and that
 no write occurred.
 
+Camera far clip readback evidence:
+
+```text
+Camera :: Controller|Configuration|Far clip distance :: float
+```
+
+This target is discovered-but-not-admitted. It is readback-only evidence and is
+not a public write, restore, or property-list admission.
+
 Exact Camera bool restore corridor:
 
 ```text
@@ -89,6 +100,8 @@ These remain blocked or unadmitted:
 - generic property discovery/listing
 - non-Camera property writes
 - non-bool Camera writes
+- Camera far clip writes
+- Camera far clip restore
 - arbitrary Camera property writes
 - arbitrary property paths
 - restore without recorded before-value evidence
@@ -121,6 +134,12 @@ Open level "Levels/Main.level", then show the current value of the Camera make a
 
 ```text
 Open level "Levels/Main.level", inspect the Camera make active camera on activation bool on entity named "ShotCamera".
+```
+
+Read-only Camera far clip inspection:
+
+```text
+Open level "Levels/Main.level", inspect the Camera far clip distance on entity named "ShotCamera".
 ```
 
 Approval-gated exact Camera bool write on a same-chain temporary target:
@@ -169,7 +188,13 @@ Restore the Camera make active camera on activation bool.
 Non-selected Camera property request:
 
 ```text
-Change the Camera field of view.
+Change the Camera far clip distance.
+```
+
+Far clip restore request:
+
+```text
+Restore the Camera far clip distance to its previous value.
 ```
 
 Non-Camera property request:

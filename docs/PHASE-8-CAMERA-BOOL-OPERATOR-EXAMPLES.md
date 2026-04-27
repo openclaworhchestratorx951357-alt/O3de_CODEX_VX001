@@ -8,6 +8,9 @@ This guide gives operators safe prompt wording for inspecting, changing, and
 restoring the one admitted Camera bool target without implying broad
 component-property editing, generic restore, or generalized undo support.
 
+For the broader readback-only target map, including Camera far clip distance,
+also see `docs/PHASE-8-READBACK-OPERATOR-EXAMPLES.md`.
+
 ## Current Truth
 
 The admitted public component-property write corridor is:
@@ -69,6 +72,34 @@ Expected readback review fields:
 - `read_only: true`
 - `write_occurred: false`
 - public property list remains unavailable
+
+## Other Readback-Only Camera Evidence
+
+`Camera :: Controller|Configuration|Far clip distance :: float` is live-proven
+readback-only evidence. Operators may ask to inspect it, but it is not admitted
+for writes or restore.
+
+```text
+Open level "Levels/Main.level", inspect the Camera far clip distance on entity named "ShotCamera".
+```
+
+Expected far clip readback review fields:
+
+- capability path or chain:
+  `editor.component.find -> editor.component.property.get`
+- entity target
+- component `Camera`
+- property path `Controller|Configuration|Far clip distance`
+- value type `float`
+- current value when available
+- `read_only: true`
+- `write_occurred: false`
+- `write_admission: false`
+- `restore_admission: false`
+- `property_list_admission: false`
+
+Do not present far clip as changeable by an operator unless a future high-risk
+packet designs, proves, reviews, and admits a separate exact corridor.
 
 ## Safe Write Prompts
 
@@ -213,6 +244,18 @@ Restore the Camera field of view to the old value.
 ```
 
 Reason: other Camera property restores remain unadmitted.
+
+```text
+Set the Camera far clip distance to 512.
+```
+
+Reason: Camera far clip is readback-only and discovered-but-not-admitted.
+
+```text
+Restore the Camera far clip distance to its previous value.
+```
+
+Reason: no Camera far clip restore corridor exists.
 
 ```text
 Use Editor Python to restore the Camera bool.

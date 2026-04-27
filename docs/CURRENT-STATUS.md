@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-e269a029d61f521eeb4e480b5d0be9bf2b6bb358
+e00746f1dc4178083b18dff7f7063a17f912ee24
 ```
 
 The latest runtime/capability movement remains the completed Phase 8 Camera
@@ -75,6 +75,8 @@ Recent handoff-relevant packets:
   approval gate change that.
 - PR #88 checkpointed the Camera far clip float target as discovered but not
   admitted, preserving readback-only status.
+- PR #89 checkpointed the broader Phase 8 readback target map across admitted,
+  readback-only, and blocked targets.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -205,6 +207,11 @@ admitted write/restore target, Mesh model asset as readback-only asset evidence,
 Comment root string metadata as blocked scalar evidence, and Camera far clip as
 readback-only discovered evidence.
 
+Operator examples for the readback map are being refreshed in
+`docs/PHASE-8-READBACK-OPERATOR-EXAMPLES.md`. Those examples preserve far clip
+as readback-only and keep generic writes, restore, property listing, and
+arbitrary Editor Python refused.
+
 ## Repo Hygiene Baseline
 
 Preferred governance right now is low-friction:
@@ -276,10 +283,10 @@ property writes.
    `codex/phase-9-asset-readback-substrate-audit` before any proof-only or
    implementation work.
 3. If Phase 8 continues without explicit write approval, select another
-   already-allowlisted read-only target discovery candidate, refresh readback
-   operator examples, or audit refusal examples for generic property writes and
-   public property listing. Do not widen writes, restore, property-list
-   admission, or public prompts without a separate approval gate.
+   already-allowlisted read-only target discovery candidate or audit refusal
+   tests/examples for generic property writes and public property listing. Do
+   not widen writes, restore, property-list admission, or public prompts without
+   a separate approval gate.
 4. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 5. Continue repository professionalization in small docs-only packets when the
