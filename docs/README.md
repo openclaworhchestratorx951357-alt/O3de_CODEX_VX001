@@ -16,6 +16,10 @@ rounding up capability claims.
   project-local dependency bootstrap.
 - `docs/CODEX-WORKFLOW-GOVERNOR.md` - repo-wide guard against trivial PR churn;
   use it before creating branches, commits, or PRs.
+- `docs/O3DE-EVIDENCE-SUBSTRATE-CHECK.md` - mandatory check before declaring
+  O3DE capability work blocked; inspect read-only O3DE caches, databases,
+  catalogs, generated outputs, build outputs, project files, and proof
+  artifacts first.
 - `docs/REPOSITORY-OPERATIONS.md` - low-friction Codex admin workflow,
   validation expectations, and self-merge rules.
 - `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` - repo-wide workflow
@@ -114,6 +118,7 @@ rounding up capability claims.
 
 - `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`
 - `docs/CODEX-WORKFLOW-GOVERNOR.md`
+- `docs/O3DE-EVIDENCE-SUBSTRATE-CHECK.md`
 - `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`
 - `docs/NORMALIZED-PHASE-WORKFLOW.md`
 - `docs/CODEX-OPERATING-RUNBOOK.md`

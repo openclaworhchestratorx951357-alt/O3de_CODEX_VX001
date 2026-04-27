@@ -42,6 +42,15 @@ Incidental status/index updates bundled here:
 
 - TBD
 
+## Blocked-status / evidence-substrate check
+
+If this PR says anything is blocked, list:
+
+- evidence substrates checked:
+- read-only proof path attempted:
+- bounded example attempted:
+- reason proof-only readback is not possible:
+
 ## Revert path
 
 How to undo this PR if needed:

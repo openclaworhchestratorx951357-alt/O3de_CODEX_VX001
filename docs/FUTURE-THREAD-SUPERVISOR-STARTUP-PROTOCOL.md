@@ -35,6 +35,7 @@ Supervisor Low-Friction Mode means:
 - use multiple worker roles for parallel inspection
 - keep final authority centralized in the Supervisor Agent
 - do not interrupt the operator for low-risk, already-approved workflow actions
+- check O3DE evidence substrates before declaring O3DE capability work blocked
 - still require explicit approval for high-risk, destructive, security, or
   runtime-broadening actions
 
@@ -79,13 +80,20 @@ the current environment and operator instructions allow delegation.
    - escalates to full checks when shared surfaces are touched
    - records exact command output/results
 
-6. Risk/Boundary Agent
+6. Evidence Substrate Agent
+   - searches O3DE caches, databases, catalogs, generated outputs, and proof
+     artifacts
+   - proposes read-only proof paths before blocked status is allowed
+   - verifies one bounded proof example is impossible before accepting a
+     blocked claim
+
+7. Risk/Boundary Agent
    - checks high-risk actions
    - blocks unsafe broadening
    - verifies forbidden actions are not happening
    - requires explicit operator approval for high-risk work
 
-7. Implementation Agent
+8. Implementation Agent
    - edits only within approved scope
    - does not broaden task
    - does not stage local artifacts
@@ -137,11 +145,12 @@ project work, read:
 1. `AGENTS.md`
 2. `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`
 3. `docs/CODEX-WORKFLOW-GOVERNOR.md`
-4. `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`
-5. `docs/NORMALIZED-PHASE-WORKFLOW.md`
-6. `docs/CODEX-OPERATING-RUNBOOK.md`
-7. `docs/CURRENT-STATUS.md`
-8. the relevant phase checkpoint, quick reference, readiness/audit, or blocker
+4. `docs/O3DE-EVIDENCE-SUBSTRATE-CHECK.md`
+5. `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`
+6. `docs/NORMALIZED-PHASE-WORKFLOW.md`
+7. `docs/CODEX-OPERATING-RUNBOOK.md`
+8. `docs/CURRENT-STATUS.md`
+9. the relevant phase checkpoint, quick reference, readiness/audit, or blocker
    doc
 
 If the request is branch hygiene, also read:

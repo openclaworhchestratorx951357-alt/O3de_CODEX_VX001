@@ -19,12 +19,14 @@ Supervisor Mode requires Codex to:
 
 - verify repo root, origin, branch, `HEAD`, `origin/main`, and worktree status
 - organize explicit supervisor, repo-state, dependency-bootstrap, context,
-  validation, risk/boundary, and implementation roles
+  validation, evidence-substrate, risk/boundary, and implementation roles
 - check project-local dependencies before validation
 - bootstrap only repo-declared local dependencies when needed
 - avoid global/system installs and dependency changes unless explicitly
   approved
 - apply `docs/CODEX-WORKFLOW-GOVERNOR.md` before creating a branch or PR
+- run `docs/O3DE-EVIDENCE-SUBSTRATE-CHECK.md` before declaring O3DE capability
+  work blocked
 - report startup readiness before editing
 - continue into the normalized phase workflow
 
@@ -45,6 +47,17 @@ Do not create standalone PRs only to:
   operator-requested value
 
 Bundle incidental status/index updates into the meaningful PR that caused them.
+
+## Use The O3DE Evidence Substrate Check
+
+Before saying an O3DE capability is blocked, run the O3DE Evidence Substrate
+Check in `docs/O3DE-EVIDENCE-SUBSTRATE-CHECK.md`.
+
+Missing prompt/catalog/adapter admission is not enough to call a capability
+blocked. First check whether O3DE already stores the needed information in a
+cache, database, catalog, generated output, registry, build output, project
+file, or proof artifact. If a read-only substrate exists, proceed to
+proof-only readback instead of blocked-status documentation.
 
 ## Use The Normalized Phase Workflow
 
@@ -71,6 +84,7 @@ Primary truth sources:
 - code, tests, and observed runtime behavior
 - `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`
 - `docs/CODEX-WORKFLOW-GOVERNOR.md`
+- `docs/O3DE-EVIDENCE-SUBSTRATE-CHECK.md`
 - `docs/CURRENT-STATUS.md`
 - `docs/NORMALIZED-PHASE-WORKFLOW.md`
 - `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
