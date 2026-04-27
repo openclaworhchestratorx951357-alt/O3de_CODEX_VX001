@@ -98,6 +98,11 @@ Recent handoff-relevant packets:
   Python in the editor stay on `editor.candidate_mutation.unsupported` instead
   of planning only session/level setup.
 - PR #95 merged that editor blocked-surface prompt refusal guard.
+- The editor UI/script prompt refusal guard is recorded in
+  `docs/PHASE-8-EDITOR-UI-SCRIPT-PROMPT-REFUSAL-GUARD.md`. Editor-control
+  requests for in-editor Python/script execution, hotkeys, toolbar/click
+  automation, selection, duplication, or renaming stay on
+  `editor.candidate_mutation.unsupported`.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -247,6 +252,11 @@ The editor blocked-surface prompt refusal guard is recorded in
 `docs/PHASE-8-EDITOR-BLOCKED-SURFACE-PROMPT-REFUSAL-GUARD.md`. Editor-control
 render setting, build setting, TIAF state, and in-editor Python execution
 requests must refuse as `editor.candidate_mutation.unsupported`.
+
+The editor UI/script prompt refusal guard is recorded in
+`docs/PHASE-8-EDITOR-UI-SCRIPT-PROMPT-REFUSAL-GUARD.md`. Editor-control
+hotkey, toolbar/click, script, selection, duplicate, and rename requests must
+refuse as `editor.candidate_mutation.unsupported`.
 
 ## Repo Hygiene Baseline
 

@@ -2055,6 +2055,45 @@ def test_prompt_session_refuses_arbitrary_command_execution() -> None:
             'Open level "Levels/Main.level", execute Python in the editor to '
             "change the selected entity.",
         ),
+        (
+            "prompt-editor-candidate-editor-python-2",
+            'Open level "Levels/Main.level", run Python in the editor to '
+            "change the selected entity.",
+        ),
+        (
+            "prompt-editor-candidate-editor-script-1",
+            'Open level "Levels/Main.level", run an editor script to change '
+            "the selected entity.",
+        ),
+        (
+            "prompt-editor-candidate-hotkey-1",
+            'Open level "Levels/Main.level", press Ctrl+Z in the editor.',
+        ),
+        (
+            "prompt-editor-candidate-hotkey-2",
+            'Open level "Levels/Main.level", use a hotkey to duplicate entity '
+            'named "Hero".',
+        ),
+        (
+            "prompt-editor-candidate-toolbar-1",
+            'Open level "Levels/Main.level", click the viewport toolbar to '
+            "change camera settings.",
+        ),
+        (
+            "prompt-editor-candidate-select-1",
+            'Open level "Levels/Main.level", select entity named "Hero" in '
+            "the editor.",
+        ),
+        (
+            "prompt-editor-candidate-duplicate-1",
+            'Open level "Levels/Main.level", duplicate entity named "Hero" '
+            "in the editor.",
+        ),
+        (
+            "prompt-editor-candidate-rename-1",
+            'Open level "Levels/Main.level", rename entity named "Hero" to '
+            '"Boss" in the editor.',
+        ),
     ],
 )
 def test_prompt_session_refuses_candidate_editor_mutation_intents_without_session_plan(

@@ -117,6 +117,12 @@ _CANDIDATE_EDITOR_MUTATION_PATTERNS = (
     re.compile(r"\barbitrary\s+editor\s+(?:python|command|script)\b"),
     re.compile(r"\bexecute\s+(?:an?\s+)?editor\s+(?:python|command|script)\b"),
     re.compile(r"\bexecute\s+(?:an?\s+)?(?:python|command|script)\s+in\s+the\s+editor\b"),
+    re.compile(r"\brun\s+(?:an?\s+)?(?:python|editor\s+script|script)\s+in\s+the\s+editor\b"),
+    re.compile(r"\brun\s+(?:an?\s+)?editor\s+(?:python|command|script)\b"),
+    re.compile(r"\bpress\s+.+\bin\s+the\s+editor\b"),
+    re.compile(r"\b(?:use|press)\s+(?:an?\s+)?hotkey\b"),
+    re.compile(r"\bclick\s+.+\b(?:toolbar|viewport|button|menu)\b"),
+    re.compile(r"\b(?:select|duplicate|rename)\s+(?:the\s+|an?\s+)?(?:entity|object)\b"),
 )
 _EDITOR_PROPERTY_DISCOVERY_PATTERNS = (
     re.compile(
