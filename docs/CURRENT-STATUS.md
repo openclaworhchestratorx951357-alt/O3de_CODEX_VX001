@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-5560952f38bb47b9b7a986a5aa402bd2917a400b
+7ced5a42e96a3f0b9d24ccb02e88c184d89dd97c
 ```
 
 The latest runtime/capability movement remains the completed Phase 8 Camera
@@ -58,6 +58,8 @@ Recent handoff-relevant packets:
 - PR #81 selected Camera non-bool scalar readback as the next candidate-only
   Phase 8 read-only discovery direction without widening public prompts,
   writes, restore, property-list admission, schemas, or runtime code.
+- PR #82 designed the future proof-only Camera non-bool scalar readback harness
+  while preserving exact Camera bool write/restore admission boundaries.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -217,9 +219,9 @@ property writes.
    `codex/phase-9-asset-readback-substrate-audit` before any proof-only or
    implementation work.
 3. If Phase 8 continues instead, use
-   `docs/PHASE-8-CAMERA-NON-BOOL-READBACK-DESIGN.md` to audit readiness for a
-   proof-only Camera non-bool scalar readback harness without widening writes,
-   restore, property-list admission, or public prompts.
+   `docs/PHASE-8-CAMERA-NON-BOOL-READBACK-READINESS-AUDIT.md` to implement only
+   the proof-only Camera non-bool scalar readback helper/tests, without
+   widening writes, restore, property-list admission, or public prompts.
 4. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 5. Continue repository professionalization in small docs-only packets when the

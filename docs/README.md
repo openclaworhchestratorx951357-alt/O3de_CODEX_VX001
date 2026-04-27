@@ -63,6 +63,9 @@ rounding up capability claims.
 - `docs/PHASE-8-CAMERA-NON-BOOL-READBACK-DESIGN.md` designs a future proof-only
   read-only Camera non-bool scalar readback harness while preserving all current
   write, restore, and property-list boundaries.
+- `docs/PHASE-8-CAMERA-NON-BOOL-READBACK-READINESS-AUDIT.md` audits the Camera
+  non-bool readback design as ready for a narrow proof-only implementation,
+  while keeping public prompts, writes, restore, and property listing blocked.
 - `docs/PHASE-9-ASSET-READBACK-BASELINE.md` starts Phase 9 with the current
   asset/pipeline readback truth before any new asset runtime surface is widened.
 - `docs/PHASE-9-ASSET-READBACK-DISCOVERY.md` records the candidate-only Phase 9
@@ -153,6 +156,7 @@ rounding up capability claims.
 - `docs/PHASE-8-EDITOR-COMMENT-SCALAR-TARGET-DISCOVERY.md`
 - `docs/PHASE-8-NEXT-READ-ONLY-TARGET-DISCOVERY.md`
 - `docs/PHASE-8-CAMERA-NON-BOOL-READBACK-DESIGN.md`
+- `docs/PHASE-8-CAMERA-NON-BOOL-READBACK-READINESS-AUDIT.md`
 - `docs/PHASE-9-ASSET-READBACK-BASELINE.md`
 - `docs/PHASE-9-ASSET-READBACK-DISCOVERY.md`
 - `docs/PHASE-9-ASSET-READBACK-DESIGN.md`
