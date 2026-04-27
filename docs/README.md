@@ -169,6 +169,9 @@ rounding up capability claims.
 - `docs/AI-ASSET-FORGE-CLEANUP-CONVERSION-PROOF.md` records the first
   proof-only cleanup/conversion pass from generated OBJ to normalized GLB
   outside the repo and outside O3DE projects.
+- `docs/AI-ASSET-FORGE-O3DE-IMPORT-READINESS-DESIGN.md` defines the future
+  generated-source staging convention, provenance metadata, approval gates, and
+  Phase 9 readback requirements before any O3DE project mutation.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
@@ -198,6 +201,7 @@ rounding up capability claims.
 - `docs/AI-ASSET-FORGE-LOCAL-MODEL-SUBSTRATE-AUDIT.md`
 - `docs/AI-ASSET-FORGE-LOCAL-GENERATION-PROOF.md`
 - `docs/AI-ASSET-FORGE-CLEANUP-CONVERSION-PROOF.md`
+- `docs/AI-ASSET-FORGE-O3DE-IMPORT-READINESS-DESIGN.md`
 - `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
 - `docs/PHASE-6B-REMOTE-EXECUTOR-CONTRACT.md`

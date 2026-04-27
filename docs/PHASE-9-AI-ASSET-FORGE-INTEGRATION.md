@@ -240,7 +240,7 @@ production use.
 
 ## Required next Forge packet
 
-After cleanup/conversion proof:
+After cleanup/conversion proof, this packet was documented:
 
 ```text
 Branch:
@@ -254,6 +254,33 @@ Purpose:
 
 Design the staging, naming, provenance, format, approval, and Phase 9 readback
 requirements for the first future proof-only O3DE source-asset staging packet.
+
+Result:
+
+The design is recorded in
+`docs/AI-ASSET-FORGE-O3DE-IMPORT-READINESS-DESIGN.md`. It defines the
+`Assets/Generated/<asset_slug>/` staging convention, provenance metadata,
+failure states, approval gates, and Phase 9 readback requirements without
+staging assets or mutating an O3DE project.
+
+## Required next Forge packet
+
+After import-readiness design:
+
+```text
+Branch:
+codex/ai-asset-forge-proof-only-o3de-source-staging
+
+PR title:
+Stage one AI Asset Forge source asset into O3DE sandbox
+```
+
+Purpose:
+
+With explicit operator approval for that mutation packet, copy exactly one
+generated GLB and one provenance metadata file into the sandbox
+`Assets/Generated/<asset_slug>/` folder. Do not run Asset Processor, assign the
+asset, or place it in a level unless separately approved.
 
 ## Final rule
 
