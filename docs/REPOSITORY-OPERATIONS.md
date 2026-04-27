@@ -25,6 +25,11 @@ GitHub settings.
 
 ## Standard Slice Workflow
 
+For new threads, and especially when the operator says "use supervisor mode",
+start with `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`. That protocol
+is the repo-local source of truth for activating Supervisor Mode, verifying repo
+state, checking local dependencies, and reporting readiness before edits.
+
 Use this flow for most repo work:
 
 ```powershell
@@ -49,6 +54,36 @@ Then:
 
 Never stage `.venv/`, runtime proof JSON, logs, caches, build outputs, local
 databases, or secrets.
+
+## Project-Local Dependency Bootstrap
+
+Missing local dependencies are a setup issue, not automatic permission to add
+or upgrade dependencies.
+
+Allowed bootstrap scope, subject to active agent confirmation rules:
+
+- create or sync `backend/.venv` from `backend/requirements.txt` when backend
+  validation requires it
+- install frontend dependencies into local `frontend/node_modules` from
+  `frontend/package-lock.json`
+- run `powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 bootstrap-worktree`
+  for secondary worktrees
+
+Forbidden without explicit operator approval:
+
+- global `npm install -g`
+- global `pip install`
+- `sudo`, `apt`, `choco`, `winget`, `brew`, or system package installation
+- dependency version changes
+- lockfile rewrites
+- package upgrades
+
+If a package is missing, inspect the import site and repo-owned dependency
+files before editing dependencies. If the package is already declared, report
+the local environment as stale and sync the project-local environment.
+
+If current agent policy requires action-time confirmation before installing
+packages, obtain that confirmation before running the install command.
 
 ## Post-Admission Review Packet
 

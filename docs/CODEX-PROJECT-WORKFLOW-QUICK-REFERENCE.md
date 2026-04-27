@@ -9,6 +9,24 @@ phase. It captures the current low-friction build workflow: move quickly on
 small verified packets, keep capability truth conservative, and avoid silent
 runtime expansion.
 
+## Use The Future Thread Startup Protocol
+
+New Codex threads do not inherit prior chat context. If the operator says "use
+supervisor mode", immediately read and follow
+`docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md` before planning or editing.
+
+Supervisor Mode requires Codex to:
+
+- verify repo root, origin, branch, `HEAD`, `origin/main`, and worktree status
+- organize explicit supervisor, repo-state, dependency-bootstrap, context,
+  validation, risk/boundary, and implementation roles
+- check project-local dependencies before validation
+- bootstrap only repo-declared local dependencies when needed
+- avoid global/system installs and dependency changes unless explicitly
+  approved
+- report startup readiness before editing
+- continue into the normalized phase workflow
+
 ## Use The Normalized Phase Workflow
 
 Future threads must start from `docs/NORMALIZED-PHASE-WORKFLOW.md` before
@@ -32,6 +50,7 @@ Before changing files:
 Primary truth sources:
 
 - code, tests, and observed runtime behavior
+- `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`
 - `docs/CURRENT-STATUS.md`
 - `docs/NORMALIZED-PHASE-WORKFLOW.md`
 - `docs/REMOTE-AUTOMATION-SURFACE-MATRIX.md`
