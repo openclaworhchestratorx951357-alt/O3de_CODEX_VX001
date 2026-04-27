@@ -18,9 +18,13 @@ SCRIPT_VERSION = "v0.1"
 REQUEST_PREFIX = "scalar-target-discovery-proof"
 PROOF_ENTITY_PREFIX = "CodexScalarTargetDiscoveryProofEntity"
 BLOCKER_CODE = "scalar_candidate_not_found"
+CAMERA_NON_BOOL_BLOCKER_CODE = "camera_non_bool_scalar_candidate_not_found"
 WRITE_BLOCKER_CODE = "property_write_unadmitted"
 TARGET_PROVENANCE = COMPONENT_ID_PROVENANCE_ADMITTED_RUNTIME_COMPONENT_ADD_RESULT
-CANDIDATE_ORDER = ("Camera", "Comment")
+ADMITTED_CAMERA_BOOL_PROPERTY_PATH = (
+    "Controller|Configuration|Make active camera on activation?"
+)
+CANDIDATE_ORDER = ("Camera",)
 REJECT_PATH_MARKERS = (
     "asset",
     "material",
@@ -213,12 +217,29 @@ def _value_is_scalar_or_text_like(value: Any, value_type: Any) -> bool:
     )
 
 
+def _value_is_bool_like(value: Any, value_type: Any) -> bool:
+    if isinstance(value, bool):
+        return True
+    value_type_text = "" if value_type is None else str(value_type).lower()
+    return "bool" in value_type_text or "boolean" in value_type_text
+
+
 def _path_is_out_of_scope(path: str, value_type_hint: Any = None) -> bool:
     lowered_path = path.lower()
     lowered_type = "" if value_type_hint is None else str(value_type_hint).lower()
     return any(marker in lowered_path for marker in REJECT_PATH_MARKERS) or any(
         marker in lowered_type for marker in REJECT_TYPE_MARKERS
     )
+
+
+def _blocker_code_for_component(component_name: str, discovery: dict[str, Any]) -> str:
+    blocker_code = discovery.get("blocker_code") or BLOCKER_CODE
+    if component_name == "Camera" and blocker_code in {
+        BLOCKER_CODE,
+        "camera_scalar_candidate_not_found",
+    }:
+        return CAMERA_NON_BOOL_BLOCKER_CODE
+    return str(blocker_code)
 
 
 def review_component_scalar_discovery_result(
@@ -254,8 +275,11 @@ def review_component_scalar_discovery_result(
         "entity_id": selected_target.get("entity_id"),
         "entity_name": selected_target.get("entity_name"),
         "discovery_ladder": discovery,
+        "read_only": True,
+        "write_occurred": False,
         "write_target_admitted": False,
         "write_admission": False,
+        "restore_admission": False,
         "property_list_admission": False,
     }
     if isinstance(selected_candidate, dict):
@@ -274,6 +298,13 @@ def review_component_scalar_discovery_result(
             raise ScalarTargetDiscoveryProofError(
                 "Scalar target discovery selected an out-of-scope path."
             )
+        if (
+            component_name == "Camera"
+            and property_path == ADMITTED_CAMERA_BOOL_PROPERTY_PATH
+        ):
+            raise ScalarTargetDiscoveryProofError(
+                "Camera non-bool scalar discovery selected the admitted bool path."
+            )
         if selected_candidate.get("success") is not True:
             raise ScalarTargetDiscoveryProofError(
                 "Scalar target discovery selected a candidate without readback success."
@@ -289,6 +320,10 @@ def review_component_scalar_discovery_result(
         if _value_shape(value) != "scalar":
             raise ScalarTargetDiscoveryProofError(
                 "Scalar target discovery selected a shaped/container value."
+            )
+        if component_name == "Camera" and _value_is_bool_like(value, value_type):
+            raise ScalarTargetDiscoveryProofError(
+                "Camera non-bool scalar discovery selected a bool candidate."
             )
         source = str(selected_candidate.get("source") or "")
         if source.startswith("PropertyTreeEditor"):
@@ -319,12 +354,15 @@ def review_component_scalar_discovery_result(
                 "runtime_value_type": selected_candidate.get("runtime_value_type"),
                 "value_preview": selected_candidate.get("value_preview"),
                 "target_status": "readback_only_candidate",
+                "read_only": True,
+                "write_occurred": False,
                 "write_admission": False,
+                "restore_admission": False,
                 "property_list_admission": False,
             },
         }
 
-    blocker_code = discovery.get("blocker_code") or BLOCKER_CODE
+    blocker_code = _blocker_code_for_component(component_name, discovery)
     return {
         **common,
         "status": "blocked",
@@ -377,6 +415,13 @@ def build_success_summary(
         for result in component_results
         if result.get("blocker_code")
     }
+    blocker_code = None
+    if not target_selected:
+        blocker_code = (
+            CAMERA_NON_BOOL_BLOCKER_CODE
+            if component_blockers == {"Camera": CAMERA_NON_BOOL_BLOCKER_CODE}
+            else BLOCKER_CODE
+        )
     restore_verified = all(
         result.get("restore_succeeded") is True for result in component_results
     )
@@ -393,10 +438,13 @@ def build_success_summary(
         "selected_candidate": selected_candidate,
         "target_selected": target_selected,
         "future_write_candidate_selected": target_selected,
-        "blocker_code": None if target_selected else BLOCKER_CODE,
+        "blocker_code": blocker_code,
         "component_blockers": component_blockers,
+        "read_only": True,
+        "write_occurred": False,
         "write_target_admitted": False,
         "write_admission": False,
+        "restore_admission": False,
         "property_list_admission": False,
         "adapters_boundary": {
             "active_mode": adapters_boundary.get("active_mode"),
@@ -428,6 +476,7 @@ def build_success_summary(
         ],
         "missing_proof": [
             "No property writes were implemented, admitted, or executed.",
+            "No restore corridor was implemented, admitted, or executed.",
             "No public Prompt Studio, dispatcher, catalog, or /adapters property-list admission was proven.",
             "No arbitrary Editor Python, material, asset, render, build, or TIAF behavior was exercised.",
             "No live Editor undo or viewport reload was proven.",
@@ -467,8 +516,11 @@ def build_failure_summary(
         ),
         "target_selected": False,
         "future_write_candidate_selected": False,
+        "read_only": True,
+        "write_occurred": False,
         "write_target_admitted": False,
         "write_admission": False,
+        "restore_admission": False,
         "property_list_admission": False,
         "blocker_code": WRITE_BLOCKER_CODE,
         "missing_proof": [
@@ -519,6 +571,8 @@ def main() -> int:
                 "No property write admission; property.list remains proof-only and "
                 "unexposed through Prompt Studio, dispatcher/catalog, and /adapters."
             ),
+            "readback_scope": "Camera non-bool scalar readback only",
+            "excluded_property_paths": [ADMITTED_CAMERA_BOOL_PROPERTY_PATH],
             "component_id_source": TARGET_PROVENANCE,
         },
         "preflight": {},
@@ -614,6 +668,13 @@ def main() -> int:
                     "proof_component_family": component_name,
                     "include_property_tree_evidence": True,
                     "include_scalar_target_discovery": True,
+                    "scalar_target_discovery_scope": "camera_non_bool_readback",
+                    "require_non_bool_scalar": component_name == "Camera",
+                    "excluded_property_paths": (
+                        [ADMITTED_CAMERA_BOOL_PROPERTY_PATH]
+                        if component_name == "Camera"
+                        else []
+                    ),
                     "source_inspection_evidence": source_inspection.get(
                         component_name,
                         {},
@@ -656,6 +717,7 @@ def main() -> int:
                     "discovery_review": discovery_review,
                     "restore_succeeded": cleanup_restore.get("restore_succeeded"),
                     "restore_result": cleanup_restore.get("restore_result"),
+                    "restore_admission": False,
                     "cleanup_restore": cleanup_restore_summary(cleanup_restore),
                 }
             )

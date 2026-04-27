@@ -1060,6 +1060,7 @@ SCALAR_TARGET_VALUE_TYPE_MARKERS = (
     "u32",
     "s32",
 )
+ADMITTED_CAMERA_BOOL_PROPERTY_PATH = "Controller|Configuration|Make active camera on activation?"
 COMPONENT_ID_PATTERN = re.compile(
     r"^EntityComponentIdPair\s*\(\s*"
     r"(?:EntityId\s*\(\s*(?P<entity_wrapped>\d+)\s*\)|"
@@ -2771,12 +2772,32 @@ def _run_scalar_target_discovery_ladder(
     component_family = str(
         command.get("args", {}).get("proof_component_family") or "unknown"
     )
+    args = command.get("args", {})
+    if not isinstance(args, dict):
+        args = {}
+    require_non_bool_scalar = args.get("require_non_bool_scalar") is True
+    excluded_property_paths = {
+        str(path)
+        for path in (args.get("excluded_property_paths") or [])
+        if str(path).strip()
+    }
     property_tree, tree_evidence = _build_scalar_property_tree_evidence(component_pair)
     entries = _normalize_scalar_target_entries(
         property_paths,
         tree_evidence,
         component_family=component_family,
     )
+    for entry in entries:
+        property_path = str(entry.get("property_path") or "").strip()
+        if property_path in excluded_property_paths:
+            entry.update(
+                {
+                    "readback_candidate": False,
+                    "evidence_class": "admitted_property_path_excluded",
+                    "reason": "The exact admitted Camera bool path is excluded from this non-bool readback proof.",
+                    "excluded_by_non_bool_scope": True,
+                }
+            )
     readback_attempts = [
         _read_scalar_target_candidate(component_pair, property_tree, entry)
         for entry in entries
@@ -2790,6 +2811,18 @@ def _run_scalar_target_discovery_ladder(
             and attempt.get("scalar_or_text_like") is True
             and str(attempt.get("property_path") or "").strip()
             and attempt.get("runtime_value_shape") == "scalar"
+            and not (
+                require_non_bool_scalar
+                and (
+                    isinstance(attempt.get("value"), bool)
+                    or "bool" in str(
+                        attempt.get("value_type") or attempt.get("value_type_hint") or ""
+                    ).lower()
+                    or "boolean" in str(
+                        attempt.get("value_type") or attempt.get("value_type_hint") or ""
+                    ).lower()
+                )
+            )
         ),
         None,
     )
@@ -2807,16 +2840,28 @@ def _run_scalar_target_discovery_ladder(
         blocker_code = "comment_root_string_readback_failed"
     elif any_paths:
         status = "blocked"
-        blocker_code = f"{component_family.lower()}_scalar_candidate_not_found"
+        blocker_code = (
+            "camera_non_bool_scalar_candidate_not_found"
+            if component_family == "Camera" and require_non_bool_scalar
+            else f"{component_family.lower()}_scalar_candidate_not_found"
+        )
     elif (
         property_list_evidence.get("success") is not True
         and tree_evidence.get("tree_success") is not True
     ):
         status = "blocked"
-        blocker_code = "component_property_paths_unavailable"
+        blocker_code = (
+            "camera_non_bool_scalar_readback_unavailable"
+            if component_family == "Camera" and require_non_bool_scalar
+            else "component_property_paths_unavailable"
+        )
     else:
         status = "blocked"
-        blocker_code = "scalar_candidate_not_found"
+        blocker_code = (
+            "camera_non_bool_scalar_candidate_not_found"
+            if component_family == "Camera" and require_non_bool_scalar
+            else "scalar_candidate_not_found"
+        )
 
     return {
         "component_family": component_family,
@@ -2829,8 +2874,11 @@ def _run_scalar_target_discovery_ladder(
         "selected_candidate": selected,
         "target_selected": selected is not None,
         "future_write_candidate_selected": selected is not None,
+        "read_only": True,
+        "write_occurred": False,
         "write_target_admitted": False,
         "write_admission": False,
+        "restore_admission": False,
         "property_list_admission": False,
         "set_component_property_attempted": False,
     }

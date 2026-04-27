@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-7ced5a42e96a3f0b9d24ccb02e88c184d89dd97c
+57c47cf2080235d591040fe74a8a59719b86854f
 ```
 
 The latest runtime/capability movement remains the completed Phase 8 Camera
@@ -60,6 +60,9 @@ Recent handoff-relevant packets:
   writes, restore, property-list admission, schemas, or runtime code.
 - PR #82 designed the future proof-only Camera non-bool scalar readback harness
   while preserving exact Camera bool write/restore admission boundaries.
+- PR #83 audited that design as ready for a narrow proof-only implementation
+  packet, but not ready for public prompt admission, public property-list
+  admission, a write corridor, or a restore corridor.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -148,6 +151,13 @@ The Comment component remains blocked as a scalar/text write target:
 Live proof evidence outranks docs, source guesses, and prefab-derived component
 ids.
 
+Camera non-bool scalar readback is now the active proof-only implementation
+slice. The proof path must exclude
+`Controller|Configuration|Make active camera on activation?`, reject bool-like
+Camera candidates, keep public property listing blocked, keep writes blocked,
+keep restore admission blocked, and return a precise Camera non-bool blocker if
+no non-bool scalar candidate is live-proven.
+
 ## Repo Hygiene Baseline
 
 Preferred governance right now is low-friction:
@@ -218,10 +228,10 @@ property writes.
 2. If such a sample is provided, create
    `codex/phase-9-asset-readback-substrate-audit` before any proof-only or
    implementation work.
-3. If Phase 8 continues instead, use
-   `docs/PHASE-8-CAMERA-NON-BOOL-READBACK-READINESS-AUDIT.md` to implement only
-   the proof-only Camera non-bool scalar readback helper/tests, without
-   widening writes, restore, property-list admission, or public prompts.
+3. If Phase 8 continues, validate and review
+   `docs/PHASE-8-CAMERA-NON-BOOL-READBACK-PROOF.md` and the proof-only helper
+   tests before deciding whether a live Editor proof run is available. Do not
+   widen writes, restore, property-list admission, or public prompts.
 4. Produce a branch cleanup report before deleting any uncertain historical,
    checkpoint, promotion, or active proof branches.
 5. Continue repository professionalization in small docs-only packets when the
