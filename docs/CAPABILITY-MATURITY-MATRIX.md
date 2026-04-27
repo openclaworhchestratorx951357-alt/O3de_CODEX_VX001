@@ -34,7 +34,7 @@ this summary.
 | `build.configure` | M3 plan-only | surface matrix | Real preflight/planning when `dry_run=true`; no configure mutation admission. |
 | `build.compile` | M4 gated real | surface matrix | Real execution-gated for explicit named targets; no broad cleanup or rollback claim. |
 | `asset.processor.status` | M5 real but narrow | surface matrix | Narrow read-only runtime/process evidence. |
-| `asset.source.inspect` | M5 real but narrow | surface matrix | Narrow project-local source metadata evidence. |
+| `asset.source.inspect` | M5 real but narrow | surface matrix | Narrow project-local source metadata plus bounded read-only `Cache/assetdb.sqlite` product/dependency evidence for one explicit source asset. |
 | `asset.batch.process` | M3 plan-only | surface matrix | Real preflight/result-truth corridor, no asset processing execution. |
 | `asset.move.safe` | M3 plan-only | surface matrix | Real identity/preflight corridor, no move/reference-repair mutation. |
 | `render.capture.viewport` | M5 real but narrow | surface matrix | Narrow runtime-probe evidence; does not imply broad render automation. |

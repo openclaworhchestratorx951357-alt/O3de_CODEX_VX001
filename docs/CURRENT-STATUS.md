@@ -21,14 +21,15 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-623e66da110f9d4df6b3adcd0fe0a8b1a10a26b3
+ff6c9d04bf873f6bcd6ad5ba1ef7ee3b0b66a5f9
 ```
 
-The latest runtime/capability movement remains the completed Phase 8 Camera
-bool write and restore corridor sequence plus readback-only Camera far clip
-evidence. Later mainline work has been repo hygiene, UI layout hardening,
-branch-purpose review, future-thread supervisor startup documentation, and
-refusal-coverage hardening that does not widen capability admission.
+The latest runtime/capability movement is the Phase 9
+`asset.source.inspect` read-only product/dependency evidence corridor through
+project-local `Cache/assetdb.sqlite`, followed by live proof, operator
+examples, and prompt refusal coverage that preserves the non-mutation boundary.
+The completed Phase 8 Camera bool write/restore corridor and readback-only
+Camera far clip evidence remain admitted as previously recorded.
 
 Recent handoff-relevant packets:
 
@@ -112,6 +113,17 @@ Recent handoff-relevant packets:
 - PR #99 merged that editor state-toggle prompt refusal guard.
 - PR #101 added the repo-wide workflow governor and future-thread Supervisor
   Mode startup contract.
+- PR #102 audited the local `McpSandbox` Asset Processor database as the
+  read-only Phase 9 product/dependency evidence substrate.
+- PR #103 made the O3DE evidence substrate check mandatory before declaring
+  blocked status.
+- PR #104 added the bounded proof-only `asset.source.inspect` reader for
+  project-local `Cache/assetdb.sqlite` product/dependency rows.
+- PR #105 recorded the live proof against `McpSandbox`.
+- PR #106 added safe/refused operator examples for the exact Phase 9 asset
+  source/product/dependency readback corridor.
+- PR #107 added prompt refusal coverage for unsafe Phase 9 asset execution,
+  cache mutation, broad resolve, and source/product mutation intents.
 
 Phase 9 product/dependency readback is no longer blocked on absence of a local
 sample. A read-only substrate audit found
@@ -130,13 +142,16 @@ completeness, Asset Processor execution, cache mutation, and
 `asset.product.resolve` remain unadmitted. Operator-facing examples now define
 safe and refused prompts for the exact read-only Phase 9 asset
 source/product/dependency readback corridor.
+`docs/PHASE-9-ASSET-READBACK-CHECKPOINT.md` is the compact current checkpoint
+for this Phase 9 state.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
 
 ## Active Capability Boundary
 
-The repo is in Phase 8 editor component/property target-discovery work.
+The repo is in Phase 9 asset readback follow-through and Phase 8 editor
+component/property target-discovery work.
 
 Current admitted editor/runtime truth:
 
