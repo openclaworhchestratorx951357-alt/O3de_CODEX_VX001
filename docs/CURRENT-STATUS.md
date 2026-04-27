@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-86f059deb96536f8660284effe9dab28f453e1a0
+623e66da110f9d4df6b3adcd0fe0a8b1a10a26b3
 ```
 
 The latest runtime/capability movement remains the completed Phase 8 Camera
@@ -109,6 +109,7 @@ Recent handoff-relevant packets:
   requests for transform assignment, visibility/lock changes, component
   enable/disable, or entity activation/deactivation stay on
   `editor.candidate_mutation.unsupported`.
+- PR #99 merged that editor state-toggle prompt refusal guard.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
