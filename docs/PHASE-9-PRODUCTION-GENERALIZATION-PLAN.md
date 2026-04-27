@@ -167,9 +167,9 @@ Asset Forge generated-asset validation handoff.
 It is tracked in
 `docs/PHASE-9-ASSET-READBACK-READINESS-REVIEW-CONTRACT.md`.
 
-## Required future packet
+## Completed review packet implementation
 
-The next required Phase 9 production-generalization packet should be:
+The review packet implementation was:
 
 ```text
 Branch:
@@ -184,6 +184,32 @@ Purpose:
 Carry the readiness/review contract into operator-facing runtime output while
 remaining read-only and preserving all current mutation and Asset Processor
 boundaries.
+
+It is tracked in
+`docs/PHASE-9-ASSET-READBACK-REVIEW-PACKET-IMPLEMENTATION.md`.
+
+## Required future packet
+
+The next production-generalization decision packet should be selected only
+after the review packet has been exercised across enough project/source/platform
+cases to evaluate production-general admission truthfully.
+
+The immediate next project-moving packet is the O3DE AI Asset Forge local model
+substrate audit:
+
+```text
+Branch:
+codex/ai-asset-forge-local-model-substrate-audit
+
+PR title:
+Audit local AI 3D model substrate options
+```
+
+Purpose:
+
+Choose a private/local 3D generation backend candidate without downloading
+models, adding dependencies, generating assets, importing assets, or mutating
+an O3DE project.
 
 ## Future production flow
 

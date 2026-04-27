@@ -10,7 +10,8 @@ Current Phase 9 state:
   `asset.source.inspect` path
 - structured proof schema hardening exists
 - readiness/review contract exists
-- production-general admission is withheld pending review packet implementation
+- review packet implementation exists
+- production-general public admission is still withheld
 
 The helper is recorded in
 `docs/PHASE-9-PROJECT-ASSET-READBACK-DISCOVERY.md` and implemented in
@@ -39,6 +40,11 @@ The readiness/review contract is recorded in
 operator-facing review fields needed for freshness, selected platform,
 missing-substrate guidance, mutation flags, safest next step, and future AI
 Asset Forge provenance handoff.
+
+The review packet implementation is recorded in
+`docs/PHASE-9-ASSET-READBACK-REVIEW-PACKET-IMPLEMENTATION.md`. It carries the
+review contract into `asset.source.inspect` execution details and artifact
+metadata without widening mutation or asset-processing capability.
 
 ## Why AI Asset Forge depends on Phase 9
 
@@ -141,9 +147,9 @@ readback, including freshness, platform, missing-substrate guidance, and the
 fields AI Asset Forge will need before generated assets can be considered
 usable.
 
-## Required next Phase 9 packet
+## Completed Phase 9 review packet implementation
 
-Next packet:
+This packet is now implemented:
 
 ```text
 Branch:
@@ -159,7 +165,7 @@ Carry the readiness/review contract into the operator-facing output path while
 remaining read-only and preserving all asset mutation, Asset Processor, import,
 assignment, and placement boundaries.
 
-## Required later Forge packet
+## Required next Forge packet
 
 After Phase 9 review output exists:
 

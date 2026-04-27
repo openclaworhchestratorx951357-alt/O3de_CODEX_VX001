@@ -157,7 +157,8 @@ project_root + source_path
 ## Still Pending
 
 - live proof artifact command, if a future packet chooses to add one
-- review packet implementation before production-general public admission
+- production-general public admission revisit across enough project/source/
+  platform cases
 - AI Asset Forge model substrate audit
 
 ## Validation

@@ -1503,6 +1503,32 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
                 "but the requested source path did not resolve to a file."
             )
 
+        asset_database_freshness_status = self._asset_readback_freshness_status(
+            path_value=discovery["asset_database_path"],
+            evidence_available=source_status == ASSET_READBACK_READY,
+        )
+        asset_catalog_freshness_status = self._asset_readback_freshness_status(
+            path_value=discovery["asset_catalog_path"],
+            evidence_available=catalog_evidence_available,
+        )
+        safest_next_step = self._asset_source_inspect_safest_next_step(
+            proof_status=proof_status,
+            catalog_evidence_available=catalog_evidence_available,
+            dependency_evidence_available=bool(dependencies),
+            include_dependencies=include_dependencies,
+        )
+        missing_substrate_guidance = self._asset_source_inspect_missing_guidance(
+            proof_status=proof_status
+        )
+        asset_processor_rerun_required = proof_status in {
+            "asset_cache_missing",
+            "asset_database_missing",
+            "asset_catalog_missing",
+            "platform_cache_missing",
+            "product_not_found",
+        }
+        operator_approval_state = "not_requested"
+
         details = {
             "inspection_surface": "asset_source_file",
             "execution_boundary": HYBRID_EXECUTION_BOUNDARY,
@@ -1579,7 +1605,19 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
             "dependency_evidence_available": bool(dependencies),
             "dependency_evidence_source": dependency_evidence_source,
             "dependency_unavailable_reason": dependency_unavailable_reason,
+            "asset_database_freshness_status": asset_database_freshness_status,
+            "asset_catalog_freshness_status": asset_catalog_freshness_status,
+            "asset_processor_rerun_required": asset_processor_rerun_required,
+            "safest_next_step": safest_next_step,
+            "operator_approval_state": operator_approval_state,
+            "missing_substrate_guidance": missing_substrate_guidance,
         }
+        details["asset_readback_review_packet"] = (
+            self._build_asset_readback_review_packet(
+                details=details,
+                warnings=warnings,
+            )
+        )
         result = DispatchResult(
             status="real_success",
             tool=tool,
@@ -1624,6 +1662,176 @@ class AssetPipelineHybridAdapter(ToolExecutionAdapter):
         if readiness_status == "source_asset_path_escapes_project":
             return "unsafe_source_path"
         return readiness_status
+
+    def _asset_readback_freshness_status(
+        self,
+        *,
+        path_value: object,
+        evidence_available: bool,
+    ) -> str:
+        if not path_value:
+            return "missing"
+        if not evidence_available:
+            return "unknown"
+        return "stale_or_unverified"
+
+    def _asset_source_inspect_safest_next_step(
+        self,
+        *,
+        proof_status: str,
+        catalog_evidence_available: bool,
+        dependency_evidence_available: bool,
+        include_dependencies: bool,
+    ) -> str:
+        if proof_status == "asset_source_inspect_proven":
+            if not catalog_evidence_available:
+                return "review_catalog_presence_before_use"
+            if include_dependencies and not dependency_evidence_available:
+                return "review_missing_dependency_rows_before_use"
+            return "operator_review"
+        guidance_by_status = {
+            "project_root_missing": "select_or_register_o3de_project",
+            "project_json_missing": "choose_valid_o3de_project_root",
+            "asset_cache_missing": (
+                "refresh_asset_pipeline_outside_codex_then_retry_readback"
+            ),
+            "asset_database_missing": (
+                "refresh_asset_pipeline_outside_codex_then_retry_readback"
+            ),
+            "platform_cache_missing": (
+                "choose_available_platform_or_process_assets_outside_codex"
+            ),
+            "asset_catalog_missing": (
+                "refresh_asset_catalog_outside_codex_then_retry_readback"
+            ),
+            "source_not_found": "choose_existing_project_relative_source_asset",
+            "product_not_found": (
+                "refresh_asset_processor_outside_codex_then_retry_readback"
+            ),
+            "schema_mismatch": "harden_assetdb_schema_query_before_admission",
+            "unsafe_source_path": "provide_safe_project_relative_source_path",
+            "ready_for_asset_source_inspect": "request_product_dependency_readback",
+        }
+        return guidance_by_status.get(proof_status, "operator_review")
+
+    def _asset_source_inspect_missing_guidance(self, *, proof_status: str) -> str | None:
+        guidance_by_status = {
+            "project_root_missing": "Select or register an O3DE project root.",
+            "project_json_missing": "Choose a valid O3DE project root containing project.json.",
+            "asset_cache_missing": (
+                "Run or refresh the O3DE asset pipeline outside this read-only "
+                "corridor, then retry readback."
+            ),
+            "asset_database_missing": (
+                "Provide a project with processed assets or run Asset Processor "
+                "outside this read-only corridor."
+            ),
+            "platform_cache_missing": (
+                "Choose an available platform cache or process assets for the "
+                "requested platform outside this read-only corridor."
+            ),
+            "asset_catalog_missing": (
+                "Refresh or generate the platform asset catalog outside this "
+                "read-only corridor."
+            ),
+            "source_not_found": (
+                "Choose a project-relative source asset that exists inside the "
+                "selected project."
+            ),
+            "product_not_found": (
+                "Treat the source as not validated for use until Asset Processor "
+                "product evidence exists."
+            ),
+            "schema_mismatch": (
+                "Stop and harden the Asset Processor database schema/query before "
+                "claiming support."
+            ),
+            "unsafe_source_path": (
+                "Provide a safe project-relative source path that does not escape "
+                "the selected project."
+            ),
+        }
+        return guidance_by_status.get(proof_status)
+
+    def _build_asset_readback_review_packet(
+        self,
+        *,
+        details: dict[str, Any],
+        warnings: list[str],
+    ) -> dict[str, Any]:
+        return {
+            "capability": "asset.source.inspect",
+            "review_contract_version": "phase-9-asset-readback-review-v1",
+            "readiness_status": details["readiness_status"],
+            "proof_status": details["proof_status"],
+            "read_only": details["read_only"],
+            "mutation_occurred": details["mutation_occurred"],
+            "selected_project": {
+                "project_root": details["project_root"],
+                "project_json_path": details["project_json_path"],
+                "project_name": details["project_name"],
+            },
+            "selected_platform": {
+                "platform": details["selected_platform"],
+                "cache_path": details["cache_path"],
+                "asset_catalog_path": details["catalog_path"],
+                "asset_catalog_freshness_status": details[
+                    "asset_catalog_freshness_status"
+                ],
+            },
+            "asset_database": {
+                "path": details["asset_database_path"],
+                "read_mode": details["asset_database_read_mode"],
+                "freshness_status": details["asset_database_freshness_status"],
+            },
+            "source": {
+                "original_source_path": details["original_source_path"],
+                "normalized_source_path": details["normalized_source_path"],
+                "source_id": details["source_id"],
+                "source_guid": details["source_guid"],
+                "source_exists": details["source_exists"],
+                "source_is_file": details["source_is_file"],
+            },
+            "products": {
+                "product_path": details["product_path"],
+                "product_id": details["product_id"],
+                "product_sub_id": details["product_sub_id"],
+                "product_rows": details["product_rows"],
+                "product_count": details["product_count"],
+                "evidence_available": details["product_evidence_available"],
+            },
+            "dependencies": {
+                "dependency_rows": details["dependency_rows"],
+                "dependency_count": details["dependency_count"],
+                "evidence_available": details["dependency_evidence_available"],
+            },
+            "catalog": {
+                "catalog_presence": details["catalog_presence"],
+                "asset_catalog_product_path_presence": details[
+                    "asset_catalog_product_path_presence"
+                ],
+                "asset_catalog_product_path_count": details[
+                    "asset_catalog_product_path_count"
+                ],
+            },
+            "warnings": warnings,
+            "blocked_reason": details["blocked_reason"],
+            "missing_substrate_guidance": details["missing_substrate_guidance"],
+            "safest_next_step": details["safest_next_step"],
+            "operator_approval_state": details["operator_approval_state"],
+            "forge_handoff": {
+                "generated_asset_id": None,
+                "asset_slug": None,
+                "generation_backend": None,
+                "model_name": None,
+                "model_version": None,
+                "prompt": None,
+                "source_asset_path": details["normalized_source_path"],
+                "product_asset_path": details["product_path"],
+                "catalog_presence": details["catalog_presence"],
+                "operator_approval_state": details["operator_approval_state"],
+            },
+        }
 
     def _read_asset_source_assetdb_evidence(
         self,

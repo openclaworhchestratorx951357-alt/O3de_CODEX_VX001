@@ -239,7 +239,10 @@ implementation packet can produce the readiness review packet from live
 `asset.source.inspect` execution and tests prove the blocked/readiness states,
 freshness labels, platform selection, mutation flags, and operator guidance.
 
-Recommended future packet:
+The implementation packet is recorded in
+`docs/PHASE-9-ASSET-READBACK-REVIEW-PACKET-IMPLEMENTATION.md`.
+
+Completed implementation packet:
 
 ```text
 Branch:

@@ -6130,8 +6130,43 @@ def test_asset_source_inspect_reads_bounded_assetdb_product_dependency_evidence(
                 assert "dependency_source_guid=215E47FDD1815832B1AB91673ABF6399" in (
                     execution.details["dependencies"][0]
                 )
+                review_packet = execution.details["asset_readback_review_packet"]
+                assert review_packet["capability"] == "asset.source.inspect"
+                assert review_packet["review_contract_version"] == (
+                    "phase-9-asset-readback-review-v1"
+                )
+                assert review_packet["read_only"] is True
+                assert review_packet["mutation_occurred"] is False
+                assert review_packet["selected_project"]["project_root"] == str(
+                    project_root.resolve()
+                )
+                assert review_packet["selected_platform"]["platform"] == "pc"
+                assert review_packet["asset_database"]["read_mode"] == "read-only"
+                assert review_packet["asset_database"]["freshness_status"] == (
+                    "stale_or_unverified"
+                )
+                assert review_packet["source"]["normalized_source_path"] == (
+                    "Levels/BridgeLevel01/BridgeLevel01.prefab"
+                )
+                assert review_packet["products"]["product_path"] == (
+                    "pc/levels/bridgelevel01/bridgelevel01.spawnable"
+                )
+                assert review_packet["dependencies"]["dependency_count"] == 1
+                assert review_packet["catalog"]["catalog_presence"] is True
+                assert review_packet["safest_next_step"] == "operator_review"
+                assert review_packet["operator_approval_state"] == "not_requested"
+                assert review_packet["forge_handoff"]["source_asset_path"] == (
+                    "Levels/BridgeLevel01/BridgeLevel01.prefab"
+                )
+                assert review_packet["forge_handoff"]["product_asset_path"] == (
+                    "pc/levels/bridgelevel01/bridgelevel01.spawnable"
+                )
                 assert artifact is not None
                 assert artifact.simulated is False
+                assert (
+                    artifact.metadata["asset_readback_review_packet"]
+                    == review_packet
+                )
                 assert (
                     schema_validation_service.validate_execution_details(
                         tool_name="asset.source.inspect",
@@ -6411,6 +6446,25 @@ def test_asset_source_inspect_project_general_readiness_blocks(
                 assert execution.details["proof_status"] == expected_proof_status
                 assert execution.details["read_only"] is True
                 assert execution.details["mutation_occurred"] is False
+                assert execution.details["operator_approval_state"] == "not_requested"
+                review_packet = execution.details["asset_readback_review_packet"]
+                assert review_packet["proof_status"] == expected_proof_status
+                assert review_packet["read_only"] is True
+                assert review_packet["mutation_occurred"] is False
+                assert review_packet["operator_approval_state"] == "not_requested"
+                assert review_packet["safest_next_step"] == (
+                    execution.details["safest_next_step"]
+                )
+                if expected_proof_status == "unsafe_source_path":
+                    assert (
+                        review_packet["safest_next_step"]
+                        == "provide_safe_project_relative_source_path"
+                    )
+                    assert "safe project-relative source path" in (
+                        review_packet["missing_substrate_guidance"]
+                    )
+                else:
+                    assert review_packet["missing_substrate_guidance"]
 
 
 def test_asset_source_inspect_does_not_write_project_files() -> None:
