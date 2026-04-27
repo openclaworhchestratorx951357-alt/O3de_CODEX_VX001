@@ -66,6 +66,7 @@ readback for one explicit source asset.
 - `docs/PHASE-9-ASSET-READBACK-LIVE-PROOF.md`
 - `docs/PHASE-9-ASSET-READBACK-OPERATOR-EXAMPLES.md`
 - `docs/PHASE-9-ASSET-CATALOG-SUBSTRATE-DISCOVERY.md`
+- `docs/PHASE-9-ASSET-CATALOG-PARSER-DESIGN.md`
 - `backend/tests/test_dispatcher.py`
 - `backend/tests/test_prompt_control.py`
 
@@ -82,3 +83,8 @@ That review is now tracked in
 Asset Catalog substrate discovery is now tracked in
 `docs/PHASE-9-ASSET-CATALOG-SUBSTRATE-DISCOVERY.md`; it found product path
 evidence but no implementation-ready structured parser.
+
+Asset Catalog parser design is now tracked in
+`docs/PHASE-9-ASSET-CATALOG-PARSER-DESIGN.md`; it keeps catalog work
+proof-only and limits the first implementation candidate to product-path
+presence evidence.

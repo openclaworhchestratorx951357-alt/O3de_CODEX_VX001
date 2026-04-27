@@ -91,6 +91,9 @@ Keep the admitted Phase 9 readback corridor centered on project-local
 `Cache/assetdb.sqlite` until a future design packet identifies a stable,
 structured, read-only parser for the catalog format.
 
+The no-runtime parser design is now tracked in
+`docs/PHASE-9-ASSET-CATALOG-PARSER-DESIGN.md`.
+
 ## Future Design Gates
 
 Before adding Asset Catalog readback, a future packet should answer:
@@ -115,5 +118,7 @@ Before adding Asset Catalog readback, a future packet should answer:
 
 ## Next Safe Packet
 
-The next safe packet is a no-runtime Asset Catalog parser design packet, or a
-different Phase 9 discovery packet for another read-only evidence substrate.
+The next safe packet is either a proof-only product-path presence
+implementation behind the existing narrow `asset.source.inspect` corridor, or a
+schema-only catalog evidence shape packet if structured fields should be
+admitted before runtime code.
