@@ -101,6 +101,7 @@ describe("prompt safety detail panels", () => {
     const onOpenAssetForgeWorkspace = vi.fn();
     const onOpenRun = vi.fn();
     const onOpenArtifact = vi.fn();
+    const onClearAssetForgeOriginContext = vi.fn();
     const execution: ExecutionRecord = {
       id: "exec-forge-1",
       run_id: "run-forge-1",
@@ -134,6 +135,7 @@ describe("prompt safety detail panels", () => {
         onOpenRun={onOpenRun}
         onOpenArtifact={onOpenArtifact}
         onOpenAssetForgeWorkspace={onOpenAssetForgeWorkspace}
+        onClearAssetForgeOriginContext={onClearAssetForgeOriginContext}
       />,
     );
 
@@ -144,6 +146,8 @@ describe("prompt safety detail panels", () => {
     expect(onOpenArtifact).toHaveBeenCalledWith("artifact-origin-1");
     fireEvent.click(screen.getByRole("button", { name: "Return to Asset Forge workspace" }));
     expect(onOpenAssetForgeWorkspace).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Clear origin context" }));
+    expect(onClearAssetForgeOriginContext).toHaveBeenCalledTimes(1);
   });
 
   it("renders artifact origin context actions from Asset Forge packet origin", () => {
@@ -151,6 +155,7 @@ describe("prompt safety detail panels", () => {
     const onOpenRun = vi.fn();
     const onOpenExecution = vi.fn();
     const onOpenArtifact = vi.fn();
+    const onClearAssetForgeOriginContext = vi.fn();
     const artifact: ArtifactRecord = {
       id: "art-forge-1",
       run_id: "run-forge-1",
@@ -182,6 +187,7 @@ describe("prompt safety detail panels", () => {
         onOpenExecution={onOpenExecution}
         onOpenArtifact={onOpenArtifact}
         onOpenAssetForgeWorkspace={onOpenAssetForgeWorkspace}
+        onClearAssetForgeOriginContext={onClearAssetForgeOriginContext}
       />,
     );
 
@@ -194,5 +200,7 @@ describe("prompt safety detail panels", () => {
     expect(onOpenArtifact).toHaveBeenCalledWith("artifact-origin-1");
     fireEvent.click(screen.getByRole("button", { name: "Return to Asset Forge workspace" }));
     expect(onOpenAssetForgeWorkspace).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Clear origin context" }));
+    expect(onClearAssetForgeOriginContext).toHaveBeenCalledTimes(1);
   });
 });

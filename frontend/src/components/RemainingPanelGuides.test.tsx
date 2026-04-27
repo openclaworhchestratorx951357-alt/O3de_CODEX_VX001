@@ -192,6 +192,7 @@ describe("remaining panel guides", () => {
     const onOpenAssetForgeWorkspace = vi.fn();
     const onOpenExecution = vi.fn();
     const onOpenArtifact = vi.fn();
+    const onClearAssetForgeOriginContext = vi.fn();
     render(
       <RunDetailPanel
         item={run}
@@ -208,6 +209,7 @@ describe("remaining panel guides", () => {
         onOpenExecution={onOpenExecution}
         onOpenArtifact={onOpenArtifact}
         onOpenAssetForgeWorkspace={onOpenAssetForgeWorkspace}
+        onClearAssetForgeOriginContext={onClearAssetForgeOriginContext}
       />,
     );
 
@@ -218,5 +220,7 @@ describe("remaining panel guides", () => {
     expect(onOpenArtifact).toHaveBeenCalledWith("artifact-origin-1");
     fireEvent.click(screen.getByRole("button", { name: "Return to Asset Forge workspace" }));
     expect(onOpenAssetForgeWorkspace).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Clear origin context" }));
+    expect(onClearAssetForgeOriginContext).toHaveBeenCalledTimes(1);
   });
 });

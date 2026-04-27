@@ -126,6 +126,7 @@ type ExecutionDetailPanelProps = {
   onReturnToLane?: (() => void) | null;
   onOpenLaneHistoryEntry?: ((entry: { kind: "run" | "execution" | "artifact"; id: string; label: string; detail: string }) => void) | null;
   onOpenAssetForgeWorkspace?: (() => void) | null;
+  onClearAssetForgeOriginContext?: (() => void) | null;
   assetForgeOriginContext?: AssetForgeOriginContext | null;
   refreshHint?: string | null;
   lastRefreshedAt?: string | null;
@@ -195,6 +196,7 @@ export default function ExecutionDetailPanel({
   onReturnToLane,
   onOpenLaneHistoryEntry,
   onOpenAssetForgeWorkspace,
+  onClearAssetForgeOriginContext,
   assetForgeOriginContext,
   refreshHint,
   lastRefreshedAt,
@@ -399,6 +401,16 @@ export default function ExecutionDetailPanel({
                   onClick={() => onOpenAssetForgeWorkspace?.()}
                 >
                   Return to Asset Forge workspace
+                </button>
+              ) : null}
+              {onClearAssetForgeOriginContext ? (
+                <button
+                  type="button"
+                  style={summaryActionButtonStyle}
+                  title="Clear Asset Forge packet-origin context from this Records lane."
+                  onClick={() => onClearAssetForgeOriginContext()}
+                >
+                  Clear origin context
                 </button>
               ) : null}
             </div>

@@ -6770,6 +6770,7 @@ export default function App() {
       onOpenExecution: openExecutionDetail,
       onOpenArtifact: openArtifactDetail,
       onOpenAssetForgeWorkspace: openAssetForgeWorkspaceFromRecords,
+      onClearAssetForgeOriginContext: clearAssetForgeRecordsOriginContext,
       assetForgeOriginContext: assetForgeRecordsOriginContext,
       onOpenPriorityRecord: selectedArtifactSiblingPriority
         ? () => openArtifactDetail(selectedArtifactSiblingPriority.id)
@@ -6904,6 +6905,7 @@ export default function App() {
       onOpenRun: openRunDetail,
       onOpenArtifact: openArtifactDetail,
       onOpenAssetForgeWorkspace: openAssetForgeWorkspaceFromRecords,
+      onClearAssetForgeOriginContext: clearAssetForgeRecordsOriginContext,
       assetForgeOriginContext: assetForgeRecordsOriginContext,
       onOpenPriorityRecord: selectedExecutionPreferredArtifact
         ? () => openArtifactDetail(selectedExecutionPreferredArtifact.id)
@@ -7051,6 +7053,7 @@ export default function App() {
       onOpenExecution: openExecutionDetail,
       onOpenArtifact: openArtifactDetail,
       onOpenAssetForgeWorkspace: openAssetForgeWorkspaceFromRecords,
+      onClearAssetForgeOriginContext: clearAssetForgeRecordsOriginContext,
       assetForgeOriginContext: assetForgeRecordsOriginContext,
       onOpenPriorityRecord: selectedRunPreferredExecution
         ? () => openExecutionDetail(selectedRunPreferredExecution.id)
@@ -7309,6 +7312,19 @@ export default function App() {
       window.localStorage.setItem("o3de-asset-forge-page-shell-menu-v1", "Review");
     }
     setActiveWorkspaceId("asset-forge");
+  }
+
+  function clearAssetForgeRecordsOriginContext(): void {
+    setAssetForgeRecordsOriginContext(null);
+    setRunDetailRefreshHint((hint) => hint?.startsWith("Auto-opened from Asset Forge packet origin:")
+      ? null
+      : hint);
+    setExecutionDetailRefreshHint((hint) => hint?.startsWith("Auto-opened from Asset Forge packet origin:")
+      ? null
+      : hint);
+    setArtifactDetailRefreshHint((hint) => hint?.startsWith("Auto-opened from Asset Forge packet origin:")
+      ? null
+      : hint);
   }
 
   function openAssetForgePacketOriginRecord(origin: AssetForgeReviewPacketOrigin): void {
