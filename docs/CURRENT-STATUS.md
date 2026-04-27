@@ -104,6 +104,11 @@ Recent handoff-relevant packets:
   automation, selection, duplication, or renaming stay on
   `editor.candidate_mutation.unsupported`.
 - PR #97 merged that editor UI/script prompt refusal guard.
+- The editor state-toggle prompt refusal guard is recorded in
+  `docs/PHASE-8-EDITOR-STATE-TOGGLE-PROMPT-REFUSAL-GUARD.md`. Editor-control
+  requests for transform assignment, visibility/lock changes, component
+  enable/disable, or entity activation/deactivation stay on
+  `editor.candidate_mutation.unsupported`.
 
 Later PRs may supersede this snapshot. Future agents should check `git log`,
 open PRs, and the latest proof docs before selecting a new slice.
@@ -258,6 +263,11 @@ The editor UI/script prompt refusal guard is recorded in
 `docs/PHASE-8-EDITOR-UI-SCRIPT-PROMPT-REFUSAL-GUARD.md`. Editor-control
 hotkey, toolbar/click, script, selection, duplicate, and rename requests must
 refuse as `editor.candidate_mutation.unsupported`.
+
+The editor state-toggle prompt refusal guard is recorded in
+`docs/PHASE-8-EDITOR-STATE-TOGGLE-PROMPT-REFUSAL-GUARD.md`. Editor-control
+transform assignment, visibility, lock, component enable/disable, and entity
+activation prompts must refuse as `editor.candidate_mutation.unsupported`.
 
 ## Repo Hygiene Baseline
 
