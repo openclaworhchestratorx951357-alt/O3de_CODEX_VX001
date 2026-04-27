@@ -21,7 +21,7 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-389655e599fdaea94729478f2dcbbda058c09bef
+419866f2658a6258e9a9272ca31098439d59e3b8
 ```
 
 The latest runtime/capability movement is the Phase 9
@@ -142,6 +142,9 @@ Recent handoff-relevant packets:
   `asset.source.inspect` source/product/dependency/catalog readback path and is
   recorded in
   `docs/PHASE-9-PROJECT-GENERAL-ASSET-SOURCE-INSPECT-PROOF.md`.
+- The current schema-hardening packet promotes those structured proof fields
+  into the published persisted payload schemas and is recorded in
+  `docs/PHASE-9-ASSET-SOURCE-INSPECT-SCHEMA-HARDENING.md`.
 
 Phase 9 product/dependency readback is no longer blocked on absence of a local
 sample. It remains a local proof target and project-general proof-only readback
@@ -165,9 +168,12 @@ source/product/dependency readback corridor. Production generalization is
 tracked in `docs/PHASE-9-PRODUCTION-GENERALIZATION-PLAN.md`; the discovery
 helper is tracked in `docs/PHASE-9-PROJECT-ASSET-READBACK-DISCOVERY.md`, and
 the project-general `asset.source.inspect` proof is tracked in
-`docs/PHASE-9-PROJECT-GENERAL-ASSET-SOURCE-INSPECT-PROOF.md`. The next
-normalized Phase 9 packet should harden the `asset.source.inspect` structured
-proof schema before any public readback admission decision.
+`docs/PHASE-9-PROJECT-GENERAL-ASSET-SOURCE-INSPECT-PROOF.md`. The structured
+schema hardening is tracked in
+`docs/PHASE-9-ASSET-SOURCE-INSPECT-SCHEMA-HARDENING.md`. The next normalized
+Phase 9 packet should decide public readback admission for the project-general,
+read-only `asset.source.inspect` corridor, or document why additional freshness,
+platform, or operator UX work is required first.
 `docs/PHASE-9-ASSET-READBACK-CHECKPOINT.md` is the compact current checkpoint
 for this Phase 9 state.
 

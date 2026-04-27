@@ -8,7 +8,7 @@ Current Phase 9 state:
 - `McpSandbox` proof target still works
 - project-general discovery is integrated into the proof-only
   `asset.source.inspect` path
-- schema hardening pending
+- structured proof schema hardening exists
 - public production-general admission pending
 
 The helper is recorded in
@@ -23,6 +23,9 @@ The proof-only adapter integration is recorded in
 project-general discovery metadata through `asset.source.inspect`, opens
 `assetdb.sqlite` read-only, queries source/product/dependency evidence, and
 cross-checks Asset Catalog product-path presence.
+
+The structured proof schema hardening is recorded in
+`docs/PHASE-9-ASSET-SOURCE-INSPECT-SCHEMA-HARDENING.md`.
 
 ## Why AI Asset Forge depends on Phase 9
 
@@ -62,9 +65,9 @@ readiness behavior for missing project root, `project.json`, `Cache`,
 `assetdb.sqlite`, platform catalog, unsafe source path, missing source, and
 missing product evidence.
 
-## Required next Phase 9 packet
+## Completed Phase 9 schema packet
 
-Next packet:
+This packet is now implemented:
 
 ```text
 Branch:
@@ -80,6 +83,25 @@ Promote the newly returned structured source/product/dependency/catalog proof
 fields into the published `asset.source.inspect` execution-details and
 artifact-metadata schemas, while preserving compatibility with existing string
 evidence.
+
+## Required next Phase 9 packet
+
+Next packet:
+
+```text
+Branch:
+codex/phase-9-asset-readback-admission-decision
+
+PR title:
+Decide Phase 9 asset readback public admission
+```
+
+Purpose:
+
+Decide whether the current project-general, read-only
+`asset.source.inspect` source/product/dependency/catalog corridor is ready to
+be described as a public admitted readback corridor, or whether additional
+schema, freshness, platform, or operator UX work is required first.
 
 ## Required later Forge packet
 

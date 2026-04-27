@@ -55,8 +55,8 @@ prompt-control tests.
 
 ## Decision
 
-Keep the current string-array evidence shape for the admitted read-only Phase 9
-corridor.
+This original review kept the string-array evidence shape for the admitted
+read-only Phase 9 corridor.
 
 Reasons:
 
@@ -66,50 +66,58 @@ Reasons:
 - it keeps the corridor narrow and read-only
 - it avoids implying complete product/dependency graph semantics
 
-## Structured Schema Candidate
+Later project-general proof work added optional structured fields while keeping
+the string-array evidence. That additive schema hardening is recorded in
+`docs/PHASE-9-ASSET-SOURCE-INSPECT-SCHEMA-HARDENING.md`.
 
-A future schema packet may add optional structured fields without removing the
-current string arrays.
+## Structured Schema Outcome
 
-Candidate additive fields:
+The structured schema packet has now added optional structured fields without
+removing the current string arrays.
 
-- `product_records`
-- `dependency_records`
-- `assetdb_source_record`
-- `assetdb_readback_limit`
-- `assetdb_read_mode`
-- `assetdb_path_source_of_truth`
+Additive fields include:
 
-Candidate `product_records` fields:
+- `product_rows`
+- `dependency_rows`
+- `source_id`
+- `source_guid`
+- `asset_database_read_mode`
+- `catalog_presence`
+- `readiness_status`
+- `proof_status`
 
-- `product_name`
+Structured `product_rows` fields:
+
+- `product_path`
 - `product_id`
 - `sub_id`
-- `platform`
-- `job_key`
-- `job_status`
 - `hash`
+- `platform`
+- `job_status`
+- `job_key`
+- `fingerprint`
 - `last_log_time`
 - `source_guid`
 
-Candidate `dependency_records` fields:
+Structured `dependency_rows` fields:
 
 - `product_id`
 - `platform`
 - `dependency_source_guid`
 - `dependency_sub_id`
-- `flags`
+- `dependency_flags`
 - `from_asset_id`
 - `unresolved_path`
-- `unresolved_type`
+- `unresolved_dependency_type`
 
 ## Gates Before Structured Fields
 
 A future structured schema implementation should first answer:
 
-1. Which consumers need machine-readable product/dependency fields?
-2. Should values preserve SQLite numeric types exactly, or normalize to strings
-   for cross-platform JSON stability?
+1. Which consumers need machine-readable product/dependency fields beyond
+   `asset.source.inspect` artifacts?
+2. Should additional SQLite values preserve numeric types exactly, or normalize
+   to strings for cross-platform JSON stability?
 3. Should `SourceDependency` rows be included separately from
    `ProductDependencies`?
 4. Should `ScanFolders` and freshness evidence become first-class records?
