@@ -179,6 +179,12 @@ normalized GLB/FBX plus metadata.
 
 No O3DE project mutation.
 
+Status:
+Completed in `docs/AI-ASSET-FORGE-CLEANUP-CONVERSION-PROOF.md` using
+external Python/trimesh conversion. The generated OBJ was inspected,
+normalized to unit scale, and exported as a GLB outside the repo and outside
+O3DE projects.
+
 ### Forge Phase 3 - O3DE import readiness design
 
 Goal:
@@ -266,12 +272,12 @@ Every generated asset must eventually track:
 
 ## Next recommended implementation sequence
 
-1. Add cleanup/conversion proof after the raw TripoSR OBJ exists outside O3DE.
-2. Design O3DE import readiness only after cleanup/conversion is proven.
-3. Use Phase 9 readback for generated source/product/dependency/catalog
+1. Design O3DE import readiness now that cleanup/conversion has been proven
+   outside O3DE.
+2. Use Phase 9 readback for generated source/product/dependency/catalog
    validation after an explicitly approved proof-only O3DE source-asset staging
    packet.
-4. Keep public import, assignment, placement, and production corridor admission
+3. Keep public import, assignment, placement, and production corridor admission
    blocked until provenance and operator review are implemented.
 
 ## Reference links
@@ -282,3 +288,4 @@ Every generated asset must eventually track:
 - TripoSR: <https://github.com/VAST-AI-Research/TripoSR>
 - Forge Phase 0 audit: `docs/AI-ASSET-FORGE-LOCAL-MODEL-SUBSTRATE-AUDIT.md`
 - Forge Phase 1 proof: `docs/AI-ASSET-FORGE-LOCAL-GENERATION-PROOF.md`
+- Forge Phase 2 proof: `docs/AI-ASSET-FORGE-CLEANUP-CONVERSION-PROOF.md`

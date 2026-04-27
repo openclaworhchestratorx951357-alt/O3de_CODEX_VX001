@@ -215,7 +215,7 @@ admitted for O3DE import, assignment, placement, or production use.
 
 ## Required next Forge packet
 
-After local generation proof:
+After local generation proof, this packet was implemented:
 
 ```text
 Branch:
@@ -229,6 +229,31 @@ Purpose:
 
 Use the generated OBJ as a proof-only input and validate cleanup/conversion
 outside O3DE before any import-readiness design or O3DE project mutation.
+
+Result:
+
+The proof is recorded in `docs/AI-ASSET-FORGE-CLEANUP-CONVERSION-PROOF.md`.
+The generated TripoSR OBJ was inspected, normalized to unit scale, and exported
+as a GLB outside the repo and outside O3DE projects. The converted asset is not
+committed and is not admitted for O3DE import, assignment, placement, or
+production use.
+
+## Required next Forge packet
+
+After cleanup/conversion proof:
+
+```text
+Branch:
+codex/ai-asset-forge-import-readiness-design
+
+PR title:
+Design AI Asset Forge O3DE import readiness
+```
+
+Purpose:
+
+Design the staging, naming, provenance, format, approval, and Phase 9 readback
+requirements for the first future proof-only O3DE source-asset staging packet.
 
 ## Final rule
 
