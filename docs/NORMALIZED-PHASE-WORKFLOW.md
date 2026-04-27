@@ -41,6 +41,7 @@ Required output:
 - proof-only surfaces
 - blocked surfaces
 - unsafe or forbidden surfaces
+- O3DE evidence substrates checked before any blocked status
 - validation commands
 
 Do not:
@@ -59,6 +60,8 @@ Required output:
 
 - candidate list
 - evidence for each candidate
+- O3DE caches, databases, catalogs, generated outputs, project files, build
+  outputs, or proof artifacts checked before declaring blockers
 - blockers
 - selected safest candidate, if any
 - explicit `candidate-only` label
@@ -103,6 +106,7 @@ Confirm whether every required safety gate exists before implementation.
 Required output:
 
 - readiness checklist
+- evidence-substrate check results for any O3DE-specific blocker
 - missing gates
 - implementation touchpoints
 - files that must not be touched
@@ -113,6 +117,11 @@ Do not:
 
 - implement the feature
 - silently promote design into runtime behavior
+
+If an O3DE evidence substrate provides a bounded read-only path, prefer a
+proof-only readback packet over blocked-status documentation. A blocked status
+is valid only after `docs/O3DE-EVIDENCE-SUBSTRATE-CHECK.md` explains why no
+bounded proof example is possible.
 
 ### 5. Proof-Only Harness Packet
 

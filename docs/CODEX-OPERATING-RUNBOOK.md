@@ -16,6 +16,7 @@ This runbook complements:
 - `AGENTS.md`
 - `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`
 - `docs/CODEX-WORKFLOW-GOVERNOR.md`
+- `docs/O3DE-EVIDENCE-SUBSTRATE-CHECK.md`
 - `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md`
 - `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`
 - `docs/NORMALIZED-PHASE-WORKFLOW.md`
@@ -41,6 +42,11 @@ Default standing guidance:
   trivial status-refresh, docs-echo, or refusal-only PRs that do not move a
   meaningful capability, proof, operator UX, validation, blocker, or governance
   outcome forward
+- blocked-status reports for O3DE capability work must include
+  `docs/O3DE-EVIDENCE-SUBSTRATE-CHECK.md` results. Missing prompt, catalog, or
+  adapter admission alone is not enough to call a capability blocked; inspect
+  read-only O3DE caches, databases, catalogs, generated outputs, project
+  registries, build outputs, and proof artifacts first
 - for all project phases, use
   `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` as the future-thread start
   checklist for syncing main, classifying risk, validating, publishing, and
@@ -49,6 +55,7 @@ Default standing guidance:
   next slice", or "move forward", Codex must read
   `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`, read
   `docs/CODEX-WORKFLOW-GOVERNOR.md`, read
+  `docs/O3DE-EVIDENCE-SUBSTRATE-CHECK.md`, read
   `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md`, read
   `docs/NORMALIZED-PHASE-WORKFLOW.md`, read the relevant phase quick reference
   or checkpoint, identify the current workflow stage, and propose or execute
@@ -122,6 +129,12 @@ incidental status, index, and handoff updates into the same project-moving PR
 that created the new truth. Standalone status refreshes and refusal-only
 checkpoints are allowed only when explicitly requested or when they consolidate
 multiple facts that would otherwise mislead the next thread.
+
+Blocked-status slices for O3DE-specific capability work are valid only after a
+read-only evidence substrate check. If a bounded proof example can be read from
+an O3DE cache, database, catalog, generated output, registry, build output, or
+proof artifact, choose a proof-only readback slice instead of a blocked-status
+slice.
 
 Good slice categories:
 - backend contract or persistence work

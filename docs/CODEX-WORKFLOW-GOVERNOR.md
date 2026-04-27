@@ -53,6 +53,21 @@ readiness note:
 
 If the answers are weak, stop and choose a stronger slice.
 
+## Blocked-Status Gate
+
+Codex may not open a "blocked" docs/status PR unless it has completed the O3DE
+Evidence Substrate Check in `docs/O3DE-EVIDENCE-SUBSTRATE-CHECK.md`.
+
+A blocked claim must answer:
+
+1. What cache/database/catalog/generated artifact was checked?
+2. What read-only proof path was attempted?
+3. Why can't one bounded example be proven?
+4. What is the next safest step?
+
+If a read-only proof path exists, the next packet should be proof-only
+readback, not blocked-status documentation.
+
 ## Supervisor Mode Autonomy
 
 Codex is allowed to proceed without constant operator approval when all are

@@ -36,6 +36,12 @@ validation, or governance outcome forward. Do not create standalone status SHA
 refreshes, trivial docs echoes, or refusal-only checkpoint PRs unless the
 operator explicitly requests that exact packet.
 
+When working on O3DE-specific capabilities, inspect read-only evidence stores
+before claiming blockers. Use `docs/O3DE-EVIDENCE-SUBSTRATE-CHECK.md` to check
+O3DE caches, databases, catalogs, generated outputs, registries, build outputs,
+project files, and proof artifacts while preserving no-mutation rules. Missing
+prompt/catalog/adapter admission alone is not a valid blocker.
+
 Use this flow for most repo work:
 
 ```powershell
@@ -227,6 +233,8 @@ Every PR should include:
 ## Boundaries
 
 ## Workflow-governor value
+
+## Blocked-status / evidence-substrate check
 
 ## Revert path
 ```

@@ -26,9 +26,18 @@ Default standing rule:
 - For any new phase, next slice, or "continue the project" request, start from
   `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`,
   `docs/CODEX-WORKFLOW-GOVERNOR.md`,
+  `docs/O3DE-EVIDENCE-SUBSTRATE-CHECK.md`,
   `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` and
   `docs/NORMALIZED-PHASE-WORKFLOW.md` before choosing or implementing the next
   packet.
+
+## Mandatory O3DE Evidence Substrate Check
+
+Before declaring a capability blocked, Codex must read
+`docs/O3DE-EVIDENCE-SUBSTRATE-CHECK.md` and check whether O3DE already stores
+the needed information in a cache, database, catalog, generated output, or
+proof artifact. If a read-only bounded proof path exists, proceed to proof-only
+readback instead of declaring blocked.
 
 Operational defaults for repo work:
 - Prefer one small verifiable packet over broad speculative changes.
