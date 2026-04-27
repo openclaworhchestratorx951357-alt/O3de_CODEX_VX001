@@ -120,6 +120,14 @@ type DetailBreadcrumb = {
   label: string;
 };
 
+type AssetForgeRecordsOriginContext = {
+  label: string;
+  detail: string;
+  runId: string | null;
+  executionId: string | null;
+  artifactId: string | null;
+};
+
 type PinnedRecord = {
   kind: "run" | "execution" | "artifact";
   id: string;
@@ -562,6 +570,8 @@ export default function App() {
   const [runDetailRefreshHint, setRunDetailRefreshHint] = useState<string | null>(null);
   const [executionDetailRefreshHint, setExecutionDetailRefreshHint] = useState<string | null>(null);
   const [artifactDetailRefreshHint, setArtifactDetailRefreshHint] = useState<string | null>(null);
+  const [assetForgeRecordsOriginContext, setAssetForgeRecordsOriginContext] =
+    useState<AssetForgeRecordsOriginContext | null>(null);
   const [operatorOverviewRefreshedAt, setOperatorOverviewRefreshedAt] = useState<string | null>(null);
   const [dashboardRefreshedAt, setDashboardRefreshedAt] = useState<string | null>(null);
   const [dashboardRefreshStatus, setDashboardRefreshStatus] = useState<string | null>(null);
@@ -6760,6 +6770,7 @@ export default function App() {
       onOpenExecution: openExecutionDetail,
       onOpenArtifact: openArtifactDetail,
       onOpenAssetForgeWorkspace: openAssetForgeWorkspaceFromRecords,
+      assetForgeOriginContext: assetForgeRecordsOriginContext,
       onOpenPriorityRecord: selectedArtifactSiblingPriority
         ? () => openArtifactDetail(selectedArtifactSiblingPriority.id)
         : null,
@@ -6893,6 +6904,7 @@ export default function App() {
       onOpenRun: openRunDetail,
       onOpenArtifact: openArtifactDetail,
       onOpenAssetForgeWorkspace: openAssetForgeWorkspaceFromRecords,
+      assetForgeOriginContext: assetForgeRecordsOriginContext,
       onOpenPriorityRecord: selectedExecutionPreferredArtifact
         ? () => openArtifactDetail(selectedExecutionPreferredArtifact.id)
         : null,
@@ -7039,6 +7051,7 @@ export default function App() {
       onOpenExecution: openExecutionDetail,
       onOpenArtifact: openArtifactDetail,
       onOpenAssetForgeWorkspace: openAssetForgeWorkspaceFromRecords,
+      assetForgeOriginContext: assetForgeRecordsOriginContext,
       onOpenPriorityRecord: selectedRunPreferredExecution
         ? () => openExecutionDetail(selectedRunPreferredExecution.id)
         : null,
@@ -7300,6 +7313,13 @@ export default function App() {
 
   function openAssetForgePacketOriginRecord(origin: AssetForgeReviewPacketOrigin): void {
     const breadcrumbNote = `Auto-opened from Asset Forge packet origin: ${origin.label}.`;
+    setAssetForgeRecordsOriginContext({
+      label: origin.label,
+      detail: origin.detail,
+      runId: origin.runId ?? null,
+      executionId: origin.executionId ?? null,
+      artifactId: origin.artifactId ?? null,
+    });
 
     if (origin.artifactId) {
       setActiveWorkspaceId("records");

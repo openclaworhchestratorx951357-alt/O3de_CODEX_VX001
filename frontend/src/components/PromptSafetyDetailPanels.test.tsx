@@ -97,8 +97,10 @@ describe("prompt safety detail panels", () => {
     ).toBeInTheDocument();
   });
 
-  it("shows a return action when execution detail is auto-opened from Asset Forge packet origin", () => {
+  it("renders execution origin context actions from Asset Forge packet origin", () => {
     const onOpenAssetForgeWorkspace = vi.fn();
+    const onOpenRun = vi.fn();
+    const onOpenArtifact = vi.fn();
     const execution: ExecutionRecord = {
       id: "exec-forge-1",
       run_id: "run-forge-1",
@@ -122,16 +124,33 @@ describe("prompt safety detail panels", () => {
         loading={false}
         error={null}
         refreshHint="Auto-opened from Asset Forge packet origin: execution evidence."
+        assetForgeOriginContext={{
+          label: "Selected artifact metadata",
+          detail: "Artifact artifact-origin-1 | Execution exec-forge-1 | Run run-origin-1",
+          runId: "run-origin-1",
+          executionId: "exec-forge-1",
+          artifactId: "artifact-origin-1",
+        }}
+        onOpenRun={onOpenRun}
+        onOpenArtifact={onOpenArtifact}
         onOpenAssetForgeWorkspace={onOpenAssetForgeWorkspace}
       />,
     );
 
+    expect(screen.getByText("Asset Forge Origin Context")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open origin run" }));
+    expect(onOpenRun).toHaveBeenCalledWith("run-origin-1");
+    fireEvent.click(screen.getByRole("button", { name: "Open origin artifact" }));
+    expect(onOpenArtifact).toHaveBeenCalledWith("artifact-origin-1");
     fireEvent.click(screen.getByRole("button", { name: "Return to Asset Forge workspace" }));
     expect(onOpenAssetForgeWorkspace).toHaveBeenCalledTimes(1);
   });
 
-  it("shows a return action when artifact detail is auto-opened from Asset Forge packet origin", () => {
+  it("renders artifact origin context actions from Asset Forge packet origin", () => {
     const onOpenAssetForgeWorkspace = vi.fn();
+    const onOpenRun = vi.fn();
+    const onOpenExecution = vi.fn();
+    const onOpenArtifact = vi.fn();
     const artifact: ArtifactRecord = {
       id: "art-forge-1",
       run_id: "run-forge-1",
@@ -152,10 +171,27 @@ describe("prompt safety detail panels", () => {
         loading={false}
         error={null}
         refreshHint="Auto-opened from Asset Forge packet origin: artifact evidence."
+        assetForgeOriginContext={{
+          label: "Selected artifact metadata",
+          detail: "Artifact artifact-origin-1 | Execution exec-origin-1 | Run run-origin-1",
+          runId: "run-origin-1",
+          executionId: "exec-origin-1",
+          artifactId: "artifact-origin-1",
+        }}
+        onOpenRun={onOpenRun}
+        onOpenExecution={onOpenExecution}
+        onOpenArtifact={onOpenArtifact}
         onOpenAssetForgeWorkspace={onOpenAssetForgeWorkspace}
       />,
     );
 
+    expect(screen.getByText("Asset Forge Origin Context")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open origin run" }));
+    expect(onOpenRun).toHaveBeenCalledWith("run-origin-1");
+    fireEvent.click(screen.getByRole("button", { name: "Open origin execution" }));
+    expect(onOpenExecution).toHaveBeenCalledWith("exec-origin-1");
+    fireEvent.click(screen.getByRole("button", { name: "Open origin artifact" }));
+    expect(onOpenArtifact).toHaveBeenCalledWith("artifact-origin-1");
     fireEvent.click(screen.getByRole("button", { name: "Return to Asset Forge workspace" }));
     expect(onOpenAssetForgeWorkspace).toHaveBeenCalledTimes(1);
   });
