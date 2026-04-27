@@ -148,9 +148,10 @@ completeness, Asset Processor execution, cache mutation, and
 safe and refused prompts for the exact read-only Phase 9 asset
 source/product/dependency readback corridor. Production generalization is
 tracked in `docs/PHASE-9-PRODUCTION-GENERALIZATION-PLAN.md`; the required next
-packet is `codex/phase-9-project-asset-readback-discovery`, which must replace
-local proof assumptions with project-root/source-asset discovery and explicit
-blocked/readiness states.
+packet, `codex/phase-9-project-asset-readback-discovery`, adds the first
+backend discovery helper for project-root/source-asset inputs and explicit
+blocked/readiness states. That helper is tracked in
+`docs/PHASE-9-PROJECT-ASSET-READBACK-DISCOVERY.md`.
 `docs/PHASE-9-ASSET-READBACK-CHECKPOINT.md` is the compact current checkpoint
 for this Phase 9 state.
 
@@ -385,13 +386,14 @@ property writes.
 
 ## Recommended Next Packets
 
-1. Continue Phase 9 with
-   `codex/phase-9-asset-readback-proof-only`, using the audited local
-   `McpSandbox` `assetdb.sqlite` substrate as a read-only proof target for
-   bounded product/dependency evidence behind `asset.source.inspect`.
-2. Keep Phase 9 product/dependency proof-only until tests prove exact source
-   mapping, bounded entries, freshness provenance, and fail-closed unavailable
-   behavior. Do not run Asset Processor or mutate cache/source files.
+1. Continue Phase 9 with a project-general asset source inspect proof packet:
+   integrate the read-only discovery helper into `asset.source.inspect`, return
+   structured readiness evidence, and prove fail-closed behavior for missing
+   project/cache/catalog/source conditions.
+2. Keep Phase 9 product/dependency readback read-only until tests prove exact
+   source mapping, bounded entries, freshness provenance, discovery readiness,
+   and fail-closed unavailable behavior. Do not run Asset Processor or mutate
+   cache/source files.
 3. If Phase 8 continues without explicit write approval, select another
    already-allowlisted read-only target discovery candidate or add narrow
    refusal/readback examples for a documented gap. Do not widen writes,
