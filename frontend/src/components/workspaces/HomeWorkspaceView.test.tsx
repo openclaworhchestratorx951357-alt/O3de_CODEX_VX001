@@ -101,7 +101,7 @@ describe("HomeWorkspaceView", () => {
     expect(within(forgePanel).getByLabelText("Forge left tool shelf")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Forge scene and entity outliner")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Forge viewport preview")).toBeInTheDocument();
-    expect(within(forgePanel).getByText("Toolbench viewport preview — not a live O3DE render")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("Toolbench preview — not live O3DE render")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Forge properties inspector")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Forge asset browser")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Forge timeline evidence status")).toBeInTheDocument();

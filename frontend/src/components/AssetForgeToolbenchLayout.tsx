@@ -44,6 +44,37 @@ type XSheetTrack = {
   cells: string[];
 };
 
+type ProductionWorkspaceLayout =
+  | "Forge Command"
+  | "Modeling / Assembly"
+  | "Animation / Timeline"
+  | "Materials / Lookdev"
+  | "Asset Management"
+  | "Review / Approval"
+  | "Automation Studio"
+  | "Collaboration / Versioning";
+
+type ViewportMode = "Single View" | "Dual View" | "Quad View" | "Camera + Perspective";
+type PanelSet = "Core Panels" | "Evidence Panels" | "Asset Panels" | "Extension Panels";
+type BottomDockMode = "Timeline" | "X-Sheet" | "Status board" | "Review packet";
+type InspectorMode = "Selection" | "Transform" | "Readiness" | "Approval";
+type DensityMode = "Compact" | "Expanded";
+
+type WorkspacePanel = {
+  title: string;
+  gate: GateState;
+  items: string[];
+};
+
+type SavedLayoutPreferences = {
+  activeWorkspaceLayout: ProductionWorkspaceLayout;
+  activeViewportMode: ViewportMode;
+  activePanelSet: PanelSet;
+  bottomDockMode: BottomDockMode;
+  inspectorMode: InspectorMode;
+  densityMode: DensityMode;
+};
+
 type EvidenceTab = "Timeline" | "X-Sheet" | "Status board" | "Review packet";
 
 type AssetForgeToolbenchLayoutProps = {
@@ -56,6 +87,7 @@ type AssetForgeToolbenchLayoutProps = {
 };
 
 const UNKNOWN_VALUE = "Unknown / unavailable";
+const LAYOUT_STORAGE_KEY = "o3de-asset-forge-production-layout-preferences";
 const defaultCommandDraft =
   "Create a weathered modular bridge segment with ivy accents and capture evidence-only review steps.";
 
@@ -119,6 +151,224 @@ const timelineRows: Array<{ label: string; gate: GateState; detail: string }> = 
   { label: "Mutation corridors", gate: "blocked", detail: "Generation/import/staging/placement remain blocked." },
 ];
 
+const productionWorkspaceLayouts: ProductionWorkspaceLayout[] = [
+  "Forge Command",
+  "Modeling / Assembly",
+  "Animation / Timeline",
+  "Materials / Lookdev",
+  "Asset Management",
+  "Review / Approval",
+  "Automation Studio",
+  "Collaboration / Versioning",
+];
+
+const viewportModes: ViewportMode[] = ["Single View", "Dual View", "Quad View", "Camera + Perspective"];
+const panelSets: PanelSet[] = ["Core Panels", "Evidence Panels", "Asset Panels", "Extension Panels"];
+const bottomDockModes: BottomDockMode[] = ["Timeline", "X-Sheet", "Status board", "Review packet"];
+const inspectorModes: InspectorMode[] = ["Selection", "Transform", "Readiness", "Approval"];
+
+const workspacePanels: Record<ProductionWorkspaceLayout, WorkspacePanel[]> = {
+  "Forge Command": [
+    {
+      title: "Prompt request",
+      gate: "plan-only",
+      items: ["Natural-language request", "Prompt Studio route", "No direct execution"],
+    },
+    {
+      title: "Forge plan",
+      gate: "proof-only",
+      items: ["Typed plan preview", "Phase 9 readback context", "Safest next step"],
+    },
+    {
+      title: "Review packet summary",
+      gate: "read-only",
+      items: ["Source evidence", "Product evidence", "Catalog evidence"],
+    },
+    {
+      title: "Approval gates",
+      gate: "requires approval",
+      items: ["Operator approval state", "Unknown production approval", "Blocked mutation list"],
+    },
+  ],
+  "Modeling / Assembly": [
+    {
+      title: "Tool shelf",
+      gate: "local preview",
+      items: ["Select", "Measure", "Camera", "Transform mutation blocked"],
+    },
+    {
+      title: "Outliner",
+      gate: "local preview",
+      items: ["Level Root", "Asset Candidates", "Review Targets"],
+    },
+    {
+      title: "Transform inspector",
+      gate: "read-only",
+      items: ["Position unknown", "Rotation unknown", "Scale unknown"],
+    },
+    {
+      title: "Assembly readiness",
+      gate: "blocked",
+      items: ["Component readiness", "Collision readiness", "Placement blocked"],
+    },
+  ],
+  "Animation / Timeline": [
+    {
+      title: "Timeline",
+      gate: "local preview",
+      items: ["X-sheet playhead", "Frame lane preview", "Sequence notes"],
+    },
+    {
+      title: "Keyframe lane preview",
+      gate: "plan-only",
+      items: ["Camera Cut", "Asset Candidate", "Material Check"],
+    },
+    {
+      title: "Camera shot list",
+      gate: "local preview",
+      items: ["A001", "A002", "A003", "A004"],
+    },
+    {
+      title: "Animation import readiness",
+      gate: "not admitted",
+      items: ["Import controls disabled", "Editing controls local only", "No Asset Processor execution"],
+    },
+  ],
+  "Materials / Lookdev": [
+    {
+      title: "Material slots",
+      gate: "read-only",
+      items: ["Slot A unknown", "Slot B unknown", "Material mutation blocked"],
+    },
+    {
+      title: "Texture dependency list",
+      gate: "proof-only",
+      items: ["Albedo preview", "Normal preview", "Roughness preview"],
+    },
+    {
+      title: "Lighting preview controls",
+      gate: "local preview",
+      items: ["Lit", "Wireframe", "Proof"],
+    },
+    {
+      title: "Render Evidence",
+      gate: "blocked",
+      items: ["Capture Preview", "Live O3DE Render: Not connected", "O3DE material readiness unknown"],
+    },
+  ],
+  "Asset Management": [
+    {
+      title: "Source assets",
+      gate: "read-only",
+      items: ["Normalized source path", "Source GUID", "Fixture/sample entries"],
+    },
+    {
+      title: "Product assets",
+      gate: "proof-only",
+      items: ["Product path", "Product count", "Cache mutation blocked"],
+    },
+    {
+      title: "Dependencies",
+      gate: "proof-only",
+      items: ["Textures", "Materials", "Prefabs"],
+    },
+    {
+      title: "Asset Catalog evidence",
+      gate: "read-only",
+      items: ["Catalog presence", "Catalog path count", "Asset Processor status placeholder"],
+    },
+  ],
+  "Review / Approval": [
+    {
+      title: "Evidence summary",
+      gate: "proof-only",
+      items: ["Source evidence", "Dependency evidence", "Catalog evidence"],
+    },
+    {
+      title: "Warnings",
+      gate: "requires approval",
+      items: ["Unknown license", "Unknown quality", "Unknown placement readiness"],
+    },
+    {
+      title: "Safest next step",
+      gate: "read-only",
+      items: ["Review packet first", "Production approval unavailable", "Operator approval state"],
+    },
+    {
+      title: "Approval state",
+      gate: "requires approval",
+      items: ["Operator review required", "No production approval claim", "No mutation admitted"],
+    },
+  ],
+  "Automation Studio": [
+    {
+      title: "Prompt macros",
+      gate: "plan-only",
+      items: ["Plan template", "Evidence template", "Review template"],
+    },
+    {
+      title: "Planned action templates",
+      gate: "proof-only",
+      items: ["Dry-run/preflight plan", "Operator packet draft", "No execution dispatch"],
+    },
+    {
+      title: "Safe dry-run/preflight actions",
+      gate: "requires approval",
+      items: ["Preview only", "Approval required", "Backend widening blocked"],
+    },
+    {
+      title: "Script/plugin areas",
+      gate: "not admitted",
+      items: ["Arbitrary code execution blocked", "Plugin execution blocked", "Command passthrough blocked"],
+    },
+  ],
+  "Collaboration / Versioning": [
+    {
+      title: "Review notes",
+      gate: "local preview",
+      items: ["Operator note placeholder", "Version evidence not connected", "Review packet context"],
+    },
+    {
+      title: "Branch/PR evidence placeholder",
+      gate: "proof-only",
+      items: ["Current branch", "Change summary", "Version evidence not connected"],
+    },
+    {
+      title: "Version snapshot placeholder",
+      gate: "read-only",
+      items: ["Last artifact", "Review packet version", "Revert path"],
+    },
+    {
+      title: "Rollback status",
+      gate: "blocked",
+      items: ["Rollback not connected", "No repository mutation", "No collaboration claim"],
+    },
+  ],
+};
+
+const pluginSlotPanels: WorkspacePanel[] = [
+  {
+    title: "Registered tools",
+    gate: "read-only",
+    items: ["Typed frontend corridors", "Review packet mapper", "Viewport preview controls"],
+  },
+  {
+    title: "Planned extensions",
+    gate: "plan-only",
+    items: ["Tool extension slots", "Evidence analyzers", "Asset browser adapters"],
+  },
+  {
+    title: "Blocked unsafe extensions",
+    gate: "not admitted",
+    items: ["Arbitrary scripts", "Plugin runtime loading", "Shell/O3DE command passthrough"],
+  },
+  {
+    title: "Requires approval",
+    gate: "requires approval",
+    items: ["Any future execution corridor", "Any material mutation", "Any prefab mutation"],
+  },
+];
+
 const integrationDockActions: IntegrationDockAction[] = [
   { label: "Prompt Studio", gate: "plan-only", detail: "Compose and refine natural-language plans." },
   { label: "Runtime", gate: "proof-only", detail: "Verify bridge/runtime health and readback truth." },
@@ -148,6 +398,55 @@ function ensureDisplayValue(value: string | null | undefined): string {
   }
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : UNKNOWN_VALUE;
+}
+
+function isOneOf<T extends string>(value: unknown, allowedValues: readonly T[]): value is T {
+  return typeof value === "string" && (allowedValues as readonly string[]).includes(value);
+}
+
+function loadSavedLayoutPreferences(): SavedLayoutPreferences | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const rawValue = window.localStorage.getItem(LAYOUT_STORAGE_KEY);
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue) as Partial<SavedLayoutPreferences>;
+    if (
+      isOneOf(parsed.activeWorkspaceLayout, productionWorkspaceLayouts)
+      && isOneOf(parsed.activeViewportMode, viewportModes)
+      && isOneOf(parsed.activePanelSet, panelSets)
+      && isOneOf(parsed.bottomDockMode, bottomDockModes)
+      && isOneOf(parsed.inspectorMode, inspectorModes)
+      && isOneOf(parsed.densityMode, ["Compact", "Expanded"] as const)
+    ) {
+      return parsed as SavedLayoutPreferences;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function saveLayoutPreferences(preferences: SavedLayoutPreferences): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(preferences));
+}
+
+function clearLayoutPreferences(): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(LAYOUT_STORAGE_KEY);
 }
 
 function gateToneStyle(gate: GateState): CSSProperties {
@@ -209,7 +508,29 @@ export default function AssetForgeToolbenchLayout({
   reviewPacketData,
   reviewPacketSource,
 }: AssetForgeToolbenchLayoutProps) {
+  const savedLayoutPreferences = useMemo(() => loadSavedLayoutPreferences(), []);
   const [activeMenu, setActiveMenu] = useState<(typeof topMenuRows)[number]>("File");
+  const [activeWorkspaceLayout, setActiveWorkspaceLayout] = useState<ProductionWorkspaceLayout>(
+    savedLayoutPreferences?.activeWorkspaceLayout ?? "Forge Command",
+  );
+  const [activeViewportMode, setActiveViewportMode] = useState<ViewportMode>(
+    savedLayoutPreferences?.activeViewportMode ?? "Single View",
+  );
+  const [activePanelSet, setActivePanelSet] = useState<PanelSet>(
+    savedLayoutPreferences?.activePanelSet ?? "Core Panels",
+  );
+  const [bottomDockMode, setBottomDockMode] = useState<BottomDockMode>(
+    savedLayoutPreferences?.bottomDockMode ?? "Status board",
+  );
+  const [inspectorMode, setInspectorMode] = useState<InspectorMode>(
+    savedLayoutPreferences?.inspectorMode ?? "Selection",
+  );
+  const [densityMode, setDensityMode] = useState<DensityMode>(
+    savedLayoutPreferences?.densityMode ?? "Compact",
+  );
+  const [layoutFeedback, setLayoutFeedback] = useState(
+    savedLayoutPreferences ? "Saved production layout loaded locally." : "Production layout is local-only.",
+  );
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceRow["label"]>("Forge");
   const [activeTool, setActiveTool] = useState<ToolRow["label"]>("Select");
   const [activeOutlinerSection, setActiveOutlinerSection] = useState<OutlinerSection["label"]>("Asset Candidates");
@@ -229,7 +550,7 @@ export default function AssetForgeToolbenchLayout({
     | "Lights"
     | "Review Packets"
   >("Source Assets");
-  const [activeEvidenceTab, setActiveEvidenceTab] = useState<EvidenceTab>("Status board");
+  const [activeEvidenceTab, setActiveEvidenceTab] = useState<EvidenceTab>(bottomDockMode);
   const [timelineCursor, setTimelineCursor] = useState(2);
   const [xSheetPlayhead, setXSheetPlayhead] = useState(3);
   const [commandDraft, setCommandDraft] = useState(defaultCommandDraft);
@@ -242,6 +563,51 @@ export default function AssetForgeToolbenchLayout({
   const activeWorkspaceRow = workspaceRows.find((row) => row.label === activeWorkspace) ?? workspaceRows[0];
   const activeXSheetFrame = xSheetFrames[xSheetPlayhead] ?? xSheetFrames[0];
   const activeIntegrationRow = integrationDockActions.find((row) => row.label === activeIntegrationAction) ?? integrationDockActions[0];
+  const activeWorkspacePanels = workspacePanels[activeWorkspaceLayout];
+  const currentLayoutPreferences: SavedLayoutPreferences = {
+    activeWorkspaceLayout,
+    activeViewportMode,
+    activePanelSet,
+    bottomDockMode,
+    inspectorMode,
+    densityMode,
+  };
+  const viewportPaneLabels = activeViewportMode === "Single View"
+    ? ["Perspective"]
+    : activeViewportMode === "Dual View"
+      ? ["Perspective", "Camera"]
+      : activeViewportMode === "Camera + Perspective"
+        ? ["Camera", "Perspective"]
+        : ["Top", "Front", "Side", "Perspective"];
+  const viewportGridColumns = activeViewportMode === "Single View"
+    ? "minmax(0, 1fr)"
+    : "repeat(2, minmax(0, 1fr))";
+
+  function openEvidenceTab(tab: EvidenceTab): void {
+    setActiveEvidenceTab(tab);
+    setBottomDockMode(tab);
+  }
+
+  function handleSaveLayout(): void {
+    saveLayoutPreferences(currentLayoutPreferences);
+    setLayoutFeedback("Layout saved locally.");
+  }
+
+  function handleResetLayout(): void {
+    clearLayoutPreferences();
+    setActiveWorkspaceLayout("Forge Command");
+    setActiveViewportMode("Single View");
+    setActivePanelSet("Core Panels");
+    setBottomDockMode("Status board");
+    setActiveEvidenceTab("Status board");
+    setInspectorMode("Selection");
+    setDensityMode("Compact");
+    setLayoutFeedback("Layout reset locally.");
+  }
+
+  function handleDuplicateLayout(): void {
+    setLayoutFeedback(`${activeWorkspaceLayout} duplicated as a local preview layout.`);
+  }
 
   const assetBrowserRows: Record<typeof activeAssetCategory, string[]> = {
     "Source Assets": [
@@ -369,6 +735,93 @@ export default function AssetForgeToolbenchLayout({
         </div>
       </header>
 
+      <section aria-label="Production workspace layout selector" style={productionLayoutShellStyle}>
+        <div style={panelHeaderStyle}>
+          <strong>Production workspace layouts</strong>
+          <GateBadge gate="local preview" />
+        </div>
+        <div style={productionLayoutButtonGridStyle}>
+          {productionWorkspaceLayouts.map((layoutName) => (
+            <button
+              key={layoutName}
+              type="button"
+              role="tab"
+              aria-selected={activeWorkspaceLayout === layoutName}
+              onClick={() => setActiveWorkspaceLayout(layoutName)}
+              style={activeWorkspaceLayout === layoutName ? activeProductionLayoutButtonStyle : productionLayoutButtonStyle}
+            >
+              {layoutName}
+            </button>
+          ))}
+        </div>
+        <div style={layoutControlGridStyle}>
+          <div style={compactControlGroupStyle} aria-label="Viewport mode selector">
+            {viewportModes.map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setActiveViewportMode(mode)}
+                aria-pressed={activeViewportMode === mode}
+                style={activeViewportMode === mode ? activeCompactControlStyle : compactControlStyle}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+          <div style={compactControlGroupStyle} aria-label="Panel set selector">
+            {panelSets.map((panelSet) => (
+              <button
+                key={panelSet}
+                type="button"
+                onClick={() => setActivePanelSet(panelSet)}
+                aria-pressed={activePanelSet === panelSet}
+                style={activePanelSet === panelSet ? activeCompactControlStyle : compactControlStyle}
+              >
+                {panelSet}
+              </button>
+            ))}
+          </div>
+          <div style={compactControlGroupStyle} aria-label="Inspector mode selector">
+            {inspectorModes.map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setInspectorMode(mode)}
+                aria-pressed={inspectorMode === mode}
+                style={inspectorMode === mode ? activeCompactControlStyle : compactControlStyle}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+          <div style={layoutActionRowStyle}>
+            <button type="button" onClick={handleSaveLayout} style={secondaryButtonStyle}>
+              Save Layout
+            </button>
+            <button type="button" onClick={handleResetLayout} style={secondaryButtonStyle}>
+              Reset Layout
+            </button>
+            <button type="button" onClick={handleDuplicateLayout} style={secondaryButtonStyle}>
+              Duplicate Layout
+            </button>
+            <button
+              type="button"
+              onClick={() => setDensityMode(densityMode === "Compact" ? "Expanded" : "Compact")}
+              style={secondaryButtonStyle}
+            >
+              {densityMode === "Compact" ? "Expanded mode" : "Compact mode"}
+            </button>
+          </div>
+        </div>
+        <div style={layoutStateBarStyle}>
+          <span>Active layout: {activeWorkspaceLayout}</span>
+          <span>Viewport Preview: {activeViewportMode}</span>
+          <span>Bottom dock: {bottomDockMode}</span>
+          <span>Inspector: {inspectorMode}</span>
+          <span>{layoutFeedback}</span>
+        </div>
+      </section>
+
       <section aria-label="Forge integration dock" style={integrationDockStyle}>
         <div style={panelHeaderStyle}>
           <strong>Integrated workspaces</strong>
@@ -455,6 +908,44 @@ export default function AssetForgeToolbenchLayout({
           <strong>Workspace focus:</strong> {activeWorkspaceRow.label}
         </span>
         <span>{activeWorkspaceRow.detail}</span>
+      </section>
+
+      <section aria-label="Active production workspace panels" style={workspacePanelDeckStyle}>
+        <div style={panelHeaderStyle}>
+          <strong>{activeWorkspaceLayout}</strong>
+          <span style={compactMetaStyle}>{activePanelSet} | {densityMode}</span>
+        </div>
+        <div style={workspacePanelGridStyle}>
+          {activeWorkspacePanels.map((panel) => (
+            <article key={`${activeWorkspaceLayout}-${panel.title}`} style={workspacePanelCardStyle}>
+              <div style={panelHeaderStyle}>
+                <strong>{panel.title}</strong>
+                <GateBadge gate={panel.gate} />
+              </div>
+              <ul style={compactListStyle}>
+                {panel.items.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+        {activeWorkspaceLayout === "Review / Approval" ? (
+          <AssetForgeReviewPacketPanel
+            packetData={reviewPacketData}
+            packetSource={reviewPacketSource}
+          />
+        ) : null}
+        {activeWorkspaceLayout === "Automation Studio" ? (
+          <div style={layoutActionRowStyle}>
+            <button type="button" disabled title="Arbitrary script execution is not admitted." style={disabledButtonStyle}>
+              Run arbitrary script
+            </button>
+            <button type="button" disabled title="Plugin execution is not admitted." style={disabledButtonStyle}>
+              Execute plugin slot
+            </button>
+          </div>
+        ) : null}
       </section>
 
       <div style={mainWorkspaceGridStyle}>
@@ -575,19 +1066,26 @@ export default function AssetForgeToolbenchLayout({
               />
             </label>
           </div>
-          <div style={viewportCanvasStyle}>
-            <div style={horizonLineStyle} />
-            <div style={axisLineXStyle} />
-            <div style={axisLineYStyle} />
-            <div style={gridFloorStyle} />
-            <div style={orientationGizmoStyle}>XYZ</div>
-            <div style={selectedAssetCardStyle}>
-              <strong>Selected preview candidate</strong>
-              <span>bridge_segment_preview_001</span>
-              <span>Navigation mode: {activeNavigationControl}</span>
-              <span>Zoom: {viewportZoom}%</span>
-            </div>
-            <div style={viewportTruthLabelStyle}>Toolbench viewport preview — not a live O3DE render</div>
+          <div style={{ ...viewportPaneDeckStyle, gridTemplateColumns: viewportGridColumns }}>
+            {viewportPaneLabels.map((paneLabel, index) => (
+              <div
+                key={`${activeViewportMode}-${paneLabel}-${index + 1}`}
+                style={viewportPaneLabels.length > 1 ? compactViewportCanvasStyle : viewportCanvasStyle}
+              >
+                <div style={horizonLineStyle} />
+                <div style={axisLineXStyle} />
+                <div style={axisLineYStyle} />
+                <div style={gridFloorStyle} />
+                <div style={orientationGizmoStyle}>XYZ</div>
+                <div style={selectedAssetCardStyle}>
+                  <strong>{paneLabel} Viewport Preview</strong>
+                  <span>bridge_segment_preview_001</span>
+                  <span>Navigation mode: {activeNavigationControl}</span>
+                  <span>Zoom: {viewportZoom}%</span>
+                </div>
+                <div style={viewportTruthLabelStyle}>Toolbench preview — not live O3DE render</div>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -596,6 +1094,7 @@ export default function AssetForgeToolbenchLayout({
             <strong>Properties / Inspector</strong>
             <GateBadge gate="read-only" />
           </div>
+          <span style={compactMetaStyle}>Inspector mode: {inspectorMode}</span>
           <dl style={inspectorProjectStripStyle}>
             <div style={inspectorRowStyle}>
               <dt style={inspectorTermStyle}>Project</dt>
@@ -665,7 +1164,7 @@ export default function AssetForgeToolbenchLayout({
           </button>
           <button
             type="button"
-            onClick={() => setActiveEvidenceTab("Review packet")}
+            onClick={() => openEvidenceTab("Review packet")}
             style={secondaryButtonStyle}
           >
             Review Evidence
@@ -708,6 +1207,50 @@ export default function AssetForgeToolbenchLayout({
         </ul>
       </section>
 
+      <section aria-label="Forge tool extensions and version evidence" style={extensionVersionGridStyle}>
+        <article aria-label="Forge tool extensions panel" style={assetBrowserStyle}>
+          <div style={panelHeaderStyle}>
+            <strong>Tool Extensions / Plugin Slots</strong>
+            <GateBadge gate="not admitted" />
+          </div>
+          <div style={workspacePanelGridStyle}>
+            {pluginSlotPanels.map((panel) => (
+              <article key={panel.title} style={workspacePanelCardStyle}>
+                <div style={panelHeaderStyle}>
+                  <strong>{panel.title}</strong>
+                  <GateBadge gate={panel.gate} />
+                </div>
+                <ul style={compactListStyle}>
+                  {panel.items.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </article>
+            ))}
+          </div>
+        </article>
+        <article aria-label="Forge collaboration and version evidence" style={assetBrowserStyle}>
+          <div style={panelHeaderStyle}>
+            <strong>Collaboration / Versioning Evidence</strong>
+            <GateBadge gate="proof-only" />
+          </div>
+          <dl style={inspectorSectionRowsStyle}>
+            {[
+              ["Current branch", "Version evidence not connected"],
+              ["Last artifact", ensureDisplayValue(packet.productEvidence.productPath)],
+              ["Review packet version", ensureDisplayValue(packet.contractVersion)],
+              ["Change summary", "Version evidence not connected"],
+              ["Revert path", "Version evidence not connected"],
+            ].map(([label, value]) => (
+              <div key={label} style={inspectorRowStyle}>
+                <dt style={inspectorTermStyle}>{label}</dt>
+                <dd style={inspectorDefinitionStyle}>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </article>
+      </section>
+
       <section aria-label="Forge timeline evidence status" style={bottomRegionStyle}>
         <div style={panelHeaderStyle}>
           <strong>Timeline / Evidence / Status</strong>
@@ -735,7 +1278,7 @@ export default function AssetForgeToolbenchLayout({
               type="button"
               role="tab"
               aria-selected={activeEvidenceTab === tab}
-              onClick={() => setActiveEvidenceTab(tab)}
+              onClick={() => openEvidenceTab(tab)}
               style={activeEvidenceTab === tab ? activeEvidenceTabStyle : evidenceTabStyle}
             >
               {tab}
@@ -880,8 +1423,34 @@ const toolbenchShellStyle = {
   border: "1px solid var(--app-panel-border)",
   borderRadius: "var(--app-card-radius)",
   background:
-    "linear-gradient(160deg, color-mix(in srgb, var(--app-panel-bg-alt) 90%, var(--app-page-bg) 10%) 0%, color-mix(in srgb, var(--app-panel-bg) 96%, var(--app-page-bg) 4%) 100%)",
-} satisfies CSSProperties;
+    "linear-gradient(160deg, #101419 0%, #151b22 44%, #0d1117 100%)",
+  color: "var(--app-text-color)",
+  "--app-panel-bg": "#151b22",
+  "--app-panel-bg-muted": "#1b232d",
+  "--app-panel-bg-alt": "#202a35",
+  "--app-page-bg": "#0d1117",
+  "--app-input-bg": "#10161d",
+  "--app-text-color": "#e6edf5",
+  "--app-muted-color": "#aab7c6",
+  "--app-subtle-color": "#7f8ea3",
+  "--app-panel-border": "#314052",
+  "--app-accent": "#69a7ff",
+  "--app-accent-strong": "#83b7ff",
+  "--app-accent-soft": "#1c344e",
+  "--app-accent-contrast": "#07111f",
+  "--app-info-bg": "#172b3d",
+  "--app-info-border": "#3f89c7",
+  "--app-info-text": "#b9ddff",
+  "--app-success-bg": "#173428",
+  "--app-success-border": "#48a16f",
+  "--app-success-text": "#9be2b8",
+  "--app-warning-bg": "#352915",
+  "--app-warning-border": "#b88932",
+  "--app-warning-text": "#ffd58a",
+  "--app-danger-bg": "#351b1f",
+  "--app-danger-border": "#c15d6a",
+  "--app-danger-text": "#ffb8c0",
+} as CSSProperties;
 
 const headerStyle = {
   display: "flex",
@@ -914,6 +1483,87 @@ const headerPillStyle = {
   color: "var(--app-warning-text)",
   fontSize: 12,
   fontWeight: 800,
+} satisfies CSSProperties;
+
+const productionLayoutShellStyle = {
+  display: "grid",
+  gap: 8,
+  padding: 10,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 8,
+  background: "var(--app-panel-bg)",
+} satisfies CSSProperties;
+
+const productionLayoutButtonGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+  gap: 5,
+} satisfies CSSProperties;
+
+const productionLayoutButtonStyle = {
+  minHeight: 34,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 6,
+  background: "var(--app-panel-bg-muted)",
+  color: "var(--app-text-color)",
+  fontSize: 12,
+  fontWeight: 700,
+  cursor: "pointer",
+} satisfies CSSProperties;
+
+const activeProductionLayoutButtonStyle = {
+  ...productionLayoutButtonStyle,
+  border: "1px solid var(--app-accent-strong)",
+  background: "color-mix(in srgb, var(--app-info-bg) 88%, var(--app-panel-bg) 12%)",
+  color: "var(--app-info-text)",
+} satisfies CSSProperties;
+
+const layoutControlGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 6,
+} satisfies CSSProperties;
+
+const compactControlGroupStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))",
+  gap: 4,
+  padding: 6,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 8,
+  background: "var(--app-panel-bg-muted)",
+} satisfies CSSProperties;
+
+const compactControlStyle = {
+  minHeight: 30,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 6,
+  background: "var(--app-panel-bg)",
+  color: "var(--app-muted-color)",
+  fontSize: 11,
+  fontWeight: 700,
+  cursor: "pointer",
+} satisfies CSSProperties;
+
+const activeCompactControlStyle = {
+  ...compactControlStyle,
+  border: "1px solid var(--app-accent-strong)",
+  background: "var(--app-info-bg)",
+  color: "var(--app-info-text)",
+} satisfies CSSProperties;
+
+const layoutActionRowStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+  gap: 5,
+} satisfies CSSProperties;
+
+const layoutStateBarStyle = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+  color: "var(--app-muted-color)",
+  fontSize: 12,
 } satisfies CSSProperties;
 
 const integrationDockStyle = {
@@ -1030,6 +1680,46 @@ const workspaceFocusStyle = {
   borderRadius: "var(--app-card-radius)",
   background: "var(--app-panel-bg-muted)",
   color: "var(--app-muted-color)",
+} satisfies CSSProperties;
+
+const workspacePanelDeckStyle = {
+  display: "grid",
+  gap: 8,
+  padding: 10,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 8,
+  background: "var(--app-panel-bg)",
+} satisfies CSSProperties;
+
+const workspacePanelGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+  gap: 6,
+} satisfies CSSProperties;
+
+const workspacePanelCardStyle = {
+  display: "grid",
+  gap: 6,
+  alignContent: "start",
+  minHeight: 118,
+  padding: 8,
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 8,
+  background: "var(--app-panel-bg-muted)",
+} satisfies CSSProperties;
+
+const compactMetaStyle = {
+  color: "var(--app-subtle-color)",
+  fontSize: 12,
+  fontWeight: 700,
+} satisfies CSSProperties;
+
+const compactListStyle = {
+  margin: 0,
+  paddingLeft: 16,
+  color: "var(--app-muted-color)",
+  fontSize: 12,
+  lineHeight: 1.4,
 } satisfies CSSProperties;
 
 const mainWorkspaceGridStyle = {
@@ -1184,6 +1874,11 @@ const viewportControlRowStyle = {
   gap: 6,
 } satisfies CSSProperties;
 
+const viewportPaneDeckStyle = {
+  display: "grid",
+  gap: 6,
+} satisfies CSSProperties;
+
 const segmentedRowStyle = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(70px, 1fr))",
@@ -1229,6 +1924,11 @@ const viewportCanvasStyle = {
   borderRadius: "var(--app-card-radius)",
   overflow: "hidden",
   background: "linear-gradient(180deg, #122f57 0%, #09182e 56%, #060f1d 100%)",
+} satisfies CSSProperties;
+
+const compactViewportCanvasStyle = {
+  ...viewportCanvasStyle,
+  minHeight: 220,
 } satisfies CSSProperties;
 
 const horizonLineStyle = {
@@ -1412,7 +2112,7 @@ const commandButtonRowStyle = {
 
 const primaryButtonStyle = {
   border: "1px solid var(--app-accent-strong)",
-  borderRadius: "var(--app-pill-radius)",
+  borderRadius: 6,
   padding: "8px 12px",
   background: "var(--app-accent)",
   color: "var(--app-accent-contrast)",
@@ -1422,7 +2122,7 @@ const primaryButtonStyle = {
 
 const secondaryButtonStyle = {
   border: "1px solid var(--app-panel-border)",
-  borderRadius: "var(--app-pill-radius)",
+  borderRadius: 6,
   padding: "8px 12px",
   background: "var(--app-panel-bg-muted)",
   color: "var(--app-text-color)",
@@ -1476,6 +2176,12 @@ const assetListStyle = {
   color: "var(--app-muted-color)",
   lineHeight: 1.45,
   overflowWrap: "anywhere",
+} satisfies CSSProperties;
+
+const extensionVersionGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+  gap: 8,
 } satisfies CSSProperties;
 
 const bottomRegionStyle = {

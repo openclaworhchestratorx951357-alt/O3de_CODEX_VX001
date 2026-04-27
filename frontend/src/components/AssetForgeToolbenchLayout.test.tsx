@@ -1,10 +1,14 @@
 import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import AssetForgeToolbenchLayout from "./AssetForgeToolbenchLayout";
 import { assetForgeReviewPacketFixture } from "../fixtures/assetForgeReviewPacketFixture";
 
 describe("AssetForgeToolbenchLayout", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
   it("renders a professional toolbench layout with gated editor regions", () => {
     render(
       <AssetForgeToolbenchLayout
@@ -15,6 +19,30 @@ describe("AssetForgeToolbenchLayout", () => {
 
     const toolbench = screen.getByLabelText("Asset Forge Toolbench layout");
     expect(within(toolbench).getByText("O3DE AI Asset Forge Toolbench")).toBeInTheDocument();
+
+    const productionSelector = within(toolbench).getByLabelText("Production workspace layout selector");
+    [
+      "Forge Command",
+      "Modeling / Assembly",
+      "Animation / Timeline",
+      "Materials / Lookdev",
+      "Asset Management",
+      "Review / Approval",
+      "Automation Studio",
+      "Collaboration / Versioning",
+    ].forEach((layoutName) => {
+      expect(within(productionSelector).getByRole("tab", { name: layoutName })).toBeInTheDocument();
+    });
+    expect(within(productionSelector).getByRole("button", { name: "Save Layout" })).toBeInTheDocument();
+    expect(within(productionSelector).getByRole("button", { name: "Reset Layout" })).toBeInTheDocument();
+    expect(within(productionSelector).getByRole("button", { name: "Duplicate Layout" })).toBeInTheDocument();
+    expect(within(productionSelector).getByRole("button", { name: "Expanded mode" })).toBeInTheDocument();
+    expect(within(productionSelector).getByLabelText("Viewport mode selector")).toBeInTheDocument();
+    fireEvent.click(within(productionSelector).getByRole("tab", { name: "Animation / Timeline" }));
+    expect(within(toolbench).getByText("Keyframe lane preview")).toBeInTheDocument();
+    expect(within(toolbench).getByText("Camera shot list")).toBeInTheDocument();
+    fireEvent.click(within(productionSelector).getByRole("tab", { name: "Materials / Lookdev" }));
+    expect(within(toolbench).getByText("Live O3DE Render: Not connected")).toBeInTheDocument();
 
     const integrationDock = within(toolbench).getByLabelText("Forge integration dock");
     ["Prompt Studio", "Runtime", "Builder", "Records", "Mission Control", "Guidebook"].forEach((label) => {
@@ -78,9 +106,14 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(outliner).getByText("Toolbench preview data - not authoritative live O3DE scene truth.")).toBeInTheDocument();
 
     const viewport = within(toolbench).getByLabelText("Forge viewport preview");
-    expect(within(viewport).getByText("Toolbench viewport preview — not a live O3DE render")).toBeInTheDocument();
+    expect(within(viewport).getByText("Toolbench preview — not live O3DE render")).toBeInTheDocument();
     expect(within(viewport).getByText("Perspective")).toBeInTheDocument();
     expect(within(viewport).getByText("Lit")).toBeInTheDocument();
+    fireEvent.click(within(productionSelector).getByRole("button", { name: "Quad View" }));
+    expect(within(viewport).getByText("Top Viewport Preview")).toBeInTheDocument();
+    expect(within(viewport).getByText("Front Viewport Preview")).toBeInTheDocument();
+    expect(within(viewport).getByText("Side Viewport Preview")).toBeInTheDocument();
+    expect(within(viewport).getAllByText("Toolbench preview — not live O3DE render")).toHaveLength(4);
 
     const inspector = within(toolbench).getByLabelText("Forge properties inspector");
     [
@@ -112,6 +145,11 @@ describe("AssetForgeToolbenchLayout", () => {
     ].forEach((category) => {
       expect(within(assetBrowser).getByRole("button", { name: category })).toBeInTheDocument();
     });
+    expect(within(toolbench).getByLabelText("Forge tool extensions panel")).toHaveTextContent("Tool Extensions / Plugin Slots");
+    expect(within(toolbench).getByLabelText("Forge tool extensions panel")).toHaveTextContent("Plugin runtime loading");
+    expect(within(toolbench).getByLabelText("Forge collaboration and version evidence")).toHaveTextContent(
+      "Version evidence not connected",
+    );
 
     const timelineStatus = within(toolbench).getByLabelText("Forge timeline evidence status");
     expect(within(timelineStatus).getByLabelText("Forge timeline strip")).toBeInTheDocument();
@@ -162,5 +200,57 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(onOpenRuntimeOverview).toHaveBeenCalledTimes(1);
     expect(onOpenBuilder).toHaveBeenCalledTimes(1);
     expect(screen.getByLabelText("Forge operator review packet")).toBeInTheDocument();
+  });
+
+  it("saves, restores, and resets harmless local layout preferences", () => {
+    const firstRender = render(
+      <AssetForgeToolbenchLayout
+        reviewPacketData={assetForgeReviewPacketFixture}
+        reviewPacketSource="typed_fixture_data"
+      />,
+    );
+
+    const firstSelector = screen.getByLabelText("Production workspace layout selector");
+    fireEvent.click(within(firstSelector).getByRole("tab", { name: "Animation / Timeline" }));
+    fireEvent.click(within(firstSelector).getByRole("button", { name: "Dual View" }));
+    fireEvent.click(within(firstSelector).getByRole("button", { name: "Save Layout" }));
+
+    expect(window.localStorage.getItem("o3de-asset-forge-production-layout-preferences")).toContain(
+      "Animation / Timeline",
+    );
+    firstRender.unmount();
+
+    render(
+      <AssetForgeToolbenchLayout
+        reviewPacketData={assetForgeReviewPacketFixture}
+        reviewPacketSource="typed_fixture_data"
+      />,
+    );
+
+    const restoredSelector = screen.getByLabelText("Production workspace layout selector");
+    expect(restoredSelector).toHaveTextContent("Active layout: Animation / Timeline");
+    expect(restoredSelector).toHaveTextContent("Viewport Preview: Dual View");
+
+    fireEvent.click(within(restoredSelector).getByRole("button", { name: "Reset Layout" }));
+    expect(window.localStorage.getItem("o3de-asset-forge-production-layout-preferences")).toBeNull();
+    expect(restoredSelector).toHaveTextContent("Active layout: Forge Command");
+  });
+
+  it("keeps automation and plugin surfaces UI-only and not admitted", () => {
+    render(
+      <AssetForgeToolbenchLayout
+        reviewPacketData={assetForgeReviewPacketFixture}
+        reviewPacketSource="typed_fixture_data"
+      />,
+    );
+
+    const productionSelector = screen.getByLabelText("Production workspace layout selector");
+    fireEvent.click(within(productionSelector).getByRole("tab", { name: "Automation Studio" }));
+
+    expect(screen.getByRole("button", { name: "Run arbitrary script" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Execute plugin slot" })).toBeDisabled();
+    expect(screen.getByText("Arbitrary code execution blocked")).toBeInTheDocument();
+    expect(screen.getByLabelText("Forge tool extensions panel")).toHaveTextContent("Blocked unsafe extensions");
+    expect(screen.getByLabelText("Forge tool extensions panel")).toHaveTextContent("not admitted");
   });
 });
