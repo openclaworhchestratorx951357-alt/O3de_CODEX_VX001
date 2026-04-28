@@ -12,10 +12,21 @@ import RunsPanel from "../RunsPanel";
 import TaskTimeline from "../TaskTimeline";
 import RecordsWorkspaceView from "./RecordsWorkspaceView";
 
+type AssetForgeOriginContext = {
+  label: string;
+  detail: string;
+  runId: string | null;
+  executionId: string | null;
+  artifactId: string | null;
+};
+
 type RecordsWorkspaceDesktopProps = {
   activeSurfaceId: ComponentProps<typeof RecordsWorkspaceView>["activeSurfaceId"];
   items: ComponentProps<typeof RecordsWorkspaceView>["items"];
   onSelectSurface: ComponentProps<typeof RecordsWorkspaceView>["onSelectSurface"];
+  assetForgeOriginContext?: AssetForgeOriginContext | null;
+  onOpenAssetForgeWorkspace?: (() => void) | null;
+  onClearAssetForgeOriginContext?: (() => void) | null;
   artifacts: {
     panelKey: string;
     sectionRef: RefObject<HTMLDivElement>;
@@ -55,6 +66,9 @@ export default function RecordsWorkspaceDesktop({
   activeSurfaceId,
   items,
   onSelectSurface,
+  assetForgeOriginContext,
+  onOpenAssetForgeWorkspace,
+  onClearAssetForgeOriginContext,
   artifacts,
   executions,
   runs,
@@ -104,12 +118,62 @@ export default function RecordsWorkspaceDesktop({
   const eventsFilterPressureLabel = eventsFilterResults.hasActiveFilters
     ? getEventsFilterPressureLabel(eventsFilterResults.filteredCount, eventsFilterResults.totalCount)
     : null;
+  const hasAssetForgeOriginRecord = Boolean(
+    assetForgeOriginContext?.artifactId
+      || assetForgeOriginContext?.executionId
+      || assetForgeOriginContext?.runId,
+  );
 
   return (
     <RecordsWorkspaceView
       activeSurfaceId={activeSurfaceId}
       items={items}
       onSelectSurface={onSelectSurface}
+      workspaceBanner={assetForgeOriginContext ? (
+        <section style={assetForgeOriginBannerStyle} aria-label="Asset Forge packet-origin context">
+          <div style={assetForgeOriginBannerHeadingRowStyle}>
+            <strong style={assetForgeOriginBannerHeadingStyle}>Opened from Asset Forge review packet origin</strong>
+            <span style={assetForgeOriginBannerBadgeStyle}>read-only context</span>
+          </div>
+          <span style={assetForgeOriginBannerDetailStyle}>
+            {assetForgeOriginContext.label}. {assetForgeOriginContext.detail}
+          </span>
+          <div style={assetForgeOriginBannerFactsStyle}>
+            <span>Origin run: {assetForgeOriginContext.runId ?? "not recorded"}</span>
+            <span>Origin execution: {assetForgeOriginContext.executionId ?? "not recorded"}</span>
+            <span>Origin artifact: {assetForgeOriginContext.artifactId ?? "not recorded"}</span>
+          </div>
+          <div style={assetForgeOriginBannerActionsStyle}>
+            <button
+              type="button"
+              style={assetForgeOriginBannerButtonStyle}
+              onClick={() => onOpenAssetForgeWorkspace?.()}
+              disabled={!onOpenAssetForgeWorkspace}
+              title={onOpenAssetForgeWorkspace
+                ? "Return to the Asset Forge Review page."
+                : "Asset Forge workspace navigation is unavailable in this view."}
+            >
+              Back to Asset Forge Review
+            </button>
+            <button
+              type="button"
+              style={assetForgeOriginBannerButtonStyle}
+              onClick={() => onClearAssetForgeOriginContext?.()}
+              disabled={!onClearAssetForgeOriginContext}
+              title={onClearAssetForgeOriginContext
+                ? "Clear packet-origin breadcrumbs from this Records workspace."
+                : "Packet-origin context clear action is unavailable in this view."}
+            >
+              Clear origin context
+            </button>
+            <span style={assetForgeOriginBannerHintStyle}>
+              {hasAssetForgeOriginRecord
+                ? "Records lane can pivot to run, execution, or artifact details without writing project state."
+                : "No persisted run, execution, or artifact id was recorded in this packet origin."}
+            </span>
+          </div>
+        </section>
+      ) : null}
       artifactsContent={(
         <>
           <div ref={artifacts.sectionRef}>
@@ -311,3 +375,72 @@ function getEventsFilterPressureLabel(filteredCount: number, totalCount: number)
   }
   return "light narrowing";
 }
+
+const assetForgeOriginBannerStyle = {
+  display: "grid",
+  gap: 8,
+  padding: "12px 14px",
+  borderRadius: 16,
+  border: "1px solid rgba(96, 165, 250, 0.26)",
+  background: "rgba(15, 23, 42, 0.34)",
+} as const;
+
+const assetForgeOriginBannerHeadingRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 10,
+  flexWrap: "wrap",
+} as const;
+
+const assetForgeOriginBannerHeadingStyle = {
+  fontSize: 14,
+} as const;
+
+const assetForgeOriginBannerBadgeStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  borderRadius: 999,
+  border: "1px solid rgba(74, 222, 128, 0.35)",
+  background: "rgba(22, 163, 74, 0.16)",
+  color: "rgba(134, 239, 172, 1)",
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: "0.03em",
+  padding: "2px 8px",
+  textTransform: "uppercase",
+} as const;
+
+const assetForgeOriginBannerDetailStyle = {
+  fontSize: 12,
+  opacity: 0.9,
+} as const;
+
+const assetForgeOriginBannerFactsStyle = {
+  display: "grid",
+  gap: 4,
+  fontSize: 12,
+  opacity: 0.9,
+} as const;
+
+const assetForgeOriginBannerActionsStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
+  alignItems: "center",
+} as const;
+
+const assetForgeOriginBannerButtonStyle = {
+  border: "1px solid rgba(148, 163, 184, 0.28)",
+  borderRadius: 999,
+  padding: "6px 10px",
+  background: "rgba(15, 23, 42, 0.36)",
+  color: "var(--app-text-color)",
+  cursor: "pointer",
+  fontSize: 12,
+} as const;
+
+const assetForgeOriginBannerHintStyle = {
+  fontSize: 12,
+  opacity: 0.8,
+} as const;

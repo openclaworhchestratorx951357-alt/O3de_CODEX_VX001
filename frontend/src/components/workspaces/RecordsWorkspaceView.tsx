@@ -18,6 +18,7 @@ type RecordsWorkspaceViewProps = {
   activeSurfaceId: RecordsSurfaceId;
   items: readonly DesktopTabStripItem[];
   onSelectSurface: (surfaceId: RecordsSurfaceId) => void;
+  workspaceBanner?: ReactNode;
   runsContent: ReactNode;
   executionsContent: ReactNode;
   artifactsContent: ReactNode;
@@ -30,6 +31,7 @@ export default function RecordsWorkspaceView({
   activeSurfaceId,
   items,
   onSelectSurface,
+  workspaceBanner,
   runsContent,
   executionsContent,
   artifactsContent,
@@ -56,6 +58,7 @@ export default function RecordsWorkspaceView({
       )}
     >
       <div style={surfaceStackStyle}>
+        {workspaceBanner}
         <div aria-hidden={activeSurfaceId !== "runs"} style={activeSurfaceId === "runs" ? visibleSurfaceStyle : hiddenSurfaceStyle}>
           {runsContent}
         </div>

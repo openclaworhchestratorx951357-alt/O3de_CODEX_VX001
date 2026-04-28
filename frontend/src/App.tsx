@@ -7197,6 +7197,9 @@ export default function App() {
         activeSurfaceId={activeRecordsSurface}
         items={recordsSurfaceItems}
         onSelectSurface={(surfaceId) => setActiveRecordsSurface(surfaceId)}
+        assetForgeOriginContext={assetForgeRecordsOriginContext}
+        onOpenAssetForgeWorkspace={openAssetForgeWorkspaceFromRecords}
+        onClearAssetForgeOriginContext={clearAssetForgeRecordsOriginContext}
         artifacts={recordsArtifactsProps}
         events={recordsEventsProps}
         executions={recordsExecutionsProps}
