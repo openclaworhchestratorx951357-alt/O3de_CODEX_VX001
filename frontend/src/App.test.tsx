@@ -361,6 +361,21 @@ describe("App desktop smoke", () => {
         capturedAtIso: "2026-04-27T00:00:03.000Z",
         capturedAtSource: "selected_artifact.created_at",
       },
+      reviewPacketResolutionDiagnostics: {
+        selectedRecordsSurface: "artifacts",
+        preferredOrder: ["artifact", "execution", "run"],
+        resolvedLane: "artifact",
+        summary: "Resolved from artifact lane.",
+        attempts: [
+          {
+            lane: "artifact",
+            label: "Selected artifact metadata",
+            hasPayload: true,
+            hasReviewPacket: true,
+            reason: "Resolved review packet fields from this lane.",
+          },
+        ],
+      },
     });
 
     render(<App />);
@@ -377,6 +392,9 @@ describe("App desktop smoke", () => {
 
     expect(await screen.findByText("Opened from Asset Forge review packet origin")).toBeInTheDocument();
     expect(screen.getByText("Selected artifact metadata. Artifact artifact-live-001 | Execution exec-live-001 | Run run-live-001")).toBeInTheDocument();
+    expect(screen.getByText("Resolution summary: Resolved from artifact lane.")).toBeInTheDocument();
+    expect(screen.getByText("Resolved lane: Artifact lane")).toBeInTheDocument();
+    expect(screen.getByText("Selected artifact metadata: Resolved review packet fields from this lane.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Back to Asset Forge Review" })).toBeEnabled();
     expect(screen.queryByLabelText("AssetForgeWorkspacePage")).toBeNull();
 

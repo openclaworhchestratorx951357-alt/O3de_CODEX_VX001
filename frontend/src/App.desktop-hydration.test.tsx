@@ -566,6 +566,11 @@ describe("App desktop hydration", () => {
       runId: "run-001",
       executionId: "exec-001",
       artifactId: "artifact-001",
+      packetResolutionSummary: "Resolved from artifact lane.",
+      packetResolvedLane: "artifact",
+      packetAttemptSummaryLines: [
+        "Selected artifact metadata: Resolved review packet fields from this lane.",
+      ],
     };
     window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "records");
     window.sessionStorage.setItem(
@@ -581,6 +586,9 @@ describe("App desktop hydration", () => {
     expect(screen.getByText("Origin run: run-001")).toBeInTheDocument();
     expect(screen.getByText("Origin execution: exec-001")).toBeInTheDocument();
     expect(screen.getByText("Origin artifact: artifact-001")).toBeInTheDocument();
+    expect(screen.getByText("Resolution summary: Resolved from artifact lane.")).toBeInTheDocument();
+    expect(screen.getByText("Resolved lane: Artifact lane")).toBeInTheDocument();
+    expect(screen.getByText("Selected artifact metadata: Resolved review packet fields from this lane.")).toBeInTheDocument();
   });
 
   it("clears invalid Asset Forge packet-origin context from session storage", async () => {
