@@ -7,6 +7,7 @@ type AssetForgeReviewPacketPanelProps = {
   packetData: unknown;
   packetSource: AssetForgeReviewPacketSource;
   packetCorridorLabel?: string;
+  packetOriginRows?: Array<[label: string, value: string]>;
 };
 
 type ReviewPacketSection = {
@@ -18,6 +19,7 @@ export default function AssetForgeReviewPacketPanel({
   packetData,
   packetSource,
   packetCorridorLabel,
+  packetOriginRows,
 }: AssetForgeReviewPacketPanelProps) {
   const packet = mapAssetForgeToolbenchReviewPacket(packetData, packetSource);
   const resolvedPacketCorridorLabel = packetCorridorLabel ?? defaultPacketCorridorLabel(packetSource);
@@ -103,6 +105,13 @@ export default function AssetForgeReviewPacketPanel({
       ],
     },
   ];
+
+  if (packetOriginRows && packetOriginRows.length > 0) {
+    sections.splice(2, 0, {
+      title: "Packet origin and Records route",
+      rows: packetOriginRows,
+    });
+  }
 
   return (
     <section style={panelStyle} aria-label="Forge operator review packet">

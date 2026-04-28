@@ -11,6 +11,10 @@ describe("AssetForgeReviewPacketPanel", () => {
         packetData={assetForgeReviewPacketFixture}
         packetSource="typed_fixture_data"
         packetCorridorLabel="Fixture preview"
+        packetOriginRows={[
+          ["Origin", "Typed fixture preview"],
+          ["Records target", "Unavailable"],
+        ]}
       />,
     );
 
@@ -20,6 +24,8 @@ describe("AssetForgeReviewPacketPanel", () => {
     expect(within(panel).getByText("Read-only proof present")).toBeInTheDocument();
     expect(within(panel).getByText("Not requested (not approved)")).toBeInTheDocument();
     expect(within(panel).getByLabelText("Review packet corridor")).toHaveTextContent("Corridor: Fixture preview");
+    expect(within(panel).getByText("Packet origin and Records route")).toBeInTheDocument();
+    expect(within(panel).getByText("Typed fixture preview")).toBeInTheDocument();
   });
 
   it("renders safely with missing and partial packet data", () => {
