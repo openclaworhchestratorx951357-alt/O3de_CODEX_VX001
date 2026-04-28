@@ -954,7 +954,19 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
             onExitViewportFocus={exitViewportFocus}
           />
         )}
-        {activeTopMenu === "Review" && <ReviewPage reviewPacketData={reviewPacketData} reviewPacketSource={reviewPacketSource} packet={packet} reviewPacketOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} freshnessOverview={freshnessOverview} resolutionDiagnostics={resolvedPacketResolutionDiagnostics} recordsLaneAlignment={recordsLaneAlignment} />}
+        {activeTopMenu === "Review" && (
+          <ReviewPage
+            reviewPacketData={reviewPacketData}
+            reviewPacketSource={reviewPacketSource}
+            packet={packet}
+            reviewPacketOrigin={resolvedPacketOrigin}
+            onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord}
+            freshnessOverview={freshnessOverview}
+            resolutionDiagnostics={resolvedPacketResolutionDiagnostics}
+            animationTimelineDiagnostics={animationTimelineDiagnostics}
+            recordsLaneAlignment={recordsLaneAlignment}
+          />
+        )}
         {activeTopMenu === "Help" && <HelpPage bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} />}
       </main>
     </section>
@@ -1363,11 +1375,13 @@ function ReviewPage({
   onOpenReviewPacketOriginRecord,
   freshnessOverview,
   resolutionDiagnostics,
+  animationTimelineDiagnostics,
   recordsLaneAlignment,
 }: Pick<AssetForgeStudioShellProps, "reviewPacketData" | "reviewPacketSource" | "reviewPacketOrigin" | "onOpenReviewPacketOriginRecord" | "recordsLaneAlignment"> & {
   packet: PacketViewModel;
   freshnessOverview: FreshnessOverview;
   resolutionDiagnostics: AssetForgePacketResolutionDiagnostics;
+  animationTimelineDiagnostics: AnimationTimelineParseDiagnostics;
 }) {
   const packetOrigin = reviewPacketOrigin ?? buildDefaultPacketOrigin(reviewPacketSource);
   const originRecordAction = buildOriginRecordAction(packetOrigin, onOpenReviewPacketOriginRecord);
@@ -1375,6 +1389,7 @@ function ReviewPage({
     reviewPacketSource === "live_phase9_packet_data" && !packet.hasResolvedPacket;
   const showLaneDriftNotice = recordsLaneAlignment?.driftDetected === true;
   const packetLaneAction = buildOriginRecordAction(packetOrigin, onOpenReviewPacketOriginRecord);
+  const hasAnimationTimelineDiagnostics = animationTimelineDiagnostics.length > 0;
 
   return (
     <Page
@@ -1444,6 +1459,11 @@ function ReviewPage({
               ? <List items={resolutionDiagnostics.attempts.map(formatAttemptLine)} />
               : <p style={s.mutedCompact}>No lane attempt details are available in this view.</p>}
           </Panel>
+          {hasAnimationTimelineDiagnostics ? (
+            <Panel title="Animation timeline diagnostics" gate="proof-only">
+              <List items={animationTimelineDiagnostics.map((entry) => `${entry.source}: ${entry.detail}`)} />
+            </Panel>
+          ) : null}
           <Panel title="Evidence summary" gate="proof-only">
             <Rows rows={[["Source evidence", packet.sourceEvidence.sourceExists], ["Product evidence", packet.productEvidence.evidenceAvailable], ["Catalog evidence", packet.catalogEvidence.catalogPresence], ["Dependency evidence", packet.dependencyEvidence.evidenceAvailable], ...buildPacketOriginRows(packetOrigin)]} />
             <div style={s.buttonRow}>

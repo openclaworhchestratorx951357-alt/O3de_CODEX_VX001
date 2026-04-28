@@ -265,6 +265,36 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByText("Malformed lane")).toBeInTheDocument();
   });
 
+  it("shows animation timeline diagnostics in Review evidence", () => {
+    renderToolbench({
+      reviewPacketSource: "live_phase9_packet_data",
+      reviewPacketData: {
+        asset_readback_review_packet: {
+          ...assetForgeReviewPacketFixture,
+          animation_timeline: {
+            pageModeLabel: "Malformed animation preview",
+            timelineLabel: "Malformed lane",
+            keyframeRows: "bad-array",
+            notes: "bad-notes",
+            cameraShots: ["Shot 010"],
+            mutedActionsBlocked: ["Insert keyframe"],
+            disabledWriteActionLabel: "Animation write blocked",
+          },
+        },
+      },
+    });
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    fireEvent.click(within(shell).getByRole("button", { name: "Review" }));
+
+    expect(within(shell).getByLabelText("Asset Forge Review page")).toBeInTheDocument();
+    expect(within(shell).getByText("Animation timeline diagnostics")).toBeInTheDocument();
+    const issueLines = within(shell).getAllByRole("listitem");
+    const issueText = issueLines.map((item) => item.textContent ?? "");
+    expect(issueText.some((line) => line.includes("asset_readback_review_packet.animation_timeline") && line.includes("keyframeRows"))).toBe(true);
+    expect(issueText.some((line) => line.includes("asset_readback_review_packet.animation_timeline") && line.includes("notes") && line.includes("label, detail"))).toBe(true);
+  });
+
   it("uses direct animation timeline data from review packet payload", () => {
     renderToolbench({
       reviewPacketSource: "live_phase9_packet_data",
