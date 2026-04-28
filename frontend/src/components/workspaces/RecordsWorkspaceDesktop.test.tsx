@@ -180,7 +180,11 @@ describe("RecordsWorkspaceDesktop", () => {
   it("assembles the runs desktop surface with context, list, and detail panes", () => {
     renderRecordsWorkspaceDesktop("runs");
 
-    expect(screen.queryByText("Opened from Asset Forge review packet origin")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText((content) =>
+        /Opened from Asset Forge review packet origin/.test(content.replace(/\s+/g, " ")),
+      ),
+    ).not.toBeInTheDocument();
     expect(getVisibleText("OverviewContextStrip stub")).toBeInTheDocument();
     expect(screen.getByText("RunsPanel stub")).toBeInTheDocument();
     expect(screen.getByText("RunDetailPanel stub")).toBeInTheDocument();
@@ -201,7 +205,11 @@ describe("RecordsWorkspaceDesktop", () => {
   it("assembles the events desktop surface with timeline and event detail panes", () => {
     renderRecordsWorkspaceDesktop("events");
 
-    expect(screen.queryByText("Opened from Asset Forge review packet origin")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText((content) =>
+        /Opened from Asset Forge review packet origin/.test(content.replace(/\s+/g, " ")),
+      ),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Events lane is empty because the current filters are too narrow.")).toBeInTheDocument();
     expect(screen.getByText("Showing 1 of 3 events")).toBeInTheDocument();
     expect(screen.getByText("high narrowing")).toBeInTheDocument();
@@ -246,7 +254,11 @@ describe("RecordsWorkspaceDesktop", () => {
       onClearAssetForgeOriginContext,
     });
 
-    expect(screen.getByText("Opened from Asset Forge review packet origin")).toBeInTheDocument();
+    expect(
+      screen.getByText((content) =>
+        /Opened from Asset Forge review packet origin/.test(content.replace(/\s+/g, " ")),
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText("Selected artifact metadata. Sourced from Phase 9 readback packet.")).toBeInTheDocument();
     expect(screen.getByText("Origin run: run-001")).toBeInTheDocument();
     expect(screen.getByText("Origin execution: exec-001")).toBeInTheDocument();

@@ -583,7 +583,11 @@ describe("App desktop hydration", () => {
     render(<App />);
 
     expect(await screen.findByText("RunsPanel stub")).toBeInTheDocument();
-    expect(await screen.findByText("Opened from Asset Forge review packet origin")).toBeInTheDocument();
+    expect(
+      await screen.findByText((content) =>
+        /Opened from Asset Forge review packet origin/.test(content.replace(/\s+/g, " ")),
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText("Selected artifact metadata. Restored from browser-session state.")).toBeInTheDocument();
       expect(screen.getByText("Origin run: run-001")).toBeInTheDocument();
       expect(screen.getByText("Origin execution: exec-001")).toBeInTheDocument();
@@ -602,7 +606,11 @@ describe("App desktop hydration", () => {
     render(<App />);
 
     expect(await screen.findByText("RunsPanel stub")).toBeInTheDocument();
-    expect(screen.queryByText("Opened from Asset Forge review packet origin")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText((content) =>
+        /Opened from Asset Forge review packet origin/.test(content.replace(/\s+/g, " ")),
+      ),
+    ).not.toBeInTheDocument();
     expect(window.sessionStorage.getItem(ASSET_FORGE_RECORDS_ORIGIN_CONTEXT_SESSION_KEY)).toBeNull();
   });
 
