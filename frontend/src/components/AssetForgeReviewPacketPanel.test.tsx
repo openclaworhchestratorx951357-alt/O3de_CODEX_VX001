@@ -10,6 +10,7 @@ describe("AssetForgeReviewPacketPanel", () => {
       <AssetForgeReviewPacketPanel
         packetData={assetForgeReviewPacketFixture}
         packetSource="typed_fixture_data"
+        packetCorridorLabel="Fixture preview"
       />,
     );
 
@@ -18,6 +19,7 @@ describe("AssetForgeReviewPacketPanel", () => {
     expect(within(panel).getByText("pc/levels/bridgelevel01/bridgelevel01.spawnable")).toBeInTheDocument();
     expect(within(panel).getByText("Read-only proof present")).toBeInTheDocument();
     expect(within(panel).getByText("Not requested (not approved)")).toBeInTheDocument();
+    expect(within(panel).getByLabelText("Review packet corridor")).toHaveTextContent("Corridor: Fixture preview");
   });
 
   it("renders safely with missing and partial packet data", () => {
@@ -32,12 +34,14 @@ describe("AssetForgeReviewPacketPanel", () => {
           },
         }}
         packetSource="existing_frontend_packet_data"
+        packetCorridorLabel="Execution details"
       />,
     );
 
     const panel = screen.getByLabelText("Forge operator review packet");
     expect(within(panel).getByText("PartialProject")).toBeInTheDocument();
     expect(within(panel).getAllByText("Unknown / unavailable").length).toBeGreaterThan(0);
+    expect(within(panel).getByLabelText("Review packet corridor")).toHaveTextContent("Corridor: Execution details");
   });
 
   it("does not present unknown license, quality, or approval as approved", () => {
@@ -59,5 +63,6 @@ describe("AssetForgeReviewPacketPanel", () => {
     const panel = screen.getByLabelText("Forge operator review packet");
     expect(within(panel).queryByText("Approved (operator-confirmed)")).not.toBeInTheDocument();
     expect(within(panel).getAllByText("Unknown / unavailable (not approved)").length).toBeGreaterThan(0);
+    expect(within(panel).getByLabelText("Review packet corridor")).toHaveTextContent("Corridor: Existing frontend payload");
   });
 });

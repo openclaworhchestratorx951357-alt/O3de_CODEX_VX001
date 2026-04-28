@@ -239,6 +239,7 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByLabelText("Forge operator review packet full page")).toBeInTheDocument();
     expect(within(shell).getByLabelText("Forge operator review packet")).toBeInTheDocument();
     expect(within(shell).getAllByText("Typed sample fixture data (read-only preview; not live)").length).toBeGreaterThan(0);
+    expect(within(shell).getByLabelText("Review packet corridor")).toHaveTextContent("Corridor: Fixture preview");
     expect(within(shell).getByText("Freshness severity")).toBeInTheDocument();
     expect(within(shell).getByLabelText("Review freshness severity")).toBeInTheDocument();
     expect(within(shell).getByLabelText("Overall freshness stale")).toBeInTheDocument();
