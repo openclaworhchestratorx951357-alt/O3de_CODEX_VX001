@@ -18,6 +18,8 @@ export interface AssetForgeReviewPacketOrigin {
   runId?: string | null;
   executionId?: string | null;
   artifactId?: string | null;
+  capturedAtIso?: string | null;
+  capturedAtSource?: string | null;
 }
 
 export interface Phase9AssetReadbackReviewPacketSelectedProject {

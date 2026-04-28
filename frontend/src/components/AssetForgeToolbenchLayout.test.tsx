@@ -95,6 +95,9 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByText("Asset Processor")).toBeInTheDocument();
     expect(within(shell).getAllByText("Levels/BridgeLevel01/BridgeLevel01.prefab").length).toBeGreaterThan(0);
     expect(within(shell).getByText("Typed sample fixture data (read-only preview; not live)")).toBeInTheDocument();
+    expect(within(shell).getByText("Packet captured at")).toBeInTheDocument();
+    expect(within(shell).getByText("Packet capture age")).toBeInTheDocument();
+    expect(within(shell).getByText("Packet captured from")).toBeInTheDocument();
     expect(within(shell).getAllByText("Not connected - placeholder only - no execution").length).toBeGreaterThan(0);
     expect(within(shell).getByLabelText("Asset freshness severity")).toBeInTheDocument();
     expect(within(shell).getByLabelText("Overall freshness stale")).toBeInTheDocument();
@@ -266,6 +269,8 @@ describe("AssetForgeToolbenchLayout", () => {
         runId: "run-live-001",
         executionId: "exec-live-001",
         artifactId: "artifact-live-001",
+        capturedAtIso: "2026-04-27T00:00:03.000Z",
+        capturedAtSource: "selected_artifact.created_at",
       },
     });
 
@@ -332,6 +337,8 @@ describe("AssetForgeToolbenchLayout", () => {
         runId: "run-live-001",
         executionId: "exec-live-001",
         artifactId: "artifact-live-001",
+        capturedAtIso: "2026-04-27T00:00:03.000Z",
+        capturedAtSource: "selected_artifact.created_at",
       },
     });
 
@@ -345,6 +352,8 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByText("Live Phase 9 packet data (read-only)")).toBeInTheDocument();
     expect(within(shell).getByText("Selected artifact metadata")).toBeInTheDocument();
     expect(within(shell).getByText("artifact-live-001")).toBeInTheDocument();
+    expect(within(shell).getByText("2026-04-27T00:00:03.000Z")).toBeInTheDocument();
+    expect(within(shell).getByText("selected_artifact.created_at")).toBeInTheDocument();
 
     fireEvent.click(within(shell).getByRole("button", { name: "Assets" }));
     expect(within(shell).getByText(/Connected \(read-only\) queue inbox 1 \| processing 0 \| results 3 \| deadletter 0; placeholder only - no execution/i)).toBeInTheDocument();

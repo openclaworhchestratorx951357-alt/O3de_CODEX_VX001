@@ -70,6 +70,11 @@ type FreshnessOverview = {
   overall: FreshnessSignal;
   bridgeHeartbeatCue: string;
 };
+type PacketProvenanceSummary = {
+  capturedAtLabel: string;
+  captureAgeLabel: string;
+  captureSourceLabel: string;
+};
 
 const UNKNOWN_VALUE = "Unknown / unavailable";
 const STORAGE_KEY = "o3de-asset-forge-page-shell-menu-v1";
@@ -219,6 +224,61 @@ function buildFreshnessOverview(packet: PacketViewModel, bridgeSnapshot: BridgeS
     assetCatalog,
     overall: mergeFreshnessSignals(assetDatabase, assetCatalog),
     bridgeHeartbeatCue: buildBridgeHeartbeatCue(bridgeSnapshot),
+  };
+}
+
+function parseIsoTimestamp(value: string | null | undefined): Date | null {
+  if (!value || typeof value !== "string" || value.trim().length === 0) {
+    return null;
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatCaptureAge(timestamp: Date, nowMs: number): string {
+  const diffMs = nowMs - timestamp.getTime();
+  const absMs = Math.abs(diffMs);
+  const absSeconds = Math.max(1, Math.round(absMs / 1000));
+  if (absSeconds < 60) {
+    return diffMs >= 0 ? `${absSeconds}s ago` : `in ${absSeconds}s`;
+  }
+  const absMinutes = Math.round(absSeconds / 60);
+  if (absMinutes < 60) {
+    return diffMs >= 0 ? `${absMinutes}m ago` : `in ${absMinutes}m`;
+  }
+  const absHours = Math.round(absMinutes / 60);
+  if (absHours < 24) {
+    return diffMs >= 0 ? `${absHours}h ago` : `in ${absHours}h`;
+  }
+  const absDays = Math.round(absHours / 24);
+  return diffMs >= 0 ? `${absDays}d ago` : `in ${absDays}d`;
+}
+
+function buildPacketProvenanceSummary(
+  packetOrigin: AssetForgeReviewPacketOrigin,
+  nowMs = Date.now(),
+): PacketProvenanceSummary {
+  const captureSourceLabel = safeText(packetOrigin.capturedAtSource);
+  const capturedAtIso = packetOrigin.capturedAtIso ?? null;
+  const parsedCapture = parseIsoTimestamp(capturedAtIso);
+  if (!capturedAtIso) {
+    return {
+      capturedAtLabel: UNKNOWN_VALUE,
+      captureAgeLabel: UNKNOWN_VALUE,
+      captureSourceLabel,
+    };
+  }
+  if (!parsedCapture) {
+    return {
+      capturedAtLabel: capturedAtIso,
+      captureAgeLabel: "Unknown / unavailable (invalid timestamp)",
+      captureSourceLabel,
+    };
+  }
+  return {
+    capturedAtLabel: parsedCapture.toISOString(),
+    captureAgeLabel: formatCaptureAge(parsedCapture, nowMs),
+    captureSourceLabel,
   };
 }
 
@@ -400,12 +460,16 @@ function buildDefaultPacketOrigin(
 }
 
 function buildPacketOriginRows(packetOrigin: AssetForgeReviewPacketOrigin): Array<[string, string]> {
+  const provenance = buildPacketProvenanceSummary(packetOrigin);
   return [
     ["Origin", packetOrigin.label],
     ["Origin detail", packetOrigin.detail],
     ["Run ID", safeText(packetOrigin.runId)],
     ["Execution ID", safeText(packetOrigin.executionId)],
     ["Artifact ID", safeText(packetOrigin.artifactId)],
+    ["Captured at", provenance.capturedAtLabel],
+    ["Capture age", provenance.captureAgeLabel],
+    ["Captured from", provenance.captureSourceLabel],
   ];
 }
 
@@ -495,6 +559,10 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
     [packet, bridgeSnapshot],
   );
   const resolvedPacketOrigin = reviewPacketOrigin ?? buildDefaultPacketOrigin(reviewPacketSource);
+  const packetProvenance = useMemo(
+    () => buildPacketProvenanceSummary(resolvedPacketOrigin),
+    [resolvedPacketOrigin],
+  );
 
   const saveLayout = () => window.localStorage.setItem(STORAGE_KEY, activeTopMenu);
   const resetLayout = () => {
@@ -520,7 +588,7 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
         {activeTopMenu === "File" && <FilePage projectProfile={projectProfile} activeTopMenu={activeTopMenu} saveLayout={saveLayout} resetLayout={resetLayout} bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} />}
         {activeTopMenu === "Edit" && <EditPage />}
         {activeTopMenu === "Create" && <CreatePage onOpenPromptStudio={onOpenPromptStudio} onOpenRuntimeOverview={onOpenRuntimeOverview} onOpenBuilder={onOpenBuilder} />}
-        {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} assetRows={assetRows} assetProcessorStatusLabel={assetProcessorStatusLabel} freshnessOverview={freshnessOverview} />}
+        {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} assetRows={assetRows} assetProcessorStatusLabel={assetProcessorStatusLabel} freshnessOverview={freshnessOverview} packetProvenance={packetProvenance} />}
         {activeTopMenu === "Entity" && <EntityPage activeTool={activeTool} setActiveTool={setActiveTool} />}
         {activeTopMenu === "Components" && <ComponentsPage readbackStatus={packet.readbackStatus} />}
         {activeTopMenu === "Materials" && <MaterialsPage packet={packet} />}
@@ -560,12 +628,12 @@ function CreatePage({ onOpenPromptStudio, onOpenRuntimeOverview, onOpenBuilder }
   </Page>;
 }
 
-function AssetsPage({ activeAssetCategory, setActiveAssetCategory, packet, assetRows, assetProcessorStatusLabel, freshnessOverview }: { activeAssetCategory: AssetCategory; setActiveAssetCategory: (category: AssetCategory) => void; packet: PacketViewModel; assetRows: Record<AssetCategory, AssetRowEntry[]>; assetProcessorStatusLabel: string; freshnessOverview: FreshnessOverview }) {
+function AssetsPage({ activeAssetCategory, setActiveAssetCategory, packet, assetRows, assetProcessorStatusLabel, freshnessOverview, packetProvenance }: { activeAssetCategory: AssetCategory; setActiveAssetCategory: (category: AssetCategory) => void; packet: PacketViewModel; assetRows: Record<AssetCategory, AssetRowEntry[]>; assetProcessorStatusLabel: string; freshnessOverview: FreshnessOverview; packetProvenance: PacketProvenanceSummary }) {
   return <Page title="Assets" gate="read-only" detail="Full content browser for source assets, products, dependency evidence, Asset Catalog evidence, and read-only Asset Processor status.">
     <div aria-label="Forge assets content browser" style={s.assetsGrid}>
       <aside style={s.rail}>{assetCategories.map((category) => <button key={category} type="button" onClick={() => setActiveAssetCategory(category)} style={activeAssetCategory === category ? s.activeRailButton : s.railButton}>{category}</button>)}</aside>
       <section style={s.browser}><div style={s.panelHeader}>{activeAssetCategory} <Badge gate="read-only" /></div><div style={s.assetTiles}>{assetRows[activeAssetCategory].map((row, index) => <article key={`${row.name}-${index}`} style={s.assetTile}><strong>{row.name}</strong><Badge gate={row.gate} /><span>{row.detail}</span></article>)}</div></section>
-      <Panel title="Evidence readback" gate="proof-only"><div aria-label="Asset freshness severity" style={s.freshnessStrip}><FreshnessBadge label="Asset DB" signal={freshnessOverview.assetDatabase} /><FreshnessBadge label="Catalog" signal={freshnessOverview.assetCatalog} /><FreshnessBadge label="Overall" signal={freshnessOverview.overall} /></div><p style={s.mutedCompact}>{freshnessOverview.overall.cue}</p><p style={s.mutedCompact}>{freshnessOverview.bridgeHeartbeatCue}</p><Rows rows={[["Packet source", packet.dataSourceLabel], ["Source path", packet.sourceEvidence.normalizedSourcePath], ["Product path", packet.productEvidence.productPath], ["Dependency count", packet.dependencyEvidence.dependencyCount], ["Catalog presence", packet.catalogEvidence.catalogPresence], ["Asset DB freshness", packet.freshnessStatus.assetDatabaseFreshness], ["Catalog freshness", packet.freshnessStatus.assetCatalogFreshness], ["Freshness overall", freshnessOverview.overall.status], ["Asset Processor", assetProcessorStatusLabel]]} /><div style={s.buttonRow}><button type="button" disabled style={s.disabledButton}>Import selected asset</button><button type="button" disabled style={s.disabledButton}>Stage source asset</button><button type="button" disabled style={s.disabledButton}>Execute Asset Processor</button></div></Panel>
+      <Panel title="Evidence readback" gate="proof-only"><div aria-label="Asset freshness severity" style={s.freshnessStrip}><FreshnessBadge label="Asset DB" signal={freshnessOverview.assetDatabase} /><FreshnessBadge label="Catalog" signal={freshnessOverview.assetCatalog} /><FreshnessBadge label="Overall" signal={freshnessOverview.overall} /></div><p style={s.mutedCompact}>{freshnessOverview.overall.cue}</p><p style={s.mutedCompact}>{freshnessOverview.bridgeHeartbeatCue}</p><Rows rows={[["Packet source", packet.dataSourceLabel], ["Packet captured at", packetProvenance.capturedAtLabel], ["Packet capture age", packetProvenance.captureAgeLabel], ["Packet captured from", packetProvenance.captureSourceLabel], ["Source path", packet.sourceEvidence.normalizedSourcePath], ["Product path", packet.productEvidence.productPath], ["Dependency count", packet.dependencyEvidence.dependencyCount], ["Catalog presence", packet.catalogEvidence.catalogPresence], ["Asset DB freshness", packet.freshnessStatus.assetDatabaseFreshness], ["Catalog freshness", packet.freshnessStatus.assetCatalogFreshness], ["Freshness overall", freshnessOverview.overall.status], ["Asset Processor", assetProcessorStatusLabel]]} /><div style={s.buttonRow}><button type="button" disabled style={s.disabledButton}>Import selected asset</button><button type="button" disabled style={s.disabledButton}>Stage source asset</button><button type="button" disabled style={s.disabledButton}>Execute Asset Processor</button></div></Panel>
     </div>
   </Page>;
 }

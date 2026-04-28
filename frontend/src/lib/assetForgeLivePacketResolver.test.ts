@@ -69,6 +69,8 @@ describe("resolveAssetForgeLivePacketSelection", () => {
     expect(resolved.reviewPacketOrigin?.artifactId).toBe("artifact-live-001");
     expect(resolved.reviewPacketOrigin?.executionId).toBe("exec-live-001");
     expect(resolved.reviewPacketOrigin?.runId).toBe("run-live-001");
+    expect(resolved.reviewPacketOrigin?.capturedAtIso).toBe("2026-04-27T00:00:03.000Z");
+    expect(resolved.reviewPacketOrigin?.capturedAtSource).toBe("selected_artifact.created_at");
   });
 
   it("falls back to selected execution details when no artifact packet exists", () => {
@@ -92,10 +94,13 @@ describe("resolveAssetForgeLivePacketSelection", () => {
     expect(resolved.reviewPacketOrigin?.artifactId).toBeNull();
     expect(resolved.reviewPacketOrigin?.executionId).toBe("exec-live-001");
     expect(resolved.reviewPacketOrigin?.runId).toBe("run-live-001");
+    expect(resolved.reviewPacketOrigin?.capturedAtIso).toBe("2026-04-27T00:00:02.000Z");
+    expect(resolved.reviewPacketOrigin?.capturedAtSource).toBe("selected_execution.finished_at");
   });
 
   it("falls back to selected run execution details when available", () => {
     const runExecutionPacket = {
+      created_at: "2026-04-27T00:00:05.000Z",
       asset_readback_review_packet: {
         capability: "asset.source.inspect",
         selected_project: {
@@ -117,6 +122,8 @@ describe("resolveAssetForgeLivePacketSelection", () => {
     expect(resolved.reviewPacketOrigin?.artifactId).toBeNull();
     expect(resolved.reviewPacketOrigin?.executionId).toBeNull();
     expect(resolved.reviewPacketOrigin?.runId).toBe("run-live-001");
+    expect(resolved.reviewPacketOrigin?.capturedAtIso).toBe("2026-04-27T00:00:05.000Z");
+    expect(resolved.reviewPacketOrigin?.capturedAtSource).toBe("payload.created_at");
   });
 
   it("returns empty resolution when no packet evidence exists", () => {

@@ -22,12 +22,72 @@ function payloadHasReviewPacket(payload: unknown): boolean {
   return resolveAssetReadbackReviewPacket(payload) !== null;
 }
 
+function readTimestampField(record: Record<string, unknown> | null, field: string): string | null {
+  if (!record) {
+    return null;
+  }
+  const value = record[field];
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function resolveTimestampFromPayload(payload: unknown): { capturedAtIso: string | null; capturedAtSource: string | null } {
+  const record = payload && typeof payload === "object" && !Array.isArray(payload)
+    ? payload as Record<string, unknown>
+    : null;
+  const directFields = [
+    "captured_at",
+    "created_at",
+    "finished_at",
+    "started_at",
+    "packet_created_at",
+    "packet_captured_at",
+  ];
+
+  for (const field of directFields) {
+    const value = readTimestampField(record, field);
+    if (value) {
+      return {
+        capturedAtIso: value,
+        capturedAtSource: `payload.${field}`,
+      };
+    }
+  }
+
+  const nestedPacket = record?.asset_readback_review_packet;
+  const nestedRecord = nestedPacket && typeof nestedPacket === "object" && !Array.isArray(nestedPacket)
+    ? nestedPacket as Record<string, unknown>
+    : null;
+
+  for (const field of directFields) {
+    const value = readTimestampField(nestedRecord, field);
+    if (value) {
+      return {
+        capturedAtIso: value,
+        capturedAtSource: `asset_readback_review_packet.${field}`,
+      };
+    }
+  }
+
+  return {
+    capturedAtIso: null,
+    capturedAtSource: null,
+  };
+}
+
 export function resolveAssetForgeLivePacketSelection({
   selectedRunId,
   selectedArtifact,
   selectedExecution,
   selectedExecutionDetails,
 }: AssetForgeLivePacketSelection): AssetForgeLivePacketResolution {
+  const executionCapturedAtIso = selectedExecution?.finished_at ?? selectedExecution?.started_at ?? null;
+  const executionCapturedAtSource = selectedExecution?.finished_at
+    ? "selected_execution.finished_at"
+    : selectedExecution?.started_at
+      ? "selected_execution.started_at"
+      : null;
+  const runSnapshotTimestamp = resolveTimestampFromPayload(selectedExecutionDetails);
+
   const candidates: Array<{ payload: unknown; origin: AssetForgeReviewPacketOrigin }> = [
     {
       payload: selectedArtifact?.metadata,
@@ -38,6 +98,8 @@ export function resolveAssetForgeLivePacketSelection({
         runId: selectedArtifact?.run_id,
         executionId: selectedArtifact?.execution_id,
         artifactId: selectedArtifact?.id,
+        capturedAtIso: selectedArtifact?.created_at ?? null,
+        capturedAtSource: selectedArtifact?.created_at ? "selected_artifact.created_at" : null,
       },
     },
     {
@@ -49,6 +111,8 @@ export function resolveAssetForgeLivePacketSelection({
         runId: selectedExecution?.run_id,
         executionId: selectedExecution?.id,
         artifactId: null,
+        capturedAtIso: executionCapturedAtIso,
+        capturedAtSource: executionCapturedAtSource,
       },
     },
     {
@@ -60,6 +124,8 @@ export function resolveAssetForgeLivePacketSelection({
         runId: selectedRunId,
         executionId: selectedExecution?.id ?? null,
         artifactId: null,
+        capturedAtIso: runSnapshotTimestamp.capturedAtIso,
+        capturedAtSource: runSnapshotTimestamp.capturedAtSource,
       },
     },
   ];
