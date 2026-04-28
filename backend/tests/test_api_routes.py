@@ -1,5 +1,6 @@
 import json
 import os
+import sqlite3
 import subprocess
 import time
 from contextlib import contextmanager
@@ -59,6 +60,22 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert "/app/control/preview" in payload["routes"]
         assert "/app/control/report" in payload["routes"]
         assert "/summary" in payload["routes"]
+        assert "/asset-forge/task" in payload["routes"]
+        assert "/asset-forge/task/plan" in payload["routes"]
+        assert "/asset-forge/provider/status" in payload["routes"]
+        assert "/asset-forge/blender/status" in payload["routes"]
+        assert "/asset-forge/studio/status" in payload["routes"]
+        assert "/asset-forge/blender/inspect" in payload["routes"]
+        assert "/asset-forge/o3de/stage-plan" in payload["routes"]
+        assert "/asset-forge/o3de/stage-write" in payload["routes"]
+        assert "/asset-forge/o3de/readback" in payload["routes"]
+        assert "/asset-forge/o3de/placement-plan" in payload["routes"]
+        assert "/asset-forge/o3de/placement-proof" in payload["routes"]
+        assert "/asset-forge/o3de/placement-evidence" in payload["routes"]
+        assert "/asset-forge/o3de/placement-harness/prepare" in payload["routes"]
+        assert "/asset-forge/o3de/placement-harness/execute" in payload["routes"]
+        assert "/asset-forge/o3de/placement-harness/live-proof" in payload["routes"]
+        assert "/asset-forge/o3de/placement-harness/evidence-index" in payload["routes"]
         assert "/runs" in payload["routes"]
         assert "/runs/cards" in payload["routes"]
         assert "/runs/substrate-summary" in payload["routes"]
@@ -97,6 +114,944 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert "/prompt/sessions" in payload["routes"]
         assert "/o3de/target" in payload["routes"]
         assert "/o3de/bridge" in payload["routes"]
+
+
+def test_asset_forge_task_route_returns_plan_only_demo_candidates() -> None:
+    with isolated_client() as client:
+        response = client.get("/asset-forge/task")
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["task_id"] == "asset-forge-task-demo-001"
+        assert payload["status"] == "plan-only"
+        assert payload["source"] == "asset-forge-demo-task-model"
+        assert len(payload["candidates"]) == 4
+        assert all(candidate["status"] == "demo" for candidate in payload["candidates"])
+        assert all("O3DE readiness placeholder" in candidate["readiness_placeholder"] for candidate in payload["candidates"])
+
+
+def test_asset_forge_task_plan_route_returns_typed_plan_only_task() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/asset-forge/task/plan",
+            json={
+                "prompt_text": "Stylized mossy bridge with broken guardrails",
+                "style_tags": ["stylized", "weathered-stone"],
+                "target_triangle_budget": "~24k tris",
+                "output_format": "glb",
+                "source": "asset-forge-ui-plan-request",
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "plan-only"
+        assert payload["task_id"].startswith("asset-forge-task-plan-")
+        assert payload["prompt_text"] == "Stylized mossy bridge with broken guardrails"
+        assert payload["source"] == "asset-forge-ui-plan-request"
+        assert len(payload["candidates"]) == 4
+        assert payload["candidates"][0]["status"] == "planned"
+        assert payload["candidates"][1]["status"] == "planned"
+        assert payload["candidates"][2]["status"] == "demo"
+        assert payload["candidates"][3]["status"] == "demo"
+
+
+def test_asset_forge_provider_status_defaults_to_disabled_preflight_mode() -> None:
+    with patch.dict("os.environ", {}, clear=False):
+        with isolated_client() as client:
+            response = client.get("/asset-forge/provider/status")
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["capability_name"] == "asset_forge.provider.status"
+            assert payload["maturity"] == "preflight-only"
+            assert payload["provider_mode"] == "disabled"
+            assert payload["configuration_ready"] is False
+            assert payload["generation_execution_status"] == "blocked"
+            assert payload["external_task_creation_allowed"] is False
+            assert payload["source"] == "asset-forge-provider-registry"
+            assert len(payload["providers"]) == 1
+            assert payload["providers"][0]["mode"] == "disabled"
+            assert payload["providers"][0]["configured"] is False
+
+
+def test_asset_forge_provider_status_reports_mock_mode_when_configured() -> None:
+    with patch.dict(
+        "os.environ",
+        {"ASSET_FORGE_PROVIDER_MODE": "mock"},
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.get("/asset-forge/provider/status")
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["provider_mode"] == "mock"
+            assert payload["configuration_ready"] is True
+            assert payload["generation_execution_status"] == "blocked"
+            assert payload["providers"][0]["mode"] == "mock"
+            assert payload["providers"][0]["configured"] is True
+
+
+def test_asset_forge_provider_status_reports_configured_mode_without_credentials_as_not_ready() -> None:
+    with patch.dict(
+        "os.environ",
+        {
+            "ASSET_FORGE_PROVIDER_MODE": "configured",
+            "ASSET_FORGE_PROVIDER_API_KEY": "",
+            "MESHY_API_KEY": "",
+        },
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.get("/asset-forge/provider/status")
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["provider_mode"] == "configured"
+            assert payload["configuration_ready"] is False
+            assert payload["credential_status"] == "missing"
+            assert payload["generation_execution_status"] == "blocked"
+            assert payload["providers"][0]["mode"] == "configured"
+            assert payload["providers"][0]["configured"] is False
+
+
+def test_asset_forge_provider_status_reports_real_mode_with_credentials_as_preflight_only() -> None:
+    with patch.dict(
+        "os.environ",
+        {
+            "ASSET_FORGE_PROVIDER_MODE": "real",
+            "ASSET_FORGE_PROVIDER_API_KEY": "token-present",
+        },
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.get("/asset-forge/provider/status")
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["provider_mode"] == "real"
+            assert payload["configuration_ready"] is True
+            assert payload["credential_status"] == "redacted-env-present"
+            assert payload["generation_execution_status"] == "blocked"
+            assert payload["external_task_creation_allowed"] is False
+            assert payload["providers"][0]["mode"] == "real"
+            assert payload["providers"][0]["configured"] is True
+
+
+def test_asset_forge_blender_status_reports_missing_when_not_detected() -> None:
+    with patch(
+        "app.services.asset_forge._resolve_blender_executable",
+        return_value=(None, "path-missing"),
+    ):
+        with isolated_client() as client:
+            response = client.get("/asset-forge/blender/status")
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["capability_name"] == "asset_forge.blender.status"
+            assert payload["maturity"] == "preflight-only"
+            assert payload["executable_found"] is False
+            assert payload["executable_path"] is None
+            assert payload["detection_source"] == "path-missing"
+            assert payload["version"] is None
+            assert payload["version_probe_status"] == "missing"
+            assert payload["blender_prep_execution_status"] == "blocked"
+            assert payload["source"] == "asset-forge-blender-preflight"
+
+
+def test_asset_forge_blender_status_keeps_version_probe_blocked_even_when_executable_is_detected() -> None:
+    with patch(
+        "app.services.asset_forge._resolve_blender_executable",
+        return_value=(r"C:\Blender\blender.exe", "env:ASSET_FORGE_BLENDER_PATH"),
+    ):
+        with isolated_client() as client:
+            response = client.get("/asset-forge/blender/status")
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["executable_found"] is True
+            assert payload["executable_path"] == r"C:\Blender\blender.exe"
+            assert payload["detection_source"] == "env:ASSET_FORGE_BLENDER_PATH"
+            assert payload["version"] is None
+            assert payload["version_probe_status"] == "missing"
+            assert payload["blender_prep_execution_status"] == "blocked"
+            assert any(
+                "version probe execution is intentionally disabled" in warning.lower()
+                for warning in payload["warnings"]
+            )
+            assert payload["source"] == "asset-forge-blender-preflight"
+
+
+def test_asset_forge_blender_status_surfaces_probe_failure_when_probe_result_is_failed() -> None:
+    with patch(
+        "app.services.asset_forge._resolve_blender_executable",
+        return_value=(r"C:\Blender\blender.exe", "env:ASSET_FORGE_BLENDER_PATH"),
+    ):
+        with patch(
+            "app.services.asset_forge._probe_blender_version",
+            return_value=(None, "failed"),
+        ):
+            with isolated_client() as client:
+                response = client.get("/asset-forge/blender/status")
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["executable_found"] is True
+                assert payload["version"] is None
+                assert payload["version_probe_status"] == "failed"
+                assert payload["blender_prep_execution_status"] == "blocked"
+                assert payload["source"] == "asset-forge-blender-preflight"
+
+
+def test_asset_forge_studio_status_reports_read_only_lane_truth() -> None:
+    with isolated_client() as client:
+        response = client.get("/asset-forge/studio/status")
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["capability_name"] == "asset_forge.studio.status"
+        assert payload["maturity"] == "preflight-only"
+        lanes = payload["lanes"]
+        assert len(lanes) == 5
+        assert [lane["lane"] for lane in lanes] == [
+            "Provider",
+            "Blender",
+            "O3DE ingest",
+            "Placement",
+            "Review",
+        ]
+        assert payload["source"] == "asset-forge-studio-status"
+
+
+def test_asset_forge_blender_inspect_blocks_artifact_outside_runtime_root() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir, TemporaryDirectory(
+        ignore_cleanup_errors=True
+    ) as outside_dir:
+        runtime_root = Path(runtime_dir)
+        outside_path = Path(outside_dir) / "outside.obj"
+        outside_path.write_text("v 0 0 0\nf 1 1 1\n", encoding="utf-8")
+        with patch.dict(
+            "os.environ",
+            {"ASSET_FORGE_RUNTIME_ROOT": str(runtime_root)},
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/asset-forge/blender/inspect",
+                    json={"artifact_path": str(outside_path)},
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["capability_name"] == "asset_forge.blender.inspect"
+                assert payload["maturity"] == "preflight-only"
+                assert payload["inspection_status"] == "blocked"
+                assert payload["artifact_within_runtime_root"] is False
+                assert payload["extension_allowed"] is True
+                assert payload["script_execution_status"] == "blocked"
+                assert payload["blender_execution_status"] == "blocked"
+                assert payload["metadata"]["inspection_policy"]["read_only"] is True
+                assert payload["metadata"]["inspection_policy"]["max_inspect_bytes"] > 0
+                assert ".obj" in payload["metadata"]["inspection_policy"]["allowed_extensions"]
+                assert payload["source"] == "asset-forge-blender-inspect"
+
+
+def test_asset_forge_blender_inspect_stays_blocked_for_runtime_artifact_in_pr_c() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir:
+        runtime_root = Path(runtime_dir)
+        sample_dir = runtime_root / "candidates"
+        sample_dir.mkdir(parents=True, exist_ok=True)
+        sample_obj_path = sample_dir / "sample.obj"
+        sample_obj_path.write_text(
+            "o Sample\n"
+            "v 0 0 0\n"
+            "v 1 0 0\n"
+            "v 0 1 0\n"
+            "vn 0 0 1\n"
+            "vt 0 0\n"
+            "vt 1 0\n"
+            "usemtl MaterialA\n"
+            "f 1/1/1 2/2/1 3/1/1\n",
+            encoding="utf-8",
+        )
+        with patch.dict(
+            "os.environ",
+            {"ASSET_FORGE_RUNTIME_ROOT": str(runtime_root)},
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/asset-forge/blender/inspect",
+                    json={"artifact_path": "candidates/sample.obj"},
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["capability_name"] == "asset_forge.blender.inspect"
+                assert payload["inspection_status"] == "blocked"
+                assert payload["artifact_within_runtime_root"] is True
+                assert payload["extension_allowed"] is True
+                assert payload["script_execution_status"] == "blocked"
+                assert payload["blender_execution_status"] == "blocked"
+                assert payload["script_id"] == "asset_forge_blender_readonly_inspector_v1"
+                assert payload["metadata"]["execution_disabled"] is True
+                assert payload["metadata"]["file_size_bytes"] > 0
+                assert payload["metadata"]["inspection_policy"]["read_only"] is True
+                assert payload["metadata"]["inspection_policy"]["max_inspect_bytes"] > 0
+
+
+def test_asset_forge_o3de_stage_plan_returns_deterministic_plan_only_record() -> None:
+    with patch.dict(
+        "os.environ",
+        {"O3DE_TARGET_PROJECT_ROOT": r"C:\Users\topgu\O3DE\Projects\McpSandbox"},
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post(
+                "/asset-forge/o3de/stage-plan",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "desired_extension": "glb",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["capability_name"] == "asset_forge.o3de.stage.plan"
+            assert payload["maturity"] == "plan-only"
+            assert payload["plan_status"] == "ready-for-approval"
+            assert payload["candidate_id"] == "candidate-a"
+            assert payload["candidate_label"] == "Weathered Ivy Arch"
+            assert payload["project_root_hint"] == r"C:\Users\topgu\O3DE\Projects\McpSandbox"
+            assert payload["approval_required"] is True
+            assert payload["project_write_admitted"] is False
+            assert payload["source"] == "asset-forge-o3de-stage-plan"
+            assert payload["deterministic_staging_relative_path"].startswith(
+                "Assets/Generated/asset_forge/"
+            )
+            assert payload["deterministic_staging_relative_path"].endswith(".glb")
+            assert payload["deterministic_manifest_relative_path"].endswith(".forge.json")
+            assert payload["stage_plan_policy"]["allowed_staging_prefix"] == "Assets/Generated/asset_forge/"
+            assert ".glb" in payload["stage_plan_policy"]["allowed_output_extensions"]
+            assert payload["stage_plan_policy"]["approval_required_for_write"] is True
+
+
+def test_asset_forge_o3de_stage_write_requires_approval_before_writing() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir, TemporaryDirectory(
+        ignore_cleanup_errors=True
+    ) as project_dir:
+        runtime_root = Path(runtime_dir)
+        project_root = Path(project_dir)
+        source_dir = runtime_root / "prepared_exports"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        source_path = source_dir / "candidate_a.glb"
+        source_path.write_bytes(b"mock-glb-source-bytes")
+
+        stage_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        manifest_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json"
+        destination_path = project_root / stage_relative
+        manifest_path = project_root / manifest_relative
+
+        with patch.dict(
+            "os.environ",
+            {
+                "ASSET_FORGE_RUNTIME_ROOT": str(runtime_root),
+                "O3DE_TARGET_PROJECT_ROOT": str(project_root),
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/asset-forge/o3de/stage-write",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_artifact_path": "prepared_exports/candidate_a.glb",
+                        "stage_relative_path": stage_relative,
+                        "manifest_relative_path": manifest_relative,
+                        "approval_state": "not-approved",
+                        "approval_note": "",
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["capability_name"] == "asset_forge.o3de.stage.write"
+                assert payload["maturity"] == "approval-gated-write"
+                assert payload["write_status"] == "blocked"
+                assert payload["write_executed"] is False
+                assert payload["project_write_admitted"] is False
+                assert payload["approval_required"] is True
+                assert payload["approval_state"] == "not-approved"
+                assert payload["destination_source_asset_path"] == str(destination_path)
+                assert payload["destination_manifest_path"] == str(manifest_path)
+                assert payload["source_sha256"] is not None
+                assert payload["post_write_readback"]["source_exists"] is True
+                assert payload["post_write_readback"]["destination_exists"] is False
+                assert payload["post_write_readback"]["manifest_exists"] is False
+                assert payload["source"] == "asset-forge-o3de-stage-write"
+                assert not destination_path.exists()
+                assert not manifest_path.exists()
+
+
+def test_asset_forge_o3de_stage_write_stays_blocked_even_when_client_claims_approval() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir, TemporaryDirectory(
+        ignore_cleanup_errors=True
+    ) as project_dir:
+        runtime_root = Path(runtime_dir)
+        project_root = Path(project_dir)
+        source_dir = runtime_root / "prepared_exports"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        source_path = source_dir / "candidate_a.glb"
+        source_bytes = b"mock-glb-source-bytes-for-stage-write"
+        source_path.write_bytes(source_bytes)
+
+        stage_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        manifest_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json"
+        destination_path = project_root / stage_relative
+        manifest_path = project_root / manifest_relative
+
+        with patch.dict(
+            "os.environ",
+            {
+                "ASSET_FORGE_RUNTIME_ROOT": str(runtime_root),
+                "O3DE_TARGET_PROJECT_ROOT": str(project_root),
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/asset-forge/o3de/stage-write",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_artifact_path": "prepared_exports/candidate_a.glb",
+                        "stage_relative_path": stage_relative,
+                        "manifest_relative_path": manifest_relative,
+                        "approval_state": "approved",
+                        "approval_note": "Operator approved bounded source staging for proof.",
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["capability_name"] == "asset_forge.o3de.stage.write"
+                assert payload["write_status"] == "blocked"
+                assert payload["write_executed"] is False
+                assert payload["project_write_admitted"] is False
+                assert payload["approval_state"] == "approved"
+                assert payload["bytes_copied"] == len(source_bytes)
+                assert payload["destination_source_asset_path"] == str(destination_path)
+                assert payload["destination_manifest_path"] == str(manifest_path)
+                assert payload["post_write_readback"]["source_exists"] is True
+                assert payload["post_write_readback"]["destination_exists"] is False
+                assert payload["post_write_readback"]["manifest_exists"] is False
+                assert payload["source_sha256"] is not None
+                assert payload["source"] == "asset-forge-o3de-stage-write"
+                assert any(
+                    "disabled in this draft checkpoint until server-owned approval enforcement is implemented"
+                    in warning
+                    for warning in payload["warnings"]
+                )
+
+                assert not destination_path.is_file()
+                assert not manifest_path.is_file()
+
+
+def test_asset_forge_o3de_readback_reports_blocked_when_assetdb_is_missing() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as project_dir:
+        project_root = Path(project_dir)
+        source_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        source_path = project_root / source_relative
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"staged-source-bytes")
+
+        with patch.dict(
+            "os.environ",
+            {"O3DE_TARGET_PROJECT_ROOT": str(project_root)},
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/asset-forge/o3de/readback",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_asset_relative_path": source_relative,
+                        "selected_platform": "pc",
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["capability_name"] == "asset_forge.o3de.ingest.readback"
+                assert payload["maturity"] == "preflight-only"
+                assert payload["readback_status"] == "blocked"
+                assert payload["source_exists"] is True
+                assert payload["asset_database_exists"] is False
+                assert payload["asset_database_freshness_status"] == "missing"
+                assert payload["source_found_in_assetdb"] is False
+                assert payload["product_count"] == 0
+                assert payload["dependency_count"] == 0
+                assert payload["catalog_exists"] is False
+                assert payload["catalog_freshness_status"] == "missing"
+                assert payload["catalog_presence"] is False
+                assert payload["read_only"] is True
+                assert payload["mutation_occurred"] is False
+                assert payload["source"] == "asset-forge-o3de-ingest-readback"
+
+
+def test_asset_forge_o3de_readback_reports_assetdb_and_catalog_evidence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as project_dir:
+        project_root = Path(project_dir)
+        source_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        source_path = project_root / source_relative
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"staged-source-for-packet-09")
+
+        cache_root = project_root / "Cache"
+        cache_root.mkdir(parents=True, exist_ok=True)
+        assetdb_path = cache_root / "assetdb.sqlite"
+        connection = sqlite3.connect(assetdb_path)
+        try:
+            connection.executescript(
+                """
+                CREATE TABLE Sources (
+                    SourceID INTEGER PRIMARY KEY,
+                    SourceName TEXT NOT NULL,
+                    SourceGuid BLOB
+                );
+                CREATE TABLE Jobs (
+                    JobID INTEGER PRIMARY KEY,
+                    SourcePK INTEGER NOT NULL,
+                    JobKey TEXT,
+                    Platform TEXT,
+                    Status INTEGER,
+                    WarningCount INTEGER,
+                    ErrorCount INTEGER
+                );
+                CREATE TABLE Products (
+                    ProductID INTEGER PRIMARY KEY,
+                    JobPK INTEGER NOT NULL,
+                    ProductName TEXT
+                );
+                CREATE TABLE ProductDependencies (
+                    ProductDependencyID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ProductPK INTEGER NOT NULL,
+                    Platform TEXT,
+                    DependencySourceGuid BLOB,
+                    DependencySubID INTEGER,
+                    DependencyFlags INTEGER,
+                    UnresolvedPath TEXT
+                );
+                """
+            )
+            connection.execute(
+                "INSERT INTO Sources (SourceID, SourceName, SourceGuid) VALUES (?, ?, ?)",
+                (
+                    3216,
+                    source_relative.replace("\\", "/"),
+                    bytes.fromhex("A7FF11AC580354B6A918A8AF225DAA3A"),
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO Jobs (JobID, SourcePK, JobKey, Platform, Status, WarningCount, ErrorCount)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (4401, 3216, "Scene compilation", "pc", 4, 4, 0),
+            )
+            connection.execute(
+                "INSERT INTO Products (ProductID, JobPK, ProductName) VALUES (?, ?, ?)",
+                (
+                    9001,
+                    4401,
+                    "pc/assets/generated/asset_forge/candidate_a/candidate_a.azmodel",
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO ProductDependencies (
+                    ProductPK,
+                    Platform,
+                    DependencySourceGuid,
+                    DependencySubID,
+                    DependencyFlags,
+                    UnresolvedPath
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    9001,
+                    "pc",
+                    bytes.fromhex("0102030405060708090A0B0C0D0E0F10"),
+                    12,
+                    3,
+                    "materials/candidate_a.material",
+                ),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        catalog_path = project_root / "Cache" / "pc" / "assetcatalog.xml"
+        catalog_path.parent.mkdir(parents=True, exist_ok=True)
+        catalog_path.write_bytes(
+            (
+                "<AssetCatalog>"
+                "<ProductPath>assets/generated/asset_forge/candidate_a/candidate_a.azmodel</ProductPath>"
+                "</AssetCatalog>"
+            ).encode("utf-8")
+        )
+
+        with patch.dict(
+            "os.environ",
+            {"O3DE_TARGET_PROJECT_ROOT": str(project_root)},
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/asset-forge/o3de/readback",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_asset_relative_path": source_relative,
+                        "selected_platform": "pc",
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["capability_name"] == "asset_forge.o3de.ingest.readback"
+                assert payload["maturity"] == "preflight-only"
+                assert payload["readback_status"] == "succeeded"
+                assert payload["project_root"] == str(project_root.resolve())
+                assert payload["source_exists"] is True
+                assert payload["source_found_in_assetdb"] is True
+                assert payload["source_id"] == 3216
+                assert payload["asset_database_exists"] is True
+                assert payload["asset_database_freshness_status"] == "fresh"
+                assert payload["product_count"] == 1
+                assert payload["dependency_count"] == 1
+                assert payload["asset_processor_warning_count"] == 4
+                assert payload["asset_processor_error_count"] == 0
+                assert payload["catalog_exists"] is True
+                assert payload["catalog_freshness_status"] == "fresh"
+                assert payload["catalog_presence"] is True
+                assert payload["catalog_product_path_presence"]
+                assert payload["read_only"] is True
+                assert payload["mutation_occurred"] is False
+                assert payload["source"] == "asset-forge-o3de-ingest-readback"
+
+
+def test_asset_forge_o3de_placement_plan_returns_ready_for_approval() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/asset-forge/o3de/placement-plan",
+            json={
+                "candidate_id": "candidate-a",
+                "candidate_label": "Weathered Ivy Arch",
+                "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                "target_entity_name": "AssetForgeCandidateA",
+                "target_component": "Mesh",
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["capability_name"] == "asset_forge.o3de.placement.plan"
+        assert payload["maturity"] == "plan-only"
+        assert payload["plan_status"] == "ready-for-approval"
+        assert payload["placement_execution_status"] == "blocked"
+        assert payload["approval_required"] is True
+        assert payload["placement_write_admitted"] is False
+        assert payload["placement_plan_policy"]["allowed_stage_prefix"] == "Assets/Generated/asset_forge/"
+        assert ".glb" in payload["placement_plan_policy"]["allowed_stage_extensions"]
+        assert payload["placement_plan_policy"]["allowed_level_prefix"] == "Levels/"
+        assert payload["placement_plan_policy"]["allowed_level_suffix"] == ".prefab"
+        assert payload["placement_plan_policy"]["approval_required_for_proof"] is True
+        assert payload["source"] == "asset-forge-o3de-placement-plan"
+        assert "Plan-only placement target prepared" in payload["placement_plan_summary"]
+
+
+def test_asset_forge_o3de_placement_plan_blocks_invalid_paths() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/asset-forge/o3de/placement-plan",
+            json={
+                "candidate_id": "candidate-a",
+                "candidate_label": "Weathered Ivy Arch",
+                "staged_source_relative_path": "Assets/Generated/not_allowed/candidate_a.glb",
+                "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.spawnable",
+                "target_entity_name": "AssetForgeCandidateA",
+                "target_component": "Mesh",
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["capability_name"] == "asset_forge.o3de.placement.plan"
+        assert payload["maturity"] == "plan-only"
+        assert payload["plan_status"] == "blocked"
+        assert payload["placement_execution_status"] == "blocked"
+        assert payload["placement_write_admitted"] is False
+        assert payload["placement_plan_policy"]["allowed_stage_prefix"] == "Assets/Generated/asset_forge/"
+        assert payload["source"] == "asset-forge-o3de-placement-plan"
+
+
+def test_asset_forge_o3de_placement_proof_requires_approval() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/asset-forge/o3de/placement-proof",
+            json={
+                "candidate_id": "candidate-a",
+                "candidate_label": "Weathered Ivy Arch",
+                "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                "target_entity_name": "AssetForgeCandidateA",
+                "target_component": "Mesh",
+                "approval_state": "not-approved",
+                "approval_note": "",
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["capability_name"] == "asset_forge.o3de.placement.execute"
+        assert payload["maturity"] == "proof-only"
+        assert payload["proof_status"] == "blocked"
+        assert payload["placement_proof_policy"]["approval_required"] is True
+        assert payload["placement_proof_policy"]["runtime_gate_env"] == "ASSET_FORGE_ENABLE_PLACEMENT_PROOF"
+        assert payload["placement_execution_status"] == "blocked"
+        assert payload["write_occurred"] is False
+        assert payload["source"] == "asset-forge-o3de-placement-proof"
+
+
+def test_asset_forge_o3de_placement_proof_blocked_when_runtime_gate_disabled() -> None:
+    with patch.dict("os.environ", {"ASSET_FORGE_ENABLE_PLACEMENT_PROOF": "0"}, clear=False):
+        with isolated_client() as client:
+            response = client.post(
+                "/asset-forge/o3de/placement-proof",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "target_component": "Mesh",
+                    "approval_state": "approved",
+                    "approval_note": "Operator approved narrow proof gate.",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["capability_name"] == "asset_forge.o3de.placement.execute"
+            assert payload["maturity"] == "proof-only"
+            assert payload["proof_status"] == "blocked"
+            assert payload["placement_proof_policy"]["mutation_scope"] == "proof-only-no-scene-mutation"
+            assert payload["proof_runtime_gate_enabled"] is False
+            assert payload["placement_execution_status"] == "blocked"
+            assert payload["write_occurred"] is False
+            assert payload["source"] == "asset-forge-o3de-placement-proof"
+
+
+def test_asset_forge_o3de_placement_evidence_blocks_without_project_root() -> None:
+    with patch.dict("os.environ", {"O3DE_PROJECT_ROOT": ""}, clear=False):
+        with isolated_client() as client:
+            response = client.post(
+                "/asset-forge/o3de/placement-evidence",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["capability_name"] == "asset_forge.o3de.placement.evidence"
+            assert payload["maturity"] == "preflight-only"
+            assert payload["evidence_status"] == "blocked"
+            assert payload["read_only"] is True
+            assert payload["mutation_occurred"] is False
+            assert payload["source"] == "asset-forge-o3de-placement-evidence"
+
+
+def test_asset_forge_o3de_placement_harness_prepare_defaults_blocked() -> None:
+    with patch.dict("os.environ", {"ASSET_FORGE_ENABLE_PLACEMENT_PROOF": "0"}, clear=False):
+        with isolated_client() as client:
+            response = client.post(
+                "/asset-forge/o3de/placement-harness/prepare",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "target_component": "Mesh",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["capability_name"] == "asset_forge.o3de.placement.harness.prepare"
+            assert payload["maturity"] == "plan-only"
+            assert payload["harness_status"] == "blocked"
+            assert payload["execution_performed"] is False
+            assert payload["read_only"] is True
+            assert payload["source"] == "asset-forge-o3de-placement-harness-prepare"
+
+
+def test_asset_forge_o3de_placement_harness_execute_requires_approval() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/asset-forge/o3de/placement-harness/execute",
+            json={
+                "candidate_id": "candidate-a",
+                "candidate_label": "Weathered Ivy Arch",
+                "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                "target_entity_name": "AssetForgeCandidateA",
+                "target_component": "Mesh",
+                "approval_state": "not-approved",
+                "approval_note": "",
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["capability_name"] == "asset_forge.o3de.placement.harness.execute"
+        assert payload["maturity"] == "proof-only"
+        assert payload["execute_status"] == "blocked"
+        assert payload["execution_performed"] is False
+        assert payload["readback_captured"] is False
+
+
+def test_asset_forge_o3de_placement_harness_execute_stays_blocked_even_when_client_claims_approval() -> None:
+    with patch(
+        "app.services.o3de_target.O3DETargetService.get_bridge_status",
+        autospec=True,
+    ) as mocked_bridge_status:
+        with isolated_client() as client:
+            response = client.post(
+                "/asset-forge/o3de/placement-harness/execute",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "target_component": "Mesh",
+                    "approval_state": "approved",
+                    "approval_note": "client supplied approval note",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["execute_status"] == "blocked"
+            assert payload["bridge_command_id"] is None
+            assert payload["execution_performed"] is False
+            assert payload["readback_captured"] is False
+            mocked_bridge_status.assert_not_called()
+
+
+def test_asset_forge_o3de_placement_live_proof_requires_approval() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/asset-forge/o3de/placement-harness/live-proof",
+            json={
+                "candidate_id": "candidate-a",
+                "candidate_label": "Weathered Ivy Arch",
+                "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                "target_entity_name": "AssetForgeCandidateA",
+                "approval_state": "not-approved",
+                "approval_note": "",
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["proof_status"] == "blocked"
+        assert payload["execution_performed"] is False
+        assert payload["readback_captured"] is False
+        assert any(
+            "disabled in this draft checkpoint until server-owned approval enforcement is implemented"
+            in warning
+            for warning in payload["warnings"]
+        )
+
+
+def test_asset_forge_o3de_placement_live_proof_stays_blocked_even_when_client_claims_approval() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        with patch.dict(
+            "os.environ",
+            {
+                "ASSET_FORGE_ENABLE_PLACEMENT_PROOF": "1",
+                "ASSET_FORGE_ENABLE_PLACEMENT_LIVE_PROOF": "1",
+                "ASSET_FORGE_RUNTIME_ROOT": temp_dir,
+                "O3DE_TARGET_PROJECT_ROOT": r"C:\Users\topgu\O3DE\Projects\McpSandbox",
+                "O3DE_TARGET_ENGINE_ROOT": r"C:\src\o3de",
+            },
+            clear=False,
+        ):
+            with patch(
+                "app.services.o3de_target.O3DETargetService.get_bridge_status",
+                autospec=True,
+            ) as mocked_bridge_status:
+                with isolated_client() as client:
+                    response = client.post(
+                        "/asset-forge/o3de/placement-harness/live-proof",
+                        json={
+                            "candidate_id": "candidate-a",
+                            "candidate_label": "Weathered Ivy Arch",
+                            "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                            "target_entity_name": "AssetForgeCandidateA",
+                            "approval_state": "approved",
+                            "approval_note": "approved",
+                        },
+                    )
+                    assert response.status_code == 200
+                    payload = response.json()
+                    assert payload["proof_status"] == "blocked"
+                    assert payload["execution_performed"] is False
+                    assert payload["readback_captured"] is False
+                    assert payload["evidence_bundle_path"] is None
+                    assert payload["bridge_configured"] is False
+                    assert payload["bridge_heartbeat_fresh"] is False
+                    assert payload["runtime_gate_enabled"] is False
+                    assert any(
+                        "disabled in this draft checkpoint until server-owned approval enforcement is implemented"
+                        in warning
+                        for warning in payload["warnings"]
+                    )
+                    mocked_bridge_status.assert_not_called()
+
+
+def test_asset_forge_o3de_placement_live_proof_evidence_index_lists_recent_items() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        evidence_dir = Path(temp_dir) / "evidence" / "placement_live_proof"
+        evidence_dir.mkdir(parents=True, exist_ok=True)
+        evidence_file = evidence_dir / "candidate-a_20260428.json"
+        evidence_file.write_text(
+            json.dumps(
+                {
+                    "candidate_id": "candidate-a",
+                    "bridge_command_id": "bridge-cmd-1",
+                    "proof_status": "succeeded",
+                    "recorded_at": "2026-04-28T00:00:00Z",
+                }
+            ),
+            encoding="utf-8",
+        )
+        evidence_file_two = evidence_dir / "candidate-b_20260428.json"
+        evidence_file_two.write_text(
+            json.dumps(
+                {
+                    "candidate_id": "candidate-b",
+                    "bridge_command_id": "bridge-cmd-2",
+                    "proof_status": "blocked",
+                    "recorded_at": "2026-04-28T00:01:00Z",
+                }
+            ),
+            encoding="utf-8",
+        )
+        stale_epoch = time.time() - 7200
+        os.utime(evidence_file_two, (stale_epoch, stale_epoch))
+        with patch.dict("os.environ", {"ASSET_FORGE_RUNTIME_ROOT": temp_dir}, clear=False):
+            with isolated_client() as client:
+                response = client.get(
+                    "/asset-forge/o3de/placement-harness/evidence-index?limit=5&proof_status=succeeded&candidate_id=candidate-a&from_age_s=1800"
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["index_status"] == "succeeded"
+                assert payload["read_only"] is True
+                assert len(payload["items"]) >= 1
+                assert payload["applied_filters"]["limit"] == 5
+                assert payload["applied_filters"]["proof_status"] == "succeeded"
+                assert payload["applied_filters"]["candidate_id"] == "candidate-a"
+                assert payload["applied_filters"]["from_age_s"] == 1800
+                assert all(item["proof_status"] == "succeeded" for item in payload["items"])
+                assert all(item["candidate_id"] == "candidate-a" for item in payload["items"])
 
 
 def test_codex_control_lane_preflight_allows_desktop_frontend_origin() -> None:
