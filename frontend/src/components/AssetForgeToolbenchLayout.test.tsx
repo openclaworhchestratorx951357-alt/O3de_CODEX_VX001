@@ -54,7 +54,13 @@ describe("AssetForgeToolbenchLayout", () => {
     ["File", "Edit", "Create", "Assets", "Entity", "Components", "Materials", "Lighting", "Camera", "Review", "Help"].forEach((menuName) => {
       expect(within(topMenu).getByRole("button", { name: menuName })).toBeInTheDocument();
     });
-    expect(within(topMenu).getByText("preview - non-mutating control surface")).toBeInTheDocument();
+    expect(within(topMenu).getByText("read-only")).toBeInTheDocument();
+    const truthStrip = within(shell).getByLabelText("Forge connection truth strip");
+    expect(within(truthStrip).getByText("Packet status")).toBeInTheDocument();
+    expect(within(truthStrip).getByText("Packet source")).toBeInTheDocument();
+    expect(within(truthStrip).getByText("Bridge")).toBeInTheDocument();
+    expect(within(truthStrip).getByText("Heartbeat")).toBeInTheDocument();
+    expect(within(truthStrip).getByText("Capture age")).toBeInTheDocument();
 
     expect(within(shell).getByLabelText("Asset Forge active page")).toBeInTheDocument();
     expect(within(shell).getByLabelText("Asset Forge Create page")).toBeInTheDocument();
@@ -94,7 +100,7 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByText("Dependency count")).toBeInTheDocument();
     expect(within(shell).getByText("Asset Processor")).toBeInTheDocument();
     expect(within(shell).getAllByText("Levels/BridgeLevel01/BridgeLevel01.prefab").length).toBeGreaterThan(0);
-    expect(within(shell).getByText("Typed sample fixture data (read-only preview; not live)")).toBeInTheDocument();
+    expect(within(shell).getAllByText("Typed sample fixture data (read-only preview; not live)").length).toBeGreaterThan(0);
     expect(within(shell).getByText("Packet captured at")).toBeInTheDocument();
     expect(within(shell).getByText("Packet capture age")).toBeInTheDocument();
     expect(within(shell).getByText("Packet captured from")).toBeInTheDocument();
@@ -227,7 +233,7 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByLabelText("Asset Forge Review page")).toBeInTheDocument();
     expect(within(shell).getByLabelText("Forge operator review packet full page")).toBeInTheDocument();
     expect(within(shell).getByLabelText("Forge operator review packet")).toBeInTheDocument();
-    expect(within(shell).getByText("Typed sample fixture data (read-only preview; not live)")).toBeInTheDocument();
+    expect(within(shell).getAllByText("Typed sample fixture data (read-only preview; not live)").length).toBeGreaterThan(0);
     expect(within(shell).getByText("Freshness severity")).toBeInTheDocument();
     expect(within(shell).getByLabelText("Review freshness severity")).toBeInTheDocument();
     expect(within(shell).getByLabelText("Overall freshness stale")).toBeInTheDocument();
@@ -346,10 +352,10 @@ describe("AssetForgeToolbenchLayout", () => {
 
     fireEvent.click(within(shell).getByRole("button", { name: "File" }));
     expect(within(shell).getByText("Bridge read-only snapshot")).toBeInTheDocument();
-    expect(within(shell).getByText("Connected (read-only)")).toBeInTheDocument();
-    expect(within(shell).getByText("Fresh (4s)")).toBeInTheDocument();
+    expect(within(shell).getAllByText("Connected (read-only)").length).toBeGreaterThan(0);
+    expect(within(shell).getAllByText("Fresh (4s)").length).toBeGreaterThan(0);
     expect(within(shell).getByText("inbox 1 | processing 0 | results 3 | deadletter 0")).toBeInTheDocument();
-    expect(within(shell).getByText("Live Phase 9 packet data (read-only)")).toBeInTheDocument();
+    expect(within(shell).getAllByText("Live Phase 9 packet data (read-only)").length).toBeGreaterThan(0);
     expect(within(shell).getByText("Selected artifact metadata")).toBeInTheDocument();
     expect(within(shell).getByText("artifact-live-001")).toBeInTheDocument();
     expect(within(shell).getByText("2026-04-27T00:00:03.000Z")).toBeInTheDocument();

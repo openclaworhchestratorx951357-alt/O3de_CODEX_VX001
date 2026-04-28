@@ -75,6 +75,13 @@ type PacketProvenanceSummary = {
   captureAgeLabel: string;
   captureSourceLabel: string;
 };
+type ConnectionTruthSummary = {
+  packetStatusLabel: string;
+  packetSourceLabel: string;
+  bridgeConnectionLabel: string;
+  bridgeHeartbeatLabel: string;
+  captureAgeLabel: string;
+};
 
 const UNKNOWN_VALUE = "Unknown / unavailable";
 const STORAGE_KEY = "o3de-asset-forge-page-shell-menu-v1";
@@ -279,6 +286,27 @@ function buildPacketProvenanceSummary(
     capturedAtLabel: parsedCapture.toISOString(),
     captureAgeLabel: formatCaptureAge(parsedCapture, nowMs),
     captureSourceLabel,
+  };
+}
+
+function buildConnectionTruthSummary(
+  packet: PacketViewModel,
+  bridgeSnapshot: BridgeSnapshot,
+  packetProvenance: PacketProvenanceSummary,
+): ConnectionTruthSummary {
+  const packetSourceLower = packet.dataSourceLabel.toLowerCase();
+  const packetStatusLabel = packetSourceLower.includes("live")
+    ? "Live read-only evidence"
+    : packetSourceLower.includes("fixture")
+      ? "Typed fixture preview"
+      : "Preview / unknown source";
+
+  return {
+    packetStatusLabel,
+    packetSourceLabel: packet.dataSourceLabel,
+    bridgeConnectionLabel: bridgeSnapshot.connectionState,
+    bridgeHeartbeatLabel: bridgeSnapshot.heartbeatState,
+    captureAgeLabel: packetProvenance.captureAgeLabel,
   };
 }
 
@@ -563,6 +591,10 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
     () => buildPacketProvenanceSummary(resolvedPacketOrigin),
     [resolvedPacketOrigin],
   );
+  const connectionTruth = useMemo(
+    () => buildConnectionTruthSummary(packet, bridgeSnapshot, packetProvenance),
+    [packet, bridgeSnapshot, packetProvenance],
+  );
 
   const saveLayout = () => window.localStorage.setItem(STORAGE_KEY, activeTopMenu);
   const resetLayout = () => {
@@ -582,8 +614,15 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
             {menu}
           </button>
         ))}
-        <span style={s.topStatus}>preview - non-mutating control surface</span>
+        <span style={s.topStatus} title="Read-only non-mutating control surface">read-only</span>
       </nav>
+      <section aria-label="Forge connection truth strip" style={s.truthStrip}>
+        <div style={s.truthItem}><span style={s.truthLabel}>Packet status</span><strong style={s.truthValue}>{connectionTruth.packetStatusLabel}</strong></div>
+        <div style={s.truthItem}><span style={s.truthLabel}>Packet source</span><strong style={s.truthValue}>{connectionTruth.packetSourceLabel}</strong></div>
+        <div style={s.truthItem}><span style={s.truthLabel}>Bridge</span><strong style={s.truthValue}>{connectionTruth.bridgeConnectionLabel}</strong></div>
+        <div style={s.truthItem}><span style={s.truthLabel}>Heartbeat</span><strong style={s.truthValue}>{connectionTruth.bridgeHeartbeatLabel}</strong></div>
+        <div style={s.truthItem}><span style={s.truthLabel}>Capture age</span><strong style={s.truthValue}>{connectionTruth.captureAgeLabel}</strong></div>
+      </section>
       <main aria-label="Asset Forge active page" style={s.pageHost}>
         {activeTopMenu === "File" && <FilePage projectProfile={projectProfile} activeTopMenu={activeTopMenu} saveLayout={saveLayout} resetLayout={resetLayout} bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} />}
         {activeTopMenu === "Edit" && <EditPage />}
@@ -786,12 +825,16 @@ function BlockedSummary() {
 }
 
 const s = {
-  shell: { display: "grid", gridTemplateRows: "34px minmax(0, 1fr)", minWidth: 0, height: "100%", minHeight: 0, overflow: "hidden", border: "1px solid #26384f", borderRadius: 6, background: "#0b1017", color: "#c3cfdd", boxShadow: "0 18px 55px rgba(3, 12, 25, 0.35)", fontSize: 13, lineHeight: 1.35 },
+  shell: { display: "grid", gridTemplateRows: "34px auto minmax(0, 1fr)", minWidth: 0, height: "100%", minHeight: 0, overflow: "hidden", border: "1px solid #26384f", borderRadius: 6, background: "#0b1017", color: "#c3cfdd", boxShadow: "0 18px 55px rgba(3, 12, 25, 0.35)", fontSize: 13, lineHeight: 1.35 },
   topMenu: { display: "flex", alignItems: "center", gap: 4, minWidth: 0, padding: "0 8px", borderBottom: "1px solid #27384b", background: "#101820", overflow: "hidden" },
   brand: { flex: "0 0 auto", marginRight: 10, color: "#eef5ff", whiteSpace: "nowrap" },
   menuButton: { flex: "0 1 auto", minWidth: 0, height: 24, padding: "0 6px", borderWidth: 1, borderStyle: "solid", borderColor: "transparent", borderRadius: 3, background: "transparent", color: "#c3cfdd", fontSize: 12, fontWeight: 800, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   activeMenuButton: { flex: "0 1 auto", minWidth: 0, height: 24, padding: "0 6px", borderWidth: 1, borderStyle: "solid", borderColor: "#4fa3ff", borderRadius: 3, background: "#173a5d", color: "#ffffff", fontSize: 12, fontWeight: 800, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  topStatus: { flex: "0 0 auto", marginLeft: "auto", color: "#8fa3bc", whiteSpace: "nowrap", fontSize: 11 },
+  topStatus: { flex: "0 0 auto", marginLeft: "auto", color: "#8fa3bc", whiteSpace: "nowrap", fontSize: 11, textTransform: "lowercase" },
+  truthStrip: { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6, alignItems: "center", minWidth: 0, padding: "4px 8px", borderBottom: "1px solid #27384b", background: "#0e151f" },
+  truthItem: { minWidth: 0, display: "grid", gap: 1, padding: "2px 6px", border: "1px solid #26384f", borderRadius: 4, background: "#111b26" },
+  truthLabel: { color: "#7f95ad", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 10, fontWeight: 800 },
+  truthValue: { color: "#d8e4f2", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" },
   pageHost: { minWidth: 0, minHeight: 0, overflow: "auto" },
   page: { display: "grid", gridTemplateRows: "auto minmax(0, 1fr) auto", gap: 10, height: "100%", minWidth: 0, minHeight: 0, padding: 10, overflow: "auto", background: "#0b1017", boxSizing: "border-box" },
   reviewPage: { display: "grid", gridTemplateRows: "auto minmax(0, 1fr)", gap: 10, height: "100%", minWidth: 0, minHeight: 0, padding: 10, overflow: "auto", background: "#0b1017", boxSizing: "border-box" },
