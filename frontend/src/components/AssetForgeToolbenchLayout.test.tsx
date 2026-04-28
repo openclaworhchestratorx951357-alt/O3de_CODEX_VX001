@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import AssetForgeToolbenchLayout from "./AssetForgeToolbenchLayout";
 import { assetForgeReviewPacketFixture } from "../fixtures/assetForgeReviewPacketFixture";
+import { assetForgeAnimationTimelineFixture } from "../fixtures/assetForgeAnimationTimelineFixture";
 import type { O3DEBridgeStatus } from "../types/contracts";
 
 function renderToolbench(overrides = {}) {
@@ -51,7 +52,7 @@ describe("AssetForgeToolbenchLayout", () => {
 
     const shell = screen.getByLabelText("Asset Forge Studio Shell");
     const topMenu = within(shell).getByLabelText("Forge top application menu");
-    ["File", "Edit", "Create", "Assets", "Entity", "Components", "Materials", "Lighting", "Camera", "Review", "Help"].forEach((menuName) => {
+    ["File", "Edit", "Create", "Animation", "Assets", "Entity", "Components", "Materials", "Lighting", "Camera", "Review", "Help"].forEach((menuName) => {
       expect(within(topMenu).getByRole("button", { name: menuName })).toBeInTheDocument();
     });
     expect(within(topMenu).getByText("read-only")).toBeInTheDocument();
@@ -194,6 +195,53 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByText("Blocked lighting actions")).toBeInTheDocument();
     expect(within(shell).queryByLabelText("Forge left tool shelf")).not.toBeInTheDocument();
     expect(within(shell).getByRole("button", { name: "Apply lighting to level" })).toBeDisabled();
+  });
+
+  it("supports Animation page with focus mode and tools on the side", () => {
+    renderToolbench();
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    fireEvent.click(within(shell).getByRole("button", { name: "Animation" }));
+
+    expect(within(shell).getByLabelText("Asset Forge Animation page")).toBeInTheDocument();
+    expect(within(shell).getByText("X-sheet / Timeline")).toBeInTheDocument();
+    expect(within(shell).getByText("Frame")).toBeInTheDocument();
+    expect(within(shell).getByText(assetForgeAnimationTimelineFixture.keyframeRows[0].channel)).toBeInTheDocument();
+    expect(
+      within(shell).getByText((content) =>
+        content.includes(assetForgeAnimationTimelineFixture.keyframeRows[0].valueFrom)
+        && content.includes(assetForgeAnimationTimelineFixture.keyframeRows[0].valueTo)
+      )
+    ).toBeInTheDocument();
+    expect(within(shell).getByText("Camera and shot list")).toBeInTheDocument();
+    expect(within(shell).getByRole("button", { name: "Viewport fullscreen" })).toBeInTheDocument();
+    expect(within(shell).getByRole("button", { name: assetForgeAnimationTimelineFixture.disabledWriteActionLabel })).toBeDisabled();
+    expect(within(shell).getByText("Timeline mode")).toBeInTheDocument();
+
+    fireEvent.click(within(shell).getByRole("button", { name: "Viewport fullscreen" }));
+
+    expect(within(shell).getByText("Animation timeline viewport (focus)")).toBeInTheDocument();
+    expect(within(shell).getByRole("button", { name: "Exit fullscreen" })).toBeInTheDocument();
+    expect(within(shell).getByLabelText("Forge left tool shelf")).toBeInTheDocument();
+    expect(within(shell).getByText(/renderer not connected/i)).toBeInTheDocument();
+
+    fireEvent.click(within(shell).getByRole("button", { name: "Exit fullscreen" }));
+    expect(within(shell).getByText("X-sheet / Timeline")).toBeInTheDocument();
+    expect(within(shell).queryByText("Animation timeline viewport (focus)")).not.toBeInTheDocument();
+  });
+
+  it("exits focused preview when changing menu context", () => {
+    renderToolbench();
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    fireEvent.click(within(shell).getByRole("button", { name: "Animation" }));
+    fireEvent.click(within(shell).getByRole("button", { name: "Viewport fullscreen" }));
+
+    expect(within(shell).getByText("Animation timeline viewport (focus)")).toBeInTheDocument();
+    fireEvent.click(within(shell).getByRole("button", { name: "Create" }));
+
+    expect(within(shell).queryByText("Animation timeline viewport (focus)")).not.toBeInTheDocument();
+    expect(within(shell).getByText("Prompt request")).toBeInTheDocument();
   });
 
   it("renders a compact left tool shelf with short labels and hidden gate text pills", () => {

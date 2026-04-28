@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 
 import AssetForgeReviewPacketPanel from "./AssetForgeReviewPacketPanel";
 import { mapAssetForgeToolbenchReviewPacket } from "../lib/assetForgeReviewPacketMapper";
+import { assetForgeAnimationTimelineFixture } from "../fixtures/assetForgeAnimationTimelineFixture";
 import type {
   AssetForgePacketLaneAttempt,
   AssetForgeRecordsLaneAlignment,
@@ -9,6 +10,7 @@ import type {
   AssetForgeReviewPacketOrigin,
   AssetForgeReviewPacketSource,
 } from "../types/assetForgeReviewPacket";
+import type { AssetForgeAnimationTimelineFixture } from "../types/assetForgeAnimationTimeline";
 import type { O3DEBridgeStatus } from "../types/contracts";
 import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 
@@ -35,13 +37,14 @@ type AssetForgeStudioShellProps = {
   bridgeStatus?: O3DEBridgeStatus | null;
 };
 
-const topMenus = ["File", "Edit", "Create", "Assets", "Entity", "Components", "Materials", "Lighting", "Camera", "Review", "Help"] as const;
+const topMenus = ["File", "Edit", "Create", "Animation", "Assets", "Entity", "Components", "Materials", "Lighting", "Camera", "Review", "Help"] as const;
 type TopMenu = (typeof topMenus)[number];
 type AssetCategory = "Source assets" | "Product assets" | "Dependencies" | "Catalog evidence" | "Review packets";
 type CameraMode = "Perspective" | "Camera" | "Shot list";
 type ViewportMode = "normal" | "focus";
 type ViewportTarget = "entity" | "create-candidate" | "lighting" | "camera";
 type PacketViewModel = ReturnType<typeof mapAssetForgeToolbenchReviewPacket>;
+type AnimationPageModel = AssetForgeAnimationTimelineFixture;
 type ToolShelfItem = {
   id: string;
   shortLabel: string;
@@ -117,6 +120,8 @@ const tools: ToolShelfItem[] = [
   { id: "Material", shortLabel: "MAT", gate: "not admitted", detail: "Material mutation is blocked" },
   { id: "Collision", shortLabel: "COL", gate: "not admitted", detail: "Collision authoring is blocked" },
 ];
+
+const animationTimelineFixture = assetForgeAnimationTimelineFixture;
 
 function safeText(value: string | null | undefined): string {
   const trimmed = value?.trim();
@@ -802,30 +807,25 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
     setViewportMode("normal");
     setViewportTarget("entity");
   };
+  const viewportTargetForMenu = (menu: TopMenu): ViewportTarget => {
+    if (menu === "Animation") return "entity";
+    if (menu === "Entity") return "entity";
+    if (menu === "Create") return "create-candidate";
+    if (menu === "Lighting") return "lighting";
+    if (menu === "Camera") return "camera";
+    return "entity";
+  };
   const enterViewportFocus = (target: ViewportTarget) => {
     setViewportTarget(target);
     setViewportMode("focus");
   };
   const exitViewportFocus = () => setViewportMode("normal");
   const handleMenuSwitch = (menu: TopMenu) => {
+    const nextTarget = viewportTargetForMenu(menu);
+
     setActiveTopMenu(menu);
-    if (menu === "Entity") {
-      setViewportTarget("entity");
-      return;
-    }
-    if (menu === "Create") {
-      setViewportTarget("create-candidate");
-      return;
-    }
-    if (menu === "Lighting") {
-      setViewportTarget("lighting");
-      return;
-    }
-    if (menu === "Camera") {
-      setViewportTarget("camera");
-      return;
-    }
     setViewportMode("normal");
+    setViewportTarget(nextTarget);
   };
 
   return (
@@ -880,6 +880,17 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
       <main aria-label="Asset Forge active page" style={s.pageHost}>
         {activeTopMenu === "File" && <FilePage projectProfile={projectProfile} activeTopMenu={activeTopMenu} saveLayout={saveLayout} resetLayout={resetLayout} bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} />}
         {activeTopMenu === "Edit" && <EditPage />}
+        {activeTopMenu === "Animation" && (
+          <AnimationPage
+            activeTool={activeTool}
+            setActiveTool={setActiveTool}
+            viewportMode={viewportMode}
+            isViewportFocused={viewportMode === "focus" && viewportTarget === "entity"}
+            onEnterViewportFocus={() => enterViewportFocus("entity")}
+            onExitViewportFocus={exitViewportFocus}
+            timeline={animationTimelineFixture}
+          />
+        )}
         {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} packetOrigin={resolvedPacketOrigin} assetRows={assetRows} assetProcessorStatusLabel={assetProcessorStatusLabel} freshnessOverview={freshnessOverview} packetProvenance={packetProvenance} resolutionDiagnostics={resolvedPacketResolutionDiagnostics} />}
         {activeTopMenu === "Entity" && (
           <EntityPage
@@ -1219,6 +1230,90 @@ function CameraPage({
           <button type="button" disabled style={s.disabledWideButton}>Write camera to O3DE scene</button>
         </Panel>
       </div>
+  )}
+  <BlockedSummary />
+  </Page>;
+}
+
+function AnimationPage({
+  activeTool,
+  setActiveTool,
+  viewportMode,
+  isViewportFocused,
+  onEnterViewportFocus,
+  onExitViewportFocus,
+  timeline,
+}: {
+  activeTool: string;
+  setActiveTool: (tool: string) => void;
+  viewportMode: ViewportMode;
+  isViewportFocused: boolean;
+  onEnterViewportFocus: () => void;
+  onExitViewportFocus: () => void;
+  timeline: AnimationPageModel;
+}) {
+  const isFocusMode = viewportMode === "focus" && isViewportFocused;
+  const timelineRows = timeline.keyframeRows ?? [];
+  const shotList = timeline.cameraShots?.length ? timeline.cameraShots : ["Shot A: Review timeline setup"];
+  const panelNotes: [string, string][] = timeline.notes?.length
+    ? timeline.notes
+    : [["Timeline mode", "Preview only"], ["Writeback", "Blocked"]];
+
+  return <Page title="Animation" gate="local preview" detail="X-sheet timeline and keyframe strip for review-only animation planning. No scene mutation or execution.">
+    {isFocusMode ? (
+      <>
+        <section style={s.entityToolbar}>
+          <span>Viewport mode: <strong>Full viewport</strong> (animation focus)</span>
+          <button type="button" onClick={onExitViewportFocus} style={s.activeSmallButton}>Exit fullscreen</button>
+        </section>
+        <div style={s.entityFocusGrid}>
+          <ToolShelf activeTool={activeTool} setActiveTool={setActiveTool} />
+          <Panel title="Animation timeline viewport (focus)" gate="local preview">
+            <ViewportPreview label="Animation keyframe preview" />
+          </Panel>
+        </div>
+      </>
+    ) : (
+      <div style={s.animationGrid}>
+        <Panel title="X-sheet / Timeline" gate="read-only">
+          <div style={s.xsheet}>
+            <div style={s.xsheetHeader}>
+              <span>Frame</span>
+              <span>Channel</span>
+              <span>Value</span>
+              <span>Blend</span>
+            </div>
+            {timelineRows.map((row) => (
+              <div key={`${row.channel}-${row.frame}`} style={s.xsheetRow}>
+                <span>{String(row.frame).padStart(4, "0")}</span>
+                <span>{row.channel}</span>
+                <span>{`${row.valueFrom} -> ${row.valueTo}`}</span>
+                <span>{row.blendMode}</span>
+              </div>
+            ))}
+          </div>
+          <div style={s.buttonRow}>
+            <button type="button" style={s.smallButton}>Prev frame</button>
+            <button type="button" style={s.smallButton}>Next frame</button>
+            <button type="button" style={s.smallButton}>{timeline.mutedActionsBlocked?.[0] ?? "Insert keyframe"}</button>
+            <button type="button" style={s.smallButton}>{timeline.mutedActionsBlocked?.[1] ?? "Delete keyframe"}</button>
+          </div>
+        </Panel>
+        <Panel title="Camera and shot list" gate="plan-only">
+          <List items={shotList} />
+          <div style={s.buttonRow}>
+            <button type="button" onClick={onEnterViewportFocus} style={s.smallButton}>Viewport fullscreen</button>
+          </div>
+        </Panel>
+        <Panel title="Timeline notes" gate="proof-only">
+          <Rows rows={panelNotes} />
+        </Panel>
+        <Panel title="Animation controls" gate="local preview">
+          <button type="button" disabled style={s.disabledWideButton}>
+            {timeline.disabledWriteActionLabel || "Write animation to O3DE scene"}
+          </button>
+        </Panel>
+      </div>
     )}
     <BlockedSummary />
   </Page>;
@@ -1436,6 +1531,7 @@ const s = {
   twoCols: { display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)", gap: 10, minWidth: 0, minHeight: 0 },
   threeCols: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, minWidth: 0, minHeight: 0 },
   createGrid: { display: "grid", gridTemplateColumns: "minmax(0, 0.8fr) minmax(0, 0.7fr) minmax(0, 1.4fr) minmax(0, 0.8fr)", gap: 10, minWidth: 0, minHeight: 0 },
+  animationGrid: { display: "grid", gridTemplateColumns: "minmax(0, 1.15fr) minmax(0, 0.95fr) minmax(0, 0.95fr) minmax(0, 0.95fr)", gap: 10, minWidth: 0, minHeight: 0 },
   assetsGrid: { display: "grid", gridTemplateColumns: "160px minmax(0, 1fr) minmax(0, 0.45fr)", gap: 10, minWidth: 0, minHeight: 0 },
   editorGrid: { display: "grid", gridTemplateColumns: "68px minmax(0, 0.8fr) minmax(0, 1.3fr) minmax(0, 0.9fr)", gap: 10, minWidth: 0, minHeight: 0 },
   entityEditorGrid: { display: "grid", gridTemplateColumns: "68px minmax(0, 0.8fr) minmax(0, 1.3fr) minmax(0, 0.9fr)", gap: 10, minWidth: 0, minHeight: 0 },
@@ -1474,6 +1570,9 @@ const s = {
   list: { margin: 0, padding: "0 0 0 18px", color: "#b8c6d7" },
   tree: { display: "grid", gap: 6 },
   summary: { cursor: "pointer", color: "#f2f7ff", fontWeight: 900 },
+  xsheet: { display: "grid", gap: 6, minWidth: 0, overflow: "auto", paddingBottom: 4 },
+  xsheetHeader: { display: "grid", gridTemplateColumns: "72px 1.2fr 1fr 0.9fr", gap: 8, padding: "6px 8px", borderBottom: "1px solid #2b3e55", color: "#7f95ad", fontWeight: 900, fontSize: 11, textTransform: "uppercase" },
+  xsheetRow: { display: "grid", gridTemplateColumns: "72px 1.2fr 1fr 0.9fr", gap: 8, padding: "5px 8px", border: "1px solid #26384f", borderRadius: 4, background: "#101a27", color: "#d0deeb", fontSize: 12 },
   toolShelf: { display: "grid", alignContent: "start", gap: 4, width: 68, minWidth: 68, maxWidth: 68, minHeight: 0, overflow: "hidden", border: "1px solid #2b3e55", borderRadius: 5, padding: 5, background: "#111923" },
   toolButton: { display: "grid", justifyItems: "center", alignContent: "center", gap: 4, minHeight: 38, border: "1px solid #2f4054", borderRadius: 4, background: "#17212d", color: "#d6e2ee", fontSize: 10, fontWeight: 900, cursor: "pointer", padding: "4px 0", overflow: "hidden" },
   activeToolButton: { display: "grid", justifyItems: "center", alignContent: "center", gap: 4, minHeight: 38, border: "1px solid #5aa9ff", borderRadius: 4, background: "#183f63", color: "#d6e2ee", fontSize: 10, fontWeight: 900, cursor: "pointer", padding: "4px 0", overflow: "hidden" },
