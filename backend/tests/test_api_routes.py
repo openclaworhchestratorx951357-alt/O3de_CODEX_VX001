@@ -623,8 +623,15 @@ def test_asset_forge_o3de_stage_write_stays_blocked_even_when_client_claims_appr
                 assert payload["post_write_readback"]["manifest_exists"] is False
                 assert payload["source_sha256"] is not None
                 assert payload["source"] == "asset-forge-o3de-stage-write"
+                assert payload["server_approval_evaluation"]["decision_state"] == "denied"
+                assert payload["server_approval_evaluation"]["decision_code"] == "missing_session"
+                assert payload["server_approval_evaluation"]["policy_decision"] == "deny"
+                assert (
+                    payload["server_approval_evaluation"]["policy_would_allow_if_mutation_admitted"]
+                    is False
+                )
                 assert any(
-                    "disabled in this draft checkpoint until server-owned approval enforcement is implemented"
+                    "mutation admission is not enabled"
                     in warning
                     for warning in payload["warnings"]
                 )
@@ -688,7 +695,358 @@ def test_asset_forge_o3de_stage_write_stays_blocked_with_server_owned_session() 
                 assert payload["project_write_admitted"] is False
                 assert payload["server_approval_session_id"] == session_id
                 assert payload["server_approval_evaluation"]["status"] == "pending"
+                assert payload["server_approval_evaluation"]["decision_state"] == "pending"
+                assert payload["server_approval_evaluation"]["decision_code"] == "session_pending"
+                assert payload["server_approval_evaluation"]["policy_decision"] == "pending"
+                assert payload["server_approval_evaluation"]["operation_matches"] is True
                 assert payload["server_approval_evaluation"]["binding_matches"] is True
+                assert payload["server_approval_evaluation"]["authorization_granted"] is False
+                assert not (project_root / stage_relative).exists()
+                assert not (project_root / manifest_relative).exists()
+
+
+def test_asset_forge_o3de_stage_write_denies_revoked_server_session() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir, TemporaryDirectory(
+        ignore_cleanup_errors=True
+    ) as project_dir:
+        runtime_root = Path(runtime_dir)
+        project_root = Path(project_dir)
+        source_dir = runtime_root / "prepared_exports"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        source_path = source_dir / "candidate_a.glb"
+        source_path.write_bytes(b"stage-source-bytes")
+
+        stage_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        manifest_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json"
+
+        with patch.dict(
+            "os.environ",
+            {
+                "ASSET_FORGE_RUNTIME_ROOT": str(runtime_root),
+                "O3DE_TARGET_PROJECT_ROOT": str(project_root),
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                session_response = client.post(
+                    "/asset-forge/approval-sessions/prepare",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "requested_capability": "asset_forge.o3de.stage.write",
+                        "stage_relative_path": stage_relative,
+                    },
+                )
+                assert session_response.status_code == 200
+                session_id = session_response.json()["session_id"]
+                revoke_response = client.post(
+                    f"/asset-forge/approval-sessions/{session_id}/revoke",
+                    json={"revoked_by": "operator-qa", "revoke_reason": "closed"},
+                )
+                assert revoke_response.status_code == 200
+
+                response = client.post(
+                    "/asset-forge/o3de/stage-write",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_artifact_path": "prepared_exports/candidate_a.glb",
+                        "stage_relative_path": stage_relative,
+                        "manifest_relative_path": manifest_relative,
+                        "approval_state": "approved",
+                        "approval_note": "client claims approval",
+                        "approval_session_id": session_id,
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["write_status"] == "blocked"
+                assert payload["write_executed"] is False
+                assert payload["project_write_admitted"] is False
+                assert payload["server_approval_evaluation"]["status"] == "revoked"
+                assert payload["server_approval_evaluation"]["decision_state"] == "denied"
+                assert payload["server_approval_evaluation"]["decision_code"] == "session_revoked"
+                assert payload["server_approval_evaluation"]["policy_decision"] == "deny"
+                assert payload["server_approval_evaluation"]["authorization_granted"] is False
+                assert not (project_root / stage_relative).exists()
+                assert not (project_root / manifest_relative).exists()
+
+
+def test_asset_forge_o3de_stage_write_denies_expired_server_session() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir, TemporaryDirectory(
+        ignore_cleanup_errors=True
+    ) as project_dir:
+        runtime_root = Path(runtime_dir)
+        project_root = Path(project_dir)
+        source_dir = runtime_root / "prepared_exports"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        source_path = source_dir / "candidate_a.glb"
+        source_path.write_bytes(b"stage-source-bytes")
+
+        stage_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        manifest_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json"
+
+        with patch.dict(
+            "os.environ",
+            {
+                "ASSET_FORGE_RUNTIME_ROOT": str(runtime_root),
+                "O3DE_TARGET_PROJECT_ROOT": str(project_root),
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                session_response = client.post(
+                    "/asset-forge/approval-sessions/prepare",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "requested_capability": "asset_forge.o3de.stage.write",
+                        "stage_relative_path": stage_relative,
+                    },
+                )
+                assert session_response.status_code == 200
+                session_id = session_response.json()["session_id"]
+                original = asset_forge_service._server_approval_sessions[session_id]
+                asset_forge_service._server_approval_sessions[session_id] = original.model_copy(
+                    update={
+                        "session_status": "pending",
+                        "expires_at": "2020-01-01T00:00:00+00:00",
+                    }
+                )
+
+                response = client.post(
+                    "/asset-forge/o3de/stage-write",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_artifact_path": "prepared_exports/candidate_a.glb",
+                        "stage_relative_path": stage_relative,
+                        "manifest_relative_path": manifest_relative,
+                        "approval_state": "approved",
+                        "approval_note": "client claims approval",
+                        "approval_session_id": session_id,
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["write_status"] == "blocked"
+                assert payload["write_executed"] is False
+                assert payload["project_write_admitted"] is False
+                assert payload["server_approval_evaluation"]["status"] == "expired"
+                assert payload["server_approval_evaluation"]["decision_state"] == "denied"
+                assert payload["server_approval_evaluation"]["decision_code"] == "session_expired"
+                assert payload["server_approval_evaluation"]["policy_decision"] == "deny"
+                assert payload["server_approval_evaluation"]["authorization_granted"] is False
+                assert not (project_root / stage_relative).exists()
+                assert not (project_root / manifest_relative).exists()
+
+
+def test_asset_forge_o3de_stage_write_denies_wrong_operation_session_scope() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir, TemporaryDirectory(
+        ignore_cleanup_errors=True
+    ) as project_dir:
+        runtime_root = Path(runtime_dir)
+        project_root = Path(project_dir)
+        source_dir = runtime_root / "prepared_exports"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        source_path = source_dir / "candidate_a.glb"
+        source_path.write_bytes(b"stage-source-bytes")
+
+        stage_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        manifest_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json"
+
+        with patch.dict(
+            "os.environ",
+            {
+                "ASSET_FORGE_RUNTIME_ROOT": str(runtime_root),
+                "O3DE_TARGET_PROJECT_ROOT": str(project_root),
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                session_response = client.post(
+                    "/asset-forge/approval-sessions/prepare",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "requested_capability": "asset_forge.o3de.placement.live_proof",
+                        "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                        "target_entity_name": "AssetForgeCandidateA",
+                        "selected_platform": "pc",
+                    },
+                )
+                assert session_response.status_code == 200
+                session_id = session_response.json()["session_id"]
+
+                response = client.post(
+                    "/asset-forge/o3de/stage-write",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_artifact_path": "prepared_exports/candidate_a.glb",
+                        "stage_relative_path": stage_relative,
+                        "manifest_relative_path": manifest_relative,
+                        "approval_state": "approved",
+                        "approval_note": "client claims approval",
+                        "approval_session_id": session_id,
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["write_status"] == "blocked"
+                assert payload["write_executed"] is False
+                assert payload["project_write_admitted"] is False
+                assert payload["server_approval_evaluation"]["decision_state"] == "denied"
+                assert (
+                    payload["server_approval_evaluation"]["decision_code"]
+                    == "requested_operation_mismatch"
+                )
+                assert payload["server_approval_evaluation"]["operation_matches"] is False
+                assert payload["server_approval_evaluation"]["authorization_granted"] is False
+                assert not (project_root / stage_relative).exists()
+                assert not (project_root / manifest_relative).exists()
+
+
+def test_asset_forge_o3de_stage_write_denies_fingerprint_mismatch() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir, TemporaryDirectory(
+        ignore_cleanup_errors=True
+    ) as project_dir:
+        runtime_root = Path(runtime_dir)
+        project_root = Path(project_dir)
+        source_dir = runtime_root / "prepared_exports"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        source_path = source_dir / "candidate_a.glb"
+        source_path.write_bytes(b"stage-source-bytes")
+
+        stage_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        mismatched_stage_relative = "Assets/Generated/asset_forge/candidate_b/candidate_b.glb"
+        manifest_relative = "Assets/Generated/asset_forge/candidate_b/candidate_b.forge.json"
+
+        with patch.dict(
+            "os.environ",
+            {
+                "ASSET_FORGE_RUNTIME_ROOT": str(runtime_root),
+                "O3DE_TARGET_PROJECT_ROOT": str(project_root),
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                session_response = client.post(
+                    "/asset-forge/approval-sessions/prepare",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "requested_capability": "asset_forge.o3de.stage.write",
+                        "stage_relative_path": stage_relative,
+                    },
+                )
+                assert session_response.status_code == 200
+                session_id = session_response.json()["session_id"]
+
+                response = client.post(
+                    "/asset-forge/o3de/stage-write",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_artifact_path": "prepared_exports/candidate_a.glb",
+                        "stage_relative_path": mismatched_stage_relative,
+                        "manifest_relative_path": manifest_relative,
+                        "approval_state": "approved",
+                        "approval_note": "client claims approval",
+                        "approval_session_id": session_id,
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["write_status"] == "blocked"
+                assert payload["write_executed"] is False
+                assert payload["project_write_admitted"] is False
+                assert payload["server_approval_evaluation"]["decision_state"] == "denied"
+                assert (
+                    payload["server_approval_evaluation"]["decision_code"]
+                    == "request_fingerprint_mismatch"
+                )
+                assert payload["server_approval_evaluation"]["operation_matches"] is True
+                assert payload["server_approval_evaluation"]["binding_matches"] is False
+                assert payload["server_approval_evaluation"]["authorization_granted"] is False
+                assert not (project_root / mismatched_stage_relative).exists()
+                assert not (project_root / manifest_relative).exists()
+
+
+def test_asset_forge_o3de_stage_write_reports_ready_but_not_admitted_for_approved_session() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir, TemporaryDirectory(
+        ignore_cleanup_errors=True
+    ) as project_dir:
+        runtime_root = Path(runtime_dir)
+        project_root = Path(project_dir)
+        source_dir = runtime_root / "prepared_exports"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        source_path = source_dir / "candidate_a.glb"
+        source_path.write_bytes(b"stage-source-bytes")
+
+        stage_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        manifest_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json"
+
+        with patch.dict(
+            "os.environ",
+            {
+                "ASSET_FORGE_RUNTIME_ROOT": str(runtime_root),
+                "O3DE_TARGET_PROJECT_ROOT": str(project_root),
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                session_response = client.post(
+                    "/asset-forge/approval-sessions/prepare",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "requested_capability": "asset_forge.o3de.stage.write",
+                        "stage_relative_path": stage_relative,
+                    },
+                )
+                assert session_response.status_code == 200
+                session_id = session_response.json()["session_id"]
+                original = asset_forge_service._server_approval_sessions[session_id]
+                asset_forge_service._server_approval_sessions[session_id] = original.model_copy(
+                    update={
+                        "session_status": "approved",
+                        "decided_at": "2026-04-28T00:00:00+00:00",
+                    }
+                )
+
+                response = client.post(
+                    "/asset-forge/o3de/stage-write",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_artifact_path": "prepared_exports/candidate_a.glb",
+                        "stage_relative_path": stage_relative,
+                        "manifest_relative_path": manifest_relative,
+                        "approval_state": "approved",
+                        "approval_note": "client claims approval",
+                        "approval_session_id": session_id,
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["write_status"] == "blocked"
+                assert payload["write_executed"] is False
+                assert payload["project_write_admitted"] is False
+                assert payload["server_approval_evaluation"]["status"] == "approved"
+                assert payload["server_approval_evaluation"]["decision_state"] == "ready_but_not_admitted"
+                assert (
+                    payload["server_approval_evaluation"]["decision_code"]
+                    == "ready_but_mutation_not_admitted"
+                )
+                assert (
+                    payload["server_approval_evaluation"]["policy_decision"]
+                    == "allow_if_mutation_admitted"
+                )
+                assert (
+                    payload["server_approval_evaluation"]["policy_would_allow_if_mutation_admitted"]
+                    is True
+                )
                 assert payload["server_approval_evaluation"]["authorization_granted"] is False
                 assert not (project_root / stage_relative).exists()
                 assert not (project_root / manifest_relative).exists()
@@ -1103,7 +1461,7 @@ def test_asset_forge_o3de_placement_live_proof_requires_approval() -> None:
         assert payload["execution_performed"] is False
         assert payload["readback_captured"] is False
         assert any(
-            "disabled in this draft checkpoint until server-owned approval enforcement is implemented"
+            "mutation admission is not enabled"
             in warning
             for warning in payload["warnings"]
         )
@@ -1148,7 +1506,7 @@ def test_asset_forge_o3de_placement_live_proof_stays_blocked_even_when_client_cl
                     assert payload["bridge_heartbeat_fresh"] is False
                     assert payload["runtime_gate_enabled"] is False
                     assert any(
-                        "disabled in this draft checkpoint until server-owned approval enforcement is implemented"
+                        "mutation admission is not enabled"
                         in warning
                         for warning in payload["warnings"]
                     )
@@ -1190,7 +1548,59 @@ def test_asset_forge_o3de_placement_live_proof_stays_blocked_with_server_owned_s
         assert payload["readback_captured"] is False
         assert payload["server_approval_session_id"] == session_id
         assert payload["server_approval_evaluation"]["status"] == "pending"
+        assert payload["server_approval_evaluation"]["decision_state"] == "pending"
+        assert payload["server_approval_evaluation"]["decision_code"] == "session_pending"
+        assert payload["server_approval_evaluation"]["policy_decision"] == "pending"
         assert payload["server_approval_evaluation"]["binding_matches"] is True
+        assert payload["server_approval_evaluation"]["authorization_granted"] is False
+
+
+def test_asset_forge_o3de_placement_live_proof_reports_ready_but_not_admitted_for_approved_session() -> None:
+    with isolated_client() as client:
+        session_response = client.post(
+            "/asset-forge/approval-sessions/prepare",
+            json={
+                "candidate_id": "candidate-a",
+                "candidate_label": "Weathered Ivy Arch",
+                "requested_capability": "asset_forge.o3de.placement.live_proof",
+                "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                "target_entity_name": "AssetForgeCandidateA",
+                "selected_platform": "pc",
+            },
+        )
+        assert session_response.status_code == 200
+        session_id = session_response.json()["session_id"]
+        original = asset_forge_service._server_approval_sessions[session_id]
+        asset_forge_service._server_approval_sessions[session_id] = original.model_copy(
+            update={
+                "session_status": "approved",
+                "decided_at": "2026-04-28T00:00:00+00:00",
+            }
+        )
+
+        response = client.post(
+            "/asset-forge/o3de/placement-harness/live-proof",
+            json={
+                "candidate_id": "candidate-a",
+                "candidate_label": "Weathered Ivy Arch",
+                "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                "target_entity_name": "AssetForgeCandidateA",
+                "approval_state": "approved",
+                "approval_note": "client claims approval",
+                "approval_session_id": session_id,
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["proof_status"] == "blocked"
+        assert payload["execution_performed"] is False
+        assert payload["readback_captured"] is False
+        assert payload["server_approval_session_id"] == session_id
+        assert payload["server_approval_evaluation"]["status"] == "approved"
+        assert payload["server_approval_evaluation"]["decision_state"] == "ready_but_not_admitted"
+        assert payload["server_approval_evaluation"]["decision_code"] == "ready_but_mutation_not_admitted"
+        assert payload["server_approval_evaluation"]["policy_decision"] == "allow_if_mutation_admitted"
+        assert payload["server_approval_evaluation"]["policy_would_allow_if_mutation_admitted"] is True
         assert payload["server_approval_evaluation"]["authorization_granted"] is False
 
 

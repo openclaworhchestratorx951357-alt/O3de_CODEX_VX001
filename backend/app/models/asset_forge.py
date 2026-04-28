@@ -91,6 +91,39 @@ class AssetForgeServerApprovalSessionIndexRecord(BaseModel):
     source: str = Field(..., min_length=1)
 
 
+class AssetForgeServerApprovalDecisionRecord(BaseModel):
+    decision_state: Literal["denied", "pending", "ready_but_not_admitted"]
+    decision_code: Literal[
+        "missing_session",
+        "session_not_found",
+        "requested_operation_mismatch",
+        "request_fingerprint_mismatch",
+        "session_expired",
+        "session_revoked",
+        "session_rejected",
+        "session_pending",
+        "ready_but_mutation_not_admitted",
+    ]
+    reason: str = Field(..., min_length=1)
+    server_owned_required: bool
+    client_approval_is_intent_only: bool
+    mutation_execution_admitted: bool
+    authorization_granted: bool
+    policy_decision: Literal["deny", "pending", "allow_if_mutation_admitted"]
+    policy_would_allow_if_mutation_admitted: bool
+    expected_capability: str = Field(..., min_length=1)
+    session_provided: bool
+    session_id: str | None = None
+    status: Literal["missing", "not_found", "pending", "approved", "rejected", "revoked", "expired"]
+    operation_matches: bool
+    binding_matches: bool
+    requested_capability: str | None = None
+    expected_request_fingerprint: str = Field(..., min_length=1)
+    session_request_fingerprint: str | None = None
+    session_expires_at: str | None = None
+    safest_next_step: str = Field(..., min_length=1)
+
+
 class AssetForgeProviderRegistryEntry(BaseModel):
     provider_id: str = Field(..., min_length=1)
     display_name: str = Field(..., min_length=1)
@@ -213,7 +246,7 @@ class AssetForgeO3DEStageWriteRecord(BaseModel):
     approval_required: bool
     approval_state: Literal["not-approved", "approved"]
     server_approval_session_id: str | None = None
-    server_approval_evaluation: dict[str, object] = Field(default_factory=dict)
+    server_approval_evaluation: AssetForgeServerApprovalDecisionRecord
     write_executed: bool
     project_write_admitted: bool
     bytes_copied: int | None = None
@@ -329,7 +362,7 @@ class AssetForgeO3DEPlacementProofRecord(BaseModel):
     approval_required: bool
     approval_state: Literal["not-approved", "approved"]
     server_approval_session_id: str | None = None
-    server_approval_evaluation: dict[str, object] = Field(default_factory=dict)
+    server_approval_evaluation: AssetForgeServerApprovalDecisionRecord
     placement_proof_policy: dict[str, object] = Field(default_factory=dict)
     placement_execution_status: Literal["blocked"]
     proof_runtime_gate_enabled: bool
@@ -435,7 +468,7 @@ class AssetForgeO3DEPlacementHarnessExecuteRecord(BaseModel):
     runtime_gate_enabled: bool
     approval_state: Literal["not-approved", "approved"]
     server_approval_session_id: str | None = None
-    server_approval_evaluation: dict[str, object] = Field(default_factory=dict)
+    server_approval_evaluation: AssetForgeServerApprovalDecisionRecord
     bridge_command_id: str | None = None
     execution_performed: bool
     readback_captured: bool
@@ -469,7 +502,7 @@ class AssetForgeO3DEPlacementLiveProofRecord(BaseModel):
     bridge_heartbeat_fresh: bool
     runtime_gate_enabled: bool
     server_approval_session_id: str | None = None
-    server_approval_evaluation: dict[str, object] = Field(default_factory=dict)
+    server_approval_evaluation: AssetForgeServerApprovalDecisionRecord
     execution_performed: bool
     readback_captured: bool
     entity_exists: bool | None = None
