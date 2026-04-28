@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import AssetForgeStudioShell from "./AssetForgeStudioShell";
 import { assetForgeReviewPacketFixture } from "../fixtures/assetForgeReviewPacketFixture";
 import type {
+  AssetForgeRecordsLaneAlignment,
   AssetForgePacketResolutionDiagnostics,
   AssetForgeReviewPacketOrigin,
   AssetForgeReviewPacketSource,
@@ -20,6 +21,7 @@ type AIAssetForgePanelProps = {
   reviewPacketSource?: AssetForgeReviewPacketSource;
   reviewPacketOrigin?: AssetForgeReviewPacketOrigin;
   reviewPacketResolutionDiagnostics?: AssetForgePacketResolutionDiagnostics;
+  recordsLaneAlignment?: AssetForgeRecordsLaneAlignment;
   bridgeStatus?: O3DEBridgeStatus | null;
 };
 
@@ -66,6 +68,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
         reviewPacketSource={resolvedReviewPacketSource}
         reviewPacketOrigin={resolvedReviewPacketOrigin}
         reviewPacketResolutionDiagnostics={props.reviewPacketResolutionDiagnostics}
+        recordsLaneAlignment={props.recordsLaneAlignment}
         bridgeStatus={props.bridgeStatus}
       />
     </section>

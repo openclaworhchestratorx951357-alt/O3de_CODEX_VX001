@@ -40,6 +40,15 @@ export interface AssetForgePacketResolutionDiagnostics {
   attempts: AssetForgePacketLaneAttempt[];
 }
 
+export interface AssetForgeRecordsLaneAlignment {
+  packetResolvedLane: AssetForgePacketLane | null;
+  packetResolvedLaneLabel: string;
+  activeRecordsSurface: "runs" | "executions" | "artifacts" | "events" | "unknown";
+  activeRecordsSurfaceLabel: string;
+  driftDetected: boolean;
+  guidance: string;
+}
+
 export interface Phase9AssetReadbackReviewPacketSelectedProject {
   project_root?: string | null;
   project_json_path?: string | null;

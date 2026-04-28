@@ -4,6 +4,7 @@ import AssetForgeReviewPacketPanel from "./AssetForgeReviewPacketPanel";
 import { mapAssetForgeToolbenchReviewPacket } from "../lib/assetForgeReviewPacketMapper";
 import type {
   AssetForgePacketLaneAttempt,
+  AssetForgeRecordsLaneAlignment,
   AssetForgePacketResolutionDiagnostics,
   AssetForgeReviewPacketOrigin,
   AssetForgeReviewPacketSource,
@@ -30,6 +31,7 @@ type AssetForgeStudioShellProps = {
   reviewPacketSource: AssetForgeReviewPacketSource;
   reviewPacketOrigin?: AssetForgeReviewPacketOrigin;
   reviewPacketResolutionDiagnostics?: AssetForgePacketResolutionDiagnostics;
+  recordsLaneAlignment?: AssetForgeRecordsLaneAlignment;
   bridgeStatus?: O3DEBridgeStatus | null;
 };
 
@@ -697,7 +699,7 @@ function FreshnessBadge({ label, signal }: { label: string; signal: FreshnessSig
   );
 }
 
-export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStudio, onOpenRuntimeOverview, onOpenBuilder, onOpenReviewPacketOriginRecord, reviewPacketData, reviewPacketSource, reviewPacketOrigin, reviewPacketResolutionDiagnostics, bridgeStatus }: AssetForgeStudioShellProps) {
+export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStudio, onOpenRuntimeOverview, onOpenBuilder, onOpenReviewPacketOriginRecord, reviewPacketData, reviewPacketSource, reviewPacketOrigin, reviewPacketResolutionDiagnostics, recordsLaneAlignment, bridgeStatus }: AssetForgeStudioShellProps) {
   const [activeTopMenu, setActiveTopMenu] = useState<TopMenu>(() => readSavedMenu() ?? "Create");
   const [activeAssetCategory, setActiveAssetCategory] = useState<AssetCategory>("Source assets");
   const [activeTool, setActiveTool] = useState("Select");
@@ -786,7 +788,7 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
         {activeTopMenu === "Materials" && <MaterialsPage packet={packet} />}
         {activeTopMenu === "Lighting" && <LightingPage />}
         {activeTopMenu === "Camera" && <CameraPage cameraMode={cameraMode} setCameraMode={setCameraMode} />}
-        {activeTopMenu === "Review" && <ReviewPage reviewPacketData={reviewPacketData} reviewPacketSource={reviewPacketSource} packet={packet} reviewPacketOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} freshnessOverview={freshnessOverview} resolutionDiagnostics={resolvedPacketResolutionDiagnostics} />}
+        {activeTopMenu === "Review" && <ReviewPage reviewPacketData={reviewPacketData} reviewPacketSource={reviewPacketSource} packet={packet} reviewPacketOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} freshnessOverview={freshnessOverview} resolutionDiagnostics={resolvedPacketResolutionDiagnostics} recordsLaneAlignment={recordsLaneAlignment} />}
         {activeTopMenu === "Help" && <HelpPage bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} />}
       </main>
     </section>
@@ -934,11 +936,25 @@ function CameraPage({ cameraMode, setCameraMode }: { cameraMode: CameraMode; set
   return <Page title="Camera" gate="local preview" detail="Camera list, camera/perspective preview, and cinematic shot list. No O3DE camera mutation."><div style={s.cameraGrid}><Panel title="Camera list" gate="read-only"><List items={["EditorCamera_Main", "PreviewCamera_Cinematic", "AssetReviewCamera_01"]} /><div style={s.buttonRow}>{modes.map((mode) => <button key={mode} type="button" onClick={() => setCameraMode(mode)} style={cameraMode === mode ? s.activeSmallButton : s.smallButton}>{mode}</button>)}</div></Panel><Panel title="Camera / perspective preview" gate="local preview"><ViewportPreview label={cameraMode + " preview"} /></Panel><Panel title="Cinematic shot list" gate="plan-only"><List items={["Shot 010: Establish bridge silhouette", "Shot 020: Orbit candidate detail", "Shot 030: Evidence capture still", "Camera mutation blocked"]} /><button type="button" disabled style={s.disabledWideButton}>Write camera to O3DE scene</button></Panel></div></Page>;
 }
 
-function ReviewPage({ reviewPacketData, reviewPacketSource, packet, reviewPacketOrigin, onOpenReviewPacketOriginRecord, freshnessOverview, resolutionDiagnostics }: Pick<AssetForgeStudioShellProps, "reviewPacketData" | "reviewPacketSource" | "reviewPacketOrigin" | "onOpenReviewPacketOriginRecord"> & { packet: PacketViewModel; freshnessOverview: FreshnessOverview; resolutionDiagnostics: AssetForgePacketResolutionDiagnostics }) {
+function ReviewPage({
+  reviewPacketData,
+  reviewPacketSource,
+  packet,
+  reviewPacketOrigin,
+  onOpenReviewPacketOriginRecord,
+  freshnessOverview,
+  resolutionDiagnostics,
+  recordsLaneAlignment,
+}: Pick<AssetForgeStudioShellProps, "reviewPacketData" | "reviewPacketSource" | "reviewPacketOrigin" | "onOpenReviewPacketOriginRecord" | "recordsLaneAlignment"> & {
+  packet: PacketViewModel;
+  freshnessOverview: FreshnessOverview;
+  resolutionDiagnostics: AssetForgePacketResolutionDiagnostics;
+}) {
   const packetOrigin = reviewPacketOrigin ?? buildDefaultPacketOrigin(reviewPacketSource);
   const originRecordAction = buildOriginRecordAction(packetOrigin, onOpenReviewPacketOriginRecord);
   const showLivePacketUnresolvedBanner =
     reviewPacketSource === "live_phase9_packet_data" && !packet.hasResolvedPacket;
+  const showLaneDriftNotice = recordsLaneAlignment?.driftDetected === true;
 
   return (
     <Page
@@ -958,6 +974,16 @@ function ReviewPage({ reviewPacketData, reviewPacketSource, packet, reviewPacket
           <p style={s.liveUnresolvedDetail}>
             Resolution state: <strong>{packet.packetResolutionLabel}</strong>
           </p>
+        </section>
+      )}
+      {showLaneDriftNotice && (
+        <section aria-label="Records lane drift notice" style={s.recordsLaneDriftNotice}>
+          <strong style={s.recordsLaneDriftHeading}>Records lane drift detected</strong>
+          <Rows rows={[
+            ["Packet resolved lane", recordsLaneAlignment.packetResolvedLaneLabel],
+            ["Active Records lane", recordsLaneAlignment.activeRecordsSurfaceLabel],
+          ]} />
+          <p style={s.recordsLaneDriftDetail}>{recordsLaneAlignment.guidance}</p>
         </section>
       )}
       <div style={s.reviewGrid}>
@@ -1127,6 +1153,9 @@ const s = {
   liveUnresolvedNotice: { display: "grid", gap: 6, border: "1px solid #916428", borderRadius: 5, padding: "10px 12px", background: "rgba(101, 64, 18, 0.32)", color: "#ffe4ae" },
   liveUnresolvedHeading: { color: "#ffe4ae", fontSize: 15, lineHeight: 1.2 },
   liveUnresolvedDetail: { margin: 0, color: "#ffd89a", fontSize: 13, lineHeight: 1.35 },
+  recordsLaneDriftNotice: { display: "grid", gap: 8, border: "1px solid #8f5a6d", borderRadius: 5, padding: "10px 12px", background: "rgba(90, 34, 50, 0.3)", color: "#ffc7d4" },
+  recordsLaneDriftHeading: { color: "#ffc7d4", fontSize: 15, lineHeight: 1.2 },
+  recordsLaneDriftDetail: { margin: 0, color: "#f8b8c8", fontSize: 13, lineHeight: 1.35 },
   freshnessStrip: { display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 8 },
   freshnessBadge: { display: "inline-flex", alignItems: "center", gap: 6, borderWidth: 1, borderStyle: "solid", borderRadius: 3, padding: "2px 7px", fontSize: 11, fontWeight: 800, textTransform: "lowercase" },
   freshnessBadgeLabel: { textTransform: "none", color: "#eef5ff" },

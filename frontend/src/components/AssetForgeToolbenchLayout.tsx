@@ -1,5 +1,6 @@
 import AssetForgeStudioShell from "./AssetForgeStudioShell";
 import type {
+  AssetForgeRecordsLaneAlignment,
   AssetForgePacketResolutionDiagnostics,
   AssetForgeReviewPacketOrigin,
   AssetForgeReviewPacketSource,
@@ -17,6 +18,7 @@ type AssetForgeToolbenchLayoutProps = {
   reviewPacketSource: AssetForgeReviewPacketSource;
   reviewPacketOrigin?: AssetForgeReviewPacketOrigin;
   reviewPacketResolutionDiagnostics?: AssetForgePacketResolutionDiagnostics;
+  recordsLaneAlignment?: AssetForgeRecordsLaneAlignment;
   bridgeStatus?: O3DEBridgeStatus | null;
 };
 

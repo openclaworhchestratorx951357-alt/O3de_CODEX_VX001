@@ -324,6 +324,54 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByText("Selected run execution details: payload missing; packet unresolved; No payload selected for this lane.")).toBeInTheDocument();
   });
 
+  it("shows a review drift notice when packet lane and active Records lane are misaligned", () => {
+    renderToolbench({
+      reviewPacketSource: "live_phase9_packet_data",
+      reviewPacketResolutionDiagnostics: {
+        selectedRecordsSurface: "runs",
+        preferredOrder: ["run", "execution", "artifact"],
+        resolvedLane: "artifact",
+        summary: "Resolved from artifact lane.",
+        attempts: [
+          {
+            lane: "run",
+            label: "Selected run execution details",
+            hasPayload: false,
+            hasReviewPacket: false,
+            reason: "No payload selected for this lane.",
+          },
+          {
+            lane: "artifact",
+            label: "Selected artifact metadata",
+            hasPayload: true,
+            hasReviewPacket: true,
+            reason: "Resolved review packet fields from this lane.",
+          },
+        ],
+      },
+      recordsLaneAlignment: {
+        packetResolvedLane: "artifact",
+        packetResolvedLaneLabel: "Artifact lane",
+        activeRecordsSurface: "runs",
+        activeRecordsSurfaceLabel: "Runs lane",
+        driftDetected: true,
+        guidance: "Packet evidence resolved from Artifact lane, but Records is focused on Runs lane. Refresh or reopen the packet lane before relying on readiness state.",
+      },
+    });
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    fireEvent.click(within(shell).getByRole("button", { name: "Review" }));
+
+    const driftNotice = within(shell).getByLabelText("Records lane drift notice");
+    expect(driftNotice).toBeInTheDocument();
+    expect(within(driftNotice).getByText("Records lane drift detected")).toBeInTheDocument();
+    expect(driftNotice).toHaveTextContent("Packet resolved lane");
+    expect(driftNotice).toHaveTextContent("Artifact lane");
+    expect(driftNotice).toHaveTextContent("Active Records lane");
+    expect(driftNotice).toHaveTextContent("Runs lane");
+    expect(driftNotice).toHaveTextContent("Refresh or reopen the packet lane");
+  });
+
   it("keeps existing navigation callbacks but blocks direct execution", () => {
     const onOpenPromptStudio = vi.fn();
     const onOpenRuntimeOverview = vi.fn();

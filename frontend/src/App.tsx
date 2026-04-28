@@ -74,7 +74,11 @@ import { resolveAssetForgeLivePacketSelection } from "./lib/assetForgeLivePacket
 import { buildHomeRecommendationDescriptors, type HomeRecommendationActionId } from "./lib/recommendations";
 import { useSettings } from "./lib/settings/hooks";
 import type { FocusedSection, TruthFilterState } from "./lib/laneController";
-import type { AssetForgeReviewPacketOrigin } from "./types/assetForgeReviewPacket";
+import type {
+  AssetForgePacketLane,
+  AssetForgeRecordsLaneAlignment,
+  AssetForgeReviewPacketOrigin,
+} from "./types/assetForgeReviewPacket";
 import type {
   ArtifactListItem,
   ArtifactRecord,
@@ -132,6 +136,69 @@ type AssetForgeRecordsOriginContext = {
   packetResolvedLane: string | null;
   packetAttemptSummaryLines: string[];
 };
+
+function formatPacketLaneLabel(lane: AssetForgePacketLane | null): string {
+  switch (lane) {
+    case "artifact":
+      return "Artifact lane";
+    case "execution":
+      return "Execution lane";
+    case "run":
+      return "Run lane";
+    default:
+      return "Unknown / unavailable";
+  }
+}
+
+function formatRecordsSurfaceLabel(surface: RecordsSurfaceId | "unknown"): string {
+  switch (surface) {
+    case "artifacts":
+      return "Artifacts lane";
+    case "executions":
+      return "Executions lane";
+    case "runs":
+      return "Runs lane";
+    case "events":
+      return "Events lane";
+    default:
+      return "Unknown / unavailable";
+  }
+}
+
+function packetLaneToRecordsSurface(lane: AssetForgePacketLane | null): RecordsSurfaceId | null {
+  switch (lane) {
+    case "artifact":
+      return "artifacts";
+    case "execution":
+      return "executions";
+    case "run":
+      return "runs";
+    default:
+      return null;
+  }
+}
+
+function buildAssetForgeRecordsLaneAlignment(
+  resolvedLane: AssetForgePacketLane | null,
+  activeSurface: RecordsSurfaceId | "unknown",
+): AssetForgeRecordsLaneAlignment {
+  const targetSurface = packetLaneToRecordsSurface(resolvedLane);
+  const driftDetected = targetSurface !== null && targetSurface !== activeSurface;
+  const packetResolvedLaneLabel = formatPacketLaneLabel(resolvedLane);
+  const activeRecordsSurfaceLabel = formatRecordsSurfaceLabel(activeSurface);
+  const guidance = driftDetected
+    ? `Packet evidence resolved from ${packetResolvedLaneLabel}, but Records is focused on ${activeRecordsSurfaceLabel}. Refresh or reopen the packet lane before relying on readiness state.`
+    : `Records lane aligns with ${packetResolvedLaneLabel}. Keep review read-only until approval and admitted mutation corridors are available.`;
+
+  return {
+    packetResolvedLane: resolvedLane,
+    packetResolvedLaneLabel,
+    activeRecordsSurface: activeSurface,
+    activeRecordsSurfaceLabel,
+    driftDetected,
+    guidance,
+  };
+}
 
 type PinnedRecord = {
   kind: "run" | "execution" | "artifact";
@@ -7341,6 +7408,13 @@ export default function App() {
     }),
     [selectedRunId, selectedArtifact, selectedExecution, selectedExecutionDetails, activeRecordsSurface],
   );
+  const assetForgeRecordsLaneAlignment = useMemo(
+    () => buildAssetForgeRecordsLaneAlignment(
+      assetForgeLivePacket.reviewPacketResolutionDiagnostics?.resolvedLane ?? null,
+      activeRecordsSurface ?? "unknown",
+    ),
+    [assetForgeLivePacket.reviewPacketResolutionDiagnostics?.resolvedLane, activeRecordsSurface],
+  );
 
   function openAssetForgeWorkspaceFromRecords(): void {
     if (typeof window !== "undefined") {
@@ -7501,6 +7575,7 @@ export default function App() {
                 reviewPacketSource={assetForgeLivePacket.reviewPacketSource}
                 reviewPacketOrigin={assetForgeLivePacket.reviewPacketOrigin}
                 reviewPacketResolutionDiagnostics={assetForgeLivePacket.reviewPacketResolutionDiagnostics}
+                recordsLaneAlignment={assetForgeRecordsLaneAlignment}
                 bridgeStatus={o3deBridgeStatus}
               />
             </Suspense>
