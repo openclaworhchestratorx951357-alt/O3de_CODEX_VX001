@@ -12,10 +12,26 @@ import RunsPanel from "../RunsPanel";
 import TaskTimeline from "../TaskTimeline";
 import RecordsWorkspaceView from "./RecordsWorkspaceView";
 
+type AssetForgeOriginContext = {
+  label: string;
+  detail: string;
+  runId: string | null;
+  executionId: string | null;
+  artifactId: string | null;
+  packetCapturedAtIso: string | null;
+  packetCapturedAtSource: string | null;
+  packetResolutionSummary: string | null;
+  packetResolvedLane: string | null;
+  packetAttemptSummaryLines: string[];
+};
+
 type RecordsWorkspaceDesktopProps = {
   activeSurfaceId: ComponentProps<typeof RecordsWorkspaceView>["activeSurfaceId"];
   items: ComponentProps<typeof RecordsWorkspaceView>["items"];
   onSelectSurface: ComponentProps<typeof RecordsWorkspaceView>["onSelectSurface"];
+  assetForgeOriginContext?: AssetForgeOriginContext | null;
+  onOpenAssetForgeWorkspace?: (() => void) | null;
+  onClearAssetForgeOriginContext?: (() => void) | null;
   artifacts: {
     panelKey: string;
     sectionRef: RefObject<HTMLDivElement>;
@@ -55,6 +71,9 @@ export default function RecordsWorkspaceDesktop({
   activeSurfaceId,
   items,
   onSelectSurface,
+  assetForgeOriginContext,
+  onOpenAssetForgeWorkspace,
+  onClearAssetForgeOriginContext,
   artifacts,
   executions,
   runs,
@@ -104,12 +123,151 @@ export default function RecordsWorkspaceDesktop({
   const eventsFilterPressureLabel = eventsFilterResults.hasActiveFilters
     ? getEventsFilterPressureLabel(eventsFilterResults.filteredCount, eventsFilterResults.totalCount)
     : null;
+  const hasAssetForgeOriginRecord = Boolean(
+    assetForgeOriginContext?.artifactId
+      || assetForgeOriginContext?.executionId
+      || assetForgeOriginContext?.runId,
+  );
+  const hasAssetForgeResolutionDiagnostics = Boolean(
+    assetForgeOriginContext?.packetResolutionSummary
+      || assetForgeOriginContext?.packetResolvedLane
+      || (assetForgeOriginContext?.packetAttemptSummaryLines?.length ?? 0) > 0,
+  );
+  const packetLaneSurface = useMemo(
+    () => getRecordsSurfaceIdFromResolvedLane(assetForgeOriginContext?.packetResolvedLane ?? null),
+    [assetForgeOriginContext?.packetResolvedLane],
+  );
+  const hasPacketLaneDrift = Boolean(packetLaneSurface && packetLaneSurface !== activeSurfaceId);
+  const packetCaptureFreshness = useMemo(
+    () => describePacketCaptureFreshness(assetForgeOriginContext?.packetCapturedAtIso ?? null),
+    [assetForgeOriginContext?.packetCapturedAtIso],
+  );
+  const packetCapturedAtLabel = useMemo(
+    () => formatPacketCaptureTimestamp(assetForgeOriginContext?.packetCapturedAtIso ?? null),
+    [assetForgeOriginContext?.packetCapturedAtIso],
+  );
+  const packetCapturedAtSourceLabel = assetForgeOriginContext?.packetCapturedAtSource ?? "Unknown / unavailable";
 
   return (
     <RecordsWorkspaceView
       activeSurfaceId={activeSurfaceId}
       items={items}
       onSelectSurface={onSelectSurface}
+      workspaceBanner={assetForgeOriginContext ? (
+        <section style={assetForgeOriginBannerStyle} aria-label="Asset Forge packet-origin context">
+          <div style={assetForgeOriginBannerHeadingRowStyle}>
+            <strong style={assetForgeOriginBannerHeadingStyle}>Opened from Asset Forge review packet origin</strong>
+            <span style={assetForgeOriginBannerBadgeStyle}>read-only context</span>
+          </div>
+          <span style={assetForgeOriginBannerDetailStyle}>
+            {assetForgeOriginContext.label}. {assetForgeOriginContext.detail}
+          </span>
+          <div style={assetForgeOriginBannerFactsStyle}>
+            <span>Origin run: {assetForgeOriginContext.runId ?? "not recorded"}</span>
+            <span>Origin execution: {assetForgeOriginContext.executionId ?? "not recorded"}</span>
+            <span>Origin artifact: {assetForgeOriginContext.artifactId ?? "not recorded"}</span>
+            <span>Origin captured at: {packetCapturedAtLabel}</span>
+            <span>Origin capture source: {packetCapturedAtSourceLabel}</span>
+            <span>
+              Origin freshness: <strong style={packetCaptureFreshnessToneStyle(packetCaptureFreshness.tone)}>
+                {packetCaptureFreshness.label}
+              </strong>
+            </span>
+          </div>
+          <span style={assetForgeOriginBannerHintStyle}>{packetCaptureFreshness.detail}</span>
+          {assetForgeOriginContext?.packetResolvedLane ? (
+            <div
+              aria-label="Asset Forge lane alignment status"
+              style={hasPacketLaneDrift ? assetForgeLaneAlignmentDriftStyle : assetForgeLaneAlignmentAlignedStyle}
+            >
+              <strong>{hasPacketLaneDrift ? "Lane drift detected" : "Lane alignment confirmed"}</strong>
+              <span>
+                Packet resolved lane: {formatResolvedLane(assetForgeOriginContext.packetResolvedLane)}.
+              </span>
+              <span>
+                Active Records surface: {formatRecordsSurfaceLabel(activeSurfaceId)}.
+              </span>
+              {hasPacketLaneDrift ? (
+                <>
+                  <span>
+                    Guidance: switch to the packet lane surface first, then refresh packet lanes from Asset Forge Review
+                    before trusting readiness.
+                  </span>
+                  <button
+                    type="button"
+                    style={assetForgeOriginBannerButtonStyle}
+                    onClick={() => {
+                      if (packetLaneSurface) {
+                        onSelectSurface(packetLaneSurface);
+                      }
+                    }}
+                    title={packetLaneSurface
+                      ? `Switch Records to ${formatRecordsSurfaceLabel(packetLaneSurface)} lane.`
+                      : "Packet lane surface is unavailable for this context."}
+                    disabled={!packetLaneSurface}
+                  >
+                    Open packet lane surface
+                  </button>
+                </>
+              ) : (
+                <span>
+                  Guidance: current Records lane matches packet resolution. Continue read-only review or return to Asset
+                  Forge Review.
+                </span>
+              )}
+            </div>
+          ) : null}
+          {hasAssetForgeResolutionDiagnostics ? (
+            <div aria-label="Asset Forge lane diagnostics context" style={assetForgeResolutionDiagnosticsStyle}>
+              <strong style={assetForgeResolutionDiagnosticsHeadingStyle}>Packet lane diagnostics (read-only)</strong>
+              <span>
+                Resolution summary: {assetForgeOriginContext.packetResolutionSummary ?? "Unknown / unavailable"}
+              </span>
+              <span>
+                Resolved lane: {formatResolvedLane(assetForgeOriginContext.packetResolvedLane)}
+              </span>
+              {assetForgeOriginContext.packetAttemptSummaryLines.length > 0 ? (
+                <ul style={assetForgeResolutionDiagnosticsListStyle}>
+                  {assetForgeOriginContext.packetAttemptSummaryLines.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              ) : (
+                <span>No lane-attempt details were recorded for this handoff.</span>
+              )}
+            </div>
+          ) : null}
+          <div style={assetForgeOriginBannerActionsStyle}>
+            <button
+              type="button"
+              style={assetForgeOriginBannerButtonStyle}
+              onClick={() => onOpenAssetForgeWorkspace?.()}
+              disabled={!onOpenAssetForgeWorkspace}
+              title={onOpenAssetForgeWorkspace
+                ? "Return to the Asset Forge Review page."
+                : "Asset Forge workspace navigation is unavailable in this view."}
+            >
+              Back to Asset Forge Review
+            </button>
+            <button
+              type="button"
+              style={assetForgeOriginBannerButtonStyle}
+              onClick={() => onClearAssetForgeOriginContext?.()}
+              disabled={!onClearAssetForgeOriginContext}
+              title={onClearAssetForgeOriginContext
+                ? "Clear packet-origin breadcrumbs from this Records workspace."
+                : "Packet-origin context clear action is unavailable in this view."}
+            >
+              Clear origin context
+            </button>
+            <span style={assetForgeOriginBannerHintStyle}>
+              {hasAssetForgeOriginRecord
+                ? "Records lane can pivot to run, execution, or artifact details without writing project state."
+                : "No persisted run, execution, or artifact id was recorded in this packet origin."}
+            </span>
+          </div>
+        </section>
+      ) : null}
       artifactsContent={(
         <>
           <div ref={artifacts.sectionRef}>
@@ -311,3 +469,273 @@ function getEventsFilterPressureLabel(filteredCount: number, totalCount: number)
   }
   return "light narrowing";
 }
+
+type PacketCaptureFreshnessTone = "current" | "aging" | "stale" | "unknown";
+
+type PacketCaptureFreshness = {
+  label: string;
+  detail: string;
+  tone: PacketCaptureFreshnessTone;
+};
+
+function formatPacketCaptureTimestamp(value: string | null): string {
+  if (!value || value.trim().length === 0) {
+    return "Unknown / unavailable";
+  }
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    return value;
+  }
+  return new Date(parsed).toISOString();
+}
+
+function getRecordsSurfaceIdFromResolvedLane(
+  lane: string | null,
+): "runs" | "executions" | "artifacts" | null {
+  if (!lane) {
+    return null;
+  }
+  if (lane === "run") {
+    return "runs";
+  }
+  if (lane === "execution") {
+    return "executions";
+  }
+  if (lane === "artifact") {
+    return "artifacts";
+  }
+  return null;
+}
+
+function formatRecordsSurfaceLabel(
+  surfaceId: "runs" | "executions" | "artifacts" | "events",
+): string {
+  if (surfaceId === "runs") {
+    return "Runs lane";
+  }
+  if (surfaceId === "executions") {
+    return "Executions lane";
+  }
+  if (surfaceId === "artifacts") {
+    return "Artifacts lane";
+  }
+  return "Events lane";
+}
+
+function formatPacketCaptureAge(diffMs: number): string {
+  const absMs = Math.abs(diffMs);
+  if (absMs < 60_000) {
+    const seconds = Math.max(0, Math.round(absMs / 1000));
+    return `${seconds}s`;
+  }
+  if (absMs < 3_600_000) {
+    const minutes = Math.max(0, Math.round(absMs / 60_000));
+    return `${minutes}m`;
+  }
+  if (absMs < 86_400_000) {
+    const hours = Math.max(0, Math.round(absMs / 3_600_000));
+    return `${hours}h`;
+  }
+  const days = Math.max(0, Math.round(absMs / 86_400_000));
+  return `${days}d`;
+}
+
+function describePacketCaptureFreshness(capturedAtIso: string | null): PacketCaptureFreshness {
+  if (!capturedAtIso || capturedAtIso.trim().length === 0) {
+    return {
+      label: "Unknown / unavailable",
+      detail: "No packet capture timestamp was available for this handoff.",
+      tone: "unknown",
+    };
+  }
+
+  const parsed = Date.parse(capturedAtIso);
+  if (Number.isNaN(parsed)) {
+    return {
+      label: "Timestamp unparseable",
+      detail: `Capture timestamp is present but not parseable: ${capturedAtIso}`,
+      tone: "unknown",
+    };
+  }
+
+  const now = Date.now();
+  const diffMs = now - parsed;
+  const ageLabel = formatPacketCaptureAge(diffMs);
+  if (diffMs < -120_000) {
+    return {
+      label: "Clock skew detected",
+      detail: `Capture timestamp is ${ageLabel} in the future. Verify operator clock alignment before trusting freshness.`,
+      tone: "unknown",
+    };
+  }
+  if (diffMs <= 15 * 60_000) {
+    return {
+      label: "Current evidence",
+      detail: `Packet capture age is ${ageLabel}; read-only evidence looks current for operator review.`,
+      tone: "current",
+    };
+  }
+  if (diffMs <= 2 * 60 * 60_000) {
+    return {
+      label: "Aging evidence",
+      detail: `Packet capture age is ${ageLabel}; continue read-only review and refresh evidence before any approval corridor.`,
+      tone: "aging",
+    };
+  }
+  return {
+    label: "Stale evidence",
+    detail: `Packet capture age is ${ageLabel}; refresh packet lanes outside Codex before trusting readiness.`,
+    tone: "stale",
+  };
+}
+
+function packetCaptureFreshnessToneStyle(tone: PacketCaptureFreshnessTone) {
+  if (tone === "current") {
+    return {
+      color: "rgba(134, 239, 172, 1)",
+    } as const;
+  }
+  if (tone === "aging") {
+    return {
+      color: "rgba(253, 224, 71, 1)",
+    } as const;
+  }
+  if (tone === "stale") {
+    return {
+      color: "rgba(251, 113, 133, 1)",
+    } as const;
+  }
+  return {
+    color: "rgba(226, 232, 240, 0.92)",
+  } as const;
+}
+
+function formatResolvedLane(value: string | null): string {
+  if (!value || value.trim().length === 0) {
+    return "Unresolved";
+  }
+  if (value === "artifact") {
+    return "Artifact lane";
+  }
+  if (value === "execution") {
+    return "Execution lane";
+  }
+  if (value === "run") {
+    return "Run lane";
+  }
+  return value;
+}
+
+const assetForgeOriginBannerStyle = {
+  display: "grid",
+  gap: 8,
+  padding: "12px 14px",
+  borderRadius: 16,
+  border: "1px solid rgba(96, 165, 250, 0.26)",
+  background: "rgba(15, 23, 42, 0.34)",
+} as const;
+
+const assetForgeOriginBannerHeadingRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 10,
+  flexWrap: "wrap",
+} as const;
+
+const assetForgeOriginBannerHeadingStyle = {
+  fontSize: 14,
+} as const;
+
+const assetForgeOriginBannerBadgeStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  borderRadius: 999,
+  border: "1px solid rgba(74, 222, 128, 0.35)",
+  background: "rgba(22, 163, 74, 0.16)",
+  color: "rgba(134, 239, 172, 1)",
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: "0.03em",
+  padding: "2px 8px",
+  textTransform: "uppercase",
+} as const;
+
+const assetForgeOriginBannerDetailStyle = {
+  fontSize: 12,
+  opacity: 0.9,
+} as const;
+
+const assetForgeOriginBannerFactsStyle = {
+  display: "grid",
+  gap: 4,
+  fontSize: 12,
+  opacity: 0.9,
+} as const;
+
+const assetForgeResolutionDiagnosticsStyle = {
+  display: "grid",
+  gap: 4,
+  padding: "8px 10px",
+  borderRadius: 12,
+  border: "1px solid rgba(96, 165, 250, 0.2)",
+  background: "rgba(30, 41, 59, 0.24)",
+  fontSize: 12,
+  opacity: 0.92,
+} as const;
+
+const assetForgeResolutionDiagnosticsHeadingStyle = {
+  fontSize: 12,
+  letterSpacing: "0.02em",
+} as const;
+
+const assetForgeResolutionDiagnosticsListStyle = {
+  margin: "2px 0 0",
+  paddingLeft: 16,
+  display: "grid",
+  gap: 2,
+} as const;
+
+const assetForgeOriginBannerActionsStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
+  alignItems: "center",
+} as const;
+
+const assetForgeOriginBannerButtonStyle = {
+  border: "1px solid rgba(148, 163, 184, 0.28)",
+  borderRadius: 999,
+  padding: "6px 10px",
+  background: "rgba(15, 23, 42, 0.36)",
+  color: "var(--app-text-color)",
+  cursor: "pointer",
+  fontSize: 12,
+} as const;
+
+const assetForgeOriginBannerHintStyle = {
+  fontSize: 12,
+  opacity: 0.8,
+} as const;
+
+const assetForgeLaneAlignmentAlignedStyle = {
+  display: "grid",
+  gap: 4,
+  padding: "8px 10px",
+  borderRadius: 12,
+  border: "1px solid rgba(74, 222, 128, 0.28)",
+  background: "rgba(22, 163, 74, 0.14)",
+  fontSize: 12,
+  opacity: 0.94,
+} as const;
+
+const assetForgeLaneAlignmentDriftStyle = {
+  display: "grid",
+  gap: 4,
+  padding: "8px 10px",
+  borderRadius: 12,
+  border: "1px solid rgba(251, 113, 133, 0.34)",
+  background: "rgba(190, 24, 93, 0.12)",
+  fontSize: 12,
+  opacity: 0.96,
+} as const;

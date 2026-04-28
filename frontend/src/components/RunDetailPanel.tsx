@@ -53,6 +53,14 @@ function getRunDetailLaneHistoryTitle(
   return `${runDetailRecordNavigationControlGuide.tooltip} Return to recent ${entry.kind} ${entry.label} from the current run-detail lane history.${detailSuffix}`;
 }
 
+type AssetForgeOriginContext = {
+  label: string;
+  detail: string;
+  runId: string | null;
+  executionId: string | null;
+  artifactId: string | null;
+};
+
 type RunDetailPanelProps = {
   item: RunRecord | null;
   loading: boolean;
@@ -115,6 +123,9 @@ type RunDetailPanelProps = {
   onOpenLaneRolloverRecord?: (() => void) | null;
   onReturnToLane?: (() => void) | null;
   onOpenLaneHistoryEntry?: ((entry: { kind: "run" | "execution" | "artifact"; id: string; label: string; detail: string }) => void) | null;
+  onOpenAssetForgeWorkspace?: (() => void) | null;
+  onClearAssetForgeOriginContext?: (() => void) | null;
+  assetForgeOriginContext?: AssetForgeOriginContext | null;
   refreshHint?: string | null;
   lastRefreshedAt?: string | null;
   onRefresh?: (() => void) | null;
@@ -199,6 +210,9 @@ export default function RunDetailPanel({
   onOpenLaneRolloverRecord,
   onReturnToLane,
   onOpenLaneHistoryEntry,
+  onOpenAssetForgeWorkspace,
+  onClearAssetForgeOriginContext,
+  assetForgeOriginContext,
   refreshHint,
   lastRefreshedAt,
   onRefresh,
@@ -280,6 +294,10 @@ export default function RunDetailPanel({
     : item?.tool === "settings.patch" && mutationAudit
       ? "Jump to mutation audit"
       : "Jump to truth boundary";
+  const openedFromAssetForgePacket = Boolean(assetForgeOriginContext) || (refreshHint ?? "").startsWith(
+    "Auto-opened from Asset Forge packet origin:",
+  );
+  const canReturnToAssetForge = openedFromAssetForgePacket && Boolean(onOpenAssetForgeWorkspace);
   return (
     <SummarySection
       title="Run Detail"
@@ -319,6 +337,82 @@ export default function RunDetailPanel({
         />
         {refreshHint ? (
           <div style={summaryCalloutStyle}>{refreshHint}</div>
+        ) : null}
+        {assetForgeOriginContext ? (
+          <article style={summaryCardStyle}>
+            <h4 style={summaryCardHeadingStyle}>Asset Forge Origin Context</h4>
+            <div style={summaryCalloutStyle}>
+              Packet origin: {assetForgeOriginContext.label}. {assetForgeOriginContext.detail}
+            </div>
+            <SummaryFacts>
+              <SummaryFact label="Origin run" copyValue={assetForgeOriginContext.runId ?? undefined}>
+                {assetForgeOriginContext.runId ?? "not recorded"}
+              </SummaryFact>
+              <SummaryFact label="Origin execution" copyValue={assetForgeOriginContext.executionId ?? undefined}>
+                {assetForgeOriginContext.executionId ?? "not recorded"}
+              </SummaryFact>
+              <SummaryFact label="Origin artifact" copyValue={assetForgeOriginContext.artifactId ?? undefined}>
+                {assetForgeOriginContext.artifactId ?? "not recorded"}
+              </SummaryFact>
+            </SummaryFacts>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {assetForgeOriginContext.executionId && onOpenExecution ? (
+                <button
+                  type="button"
+                  style={summaryActionButtonStyle}
+                  onClick={() => onOpenExecution(assetForgeOriginContext.executionId!)}
+                  disabled={selectedExecutionId === assetForgeOriginContext.executionId}
+                  title={runDetailRecordNavigationControlGuide.tooltip}
+                >
+                  {selectedExecutionId === assetForgeOriginContext.executionId
+                    ? "Origin execution selected"
+                    : "Open origin execution"}
+                </button>
+              ) : null}
+              {assetForgeOriginContext.artifactId && onOpenArtifact ? (
+                <button
+                  type="button"
+                  style={summaryActionButtonStyle}
+                  onClick={() => onOpenArtifact(assetForgeOriginContext.artifactId!)}
+                  disabled={selectedArtifactId === assetForgeOriginContext.artifactId}
+                  title={runDetailRecordNavigationControlGuide.tooltip}
+                >
+                  {selectedArtifactId === assetForgeOriginContext.artifactId
+                    ? "Origin artifact selected"
+                    : "Open origin artifact"}
+                </button>
+              ) : null}
+              {canReturnToAssetForge ? (
+                <button
+                  type="button"
+                  style={summaryActionButtonStyle}
+                  title="Return to the Asset Forge workspace to continue review continuity."
+                  onClick={() => onOpenAssetForgeWorkspace?.()}
+                >
+                  Return to Asset Forge workspace
+                </button>
+              ) : null}
+              {onClearAssetForgeOriginContext ? (
+                <button
+                  type="button"
+                  style={summaryActionButtonStyle}
+                  title="Clear Asset Forge packet-origin context from this Records lane."
+                  onClick={() => onClearAssetForgeOriginContext()}
+                >
+                  Clear origin context
+                </button>
+              ) : null}
+            </div>
+          </article>
+        ) : canReturnToAssetForge ? (
+          <button
+            type="button"
+            style={summaryActionButtonStyle}
+            title="Return to the Asset Forge workspace to continue review continuity."
+            onClick={() => onOpenAssetForgeWorkspace?.()}
+          >
+            Return to Asset Forge workspace
+          </button>
         ) : null}
         {lastRefreshedAt ? (
           <div style={summaryTimestampNoteStyle}>

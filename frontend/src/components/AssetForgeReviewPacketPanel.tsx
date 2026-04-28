@@ -6,6 +6,8 @@ import type { AssetForgeReviewPacketSource } from "../types/assetForgeReviewPack
 type AssetForgeReviewPacketPanelProps = {
   packetData: unknown;
   packetSource: AssetForgeReviewPacketSource;
+  packetCorridorLabel?: string;
+  packetOriginRows?: Array<[label: string, value: string]>;
 };
 
 type ReviewPacketSection = {
@@ -16,8 +18,11 @@ type ReviewPacketSection = {
 export default function AssetForgeReviewPacketPanel({
   packetData,
   packetSource,
+  packetCorridorLabel,
+  packetOriginRows,
 }: AssetForgeReviewPacketPanelProps) {
   const packet = mapAssetForgeToolbenchReviewPacket(packetData, packetSource);
+  const resolvedPacketCorridorLabel = packetCorridorLabel ?? defaultPacketCorridorLabel(packetSource);
 
   const sections: ReviewPacketSection[] = [
     {
@@ -75,10 +80,12 @@ export default function AssetForgeReviewPacketPanel({
       title: "Freshness and readback status",
       rows: [
         ["Readback status", packet.readbackStatus],
+        ["Packet resolution", packet.packetResolutionLabel],
         ["Readiness status", packet.readinessStatus],
         ["Proof status", packet.proofStatus],
         ["Asset DB freshness", packet.freshnessStatus.assetDatabaseFreshness],
         ["Asset Catalog freshness", packet.freshnessStatus.assetCatalogFreshness],
+        ["Packet resolution detail", packet.packetResolutionDetail],
       ],
     },
     {
@@ -101,6 +108,13 @@ export default function AssetForgeReviewPacketPanel({
     },
   ];
 
+  if (packetOriginRows && packetOriginRows.length > 0) {
+    sections.splice(2, 0, {
+      title: "Packet origin and Records route",
+      rows: packetOriginRows,
+    });
+  }
+
   return (
     <section style={panelStyle} aria-label="Forge operator review packet">
       <div style={headerStyle}>
@@ -112,12 +126,18 @@ export default function AssetForgeReviewPacketPanel({
             import, staging, assignment, or placement.
           </p>
         </div>
-        <span style={sourcePillStyle}>{packet.dataSourceLabel}</span>
+        <div style={sourcePillStackStyle}>
+          <span style={sourcePillStyle}>{packet.dataSourceLabel}</span>
+          <span style={corridorPillStyle} aria-label="Review packet corridor">
+            Corridor: {resolvedPacketCorridorLabel}
+          </span>
+        </div>
       </div>
 
       <div style={capabilityStripStyle} aria-label="Forge review packet identity">
         <span><strong>Capability</strong>{packet.capability}</span>
         <span><strong>Contract</strong>{packet.contractVersion}</span>
+        <span><strong>Resolution</strong>{packet.packetResolutionState}</span>
       </div>
 
       <div style={sectionGridStyle}>
@@ -167,6 +187,18 @@ export default function AssetForgeReviewPacketPanel({
   );
 }
 
+function defaultPacketCorridorLabel(packetSource: AssetForgeReviewPacketSource): string {
+  switch (packetSource) {
+    case "live_phase9_packet_data":
+      return "Live payload origin unresolved";
+    case "existing_frontend_packet_data":
+      return "Existing frontend payload";
+    case "typed_fixture_data":
+    default:
+      return "Fixture preview";
+  }
+}
+
 const panelStyle = {
   display: "grid",
   gap: 12,
@@ -211,6 +243,25 @@ const sourcePillStyle = {
   background: "var(--app-info-bg)",
   color: "var(--app-info-text)",
   fontSize: 12,
+  fontWeight: 700,
+} satisfies CSSProperties;
+
+const sourcePillStackStyle = {
+  display: "grid",
+  gap: 6,
+  justifyItems: "end",
+} satisfies CSSProperties;
+
+const corridorPillStyle = {
+  display: "inline-flex",
+  width: "fit-content",
+  alignItems: "center",
+  padding: "4px 9px",
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
+  background: "var(--app-panel-bg-muted)",
+  color: "var(--app-muted-color)",
+  fontSize: 11,
   fontWeight: 700,
 } satisfies CSSProperties;
 

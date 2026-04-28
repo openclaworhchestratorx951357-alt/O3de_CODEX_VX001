@@ -1,0 +1,210 @@
+import { resolveAssetReadbackReviewPacket } from "./assetForgeReviewPacketMapper";
+import type {
+  AssetForgePacketLane,
+  AssetForgePacketLaneAttempt,
+  AssetForgePacketResolutionDiagnostics,
+  AssetForgeReviewPacketOrigin,
+  AssetForgeReviewPacketSource,
+} from "../types/assetForgeReviewPacket";
+import type { ArtifactRecord, ExecutionRecord } from "../types/contracts";
+
+type AssetForgeLivePacketSelection = {
+  selectedRunId: string | null;
+  selectedArtifact: ArtifactRecord | null;
+  selectedExecution: ExecutionRecord | null;
+  selectedExecutionDetails: Record<string, unknown> | null;
+  activeRecordsSurface?: "runs" | "executions" | "artifacts" | "events" | null;
+};
+
+export type AssetForgeLivePacketResolution = {
+  reviewPacketData?: unknown;
+  reviewPacketSource?: AssetForgeReviewPacketSource;
+  reviewPacketOrigin?: AssetForgeReviewPacketOrigin;
+  reviewPacketResolutionDiagnostics?: AssetForgePacketResolutionDiagnostics;
+};
+
+function payloadHasReviewPacket(payload: unknown): boolean {
+  return resolveAssetReadbackReviewPacket(payload) !== null;
+}
+
+function hasPayload(payload: unknown): boolean {
+  return payload !== null && payload !== undefined;
+}
+
+function readTimestampField(record: Record<string, unknown> | null, field: string): string | null {
+  if (!record) {
+    return null;
+  }
+  const value = record[field];
+  return typeof value === "string" && value.trim().length > 0 ? value : null;
+}
+
+function resolveTimestampFromPayload(payload: unknown): { capturedAtIso: string | null; capturedAtSource: string | null } {
+  const record = payload && typeof payload === "object" && !Array.isArray(payload)
+    ? payload as Record<string, unknown>
+    : null;
+  const directFields = [
+    "captured_at",
+    "created_at",
+    "finished_at",
+    "started_at",
+    "packet_created_at",
+    "packet_captured_at",
+  ];
+
+  for (const field of directFields) {
+    const value = readTimestampField(record, field);
+    if (value) {
+      return {
+        capturedAtIso: value,
+        capturedAtSource: `payload.${field}`,
+      };
+    }
+  }
+
+  const nestedPacket = record?.asset_readback_review_packet;
+  const nestedRecord = nestedPacket && typeof nestedPacket === "object" && !Array.isArray(nestedPacket)
+    ? nestedPacket as Record<string, unknown>
+    : null;
+
+  for (const field of directFields) {
+    const value = readTimestampField(nestedRecord, field);
+    if (value) {
+      return {
+        capturedAtIso: value,
+        capturedAtSource: `asset_readback_review_packet.${field}`,
+      };
+    }
+  }
+
+  return {
+    capturedAtIso: null,
+    capturedAtSource: null,
+  };
+}
+
+export function resolveAssetForgeLivePacketSelection({
+  selectedRunId,
+  selectedArtifact,
+  selectedExecution,
+  selectedExecutionDetails,
+  activeRecordsSurface = null,
+}: AssetForgeLivePacketSelection): AssetForgeLivePacketResolution {
+  const executionCapturedAtIso = selectedExecution?.finished_at ?? selectedExecution?.started_at ?? null;
+  const executionCapturedAtSource = selectedExecution?.finished_at
+    ? "selected_execution.finished_at"
+    : selectedExecution?.started_at
+      ? "selected_execution.started_at"
+      : null;
+  const runSnapshotTimestamp = resolveTimestampFromPayload(selectedExecutionDetails);
+
+  const candidates: Array<{ key: AssetForgePacketLane; payload: unknown; origin: AssetForgeReviewPacketOrigin }> = [
+    {
+      key: "artifact",
+      payload: selectedArtifact?.metadata,
+      origin: {
+        kind: "selected_artifact_metadata",
+        label: "Selected artifact metadata",
+        detail: `Artifact ${selectedArtifact?.id ?? "Unknown / unavailable"} | Execution ${selectedArtifact?.execution_id ?? "Unknown / unavailable"} | Run ${selectedArtifact?.run_id ?? "Unknown / unavailable"}`,
+        runId: selectedArtifact?.run_id,
+        executionId: selectedArtifact?.execution_id,
+        artifactId: selectedArtifact?.id,
+        capturedAtIso: selectedArtifact?.created_at ?? null,
+        capturedAtSource: selectedArtifact?.created_at ? "selected_artifact.created_at" : null,
+      },
+    },
+    {
+      key: "execution",
+      payload: selectedExecution?.details,
+      origin: {
+        kind: "selected_execution_details",
+        label: "Selected execution details",
+        detail: `Execution ${selectedExecution?.id ?? "Unknown / unavailable"} | Run ${selectedExecution?.run_id ?? "Unknown / unavailable"}`,
+        runId: selectedExecution?.run_id,
+        executionId: selectedExecution?.id,
+        artifactId: null,
+        capturedAtIso: executionCapturedAtIso,
+        capturedAtSource: executionCapturedAtSource,
+      },
+    },
+    {
+      key: "run",
+      payload: selectedExecutionDetails,
+      origin: {
+        kind: "selected_run_execution_details",
+        label: "Selected run execution details",
+        detail: `Run ${selectedRunId ?? "Unknown / unavailable"} preferred execution snapshot`,
+        runId: selectedRunId,
+        executionId: selectedExecution?.id ?? null,
+        artifactId: null,
+        capturedAtIso: runSnapshotTimestamp.capturedAtIso,
+        capturedAtSource: runSnapshotTimestamp.capturedAtSource,
+      },
+    },
+  ];
+
+  const preferredOrder = getPreferredOriginOrder(activeRecordsSurface);
+  const orderedCandidates = preferredOrder
+    .map((key) => candidates.find((candidate) => candidate.key === key))
+    .filter((candidate): candidate is (typeof candidates)[number] => Boolean(candidate));
+  const attempts: AssetForgePacketLaneAttempt[] = orderedCandidates.map((candidate) => {
+    const candidateHasPayload = hasPayload(candidate.payload);
+    const candidateHasReviewPacket = candidateHasPayload && payloadHasReviewPacket(candidate.payload);
+    return {
+      lane: candidate.key,
+      label: candidate.origin.label,
+      hasPayload: candidateHasPayload,
+      hasReviewPacket: candidateHasReviewPacket,
+      reason: candidateHasReviewPacket
+        ? "Resolved review packet fields from this lane."
+        : candidateHasPayload
+          ? "Payload present but no resolvable asset_readback_review_packet fields."
+          : "No payload selected for this lane.",
+    };
+  });
+
+  const firstCandidateWithPacket = orderedCandidates.find((candidate) => payloadHasReviewPacket(candidate.payload));
+  const selectedRecordsSurface = activeRecordsSurface ?? "unknown";
+  const diagnosticsBase: Omit<AssetForgePacketResolutionDiagnostics, "resolvedLane" | "summary"> = {
+    selectedRecordsSurface,
+    preferredOrder,
+    attempts,
+  };
+  if (firstCandidateWithPacket) {
+    return {
+      reviewPacketData: firstCandidateWithPacket.payload,
+      reviewPacketSource: "live_phase9_packet_data",
+      reviewPacketOrigin: firstCandidateWithPacket.origin,
+      reviewPacketResolutionDiagnostics: {
+        ...diagnosticsBase,
+        resolvedLane: firstCandidateWithPacket.key,
+        summary: `Resolved from ${firstCandidateWithPacket.key} lane.`,
+      },
+    };
+  }
+
+  return {
+    reviewPacketResolutionDiagnostics: {
+      ...diagnosticsBase,
+      resolvedLane: null,
+      summary: "No resolvable review packet fields found in artifact, execution, or run lanes.",
+    },
+  };
+}
+
+function getPreferredOriginOrder(
+  activeRecordsSurface: AssetForgeLivePacketSelection["activeRecordsSurface"],
+): Array<"artifact" | "execution" | "run"> {
+  switch (activeRecordsSurface) {
+    case "runs":
+      return ["run", "execution", "artifact"];
+    case "executions":
+      return ["execution", "artifact", "run"];
+    case "artifacts":
+      return ["artifact", "execution", "run"];
+    case "events":
+      return ["execution", "artifact", "run"];
+    default:
+      return ["artifact", "execution", "run"];
+  }
+}

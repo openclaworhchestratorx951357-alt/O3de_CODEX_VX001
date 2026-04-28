@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import AdaptersPanel from "./AdaptersPanel";
@@ -186,5 +186,41 @@ describe("remaining panel guides", () => {
       "title",
       "Use the related record buttons to open the first linked execution, run, or artifact from the workspace view.",
     );
+  });
+
+  it("renders run origin context actions from Asset Forge packet origin", () => {
+    const onOpenAssetForgeWorkspace = vi.fn();
+    const onOpenExecution = vi.fn();
+    const onOpenArtifact = vi.fn();
+    const onClearAssetForgeOriginContext = vi.fn();
+    render(
+      <RunDetailPanel
+        item={run}
+        loading={false}
+        error={null}
+        refreshHint="Auto-opened from Asset Forge packet origin: run evidence."
+        assetForgeOriginContext={{
+          label: "Selected artifact metadata",
+          detail: "Artifact artifact-origin-1 | Execution exec-origin-1 | Run run-1",
+          runId: "run-1",
+          executionId: "exec-origin-1",
+          artifactId: "artifact-origin-1",
+        }}
+        onOpenExecution={onOpenExecution}
+        onOpenArtifact={onOpenArtifact}
+        onOpenAssetForgeWorkspace={onOpenAssetForgeWorkspace}
+        onClearAssetForgeOriginContext={onClearAssetForgeOriginContext}
+      />,
+    );
+
+    expect(screen.getByText("Asset Forge Origin Context")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Open origin execution" }));
+    expect(onOpenExecution).toHaveBeenCalledWith("exec-origin-1");
+    fireEvent.click(screen.getByRole("button", { name: "Open origin artifact" }));
+    expect(onOpenArtifact).toHaveBeenCalledWith("artifact-origin-1");
+    fireEvent.click(screen.getByRole("button", { name: "Return to Asset Forge workspace" }));
+    expect(onOpenAssetForgeWorkspace).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Clear origin context" }));
+    expect(onClearAssetForgeOriginContext).toHaveBeenCalledTimes(1);
   });
 });

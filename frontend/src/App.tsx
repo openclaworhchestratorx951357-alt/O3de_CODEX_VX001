@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useRef, useState, type CSSProperties } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import DesktopShell from "./components/DesktopShell";
 import FirstRunTour from "./components/FirstRunTour";
@@ -70,9 +70,15 @@ import {
   resetLaneFocus,
   resetPresetLaneFocus,
 } from "./lib/laneController";
+import { resolveAssetForgeLivePacketSelection } from "./lib/assetForgeLivePacketResolver";
 import { buildHomeRecommendationDescriptors, type HomeRecommendationActionId } from "./lib/recommendations";
 import { useSettings } from "./lib/settings/hooks";
 import type { FocusedSection, TruthFilterState } from "./lib/laneController";
+import type {
+  AssetForgePacketLane,
+  AssetForgeRecordsLaneAlignment,
+  AssetForgeReviewPacketOrigin,
+} from "./types/assetForgeReviewPacket";
 import type {
   ArtifactListItem,
   ArtifactRecord,
@@ -117,6 +123,84 @@ type DetailBreadcrumb = {
   id: string;
   label: string;
 };
+
+type AssetForgeRecordsOriginContext = {
+  label: string;
+  detail: string;
+  runId: string | null;
+  executionId: string | null;
+  artifactId: string | null;
+  packetCapturedAtIso: string | null;
+  packetCapturedAtSource: string | null;
+  packetResolutionSummary: string | null;
+  packetResolvedLane: string | null;
+  packetAttemptSummaryLines: string[];
+};
+
+function formatPacketLaneLabel(lane: AssetForgePacketLane | null): string {
+  switch (lane) {
+    case "artifact":
+      return "Artifact lane";
+    case "execution":
+      return "Execution lane";
+    case "run":
+      return "Run lane";
+    default:
+      return "Unknown / unavailable";
+  }
+}
+
+function formatRecordsSurfaceLabel(surface: RecordsSurfaceId | "unknown"): string {
+  switch (surface) {
+    case "artifacts":
+      return "Artifacts lane";
+    case "executions":
+      return "Executions lane";
+    case "runs":
+      return "Runs lane";
+    case "events":
+      return "Events lane";
+    default:
+      return "Unknown / unavailable";
+  }
+}
+
+function packetLaneToRecordsSurface(lane: AssetForgePacketLane | null): RecordsSurfaceId | null {
+  switch (lane) {
+    case "artifact":
+      return "artifacts";
+    case "execution":
+      return "executions";
+    case "run":
+      return "runs";
+    default:
+      return null;
+  }
+}
+
+function buildAssetForgeRecordsLaneAlignment(
+  resolvedLane: AssetForgePacketLane | null,
+  activeSurface: RecordsSurfaceId | "unknown",
+): AssetForgeRecordsLaneAlignment {
+  const targetSurface = packetLaneToRecordsSurface(resolvedLane);
+  const driftDetected = targetSurface !== null && targetSurface !== activeSurface;
+  const packetResolvedLaneLabel = formatPacketLaneLabel(resolvedLane);
+  const activeRecordsSurfaceLabel = formatRecordsSurfaceLabel(activeSurface);
+  const guidance = targetSurface === null
+    ? "Packet lane is unresolved in this view. Select or reopen a resolvable packet lane in Records before relying on readiness state."
+    : driftDetected
+      ? `Packet evidence resolved from ${packetResolvedLaneLabel}, but Records is focused on ${activeRecordsSurfaceLabel}. Refresh or reopen the packet lane before relying on readiness state.`
+      : `Records lane aligns with ${packetResolvedLaneLabel}. Keep review read-only until approval and admitted mutation corridors are available.`;
+
+  return {
+    packetResolvedLane: resolvedLane,
+    packetResolvedLaneLabel,
+    activeRecordsSurface: activeSurface,
+    activeRecordsSurfaceLabel,
+    driftDetected,
+    guidance,
+  };
+}
 
 type PinnedRecord = {
   kind: "run" | "execution" | "artifact";
@@ -400,6 +484,7 @@ const ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY = "o3de-control-app-active-desktop-wo
 const ACTIVE_OPERATIONS_SURFACE_SESSION_KEY = "o3de-control-app-active-operations-surface";
 const ACTIVE_RUNTIME_SURFACE_SESSION_KEY = "o3de-control-app-active-runtime-surface";
 const ACTIVE_RECORDS_SURFACE_SESSION_KEY = "o3de-control-app-active-records-surface";
+const ASSET_FORGE_RECORDS_ORIGIN_CONTEXT_SESSION_KEY = "o3de-control-app-asset-forge-records-origin-context";
 const EVENTS_TIMELINE_SAVED_VIEWS_SESSION_KEY = "o3de-control-app-events-timeline-saved-views";
 const WORKSPACE_NEXT_STEP_RECENT_ACTIONS_SESSION_KEY = "o3de-control-app-workspace-next-step-recent-actions";
 const WORKSPACE_NEXT_STEPS_COLLAPSED_SESSION_KEY = "o3de-control-app-workspace-next-steps-collapsed";
@@ -560,6 +645,8 @@ export default function App() {
   const [runDetailRefreshHint, setRunDetailRefreshHint] = useState<string | null>(null);
   const [executionDetailRefreshHint, setExecutionDetailRefreshHint] = useState<string | null>(null);
   const [artifactDetailRefreshHint, setArtifactDetailRefreshHint] = useState<string | null>(null);
+  const [assetForgeRecordsOriginContext, setAssetForgeRecordsOriginContext] =
+    useState<AssetForgeRecordsOriginContext | null>(null);
   const [operatorOverviewRefreshedAt, setOperatorOverviewRefreshedAt] = useState<string | null>(null);
   const [dashboardRefreshedAt, setDashboardRefreshedAt] = useState<string | null>(null);
   const [dashboardRefreshStatus, setDashboardRefreshStatus] = useState<string | null>(null);
@@ -653,7 +740,6 @@ export default function App() {
   const [selectedWorkspaceLoading, setSelectedWorkspaceLoading] = useState(false);
   const [selectedEventLoading, setSelectedEventLoading] = useState(false);
   const [dashboardRefreshing, setDashboardRefreshing] = useState(false);
-  const [assetForgeHeaderHeight, setAssetForgeHeaderHeight] = useState(0);
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
   const [selectedExecutionError, setSelectedExecutionError] = useState<string | null>(null);
   const [selectedArtifactError, setSelectedArtifactError] = useState<string | null>(null);
@@ -756,7 +842,6 @@ export default function App() {
   const artifactDetailSectionRef = useRef<HTMLDivElement | null>(null);
   const eventDetailSectionRef = useRef<HTMLDivElement | null>(null);
   const workspaceDetailSectionRef = useRef<HTMLDivElement | null>(null);
-  const assetForgeHeaderRef = useRef<HTMLElement | null>(null);
   const announceRunDetailRefreshRef = useRef(false);
   const bridgeFollowupRefreshTimeoutRef = useRef<number | null>(null);
   const relatedExecutionPriority = selectedRunId
@@ -2342,6 +2427,15 @@ export default function App() {
     ) {
       setActiveRecordsSurface(storedRecordsSurface);
     }
+
+    const storedAssetForgeOriginContext = parseAssetForgeRecordsOriginContext(
+      window.sessionStorage.getItem(ASSET_FORGE_RECORDS_ORIGIN_CONTEXT_SESSION_KEY),
+    );
+    if (storedAssetForgeOriginContext) {
+      setAssetForgeRecordsOriginContext(storedAssetForgeOriginContext);
+    } else {
+      window.sessionStorage.removeItem(ASSET_FORGE_RECORDS_ORIGIN_CONTEXT_SESSION_KEY);
+    }
   }, []);
 
   useEffect(() => {
@@ -2393,39 +2487,6 @@ export default function App() {
   }, [activeWorkspaceId]);
 
   useEffect(() => {
-    if (activeWorkspaceId !== "asset-forge") {
-      return;
-    }
-
-    const headerElement = assetForgeHeaderRef.current;
-    if (!headerElement) {
-      return;
-    }
-
-    const updateHeaderHeight = () => {
-      const nextHeight = Math.ceil(headerElement.getBoundingClientRect().height);
-      setAssetForgeHeaderHeight((currentHeight) => (
-        currentHeight === nextHeight ? currentHeight : nextHeight
-      ));
-    };
-
-    updateHeaderHeight();
-
-    if (typeof ResizeObserver === "undefined") {
-      return;
-    }
-
-    const observer = new ResizeObserver(() => {
-      updateHeaderHeight();
-    });
-    observer.observe(headerElement);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [activeWorkspaceId]);
-
-  useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
@@ -2448,6 +2509,22 @@ export default function App() {
 
     window.sessionStorage.setItem(ACTIVE_RECORDS_SURFACE_SESSION_KEY, activeRecordsSurface);
   }, [activeRecordsSurface]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!assetForgeRecordsOriginContext) {
+      window.sessionStorage.removeItem(ASSET_FORGE_RECORDS_ORIGIN_CONTEXT_SESSION_KEY);
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      ASSET_FORGE_RECORDS_ORIGIN_CONTEXT_SESSION_KEY,
+      JSON.stringify(assetForgeRecordsOriginContext),
+    );
+  }, [assetForgeRecordsOriginContext]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -6757,6 +6834,9 @@ export default function App() {
       onOpenRun: openRunDetail,
       onOpenExecution: openExecutionDetail,
       onOpenArtifact: openArtifactDetail,
+      onOpenAssetForgeWorkspace: openAssetForgeWorkspaceFromRecords,
+      onClearAssetForgeOriginContext: clearAssetForgeRecordsOriginContext,
+      assetForgeOriginContext: assetForgeRecordsOriginContext,
       onOpenPriorityRecord: selectedArtifactSiblingPriority
         ? () => openArtifactDetail(selectedArtifactSiblingPriority.id)
         : null,
@@ -6889,6 +6969,9 @@ export default function App() {
       originatingArtifactKind: executionOriginArtifact?.kind ?? null,
       onOpenRun: openRunDetail,
       onOpenArtifact: openArtifactDetail,
+      onOpenAssetForgeWorkspace: openAssetForgeWorkspaceFromRecords,
+      onClearAssetForgeOriginContext: clearAssetForgeRecordsOriginContext,
+      assetForgeOriginContext: assetForgeRecordsOriginContext,
       onOpenPriorityRecord: selectedExecutionPreferredArtifact
         ? () => openArtifactDetail(selectedExecutionPreferredArtifact.id)
         : null,
@@ -7034,6 +7117,9 @@ export default function App() {
       lanePresetDriftDetail: lanePresetStatus?.driftDetail ?? null,
       onOpenExecution: openExecutionDetail,
       onOpenArtifact: openArtifactDetail,
+      onOpenAssetForgeWorkspace: openAssetForgeWorkspaceFromRecords,
+      onClearAssetForgeOriginContext: clearAssetForgeRecordsOriginContext,
+      assetForgeOriginContext: assetForgeRecordsOriginContext,
       onOpenPriorityRecord: selectedRunPreferredExecution
         ? () => openExecutionDetail(selectedRunPreferredExecution.id)
         : null,
@@ -7176,6 +7262,9 @@ export default function App() {
         activeSurfaceId={activeRecordsSurface}
         items={recordsSurfaceItems}
         onSelectSurface={(surfaceId) => setActiveRecordsSurface(surfaceId)}
+        assetForgeOriginContext={assetForgeRecordsOriginContext}
+        onOpenAssetForgeWorkspace={openAssetForgeWorkspaceFromRecords}
+        onClearAssetForgeOriginContext={clearAssetForgeRecordsOriginContext}
         artifacts={recordsArtifactsProps}
         events={recordsEventsProps}
         executions={recordsExecutionsProps}
@@ -7276,11 +7365,90 @@ export default function App() {
     </Suspense>
   );
 
-  if (activeWorkspaceId === "asset-forge") {
-    const assetForgeWorkspacePageHeight = assetForgeHeaderHeight > 0
-      ? `calc(100vh - ${assetForgeHeaderHeight}px)`
-      : "calc(100vh - 88px)";
+  const assetForgeLivePacket = useMemo(
+    () => resolveAssetForgeLivePacketSelection({
+      selectedRunId,
+      selectedArtifact,
+      selectedExecution,
+      selectedExecutionDetails,
+      activeRecordsSurface,
+    }),
+    [selectedRunId, selectedArtifact, selectedExecution, selectedExecutionDetails, activeRecordsSurface],
+  );
+  const assetForgeRecordsLaneAlignment = useMemo(
+    () => buildAssetForgeRecordsLaneAlignment(
+      assetForgeLivePacket.reviewPacketResolutionDiagnostics?.resolvedLane ?? null,
+      activeRecordsSurface ?? "unknown",
+    ),
+    [assetForgeLivePacket.reviewPacketResolutionDiagnostics?.resolvedLane, activeRecordsSurface],
+  );
 
+  function openAssetForgeWorkspaceFromRecords(): void {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("o3de-asset-forge-page-shell-menu-v1", "Review");
+    }
+    setActiveWorkspaceId("asset-forge");
+  }
+
+  function clearAssetForgeRecordsOriginContext(): void {
+    setAssetForgeRecordsOriginContext(null);
+    setRunDetailRefreshHint((hint) => hint?.startsWith("Auto-opened from Asset Forge packet origin:")
+      ? null
+      : hint);
+    setExecutionDetailRefreshHint((hint) => hint?.startsWith("Auto-opened from Asset Forge packet origin:")
+      ? null
+      : hint);
+    setArtifactDetailRefreshHint((hint) => hint?.startsWith("Auto-opened from Asset Forge packet origin:")
+      ? null
+      : hint);
+  }
+
+  function openAssetForgePacketOriginRecord(origin: AssetForgeReviewPacketOrigin): void {
+    const breadcrumbNote = `Auto-opened from Asset Forge packet origin: ${origin.label}.`;
+    const resolutionDiagnostics = assetForgeLivePacket.reviewPacketResolutionDiagnostics;
+    setAssetForgeRecordsOriginContext({
+      label: origin.label,
+      detail: origin.detail,
+      runId: origin.runId ?? null,
+      executionId: origin.executionId ?? null,
+      artifactId: origin.artifactId ?? null,
+      packetCapturedAtIso: origin.capturedAtIso ?? null,
+      packetCapturedAtSource: origin.capturedAtSource ?? null,
+      packetResolutionSummary: resolutionDiagnostics?.summary ?? null,
+      packetResolvedLane: resolutionDiagnostics?.resolvedLane ?? null,
+      packetAttemptSummaryLines: resolutionDiagnostics?.attempts.map((attempt) => (
+        `${attempt.label}: ${attempt.reason}`
+      )) ?? [],
+    });
+
+    if (origin.artifactId) {
+      setActiveWorkspaceId("records");
+      setActiveRecordsSurface("artifacts");
+      openArtifactDetail(origin.artifactId, {
+        autoOpenedFromOverview: breadcrumbNote,
+      });
+      return;
+    }
+
+    if (origin.executionId) {
+      setActiveWorkspaceId("records");
+      setActiveRecordsSurface("executions");
+      openExecutionDetail(origin.executionId, {
+        autoOpenedFromOverview: breadcrumbNote,
+      });
+      return;
+    }
+
+    if (origin.runId) {
+      setActiveWorkspaceId("records");
+      setActiveRecordsSurface("runs");
+      openRunDetail(origin.runId, {
+        autoOpenedFromOverview: breadcrumbNote,
+      });
+    }
+  }
+
+  if (activeWorkspaceId === "asset-forge") {
     return (
       <section
         aria-label="Asset Forge full workspace"
@@ -7288,7 +7456,8 @@ export default function App() {
           height: "100vh",
           minHeight: "100vh",
           display: "grid",
-          gridTemplateRows: "auto 1fr",
+          gridTemplateRows: "74px minmax(0, 1fr)",
+          maxHeight: "100vh",
           background: "var(--app-shell-bg)",
           color: "var(--app-text-color)",
           fontFamily: '"Segoe UI Variable", "Segoe UI", "Trebuchet MS", sans-serif',
@@ -7297,29 +7466,46 @@ export default function App() {
       >
         <header
           aria-label="AppHeader"
-          ref={assetForgeHeaderRef}
           style={{
-            padding: "14px 18px",
+            height: "74px",
+            minHeight: "74px",
+            padding: "10px 14px",
             borderBottom: "1px solid var(--app-panel-border)",
             background: "var(--app-panel-bg)",
             boxShadow: "var(--app-shadow-soft)",
             position: "relative",
-            zIndex: 1,
           }}
         >
           <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 14,
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 14,
             }}
           >
-            <div>
-              <strong style={{ fontSize: 20, color: "var(--app-text-color)" }}>
+            <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+              <strong
+                style={{
+                  display: "block",
+                  fontSize: 20,
+                  color: "var(--app-text-color)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {operatorGuideShellApp.title}
               </strong>
-              <p style={{ margin: "6px 0 0 0", color: "var(--app-subtle-color)" }}>
+              <p
+                style={{
+                  margin: "6px 0 0 0",
+                  color: "var(--app-subtle-color)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {operatorGuideShellApp.subtitle}
               </p>
             </div>
@@ -7329,6 +7515,7 @@ export default function App() {
               onClick={() => setActiveWorkspaceId("home")}
               style={{
                 minHeight: 32,
+                height: 32,
                 border: "1px solid #61adff",
                 borderRadius: 8,
                 padding: "0 12px",
@@ -7337,7 +7524,7 @@ export default function App() {
                 fontWeight: 700,
                 cursor: "pointer",
                 whiteSpace: "nowrap",
-                boxShadow: "0 0 0 1px rgba(97, 173, 255, 0.45), 0 0 14px rgba(44, 138, 255, 0.35)",
+                boxShadow: "0 0 0 2px rgba(77, 153, 255, 0.58), 0 0 18px rgba(44, 138, 255, 0.5)",
               }}
             >
               Back to Home
@@ -7348,7 +7535,7 @@ export default function App() {
           aria-label="AssetForgeWorkspacePage"
           style={{
             minHeight: 0,
-            height: assetForgeWorkspacePageHeight,
+            height: "calc(100vh - 74px)",
             overflow: "auto",
             padding: "10px 12px 14px",
             boxSizing: "border-box",
@@ -7365,6 +7552,12 @@ export default function App() {
                 onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
+                onOpenReviewPacketOriginRecord={openAssetForgePacketOriginRecord}
+                reviewPacketData={assetForgeLivePacket.reviewPacketData}
+                reviewPacketSource={assetForgeLivePacket.reviewPacketSource}
+                reviewPacketOrigin={assetForgeLivePacket.reviewPacketOrigin}
+                reviewPacketResolutionDiagnostics={assetForgeLivePacket.reviewPacketResolutionDiagnostics}
+                recordsLaneAlignment={assetForgeRecordsLaneAlignment}
                 bridgeStatus={o3deBridgeStatus}
               />
             </Suspense>
@@ -7622,6 +7815,81 @@ function parseRefreshTimestamp(value: string | null | undefined): number {
   }
   const parsed = Date.parse(value);
   return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function parseAssetForgeRecordsOriginContext(rawValue: string | null): AssetForgeRecordsOriginContext | null {
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue) as {
+      label?: unknown;
+      detail?: unknown;
+      runId?: unknown;
+      executionId?: unknown;
+      artifactId?: unknown;
+      packetCapturedAtIso?: unknown;
+      packetCapturedAtSource?: unknown;
+      packetResolutionSummary?: unknown;
+      packetResolvedLane?: unknown;
+      packetAttemptSummaryLines?: unknown;
+    };
+
+    if (typeof parsed !== "object" || parsed === null) {
+      return null;
+    }
+    if (typeof parsed.label !== "string" || parsed.label.trim().length === 0) {
+      return null;
+    }
+    if (typeof parsed.detail !== "string") {
+      return null;
+    }
+
+    const runId = typeof parsed.runId === "string" && parsed.runId.trim().length > 0 ? parsed.runId : null;
+    const executionId = typeof parsed.executionId === "string" && parsed.executionId.trim().length > 0
+      ? parsed.executionId
+      : null;
+    const artifactId = typeof parsed.artifactId === "string" && parsed.artifactId.trim().length > 0
+      ? parsed.artifactId
+      : null;
+    const packetCapturedAtIso = typeof parsed.packetCapturedAtIso === "string"
+      && parsed.packetCapturedAtIso.trim().length > 0
+      ? parsed.packetCapturedAtIso
+      : null;
+    const packetCapturedAtSource = typeof parsed.packetCapturedAtSource === "string"
+      && parsed.packetCapturedAtSource.trim().length > 0
+      ? parsed.packetCapturedAtSource
+      : null;
+    const packetResolutionSummary = typeof parsed.packetResolutionSummary === "string"
+      && parsed.packetResolutionSummary.trim().length > 0
+      ? parsed.packetResolutionSummary
+      : null;
+    const packetResolvedLane = typeof parsed.packetResolvedLane === "string"
+      && parsed.packetResolvedLane.trim().length > 0
+      ? parsed.packetResolvedLane
+      : null;
+    const packetAttemptSummaryLines = Array.isArray(parsed.packetAttemptSummaryLines)
+      ? parsed.packetAttemptSummaryLines
+        .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+        .slice(0, 5)
+      : [];
+
+    return {
+      label: parsed.label,
+      detail: parsed.detail,
+      runId,
+      executionId,
+      artifactId,
+      packetCapturedAtIso,
+      packetCapturedAtSource,
+      packetResolutionSummary,
+      packetResolvedLane,
+      packetAttemptSummaryLines,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function isUnresolvedRun(run: RunListItem): boolean {

@@ -3,6 +3,52 @@ export type AssetForgeReviewPacketSource =
   | "existing_frontend_packet_data"
   | "live_phase9_packet_data";
 
+export type AssetForgeReviewPacketOriginKind =
+  | "typed_fixture_preview"
+  | "existing_frontend_packet_payload"
+  | "selected_artifact_metadata"
+  | "selected_execution_details"
+  | "selected_run_execution_details"
+  | "unknown_live_packet_origin";
+
+export interface AssetForgeReviewPacketOrigin {
+  kind: AssetForgeReviewPacketOriginKind;
+  label: string;
+  detail: string;
+  runId?: string | null;
+  executionId?: string | null;
+  artifactId?: string | null;
+  capturedAtIso?: string | null;
+  capturedAtSource?: string | null;
+}
+
+export type AssetForgePacketLane = "artifact" | "execution" | "run";
+
+export interface AssetForgePacketLaneAttempt {
+  lane: AssetForgePacketLane;
+  label: string;
+  hasPayload: boolean;
+  hasReviewPacket: boolean;
+  reason: string;
+}
+
+export interface AssetForgePacketResolutionDiagnostics {
+  selectedRecordsSurface: "runs" | "executions" | "artifacts" | "events" | "unknown";
+  preferredOrder: AssetForgePacketLane[];
+  resolvedLane: AssetForgePacketLane | null;
+  summary: string;
+  attempts: AssetForgePacketLaneAttempt[];
+}
+
+export interface AssetForgeRecordsLaneAlignment {
+  packetResolvedLane: AssetForgePacketLane | null;
+  packetResolvedLaneLabel: string;
+  activeRecordsSurface: "runs" | "executions" | "artifacts" | "events" | "unknown";
+  activeRecordsSurfaceLabel: string;
+  driftDetected: boolean;
+  guidance: string;
+}
+
 export interface Phase9AssetReadbackReviewPacketSelectedProject {
   project_root?: string | null;
   project_json_path?: string | null;
@@ -93,6 +139,10 @@ export interface Phase9AssetReadbackReviewPacket {
 
 export interface AssetForgeToolbenchReviewPacketViewModel {
   dataSourceLabel: string;
+  hasResolvedPacket: boolean;
+  packetResolutionState: "resolved" | "unresolved_live" | "unresolved_non_live";
+  packetResolutionLabel: string;
+  packetResolutionDetail: string;
   capability: string;
   contractVersion: string;
   readbackStatus: string;
@@ -122,10 +172,12 @@ export interface AssetForgeToolbenchReviewPacketViewModel {
     productSubId: string;
     productCount: string;
     evidenceAvailable: string;
+    evidenceRows: string[];
   };
   dependencyEvidence: {
     dependencyCount: string;
     evidenceAvailable: string;
+    evidenceRows: string[];
   };
   catalogEvidence: {
     catalogPresence: string;

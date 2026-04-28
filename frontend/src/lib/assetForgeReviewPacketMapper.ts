@@ -33,6 +33,73 @@ function asStringArray(value: unknown): string[] {
   return value.filter((entry): entry is string => typeof entry === "string" && entry.length > 0);
 }
 
+function asEvidenceField(value: unknown): string | null {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  if (typeof value === "boolean") {
+    return String(value);
+  }
+  return null;
+}
+
+function summarizeEvidenceRecord(record: Record<string, unknown>): string {
+  const preferredKeys = [
+    "product_path",
+    "dependency_path",
+    "path",
+    "source_path",
+    "product_id",
+    "product_sub_id",
+    "dependency_type",
+    "platform",
+  ] as const;
+  const parts: string[] = [];
+
+  preferredKeys.forEach((key) => {
+    const value = asEvidenceField(record[key]);
+    if (value) {
+      parts.push(`${key}=${value}`);
+    }
+  });
+
+  if (parts.length > 0) {
+    return parts.join(" | ");
+  }
+
+  const fallbackEntry = Object.entries(record).find(([, value]) => asEvidenceField(value) !== null);
+  if (!fallbackEntry) {
+    return "Row object present (display fields unavailable)";
+  }
+  const [key, rawValue] = fallbackEntry;
+  const fallbackValue = asEvidenceField(rawValue) ?? UNKNOWN_VALUE;
+  return `${key}=${fallbackValue}`;
+}
+
+function summarizeEvidenceRow(entry: unknown): string {
+  const directValue = asEvidenceField(entry);
+  if (directValue) {
+    return directValue;
+  }
+  const record = asRecord(entry);
+  if (record) {
+    return summarizeEvidenceRecord(record);
+  }
+  return "Row present (unsupported type)";
+}
+
+function asEvidenceRows(value: unknown, prefix: string): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .slice(0, 5)
+    .map((entry, index) => `${prefix} ${index + 1}: ${summarizeEvidenceRow(entry)}`);
+}
+
 function fallback(value: string | null | undefined, fallbackValue = UNKNOWN_VALUE): string {
   return value ?? fallbackValue;
 }
@@ -76,6 +143,37 @@ function sourceLabel(source: AssetForgeReviewPacketSource): string {
     default:
       return "Typed sample fixture data (read-only preview; not live)";
   }
+}
+
+function buildPacketResolution(
+  source: AssetForgeReviewPacketSource,
+  hasResolvedPacket: boolean,
+): {
+  state: "resolved" | "unresolved_live" | "unresolved_non_live";
+  label: string;
+  detail: string;
+} {
+  if (hasResolvedPacket) {
+    return {
+      state: "resolved",
+      label: "Resolved Phase 9 packet payload",
+      detail: "Resolved review packet fields from the selected payload.",
+    };
+  }
+
+  if (source === "live_phase9_packet_data") {
+    return {
+      state: "unresolved_live",
+      label: "Live payload unresolved",
+      detail: "Live source is selected, but no asset_readback_review_packet fields were found in the current payload.",
+    };
+  }
+
+  return {
+    state: "unresolved_non_live",
+    label: "Preview payload unresolved",
+    detail: "No review packet fields were found. Showing read-only fallback values.",
+  };
 }
 
 function parsePacketRecord(record: Record<string, unknown>): Phase9AssetReadbackReviewPacket {
@@ -125,6 +223,8 @@ export function mapAssetForgeToolbenchReviewPacket(
   source: AssetForgeReviewPacketSource,
 ): AssetForgeToolbenchReviewPacketViewModel {
   const packet = resolveAssetReadbackReviewPacket(payload);
+  const hasResolvedPacket = packet !== null;
+  const packetResolution = buildPacketResolution(source, hasResolvedPacket);
   const selectedProject = packet?.selected_project ?? {};
   const selectedPlatform = packet?.selected_platform ?? {};
   const assetDatabase = packet?.asset_database ?? {};
@@ -136,10 +236,18 @@ export function mapAssetForgeToolbenchReviewPacket(
 
   const readbackStatus = packet?.proof_status === "asset_source_inspect_proven"
     ? "Read-only proof present"
-    : "Partial or blocked readback evidence";
+    : hasResolvedPacket
+      ? "Partial or blocked readback evidence"
+      : source === "live_phase9_packet_data"
+        ? "Live packet unresolved (review packet fields unavailable)"
+        : "Packet payload unresolved (fallback review values)";
 
   return {
     dataSourceLabel: sourceLabel(source),
+    hasResolvedPacket,
+    packetResolutionState: packetResolution.state,
+    packetResolutionLabel: packetResolution.label,
+    packetResolutionDetail: packetResolution.detail,
     capability: fallback(packet?.capability),
     contractVersion: fallback(packet?.review_contract_version),
     readbackStatus,
@@ -169,10 +277,12 @@ export function mapAssetForgeToolbenchReviewPacket(
       productSubId: numberToDisplay(asNumber(productEvidence.product_sub_id)),
       productCount: numberToDisplay(asNumber(productEvidence.product_count)),
       evidenceAvailable: booleanToDisplay(asBoolean(productEvidence.evidence_available)),
+      evidenceRows: asEvidenceRows(productEvidence.product_rows, "Product row"),
     },
     dependencyEvidence: {
       dependencyCount: numberToDisplay(asNumber(dependencyEvidence.dependency_count)),
       evidenceAvailable: booleanToDisplay(asBoolean(dependencyEvidence.evidence_available)),
+      evidenceRows: asEvidenceRows(dependencyEvidence.dependency_rows, "Dependency row"),
     },
     catalogEvidence: {
       catalogPresence: booleanToDisplay(asBoolean(catalogEvidence.catalog_presence)),
