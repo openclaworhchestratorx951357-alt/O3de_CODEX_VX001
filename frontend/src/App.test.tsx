@@ -408,6 +408,8 @@ describe("App desktop smoke", () => {
     const returnedForgePanel = await screen.findByLabelText("AI Asset Forge");
     expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
     expect(within(returnedForgePanel).getByLabelText("Asset Forge Review page")).toBeInTheDocument();
+    const driftedTruthStrip = within(returnedForgePanel).getByLabelText("Forge connection truth strip");
+    expect(within(driftedTruthStrip).getByLabelText("Lane alignment status")).toHaveTextContent("Drift");
     const driftNotice = within(returnedForgePanel).getByLabelText("Records lane drift notice");
     expect(driftNotice).toBeInTheDocument();
     const reviewDriftAction = within(driftNotice).getByRole("button", { name: "Open packet lane surface" });
@@ -422,6 +424,8 @@ describe("App desktop smoke", () => {
     const realignedForgePanel = await screen.findByLabelText("AI Asset Forge");
     expect(within(realignedForgePanel).getByLabelText("Asset Forge Review page")).toBeInTheDocument();
     expect(within(realignedForgePanel).queryByLabelText("Records lane drift notice")).toBeNull();
+    const alignedTruthStrip = within(realignedForgePanel).getByLabelText("Forge connection truth strip");
+    expect(within(alignedTruthStrip).getByLabelText("Lane alignment status")).toHaveTextContent("Aligned");
     expect(within(realignedForgePanel).getByRole("button", { name: "Approve production import" })).toBeDisabled();
   });
 

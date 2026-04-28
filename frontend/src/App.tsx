@@ -186,9 +186,11 @@ function buildAssetForgeRecordsLaneAlignment(
   const driftDetected = targetSurface !== null && targetSurface !== activeSurface;
   const packetResolvedLaneLabel = formatPacketLaneLabel(resolvedLane);
   const activeRecordsSurfaceLabel = formatRecordsSurfaceLabel(activeSurface);
-  const guidance = driftDetected
-    ? `Packet evidence resolved from ${packetResolvedLaneLabel}, but Records is focused on ${activeRecordsSurfaceLabel}. Refresh or reopen the packet lane before relying on readiness state.`
-    : `Records lane aligns with ${packetResolvedLaneLabel}. Keep review read-only until approval and admitted mutation corridors are available.`;
+  const guidance = targetSurface === null
+    ? "Packet lane is unresolved in this view. Select or reopen a resolvable packet lane in Records before relying on readiness state."
+    : driftDetected
+      ? `Packet evidence resolved from ${packetResolvedLaneLabel}, but Records is focused on ${activeRecordsSurfaceLabel}. Refresh or reopen the packet lane before relying on readiness state.`
+      : `Records lane aligns with ${packetResolvedLaneLabel}. Keep review read-only until approval and admitted mutation corridors are available.`;
 
   return {
     packetResolvedLane: resolvedLane,

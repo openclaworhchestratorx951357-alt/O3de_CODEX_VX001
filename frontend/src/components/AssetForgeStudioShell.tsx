@@ -90,6 +90,12 @@ type ConnectionTruthSummary = {
   captureAgeLabel: string;
   recordsTargetLabel: string;
 };
+type LaneAlignmentState = "aligned" | "drift" | "unknown";
+type LaneAlignmentStatus = {
+  label: string;
+  guidance: string;
+  state: LaneAlignmentState;
+};
 
 const UNKNOWN_VALUE = "Unknown / unavailable";
 const STORAGE_KEY = "o3de-asset-forge-page-shell-menu-v1";
@@ -319,6 +325,37 @@ function buildConnectionTruthSummary(
     bridgeHeartbeatLabel: bridgeSnapshot.heartbeatState,
     captureAgeLabel: packetProvenance.captureAgeLabel,
     recordsTargetLabel: buildRecordTargetLabel(packetOrigin),
+  };
+}
+
+function buildLaneAlignmentStatus(
+  recordsLaneAlignment?: AssetForgeRecordsLaneAlignment,
+): LaneAlignmentStatus {
+  if (!recordsLaneAlignment) {
+    return {
+      label: "Unknown",
+      guidance: "Lane alignment is unavailable in this preview view.",
+      state: "unknown",
+    };
+  }
+  if (recordsLaneAlignment.packetResolvedLane === null) {
+    return {
+      label: "Unknown",
+      guidance: recordsLaneAlignment.guidance,
+      state: "unknown",
+    };
+  }
+  if (recordsLaneAlignment.driftDetected) {
+    return {
+      label: "Drift",
+      guidance: recordsLaneAlignment.guidance,
+      state: "drift",
+    };
+  }
+  return {
+    label: "Aligned",
+    guidance: recordsLaneAlignment.guidance,
+    state: "aligned",
   };
 }
 
@@ -662,6 +699,18 @@ function freshnessTone(severity: FreshnessSeverity): CSSProperties {
   }
 }
 
+function laneAlignmentTone(state: LaneAlignmentState): CSSProperties {
+  switch (state) {
+    case "aligned":
+      return { borderColor: "#2f8c5e", color: "#8ff0b5", background: "rgba(18, 85, 57, 0.42)" };
+    case "drift":
+      return { borderColor: "#a64b5b", color: "#ffadba", background: "rgba(96, 31, 45, 0.46)" };
+    case "unknown":
+    default:
+      return { borderColor: "#5f6e80", color: "#d3dde9", background: "rgba(78, 88, 104, 0.3)" };
+  }
+}
+
 function gateIndicatorColor(gate: GateState): string {
   switch (gate) {
     case "read-only":
@@ -735,6 +784,10 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
     () => buildOriginRecordAction(resolvedPacketOrigin, onOpenReviewPacketOriginRecord),
     [resolvedPacketOrigin, onOpenReviewPacketOriginRecord],
   );
+  const laneAlignmentStatus = useMemo(
+    () => buildLaneAlignmentStatus(recordsLaneAlignment),
+    [recordsLaneAlignment],
+  );
 
   const saveLayout = () => window.localStorage.setItem(STORAGE_KEY, activeTopMenu);
   const resetLayout = () => {
@@ -765,6 +818,16 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
         <div style={s.truthItem}><span style={s.truthLabel}>Heartbeat</span><strong style={s.truthValue}>{connectionTruth.bridgeHeartbeatLabel}</strong></div>
         <div style={s.truthItem}><span style={s.truthLabel}>Capture age</span><strong style={s.truthValue}>{connectionTruth.captureAgeLabel}</strong></div>
         <div style={s.truthItem}><span style={s.truthLabel}>Records target</span><strong style={s.truthValue}>{connectionTruth.recordsTargetLabel}</strong></div>
+        <div style={s.truthItem}>
+          <span style={s.truthLabel}>Lane alignment</span>
+          <span
+            aria-label="Lane alignment status"
+            title={laneAlignmentStatus.guidance}
+            style={{ ...s.alignmentChip, ...laneAlignmentTone(laneAlignmentStatus.state) }}
+          >
+            {laneAlignmentStatus.label}
+          </span>
+        </div>
         <div style={s.truthActionCell}>
           <button
             type="button"
@@ -1137,6 +1200,7 @@ const s = {
   truthActionCell: { minWidth: 0, display: "grid", alignItems: "stretch" },
   truthActionButton: { minHeight: 28, border: "1px solid #45617e", borderRadius: 4, padding: "0 10px", background: "#182736", color: "#d8e4f2", fontWeight: 800, cursor: "pointer" },
   truthActionButtonDisabled: { minHeight: 28, border: "1px solid #344961", borderRadius: 4, padding: "0 10px", background: "#192331", color: "#d8e4f2", fontWeight: 800, opacity: 0.5, cursor: "not-allowed" },
+  alignmentChip: { display: "inline-flex", alignItems: "center", justifyContent: "center", borderWidth: 1, borderStyle: "solid", borderRadius: 3, minHeight: 22, padding: "0 8px", fontSize: 11, fontWeight: 900, width: "fit-content" },
   pageHost: { minWidth: 0, minHeight: 0, overflow: "auto" },
   page: { display: "grid", gridTemplateRows: "auto minmax(0, 1fr) auto", gap: 10, height: "100%", minWidth: 0, minHeight: 0, padding: 10, overflow: "auto", background: "#0b1017", boxSizing: "border-box" },
   reviewPage: { display: "grid", gridTemplateRows: "auto minmax(0, 1fr)", gap: 10, height: "100%", minWidth: 0, minHeight: 0, padding: 10, overflow: "auto", background: "#0b1017", boxSizing: "border-box" },

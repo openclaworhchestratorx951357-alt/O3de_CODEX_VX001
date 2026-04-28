@@ -64,6 +64,8 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(truthStrip).getByText("Heartbeat")).toBeInTheDocument();
     expect(within(truthStrip).getByText("Capture age")).toBeInTheDocument();
     expect(within(truthStrip).getByText("Records target")).toBeInTheDocument();
+    expect(within(truthStrip).getByText("Lane alignment")).toBeInTheDocument();
+    expect(within(truthStrip).getByLabelText("Lane alignment status")).toHaveTextContent("Unknown");
     expect(within(truthStrip).getByText("Unavailable")).toBeInTheDocument();
     expect(within(truthStrip).getByRole("button", { name: "Open origin in Records" })).toBeDisabled();
 
@@ -373,6 +375,10 @@ describe("AssetForgeToolbenchLayout", () => {
     const openPacketLaneButton = within(driftNotice).getByRole("button", { name: "Open packet lane surface" });
     expect(openPacketLaneButton).toBeDisabled();
     expect(driftNotice).toHaveTextContent("Records navigation handler is unavailable in this view.");
+    const truthStrip = within(shell).getByLabelText("Forge connection truth strip");
+    const laneAlignmentStatus = within(truthStrip).getByLabelText("Lane alignment status");
+    expect(laneAlignmentStatus).toHaveTextContent("Drift");
+    expect(laneAlignmentStatus).toHaveAttribute("title", expect.stringContaining("Refresh or reopen the packet lane"));
   });
 
   it("keeps existing navigation callbacks but blocks direct execution", () => {
