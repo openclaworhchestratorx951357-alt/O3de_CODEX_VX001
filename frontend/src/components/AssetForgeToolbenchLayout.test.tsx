@@ -313,9 +313,11 @@ describe("AssetForgeToolbenchLayout", () => {
 
     fireEvent.click(within(shell).getByRole("button", { name: "File" }));
     expect(within(shell).getByRole("button", { name: "Open source record in Records" })).toBeDisabled();
+    expect(within(shell).getByText("No live run/execution/artifact id is available for this packet source.")).toBeInTheDocument();
 
     fireEvent.click(within(shell).getByRole("button", { name: "Review" }));
     expect(within(shell).getByRole("button", { name: "Open source record in Records" })).toBeDisabled();
+    expect(within(shell).getByText("No live run/execution/artifact id is available for this packet source.")).toBeInTheDocument();
     expect(onOpenReviewPacketOriginRecord).not.toHaveBeenCalled();
   });
 

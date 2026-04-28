@@ -505,6 +505,28 @@ function canOpenPacketOriginRecord(packetOrigin: AssetForgeReviewPacketOrigin): 
   return Boolean(packetOrigin.artifactId || packetOrigin.executionId || packetOrigin.runId);
 }
 
+function buildOriginRecordAction(
+  packetOrigin: AssetForgeReviewPacketOrigin,
+  onOpenReviewPacketOriginRecord?: (origin: AssetForgeReviewPacketOrigin) => void,
+): { enabled: boolean; hint: string } {
+  if (!onOpenReviewPacketOriginRecord) {
+    return {
+      enabled: false,
+      hint: "Records navigation handler is unavailable in this view.",
+    };
+  }
+  if (!canOpenPacketOriginRecord(packetOrigin)) {
+    return {
+      enabled: false,
+      hint: "No live run/execution/artifact id is available for this packet source.",
+    };
+  }
+  return {
+    enabled: true,
+    hint: "Open the selected packet origin record in Records (read-only).",
+  };
+}
+
 function badgeTone(gate: GateState): CSSProperties {
   switch (gate) {
     case "read-only": return { borderColor: "#2f8c5e", color: "#8ff0b5", background: "rgba(18, 85, 57, 0.42)" };
@@ -641,13 +663,13 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
 }
 
 function FilePage({ projectProfile, activeTopMenu, saveLayout, resetLayout, bridgeSnapshot, packetDataSourceLabel, packetOrigin, onOpenReviewPacketOriginRecord }: { projectProfile?: O3DEProjectProfile; activeTopMenu: TopMenu; saveLayout: () => void; resetLayout: () => void; bridgeSnapshot: BridgeSnapshot; packetDataSourceLabel: string; packetOrigin: AssetForgeReviewPacketOrigin; onOpenReviewPacketOriginRecord?: (origin: AssetForgeReviewPacketOrigin) => void }) {
-  const canOpenOriginRecord = canOpenPacketOriginRecord(packetOrigin) && Boolean(onOpenReviewPacketOriginRecord);
+  const originRecordAction = buildOriginRecordAction(packetOrigin, onOpenReviewPacketOriginRecord);
 
   return <Page title="File" gate="local preview" detail="Project/session information and harmless local layout preferences. No file mutation.">
     <div style={s.twoCols}>
       <Panel title="Project session" gate="read-only"><Rows rows={[["Project", safeText(projectProfile?.name)], ["Project root", safeText(projectProfile?.projectRoot)], ["Engine root", safeText(projectProfile?.engineRoot)], ["Profile source", safeText(projectProfile?.sourceLabel)]]} /></Panel>
       <Panel title="Local layout controls" gate="local preview"><p style={s.muted}>Stores only harmless UI menu preference state in localStorage.</p><div style={s.buttonRow}><button type="button" onClick={saveLayout} style={s.primaryButton}>Save Layout</button><button type="button" onClick={resetLayout} style={s.darkButton}>Reset Layout</button><button type="button" disabled style={s.disabledButton}>Write project file</button></div><Rows rows={[["Saved menu target", activeTopMenu], ["Backend persistence", "Not connected"], ["File mutation", "Blocked"]]} /></Panel>
-      <Panel title="Bridge read-only snapshot" gate="proof-only"><Rows rows={[["Connection", bridgeSnapshot.connectionState], ["Heartbeat", bridgeSnapshot.heartbeatState], ["Runner process", bridgeSnapshot.runnerState], ["Queue status", bridgeSnapshot.queueSummary], ["Bridge source", bridgeSnapshot.sourceLabel], ["Project root", bridgeSnapshot.projectRoot], ["Bridge root", bridgeSnapshot.bridgeRoot], ["Packet source", packetDataSourceLabel], ...buildPacketOriginRows(packetOrigin)]} /><div style={s.buttonRow}><button type="button" aria-label="Open source record in Records" disabled={!canOpenOriginRecord} onClick={() => onOpenReviewPacketOriginRecord?.(packetOrigin)} style={canOpenOriginRecord ? s.darkButton : s.disabledButton}>Open source record in Records</button></div></Panel>
+      <Panel title="Bridge read-only snapshot" gate="proof-only"><Rows rows={[["Connection", bridgeSnapshot.connectionState], ["Heartbeat", bridgeSnapshot.heartbeatState], ["Runner process", bridgeSnapshot.runnerState], ["Queue status", bridgeSnapshot.queueSummary], ["Bridge source", bridgeSnapshot.sourceLabel], ["Project root", bridgeSnapshot.projectRoot], ["Bridge root", bridgeSnapshot.bridgeRoot], ["Packet source", packetDataSourceLabel], ...buildPacketOriginRows(packetOrigin)]} /><div style={s.buttonRow}><button type="button" aria-label="Open source record in Records" title={originRecordAction.hint} disabled={!originRecordAction.enabled} onClick={() => onOpenReviewPacketOriginRecord?.(packetOrigin)} style={originRecordAction.enabled ? s.darkButton : s.disabledButton}>Open source record in Records</button>{!originRecordAction.enabled && <span style={s.hintText}>{originRecordAction.hint}</span>}</div></Panel>
     </div><BlockedSummary />
   </Page>;
 }
@@ -750,9 +772,9 @@ function CameraPage({ cameraMode, setCameraMode }: { cameraMode: CameraMode; set
 
 function ReviewPage({ reviewPacketData, reviewPacketSource, packet, reviewPacketOrigin, onOpenReviewPacketOriginRecord, freshnessOverview }: Pick<AssetForgeStudioShellProps, "reviewPacketData" | "reviewPacketSource" | "reviewPacketOrigin" | "onOpenReviewPacketOriginRecord"> & { packet: PacketViewModel; freshnessOverview: FreshnessOverview }) {
   const packetOrigin = reviewPacketOrigin ?? buildDefaultPacketOrigin(reviewPacketSource);
-  const canOpenOriginRecord = canOpenPacketOriginRecord(packetOrigin) && Boolean(onOpenReviewPacketOriginRecord);
+  const originRecordAction = buildOriginRecordAction(packetOrigin, onOpenReviewPacketOriginRecord);
 
-  return <Page title="Review" gate="proof-only" detail="Full-page operator review packet, evidence summary, warnings, approval state, and safest next step." review><div style={s.reviewGrid}><section aria-label="Forge operator review packet full page" style={s.reviewPacketFrame}><AssetForgeReviewPacketPanel packetData={reviewPacketData} packetSource={reviewPacketSource} /></section><aside style={s.reviewAside}><Panel title="Freshness severity" gate="proof-only"><div aria-label="Review freshness severity" style={s.freshnessStrip}><FreshnessBadge label="Asset DB" signal={freshnessOverview.assetDatabase} /><FreshnessBadge label="Catalog" signal={freshnessOverview.assetCatalog} /><FreshnessBadge label="Overall" signal={freshnessOverview.overall} /></div><Rows rows={[["Asset DB freshness", freshnessOverview.assetDatabase.status], ["Catalog freshness", freshnessOverview.assetCatalog.status], ["Overall freshness", freshnessOverview.overall.status], ["Bridge heartbeat", freshnessOverview.bridgeHeartbeatCue]]} /><p style={s.mutedCompact}>{freshnessOverview.overall.cue}</p></Panel><Panel title="Evidence summary" gate="proof-only"><Rows rows={[["Source evidence", packet.sourceEvidence.sourceExists], ["Product evidence", packet.productEvidence.evidenceAvailable], ["Catalog evidence", packet.catalogEvidence.catalogPresence], ["Dependency evidence", packet.dependencyEvidence.evidenceAvailable], ...buildPacketOriginRows(packetOrigin)]} /><div style={s.buttonRow}><button type="button" aria-label="Open source record in Records" disabled={!canOpenOriginRecord} onClick={() => onOpenReviewPacketOriginRecord?.(packetOrigin)} style={canOpenOriginRecord ? s.darkButton : s.disabledButton}>Open source record in Records</button></div></Panel><Panel title="Unknown / unavailable" gate="requires approval"><Rows rows={[["License", packet.unavailableFields.licenseStatus], ["Quality", packet.unavailableFields.qualityStatus], ["Placement readiness", packet.unavailableFields.placementReadiness], ["Production approval", packet.unavailableFields.productionApproval]]} /></Panel><Panel title="Operator state" gate="requires approval"><Rows rows={[["Approval", packet.operatorApprovalState], ["Safest next step", packet.safestNextStep]]} /><button type="button" disabled style={s.disabledWideButton}>Approve production import</button></Panel></aside></div></Page>;
+  return <Page title="Review" gate="proof-only" detail="Full-page operator review packet, evidence summary, warnings, approval state, and safest next step." review><div style={s.reviewGrid}><section aria-label="Forge operator review packet full page" style={s.reviewPacketFrame}><AssetForgeReviewPacketPanel packetData={reviewPacketData} packetSource={reviewPacketSource} /></section><aside style={s.reviewAside}><Panel title="Freshness severity" gate="proof-only"><div aria-label="Review freshness severity" style={s.freshnessStrip}><FreshnessBadge label="Asset DB" signal={freshnessOverview.assetDatabase} /><FreshnessBadge label="Catalog" signal={freshnessOverview.assetCatalog} /><FreshnessBadge label="Overall" signal={freshnessOverview.overall} /></div><Rows rows={[["Asset DB freshness", freshnessOverview.assetDatabase.status], ["Catalog freshness", freshnessOverview.assetCatalog.status], ["Overall freshness", freshnessOverview.overall.status], ["Bridge heartbeat", freshnessOverview.bridgeHeartbeatCue]]} /><p style={s.mutedCompact}>{freshnessOverview.overall.cue}</p></Panel><Panel title="Evidence summary" gate="proof-only"><Rows rows={[["Source evidence", packet.sourceEvidence.sourceExists], ["Product evidence", packet.productEvidence.evidenceAvailable], ["Catalog evidence", packet.catalogEvidence.catalogPresence], ["Dependency evidence", packet.dependencyEvidence.evidenceAvailable], ...buildPacketOriginRows(packetOrigin)]} /><div style={s.buttonRow}><button type="button" aria-label="Open source record in Records" title={originRecordAction.hint} disabled={!originRecordAction.enabled} onClick={() => onOpenReviewPacketOriginRecord?.(packetOrigin)} style={originRecordAction.enabled ? s.darkButton : s.disabledButton}>Open source record in Records</button>{!originRecordAction.enabled && <span style={s.hintText}>{originRecordAction.hint}</span>}</div></Panel><Panel title="Unknown / unavailable" gate="requires approval"><Rows rows={[["License", packet.unavailableFields.licenseStatus], ["Quality", packet.unavailableFields.qualityStatus], ["Placement readiness", packet.unavailableFields.placementReadiness], ["Production approval", packet.unavailableFields.productionApproval]]} /></Panel><Panel title="Operator state" gate="requires approval"><Rows rows={[["Approval", packet.operatorApprovalState], ["Safest next step", packet.safestNextStep]]} /><button type="button" disabled style={s.disabledWideButton}>Approve production import</button></Panel></aside></div></Page>;
 }
 
 function HelpPage({ bridgeSnapshot, packetDataSourceLabel, packetOrigin }: { bridgeSnapshot: BridgeSnapshot; packetDataSourceLabel: string; packetOrigin: AssetForgeReviewPacketOrigin }) {
@@ -866,6 +888,7 @@ const s = {
   freshnessBadgeLabel: { textTransform: "none", color: "#eef5ff" },
   textarea: { width: "100%", minHeight: 145, boxSizing: "border-box", resize: "none", border: "1px solid #344961", borderRadius: 4, padding: 10, background: "#0b1118", color: "#eef5ff", fontWeight: 800 },
   buttonRow: { display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginTop: 10 },
+  hintText: { color: "#9fb0c5", fontSize: 12, lineHeight: 1.3 },
   primaryButton: { minHeight: 30, border: "1px solid #6baeff", borderRadius: 4, padding: "0 10px", background: "#3a8eff", color: "#06101d", fontWeight: 900, cursor: "pointer" },
   darkButton: { minHeight: 30, border: "1px solid #344961", borderRadius: 4, padding: "0 10px", background: "#192331", color: "#d8e4f2", fontWeight: 900, cursor: "pointer" },
   disabledButton: { minHeight: 30, border: "1px solid #344961", borderRadius: 4, padding: "0 10px", background: "#192331", color: "#d8e4f2", fontWeight: 900, opacity: 0.48, cursor: "not-allowed" },
