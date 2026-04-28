@@ -7403,6 +7403,14 @@ export default function App() {
       : hint);
   }
 
+  function ensureWorkspaceVisited(workspaceId: DesktopWorkspaceId): void {
+    setVisitedWorkspaceIds((currentWorkspaceIds) => (
+      currentWorkspaceIds.includes(workspaceId)
+        ? currentWorkspaceIds
+        : [...currentWorkspaceIds, workspaceId]
+    ));
+  }
+
   function openAssetForgePacketOriginRecord(origin: AssetForgeReviewPacketOrigin): void {
     const breadcrumbNote = `Auto-opened from Asset Forge packet origin: ${origin.label}.`;
     const resolutionDiagnostics = assetForgeLivePacket.reviewPacketResolutionDiagnostics;
@@ -7422,6 +7430,7 @@ export default function App() {
     });
 
     if (origin.artifactId) {
+      ensureWorkspaceVisited("records");
       setActiveWorkspaceId("records");
       setActiveRecordsSurface("artifacts");
       openArtifactDetail(origin.artifactId, {
@@ -7431,6 +7440,7 @@ export default function App() {
     }
 
     if (origin.executionId) {
+      ensureWorkspaceVisited("records");
       setActiveWorkspaceId("records");
       setActiveRecordsSurface("executions");
       openExecutionDetail(origin.executionId, {
@@ -7440,6 +7450,7 @@ export default function App() {
     }
 
     if (origin.runId) {
+      ensureWorkspaceVisited("records");
       setActiveWorkspaceId("records");
       setActiveRecordsSurface("runs");
       openRunDetail(origin.runId, {
@@ -7483,20 +7494,30 @@ export default function App() {
                 flexWrap: "wrap",
                 }}
           >
-            <div style={{ minWidth: 0, flex: "1 1 auto", overflow: "hidden", paddingRight: 10 }}>
+            <div style={{
+              flex: "1 1 auto",
+              paddingRight: 10,
+              display: "grid",
+              gap: 4,
+              minWidth: 0,
+            }}>
               <strong
                 style={{
                   display: "block",
                   fontSize: 20,
                   color: "var(--app-text-color)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
                 }}
               >
                 {operatorGuideShellApp.title}
               </strong>
-              <p style={{ margin: "6px 0 0 0", color: "var(--app-subtle-color)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              <p style={{
+                margin: 0,
+                color: "var(--app-subtle-color)",
+                whiteSpace: "normal",
+                overflow: "visible",
+                lineHeight: 1.2,
+                fontSize: 13,
+              }}>
                 {operatorGuideShellApp.subtitle}
               </p>
             </div>
