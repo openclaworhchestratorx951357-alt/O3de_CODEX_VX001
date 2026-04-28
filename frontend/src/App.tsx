@@ -7449,14 +7449,16 @@ export default function App() {
   }
 
   if (activeWorkspaceId === "asset-forge") {
+    const assetForgeHeaderHeight = 74;
+
     return (
       <section
         aria-label="Asset Forge full workspace"
         style={{
             height: "100vh",
-            minHeight: "100vh",
+            minHeight: 0,
             display: "grid",
-            gridTemplateRows: "auto minmax(0, 1fr)",
+            gridTemplateRows: `${assetForgeHeaderHeight}px minmax(0, 1fr)`,
             maxHeight: "100vh",
             background: "var(--app-shell-bg)",
             color: "var(--app-text-color)",
@@ -7467,8 +7469,9 @@ export default function App() {
         <header
           aria-label="AppHeader"
             style={{
-                minHeight: "56px",
-                maxHeight: "88px",
+                height: `${assetForgeHeaderHeight}px`,
+                minHeight: `${assetForgeHeaderHeight}px`,
+                maxHeight: `${assetForgeHeaderHeight}px`,
                 padding: "10px 14px",
                 borderBottom: "1px solid var(--app-panel-border)",
                 background: "var(--app-panel-bg)",
@@ -7524,16 +7527,17 @@ export default function App() {
             </button>
           </div>
         </header>
-            <main
-              aria-label="AssetForgeWorkspacePage"
-              style={{
-                minHeight: 0,
-                height: "100%",
-                overflow: "auto",
-                padding: "10px 12px 14px",
-                boxSizing: "border-box",
-              }}
-            >
+          <main
+            aria-label="AssetForgeWorkspacePage"
+            style={{
+              minHeight: 0,
+              maxHeight: `calc(100vh - ${assetForgeHeaderHeight}px)`,
+              height: `calc(100vh - ${assetForgeHeaderHeight}px)`,
+              overflow: "auto",
+              padding: "10px 12px 14px",
+              boxSizing: "border-box",
+            }}
+          >
           <div style={{ height: "100%", minHeight: 0 }}>
             <Suspense
               fallback={renderWorkspaceLoadingFallback(
