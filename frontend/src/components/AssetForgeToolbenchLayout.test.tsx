@@ -220,14 +220,14 @@ describe("AssetForgeToolbenchLayout", () => {
 
     expect(within(shell).getByText("Entity outliner")).toBeInTheDocument();
     expect(within(shell).getByText("Transform readback")).toBeInTheDocument();
-    expect(within(shell).getByRole("button", { name: "Full viewport" })).toBeInTheDocument();
+    expect(within(shell).getByRole("button", { name: "Viewport fullscreen" })).toBeInTheDocument();
 
-    fireEvent.click(within(shell).getByRole("button", { name: "Full viewport" }));
+    fireEvent.click(within(shell).getByRole("button", { name: "Viewport fullscreen" }));
 
     expect(within(shell).queryByText("Entity outliner")).not.toBeInTheDocument();
     expect(within(shell).queryByText("Transform readback")).not.toBeInTheDocument();
     expect(within(shell).getByText("Selected entity preview (focus)")).toBeInTheDocument();
-    expect(within(shell).getByRole("button", { name: "Exit full viewport" })).toBeInTheDocument();
+    expect(within(shell).getByRole("button", { name: "Exit fullscreen" })).toBeInTheDocument();
     expect(within(shell).getByLabelText("Forge left tool shelf")).toBeInTheDocument();
     expect(within(shell).getByText(/renderer not connected/i)).toBeInTheDocument();
   });

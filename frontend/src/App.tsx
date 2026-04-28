@@ -740,7 +740,6 @@ export default function App() {
   const [selectedWorkspaceLoading, setSelectedWorkspaceLoading] = useState(false);
   const [selectedEventLoading, setSelectedEventLoading] = useState(false);
   const [dashboardRefreshing, setDashboardRefreshing] = useState(false);
-  const [assetForgeHeaderHeight, setAssetForgeHeaderHeight] = useState(0);
   const [busyApprovalId, setBusyApprovalId] = useState<string | null>(null);
   const [selectedExecutionError, setSelectedExecutionError] = useState<string | null>(null);
   const [selectedArtifactError, setSelectedArtifactError] = useState<string | null>(null);
@@ -843,7 +842,6 @@ export default function App() {
   const artifactDetailSectionRef = useRef<HTMLDivElement | null>(null);
   const eventDetailSectionRef = useRef<HTMLDivElement | null>(null);
   const workspaceDetailSectionRef = useRef<HTMLDivElement | null>(null);
-  const assetForgeHeaderRef = useRef<HTMLElement | null>(null);
   const announceRunDetailRefreshRef = useRef(false);
   const bridgeFollowupRefreshTimeoutRef = useRef<number | null>(null);
   const relatedExecutionPriority = selectedRunId
@@ -2486,39 +2484,6 @@ export default function App() {
         ? currentWorkspaceIds
         : [...currentWorkspaceIds, activeWorkspaceId]
     ));
-  }, [activeWorkspaceId]);
-
-  useEffect(() => {
-    if (activeWorkspaceId !== "asset-forge") {
-      return;
-    }
-
-    const headerElement = assetForgeHeaderRef.current;
-    if (!headerElement) {
-      return;
-    }
-
-    const updateHeaderHeight = () => {
-      const nextHeight = Math.ceil(headerElement.getBoundingClientRect().height);
-      setAssetForgeHeaderHeight((currentHeight) => (
-        currentHeight === nextHeight ? currentHeight : nextHeight
-      ));
-    };
-
-    updateHeaderHeight();
-
-    if (typeof ResizeObserver === "undefined") {
-      return;
-    }
-
-    const observer = new ResizeObserver(() => {
-      updateHeaderHeight();
-    });
-    observer.observe(headerElement);
-
-    return () => {
-      observer.disconnect();
-    };
   }, [activeWorkspaceId]);
 
   useEffect(() => {
@@ -7484,10 +7449,6 @@ export default function App() {
   }
 
   if (activeWorkspaceId === "asset-forge") {
-    const assetForgeWorkspacePageHeight = assetForgeHeaderHeight > 0
-      ? `calc(100vh - ${assetForgeHeaderHeight}px)`
-      : "calc(100vh - 88px)";
-
     return (
       <section
         aria-label="Asset Forge full workspace"
@@ -7504,14 +7465,14 @@ export default function App() {
       >
         <header
           aria-label="AppHeader"
-          ref={assetForgeHeaderRef}
           style={{
-            padding: "14px 18px",
+            height: "74px",
+            minHeight: "74px",
+            padding: "10px 14px",
             borderBottom: "1px solid var(--app-panel-border)",
             background: "var(--app-panel-bg)",
             boxShadow: "var(--app-shadow-soft)",
             position: "relative",
-            zIndex: 1,
           }}
         >
           <div
@@ -7522,11 +7483,28 @@ export default function App() {
               gap: 14,
             }}
           >
-            <div>
-              <strong style={{ fontSize: 20, color: "var(--app-text-color)" }}>
+            <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+              <strong
+                style={{
+                  display: "block",
+                  fontSize: 20,
+                  color: "var(--app-text-color)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {operatorGuideShellApp.title}
               </strong>
-              <p style={{ margin: "6px 0 0 0", color: "var(--app-subtle-color)" }}>
+              <p
+                style={{
+                  margin: "6px 0 0 0",
+                  color: "var(--app-subtle-color)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {operatorGuideShellApp.subtitle}
               </p>
             </div>
@@ -7544,7 +7522,7 @@ export default function App() {
                 fontWeight: 700,
                 cursor: "pointer",
                 whiteSpace: "nowrap",
-                boxShadow: "0 0 0 1px rgba(97, 173, 255, 0.45), 0 0 14px rgba(44, 138, 255, 0.35)",
+                boxShadow: "0 0 0 2px rgba(77, 153, 255, 0.58), 0 0 18px rgba(44, 138, 255, 0.5)",
               }}
             >
               Back to Home
@@ -7555,7 +7533,7 @@ export default function App() {
           aria-label="AssetForgeWorkspacePage"
           style={{
             minHeight: 0,
-            height: assetForgeWorkspacePageHeight,
+            height: "100%",
             overflow: "auto",
             padding: "10px 12px 14px",
             boxSizing: "border-box",

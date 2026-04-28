@@ -947,7 +947,7 @@ function EntityPage({ activeTool, setActiveTool }: { activeTool: string; setActi
           onClick={() => setViewportMode(isFocusMode ? "docked" : "focus")}
           style={isFocusMode ? s.activeSmallButton : s.smallButton}
         >
-          {isFocusMode ? "Exit full viewport" : "Full viewport"}
+          {isFocusMode ? "Exit fullscreen" : "Viewport fullscreen"}
         </button>
       </section>
       <div style={isFocusMode ? s.entityFocusGrid : s.entityEditorGrid}>
@@ -1188,12 +1188,12 @@ function BlockedSummary() {
 
 const s = {
   shell: { display: "grid", gridTemplateRows: "34px auto minmax(0, 1fr)", minWidth: 0, height: "100%", minHeight: 0, overflow: "hidden", border: "1px solid #26384f", borderRadius: 6, background: "#0b1017", color: "#c3cfdd", boxShadow: "0 18px 55px rgba(3, 12, 25, 0.35)", fontSize: 13, lineHeight: 1.35 },
-  topMenu: { display: "flex", alignItems: "center", gap: 4, minWidth: 0, padding: "0 8px", borderBottom: "1px solid #27384b", background: "#101820", overflow: "hidden" },
+  topMenu: { display: "flex", alignItems: "center", gap: 4, minWidth: 0, padding: "0 8px", borderBottom: "1px solid #27384b", background: "#101820", overflow: "hidden", height: 34 },
   brand: { flex: "0 0 auto", marginRight: 10, color: "#eef5ff", whiteSpace: "nowrap" },
   menuButton: { flex: "0 1 auto", minWidth: 0, height: 24, padding: "0 6px", borderWidth: 1, borderStyle: "solid", borderColor: "transparent", borderRadius: 3, background: "transparent", color: "#c3cfdd", fontSize: 12, fontWeight: 800, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   activeMenuButton: { flex: "0 1 auto", minWidth: 0, height: 24, padding: "0 6px", borderWidth: 1, borderStyle: "solid", borderColor: "#4fa3ff", borderRadius: 3, background: "#173a5d", color: "#ffffff", fontSize: 12, fontWeight: 800, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   topStatus: { flex: "0 0 auto", marginLeft: "auto", color: "#8fa3bc", whiteSpace: "nowrap", fontSize: 11, textTransform: "lowercase" },
-  truthStrip: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 6, alignItems: "center", minWidth: 0, padding: "4px 8px", borderBottom: "1px solid #27384b", background: "#0e151f" },
+  truthStrip: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 6, alignItems: "center", minWidth: 0, padding: "4px 8px", borderBottom: "1px solid #27384b", background: "#0e151f", overflow: "auto" },
   truthItem: { minWidth: 0, display: "grid", gap: 1, padding: "2px 6px", border: "1px solid #26384f", borderRadius: 4, background: "#111b26" },
   truthLabel: { color: "#7f95ad", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 10, fontWeight: 800 },
   truthValue: { color: "#d8e4f2", fontSize: 11, fontWeight: 800, whiteSpace: "normal", overflowWrap: "anywhere", lineHeight: 1.2 },
@@ -1212,9 +1212,9 @@ const s = {
   threeCols: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, minWidth: 0, minHeight: 0 },
   createGrid: { display: "grid", gridTemplateColumns: "minmax(0, 0.8fr) minmax(0, 0.7fr) minmax(0, 1.4fr) minmax(0, 0.8fr)", gap: 10, minWidth: 0, minHeight: 0 },
   assetsGrid: { display: "grid", gridTemplateColumns: "160px minmax(0, 1fr) minmax(0, 0.45fr)", gap: 10, minWidth: 0, minHeight: 0 },
-  editorGrid: { display: "grid", gridTemplateColumns: "64px minmax(0, 0.8fr) minmax(0, 1.3fr) minmax(0, 0.9fr)", gap: 10, minWidth: 0, minHeight: 0 },
-  entityEditorGrid: { display: "grid", gridTemplateColumns: "64px minmax(0, 0.8fr) minmax(0, 1.3fr) minmax(0, 0.9fr)", gap: 10, minWidth: 0, minHeight: 0 },
-  entityFocusGrid: { display: "grid", gridTemplateColumns: "64px minmax(0, 1fr)", gap: 10, minWidth: 0, minHeight: 0 },
+  editorGrid: { display: "grid", gridTemplateColumns: "68px minmax(0, 0.8fr) minmax(0, 1.3fr) minmax(0, 0.9fr)", gap: 10, minWidth: 0, minHeight: 0 },
+  entityEditorGrid: { display: "grid", gridTemplateColumns: "68px minmax(0, 0.8fr) minmax(0, 1.3fr) minmax(0, 0.9fr)", gap: 10, minWidth: 0, minHeight: 0 },
+  entityFocusGrid: { display: "grid", gridTemplateColumns: "68px minmax(0, 1fr)", gap: 10, minWidth: 0, minHeight: 0 },
   lightingGrid: { display: "grid", gridTemplateColumns: "minmax(0, 0.85fr) minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1fr)", gap: 10, minWidth: 0, minHeight: 0 },
   entityToolbar: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, minWidth: 0, border: "1px solid #2b3e55", borderRadius: 5, padding: "8px 10px", background: "#111923", color: "#aebbd0" },
   materialsGrid: { display: "grid", gridTemplateColumns: "minmax(0, 0.8fr) minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 0.8fr)", gap: 10, minWidth: 0, minHeight: 0 },
@@ -1249,12 +1249,12 @@ const s = {
   list: { margin: 0, padding: "0 0 0 18px", color: "#b8c6d7" },
   tree: { display: "grid", gap: 6 },
   summary: { cursor: "pointer", color: "#f2f7ff", fontWeight: 900 },
-  toolShelf: { display: "grid", alignContent: "start", gap: 4, width: 64, minWidth: 64, maxWidth: 64, minHeight: 0, overflow: "hidden", border: "1px solid #2b3e55", borderRadius: 5, padding: 5, background: "#111923" },
+  toolShelf: { display: "grid", alignContent: "start", gap: 4, width: 68, minWidth: 68, maxWidth: 68, minHeight: 0, overflow: "hidden", border: "1px solid #2b3e55", borderRadius: 5, padding: 5, background: "#111923" },
   toolButton: { display: "grid", justifyItems: "center", alignContent: "center", gap: 4, minHeight: 38, border: "1px solid #2f4054", borderRadius: 4, background: "#17212d", color: "#d6e2ee", fontSize: 10, fontWeight: 900, cursor: "pointer", padding: "4px 0", overflow: "hidden" },
   activeToolButton: { display: "grid", justifyItems: "center", alignContent: "center", gap: 4, minHeight: 38, border: "1px solid #5aa9ff", borderRadius: 4, background: "#183f63", color: "#d6e2ee", fontSize: 10, fontWeight: 900, cursor: "pointer", padding: "4px 0", overflow: "hidden" },
   toolShortLabel: { fontSize: 10, fontWeight: 900, letterSpacing: "0.04em", lineHeight: 1 },
   toolGateDot: { width: 7, height: 7, borderRadius: "50%", borderWidth: 1, borderStyle: "solid" },
-  viewport: { position: "relative", minHeight: 300, height: "100%", overflow: "hidden", border: "1px solid #35506e", borderRadius: 5, background: "linear-gradient(180deg, #0d2740 0%, #071019 58%, #05080d 100%)" },
+  viewport: { position: "relative", minHeight: 280, height: "100%", overflow: "hidden", border: "1px solid #35506e", borderRadius: 5, background: "linear-gradient(180deg, #0d2740 0%, #071019 58%, #05080d 100%)" },
   gridFloor: { position: "absolute", inset: "48% 0 0 0", backgroundImage: "linear-gradient(rgba(98, 167, 255, 0.18) 1px, transparent 1px), linear-gradient(90deg, rgba(98, 167, 255, 0.18) 1px, transparent 1px)", backgroundSize: "34px 34px", transform: "perspective(380px) rotateX(60deg)", transformOrigin: "top center" },
   horizon: { position: "absolute", left: 0, right: 0, top: "48%", height: 1, background: "rgba(179, 212, 255, 0.42)" },
   axisX: { position: "absolute", left: "18%", right: "18%", top: "61%", height: 1, background: "rgba(77, 156, 255, 0.45)" },
