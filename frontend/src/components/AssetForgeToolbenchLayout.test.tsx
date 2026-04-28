@@ -232,6 +232,66 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByText(/renderer not connected/i)).toBeInTheDocument();
   });
 
+  it("supports Create viewport focus mode while keeping command strip accessible", () => {
+    renderToolbench();
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    fireEvent.click(within(shell).getByRole("button", { name: "Create" }));
+
+    expect(within(shell).getByText("Asset candidate preview")).toBeInTheDocument();
+    expect(within(shell).getByRole("button", { name: "Viewport fullscreen" })).toBeInTheDocument();
+    expect(within(shell).getByText("Open Prompt Studio draft")).toBeInTheDocument();
+
+    fireEvent.click(within(shell).getByRole("button", { name: "Viewport fullscreen" }));
+
+    expect(within(shell).queryByText("Prompt request")).not.toBeInTheDocument();
+    expect(within(shell).queryByText("Forge plan preview")).not.toBeInTheDocument();
+    expect(within(shell).queryByText("Approval gates")).not.toBeInTheDocument();
+    expect(within(shell).getByText("Asset candidate preview (focus)")).toBeInTheDocument();
+    expect(within(shell).getByRole("button", { name: "Exit fullscreen" })).toBeInTheDocument();
+    expect(within(shell).getByLabelText("Forge command strip")).toBeInTheDocument();
+    expect(within(shell).getByLabelText("Forge left tool shelf")).toBeInTheDocument();
+  });
+
+  it("supports Lighting viewport focus mode while keeping the tool shelf visible", () => {
+    renderToolbench();
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    fireEvent.click(within(shell).getByRole("button", { name: "Lighting" }));
+
+    expect(within(shell).getByText("Lookdev preview")).toBeInTheDocument();
+    expect(within(shell).getByRole("button", { name: "Viewport fullscreen" })).toBeInTheDocument();
+
+    fireEvent.click(within(shell).getByRole("button", { name: "Viewport fullscreen" }));
+
+    expect(within(shell).queryByText("Light list")).not.toBeInTheDocument();
+    expect(within(shell).queryByText("Lighting plan notes")).not.toBeInTheDocument();
+    expect(within(shell).getByText("Lookdev preview (focus)")).toBeInTheDocument();
+    expect(within(shell).getByRole("button", { name: "Exit fullscreen" })).toBeInTheDocument();
+    expect(within(shell).getByLabelText("Forge left tool shelf")).toBeInTheDocument();
+    expect(within(shell).getByText(/renderer not connected/i)).toBeInTheDocument();
+  });
+
+  it("supports Camera viewport focus mode with blocked write controls", () => {
+    renderToolbench();
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    fireEvent.click(within(shell).getByRole("button", { name: "Camera" }));
+
+    expect(within(shell).getByText("Camera / perspective preview")).toBeInTheDocument();
+    expect(within(shell).getByRole("button", { name: "Write camera to O3DE scene" })).toBeDisabled();
+    expect(within(shell).getByRole("button", { name: "Viewport fullscreen" })).toBeInTheDocument();
+
+    fireEvent.click(within(shell).getByRole("button", { name: "Viewport fullscreen" }));
+
+    expect(within(shell).queryByText("Camera list")).not.toBeInTheDocument();
+    expect(within(shell).queryByText("Cinematic shot list")).not.toBeInTheDocument();
+    expect(within(shell).getByText("Camera Perspective preview (focus)")).toBeInTheDocument();
+    expect(within(shell).getByRole("button", { name: "Exit fullscreen" })).toBeInTheDocument();
+    expect(within(shell).queryByRole("button", { name: "Write camera to O3DE scene" })).not.toBeInTheDocument();
+    expect(within(shell).getByLabelText("Forge left tool shelf")).toBeInTheDocument();
+  });
+
   it("gives Review a full-page operator packet surface", () => {
     renderToolbench();
 
