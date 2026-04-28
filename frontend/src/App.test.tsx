@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { SettingsProvider } from "./lib/settings/context";
 import { createSettingsProfile, DEFAULT_ACCENT_COLOR } from "./lib/settings/defaults";
+import { assetForgeReviewPacketFixture } from "./fixtures/assetForgeReviewPacketFixture";
 import {
   getDesktopNavButton,
   getLaunchpadButton,
@@ -72,8 +73,18 @@ const apiMocks = vi.hoisted(() => ({
   updateAutonomyObservation: vi.fn(),
   waitForCodexControlTask: vi.fn(),
 }));
+const livePacketResolverMock = vi.hoisted(() => vi.fn(() => ({})));
 
 vi.mock("./lib/api", () => apiMocks);
+vi.mock("./lib/assetForgeLivePacketResolver", async () => {
+  const actual = await vi.importActual<typeof import("./lib/assetForgeLivePacketResolver")>(
+    "./lib/assetForgeLivePacketResolver",
+  );
+  return {
+    ...actual,
+    resolveAssetForgeLivePacketSelection: livePacketResolverMock,
+  };
+});
 
 vi.mock("./components/AdaptersPanel", () => ({
   default: () => <div>AdaptersPanel stub</div>,
@@ -136,6 +147,8 @@ describe("App desktop smoke", () => {
     window.sessionStorage.clear();
     window.localStorage.clear();
     vi.clearAllMocks();
+    livePacketResolverMock.mockReset();
+    livePacketResolverMock.mockReturnValue({});
 
     setPendingAppApiMocks(apiMocks);
   });
@@ -330,6 +343,49 @@ describe("App desktop smoke", () => {
     expect(await screen.findByRole("button", { name: /Home/i })).toBeInTheDocument();
     expect(getDesktopNavButton(/Home/i)).toBeInTheDocument();
     expect(screen.queryByLabelText("AssetForgeWorkspacePage")).toBeNull();
+  });
+
+  it("completes a read-only Asset Forge to Records handoff loop and returns to Review", async () => {
+    livePacketResolverMock.mockReturnValue({
+      reviewPacketData: {
+        asset_readback_review_packet: assetForgeReviewPacketFixture,
+      },
+      reviewPacketSource: "live_phase9_packet_data",
+      reviewPacketOrigin: {
+        kind: "selected_artifact_metadata",
+        label: "Selected artifact metadata",
+        detail: "Artifact artifact-live-001 | Execution exec-live-001 | Run run-live-001",
+        runId: "run-live-001",
+        executionId: "exec-live-001",
+        artifactId: "artifact-live-001",
+        capturedAtIso: "2026-04-27T00:00:03.000Z",
+        capturedAtSource: "selected_artifact.created_at",
+      },
+    });
+
+    render(<App />);
+    fireEvent.click(getDesktopNavButton(/Asset Forge/i));
+
+    const forgePanel = await screen.findByLabelText("AI Asset Forge");
+    const forgeTopMenu = within(forgePanel).getByLabelText("Forge top application menu");
+    fireEvent.click(within(forgeTopMenu).getByRole("button", { name: "Review" }));
+    expect(within(forgePanel).getByLabelText("Asset Forge Review page")).toBeInTheDocument();
+
+    const openOriginButton = within(forgePanel).getByRole("button", { name: "Open source record in Records" });
+    expect(openOriginButton).toBeEnabled();
+    fireEvent.click(openOriginButton);
+
+    expect(await screen.findByText("Opened from Asset Forge review packet origin")).toBeInTheDocument();
+    expect(screen.getByText("Selected artifact metadata. Artifact artifact-live-001 | Execution exec-live-001 | Run run-live-001")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Back to Asset Forge Review" })).toBeEnabled();
+    expect(screen.queryByLabelText("AssetForgeWorkspacePage")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to Asset Forge Review" }));
+
+    const returnedForgePanel = await screen.findByLabelText("AI Asset Forge");
+    expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
+    expect(within(returnedForgePanel).getByLabelText("Asset Forge Review page")).toBeInTheDocument();
+    expect(within(returnedForgePanel).getByRole("button", { name: "Approve production import" })).toBeDisabled();
   });
 
   it("shows a truthful empty catalog state instead of fallback agent data when live catalog data is unavailable", async () => {
