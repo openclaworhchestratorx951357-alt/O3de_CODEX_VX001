@@ -39,7 +39,8 @@ const topMenus = ["File", "Edit", "Create", "Assets", "Entity", "Components", "M
 type TopMenu = (typeof topMenus)[number];
 type AssetCategory = "Source assets" | "Product assets" | "Dependencies" | "Catalog evidence" | "Review packets";
 type CameraMode = "Perspective" | "Camera" | "Shot list";
-type EntityViewportMode = "docked" | "focus";
+type ViewportMode = "normal" | "focus";
+type ViewportTarget = "entity" | "create-candidate" | "lighting" | "camera";
 type PacketViewModel = ReturnType<typeof mapAssetForgeToolbenchReviewPacket>;
 type ToolShelfItem = {
   id: string;
@@ -753,6 +754,8 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
   const [activeAssetCategory, setActiveAssetCategory] = useState<AssetCategory>("Source assets");
   const [activeTool, setActiveTool] = useState("Select");
   const [cameraMode, setCameraMode] = useState<CameraMode>("Perspective");
+  const [viewportMode, setViewportMode] = useState<ViewportMode>("normal");
+  const [viewportTarget, setViewportTarget] = useState<ViewportTarget>("entity");
   const packet = useMemo(() => mapAssetForgeToolbenchReviewPacket(reviewPacketData, reviewPacketSource), [reviewPacketData, reviewPacketSource]);
   const bridgeSnapshot = useMemo(() => buildBridgeSnapshot(bridgeStatus), [bridgeStatus]);
   const assetProcessorStatusLabel = useMemo(
@@ -796,6 +799,33 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
     setActiveAssetCategory("Source assets");
     setActiveTool("Select");
     setCameraMode("Perspective");
+    setViewportMode("normal");
+    setViewportTarget("entity");
+  };
+  const enterViewportFocus = (target: ViewportTarget) => {
+    setViewportTarget(target);
+    setViewportMode("focus");
+  };
+  const exitViewportFocus = () => setViewportMode("normal");
+  const handleMenuSwitch = (menu: TopMenu) => {
+    setActiveTopMenu(menu);
+    if (menu === "Entity") {
+      setViewportTarget("entity");
+      return;
+    }
+    if (menu === "Create") {
+      setViewportTarget("create-candidate");
+      return;
+    }
+    if (menu === "Lighting") {
+      setViewportTarget("lighting");
+      return;
+    }
+    if (menu === "Camera") {
+      setViewportTarget("camera");
+      return;
+    }
+    setViewportMode("normal");
   };
 
   return (
@@ -803,7 +833,13 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
       <nav aria-label="Forge top application menu" style={s.topMenu}>
         <strong style={s.brand}>O3DE AI Asset Forge</strong>
         {topMenus.map((menu) => (
-          <button key={menu} type="button" aria-current={activeTopMenu === menu ? "page" : undefined} onClick={() => setActiveTopMenu(menu)} style={activeTopMenu === menu ? s.activeMenuButton : s.menuButton}>
+          <button
+            key={menu}
+            type="button"
+            aria-current={activeTopMenu === menu ? "page" : undefined}
+            onClick={() => handleMenuSwitch(menu)}
+            style={activeTopMenu === menu ? s.activeMenuButton : s.menuButton}
+          >
             {menu}
           </button>
         ))}
@@ -844,13 +880,54 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
       <main aria-label="Asset Forge active page" style={s.pageHost}>
         {activeTopMenu === "File" && <FilePage projectProfile={projectProfile} activeTopMenu={activeTopMenu} saveLayout={saveLayout} resetLayout={resetLayout} bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} />}
         {activeTopMenu === "Edit" && <EditPage />}
-        {activeTopMenu === "Create" && <CreatePage onOpenPromptStudio={onOpenPromptStudio} onOpenRuntimeOverview={onOpenRuntimeOverview} onOpenBuilder={onOpenBuilder} />}
         {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} packetOrigin={resolvedPacketOrigin} assetRows={assetRows} assetProcessorStatusLabel={assetProcessorStatusLabel} freshnessOverview={freshnessOverview} packetProvenance={packetProvenance} resolutionDiagnostics={resolvedPacketResolutionDiagnostics} />}
-        {activeTopMenu === "Entity" && <EntityPage activeTool={activeTool} setActiveTool={setActiveTool} />}
+        {activeTopMenu === "Entity" && (
+          <EntityPage
+            activeTool={activeTool}
+            setActiveTool={setActiveTool}
+            viewportMode={viewportMode}
+            isViewportFocused={viewportMode === "focus" && viewportTarget === "entity"}
+            onEnterViewportFocus={() => enterViewportFocus("entity")}
+            onExitViewportFocus={exitViewportFocus}
+          />
+        )}
         {activeTopMenu === "Components" && <ComponentsPage readbackStatus={packet.readbackStatus} />}
         {activeTopMenu === "Materials" && <MaterialsPage packet={packet} />}
-        {activeTopMenu === "Lighting" && <LightingPage />}
-        {activeTopMenu === "Camera" && <CameraPage cameraMode={cameraMode} setCameraMode={setCameraMode} />}
+        {activeTopMenu === "Lighting" && (
+          <LightingPage
+            activeTool={activeTool}
+            setActiveTool={setActiveTool}
+            viewportMode={viewportMode}
+            isViewportFocused={viewportMode === "focus" && viewportTarget === "lighting"}
+            onEnterViewportFocus={() => enterViewportFocus("lighting")}
+            onExitViewportFocus={exitViewportFocus}
+          />
+        )}
+        {activeTopMenu === "Camera" && (
+          <CameraPage
+            cameraMode={cameraMode}
+            setCameraMode={setCameraMode}
+            activeTool={activeTool}
+            setActiveTool={setActiveTool}
+            viewportMode={viewportMode}
+            isViewportFocused={viewportMode === "focus" && viewportTarget === "camera"}
+            onEnterViewportFocus={() => enterViewportFocus("camera")}
+            onExitViewportFocus={exitViewportFocus}
+          />
+        )}
+        {activeTopMenu === "Create" && (
+          <CreatePage
+            onOpenPromptStudio={onOpenPromptStudio}
+            onOpenRuntimeOverview={onOpenRuntimeOverview}
+            onOpenBuilder={onOpenBuilder}
+            activeTool={activeTool}
+            setActiveTool={setActiveTool}
+            viewportMode={viewportMode}
+            isViewportFocused={viewportMode === "focus" && viewportTarget === "create-candidate"}
+            onEnterViewportFocus={() => enterViewportFocus("create-candidate")}
+            onExitViewportFocus={exitViewportFocus}
+          />
+        )}
         {activeTopMenu === "Review" && <ReviewPage reviewPacketData={reviewPacketData} reviewPacketSource={reviewPacketSource} packet={packet} reviewPacketOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} freshnessOverview={freshnessOverview} resolutionDiagnostics={resolvedPacketResolutionDiagnostics} recordsLaneAlignment={recordsLaneAlignment} />}
         {activeTopMenu === "Help" && <HelpPage bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} />}
       </main>
@@ -874,14 +951,58 @@ function EditPage() {
   return <Page title="Edit" gate="local preview" detail="Local undo/redo and layout notes only. No project mutation."><div style={s.threeCols}><Panel title="Local undo stack" gate="local preview"><List items={["Active page changes", "Viewport preview state", "Content browser selection"]} /></Panel><Panel title="Redo stack" gate="local preview"><List items={["No backend actions", "No file writes", "No source/product/cache edits"]} /></Panel><Panel title="Blocked edit actions" gate="blocked"><List items={["Cut entity", "Paste component", "Apply material", "Write prefab"]} /></Panel></div></Page>;
 }
 
-function CreatePage({ onOpenPromptStudio, onOpenRuntimeOverview, onOpenBuilder }: Pick<AssetForgeStudioShellProps, "onOpenPromptStudio" | "onOpenRuntimeOverview" | "onOpenBuilder">) {
+function CreatePage({
+  onOpenPromptStudio,
+  onOpenRuntimeOverview,
+  onOpenBuilder,
+  activeTool,
+  setActiveTool,
+  viewportMode,
+  isViewportFocused,
+  onEnterViewportFocus,
+  onExitViewportFocus,
+}: Pick<AssetForgeStudioShellProps, "onOpenPromptStudio" | "onOpenRuntimeOverview" | "onOpenBuilder"> & {
+  activeTool: string;
+  setActiveTool: (tool: string) => void;
+  viewportMode: ViewportMode;
+  isViewportFocused: boolean;
+  onEnterViewportFocus: () => void;
+  onExitViewportFocus: () => void;
+}) {
+  const isFocusMode = viewportMode === "focus" && isViewportFocused;
+
   return <Page title="Create" gate="plan-only" detail="Prompt/request builder, Forge plan preview, candidate preview, approval gates, and command strip. No direct generation.">
-    <div style={s.createGrid}>
-      <Panel title="Prompt request" gate="plan-only"><textarea aria-label="Forge prompt request preview" readOnly value="Create a weathered modular bridge segment with ivy accents and prepare evidence-only review steps." style={s.textarea} /><div style={s.buttonRow}><button type="button" onClick={onOpenPromptStudio} style={s.primaryButton}>Open Prompt Studio draft</button><button type="button" disabled style={s.disabledButton}>Generate asset</button></div></Panel>
-      <Panel title="Forge plan preview" gate="proof-only"><List items={["Typed plan preview", "Phase 9 readback context", "Operator review packet required", "No model download"]} /></Panel>
-      <Panel title="Asset candidate preview" gate="local preview"><ViewportPreview label="Candidate viewport preview" /></Panel>
-      <Panel title="Approval gates" gate="requires approval"><List items={["License: Unknown / unavailable", "Quality: Unknown / unavailable", "Placement readiness: Unknown / unavailable", "Production approval: Unknown / unavailable"]} /><button type="button" disabled style={s.disabledWideButton}>Place candidate in level</button></Panel>
-    </div><CommandStrip onOpenPromptStudio={onOpenPromptStudio} onOpenRuntimeOverview={onOpenRuntimeOverview} onOpenBuilder={onOpenBuilder} /><BlockedSummary />
+    {isFocusMode ? (
+      <>
+        <section style={s.entityToolbar}>
+          <span>
+            Viewport mode: <strong>Full viewport</strong> (candidate focus)
+          </span>
+          <button type="button" onClick={onExitViewportFocus} style={s.activeSmallButton}>Exit fullscreen</button>
+        </section>
+        <div style={s.entityFocusGrid}>
+          <ToolShelf activeTool={activeTool} setActiveTool={setActiveTool} />
+          <Panel title="Asset candidate preview (focus)" gate="local preview">
+            <ViewportPreview label="Asset candidate viewport preview (focus)" />
+          </Panel>
+        </div>
+      </>
+    ) : (
+      <div style={s.createGrid}>
+        <Panel title="Prompt request" gate="plan-only">
+          <textarea aria-label="Forge prompt request preview" readOnly value="Create a weathered modular bridge segment with ivy accents and prepare evidence-only review steps." style={s.textarea} />
+          <div style={s.buttonRow}><button type="button" onClick={onOpenPromptStudio} style={s.primaryButton}>Open Prompt Studio draft</button><button type="button" disabled style={s.disabledButton}>Generate asset</button></div>
+        </Panel>
+        <Panel title="Forge plan preview" gate="proof-only"><List items={["Typed plan preview", "Phase 9 readback context", "Operator review packet required", "No model download"]} /></Panel>
+        <Panel title="Asset candidate preview" gate="local preview">
+          <ViewportPreview label="Candidate viewport preview" />
+          <div style={s.buttonRow}><button type="button" onClick={onEnterViewportFocus} style={s.smallButton}>Viewport fullscreen</button></div>
+        </Panel>
+        <Panel title="Approval gates" gate="requires approval"><List items={["License: Unknown / unavailable", "Quality: Unknown / unavailable", "Placement readiness: Unknown / unavailable", "Production approval: Unknown / unavailable"]} /><button type="button" disabled style={s.disabledWideButton}>Place candidate in level</button></Panel>
+      </div>
+    )}
+    <CommandStrip onOpenPromptStudio={onOpenPromptStudio} onOpenRuntimeOverview={onOpenRuntimeOverview} onOpenBuilder={onOpenBuilder} />
+    <BlockedSummary />
   </Page>;
 }
 
@@ -928,10 +1049,23 @@ function AssetsPage({
   </Page>;
 }
 
-function EntityPage({ activeTool, setActiveTool }: { activeTool: string; setActiveTool: (tool: string) => void }) {
-  const [viewportMode, setViewportMode] = useState<EntityViewportMode>("docked");
-  const isFocusMode = viewportMode === "focus";
-
+function EntityPage({
+  activeTool,
+  setActiveTool,
+  viewportMode,
+  isViewportFocused,
+  onEnterViewportFocus,
+  onExitViewportFocus,
+}: {
+  activeTool: string;
+  setActiveTool: (tool: string) => void;
+  viewportMode: ViewportMode;
+  isViewportFocused: boolean;
+  onEnterViewportFocus: () => void;
+  onExitViewportFocus: () => void;
+}) {
+  const isFocusMode = viewportMode === "focus" && isViewportFocused;
+  const label = isFocusMode ? "Entity placement preview (focus mode)" : "Entity placement preview";
   return (
     <Page
       title="Entity"
@@ -944,7 +1078,7 @@ function EntityPage({ activeTool, setActiveTool }: { activeTool: string; setActi
         </span>
         <button
           type="button"
-          onClick={() => setViewportMode(isFocusMode ? "docked" : "focus")}
+          onClick={isFocusMode ? onExitViewportFocus : onEnterViewportFocus}
           style={isFocusMode ? s.activeSmallButton : s.smallButton}
         >
           {isFocusMode ? "Exit fullscreen" : "Viewport fullscreen"}
@@ -969,7 +1103,7 @@ function EntityPage({ activeTool, setActiveTool }: { activeTool: string; setActi
           </Panel>
         )}
         <Panel title={isFocusMode ? "Selected entity preview (focus)" : "Selected entity preview"} gate="local preview">
-          <ViewportPreview label={isFocusMode ? "Entity placement preview (focus mode)" : "Entity placement preview"} />
+          <ViewportPreview label={label} />
         </Panel>
         {!isFocusMode && (
           <Panel title="Transform readback" gate="read-only">
@@ -990,13 +1124,104 @@ function MaterialsPage({ packet }: { packet: PacketViewModel }) {
   return <Page title="Materials" gate="read-only" detail="Material slots, texture dependencies, O3DE material readiness, and material mutation gates."><div style={s.materialsGrid}><Panel title="Material slots" gate="read-only"><Rows rows={[["Slot 0", "bridge_segment_shell.azmaterial"], ["Slot 1", "bridge_segment_metal.azmaterial"], ["License", packet.unavailableFields.licenseStatus], ["Quality", packet.unavailableFields.qualityStatus]]} /></Panel><Panel title="Texture dependencies" gate="proof-only"><List items={["bridge_segment_albedo.png", "bridge_segment_normal.png", "bridge_segment_roughness.png", "Dependency count: " + packet.dependencyEvidence.dependencyCount]} /></Panel><Panel title="Material inspector preview" gate="local preview"><div style={s.materialPreview}><div style={s.materialSphere} /><span>Lookdev capture preview - renderer connection unavailable.</span></div></Panel><Panel title="O3DE material readiness" gate="blocked"><Rows rows={[["Material mutation", "Blocked"], ["Assignment", "Blocked"], ["Asset Processor", "Placeholder only - no execution"]]} /><button type="button" disabled style={s.disabledWideButton}>Assign material</button></Panel></div></Page>;
 }
 
-function LightingPage() {
-  return <Page title="Lighting" gate="plan-only" detail="Light list, lookdev preview controls, and lighting plan notes. No scene mutation."><div style={s.lightingGrid}><Panel title="Light list" gate="local preview"><List items={["KeyLight", "FillLight", "RimLight", "Environment probe: Unknown / unavailable"]} /></Panel><Panel title="Lookdev preview" gate="local preview"><ViewportPreview label="Lighting capture preview" /></Panel><Panel title="Lighting plan notes" gate="plan-only"><List items={["Warm key, cool fill", "Review shadow readability", "Capture preview only", "No O3DE light write"]} /></Panel><Panel title="Blocked lighting actions" gate="blocked"><button type="button" disabled style={s.disabledWideButton}>Apply lighting to level</button></Panel></div></Page>;
+function LightingPage({
+  activeTool,
+  setActiveTool,
+  viewportMode,
+  isViewportFocused,
+  onEnterViewportFocus,
+  onExitViewportFocus,
+}: {
+  activeTool: string;
+  setActiveTool: (tool: string) => void;
+  viewportMode: ViewportMode;
+  isViewportFocused: boolean;
+  onEnterViewportFocus: () => void;
+  onExitViewportFocus: () => void;
+}) {
+  const isFocusMode = viewportMode === "focus" && isViewportFocused;
+
+  return <Page title="Lighting" gate="plan-only" detail="Light list, lookdev preview controls, and lighting plan notes. No scene mutation.">
+    {isFocusMode ? (
+      <>
+        <section style={s.entityToolbar}>
+          <span>Viewport mode: <strong>Full viewport</strong> (lighting focus)</span>
+          <button type="button" onClick={onExitViewportFocus} style={s.activeSmallButton}>Exit fullscreen</button>
+        </section>
+        <div style={s.entityFocusGrid}>
+          <ToolShelf activeTool={activeTool} setActiveTool={setActiveTool} />
+          <Panel title="Lookdev preview (focus)" gate="local preview"><ViewportPreview label="Lighting focus preview" /></Panel>
+        </div>
+      </>
+    ) : (
+      <div style={s.lightingGrid}>
+        <Panel title="Light list" gate="local preview"><List items={["KeyLight", "FillLight", "RimLight", "Environment probe: Unknown / unavailable"]} /></Panel>
+        <Panel title="Lookdev preview" gate="local preview">
+          <ViewportPreview label="Lighting capture preview" />
+          <div style={s.buttonRow}><button type="button" onClick={onEnterViewportFocus} style={s.smallButton}>Viewport fullscreen</button></div>
+        </Panel>
+        <Panel title="Lighting plan notes" gate="plan-only"><List items={["Warm key, cool fill", "Review shadow readability", "Capture preview only", "No O3DE light write"]} /></Panel>
+        <Panel title="Blocked lighting actions" gate="blocked"><button type="button" disabled style={s.disabledWideButton}>Apply lighting to level</button></Panel>
+      </div>
+    )}
+    <BlockedSummary />
+  </Page>;
 }
 
-function CameraPage({ cameraMode, setCameraMode }: { cameraMode: CameraMode; setCameraMode: (mode: CameraMode) => void }) {
+function CameraPage({
+  activeTool,
+  setActiveTool,
+  cameraMode,
+  setCameraMode,
+  viewportMode,
+  isViewportFocused,
+  onEnterViewportFocus,
+  onExitViewportFocus,
+}: {
+  activeTool: string;
+  setActiveTool: (tool: string) => void;
+  cameraMode: CameraMode;
+  setCameraMode: (mode: CameraMode) => void;
+  viewportMode: ViewportMode;
+  isViewportFocused: boolean;
+  onEnterViewportFocus: () => void;
+  onExitViewportFocus: () => void;
+}) {
   const modes: CameraMode[] = ["Perspective", "Camera", "Shot list"];
-  return <Page title="Camera" gate="local preview" detail="Camera list, camera/perspective preview, and cinematic shot list. No O3DE camera mutation."><div style={s.cameraGrid}><Panel title="Camera list" gate="read-only"><List items={["EditorCamera_Main", "PreviewCamera_Cinematic", "AssetReviewCamera_01"]} /><div style={s.buttonRow}>{modes.map((mode) => <button key={mode} type="button" onClick={() => setCameraMode(mode)} style={cameraMode === mode ? s.activeSmallButton : s.smallButton}>{mode}</button>)}</div></Panel><Panel title="Camera / perspective preview" gate="local preview"><ViewportPreview label={cameraMode + " preview"} /></Panel><Panel title="Cinematic shot list" gate="plan-only"><List items={["Shot 010: Establish bridge silhouette", "Shot 020: Orbit candidate detail", "Shot 030: Evidence capture still", "Camera mutation blocked"]} /><button type="button" disabled style={s.disabledWideButton}>Write camera to O3DE scene</button></Panel></div></Page>;
+  const isFocusMode = viewportMode === "focus" && isViewportFocused;
+
+  return <Page title="Camera" gate="local preview" detail="Camera list, camera/perspective preview, and cinematic shot list. No O3DE camera mutation.">
+    {isFocusMode ? (
+      <>
+        <section style={s.entityToolbar}>
+          <span>Viewport mode: <strong>Full viewport</strong> (camera focus)</span>
+          <button type="button" onClick={onExitViewportFocus} style={s.activeSmallButton}>Exit fullscreen</button>
+        </section>
+        <div style={s.entityFocusGrid}>
+          <ToolShelf activeTool={activeTool} setActiveTool={setActiveTool} />
+          <Panel title={`Camera ${cameraMode} preview (focus)`} gate="local preview">
+            <ViewportPreview label={`${cameraMode} preview`} />
+          </Panel>
+        </div>
+      </>
+    ) : (
+      <div style={s.cameraGrid}>
+        <Panel title="Camera list" gate="read-only">
+          <List items={["EditorCamera_Main", "PreviewCamera_Cinematic", "AssetReviewCamera_01"]} />
+          <div style={s.buttonRow}>{modes.map((mode) => <button key={mode} type="button" onClick={() => setCameraMode(mode)} style={cameraMode === mode ? s.activeSmallButton : s.smallButton}>{mode}</button>)}</div>
+        </Panel>
+        <Panel title="Camera / perspective preview" gate="local preview">
+          <ViewportPreview label={cameraMode + " preview"} />
+          <div style={s.buttonRow}><button type="button" onClick={onEnterViewportFocus} style={s.smallButton}>Viewport fullscreen</button></div>
+        </Panel>
+        <Panel title="Cinematic shot list" gate="plan-only">
+          <List items={["Shot 010: Establish bridge silhouette", "Shot 020: Orbit candidate detail", "Shot 030: Evidence capture still", "Camera mutation blocked"]} />
+          <button type="button" disabled style={s.disabledWideButton}>Write camera to O3DE scene</button>
+        </Panel>
+      </div>
+    )}
+    <BlockedSummary />
+  </Page>;
 }
 
 function ReviewPage({

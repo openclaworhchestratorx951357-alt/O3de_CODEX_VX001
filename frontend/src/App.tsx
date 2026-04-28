@@ -7453,38 +7453,39 @@ export default function App() {
       <section
         aria-label="Asset Forge full workspace"
         style={{
-          height: "100vh",
-          minHeight: "100vh",
-          display: "grid",
-          gridTemplateRows: "74px minmax(0, 1fr)",
-          maxHeight: "100vh",
-          background: "var(--app-shell-bg)",
-          color: "var(--app-text-color)",
-          fontFamily: '"Segoe UI Variable", "Segoe UI", "Trebuchet MS", sans-serif',
-          overflow: "hidden",
-        }}
+            height: "100vh",
+            minHeight: "100vh",
+            display: "grid",
+            gridTemplateRows: "auto minmax(0, 1fr)",
+            maxHeight: "100vh",
+            background: "var(--app-shell-bg)",
+            color: "var(--app-text-color)",
+            fontFamily: '"Segoe UI Variable", "Segoe UI", "Trebuchet MS", sans-serif',
+            overflow: "hidden",
+          }}
       >
         <header
           aria-label="AppHeader"
-          style={{
-            height: "74px",
-            minHeight: "74px",
-            padding: "10px 14px",
-            borderBottom: "1px solid var(--app-panel-border)",
-            background: "var(--app-panel-bg)",
-            boxShadow: "var(--app-shadow-soft)",
-            position: "relative",
+            style={{
+                minHeight: "56px",
+                maxHeight: "88px",
+                padding: "10px 14px",
+                borderBottom: "1px solid var(--app-panel-border)",
+                background: "var(--app-panel-bg)",
+                boxShadow: "var(--app-shadow-soft)",
+                position: "relative",
           }}
         >
           <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 14,
-            }}
+            style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 14,
+                flexWrap: "wrap",
+                }}
           >
-            <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+            <div style={{ minWidth: 0, flex: "1 1 auto", overflow: "hidden", paddingRight: 10 }}>
               <strong
                 style={{
                   display: "block",
@@ -7497,15 +7498,7 @@ export default function App() {
               >
                 {operatorGuideShellApp.title}
               </strong>
-              <p
-                style={{
-                  margin: "6px 0 0 0",
-                  color: "var(--app-subtle-color)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
+              <p style={{ margin: "6px 0 0 0", color: "var(--app-subtle-color)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {operatorGuideShellApp.subtitle}
               </p>
             </div>
@@ -7514,9 +7507,9 @@ export default function App() {
               aria-label="Back to Home"
               onClick={() => setActiveWorkspaceId("home")}
               style={{
-                minHeight: 32,
-                height: 32,
-                border: "1px solid #61adff",
+              minHeight: 30,
+              height: 30,
+              border: "1px solid #61adff",
                 borderRadius: 8,
                 padding: "0 12px",
                 background: "var(--app-panel-elevated)",
@@ -7531,16 +7524,16 @@ export default function App() {
             </button>
           </div>
         </header>
-        <main
-          aria-label="AssetForgeWorkspacePage"
-          style={{
-            minHeight: 0,
-            height: "calc(100vh - 74px)",
-            overflow: "auto",
-            padding: "10px 12px 14px",
-            boxSizing: "border-box",
-          }}
-        >
+            <main
+              aria-label="AssetForgeWorkspacePage"
+              style={{
+                minHeight: 0,
+                height: "100%",
+                overflow: "auto",
+                padding: "10px 12px 14px",
+                boxSizing: "border-box",
+              }}
+            >
           <div style={{ height: "100%", minHeight: 0 }}>
             <Suspense
               fallback={renderWorkspaceLoadingFallback(
