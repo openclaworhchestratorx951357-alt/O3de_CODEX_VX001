@@ -13,6 +13,7 @@ const ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY = "o3de-control-app-active-desktop-wo
 const ACTIVE_OPERATIONS_SURFACE_SESSION_KEY = "o3de-control-app-active-operations-surface";
 const ACTIVE_RUNTIME_SURFACE_SESSION_KEY = "o3de-control-app-active-runtime-surface";
 const ACTIVE_RECORDS_SURFACE_SESSION_KEY = "o3de-control-app-active-records-surface";
+const ASSET_FORGE_RECORDS_ORIGIN_CONTEXT_SESSION_KEY = "o3de-control-app-asset-forge-records-origin-context";
 const LAZY_SURFACE_TIMEOUT_MS = 5000;
 
 const apiMocks = vi.hoisted(() => ({
@@ -556,6 +557,41 @@ describe("App desktop hydration", () => {
       "Output inspection and mutation-risk evidence.",
     );
     expectDesktopTabActive(restoredArtifactsSurfaceButton);
+  });
+
+  it("restores Asset Forge packet-origin context in Records workspace from session storage", async () => {
+    const storedOrigin = {
+      label: "Selected artifact metadata",
+      detail: "Restored from browser-session state.",
+      runId: "run-001",
+      executionId: "exec-001",
+      artifactId: "artifact-001",
+    };
+    window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "records");
+    window.sessionStorage.setItem(
+      ASSET_FORGE_RECORDS_ORIGIN_CONTEXT_SESSION_KEY,
+      JSON.stringify(storedOrigin),
+    );
+
+    render(<App />);
+
+    expect(await screen.findByText("RunsPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText("Opened from Asset Forge review packet origin")).toBeInTheDocument();
+    expect(screen.getByText("Selected artifact metadata. Restored from browser-session state.")).toBeInTheDocument();
+    expect(screen.getByText("Origin run: run-001")).toBeInTheDocument();
+    expect(screen.getByText("Origin execution: exec-001")).toBeInTheDocument();
+    expect(screen.getByText("Origin artifact: artifact-001")).toBeInTheDocument();
+  });
+
+  it("clears invalid Asset Forge packet-origin context from session storage", async () => {
+    window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "records");
+    window.sessionStorage.setItem(ASSET_FORGE_RECORDS_ORIGIN_CONTEXT_SESSION_KEY, "{invalid");
+
+    render(<App />);
+
+    expect(await screen.findByText("RunsPanel stub")).toBeInTheDocument();
+    expect(screen.queryByText("Opened from Asset Forge review packet origin")).not.toBeInTheDocument();
+    expect(window.sessionStorage.getItem(ASSET_FORGE_RECORDS_ORIGIN_CONTEXT_SESSION_KEY)).toBeNull();
   });
 
   it.each(PARTIAL_SURFACE_HYDRATION_CASES)(

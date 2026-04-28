@@ -410,6 +410,7 @@ const ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY = "o3de-control-app-active-desktop-wo
 const ACTIVE_OPERATIONS_SURFACE_SESSION_KEY = "o3de-control-app-active-operations-surface";
 const ACTIVE_RUNTIME_SURFACE_SESSION_KEY = "o3de-control-app-active-runtime-surface";
 const ACTIVE_RECORDS_SURFACE_SESSION_KEY = "o3de-control-app-active-records-surface";
+const ASSET_FORGE_RECORDS_ORIGIN_CONTEXT_SESSION_KEY = "o3de-control-app-asset-forge-records-origin-context";
 const EVENTS_TIMELINE_SAVED_VIEWS_SESSION_KEY = "o3de-control-app-events-timeline-saved-views";
 const WORKSPACE_NEXT_STEP_RECENT_ACTIONS_SESSION_KEY = "o3de-control-app-workspace-next-step-recent-actions";
 const WORKSPACE_NEXT_STEPS_COLLAPSED_SESSION_KEY = "o3de-control-app-workspace-next-steps-collapsed";
@@ -2354,6 +2355,15 @@ export default function App() {
     ) {
       setActiveRecordsSurface(storedRecordsSurface);
     }
+
+    const storedAssetForgeOriginContext = parseAssetForgeRecordsOriginContext(
+      window.sessionStorage.getItem(ASSET_FORGE_RECORDS_ORIGIN_CONTEXT_SESSION_KEY),
+    );
+    if (storedAssetForgeOriginContext) {
+      setAssetForgeRecordsOriginContext(storedAssetForgeOriginContext);
+    } else {
+      window.sessionStorage.removeItem(ASSET_FORGE_RECORDS_ORIGIN_CONTEXT_SESSION_KEY);
+    }
   }, []);
 
   useEffect(() => {
@@ -2460,6 +2470,22 @@ export default function App() {
 
     window.sessionStorage.setItem(ACTIVE_RECORDS_SURFACE_SESSION_KEY, activeRecordsSurface);
   }, [activeRecordsSurface]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!assetForgeRecordsOriginContext) {
+      window.sessionStorage.removeItem(ASSET_FORGE_RECORDS_ORIGIN_CONTEXT_SESSION_KEY);
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      ASSET_FORGE_RECORDS_ORIGIN_CONTEXT_SESSION_KEY,
+      JSON.stringify(assetForgeRecordsOriginContext),
+    );
+  }, [assetForgeRecordsOriginContext]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -7717,6 +7743,50 @@ function parseRefreshTimestamp(value: string | null | undefined): number {
   }
   const parsed = Date.parse(value);
   return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function parseAssetForgeRecordsOriginContext(rawValue: string | null): AssetForgeRecordsOriginContext | null {
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue) as {
+      label?: unknown;
+      detail?: unknown;
+      runId?: unknown;
+      executionId?: unknown;
+      artifactId?: unknown;
+    };
+
+    if (typeof parsed !== "object" || parsed === null) {
+      return null;
+    }
+    if (typeof parsed.label !== "string" || parsed.label.trim().length === 0) {
+      return null;
+    }
+    if (typeof parsed.detail !== "string") {
+      return null;
+    }
+
+    const runId = typeof parsed.runId === "string" && parsed.runId.trim().length > 0 ? parsed.runId : null;
+    const executionId = typeof parsed.executionId === "string" && parsed.executionId.trim().length > 0
+      ? parsed.executionId
+      : null;
+    const artifactId = typeof parsed.artifactId === "string" && parsed.artifactId.trim().length > 0
+      ? parsed.artifactId
+      : null;
+
+    return {
+      label: parsed.label,
+      detail: parsed.detail,
+      runId,
+      executionId,
+      artifactId,
+    };
+  } catch {
+    return null;
+  }
 }
 
 function isUnresolvedRun(run: RunListItem): boolean {
