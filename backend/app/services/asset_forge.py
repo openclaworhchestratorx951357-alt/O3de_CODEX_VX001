@@ -1,0 +1,2324 @@
+import json
+import os
+import shutil
+import sqlite3
+import subprocess
+import sys
+from datetime import datetime, timezone
+from hashlib import sha256
+from pathlib import Path
+from typing import Any, Literal, cast
+
+from app.models.asset_forge import (
+    AssetForgeBlenderInspectReport,
+    AssetForgeBlenderInspectRequest,
+    AssetForgeBlenderStatusRecord,
+    AssetForgeStudioLaneStatusRecord,
+    AssetForgeStudioStatusRecord,
+    AssetForgeCandidateRecord,
+    AssetForgeO3DEReadbackRecord,
+    AssetForgeO3DEReadbackRequest,
+    AssetForgeO3DEPlacementPlanRecord,
+    AssetForgeO3DEPlacementPlanRequest,
+    AssetForgeO3DEPlacementHarnessRecord,
+    AssetForgeO3DEPlacementHarnessRequest,
+    AssetForgeO3DEPlacementHarnessExecuteRecord,
+    AssetForgeO3DEPlacementHarnessExecuteRequest,
+    AssetForgeO3DEPlacementLiveProofRecord,
+    AssetForgeO3DEPlacementLiveProofRequest,
+    AssetForgePlacementEvidenceBundleItem,
+    AssetForgePlacementEvidenceIndexRecord,
+    AssetForgeO3DEPlacementEvidenceRecord,
+    AssetForgeO3DEPlacementEvidenceRequest,
+    AssetForgeO3DEPlacementProofRecord,
+    AssetForgeO3DEPlacementProofRequest,
+    AssetForgeO3DEStagePlanRecord,
+    AssetForgeO3DEStagePlanRequest,
+    AssetForgeO3DEStageWriteRecord,
+    AssetForgeO3DEStageWriteRequest,
+    AssetForgeProviderRegistryEntry,
+    AssetForgeProviderStatusRecord,
+    AssetForgeTaskRecord,
+    AssetForgeTaskPlanRequest,
+)
+from app.services.o3de_target import o3de_target_service
+from app.services.editor_automation_runtime import editor_automation_runtime_service
+
+_PROVIDER_MODES = {"disabled", "mock", "configured", "real"}
+ProviderMode = Literal["disabled", "mock", "configured", "real"]
+_BLENDER_ENV_HINTS = (
+    "ASSET_FORGE_BLENDER_PATH",
+    "BLENDER_EXECUTABLE",
+    "BLENDER_PATH",
+)
+_ALLOWED_INSPECT_EXTENSIONS = {".obj", ".fbx", ".glb", ".gltf", ".blend"}
+_DEFAULT_MAX_INSPECT_BYTES = 262_144_000
+_INSPECT_SCRIPT_ID = "asset_forge_blender_readonly_inspector_v1"
+_ALLOWED_STAGE_SOURCE_EXTENSIONS = {".obj", ".fbx", ".glb", ".gltf"}
+_ALLOWED_STAGE_ROOT_PREFIX = "Assets/Generated/asset_forge/"
+_DEFAULT_MAX_STAGE_BYTES = 524_288_000
+_ASSETDB_EVIDENCE_ROW_LIMIT = 25
+_ALLOWED_STAGE_DEST_EXTENSIONS = {".obj", ".fbx", ".glb", ".gltf"}
+
+
+def _resolve_provider_mode() -> ProviderMode:
+    raw_mode = os.environ.get("ASSET_FORGE_PROVIDER_MODE", "disabled").strip().lower()
+    if raw_mode in _PROVIDER_MODES:
+        return cast(ProviderMode, raw_mode)
+    return "disabled"
+
+
+def _provider_credential_present() -> bool:
+    return bool(
+        os.environ.get("ASSET_FORGE_PROVIDER_API_KEY")
+        or os.environ.get("MESHY_API_KEY")
+    )
+
+
+def _resolve_blender_executable() -> tuple[str | None, str]:
+    for env_name in _BLENDER_ENV_HINTS:
+        env_value = os.environ.get(env_name, "").strip()
+        if not env_value:
+            continue
+        resolved = shutil.which(env_value)
+        if resolved:
+            return resolved, f"env:{env_name}"
+        if os.path.isfile(env_value):
+            return env_value, f"env:{env_name}"
+
+    resolved = shutil.which("blender") or shutil.which("blender.exe")
+    if resolved:
+        return resolved, "path"
+    return None, "path-missing"
+
+
+def _probe_blender_version(executable_path: str) -> tuple[str | None, str]:
+    try:
+        result = subprocess.run(
+            [executable_path, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None, "failed"
+
+    output_lines = (result.stdout or result.stderr).splitlines()
+    first_line = next((line.strip() for line in output_lines if line.strip()), "")
+    if not first_line:
+        return None, "missing"
+    return first_line, "detected"
+
+
+def _resolve_runtime_root() -> Path:
+    configured_root = os.environ.get("ASSET_FORGE_RUNTIME_ROOT", "").strip()
+    if configured_root:
+        return Path(configured_root).resolve()
+    return (Path(__file__).resolve().parents[2] / "runtime" / "asset_forge").resolve()
+
+
+def _resolve_inspect_script_path() -> Path:
+    return (Path(__file__).resolve().parents[2] / "scripts" / "asset_forge_blender_inspect.py").resolve()
+
+
+def _path_within_root(candidate: Path, root: Path) -> bool:
+    try:
+        candidate.relative_to(root)
+        return True
+    except ValueError:
+        return False
+
+
+def _resolve_max_inspect_bytes() -> int:
+    raw_value = os.environ.get("ASSET_FORGE_MAX_INSPECT_BYTES", str(_DEFAULT_MAX_INSPECT_BYTES)).strip()
+    try:
+        parsed = int(raw_value)
+    except ValueError:
+        return _DEFAULT_MAX_INSPECT_BYTES
+    return parsed if parsed > 0 else _DEFAULT_MAX_INSPECT_BYTES
+
+
+def _slugify(value: str) -> str:
+    lowered = value.strip().lower()
+    normalized_chars = [
+        char if char.isalnum() else "_"
+        for char in lowered
+    ]
+    collapsed = "".join(normalized_chars).strip("_")
+    while "__" in collapsed:
+        collapsed = collapsed.replace("__", "_")
+    return collapsed or "candidate"
+
+
+def _sha256_file(path: Path) -> str:
+    digest = sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _normalize_project_relative_path(value: str) -> str:
+    normalized = value.strip().replace("\\", "/").lstrip("/")
+    while "//" in normalized:
+        normalized = normalized.replace("//", "/")
+    return normalized
+
+
+def _resolve_max_stage_bytes() -> int:
+    raw_value = os.environ.get("ASSET_FORGE_MAX_STAGE_BYTES", str(_DEFAULT_MAX_STAGE_BYTES)).strip()
+    try:
+        parsed = int(raw_value)
+    except ValueError:
+        return _DEFAULT_MAX_STAGE_BYTES
+    return parsed if parsed > 0 else _DEFAULT_MAX_STAGE_BYTES
+
+
+def _to_utc_iso_from_epoch(timestamp: float | int | None) -> str | None:
+    if timestamp is None:
+        return None
+    try:
+        return datetime.fromtimestamp(float(timestamp), tz=timezone.utc).isoformat()
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
+def _resolve_freshness_status(
+    *,
+    artifact_exists: bool,
+    artifact_mtime: float | None,
+    evidence_exists: bool,
+    evidence_mtime: float | None,
+) -> Literal["fresh", "stale_or_unverified", "missing", "unknown"]:
+    if not evidence_exists:
+        return "missing"
+    if not artifact_exists or artifact_mtime is None or evidence_mtime is None:
+        return "stale_or_unverified"
+    return "fresh" if evidence_mtime >= artifact_mtime else "stale_or_unverified"
+
+
+def _normalize_source_asset_relative_path(value: str) -> str:
+    normalized = value.strip().replace("\\", "/").lstrip("/")
+    while "//" in normalized:
+        normalized = normalized.replace("//", "/")
+    return normalized
+
+
+class AssetForgeService:
+    def create_task_plan(self, request: AssetForgeTaskPlanRequest) -> AssetForgeTaskRecord:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        prompt_text = request.prompt_text.strip()
+        style_suffix = f" styles: {', '.join(request.style_tags)}." if request.style_tags else ""
+        budget = request.target_triangle_budget.strip()
+        output_format = request.output_format.strip().lower()
+        task_slug = _slugify(prompt_text[:48])
+        task_id = f"asset-forge-task-plan-{task_slug}-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+
+        return AssetForgeTaskRecord(
+            task_id=task_id,
+            task_label="Plan-only Asset Forge task",
+            status="plan-only",
+            prompt_text=prompt_text,
+            created_at=now_iso,
+            source=request.source.strip() or "asset-forge-ui-plan-request",
+            warnings=[
+                "Task plan is metadata-only and does not execute providers.",
+                "Blender and O3DE mutation remain blocked in this packet.",
+            ],
+            candidates=[
+                AssetForgeCandidateRecord(
+                    candidate_id="candidate-a",
+                    display_name="Planned Candidate A",
+                    status="planned",
+                    preview_notes=f"Plan-only concept pass for {output_format.upper()} export; budget target {budget}.{style_suffix}",
+                    readiness_placeholder="O3DE readiness placeholder: planning pass only.",
+                    estimated_triangles=budget,
+                ),
+                AssetForgeCandidateRecord(
+                    candidate_id="candidate-b",
+                    display_name="Planned Candidate B",
+                    status="planned",
+                    preview_notes=f"Alternative composition for prompt decomposition; output {output_format.upper()}.",
+                    readiness_placeholder="O3DE readiness placeholder: planning pass only.",
+                    estimated_triangles=budget,
+                ),
+                AssetForgeCandidateRecord(
+                    candidate_id="candidate-c",
+                    display_name="Demo Candidate C",
+                    status="demo",
+                    preview_notes="Demo baseline candidate retained for visual comparison.",
+                    readiness_placeholder="O3DE readiness placeholder: demo-only.",
+                    estimated_triangles="~16k tris (demo estimate)",
+                ),
+                AssetForgeCandidateRecord(
+                    candidate_id="candidate-d",
+                    display_name="Demo Candidate D",
+                    status="demo",
+                    preview_notes="Demo stretch candidate retained for review-only lane.",
+                    readiness_placeholder="O3DE readiness placeholder: demo-only.",
+                    estimated_triangles="~38k tris (demo estimate)",
+                ),
+            ],
+        )
+
+    def get_studio_status(self) -> AssetForgeStudioStatusRecord:
+        provider_status = self.get_provider_status()
+        blender_status = self.get_blender_status()
+
+        provider_truth = "blocked" if provider_status.provider_mode == "disabled" else "preflight-only"
+        blender_truth = "preflight-only" if blender_status.executable_found else "blocked"
+
+        lanes = [
+            AssetForgeStudioLaneStatusRecord(
+                lane="Provider",
+                truth=provider_truth,
+                detail=(
+                    f"Provider mode {provider_status.provider_mode}, config ready "
+                    f"{'yes' if provider_status.configuration_ready else 'no'}, "
+                    f"execution {provider_status.generation_execution_status}."
+                ),
+                source=provider_status.source,
+            ),
+            AssetForgeStudioLaneStatusRecord(
+                lane="Blender",
+                truth=blender_truth,
+                detail=(
+                    f"Executable {'detected' if blender_status.executable_found else 'missing'} "
+                    f"({blender_status.detection_source}); prep execution "
+                    f"{blender_status.blender_prep_execution_status}."
+                ),
+                source=blender_status.source,
+            ),
+            AssetForgeStudioLaneStatusRecord(
+                lane="O3DE ingest",
+                truth="plan-only",
+                detail="Read-only ingest/readback evidence is available; staging write remains approval-gated.",
+                source="asset-forge-o3de-ingest-readback",
+            ),
+            AssetForgeStudioLaneStatusRecord(
+                lane="Placement",
+                truth="plan-only",
+                detail="Placement remains plan-only/proof-gated; no broad editor placement write is admitted.",
+                source="asset-forge-o3de-placement-plan",
+            ),
+            AssetForgeStudioLaneStatusRecord(
+                lane="Review",
+                truth="preflight-only",
+                detail="Review lane uses read-only evidence packets and remains non-mutating.",
+                source="asset-forge-o3de-placement-evidence",
+            ),
+        ]
+
+        return AssetForgeStudioStatusRecord(
+            capability_name="asset_forge.studio.status",
+            maturity="preflight-only",
+            lanes=lanes,
+            warnings=[
+                "Studio status is read-only and does not execute provider, Blender, or O3DE mutation.",
+            ],
+            safest_next_step="Keep status lanes read-only while advancing bounded preflight and proof gates.",
+            source="asset-forge-studio-status",
+        )
+
+    def get_placement_live_proof_evidence_index(
+        self,
+        *,
+        limit: int = 10,
+        proof_status: str | None = None,
+        candidate_id: str | None = None,
+        from_age_s: int | None = None,
+    ) -> AssetForgePlacementEvidenceIndexRecord:
+        runtime_root = _resolve_runtime_root()
+        evidence_dir = (runtime_root / "evidence" / "placement_live_proof").resolve()
+        freshness_window_seconds = 1800
+        normalized_limit = max(1, min(int(limit), 25))
+        normalized_status = (proof_status or "").strip().lower()
+        normalized_candidate = (candidate_id or "").strip().lower()
+        normalized_from_age_s = None
+        if from_age_s is not None:
+            normalized_from_age_s = max(0, min(int(from_age_s), 86400))
+        warnings: list[str] = []
+        items: list[AssetForgePlacementEvidenceBundleItem] = []
+
+        if evidence_dir.is_dir():
+            now_epoch = datetime.now(timezone.utc).timestamp()
+            for file_path in sorted(evidence_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+                recorded_at: str | None = None
+                candidate_id: str | None = None
+                bridge_command_id: str | None = None
+                proof_status: str | None = None
+                age_seconds: int | None = None
+                try:
+                    payload = json.loads(file_path.read_text(encoding="utf-8"))
+                    recorded_at = payload.get("recorded_at")
+                    candidate_id = payload.get("candidate_id")
+                    bridge_command_id = payload.get("bridge_command_id")
+                    proof_status = payload.get("proof_status")
+                except Exception:
+                    warnings.append(f"Could not parse evidence bundle: {file_path}")
+                try:
+                    age_seconds = int(max(0, now_epoch - file_path.stat().st_mtime))
+                except OSError:
+                    age_seconds = None
+                item = AssetForgePlacementEvidenceBundleItem(
+                    path=str(file_path),
+                    recorded_at=recorded_at,
+                    candidate_id=candidate_id,
+                    bridge_command_id=bridge_command_id,
+                    proof_status=proof_status,
+                    age_seconds=age_seconds,
+                )
+                item_status = (item.proof_status or "").strip().lower()
+                item_candidate = (item.candidate_id or "").strip().lower()
+                if normalized_status and item_status != normalized_status:
+                    continue
+                if normalized_candidate and item_candidate != normalized_candidate:
+                    continue
+                if normalized_from_age_s is not None:
+                    if item.age_seconds is None or item.age_seconds > normalized_from_age_s:
+                        continue
+                items.append(item)
+                if len(items) >= normalized_limit:
+                    break
+        else:
+            warnings.append("No placement live proof evidence directory exists yet.")
+
+        fresh_item_count = len(
+            [item for item in items if item.age_seconds is not None and item.age_seconds <= freshness_window_seconds]
+        )
+        return AssetForgePlacementEvidenceIndexRecord(
+            capability_name="asset_forge.o3de.placement.live_proof.evidence_index",
+            maturity="preflight-only",
+            index_status="succeeded" if items else "empty",
+            runtime_root=str(runtime_root),
+            evidence_dir=str(evidence_dir),
+            applied_filters={
+                "limit": normalized_limit,
+                "proof_status": normalized_status or None,
+                "candidate_id": normalized_candidate or None,
+                "from_age_s": normalized_from_age_s,
+            },
+            freshness_window_seconds=freshness_window_seconds,
+            fresh_item_count=fresh_item_count,
+            items=items,
+            read_only=True,
+            warnings=warnings,
+            source="asset-forge-o3de-placement-live-proof-evidence-index",
+        )
+
+    def get_task(self) -> AssetForgeTaskRecord:
+        return AssetForgeTaskRecord(
+            task_id="asset-forge-task-demo-001",
+            task_label="Demo bridge-asset planning task",
+            status="plan-only",
+            prompt_text=(
+                "Generate a stylized weathered stone bridge segment with ivy accents "
+                "for O3DE environment assembly."
+            ),
+            created_at="2026-04-28T00:00:00Z",
+            source="asset-forge-demo-task-model",
+            warnings=[
+                "Provider execution is blocked in this packet.",
+                "Blender execution is blocked in this packet.",
+                "O3DE project mutation is blocked in this packet.",
+            ],
+            candidates=[
+                AssetForgeCandidateRecord(
+                    candidate_id="candidate-a",
+                    display_name="Weathered Ivy Arch",
+                    status="demo",
+                    preview_notes="Balanced silhouette and moderate texture complexity.",
+                    readiness_placeholder="O3DE readiness placeholder: 74/100 (demo)",
+                    estimated_triangles="~21k tris (demo estimate)",
+                ),
+                AssetForgeCandidateRecord(
+                    candidate_id="candidate-b",
+                    display_name="Broken Keystone Span",
+                    status="demo",
+                    preview_notes="Damaged keystone with hero storytelling profile.",
+                    readiness_placeholder="O3DE readiness placeholder: 67/100 (demo)",
+                    estimated_triangles="~24k tris (demo estimate)",
+                ),
+                AssetForgeCandidateRecord(
+                    candidate_id="candidate-c",
+                    display_name="Modular Low-Poly Span",
+                    status="demo",
+                    preview_notes="Lower poly profile optimized for crowd scenes.",
+                    readiness_placeholder="O3DE readiness placeholder: 81/100 (demo)",
+                    estimated_triangles="~16k tris (demo estimate)",
+                ),
+                AssetForgeCandidateRecord(
+                    candidate_id="candidate-d",
+                    display_name="Cinematic Hero Arch",
+                    status="demo",
+                    preview_notes="High-detail sculpt style for closeup shots.",
+                    readiness_placeholder="O3DE readiness placeholder: 59/100 (demo)",
+                    estimated_triangles="~38k tris (demo estimate)",
+                ),
+            ],
+        )
+
+    def get_provider_status(self) -> AssetForgeProviderStatusRecord:
+        provider_mode = _resolve_provider_mode()
+        credential_present = _provider_credential_present()
+        configuration_ready = (
+            provider_mode == "mock"
+            or (
+                provider_mode in {"configured", "real"}
+                and credential_present
+            )
+        )
+        credential_status = (
+            "redacted-env-present"
+            if credential_present
+            else "missing"
+        )
+        provider_note_map = {
+            "disabled": "Provider integration is disabled by configuration.",
+            "mock": "Mock provider mode enabled for UI preflight only.",
+            "configured": "Provider profile configured; execution remains blocked.",
+            "real": "Real provider mode selected; execution remains blocked until admission.",
+        }
+
+        return AssetForgeProviderStatusRecord(
+            capability_name="asset_forge.provider.status",
+            maturity="preflight-only",
+            provider_mode=provider_mode,
+            configuration_ready=configuration_ready,
+            credential_status=credential_status,
+            external_task_creation_allowed=False,
+            generation_execution_status="blocked",
+            providers=[
+                AssetForgeProviderRegistryEntry(
+                    provider_id="asset_forge_provider_primary",
+                    display_name="Asset Forge Provider Registry Entry",
+                    mode=provider_mode,
+                    configured=configuration_ready,
+                    note=provider_note_map[provider_mode],
+                ),
+            ],
+            warnings=[
+                "No external provider task creation is admitted in Packet 04.",
+                "Provider status is preflight-only and does not execute generation.",
+            ],
+            safest_next_step=(
+                "Keep provider status preflight-only and promote through policy/provenance/cost readiness gates before preview/create."
+            ),
+            source="asset-forge-provider-registry",
+        )
+
+    def get_blender_status(self) -> AssetForgeBlenderStatusRecord:
+        executable_path, detection_source = _resolve_blender_executable()
+        if not executable_path:
+            return AssetForgeBlenderStatusRecord(
+                capability_name="asset_forge.blender.status",
+                maturity="preflight-only",
+                executable_found=False,
+                executable_path=None,
+                detection_source=detection_source,
+                version=None,
+                version_probe_status="missing",
+                blender_prep_execution_status="blocked",
+                warnings=[
+                    "Blender executable not detected. Prep execution is blocked.",
+                    "Packet 05 provides preflight detection only; no Blender script execution is admitted.",
+                ],
+                safest_next_step=(
+                    "Provide a trusted Blender executable path and keep execution blocked until a bounded allowlisted prep script packet is admitted."
+                ),
+                source="asset-forge-blender-preflight",
+            )
+
+        version, version_probe_status = _probe_blender_version(executable_path)
+        warnings = [
+            "Blender detection is preflight-only in Packet 05.",
+            "Blender model processing and script execution remain blocked.",
+        ]
+        if version_probe_status != "detected":
+            warnings.append("Blender executable was detected, but version probe did not return a usable value.")
+
+        return AssetForgeBlenderStatusRecord(
+            capability_name="asset_forge.blender.status",
+            maturity="preflight-only",
+            executable_found=True,
+            executable_path=executable_path,
+            detection_source=detection_source,
+            version=version,
+            version_probe_status=version_probe_status,
+            blender_prep_execution_status="blocked",
+            warnings=warnings,
+            safest_next_step=(
+                "Use this preflight evidence to scope a bounded, allowlisted, read-only Blender inspection packet before any prep execution admission."
+            ),
+            source="asset-forge-blender-preflight",
+        )
+
+    def inspect_blender_candidate(
+        self,
+        request: AssetForgeBlenderInspectRequest,
+    ) -> AssetForgeBlenderInspectReport:
+        runtime_root = _resolve_runtime_root()
+        script_path = _resolve_inspect_script_path()
+        raw_artifact_path = request.artifact_path.strip()
+        if not raw_artifact_path:
+            return AssetForgeBlenderInspectReport(
+                capability_name="asset_forge.blender.inspect",
+                maturity="preflight-only",
+                inspection_status="blocked",
+                artifact_path=request.artifact_path,
+                runtime_root=str(runtime_root),
+                artifact_within_runtime_root=False,
+                extension_allowed=False,
+                script_id=_INSPECT_SCRIPT_ID,
+                script_path=str(script_path),
+                script_execution_status="blocked",
+                blender_execution_status="blocked",
+                metadata={},
+                warnings=[
+                    "Inspection request must include a non-empty artifact path.",
+                    "Raw Blender execution remains blocked; only allowlisted read-only inspection is admitted.",
+                ],
+                safest_next_step=(
+                    "Provide a relative or absolute candidate artifact path within the configured Asset Forge runtime root."
+                ),
+                source="asset-forge-blender-inspect",
+            )
+
+        requested_path = Path(raw_artifact_path)
+        candidate_path = (
+            requested_path.resolve()
+            if requested_path.is_absolute()
+            else (runtime_root / requested_path).resolve()
+        )
+        artifact_within_root = _path_within_root(candidate_path, runtime_root)
+        extension_allowed = candidate_path.suffix.lower() in _ALLOWED_INSPECT_EXTENSIONS
+        max_inspect_bytes = _resolve_max_inspect_bytes()
+        inspection_policy = {
+            "allowed_extensions": sorted(_ALLOWED_INSPECT_EXTENSIONS),
+            "max_inspect_bytes": max_inspect_bytes,
+            "read_only": True,
+        }
+
+        warnings: list[str] = [
+            "Blender executable invocation remains blocked in this packet.",
+            "Inspection runs a repo-owned allowlisted script in read-only mode.",
+        ]
+        if not artifact_within_root:
+            warnings.append(
+                "Artifact path is outside the configured runtime root and is blocked by path policy."
+            )
+        if not extension_allowed:
+            allowed_extensions = ", ".join(sorted(_ALLOWED_INSPECT_EXTENSIONS))
+            warnings.append(
+                f"Artifact extension is not allowlisted. Allowed extensions: {allowed_extensions}."
+            )
+        if not candidate_path.is_file():
+            warnings.append("Artifact path does not exist as a file.")
+
+        if not artifact_within_root or not extension_allowed or not candidate_path.is_file():
+            return AssetForgeBlenderInspectReport(
+                capability_name="asset_forge.blender.inspect",
+                maturity="preflight-only",
+                inspection_status="blocked",
+                artifact_path=str(candidate_path),
+                runtime_root=str(runtime_root),
+                artifact_within_runtime_root=artifact_within_root,
+                extension_allowed=extension_allowed,
+                script_id=_INSPECT_SCRIPT_ID,
+                script_path=str(script_path),
+                script_execution_status="blocked",
+                blender_execution_status="blocked",
+                metadata={
+                    "inspection_policy": inspection_policy,
+                },
+                warnings=warnings,
+                safest_next_step=(
+                    "Place an allowlisted model artifact under backend/runtime/asset_forge and retry read-only inspection."
+                ),
+                source="asset-forge-blender-inspect",
+            )
+
+        file_size_bytes = candidate_path.stat().st_size
+        if file_size_bytes > max_inspect_bytes:
+            warnings.append(
+                f"Artifact is larger than the configured inspection size cap ({max_inspect_bytes} bytes)."
+            )
+            return AssetForgeBlenderInspectReport(
+                capability_name="asset_forge.blender.inspect",
+                maturity="preflight-only",
+                inspection_status="blocked",
+                artifact_path=str(candidate_path),
+                runtime_root=str(runtime_root),
+                artifact_within_runtime_root=True,
+                extension_allowed=True,
+                script_id=_INSPECT_SCRIPT_ID,
+                script_path=str(script_path),
+                script_execution_status="blocked",
+                blender_execution_status="blocked",
+                metadata={
+                    "file_size_bytes": file_size_bytes,
+                    "inspection_policy": inspection_policy,
+                },
+                warnings=warnings,
+                safest_next_step=(
+                    "Use a smaller candidate file or raise ASSET_FORGE_MAX_INSPECT_BYTES for bounded read-only inspection."
+                ),
+                source="asset-forge-blender-inspect",
+            )
+
+        if not script_path.is_file():
+            warnings.append("Allowlisted inspection script is missing from the repository.")
+            return AssetForgeBlenderInspectReport(
+                capability_name="asset_forge.blender.inspect",
+                maturity="preflight-only",
+                inspection_status="failed",
+                artifact_path=str(candidate_path),
+                runtime_root=str(runtime_root),
+                artifact_within_runtime_root=True,
+                extension_allowed=True,
+                script_id=_INSPECT_SCRIPT_ID,
+                script_path=str(script_path),
+                script_execution_status="failed",
+                blender_execution_status="blocked",
+                metadata={
+                    "file_size_bytes": file_size_bytes,
+                    "inspection_policy": inspection_policy,
+                },
+                warnings=warnings,
+                safest_next_step=(
+                    "Restore the allowlisted inspection script and rerun read-only inspection."
+                ),
+                source="asset-forge-blender-inspect",
+            )
+
+        try:
+            process = subprocess.run(
+                [sys.executable, str(script_path), "--artifact-path", str(candidate_path)],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=False,
+            )
+        except (OSError, subprocess.SubprocessError) as exc:
+            warnings.append(f"Inspection script execution failed: {exc}.")
+            return AssetForgeBlenderInspectReport(
+                capability_name="asset_forge.blender.inspect",
+                maturity="preflight-only",
+                inspection_status="failed",
+                artifact_path=str(candidate_path),
+                runtime_root=str(runtime_root),
+                artifact_within_runtime_root=True,
+                extension_allowed=True,
+                script_id=_INSPECT_SCRIPT_ID,
+                script_path=str(script_path),
+                script_execution_status="failed",
+                blender_execution_status="blocked",
+                metadata={
+                    "file_size_bytes": file_size_bytes,
+                    "inspection_policy": inspection_policy,
+                },
+                warnings=warnings,
+                safest_next_step=(
+                    "Fix local script execution prerequisites and retry read-only inspection."
+                ),
+                source="asset-forge-blender-inspect",
+            )
+
+        if process.returncode != 0:
+            stderr_detail = (process.stderr or "").strip()
+            if stderr_detail:
+                warnings.append(f"Inspection script returned non-zero exit status: {stderr_detail}")
+            else:
+                warnings.append("Inspection script returned non-zero exit status.")
+            return AssetForgeBlenderInspectReport(
+                capability_name="asset_forge.blender.inspect",
+                maturity="preflight-only",
+                inspection_status="failed",
+                artifact_path=str(candidate_path),
+                runtime_root=str(runtime_root),
+                artifact_within_runtime_root=True,
+                extension_allowed=True,
+                script_id=_INSPECT_SCRIPT_ID,
+                script_path=str(script_path),
+                script_execution_status="failed",
+                blender_execution_status="blocked",
+                metadata={
+                    "file_size_bytes": file_size_bytes,
+                    "inspection_policy": inspection_policy,
+                },
+                warnings=warnings,
+                safest_next_step=(
+                    "Review script stderr and retry with a valid read-only candidate file."
+                ),
+                source="asset-forge-blender-inspect",
+            )
+
+        metadata: dict[str, object]
+        try:
+            payload = json.loads(process.stdout or "{}")
+            metadata = payload if isinstance(payload, dict) else {"raw_payload": payload}
+        except ValueError:
+            metadata = {"raw_stdout": process.stdout.strip()}
+            warnings.append("Inspection script returned non-JSON output; raw stdout captured.")
+        metadata["artifact_file_size_bytes"] = file_size_bytes
+        metadata["inspection_policy"] = inspection_policy
+
+        return AssetForgeBlenderInspectReport(
+            capability_name="asset_forge.blender.inspect",
+            maturity="preflight-only",
+            inspection_status="succeeded",
+            artifact_path=str(candidate_path),
+            runtime_root=str(runtime_root),
+            artifact_within_runtime_root=True,
+            extension_allowed=True,
+            script_id=_INSPECT_SCRIPT_ID,
+            script_path=str(script_path),
+            script_execution_status="executed",
+            blender_execution_status="blocked",
+            metadata=metadata,
+            warnings=warnings,
+            safest_next_step=(
+                "Use this read-only inspection evidence to plan bounded Blender prep actions without enabling arbitrary script execution."
+            ),
+            source="asset-forge-blender-inspect",
+        )
+
+    def create_o3de_stage_plan(
+        self,
+        request: AssetForgeO3DEStagePlanRequest,
+    ) -> AssetForgeO3DEStagePlanRecord:
+        candidate_slug = _slugify(request.candidate_id)
+        label_slug = _slugify(request.candidate_label)
+        extension = request.desired_extension.strip().lower()
+        if not extension.startswith("."):
+            extension = f".{extension}"
+        if extension not in {".glb", ".gltf", ".fbx", ".obj"}:
+            extension = ".glb"
+        bundle_name = f"{candidate_slug}_{label_slug}".strip("_")
+        staging_relative_path = (
+            f"Assets/Generated/asset_forge/{bundle_name}/{bundle_name}{extension}"
+        )
+        manifest_relative_path = (
+            f"Assets/Generated/asset_forge/{bundle_name}/{bundle_name}.forge.json"
+        )
+        project_root_hint = os.environ.get("O3DE_TARGET_PROJECT_ROOT")
+
+        warnings = [
+            "This is a deterministic plan-only stage output; no project write is performed.",
+            "Approval is required before any source staging write can occur.",
+            "Asset Processor execution and catalog/database readback are out of scope for this packet.",
+        ]
+        stage_plan_policy: dict[str, object] = {
+            "allowed_output_extensions": [".glb", ".gltf", ".fbx", ".obj"],
+            "allowed_staging_prefix": _ALLOWED_STAGE_ROOT_PREFIX,
+            "approval_required_for_write": True,
+            "project_write_admitted": False,
+        }
+
+        return AssetForgeO3DEStagePlanRecord(
+            capability_name="asset_forge.o3de.stage.plan",
+            maturity="plan-only",
+            plan_status="ready-for-approval",
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            project_root_hint=project_root_hint,
+            deterministic_staging_relative_path=staging_relative_path,
+            deterministic_manifest_relative_path=manifest_relative_path,
+            expected_source_asset_path=staging_relative_path,
+            stage_plan_policy=stage_plan_policy,
+            approval_required=True,
+            project_write_admitted=False,
+            warnings=warnings,
+            safest_next_step=(
+                "Review the deterministic stage path, approve the write corridor, and then gate source staging behind an explicit mutation packet."
+            ),
+            source="asset-forge-o3de-stage-plan",
+        )
+
+    def execute_o3de_stage_write(
+        self,
+        request: AssetForgeO3DEStageWriteRequest,
+    ) -> AssetForgeO3DEStageWriteRecord:
+        runtime_root = _resolve_runtime_root()
+        source_input = request.source_artifact_path.strip()
+        source_candidate = Path(source_input)
+        source_path = (
+            source_candidate.resolve()
+            if source_candidate.is_absolute()
+            else (runtime_root / source_candidate).resolve()
+        )
+        source_within_runtime = _path_within_root(source_path, runtime_root)
+        source_extension_allowed = source_path.suffix.lower() in _ALLOWED_STAGE_SOURCE_EXTENSIONS
+
+        stage_relative_path = _normalize_project_relative_path(request.stage_relative_path)
+        manifest_relative_path = _normalize_project_relative_path(request.manifest_relative_path)
+        stage_prefix_allowed = stage_relative_path.startswith(_ALLOWED_STAGE_ROOT_PREFIX)
+        manifest_prefix_allowed = manifest_relative_path.startswith(_ALLOWED_STAGE_ROOT_PREFIX)
+        manifest_suffix_allowed = manifest_relative_path.endswith(".forge.json")
+
+        project_root_raw = os.environ.get("O3DE_TARGET_PROJECT_ROOT", "").strip()
+        project_root_path = Path(project_root_raw).resolve() if project_root_raw else None
+        destination_source_path = (
+            (project_root_path / stage_relative_path).resolve()
+            if project_root_path
+            else None
+        )
+        destination_manifest_path = (
+            (project_root_path / manifest_relative_path).resolve()
+            if project_root_path
+            else None
+        )
+
+        warnings = [
+            "Stage write corridor is approval-gated and path-bounded.",
+            "Only source asset + provenance sidecar writes are performed in this packet.",
+        ]
+        revert_paths = [
+            str(path)
+            for path in [destination_source_path, destination_manifest_path]
+            if path is not None
+        ]
+
+        if not project_root_raw:
+            warnings.append("O3DE_TARGET_PROJECT_ROOT is not configured.")
+            return AssetForgeO3DEStageWriteRecord(
+                capability_name="asset_forge.o3de.stage.write",
+                maturity="approval-gated-write",
+                write_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                project_root=None,
+                source_artifact_path=str(source_path),
+                destination_source_asset_path=str(destination_source_path) if destination_source_path else None,
+                destination_manifest_path=str(destination_manifest_path) if destination_manifest_path else None,
+                approval_required=True,
+                approval_state=request.approval_state,
+                write_executed=False,
+                project_write_admitted=False,
+                post_write_readback={},
+                revert_paths=revert_paths,
+                warnings=warnings,
+                safest_next_step=(
+                    "Configure O3DE_TARGET_PROJECT_ROOT and rerun approval-gated staging."
+                ),
+                source="asset-forge-o3de-stage-write",
+            )
+
+        if project_root_path is None or not project_root_path.is_dir():
+            warnings.append("Configured O3DE project root does not exist as a directory.")
+            return AssetForgeO3DEStageWriteRecord(
+                capability_name="asset_forge.o3de.stage.write",
+                maturity="approval-gated-write",
+                write_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                project_root=str(project_root_path) if project_root_path else None,
+                source_artifact_path=str(source_path),
+                destination_source_asset_path=str(destination_source_path) if destination_source_path else None,
+                destination_manifest_path=str(destination_manifest_path) if destination_manifest_path else None,
+                approval_required=True,
+                approval_state=request.approval_state,
+                write_executed=False,
+                project_write_admitted=False,
+                post_write_readback={},
+                revert_paths=revert_paths,
+                warnings=warnings,
+                safest_next_step=(
+                    "Use a valid local O3DE project root and rerun approval-gated staging."
+                ),
+                source="asset-forge-o3de-stage-write",
+            )
+
+        if (
+            destination_source_path is None
+            or destination_manifest_path is None
+            or not _path_within_root(destination_source_path, project_root_path)
+            or not _path_within_root(destination_manifest_path, project_root_path)
+            or not stage_prefix_allowed
+            or not manifest_prefix_allowed
+            or not manifest_suffix_allowed
+        ):
+            warnings.append(
+                "Stage and manifest paths must stay under Assets/Generated/asset_forge and manifest must end with .forge.json."
+            )
+            return AssetForgeO3DEStageWriteRecord(
+                capability_name="asset_forge.o3de.stage.write",
+                maturity="approval-gated-write",
+                write_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                project_root=str(project_root_path),
+                source_artifact_path=str(source_path),
+                destination_source_asset_path=str(destination_source_path) if destination_source_path else None,
+                destination_manifest_path=str(destination_manifest_path) if destination_manifest_path else None,
+                approval_required=True,
+                approval_state=request.approval_state,
+                write_executed=False,
+                project_write_admitted=False,
+                post_write_readback={},
+                revert_paths=revert_paths,
+                warnings=warnings,
+                safest_next_step=(
+                    "Use deterministic plan paths under Assets/Generated/asset_forge and retry staging."
+                ),
+                source="asset-forge-o3de-stage-write",
+            )
+
+        if not source_within_runtime or not source_extension_allowed or not source_path.is_file():
+            if not source_within_runtime:
+                warnings.append("Source artifact path is outside the configured Asset Forge runtime root.")
+            if not source_extension_allowed:
+                warnings.append("Source artifact extension is not allowlisted for staging.")
+            if not source_path.is_file():
+                warnings.append("Source artifact does not exist as a file.")
+            return AssetForgeO3DEStageWriteRecord(
+                capability_name="asset_forge.o3de.stage.write",
+                maturity="approval-gated-write",
+                write_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                project_root=str(project_root_path),
+                source_artifact_path=str(source_path),
+                destination_source_asset_path=str(destination_source_path),
+                destination_manifest_path=str(destination_manifest_path),
+                approval_required=True,
+                approval_state=request.approval_state,
+                write_executed=False,
+                project_write_admitted=False,
+                post_write_readback={},
+                revert_paths=revert_paths,
+                warnings=warnings,
+                safest_next_step=(
+                    "Place an allowlisted source artifact under backend/runtime/asset_forge and retry staging."
+                ),
+                source="asset-forge-o3de-stage-write",
+            )
+
+        source_size = source_path.stat().st_size
+        max_stage_bytes = _resolve_max_stage_bytes()
+        if source_size > max_stage_bytes:
+            warnings.append(
+                f"Source artifact exceeds configured stage size cap ({max_stage_bytes} bytes)."
+            )
+            return AssetForgeO3DEStageWriteRecord(
+                capability_name="asset_forge.o3de.stage.write",
+                maturity="approval-gated-write",
+                write_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                project_root=str(project_root_path),
+                source_artifact_path=str(source_path),
+                destination_source_asset_path=str(destination_source_path),
+                destination_manifest_path=str(destination_manifest_path),
+                approval_required=True,
+                approval_state=request.approval_state,
+                write_executed=False,
+                project_write_admitted=False,
+                bytes_copied=source_size,
+                post_write_readback={},
+                revert_paths=revert_paths,
+                warnings=warnings,
+                safest_next_step=(
+                    "Stage a smaller artifact or raise ASSET_FORGE_MAX_STAGE_BYTES for this bounded write corridor."
+                ),
+                source="asset-forge-o3de-stage-write",
+            )
+
+        if request.approval_state != "approved":
+            warnings.append("Approval state is not approved; no project write was executed.")
+            return AssetForgeO3DEStageWriteRecord(
+                capability_name="asset_forge.o3de.stage.write",
+                maturity="approval-gated-write",
+                write_status="approval-required",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                project_root=str(project_root_path),
+                source_artifact_path=str(source_path),
+                destination_source_asset_path=str(destination_source_path),
+                destination_manifest_path=str(destination_manifest_path),
+                approval_required=True,
+                approval_state=request.approval_state,
+                write_executed=False,
+                project_write_admitted=False,
+                bytes_copied=source_size,
+                source_sha256=_sha256_file(source_path),
+                post_write_readback={
+                    "source_exists": True,
+                    "destination_exists": destination_source_path.is_file(),
+                    "manifest_exists": destination_manifest_path.is_file(),
+                },
+                revert_paths=revert_paths,
+                warnings=warnings,
+                safest_next_step=(
+                    "Resubmit with approval_state='approved' and a non-empty approval note to execute bounded source staging."
+                ),
+                source="asset-forge-o3de-stage-write",
+            )
+
+        approval_note = request.approval_note.strip()
+        if not approval_note:
+            warnings.append("Approval note is required when approval_state is approved.")
+            return AssetForgeO3DEStageWriteRecord(
+                capability_name="asset_forge.o3de.stage.write",
+                maturity="approval-gated-write",
+                write_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                project_root=str(project_root_path),
+                source_artifact_path=str(source_path),
+                destination_source_asset_path=str(destination_source_path),
+                destination_manifest_path=str(destination_manifest_path),
+                approval_required=True,
+                approval_state=request.approval_state,
+                write_executed=False,
+                project_write_admitted=False,
+                bytes_copied=source_size,
+                source_sha256=_sha256_file(source_path),
+                post_write_readback={},
+                revert_paths=revert_paths,
+                warnings=warnings,
+                safest_next_step=(
+                    "Provide an approval note for auditability and retry bounded source staging."
+                ),
+                source="asset-forge-o3de-stage-write",
+            )
+
+        try:
+            destination_source_path.parent.mkdir(parents=True, exist_ok=True)
+            destination_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_path, destination_source_path)
+
+            source_hash = _sha256_file(source_path)
+            destination_hash = _sha256_file(destination_source_path)
+            manifest_payload = {
+                "schema_version": "asset-forge-stage-write-v1",
+                "candidate_id": request.candidate_id,
+                "candidate_label": request.candidate_label,
+                "approval_state": request.approval_state,
+                "approval_note": approval_note,
+                "approved_at": datetime.now(timezone.utc).isoformat(),
+                "source_artifact_path": str(source_path),
+                "source_sha256": source_hash,
+                "source_bytes": source_size,
+                "destination_source_asset_path": str(destination_source_path),
+                "destination_manifest_path": str(destination_manifest_path),
+                "mutation_scope": "single-source-copy-and-sidecar",
+            }
+            destination_manifest_path.write_text(
+                json.dumps(manifest_payload, indent=2, sort_keys=True),
+                encoding="utf-8",
+            )
+            manifest_hash = _sha256_file(destination_manifest_path)
+            readback = {
+                "source_exists": source_path.is_file(),
+                "destination_exists": destination_source_path.is_file(),
+                "manifest_exists": destination_manifest_path.is_file(),
+                "destination_size_bytes": destination_source_path.stat().st_size,
+                "manifest_size_bytes": destination_manifest_path.stat().st_size,
+            }
+
+            return AssetForgeO3DEStageWriteRecord(
+                capability_name="asset_forge.o3de.stage.write",
+                maturity="approval-gated-write",
+                write_status="succeeded",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                project_root=str(project_root_path),
+                source_artifact_path=str(source_path),
+                destination_source_asset_path=str(destination_source_path),
+                destination_manifest_path=str(destination_manifest_path),
+                approval_required=True,
+                approval_state=request.approval_state,
+                write_executed=True,
+                project_write_admitted=True,
+                bytes_copied=source_size,
+                source_sha256=source_hash,
+                destination_sha256=destination_hash,
+                manifest_sha256=manifest_hash,
+                post_write_readback=readback,
+                revert_paths=revert_paths,
+                warnings=warnings,
+                safest_next_step=(
+                    "Run read-only assetdb/catalog verification for the staged source before any placement planning."
+                ),
+                source="asset-forge-o3de-stage-write",
+            )
+        except (OSError, ValueError) as exc:
+            warnings.append(f"Stage write failed: {exc}.")
+            return AssetForgeO3DEStageWriteRecord(
+                capability_name="asset_forge.o3de.stage.write",
+                maturity="approval-gated-write",
+                write_status="failed",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                project_root=str(project_root_path),
+                source_artifact_path=str(source_path),
+                destination_source_asset_path=str(destination_source_path),
+                destination_manifest_path=str(destination_manifest_path),
+                approval_required=True,
+                approval_state=request.approval_state,
+                write_executed=False,
+                project_write_admitted=False,
+                bytes_copied=source_size,
+                source_sha256=_sha256_file(source_path),
+                post_write_readback={
+                    "source_exists": source_path.is_file(),
+                    "destination_exists": destination_source_path.is_file(),
+                    "manifest_exists": destination_manifest_path.is_file(),
+                },
+                revert_paths=revert_paths,
+                warnings=warnings,
+                safest_next_step=(
+                    "Resolve write failure and retry staged source copy with approval."
+                ),
+                source="asset-forge-o3de-stage-write",
+            )
+
+    def read_o3de_ingest_readback(
+        self,
+        request: AssetForgeO3DEReadbackRequest,
+    ) -> AssetForgeO3DEReadbackRecord:
+        normalized_source_relative = _normalize_source_asset_relative_path(
+            request.source_asset_relative_path
+        )
+        selected_platform = request.selected_platform.strip().lower() or "pc"
+        project_root_raw = os.environ.get("O3DE_TARGET_PROJECT_ROOT", "").strip()
+        project_root_path = Path(project_root_raw).resolve() if project_root_raw else None
+        source_path = (
+            (project_root_path / normalized_source_relative).resolve()
+            if project_root_path
+            else None
+        )
+        warnings = [
+            "Packet 09 readback is read-only evidence capture only.",
+            "No Asset Processor execution, Blender execution, or Editor placement is performed.",
+        ]
+        safest_next_step = (
+            "Use this read-only evidence packet to decide whether an operator-managed Asset Processor refresh is required."
+        )
+
+        if not project_root_raw:
+            warnings.append("O3DE_TARGET_PROJECT_ROOT is not configured.")
+            return AssetForgeO3DEReadbackRecord(
+                capability_name="asset_forge.o3de.ingest.readback",
+                maturity="preflight-only",
+                readback_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                project_root=None,
+                source_asset_relative_path=normalized_source_relative,
+                source_asset_absolute_path=str(source_path) if source_path else None,
+                selected_platform=selected_platform,
+                source_exists=False,
+                asset_database_path=None,
+                asset_database_exists=False,
+                asset_database_freshness_status="unknown",
+                source_found_in_assetdb=False,
+                asset_processor_warning_count=0,
+                asset_processor_error_count=0,
+                product_count=0,
+                dependency_count=0,
+                catalog_path=None,
+                catalog_exists=False,
+                catalog_freshness_status="unknown",
+                catalog_presence=False,
+                read_only=True,
+                mutation_occurred=False,
+                warnings=warnings,
+                safest_next_step="Set O3DE_TARGET_PROJECT_ROOT and retry read-only ingest evidence capture.",
+                source="asset-forge-o3de-ingest-readback",
+            )
+
+        if project_root_path is None or not project_root_path.is_dir():
+            warnings.append("Configured O3DE project root does not exist as a directory.")
+            return AssetForgeO3DEReadbackRecord(
+                capability_name="asset_forge.o3de.ingest.readback",
+                maturity="preflight-only",
+                readback_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                project_root=str(project_root_path) if project_root_path else None,
+                source_asset_relative_path=normalized_source_relative,
+                source_asset_absolute_path=str(source_path) if source_path else None,
+                selected_platform=selected_platform,
+                source_exists=False,
+                asset_database_path=None,
+                asset_database_exists=False,
+                asset_database_freshness_status="unknown",
+                source_found_in_assetdb=False,
+                asset_processor_warning_count=0,
+                asset_processor_error_count=0,
+                product_count=0,
+                dependency_count=0,
+                catalog_path=None,
+                catalog_exists=False,
+                catalog_freshness_status="unknown",
+                catalog_presence=False,
+                read_only=True,
+                mutation_occurred=False,
+                warnings=warnings,
+                safest_next_step="Use a valid local O3DE project root and retry read-only ingest evidence capture.",
+                source="asset-forge-o3de-ingest-readback",
+            )
+
+        if (
+            source_path is None
+            or not _path_within_root(source_path, project_root_path)
+            or not normalized_source_relative.startswith(_ALLOWED_STAGE_ROOT_PREFIX)
+        ):
+            warnings.append(
+                "Source path must stay under Assets/Generated/asset_forge inside the selected project root."
+            )
+            return AssetForgeO3DEReadbackRecord(
+                capability_name="asset_forge.o3de.ingest.readback",
+                maturity="preflight-only",
+                readback_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                project_root=str(project_root_path),
+                source_asset_relative_path=normalized_source_relative,
+                source_asset_absolute_path=str(source_path) if source_path else None,
+                selected_platform=selected_platform,
+                source_exists=False,
+                asset_database_path=None,
+                asset_database_exists=False,
+                asset_database_freshness_status="unknown",
+                source_found_in_assetdb=False,
+                asset_processor_warning_count=0,
+                asset_processor_error_count=0,
+                product_count=0,
+                dependency_count=0,
+                catalog_path=None,
+                catalog_exists=False,
+                catalog_freshness_status="unknown",
+                catalog_presence=False,
+                read_only=True,
+                mutation_occurred=False,
+                warnings=warnings,
+                safest_next_step=(
+                    "Provide a deterministic staged source path under Assets/Generated/asset_forge and retry readback."
+                ),
+                source="asset-forge-o3de-ingest-readback",
+            )
+
+        source_exists = source_path.is_file()
+        source_size_bytes = source_path.stat().st_size if source_exists else None
+        source_sha256 = _sha256_file(source_path) if source_exists else None
+
+        asset_database_path = (project_root_path / "Cache" / "assetdb.sqlite").resolve()
+        asset_database_exists = asset_database_path.is_file()
+        source_last_write_epoch = source_path.stat().st_mtime if source_exists else None
+        asset_database_last_write_epoch = (
+            asset_database_path.stat().st_mtime if asset_database_exists else None
+        )
+        asset_database_freshness_status = _resolve_freshness_status(
+            artifact_exists=source_exists,
+            artifact_mtime=source_last_write_epoch,
+            evidence_exists=asset_database_exists,
+            evidence_mtime=asset_database_last_write_epoch,
+        )
+        asset_database_last_write_time = (
+            _to_utc_iso_from_epoch(asset_database_last_write_epoch)
+            if asset_database_last_write_epoch is not None
+            else None
+        )
+
+        assetdb_evidence = self._read_assetdb_source_evidence(
+            assetdb_path=asset_database_path,
+            source_relative_path=normalized_source_relative,
+        )
+        warnings.extend(assetdb_evidence["warnings"])
+
+        representative_products = assetdb_evidence["representative_products"]
+        catalog_presence_rows = self._read_catalog_presence(
+            project_root=project_root_path,
+            selected_platform=selected_platform,
+            product_paths=representative_products,
+        )
+        warnings.extend(catalog_presence_rows["warnings"])
+
+        catalog_path = (project_root_path / "Cache" / selected_platform / "assetcatalog.xml").resolve()
+        catalog_exists = catalog_path.is_file()
+        catalog_last_write_epoch = catalog_path.stat().st_mtime if catalog_exists else None
+        catalog_freshness_status = _resolve_freshness_status(
+            artifact_exists=source_exists,
+            artifact_mtime=source_last_write_epoch,
+            evidence_exists=catalog_exists,
+            evidence_mtime=catalog_last_write_epoch,
+        )
+        catalog_last_write_time = (
+            _to_utc_iso_from_epoch(catalog_last_write_epoch)
+            if catalog_last_write_epoch is not None
+            else None
+        )
+
+        status = "blocked"
+        if (
+            source_exists
+            and asset_database_exists
+            and assetdb_evidence["source_found_in_assetdb"]
+            and assetdb_evidence["product_count"] > 0
+            and bool(catalog_presence_rows["catalog_product_path_presence"])
+        ):
+            status = "succeeded"
+            safest_next_step = (
+                "Review warnings/freshness labels and continue with Packet 10 placement planning only after operator approval."
+            )
+        else:
+            if not source_exists:
+                warnings.append("Staged source file is missing from the selected project root.")
+            if asset_database_exists and not assetdb_evidence["source_found_in_assetdb"]:
+                warnings.append(
+                    "Source path is not indexed in assetdb.sqlite yet; Asset Processor likely has not produced rows for this source."
+                )
+            if assetdb_evidence["product_count"] == 0:
+                warnings.append(
+                    "No bounded product rows were found for this source in assetdb.sqlite."
+                )
+            if not catalog_presence_rows["catalog_product_path_presence"]:
+                warnings.append(
+                    "No catalog path presence rows were produced for the bounded product set."
+                )
+            safest_next_step = (
+                "Run operator-managed Asset Processor refresh (outside this endpoint), then rerun Packet 09 read-only readback."
+            )
+
+        return AssetForgeO3DEReadbackRecord(
+            capability_name="asset_forge.o3de.ingest.readback",
+            maturity="preflight-only",
+            readback_status=status,
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            project_root=str(project_root_path),
+            source_asset_relative_path=normalized_source_relative,
+            source_asset_absolute_path=str(source_path),
+            selected_platform=selected_platform,
+            source_exists=source_exists,
+            source_size_bytes=source_size_bytes,
+            source_sha256=source_sha256,
+            asset_database_path=str(asset_database_path),
+            asset_database_exists=asset_database_exists,
+            asset_database_freshness_status=asset_database_freshness_status,
+            asset_database_last_write_time=asset_database_last_write_time,
+            source_found_in_assetdb=assetdb_evidence["source_found_in_assetdb"],
+            source_id=assetdb_evidence["source_id"],
+            source_guid=assetdb_evidence["source_guid"],
+            asset_processor_job_rows=assetdb_evidence["asset_processor_job_rows"],
+            asset_processor_warning_count=assetdb_evidence["asset_processor_warning_count"],
+            asset_processor_error_count=assetdb_evidence["asset_processor_error_count"],
+            product_count=assetdb_evidence["product_count"],
+            dependency_count=assetdb_evidence["dependency_count"],
+            representative_products=assetdb_evidence["representative_products"],
+            representative_dependencies=assetdb_evidence["representative_dependencies"],
+            catalog_path=str(catalog_path),
+            catalog_exists=catalog_exists,
+            catalog_freshness_status=catalog_freshness_status,
+            catalog_last_write_time=catalog_last_write_time,
+            catalog_presence=catalog_presence_rows["catalog_presence"],
+            catalog_product_path_presence=catalog_presence_rows[
+                "catalog_product_path_presence"
+            ],
+            read_only=True,
+            mutation_occurred=False,
+            warnings=warnings,
+            safest_next_step=safest_next_step,
+            source="asset-forge-o3de-ingest-readback",
+        )
+
+    def create_o3de_placement_plan(
+        self,
+        request: AssetForgeO3DEPlacementPlanRequest,
+    ) -> AssetForgeO3DEPlacementPlanRecord:
+        staged_source_relative_path = _normalize_project_relative_path(
+            request.staged_source_relative_path
+        )
+        target_level_relative_path = _normalize_project_relative_path(
+            request.target_level_relative_path
+        )
+        target_component = request.target_component.strip() or "Mesh"
+        source_extension = Path(staged_source_relative_path).suffix.lower()
+
+        warnings = [
+            "Packet 10 is plan-only. No Editor placement execution is performed.",
+            "Placement execution remains blocked until a future exact admitted corridor is proven.",
+        ]
+        requirement_checklist = [
+            "Target level path is defined and project-relative.",
+            "Placement entity name is deterministic for review/audit.",
+            "Staged source path remains under Assets/Generated/asset_forge.",
+            "Source ingest readback evidence should be present before placement execution admission.",
+            "Operator approval is required before any placement execution packet.",
+        ]
+        placement_plan_policy: dict[str, object] = {
+            "allowed_stage_prefix": _ALLOWED_STAGE_ROOT_PREFIX,
+            "allowed_stage_extensions": sorted(_ALLOWED_STAGE_DEST_EXTENSIONS),
+            "allowed_level_prefix": "Levels/",
+            "allowed_level_suffix": ".prefab",
+            "approval_required_for_proof": True,
+            "placement_write_admitted": False,
+        }
+
+        level_path_allowed = target_level_relative_path.startswith("Levels/") and target_level_relative_path.endswith(
+            ".prefab"
+        )
+        stage_path_allowed = staged_source_relative_path.startswith(_ALLOWED_STAGE_ROOT_PREFIX)
+        stage_extension_allowed = source_extension in _ALLOWED_STAGE_DEST_EXTENSIONS
+
+        if not level_path_allowed or not stage_path_allowed or not stage_extension_allowed:
+            if not level_path_allowed:
+                warnings.append(
+                    "Target level path must be project-relative under Levels/ and end with .prefab."
+                )
+            if not stage_path_allowed:
+                warnings.append(
+                    "Staged source path must remain under Assets/Generated/asset_forge/."
+                )
+            if not stage_extension_allowed:
+                warnings.append(
+                    "Staged source extension is not allowlisted for placement planning."
+                )
+            return AssetForgeO3DEPlacementPlanRecord(
+                capability_name="asset_forge.o3de.placement.plan",
+                maturity="plan-only",
+                plan_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                staged_source_relative_path=staged_source_relative_path,
+                target_level_relative_path=target_level_relative_path,
+                target_entity_name=request.target_entity_name,
+                target_component=target_component,
+                placement_execution_status="blocked",
+                approval_required=True,
+                placement_write_admitted=False,
+                placement_plan_policy=placement_plan_policy,
+                placement_plan_summary=(
+                    "Placement plan request was blocked because one or more path/extension constraints were not met."
+                ),
+                requirement_checklist=requirement_checklist,
+                warnings=warnings,
+                safest_next_step=(
+                    "Use an allowlisted staged source path and a Levels/*.prefab target, then rerun plan-only placement planning."
+                ),
+                source="asset-forge-o3de-placement-plan",
+            )
+
+        return AssetForgeO3DEPlacementPlanRecord(
+            capability_name="asset_forge.o3de.placement.plan",
+            maturity="plan-only",
+            plan_status="ready-for-approval",
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            staged_source_relative_path=staged_source_relative_path,
+            target_level_relative_path=target_level_relative_path,
+            target_entity_name=request.target_entity_name,
+            target_component=target_component,
+            placement_execution_status="blocked",
+            approval_required=True,
+            placement_write_admitted=False,
+            placement_plan_policy=placement_plan_policy,
+            placement_plan_summary=(
+                f"Plan-only placement target prepared for entity '{request.target_entity_name}' in "
+                f"'{target_level_relative_path}' using staged source '{staged_source_relative_path}'."
+            ),
+            requirement_checklist=requirement_checklist,
+            warnings=warnings,
+            safest_next_step=(
+                "Keep this as plan-only and promote through a separate Packet 11 proof/admission path before any placement execution."
+            ),
+            source="asset-forge-o3de-placement-plan",
+        )
+
+    def execute_o3de_placement_proof(
+        self,
+        request: AssetForgeO3DEPlacementProofRequest,
+    ) -> AssetForgeO3DEPlacementProofRecord:
+        staged_source_relative_path = _normalize_project_relative_path(
+            request.staged_source_relative_path
+        )
+        target_level_relative_path = _normalize_project_relative_path(
+            request.target_level_relative_path
+        )
+        target_component = request.target_component.strip() or "Mesh"
+        proof_runtime_gate_enabled = (
+            os.environ.get("ASSET_FORGE_ENABLE_PLACEMENT_PROOF", "").strip() == "1"
+        )
+        warnings = [
+            "Packet 11 corridor is proof-only and exact-scope.",
+            "No broad prefab, level, or scene mutation is admitted.",
+        ]
+        placement_proof_policy: dict[str, object] = {
+            "approval_required": True,
+            "approval_note_required_when_approved": True,
+            "runtime_gate_env": "ASSET_FORGE_ENABLE_PLACEMENT_PROOF",
+            "runtime_gate_required": True,
+            "placement_execution_admitted": False,
+            "mutation_scope": "proof-only-no-scene-mutation",
+        }
+
+        if request.approval_state != "approved":
+            warnings.append("Approval state is not approved; runtime proof remains blocked.")
+            return AssetForgeO3DEPlacementProofRecord(
+                capability_name="asset_forge.o3de.placement.execute",
+                maturity="proof-only",
+                proof_status="approval-required",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                staged_source_relative_path=staged_source_relative_path,
+                target_level_relative_path=target_level_relative_path,
+                target_entity_name=request.target_entity_name,
+                target_component=target_component,
+                approval_required=True,
+                approval_state=request.approval_state,
+                placement_proof_policy=placement_proof_policy,
+                placement_execution_status="blocked",
+                proof_runtime_gate_enabled=proof_runtime_gate_enabled,
+                write_occurred=False,
+                warnings=warnings,
+                safest_next_step=(
+                    "Resubmit with approval_state='approved' and an approval note to continue the narrow proof gate."
+                ),
+                source="asset-forge-o3de-placement-proof",
+            )
+
+        if not request.approval_note.strip():
+            warnings.append("Approval note is required when approval_state is approved.")
+            return AssetForgeO3DEPlacementProofRecord(
+                capability_name="asset_forge.o3de.placement.execute",
+                maturity="proof-only",
+                proof_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                staged_source_relative_path=staged_source_relative_path,
+                target_level_relative_path=target_level_relative_path,
+                target_entity_name=request.target_entity_name,
+                target_component=target_component,
+                approval_required=True,
+                approval_state=request.approval_state,
+                placement_proof_policy=placement_proof_policy,
+                placement_execution_status="blocked",
+                proof_runtime_gate_enabled=proof_runtime_gate_enabled,
+                write_occurred=False,
+                warnings=warnings,
+                safest_next_step="Provide an approval note for auditability and retry the proof gate.",
+                source="asset-forge-o3de-placement-proof",
+            )
+
+        if not proof_runtime_gate_enabled:
+            warnings.append(
+                "Runtime proof gate ASSET_FORGE_ENABLE_PLACEMENT_PROOF is disabled; placement execution is intentionally blocked."
+            )
+            return AssetForgeO3DEPlacementProofRecord(
+                capability_name="asset_forge.o3de.placement.execute",
+                maturity="proof-only",
+                proof_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                staged_source_relative_path=staged_source_relative_path,
+                target_level_relative_path=target_level_relative_path,
+                target_entity_name=request.target_entity_name,
+                target_component=target_component,
+                approval_required=True,
+                approval_state=request.approval_state,
+                placement_proof_policy=placement_proof_policy,
+                placement_execution_status="blocked",
+                proof_runtime_gate_enabled=False,
+                write_occurred=False,
+                warnings=warnings,
+                safest_next_step=(
+                    "Enable ASSET_FORGE_ENABLE_PLACEMENT_PROOF=1 in a controlled proof environment before attempting narrow runtime proof."
+                ),
+                source="asset-forge-o3de-placement-proof",
+            )
+
+        warnings.append(
+            "Runtime proof gate is enabled, but this packet does not auto-run Editor mutation; explicit runtime harness packet is still required."
+        )
+        return AssetForgeO3DEPlacementProofRecord(
+            capability_name="asset_forge.o3de.placement.execute",
+            maturity="proof-only",
+            proof_status="ready-for-runtime-proof",
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            staged_source_relative_path=staged_source_relative_path,
+            target_level_relative_path=target_level_relative_path,
+            target_entity_name=request.target_entity_name,
+            target_component=target_component,
+            approval_required=True,
+            approval_state=request.approval_state,
+            placement_proof_policy=placement_proof_policy,
+            placement_execution_status="blocked",
+            proof_runtime_gate_enabled=True,
+            write_occurred=False,
+            warnings=warnings,
+            safest_next_step=(
+                "Run the explicit bounded runtime proof harness for this exact placement target and capture readback evidence."
+            ),
+            source="asset-forge-o3de-placement-proof",
+        )
+
+    def read_o3de_placement_evidence(
+        self,
+        request: AssetForgeO3DEPlacementEvidenceRequest,
+    ) -> AssetForgeO3DEPlacementEvidenceRecord:
+        staged_source_relative_path = _normalize_project_relative_path(
+            request.staged_source_relative_path
+        )
+        target_level_relative_path = _normalize_project_relative_path(
+            request.target_level_relative_path
+        )
+        selected_platform = request.selected_platform.strip().lower() or "pc"
+        project_root_raw = os.environ.get("O3DE_TARGET_PROJECT_ROOT", "").strip()
+        project_root_path = Path(project_root_raw).resolve() if project_root_raw else None
+        if not project_root_raw or project_root_path is None or not project_root_path.is_dir():
+            return AssetForgeO3DEPlacementEvidenceRecord(
+                capability_name="asset_forge.o3de.placement.evidence",
+                maturity="preflight-only",
+                evidence_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                project_root=None,
+                staged_source_relative_path=staged_source_relative_path,
+                staged_source_absolute_path=None,
+                target_level_relative_path=target_level_relative_path,
+                target_level_absolute_path=None,
+                selected_platform=selected_platform,
+                staged_source_exists=False,
+                target_level_exists=False,
+                asset_database_path=None,
+                asset_database_exists=False,
+                source_found_in_assetdb=False,
+                source_id=None,
+                source_guid=None,
+                product_count=0,
+                dependency_count=0,
+                read_only=True,
+                mutation_occurred=False,
+                warnings=[
+                    "O3DE project root is not configured; placement evidence preflight cannot verify source/level files.",
+                    "Packet 11 evidence preflight is read-only and does not mutate O3DE scenes.",
+                ],
+                safest_next_step="Configure O3DE project root, then rerun placement evidence preflight.",
+                source="asset-forge-o3de-placement-evidence",
+            )
+
+        source_path = (project_root_path / staged_source_relative_path).resolve()
+        level_path = (project_root_path / target_level_relative_path).resolve()
+        asset_database_path = project_root_path / "Cache" / "assetdb.sqlite"
+        staged_source_exists = source_path.exists() and source_path.is_file()
+        target_level_exists = level_path.exists() and level_path.is_file()
+        asset_database_exists = asset_database_path.exists() and asset_database_path.is_file()
+        assetdb_evidence = self._read_assetdb_source_evidence(
+            assetdb_path=asset_database_path,
+            source_relative_path=staged_source_relative_path,
+        )
+
+        warnings = [
+            "Placement evidence preflight is read-only. No Editor scene mutation was performed.",
+            "Packet 11 runtime placement execution remains blocked until explicit admitted harness execution.",
+        ]
+        warnings.extend(assetdb_evidence["warnings"])
+        if not staged_source_exists:
+            warnings.append("Staged source file was not found under the configured project root.")
+        if not target_level_exists:
+            warnings.append("Target level prefab was not found under the configured project root.")
+
+        evidence_status: Literal["succeeded", "blocked"] = "succeeded"
+        if not staged_source_exists or not target_level_exists:
+            evidence_status = "blocked"
+
+        return AssetForgeO3DEPlacementEvidenceRecord(
+            capability_name="asset_forge.o3de.placement.evidence",
+            maturity="preflight-only",
+            evidence_status=evidence_status,
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            project_root=str(project_root_path),
+            staged_source_relative_path=staged_source_relative_path,
+            staged_source_absolute_path=str(source_path),
+            target_level_relative_path=target_level_relative_path,
+            target_level_absolute_path=str(level_path),
+            selected_platform=selected_platform,
+            staged_source_exists=staged_source_exists,
+            target_level_exists=target_level_exists,
+            asset_database_path=str(asset_database_path),
+            asset_database_exists=asset_database_exists,
+            source_found_in_assetdb=assetdb_evidence["source_found_in_assetdb"],
+            source_id=assetdb_evidence["source_id"],
+            source_guid=assetdb_evidence["source_guid"],
+            product_count=assetdb_evidence["product_count"],
+            dependency_count=assetdb_evidence["dependency_count"],
+            read_only=True,
+            mutation_occurred=False,
+            warnings=warnings,
+            safest_next_step=(
+                "Use this preflight evidence snapshot to prepare a bounded runtime proof harness run with explicit approval."
+            ),
+            source="asset-forge-o3de-placement-evidence",
+        )
+
+    def prepare_o3de_placement_runtime_harness(
+        self,
+        request: AssetForgeO3DEPlacementHarnessRequest,
+    ) -> AssetForgeO3DEPlacementHarnessRecord:
+        target_component = request.target_component.strip() or "Mesh"
+        selected_platform = request.selected_platform.strip().lower() or "pc"
+        runtime_gate_enabled = (
+            os.environ.get("ASSET_FORGE_ENABLE_PLACEMENT_PROOF", "").strip() == "1"
+        )
+        bridge_status = o3de_target_service.get_bridge_status()
+        bridge_configured = bool(bridge_status.configured)
+        bridge_heartbeat_fresh = bool(bridge_status.heartbeat_fresh)
+        warnings = [
+            "Packet 11 runtime harness prep does not execute placement.",
+            "No level/prefab/entity mutation is performed by this endpoint.",
+        ]
+
+        harness_status: Literal["blocked", "ready-for-admitted-runtime-harness"] = "blocked"
+        if runtime_gate_enabled and bridge_configured and bridge_heartbeat_fresh:
+            harness_status = "ready-for-admitted-runtime-harness"
+            warnings.append(
+                "Harness prerequisites are present, but explicit admitted runtime harness execution is still a separate step."
+            )
+        else:
+            if not runtime_gate_enabled:
+                warnings.append("Runtime gate ASSET_FORGE_ENABLE_PLACEMENT_PROOF is disabled.")
+            if not bridge_configured:
+                warnings.append("O3DE bridge is not configured for this target.")
+            if bridge_configured and not bridge_heartbeat_fresh:
+                warnings.append("O3DE bridge heartbeat is not fresh.")
+
+        return AssetForgeO3DEPlacementHarnessRecord(
+            capability_name="asset_forge.o3de.placement.harness.prepare",
+            maturity="plan-only",
+            harness_status=harness_status,
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            staged_source_relative_path=_normalize_project_relative_path(request.staged_source_relative_path),
+            target_level_relative_path=_normalize_project_relative_path(request.target_level_relative_path),
+            target_entity_name=request.target_entity_name,
+            target_component=target_component,
+            selected_platform=selected_platform,
+            bridge_configured=bridge_configured,
+            bridge_heartbeat_fresh=bridge_heartbeat_fresh,
+            runtime_gate_enabled=runtime_gate_enabled,
+            execution_performed=False,
+            read_only=True,
+            warnings=warnings,
+            safest_next_step=(
+                "Run the explicit admitted runtime harness packet to execute one bounded proof and capture Editor readback evidence."
+            ),
+            source="asset-forge-o3de-placement-harness-prepare",
+        )
+
+    def execute_o3de_placement_runtime_harness(
+        self,
+        request: AssetForgeO3DEPlacementHarnessExecuteRequest,
+    ) -> AssetForgeO3DEPlacementHarnessExecuteRecord:
+        target_component = request.target_component.strip() or "Mesh"
+        selected_platform = request.selected_platform.strip().lower() or "pc"
+        runtime_gate_enabled = (
+            os.environ.get("ASSET_FORGE_ENABLE_PLACEMENT_PROOF", "").strip() == "1"
+        )
+        bridge_status = o3de_target_service.get_bridge_status()
+        bridge_configured = bool(bridge_status.configured)
+        bridge_heartbeat_fresh = bool(bridge_status.heartbeat_fresh)
+        warnings = [
+            "One-shot Packet 11 harness endpoint is bounded and evidence-first.",
+            "This slice does not auto-apply broad scene/prefab mutation.",
+        ]
+
+        if request.approval_state != "approved":
+            warnings.append("Approval state is not approved.")
+            return AssetForgeO3DEPlacementHarnessExecuteRecord(
+                capability_name="asset_forge.o3de.placement.harness.execute",
+                maturity="proof-only",
+                execute_status="approval-required",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                staged_source_relative_path=_normalize_project_relative_path(request.staged_source_relative_path),
+                target_level_relative_path=_normalize_project_relative_path(request.target_level_relative_path),
+                target_entity_name=request.target_entity_name,
+                target_component=target_component,
+                selected_platform=selected_platform,
+                bridge_configured=bridge_configured,
+                bridge_heartbeat_fresh=bridge_heartbeat_fresh,
+                runtime_gate_enabled=runtime_gate_enabled,
+                approval_state=request.approval_state,
+                bridge_command_id=None,
+                execution_performed=False,
+                readback_captured=False,
+                read_only=True,
+                warnings=warnings,
+                safest_next_step="Resubmit with approval_state='approved' and a non-empty approval note.",
+                source="asset-forge-o3de-placement-harness-execute",
+            )
+
+        if not request.approval_note.strip():
+            warnings.append("Approval note is required when approval_state is approved.")
+            return AssetForgeO3DEPlacementHarnessExecuteRecord(
+                capability_name="asset_forge.o3de.placement.harness.execute",
+                maturity="proof-only",
+                execute_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                staged_source_relative_path=_normalize_project_relative_path(request.staged_source_relative_path),
+                target_level_relative_path=_normalize_project_relative_path(request.target_level_relative_path),
+                target_entity_name=request.target_entity_name,
+                target_component=target_component,
+                selected_platform=selected_platform,
+                bridge_configured=bridge_configured,
+                bridge_heartbeat_fresh=bridge_heartbeat_fresh,
+                runtime_gate_enabled=runtime_gate_enabled,
+                approval_state=request.approval_state,
+                bridge_command_id=None,
+                execution_performed=False,
+                readback_captured=False,
+                read_only=True,
+                warnings=warnings,
+                safest_next_step="Provide approval note text for auditability.",
+                source="asset-forge-o3de-placement-harness-execute",
+            )
+
+        if not runtime_gate_enabled or not bridge_configured or not bridge_heartbeat_fresh:
+            if not runtime_gate_enabled:
+                warnings.append("Runtime gate ASSET_FORGE_ENABLE_PLACEMENT_PROOF is disabled.")
+            if not bridge_configured:
+                warnings.append("O3DE bridge is not configured.")
+            if bridge_configured and not bridge_heartbeat_fresh:
+                warnings.append("O3DE bridge heartbeat is not fresh.")
+            return AssetForgeO3DEPlacementHarnessExecuteRecord(
+                capability_name="asset_forge.o3de.placement.harness.execute",
+                maturity="proof-only",
+                execute_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                staged_source_relative_path=_normalize_project_relative_path(request.staged_source_relative_path),
+                target_level_relative_path=_normalize_project_relative_path(request.target_level_relative_path),
+                target_entity_name=request.target_entity_name,
+                target_component=target_component,
+                selected_platform=selected_platform,
+                bridge_configured=bridge_configured,
+                bridge_heartbeat_fresh=bridge_heartbeat_fresh,
+                runtime_gate_enabled=runtime_gate_enabled,
+                approval_state=request.approval_state,
+                bridge_command_id=None,
+                execution_performed=False,
+                readback_captured=False,
+                read_only=True,
+                warnings=warnings,
+                safest_next_step="Satisfy runtime gate and bridge freshness prerequisites before execution.",
+                source="asset-forge-o3de-placement-harness-execute",
+            )
+
+        # Proof-only submission marker: traceable command id without claiming applied mutation/readback.
+        bridge_command_id = f"asset-forge-placement-proof-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
+        warnings.append(
+            "Command submission marker recorded; execution/readback capture remains a separate admitted runtime packet."
+        )
+        return AssetForgeO3DEPlacementHarnessExecuteRecord(
+            capability_name="asset_forge.o3de.placement.harness.execute",
+            maturity="proof-only",
+            execute_status="submitted-proof-only",
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            staged_source_relative_path=_normalize_project_relative_path(request.staged_source_relative_path),
+            target_level_relative_path=_normalize_project_relative_path(request.target_level_relative_path),
+            target_entity_name=request.target_entity_name,
+            target_component=target_component,
+            selected_platform=selected_platform,
+            bridge_configured=bridge_configured,
+            bridge_heartbeat_fresh=bridge_heartbeat_fresh,
+            runtime_gate_enabled=runtime_gate_enabled,
+            approval_state=request.approval_state,
+            bridge_command_id=bridge_command_id,
+            execution_performed=False,
+            readback_captured=False,
+            read_only=True,
+            warnings=warnings,
+            safest_next_step="Use this command marker in the next admitted runtime packet that captures actual readback evidence.",
+            source="asset-forge-o3de-placement-harness-execute",
+        )
+
+    def execute_o3de_placement_live_proof(
+        self,
+        request: AssetForgeO3DEPlacementLiveProofRequest,
+    ) -> AssetForgeO3DEPlacementLiveProofRecord:
+        selected_platform = request.selected_platform.strip().lower() or "pc"
+        runtime_gate_enabled = (
+            os.environ.get("ASSET_FORGE_ENABLE_PLACEMENT_PROOF", "").strip() == "1"
+            and os.environ.get("ASSET_FORGE_ENABLE_PLACEMENT_LIVE_PROOF", "").strip() == "1"
+        )
+        bridge_status = o3de_target_service.get_bridge_status()
+        bridge_configured = bool(bridge_status.configured)
+        bridge_heartbeat_fresh = bool(bridge_status.heartbeat_fresh)
+        target_level_relative_path = _normalize_project_relative_path(request.target_level_relative_path)
+        warnings = [
+            "Live proof uses one bounded bridge-backed read-only operation (editor.entity.exists).",
+            "No broad prefab or scene mutation is performed in this packet.",
+        ]
+        revert_statement = "No mutation was admitted by this proof path; no revert action required."
+        evidence_bundle_path: str | None = None
+
+        if request.approval_state != "approved":
+            warnings.append("Approval state is not approved.")
+            return AssetForgeO3DEPlacementLiveProofRecord(
+                capability_name="asset_forge.o3de.placement.live_proof",
+                maturity="proof-only",
+                proof_status="approval-required",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                target_level_relative_path=target_level_relative_path,
+                target_entity_name=request.target_entity_name,
+                selected_platform=selected_platform,
+                bridge_configured=bridge_configured,
+                bridge_heartbeat_fresh=bridge_heartbeat_fresh,
+                runtime_gate_enabled=runtime_gate_enabled,
+                execution_performed=False,
+                readback_captured=False,
+                entity_exists=None,
+                bridge_command_id=None,
+                evidence_bundle_path=None,
+                revert_statement=revert_statement,
+                read_only=True,
+                warnings=warnings,
+                safest_next_step="Approve this one-shot live proof and provide an approval note.",
+                source="asset-forge-o3de-placement-live-proof",
+            )
+
+        if not request.approval_note.strip() or not runtime_gate_enabled:
+            if not request.approval_note.strip():
+                warnings.append("Approval note is required when approval_state is approved.")
+            if not runtime_gate_enabled:
+                warnings.append(
+                    "Both ASSET_FORGE_ENABLE_PLACEMENT_PROOF=1 and ASSET_FORGE_ENABLE_PLACEMENT_LIVE_PROOF=1 are required."
+                )
+            return AssetForgeO3DEPlacementLiveProofRecord(
+                capability_name="asset_forge.o3de.placement.live_proof",
+                maturity="proof-only",
+                proof_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                target_level_relative_path=target_level_relative_path,
+                target_entity_name=request.target_entity_name,
+                selected_platform=selected_platform,
+                bridge_configured=bridge_configured,
+                bridge_heartbeat_fresh=bridge_heartbeat_fresh,
+                runtime_gate_enabled=runtime_gate_enabled,
+                execution_performed=False,
+                readback_captured=False,
+                entity_exists=None,
+                bridge_command_id=None,
+                evidence_bundle_path=None,
+                revert_statement=revert_statement,
+                read_only=True,
+                warnings=warnings,
+                safest_next_step="Satisfy approval+env gates before attempting live proof.",
+                source="asset-forge-o3de-placement-live-proof",
+            )
+
+        try:
+            runtime_payload = editor_automation_runtime_service.execute_entity_exists(
+                request_id=f"asset-forge-live-proof-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                session_id="asset-forge-packet11",
+                workspace_id="asset-forge-studio",
+                executor_id="asset-forge-service",
+                project_root=os.environ.get("O3DE_TARGET_PROJECT_ROOT", "").strip(),
+                engine_root=os.environ.get("O3DE_TARGET_ENGINE_ROOT", "").strip(),
+                dry_run=False,
+                args={
+                    "level_path": target_level_relative_path,
+                    "entity_name": request.target_entity_name,
+                },
+                locks_acquired=[],
+            )
+            runtime_result = runtime_payload.get("runtime_result", {})
+            bridge_command_id = runtime_result.get("bridge_command_id")
+            runtime_root = _resolve_runtime_root()
+            evidence_dir = (runtime_root / "evidence" / "placement_live_proof").resolve()
+            evidence_dir.mkdir(parents=True, exist_ok=True)
+            evidence_file = evidence_dir / (
+                f"{request.candidate_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}.json"
+            )
+            evidence_payload = {
+                "capability_name": "asset_forge.o3de.placement.live_proof",
+                "candidate_id": request.candidate_id,
+                "candidate_label": request.candidate_label,
+                "target_level_relative_path": target_level_relative_path,
+                "target_entity_name": request.target_entity_name,
+                "selected_platform": selected_platform,
+                "proof_status": "succeeded",
+                "entity_exists": bool(runtime_result.get("exists", False)),
+                "bridge_command_id": bridge_command_id,
+                "bridge_heartbeat_fresh": bridge_heartbeat_fresh,
+                "runtime_gate_enabled": runtime_gate_enabled,
+                "revert_statement": revert_statement,
+                "recorded_at": datetime.now(timezone.utc).isoformat(),
+            }
+            evidence_file.write_text(json.dumps(evidence_payload, indent=2, sort_keys=True), encoding="utf-8")
+            evidence_bundle_path = str(evidence_file)
+            return AssetForgeO3DEPlacementLiveProofRecord(
+                capability_name="asset_forge.o3de.placement.live_proof",
+                maturity="proof-only",
+                proof_status="succeeded",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                target_level_relative_path=target_level_relative_path,
+                target_entity_name=request.target_entity_name,
+                selected_platform=selected_platform,
+                bridge_configured=bridge_configured,
+                bridge_heartbeat_fresh=bridge_heartbeat_fresh,
+                runtime_gate_enabled=runtime_gate_enabled,
+                execution_performed=True,
+                readback_captured=True,
+                entity_exists=bool(runtime_result.get("exists", False)),
+                bridge_command_id=str(bridge_command_id) if bridge_command_id else None,
+                evidence_bundle_path=evidence_bundle_path,
+                revert_statement=revert_statement,
+                read_only=True,
+                warnings=warnings,
+                safest_next_step="Use this bounded readback evidence to decide if exact placement write admission should proceed.",
+                source="asset-forge-o3de-placement-live-proof",
+            )
+        except Exception as exc:
+            warnings.append(f"Live proof attempt blocked: {exc}")
+            return AssetForgeO3DEPlacementLiveProofRecord(
+                capability_name="asset_forge.o3de.placement.live_proof",
+                maturity="proof-only",
+                proof_status="blocked",
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                target_level_relative_path=target_level_relative_path,
+                target_entity_name=request.target_entity_name,
+                selected_platform=selected_platform,
+                bridge_configured=bridge_configured,
+                bridge_heartbeat_fresh=bridge_heartbeat_fresh,
+                runtime_gate_enabled=runtime_gate_enabled,
+                execution_performed=False,
+                readback_captured=False,
+                entity_exists=None,
+                bridge_command_id=None,
+                evidence_bundle_path=None,
+                revert_statement=revert_statement,
+                read_only=True,
+                warnings=warnings,
+                safest_next_step="Ensure editor session+level bridge prerequisites are live, then retry bounded live proof.",
+                source="asset-forge-o3de-placement-live-proof",
+            )
+
+    def _read_assetdb_source_evidence(
+        self,
+        *,
+        assetdb_path: Path,
+        source_relative_path: str,
+    ) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "source_found_in_assetdb": False,
+            "source_id": None,
+            "source_guid": None,
+            "asset_processor_job_rows": [],
+            "asset_processor_warning_count": 0,
+            "asset_processor_error_count": 0,
+            "product_count": 0,
+            "dependency_count": 0,
+            "representative_products": [],
+            "representative_dependencies": [],
+            "warnings": [],
+        }
+        if not assetdb_path.exists():
+            result["warnings"].append("No project assetdb.sqlite file was found under Cache/.")
+            return result
+        if not assetdb_path.is_file():
+            result["warnings"].append("Cache/assetdb.sqlite exists but is not a file.")
+            return result
+
+        normalized_source = source_relative_path.replace("\\", "/").strip("/").lower()
+        db_uri = f"{assetdb_path.as_uri()}?mode=ro"
+        try:
+            connection = sqlite3.connect(db_uri, uri=True)
+            connection.row_factory = sqlite3.Row
+        except sqlite3.Error as exc:
+            result["warnings"].append(f"assetdb.sqlite could not be opened read-only: {exc}")
+            return result
+
+        try:
+            source_row = connection.execute(
+                """
+                SELECT SourceID, hex(SourceGuid) AS SourceGuid
+                FROM Sources
+                WHERE lower(replace(SourceName, '\\', '/')) = ?
+                ORDER BY SourceID DESC
+                LIMIT 1
+                """,
+                (normalized_source,),
+            ).fetchone()
+            if source_row is None:
+                return result
+
+            source_id = int(source_row["SourceID"])
+            source_guid = str(source_row["SourceGuid"] or "")
+            result["source_found_in_assetdb"] = True
+            result["source_id"] = source_id
+            result["source_guid"] = source_guid
+
+            product_table = "Products"
+            has_products_table = connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+                (product_table,),
+            ).fetchone()
+            if has_products_table is None:
+                product_table = "Product"
+
+            product_rows = connection.execute(
+                f"""
+                SELECT
+                    j.JobID,
+                    j.JobKey,
+                    j.Platform,
+                    j.Status,
+                    j.WarningCount,
+                    j.ErrorCount,
+                    p.ProductID,
+                    p.ProductName
+                FROM Jobs j
+                JOIN {product_table} p ON p.JobPK = j.JobID
+                WHERE j.SourcePK = ?
+                ORDER BY p.ProductID
+                LIMIT ?
+                """,
+                (source_id, _ASSETDB_EVIDENCE_ROW_LIMIT),
+            ).fetchall()
+
+            result["product_count"] = len(product_rows)
+            result["representative_products"] = [
+                str(row["ProductName"]) for row in product_rows if row["ProductName"]
+            ]
+
+            job_summary: dict[int, dict[str, Any]] = {}
+            for row in product_rows:
+                job_id = int(row["JobID"])
+                warning_count = int(row["WarningCount"] or 0)
+                error_count = int(row["ErrorCount"] or 0)
+                summary = job_summary.setdefault(
+                    job_id,
+                    {
+                        "job_key": str(row["JobKey"] or ""),
+                        "platform": str(row["Platform"] or ""),
+                        "status": int(row["Status"] or 0),
+                        "warning_count": warning_count,
+                        "error_count": error_count,
+                    },
+                )
+                summary["warning_count"] = max(summary["warning_count"], warning_count)
+                summary["error_count"] = max(summary["error_count"], error_count)
+
+            result["asset_processor_job_rows"] = [
+                (
+                    f"job_id={job_id}, job_key={summary['job_key']}, "
+                    f"platform={summary['platform']}, status={summary['status']}, "
+                    f"warnings={summary['warning_count']}, errors={summary['error_count']}"
+                )
+                for job_id, summary in job_summary.items()
+            ]
+            result["asset_processor_warning_count"] = sum(
+                int(summary["warning_count"]) for summary in job_summary.values()
+            )
+            result["asset_processor_error_count"] = sum(
+                int(summary["error_count"]) for summary in job_summary.values()
+            )
+
+            if product_rows:
+                product_ids = [int(row["ProductID"]) for row in product_rows]
+                placeholders = ",".join("?" for _ in product_ids)
+                dependency_rows = connection.execute(
+                    f"""
+                    SELECT
+                        ProductPK,
+                        Platform,
+                        hex(DependencySourceGuid) AS DependencySourceGuid,
+                        DependencySubID,
+                        DependencyFlags,
+                        UnresolvedPath
+                    FROM ProductDependencies
+                    WHERE ProductPK IN ({placeholders})
+                    ORDER BY ProductDependencyID
+                    LIMIT ?
+                    """,
+                    (*product_ids, _ASSETDB_EVIDENCE_ROW_LIMIT),
+                ).fetchall()
+                result["dependency_count"] = len(dependency_rows)
+                result["representative_dependencies"] = [
+                    (
+                        f"product_id={int(row['ProductPK'])}, platform={str(row['Platform'] or '')}, "
+                        f"dependency_guid={str(row['DependencySourceGuid'] or '')}, "
+                        f"dependency_sub_id={int(row['DependencySubID'] or 0)}, "
+                        f"flags={int(row['DependencyFlags'] or 0)}, "
+                        f"unresolved_path={str(row['UnresolvedPath'] or '')}"
+                    )
+                    for row in dependency_rows
+                ]
+        except sqlite3.Error as exc:
+            result["warnings"].append(
+                f"assetdb.sqlite readback failed due to unsupported or unreadable table shape: {exc}"
+            )
+        finally:
+            connection.close()
+
+        return result
+
+    def _read_catalog_presence(
+        self,
+        *,
+        project_root: Path,
+        selected_platform: str,
+        product_paths: list[str],
+    ) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "catalog_presence": False,
+            "catalog_product_path_presence": [],
+            "warnings": [],
+        }
+        if not product_paths:
+            return result
+
+        catalog_path = (project_root / "Cache" / selected_platform / "assetcatalog.xml").resolve()
+        if not catalog_path.exists():
+            result["warnings"].append(
+                f"No project Asset Catalog was found at Cache/{selected_platform}/assetcatalog.xml."
+            )
+            return result
+        if not catalog_path.is_file():
+            result["warnings"].append(
+                f"Cache/{selected_platform}/assetcatalog.xml exists but is not a file."
+            )
+            return result
+
+        try:
+            catalog_bytes = catalog_path.read_bytes().lower()
+        except OSError as exc:
+            result["warnings"].append(
+                f"Cache/{selected_platform}/assetcatalog.xml could not be read: {exc}"
+            )
+            return result
+
+        presence_rows: list[str] = []
+        for product_path in product_paths[:_ASSETDB_EVIDENCE_ROW_LIMIT]:
+            normalized_product_path = product_path.replace("\\", "/").strip("/")
+            if "/" not in normalized_product_path:
+                continue
+            platform_prefix, catalog_relative_path = normalized_product_path.split("/", 1)
+            if platform_prefix != selected_platform:
+                continue
+            if not catalog_relative_path:
+                continue
+            match_count = catalog_bytes.count(catalog_relative_path.lower().encode("utf-8"))
+            presence_rows.append(
+                f"{normalized_product_path} -> present={match_count > 0}, match_count={match_count}"
+            )
+
+        result["catalog_product_path_presence"] = presence_rows
+        result["catalog_presence"] = any("present=True" in row for row in presence_rows)
+        return result
+
+
+asset_forge_service = AssetForgeService()

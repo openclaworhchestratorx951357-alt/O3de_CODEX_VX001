@@ -1204,6 +1204,444 @@ export interface PoliciesResponse {
   policies: ToolPolicy[];
 }
 
+export interface AssetForgeTaskCandidate {
+  candidate_id: string;
+  display_name: string;
+  status: "demo" | "selected" | "rejected" | "failed" | "staged" | "planned";
+  preview_notes: string;
+  readiness_placeholder: string;
+  estimated_triangles: string;
+}
+
+export interface AssetForgeTaskRecord {
+  task_id: string;
+  task_label: string;
+  status: "plan-only" | "demo";
+  prompt_text: string;
+  created_at: string;
+  source: string;
+  warnings: string[];
+  candidates: AssetForgeTaskCandidate[];
+}
+
+export interface AssetForgeTaskPlanRequest {
+  prompt_text: string;
+  style_tags: string[];
+  target_triangle_budget: string;
+  output_format: "glb" | "fbx" | "obj";
+  source: string;
+}
+
+export interface AssetForgeProviderRegistryEntry {
+  provider_id: string;
+  display_name: string;
+  mode: "disabled" | "mock" | "configured" | "real";
+  configured: boolean;
+  note: string;
+}
+
+export interface AssetForgeProviderStatusRecord {
+  capability_name: string;
+  maturity: "preflight-only";
+  provider_mode: "disabled" | "mock" | "configured" | "real";
+  configuration_ready: boolean;
+  credential_status: string;
+  external_task_creation_allowed: boolean;
+  generation_execution_status: "blocked";
+  providers: AssetForgeProviderRegistryEntry[];
+  warnings: string[];
+  safest_next_step: string;
+  source: string;
+}
+
+export interface AssetForgeBlenderStatusRecord {
+  capability_name: string;
+  maturity: "preflight-only";
+  executable_found: boolean;
+  executable_path: string | null;
+  detection_source: string;
+  version: string | null;
+  version_probe_status: "detected" | "missing" | "failed";
+  blender_prep_execution_status: "blocked";
+  warnings: string[];
+  safest_next_step: string;
+  source: string;
+}
+
+export interface AssetForgeStudioLaneStatusRecord {
+  lane: "Provider" | "Blender" | "O3DE ingest" | "Placement" | "Review";
+  truth: "demo" | "plan-only" | "preflight-only" | "gated-real" | "blocked";
+  detail: string;
+  source: string;
+}
+
+export interface AssetForgeStudioStatusRecord {
+  capability_name: string;
+  maturity: "preflight-only";
+  lanes: AssetForgeStudioLaneStatusRecord[];
+  warnings: string[];
+  safest_next_step: string;
+  source: string;
+}
+
+export interface AssetForgeBlenderInspectRequest {
+  artifact_path: string;
+}
+
+export interface AssetForgeBlenderInspectReport {
+  capability_name: string;
+  maturity: "preflight-only";
+  inspection_status: "succeeded" | "blocked" | "failed";
+  artifact_path: string;
+  runtime_root: string;
+  artifact_within_runtime_root: boolean;
+  extension_allowed: boolean;
+  script_id: "asset_forge_blender_readonly_inspector_v1";
+  script_path: string;
+  script_execution_status: "executed" | "blocked" | "failed";
+  blender_execution_status: "blocked";
+  metadata: Record<string, unknown>;
+  warnings: string[];
+  safest_next_step: string;
+  source: string;
+}
+
+export interface AssetForgeO3DEStagePlanRequest {
+  candidate_id: string;
+  candidate_label: string;
+  desired_extension: string;
+}
+
+export interface AssetForgeO3DEStagePlanRecord {
+  capability_name: string;
+  maturity: "plan-only";
+  plan_status: "ready-for-approval" | "blocked";
+  candidate_id: string;
+  candidate_label: string;
+  project_root_hint: string | null;
+  deterministic_staging_relative_path: string;
+  deterministic_manifest_relative_path: string;
+  expected_source_asset_path: string;
+  stage_plan_policy: Record<string, unknown>;
+  approval_required: boolean;
+  project_write_admitted: boolean;
+  warnings: string[];
+  safest_next_step: string;
+  source: string;
+}
+
+export interface AssetForgeO3DEStageWriteRequest {
+  candidate_id: string;
+  candidate_label: string;
+  source_artifact_path: string;
+  stage_relative_path: string;
+  manifest_relative_path: string;
+  approval_state: "not-approved" | "approved";
+  approval_note: string;
+}
+
+export interface AssetForgeO3DEStageWriteRecord {
+  capability_name: string;
+  maturity: "approval-gated-write";
+  write_status: "approval-required" | "succeeded" | "blocked" | "failed";
+  candidate_id: string;
+  candidate_label: string;
+  project_root: string | null;
+  source_artifact_path: string;
+  destination_source_asset_path: string | null;
+  destination_manifest_path: string | null;
+  approval_required: boolean;
+  approval_state: "not-approved" | "approved";
+  write_executed: boolean;
+  project_write_admitted: boolean;
+  bytes_copied: number | null;
+  source_sha256: string | null;
+  destination_sha256: string | null;
+  manifest_sha256: string | null;
+  post_write_readback: Record<string, unknown>;
+  revert_paths: string[];
+  warnings: string[];
+  safest_next_step: string;
+  source: string;
+}
+
+export interface AssetForgeO3DEReadbackRequest {
+  candidate_id: string;
+  candidate_label: string;
+  source_asset_relative_path: string;
+  selected_platform: string;
+}
+
+export interface AssetForgeO3DEReadbackRecord {
+  capability_name: string;
+  maturity: "preflight-only";
+  readback_status: "succeeded" | "blocked" | "failed";
+  candidate_id: string;
+  candidate_label: string;
+  project_root: string | null;
+  source_asset_relative_path: string;
+  source_asset_absolute_path: string | null;
+  selected_platform: string;
+  source_exists: boolean;
+  source_size_bytes: number | null;
+  source_sha256: string | null;
+  asset_database_path: string | null;
+  asset_database_exists: boolean;
+  asset_database_freshness_status: "fresh" | "stale_or_unverified" | "missing" | "unknown";
+  asset_database_last_write_time: string | null;
+  source_found_in_assetdb: boolean;
+  source_id: number | null;
+  source_guid: string | null;
+  asset_processor_job_rows: string[];
+  asset_processor_warning_count: number;
+  asset_processor_error_count: number;
+  product_count: number;
+  dependency_count: number;
+  representative_products: string[];
+  representative_dependencies: string[];
+  catalog_path: string | null;
+  catalog_exists: boolean;
+  catalog_freshness_status: "fresh" | "stale_or_unverified" | "missing" | "unknown";
+  catalog_last_write_time: string | null;
+  catalog_presence: boolean;
+  catalog_product_path_presence: string[];
+  read_only: boolean;
+  mutation_occurred: boolean;
+  warnings: string[];
+  safest_next_step: string;
+  source: string;
+}
+
+export interface AssetForgeO3DEPlacementPlanRequest {
+  candidate_id: string;
+  candidate_label: string;
+  staged_source_relative_path: string;
+  target_level_relative_path: string;
+  target_entity_name: string;
+  target_component: string;
+}
+
+export interface AssetForgeO3DEPlacementPlanRecord {
+  capability_name: string;
+  maturity: "plan-only";
+  plan_status: "ready-for-approval" | "blocked";
+  candidate_id: string;
+  candidate_label: string;
+  staged_source_relative_path: string;
+  target_level_relative_path: string;
+  target_entity_name: string;
+  target_component: string;
+  placement_execution_status: "blocked";
+  approval_required: boolean;
+  placement_write_admitted: boolean;
+  placement_plan_policy: Record<string, unknown>;
+  placement_plan_summary: string;
+  requirement_checklist: string[];
+  warnings: string[];
+  safest_next_step: string;
+  source: string;
+}
+
+export interface AssetForgeO3DEPlacementProofRequest {
+  candidate_id: string;
+  candidate_label: string;
+  staged_source_relative_path: string;
+  target_level_relative_path: string;
+  target_entity_name: string;
+  target_component: string;
+  approval_state: "not-approved" | "approved";
+  approval_note: string;
+}
+
+export interface AssetForgeO3DEPlacementProofRecord {
+  capability_name: string;
+  maturity: "proof-only";
+  proof_status: "approval-required" | "blocked" | "ready-for-runtime-proof";
+  candidate_id: string;
+  candidate_label: string;
+  staged_source_relative_path: string;
+  target_level_relative_path: string;
+  target_entity_name: string;
+  target_component: string;
+  approval_required: boolean;
+  approval_state: "not-approved" | "approved";
+  placement_proof_policy: Record<string, unknown>;
+  placement_execution_status: "blocked";
+  proof_runtime_gate_enabled: boolean;
+  write_occurred: boolean;
+  warnings: string[];
+  safest_next_step: string;
+  source: string;
+}
+
+export interface AssetForgeO3DEPlacementEvidenceRequest {
+  candidate_id: string;
+  candidate_label: string;
+  staged_source_relative_path: string;
+  target_level_relative_path: string;
+  selected_platform?: string;
+}
+
+export interface AssetForgeO3DEPlacementEvidenceRecord {
+  capability_name: string;
+  maturity: "preflight-only";
+  evidence_status: "succeeded" | "blocked";
+  candidate_id: string;
+  candidate_label: string;
+  project_root: string | null;
+  staged_source_relative_path: string;
+  staged_source_absolute_path: string | null;
+  target_level_relative_path: string;
+  target_level_absolute_path: string | null;
+  selected_platform: string;
+  staged_source_exists: boolean;
+  target_level_exists: boolean;
+  asset_database_path: string | null;
+  asset_database_exists: boolean;
+  source_found_in_assetdb: boolean;
+  source_id: number | null;
+  source_guid: string | null;
+  product_count: number;
+  dependency_count: number;
+  read_only: boolean;
+  mutation_occurred: boolean;
+  warnings: string[];
+  safest_next_step: string;
+  source: string;
+}
+
+export interface AssetForgeO3DEPlacementHarnessRequest {
+  candidate_id: string;
+  candidate_label: string;
+  staged_source_relative_path: string;
+  target_level_relative_path: string;
+  target_entity_name: string;
+  target_component: string;
+  selected_platform?: string;
+}
+
+export interface AssetForgeO3DEPlacementHarnessRecord {
+  capability_name: string;
+  maturity: "plan-only";
+  harness_status: "blocked" | "ready-for-admitted-runtime-harness";
+  candidate_id: string;
+  candidate_label: string;
+  staged_source_relative_path: string;
+  target_level_relative_path: string;
+  target_entity_name: string;
+  target_component: string;
+  selected_platform: string;
+  bridge_configured: boolean;
+  bridge_heartbeat_fresh: boolean;
+  runtime_gate_enabled: boolean;
+  execution_performed: boolean;
+  read_only: boolean;
+  warnings: string[];
+  safest_next_step: string;
+  source: string;
+}
+
+export interface AssetForgeO3DEPlacementHarnessExecuteRequest {
+  candidate_id: string;
+  candidate_label: string;
+  staged_source_relative_path: string;
+  target_level_relative_path: string;
+  target_entity_name: string;
+  target_component: string;
+  selected_platform?: string;
+  approval_state: "not-approved" | "approved";
+  approval_note: string;
+}
+
+export interface AssetForgeO3DEPlacementHarnessExecuteRecord {
+  capability_name: string;
+  maturity: "proof-only";
+  execute_status: "approval-required" | "blocked" | "submitted-proof-only";
+  candidate_id: string;
+  candidate_label: string;
+  staged_source_relative_path: string;
+  target_level_relative_path: string;
+  target_entity_name: string;
+  target_component: string;
+  selected_platform: string;
+  bridge_configured: boolean;
+  bridge_heartbeat_fresh: boolean;
+  runtime_gate_enabled: boolean;
+  approval_state: "not-approved" | "approved";
+  bridge_command_id: string | null;
+  execution_performed: boolean;
+  readback_captured: boolean;
+  read_only: boolean;
+  warnings: string[];
+  safest_next_step: string;
+  source: string;
+}
+
+export interface AssetForgeO3DEPlacementLiveProofRequest {
+  candidate_id: string;
+  candidate_label: string;
+  target_level_relative_path: string;
+  target_entity_name: string;
+  selected_platform?: string;
+  approval_state: "not-approved" | "approved";
+  approval_note: string;
+}
+
+export interface AssetForgeO3DEPlacementLiveProofRecord {
+  capability_name: string;
+  maturity: "proof-only";
+  proof_status: "approval-required" | "blocked" | "succeeded";
+  candidate_id: string;
+  candidate_label: string;
+  target_level_relative_path: string;
+  target_entity_name: string;
+  selected_platform: string;
+  bridge_configured: boolean;
+  bridge_heartbeat_fresh: boolean;
+  runtime_gate_enabled: boolean;
+  execution_performed: boolean;
+  readback_captured: boolean;
+  entity_exists: boolean | null;
+  bridge_command_id: string | null;
+  evidence_bundle_path: string | null;
+  revert_statement: string;
+  read_only: boolean;
+  warnings: string[];
+  safest_next_step: string;
+  source: string;
+}
+
+export interface AssetForgePlacementEvidenceBundleItem {
+  path: string;
+  recorded_at: string | null;
+  candidate_id: string | null;
+  bridge_command_id: string | null;
+  proof_status: string | null;
+  age_seconds: number | null;
+}
+
+export interface AssetForgePlacementEvidenceAppliedFilters {
+  limit?: number;
+  proof_status?: string;
+  candidate_id?: string;
+  from_age_s?: number;
+}
+
+export interface AssetForgePlacementEvidenceIndexRecord {
+  capability_name: string;
+  maturity: "preflight-only";
+  index_status: "succeeded" | "empty";
+  runtime_root: string;
+  evidence_dir: string;
+  applied_filters: AssetForgePlacementEvidenceAppliedFilters;
+  freshness_window_seconds: number;
+  fresh_item_count: number;
+  items: AssetForgePlacementEvidenceBundleItem[];
+  read_only: boolean;
+  warnings: string[];
+  source: string;
+}
+
 export interface ExecutionRecord {
   id: string;
   run_id: string;

@@ -24,6 +24,17 @@ source .venv/bin/activate
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+## Test
+
+From the repo root:
+
+```powershell
+python -m pytest backend/tests -q
+```
+
+Backend tests now include repo-local import bootstrap in
+`backend/tests/conftest.py`, so no `PYTHONPATH` override is required.
+
 For the current `codex/control-plane/o3de-real-integration` local O3DE target,
 prefer the repo-owned lifecycle commands instead of ad hoc shell sessions.
 
