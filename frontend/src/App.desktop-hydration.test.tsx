@@ -560,17 +560,19 @@ describe("App desktop hydration", () => {
   });
 
   it("restores Asset Forge packet-origin context in Records workspace from session storage", async () => {
-    const storedOrigin = {
-      label: "Selected artifact metadata",
-      detail: "Restored from browser-session state.",
-      runId: "run-001",
-      executionId: "exec-001",
-      artifactId: "artifact-001",
-      packetResolutionSummary: "Resolved from artifact lane.",
-      packetResolvedLane: "artifact",
-      packetAttemptSummaryLines: [
-        "Selected artifact metadata: Resolved review packet fields from this lane.",
-      ],
+      const storedOrigin = {
+        label: "Selected artifact metadata",
+        detail: "Restored from browser-session state.",
+        runId: "run-001",
+        executionId: "exec-001",
+        artifactId: "artifact-001",
+        packetCapturedAtIso: "2026-04-27T00:00:03.000Z",
+        packetCapturedAtSource: "selected_artifact.created_at",
+        packetResolutionSummary: "Resolved from artifact lane.",
+        packetResolvedLane: "artifact",
+        packetAttemptSummaryLines: [
+          "Selected artifact metadata: Resolved review packet fields from this lane.",
+        ],
     };
     window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "records");
     window.sessionStorage.setItem(
@@ -583,11 +585,13 @@ describe("App desktop hydration", () => {
     expect(await screen.findByText("RunsPanel stub")).toBeInTheDocument();
     expect(await screen.findByText("Opened from Asset Forge review packet origin")).toBeInTheDocument();
     expect(screen.getByText("Selected artifact metadata. Restored from browser-session state.")).toBeInTheDocument();
-    expect(screen.getByText("Origin run: run-001")).toBeInTheDocument();
-    expect(screen.getByText("Origin execution: exec-001")).toBeInTheDocument();
-    expect(screen.getByText("Origin artifact: artifact-001")).toBeInTheDocument();
-    expect(screen.getByText("Resolution summary: Resolved from artifact lane.")).toBeInTheDocument();
-    expect(screen.getByText("Resolved lane: Artifact lane")).toBeInTheDocument();
+      expect(screen.getByText("Origin run: run-001")).toBeInTheDocument();
+      expect(screen.getByText("Origin execution: exec-001")).toBeInTheDocument();
+      expect(screen.getByText("Origin artifact: artifact-001")).toBeInTheDocument();
+      expect(screen.getByText("Origin captured at: 2026-04-27T00:00:03.000Z")).toBeInTheDocument();
+      expect(screen.getByText("Origin capture source: selected_artifact.created_at")).toBeInTheDocument();
+      expect(screen.getByText("Resolution summary: Resolved from artifact lane.")).toBeInTheDocument();
+      expect(screen.getByText("Resolved lane: Artifact lane")).toBeInTheDocument();
     expect(screen.getByText("Selected artifact metadata: Resolved review packet fields from this lane.")).toBeInTheDocument();
   });
 

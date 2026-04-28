@@ -18,6 +18,8 @@ type AssetForgeOriginContext = {
   runId: string | null;
   executionId: string | null;
   artifactId: string | null;
+  packetCapturedAtIso: string | null;
+  packetCapturedAtSource: string | null;
   packetResolutionSummary: string | null;
   packetResolvedLane: string | null;
   packetAttemptSummaryLines: string[];
@@ -131,6 +133,15 @@ export default function RecordsWorkspaceDesktop({
       || assetForgeOriginContext?.packetResolvedLane
       || (assetForgeOriginContext?.packetAttemptSummaryLines?.length ?? 0) > 0,
   );
+  const packetCaptureFreshness = useMemo(
+    () => describePacketCaptureFreshness(assetForgeOriginContext?.packetCapturedAtIso ?? null),
+    [assetForgeOriginContext?.packetCapturedAtIso],
+  );
+  const packetCapturedAtLabel = useMemo(
+    () => formatPacketCaptureTimestamp(assetForgeOriginContext?.packetCapturedAtIso ?? null),
+    [assetForgeOriginContext?.packetCapturedAtIso],
+  );
+  const packetCapturedAtSourceLabel = assetForgeOriginContext?.packetCapturedAtSource ?? "Unknown / unavailable";
 
   return (
     <RecordsWorkspaceView
@@ -150,7 +161,15 @@ export default function RecordsWorkspaceDesktop({
             <span>Origin run: {assetForgeOriginContext.runId ?? "not recorded"}</span>
             <span>Origin execution: {assetForgeOriginContext.executionId ?? "not recorded"}</span>
             <span>Origin artifact: {assetForgeOriginContext.artifactId ?? "not recorded"}</span>
+            <span>Origin captured at: {packetCapturedAtLabel}</span>
+            <span>Origin capture source: {packetCapturedAtSourceLabel}</span>
+            <span>
+              Origin freshness: <strong style={packetCaptureFreshnessToneStyle(packetCaptureFreshness.tone)}>
+                {packetCaptureFreshness.label}
+              </strong>
+            </span>
           </div>
+          <span style={assetForgeOriginBannerHintStyle}>{packetCaptureFreshness.detail}</span>
           {hasAssetForgeResolutionDiagnostics ? (
             <div aria-label="Asset Forge lane diagnostics context" style={assetForgeResolutionDiagnosticsStyle}>
               <strong style={assetForgeResolutionDiagnosticsHeadingStyle}>Packet lane diagnostics (read-only)</strong>
@@ -402,6 +421,113 @@ function getEventsFilterPressureLabel(filteredCount: number, totalCount: number)
     return "moderate narrowing";
   }
   return "light narrowing";
+}
+
+type PacketCaptureFreshnessTone = "current" | "aging" | "stale" | "unknown";
+
+type PacketCaptureFreshness = {
+  label: string;
+  detail: string;
+  tone: PacketCaptureFreshnessTone;
+};
+
+function formatPacketCaptureTimestamp(value: string | null): string {
+  if (!value || value.trim().length === 0) {
+    return "Unknown / unavailable";
+  }
+  const parsed = Date.parse(value);
+  if (Number.isNaN(parsed)) {
+    return value;
+  }
+  return new Date(parsed).toISOString();
+}
+
+function formatPacketCaptureAge(diffMs: number): string {
+  const absMs = Math.abs(diffMs);
+  if (absMs < 60_000) {
+    const seconds = Math.max(0, Math.round(absMs / 1000));
+    return `${seconds}s`;
+  }
+  if (absMs < 3_600_000) {
+    const minutes = Math.max(0, Math.round(absMs / 60_000));
+    return `${minutes}m`;
+  }
+  if (absMs < 86_400_000) {
+    const hours = Math.max(0, Math.round(absMs / 3_600_000));
+    return `${hours}h`;
+  }
+  const days = Math.max(0, Math.round(absMs / 86_400_000));
+  return `${days}d`;
+}
+
+function describePacketCaptureFreshness(capturedAtIso: string | null): PacketCaptureFreshness {
+  if (!capturedAtIso || capturedAtIso.trim().length === 0) {
+    return {
+      label: "Unknown / unavailable",
+      detail: "No packet capture timestamp was available for this handoff.",
+      tone: "unknown",
+    };
+  }
+
+  const parsed = Date.parse(capturedAtIso);
+  if (Number.isNaN(parsed)) {
+    return {
+      label: "Timestamp unparseable",
+      detail: `Capture timestamp is present but not parseable: ${capturedAtIso}`,
+      tone: "unknown",
+    };
+  }
+
+  const now = Date.now();
+  const diffMs = now - parsed;
+  const ageLabel = formatPacketCaptureAge(diffMs);
+  if (diffMs < -120_000) {
+    return {
+      label: "Clock skew detected",
+      detail: `Capture timestamp is ${ageLabel} in the future. Verify operator clock alignment before trusting freshness.`,
+      tone: "unknown",
+    };
+  }
+  if (diffMs <= 15 * 60_000) {
+    return {
+      label: "Current evidence",
+      detail: `Packet capture age is ${ageLabel}; read-only evidence looks current for operator review.`,
+      tone: "current",
+    };
+  }
+  if (diffMs <= 2 * 60 * 60_000) {
+    return {
+      label: "Aging evidence",
+      detail: `Packet capture age is ${ageLabel}; continue read-only review and refresh evidence before any approval corridor.`,
+      tone: "aging",
+    };
+  }
+  return {
+    label: "Stale evidence",
+    detail: `Packet capture age is ${ageLabel}; refresh packet lanes outside Codex before trusting readiness.`,
+    tone: "stale",
+  };
+}
+
+function packetCaptureFreshnessToneStyle(tone: PacketCaptureFreshnessTone) {
+  if (tone === "current") {
+    return {
+      color: "rgba(134, 239, 172, 1)",
+    } as const;
+  }
+  if (tone === "aging") {
+    return {
+      color: "rgba(253, 224, 71, 1)",
+    } as const;
+  }
+  if (tone === "stale") {
+    return {
+      color: "rgba(251, 113, 133, 1)",
+    } as const;
+  }
+  return {
+    color: "rgba(226, 232, 240, 0.92)",
+  } as const;
 }
 
 function formatResolvedLane(value: string | null): string {

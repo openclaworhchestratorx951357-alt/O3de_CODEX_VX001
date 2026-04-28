@@ -126,6 +126,8 @@ type AssetForgeRecordsOriginContext = {
   runId: string | null;
   executionId: string | null;
   artifactId: string | null;
+  packetCapturedAtIso: string | null;
+  packetCapturedAtSource: string | null;
   packetResolutionSummary: string | null;
   packetResolvedLane: string | null;
   packetAttemptSummaryLines: string[];
@@ -7369,6 +7371,8 @@ export default function App() {
       runId: origin.runId ?? null,
       executionId: origin.executionId ?? null,
       artifactId: origin.artifactId ?? null,
+      packetCapturedAtIso: origin.capturedAtIso ?? null,
+      packetCapturedAtSource: origin.capturedAtSource ?? null,
       packetResolutionSummary: resolutionDiagnostics?.summary ?? null,
       packetResolvedLane: resolutionDiagnostics?.resolvedLane ?? null,
       packetAttemptSummaryLines: resolutionDiagnostics?.attempts.map((attempt) => (
@@ -7768,6 +7772,8 @@ function parseAssetForgeRecordsOriginContext(rawValue: string | null): AssetForg
       runId?: unknown;
       executionId?: unknown;
       artifactId?: unknown;
+      packetCapturedAtIso?: unknown;
+      packetCapturedAtSource?: unknown;
       packetResolutionSummary?: unknown;
       packetResolvedLane?: unknown;
       packetAttemptSummaryLines?: unknown;
@@ -7790,6 +7796,14 @@ function parseAssetForgeRecordsOriginContext(rawValue: string | null): AssetForg
     const artifactId = typeof parsed.artifactId === "string" && parsed.artifactId.trim().length > 0
       ? parsed.artifactId
       : null;
+    const packetCapturedAtIso = typeof parsed.packetCapturedAtIso === "string"
+      && parsed.packetCapturedAtIso.trim().length > 0
+      ? parsed.packetCapturedAtIso
+      : null;
+    const packetCapturedAtSource = typeof parsed.packetCapturedAtSource === "string"
+      && parsed.packetCapturedAtSource.trim().length > 0
+      ? parsed.packetCapturedAtSource
+      : null;
     const packetResolutionSummary = typeof parsed.packetResolutionSummary === "string"
       && parsed.packetResolutionSummary.trim().length > 0
       ? parsed.packetResolutionSummary
@@ -7810,6 +7824,8 @@ function parseAssetForgeRecordsOriginContext(rawValue: string | null): AssetForg
       runId,
       executionId,
       artifactId,
+      packetCapturedAtIso,
+      packetCapturedAtSource,
       packetResolutionSummary,
       packetResolvedLane,
       packetAttemptSummaryLines,

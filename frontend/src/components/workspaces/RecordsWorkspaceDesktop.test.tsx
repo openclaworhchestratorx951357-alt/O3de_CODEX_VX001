@@ -232,6 +232,8 @@ describe("RecordsWorkspaceDesktop", () => {
         runId: "run-001",
         executionId: "exec-001",
         artifactId: "artifact-001",
+        packetCapturedAtIso: "2026-04-27T00:00:03.000Z",
+        packetCapturedAtSource: "selected_artifact.created_at",
         packetResolutionSummary: "Resolved from artifact lane.",
         packetResolvedLane: "artifact",
         packetAttemptSummaryLines: [
@@ -248,6 +250,9 @@ describe("RecordsWorkspaceDesktop", () => {
     expect(screen.getByText("Origin run: run-001")).toBeInTheDocument();
     expect(screen.getByText("Origin execution: exec-001")).toBeInTheDocument();
     expect(screen.getByText("Origin artifact: artifact-001")).toBeInTheDocument();
+    expect(screen.getByText("Origin captured at: 2026-04-27T00:00:03.000Z")).toBeInTheDocument();
+    expect(screen.getByText("Origin capture source: selected_artifact.created_at")).toBeInTheDocument();
+    expect(screen.getByText(/Origin freshness:/i)).toBeInTheDocument();
     expect(screen.getByText("read-only context")).toBeInTheDocument();
     expect(screen.getByLabelText("Asset Forge lane diagnostics context")).toBeInTheDocument();
     expect(screen.getByText("Resolution summary: Resolved from artifact lane.")).toBeInTheDocument();
@@ -269,6 +274,8 @@ describe("RecordsWorkspaceDesktop", () => {
         runId: null,
         executionId: null,
         artifactId: null,
+        packetCapturedAtIso: null,
+        packetCapturedAtSource: null,
         packetResolutionSummary: null,
         packetResolvedLane: null,
         packetAttemptSummaryLines: [],
