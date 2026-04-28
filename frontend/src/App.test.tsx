@@ -52,6 +52,7 @@ const apiMocks = vi.hoisted(() => ({
   fetchReadiness: vi.fn(),
   fetchAssetForgeTask: vi.fn(),
   fetchAssetForgeProviderStatus: vi.fn(),
+  fetchAssetForgeStudioStatus: vi.fn(),
   fetchAssetForgeBlenderStatus: vi.fn(),
   createAssetForgeO3DEStagePlan: vi.fn(),
   createAssetForgeO3DEPlacementPlan: vi.fn(),

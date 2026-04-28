@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import AssetForgeStudioPacket01 from "./AssetForgeStudioPacket01";
@@ -478,15 +478,18 @@ describe("AssetForgeStudioPacket01", () => {
 
   it("filters object outliner items with live demo match counts", () => {
     render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+    const outlinerSection = screen.getByText("Object outliner").closest("section");
+    expect(outlinerSection).not.toBeNull();
+    const outliner = within(outlinerSection as HTMLElement);
 
-    expect(screen.getByText("Outliner matches: 7/7 (demo only)")).toBeInTheDocument();
-    fireEvent.change(screen.getByPlaceholderText("Filter objects (demo)"), { target: { value: "texture" } });
-    expect(screen.getByText("Outliner matches: 1/7 (demo only)")).toBeInTheDocument();
-    expect(screen.getByText("Textures", { selector: "li" })).toBeInTheDocument();
+    expect(outliner.getByText("Outliner matches: 7/7 (demo only)")).toBeInTheDocument();
+    fireEvent.change(outliner.getByPlaceholderText("Filter objects (demo)"), { target: { value: "texture" } });
+    expect(outliner.getByText("Outliner matches: 1/7 (demo only)")).toBeInTheDocument();
+    expect(outliner.getByText("Textures")).toBeInTheDocument();
 
-    fireEvent.change(screen.getByPlaceholderText("Filter objects (demo)"), { target: { value: "zzz" } });
-    expect(screen.getByText("Outliner matches: 0/7 (demo only)")).toBeInTheDocument();
-    expect(screen.getByText("No outliner items match current filter (demo).")).toBeInTheDocument();
+    fireEvent.change(outliner.getByPlaceholderText("Filter objects (demo)"), { target: { value: "zzz" } });
+    expect(outliner.getByText("Outliner matches: 0/7 (demo only)")).toBeInTheDocument();
+    expect(outliner.getByText("No outliner items match current filter (demo).")).toBeInTheDocument();
   });
 
   it("focuses outliner to selected-candidate hint and clears filter in demo mode", () => {
@@ -494,7 +497,7 @@ describe("AssetForgeStudioPacket01", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Focus selected in outliner (demo)" }));
     expect(screen.getByText("Outliner matches: 1/7 (demo only)")).toBeInTheDocument();
-    expect(screen.getByText("Mesh_LOD0", { selector: "li" })).toBeInTheDocument();
+    expect(screen.getByText("Mesh_LOD0")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Clear outliner filter" }));
     expect(screen.getByText("Outliner matches: 7/7 (demo only)")).toBeInTheDocument();
@@ -502,13 +505,16 @@ describe("AssetForgeStudioPacket01", () => {
 
   it("auto-syncs outliner filter to selected candidate hint when enabled", () => {
     render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+    const outlinerSection = screen.getByText("Object outliner").closest("section");
+    expect(outlinerSection).not.toBeNull();
+    const outliner = within(outlinerSection as HTMLElement);
 
     fireEvent.click(screen.getByLabelText("Auto-sync outliner to selected candidate hint (demo)"));
     fireEvent.click(screen.getByRole("button", { name: "Select Broken Keystone Span" }));
 
-    expect(screen.getByText("Selection hint: Materials (demo mapping)")).toBeInTheDocument();
-    expect(screen.getByText("Outliner matches: 1/7 (demo only)")).toBeInTheDocument();
-    expect(screen.getByText("Materials", { selector: "li" })).toBeInTheDocument();
+    expect(outliner.getByText("Selection hint: Materials (demo mapping)")).toBeInTheDocument();
+    expect(outliner.getByText("Outliner matches: 1/7 (demo only)")).toBeInTheDocument();
+    expect(outliner.getByText("Materials")).toBeInTheDocument();
   });
 
   it("restores outliner filter and auto-sync toggle from session storage", () => {
