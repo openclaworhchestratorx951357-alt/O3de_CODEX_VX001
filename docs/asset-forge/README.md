@@ -18,6 +18,7 @@ Purpose: restore Asset Forge as a Meshy-like 3D asset creation studio with Blend
 10. `CODEX-HANDOFF-ASSET-FORGE-PRODUCTION.md`
 11. `ASSET-FORGE-SERVER-OWNED-APPROVAL-MODEL.md`
 12. `ASSET-FORGE-APPROVAL-ENFORCEMENT-INTEGRATION.md`
+13. `ASSET-FORGE-MUTATION-ADMISSION-DESIGN.md`
 
 ## Core correction
 
