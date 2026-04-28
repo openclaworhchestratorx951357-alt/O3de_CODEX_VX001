@@ -78,6 +78,7 @@ type PacketProvenanceSummary = {
 type ConnectionTruthSummary = {
   packetStatusLabel: string;
   packetSourceLabel: string;
+  packetCorridorLabel: string;
   bridgeConnectionLabel: string;
   bridgeHeartbeatLabel: string;
   captureAgeLabel: string;
@@ -306,11 +307,30 @@ function buildConnectionTruthSummary(
   return {
     packetStatusLabel,
     packetSourceLabel: packet.dataSourceLabel,
+    packetCorridorLabel: buildPacketCorridorLabel(packetOrigin),
     bridgeConnectionLabel: bridgeSnapshot.connectionState,
     bridgeHeartbeatLabel: bridgeSnapshot.heartbeatState,
     captureAgeLabel: packetProvenance.captureAgeLabel,
     recordsTargetLabel: buildRecordTargetLabel(packetOrigin),
   };
+}
+
+function buildPacketCorridorLabel(packetOrigin: AssetForgeReviewPacketOrigin): string {
+  switch (packetOrigin.kind) {
+    case "selected_artifact_metadata":
+      return "Artifact metadata";
+    case "selected_execution_details":
+      return "Execution details";
+    case "selected_run_execution_details":
+      return "Run execution details";
+    case "existing_frontend_packet_payload":
+      return "Existing frontend payload";
+    case "typed_fixture_preview":
+      return "Fixture preview";
+    case "unknown_live_packet_origin":
+    default:
+      return "Live payload origin unresolved";
+  }
 }
 
 function isUnknownDisplayValue(value: string): boolean {
@@ -670,6 +690,7 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
       <section aria-label="Forge connection truth strip" style={s.truthStrip}>
         <div style={s.truthItem}><span style={s.truthLabel}>Packet status</span><strong style={s.truthValue}>{connectionTruth.packetStatusLabel}</strong></div>
         <div style={s.truthItem}><span style={s.truthLabel}>Packet source</span><strong style={s.truthValue}>{connectionTruth.packetSourceLabel}</strong></div>
+        <div style={s.truthItem}><span style={s.truthLabel}>Packet corridor</span><strong style={s.truthValue}>{connectionTruth.packetCorridorLabel}</strong></div>
         <div style={s.truthItem}><span style={s.truthLabel}>Bridge</span><strong style={s.truthValue}>{connectionTruth.bridgeConnectionLabel}</strong></div>
         <div style={s.truthItem}><span style={s.truthLabel}>Heartbeat</span><strong style={s.truthValue}>{connectionTruth.bridgeHeartbeatLabel}</strong></div>
         <div style={s.truthItem}><span style={s.truthLabel}>Capture age</span><strong style={s.truthValue}>{connectionTruth.captureAgeLabel}</strong></div>
@@ -691,7 +712,7 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
         {activeTopMenu === "File" && <FilePage projectProfile={projectProfile} activeTopMenu={activeTopMenu} saveLayout={saveLayout} resetLayout={resetLayout} bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} />}
         {activeTopMenu === "Edit" && <EditPage />}
         {activeTopMenu === "Create" && <CreatePage onOpenPromptStudio={onOpenPromptStudio} onOpenRuntimeOverview={onOpenRuntimeOverview} onOpenBuilder={onOpenBuilder} />}
-        {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} assetRows={assetRows} assetProcessorStatusLabel={assetProcessorStatusLabel} freshnessOverview={freshnessOverview} packetProvenance={packetProvenance} />}
+        {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} packetOrigin={resolvedPacketOrigin} assetRows={assetRows} assetProcessorStatusLabel={assetProcessorStatusLabel} freshnessOverview={freshnessOverview} packetProvenance={packetProvenance} />}
         {activeTopMenu === "Entity" && <EntityPage activeTool={activeTool} setActiveTool={setActiveTool} />}
         {activeTopMenu === "Components" && <ComponentsPage readbackStatus={packet.readbackStatus} />}
         {activeTopMenu === "Materials" && <MaterialsPage packet={packet} />}
@@ -711,7 +732,7 @@ function FilePage({ projectProfile, activeTopMenu, saveLayout, resetLayout, brid
     <div style={s.twoCols}>
       <Panel title="Project session" gate="read-only"><Rows rows={[["Project", safeText(projectProfile?.name)], ["Project root", safeText(projectProfile?.projectRoot)], ["Engine root", safeText(projectProfile?.engineRoot)], ["Profile source", safeText(projectProfile?.sourceLabel)]]} /></Panel>
       <Panel title="Local layout controls" gate="local preview"><p style={s.muted}>Stores only harmless UI menu preference state in localStorage.</p><div style={s.buttonRow}><button type="button" onClick={saveLayout} style={s.primaryButton}>Save Layout</button><button type="button" onClick={resetLayout} style={s.darkButton}>Reset Layout</button><button type="button" disabled style={s.disabledButton}>Write project file</button></div><Rows rows={[["Saved menu target", activeTopMenu], ["Backend persistence", "Not connected"], ["File mutation", "Blocked"]]} /></Panel>
-      <Panel title="Bridge read-only snapshot" gate="proof-only"><Rows rows={[["Connection", bridgeSnapshot.connectionState], ["Heartbeat", bridgeSnapshot.heartbeatState], ["Runner process", bridgeSnapshot.runnerState], ["Queue status", bridgeSnapshot.queueSummary], ["Bridge source", bridgeSnapshot.sourceLabel], ["Project root", bridgeSnapshot.projectRoot], ["Bridge root", bridgeSnapshot.bridgeRoot], ["Packet source", packetDataSourceLabel], ...buildPacketOriginRows(packetOrigin)]} /><div style={s.buttonRow}><button type="button" aria-label="Open source record in Records" title={originRecordAction.hint} disabled={!originRecordAction.enabled} onClick={() => onOpenReviewPacketOriginRecord?.(packetOrigin)} style={originRecordAction.enabled ? s.darkButton : s.disabledButton}>Open source record in Records</button>{!originRecordAction.enabled && <span style={s.hintText}>{originRecordAction.hint}</span>}</div></Panel>
+      <Panel title="Bridge read-only snapshot" gate="proof-only"><Rows rows={[["Connection", bridgeSnapshot.connectionState], ["Heartbeat", bridgeSnapshot.heartbeatState], ["Runner process", bridgeSnapshot.runnerState], ["Queue status", bridgeSnapshot.queueSummary], ["Bridge source", bridgeSnapshot.sourceLabel], ["Project root", bridgeSnapshot.projectRoot], ["Bridge root", bridgeSnapshot.bridgeRoot], ["Packet source", packetDataSourceLabel], ["Packet corridor", buildPacketCorridorLabel(packetOrigin)], ...buildPacketOriginRows(packetOrigin)]} /><div style={s.buttonRow}><button type="button" aria-label="Open source record in Records" title={originRecordAction.hint} disabled={!originRecordAction.enabled} onClick={() => onOpenReviewPacketOriginRecord?.(packetOrigin)} style={originRecordAction.enabled ? s.darkButton : s.disabledButton}>Open source record in Records</button>{!originRecordAction.enabled && <span style={s.hintText}>{originRecordAction.hint}</span>}</div></Panel>
     </div><BlockedSummary />
   </Page>;
 }
@@ -731,12 +752,12 @@ function CreatePage({ onOpenPromptStudio, onOpenRuntimeOverview, onOpenBuilder }
   </Page>;
 }
 
-function AssetsPage({ activeAssetCategory, setActiveAssetCategory, packet, assetRows, assetProcessorStatusLabel, freshnessOverview, packetProvenance }: { activeAssetCategory: AssetCategory; setActiveAssetCategory: (category: AssetCategory) => void; packet: PacketViewModel; assetRows: Record<AssetCategory, AssetRowEntry[]>; assetProcessorStatusLabel: string; freshnessOverview: FreshnessOverview; packetProvenance: PacketProvenanceSummary }) {
+function AssetsPage({ activeAssetCategory, setActiveAssetCategory, packet, packetOrigin, assetRows, assetProcessorStatusLabel, freshnessOverview, packetProvenance }: { activeAssetCategory: AssetCategory; setActiveAssetCategory: (category: AssetCategory) => void; packet: PacketViewModel; packetOrigin: AssetForgeReviewPacketOrigin; assetRows: Record<AssetCategory, AssetRowEntry[]>; assetProcessorStatusLabel: string; freshnessOverview: FreshnessOverview; packetProvenance: PacketProvenanceSummary }) {
   return <Page title="Assets" gate="read-only" detail="Full content browser for source assets, products, dependency evidence, Asset Catalog evidence, and read-only Asset Processor status.">
     <div aria-label="Forge assets content browser" style={s.assetsGrid}>
       <aside style={s.rail}>{assetCategories.map((category) => <button key={category} type="button" onClick={() => setActiveAssetCategory(category)} style={activeAssetCategory === category ? s.activeRailButton : s.railButton}>{category}</button>)}</aside>
       <section style={s.browser}><div style={s.panelHeader}>{activeAssetCategory} <Badge gate="read-only" /></div><div style={s.assetTiles}>{assetRows[activeAssetCategory].map((row, index) => <article key={`${row.name}-${index}`} style={s.assetTile}><strong>{row.name}</strong><Badge gate={row.gate} /><span>{row.detail}</span></article>)}</div></section>
-      <Panel title="Evidence readback" gate="proof-only"><div aria-label="Asset freshness severity" style={s.freshnessStrip}><FreshnessBadge label="Asset DB" signal={freshnessOverview.assetDatabase} /><FreshnessBadge label="Catalog" signal={freshnessOverview.assetCatalog} /><FreshnessBadge label="Overall" signal={freshnessOverview.overall} /></div><p style={s.mutedCompact}>{freshnessOverview.overall.cue}</p><p style={s.mutedCompact}>{freshnessOverview.bridgeHeartbeatCue}</p><Rows rows={[["Packet source", packet.dataSourceLabel], ["Packet captured at", packetProvenance.capturedAtLabel], ["Packet capture age", packetProvenance.captureAgeLabel], ["Packet captured from", packetProvenance.captureSourceLabel], ["Source path", packet.sourceEvidence.normalizedSourcePath], ["Product path", packet.productEvidence.productPath], ["Dependency count", packet.dependencyEvidence.dependencyCount], ["Catalog presence", packet.catalogEvidence.catalogPresence], ["Asset DB freshness", packet.freshnessStatus.assetDatabaseFreshness], ["Catalog freshness", packet.freshnessStatus.assetCatalogFreshness], ["Freshness overall", freshnessOverview.overall.status], ["Asset Processor", assetProcessorStatusLabel]]} /><div style={s.buttonRow}><button type="button" disabled style={s.disabledButton}>Import selected asset</button><button type="button" disabled style={s.disabledButton}>Stage source asset</button><button type="button" disabled style={s.disabledButton}>Execute Asset Processor</button></div></Panel>
+      <Panel title="Evidence readback" gate="proof-only"><div aria-label="Asset freshness severity" style={s.freshnessStrip}><FreshnessBadge label="Asset DB" signal={freshnessOverview.assetDatabase} /><FreshnessBadge label="Catalog" signal={freshnessOverview.assetCatalog} /><FreshnessBadge label="Overall" signal={freshnessOverview.overall} /></div><p style={s.mutedCompact}>{freshnessOverview.overall.cue}</p><p style={s.mutedCompact}>{freshnessOverview.bridgeHeartbeatCue}</p><Rows rows={[["Packet source", packet.dataSourceLabel], ["Packet corridor", buildPacketCorridorLabel(packetOrigin)], ["Packet captured at", packetProvenance.capturedAtLabel], ["Packet capture age", packetProvenance.captureAgeLabel], ["Packet captured from", packetProvenance.captureSourceLabel], ["Source path", packet.sourceEvidence.normalizedSourcePath], ["Product path", packet.productEvidence.productPath], ["Dependency count", packet.dependencyEvidence.dependencyCount], ["Catalog presence", packet.catalogEvidence.catalogPresence], ["Asset DB freshness", packet.freshnessStatus.assetDatabaseFreshness], ["Catalog freshness", packet.freshnessStatus.assetCatalogFreshness], ["Freshness overall", freshnessOverview.overall.status], ["Asset Processor", assetProcessorStatusLabel]]} /><div style={s.buttonRow}><button type="button" disabled style={s.disabledButton}>Import selected asset</button><button type="button" disabled style={s.disabledButton}>Stage source asset</button><button type="button" disabled style={s.disabledButton}>Execute Asset Processor</button></div></Panel>
     </div>
   </Page>;
 }
@@ -820,7 +841,7 @@ function ReviewPage({ reviewPacketData, reviewPacketSource, packet, reviewPacket
 }
 
 function HelpPage({ bridgeSnapshot, packetDataSourceLabel, packetOrigin }: { bridgeSnapshot: BridgeSnapshot; packetDataSourceLabel: string; packetOrigin: AssetForgeReviewPacketOrigin }) {
-  return <Page title="Help" gate="read-only" detail="Connected vs preview explanation, gate legend, and safe workflow guide."><div style={s.threeCols}><Panel title="Connected vs preview" gate="read-only"><List items={[`Bridge connection: ${bridgeSnapshot.connectionState}`, `Bridge heartbeat: ${bridgeSnapshot.heartbeatState}`, `Bridge queue: ${bridgeSnapshot.queueSummary}`, `Review packet source: ${packetDataSourceLabel}`, `Review packet origin: ${packetOrigin.label}`, `Origin detail: ${packetOrigin.detail}`, "Viewport preview is local UI only - renderer not connected", "Backend mutation corridors remain blocked"]} /></Panel><Panel title="Gate legend" gate="read-only"><List items={["read-only: can inspect data", "local preview: UI state only", "plan-only: draft or instruction", "proof-only: evidence display", "blocked/not admitted: disabled"]} /></Panel><Panel title="Workflow guide" gate="plan-only"><List items={["Create: draft prompt and plan", "Assets: inspect evidence", "Review: inspect packet", "Use Prompt Studio/Runtime/Builder only through existing safe navigation"]} /></Panel></div><BlockedSummary /></Page>;
+  return <Page title="Help" gate="read-only" detail="Connected vs preview explanation, gate legend, and safe workflow guide."><div style={s.threeCols}><Panel title="Connected vs preview" gate="read-only"><List items={[`Bridge connection: ${bridgeSnapshot.connectionState}`, `Bridge heartbeat: ${bridgeSnapshot.heartbeatState}`, `Bridge queue: ${bridgeSnapshot.queueSummary}`, `Review packet source: ${packetDataSourceLabel}`, `Review packet corridor: ${buildPacketCorridorLabel(packetOrigin)}`, `Review packet origin: ${packetOrigin.label}`, `Origin detail: ${packetOrigin.detail}`, "Viewport preview is local UI only - renderer not connected", "Backend mutation corridors remain blocked"]} /></Panel><Panel title="Gate legend" gate="read-only"><List items={["read-only: can inspect data", "local preview: UI state only", "plan-only: draft or instruction", "proof-only: evidence display", "blocked/not admitted: disabled"]} /></Panel><Panel title="Workflow guide" gate="plan-only"><List items={["Create: draft prompt and plan", "Assets: inspect evidence", "Review: inspect packet", "Use Prompt Studio/Runtime/Builder only through existing safe navigation"]} /></Panel></div><BlockedSummary /></Page>;
 }
 
 function Page({ title, detail, gate, children, review = false }: { title: string; detail: string; gate: GateState; children: ReactNode; review?: boolean }) {

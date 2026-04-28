@@ -58,6 +58,7 @@ describe("AssetForgeToolbenchLayout", () => {
     const truthStrip = within(shell).getByLabelText("Forge connection truth strip");
     expect(within(truthStrip).getByText("Packet status")).toBeInTheDocument();
     expect(within(truthStrip).getByText("Packet source")).toBeInTheDocument();
+    expect(within(truthStrip).getByText("Packet corridor")).toBeInTheDocument();
     expect(within(truthStrip).getByText("Bridge")).toBeInTheDocument();
     expect(within(truthStrip).getByText("Heartbeat")).toBeInTheDocument();
     expect(within(truthStrip).getByText("Capture age")).toBeInTheDocument();
@@ -105,6 +106,7 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getAllByText("Levels/BridgeLevel01/BridgeLevel01.prefab").length).toBeGreaterThan(0);
     expect(within(shell).getAllByText("Typed sample fixture data (read-only preview; not live)").length).toBeGreaterThan(0);
     expect(within(shell).getByText("Packet captured at")).toBeInTheDocument();
+    expect(within(shell).getAllByText("Packet corridor").length).toBeGreaterThan(0);
     expect(within(shell).getByText("Packet capture age")).toBeInTheDocument();
     expect(within(shell).getByText("Packet captured from")).toBeInTheDocument();
     expect(within(shell).getAllByText("Not connected - placeholder only - no execution").length).toBeGreaterThan(0);
@@ -369,6 +371,7 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getAllByText("Fresh (4s)").length).toBeGreaterThan(0);
     expect(within(shell).getByText("inbox 1 | processing 0 | results 3 | deadletter 0")).toBeInTheDocument();
     expect(within(shell).getAllByText("Live Phase 9 packet data (read-only)").length).toBeGreaterThan(0);
+    expect(within(shell).getAllByText("Artifact metadata").length).toBeGreaterThan(0);
     expect(within(shell).getByText("Selected artifact metadata")).toBeInTheDocument();
     expect(within(shell).getByText("artifact-live-001")).toBeInTheDocument();
     expect(within(shell).getByText("2026-04-27T00:00:03.000Z")).toBeInTheDocument();
@@ -383,6 +386,7 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByText("Bridge connection: Connected (read-only)")).toBeInTheDocument();
     expect(within(shell).getByText("Bridge queue: inbox 1 | processing 0 | results 3 | deadletter 0")).toBeInTheDocument();
     expect(within(shell).getByText("Review packet source: Live Phase 9 packet data (read-only)")).toBeInTheDocument();
+    expect(within(shell).getByText("Review packet corridor: Artifact metadata")).toBeInTheDocument();
     expect(within(shell).getByText("Review packet origin: Selected artifact metadata")).toBeInTheDocument();
   });
 });

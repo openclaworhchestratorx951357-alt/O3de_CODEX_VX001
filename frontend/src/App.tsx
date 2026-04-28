@@ -7332,8 +7332,9 @@ export default function App() {
       selectedArtifact,
       selectedExecution,
       selectedExecutionDetails,
+      activeRecordsSurface,
     }),
-    [selectedRunId, selectedArtifact, selectedExecution, selectedExecutionDetails],
+    [selectedRunId, selectedArtifact, selectedExecution, selectedExecutionDetails, activeRecordsSurface],
   );
 
   function openAssetForgeWorkspaceFromRecords(): void {

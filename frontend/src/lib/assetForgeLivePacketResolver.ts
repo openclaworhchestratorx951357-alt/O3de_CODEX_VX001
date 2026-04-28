@@ -10,6 +10,7 @@ type AssetForgeLivePacketSelection = {
   selectedArtifact: ArtifactRecord | null;
   selectedExecution: ExecutionRecord | null;
   selectedExecutionDetails: Record<string, unknown> | null;
+  activeRecordsSurface?: "runs" | "executions" | "artifacts" | "events" | null;
 };
 
 export type AssetForgeLivePacketResolution = {
@@ -79,6 +80,7 @@ export function resolveAssetForgeLivePacketSelection({
   selectedArtifact,
   selectedExecution,
   selectedExecutionDetails,
+  activeRecordsSurface = null,
 }: AssetForgeLivePacketSelection): AssetForgeLivePacketResolution {
   const executionCapturedAtIso = selectedExecution?.finished_at ?? selectedExecution?.started_at ?? null;
   const executionCapturedAtSource = selectedExecution?.finished_at
@@ -88,8 +90,9 @@ export function resolveAssetForgeLivePacketSelection({
       : null;
   const runSnapshotTimestamp = resolveTimestampFromPayload(selectedExecutionDetails);
 
-  const candidates: Array<{ payload: unknown; origin: AssetForgeReviewPacketOrigin }> = [
+  const candidates: Array<{ key: "artifact" | "execution" | "run"; payload: unknown; origin: AssetForgeReviewPacketOrigin }> = [
     {
+      key: "artifact",
       payload: selectedArtifact?.metadata,
       origin: {
         kind: "selected_artifact_metadata",
@@ -103,6 +106,7 @@ export function resolveAssetForgeLivePacketSelection({
       },
     },
     {
+      key: "execution",
       payload: selectedExecution?.details,
       origin: {
         kind: "selected_execution_details",
@@ -116,6 +120,7 @@ export function resolveAssetForgeLivePacketSelection({
       },
     },
     {
+      key: "run",
       payload: selectedExecutionDetails,
       origin: {
         kind: "selected_run_execution_details",
@@ -130,15 +135,36 @@ export function resolveAssetForgeLivePacketSelection({
     },
   ];
 
-  for (const candidate of candidates) {
-    if (payloadHasReviewPacket(candidate.payload)) {
-      return {
-        reviewPacketData: candidate.payload,
-        reviewPacketSource: "live_phase9_packet_data",
-        reviewPacketOrigin: candidate.origin,
-      };
-    }
+  const preferredOrder = getPreferredOriginOrder(activeRecordsSurface);
+  const orderedCandidates = preferredOrder
+    .map((key) => candidates.find((candidate) => candidate.key === key))
+    .filter((candidate): candidate is (typeof candidates)[number] => Boolean(candidate));
+
+  const firstCandidateWithPacket = orderedCandidates.find((candidate) => payloadHasReviewPacket(candidate.payload));
+  if (firstCandidateWithPacket) {
+    return {
+      reviewPacketData: firstCandidateWithPacket.payload,
+      reviewPacketSource: "live_phase9_packet_data",
+      reviewPacketOrigin: firstCandidateWithPacket.origin,
+    };
   }
 
   return {};
+}
+
+function getPreferredOriginOrder(
+  activeRecordsSurface: AssetForgeLivePacketSelection["activeRecordsSurface"],
+): Array<"artifact" | "execution" | "run"> {
+  switch (activeRecordsSurface) {
+    case "runs":
+      return ["run", "execution", "artifact"];
+    case "executions":
+      return ["execution", "artifact", "run"];
+    case "artifacts":
+      return ["artifact", "execution", "run"];
+    case "events":
+      return ["execution", "artifact", "run"];
+    default:
+      return ["artifact", "execution", "run"];
+  }
 }
