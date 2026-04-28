@@ -61,6 +61,8 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(truthStrip).getByText("Bridge")).toBeInTheDocument();
     expect(within(truthStrip).getByText("Heartbeat")).toBeInTheDocument();
     expect(within(truthStrip).getByText("Capture age")).toBeInTheDocument();
+    expect(within(truthStrip).getByText("Records target")).toBeInTheDocument();
+    expect(within(truthStrip).getByText("Unavailable")).toBeInTheDocument();
 
     expect(within(shell).getByLabelText("Asset Forge active page")).toBeInTheDocument();
     expect(within(shell).getByLabelText("Asset Forge Create page")).toBeInTheDocument();
@@ -362,6 +364,7 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByText("artifact-live-001")).toBeInTheDocument();
     expect(within(shell).getByText("2026-04-27T00:00:03.000Z")).toBeInTheDocument();
     expect(within(shell).getByText("selected_artifact.created_at")).toBeInTheDocument();
+    expect(within(shell).getAllByText("Artifact artifact-live-001").length).toBeGreaterThan(0);
 
     fireEvent.click(within(shell).getByRole("button", { name: "Assets" }));
     expect(within(shell).getByText(/Connected \(read-only\) queue inbox 1 \| processing 0 \| results 3 \| deadletter 0; placeholder only - no execution/i)).toBeInTheDocument();

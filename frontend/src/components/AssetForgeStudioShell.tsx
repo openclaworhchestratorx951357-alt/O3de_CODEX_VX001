@@ -81,6 +81,7 @@ type ConnectionTruthSummary = {
   bridgeConnectionLabel: string;
   bridgeHeartbeatLabel: string;
   captureAgeLabel: string;
+  recordsTargetLabel: string;
 };
 
 const UNKNOWN_VALUE = "Unknown / unavailable";
@@ -293,6 +294,7 @@ function buildConnectionTruthSummary(
   packet: PacketViewModel,
   bridgeSnapshot: BridgeSnapshot,
   packetProvenance: PacketProvenanceSummary,
+  packetOrigin: AssetForgeReviewPacketOrigin,
 ): ConnectionTruthSummary {
   const packetSourceLower = packet.dataSourceLabel.toLowerCase();
   const packetStatusLabel = packetSourceLower.includes("live")
@@ -307,6 +309,7 @@ function buildConnectionTruthSummary(
     bridgeConnectionLabel: bridgeSnapshot.connectionState,
     bridgeHeartbeatLabel: bridgeSnapshot.heartbeatState,
     captureAgeLabel: packetProvenance.captureAgeLabel,
+    recordsTargetLabel: buildRecordTargetLabel(packetOrigin),
   };
 }
 
@@ -492,6 +495,8 @@ function buildPacketOriginRows(packetOrigin: AssetForgeReviewPacketOrigin): Arra
   return [
     ["Origin", packetOrigin.label],
     ["Origin detail", packetOrigin.detail],
+    ["Records target", buildRecordTargetLabel(packetOrigin)],
+    ["Records route", buildRecordRouteStateLabel(packetOrigin)],
     ["Run ID", safeText(packetOrigin.runId)],
     ["Execution ID", safeText(packetOrigin.executionId)],
     ["Artifact ID", safeText(packetOrigin.artifactId)],
@@ -503,6 +508,26 @@ function buildPacketOriginRows(packetOrigin: AssetForgeReviewPacketOrigin): Arra
 
 function canOpenPacketOriginRecord(packetOrigin: AssetForgeReviewPacketOrigin): boolean {
   return Boolean(packetOrigin.artifactId || packetOrigin.executionId || packetOrigin.runId);
+}
+
+function buildRecordTargetLabel(packetOrigin: AssetForgeReviewPacketOrigin): string {
+  const artifactId = packetOrigin.artifactId?.trim();
+  if (artifactId) {
+    return `Artifact ${artifactId}`;
+  }
+  const executionId = packetOrigin.executionId?.trim();
+  if (executionId) {
+    return `Execution ${executionId}`;
+  }
+  const runId = packetOrigin.runId?.trim();
+  if (runId) {
+    return `Run ${runId}`;
+  }
+  return "Unavailable";
+}
+
+function buildRecordRouteStateLabel(packetOrigin: AssetForgeReviewPacketOrigin): string {
+  return canOpenPacketOriginRecord(packetOrigin) ? "Available (read-only)" : "Unavailable";
 }
 
 function buildOriginRecordAction(
@@ -614,8 +639,8 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
     [resolvedPacketOrigin],
   );
   const connectionTruth = useMemo(
-    () => buildConnectionTruthSummary(packet, bridgeSnapshot, packetProvenance),
-    [packet, bridgeSnapshot, packetProvenance],
+    () => buildConnectionTruthSummary(packet, bridgeSnapshot, packetProvenance, resolvedPacketOrigin),
+    [packet, bridgeSnapshot, packetProvenance, resolvedPacketOrigin],
   );
 
   const saveLayout = () => window.localStorage.setItem(STORAGE_KEY, activeTopMenu);
@@ -644,6 +669,7 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
         <div style={s.truthItem}><span style={s.truthLabel}>Bridge</span><strong style={s.truthValue}>{connectionTruth.bridgeConnectionLabel}</strong></div>
         <div style={s.truthItem}><span style={s.truthLabel}>Heartbeat</span><strong style={s.truthValue}>{connectionTruth.bridgeHeartbeatLabel}</strong></div>
         <div style={s.truthItem}><span style={s.truthLabel}>Capture age</span><strong style={s.truthValue}>{connectionTruth.captureAgeLabel}</strong></div>
+        <div style={s.truthItem}><span style={s.truthLabel}>Records target</span><strong style={s.truthValue}>{connectionTruth.recordsTargetLabel}</strong></div>
       </section>
       <main aria-label="Asset Forge active page" style={s.pageHost}>
         {activeTopMenu === "File" && <FilePage projectProfile={projectProfile} activeTopMenu={activeTopMenu} saveLayout={saveLayout} resetLayout={resetLayout} bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} />}
@@ -853,10 +879,10 @@ const s = {
   menuButton: { flex: "0 1 auto", minWidth: 0, height: 24, padding: "0 6px", borderWidth: 1, borderStyle: "solid", borderColor: "transparent", borderRadius: 3, background: "transparent", color: "#c3cfdd", fontSize: 12, fontWeight: 800, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   activeMenuButton: { flex: "0 1 auto", minWidth: 0, height: 24, padding: "0 6px", borderWidth: 1, borderStyle: "solid", borderColor: "#4fa3ff", borderRadius: 3, background: "#173a5d", color: "#ffffff", fontSize: 12, fontWeight: 800, cursor: "pointer", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   topStatus: { flex: "0 0 auto", marginLeft: "auto", color: "#8fa3bc", whiteSpace: "nowrap", fontSize: 11, textTransform: "lowercase" },
-  truthStrip: { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6, alignItems: "center", minWidth: 0, padding: "4px 8px", borderBottom: "1px solid #27384b", background: "#0e151f" },
+  truthStrip: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 6, alignItems: "center", minWidth: 0, padding: "4px 8px", borderBottom: "1px solid #27384b", background: "#0e151f" },
   truthItem: { minWidth: 0, display: "grid", gap: 1, padding: "2px 6px", border: "1px solid #26384f", borderRadius: 4, background: "#111b26" },
   truthLabel: { color: "#7f95ad", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 10, fontWeight: 800 },
-  truthValue: { color: "#d8e4f2", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" },
+  truthValue: { color: "#d8e4f2", fontSize: 11, fontWeight: 800, whiteSpace: "normal", overflowWrap: "anywhere", lineHeight: 1.2 },
   pageHost: { minWidth: 0, minHeight: 0, overflow: "auto" },
   page: { display: "grid", gridTemplateRows: "auto minmax(0, 1fr) auto", gap: 10, height: "100%", minWidth: 0, minHeight: 0, padding: 10, overflow: "auto", background: "#0b1017", boxSizing: "border-box" },
   reviewPage: { display: "grid", gridTemplateRows: "auto minmax(0, 1fr)", gap: 10, height: "100%", minWidth: 0, minHeight: 0, padding: 10, overflow: "auto", background: "#0b1017", boxSizing: "border-box" },
