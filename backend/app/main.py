@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.adapters import router as adapters_router
+from app.api.routes.asset_forge import router as asset_forge_router
 from app.api.routes.app_control import router as app_control_router
 from app.api.routes.approvals import router as approvals_router
 from app.api.routes.artifacts import router as artifacts_router
@@ -73,6 +74,7 @@ app.include_router(o3de_target_router)
 app.include_router(adapters_router)
 app.include_router(app_control_router)
 app.include_router(summary_router)
+app.include_router(asset_forge_router)
 app.include_router(tools_router)
 app.include_router(tools_catalog_router)
 app.include_router(runs_router)
@@ -105,6 +107,22 @@ def root() -> RootStatus:
         "/app/control/preview",
         "/app/control/report",
         "/summary",
+        "/asset-forge/task",
+        "/asset-forge/task/plan",
+        "/asset-forge/provider/status",
+        "/asset-forge/blender/status",
+        "/asset-forge/studio/status",
+        "/asset-forge/blender/inspect",
+        "/asset-forge/o3de/stage-plan",
+        "/asset-forge/o3de/stage-write",
+        "/asset-forge/o3de/readback",
+        "/asset-forge/o3de/placement-plan",
+        "/asset-forge/o3de/placement-proof",
+        "/asset-forge/o3de/placement-evidence",
+        "/asset-forge/o3de/placement-harness/prepare",
+        "/asset-forge/o3de/placement-harness/execute",
+        "/asset-forge/o3de/placement-harness/live-proof",
+        "/asset-forge/o3de/placement-harness/evidence-index",
         "/tools/catalog",
         "/tools/dispatch",
         "/runs",
