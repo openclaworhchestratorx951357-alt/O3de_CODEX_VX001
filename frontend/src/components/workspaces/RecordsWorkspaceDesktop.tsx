@@ -133,6 +133,11 @@ export default function RecordsWorkspaceDesktop({
       || assetForgeOriginContext?.packetResolvedLane
       || (assetForgeOriginContext?.packetAttemptSummaryLines?.length ?? 0) > 0,
   );
+  const packetLaneSurface = useMemo(
+    () => getRecordsSurfaceIdFromResolvedLane(assetForgeOriginContext?.packetResolvedLane ?? null),
+    [assetForgeOriginContext?.packetResolvedLane],
+  );
+  const hasPacketLaneDrift = Boolean(packetLaneSurface && packetLaneSurface !== activeSurfaceId);
   const packetCaptureFreshness = useMemo(
     () => describePacketCaptureFreshness(assetForgeOriginContext?.packetCapturedAtIso ?? null),
     [assetForgeOriginContext?.packetCapturedAtIso],
@@ -170,6 +175,48 @@ export default function RecordsWorkspaceDesktop({
             </span>
           </div>
           <span style={assetForgeOriginBannerHintStyle}>{packetCaptureFreshness.detail}</span>
+          {assetForgeOriginContext?.packetResolvedLane ? (
+            <div
+              aria-label="Asset Forge lane alignment status"
+              style={hasPacketLaneDrift ? assetForgeLaneAlignmentDriftStyle : assetForgeLaneAlignmentAlignedStyle}
+            >
+              <strong>{hasPacketLaneDrift ? "Lane drift detected" : "Lane alignment confirmed"}</strong>
+              <span>
+                Packet resolved lane: {formatResolvedLane(assetForgeOriginContext.packetResolvedLane)}.
+              </span>
+              <span>
+                Active Records surface: {formatRecordsSurfaceLabel(activeSurfaceId)}.
+              </span>
+              {hasPacketLaneDrift ? (
+                <>
+                  <span>
+                    Guidance: switch to the packet lane surface first, then refresh packet lanes from Asset Forge Review
+                    before trusting readiness.
+                  </span>
+                  <button
+                    type="button"
+                    style={assetForgeOriginBannerButtonStyle}
+                    onClick={() => {
+                      if (packetLaneSurface) {
+                        onSelectSurface(packetLaneSurface);
+                      }
+                    }}
+                    title={packetLaneSurface
+                      ? `Switch Records to ${formatRecordsSurfaceLabel(packetLaneSurface)} lane.`
+                      : "Packet lane surface is unavailable for this context."}
+                    disabled={!packetLaneSurface}
+                  >
+                    Open packet lane surface
+                  </button>
+                </>
+              ) : (
+                <span>
+                  Guidance: current Records lane matches packet resolution. Continue read-only review or return to Asset
+                  Forge Review.
+                </span>
+              )}
+            </div>
+          ) : null}
           {hasAssetForgeResolutionDiagnostics ? (
             <div aria-label="Asset Forge lane diagnostics context" style={assetForgeResolutionDiagnosticsStyle}>
               <strong style={assetForgeResolutionDiagnosticsHeadingStyle}>Packet lane diagnostics (read-only)</strong>
@@ -442,6 +489,39 @@ function formatPacketCaptureTimestamp(value: string | null): string {
   return new Date(parsed).toISOString();
 }
 
+function getRecordsSurfaceIdFromResolvedLane(
+  lane: string | null,
+): "runs" | "executions" | "artifacts" | null {
+  if (!lane) {
+    return null;
+  }
+  if (lane === "run") {
+    return "runs";
+  }
+  if (lane === "execution") {
+    return "executions";
+  }
+  if (lane === "artifact") {
+    return "artifacts";
+  }
+  return null;
+}
+
+function formatRecordsSurfaceLabel(
+  surfaceId: "runs" | "executions" | "artifacts" | "events",
+): string {
+  if (surfaceId === "runs") {
+    return "Runs lane";
+  }
+  if (surfaceId === "executions") {
+    return "Executions lane";
+  }
+  if (surfaceId === "artifacts") {
+    return "Artifacts lane";
+  }
+  return "Events lane";
+}
+
 function formatPacketCaptureAge(diffMs: number): string {
   const absMs = Math.abs(diffMs);
   if (absMs < 60_000) {
@@ -636,4 +716,26 @@ const assetForgeOriginBannerButtonStyle = {
 const assetForgeOriginBannerHintStyle = {
   fontSize: 12,
   opacity: 0.8,
+} as const;
+
+const assetForgeLaneAlignmentAlignedStyle = {
+  display: "grid",
+  gap: 4,
+  padding: "8px 10px",
+  borderRadius: 12,
+  border: "1px solid rgba(74, 222, 128, 0.28)",
+  background: "rgba(22, 163, 74, 0.14)",
+  fontSize: 12,
+  opacity: 0.94,
+} as const;
+
+const assetForgeLaneAlignmentDriftStyle = {
+  display: "grid",
+  gap: 4,
+  padding: "8px 10px",
+  borderRadius: 12,
+  border: "1px solid rgba(251, 113, 133, 0.34)",
+  background: "rgba(190, 24, 93, 0.12)",
+  fontSize: 12,
+  opacity: 0.96,
 } as const;

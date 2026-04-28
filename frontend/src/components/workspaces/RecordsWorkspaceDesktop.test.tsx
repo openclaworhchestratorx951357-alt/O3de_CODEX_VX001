@@ -100,6 +100,7 @@ vi.mock("../TaskTimeline", () => {
 function renderRecordsWorkspaceDesktop(
   activeSurfaceId: ComponentProps<typeof RecordsWorkspaceDesktop>["activeSurfaceId"],
   options?: {
+    onSelectSurface?: ComponentProps<typeof RecordsWorkspaceDesktop>["onSelectSurface"];
     assetForgeOriginContext?: ComponentProps<typeof RecordsWorkspaceDesktop>["assetForgeOriginContext"];
     onOpenAssetForgeWorkspace?: ComponentProps<typeof RecordsWorkspaceDesktop>["onOpenAssetForgeWorkspace"];
     onClearAssetForgeOriginContext?: ComponentProps<typeof RecordsWorkspaceDesktop>["onClearAssetForgeOriginContext"];
@@ -134,7 +135,7 @@ function renderRecordsWorkspaceDesktop(
           helpTooltip: "Use events when chronology and persisted receipts need review.",
         },
       ]}
-      onSelectSurface={vi.fn()}
+      onSelectSurface={options?.onSelectSurface ?? vi.fn()}
       assetForgeOriginContext={options?.assetForgeOriginContext ?? null}
       onOpenAssetForgeWorkspace={options?.onOpenAssetForgeWorkspace ?? null}
       onClearAssetForgeOriginContext={options?.onClearAssetForgeOriginContext ?? null}
@@ -253,6 +254,9 @@ describe("RecordsWorkspaceDesktop", () => {
     expect(screen.getByText("Origin captured at: 2026-04-27T00:00:03.000Z")).toBeInTheDocument();
     expect(screen.getByText("Origin capture source: selected_artifact.created_at")).toBeInTheDocument();
     expect(screen.getByText(/Origin freshness:/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Asset Forge lane alignment status")).toBeInTheDocument();
+    expect(screen.getByText("Lane alignment confirmed")).toBeInTheDocument();
+    expect(screen.getByText("Active Records surface: Artifacts lane.")).toBeInTheDocument();
     expect(screen.getByText("read-only context")).toBeInTheDocument();
     expect(screen.getByLabelText("Asset Forge lane diagnostics context")).toBeInTheDocument();
     expect(screen.getByText("Resolution summary: Resolved from artifact lane.")).toBeInTheDocument();
@@ -264,6 +268,35 @@ describe("RecordsWorkspaceDesktop", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Clear origin context" }));
     expect(onClearAssetForgeOriginContext).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows lane-drift guidance and can switch to the packet lane surface", () => {
+    const onSelectSurface = vi.fn();
+    renderRecordsWorkspaceDesktop("runs", {
+      onSelectSurface,
+      assetForgeOriginContext: {
+        label: "Selected artifact metadata",
+        detail: "Sourced from Phase 9 readback packet.",
+        runId: "run-001",
+        executionId: "exec-001",
+        artifactId: "artifact-001",
+        packetCapturedAtIso: "2026-04-27T00:00:03.000Z",
+        packetCapturedAtSource: "selected_artifact.created_at",
+        packetResolutionSummary: "Resolved from artifact lane.",
+        packetResolvedLane: "artifact",
+        packetAttemptSummaryLines: [
+          "Selected artifact metadata: Resolved review packet fields from this lane.",
+        ],
+      },
+    });
+
+    expect(screen.getByLabelText("Asset Forge lane alignment status")).toBeInTheDocument();
+    expect(screen.getByText("Lane drift detected")).toBeInTheDocument();
+    expect(screen.getByText("Active Records surface: Runs lane.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open packet lane surface" })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open packet lane surface" }));
+    expect(onSelectSurface).toHaveBeenCalledWith("artifacts");
   });
 
   it("shows unavailable-context guidance when origin does not include record ids", () => {
