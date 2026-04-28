@@ -72,6 +72,9 @@ describe("resolveAssetForgeLivePacketSelection", () => {
     expect(resolved.reviewPacketOrigin?.runId).toBe("run-live-001");
     expect(resolved.reviewPacketOrigin?.capturedAtIso).toBe("2026-04-27T00:00:03.000Z");
     expect(resolved.reviewPacketOrigin?.capturedAtSource).toBe("selected_artifact.created_at");
+    expect(resolved.reviewPacketResolutionDiagnostics?.resolvedLane).toBe("artifact");
+    expect(resolved.reviewPacketResolutionDiagnostics?.selectedRecordsSurface).toBe("artifacts");
+    expect(resolved.reviewPacketResolutionDiagnostics?.summary).toMatch(/Resolved from artifact lane/i);
   });
 
   it("falls back to selected execution details when no artifact packet exists", () => {
@@ -98,6 +101,8 @@ describe("resolveAssetForgeLivePacketSelection", () => {
     expect(resolved.reviewPacketOrigin?.runId).toBe("run-live-001");
     expect(resolved.reviewPacketOrigin?.capturedAtIso).toBe("2026-04-27T00:00:02.000Z");
     expect(resolved.reviewPacketOrigin?.capturedAtSource).toBe("selected_execution.finished_at");
+    expect(resolved.reviewPacketResolutionDiagnostics?.resolvedLane).toBe("execution");
+    expect(resolved.reviewPacketResolutionDiagnostics?.selectedRecordsSurface).toBe("executions");
   });
 
   it("falls back to selected run execution details when available", () => {
@@ -127,6 +132,8 @@ describe("resolveAssetForgeLivePacketSelection", () => {
     expect(resolved.reviewPacketOrigin?.runId).toBe("run-live-001");
     expect(resolved.reviewPacketOrigin?.capturedAtIso).toBe("2026-04-27T00:00:05.000Z");
     expect(resolved.reviewPacketOrigin?.capturedAtSource).toBe("payload.created_at");
+    expect(resolved.reviewPacketResolutionDiagnostics?.resolvedLane).toBe("run");
+    expect(resolved.reviewPacketResolutionDiagnostics?.selectedRecordsSurface).toBe("runs");
   });
 
   it("returns empty resolution when no packet evidence exists", () => {
@@ -147,6 +154,15 @@ describe("resolveAssetForgeLivePacketSelection", () => {
     expect(resolved.reviewPacketData).toBeUndefined();
     expect(resolved.reviewPacketSource).toBeUndefined();
     expect(resolved.reviewPacketOrigin).toBeUndefined();
+    expect(resolved.reviewPacketResolutionDiagnostics?.resolvedLane).toBeNull();
+    expect(resolved.reviewPacketResolutionDiagnostics?.summary).toMatch(/No resolvable review packet/i);
+    expect(resolved.reviewPacketResolutionDiagnostics?.attempts.map((attempt) => attempt.lane)).toEqual([
+      "artifact",
+      "execution",
+      "run",
+    ]);
+    expect(resolved.reviewPacketResolutionDiagnostics?.attempts[0]?.reason).toMatch(/payload present but no resolvable/i);
+    expect(resolved.reviewPacketResolutionDiagnostics?.attempts[2]?.reason).toMatch(/payload present but no resolvable/i);
   });
 
   it("prefers selected execution details when the executions lane is active", () => {
@@ -177,6 +193,8 @@ describe("resolveAssetForgeLivePacketSelection", () => {
     expect(resolved.reviewPacketSource).toBe("live_phase9_packet_data");
     expect(resolved.reviewPacketOrigin?.kind).toBe("selected_execution_details");
     expect(resolved.reviewPacketOrigin?.executionId).toBe("exec-live-001");
+    expect(resolved.reviewPacketResolutionDiagnostics?.resolvedLane).toBe("execution");
+    expect(resolved.reviewPacketResolutionDiagnostics?.preferredOrder).toEqual(["execution", "artifact", "run"]);
   });
 
   it("prefers selected run execution details when the runs lane is active", () => {
@@ -216,5 +234,7 @@ describe("resolveAssetForgeLivePacketSelection", () => {
     expect(resolved.reviewPacketSource).toBe("live_phase9_packet_data");
     expect(resolved.reviewPacketOrigin?.kind).toBe("selected_run_execution_details");
     expect(resolved.reviewPacketOrigin?.runId).toBe("run-live-001");
+    expect(resolved.reviewPacketResolutionDiagnostics?.resolvedLane).toBe("run");
+    expect(resolved.reviewPacketResolutionDiagnostics?.preferredOrder).toEqual(["run", "execution", "artifact"]);
   });
 });

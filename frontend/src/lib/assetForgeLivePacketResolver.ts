@@ -1,5 +1,8 @@
 import { resolveAssetReadbackReviewPacket } from "./assetForgeReviewPacketMapper";
 import type {
+  AssetForgePacketLane,
+  AssetForgePacketLaneAttempt,
+  AssetForgePacketResolutionDiagnostics,
   AssetForgeReviewPacketOrigin,
   AssetForgeReviewPacketSource,
 } from "../types/assetForgeReviewPacket";
@@ -17,10 +20,15 @@ export type AssetForgeLivePacketResolution = {
   reviewPacketData?: unknown;
   reviewPacketSource?: AssetForgeReviewPacketSource;
   reviewPacketOrigin?: AssetForgeReviewPacketOrigin;
+  reviewPacketResolutionDiagnostics?: AssetForgePacketResolutionDiagnostics;
 };
 
 function payloadHasReviewPacket(payload: unknown): boolean {
   return resolveAssetReadbackReviewPacket(payload) !== null;
+}
+
+function hasPayload(payload: unknown): boolean {
+  return payload !== null && payload !== undefined;
 }
 
 function readTimestampField(record: Record<string, unknown> | null, field: string): string | null {
@@ -90,7 +98,7 @@ export function resolveAssetForgeLivePacketSelection({
       : null;
   const runSnapshotTimestamp = resolveTimestampFromPayload(selectedExecutionDetails);
 
-  const candidates: Array<{ key: "artifact" | "execution" | "run"; payload: unknown; origin: AssetForgeReviewPacketOrigin }> = [
+  const candidates: Array<{ key: AssetForgePacketLane; payload: unknown; origin: AssetForgeReviewPacketOrigin }> = [
     {
       key: "artifact",
       payload: selectedArtifact?.metadata,
@@ -139,17 +147,49 @@ export function resolveAssetForgeLivePacketSelection({
   const orderedCandidates = preferredOrder
     .map((key) => candidates.find((candidate) => candidate.key === key))
     .filter((candidate): candidate is (typeof candidates)[number] => Boolean(candidate));
+  const attempts: AssetForgePacketLaneAttempt[] = orderedCandidates.map((candidate) => {
+    const candidateHasPayload = hasPayload(candidate.payload);
+    const candidateHasReviewPacket = candidateHasPayload && payloadHasReviewPacket(candidate.payload);
+    return {
+      lane: candidate.key,
+      label: candidate.origin.label,
+      hasPayload: candidateHasPayload,
+      hasReviewPacket: candidateHasReviewPacket,
+      reason: candidateHasReviewPacket
+        ? "Resolved review packet fields from this lane."
+        : candidateHasPayload
+          ? "Payload present but no resolvable asset_readback_review_packet fields."
+          : "No payload selected for this lane.",
+    };
+  });
 
   const firstCandidateWithPacket = orderedCandidates.find((candidate) => payloadHasReviewPacket(candidate.payload));
+  const selectedRecordsSurface = activeRecordsSurface ?? "unknown";
+  const diagnosticsBase: Omit<AssetForgePacketResolutionDiagnostics, "resolvedLane" | "summary"> = {
+    selectedRecordsSurface,
+    preferredOrder,
+    attempts,
+  };
   if (firstCandidateWithPacket) {
     return {
       reviewPacketData: firstCandidateWithPacket.payload,
       reviewPacketSource: "live_phase9_packet_data",
       reviewPacketOrigin: firstCandidateWithPacket.origin,
+      reviewPacketResolutionDiagnostics: {
+        ...diagnosticsBase,
+        resolvedLane: firstCandidateWithPacket.key,
+        summary: `Resolved from ${firstCandidateWithPacket.key} lane.`,
+      },
     };
   }
 
-  return {};
+  return {
+    reviewPacketResolutionDiagnostics: {
+      ...diagnosticsBase,
+      resolvedLane: null,
+      summary: "No resolvable review packet fields found in artifact, execution, or run lanes.",
+    },
+  };
 }
 
 function getPreferredOriginOrder(

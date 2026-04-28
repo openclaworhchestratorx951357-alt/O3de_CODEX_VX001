@@ -7487,6 +7487,7 @@ export default function App() {
                 reviewPacketData={assetForgeLivePacket.reviewPacketData}
                 reviewPacketSource={assetForgeLivePacket.reviewPacketSource}
                 reviewPacketOrigin={assetForgeLivePacket.reviewPacketOrigin}
+                reviewPacketResolutionDiagnostics={assetForgeLivePacket.reviewPacketResolutionDiagnostics}
                 bridgeStatus={o3deBridgeStatus}
               />
             </Suspense>

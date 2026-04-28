@@ -3,6 +3,8 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import AssetForgeReviewPacketPanel from "./AssetForgeReviewPacketPanel";
 import { mapAssetForgeToolbenchReviewPacket } from "../lib/assetForgeReviewPacketMapper";
 import type {
+  AssetForgePacketLaneAttempt,
+  AssetForgePacketResolutionDiagnostics,
   AssetForgeReviewPacketOrigin,
   AssetForgeReviewPacketSource,
 } from "../types/assetForgeReviewPacket";
@@ -27,6 +29,7 @@ type AssetForgeStudioShellProps = {
   reviewPacketData: unknown;
   reviewPacketSource: AssetForgeReviewPacketSource;
   reviewPacketOrigin?: AssetForgeReviewPacketOrigin;
+  reviewPacketResolutionDiagnostics?: AssetForgePacketResolutionDiagnostics;
   bridgeStatus?: O3DEBridgeStatus | null;
 };
 
@@ -528,6 +531,64 @@ function buildPacketOriginRows(packetOrigin: AssetForgeReviewPacketOrigin): Arra
   ];
 }
 
+function buildDefaultPacketResolutionDiagnostics(
+  source: AssetForgeReviewPacketSource,
+  packet: PacketViewModel,
+): AssetForgePacketResolutionDiagnostics {
+  if (source === "live_phase9_packet_data") {
+    return {
+      selectedRecordsSurface: "unknown",
+      preferredOrder: ["artifact", "execution", "run"],
+      resolvedLane: packet.hasResolvedPacket ? "artifact" : null,
+      summary: packet.hasResolvedPacket
+        ? "Live packet resolved (lane detail unavailable in this view)."
+        : "Live source selected, but no lane diagnostics are available in this view.",
+      attempts: [],
+    };
+  }
+
+  return {
+    selectedRecordsSurface: "unknown",
+    preferredOrder: ["artifact", "execution", "run"],
+    resolvedLane: null,
+    summary: "Live lane diagnostics are only available when a live Phase 9 packet source is selected.",
+    attempts: [],
+  };
+}
+
+function formatResolutionLane(lane: AssetForgePacketResolutionDiagnostics["resolvedLane"]): string {
+  if (!lane) {
+    return "Unresolved";
+  }
+  switch (lane) {
+    case "artifact":
+      return "Artifact lane";
+    case "execution":
+      return "Execution lane";
+    case "run":
+      return "Run lane";
+    default:
+      return lane;
+  }
+}
+
+function formatAttemptLine(attempt: AssetForgePacketLaneAttempt): string {
+  const payloadState = attempt.hasPayload ? "payload present" : "payload missing";
+  const packetState = attempt.hasReviewPacket ? "packet resolved" : "packet unresolved";
+  return `${attempt.label}: ${payloadState}; ${packetState}; ${attempt.reason}`;
+}
+
+function buildResolutionDiagnosticsRows(
+  diagnostics: AssetForgePacketResolutionDiagnostics,
+): Array<[string, string]> {
+  return [
+    ["Selected Records lane", diagnostics.selectedRecordsSurface],
+    ["Preferred order", diagnostics.preferredOrder.join(" > ")],
+    ["Resolved lane", formatResolutionLane(diagnostics.resolvedLane)],
+    ["Summary", diagnostics.summary],
+  ];
+}
+
 function canOpenPacketOriginRecord(packetOrigin: AssetForgeReviewPacketOrigin): boolean {
   return Boolean(packetOrigin.artifactId || packetOrigin.executionId || packetOrigin.runId);
 }
@@ -636,7 +697,7 @@ function FreshnessBadge({ label, signal }: { label: string; signal: FreshnessSig
   );
 }
 
-export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStudio, onOpenRuntimeOverview, onOpenBuilder, onOpenReviewPacketOriginRecord, reviewPacketData, reviewPacketSource, reviewPacketOrigin, bridgeStatus }: AssetForgeStudioShellProps) {
+export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStudio, onOpenRuntimeOverview, onOpenBuilder, onOpenReviewPacketOriginRecord, reviewPacketData, reviewPacketSource, reviewPacketOrigin, reviewPacketResolutionDiagnostics, bridgeStatus }: AssetForgeStudioShellProps) {
   const [activeTopMenu, setActiveTopMenu] = useState<TopMenu>(() => readSavedMenu() ?? "Create");
   const [activeAssetCategory, setActiveAssetCategory] = useState<AssetCategory>("Source assets");
   const [activeTool, setActiveTool] = useState("Select");
@@ -663,6 +724,10 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
   const connectionTruth = useMemo(
     () => buildConnectionTruthSummary(packet, bridgeSnapshot, packetProvenance, resolvedPacketOrigin),
     [packet, bridgeSnapshot, packetProvenance, resolvedPacketOrigin],
+  );
+  const resolvedPacketResolutionDiagnostics = useMemo(
+    () => reviewPacketResolutionDiagnostics ?? buildDefaultPacketResolutionDiagnostics(reviewPacketSource, packet),
+    [reviewPacketResolutionDiagnostics, reviewPacketSource, packet],
   );
   const topOriginRecordAction = useMemo(
     () => buildOriginRecordAction(resolvedPacketOrigin, onOpenReviewPacketOriginRecord),
@@ -715,13 +780,13 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
         {activeTopMenu === "File" && <FilePage projectProfile={projectProfile} activeTopMenu={activeTopMenu} saveLayout={saveLayout} resetLayout={resetLayout} bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} />}
         {activeTopMenu === "Edit" && <EditPage />}
         {activeTopMenu === "Create" && <CreatePage onOpenPromptStudio={onOpenPromptStudio} onOpenRuntimeOverview={onOpenRuntimeOverview} onOpenBuilder={onOpenBuilder} />}
-        {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} packetOrigin={resolvedPacketOrigin} assetRows={assetRows} assetProcessorStatusLabel={assetProcessorStatusLabel} freshnessOverview={freshnessOverview} packetProvenance={packetProvenance} />}
+        {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} packetOrigin={resolvedPacketOrigin} assetRows={assetRows} assetProcessorStatusLabel={assetProcessorStatusLabel} freshnessOverview={freshnessOverview} packetProvenance={packetProvenance} resolutionDiagnostics={resolvedPacketResolutionDiagnostics} />}
         {activeTopMenu === "Entity" && <EntityPage activeTool={activeTool} setActiveTool={setActiveTool} />}
         {activeTopMenu === "Components" && <ComponentsPage readbackStatus={packet.readbackStatus} />}
         {activeTopMenu === "Materials" && <MaterialsPage packet={packet} />}
         {activeTopMenu === "Lighting" && <LightingPage />}
         {activeTopMenu === "Camera" && <CameraPage cameraMode={cameraMode} setCameraMode={setCameraMode} />}
-        {activeTopMenu === "Review" && <ReviewPage reviewPacketData={reviewPacketData} reviewPacketSource={reviewPacketSource} packet={packet} reviewPacketOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} freshnessOverview={freshnessOverview} />}
+        {activeTopMenu === "Review" && <ReviewPage reviewPacketData={reviewPacketData} reviewPacketSource={reviewPacketSource} packet={packet} reviewPacketOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} freshnessOverview={freshnessOverview} resolutionDiagnostics={resolvedPacketResolutionDiagnostics} />}
         {activeTopMenu === "Help" && <HelpPage bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} />}
       </main>
     </section>
@@ -755,12 +820,45 @@ function CreatePage({ onOpenPromptStudio, onOpenRuntimeOverview, onOpenBuilder }
   </Page>;
 }
 
-function AssetsPage({ activeAssetCategory, setActiveAssetCategory, packet, packetOrigin, assetRows, assetProcessorStatusLabel, freshnessOverview, packetProvenance }: { activeAssetCategory: AssetCategory; setActiveAssetCategory: (category: AssetCategory) => void; packet: PacketViewModel; packetOrigin: AssetForgeReviewPacketOrigin; assetRows: Record<AssetCategory, AssetRowEntry[]>; assetProcessorStatusLabel: string; freshnessOverview: FreshnessOverview; packetProvenance: PacketProvenanceSummary }) {
+function AssetsPage({
+  activeAssetCategory,
+  setActiveAssetCategory,
+  packet,
+  packetOrigin,
+  assetRows,
+  assetProcessorStatusLabel,
+  freshnessOverview,
+  packetProvenance,
+  resolutionDiagnostics,
+}: {
+  activeAssetCategory: AssetCategory;
+  setActiveAssetCategory: (category: AssetCategory) => void;
+  packet: PacketViewModel;
+  packetOrigin: AssetForgeReviewPacketOrigin;
+  assetRows: Record<AssetCategory, AssetRowEntry[]>;
+  assetProcessorStatusLabel: string;
+  freshnessOverview: FreshnessOverview;
+  packetProvenance: PacketProvenanceSummary;
+  resolutionDiagnostics: AssetForgePacketResolutionDiagnostics;
+}) {
   return <Page title="Assets" gate="read-only" detail="Full content browser for source assets, products, dependency evidence, Asset Catalog evidence, and read-only Asset Processor status.">
     <div aria-label="Forge assets content browser" style={s.assetsGrid}>
       <aside style={s.rail}>{assetCategories.map((category) => <button key={category} type="button" onClick={() => setActiveAssetCategory(category)} style={activeAssetCategory === category ? s.activeRailButton : s.railButton}>{category}</button>)}</aside>
       <section style={s.browser}><div style={s.panelHeader}>{activeAssetCategory} <Badge gate="read-only" /></div><div style={s.assetTiles}>{assetRows[activeAssetCategory].map((row, index) => <article key={`${row.name}-${index}`} style={s.assetTile}><strong>{row.name}</strong><Badge gate={row.gate} /><span>{row.detail}</span></article>)}</div></section>
-      <Panel title="Evidence readback" gate="proof-only"><div aria-label="Asset freshness severity" style={s.freshnessStrip}><FreshnessBadge label="Asset DB" signal={freshnessOverview.assetDatabase} /><FreshnessBadge label="Catalog" signal={freshnessOverview.assetCatalog} /><FreshnessBadge label="Overall" signal={freshnessOverview.overall} /></div><p style={s.mutedCompact}>{freshnessOverview.overall.cue}</p><p style={s.mutedCompact}>{freshnessOverview.bridgeHeartbeatCue}</p><Rows rows={[["Packet source", packet.dataSourceLabel], ["Packet corridor", buildPacketCorridorLabel(packetOrigin)], ["Packet captured at", packetProvenance.capturedAtLabel], ["Packet capture age", packetProvenance.captureAgeLabel], ["Packet captured from", packetProvenance.captureSourceLabel], ["Source path", packet.sourceEvidence.normalizedSourcePath], ["Product path", packet.productEvidence.productPath], ["Dependency count", packet.dependencyEvidence.dependencyCount], ["Catalog presence", packet.catalogEvidence.catalogPresence], ["Asset DB freshness", packet.freshnessStatus.assetDatabaseFreshness], ["Catalog freshness", packet.freshnessStatus.assetCatalogFreshness], ["Freshness overall", freshnessOverview.overall.status], ["Asset Processor", assetProcessorStatusLabel]]} /><div style={s.buttonRow}><button type="button" disabled style={s.disabledButton}>Import selected asset</button><button type="button" disabled style={s.disabledButton}>Stage source asset</button><button type="button" disabled style={s.disabledButton}>Execute Asset Processor</button></div></Panel>
+      <Panel title="Evidence readback" gate="proof-only">
+        <div aria-label="Asset freshness severity" style={s.freshnessStrip}><FreshnessBadge label="Asset DB" signal={freshnessOverview.assetDatabase} /><FreshnessBadge label="Catalog" signal={freshnessOverview.assetCatalog} /><FreshnessBadge label="Overall" signal={freshnessOverview.overall} /></div>
+        <p style={s.mutedCompact}>{freshnessOverview.overall.cue}</p>
+        <p style={s.mutedCompact}>{freshnessOverview.bridgeHeartbeatCue}</p>
+        <Rows rows={[["Packet source", packet.dataSourceLabel], ["Packet corridor", buildPacketCorridorLabel(packetOrigin)], ["Packet captured at", packetProvenance.capturedAtLabel], ["Packet capture age", packetProvenance.captureAgeLabel], ["Packet captured from", packetProvenance.captureSourceLabel], ["Source path", packet.sourceEvidence.normalizedSourcePath], ["Product path", packet.productEvidence.productPath], ["Dependency count", packet.dependencyEvidence.dependencyCount], ["Catalog presence", packet.catalogEvidence.catalogPresence], ["Asset DB freshness", packet.freshnessStatus.assetDatabaseFreshness], ["Catalog freshness", packet.freshnessStatus.assetCatalogFreshness], ["Freshness overall", freshnessOverview.overall.status], ["Asset Processor", assetProcessorStatusLabel]]} />
+        <section aria-label="Asset packet resolution diagnostics" style={s.resolutionDiagnosticsSection}>
+          <strong>Packet resolution diagnostics</strong>
+          <Rows rows={buildResolutionDiagnosticsRows(resolutionDiagnostics)} />
+          {resolutionDiagnostics.attempts.length > 0
+            ? <List items={resolutionDiagnostics.attempts.map(formatAttemptLine)} />
+            : <p style={s.mutedCompact}>No lane attempt details are available in this view.</p>}
+        </section>
+        <div style={s.buttonRow}><button type="button" disabled style={s.disabledButton}>Import selected asset</button><button type="button" disabled style={s.disabledButton}>Stage source asset</button><button type="button" disabled style={s.disabledButton}>Execute Asset Processor</button></div>
+      </Panel>
     </div>
   </Page>;
 }
@@ -836,7 +934,7 @@ function CameraPage({ cameraMode, setCameraMode }: { cameraMode: CameraMode; set
   return <Page title="Camera" gate="local preview" detail="Camera list, camera/perspective preview, and cinematic shot list. No O3DE camera mutation."><div style={s.cameraGrid}><Panel title="Camera list" gate="read-only"><List items={["EditorCamera_Main", "PreviewCamera_Cinematic", "AssetReviewCamera_01"]} /><div style={s.buttonRow}>{modes.map((mode) => <button key={mode} type="button" onClick={() => setCameraMode(mode)} style={cameraMode === mode ? s.activeSmallButton : s.smallButton}>{mode}</button>)}</div></Panel><Panel title="Camera / perspective preview" gate="local preview"><ViewportPreview label={cameraMode + " preview"} /></Panel><Panel title="Cinematic shot list" gate="plan-only"><List items={["Shot 010: Establish bridge silhouette", "Shot 020: Orbit candidate detail", "Shot 030: Evidence capture still", "Camera mutation blocked"]} /><button type="button" disabled style={s.disabledWideButton}>Write camera to O3DE scene</button></Panel></div></Page>;
 }
 
-function ReviewPage({ reviewPacketData, reviewPacketSource, packet, reviewPacketOrigin, onOpenReviewPacketOriginRecord, freshnessOverview }: Pick<AssetForgeStudioShellProps, "reviewPacketData" | "reviewPacketSource" | "reviewPacketOrigin" | "onOpenReviewPacketOriginRecord"> & { packet: PacketViewModel; freshnessOverview: FreshnessOverview }) {
+function ReviewPage({ reviewPacketData, reviewPacketSource, packet, reviewPacketOrigin, onOpenReviewPacketOriginRecord, freshnessOverview, resolutionDiagnostics }: Pick<AssetForgeStudioShellProps, "reviewPacketData" | "reviewPacketSource" | "reviewPacketOrigin" | "onOpenReviewPacketOriginRecord"> & { packet: PacketViewModel; freshnessOverview: FreshnessOverview; resolutionDiagnostics: AssetForgePacketResolutionDiagnostics }) {
   const packetOrigin = reviewPacketOrigin ?? buildDefaultPacketOrigin(reviewPacketSource);
   const originRecordAction = buildOriginRecordAction(packetOrigin, onOpenReviewPacketOriginRecord);
   const showLivePacketUnresolvedBanner =
@@ -880,6 +978,12 @@ function ReviewPage({ reviewPacketData, reviewPacketSource, packet, reviewPacket
             </div>
             <Rows rows={[["Asset DB freshness", freshnessOverview.assetDatabase.status], ["Catalog freshness", freshnessOverview.assetCatalog.status], ["Overall freshness", freshnessOverview.overall.status], ["Bridge heartbeat", freshnessOverview.bridgeHeartbeatCue]]} />
             <p style={s.mutedCompact}>{freshnessOverview.overall.cue}</p>
+          </Panel>
+          <Panel title="Resolution diagnostics" gate="proof-only">
+            <Rows rows={buildResolutionDiagnosticsRows(resolutionDiagnostics)} />
+            {resolutionDiagnostics.attempts.length > 0
+              ? <List items={resolutionDiagnostics.attempts.map(formatAttemptLine)} />
+              : <p style={s.mutedCompact}>No lane attempt details are available in this view.</p>}
           </Panel>
           <Panel title="Evidence summary" gate="proof-only">
             <Rows rows={[["Source evidence", packet.sourceEvidence.sourceExists], ["Product evidence", packet.productEvidence.evidenceAvailable], ["Catalog evidence", packet.catalogEvidence.catalogPresence], ["Dependency evidence", packet.dependencyEvidence.evidenceAvailable], ...buildPacketOriginRows(packetOrigin)]} />
@@ -1019,6 +1123,7 @@ const s = {
   panelBody: { minWidth: 0, minHeight: 0, overflow: "auto", padding: 10 },
   muted: { margin: "0 0 10px", color: "#9fb0c5" },
   mutedCompact: { margin: "8px 0 0", color: "#9fb0c5", fontSize: 12, lineHeight: 1.35 },
+  resolutionDiagnosticsSection: { display: "grid", gap: 8, marginTop: 10, border: "1px solid #2f4054", borderRadius: 4, padding: "8px 9px", background: "#131d28" },
   liveUnresolvedNotice: { display: "grid", gap: 6, border: "1px solid #916428", borderRadius: 5, padding: "10px 12px", background: "rgba(101, 64, 18, 0.32)", color: "#ffe4ae" },
   liveUnresolvedHeading: { color: "#ffe4ae", fontSize: 15, lineHeight: 1.2 },
   liveUnresolvedDetail: { margin: 0, color: "#ffd89a", fontSize: 13, lineHeight: 1.35 },

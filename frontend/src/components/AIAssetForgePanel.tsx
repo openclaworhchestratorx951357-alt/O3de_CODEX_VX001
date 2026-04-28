@@ -3,6 +3,7 @@ import type { CSSProperties } from "react";
 import AssetForgeStudioShell from "./AssetForgeStudioShell";
 import { assetForgeReviewPacketFixture } from "../fixtures/assetForgeReviewPacketFixture";
 import type {
+  AssetForgePacketResolutionDiagnostics,
   AssetForgeReviewPacketOrigin,
   AssetForgeReviewPacketSource,
 } from "../types/assetForgeReviewPacket";
@@ -18,6 +19,7 @@ type AIAssetForgePanelProps = {
   reviewPacketData?: unknown;
   reviewPacketSource?: AssetForgeReviewPacketSource;
   reviewPacketOrigin?: AssetForgeReviewPacketOrigin;
+  reviewPacketResolutionDiagnostics?: AssetForgePacketResolutionDiagnostics;
   bridgeStatus?: O3DEBridgeStatus | null;
 };
 
@@ -63,6 +65,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
         reviewPacketData={resolvedReviewPacketData}
         reviewPacketSource={resolvedReviewPacketSource}
         reviewPacketOrigin={resolvedReviewPacketOrigin}
+        reviewPacketResolutionDiagnostics={props.reviewPacketResolutionDiagnostics}
         bridgeStatus={props.bridgeStatus}
       />
     </section>

@@ -22,6 +22,24 @@ export interface AssetForgeReviewPacketOrigin {
   capturedAtSource?: string | null;
 }
 
+export type AssetForgePacketLane = "artifact" | "execution" | "run";
+
+export interface AssetForgePacketLaneAttempt {
+  lane: AssetForgePacketLane;
+  label: string;
+  hasPayload: boolean;
+  hasReviewPacket: boolean;
+  reason: string;
+}
+
+export interface AssetForgePacketResolutionDiagnostics {
+  selectedRecordsSurface: "runs" | "executions" | "artifacts" | "events" | "unknown";
+  preferredOrder: AssetForgePacketLane[];
+  resolvedLane: AssetForgePacketLane | null;
+  summary: string;
+  attempts: AssetForgePacketLaneAttempt[];
+}
+
 export interface Phase9AssetReadbackReviewPacketSelectedProject {
   project_root?: string | null;
   project_json_path?: string | null;

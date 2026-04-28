@@ -274,6 +274,56 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByText("Live packet unresolved (review packet fields unavailable)")).toBeInTheDocument();
   });
 
+  it("renders lane diagnostics in Assets and Review when live diagnostics are provided", () => {
+    renderToolbench({
+      reviewPacketSource: "live_phase9_packet_data",
+      reviewPacketResolutionDiagnostics: {
+        selectedRecordsSurface: "executions",
+        preferredOrder: ["execution", "artifact", "run"],
+        resolvedLane: "execution",
+        summary: "Resolved from execution lane.",
+        attempts: [
+          {
+            lane: "execution",
+            label: "Selected execution details",
+            hasPayload: true,
+            hasReviewPacket: true,
+            reason: "Resolved review packet fields from this lane.",
+          },
+          {
+            lane: "artifact",
+            label: "Selected artifact metadata",
+            hasPayload: true,
+            hasReviewPacket: false,
+            reason: "Payload present but no resolvable asset_readback_review_packet fields.",
+          },
+          {
+            lane: "run",
+            label: "Selected run execution details",
+            hasPayload: false,
+            hasReviewPacket: false,
+            reason: "No payload selected for this lane.",
+          },
+        ],
+      },
+    });
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+
+    fireEvent.click(within(shell).getByRole("button", { name: "Assets" }));
+    const assetsDiagnostics = within(shell).getByLabelText("Asset packet resolution diagnostics");
+    expect(assetsDiagnostics).toHaveTextContent("Resolved lane");
+    expect(assetsDiagnostics).toHaveTextContent("Execution lane");
+    expect(assetsDiagnostics).toHaveTextContent("Resolved from execution lane.");
+    expect(assetsDiagnostics).toHaveTextContent("Selected artifact metadata: payload present; packet unresolved;");
+
+    fireEvent.click(within(shell).getByRole("button", { name: "Review" }));
+    expect(within(shell).getByText("Resolution diagnostics")).toBeInTheDocument();
+    expect(within(shell).getByText("Selected Records lane")).toBeInTheDocument();
+    expect(within(shell).getByText("executions")).toBeInTheDocument();
+    expect(within(shell).getByText("Selected run execution details: payload missing; packet unresolved; No payload selected for this lane.")).toBeInTheDocument();
+  });
+
   it("keeps existing navigation callbacks but blocks direct execution", () => {
     const onOpenPromptStudio = vi.fn();
     const onOpenRuntimeOverview = vi.fn();
