@@ -2,10 +2,11 @@ import json
 import os
 import shutil
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Literal, cast
+from uuid import uuid4
 
 from app.models.asset_forge import (
     AssetForgeBlenderInspectReport,
@@ -34,6 +35,10 @@ from app.models.asset_forge import (
     AssetForgeO3DEStagePlanRequest,
     AssetForgeO3DEStageWriteRecord,
     AssetForgeO3DEStageWriteRequest,
+    AssetForgeServerApprovalSessionIndexRecord,
+    AssetForgeServerApprovalSessionPrepareRequest,
+    AssetForgeServerApprovalSessionRecord,
+    AssetForgeServerApprovalSessionRevokeRequest,
     AssetForgeProviderRegistryEntry,
     AssetForgeProviderStatusRecord,
     AssetForgeTaskRecord,
@@ -54,6 +59,15 @@ _ALLOWED_STAGE_ROOT_PREFIX = "Assets/Generated/asset_forge/"
 _DEFAULT_MAX_STAGE_BYTES = 524_288_000
 _ASSETDB_EVIDENCE_ROW_LIMIT = 25
 _ALLOWED_STAGE_DEST_EXTENSIONS = {".obj", ".fbx", ".glb", ".gltf"}
+_DEFAULT_APPROVAL_SESSION_TTL_SECONDS = 1800
+_MAX_APPROVAL_SESSION_TTL_SECONDS = 86400
+_MIN_APPROVAL_SESSION_TTL_SECONDS = 60
+_SERVER_APPROVAL_CAPABILITIES = {
+    "asset_forge.o3de.stage.write",
+    "asset_forge.o3de.placement.execute",
+    "asset_forge.o3de.placement.harness.execute",
+    "asset_forge.o3de.placement.live_proof",
+}
 
 
 def _resolve_provider_mode() -> ProviderMode:
@@ -187,7 +201,267 @@ def _normalize_source_asset_relative_path(value: str) -> str:
     return normalized
 
 
+def _resolve_approval_session_ttl_seconds(requested_ttl_seconds: int | None) -> int:
+    if requested_ttl_seconds is not None:
+        return max(
+            _MIN_APPROVAL_SESSION_TTL_SECONDS,
+            min(int(requested_ttl_seconds), _MAX_APPROVAL_SESSION_TTL_SECONDS),
+        )
+
+    raw_value = os.environ.get(
+        "ASSET_FORGE_APPROVAL_SESSION_TTL_SECONDS",
+        str(_DEFAULT_APPROVAL_SESSION_TTL_SECONDS),
+    ).strip()
+    try:
+        parsed = int(raw_value)
+    except ValueError:
+        parsed = _DEFAULT_APPROVAL_SESSION_TTL_SECONDS
+    return max(
+        _MIN_APPROVAL_SESSION_TTL_SECONDS,
+        min(parsed, _MAX_APPROVAL_SESSION_TTL_SECONDS),
+    )
+
+
+def _format_utc(timestamp: datetime) -> str:
+    return timestamp.astimezone(timezone.utc).isoformat()
+
+
+def _make_server_approval_binding(
+    *,
+    candidate_id: str,
+    candidate_label: str,
+    requested_capability: str,
+    stage_relative_path: str | None = None,
+    target_level_relative_path: str | None = None,
+    target_entity_name: str | None = None,
+    selected_platform: str | None = None,
+) -> dict[str, object]:
+    return {
+        "candidate_id": candidate_id.strip(),
+        "candidate_label": candidate_label.strip(),
+        "requested_capability": requested_capability.strip(),
+        "stage_relative_path": _normalize_project_relative_path(stage_relative_path or ""),
+        "target_level_relative_path": _normalize_project_relative_path(target_level_relative_path or ""),
+        "target_entity_name": (target_entity_name or "").strip(),
+        "selected_platform": (selected_platform or "").strip().lower(),
+    }
+
+
+def _binding_fingerprint(binding: dict[str, object]) -> str:
+    serialized = json.dumps(binding, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return sha256(serialized).hexdigest()
+
+
+def _token_preview(token: str) -> str:
+    if len(token) <= 16:
+        return token
+    return f"{token[:12]}...{token[-4:]}"
+
+
 class AssetForgeService:
+    def __init__(self) -> None:
+        self._server_approval_sessions: dict[str, AssetForgeServerApprovalSessionRecord] = {}
+
+    def reset_server_approval_sessions_for_tests(self) -> None:
+        self._server_approval_sessions = {}
+
+    def prepare_server_approval_session(
+        self,
+        request: AssetForgeServerApprovalSessionPrepareRequest,
+    ) -> AssetForgeServerApprovalSessionRecord:
+        requested_capability = request.requested_capability.strip()
+        if requested_capability not in _SERVER_APPROVAL_CAPABILITIES:
+            requested_capability = "asset_forge.o3de.stage.write"
+
+        now = datetime.now(timezone.utc)
+        ttl_seconds = _resolve_approval_session_ttl_seconds(request.requested_ttl_seconds)
+        expires_at = now + timedelta(seconds=ttl_seconds)
+
+        binding = _make_server_approval_binding(
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            requested_capability=requested_capability,
+            stage_relative_path=request.stage_relative_path,
+            target_level_relative_path=request.target_level_relative_path,
+            target_entity_name=request.target_entity_name,
+            selected_platform=request.selected_platform,
+        )
+        request_fingerprint = _binding_fingerprint(binding)
+        requested_by = request.requested_by.strip() or "asset-forge-operator"
+        requested_reason = request.requested_reason.strip()
+
+        session_id = f"afs-session-{uuid4().hex[:16]}"
+        session_token = f"afs-token-{uuid4().hex}"
+        record = AssetForgeServerApprovalSessionRecord(
+            capability_name="asset_forge.approval.session",
+            maturity="preflight-only",
+            session_id=session_id,
+            requested_capability=requested_capability,
+            session_status="pending",
+            server_owned=True,
+            authorization_granted=False,
+            request_binding=binding,
+            request_fingerprint=request_fingerprint,
+            requested_by=requested_by,
+            requested_reason=requested_reason or None,
+            requested_at=_format_utc(now),
+            expires_at=_format_utc(expires_at),
+            token_preview=_token_preview(session_token),
+            approval_policy={
+                "server_owned_record_required": True,
+                "request_binding_required": True,
+                "session_expiry_required": True,
+                "session_revocation_supported": True,
+                "client_approval_is_intent_only": True,
+                "authorization_requires_server_decision": True,
+                "mutation_execution_admitted": False,
+            },
+            warnings=[
+                "Server-owned approval session scaffolding is active, but mutation-capable execution remains blocked in this packet.",
+                "Client-declared approval fields are intent only and never authorize stage-write or placement runtime execution.",
+            ],
+            safest_next_step=(
+                "Implement server-owned decision + runtime enforcement and keep all mutation-capable endpoints blocked until that packet is admitted."
+            ),
+            source=request.source.strip() or "asset-forge-server-approval-request",
+        )
+        self._server_approval_sessions[session_id] = record
+        return record
+
+    def _materialize_server_approval_session(
+        self,
+        session_id: str,
+    ) -> AssetForgeServerApprovalSessionRecord | None:
+        record = self._server_approval_sessions.get(session_id)
+        if record is None:
+            return None
+        if record.session_status != "pending":
+            return record
+        try:
+            expires_at = datetime.fromisoformat(record.expires_at)
+        except ValueError:
+            return record
+        if datetime.now(timezone.utc) < expires_at:
+            return record
+        expired = record.model_copy(
+            update={
+                "session_status": "expired",
+                "authorization_granted": False,
+                "safest_next_step": (
+                    "Prepare a new server-owned session record; expired sessions never authorize mutation execution."
+                ),
+            }
+        )
+        self._server_approval_sessions[session_id] = expired
+        return expired
+
+    def get_server_approval_session(self, session_id: str) -> AssetForgeServerApprovalSessionRecord | None:
+        return self._materialize_server_approval_session(session_id)
+
+    def revoke_server_approval_session(
+        self,
+        session_id: str,
+        request: AssetForgeServerApprovalSessionRevokeRequest | None = None,
+    ) -> AssetForgeServerApprovalSessionRecord | None:
+        record = self._materialize_server_approval_session(session_id)
+        if record is None:
+            return None
+        if record.session_status == "revoked":
+            return record
+
+        now_iso = _format_utc(datetime.now(timezone.utc))
+        revoked_by = (request.revoked_by.strip() if request else "") or "asset-forge-operator"
+        revoke_reason = request.revoke_reason.strip() if request else ""
+        revoked = record.model_copy(
+            update={
+                "session_status": "revoked",
+                "authorization_granted": False,
+                "revoked_at": now_iso,
+                "revoked_by": revoked_by,
+                "revoke_reason": revoke_reason or None,
+                "safest_next_step": (
+                    "Prepare a new bounded server-owned session if review must continue; revoked sessions are never reusable."
+                ),
+            }
+        )
+        self._server_approval_sessions[session_id] = revoked
+        return revoked
+
+    def list_server_approval_sessions(self) -> AssetForgeServerApprovalSessionIndexRecord:
+        sessions: list[AssetForgeServerApprovalSessionRecord] = []
+        for session_id in sorted(self._server_approval_sessions.keys()):
+            materialized = self._materialize_server_approval_session(session_id)
+            if materialized is not None:
+                sessions.append(materialized)
+        sessions.sort(key=lambda item: item.requested_at, reverse=True)
+        return AssetForgeServerApprovalSessionIndexRecord(
+            capability_name="asset_forge.approval.session.index",
+            maturity="preflight-only",
+            index_status="succeeded" if sessions else "empty",
+            session_count=len(sessions),
+            sessions=sessions,
+            read_only=True,
+            warnings=[
+                "Listing approval sessions is read-only and does not authorize any mutation-capable endpoint.",
+            ],
+            source="asset-forge-server-approval-index",
+        )
+
+    def _evaluate_server_approval_session(
+        self,
+        *,
+        approval_session_id: str | None,
+        expected_capability: str,
+        binding: dict[str, object],
+    ) -> dict[str, object]:
+        evaluation: dict[str, object] = {
+            "server_owned_required": True,
+            "client_approval_is_intent_only": True,
+            "authorization_granted": False,
+            "expected_capability": expected_capability,
+            "session_provided": bool(approval_session_id),
+        }
+        if not approval_session_id:
+            evaluation["status"] = "missing"
+            evaluation["binding_matches"] = False
+            evaluation["reason"] = (
+                "No server-owned approval session was provided; endpoint remains blocked."
+            )
+            return evaluation
+
+        record = self.get_server_approval_session(approval_session_id)
+        if record is None:
+            evaluation["status"] = "missing"
+            evaluation["binding_matches"] = False
+            evaluation["reason"] = (
+                "Provided approval_session_id was not found; endpoint remains blocked."
+            )
+            return evaluation
+
+        expected_fingerprint = _binding_fingerprint(binding)
+        binding_matches = (
+            record.requested_capability == expected_capability
+            and record.request_fingerprint == expected_fingerprint
+        )
+        evaluation.update(
+            {
+                "session_id": record.session_id,
+                "status": record.session_status,
+                "binding_matches": binding_matches,
+                "session_expires_at": record.expires_at,
+            }
+        )
+        if not binding_matches:
+            evaluation["reason"] = (
+                "Server-owned session binding does not match this request envelope; endpoint remains blocked."
+            )
+            return evaluation
+
+        evaluation["reason"] = (
+            "Server-owned session matched, but mutation execution is intentionally blocked in this packet until full enforcement is admitted."
+        )
+        return evaluation
+
     def create_task_plan(self, request: AssetForgeTaskPlanRequest) -> AssetForgeTaskRecord:
         now_iso = datetime.now(timezone.utc).isoformat()
         prompt_text = request.prompt_text.strip()
@@ -779,6 +1053,16 @@ class AssetForgeService:
         stage_prefix_allowed = stage_relative_path.startswith(_ALLOWED_STAGE_ROOT_PREFIX)
         manifest_prefix_allowed = manifest_relative_path.startswith(_ALLOWED_STAGE_ROOT_PREFIX)
         manifest_suffix_allowed = manifest_relative_path.endswith(".forge.json")
+        server_approval_evaluation = self._evaluate_server_approval_session(
+            approval_session_id=request.approval_session_id,
+            expected_capability="asset_forge.o3de.stage.write",
+            binding=_make_server_approval_binding(
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                requested_capability="asset_forge.o3de.stage.write",
+                stage_relative_path=stage_relative_path,
+            ),
+        )
 
         project_root_raw = os.environ.get("O3DE_TARGET_PROJECT_ROOT", "").strip()
         project_root_path = Path(project_root_raw).resolve() if project_root_raw else None
@@ -797,6 +1081,7 @@ class AssetForgeService:
             "Stage write corridor is approval-gated and path-bounded.",
             "Only source asset + provenance sidecar writes are performed in this packet.",
         ]
+        warnings.append(str(server_approval_evaluation["reason"]))
         revert_paths = [
             str(path)
             for path in [destination_source_path, destination_manifest_path]
@@ -817,6 +1102,8 @@ class AssetForgeService:
                 destination_manifest_path=str(destination_manifest_path) if destination_manifest_path else None,
                 approval_required=True,
                 approval_state=request.approval_state,
+                server_approval_session_id=request.approval_session_id,
+                server_approval_evaluation=server_approval_evaluation,
                 write_executed=False,
                 project_write_admitted=False,
                 post_write_readback={},
@@ -842,6 +1129,8 @@ class AssetForgeService:
                 destination_manifest_path=str(destination_manifest_path) if destination_manifest_path else None,
                 approval_required=True,
                 approval_state=request.approval_state,
+                server_approval_session_id=request.approval_session_id,
+                server_approval_evaluation=server_approval_evaluation,
                 write_executed=False,
                 project_write_admitted=False,
                 post_write_readback={},
@@ -877,6 +1166,8 @@ class AssetForgeService:
                 destination_manifest_path=str(destination_manifest_path) if destination_manifest_path else None,
                 approval_required=True,
                 approval_state=request.approval_state,
+                server_approval_session_id=request.approval_session_id,
+                server_approval_evaluation=server_approval_evaluation,
                 write_executed=False,
                 project_write_admitted=False,
                 post_write_readback={},
@@ -907,6 +1198,8 @@ class AssetForgeService:
                 destination_manifest_path=str(destination_manifest_path),
                 approval_required=True,
                 approval_state=request.approval_state,
+                server_approval_session_id=request.approval_session_id,
+                server_approval_evaluation=server_approval_evaluation,
                 write_executed=False,
                 project_write_admitted=False,
                 post_write_readback={},
@@ -936,6 +1229,8 @@ class AssetForgeService:
                 destination_manifest_path=str(destination_manifest_path),
                 approval_required=True,
                 approval_state=request.approval_state,
+                server_approval_session_id=request.approval_session_id,
+                server_approval_evaluation=server_approval_evaluation,
                 write_executed=False,
                 project_write_admitted=False,
                 bytes_copied=source_size,
@@ -965,6 +1260,8 @@ class AssetForgeService:
             destination_manifest_path=str(destination_manifest_path),
             approval_required=True,
             approval_state=request.approval_state,
+            server_approval_session_id=request.approval_session_id,
+            server_approval_evaluation=server_approval_evaluation,
             write_executed=False,
             project_write_admitted=False,
             bytes_copied=source_size,
@@ -1346,12 +1643,25 @@ class AssetForgeService:
         target_level_relative_path = _normalize_project_relative_path(
             request.target_level_relative_path
         )
+        server_approval_evaluation = self._evaluate_server_approval_session(
+            approval_session_id=request.approval_session_id,
+            expected_capability="asset_forge.o3de.placement.execute",
+            binding=_make_server_approval_binding(
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                requested_capability="asset_forge.o3de.placement.execute",
+                stage_relative_path=staged_source_relative_path,
+                target_level_relative_path=target_level_relative_path,
+                target_entity_name=request.target_entity_name,
+            ),
+        )
         target_component = request.target_component.strip() or "Mesh"
         warnings = [
             "Packet 11 corridor is proof-only and exact-scope.",
             "No broad prefab, level, or scene mutation is admitted.",
             "Placement proof execution is blocked in PR C until server-owned approval/session enforcement exists.",
         ]
+        warnings.append(str(server_approval_evaluation["reason"]))
         placement_proof_policy: dict[str, object] = {
             "approval_required": True,
             "approval_note_required_when_approved": True,
@@ -1376,6 +1686,8 @@ class AssetForgeService:
                 target_component=target_component,
                 approval_required=True,
                 approval_state=request.approval_state,
+                server_approval_session_id=request.approval_session_id,
+                server_approval_evaluation=server_approval_evaluation,
                 placement_proof_policy=placement_proof_policy,
                 placement_execution_status="blocked",
                 proof_runtime_gate_enabled=False,
@@ -1401,6 +1713,8 @@ class AssetForgeService:
                 target_component=target_component,
                 approval_required=True,
                 approval_state=request.approval_state,
+                server_approval_session_id=request.approval_session_id,
+                server_approval_evaluation=server_approval_evaluation,
                 placement_proof_policy=placement_proof_policy,
                 placement_execution_status="blocked",
                 proof_runtime_gate_enabled=False,
@@ -1425,6 +1739,8 @@ class AssetForgeService:
             target_component=target_component,
             approval_required=True,
             approval_state=request.approval_state,
+            server_approval_session_id=request.approval_session_id,
+            server_approval_evaluation=server_approval_evaluation,
             placement_proof_policy=placement_proof_policy,
             placement_execution_status="blocked",
             proof_runtime_gate_enabled=False,
@@ -1582,8 +1898,23 @@ class AssetForgeService:
         self,
         request: AssetForgeO3DEPlacementHarnessExecuteRequest,
     ) -> AssetForgeO3DEPlacementHarnessExecuteRecord:
+        staged_source_relative_path = _normalize_project_relative_path(request.staged_source_relative_path)
+        target_level_relative_path = _normalize_project_relative_path(request.target_level_relative_path)
         target_component = request.target_component.strip() or "Mesh"
         selected_platform = request.selected_platform.strip().lower() or "pc"
+        server_approval_evaluation = self._evaluate_server_approval_session(
+            approval_session_id=request.approval_session_id,
+            expected_capability="asset_forge.o3de.placement.harness.execute",
+            binding=_make_server_approval_binding(
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                requested_capability="asset_forge.o3de.placement.harness.execute",
+                stage_relative_path=staged_source_relative_path,
+                target_level_relative_path=target_level_relative_path,
+                target_entity_name=request.target_entity_name,
+                selected_platform=selected_platform,
+            ),
+        )
         runtime_gate_enabled = False
         bridge_configured = False
         bridge_heartbeat_fresh = False
@@ -1595,14 +1926,15 @@ class AssetForgeService:
 
         warnings.append("Client approval fields are treated as intent only and do not authorize execution.")
         warnings.append("No runtime bridge calls are performed by this endpoint in PR C.")
+        warnings.append(str(server_approval_evaluation["reason"]))
         return AssetForgeO3DEPlacementHarnessExecuteRecord(
             capability_name="asset_forge.o3de.placement.harness.execute",
             maturity="proof-only",
             execute_status="blocked",
             candidate_id=request.candidate_id,
             candidate_label=request.candidate_label,
-            staged_source_relative_path=_normalize_project_relative_path(request.staged_source_relative_path),
-            target_level_relative_path=_normalize_project_relative_path(request.target_level_relative_path),
+            staged_source_relative_path=staged_source_relative_path,
+            target_level_relative_path=target_level_relative_path,
             target_entity_name=request.target_entity_name,
             target_component=target_component,
             selected_platform=selected_platform,
@@ -1610,6 +1942,8 @@ class AssetForgeService:
             bridge_heartbeat_fresh=bridge_heartbeat_fresh,
             runtime_gate_enabled=runtime_gate_enabled,
             approval_state=request.approval_state,
+            server_approval_session_id=request.approval_session_id,
+            server_approval_evaluation=server_approval_evaluation,
             bridge_command_id=None,
             execution_performed=False,
             readback_captured=False,
@@ -1630,11 +1964,24 @@ class AssetForgeService:
         bridge_configured = False
         bridge_heartbeat_fresh = False
         target_level_relative_path = _normalize_project_relative_path(request.target_level_relative_path)
+        server_approval_evaluation = self._evaluate_server_approval_session(
+            approval_session_id=request.approval_session_id,
+            expected_capability="asset_forge.o3de.placement.live_proof",
+            binding=_make_server_approval_binding(
+                candidate_id=request.candidate_id,
+                candidate_label=request.candidate_label,
+                requested_capability="asset_forge.o3de.placement.live_proof",
+                target_level_relative_path=target_level_relative_path,
+                target_entity_name=request.target_entity_name,
+                selected_platform=selected_platform,
+            ),
+        )
         warnings = [
             "Live proof runtime execution is blocked in PR C.",
             "No broad prefab or scene mutation is performed in this packet.",
             "No runtime bridge calls are performed by this endpoint in PR C.",
         ]
+        warnings.append(str(server_approval_evaluation["reason"]))
         revert_statement = "No mutation was admitted by this proof path; no revert action required."
 
         # Draft-checkpoint hard stop: client-declared approval metadata is never authorization.
@@ -1654,6 +2001,8 @@ class AssetForgeService:
             bridge_configured=bridge_configured,
             bridge_heartbeat_fresh=bridge_heartbeat_fresh,
             runtime_gate_enabled=runtime_gate_enabled,
+            server_approval_session_id=request.approval_session_id,
+            server_approval_evaluation=server_approval_evaluation,
             execution_performed=False,
             readback_captured=False,
             entity_exists=None,
