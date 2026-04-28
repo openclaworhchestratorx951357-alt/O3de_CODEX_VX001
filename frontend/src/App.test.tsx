@@ -338,6 +338,8 @@ describe("App desktop smoke", () => {
 
     await screen.findByLabelText("AssetForgeWorkspacePage");
     const backToHomeButton = screen.getByRole("button", { name: "Back to Home" });
+    expect(backToHomeButton.style.boxShadow).toContain("0 0 0 2px rgba(77, 153, 255, 0.58)");
+    expect(backToHomeButton.style.border).toBe("1px solid rgb(97, 173, 255)");
     fireEvent.click(backToHomeButton);
 
     expect(await screen.findByRole("button", { name: /Home/i })).toBeInTheDocument();
@@ -390,7 +392,11 @@ describe("App desktop smoke", () => {
     expect(openOriginButton).toBeEnabled();
     fireEvent.click(openOriginButton);
 
-    expect(await screen.findByText("Opened from Asset Forge review packet origin")).toBeInTheDocument();
+    expect(
+      await screen.findByText((content) =>
+        /Opened from Asset Forge review packet origin/.test(content.replace(/\s+/g, " ")),
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText("Selected artifact metadata. Artifact artifact-live-001 | Execution exec-live-001 | Run run-live-001")).toBeInTheDocument();
     expect(screen.getByText("Origin captured at: 2026-04-27T00:00:03.000Z")).toBeInTheDocument();
     expect(screen.getByText("Origin capture source: selected_artifact.created_at")).toBeInTheDocument();
