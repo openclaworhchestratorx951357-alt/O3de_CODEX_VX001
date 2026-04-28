@@ -42,7 +42,6 @@ from app.models.asset_forge import (
     AssetForgeTaskPlanRequest,
 )
 from app.services.o3de_target import o3de_target_service
-from app.services.editor_automation_runtime import editor_automation_runtime_service
 
 _PROVIDER_MODES = {"disabled", "mock", "configured", "real"}
 ProviderMode = Literal["disabled", "mock", "configured", "real"]
@@ -1025,36 +1024,39 @@ class AssetForgeService:
                 source="asset-forge-o3de-stage-write",
             )
 
-        if request.approval_state != "approved":
-            warnings.append("Approval state is not approved; no project write was executed.")
-            return AssetForgeO3DEStageWriteRecord(
-                capability_name="asset_forge.o3de.stage.write",
-                maturity="approval-gated-write",
-                write_status="approval-required",
-                candidate_id=request.candidate_id,
-                candidate_label=request.candidate_label,
-                project_root=str(project_root_path),
-                source_artifact_path=str(source_path),
-                destination_source_asset_path=str(destination_source_path),
-                destination_manifest_path=str(destination_manifest_path),
-                approval_required=True,
-                approval_state=request.approval_state,
-                write_executed=False,
-                project_write_admitted=False,
-                bytes_copied=source_size,
-                source_sha256=_sha256_file(source_path),
-                post_write_readback={
-                    "source_exists": True,
-                    "destination_exists": destination_source_path.is_file(),
-                    "manifest_exists": destination_manifest_path.is_file(),
-                },
-                revert_paths=revert_paths,
-                warnings=warnings,
-                safest_next_step=(
-                    "Resubmit with approval_state='approved' and a non-empty approval note to execute bounded source staging."
-                ),
-                source="asset-forge-o3de-stage-write",
-            )
+        # Draft-checkpoint hard stop: client-declared approval metadata is never authorization.
+        # Keep stage-write non-mutating until server-owned approval tokens/sessions exist.
+        warnings.append(
+            "Stage write execution is disabled in this draft checkpoint until server-owned approval enforcement is implemented."
+        )
+        return AssetForgeO3DEStageWriteRecord(
+            capability_name="asset_forge.o3de.stage.write",
+            maturity="approval-gated-write",
+            write_status="blocked",
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            project_root=str(project_root_path),
+            source_artifact_path=str(source_path),
+            destination_source_asset_path=str(destination_source_path),
+            destination_manifest_path=str(destination_manifest_path),
+            approval_required=True,
+            approval_state=request.approval_state,
+            write_executed=False,
+            project_write_admitted=False,
+            bytes_copied=source_size,
+            source_sha256=_sha256_file(source_path),
+            post_write_readback={
+                "source_exists": True,
+                "destination_exists": destination_source_path.is_file(),
+                "manifest_exists": destination_manifest_path.is_file(),
+            },
+            revert_paths=revert_paths,
+            warnings=warnings,
+            safest_next_step=(
+                "Keep stage-write blocked in this checkpoint; require server-owned approval enforcement before enabling any write path."
+            ),
+            source="asset-forge-o3de-stage-write",
+        )
 
         approval_note = request.approval_note.strip()
         if not approval_note:
@@ -1960,151 +1962,36 @@ class AssetForgeService:
         revert_statement = "No mutation was admitted by this proof path; no revert action required."
         evidence_bundle_path: str | None = None
 
-        if request.approval_state != "approved":
-            warnings.append("Approval state is not approved.")
-            return AssetForgeO3DEPlacementLiveProofRecord(
-                capability_name="asset_forge.o3de.placement.live_proof",
-                maturity="proof-only",
-                proof_status="approval-required",
-                candidate_id=request.candidate_id,
-                candidate_label=request.candidate_label,
-                target_level_relative_path=target_level_relative_path,
-                target_entity_name=request.target_entity_name,
-                selected_platform=selected_platform,
-                bridge_configured=bridge_configured,
-                bridge_heartbeat_fresh=bridge_heartbeat_fresh,
-                runtime_gate_enabled=runtime_gate_enabled,
-                execution_performed=False,
-                readback_captured=False,
-                entity_exists=None,
-                bridge_command_id=None,
-                evidence_bundle_path=None,
-                revert_statement=revert_statement,
-                read_only=True,
-                warnings=warnings,
-                safest_next_step="Approve this one-shot live proof and provide an approval note.",
-                source="asset-forge-o3de-placement-live-proof",
-            )
-
-        if not request.approval_note.strip() or not runtime_gate_enabled:
-            if not request.approval_note.strip():
-                warnings.append("Approval note is required when approval_state is approved.")
-            if not runtime_gate_enabled:
-                warnings.append(
-                    "Both ASSET_FORGE_ENABLE_PLACEMENT_PROOF=1 and ASSET_FORGE_ENABLE_PLACEMENT_LIVE_PROOF=1 are required."
-                )
-            return AssetForgeO3DEPlacementLiveProofRecord(
-                capability_name="asset_forge.o3de.placement.live_proof",
-                maturity="proof-only",
-                proof_status="blocked",
-                candidate_id=request.candidate_id,
-                candidate_label=request.candidate_label,
-                target_level_relative_path=target_level_relative_path,
-                target_entity_name=request.target_entity_name,
-                selected_platform=selected_platform,
-                bridge_configured=bridge_configured,
-                bridge_heartbeat_fresh=bridge_heartbeat_fresh,
-                runtime_gate_enabled=runtime_gate_enabled,
-                execution_performed=False,
-                readback_captured=False,
-                entity_exists=None,
-                bridge_command_id=None,
-                evidence_bundle_path=None,
-                revert_statement=revert_statement,
-                read_only=True,
-                warnings=warnings,
-                safest_next_step="Satisfy approval+env gates before attempting live proof.",
-                source="asset-forge-o3de-placement-live-proof",
-            )
-
-        try:
-            runtime_payload = editor_automation_runtime_service.execute_entity_exists(
-                request_id=f"asset-forge-live-proof-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
-                session_id="asset-forge-packet11",
-                workspace_id="asset-forge-studio",
-                executor_id="asset-forge-service",
-                project_root=os.environ.get("O3DE_TARGET_PROJECT_ROOT", "").strip(),
-                engine_root=os.environ.get("O3DE_TARGET_ENGINE_ROOT", "").strip(),
-                dry_run=False,
-                args={
-                    "level_path": target_level_relative_path,
-                    "entity_name": request.target_entity_name,
-                },
-                locks_acquired=[],
-            )
-            runtime_result = runtime_payload.get("runtime_result", {})
-            bridge_command_id = runtime_result.get("bridge_command_id")
-            runtime_root = _resolve_runtime_root()
-            evidence_dir = (runtime_root / "evidence" / "placement_live_proof").resolve()
-            evidence_dir.mkdir(parents=True, exist_ok=True)
-            evidence_file = evidence_dir / (
-                f"{request.candidate_id}_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}.json"
-            )
-            evidence_payload = {
-                "capability_name": "asset_forge.o3de.placement.live_proof",
-                "candidate_id": request.candidate_id,
-                "candidate_label": request.candidate_label,
-                "target_level_relative_path": target_level_relative_path,
-                "target_entity_name": request.target_entity_name,
-                "selected_platform": selected_platform,
-                "proof_status": "succeeded",
-                "entity_exists": bool(runtime_result.get("exists", False)),
-                "bridge_command_id": bridge_command_id,
-                "bridge_heartbeat_fresh": bridge_heartbeat_fresh,
-                "runtime_gate_enabled": runtime_gate_enabled,
-                "revert_statement": revert_statement,
-                "recorded_at": datetime.now(timezone.utc).isoformat(),
-            }
-            evidence_file.write_text(json.dumps(evidence_payload, indent=2, sort_keys=True), encoding="utf-8")
-            evidence_bundle_path = str(evidence_file)
-            return AssetForgeO3DEPlacementLiveProofRecord(
-                capability_name="asset_forge.o3de.placement.live_proof",
-                maturity="proof-only",
-                proof_status="succeeded",
-                candidate_id=request.candidate_id,
-                candidate_label=request.candidate_label,
-                target_level_relative_path=target_level_relative_path,
-                target_entity_name=request.target_entity_name,
-                selected_platform=selected_platform,
-                bridge_configured=bridge_configured,
-                bridge_heartbeat_fresh=bridge_heartbeat_fresh,
-                runtime_gate_enabled=runtime_gate_enabled,
-                execution_performed=True,
-                readback_captured=True,
-                entity_exists=bool(runtime_result.get("exists", False)),
-                bridge_command_id=str(bridge_command_id) if bridge_command_id else None,
-                evidence_bundle_path=evidence_bundle_path,
-                revert_statement=revert_statement,
-                read_only=True,
-                warnings=warnings,
-                safest_next_step="Use this bounded readback evidence to decide if exact placement write admission should proceed.",
-                source="asset-forge-o3de-placement-live-proof",
-            )
-        except Exception as exc:
-            warnings.append(f"Live proof attempt blocked: {exc}")
-            return AssetForgeO3DEPlacementLiveProofRecord(
-                capability_name="asset_forge.o3de.placement.live_proof",
-                maturity="proof-only",
-                proof_status="blocked",
-                candidate_id=request.candidate_id,
-                candidate_label=request.candidate_label,
-                target_level_relative_path=target_level_relative_path,
-                target_entity_name=request.target_entity_name,
-                selected_platform=selected_platform,
-                bridge_configured=bridge_configured,
-                bridge_heartbeat_fresh=bridge_heartbeat_fresh,
-                runtime_gate_enabled=runtime_gate_enabled,
-                execution_performed=False,
-                readback_captured=False,
-                entity_exists=None,
-                bridge_command_id=None,
-                evidence_bundle_path=None,
-                revert_statement=revert_statement,
-                read_only=True,
-                warnings=warnings,
-                safest_next_step="Ensure editor session+level bridge prerequisites are live, then retry bounded live proof.",
-                source="asset-forge-o3de-placement-live-proof",
-            )
+        # Draft-checkpoint hard stop: client-declared approval metadata is never authorization.
+        # Keep live-proof runtime execution disabled until server-owned approval enforcement exists.
+        warnings.append(
+            "Live proof runtime execution is disabled in this draft checkpoint until server-owned approval enforcement is implemented."
+        )
+        return AssetForgeO3DEPlacementLiveProofRecord(
+            capability_name="asset_forge.o3de.placement.live_proof",
+            maturity="proof-only",
+            proof_status="blocked",
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            target_level_relative_path=target_level_relative_path,
+            target_entity_name=request.target_entity_name,
+            selected_platform=selected_platform,
+            bridge_configured=bridge_configured,
+            bridge_heartbeat_fresh=bridge_heartbeat_fresh,
+            runtime_gate_enabled=runtime_gate_enabled,
+            execution_performed=False,
+            readback_captured=False,
+            entity_exists=None,
+            bridge_command_id=None,
+            evidence_bundle_path=None,
+            revert_statement=revert_statement,
+            read_only=True,
+            warnings=warnings,
+            safest_next_step=(
+                "Keep placement live-proof execution blocked in this checkpoint; require server-owned approval/session enforcement before enabling runtime bridge actions."
+            ),
+            source="asset-forge-o3de-placement-live-proof",
+        )
 
     def _read_assetdb_source_evidence(
         self,

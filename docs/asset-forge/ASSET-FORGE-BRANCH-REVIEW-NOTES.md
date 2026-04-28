@@ -14,6 +14,8 @@ This branch is **not GUI-only**. It is a mixed frontend/backend review packet.
 - Blender execution remains blocked (detection/preflight surfaces only unless explicitly admitted by policy).
 - O3DE mutation remains blocked.
 - Placement remains blocked.
+- Stage-write execution is intentionally disabled in this draft checkpoint until server-owned approval enforcement exists.
+- Placement live-proof runtime execution is intentionally disabled in this draft checkpoint until server-owned approval enforcement exists.
 
 ## Test Stabilization Status
 - Tests were failing at the start of this stabilization packet.

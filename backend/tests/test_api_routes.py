@@ -469,7 +469,7 @@ def test_asset_forge_o3de_stage_write_requires_approval_before_writing() -> None
                 payload = response.json()
                 assert payload["capability_name"] == "asset_forge.o3de.stage.write"
                 assert payload["maturity"] == "approval-gated-write"
-                assert payload["write_status"] == "approval-required"
+                assert payload["write_status"] == "blocked"
                 assert payload["write_executed"] is False
                 assert payload["project_write_admitted"] is False
                 assert payload["approval_required"] is True
@@ -485,7 +485,7 @@ def test_asset_forge_o3de_stage_write_requires_approval_before_writing() -> None
                 assert not manifest_path.exists()
 
 
-def test_asset_forge_o3de_stage_write_copies_source_and_writes_manifest_sidecar() -> None:
+def test_asset_forge_o3de_stage_write_stays_blocked_even_when_client_claims_approval() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir, TemporaryDirectory(
         ignore_cleanup_errors=True
     ) as project_dir:
@@ -526,34 +526,26 @@ def test_asset_forge_o3de_stage_write_copies_source_and_writes_manifest_sidecar(
                 assert response.status_code == 200
                 payload = response.json()
                 assert payload["capability_name"] == "asset_forge.o3de.stage.write"
-                assert payload["write_status"] == "succeeded"
-                assert payload["write_executed"] is True
-                assert payload["project_write_admitted"] is True
+                assert payload["write_status"] == "blocked"
+                assert payload["write_executed"] is False
+                assert payload["project_write_admitted"] is False
                 assert payload["approval_state"] == "approved"
                 assert payload["bytes_copied"] == len(source_bytes)
                 assert payload["destination_source_asset_path"] == str(destination_path)
                 assert payload["destination_manifest_path"] == str(manifest_path)
                 assert payload["post_write_readback"]["source_exists"] is True
-                assert payload["post_write_readback"]["destination_exists"] is True
-                assert payload["post_write_readback"]["manifest_exists"] is True
+                assert payload["post_write_readback"]["destination_exists"] is False
+                assert payload["post_write_readback"]["manifest_exists"] is False
                 assert payload["source_sha256"] is not None
-                assert payload["destination_sha256"] == payload["source_sha256"]
-                assert payload["manifest_sha256"] is not None
-                assert str(destination_path) in payload["revert_paths"]
-                assert str(manifest_path) in payload["revert_paths"]
                 assert payload["source"] == "asset-forge-o3de-stage-write"
+                assert any(
+                    "disabled in this draft checkpoint until server-owned approval enforcement is implemented"
+                    in warning
+                    for warning in payload["warnings"]
+                )
 
-                assert destination_path.is_file()
-                assert destination_path.read_bytes() == source_bytes
-                assert manifest_path.is_file()
-                manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
-                assert manifest_payload["candidate_id"] == "candidate-a"
-                assert manifest_payload["candidate_label"] == "Weathered Ivy Arch"
-                assert manifest_payload["approval_state"] == "approved"
-                assert manifest_payload["source_artifact_path"] == str(source_path.resolve())
-                assert manifest_payload["destination_source_asset_path"] == str(destination_path.resolve())
-                assert manifest_payload["destination_manifest_path"] == str(manifest_path.resolve())
-                assert manifest_payload["mutation_scope"] == "single-source-copy-and-sidecar"
+                assert not destination_path.is_file()
+                assert not manifest_path.is_file()
 
 
 def test_asset_forge_o3de_readback_reports_blocked_when_assetdb_is_missing() -> None:
@@ -970,12 +962,17 @@ def test_asset_forge_o3de_placement_live_proof_requires_approval() -> None:
         )
         assert response.status_code == 200
         payload = response.json()
-        assert payload["proof_status"] == "approval-required"
+        assert payload["proof_status"] == "blocked"
         assert payload["execution_performed"] is False
         assert payload["readback_captured"] is False
+        assert any(
+            "disabled in this draft checkpoint until server-owned approval enforcement is implemented"
+            in warning
+            for warning in payload["warnings"]
+        )
 
 
-def test_asset_forge_o3de_placement_live_proof_writes_evidence_bundle_on_success() -> None:
+def test_asset_forge_o3de_placement_live_proof_stays_blocked_even_when_client_claims_approval() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         with patch.dict(
             "os.environ",
@@ -994,32 +991,29 @@ def test_asset_forge_o3de_placement_live_proof_writes_evidence_bundle_on_success
                     (),
                     {"configured": True, "heartbeat_fresh": True},
                 )()
-                with patch("app.services.asset_forge.editor_automation_runtime_service.execute_entity_exists") as mocked_exec:
-                    mocked_exec.return_value = {
-                        "runtime_result": {
-                            "exists": True,
-                            "bridge_command_id": "bridge-cmd-123",
-                        }
-                    }
-                    with isolated_client() as client:
-                        response = client.post(
-                            "/asset-forge/o3de/placement-harness/live-proof",
-                            json={
-                                "candidate_id": "candidate-a",
-                                "candidate_label": "Weathered Ivy Arch",
-                                "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
-                                "target_entity_name": "AssetForgeCandidateA",
-                                "approval_state": "approved",
-                                "approval_note": "approved",
-                            },
-                        )
-                        assert response.status_code == 200
-                        payload = response.json()
-                        assert payload["proof_status"] == "succeeded"
-                        assert payload["execution_performed"] is True
-                        assert payload["readback_captured"] is True
-                        assert payload["evidence_bundle_path"]
-                        assert Path(payload["evidence_bundle_path"]).is_file()
+                with isolated_client() as client:
+                    response = client.post(
+                        "/asset-forge/o3de/placement-harness/live-proof",
+                        json={
+                            "candidate_id": "candidate-a",
+                            "candidate_label": "Weathered Ivy Arch",
+                            "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                            "target_entity_name": "AssetForgeCandidateA",
+                            "approval_state": "approved",
+                            "approval_note": "approved",
+                        },
+                    )
+                    assert response.status_code == 200
+                    payload = response.json()
+                    assert payload["proof_status"] == "blocked"
+                    assert payload["execution_performed"] is False
+                    assert payload["readback_captured"] is False
+                    assert payload["evidence_bundle_path"] is None
+                    assert any(
+                        "disabled in this draft checkpoint until server-owned approval enforcement is implemented"
+                        in warning
+                        for warning in payload["warnings"]
+                    )
 
 
 def test_asset_forge_o3de_placement_live_proof_evidence_index_lists_recent_items() -> None:
