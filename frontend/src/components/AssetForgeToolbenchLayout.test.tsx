@@ -370,6 +370,9 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(driftNotice).toHaveTextContent("Active Records lane");
     expect(driftNotice).toHaveTextContent("Runs lane");
     expect(driftNotice).toHaveTextContent("Refresh or reopen the packet lane");
+    const openPacketLaneButton = within(driftNotice).getByRole("button", { name: "Open packet lane surface" });
+    expect(openPacketLaneButton).toBeDisabled();
+    expect(driftNotice).toHaveTextContent("Records navigation handler is unavailable in this view.");
   });
 
   it("keeps existing navigation callbacks but blocks direct execution", () => {

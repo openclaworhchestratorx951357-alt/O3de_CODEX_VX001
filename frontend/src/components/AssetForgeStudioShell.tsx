@@ -955,6 +955,7 @@ function ReviewPage({
   const showLivePacketUnresolvedBanner =
     reviewPacketSource === "live_phase9_packet_data" && !packet.hasResolvedPacket;
   const showLaneDriftNotice = recordsLaneAlignment?.driftDetected === true;
+  const packetLaneAction = buildOriginRecordAction(packetOrigin, onOpenReviewPacketOriginRecord);
 
   return (
     <Page
@@ -984,6 +985,19 @@ function ReviewPage({
             ["Active Records lane", recordsLaneAlignment.activeRecordsSurfaceLabel],
           ]} />
           <p style={s.recordsLaneDriftDetail}>{recordsLaneAlignment.guidance}</p>
+          <div style={s.buttonRow}>
+            <button
+              type="button"
+              aria-label="Open packet lane surface"
+              title={packetLaneAction.hint}
+              disabled={!packetLaneAction.enabled}
+              onClick={() => onOpenReviewPacketOriginRecord?.(packetOrigin)}
+              style={packetLaneAction.enabled ? s.darkButton : s.disabledButton}
+            >
+              Open packet lane surface
+            </button>
+            {!packetLaneAction.enabled && <span style={s.hintText}>{packetLaneAction.hint}</span>}
+          </div>
         </section>
       )}
       <div style={s.reviewGrid}>

@@ -400,9 +400,6 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("Lane alignment confirmed")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Runs Dispatch lineage and run-level audit slices\./i }));
     expect(screen.getByText("Lane drift detected")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open packet lane surface" })).toBeEnabled();
-    fireEvent.click(screen.getByRole("button", { name: "Open packet lane surface" }));
-    expect(screen.getByText("Lane alignment confirmed")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Back to Asset Forge Review" })).toBeEnabled();
     expect(screen.queryByLabelText("AssetForgeWorkspacePage")).toBeNull();
 
@@ -411,7 +408,21 @@ describe("App desktop smoke", () => {
     const returnedForgePanel = await screen.findByLabelText("AI Asset Forge");
     expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
     expect(within(returnedForgePanel).getByLabelText("Asset Forge Review page")).toBeInTheDocument();
-    expect(within(returnedForgePanel).getByRole("button", { name: "Approve production import" })).toBeDisabled();
+    const driftNotice = within(returnedForgePanel).getByLabelText("Records lane drift notice");
+    expect(driftNotice).toBeInTheDocument();
+    const reviewDriftAction = within(driftNotice).getByRole("button", { name: "Open packet lane surface" });
+    expect(reviewDriftAction).toBeEnabled();
+    fireEvent.click(reviewDriftAction);
+
+    expect(await screen.findByText("Lane alignment confirmed")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Back to Asset Forge Review" })).toBeEnabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to Asset Forge Review" }));
+
+    const realignedForgePanel = await screen.findByLabelText("AI Asset Forge");
+    expect(within(realignedForgePanel).getByLabelText("Asset Forge Review page")).toBeInTheDocument();
+    expect(within(realignedForgePanel).queryByLabelText("Records lane drift notice")).toBeNull();
+    expect(within(realignedForgePanel).getByRole("button", { name: "Approve production import" })).toBeDisabled();
   });
 
   it("shows a truthful empty catalog state instead of fallback agent data when live catalog data is unavailable", async () => {
