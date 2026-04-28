@@ -57,14 +57,17 @@ _DEFAULT_MAX_INSPECT_BYTES = 262_144_000
 _INSPECT_SCRIPT_ID = "asset_forge_blender_readonly_inspector_v1"
 _ALLOWED_STAGE_SOURCE_EXTENSIONS = {".obj", ".fbx", ".glb", ".gltf"}
 _ALLOWED_STAGE_ROOT_PREFIX = "Assets/Generated/asset_forge/"
+_STAGE_WRITE_CORRIDOR_NAME = "asset_forge.o3de.stage_write.v1"
+_STAGE_WRITE_APPROVAL_CAPABILITY = "asset_forge.o3de.stage.write"
 _DEFAULT_MAX_STAGE_BYTES = 524_288_000
 _ASSETDB_EVIDENCE_ROW_LIMIT = 25
 _ALLOWED_STAGE_DEST_EXTENSIONS = {".obj", ".fbx", ".glb", ".gltf"}
+_SUPPORTED_STAGE_WRITE_OVERWRITE_POLICIES = {"deny"}
 _DEFAULT_APPROVAL_SESSION_TTL_SECONDS = 1800
 _MAX_APPROVAL_SESSION_TTL_SECONDS = 86400
 _MIN_APPROVAL_SESSION_TTL_SECONDS = 60
 _SERVER_APPROVAL_CAPABILITIES = {
-    "asset_forge.o3de.stage.write",
+    _STAGE_WRITE_APPROVAL_CAPABILITY,
     "asset_forge.o3de.placement.execute",
     "asset_forge.o3de.placement.harness.execute",
     "asset_forge.o3de.placement.live_proof",
@@ -161,6 +164,33 @@ def _normalize_project_relative_path(value: str) -> str:
     while "//" in normalized:
         normalized = normalized.replace("//", "/")
     return normalized
+
+
+def _contains_path_traversal(normalized_relative_path: str) -> bool:
+    parts = [part for part in normalized_relative_path.split("/") if part]
+    return ".." in parts
+
+
+def _planned_manifest_sha256(
+    *,
+    candidate_id: str,
+    candidate_label: str,
+    stage_relative_path: str,
+    manifest_relative_path: str,
+    source_artifact_path: str,
+) -> str:
+    payload = {
+        "schema": "asset_forge.stage_write_manifest.v1",
+        "corridor_name": _STAGE_WRITE_CORRIDOR_NAME,
+        "candidate_id": candidate_id,
+        "candidate_label": candidate_label,
+        "stage_relative_path": stage_relative_path,
+        "manifest_relative_path": manifest_relative_path,
+        "source_artifact_path": source_artifact_path,
+    }
+    return sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
 
 
 def _resolve_max_stage_bytes() -> int:
@@ -1157,25 +1187,51 @@ class AssetForgeService:
         )
         source_within_runtime = _path_within_root(source_path, runtime_root)
         source_extension_allowed = source_path.suffix.lower() in _ALLOWED_STAGE_SOURCE_EXTENSIONS
+        source_exists = source_path.is_file()
+        source_size = source_path.stat().st_size if source_exists else None
+        source_sha256 = _sha256_file(source_path) if source_exists else None
 
         stage_relative_path = _normalize_project_relative_path(request.stage_relative_path)
         manifest_relative_path = _normalize_project_relative_path(request.manifest_relative_path)
+        path_traversal_detected = _contains_path_traversal(stage_relative_path) or _contains_path_traversal(
+            manifest_relative_path
+        )
         stage_prefix_allowed = stage_relative_path.startswith(_ALLOWED_STAGE_ROOT_PREFIX)
         manifest_prefix_allowed = manifest_relative_path.startswith(_ALLOWED_STAGE_ROOT_PREFIX)
         manifest_suffix_allowed = manifest_relative_path.endswith(".forge.json")
+        staging_root_allowlisted = stage_prefix_allowed and manifest_prefix_allowed
+        destination_within_staging_root = staging_root_allowlisted and not path_traversal_detected
+
+        source_hash_expected = (request.source_hash_expected or "").strip().lower() or None
+        manifest_hash_expected = (request.manifest_hash_expected or "").strip().lower() or None
+        source_hash_match = bool(source_hash_expected and source_sha256 and source_sha256 == source_hash_expected)
+        planned_manifest_sha256 = _planned_manifest_sha256(
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            stage_relative_path=stage_relative_path,
+            manifest_relative_path=manifest_relative_path,
+            source_artifact_path=source_input,
+        )
+        manifest_hash_match = bool(
+            manifest_hash_expected and planned_manifest_sha256 == manifest_hash_expected
+        )
+
+        overwrite_policy = request.overwrite_policy.strip().lower() or "deny"
+        overwrite_policy_supported = overwrite_policy in _SUPPORTED_STAGE_WRITE_OVERWRITE_POLICIES
         server_approval_evaluation = self._evaluate_server_approval_session(
             approval_session_id=request.approval_session_id,
-            expected_capability="asset_forge.o3de.stage.write",
+            expected_capability=_STAGE_WRITE_APPROVAL_CAPABILITY,
             binding=_make_server_approval_binding(
                 candidate_id=request.candidate_id,
                 candidate_label=request.candidate_label,
-                requested_capability="asset_forge.o3de.stage.write",
+                requested_capability=_STAGE_WRITE_APPROVAL_CAPABILITY,
                 stage_relative_path=stage_relative_path,
             ),
         )
 
         project_root_raw = os.environ.get("O3DE_TARGET_PROJECT_ROOT", "").strip()
         project_root_path = Path(project_root_raw).resolve() if project_root_raw else None
+        project_root_exists = bool(project_root_path and project_root_path.is_dir())
         destination_source_path = (
             (project_root_path / stage_relative_path).resolve()
             if project_root_path
@@ -1186,10 +1242,24 @@ class AssetForgeService:
             if project_root_path
             else None
         )
+        destination_paths_within_project_root = bool(
+            project_root_path
+            and destination_source_path
+            and destination_manifest_path
+            and _path_within_root(destination_source_path, project_root_path)
+            and _path_within_root(destination_manifest_path, project_root_path)
+        )
+        overwrite_detected = bool(
+            (destination_source_path and destination_source_path.exists())
+            or (destination_manifest_path and destination_manifest_path.exists())
+        )
+        max_stage_bytes = _resolve_max_stage_bytes()
+        source_size_within_cap = bool(source_size is not None and source_size <= max_stage_bytes)
 
         warnings = [
             "Stage write corridor is approval-gated and path-bounded.",
-            "Only source asset + provenance sidecar writes are performed in this packet.",
+            "Dry-run planning metadata only. No project mutation is executed in this packet.",
+            "Client approval fields remain intent-only and never authorize mutation.",
         ]
         warnings.append(server_approval_evaluation.reason)
         revert_paths = [
@@ -1197,177 +1267,105 @@ class AssetForgeService:
             for path in [destination_source_path, destination_manifest_path]
             if path is not None
         ]
+        fail_closed_reasons = [f"server_approval:{server_approval_evaluation.decision_code}"]
 
         if not project_root_raw:
             warnings.append("O3DE_TARGET_PROJECT_ROOT is not configured.")
-            return AssetForgeO3DEStageWriteRecord(
-                capability_name="asset_forge.o3de.stage.write",
-                maturity="approval-gated-write",
-                write_status="blocked",
-                candidate_id=request.candidate_id,
-                candidate_label=request.candidate_label,
-                project_root=None,
-                source_artifact_path=str(source_path),
-                destination_source_asset_path=str(destination_source_path) if destination_source_path else None,
-                destination_manifest_path=str(destination_manifest_path) if destination_manifest_path else None,
-                approval_required=True,
-                approval_state=request.approval_state,
-                server_approval_session_id=request.approval_session_id,
-                server_approval_evaluation=server_approval_evaluation,
-                write_executed=False,
-                project_write_admitted=False,
-                post_write_readback={},
-                revert_paths=revert_paths,
-                warnings=warnings,
-                safest_next_step=(
-                    "Configure O3DE_TARGET_PROJECT_ROOT and rerun approval-gated staging."
-                ),
-                source="asset-forge-o3de-stage-write",
-            )
-
-        if project_root_path is None or not project_root_path.is_dir():
+            fail_closed_reasons.append("project_root_missing")
+        elif not project_root_exists:
             warnings.append("Configured O3DE project root does not exist as a directory.")
-            return AssetForgeO3DEStageWriteRecord(
-                capability_name="asset_forge.o3de.stage.write",
-                maturity="approval-gated-write",
-                write_status="blocked",
-                candidate_id=request.candidate_id,
-                candidate_label=request.candidate_label,
-                project_root=str(project_root_path) if project_root_path else None,
-                source_artifact_path=str(source_path),
-                destination_source_asset_path=str(destination_source_path) if destination_source_path else None,
-                destination_manifest_path=str(destination_manifest_path) if destination_manifest_path else None,
-                approval_required=True,
-                approval_state=request.approval_state,
-                server_approval_session_id=request.approval_session_id,
-                server_approval_evaluation=server_approval_evaluation,
-                write_executed=False,
-                project_write_admitted=False,
-                post_write_readback={},
-                revert_paths=revert_paths,
-                warnings=warnings,
-                safest_next_step=(
-                    "Use a valid local O3DE project root and rerun approval-gated staging."
-                ),
-                source="asset-forge-o3de-stage-write",
-            )
+            fail_closed_reasons.append("project_root_invalid")
 
-        if (
-            destination_source_path is None
-            or destination_manifest_path is None
-            or not _path_within_root(destination_source_path, project_root_path)
-            or not _path_within_root(destination_manifest_path, project_root_path)
-            or not stage_prefix_allowed
-            or not manifest_prefix_allowed
-            or not manifest_suffix_allowed
-        ):
+        if path_traversal_detected:
+            warnings.append("Path traversal segments are not allowed in stage-write dry-run paths.")
+            fail_closed_reasons.append("path_traversal_detected")
+
+        if not staging_root_allowlisted or not destination_within_staging_root:
             warnings.append(
-                "Stage and manifest paths must stay under Assets/Generated/asset_forge and manifest must end with .forge.json."
+                "Stage and manifest paths must stay under Assets/Generated/asset_forge after normalization."
             )
-            return AssetForgeO3DEStageWriteRecord(
-                capability_name="asset_forge.o3de.stage.write",
-                maturity="approval-gated-write",
-                write_status="blocked",
-                candidate_id=request.candidate_id,
-                candidate_label=request.candidate_label,
-                project_root=str(project_root_path),
-                source_artifact_path=str(source_path),
-                destination_source_asset_path=str(destination_source_path) if destination_source_path else None,
-                destination_manifest_path=str(destination_manifest_path) if destination_manifest_path else None,
-                approval_required=True,
-                approval_state=request.approval_state,
-                server_approval_session_id=request.approval_session_id,
-                server_approval_evaluation=server_approval_evaluation,
-                write_executed=False,
-                project_write_admitted=False,
-                post_write_readback={},
-                revert_paths=revert_paths,
-                warnings=warnings,
-                safest_next_step=(
-                    "Use deterministic plan paths under Assets/Generated/asset_forge and retry staging."
-                ),
-                source="asset-forge-o3de-stage-write",
-            )
+            fail_closed_reasons.append("destination_outside_staging_root")
 
-        if not source_within_runtime or not source_extension_allowed or not source_path.is_file():
-            if not source_within_runtime:
-                warnings.append("Source artifact path is outside the configured Asset Forge runtime root.")
-            if not source_extension_allowed:
-                warnings.append("Source artifact extension is not allowlisted for staging.")
-            if not source_path.is_file():
-                warnings.append("Source artifact does not exist as a file.")
-            return AssetForgeO3DEStageWriteRecord(
-                capability_name="asset_forge.o3de.stage.write",
-                maturity="approval-gated-write",
-                write_status="blocked",
-                candidate_id=request.candidate_id,
-                candidate_label=request.candidate_label,
-                project_root=str(project_root_path),
-                source_artifact_path=str(source_path),
-                destination_source_asset_path=str(destination_source_path),
-                destination_manifest_path=str(destination_manifest_path),
-                approval_required=True,
-                approval_state=request.approval_state,
-                server_approval_session_id=request.approval_session_id,
-                server_approval_evaluation=server_approval_evaluation,
-                write_executed=False,
-                project_write_admitted=False,
-                post_write_readback={},
-                revert_paths=revert_paths,
-                warnings=warnings,
-                safest_next_step=(
-                    "Place an allowlisted source artifact under backend/runtime/asset_forge and retry staging."
-                ),
-                source="asset-forge-o3de-stage-write",
-            )
+        if not manifest_suffix_allowed:
+            warnings.append("Manifest relative path must end with .forge.json.")
+            fail_closed_reasons.append("manifest_suffix_not_allowlisted")
 
-        source_size = source_path.stat().st_size
-        max_stage_bytes = _resolve_max_stage_bytes()
-        if source_size > max_stage_bytes:
+        if project_root_path and not destination_paths_within_project_root:
+            warnings.append("Resolved destination paths must stay within the configured project root.")
+            fail_closed_reasons.append("destination_outside_project_root")
+
+        if not source_within_runtime:
+            warnings.append("Source artifact path is outside the configured Asset Forge runtime root.")
+            fail_closed_reasons.append("source_outside_runtime_root")
+        if not source_extension_allowed:
+            warnings.append("Source artifact extension is not allowlisted for staging.")
+            fail_closed_reasons.append("source_extension_not_allowlisted")
+        if not source_exists:
+            warnings.append("Source artifact does not exist as a file.")
+            fail_closed_reasons.append("source_missing")
+
+        if source_size is not None and not source_size_within_cap:
             warnings.append(
                 f"Source artifact exceeds configured stage size cap ({max_stage_bytes} bytes)."
             )
-            return AssetForgeO3DEStageWriteRecord(
-                capability_name="asset_forge.o3de.stage.write",
-                maturity="approval-gated-write",
-                write_status="blocked",
-                candidate_id=request.candidate_id,
-                candidate_label=request.candidate_label,
-                project_root=str(project_root_path),
-                source_artifact_path=str(source_path),
-                destination_source_asset_path=str(destination_source_path),
-                destination_manifest_path=str(destination_manifest_path),
-                approval_required=True,
-                approval_state=request.approval_state,
-                server_approval_session_id=request.approval_session_id,
-                server_approval_evaluation=server_approval_evaluation,
-                write_executed=False,
-                project_write_admitted=False,
-                bytes_copied=source_size,
-                post_write_readback={},
-                revert_paths=revert_paths,
-                warnings=warnings,
-                safest_next_step=(
-                    "Stage a smaller artifact or raise ASSET_FORGE_MAX_STAGE_BYTES for this bounded write corridor."
-                ),
-                source="asset-forge-o3de-stage-write",
-            )
+            fail_closed_reasons.append("source_size_over_cap")
 
-        # Draft-checkpoint hard stop: client-declared approval metadata is never authorization.
-        # Keep stage-write non-mutating until server-owned approval tokens/sessions exist.
+        if source_hash_expected is None:
+            warnings.append("source_hash_expected is required for dry-run corridor admission checks.")
+            fail_closed_reasons.append("source_hash_expected_missing")
+        elif not source_hash_match:
+            warnings.append("Source hash does not match source_hash_expected.")
+            fail_closed_reasons.append("source_hash_mismatch")
+
+        if manifest_hash_expected is None:
+            warnings.append("manifest_hash_expected is required for dry-run corridor admission checks.")
+            fail_closed_reasons.append("manifest_hash_expected_missing")
+        elif not manifest_hash_match:
+            warnings.append("Manifest hash does not match manifest_hash_expected.")
+            fail_closed_reasons.append("manifest_hash_mismatch")
+
+        if not overwrite_policy_supported:
+            warnings.append(
+                f"overwrite_policy '{overwrite_policy}' is not supported for the dry-run corridor."
+            )
+            fail_closed_reasons.append("overwrite_policy_not_supported")
+        elif overwrite_policy == "deny" and overwrite_detected:
+            warnings.append(
+                "Overwrite attempt detected while overwrite_policy=deny; stage-write remains fail-closed."
+            )
+            fail_closed_reasons.append("overwrite_detected")
+
         warnings.append(
             "Stage write execution remains blocked in this packet because mutation admission is not enabled."
         )
+        fail_closed_reasons.append("mutation_admission_not_enabled")
+
+        fail_closed_reasons = list(dict.fromkeys(fail_closed_reasons))
+
         return AssetForgeO3DEStageWriteRecord(
             capability_name="asset_forge.o3de.stage.write",
             maturity="approval-gated-write",
             write_status="blocked",
             candidate_id=request.candidate_id,
             candidate_label=request.candidate_label,
-            project_root=str(project_root_path),
+            project_root=str(project_root_path) if project_root_path else None,
             source_artifact_path=str(source_path),
-            destination_source_asset_path=str(destination_source_path),
-            destination_manifest_path=str(destination_manifest_path),
+            destination_source_asset_path=str(destination_source_path) if destination_source_path else None,
+            destination_manifest_path=str(destination_manifest_path) if destination_manifest_path else None,
+            corridor_name=_STAGE_WRITE_CORRIDOR_NAME,
+            dry_run_only=True,
+            execution_admitted=False,
+            normalized_destination_path=stage_relative_path,
+            destination_within_staging_root=destination_within_staging_root,
+            staging_root_allowlisted=staging_root_allowlisted,
+            overwrite_policy=overwrite_policy,
+            overwrite_detected=overwrite_detected,
+            source_hash_expected=source_hash_expected,
+            manifest_hash_expected=manifest_hash_expected,
+            source_hash_match=source_hash_match,
+            manifest_hash_match=manifest_hash_match,
+            path_traversal_detected=path_traversal_detected,
+            fail_closed_reasons=fail_closed_reasons,
             approval_required=True,
             approval_state=request.approval_state,
             server_approval_session_id=request.approval_session_id,
@@ -1375,16 +1373,16 @@ class AssetForgeService:
             write_executed=False,
             project_write_admitted=False,
             bytes_copied=source_size,
-            source_sha256=_sha256_file(source_path),
+            source_sha256=source_sha256,
             post_write_readback={
-                "source_exists": True,
-                "destination_exists": destination_source_path.is_file(),
-                "manifest_exists": destination_manifest_path.is_file(),
+                "source_exists": source_exists,
+                "destination_exists": destination_source_path.is_file() if destination_source_path else False,
+                "manifest_exists": destination_manifest_path.is_file() if destination_manifest_path else False,
             },
             revert_paths=revert_paths,
             warnings=warnings,
             safest_next_step=(
-                "Keep stage-write blocked in this checkpoint; require server-owned approval enforcement before enabling any write path."
+                "Keep stage-write blocked and use dry-run proofs to validate bounded corridor constraints before any proof-only execution packet."
             ),
             source="asset-forge-o3de-stage-write",
         )
