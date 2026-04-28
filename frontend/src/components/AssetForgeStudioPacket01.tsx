@@ -145,6 +145,13 @@ const VIEW_CONTROL_SHORTCUTS: Record<ViewControl, string> = {
   Side: "Y",
 };
 
+function outlinerItemTruth(item: string): AssetForgeTruthState {
+  if (item.includes("planned")) {
+    return "plan-only";
+  }
+  return "demo";
+}
+
 function loadEvidenceFilterSessionState(): EvidenceFilterSessionState | null {
   if (typeof window === "undefined") {
     return null;
@@ -262,6 +269,25 @@ function TruthBadge({ truth }: { truth: AssetForgeTruthState }) {
     >
       {truth}
     </span>
+  );
+}
+
+function StatusRow({
+  label,
+  value,
+  truth,
+}: {
+  label: string;
+  value: string;
+  truth: AssetForgeTruthState;
+}) {
+  return (
+    <div style={s.statusRow}>
+      <span>{label}</span>
+      <span style={s.statusRowValue}>
+        {value} <TruthBadge truth={truth} />
+      </span>
+    </div>
   );
 }
 
@@ -621,6 +647,25 @@ function candidateIdToOutlinerHint(candidateId: string): string {
   }
 }
 
+function candidateTransformPreset(candidateId?: string): {
+  location: string;
+  rotation: string;
+  scale: string;
+} {
+  switch (candidateId) {
+    case "candidate-a":
+      return { location: "0.00 / 0.02 / 0.00", rotation: "0.00 / 0.00 / 0.00", scale: "1.00 / 1.00 / 1.00" };
+    case "candidate-b":
+      return { location: "-0.10 / 0.00 / 0.08", rotation: "0.00 / 18.00 / 0.00", scale: "0.95 / 0.95 / 0.95" };
+    case "candidate-c":
+      return { location: "0.06 / 0.00 / -0.04", rotation: "0.00 / -12.00 / 0.00", scale: "1.03 / 1.03 / 1.03" };
+    case "candidate-d":
+      return { location: "0.00 / 0.04 / 0.00", rotation: "0.00 / 32.00 / 0.00", scale: "1.08 / 1.08 / 1.08" };
+    default:
+      return { location: "0.00 / 0.00 / 0.00", rotation: "0.00 / 0.00 / 0.00", scale: "1.00 / 1.00 / 1.00" };
+  }
+}
+
 export default function AssetForgeStudioPacket01({
   projectProfile,
   onOpenPromptStudio,
@@ -841,6 +886,7 @@ export default function AssetForgeStudioPacket01({
     && evidenceIndexFromAgeSeconds === ""
   );
   const selectedCandidateScores = selectedCandidate ? candidateDemoScores(selectedCandidate.id) : null;
+  const selectedTransformPreset = candidateTransformPreset(selectedCandidate?.id);
   const selectedOutlinerHint = selectedCandidate ? candidateIdToOutlinerHint(selectedCandidate.id) : "Asset Root";
   const editorSnapshotText = `tool=${activeToolLabel}; viewport_mode=${activeViewportMode}; view_control=${activeViewportControl}; outliner_filter=${outlinerFilter || "none"}; outliner_auto_sync=${autoSyncOutlinerToSelection ? "on" : "off"}`;
   const copyEditorSnapshot = async () => {
@@ -1743,6 +1789,7 @@ export default function AssetForgeStudioPacket01({
             </button>
           ))}
         </div>
+        <p style={s.blockedHelperText}>Blocked actions are intentional in Packet 01 and remain non-executable by design.</p>
       </section>
 
       <section aria-label="Asset Forge Blender-style editor workspace" style={s.editorShell}>
@@ -1769,7 +1816,13 @@ export default function AssetForgeStudioPacket01({
                   <button
                     key={tool.label}
                     type="button"
-                    style={activeToolLabel === tool.label ? s.toolRailItemActive : s.toolRailItem}
+                    style={
+                      tool.truth === "blocked"
+                        ? s.toolRailItemBlocked
+                        : activeToolLabel === tool.label
+                          ? s.toolRailItemActive
+                          : s.toolRailItem
+                    }
                     aria-pressed={activeToolLabel === tool.label}
                     onClick={() => setActiveToolLabel(tool.label)}
                     disabled={tool.truth === "blocked"}
@@ -1783,6 +1836,16 @@ export default function AssetForgeStudioPacket01({
               </div>
               <p style={s.panelDetail}>Active tool: {activeToolLabel} (demo only)</p>
               <p style={s.panelDetail}>Shortcut hint (demo): `1-9` tool slots only, no real editing execution.</p>
+              <div style={s.inspectCard}>
+                <h4 style={s.subheading}>Keyboard legend (demo)</h4>
+                <ul style={s.list}>
+                  <li>Tools: `1` Select, `2` Move, `3` Rotate, `4` Scale</li>
+                  <li>View controls: `O` Orbit, `P` Pan, `Z` Zoom, `F` Frame</li>
+                  <li>Ortho snaps: `T` Top, `R` Front, `Y` Side</li>
+                  <li>Viewport modes: `S` Solid, `M` Material, `W` Wireframe, `Q` O3DE Preview</li>
+                </ul>
+                <p style={s.panelDetail}>Keyboard mappings are UI-demo only in this packet.</p>
+              </div>
             </section>
             <section style={s.panel}>
               <div style={s.panelHeader}>
@@ -1831,7 +1894,12 @@ export default function AssetForgeStudioPacket01({
               <p style={s.panelDetail}>Selection hint: {selectedOutlinerHint} (demo mapping)</p>
               <ul style={s.list}>
                 {filteredOutlinerItems.length ? (
-                  filteredOutlinerItems.map((item) => <li key={item}>{item}</li>)
+                  filteredOutlinerItems.map((item) => (
+                    <li key={item} style={s.outlinerRow}>
+                      <span>{item}</span>
+                      <TruthBadge truth={outlinerItemTruth(item)} />
+                    </li>
+                  ))
                 ) : (
                   <li>No outliner items match current filter (demo).</li>
                 )}
@@ -1862,6 +1930,8 @@ export default function AssetForgeStudioPacket01({
               <div style={s.viewportCanvas}>
                 <div style={s.viewportGrid} />
                 <div style={s.viewportSilhouette} />
+                <div style={s.viewportAxisBadge}>Axis: Z-up (demo)</div>
+                <div style={s.viewportModeBadge}>{activeViewportMode} view (demo)</div>
                 <p style={s.viewportLabel}>Demo viewport - no real model loaded</p>
               </div>
               <div style={s.actionWrap}>
@@ -1919,7 +1989,10 @@ export default function AssetForgeStudioPacket01({
                   const scores = candidateDemoScores(candidate.id);
                   const isSelected = selectedCandidate?.id === candidate.id;
                   return (
-                    <article key={`editor-${candidate.id}`} style={s.editorCandidateCard}>
+                    <article
+                      key={`editor-${candidate.id}`}
+                      style={isSelected ? s.editorCandidateCardSelected : s.editorCandidateCard}
+                    >
                       <div style={s.thumbnailPlaceholder}>thumbnail placeholder</div>
                       <div style={s.cardHeader}>
                         <strong>{candidate.name}</strong>
@@ -1937,6 +2010,7 @@ export default function AssetForgeStudioPacket01({
                       >
                         {isSelected ? "Selected" : "Select"}
                       </button>
+                      {isSelected ? <p style={s.selectedCandidateHint}>Inspector synced to this demo candidate.</p> : null}
                     </article>
                   );
                 })}
@@ -1951,35 +2025,39 @@ export default function AssetForgeStudioPacket01({
                 <TruthBadge truth={selectedCandidate?.status ?? "demo"} />
               </div>
               <h4 style={s.subheading}>Transform</h4>
-              <ul style={s.list}>
-                <li>Location X/Y/Z: 0.00 / 0.00 / 0.00 (demo)</li>
-                <li>Rotation X/Y/Z: 0.00 / 0.00 / 0.00 (demo)</li>
-                <li>Scale X/Y/Z: 1.00 / 1.00 / 1.00 (demo)</li>
-              </ul>
+              <div style={s.statusGrid}>
+                <StatusRow label="Location X/Y/Z" value={selectedTransformPreset.location} truth="demo" />
+                <StatusRow label="Rotation X/Y/Z" value={selectedTransformPreset.rotation} truth="demo" />
+                <StatusRow label="Scale X/Y/Z" value={selectedTransformPreset.scale} truth="demo" />
+              </div>
               <h4 style={s.subheading}>Geometry</h4>
-              <ul style={s.list}>
-                <li>Vertices: {selectedCandidateScores ? selectedCandidateScores.geometry * 112 : 0} (demo)</li>
-                <li>Triangles: {selectedCandidate?.trisEstimate ?? "N/A"} (demo)</li>
-                <li>UV status: plan-only</li>
-                <li>Normals status: preflight-only</li>
-                <li>Non-manifold status: blocked</li>
-              </ul>
+              <div style={s.statusGrid}>
+                <StatusRow
+                  label="Vertices"
+                  value={String(selectedCandidateScores ? selectedCandidateScores.geometry * 112 : 0)}
+                  truth="demo"
+                />
+                <StatusRow label="Triangles" value={selectedCandidate?.trisEstimate ?? "N/A"} truth="demo" />
+                <StatusRow label="UV status" value="Validation planned" truth="plan-only" />
+                <StatusRow label="Normals status" value="Preflight check only" truth="preflight-only" />
+                <StatusRow label="Non-manifold status" value="No admitted real mesh check" truth="blocked" />
+              </div>
               <h4 style={s.subheading}>Materials</h4>
-              <ul style={s.list}>
-                <li>Material slots: 2 (demo)</li>
-                <li>Base color: plan-only</li>
-                <li>Normal map: plan-only</li>
-                <li>Roughness map: plan-only</li>
-                <li>Metallic map: plan-only</li>
-              </ul>
+              <div style={s.statusGrid}>
+                <StatusRow label="Material slots" value="2" truth="demo" />
+                <StatusRow label="Base color" value="Authoring path planned" truth="plan-only" />
+                <StatusRow label="Normal map" value="Authoring path planned" truth="plan-only" />
+                <StatusRow label="Roughness map" value="Authoring path planned" truth="plan-only" />
+                <StatusRow label="Metallic map" value="Authoring path planned" truth="plan-only" />
+              </div>
               <h4 style={s.subheading}>O3DE Readiness</h4>
-              <ul style={s.list}>
-                <li>Scale status: preflight-only</li>
-                <li>Origin status: plan-only</li>
-                <li>Texture status: plan-only</li>
-                <li>Product asset status: blocked</li>
-                <li>Placement readiness: plan-only</li>
-              </ul>
+              <div style={s.statusGrid}>
+                <StatusRow label="Scale status" value="Preflight check defined" truth="preflight-only" />
+                <StatusRow label="Origin status" value="Origin rules planned" truth="plan-only" />
+                <StatusRow label="Texture status" value="Validation path planned" truth="plan-only" />
+                <StatusRow label="Product asset status" value="No admitted write path yet" truth="blocked" />
+                <StatusRow label="Placement readiness" value="Placement gating planned" truth="plan-only" />
+              </div>
             </section>
 
             <section style={s.panel}>
@@ -3002,7 +3080,7 @@ const s = {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 10,
     padding: 10,
-    background: "rgba(14, 19, 31, 0.45)",
+    background: "rgba(14, 19, 31, 0.62)",
     display: "grid",
     gap: 8,
   },
@@ -3025,7 +3103,7 @@ const s = {
   },
   bannerSubnote: {
     margin: 0,
-    color: "#a8c8eb",
+    color: "#d4e8ff",
     fontSize: 12,
   },
   panel: {
@@ -3056,7 +3134,7 @@ const s = {
   },
   editorMainGrid: {
     display: "grid",
-    gridTemplateColumns: "minmax(210px, 0.85fr) minmax(420px, 1.9fr) minmax(280px, 1.1fr)",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
     gap: 12,
     alignItems: "start",
   },
@@ -3103,6 +3181,21 @@ const s = {
     fontSize: 13,
     cursor: "pointer",
     textAlign: "left",
+  },
+  toolRailItemBlocked: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    padding: "8px 10px",
+    borderRadius: 8,
+    border: "1px solid rgba(236, 119, 143, 0.8)",
+    background: "rgba(74, 24, 35, 0.65)",
+    color: "#ffdce4",
+    fontSize: 13,
+    cursor: "not-allowed",
+    textAlign: "left",
+    opacity: 0.9,
   },
   viewportPanel: {
     border: "1px solid var(--app-panel-border)",
@@ -3172,6 +3265,30 @@ const s = {
     padding: "5px 8px",
     borderRadius: 6,
   },
+  viewportAxisBadge: {
+    position: "absolute",
+    left: 12,
+    top: 10,
+    margin: 0,
+    fontSize: 11,
+    color: "#eaf5ff",
+    background: "rgba(5, 11, 20, 0.8)",
+    padding: "4px 8px",
+    borderRadius: 999,
+    border: "1px solid rgba(166, 201, 236, 0.45)",
+  },
+  viewportModeBadge: {
+    position: "absolute",
+    right: 12,
+    top: 10,
+    margin: 0,
+    fontSize: 11,
+    color: "#eaf5ff",
+    background: "rgba(18, 49, 84, 0.72)",
+    padding: "4px 8px",
+    borderRadius: 999,
+    border: "1px solid rgba(137, 191, 245, 0.65)",
+  },
   editorCandidateGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
@@ -3182,6 +3299,15 @@ const s = {
     borderRadius: 10,
     padding: 10,
     background: "rgba(12, 19, 32, 0.84)",
+    display: "grid",
+    gap: 8,
+  },
+  editorCandidateCardSelected: {
+    border: "1px solid rgba(122, 199, 255, 0.9)",
+    borderRadius: 10,
+    padding: 10,
+    background: "rgba(20, 41, 66, 0.86)",
+    boxShadow: "0 0 0 1px rgba(122, 199, 255, 0.42), 0 10px 20px rgba(6, 20, 40, 0.35)",
     display: "grid",
     gap: 8,
   },
@@ -3208,7 +3334,7 @@ const s = {
   },
   panelDetail: {
     margin: 0,
-    color: "var(--app-subtle-color)",
+    color: "#dbe9f8",
     fontSize: 13,
     lineHeight: 1.45,
   },
@@ -3260,6 +3386,38 @@ const s = {
     gap: 6,
     fontSize: 13,
     lineHeight: 1.4,
+  },
+  statusGrid: {
+    display: "grid",
+    gap: 8,
+  },
+  statusRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    border: "1px solid rgba(126, 153, 188, 0.4)",
+    borderRadius: 8,
+    background: "rgba(17, 26, 40, 0.6)",
+    padding: "7px 9px",
+    fontSize: 12,
+  },
+  statusRowValue: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    color: "#e8f2ff",
+    fontWeight: 600,
+  },
+  outlinerRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+    border: "1px solid rgba(121, 150, 182, 0.32)",
+    borderRadius: 8,
+    background: "rgba(15, 23, 36, 0.62)",
+    padding: "6px 8px",
   },
   actionWrap: {
     display: "flex",
@@ -3332,6 +3490,16 @@ const s = {
     margin: 0,
     fontSize: 12,
     color: "#91c9ff",
+  },
+  selectedCandidateHint: {
+    margin: 0,
+    fontSize: 12,
+    color: "#cce7ff",
+  },
+  blockedHelperText: {
+    margin: 0,
+    fontSize: 12,
+    color: "#f6cdd6",
   },
   timeline: {
     margin: 0,
