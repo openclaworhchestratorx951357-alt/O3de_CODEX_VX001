@@ -2859,6 +2859,27 @@ export default function AssetForgeStudioPacket01({
           </p>
         ) : null}
         {evidenceIndexReport ? (
+          <div style={s.statusGrid}>
+            <StatusRow label="Capability" value={evidenceIndexReport.capability_name} truth="plan-only" />
+            <StatusRow label="Index status" value={evidenceIndexReport.index_status} truth="preflight-only" />
+            <StatusRow
+              label="Displayed items"
+              value={`${Math.min(evidenceIndexReport.items.length, EVIDENCE_VISIBLE_ITEM_LIMIT)} / ${evidenceIndexReport.items.length}`}
+              truth="demo"
+            />
+            <StatusRow
+              label="Freshness window"
+              value={`${evidenceIndexReport.freshness_window_seconds}s`}
+              truth="preflight-only"
+            />
+            <StatusRow
+              label="Server/UI filter mismatch"
+              value={evidenceFilterMismatch ? "yes" : "no"}
+              truth={evidenceFilterMismatch ? "blocked" : "preflight-only"}
+            />
+          </div>
+        ) : null}
+        {evidenceIndexReport ? (
           <ul style={s.list}>
             <li>Capability: {evidenceIndexReport.capability_name}</li>
             <li>Index status: {evidenceIndexReport.index_status}</li>
@@ -2951,6 +2972,7 @@ export default function AssetForgeStudioPacket01({
             No evidence items matched current filters.
           </p>
         ) : null}
+        <p style={s.panelDetail}>Demo evidence timeline below remains plan-only and does not imply admitted execution.</p>
         <ol style={s.timeline}>
           {assetForgeStudioDemoState.evidenceTimeline.map((entry) => (
             <li key={entry.id} style={s.timelineItem}>
