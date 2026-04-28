@@ -80,10 +80,12 @@ export default function AssetForgeReviewPacketPanel({
       title: "Freshness and readback status",
       rows: [
         ["Readback status", packet.readbackStatus],
+        ["Packet resolution", packet.packetResolutionLabel],
         ["Readiness status", packet.readinessStatus],
         ["Proof status", packet.proofStatus],
         ["Asset DB freshness", packet.freshnessStatus.assetDatabaseFreshness],
         ["Asset Catalog freshness", packet.freshnessStatus.assetCatalogFreshness],
+        ["Packet resolution detail", packet.packetResolutionDetail],
       ],
     },
     {
@@ -135,6 +137,7 @@ export default function AssetForgeReviewPacketPanel({
       <div style={capabilityStripStyle} aria-label="Forge review packet identity">
         <span><strong>Capability</strong>{packet.capability}</span>
         <span><strong>Contract</strong>{packet.contractVersion}</span>
+        <span><strong>Resolution</strong>{packet.packetResolutionState}</span>
       </div>
 
       <div style={sectionGridStyle}>

@@ -112,6 +112,10 @@ export interface Phase9AssetReadbackReviewPacket {
 
 export interface AssetForgeToolbenchReviewPacketViewModel {
   dataSourceLabel: string;
+  hasResolvedPacket: boolean;
+  packetResolutionState: "resolved" | "unresolved_live" | "unresolved_non_live";
+  packetResolutionLabel: string;
+  packetResolutionDetail: string;
   capability: string;
   contractVersion: string;
   readbackStatus: string;

@@ -71,4 +71,17 @@ describe("AssetForgeReviewPacketPanel", () => {
     expect(within(panel).getAllByText("Unknown / unavailable (not approved)").length).toBeGreaterThan(0);
     expect(within(panel).getByLabelText("Review packet corridor")).toHaveTextContent("Corridor: Existing frontend payload");
   });
+
+  it("labels unresolved live packet payloads truthfully", () => {
+    render(
+      <AssetForgeReviewPacketPanel
+        packetData={{ selected_run_id: "run-001" }}
+        packetSource="live_phase9_packet_data"
+      />,
+    );
+
+    const panel = screen.getByLabelText("Forge operator review packet");
+    expect(within(panel).getByText("Live packet unresolved (review packet fields unavailable)")).toBeInTheDocument();
+    expect(within(panel).getByText("Live payload unresolved")).toBeInTheDocument();
+  });
 });

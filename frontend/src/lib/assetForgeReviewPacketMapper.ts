@@ -145,6 +145,37 @@ function sourceLabel(source: AssetForgeReviewPacketSource): string {
   }
 }
 
+function buildPacketResolution(
+  source: AssetForgeReviewPacketSource,
+  hasResolvedPacket: boolean,
+): {
+  state: "resolved" | "unresolved_live" | "unresolved_non_live";
+  label: string;
+  detail: string;
+} {
+  if (hasResolvedPacket) {
+    return {
+      state: "resolved",
+      label: "Resolved Phase 9 packet payload",
+      detail: "Resolved review packet fields from the selected payload.",
+    };
+  }
+
+  if (source === "live_phase9_packet_data") {
+    return {
+      state: "unresolved_live",
+      label: "Live payload unresolved",
+      detail: "Live source is selected, but no asset_readback_review_packet fields were found in the current payload.",
+    };
+  }
+
+  return {
+    state: "unresolved_non_live",
+    label: "Preview payload unresolved",
+    detail: "No review packet fields were found. Showing read-only fallback values.",
+  };
+}
+
 function parsePacketRecord(record: Record<string, unknown>): Phase9AssetReadbackReviewPacket {
   return {
     capability: asString(record.capability),
@@ -192,6 +223,8 @@ export function mapAssetForgeToolbenchReviewPacket(
   source: AssetForgeReviewPacketSource,
 ): AssetForgeToolbenchReviewPacketViewModel {
   const packet = resolveAssetReadbackReviewPacket(payload);
+  const hasResolvedPacket = packet !== null;
+  const packetResolution = buildPacketResolution(source, hasResolvedPacket);
   const selectedProject = packet?.selected_project ?? {};
   const selectedPlatform = packet?.selected_platform ?? {};
   const assetDatabase = packet?.asset_database ?? {};
@@ -203,10 +236,18 @@ export function mapAssetForgeToolbenchReviewPacket(
 
   const readbackStatus = packet?.proof_status === "asset_source_inspect_proven"
     ? "Read-only proof present"
-    : "Partial or blocked readback evidence";
+    : hasResolvedPacket
+      ? "Partial or blocked readback evidence"
+      : source === "live_phase9_packet_data"
+        ? "Live packet unresolved (review packet fields unavailable)"
+        : "Packet payload unresolved (fallback review values)";
 
   return {
     dataSourceLabel: sourceLabel(source),
+    hasResolvedPacket,
+    packetResolutionState: packetResolution.state,
+    packetResolutionLabel: packetResolution.label,
+    packetResolutionDetail: packetResolution.detail,
     capability: fallback(packet?.capability),
     contractVersion: fallback(packet?.review_contract_version),
     readbackStatus,

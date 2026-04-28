@@ -836,8 +836,75 @@ function CameraPage({ cameraMode, setCameraMode }: { cameraMode: CameraMode; set
 function ReviewPage({ reviewPacketData, reviewPacketSource, packet, reviewPacketOrigin, onOpenReviewPacketOriginRecord, freshnessOverview }: Pick<AssetForgeStudioShellProps, "reviewPacketData" | "reviewPacketSource" | "reviewPacketOrigin" | "onOpenReviewPacketOriginRecord"> & { packet: PacketViewModel; freshnessOverview: FreshnessOverview }) {
   const packetOrigin = reviewPacketOrigin ?? buildDefaultPacketOrigin(reviewPacketSource);
   const originRecordAction = buildOriginRecordAction(packetOrigin, onOpenReviewPacketOriginRecord);
+  const showLivePacketUnresolvedBanner =
+    reviewPacketSource === "live_phase9_packet_data" && !packet.hasResolvedPacket;
 
-  return <Page title="Review" gate="proof-only" detail="Full-page operator review packet, evidence summary, warnings, approval state, and safest next step." review><div style={s.reviewGrid}><section aria-label="Forge operator review packet full page" style={s.reviewPacketFrame}><AssetForgeReviewPacketPanel packetData={reviewPacketData} packetSource={reviewPacketSource} packetCorridorLabel={buildPacketCorridorLabel(packetOrigin)} packetOriginRows={buildPacketOriginRows(packetOrigin)} /></section><aside style={s.reviewAside}><Panel title="Freshness severity" gate="proof-only"><div aria-label="Review freshness severity" style={s.freshnessStrip}><FreshnessBadge label="Asset DB" signal={freshnessOverview.assetDatabase} /><FreshnessBadge label="Catalog" signal={freshnessOverview.assetCatalog} /><FreshnessBadge label="Overall" signal={freshnessOverview.overall} /></div><Rows rows={[["Asset DB freshness", freshnessOverview.assetDatabase.status], ["Catalog freshness", freshnessOverview.assetCatalog.status], ["Overall freshness", freshnessOverview.overall.status], ["Bridge heartbeat", freshnessOverview.bridgeHeartbeatCue]]} /><p style={s.mutedCompact}>{freshnessOverview.overall.cue}</p></Panel><Panel title="Evidence summary" gate="proof-only"><Rows rows={[["Source evidence", packet.sourceEvidence.sourceExists], ["Product evidence", packet.productEvidence.evidenceAvailable], ["Catalog evidence", packet.catalogEvidence.catalogPresence], ["Dependency evidence", packet.dependencyEvidence.evidenceAvailable], ...buildPacketOriginRows(packetOrigin)]} /><div style={s.buttonRow}><button type="button" aria-label="Open source record in Records" title={originRecordAction.hint} disabled={!originRecordAction.enabled} onClick={() => onOpenReviewPacketOriginRecord?.(packetOrigin)} style={originRecordAction.enabled ? s.darkButton : s.disabledButton}>Open source record in Records</button>{!originRecordAction.enabled && <span style={s.hintText}>{originRecordAction.hint}</span>}</div></Panel><Panel title="Unknown / unavailable" gate="requires approval"><Rows rows={[["License", packet.unavailableFields.licenseStatus], ["Quality", packet.unavailableFields.qualityStatus], ["Placement readiness", packet.unavailableFields.placementReadiness], ["Production approval", packet.unavailableFields.productionApproval]]} /></Panel><Panel title="Operator state" gate="requires approval"><Rows rows={[["Approval", packet.operatorApprovalState], ["Safest next step", packet.safestNextStep]]} /><button type="button" disabled style={s.disabledWideButton}>Approve production import</button></Panel></aside></div></Page>;
+  return (
+    <Page
+      title="Review"
+      gate="proof-only"
+      detail="Full-page operator review packet, evidence summary, warnings, approval state, and safest next step."
+      review
+    >
+      {showLivePacketUnresolvedBanner && (
+        <section aria-label="Live packet unresolved notice" style={s.liveUnresolvedNotice}>
+          <strong style={s.liveUnresolvedHeading}>Live packet source unresolved</strong>
+          <p style={s.liveUnresolvedDetail}>
+            Live Phase 9 source is selected, but no resolvable <code>asset_readback_review_packet</code> payload was
+            found in the current record context. Review fields remain read-only fallback values until a resolvable
+            packet is selected.
+          </p>
+          <p style={s.liveUnresolvedDetail}>
+            Resolution state: <strong>{packet.packetResolutionLabel}</strong>
+          </p>
+        </section>
+      )}
+      <div style={s.reviewGrid}>
+        <section aria-label="Forge operator review packet full page" style={s.reviewPacketFrame}>
+          <AssetForgeReviewPacketPanel
+            packetData={reviewPacketData}
+            packetSource={reviewPacketSource}
+            packetCorridorLabel={buildPacketCorridorLabel(packetOrigin)}
+            packetOriginRows={buildPacketOriginRows(packetOrigin)}
+          />
+        </section>
+        <aside style={s.reviewAside}>
+          <Panel title="Freshness severity" gate="proof-only">
+            <div aria-label="Review freshness severity" style={s.freshnessStrip}>
+              <FreshnessBadge label="Asset DB" signal={freshnessOverview.assetDatabase} />
+              <FreshnessBadge label="Catalog" signal={freshnessOverview.assetCatalog} />
+              <FreshnessBadge label="Overall" signal={freshnessOverview.overall} />
+            </div>
+            <Rows rows={[["Asset DB freshness", freshnessOverview.assetDatabase.status], ["Catalog freshness", freshnessOverview.assetCatalog.status], ["Overall freshness", freshnessOverview.overall.status], ["Bridge heartbeat", freshnessOverview.bridgeHeartbeatCue]]} />
+            <p style={s.mutedCompact}>{freshnessOverview.overall.cue}</p>
+          </Panel>
+          <Panel title="Evidence summary" gate="proof-only">
+            <Rows rows={[["Source evidence", packet.sourceEvidence.sourceExists], ["Product evidence", packet.productEvidence.evidenceAvailable], ["Catalog evidence", packet.catalogEvidence.catalogPresence], ["Dependency evidence", packet.dependencyEvidence.evidenceAvailable], ...buildPacketOriginRows(packetOrigin)]} />
+            <div style={s.buttonRow}>
+              <button
+                type="button"
+                aria-label="Open source record in Records"
+                title={originRecordAction.hint}
+                disabled={!originRecordAction.enabled}
+                onClick={() => onOpenReviewPacketOriginRecord?.(packetOrigin)}
+                style={originRecordAction.enabled ? s.darkButton : s.disabledButton}
+              >
+                Open source record in Records
+              </button>
+              {!originRecordAction.enabled && <span style={s.hintText}>{originRecordAction.hint}</span>}
+            </div>
+          </Panel>
+          <Panel title="Unknown / unavailable" gate="requires approval">
+            <Rows rows={[["License", packet.unavailableFields.licenseStatus], ["Quality", packet.unavailableFields.qualityStatus], ["Placement readiness", packet.unavailableFields.placementReadiness], ["Production approval", packet.unavailableFields.productionApproval]]} />
+          </Panel>
+          <Panel title="Operator state" gate="requires approval">
+            <Rows rows={[["Approval", packet.operatorApprovalState], ["Safest next step", packet.safestNextStep]]} />
+            <button type="button" disabled style={s.disabledWideButton}>Approve production import</button>
+          </Panel>
+        </aside>
+      </div>
+    </Page>
+  );
 }
 
 function HelpPage({ bridgeSnapshot, packetDataSourceLabel, packetOrigin }: { bridgeSnapshot: BridgeSnapshot; packetDataSourceLabel: string; packetOrigin: AssetForgeReviewPacketOrigin }) {
@@ -949,6 +1016,9 @@ const s = {
   panelBody: { minWidth: 0, minHeight: 0, overflow: "auto", padding: 10 },
   muted: { margin: "0 0 10px", color: "#9fb0c5" },
   mutedCompact: { margin: "8px 0 0", color: "#9fb0c5", fontSize: 12, lineHeight: 1.35 },
+  liveUnresolvedNotice: { display: "grid", gap: 6, border: "1px solid #916428", borderRadius: 5, padding: "10px 12px", background: "rgba(101, 64, 18, 0.32)", color: "#ffe4ae" },
+  liveUnresolvedHeading: { color: "#ffe4ae", fontSize: 15, lineHeight: 1.2 },
+  liveUnresolvedDetail: { margin: 0, color: "#ffd89a", fontSize: 13, lineHeight: 1.35 },
   freshnessStrip: { display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: 8 },
   freshnessBadge: { display: "inline-flex", alignItems: "center", gap: 6, borderWidth: 1, borderStyle: "solid", borderRadius: 3, padding: "2px 7px", fontSize: 11, fontWeight: 800, textTransform: "lowercase" },
   freshnessBadgeLabel: { textTransform: "none", color: "#eef5ff" },

@@ -252,6 +252,25 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).getByRole("button", { name: "Approve production import" })).toBeDisabled();
   });
 
+  it("shows a truthful unresolved-live banner when live packet fields are unavailable", () => {
+    renderToolbench({
+      reviewPacketSource: "live_phase9_packet_data",
+      reviewPacketData: {
+        note: "no packet fields",
+      },
+    });
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    fireEvent.click(within(shell).getByRole("button", { name: "Review" }));
+
+    const unresolvedBanner = within(shell).getByLabelText("Live packet unresolved notice");
+    expect(unresolvedBanner).toBeInTheDocument();
+    expect(within(unresolvedBanner).getByText("Live packet source unresolved")).toBeInTheDocument();
+    expect(unresolvedBanner).toHaveTextContent(/no resolvable asset_readback_review_packet payload/i);
+    expect(within(unresolvedBanner).getByText(/Resolution state:/i)).toBeInTheDocument();
+    expect(within(shell).getByText("Live packet unresolved (review packet fields unavailable)")).toBeInTheDocument();
+  });
+
   it("keeps existing navigation callbacks but blocks direct execution", () => {
     const onOpenPromptStudio = vi.fn();
     const onOpenRuntimeOverview = vi.fn();
