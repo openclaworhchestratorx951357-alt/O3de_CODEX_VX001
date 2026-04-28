@@ -128,6 +128,158 @@ function safeText(value: string | null | undefined): string {
   return trimmed ? trimmed : UNKNOWN_VALUE;
 }
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+function asAnimationString(value: unknown): string | null {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+  return null;
+}
+
+function asAnimationStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((entry) => asAnimationString(entry))
+    .filter((entry): entry is string => entry !== null);
+}
+
+function asAnimationNotes(value: unknown): Array<[string, string]> {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((entry) => {
+      if (!Array.isArray(entry) || entry.length < 2) {
+        return null;
+      }
+      const [label, detail] = entry;
+      const safeLabel = asAnimationString(label);
+      const safeDetail = asAnimationString(detail);
+      if (!safeLabel || !safeDetail) {
+        return null;
+      }
+      return [safeLabel, safeDetail] as [string, string];
+    })
+    .filter((entry): entry is [string, string] => entry !== null);
+}
+
+function asAnimationRow(value: unknown): AssetForgeAnimationTimelineFixture["keyframeRows"][number] | null {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+  const frame = asAnimationString(record.frame);
+  const channel = asAnimationString(record.channel);
+  const valueFrom = asAnimationString(record.valueFrom);
+  const valueTo = asAnimationString(record.valueTo);
+  const blendMode = asAnimationString(record.blendMode);
+  if (!channel || !valueFrom || !valueTo || !blendMode || frame === null) {
+    return null;
+  }
+  return {
+    frame: Number(frame),
+    channel,
+    valueFrom,
+    valueTo,
+    blendMode,
+  };
+}
+
+function asAnimationTimelineRows(value: unknown): AssetForgeAnimationTimelineFixture["keyframeRows"] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((entry) => asAnimationRow(entry))
+    .filter((entry): entry is AssetForgeAnimationTimelineFixture["keyframeRows"][number] => entry !== null)
+    .slice(0, 20);
+}
+
+function coerceAnimationTimeline(payload: unknown): AnimationPageModel | null {
+  const packet = asRecord(payload);
+  if (!packet) {
+    return null;
+  }
+
+  const pageModeLabel = asAnimationString(packet.pageModeLabel);
+  const timelineLabel = asAnimationString(packet.timelineLabel);
+  const keyframeRows = asAnimationRowsPayload(packet.keyframeRows);
+  const cameraShots = asAnimationStringArray(packet.cameraShots);
+  const notes = asAnimationNotes(packet.notes);
+  const mutedActionsBlocked = asAnimationStringArray(packet.mutedActionsBlocked);
+  const disabledWriteActionLabel = asAnimationString(packet.disabledWriteActionLabel);
+  const writeActionLabel = asAnimationString(packet.writeActionLabel);
+
+  if (
+    pageModeLabel === null
+    && timelineLabel === null
+    && keyframeRows.length === 0
+    && cameraShots.length === 0
+    && notes.length === 0
+    && mutedActionsBlocked.length === 0
+    && disabledWriteActionLabel === null
+    && writeActionLabel === null
+  ) {
+    return null;
+  }
+
+  return {
+    pageModeLabel: pageModeLabel ?? "Animation timeline preview",
+    timelineLabel: timelineLabel ?? "Review-only animation keyframe preview",
+    keyframeRows: keyframeRows.length > 0 ? keyframeRows : animationTimelineFixture.keyframeRows,
+    cameraShots: cameraShots.length > 0 ? cameraShots : animationTimelineFixture.cameraShots,
+    notes: notes.length > 0 ? notes : animationTimelineFixture.notes,
+    mutedActionsBlocked: mutedActionsBlocked.length > 0 ? mutedActionsBlocked : animationTimelineFixture.mutedActionsBlocked,
+    disabledWriteActionLabel: disabledWriteActionLabel ?? animationTimelineFixture.disabledWriteActionLabel,
+    writeActionLabel: writeActionLabel ?? animationTimelineFixture.writeActionLabel,
+  };
+}
+
+function resolveAnimationTimelineFromPacket(payload: unknown): AnimationPageModel | null {
+  const packetRecord = asRecord(payload);
+  if (!packetRecord) {
+    return null;
+  }
+
+  const nestedPacket = asRecord(packetRecord.asset_readback_review_packet);
+  if (nestedPacket) {
+    const resolvedFromNested = coerceAnimationTimeline(nestedPacket.animation_timeline);
+    if (resolvedFromNested) {
+      return resolvedFromNested;
+    }
+  }
+
+  const resolvedFromRoot = coerceAnimationTimeline(packetRecord.animation_timeline);
+  if (resolvedFromRoot) {
+    return resolvedFromRoot;
+  }
+
+  const frontendReviewPacket = asRecord(packetRecord.review_packet);
+  const resolvedFromFrontendShape = frontendReviewPacket
+    ? coerceAnimationTimeline(frontendReviewPacket.animation_timeline)
+    : null;
+  if (resolvedFromFrontendShape) {
+    return resolvedFromFrontendShape;
+  }
+
+  return null;
+}
+
+function asAnimationRowsPayload(value: unknown): AssetForgeAnimationTimelineFixture["keyframeRows"] {
+  return asAnimationTimelineRows(value);
+}
+
 function formatHeartbeatState(heartbeatFresh: boolean, heartbeatAgeSeconds?: number | null): string {
   const hasAge = typeof heartbeatAgeSeconds === "number" && Number.isFinite(heartbeatAgeSeconds);
   if (heartbeatFresh) {
@@ -788,6 +940,10 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
     () => reviewPacketResolutionDiagnostics ?? buildDefaultPacketResolutionDiagnostics(reviewPacketSource, packet),
     [reviewPacketResolutionDiagnostics, reviewPacketSource, packet],
   );
+  const animationTimeline = useMemo(
+    () => resolveAnimationTimelineFromPacket(reviewPacketData) ?? animationTimelineFixture,
+    [reviewPacketData],
+  );
   const topOriginRecordAction = useMemo(
     () => buildOriginRecordAction(resolvedPacketOrigin, onOpenReviewPacketOriginRecord),
     [resolvedPacketOrigin, onOpenReviewPacketOriginRecord],
@@ -888,7 +1044,7 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
             isViewportFocused={viewportMode === "focus" && viewportTarget === "entity"}
             onEnterViewportFocus={() => enterViewportFocus("entity")}
             onExitViewportFocus={exitViewportFocus}
-            timeline={animationTimelineFixture}
+            timeline={animationTimeline}
           />
         )}
         {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} packetOrigin={resolvedPacketOrigin} assetRows={assetRows} assetProcessorStatusLabel={assetProcessorStatusLabel} freshnessOverview={freshnessOverview} packetProvenance={packetProvenance} resolutionDiagnostics={resolvedPacketResolutionDiagnostics} />}
@@ -1275,6 +1431,11 @@ function AnimationPage({
       </>
     ) : (
       <div style={s.animationGrid}>
+        <Panel title="Timeline setup" gate="local preview">
+          <div style={s.tinyMutedHeading}>{timeline.pageModeLabel}</div>
+          <div style={s.tinyMutedText}>{timeline.timelineLabel}</div>
+          <Rows rows={timeline.notes} />
+        </Panel>
         <Panel title="X-sheet / Timeline" gate="read-only">
           <div style={s.xsheet}>
             <div style={s.xsheetHeader}>
@@ -1312,6 +1473,11 @@ function AnimationPage({
           <button type="button" disabled style={s.disabledWideButton}>
             {timeline.disabledWriteActionLabel || "Write animation to O3DE scene"}
           </button>
+          {timeline.writeActionLabel && timeline.writeActionLabel !== (timeline.disabledWriteActionLabel || "Write animation to O3DE scene") ? (
+            <button type="button" disabled style={s.disabledWideButton}>
+              {timeline.writeActionLabel}
+            </button>
+          ) : null}
         </Panel>
       </div>
     )}
@@ -1601,4 +1767,6 @@ const s = {
   smallButton: { minHeight: 28, border: "1px solid #344961", borderRadius: 4, padding: "0 9px", background: "#192331", color: "#d8e4f2", fontWeight: 900, cursor: "pointer" },
   activeSmallButton: { minHeight: 28, border: "1px solid #5aa9ff", borderRadius: 4, padding: "0 9px", background: "#173a5d", color: "#ffffff", fontWeight: 900, cursor: "pointer" },
   badge: { display: "inline-flex", alignItems: "center", borderWidth: 1, borderStyle: "solid", borderRadius: 3, padding: "1px 5px", fontSize: 10, fontWeight: 900, whiteSpace: "nowrap" },
+  tinyMutedHeading: { margin: 0, color: "#d5e4f7", fontWeight: 900, fontSize: 13 },
+  tinyMutedText: { color: "#89a0bc", fontSize: 11, marginBottom: 6 },
 } satisfies Record<string, CSSProperties>;

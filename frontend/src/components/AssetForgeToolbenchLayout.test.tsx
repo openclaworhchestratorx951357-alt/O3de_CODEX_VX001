@@ -215,8 +215,8 @@ describe("AssetForgeToolbenchLayout", () => {
     ).toBeInTheDocument();
     expect(within(shell).getByText("Camera and shot list")).toBeInTheDocument();
     expect(within(shell).getByRole("button", { name: "Viewport fullscreen" })).toBeInTheDocument();
-    expect(within(shell).getByRole("button", { name: assetForgeAnimationTimelineFixture.disabledWriteActionLabel })).toBeDisabled();
-    expect(within(shell).getByText("Timeline mode")).toBeInTheDocument();
+    expect(within(shell).getAllByRole("button", { name: assetForgeAnimationTimelineFixture.disabledWriteActionLabel }).length).toBeGreaterThan(0);
+    expect(within(shell).getAllByText("Timeline mode").length).toBeGreaterThan(0);
 
     fireEvent.click(within(shell).getByRole("button", { name: "Viewport fullscreen" }));
 
@@ -228,6 +228,64 @@ describe("AssetForgeToolbenchLayout", () => {
     fireEvent.click(within(shell).getByRole("button", { name: "Exit fullscreen" }));
     expect(within(shell).getByText("X-sheet / Timeline")).toBeInTheDocument();
     expect(within(shell).queryByText("Animation timeline viewport (focus)")).not.toBeInTheDocument();
+  });
+
+  it("uses direct animation timeline data from review packet payload", () => {
+    renderToolbench({
+      reviewPacketSource: "live_phase9_packet_data",
+      reviewPacketData: {
+        asset_readback_review_packet: {
+          ...assetForgeReviewPacketFixture,
+          animation_timeline: {
+            pageModeLabel: "Live review-only timeline",
+            timelineLabel: "Direct payload keyframe lane",
+            keyframeRows: [
+              {
+                frame: 8,
+                channel: "Transform Scale",
+                valueFrom: "0.95",
+                valueTo: "1.05",
+                blendMode: "ease",
+              },
+              {
+                frame: 16,
+                channel: "Camera FOV",
+                valueFrom: "60deg",
+                valueTo: "45deg",
+                blendMode: "linear",
+              },
+            ],
+            cameraShots: ["Shot 1: Payload check"],
+            notes: [
+              ["Timeline mode", "Live payload"],
+              ["Writeback", "Blocked"],
+            ],
+            mutedActionsBlocked: ["Insert keyframe", "Delete keyframe"],
+            disabledWriteActionLabel: "Write animation blocked in review",
+            writeActionLabel: "Queue animation write preview action",
+          },
+        },
+      },
+    });
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    fireEvent.click(within(shell).getByRole("button", { name: "Animation" }));
+
+    expect(within(shell).getByText("Live review-only timeline")).toBeInTheDocument();
+    expect(within(shell).getByText("Direct payload keyframe lane")).toBeInTheDocument();
+    expect(within(shell).getByText("Timeline setup")).toBeInTheDocument();
+    expect(within(shell).getByText("Transform Scale")).toBeInTheDocument();
+    expect(
+      within(shell).getByText((content) =>
+        content.includes("0.95")
+        && content.includes("1.05")
+      )
+    ).toBeInTheDocument();
+    expect(within(shell).getByText("Write animation blocked in review")).toBeInTheDocument();
+    expect(within(shell).getByText("Queue animation write preview action")).toBeInTheDocument();
+    expect(within(shell).getAllByRole("button", { name: "Write animation blocked in review" }).length).toBe(1);
+    expect(within(shell).getAllByRole("button", { name: "Queue animation write preview action" }).length).toBe(1);
+    expect(within(shell).queryByText(assetForgeAnimationTimelineFixture.keyframeRows[0].channel)).not.toBeInTheDocument();
   });
 
   it("exits focused preview when changing menu context", () => {
