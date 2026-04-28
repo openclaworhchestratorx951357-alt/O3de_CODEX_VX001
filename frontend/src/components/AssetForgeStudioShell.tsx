@@ -3,7 +3,10 @@ import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import AssetForgeReviewPacketPanel from "./AssetForgeReviewPacketPanel";
 import { mapAssetForgeToolbenchReviewPacket } from "../lib/assetForgeReviewPacketMapper";
 import { assetForgeAnimationTimelineFixture } from "../fixtures/assetForgeAnimationTimelineFixture";
-import { resolveAnimationTimelineFromPacket } from "../lib/assetForgeAnimationTimelineMapper";
+import {
+  resolveAnimationTimelineWithDiagnostics,
+  type AnimationTimelineParseIssue,
+} from "../lib/assetForgeAnimationTimelineMapper";
 import type {
   AssetForgePacketLaneAttempt,
   AssetForgeRecordsLaneAlignment,
@@ -123,6 +126,7 @@ const tools: ToolShelfItem[] = [
 ];
 
 const animationTimelineFixture = assetForgeAnimationTimelineFixture;
+type AnimationTimelineParseDiagnostics = AnimationTimelineParseIssue[];
 
 function safeText(value: string | null | undefined): string {
   const trimmed = value?.trim();
@@ -789,10 +793,15 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
     () => reviewPacketResolutionDiagnostics ?? buildDefaultPacketResolutionDiagnostics(reviewPacketSource, packet),
     [reviewPacketResolutionDiagnostics, reviewPacketSource, packet],
   );
-  const animationTimeline = useMemo(
-    () => resolveAnimationTimelineFromPacket(reviewPacketData) ?? animationTimelineFixture,
+  const animationTimelineResolution = useMemo(
+    () => resolveAnimationTimelineWithDiagnostics(reviewPacketData),
     [reviewPacketData],
   );
+  const animationTimeline = useMemo(
+    () => animationTimelineResolution.timeline ?? animationTimelineFixture,
+    [animationTimelineResolution],
+  );
+  const animationTimelineDiagnostics = animationTimelineResolution.issues;
   const topOriginRecordAction = useMemo(
     () => buildOriginRecordAction(resolvedPacketOrigin, onOpenReviewPacketOriginRecord),
     [resolvedPacketOrigin, onOpenReviewPacketOriginRecord],
@@ -894,6 +903,7 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
             onEnterViewportFocus={() => enterViewportFocus("entity")}
             onExitViewportFocus={exitViewportFocus}
             timeline={animationTimeline}
+            timelineDiagnostics={animationTimelineDiagnostics}
           />
         )}
         {activeTopMenu === "Assets" && <AssetsPage activeAssetCategory={activeAssetCategory} setActiveAssetCategory={setActiveAssetCategory} packet={packet} packetOrigin={resolvedPacketOrigin} assetRows={assetRows} assetProcessorStatusLabel={assetProcessorStatusLabel} freshnessOverview={freshnessOverview} packetProvenance={packetProvenance} resolutionDiagnostics={resolvedPacketResolutionDiagnostics} />}
@@ -1248,6 +1258,7 @@ function AnimationPage({
   onEnterViewportFocus,
   onExitViewportFocus,
   timeline,
+  timelineDiagnostics,
 }: {
   activeTool: string;
   setActiveTool: (tool: string) => void;
@@ -1256,7 +1267,10 @@ function AnimationPage({
   onEnterViewportFocus: () => void;
   onExitViewportFocus: () => void;
   timeline: AnimationPageModel;
+  timelineDiagnostics: AnimationTimelineParseDiagnostics;
 }) {
+  const timelineIssues = timelineDiagnostics.filter((entry: AnimationTimelineParseIssue) => entry.source && entry.detail);
+  const hasTimelineIssues = timelineIssues.length > 0;
   const isFocusMode = viewportMode === "focus" && isViewportFocused;
   const timelineRows = timeline.keyframeRows ?? [];
   const shotList = timeline.cameraShots?.length ? timeline.cameraShots : ["Shot A: Review timeline setup"];
@@ -1265,6 +1279,13 @@ function AnimationPage({
     : [["Timeline mode", "Preview only"], ["Writeback", "Blocked"]];
 
   return <Page title="Animation" gate="local preview" detail="X-sheet timeline and keyframe strip for review-only animation planning. No scene mutation or execution.">
+    {hasTimelineIssues ? (
+      <section aria-label="Animation timeline diagnostics" style={s.resolutionDiagnosticsSection}>
+        <strong>Animation timeline parse diagnostics</strong>
+        <p style={s.liveUnresolvedDetail}>Timeline payload data is partially malformed; this page uses validated fallback values for preview only.</p>
+        <List items={timelineIssues.map((issue) => `${issue.source}: ${issue.detail}`)} />
+      </section>
+    ) : null}
     {isFocusMode ? (
       <>
         <section style={s.entityToolbar}>

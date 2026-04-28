@@ -230,6 +230,41 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(shell).queryByText("Animation timeline viewport (focus)")).not.toBeInTheDocument();
   });
 
+  it("renders animation timeline diagnostics when animation payload is partially malformed", () => {
+    renderToolbench({
+      reviewPacketSource: "live_phase9_packet_data",
+      reviewPacketData: {
+        asset_readback_review_packet: {
+          ...assetForgeReviewPacketFixture,
+          animation_timeline: {
+            pageModeLabel: "Malformed animation preview",
+            timelineLabel: "Malformed lane",
+            keyframeRows: "bad-array",
+            notes: "bad-notes",
+            cameraShots: ["Shot 010"],
+            mutedActionsBlocked: ["Insert keyframe"],
+            disabledWriteActionLabel: "Animation write blocked",
+          },
+        },
+      },
+    });
+
+    const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    fireEvent.click(within(shell).getByRole("button", { name: "Animation" }));
+
+    const diagnostics = within(shell).getByLabelText("Animation timeline diagnostics");
+    expect(diagnostics).toBeInTheDocument();
+    expect(diagnostics).toHaveTextContent("Timeline payload data is partially malformed");
+    expect(diagnostics).toHaveTextContent(
+      "asset_readback_review_packet.animation_timeline.keyframeRows: keyframeRows expected an array.",
+    );
+    expect(diagnostics).toHaveTextContent(
+      "asset_readback_review_packet.animation_timeline: notes expected an array of [label, detail] tuples.",
+    );
+    expect(within(shell).getByText("Malformed animation preview")).toBeInTheDocument();
+    expect(within(shell).getByText("Malformed lane")).toBeInTheDocument();
+  });
+
   it("uses direct animation timeline data from review packet payload", () => {
     renderToolbench({
       reviewPacketSource: "live_phase9_packet_data",
