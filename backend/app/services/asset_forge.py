@@ -35,6 +35,7 @@ from app.models.asset_forge import (
     AssetForgeO3DEStagePlanRequest,
     AssetForgeO3DEStageWriteRecord,
     AssetForgeO3DEStageWriteRequest,
+    AssetForgeServerApprovalDecisionRecord,
     AssetForgeServerApprovalSessionIndexRecord,
     AssetForgeServerApprovalSessionPrepareRequest,
     AssetForgeServerApprovalSessionRecord,
@@ -413,54 +414,163 @@ class AssetForgeService:
         approval_session_id: str | None,
         expected_capability: str,
         binding: dict[str, object],
-    ) -> dict[str, object]:
-        evaluation: dict[str, object] = {
-            "server_owned_required": True,
-            "client_approval_is_intent_only": True,
-            "authorization_granted": False,
-            "expected_capability": expected_capability,
-            "session_provided": bool(approval_session_id),
-        }
+    ) -> AssetForgeServerApprovalDecisionRecord:
+        expected_fingerprint = _binding_fingerprint(binding)
         if not approval_session_id:
-            evaluation["status"] = "missing"
-            evaluation["binding_matches"] = False
-            evaluation["reason"] = (
-                "No server-owned approval session was provided; endpoint remains blocked."
+            return AssetForgeServerApprovalDecisionRecord(
+                decision_state="denied",
+                decision_code="missing_session",
+                reason="No server-owned approval session was provided; endpoint remains blocked.",
+                server_owned_required=True,
+                client_approval_is_intent_only=True,
+                mutation_execution_admitted=False,
+                authorization_granted=False,
+                policy_decision="deny",
+                policy_would_allow_if_mutation_admitted=False,
+                expected_capability=expected_capability,
+                session_provided=False,
+                session_id=None,
+                status="missing",
+                operation_matches=False,
+                binding_matches=False,
+                requested_capability=None,
+                expected_request_fingerprint=expected_fingerprint,
+                session_request_fingerprint=None,
+                session_expires_at=None,
+                safest_next_step=(
+                    "Prepare a bounded server-owned session and keep mutation-capable execution blocked."
+                ),
             )
-            return evaluation
 
         record = self.get_server_approval_session(approval_session_id)
         if record is None:
-            evaluation["status"] = "missing"
-            evaluation["binding_matches"] = False
-            evaluation["reason"] = (
-                "Provided approval_session_id was not found; endpoint remains blocked."
+            return AssetForgeServerApprovalDecisionRecord(
+                decision_state="denied",
+                decision_code="session_not_found",
+                reason="Provided approval_session_id was not found; endpoint remains blocked.",
+                server_owned_required=True,
+                client_approval_is_intent_only=True,
+                mutation_execution_admitted=False,
+                authorization_granted=False,
+                policy_decision="deny",
+                policy_would_allow_if_mutation_admitted=False,
+                expected_capability=expected_capability,
+                session_provided=True,
+                session_id=approval_session_id,
+                status="not_found",
+                operation_matches=False,
+                binding_matches=False,
+                requested_capability=None,
+                expected_request_fingerprint=expected_fingerprint,
+                session_request_fingerprint=None,
+                session_expires_at=None,
+                safest_next_step="Create a new server-owned approval session for this exact request envelope.",
             )
-            return evaluation
 
-        expected_fingerprint = _binding_fingerprint(binding)
-        binding_matches = (
-            record.requested_capability == expected_capability
-            and record.request_fingerprint == expected_fingerprint
-        )
-        evaluation.update(
-            {
-                "session_id": record.session_id,
-                "status": record.session_status,
-                "binding_matches": binding_matches,
-                "session_expires_at": record.expires_at,
-            }
-        )
+        operation_matches = record.requested_capability == expected_capability
+        binding_matches = record.request_fingerprint == expected_fingerprint
+        shared_kwargs = {
+            "server_owned_required": True,
+            "client_approval_is_intent_only": True,
+            "mutation_execution_admitted": False,
+            "authorization_granted": False,
+            "expected_capability": expected_capability,
+            "session_provided": True,
+            "session_id": record.session_id,
+            "status": record.session_status,
+            "operation_matches": operation_matches,
+            "binding_matches": (operation_matches and binding_matches),
+            "requested_capability": record.requested_capability,
+            "expected_request_fingerprint": expected_fingerprint,
+            "session_request_fingerprint": record.request_fingerprint,
+            "session_expires_at": record.expires_at,
+        }
+
+        if not operation_matches:
+            return AssetForgeServerApprovalDecisionRecord(
+                decision_state="denied",
+                decision_code="requested_operation_mismatch",
+                reason="Server-owned session scope does not match the requested operation; endpoint remains blocked.",
+                policy_decision="deny",
+                policy_would_allow_if_mutation_admitted=False,
+                safest_next_step=(
+                    "Prepare a server-owned session for the exact operation and request envelope."
+                ),
+                **shared_kwargs,
+            )
+
         if not binding_matches:
-            evaluation["reason"] = (
-                "Server-owned session binding does not match this request envelope; endpoint remains blocked."
+            return AssetForgeServerApprovalDecisionRecord(
+                decision_state="denied",
+                decision_code="request_fingerprint_mismatch",
+                reason="Server-owned session binding does not match this request envelope; endpoint remains blocked.",
+                policy_decision="deny",
+                policy_would_allow_if_mutation_admitted=False,
+                safest_next_step=(
+                    "Prepare a new server-owned session bound to this exact request fingerprint."
+                ),
+                **shared_kwargs,
             )
-            return evaluation
 
-        evaluation["reason"] = (
-            "Server-owned session matched, but mutation execution is intentionally blocked in this packet until full enforcement is admitted."
+        if record.session_status == "expired":
+            return AssetForgeServerApprovalDecisionRecord(
+                decision_state="denied",
+                decision_code="session_expired",
+                reason="Server-owned session is expired and fails closed; endpoint remains blocked.",
+                policy_decision="deny",
+                policy_would_allow_if_mutation_admitted=False,
+                safest_next_step="Prepare a new non-expired server-owned session for this request.",
+                **shared_kwargs,
+            )
+
+        if record.session_status == "revoked":
+            return AssetForgeServerApprovalDecisionRecord(
+                decision_state="denied",
+                decision_code="session_revoked",
+                reason="Server-owned session is revoked and cannot be reused; endpoint remains blocked.",
+                policy_decision="deny",
+                policy_would_allow_if_mutation_admitted=False,
+                safest_next_step="Prepare a replacement server-owned session if review should continue.",
+                **shared_kwargs,
+            )
+
+        if record.session_status == "rejected":
+            return AssetForgeServerApprovalDecisionRecord(
+                decision_state="denied",
+                decision_code="session_rejected",
+                reason="Server-owned session is rejected; endpoint remains blocked.",
+                policy_decision="deny",
+                policy_would_allow_if_mutation_admitted=False,
+                safest_next_step="Resolve policy concerns and prepare a new server-owned session if needed.",
+                **shared_kwargs,
+            )
+
+        if record.session_status == "pending":
+            return AssetForgeServerApprovalDecisionRecord(
+                decision_state="pending",
+                decision_code="session_pending",
+                reason="Server-owned session is pending server decision; mutation remains blocked in this packet.",
+                policy_decision="pending",
+                policy_would_allow_if_mutation_admitted=False,
+                safest_next_step=(
+                    "Record a server decision first; keep mutation-capable execution blocked until an admitted packet enables runtime admission."
+                ),
+                **shared_kwargs,
+            )
+
+        return AssetForgeServerApprovalDecisionRecord(
+            decision_state="ready_but_not_admitted",
+            decision_code="ready_but_mutation_not_admitted",
+            reason=(
+                "Server-owned session checks passed and server policy would allow this request, but mutation execution is not admitted in this packet."
+            ),
+            policy_decision="allow_if_mutation_admitted",
+            policy_would_allow_if_mutation_admitted=True,
+            safest_next_step=(
+                "Keep execution blocked until a separate mutation-admission packet is explicitly approved."
+            ),
+            **shared_kwargs,
         )
-        return evaluation
 
     def create_task_plan(self, request: AssetForgeTaskPlanRequest) -> AssetForgeTaskRecord:
         now_iso = datetime.now(timezone.utc).isoformat()
@@ -1081,7 +1191,7 @@ class AssetForgeService:
             "Stage write corridor is approval-gated and path-bounded.",
             "Only source asset + provenance sidecar writes are performed in this packet.",
         ]
-        warnings.append(str(server_approval_evaluation["reason"]))
+        warnings.append(server_approval_evaluation.reason)
         revert_paths = [
             str(path)
             for path in [destination_source_path, destination_manifest_path]
@@ -1246,7 +1356,7 @@ class AssetForgeService:
         # Draft-checkpoint hard stop: client-declared approval metadata is never authorization.
         # Keep stage-write non-mutating until server-owned approval tokens/sessions exist.
         warnings.append(
-            "Stage write execution is disabled in this draft checkpoint until server-owned approval enforcement is implemented."
+            "Stage write execution remains blocked in this packet because mutation admission is not enabled."
         )
         return AssetForgeO3DEStageWriteRecord(
             capability_name="asset_forge.o3de.stage.write",
@@ -1659,9 +1769,9 @@ class AssetForgeService:
         warnings = [
             "Packet 11 corridor is proof-only and exact-scope.",
             "No broad prefab, level, or scene mutation is admitted.",
-            "Placement proof execution is blocked in PR C until server-owned approval/session enforcement exists.",
+            "Placement proof execution remains blocked in this packet because mutation admission is not enabled.",
         ]
-        warnings.append(str(server_approval_evaluation["reason"]))
+        warnings.append(server_approval_evaluation.reason)
         placement_proof_policy: dict[str, object] = {
             "approval_required": True,
             "approval_note_required_when_approved": True,
@@ -1926,7 +2036,7 @@ class AssetForgeService:
 
         warnings.append("Client approval fields are treated as intent only and do not authorize execution.")
         warnings.append("No runtime bridge calls are performed by this endpoint in PR C.")
-        warnings.append(str(server_approval_evaluation["reason"]))
+        warnings.append(server_approval_evaluation.reason)
         return AssetForgeO3DEPlacementHarnessExecuteRecord(
             capability_name="asset_forge.o3de.placement.harness.execute",
             maturity="proof-only",
@@ -1981,13 +2091,13 @@ class AssetForgeService:
             "No broad prefab or scene mutation is performed in this packet.",
             "No runtime bridge calls are performed by this endpoint in PR C.",
         ]
-        warnings.append(str(server_approval_evaluation["reason"]))
+        warnings.append(server_approval_evaluation.reason)
         revert_statement = "No mutation was admitted by this proof path; no revert action required."
 
         # Draft-checkpoint hard stop: client-declared approval metadata is never authorization.
         # Keep live-proof runtime execution disabled until server-owned approval enforcement exists.
         warnings.append(
-            "Live proof runtime execution is disabled in this draft checkpoint until server-owned approval enforcement is implemented."
+            "Live proof runtime execution remains blocked in this packet because mutation admission is not enabled."
         )
         return AssetForgeO3DEPlacementLiveProofRecord(
             capability_name="asset_forge.o3de.placement.live_proof",
