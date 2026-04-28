@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from app.models.asset_forge import (
     AssetForgeBlenderInspectReport,
@@ -27,6 +27,10 @@ from app.models.asset_forge import (
     AssetForgeProviderStatusRecord,
     AssetForgeTaskRecord,
     AssetForgeTaskPlanRequest,
+    AssetForgeServerApprovalSessionIndexRecord,
+    AssetForgeServerApprovalSessionPrepareRequest,
+    AssetForgeServerApprovalSessionRecord,
+    AssetForgeServerApprovalSessionRevokeRequest,
 )
 from app.services.asset_forge import asset_forge_service
 
@@ -43,6 +47,57 @@ def create_asset_forge_task_plan(
     request: AssetForgeTaskPlanRequest,
 ) -> AssetForgeTaskRecord:
     return asset_forge_service.create_task_plan(request)
+
+
+@router.get(
+    "/asset-forge/approval-sessions",
+    response_model=AssetForgeServerApprovalSessionIndexRecord,
+)
+def list_asset_forge_server_approval_sessions() -> AssetForgeServerApprovalSessionIndexRecord:
+    return asset_forge_service.list_server_approval_sessions()
+
+
+@router.post(
+    "/asset-forge/approval-sessions/prepare",
+    response_model=AssetForgeServerApprovalSessionRecord,
+)
+def prepare_asset_forge_server_approval_session(
+    request: AssetForgeServerApprovalSessionPrepareRequest,
+) -> AssetForgeServerApprovalSessionRecord:
+    return asset_forge_service.prepare_server_approval_session(request)
+
+
+@router.get(
+    "/asset-forge/approval-sessions/{session_id}",
+    response_model=AssetForgeServerApprovalSessionRecord,
+)
+def get_asset_forge_server_approval_session(
+    session_id: str,
+) -> AssetForgeServerApprovalSessionRecord:
+    record = asset_forge_service.get_server_approval_session(session_id)
+    if record is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Asset Forge approval session '{session_id}' was not found.",
+        )
+    return record
+
+
+@router.post(
+    "/asset-forge/approval-sessions/{session_id}/revoke",
+    response_model=AssetForgeServerApprovalSessionRecord,
+)
+def revoke_asset_forge_server_approval_session(
+    session_id: str,
+    request: AssetForgeServerApprovalSessionRevokeRequest | None = None,
+) -> AssetForgeServerApprovalSessionRecord:
+    record = asset_forge_service.revoke_server_approval_session(session_id, request)
+    if record is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Asset Forge approval session '{session_id}' was not found.",
+        )
+    return record
 
 
 @router.get("/asset-forge/provider/status", response_model=AssetForgeProviderStatusRecord)

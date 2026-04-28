@@ -31,6 +31,66 @@ class AssetForgeTaskPlanRequest(BaseModel):
     source: str = Field(default="asset-forge-ui-plan-request", min_length=1)
 
 
+class AssetForgeServerApprovalSessionPrepareRequest(BaseModel):
+    candidate_id: str = Field(..., min_length=1)
+    candidate_label: str = Field(..., min_length=1)
+    requested_capability: Literal[
+        "asset_forge.o3de.stage.write",
+        "asset_forge.o3de.placement.execute",
+        "asset_forge.o3de.placement.harness.execute",
+        "asset_forge.o3de.placement.live_proof",
+    ]
+    stage_relative_path: str | None = None
+    target_level_relative_path: str | None = None
+    target_entity_name: str | None = None
+    selected_platform: str | None = None
+    requested_by: str = Field(default="asset-forge-operator", min_length=1)
+    requested_reason: str = Field(default="", min_length=0)
+    requested_ttl_seconds: int | None = Field(default=None, ge=60, le=86400)
+    source: str = Field(default="asset-forge-server-approval-request", min_length=1)
+
+
+class AssetForgeServerApprovalSessionRevokeRequest(BaseModel):
+    revoked_by: str = Field(default="asset-forge-operator", min_length=1)
+    revoke_reason: str = Field(default="", min_length=0)
+
+
+class AssetForgeServerApprovalSessionRecord(BaseModel):
+    capability_name: str = Field(..., min_length=1)
+    maturity: Literal["preflight-only"]
+    session_id: str = Field(..., min_length=1)
+    requested_capability: str = Field(..., min_length=1)
+    session_status: Literal["pending", "approved", "rejected", "revoked", "expired"]
+    server_owned: bool
+    authorization_granted: bool
+    request_binding: dict[str, object] = Field(default_factory=dict)
+    request_fingerprint: str = Field(..., min_length=1)
+    requested_by: str = Field(..., min_length=1)
+    requested_reason: str | None = None
+    requested_at: str = Field(..., min_length=1)
+    expires_at: str = Field(..., min_length=1)
+    decided_at: str | None = None
+    revoked_at: str | None = None
+    revoked_by: str | None = None
+    revoke_reason: str | None = None
+    token_preview: str = Field(..., min_length=1)
+    approval_policy: dict[str, object] = Field(default_factory=dict)
+    warnings: list[str] = Field(default_factory=list)
+    safest_next_step: str = Field(..., min_length=1)
+    source: str = Field(..., min_length=1)
+
+
+class AssetForgeServerApprovalSessionIndexRecord(BaseModel):
+    capability_name: str = Field(..., min_length=1)
+    maturity: Literal["preflight-only"]
+    index_status: Literal["succeeded", "empty"]
+    session_count: int
+    sessions: list[AssetForgeServerApprovalSessionRecord] = Field(default_factory=list)
+    read_only: bool
+    warnings: list[str] = Field(default_factory=list)
+    source: str = Field(..., min_length=1)
+
+
 class AssetForgeProviderRegistryEntry(BaseModel):
     provider_id: str = Field(..., min_length=1)
     display_name: str = Field(..., min_length=1)
@@ -137,6 +197,7 @@ class AssetForgeO3DEStageWriteRequest(BaseModel):
     manifest_relative_path: str = Field(..., min_length=1)
     approval_state: Literal["not-approved", "approved"] = "not-approved"
     approval_note: str = Field(default="", min_length=0)
+    approval_session_id: str | None = None
 
 
 class AssetForgeO3DEStageWriteRecord(BaseModel):
@@ -151,6 +212,8 @@ class AssetForgeO3DEStageWriteRecord(BaseModel):
     destination_manifest_path: str | None = None
     approval_required: bool
     approval_state: Literal["not-approved", "approved"]
+    server_approval_session_id: str | None = None
+    server_approval_evaluation: dict[str, object] = Field(default_factory=dict)
     write_executed: bool
     project_write_admitted: bool
     bytes_copied: int | None = None
@@ -250,6 +313,7 @@ class AssetForgeO3DEPlacementProofRequest(BaseModel):
     target_component: str = Field(default="Mesh", min_length=1)
     approval_state: Literal["not-approved", "approved"] = "not-approved"
     approval_note: str = Field(default="", min_length=0)
+    approval_session_id: str | None = None
 
 
 class AssetForgeO3DEPlacementProofRecord(BaseModel):
@@ -264,6 +328,8 @@ class AssetForgeO3DEPlacementProofRecord(BaseModel):
     target_component: str = Field(..., min_length=1)
     approval_required: bool
     approval_state: Literal["not-approved", "approved"]
+    server_approval_session_id: str | None = None
+    server_approval_evaluation: dict[str, object] = Field(default_factory=dict)
     placement_proof_policy: dict[str, object] = Field(default_factory=dict)
     placement_execution_status: Literal["blocked"]
     proof_runtime_gate_enabled: bool
@@ -350,6 +416,7 @@ class AssetForgeO3DEPlacementHarnessExecuteRequest(BaseModel):
     selected_platform: str = Field(default="pc", min_length=1)
     approval_state: Literal["not-approved", "approved"] = "not-approved"
     approval_note: str = Field(default="", min_length=0)
+    approval_session_id: str | None = None
 
 
 class AssetForgeO3DEPlacementHarnessExecuteRecord(BaseModel):
@@ -367,6 +434,8 @@ class AssetForgeO3DEPlacementHarnessExecuteRecord(BaseModel):
     bridge_heartbeat_fresh: bool
     runtime_gate_enabled: bool
     approval_state: Literal["not-approved", "approved"]
+    server_approval_session_id: str | None = None
+    server_approval_evaluation: dict[str, object] = Field(default_factory=dict)
     bridge_command_id: str | None = None
     execution_performed: bool
     readback_captured: bool
@@ -384,6 +453,7 @@ class AssetForgeO3DEPlacementLiveProofRequest(BaseModel):
     selected_platform: str = Field(default="pc", min_length=1)
     approval_state: Literal["not-approved", "approved"] = "not-approved"
     approval_note: str = Field(default="", min_length=0)
+    approval_session_id: str | None = None
 
 
 class AssetForgeO3DEPlacementLiveProofRecord(BaseModel):
@@ -398,6 +468,8 @@ class AssetForgeO3DEPlacementLiveProofRecord(BaseModel):
     bridge_configured: bool
     bridge_heartbeat_fresh: bool
     runtime_gate_enabled: bool
+    server_approval_session_id: str | None = None
+    server_approval_evaluation: dict[str, object] = Field(default_factory=dict)
     execution_performed: bool
     readback_captured: bool
     entity_exists: bool | None = None
