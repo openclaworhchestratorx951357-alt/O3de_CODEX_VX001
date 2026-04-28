@@ -11,6 +11,7 @@
     "guide:check": "node ../scripts/sync_operator_guide.mjs --check",
     "build": "npm run guide:sync && tsc -b && vite build",
     "build:docker": "tsc -b && vite build",
+    "typecheck": "tsc -b --pretty false",
     "test": "npm run guide:check && vitest run",
     "preview": "vite preview"
   },

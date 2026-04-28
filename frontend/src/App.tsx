@@ -7366,6 +7366,15 @@ export default function App() {
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
                 bridgeStatus={o3deBridgeStatus}
+                policies={policies}
+                policiesLoading={policiesLoading}
+                policiesError={policiesError}
+                readiness={readiness}
+                readinessLoading={readinessLoading}
+                readinessError={readinessError}
+                adapters={adapters}
+                adaptersLoading={adaptersLoading}
+                adaptersError={adaptersError}
               />
             </Suspense>
           </div>
