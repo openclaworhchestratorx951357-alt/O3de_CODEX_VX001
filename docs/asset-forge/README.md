@@ -57,3 +57,7 @@ Do not claim a capability is real, production-ready, reviewable, or reversible u
 ## Existing repo history
 
 This pack is intended to complement existing `docs/AI-ASSET-FORGE-*` and Phase 9 asset readback docs. It does not erase previous proof-only work. It provides the product and GUI path for turning that history into a coherent studio workflow.
+
+## Checkpoint handoff
+
+- `ASSET-FORGE-PR-138-HANDOFF.md` - durable checkpoint handoff for PR #138 status, safety boundaries, split plan, and next packet.
