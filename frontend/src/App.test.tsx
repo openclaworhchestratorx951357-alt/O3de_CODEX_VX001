@@ -397,6 +397,12 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("Resolution summary: Resolved from artifact lane.")).toBeInTheDocument();
     expect(screen.getByText("Resolved lane: Artifact lane")).toBeInTheDocument();
     expect(screen.getByText("Selected artifact metadata: Resolved review packet fields from this lane.")).toBeInTheDocument();
+    expect(screen.getByText("Lane alignment confirmed")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Runs Dispatch lineage and run-level audit slices\./i }));
+    expect(screen.getByText("Lane drift detected")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open packet lane surface" })).toBeEnabled();
+    fireEvent.click(screen.getByRole("button", { name: "Open packet lane surface" }));
+    expect(screen.getByText("Lane alignment confirmed")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Back to Asset Forge Review" })).toBeEnabled();
     expect(screen.queryByLabelText("AssetForgeWorkspacePage")).toBeNull();
 
