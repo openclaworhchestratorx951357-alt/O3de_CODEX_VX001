@@ -50,6 +50,21 @@ const apiMocks = vi.hoisted(() => ({
   fetchO3deTarget: vi.fn(),
   fetchPolicies: vi.fn(),
   fetchReadiness: vi.fn(),
+  fetchAssetForgeTask: vi.fn(),
+  fetchAssetForgeProviderStatus: vi.fn(),
+  fetchAssetForgeStudioStatus: vi.fn(),
+  fetchAssetForgeBlenderStatus: vi.fn(),
+  createAssetForgeO3DEStagePlan: vi.fn(),
+  createAssetForgeO3DEPlacementPlan: vi.fn(),
+  executeAssetForgeO3DEPlacementProof: vi.fn(),
+  readAssetForgeO3DEPlacementEvidence: vi.fn(),
+  prepareAssetForgeO3DEPlacementRuntimeHarness: vi.fn(),
+  executeAssetForgeO3DEPlacementRuntimeHarness: vi.fn(),
+  executeAssetForgeO3DEPlacementLiveProof: vi.fn(),
+  getAssetForgeO3DEPlacementLiveProofEvidenceIndex: vi.fn(),
+  readAssetForgeO3DEIngestEvidence: vi.fn(),
+  executeAssetForgeO3DEStageWrite: vi.fn(),
+  inspectAssetForgeBlenderArtifact: vi.fn(),
   fetchRun: vi.fn(),
   fetchRunCards: vi.fn(),
   fetchRunsSummaryForFilter: vi.fn(),
@@ -260,7 +275,7 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("Runtime Console")).toBeInTheDocument();
   });
 
-  it("opens Asset Forge as its own workspace and switches full studio pages", async () => {
+  it("opens Asset Forge as its own workspace and shows the Packet 01 studio shell", async () => {
     render(<App />);
 
     fireEvent.click(getDesktopNavButton(/Asset Forge/i));
@@ -273,28 +288,22 @@ describe("App desktop smoke", () => {
     expect(screen.queryByText("Control surface")).toBeNull();
     expect(screen.queryByText("Create Game")).toBeNull();
     expect(screen.queryByLabelText("O3DE game creation desk")).toBeNull();
-    const forgeTopMenu = within(forgePanel).getByLabelText("Forge top application menu");
-    expect(within(forgeTopMenu).getByRole("button", { name: "Create" })).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Asset Forge Create page")).toBeInTheDocument();
-    expect(within(forgePanel).getByText("Prompt request")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Forge viewport preview")).toBeInTheDocument();
-    expect(within(forgePanel).getByText("Toolbench preview - renderer not connected")).toBeInTheDocument();
-    expect(within(forgePanel).getByRole("button", { name: "Generate asset" })).toBeDisabled();
-    expect(within(forgePanel).getByRole("button", { name: "Place candidate in level" })).toBeDisabled();
-    expect(within(forgePanel).queryByText(/live O3DE/i)).not.toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge studio header")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("Generate, prepare, and stage O3DE-ready 3D assets.")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge generation workspace")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge candidate gallery")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge selected candidate inspector")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge Blender Prep panel")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge O3DE ingest review panel")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge evidence timeline")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge settings status panel")).toBeInTheDocument();
+    expect(within(forgePanel).getAllByText("Demo candidate - no real generation performed.")).toHaveLength(4);
+    expect(within(forgePanel).getByRole("button", { name: "Plan preview candidates (demo)" })).toBeDisabled();
+    expect(within(forgePanel).getByRole("button", { name: "Run Blender prep script (blocked)" })).toBeDisabled();
+    expect(within(forgePanel).getByRole("button", { name: "Stage into O3DE project (blocked)" })).toBeDisabled();
 
-    fireEvent.click(within(forgeTopMenu).getByRole("button", { name: "Assets" }));
-    expect(within(forgePanel).getByLabelText("Forge assets content browser")).toBeInTheDocument();
-    expect(within(forgePanel).getByRole("button", { name: "Import selected asset" })).toBeDisabled();
-    expect(within(forgePanel).getByRole("button", { name: "Stage source asset" })).toBeDisabled();
-    expect(within(forgePanel).getByRole("button", { name: "Execute Asset Processor" })).toBeDisabled();
-    expect(within(forgePanel).queryByText("Prompt request")).not.toBeInTheDocument();
-
-    fireEvent.click(within(forgeTopMenu).getByRole("button", { name: "Review" }));
-    expect(within(forgePanel).getByLabelText("Forge operator review packet full page")).toBeInTheDocument();
-    expect(within(forgePanel).getByText("Typed sample fixture data (read-only preview; not live)")).toBeInTheDocument();
-    expect(within(forgePanel).queryByLabelText("Forge assets content browser")).not.toBeInTheDocument();
-    expect(within(forgePanel).getByRole("button", { name: "Approve production import" })).toBeDisabled();
+    fireEvent.click(within(forgePanel).getByRole("button", { name: "Select Broken Keystone Span" }));
+    expect(within(forgePanel).getByText("Name: Broken Keystone Span")).toBeInTheDocument();
   });
 
   it("opens the full Asset Forge workspace from Create Game launcher", async () => {
@@ -313,8 +322,8 @@ describe("App desktop smoke", () => {
     expect(screen.queryByText("ACTIVE WORKSPACE Home")).toBeNull();
     expect(screen.queryByText("Control surface")).toBeNull();
     expect(screen.queryByText("Create Game")).toBeNull();
-    expect(within(forgePanel).getByLabelText("Forge top application menu")).toBeInTheDocument();
-    expect(within(forgePanel).getByLabelText("Asset Forge Create page")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge studio header")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge candidate gallery")).toBeInTheDocument();
   });
 
   it("returns to Home from the Asset Forge app header", async () => {

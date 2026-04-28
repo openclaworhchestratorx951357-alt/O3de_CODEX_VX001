@@ -194,11 +194,15 @@ describe("AppControlCommandCenter", () => {
     expect(screen.getByText("Execution receipt")).toBeInTheDocument();
     expect(screen.getByText("Audit event: evt-app-control-apply")).toBeInTheDocument();
     expect(screen.getAllByText(/Verified by re-reading the local saved app settings after apply/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Verified by reading the current shell workspace focus as runtime/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Verified by reading the current shell workspace focus as runtime/i)).toBeInTheDocument();
+    });
     expect(screen.getByText("Theme mode: system -> dark")).toBeInTheDocument();
     expect(screen.getByText("Density: comfortable -> compact")).toBeInTheDocument();
-    expect(screen.getByText(/3 verified/)).toBeInTheDocument();
-    expect(screen.getByText(/0 assumed/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/3 verified/)).toBeInTheDocument();
+      expect(screen.getByText(/0 assumed/)).toBeInTheDocument();
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Back / revert last" }));
 
@@ -209,7 +213,9 @@ describe("AppControlCommandCenter", () => {
     expect(screen.getByText("Revert receipt")).toBeInTheDocument();
     expect(screen.getByText("Audit event: evt-app-control-revert")).toBeInTheDocument();
     expect(screen.getByText(/Verified by re-reading the local saved settings profile after revert/i)).toBeInTheDocument();
-    expect(screen.getByText(/Verified by reading the current shell workspace focus as home/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/Verified by reading the current shell workspace focus as home/i)).toBeInTheDocument();
+    });
     expect(screen.getByText(/Theme mode: dark -> system/)).toBeInTheDocument();
     expect(screen.getByText(/Density: compact -> comfortable/)).toBeInTheDocument();
     expect(screen.getByText(/2 verified/)).toBeInTheDocument();

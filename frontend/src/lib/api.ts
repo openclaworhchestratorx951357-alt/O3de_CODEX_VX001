@@ -18,6 +18,32 @@ import type {
   AutonomyObjectivesResponse,
   AutonomyObservationsResponse,
   AutonomySummaryResponse,
+  AssetForgeBlenderStatusRecord,
+  AssetForgeStudioStatusRecord,
+  AssetForgeBlenderInspectRequest,
+  AssetForgeBlenderInspectReport,
+  AssetForgeO3DEStagePlanRequest,
+  AssetForgeO3DEStagePlanRecord,
+  AssetForgeO3DEReadbackRequest,
+  AssetForgeO3DEReadbackRecord,
+  AssetForgeO3DEPlacementPlanRequest,
+  AssetForgeO3DEPlacementPlanRecord,
+  AssetForgeO3DEPlacementEvidenceRequest,
+  AssetForgeO3DEPlacementEvidenceRecord,
+  AssetForgeO3DEPlacementHarnessRequest,
+  AssetForgeO3DEPlacementHarnessRecord,
+  AssetForgeO3DEPlacementHarnessExecuteRequest,
+  AssetForgeO3DEPlacementHarnessExecuteRecord,
+  AssetForgeO3DEPlacementLiveProofRequest,
+  AssetForgeO3DEPlacementLiveProofRecord,
+  AssetForgePlacementEvidenceIndexRecord,
+  AssetForgeO3DEPlacementProofRequest,
+  AssetForgeO3DEPlacementProofRecord,
+  AssetForgeO3DEStageWriteRequest,
+  AssetForgeO3DEStageWriteRecord,
+  AssetForgeProviderStatusRecord,
+  AssetForgeTaskRecord,
+  AssetForgeTaskPlanRequest,
   ArtifactListItem,
   ArtifactListResponse,
   ArtifactRecord,
@@ -978,6 +1004,179 @@ export async function fetchAdapters(): Promise<AdaptersResponse> {
 
 export async function fetchReadiness(): Promise<ReadinessStatus> {
   return getJson<ReadinessStatus>("/ready", "Readiness fetch");
+}
+
+export async function fetchAssetForgeTask(): Promise<AssetForgeTaskRecord> {
+  return getJson<AssetForgeTaskRecord>("/asset-forge/task", "Asset Forge task fetch");
+}
+
+export async function createAssetForgeTaskPlan(
+  request: AssetForgeTaskPlanRequest,
+): Promise<AssetForgeTaskRecord> {
+  return postJson<AssetForgeTaskPlanRequest, AssetForgeTaskRecord>(
+    "/asset-forge/task/plan",
+    request,
+    "Asset Forge task plan",
+  );
+}
+
+export async function fetchAssetForgeProviderStatus(): Promise<AssetForgeProviderStatusRecord> {
+  return getJson<AssetForgeProviderStatusRecord>(
+    "/asset-forge/provider/status",
+    "Asset Forge provider status fetch",
+  );
+}
+
+export async function fetchAssetForgeBlenderStatus(): Promise<AssetForgeBlenderStatusRecord> {
+  return getJson<AssetForgeBlenderStatusRecord>(
+    "/asset-forge/blender/status",
+    "Asset Forge Blender status fetch",
+  );
+}
+
+export async function fetchAssetForgeStudioStatus(): Promise<AssetForgeStudioStatusRecord> {
+  return getJson<AssetForgeStudioStatusRecord>(
+    "/asset-forge/studio/status",
+    "Asset Forge studio status fetch",
+  );
+}
+
+export async function inspectAssetForgeBlenderArtifact(
+  request: AssetForgeBlenderInspectRequest,
+): Promise<AssetForgeBlenderInspectReport> {
+  return postJson<AssetForgeBlenderInspectRequest, AssetForgeBlenderInspectReport>(
+    "/asset-forge/blender/inspect",
+    request,
+    "Asset Forge Blender inspection",
+  );
+}
+
+export async function createAssetForgeO3DEStagePlan(
+  request: AssetForgeO3DEStagePlanRequest,
+): Promise<AssetForgeO3DEStagePlanRecord> {
+  return postJson<AssetForgeO3DEStagePlanRequest, AssetForgeO3DEStagePlanRecord>(
+    "/asset-forge/o3de/stage-plan",
+    request,
+    "Asset Forge O3DE stage plan",
+  );
+}
+
+export async function executeAssetForgeO3DEStageWrite(
+  request: AssetForgeO3DEStageWriteRequest,
+): Promise<AssetForgeO3DEStageWriteRecord> {
+  return postJson<AssetForgeO3DEStageWriteRequest, AssetForgeO3DEStageWriteRecord>(
+    "/asset-forge/o3de/stage-write",
+    request,
+    "Asset Forge O3DE stage write",
+  );
+}
+
+export async function readAssetForgeO3DEIngestEvidence(
+  request: AssetForgeO3DEReadbackRequest,
+): Promise<AssetForgeO3DEReadbackRecord> {
+  return postJson<AssetForgeO3DEReadbackRequest, AssetForgeO3DEReadbackRecord>(
+    "/asset-forge/o3de/readback",
+    request,
+    "Asset Forge O3DE ingest readback",
+  );
+}
+
+export async function createAssetForgeO3DEPlacementPlan(
+  request: AssetForgeO3DEPlacementPlanRequest,
+): Promise<AssetForgeO3DEPlacementPlanRecord> {
+  return postJson<AssetForgeO3DEPlacementPlanRequest, AssetForgeO3DEPlacementPlanRecord>(
+    "/asset-forge/o3de/placement-plan",
+    request,
+    "Asset Forge O3DE placement plan",
+  );
+}
+
+export async function executeAssetForgeO3DEPlacementProof(
+  request: AssetForgeO3DEPlacementProofRequest,
+): Promise<AssetForgeO3DEPlacementProofRecord> {
+  return postJson<AssetForgeO3DEPlacementProofRequest, AssetForgeO3DEPlacementProofRecord>(
+    "/asset-forge/o3de/placement-proof",
+    request,
+    "Asset Forge O3DE placement proof",
+  );
+}
+
+export async function readAssetForgeO3DEPlacementEvidence(
+  request: AssetForgeO3DEPlacementEvidenceRequest,
+): Promise<AssetForgeO3DEPlacementEvidenceRecord> {
+  return postJson<
+    AssetForgeO3DEPlacementEvidenceRequest,
+    AssetForgeO3DEPlacementEvidenceRecord
+  >(
+    "/asset-forge/o3de/placement-evidence",
+    request,
+    "Asset Forge O3DE placement evidence",
+  );
+}
+
+export async function prepareAssetForgeO3DEPlacementRuntimeHarness(
+  request: AssetForgeO3DEPlacementHarnessRequest,
+): Promise<AssetForgeO3DEPlacementHarnessRecord> {
+  return postJson<
+    AssetForgeO3DEPlacementHarnessRequest,
+    AssetForgeO3DEPlacementHarnessRecord
+  >(
+    "/asset-forge/o3de/placement-harness/prepare",
+    request,
+    "Asset Forge O3DE placement harness prepare",
+  );
+}
+
+export async function executeAssetForgeO3DEPlacementRuntimeHarness(
+  request: AssetForgeO3DEPlacementHarnessExecuteRequest,
+): Promise<AssetForgeO3DEPlacementHarnessExecuteRecord> {
+  return postJson<
+    AssetForgeO3DEPlacementHarnessExecuteRequest,
+    AssetForgeO3DEPlacementHarnessExecuteRecord
+  >(
+    "/asset-forge/o3de/placement-harness/execute",
+    request,
+    "Asset Forge O3DE placement harness execute",
+  );
+}
+
+export async function executeAssetForgeO3DEPlacementLiveProof(
+  request: AssetForgeO3DEPlacementLiveProofRequest,
+): Promise<AssetForgeO3DEPlacementLiveProofRecord> {
+  return postJson<
+    AssetForgeO3DEPlacementLiveProofRequest,
+    AssetForgeO3DEPlacementLiveProofRecord
+  >(
+    "/asset-forge/o3de/placement-harness/live-proof",
+    request,
+    "Asset Forge O3DE placement live proof",
+  );
+}
+
+export async function getAssetForgeO3DEPlacementLiveProofEvidenceIndex(
+  limit = 10,
+  proofStatus = "",
+  candidateId = "",
+  fromAgeS?: number,
+): Promise<AssetForgePlacementEvidenceIndexRecord> {
+  const normalizedLimit = Math.max(1, Math.min(25, Math.trunc(limit)));
+  const query = new URLSearchParams({ limit: String(normalizedLimit) });
+  const statusValue = proofStatus.trim();
+  const candidateValue = candidateId.trim();
+  if (statusValue) {
+    query.set("proof_status", statusValue);
+  }
+  if (candidateValue) {
+    query.set("candidate_id", candidateValue);
+  }
+  if (typeof fromAgeS === "number" && Number.isFinite(fromAgeS)) {
+    const normalizedAge = Math.max(0, Math.min(86400, Math.trunc(fromAgeS)));
+    query.set("from_age_s", String(normalizedAge));
+  }
+  return getJson<AssetForgePlacementEvidenceIndexRecord>(
+    `/asset-forge/o3de/placement-harness/evidence-index?${query.toString()}`,
+    "Asset Forge O3DE placement evidence index",
+  );
 }
 
 export async function fetchControlPlaneSummary(): Promise<ControlPlaneSummaryResponse> {
