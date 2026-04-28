@@ -79,6 +79,7 @@ type ConnectionTruthSummary = {
   packetStatusLabel: string;
   packetSourceLabel: string;
   packetCorridorLabel: string;
+  packetResolutionLabel: string;
   bridgeConnectionLabel: string;
   bridgeHeartbeatLabel: string;
   captureAgeLabel: string;
@@ -308,6 +309,7 @@ function buildConnectionTruthSummary(
     packetStatusLabel,
     packetSourceLabel: packet.dataSourceLabel,
     packetCorridorLabel: buildPacketCorridorLabel(packetOrigin),
+    packetResolutionLabel: packet.packetResolutionLabel,
     bridgeConnectionLabel: bridgeSnapshot.connectionState,
     bridgeHeartbeatLabel: bridgeSnapshot.heartbeatState,
     captureAgeLabel: packetProvenance.captureAgeLabel,
@@ -691,6 +693,7 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
         <div style={s.truthItem}><span style={s.truthLabel}>Packet status</span><strong style={s.truthValue}>{connectionTruth.packetStatusLabel}</strong></div>
         <div style={s.truthItem}><span style={s.truthLabel}>Packet source</span><strong style={s.truthValue}>{connectionTruth.packetSourceLabel}</strong></div>
         <div style={s.truthItem}><span style={s.truthLabel}>Packet corridor</span><strong style={s.truthValue}>{connectionTruth.packetCorridorLabel}</strong></div>
+        <div style={s.truthItem}><span style={s.truthLabel}>Resolution</span><strong style={s.truthValue}>{connectionTruth.packetResolutionLabel}</strong></div>
         <div style={s.truthItem}><span style={s.truthLabel}>Bridge</span><strong style={s.truthValue}>{connectionTruth.bridgeConnectionLabel}</strong></div>
         <div style={s.truthItem}><span style={s.truthLabel}>Heartbeat</span><strong style={s.truthValue}>{connectionTruth.bridgeHeartbeatLabel}</strong></div>
         <div style={s.truthItem}><span style={s.truthLabel}>Capture age</span><strong style={s.truthValue}>{connectionTruth.captureAgeLabel}</strong></div>

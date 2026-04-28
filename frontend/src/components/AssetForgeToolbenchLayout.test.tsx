@@ -59,6 +59,7 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(truthStrip).getByText("Packet status")).toBeInTheDocument();
     expect(within(truthStrip).getByText("Packet source")).toBeInTheDocument();
     expect(within(truthStrip).getByText("Packet corridor")).toBeInTheDocument();
+    expect(within(truthStrip).getByText("Resolution")).toBeInTheDocument();
     expect(within(truthStrip).getByText("Bridge")).toBeInTheDocument();
     expect(within(truthStrip).getByText("Heartbeat")).toBeInTheDocument();
     expect(within(truthStrip).getByText("Capture age")).toBeInTheDocument();
@@ -261,6 +262,8 @@ describe("AssetForgeToolbenchLayout", () => {
     });
 
     const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    const truthStrip = within(shell).getByLabelText("Forge connection truth strip");
+    expect(within(truthStrip).getByText("Live payload unresolved")).toBeInTheDocument();
     fireEvent.click(within(shell).getByRole("button", { name: "Review" }));
 
     const unresolvedBanner = within(shell).getByLabelText("Live packet unresolved notice");
