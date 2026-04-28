@@ -7456,7 +7456,8 @@ export default function App() {
           height: "100vh",
           minHeight: "100vh",
           display: "grid",
-          gridTemplateRows: "auto 1fr",
+          gridTemplateRows: "74px minmax(0, 1fr)",
+          maxHeight: "100vh",
           background: "var(--app-shell-bg)",
           color: "var(--app-text-color)",
           fontFamily: '"Segoe UI Variable", "Segoe UI", "Trebuchet MS", sans-serif',
@@ -7476,11 +7477,11 @@ export default function App() {
           }}
         >
           <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 14,
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 14,
             }}
           >
             <div style={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
@@ -7514,6 +7515,7 @@ export default function App() {
               onClick={() => setActiveWorkspaceId("home")}
               style={{
                 minHeight: 32,
+                height: 32,
                 border: "1px solid #61adff",
                 borderRadius: 8,
                 padding: "0 12px",
@@ -7533,7 +7535,7 @@ export default function App() {
           aria-label="AssetForgeWorkspacePage"
           style={{
             minHeight: 0,
-            height: "100%",
+            height: "calc(100vh - 74px)",
             overflow: "auto",
             padding: "10px 12px 14px",
             boxSizing: "border-box",
