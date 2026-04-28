@@ -126,6 +126,9 @@ type AssetForgeRecordsOriginContext = {
   runId: string | null;
   executionId: string | null;
   artifactId: string | null;
+  packetResolutionSummary: string | null;
+  packetResolvedLane: string | null;
+  packetAttemptSummaryLines: string[];
 };
 
 type PinnedRecord = {
@@ -7359,12 +7362,18 @@ export default function App() {
 
   function openAssetForgePacketOriginRecord(origin: AssetForgeReviewPacketOrigin): void {
     const breadcrumbNote = `Auto-opened from Asset Forge packet origin: ${origin.label}.`;
+    const resolutionDiagnostics = assetForgeLivePacket.reviewPacketResolutionDiagnostics;
     setAssetForgeRecordsOriginContext({
       label: origin.label,
       detail: origin.detail,
       runId: origin.runId ?? null,
       executionId: origin.executionId ?? null,
       artifactId: origin.artifactId ?? null,
+      packetResolutionSummary: resolutionDiagnostics?.summary ?? null,
+      packetResolvedLane: resolutionDiagnostics?.resolvedLane ?? null,
+      packetAttemptSummaryLines: resolutionDiagnostics?.attempts.map((attempt) => (
+        `${attempt.label}: ${attempt.reason}`
+      )) ?? [],
     });
 
     if (origin.artifactId) {
@@ -7759,6 +7768,9 @@ function parseAssetForgeRecordsOriginContext(rawValue: string | null): AssetForg
       runId?: unknown;
       executionId?: unknown;
       artifactId?: unknown;
+      packetResolutionSummary?: unknown;
+      packetResolvedLane?: unknown;
+      packetAttemptSummaryLines?: unknown;
     };
 
     if (typeof parsed !== "object" || parsed === null) {
@@ -7778,6 +7790,19 @@ function parseAssetForgeRecordsOriginContext(rawValue: string | null): AssetForg
     const artifactId = typeof parsed.artifactId === "string" && parsed.artifactId.trim().length > 0
       ? parsed.artifactId
       : null;
+    const packetResolutionSummary = typeof parsed.packetResolutionSummary === "string"
+      && parsed.packetResolutionSummary.trim().length > 0
+      ? parsed.packetResolutionSummary
+      : null;
+    const packetResolvedLane = typeof parsed.packetResolvedLane === "string"
+      && parsed.packetResolvedLane.trim().length > 0
+      ? parsed.packetResolvedLane
+      : null;
+    const packetAttemptSummaryLines = Array.isArray(parsed.packetAttemptSummaryLines)
+      ? parsed.packetAttemptSummaryLines
+        .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
+        .slice(0, 5)
+      : [];
 
     return {
       label: parsed.label,
@@ -7785,6 +7810,9 @@ function parseAssetForgeRecordsOriginContext(rawValue: string | null): AssetForg
       runId,
       executionId,
       artifactId,
+      packetResolutionSummary,
+      packetResolvedLane,
+      packetAttemptSummaryLines,
     };
   } catch {
     return null;

@@ -232,6 +232,12 @@ describe("RecordsWorkspaceDesktop", () => {
         runId: "run-001",
         executionId: "exec-001",
         artifactId: "artifact-001",
+        packetResolutionSummary: "Resolved from artifact lane.",
+        packetResolvedLane: "artifact",
+        packetAttemptSummaryLines: [
+          "Selected artifact metadata: Resolved review packet fields from this lane.",
+          "Selected execution details: Payload present but no resolvable asset_readback_review_packet fields.",
+        ],
       },
       onOpenAssetForgeWorkspace,
       onClearAssetForgeOriginContext,
@@ -243,6 +249,10 @@ describe("RecordsWorkspaceDesktop", () => {
     expect(screen.getByText("Origin execution: exec-001")).toBeInTheDocument();
     expect(screen.getByText("Origin artifact: artifact-001")).toBeInTheDocument();
     expect(screen.getByText("read-only context")).toBeInTheDocument();
+    expect(screen.getByLabelText("Asset Forge lane diagnostics context")).toBeInTheDocument();
+    expect(screen.getByText("Resolution summary: Resolved from artifact lane.")).toBeInTheDocument();
+    expect(screen.getByText("Resolved lane: Artifact lane")).toBeInTheDocument();
+    expect(screen.getByText("Selected artifact metadata: Resolved review packet fields from this lane.")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Back to Asset Forge Review" }));
     expect(onOpenAssetForgeWorkspace).toHaveBeenCalledTimes(1);
@@ -259,6 +269,9 @@ describe("RecordsWorkspaceDesktop", () => {
         runId: null,
         executionId: null,
         artifactId: null,
+        packetResolutionSummary: null,
+        packetResolvedLane: null,
+        packetAttemptSummaryLines: [],
       },
     });
 

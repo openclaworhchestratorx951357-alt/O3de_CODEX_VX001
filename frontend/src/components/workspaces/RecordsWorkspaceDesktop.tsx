@@ -18,6 +18,9 @@ type AssetForgeOriginContext = {
   runId: string | null;
   executionId: string | null;
   artifactId: string | null;
+  packetResolutionSummary: string | null;
+  packetResolvedLane: string | null;
+  packetAttemptSummaryLines: string[];
 };
 
 type RecordsWorkspaceDesktopProps = {
@@ -123,6 +126,11 @@ export default function RecordsWorkspaceDesktop({
       || assetForgeOriginContext?.executionId
       || assetForgeOriginContext?.runId,
   );
+  const hasAssetForgeResolutionDiagnostics = Boolean(
+    assetForgeOriginContext?.packetResolutionSummary
+      || assetForgeOriginContext?.packetResolvedLane
+      || (assetForgeOriginContext?.packetAttemptSummaryLines?.length ?? 0) > 0,
+  );
 
   return (
     <RecordsWorkspaceView
@@ -143,6 +151,26 @@ export default function RecordsWorkspaceDesktop({
             <span>Origin execution: {assetForgeOriginContext.executionId ?? "not recorded"}</span>
             <span>Origin artifact: {assetForgeOriginContext.artifactId ?? "not recorded"}</span>
           </div>
+          {hasAssetForgeResolutionDiagnostics ? (
+            <div aria-label="Asset Forge lane diagnostics context" style={assetForgeResolutionDiagnosticsStyle}>
+              <strong style={assetForgeResolutionDiagnosticsHeadingStyle}>Packet lane diagnostics (read-only)</strong>
+              <span>
+                Resolution summary: {assetForgeOriginContext.packetResolutionSummary ?? "Unknown / unavailable"}
+              </span>
+              <span>
+                Resolved lane: {formatResolvedLane(assetForgeOriginContext.packetResolvedLane)}
+              </span>
+              {assetForgeOriginContext.packetAttemptSummaryLines.length > 0 ? (
+                <ul style={assetForgeResolutionDiagnosticsListStyle}>
+                  {assetForgeOriginContext.packetAttemptSummaryLines.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+              ) : (
+                <span>No lane-attempt details were recorded for this handoff.</span>
+              )}
+            </div>
+          ) : null}
           <div style={assetForgeOriginBannerActionsStyle}>
             <button
               type="button"
@@ -376,6 +404,22 @@ function getEventsFilterPressureLabel(filteredCount: number, totalCount: number)
   return "light narrowing";
 }
 
+function formatResolvedLane(value: string | null): string {
+  if (!value || value.trim().length === 0) {
+    return "Unresolved";
+  }
+  if (value === "artifact") {
+    return "Artifact lane";
+  }
+  if (value === "execution") {
+    return "Execution lane";
+  }
+  if (value === "run") {
+    return "Run lane";
+  }
+  return value;
+}
+
 const assetForgeOriginBannerStyle = {
   display: "grid",
   gap: 8,
@@ -421,6 +465,29 @@ const assetForgeOriginBannerFactsStyle = {
   gap: 4,
   fontSize: 12,
   opacity: 0.9,
+} as const;
+
+const assetForgeResolutionDiagnosticsStyle = {
+  display: "grid",
+  gap: 4,
+  padding: "8px 10px",
+  borderRadius: 12,
+  border: "1px solid rgba(96, 165, 250, 0.2)",
+  background: "rgba(30, 41, 59, 0.24)",
+  fontSize: 12,
+  opacity: 0.92,
+} as const;
+
+const assetForgeResolutionDiagnosticsHeadingStyle = {
+  fontSize: 12,
+  letterSpacing: "0.02em",
+} as const;
+
+const assetForgeResolutionDiagnosticsListStyle = {
+  margin: "2px 0 0",
+  paddingLeft: 16,
+  display: "grid",
+  gap: 2,
 } as const;
 
 const assetForgeOriginBannerActionsStyle = {
