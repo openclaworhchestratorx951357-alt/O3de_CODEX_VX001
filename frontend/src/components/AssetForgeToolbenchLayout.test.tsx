@@ -63,6 +63,7 @@ describe("AssetForgeToolbenchLayout", () => {
     expect(within(truthStrip).getByText("Capture age")).toBeInTheDocument();
     expect(within(truthStrip).getByText("Records target")).toBeInTheDocument();
     expect(within(truthStrip).getByText("Unavailable")).toBeInTheDocument();
+    expect(within(truthStrip).getByRole("button", { name: "Open origin in Records" })).toBeDisabled();
 
     expect(within(shell).getByLabelText("Asset Forge active page")).toBeInTheDocument();
     expect(within(shell).getByLabelText("Asset Forge Create page")).toBeInTheDocument();
@@ -283,10 +284,17 @@ describe("AssetForgeToolbenchLayout", () => {
     });
 
     const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    fireEvent.click(within(shell).getByRole("button", { name: "Open origin in Records" }));
+    expect(onOpenReviewPacketOriginRecord).toHaveBeenCalledTimes(1);
+    expect(onOpenReviewPacketOriginRecord).toHaveBeenLastCalledWith(expect.objectContaining({
+      artifactId: "artifact-live-001",
+      executionId: "exec-live-001",
+      runId: "run-live-001",
+    }));
 
     fireEvent.click(within(shell).getByRole("button", { name: "File" }));
     fireEvent.click(within(shell).getByRole("button", { name: "Open source record in Records" }));
-    expect(onOpenReviewPacketOriginRecord).toHaveBeenCalledTimes(1);
+    expect(onOpenReviewPacketOriginRecord).toHaveBeenCalledTimes(2);
     expect(onOpenReviewPacketOriginRecord).toHaveBeenLastCalledWith(expect.objectContaining({
       artifactId: "artifact-live-001",
       executionId: "exec-live-001",
@@ -295,7 +303,7 @@ describe("AssetForgeToolbenchLayout", () => {
 
     fireEvent.click(within(shell).getByRole("button", { name: "Review" }));
     fireEvent.click(within(shell).getByRole("button", { name: "Open source record in Records" }));
-    expect(onOpenReviewPacketOriginRecord).toHaveBeenCalledTimes(2);
+    expect(onOpenReviewPacketOriginRecord).toHaveBeenCalledTimes(3);
   });
 
   it("keeps packet-origin record navigation disabled when no record ids are available", () => {
@@ -312,6 +320,7 @@ describe("AssetForgeToolbenchLayout", () => {
     });
 
     const shell = screen.getByLabelText("Asset Forge Studio Shell");
+    expect(within(shell).getByRole("button", { name: "Open origin in Records" })).toBeDisabled();
 
     fireEvent.click(within(shell).getByRole("button", { name: "File" }));
     expect(within(shell).getByRole("button", { name: "Open source record in Records" })).toBeDisabled();

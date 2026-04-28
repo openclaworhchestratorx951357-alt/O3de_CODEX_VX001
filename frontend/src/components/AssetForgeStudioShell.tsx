@@ -642,6 +642,10 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
     () => buildConnectionTruthSummary(packet, bridgeSnapshot, packetProvenance, resolvedPacketOrigin),
     [packet, bridgeSnapshot, packetProvenance, resolvedPacketOrigin],
   );
+  const topOriginRecordAction = useMemo(
+    () => buildOriginRecordAction(resolvedPacketOrigin, onOpenReviewPacketOriginRecord),
+    [resolvedPacketOrigin, onOpenReviewPacketOriginRecord],
+  );
 
   const saveLayout = () => window.localStorage.setItem(STORAGE_KEY, activeTopMenu);
   const resetLayout = () => {
@@ -670,6 +674,18 @@ export default function AssetForgeStudioShell({ projectProfile, onOpenPromptStud
         <div style={s.truthItem}><span style={s.truthLabel}>Heartbeat</span><strong style={s.truthValue}>{connectionTruth.bridgeHeartbeatLabel}</strong></div>
         <div style={s.truthItem}><span style={s.truthLabel}>Capture age</span><strong style={s.truthValue}>{connectionTruth.captureAgeLabel}</strong></div>
         <div style={s.truthItem}><span style={s.truthLabel}>Records target</span><strong style={s.truthValue}>{connectionTruth.recordsTargetLabel}</strong></div>
+        <div style={s.truthActionCell}>
+          <button
+            type="button"
+            aria-label="Open origin in Records"
+            title={topOriginRecordAction.hint}
+            disabled={!topOriginRecordAction.enabled}
+            onClick={() => onOpenReviewPacketOriginRecord?.(resolvedPacketOrigin)}
+            style={topOriginRecordAction.enabled ? s.truthActionButton : s.truthActionButtonDisabled}
+          >
+            Open Records origin
+          </button>
+        </div>
       </section>
       <main aria-label="Asset Forge active page" style={s.pageHost}>
         {activeTopMenu === "File" && <FilePage projectProfile={projectProfile} activeTopMenu={activeTopMenu} saveLayout={saveLayout} resetLayout={resetLayout} bridgeSnapshot={bridgeSnapshot} packetDataSourceLabel={packet.dataSourceLabel} packetOrigin={resolvedPacketOrigin} onOpenReviewPacketOriginRecord={onOpenReviewPacketOriginRecord} />}
@@ -883,6 +899,9 @@ const s = {
   truthItem: { minWidth: 0, display: "grid", gap: 1, padding: "2px 6px", border: "1px solid #26384f", borderRadius: 4, background: "#111b26" },
   truthLabel: { color: "#7f95ad", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 10, fontWeight: 800 },
   truthValue: { color: "#d8e4f2", fontSize: 11, fontWeight: 800, whiteSpace: "normal", overflowWrap: "anywhere", lineHeight: 1.2 },
+  truthActionCell: { minWidth: 0, display: "grid", alignItems: "stretch" },
+  truthActionButton: { minHeight: 28, border: "1px solid #45617e", borderRadius: 4, padding: "0 10px", background: "#182736", color: "#d8e4f2", fontWeight: 800, cursor: "pointer" },
+  truthActionButtonDisabled: { minHeight: 28, border: "1px solid #344961", borderRadius: 4, padding: "0 10px", background: "#192331", color: "#d8e4f2", fontWeight: 800, opacity: 0.5, cursor: "not-allowed" },
   pageHost: { minWidth: 0, minHeight: 0, overflow: "auto" },
   page: { display: "grid", gridTemplateRows: "auto minmax(0, 1fr) auto", gap: 10, height: "100%", minWidth: 0, minHeight: 0, padding: 10, overflow: "auto", background: "#0b1017", boxSizing: "border-box" },
   reviewPage: { display: "grid", gridTemplateRows: "auto minmax(0, 1fr)", gap: 10, height: "100%", minWidth: 0, minHeight: 0, padding: 10, overflow: "auto", background: "#0b1017", boxSizing: "border-box" },
