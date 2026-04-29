@@ -73,8 +73,8 @@ This packet does not admit:
 
 ## Next safe packet
 
-Validation intake endpoint-candidate exact public-admission contract:
+Validation intake endpoint-candidate read-only admission readiness checklist:
 
-- keep gate-state audit/review semantics as baseline truth
-- define exact public corridor wording and non-goals
-- define evidence required before any read-only admission update
+- keep gate-state audit/review semantics and exact contract wording as baseline
+- map admission gates to concrete tests/evidence
+- keep admission withheld while any evidence gate remains unresolved
