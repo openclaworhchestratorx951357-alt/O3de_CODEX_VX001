@@ -132,7 +132,8 @@ Status:
 - completed in `docs/FLOW-TRIGGER-SUITE-PRODUCTIZATION-PLAN.md`
 - audit-gate checklist completed in `docs/FLOW-TRIGGER-SUITE-AUDIT-GATE-CHECKLIST.md`
 - threat-model design completed in `docs/FLOW-TRIGGER-SUITE-THREAT-MODEL-DESIGN.md`
-- next safe gate is Flow Trigger Suite implementation touchpoint packet
+- implementation touchpoint completed in `docs/FLOW-TRIGGER-SUITE-IMPLEMENTATION-TOUCHPOINT.md`
+- next safe gate is Flow Trigger Suite validation packet
 
 ## What stays blocked globally
 - arbitrary shell execution
