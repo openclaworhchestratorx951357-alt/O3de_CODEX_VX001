@@ -103,6 +103,7 @@ const OperationsWorkspaceDesktop = lazy(() => import("./components/workspaces/Op
 const AIAssetForgePanel = lazy(() => import("./components/AIAssetForgePanel"));
 const HomeOverviewPanelDeck = lazy(() => import("./components/HomeOverviewPanelDeck"));
 const AppCapabilityDashboardShell = lazy(() => import("./components/AppCapabilityDashboardShell"));
+const AppAuditReviewDashboardShell = lazy(() => import("./components/AppAuditReviewDashboardShell"));
 const OperatorGuidePanel = lazy(() => import("./components/OperatorGuidePanel"));
 const BuilderWorkspaceDesktop = lazy(() => import("./components/workspaces/BuilderWorkspaceDesktop"));
 const PromptWorkspaceDesktop = lazy(() => import("./components/workspaces/PromptWorkspaceDesktop"));
@@ -6239,6 +6240,7 @@ export default function App() {
     >
       <div style={homeOverviewStackStyle}>
         <AppCapabilityDashboardShell />
+        <AppAuditReviewDashboardShell />
         <HomeOverviewPanelDeck {...homeOverviewPanelDeckProps} />
       </div>
     </Suspense>

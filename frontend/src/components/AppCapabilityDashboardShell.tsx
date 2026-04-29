@@ -111,8 +111,8 @@ export default function AppCapabilityDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Editor Authoring Review/Restore Lane baseline audit</strong>, followed by
-        domain-specific read-only and dry-run lanes that preserve fail-closed defaults.
+        Recommended next packet: <strong>Validation report intake baseline audit</strong>, followed by domain-specific
+        read-only and dry-run lanes that preserve fail-closed defaults.
       </p>
     </section>
   );
