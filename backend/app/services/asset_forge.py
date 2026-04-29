@@ -60,6 +60,8 @@ _ALLOWED_STAGE_ROOT_PREFIX = "Assets/Generated/asset_forge/"
 _STAGE_WRITE_CORRIDOR_NAME = "asset_forge.o3de.stage_write.v1"
 _STAGE_WRITE_ADMISSION_FLAG_NAME = "asset_forge.o3de.stage_write.v1.proof_only_admission_enabled"
 _STAGE_WRITE_ADMISSION_FLAG_ENV = "ASSET_FORGE_STAGE_WRITE_V1_PROOF_ONLY_ADMISSION_ENABLED"
+_STAGE_WRITE_ADMISSION_PACKET_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_ADMISSION_PACKET_REF"
+_STAGE_WRITE_ADMISSION_OPERATOR_ID_ENV = "ASSET_FORGE_STAGE_WRITE_V1_ADMISSION_OPERATOR_ID"
 _STAGE_WRITE_APPROVAL_CAPABILITY = "asset_forge.o3de.stage.write"
 _DEFAULT_MAX_STAGE_BYTES = 524_288_000
 _ASSETDB_EVIDENCE_ROW_LIMIT = 25
@@ -191,6 +193,12 @@ def _resolve_stage_write_admission_flag_state() -> tuple[
     if normalized in {"0", "false", "no", "off", "disabled"}:
         return False, "explicit_off"
     return False, "invalid_default_off"
+
+
+def _resolve_stage_write_admission_evidence_context() -> tuple[str | None, str | None]:
+    packet_reference = os.environ.get(_STAGE_WRITE_ADMISSION_PACKET_REF_ENV, "").strip() or None
+    operator_id = os.environ.get(_STAGE_WRITE_ADMISSION_OPERATOR_ID_ENV, "").strip() or None
+    return packet_reference, operator_id
 
 
 def _planned_manifest_sha256(
@@ -1241,6 +1249,9 @@ class AssetForgeService:
         overwrite_policy = request.overwrite_policy.strip().lower() or "deny"
         overwrite_policy_supported = overwrite_policy in _SUPPORTED_STAGE_WRITE_OVERWRITE_POLICIES
         admission_flag_enabled, admission_flag_state = _resolve_stage_write_admission_flag_state()
+        admission_packet_reference, admission_operator_id = _resolve_stage_write_admission_evidence_context()
+        operator_note_present = bool(request.approval_note.strip())
+        admission_evidence_ready = False
         server_approval_evaluation = self._evaluate_server_approval_session(
             approval_session_id=request.approval_session_id,
             expected_capability=_STAGE_WRITE_APPROVAL_CAPABILITY,
@@ -1358,6 +1369,10 @@ class AssetForgeService:
             )
             fail_closed_reasons.append("overwrite_detected")
 
+        if request.approval_state == "approved" and not operator_note_present:
+            warnings.append("approval_note is required when approval_state=approved.")
+            fail_closed_reasons.append("operator_note_missing")
+
         if admission_flag_state == "invalid_default_off":
             warnings.append(
                 f"Admission flag {_STAGE_WRITE_ADMISSION_FLAG_ENV} is malformed; defaulting to fail-closed off."
@@ -1369,6 +1384,26 @@ class AssetForgeService:
             )
             fail_closed_reasons.append("admission_flag_disabled_or_missing")
         else:
+            if admission_packet_reference is None:
+                warnings.append(
+                    f"Admission packet reference {_STAGE_WRITE_ADMISSION_PACKET_REF_ENV} is required when the admission flag is on."
+                )
+                fail_closed_reasons.append("admission_packet_reference_missing")
+            if admission_operator_id is None:
+                warnings.append(
+                    f"Admission operator identity {_STAGE_WRITE_ADMISSION_OPERATOR_ID_ENV} is required when the admission flag is on."
+                )
+                fail_closed_reasons.append("admission_operator_id_missing")
+            admission_evidence_ready = (
+                admission_packet_reference is not None
+                and admission_operator_id is not None
+                and (request.approval_state != "approved" or operator_note_present)
+            )
+            if not admission_evidence_ready:
+                warnings.append(
+                    "Admission evidence is incomplete; proof-only stage-write execution remains fail-closed."
+                )
+                fail_closed_reasons.append("admission_evidence_incomplete")
             warnings.append(
                 "Admission flag is on, but proof-only stage-write execution is not implemented in this packet."
             )
@@ -1397,6 +1432,10 @@ class AssetForgeService:
             admission_flag_name=_STAGE_WRITE_ADMISSION_FLAG_NAME,
             admission_flag_state=admission_flag_state,
             admission_flag_enabled=admission_flag_enabled,
+            admission_packet_reference=admission_packet_reference,
+            admission_operator_id=admission_operator_id,
+            operator_note_present=operator_note_present,
+            admission_evidence_ready=admission_evidence_ready,
             normalized_destination_path=stage_relative_path,
             destination_within_staging_root=destination_within_staging_root,
             staging_root_allowlisted=staging_root_allowlisted,

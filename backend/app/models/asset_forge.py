@@ -257,6 +257,10 @@ class AssetForgeO3DEStageWriteRecord(BaseModel):
         "invalid_default_off",
     ]
     admission_flag_enabled: bool
+    admission_packet_reference: str | None = None
+    admission_operator_id: str | None = None
+    operator_note_present: bool
+    admission_evidence_ready: bool
     normalized_destination_path: str = Field(..., min_length=1)
     destination_within_staging_root: bool
     staging_root_allowlisted: bool

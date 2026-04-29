@@ -6,6 +6,8 @@ Design-only. No mutation admitted by this document.
 Implementation status (current):
 - server-owned admission-flag metadata plumbing is implemented with default-off fail-closed parsing
 - malformed flag values fail closed
+- server-owned admission evidence metadata is surfaced (`admission_packet_reference`, `admission_operator_id`, `operator_note_present`, `admission_evidence_ready`)
+- when the admission flag is on, missing packet reference/operator identity/operator note evidence fails closed
 - client override attempts are ignored
 - stage-write execution is still blocked
 - this is not an admitted execution path

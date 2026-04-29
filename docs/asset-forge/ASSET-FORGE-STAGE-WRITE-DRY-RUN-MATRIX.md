@@ -14,6 +14,10 @@ The stage-write endpoint now reports these dry-run-only fields:
 - `admission_flag_name`
 - `admission_flag_state`
 - `admission_flag_enabled`
+- `admission_packet_reference`
+- `admission_operator_id`
+- `operator_note_present`
+- `admission_evidence_ready`
 - `write_executed`
 - `project_write_admitted`
 - `normalized_destination_path`
@@ -38,6 +42,10 @@ The stage-write endpoint now reports these dry-run-only fields:
 - fingerprint mismatch fails closed
 - admission flag missing/off fails closed by default
 - malformed admission flag fails closed
+- admission flag on with missing server admission packet reference fails closed
+- admission flag on with missing server admission operator identity fails closed
+- approval state approved without operator note fails closed
+- incomplete admission evidence remains blocked
 - admission flag true still stays blocked until proof-only execution is explicitly implemented
 - path traversal fails closed
 - destination outside allowlisted staging root fails closed
@@ -58,4 +66,4 @@ This packet does not:
 - authorize from client approval fields
 
 ## Next packet
-Implement the server-owned admission flag as an explicit default-off gate with fail-closed behavior and bounded proof-only execution constraints, still without broad mutation admission.
+Keep stage-write blocked and add proof-only execution evidence-bundle/readback/revert contract checks behind explicit server-owned policy, still default fail-closed and still no broad mutation admission.
