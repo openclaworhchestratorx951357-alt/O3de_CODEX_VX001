@@ -130,7 +130,8 @@ Why:
 
 Status:
 - completed in `docs/FLOW-TRIGGER-SUITE-PRODUCTIZATION-PLAN.md`
-- next safe gate is Flow Trigger Suite audit-gate checklist packet
+- audit-gate checklist completed in `docs/FLOW-TRIGGER-SUITE-AUDIT-GATE-CHECKLIST.md`
+- next safe gate is Flow Trigger Suite threat-model design packet
 
 ## What stays blocked globally
 - arbitrary shell execution
