@@ -63,8 +63,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Validation intake endpoint-candidate exact public-admission contract:
+Validation intake endpoint-candidate read-only admission readiness checklist:
 
-- define exact public wording for current endpoint-candidate truth state
-- lock explicit non-goals/refusal wording for out-of-corridor requests
-- define evidence gates required before any read-only admission update
+- map each admission evidence gate to concrete test/doc proof
+- keep admission withheld while any gate is unresolved
+- preserve exact public contract wording and refusal boundaries
