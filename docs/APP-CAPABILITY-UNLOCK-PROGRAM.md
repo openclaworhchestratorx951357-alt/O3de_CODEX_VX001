@@ -15,6 +15,7 @@ The following patterns are now established:
 - Codex Flow Trigger Suite awareness
 - app-wide capability dashboard shell (static fixture first)
 - editor authoring review/restore baseline audit
+- project/config readiness baseline audit
 
 ## App-wide domains
 
