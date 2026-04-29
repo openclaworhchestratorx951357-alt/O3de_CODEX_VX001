@@ -1,17 +1,19 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Editor Authoring Review/Restore Lane baseline audit.
+Project/Config Readiness Lane baseline audit.
 
 ## Why this is next
-- The app-wide dashboard shell now provides the cross-domain truth surface needed for safer sequencing decisions.
-- Editor review/restore baselining is a high-leverage lane that supports both existing editor corridors and future Asset Forge placement work.
-- A baseline audit can improve safety without admitting new execution paths.
+- Editor baseline truth is now checkpointed, so the next safest breadth move is
+  project/config readiness audit across inspect/patch/rollback/build-preflight
+  lanes.
+- This expands app-wide coverage without admitting new execution.
+- It reduces cross-domain drift before future unlock packets.
 
 ## Scope
 - docs+backend-read-only audit
-- capture current editor capability maturity and gaps
-- verify review/restore evidence requirements
+- capture current project/config capability maturity and gaps
+- verify inspect/patch/rollback/build-preflight evidence requirements
 - no backend mutation admission
 - no execution admission changes
 
@@ -23,12 +25,14 @@ Editor Authoring Review/Restore Lane baseline audit.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- baseline report covers editor session/level/entity/component/property lanes
+- baseline report covers project/config inspect/patch/rollback/build-preflight lanes
 - maturity labels remain conservative and evidence-backed
 - blocked/forbidden surfaces stay explicit
 - no runtime execution behavior changes in this packet
 
 ## Alternative considered
-Project/Config Readiness Lane baseline audit.
+Editor placement plan matrix (dry-run only).
 
-This remains valid, but editor baseline audit is recommended first because it compounds the value of currently admitted editor corridors and sharpens the next safe unlock candidates.
+This remains valid, but project/config baseline audit is recommended first to
+broaden cross-domain truth coverage before adding new editor or placement
+planning surfaces.
