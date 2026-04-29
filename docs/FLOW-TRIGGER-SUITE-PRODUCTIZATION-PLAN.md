@@ -105,4 +105,8 @@ Audit-gate checklist status:
 Threat-model design status:
 
 - completed in `docs/FLOW-TRIGGER-SUITE-THREAT-MODEL-DESIGN.md`
-- next safe gate is Flow Trigger Suite implementation touchpoint
+
+Implementation touchpoint status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-IMPLEMENTATION-TOUCHPOINT.md`
+- next safe gate is Flow Trigger Suite validation packet
