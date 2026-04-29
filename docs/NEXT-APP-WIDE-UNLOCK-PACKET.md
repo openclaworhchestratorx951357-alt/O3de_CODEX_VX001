@@ -1,23 +1,21 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake endpoint-candidate admission audit/review packet.
+CI admission design packet.
 
 ## Why this is next
-- Capability, audit, evidence timeline, approval/session, and workspace-status
-  shells now exist.
-- Validation intake endpoint-candidate dry-run implementation now exists behind
-  a server-owned default-off admission flag.
-- The next safest move is an explicit admission audit/review packet that proves
-  gate semantics, refusal coverage, and operator-facing truth labels before any
-  broader read-only admission claim.
+- Validation intake endpoint-candidate admission audit/review coverage is now
+  documented for gate semantics, refusal matrix, and operator-facing truth.
+- The next missing validation gate is explicit CI/test execution admission
+  design with bounded allowlist and proof requirements.
+- This preserves fail-closed posture while preparing a reviewable design-only
+  path for future execution-admission decisions.
 
 ## Scope
-- docs+tests focused packet (optional small backend metadata only)
-- audit endpoint gate states (`missing_default_off`, `explicit_off`,
-  `explicit_on`, `invalid_default_off`)
-- verify fail-closed refusal matrix on malformed/auth-tainted payloads
-- define and verify operator-facing review/status fields for endpoint outcomes
+- docs/design focused packet
+- define CI/test execution capability boundary and allowlist model
+- define timeout, provenance, and refusal requirements
+- define evidence and revert requirements for any future admission revisit
 - no execution or mutation admission changes
 
 ## Safety constraints
@@ -28,16 +26,14 @@ Validation intake endpoint-candidate admission audit/review packet.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- endpoint remains blocked for missing/invalid/explicit-off flag states
-- explicit-on path remains dry-run-only with write/execution flags false
-- dispatch path for `validation.report.intake` remains unadmitted
-- review/status output remains truthful and fail-closed
+- CI/test execution boundaries are explicit and fail-closed
+- allowlist and refusal semantics are concrete and reviewable
+- evidence/revert requirements are explicit before any admission change
 - no mutation/execution admission changes
-- targeted backend tests cover refusal matrix and gate-state transitions
+- docs and matrices remain aligned on the same capability truth
 
 ## Alternative considered
-Flow Trigger Suite productization plan.
+Validation intake endpoint-candidate admission audit/review packet.
 
-This remains valid, but validation-intake admission audit/review is recommended
-first to harden the new endpoint-candidate boundary before broader workflow
-automation work.
+This packet is now completed and should be treated as input evidence for CI
+admission design.
