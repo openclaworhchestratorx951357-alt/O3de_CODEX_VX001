@@ -483,6 +483,12 @@ class SchemaValidationService:
             ("test.visual.diff", "artifact-metadata"): (
                 "schemas/tools/test.visual.diff.artifact-metadata.schema.json"
             ),
+            ("validation.report.intake", "execution-details"): (
+                "schemas/tools/validation.report.intake.execution-details.schema.json"
+            ),
+            ("validation.report.intake", "artifact-metadata"): (
+                "schemas/tools/validation.report.intake.artifact-metadata.schema.json"
+            ),
             ("project.inspect", "execution-details"): (
                 "schemas/tools/project.inspect.execution-details.schema.json"
             ),
