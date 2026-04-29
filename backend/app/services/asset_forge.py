@@ -226,15 +226,15 @@ def _resolve_stage_write_proof_contract_context() -> tuple[str | None, str | Non
     )
 
 
-def _planned_manifest_sha256(
+def _planned_stage_write_manifest_payload(
     *,
     candidate_id: str,
     candidate_label: str,
     stage_relative_path: str,
     manifest_relative_path: str,
     source_artifact_path: str,
-) -> str:
-    payload = {
+) -> dict[str, str]:
+    return {
         "schema": "asset_forge.stage_write_manifest.v1",
         "corridor_name": _STAGE_WRITE_CORRIDOR_NAME,
         "candidate_id": candidate_id,
@@ -243,8 +243,42 @@ def _planned_manifest_sha256(
         "manifest_relative_path": manifest_relative_path,
         "source_artifact_path": source_artifact_path,
     }
+
+
+def _planned_stage_write_manifest_bytes(
+    *,
+    candidate_id: str,
+    candidate_label: str,
+    stage_relative_path: str,
+    manifest_relative_path: str,
+    source_artifact_path: str,
+) -> bytes:
+    payload = _planned_stage_write_manifest_payload(
+        candidate_id=candidate_id,
+        candidate_label=candidate_label,
+        stage_relative_path=stage_relative_path,
+        manifest_relative_path=manifest_relative_path,
+        source_artifact_path=source_artifact_path,
+    )
+    return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def _planned_manifest_sha256(
+    *,
+    candidate_id: str,
+    candidate_label: str,
+    stage_relative_path: str,
+    manifest_relative_path: str,
+    source_artifact_path: str,
+) -> str:
     return sha256(
-        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        _planned_stage_write_manifest_bytes(
+            candidate_id=candidate_id,
+            candidate_label=candidate_label,
+            stage_relative_path=stage_relative_path,
+            manifest_relative_path=manifest_relative_path,
+            source_artifact_path=source_artifact_path,
+        )
     ).hexdigest()
 
 
@@ -1252,6 +1286,7 @@ class AssetForgeService:
             manifest_relative_path
         )
         stage_prefix_allowed = stage_relative_path.startswith(_ALLOWED_STAGE_ROOT_PREFIX)
+        destination_extension_allowed = Path(stage_relative_path).suffix.lower() in _ALLOWED_STAGE_DEST_EXTENSIONS
         manifest_prefix_allowed = manifest_relative_path.startswith(_ALLOWED_STAGE_ROOT_PREFIX)
         manifest_suffix_allowed = manifest_relative_path.endswith(".forge.json")
         staging_root_allowlisted = stage_prefix_allowed and manifest_prefix_allowed
@@ -1260,6 +1295,13 @@ class AssetForgeService:
         source_hash_expected = (request.source_hash_expected or "").strip().lower() or None
         manifest_hash_expected = (request.manifest_hash_expected or "").strip().lower() or None
         source_hash_match = bool(source_hash_expected and source_sha256 and source_sha256 == source_hash_expected)
+        planned_manifest_bytes = _planned_stage_write_manifest_bytes(
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            stage_relative_path=stage_relative_path,
+            manifest_relative_path=manifest_relative_path,
+            source_artifact_path=source_input,
+        )
         planned_manifest_sha256 = _planned_manifest_sha256(
             candidate_id=request.candidate_id,
             candidate_label=request.candidate_label,
@@ -1326,7 +1368,7 @@ class AssetForgeService:
 
         warnings = [
             "Stage write corridor is approval-gated and path-bounded.",
-            "Dry-run planning metadata only. No project mutation is executed in this packet.",
+            "Proof-only execution is allowed only when all server-owned gates pass; otherwise this endpoint remains dry-run-only and blocked.",
             "Client approval fields remain intent-only and never authorize mutation.",
         ]
         warnings.append(server_approval_evaluation.reason)
@@ -1335,7 +1377,10 @@ class AssetForgeService:
             for path in [destination_source_path, destination_manifest_path]
             if path is not None
         ]
-        fail_closed_reasons = [f"server_approval:{server_approval_evaluation.decision_code}"]
+        fail_closed_reasons: list[str] = []
+
+        if not server_approval_evaluation.policy_would_allow_if_mutation_admitted:
+            fail_closed_reasons.append(f"server_approval:{server_approval_evaluation.decision_code}")
 
         if not project_root_raw:
             warnings.append("O3DE_TARGET_PROJECT_ROOT is not configured.")
@@ -1357,6 +1402,9 @@ class AssetForgeService:
         if not manifest_suffix_allowed:
             warnings.append("Manifest relative path must end with .forge.json.")
             fail_closed_reasons.append("manifest_suffix_not_allowlisted")
+        if not destination_extension_allowed:
+            warnings.append("Destination source path extension is not allowlisted for stage-write corridor.")
+            fail_closed_reasons.append("destination_extension_not_allowlisted")
 
         if project_root_path and not destination_paths_within_project_root:
             warnings.append("Resolved destination paths must stay within the configured project root.")
@@ -1474,22 +1522,155 @@ class AssetForgeService:
                     "Admission evidence is incomplete; proof-only stage-write execution remains fail-closed."
                 )
                 fail_closed_reasons.append("admission_evidence_incomplete")
-            warnings.append(
-                "Admission flag is on, but proof-only stage-write execution is not implemented in this packet."
-            )
-            fail_closed_reasons.append("proof_only_execution_not_implemented")
 
-        warnings.append(
-            "Stage write execution remains blocked in this packet because mutation admission is not enabled."
+        execution_admitted = (
+            admission_flag_enabled
+            and admission_evidence_ready
+            and server_approval_evaluation.policy_would_allow_if_mutation_admitted
+            and source_exists
+            and source_hash_match
+            and manifest_hash_match
+            and overwrite_policy_supported
+            and destination_within_staging_root
+            and destination_paths_within_project_root
+            and source_within_runtime
+            and source_extension_allowed
+            and destination_extension_allowed
+            and source_size_within_cap
+            and not overwrite_detected
+            and not path_traversal_detected
+            and staging_root_allowlisted
+            and manifest_suffix_allowed
+            and not fail_closed_reasons
         )
-        fail_closed_reasons.append("mutation_admission_not_enabled")
+
+        dry_run_only = True
+        write_status: Literal["approval-required", "succeeded", "blocked", "failed"] = "blocked"
+        write_executed = False
+        project_write_admitted = False
+        bytes_copied = source_size
+        destination_sha256: str | None = None
+        manifest_sha256: str | None = None
+        post_write_readback: dict[str, object] = {
+            "source_exists": source_exists,
+            "destination_exists": destination_source_path.is_file() if destination_source_path else False,
+            "manifest_exists": destination_manifest_path.is_file() if destination_manifest_path else False,
+        }
+        safest_next_step = (
+            "Keep stage-write blocked and use dry-run proofs to validate bounded corridor constraints before any proof-only execution packet."
+        )
+
+        if execution_admitted:
+            dry_run_only = False
+            project_write_admitted = True
+            warnings.append(
+                "Proof-only stage-write execution is admitted for this exact request envelope and bounded corridor."
+            )
+            try:
+                assert destination_source_path is not None
+                assert destination_manifest_path is not None
+                assert project_root_path is not None
+
+                destination_source_path.parent.mkdir(parents=True, exist_ok=True)
+                destination_manifest_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source_path, destination_source_path)
+                destination_manifest_path.write_bytes(planned_manifest_bytes)
+
+                destination_sha256 = _sha256_file(destination_source_path)
+                manifest_sha256 = _sha256_file(destination_manifest_path)
+                destination_hash_matches_expected = bool(
+                    destination_sha256 and source_hash_expected and destination_sha256 == source_hash_expected
+                )
+                manifest_hash_matches_expected = bool(
+                    manifest_sha256 and manifest_hash_expected and manifest_sha256 == manifest_hash_expected
+                )
+
+                post_write_readback.update(
+                    {
+                        "destination_exists": destination_source_path.is_file(),
+                        "manifest_exists": destination_manifest_path.is_file(),
+                        "destination_sha256": destination_sha256,
+                        "manifest_sha256": manifest_sha256,
+                        "destination_hash_matches_expected": destination_hash_matches_expected,
+                        "manifest_hash_matches_expected": manifest_hash_matches_expected,
+                    }
+                )
+
+                if destination_hash_matches_expected and manifest_hash_matches_expected:
+                    write_status = "succeeded"
+                    write_executed = True
+                    fail_closed_reasons = []
+                    safest_next_step = (
+                        "Run read-only ingest/readback evidence capture for the staged paths and keep placement blocked until a separate packet admits it."
+                    )
+                else:
+                    write_status = "failed"
+                    write_executed = True
+                    if not destination_hash_matches_expected:
+                        fail_closed_reasons.append("post_write_source_readback_mismatch")
+                    if not manifest_hash_matches_expected:
+                        fail_closed_reasons.append("post_write_manifest_readback_mismatch")
+                    warnings.append(
+                        "Post-write readback verification failed; exact-scope revert was applied for the staged files."
+                    )
+                    for revert_path in [destination_manifest_path, destination_source_path]:
+                        if (
+                            revert_path.exists()
+                            and _path_within_root(revert_path, project_root_path)
+                            and _normalize_project_relative_path(
+                                str(revert_path.relative_to(project_root_path))
+                            )
+                            in {stage_relative_path, manifest_relative_path}
+                        ):
+                            revert_path.unlink()
+                    post_write_readback["revert_applied_on_failure"] = True
+                    post_write_readback["destination_exists_after_revert"] = destination_source_path.exists()
+                    post_write_readback["manifest_exists_after_revert"] = destination_manifest_path.exists()
+                    safest_next_step = (
+                        "Inspect proof-only stage-write readback mismatch and keep corridor blocked until mismatch cause is resolved."
+                    )
+            except (AssertionError, OSError, ValueError) as exc:
+                write_status = "failed"
+                fail_closed_reasons.append("stage_write_execution_failed")
+                warnings.append(f"Proof-only stage-write execution failed safely: {exc}")
+                if destination_source_path and destination_source_path.exists():
+                    write_executed = True
+                if destination_manifest_path and destination_manifest_path.exists():
+                    write_executed = True
+                if project_root_path is not None:
+                    for revert_path in [destination_manifest_path, destination_source_path]:
+                        if (
+                            revert_path is not None
+                            and revert_path.exists()
+                            and _path_within_root(revert_path, project_root_path)
+                            and _normalize_project_relative_path(
+                                str(revert_path.relative_to(project_root_path))
+                            )
+                            in {stage_relative_path, manifest_relative_path}
+                        ):
+                            revert_path.unlink()
+                post_write_readback["revert_applied_on_failure"] = True
+                post_write_readback["destination_exists_after_revert"] = (
+                    destination_source_path.exists() if destination_source_path else False
+                )
+                post_write_readback["manifest_exists_after_revert"] = (
+                    destination_manifest_path.exists() if destination_manifest_path else False
+                )
+                safest_next_step = (
+                    "Inspect proof-only stage-write failure evidence and keep the corridor fail-closed until root cause is fixed."
+                )
+        else:
+            warnings.append(
+                "Stage write execution remains blocked in this request because at least one fail-closed gate did not pass."
+            )
+            fail_closed_reasons.append("mutation_admission_not_enabled")
 
         fail_closed_reasons = list(dict.fromkeys(fail_closed_reasons))
 
         return AssetForgeO3DEStageWriteRecord(
             capability_name="asset_forge.o3de.stage.write",
             maturity="approval-gated-write",
-            write_status="blocked",
+            write_status=write_status,
             candidate_id=request.candidate_id,
             candidate_label=request.candidate_label,
             project_root=str(project_root_path) if project_root_path else None,
@@ -1497,8 +1678,8 @@ class AssetForgeService:
             destination_source_asset_path=str(destination_source_path) if destination_source_path else None,
             destination_manifest_path=str(destination_manifest_path) if destination_manifest_path else None,
             corridor_name=_STAGE_WRITE_CORRIDOR_NAME,
-            dry_run_only=True,
-            execution_admitted=False,
+            dry_run_only=dry_run_only,
+            execution_admitted=execution_admitted,
             admission_flag_name=_STAGE_WRITE_ADMISSION_FLAG_NAME,
             admission_flag_state=admission_flag_state,
             admission_flag_enabled=admission_flag_enabled,
@@ -1527,20 +1708,16 @@ class AssetForgeService:
             approval_state=request.approval_state,
             server_approval_session_id=request.approval_session_id,
             server_approval_evaluation=server_approval_evaluation,
-            write_executed=False,
-            project_write_admitted=False,
-            bytes_copied=source_size,
+            write_executed=write_executed,
+            project_write_admitted=project_write_admitted,
+            bytes_copied=bytes_copied,
             source_sha256=source_sha256,
-            post_write_readback={
-                "source_exists": source_exists,
-                "destination_exists": destination_source_path.is_file() if destination_source_path else False,
-                "manifest_exists": destination_manifest_path.is_file() if destination_manifest_path else False,
-            },
+            destination_sha256=destination_sha256,
+            manifest_sha256=manifest_sha256,
+            post_write_readback=post_write_readback,
             revert_paths=revert_paths,
             warnings=warnings,
-            safest_next_step=(
-                "Keep stage-write blocked and use dry-run proofs to validate bounded corridor constraints before any proof-only execution packet."
-            ),
+            safest_next_step=safest_next_step,
             source="asset-forge-o3de-stage-write",
         )
 

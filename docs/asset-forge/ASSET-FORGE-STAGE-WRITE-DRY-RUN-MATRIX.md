@@ -1,7 +1,9 @@
 # Asset Forge Stage-Write Dry-Run Matrix
 
 ## Status
-Implemented as dry-run metadata and fail-closed tests only. No mutation admitted.
+Implemented as dry-run metadata + fail-closed matrix for blocked paths.
+
+Default remains fail-closed and blocked. A separate fully gated proof-only execution path now exists and is documented in `ASSET-FORGE-STAGE-WRITE-PROOF-ONLY-EXECUTION.md`.
 
 ## Corridor
 - `asset_forge.o3de.stage_write.v1`
@@ -77,4 +79,4 @@ This packet does not:
 - authorize from client approval fields
 
 ## Next packet
-Keep stage-write blocked and implement proof-only execution behind explicit server-owned policy with post-write readback verification and exact revert enforcement, still default fail-closed and still no broad mutation admission.
+Bridge proof-only stage-write execution results into bounded O3DE ingest/readback evidence review (assetdb/catalog visibility) without admitting placement or broader mutation.

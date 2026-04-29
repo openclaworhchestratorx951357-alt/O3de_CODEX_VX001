@@ -699,8 +699,8 @@ def test_asset_forge_o3de_stage_write_stays_blocked_even_when_client_claims_appr
                 )
                 assert "server_approval:missing_session" in payload["fail_closed_reasons"]
                 assert any(
-                    "mutation admission is not enabled"
-                    in warning
+                    "stage write execution remains blocked"
+                    in warning.lower()
                     for warning in payload["warnings"]
                 )
 
@@ -1119,7 +1119,7 @@ def test_asset_forge_o3de_stage_write_reports_ready_but_not_admitted_for_approve
                 assert not (project_root / manifest_relative).exists()
 
 
-def test_asset_forge_o3de_stage_write_valid_dry_run_still_blocks_execution() -> None:
+def test_asset_forge_o3de_stage_write_proof_only_execution_writes_exact_scope_when_fully_gated() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir, TemporaryDirectory(
         ignore_cleanup_errors=True
     ) as project_dir:
@@ -1199,8 +1199,11 @@ def test_asset_forge_o3de_stage_write_valid_dry_run_still_blocks_execution() -> 
                 )
                 assert response.status_code == 200
                 payload = response.json()
-                _assert_stage_write_dry_run_fields(payload)
-                assert payload["write_status"] == "blocked"
+                assert payload["write_status"] == "succeeded"
+                assert payload["dry_run_only"] is False
+                assert payload["execution_admitted"] is True
+                assert payload["write_executed"] is True
+                assert payload["project_write_admitted"] is True
                 assert payload["server_approval_evaluation"]["decision_state"] == "ready_but_not_admitted"
                 assert payload["source_hash_expected"] == source_hash_expected
                 assert payload["manifest_hash_expected"] == manifest_hash_expected
@@ -1219,10 +1222,25 @@ def test_asset_forge_o3de_stage_write_valid_dry_run_still_blocks_execution() -> 
                 assert payload["post_write_readback_plan_ready"] is True
                 assert payload["revert_plan_ready"] is True
                 assert payload["revert_plan_exact_scope"] is True
-                assert "proof_only_execution_not_implemented" in payload["fail_closed_reasons"]
-                assert "mutation_admission_not_enabled" in payload["fail_closed_reasons"]
-                assert not (project_root / stage_relative).exists()
-                assert not (project_root / manifest_relative).exists()
+                assert payload["fail_closed_reasons"] == []
+                destination_path = project_root / stage_relative
+                manifest_path = project_root / manifest_relative
+                assert destination_path.exists()
+                assert manifest_path.exists()
+                assert destination_path.read_bytes() == source_bytes
+                assert payload["destination_sha256"] == source_hash_expected
+                assert payload["manifest_sha256"] == manifest_hash_expected
+                assert payload["post_write_readback"]["destination_hash_matches_expected"] is True
+                assert payload["post_write_readback"]["manifest_hash_matches_expected"] is True
+                assert json.loads(manifest_path.read_text(encoding="utf-8")) == {
+                    "schema": "asset_forge.stage_write_manifest.v1",
+                    "corridor_name": "asset_forge.o3de.stage_write.v1",
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "stage_relative_path": stage_relative,
+                    "manifest_relative_path": manifest_relative,
+                    "source_artifact_path": source_artifact_path,
+                }
 
 
 def test_asset_forge_o3de_stage_write_admission_flag_missing_defaults_off() -> None:
@@ -1413,7 +1431,7 @@ def test_asset_forge_o3de_stage_write_admission_flag_on_without_server_evidence_
                 assert "revert_plan_reference_missing" in payload["fail_closed_reasons"]
                 assert "revert_allowed_paths_missing" in payload["fail_closed_reasons"]
                 assert "admission_evidence_incomplete" in payload["fail_closed_reasons"]
-                assert "proof_only_execution_not_implemented" in payload["fail_closed_reasons"]
+                assert "mutation_admission_not_enabled" in payload["fail_closed_reasons"]
                 assert payload["write_status"] == "blocked"
 
 
