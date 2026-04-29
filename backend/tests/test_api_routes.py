@@ -2315,6 +2315,23 @@ def test_asset_forge_o3de_placement_plan_blocks_invalid_paths() -> None:
         assert payload["source"] == "asset-forge-o3de-placement-plan"
 
 
+def _assert_placement_proof_fail_closed_fields(payload: dict[str, object]) -> None:
+    assert payload["capability_name"] == "asset_forge.o3de.placement.execute"
+    assert payload["corridor_name"] == "asset_forge.o3de.placement.proof.v1"
+    assert payload["maturity"] == "proof-only"
+    assert payload["proof_status"] == "blocked"
+    assert payload["dry_run_only"] is True
+    assert payload["execution_admitted"] is False
+    assert payload["placement_write_admitted"] is False
+    assert payload["placement_execution_status"] == "blocked"
+    assert payload["write_occurred"] is False
+    assert isinstance(payload["stage_write_corridor_name"], str)
+    assert isinstance(payload["stage_write_evidence_ready"], bool)
+    assert isinstance(payload["stage_write_readback_ready"], bool)
+    assert isinstance(payload["fail_closed_reasons"], list)
+    assert payload["source"] == "asset-forge-o3de-placement-proof"
+
+
 def test_asset_forge_o3de_placement_proof_requires_approval() -> None:
     with isolated_client() as client:
         response = client.post(
@@ -2332,14 +2349,10 @@ def test_asset_forge_o3de_placement_proof_requires_approval() -> None:
         )
         assert response.status_code == 200
         payload = response.json()
-        assert payload["capability_name"] == "asset_forge.o3de.placement.execute"
-        assert payload["maturity"] == "proof-only"
-        assert payload["proof_status"] == "blocked"
+        _assert_placement_proof_fail_closed_fields(payload)
         assert payload["placement_proof_policy"]["approval_required"] is True
         assert payload["placement_proof_policy"]["runtime_gate_env"] == "ASSET_FORGE_ENABLE_PLACEMENT_PROOF"
-        assert payload["placement_execution_status"] == "blocked"
-        assert payload["write_occurred"] is False
-        assert payload["source"] == "asset-forge-o3de-placement-proof"
+        assert "approval_state_not_approved" in payload["fail_closed_reasons"]
 
 
 def test_asset_forge_o3de_placement_proof_blocked_when_runtime_gate_disabled() -> None:
@@ -2360,14 +2373,40 @@ def test_asset_forge_o3de_placement_proof_blocked_when_runtime_gate_disabled() -
             )
             assert response.status_code == 200
             payload = response.json()
-            assert payload["capability_name"] == "asset_forge.o3de.placement.execute"
-            assert payload["maturity"] == "proof-only"
-            assert payload["proof_status"] == "blocked"
+            _assert_placement_proof_fail_closed_fields(payload)
             assert payload["placement_proof_policy"]["mutation_scope"] == "proof-only-no-scene-mutation"
             assert payload["proof_runtime_gate_enabled"] is False
-            assert payload["placement_execution_status"] == "blocked"
-            assert payload["write_occurred"] is False
-            assert payload["source"] == "asset-forge-o3de-placement-proof"
+            assert "stage_write_evidence_reference_missing" in payload["fail_closed_reasons"]
+            assert "stage_write_readback_reference_missing" in payload["fail_closed_reasons"]
+            assert "stage_write_readback_not_succeeded" in payload["fail_closed_reasons"]
+
+
+def test_asset_forge_o3de_placement_proof_ready_looking_evidence_stays_blocked() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/asset-forge/o3de/placement-proof",
+            json={
+                "candidate_id": "candidate-a",
+                "candidate_label": "Weathered Ivy Arch",
+                "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                "target_entity_name": "AssetForgeCandidateA",
+                "target_component": "Mesh",
+                "approval_state": "approved",
+                "approval_note": "ready-looking evidence",
+                "stage_write_corridor_name": "asset_forge.o3de.stage_write.v1",
+                "stage_write_evidence_reference": "packet-10/stage-write-evidence.json",
+                "stage_write_readback_reference": "packet-10/readback-evidence.json",
+                "stage_write_readback_status": "succeeded",
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        _assert_placement_proof_fail_closed_fields(payload)
+        assert payload["stage_write_evidence_ready"] is True
+        assert payload["stage_write_readback_ready"] is True
+        assert "placement_proof_execution_not_admitted" in payload["fail_closed_reasons"]
+        assert "server_approval:missing_session" in payload["fail_closed_reasons"]
 
 
 def test_asset_forge_o3de_placement_evidence_blocks_without_project_root() -> None:

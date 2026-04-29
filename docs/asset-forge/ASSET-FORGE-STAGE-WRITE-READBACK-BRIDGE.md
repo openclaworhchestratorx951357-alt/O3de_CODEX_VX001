@@ -57,6 +57,5 @@ This packet does not:
   step (operator-managed Asset Processor refresh outside this endpoint).
 
 ## Next packet
-Placement proof-only design/readiness update that consumes the bridged
-stage-write/readback evidence contract while keeping placement execution
-blocked by default.
+Placement proof admission-flag design and gate-contract packet, default off
+and fail-closed, before any runtime placement execution work.

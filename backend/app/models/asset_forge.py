@@ -382,12 +382,22 @@ class AssetForgeO3DEPlacementProofRequest(BaseModel):
     approval_state: Literal["not-approved", "approved"] = "not-approved"
     approval_note: str = Field(default="", min_length=0)
     approval_session_id: str | None = None
+    stage_write_corridor_name: str = Field(
+        default="asset_forge.o3de.stage_write.v1",
+        min_length=1,
+    )
+    stage_write_evidence_reference: str = Field(default="", min_length=0)
+    stage_write_readback_reference: str = Field(default="", min_length=0)
+    stage_write_readback_status: Literal["not_run", "blocked", "failed", "succeeded"] = "not_run"
 
 
 class AssetForgeO3DEPlacementProofRecord(BaseModel):
     capability_name: str = Field(..., min_length=1)
+    corridor_name: str = Field(..., min_length=1)
     maturity: Literal["proof-only"]
     proof_status: Literal["approval-required", "blocked", "ready-for-runtime-proof"]
+    dry_run_only: bool
+    execution_admitted: bool
     candidate_id: str = Field(..., min_length=1)
     candidate_label: str = Field(..., min_length=1)
     staged_source_relative_path: str = Field(..., min_length=1)
@@ -398,6 +408,14 @@ class AssetForgeO3DEPlacementProofRecord(BaseModel):
     approval_state: Literal["not-approved", "approved"]
     server_approval_session_id: str | None = None
     server_approval_evaluation: AssetForgeServerApprovalDecisionRecord
+    placement_write_admitted: bool
+    stage_write_corridor_name: str = Field(..., min_length=1)
+    stage_write_evidence_reference: str = Field(default="", min_length=0)
+    stage_write_readback_reference: str = Field(default="", min_length=0)
+    stage_write_readback_status: Literal["not_run", "blocked", "failed", "succeeded"]
+    stage_write_evidence_ready: bool
+    stage_write_readback_ready: bool
+    fail_closed_reasons: list[str] = Field(default_factory=list)
     placement_proof_policy: dict[str, object] = Field(default_factory=dict)
     placement_execution_status: Literal["blocked"]
     proof_runtime_gate_enabled: bool

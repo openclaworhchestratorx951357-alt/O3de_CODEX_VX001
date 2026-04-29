@@ -2153,28 +2153,80 @@ class AssetForgeService:
             ),
         )
         target_component = request.target_component.strip() or "Mesh"
+        requested_stage_write_corridor_name = request.stage_write_corridor_name.strip()
+        stage_write_evidence_reference = request.stage_write_evidence_reference.strip()
+        stage_write_readback_reference = request.stage_write_readback_reference.strip()
+        stage_write_readback_status = request.stage_write_readback_status
+        stage_write_evidence_ready = bool(stage_write_evidence_reference)
+        stage_write_readback_ready = (
+            bool(stage_write_readback_reference) and stage_write_readback_status == "succeeded"
+        )
+        staged_source_allowlisted = staged_source_relative_path.lower().startswith(
+            _ALLOWED_STAGE_ROOT_PREFIX.lower()
+        )
+        target_level_allowlisted = target_level_relative_path.lower().startswith("levels/") and (
+            target_level_relative_path.lower().endswith(".prefab")
+        )
+
+        fail_closed_reasons: list[str] = []
         warnings = [
-            "Packet 11 corridor is proof-only and exact-scope.",
+            "Placement corridor is proof-only and exact-scope.",
             "No broad prefab, level, or scene mutation is admitted.",
-            "Placement proof execution remains blocked in this packet because mutation admission is not enabled.",
+            "Placement proof execution remains blocked in this packet by default fail-closed policy.",
         ]
         warnings.append(server_approval_evaluation.reason)
+        if requested_stage_write_corridor_name != _STAGE_WRITE_CORRIDOR_NAME:
+            fail_closed_reasons.append("stage_write_corridor_mismatch")
+            warnings.append(
+                f"Stage-write corridor mismatch; expected '{_STAGE_WRITE_CORRIDOR_NAME}'."
+            )
+        if not stage_write_evidence_ready:
+            fail_closed_reasons.append("stage_write_evidence_reference_missing")
+            warnings.append("Stage-write evidence reference is required before placement proof readiness.")
+        if not stage_write_readback_reference:
+            fail_closed_reasons.append("stage_write_readback_reference_missing")
+            warnings.append("Stage-write readback reference is required before placement proof readiness.")
+        if stage_write_readback_status != "succeeded":
+            fail_closed_reasons.append("stage_write_readback_not_succeeded")
+            warnings.append(
+                "Stage-write readback status must be succeeded before placement proof can be considered."
+            )
+        if not staged_source_allowlisted:
+            fail_closed_reasons.append("staged_source_outside_allowlisted_prefix")
+            warnings.append("Staged source path must remain within Assets/Generated/asset_forge/.")
+        if not target_level_allowlisted:
+            fail_closed_reasons.append("target_level_outside_allowlisted_prefab_scope")
+            warnings.append("Target level path must remain within Levels/ and end with .prefab.")
+        if not server_approval_evaluation.policy_would_allow_if_mutation_admitted:
+            fail_closed_reasons.append(
+                f"server_approval:{server_approval_evaluation.decision_code}"
+            )
+
         placement_proof_policy: dict[str, object] = {
+            "corridor_name": "asset_forge.o3de.placement.proof.v1",
             "approval_required": True,
             "approval_note_required_when_approved": True,
             "runtime_gate_env": "ASSET_FORGE_ENABLE_PLACEMENT_PROOF",
             "runtime_gate_required": False,
             "placement_execution_admitted": False,
+            "dry_run_only": True,
             "mutation_scope": "proof-only-no-scene-mutation",
             "client_approval_is_intent_only": True,
+            "required_stage_write_corridor_name": _STAGE_WRITE_CORRIDOR_NAME,
+            "required_stage_write_readback_status": "succeeded",
+            "allowed_stage_prefix": _ALLOWED_STAGE_ROOT_PREFIX,
+            "allowed_level_prefix": "Levels/",
+            "allowed_level_suffix": ".prefab",
         }
 
-        if request.approval_state != "approved":
-            warnings.append("Approval state is not approved; runtime proof remains blocked.")
+        def _build_blocked_record(safest_next_step: str) -> AssetForgeO3DEPlacementProofRecord:
             return AssetForgeO3DEPlacementProofRecord(
                 capability_name="asset_forge.o3de.placement.execute",
+                corridor_name="asset_forge.o3de.placement.proof.v1",
                 maturity="proof-only",
                 proof_status="blocked",
+                dry_run_only=True,
+                execution_admitted=False,
                 candidate_id=request.candidate_id,
                 candidate_label=request.candidate_label,
                 staged_source_relative_path=staged_source_relative_path,
@@ -2185,68 +2237,43 @@ class AssetForgeService:
                 approval_state=request.approval_state,
                 server_approval_session_id=request.approval_session_id,
                 server_approval_evaluation=server_approval_evaluation,
+                placement_write_admitted=False,
+                stage_write_corridor_name=request.stage_write_corridor_name,
+                stage_write_evidence_reference=stage_write_evidence_reference,
+                stage_write_readback_reference=stage_write_readback_reference,
+                stage_write_readback_status=stage_write_readback_status,
+                stage_write_evidence_ready=stage_write_evidence_ready,
+                stage_write_readback_ready=stage_write_readback_ready,
+                fail_closed_reasons=fail_closed_reasons,
                 placement_proof_policy=placement_proof_policy,
                 placement_execution_status="blocked",
                 proof_runtime_gate_enabled=False,
                 write_occurred=False,
                 warnings=warnings,
-                safest_next_step=(
-                    "Keep this endpoint blocked; do not treat client approval fields as authorization."
-                ),
+                safest_next_step=safest_next_step,
                 source="asset-forge-o3de-placement-proof",
+            )
+
+        if request.approval_state != "approved":
+            fail_closed_reasons.append("approval_state_not_approved")
+            warnings.append("Approval state is not approved; runtime proof remains blocked.")
+            return _build_blocked_record(
+                "Keep this endpoint blocked; do not treat client approval fields as authorization."
             )
 
         if not request.approval_note.strip():
+            fail_closed_reasons.append("approval_note_missing")
             warnings.append("Approval note is required when approval_state is approved.")
-            return AssetForgeO3DEPlacementProofRecord(
-                capability_name="asset_forge.o3de.placement.execute",
-                maturity="proof-only",
-                proof_status="blocked",
-                candidate_id=request.candidate_id,
-                candidate_label=request.candidate_label,
-                staged_source_relative_path=staged_source_relative_path,
-                target_level_relative_path=target_level_relative_path,
-                target_entity_name=request.target_entity_name,
-                target_component=target_component,
-                approval_required=True,
-                approval_state=request.approval_state,
-                server_approval_session_id=request.approval_session_id,
-                server_approval_evaluation=server_approval_evaluation,
-                placement_proof_policy=placement_proof_policy,
-                placement_execution_status="blocked",
-                proof_runtime_gate_enabled=False,
-                write_occurred=False,
-                warnings=warnings,
-                safest_next_step="Keep this endpoint blocked even when approval fields are provided by the client.",
-                source="asset-forge-o3de-placement-proof",
+            return _build_blocked_record(
+                "Keep this endpoint blocked even when approval fields are provided by the client."
             )
 
         warnings.append(
-            "Client approval fields are recorded as intent only; no runtime proof execution is admitted in PR C."
+            "Client approval fields are recorded as intent only; placement execution remains non-admitted."
         )
-        return AssetForgeO3DEPlacementProofRecord(
-            capability_name="asset_forge.o3de.placement.execute",
-            maturity="proof-only",
-            proof_status="blocked",
-            candidate_id=request.candidate_id,
-            candidate_label=request.candidate_label,
-            staged_source_relative_path=staged_source_relative_path,
-            target_level_relative_path=target_level_relative_path,
-            target_entity_name=request.target_entity_name,
-            target_component=target_component,
-            approval_required=True,
-            approval_state=request.approval_state,
-            server_approval_session_id=request.approval_session_id,
-            server_approval_evaluation=server_approval_evaluation,
-            placement_proof_policy=placement_proof_policy,
-            placement_execution_status="blocked",
-            proof_runtime_gate_enabled=False,
-            write_occurred=False,
-            warnings=warnings,
-            safest_next_step=(
-                "Implement server-owned approval/session enforcement before enabling any placement proof execution path."
-            ),
-            source="asset-forge-o3de-placement-proof",
+        fail_closed_reasons.append("placement_proof_execution_not_admitted")
+        return _build_blocked_record(
+            "Use stage-write plus readback evidence to prepare placement design review; keep placement execution blocked by default."
         )
 
     def read_o3de_placement_evidence(

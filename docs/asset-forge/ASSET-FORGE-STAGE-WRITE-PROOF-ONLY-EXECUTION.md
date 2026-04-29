@@ -94,4 +94,4 @@ If execution write/readback fails:
   - missing gate evidence
 
 ## Next packet
-Placement proof-only design/readiness update that consumes stage-write + readback evidence while keeping placement execution blocked by default.
+Placement proof admission-flag design and gate-contract packet, default off and fail-closed, before any runtime placement execution work.
