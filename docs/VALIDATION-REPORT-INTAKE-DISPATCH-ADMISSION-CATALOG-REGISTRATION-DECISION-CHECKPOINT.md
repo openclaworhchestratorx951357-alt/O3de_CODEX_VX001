@@ -74,4 +74,6 @@ Post-registration admission-contract design status:
 
 - completed in
   `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-POST-REGISTRATION-ADMISSION-CONTRACT-DESIGN.md`
-- next safe gate is post-registration admission readiness audit
+- readiness audit completed in
+  `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-POST-REGISTRATION-ADMISSION-READINESS-AUDIT.md`
+- next safe gate is post-registration admission implementation touchpoint
