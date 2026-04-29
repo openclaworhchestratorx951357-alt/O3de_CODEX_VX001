@@ -1,20 +1,21 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake dispatch-admission decision checkpoint packet.
+Validation intake dispatch-admission catalog registration design packet.
 
 ## Why this is next
-- Dispatch-admission implementation touchpoints are now in place with
-  default-off gate scaffolding and refusal review payload coverage.
+- Dispatch-admission decision checkpoint is now complete and confirms dispatch
+  admission remains blocked on explicit registration gates.
 - Dispatch remains explicitly unadmitted and default-off.
-- The next safest move is a decision checkpoint packet that evaluates whether
-  additional implementation gates are still required before any admission move.
+- The next safest move is design-only registration planning for catalog/policy/
+  schema wiring and dispatch boundary tests before any implementation attempt.
 
 ## Scope
 - docs-focused packet (tests optional; no runtime mutation)
-- map current implementation truth to maturity labels
-- identify any remaining missing gates for future dispatch registration
-- keep dispatch dry-run-only and non-executing
+- define exact validation catalog/policy/schema registration contract for
+  `validation.report.intake`
+- define dispatch fail-closed behavior requirements after registration exists
+- define `test_dispatcher.py` coverage contract and registration revert checklist
 - no execution or mutation admission changes
 
 ## Safety constraints
@@ -26,7 +27,7 @@ Validation intake dispatch-admission decision checkpoint packet.
 
 ## Acceptance checks
 - dispatch remains unadmitted and default-off
-- decision table lists what is complete vs still missing
+- registration design lists explicit required gates and non-goals
 - no broadening of endpoint or dispatch execution/mutation capability
 - no client approval/session fields treated as authorization
 - recommendation for next packet is explicit and testable
@@ -34,5 +35,5 @@ Validation intake dispatch-admission decision checkpoint packet.
 ## Alternative considered
 Flow Trigger Suite productization plan.
 
-This remains valid, but the dispatch-admission decision checkpoint packet is
-recommended first to prevent premature admission claims.
+This remains valid, but the dispatch-admission catalog registration design
+packet is recommended first to prevent unsafe implementation drift.
