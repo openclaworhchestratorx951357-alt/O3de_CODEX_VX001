@@ -221,6 +221,7 @@ rounding up capability claims.
 - `docs/asset-forge/ASSET-FORGE-AUDIT-AGENT.md`
 - `docs/asset-forge/ASSET-FORGE-POST-145-SAFETY-AUDIT.md`
 - `docs/asset-forge/ASSET-FORGE-AUDIT-REVIEW-GATE-CHECKLIST.md`
+- `docs/asset-forge/ASSET-FORGE-AUDIT-RUN-PR-150.md`
 - `agents/asset-forge-audit-agent/AGENTS.md`
 - `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`

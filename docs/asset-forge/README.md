@@ -31,7 +31,8 @@ Purpose: restore Asset Forge as a Meshy-like 3D asset creation studio with Blend
 23. `ASSET-FORGE-AUDIT-AGENT.md`
 24. `ASSET-FORGE-POST-145-SAFETY-AUDIT.md`
 25. `ASSET-FORGE-AUDIT-REVIEW-GATE-CHECKLIST.md`
-26. `../../agents/asset-forge-audit-agent/AGENTS.md`
+26. `ASSET-FORGE-AUDIT-RUN-PR-150.md`
+27. `../../agents/asset-forge-audit-agent/AGENTS.md`
 
 ## Core correction
 
