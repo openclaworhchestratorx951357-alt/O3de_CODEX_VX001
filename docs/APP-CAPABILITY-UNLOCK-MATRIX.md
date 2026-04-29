@@ -4,10 +4,10 @@ Conservative baseline as of current `main`. When uncertain, mark `needs baseline
 
 | Domain | Capability | Current maturity | Desired next maturity | Risk | Required gate | Tests/evidence required | Recommended next packet |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Editor | `editor.session.open` | needs baseline | read-only | Medium | runtime truth + audit review | targeted read-only runtime tests + evidence sample | Editor authoring baseline audit |
-| Editor | `editor.level.open` | needs baseline | read-only | Medium | runtime truth + audit review | targeted read-only runtime tests + evidence sample | Editor authoring baseline audit |
-| Editor | `editor.entity.create` | needs baseline | proof-only | High | server-owned approval/session + admission flag | fail-closed mutation tests + bounded proof artifact | Editor authoring mutation design |
-| Editor | `editor.component.add` | needs baseline | proof-only | High | server-owned approval/session + admission flag | fail-closed mutation tests + bounded proof artifact | Editor authoring mutation design |
+| Editor | `editor.session.open` | admitted-real (narrow runtime) | reviewable | Medium | runtime truth + audit review | targeted editor runtime tests + evidence sample | Editor placement plan matrix |
+| Editor | `editor.level.open` | admitted-real (narrow runtime) | reviewable | Medium | runtime truth + audit review | targeted editor runtime tests + evidence sample | Editor placement plan matrix |
+| Editor | `editor.entity.create` | admitted-real (narrow) | reviewable | High | bounded mutation scope + audit review | targeted mutation-chain tests + restore-boundary evidence | Editor restore verification refresh |
+| Editor | `editor.component.add` | admitted-real (narrow) | reviewable | High | bounded mutation scope + audit review | targeted mutation-chain tests + component-id provenance evidence | Editor restore verification refresh |
 | Editor | `editor.component.property.get` | read-only | reviewable | Medium | schema/contract alignment | readback tests + response schema checks | Editor authoring readback review packet |
 | Editor | `editor.component.property.write.narrow` | admitted-real (exact narrow corridor) | reviewable | High | existing exact corridor gates + audit review | corridor regression tests + revert proof | Editor narrow-corridor verification refresh |
 | Editor | `editor.content.restore.narrow` | admitted-real (exact narrow corridor) | reviewable | High | existing exact corridor gates + audit review | restore regression tests + bounded revert proof | Editor restore verification refresh |
