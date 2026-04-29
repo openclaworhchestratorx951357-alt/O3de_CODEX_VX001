@@ -73,8 +73,8 @@ This packet does not admit:
 
 ## Next safe packet
 
-Validation intake endpoint-candidate admission audit/review packet:
+Validation intake endpoint-candidate exact public-admission contract:
 
-- verify gate semantics and refusal matrix on the integrated endpoint path
-- document operator-facing review/status fields
-- keep default-off and no execution/mutation admission
+- keep gate-state audit/review semantics as baseline truth
+- define exact public corridor wording and non-goals
+- define evidence required before any read-only admission update
