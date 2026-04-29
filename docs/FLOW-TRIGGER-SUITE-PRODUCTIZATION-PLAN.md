@@ -145,4 +145,8 @@ Retention operations checkpoint status:
 Retention anomaly drill evidence status:
 
 - completed in `docs/FLOW-TRIGGER-SUITE-RETENTION-ANOMALY-DRILL-EVIDENCE.md`
-- next safe gate is Flow Trigger Suite retention cadence handoff packet
+
+Retention cadence handoff status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-RETENTION-CADENCE-HANDOFF.md`
+- next safe gate is Flow Trigger Suite retention cadence adoption checkpoint packet

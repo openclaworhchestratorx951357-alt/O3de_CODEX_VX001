@@ -103,3 +103,8 @@ Flow Trigger Suite retention cadence handoff packet:
 
 - define explicit operational cadence windows by lane risk class
 - publish compact on-call handoff template for anomaly triage
+
+Retention cadence handoff status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-RETENTION-CADENCE-HANDOFF.md`
+- next safe gate is Flow Trigger Suite retention cadence adoption checkpoint packet
