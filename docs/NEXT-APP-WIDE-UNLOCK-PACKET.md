@@ -1,19 +1,22 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Flow Trigger Suite implementation packet (bounded dry-run instrumentation).
+CI/test execution admission review checkpoint.
 
 ## Why this is next
-- Flow Trigger Suite implementation readiness checkpoint is now documented.
-- The next missing gate is a first bounded implementation packet with
-  non-mutating dry-run instrumentation only.
-- This starts execution evidence gathering without widening runtime admission.
+- Flow Trigger Suite implementation packet has completed with bounded
+  non-mutating dry-run instrumentation.
+- The next missing gate is an explicit review checkpoint that reconciles
+  CI/test execution admission design with current automation instrumentation
+  boundaries.
+- This preserves no-mutation admission while tightening execution-admission
+  evidence requirements.
 
 ## Scope
 - docs/checkpoint focused packet
-- implement minimal dry-run instrumentation scaffolding for trigger lanes
-- add targeted fail-closed and stop-control tests
-- keep implementation strictly non-mutating and bounded
+- review current CI/test admission design against instrumentation checkpoint
+- define exact evidence and stop-points for any future execution-admission
+  revisit
 - no execution or mutation admission changes
 
 ## Safety constraints
@@ -24,13 +27,13 @@ Flow Trigger Suite implementation packet (bounded dry-run instrumentation).
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- dry-run instrumentation boundaries are explicit and evidence-backed
-- fail-closed/stop-control tests are concrete and bounded
+- CI/test admission preconditions are explicit and evidence-backed
+- execution-admission stop-points remain fail-closed and bounded
 - no mutation/execution admission changes
 - docs and matrices remain aligned on the same capability truth
 
 ## Alternative considered
-Flow Trigger Suite implementation review checkpoint.
+Flow Trigger Suite implementation packet (bounded dry-run instrumentation).
 
-This remains valid, and CI/test execution admission can be revisited after
-automation first instrumentation packet and implementation review checkpoint.
+This packet is completed; use it as input evidence for the CI/test admission
+review checkpoint.

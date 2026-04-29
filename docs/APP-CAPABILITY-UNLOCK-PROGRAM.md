@@ -35,6 +35,8 @@ The following patterns are now established:
 - Flow Trigger Suite audit-gate checklist
 - Flow Trigger Suite productization design
 - Flow Trigger Suite implementation readiness checkpoint
+- Flow Trigger Suite implementation packet (bounded dry-run instrumentation)
+- Flow Trigger Suite implementation review checkpoint
 
 ## App-wide domains
 
