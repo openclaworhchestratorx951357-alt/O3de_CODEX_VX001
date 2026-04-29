@@ -56,3 +56,9 @@ Validation intake dispatch-admission decision checkpoint packet:
   sufficient to promote maturity label or whether additional implementation
   gates are required
 - keep dispatch unadmitted unless explicitly approved in a later packet
+
+Decision checkpoint status:
+
+- completed in
+  `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-DECISION-CHECKPOINT.md`
+- next safe gate is dispatch-admission catalog registration design
