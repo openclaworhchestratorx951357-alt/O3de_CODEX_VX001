@@ -408,6 +408,14 @@ class AssetForgeO3DEPlacementProofRecord(BaseModel):
     approval_state: Literal["not-approved", "approved"]
     server_approval_session_id: str | None = None
     server_approval_evaluation: AssetForgeServerApprovalDecisionRecord
+    admission_flag_name: str = Field(..., min_length=1)
+    admission_flag_state: Literal[
+        "missing_default_off",
+        "explicit_off",
+        "explicit_on",
+        "invalid_default_off",
+    ]
+    admission_flag_enabled: bool
     placement_write_admitted: bool
     stage_write_corridor_name: str = Field(..., min_length=1)
     stage_write_evidence_reference: str = Field(default="", min_length=0)

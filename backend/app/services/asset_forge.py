@@ -60,6 +60,9 @@ _ALLOWED_STAGE_ROOT_PREFIX = "Assets/Generated/asset_forge/"
 _STAGE_WRITE_CORRIDOR_NAME = "asset_forge.o3de.stage_write.v1"
 _STAGE_WRITE_ADMISSION_FLAG_NAME = "asset_forge.o3de.stage_write.v1.proof_only_admission_enabled"
 _STAGE_WRITE_ADMISSION_FLAG_ENV = "ASSET_FORGE_STAGE_WRITE_V1_PROOF_ONLY_ADMISSION_ENABLED"
+_PLACEMENT_PROOF_CORRIDOR_NAME = "asset_forge.o3de.placement.proof.v1"
+_PLACEMENT_PROOF_ADMISSION_FLAG_NAME = "asset_forge.o3de.placement.proof.v1.admission_enabled"
+_PLACEMENT_PROOF_ADMISSION_FLAG_ENV = "ASSET_FORGE_PLACEMENT_PROOF_V1_ADMISSION_ENABLED"
 _STAGE_WRITE_ADMISSION_PACKET_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_ADMISSION_PACKET_REF"
 _STAGE_WRITE_ADMISSION_OPERATOR_ID_ENV = "ASSET_FORGE_STAGE_WRITE_V1_ADMISSION_OPERATOR_ID"
 _STAGE_WRITE_EVIDENCE_BUNDLE_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_EVIDENCE_BUNDLE_REF"
@@ -190,6 +193,26 @@ def _resolve_stage_write_admission_flag_state() -> tuple[
     ],
 ]:
     raw = os.environ.get(_STAGE_WRITE_ADMISSION_FLAG_ENV)
+    if raw is None:
+        return False, "missing_default_off"
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "on", "enabled"}:
+        return True, "explicit_on"
+    if normalized in {"0", "false", "no", "off", "disabled"}:
+        return False, "explicit_off"
+    return False, "invalid_default_off"
+
+
+def _resolve_placement_proof_admission_flag_state() -> tuple[
+    bool,
+    Literal[
+        "missing_default_off",
+        "explicit_off",
+        "explicit_on",
+        "invalid_default_off",
+    ],
+]:
+    raw = os.environ.get(_PLACEMENT_PROOF_ADMISSION_FLAG_ENV)
     if raw is None:
         return False, "missing_default_off"
     normalized = raw.strip().lower()
@@ -2153,6 +2176,7 @@ class AssetForgeService:
             ),
         )
         target_component = request.target_component.strip() or "Mesh"
+        admission_flag_enabled, admission_flag_state = _resolve_placement_proof_admission_flag_state()
         requested_stage_write_corridor_name = request.stage_write_corridor_name.strip()
         stage_write_evidence_reference = request.stage_write_evidence_reference.strip()
         stage_write_readback_reference = request.stage_write_readback_reference.strip()
@@ -2175,6 +2199,20 @@ class AssetForgeService:
             "Placement proof execution remains blocked in this packet by default fail-closed policy.",
         ]
         warnings.append(server_approval_evaluation.reason)
+        if admission_flag_state == "invalid_default_off":
+            fail_closed_reasons.append("admission_flag_invalid_state")
+            warnings.append(
+                f"Admission flag {_PLACEMENT_PROOF_ADMISSION_FLAG_ENV} is malformed; defaulting to fail-closed off."
+            )
+        elif not admission_flag_enabled:
+            fail_closed_reasons.append("admission_flag_disabled_or_missing")
+            warnings.append(
+                f"Admission flag {_PLACEMENT_PROOF_ADMISSION_FLAG_NAME} is off; placement proof remains fail-closed."
+            )
+        else:
+            warnings.append(
+                "Admission flag is on, but this packet does not admit placement runtime execution."
+            )
         if requested_stage_write_corridor_name != _STAGE_WRITE_CORRIDOR_NAME:
             fail_closed_reasons.append("stage_write_corridor_mismatch")
             warnings.append(
@@ -2203,7 +2241,7 @@ class AssetForgeService:
             )
 
         placement_proof_policy: dict[str, object] = {
-            "corridor_name": "asset_forge.o3de.placement.proof.v1",
+            "corridor_name": _PLACEMENT_PROOF_CORRIDOR_NAME,
             "approval_required": True,
             "approval_note_required_when_approved": True,
             "runtime_gate_env": "ASSET_FORGE_ENABLE_PLACEMENT_PROOF",
@@ -2212,6 +2250,8 @@ class AssetForgeService:
             "dry_run_only": True,
             "mutation_scope": "proof-only-no-scene-mutation",
             "client_approval_is_intent_only": True,
+            "admission_flag_name": _PLACEMENT_PROOF_ADMISSION_FLAG_NAME,
+            "admission_flag_env": _PLACEMENT_PROOF_ADMISSION_FLAG_ENV,
             "required_stage_write_corridor_name": _STAGE_WRITE_CORRIDOR_NAME,
             "required_stage_write_readback_status": "succeeded",
             "allowed_stage_prefix": _ALLOWED_STAGE_ROOT_PREFIX,
@@ -2222,7 +2262,7 @@ class AssetForgeService:
         def _build_blocked_record(safest_next_step: str) -> AssetForgeO3DEPlacementProofRecord:
             return AssetForgeO3DEPlacementProofRecord(
                 capability_name="asset_forge.o3de.placement.execute",
-                corridor_name="asset_forge.o3de.placement.proof.v1",
+                corridor_name=_PLACEMENT_PROOF_CORRIDOR_NAME,
                 maturity="proof-only",
                 proof_status="blocked",
                 dry_run_only=True,
@@ -2237,6 +2277,9 @@ class AssetForgeService:
                 approval_state=request.approval_state,
                 server_approval_session_id=request.approval_session_id,
                 server_approval_evaluation=server_approval_evaluation,
+                admission_flag_name=_PLACEMENT_PROOF_ADMISSION_FLAG_NAME,
+                admission_flag_state=admission_flag_state,
+                admission_flag_enabled=admission_flag_enabled,
                 placement_write_admitted=False,
                 stage_write_corridor_name=request.stage_write_corridor_name,
                 stage_write_evidence_reference=stage_write_evidence_reference,

@@ -94,4 +94,4 @@ If execution write/readback fails:
   - missing gate evidence
 
 ## Next packet
-Placement proof admission-flag design and gate-contract packet, default off and fail-closed, before any runtime placement execution work.
+Placement proof contract/evidence gate checks (operator packet reference, evidence bundle reference, readback plan reference, revert statement contract), still default fail-closed and non-executing.

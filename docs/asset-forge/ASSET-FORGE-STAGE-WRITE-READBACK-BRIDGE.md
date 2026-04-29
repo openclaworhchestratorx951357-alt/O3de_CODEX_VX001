@@ -57,5 +57,6 @@ This packet does not:
   step (operator-managed Asset Processor refresh outside this endpoint).
 
 ## Next packet
-Placement proof admission-flag design and gate-contract packet, default off
-and fail-closed, before any runtime placement execution work.
+Placement proof contract/evidence gate checks (operator packet reference,
+evidence bundle reference, readback plan reference, revert statement
+contract), still default fail-closed and non-executing.
