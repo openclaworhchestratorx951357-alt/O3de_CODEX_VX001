@@ -1,21 +1,21 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake dispatch-admission catalog registration design packet.
+Validation intake dispatch-admission catalog registration readiness audit packet.
 
 ## Why this is next
-- Dispatch-admission decision checkpoint is now complete and confirms dispatch
-  admission remains blocked on explicit registration gates.
+- Dispatch-admission catalog registration design is now complete with explicit
+  schema, catalog, policy, dispatcher, and revert requirements.
 - Dispatch remains explicitly unadmitted and default-off.
-- The next safest move is design-only registration planning for catalog/policy/
-  schema wiring and dispatch boundary tests before any implementation attempt.
+- The next safest move is a readiness audit that verifies those design gates
+  are fully specified and implementation-ready before registration changes.
 
 ## Scope
 - docs-focused packet (tests optional; no runtime mutation)
-- define exact validation catalog/policy/schema registration contract for
-  `validation.report.intake`
-- define dispatch fail-closed behavior requirements after registration exists
-- define `test_dispatcher.py` coverage contract and registration revert checklist
+- verify required schema set completeness and naming
+- verify catalog/policy field choices and risk labels
+- verify dispatcher fail-closed contract and test coverage plan
+- verify revert checklist completeness before implementation
 - no execution or mutation admission changes
 
 ## Safety constraints
@@ -27,7 +27,7 @@ Validation intake dispatch-admission catalog registration design packet.
 
 ## Acceptance checks
 - dispatch remains unadmitted and default-off
-- registration design lists explicit required gates and non-goals
+- readiness audit lists satisfied vs missing registration gates
 - no broadening of endpoint or dispatch execution/mutation capability
 - no client approval/session fields treated as authorization
 - recommendation for next packet is explicit and testable
@@ -35,5 +35,5 @@ Validation intake dispatch-admission catalog registration design packet.
 ## Alternative considered
 Flow Trigger Suite productization plan.
 
-This remains valid, but the dispatch-admission catalog registration design
-packet is recommended first to prevent unsafe implementation drift.
+This remains valid, but the catalog-registration readiness audit packet is
+recommended first to prevent unsafe implementation drift.
