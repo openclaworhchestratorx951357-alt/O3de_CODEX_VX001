@@ -29,6 +29,10 @@ from app.repositories.control_plane import control_plane_repository
 from app.services.asset_forge import asset_forge_service
 from app.services.prompt_sessions import prompt_sessions_service
 from app.services.approvals import approvals_service
+from app.services.validation_report_intake import (
+    VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV,
+    build_validation_report_intake_dry_run_plan,
+)
 from app.services.db import (
     configure_database,
     connection,
@@ -167,6 +171,40 @@ def _placement_live_proof_expected_revert_contract_key(
     return sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
+
+
+def _validation_report_intake_valid_envelope() -> dict[str, object]:
+    envelope: dict[str, object] = {
+        "schema": "validation.report.intake.v1",
+        "capability_name": "validation.report.intake",
+        "report_id": "report-001",
+        "produced_at_utc": "2026-04-29T00:00:00Z",
+        "producer": {
+            "tool_name": "test.run.gtest",
+            "runner_family": "cli",
+            "execution_mode": "simulated",
+        },
+        "result": {
+            "status": "blocked",
+            "summary": "Blocked by policy.",
+            "warning_count": 0,
+            "error_count": 1,
+        },
+        "provenance": {
+            "source_kind": "local-run",
+            "artifact_refs": ["artifacts/reports/gtest.json"],
+        },
+        "payload": {
+            "tests": [{"name": "Suite.TestA", "status": "blocked"}],
+        },
+        "integrity": {
+            "payload_sha256": "a" * 64,
+            "payload_size_bytes": 0,
+        },
+    }
+    plan = build_validation_report_intake_dry_run_plan(envelope)
+    envelope["integrity"]["payload_size_bytes"] = plan["payload_size_bytes"]
+    return envelope
 
 
 def _assert_stage_write_dry_run_fields(payload: dict[str, object]) -> None:
@@ -7882,6 +7920,59 @@ def test_validation_report_intake_endpoint_candidates_remain_unadmitted() -> Non
             assert response.status_code == 404
 
 
+def test_validation_report_intake_endpoint_candidate_returns_dry_run_plan_when_enabled() -> None:
+    envelope = _validation_report_intake_valid_envelope()
+    with patch.dict(
+        os.environ,
+        {VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV: "true"},
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post("/validation/report/intake", json=envelope)
+            assert response.status_code == 200
+
+            payload = response.json()
+            assert payload["corridor_name"] == "validation.report.intake"
+            assert payload["dry_run_only"] is True
+            assert payload["execution_admitted"] is False
+            assert payload["write_executed"] is False
+            assert payload["project_write_admitted"] is False
+            assert payload["write_status"] == "blocked"
+            assert payload["accepted"] is True
+            assert payload["endpoint_candidate"] is True
+            assert payload["endpoint_admitted"] is False
+            assert (
+                payload["admission_flag_name"]
+                == VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV
+            )
+            assert payload["admission_flag_state"] == "explicit_on"
+            assert payload["admission_flag_enabled"] is True
+            assert payload["fail_closed_reasons"] == []
+            assert payload["normalized_artifact_refs"] == ["artifacts/reports/gtest.json"]
+
+
+def test_validation_report_intake_endpoint_candidate_fails_closed_for_client_auth_fields() -> None:
+    envelope = _validation_report_intake_valid_envelope()
+    envelope["payload"]["approval_state"] = "approved"
+    with patch.dict(
+        os.environ,
+        {VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV: "1"},
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post("/validation/report/intake", json=envelope)
+            assert response.status_code == 200
+
+            payload = response.json()
+            assert payload["accepted"] is False
+            assert payload["dry_run_only"] is True
+            assert payload["execution_admitted"] is False
+            assert payload["write_executed"] is False
+            assert payload["project_write_admitted"] is False
+            assert payload["write_status"] == "blocked"
+            assert "client_authorization_fields_forbidden" in payload["fail_closed_reasons"]
+
+
 def test_validation_report_intake_dispatch_rejected_even_with_client_approval_fields() -> None:
     with isolated_client() as client:
         response = client.post(
@@ -7935,3 +8026,32 @@ def test_validation_report_intake_dispatch_rejected_even_with_client_approval_fi
         assert execution["details"]["adapter_family"] == "validation"
         assert "simulated" in execution["details"]["execution_boundary"].lower()
         assert artifacts.json()["artifacts"] == []
+
+
+def test_validation_report_intake_dispatch_remains_unadmitted_when_endpoint_flag_enabled() -> None:
+    with patch.dict(
+        os.environ,
+        {VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV: "true"},
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post(
+                "/tools/dispatch",
+                json={
+                    "request_id": "api-validation-report-intake-2",
+                    "tool": "validation.report.intake",
+                    "agent": "validation",
+                    "project_root": "/tmp/project",
+                    "engine_root": "/tmp/engine",
+                    "dry_run": True,
+                    "locks": [],
+                    "timeout_s": 15,
+                    "args": {"schema": "validation.report.intake.v1"},
+                },
+            )
+
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["ok"] is False
+            assert payload["error"]["code"] == "INVALID_TOOL"
+            assert payload["error"]["details"]["tool"] == "validation.report.intake"

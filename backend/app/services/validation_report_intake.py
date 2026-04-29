@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime
 from pathlib import PurePosixPath
 from typing import Any
@@ -8,6 +9,9 @@ from typing import Any
 VALIDATION_REPORT_INTAKE_CAPABILITY = "validation.report.intake"
 VALIDATION_REPORT_INTAKE_SCHEMA = "validation.report.intake.v1"
 VALIDATION_REPORT_INTAKE_MAX_PAYLOAD_BYTES = 524_288
+VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV = (
+    "VALIDATION_REPORT_INTAKE_ENDPOINT_ENABLED"
+)
 
 _CLIENT_AUTHORIZATION_FIELDS = {
     "approval_state",
@@ -116,6 +120,35 @@ def build_validation_report_intake_dry_run_plan(
         "capability_name": capability_name if isinstance(capability_name, str) else None,
         "normalized_artifact_refs": normalized_artifact_refs,
         "fail_closed_reasons": fail_closed_reasons,
+    }
+
+
+def get_validation_report_intake_endpoint_gate() -> dict[str, Any]:
+    raw = os.environ.get(VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV)
+    if raw is None:
+        return {
+            "admission_flag_name": VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV,
+            "admission_flag_state": "missing_default_off",
+            "admission_flag_enabled": False,
+        }
+
+    candidate = raw.strip().lower()
+    if candidate in {"1", "true", "yes", "on", "enabled"}:
+        return {
+            "admission_flag_name": VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV,
+            "admission_flag_state": "explicit_on",
+            "admission_flag_enabled": True,
+        }
+    if candidate in {"0", "false", "no", "off", "disabled"}:
+        return {
+            "admission_flag_name": VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV,
+            "admission_flag_state": "explicit_off",
+            "admission_flag_enabled": False,
+        }
+    return {
+        "admission_flag_name": VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV,
+        "admission_flag_state": "invalid_default_off",
+        "admission_flag_enabled": False,
     }
 
 

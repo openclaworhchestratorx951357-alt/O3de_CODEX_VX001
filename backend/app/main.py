@@ -21,6 +21,7 @@ from app.api.routes.runs import router as runs_router
 from app.api.routes.summary import router as summary_router
 from app.api.routes.tools import router as tools_router
 from app.api.routes.tools_catalog import router as tools_catalog_router
+from app.api.routes.validation_report_intake import router as validation_report_intake_router
 from app.models.api import RootStatus
 from app.services.adapters import adapter_service
 from app.services.db import initialize_database
@@ -75,6 +76,7 @@ app.include_router(adapters_router)
 app.include_router(app_control_router)
 app.include_router(summary_router)
 app.include_router(asset_forge_router)
+app.include_router(validation_report_intake_router)
 app.include_router(tools_router)
 app.include_router(tools_catalog_router)
 app.include_router(runs_router)
