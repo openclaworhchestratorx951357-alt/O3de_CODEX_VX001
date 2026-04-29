@@ -7869,3 +7869,69 @@ def test_dispatch_route_records_settings_patch_fallback_provenance_in_hybrid_mod
                     execution["details"]["expected_project_manifest_relative_path"]
                     == "project.json"
                 )
+
+
+def test_validation_report_intake_endpoint_candidates_remain_unadmitted() -> None:
+    with isolated_client() as client:
+        for path in (
+            "/validation/report/intake",
+            "/validation/reports/intake",
+            "/validation/intake",
+        ):
+            response = client.post(path, json={"schema": "validation.report.intake.v1"})
+            assert response.status_code == 404
+
+
+def test_validation_report_intake_dispatch_rejected_even_with_client_approval_fields() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/tools/dispatch",
+            json={
+                "request_id": "api-validation-report-intake-1",
+                "tool": "validation.report.intake",
+                "agent": "validation",
+                "project_root": "/tmp/project",
+                "engine_root": "/tmp/engine",
+                "dry_run": True,
+                "locks": [],
+                "timeout_s": 15,
+                "args": {
+                    "approval_state": "approved",
+                    "approval_session_id": "client-supplied-session",
+                    "approval_token": "client-supplied-token",
+                    "schema": "validation.report.intake.v1",
+                },
+            },
+        )
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["ok"] is False
+        assert payload["approval_id"] is None
+        assert payload["result"] is None
+        assert payload["artifacts"] == []
+        assert payload["warnings"] == ["Dispatch rejected before execution."]
+        assert payload["error"]["code"] == "INVALID_TOOL"
+        assert payload["error"]["details"]["agent"] == "validation"
+        assert payload["error"]["details"]["tool"] == "validation.report.intake"
+        assert payload["state"]["dirty"] is False
+        assert payload["state"]["requires_save"] is False
+        assert payload["state"]["requires_reconfigure"] is False
+        assert payload["state"]["requires_rebuild"] is False
+        assert payload["state"]["requires_asset_reprocess"] is False
+
+        executions = client.get("/executions")
+        artifacts = client.get("/artifacts")
+        assert executions.status_code == 200
+        assert artifacts.status_code == 200
+
+        execution = next(
+            execution
+            for execution in executions.json()["executions"]
+            if execution["run_id"] == payload["operation_id"]
+        )
+        assert execution["status"] == "failed"
+        assert execution["execution_mode"] == "simulated"
+        assert execution["details"]["adapter_family"] == "validation"
+        assert "simulated" in execution["details"]["execution_boundary"].lower()
+        assert artifacts.json()["artifacts"] == []

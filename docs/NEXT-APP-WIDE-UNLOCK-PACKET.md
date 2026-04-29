@@ -1,22 +1,21 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation report intake contract and fail-closed parser design.
+Validation report intake dry-run parser scaffold and fail-closed test matrix.
 
 ## Why this is next
-- Validation intake baseline is now checkpointed and still lacks an explicit
-  admitted contract.
-- A design packet can define accepted payload shape, provenance requirements,
-  and malformed-input fail-closed behavior without enabling execution.
-- This prepares safe future implementation/testing while keeping scope narrow.
+- The intake contract and fail-closed parser design are now documented.
+- The safest follow-up is a narrow dry-run parser scaffold with explicit
+  malformed-input refusal tests.
+- This moves validation intake from plan-only toward auditable dry-run behavior
+  without admitting execution or mutation.
 
 ## Scope
-- docs+tests design packet
-- define intake payload contract and provenance requirements
-- define malformed-input and schema mismatch fail-closed semantics
-- no runtime behavior broadening
-- no backend mutation admission
-- no execution admission changes
+- backend tests + docs with optional parser scaffolding kept dry-run only
+- enforce schema/version/provenance gate checks in parser-facing contracts
+- emit explicit refusal reasons for malformed input
+- no runtime execution admission
+- no mutation admission
 
 ## Safety constraints
 - no runtime bridge execution changes
@@ -26,13 +25,14 @@ Validation report intake contract and fail-closed parser design.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- design doc defines exact intake contract and fail-closed rules
-- maturity labels remain conservative and evidence-backed
+- parser contract fixtures exist for valid and invalid envelopes
+- malformed input returns fail-closed refusal reasons
+- dry-run responses keep execution/mutation flags false
 - blocked/forbidden surfaces stay explicit
-- no runtime execution behavior changes in this packet
 
 ## Alternative considered
 Evidence timeline shell.
 
-This remains valid, but intake contract design is recommended first so timeline
-and dashboard linkage can bind to explicit validation-intake semantics.
+This remains valid, but intake dry-run/parser safety coverage is recommended
+first so timeline/dashboard surfaces can bind to explicit validation-intake
+contract evidence.

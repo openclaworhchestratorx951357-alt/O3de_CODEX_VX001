@@ -18,6 +18,7 @@ The following patterns are now established:
 - project/config readiness baseline audit
 - audit review dashboard shell (static fixture first)
 - validation report intake baseline audit
+- validation report intake contract + fail-closed parser design
 
 ## App-wide domains
 
