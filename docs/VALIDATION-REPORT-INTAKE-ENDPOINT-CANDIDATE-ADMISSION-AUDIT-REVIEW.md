@@ -63,8 +63,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Validation intake endpoint-candidate read-only admission readiness checklist:
+Validation intake endpoint-candidate read-only admission decision refresh:
 
-- map each admission evidence gate to concrete test/doc proof
-- keep admission withheld while any gate is unresolved
+- consume readiness-checklist evidence as decision input
+- record keep-withheld vs read-only wording update outcome
 - preserve exact public contract wording and refusal boundaries

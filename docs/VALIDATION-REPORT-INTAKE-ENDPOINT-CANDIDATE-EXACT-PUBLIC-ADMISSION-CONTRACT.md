@@ -86,9 +86,8 @@ updated:
 
 ## Recommended Next Packet
 
-Validation intake endpoint-candidate read-only admission readiness checklist:
+Validation intake endpoint-candidate read-only admission decision refresh:
 
-- implement a concise checklist doc that maps each evidence gate above to
-  current test coverage and any remaining gaps
-- keep runtime behavior unchanged
-- keep admission wording unchanged unless every gate is explicitly satisfied
+- consume the readiness checklist as decision evidence
+- record keep-withheld vs read-only wording update outcome
+- keep runtime behavior unchanged unless separately approved
