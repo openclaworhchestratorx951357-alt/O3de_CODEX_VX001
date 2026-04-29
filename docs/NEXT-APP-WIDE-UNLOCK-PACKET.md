@@ -1,21 +1,21 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation report intake dry-run parser scaffold and fail-closed test matrix.
+App-wide Evidence Timeline shell (frontend/static-fixture first).
 
 ## Why this is next
-- The intake contract and fail-closed parser design are now documented.
-- The safest follow-up is a narrow dry-run parser scaffold with explicit
-  malformed-input refusal tests.
-- This moves validation intake from plan-only toward auditable dry-run behavior
-  without admitting execution or mutation.
+- Capability and audit dashboard shells exist, and validation intake now has a
+  contract + dry-run parser scaffold with fail-closed tests.
+- The remaining operator gap is clear evidence chronology across domains.
+- A timeline shell improves review/audit clarity without admitting execution.
 
 ## Scope
-- backend tests + docs with optional parser scaffolding kept dry-run only
-- enforce schema/version/provenance gate checks in parser-facing contracts
-- emit explicit refusal reasons for malformed input
-- no runtime execution admission
-- no mutation admission
+- frontend-only or docs+frontend shell
+- static fixture first for cross-domain evidence events
+- clear truth chips (`demo`, `plan-only`, `dry-run only`, `proof-only`,
+  `admitted-real`)
+- include Asset Forge and non-Asset-Forge domains
+- no backend execution admission changes
 
 ## Safety constraints
 - no runtime bridge execution changes
@@ -25,14 +25,14 @@ Validation report intake dry-run parser scaffold and fail-closed test matrix.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- parser contract fixtures exist for valid and invalid envelopes
-- malformed input returns fail-closed refusal reasons
-- dry-run responses keep execution/mutation flags false
-- blocked/forbidden surfaces stay explicit
+- timeline renders cross-domain evidence records with truthful maturity labels
+- shell explicitly distinguishes simulated/demo vs admitted-real evidence
+- no mutation/execution admission changes
+- frontend tests/build/lint pass for touched files
 
 ## Alternative considered
-Evidence timeline shell.
+Validation intake endpoint candidate design.
 
-This remains valid, but intake dry-run/parser safety coverage is recommended
-first so timeline/dashboard surfaces can bind to explicit validation-intake
-contract evidence.
+This remains valid, but evidence timeline visibility is recommended first so
+future endpoint or admission packets can bind to clearer operator-facing
+review context.
