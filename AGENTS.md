@@ -30,6 +30,16 @@ Default standing rule:
   `docs/CODEX-PROJECT-WORKFLOW-QUICK-REFERENCE.md` and
   `docs/NORMALIZED-PHASE-WORKFLOW.md` before choosing or implementing the next
   packet.
+- For project-moving work packets, append timestamped slice-log entries to
+  `C:\Users\topgu\OneDrive\Documents\New project\continue-queue\codex-slice-log.txt`
+  using `scripts/Add-Codex-Slice-Log.ps1` at minimum:
+  1) when startup readiness is confirmed, and
+  2) when each packet/slice is completed (before final report).
+  This is a required pre-final-response gate: do not send the final project
+  report until the completion entry is appended.
+  In the final report, include the exact completion log line that was appended.
+  If the helper script is unavailable, append using equivalent PowerShell
+  `Add-Content` with ISO timestamps.
 
 ## Mandatory O3DE Evidence Substrate Check
 
