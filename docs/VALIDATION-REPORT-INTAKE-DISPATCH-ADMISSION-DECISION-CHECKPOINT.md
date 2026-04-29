@@ -64,3 +64,9 @@ Validation intake dispatch-admission catalog registration design packet:
 - define pre-registration fail-closed dispatcher behavior contract
 - define required `test_dispatcher.py` coverage and registration revert checklist
 - keep runtime behavior unchanged until a later implementation packet
+
+Catalog registration design status:
+
+- completed in
+  `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-CATALOG-REGISTRATION-DESIGN.md`
+- next safe gate is catalog registration readiness audit
