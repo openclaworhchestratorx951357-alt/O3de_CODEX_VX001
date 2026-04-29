@@ -13,6 +13,7 @@ The following patterns are now established:
 - dry-run/fail-closed matrix
 - audit-agent review
 - Codex Flow Trigger Suite awareness
+- app-wide capability dashboard shell (static fixture first)
 
 ## App-wide domains
 

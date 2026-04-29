@@ -1,19 +1,18 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-App-wide Capability Dashboard shell.
+Editor Authoring Review/Restore Lane baseline audit.
 
 ## Why this is next
-- It gives operators one truthful view of what is real, demo-only, plan-only, dry-run, proof-only, or admitted.
-- It reduces risk of accidental overclaim while feature lanes accelerate.
-- It applies the Asset Forge audit discipline across non-Asset-Forge domains before more execution surfaces are proposed.
+- The app-wide dashboard shell now provides the cross-domain truth surface needed for safer sequencing decisions.
+- Editor review/restore baselining is a high-leverage lane that supports both existing editor corridors and future Asset Forge placement work.
+- A baseline audit can improve safety without admitting new execution paths.
 
 ## Scope
-- frontend-only or docs+frontend
-- static fixture first
-- include Asset Forge and non-Asset-Forge domains
-- render maturity labels and risk badges
-- no backend mutation
+- docs+backend-read-only audit
+- capture current editor capability maturity and gaps
+- verify review/restore evidence requirements
+- no backend mutation admission
 - no execution admission changes
 
 ## Safety constraints
@@ -24,12 +23,12 @@ App-wide Capability Dashboard shell.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- UI shows domain + capability + maturity + risk clearly
-- labels distinguish real vs demo vs plan-only vs proof-only
-- docs describe fixture source and truth boundaries
-- frontend tests cover label rendering and blocked-state messaging
+- baseline report covers editor session/level/entity/component/property lanes
+- maturity labels remain conservative and evidence-backed
+- blocked/forbidden surfaces stay explicit
+- no runtime execution behavior changes in this packet
 
 ## Alternative considered
-Editor Authoring Review/Restore Lane baseline audit.
+Project/Config Readiness Lane baseline audit.
 
-This remains valid, but the dashboard shell is recommended first because it strengthens operator visibility across all domains before additional capability unlock packets.
+This remains valid, but editor baseline audit is recommended first because it compounds the value of currently admitted editor corridors and sharpens the next safe unlock candidates.
