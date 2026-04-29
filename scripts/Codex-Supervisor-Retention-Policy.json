@@ -1,0 +1,24 @@
+{
+  "retention_policy_version": "1.0",
+  "files": [
+    {
+      "path": "continue-queue/codex-supervisor-packet-queue.jsonl",
+      "max_lines": 5000,
+      "archive_suffix": ".archive.jsonl"
+    },
+    {
+      "path": "continue-queue/codex-supervisor-packet-events.jsonl",
+      "max_lines": 5000,
+      "archive_suffix": ".archive.jsonl"
+    },
+    {
+      "path": "continue-queue/codex-supervisor-packet.log",
+      "max_lines": 20000,
+      "archive_suffix": ".archive.log"
+    }
+  ],
+  "always_keep": [
+    "continue-queue/codex-supervisor-packet-state.json",
+    "continue-queue/codex-slice-log.txt"
+  ]
+}
