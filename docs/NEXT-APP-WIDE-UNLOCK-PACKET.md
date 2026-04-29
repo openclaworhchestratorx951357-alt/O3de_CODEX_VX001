@@ -1,23 +1,20 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake endpoint-candidate admission audit/review packet.
+TIAF preflight baseline audit.
 
 ## Why this is next
-- Capability, audit, evidence timeline, approval/session, and workspace-status
-  shells now exist.
-- Validation intake endpoint-candidate dry-run implementation now exists behind
-  a server-owned default-off admission flag.
-- The next safest move is an explicit admission audit/review packet that proves
-  gate semantics, refusal coverage, and operator-facing truth labels before any
-  broader read-only admission claim.
+- CI/test execution admission design is now documented with explicit fail-closed
+  gates and no admission granted.
+- The next missing validation gate is a bounded TIAF preflight baseline audit.
+- This preserves non-executing posture while tightening readiness evidence
+  before any execution-admission revisit.
 
 ## Scope
-- docs+tests focused packet (optional small backend metadata only)
-- audit endpoint gate states (`missing_default_off`, `explicit_off`,
-  `explicit_on`, `invalid_default_off`)
-- verify fail-closed refusal matrix on malformed/auth-tainted payloads
-- define and verify operator-facing review/status fields for endpoint outcomes
+- docs+evidence focused packet
+- audit TIAF preflight surfaces and current non-executing behavior
+- define preflight evidence payload expectations and fail-closed states
+- align preflight status with CI admission design constraints
 - no execution or mutation admission changes
 
 ## Safety constraints
@@ -28,16 +25,14 @@ Validation intake endpoint-candidate admission audit/review packet.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- endpoint remains blocked for missing/invalid/explicit-off flag states
-- explicit-on path remains dry-run-only with write/execution flags false
-- dispatch path for `validation.report.intake` remains unadmitted
-- review/status output remains truthful and fail-closed
+- TIAF preflight remains non-executing and fail-closed
+- evidence fields and refusal semantics are explicit
+- CI admission design and preflight posture remain aligned
 - no mutation/execution admission changes
-- targeted backend tests cover refusal matrix and gate-state transitions
+- docs and matrices remain aligned on the same capability truth
 
 ## Alternative considered
-Flow Trigger Suite productization plan.
+Validation intake endpoint-candidate admission audit/review packet.
 
-This remains valid, but validation-intake admission audit/review is recommended
-first to harden the new endpoint-candidate boundary before broader workflow
-automation work.
+This remains valid, but TIAF preflight baseline audit is the narrower validation
+gate directly adjacent to CI admission design.
