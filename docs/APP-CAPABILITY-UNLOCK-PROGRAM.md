@@ -26,6 +26,7 @@ The following patterns are now established:
 - validation report intake endpoint-candidate admission design
 - validation report intake endpoint-candidate dry-run implementation (default-off)
 - validation report intake endpoint-candidate admission audit/review coverage
+- validation report intake endpoint-candidate admission decision + surface-matrix alignment
 
 ## App-wide domains
 

@@ -85,6 +85,11 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Validation intake endpoint-candidate admission decision + surface-matrix update
-packet (confirm whether current audited endpoint-candidate remains default-off
-reviewable only or is promoted to a narrow admitted read-only surface).
+Completed by:
+
+- `docs/VALIDATION-REPORT-INTAKE-ENDPOINT-CANDIDATE-ADMISSION-DECISION.md`
+
+Next after that decision:
+
+- validation intake endpoint-candidate operator examples + review checkpoint
+  packet (docs-first, no execution/mutation admission widening).
