@@ -231,6 +231,9 @@ class AssetForgeO3DEStageWriteRequest(BaseModel):
     approval_state: Literal["not-approved", "approved"] = "not-approved"
     approval_note: str = Field(default="", min_length=0)
     approval_session_id: str | None = None
+    overwrite_policy: str = Field(default="deny", min_length=1)
+    source_hash_expected: str | None = Field(default=None, min_length=1)
+    manifest_hash_expected: str | None = Field(default=None, min_length=1)
 
 
 class AssetForgeO3DEStageWriteRecord(BaseModel):
@@ -243,6 +246,20 @@ class AssetForgeO3DEStageWriteRecord(BaseModel):
     source_artifact_path: str = Field(..., min_length=1)
     destination_source_asset_path: str | None = None
     destination_manifest_path: str | None = None
+    corridor_name: str = Field(..., min_length=1)
+    dry_run_only: bool
+    execution_admitted: bool
+    normalized_destination_path: str = Field(..., min_length=1)
+    destination_within_staging_root: bool
+    staging_root_allowlisted: bool
+    overwrite_policy: str = Field(..., min_length=1)
+    overwrite_detected: bool
+    source_hash_expected: str | None = None
+    manifest_hash_expected: str | None = None
+    source_hash_match: bool
+    manifest_hash_match: bool
+    path_traversal_detected: bool
+    fail_closed_reasons: list[str] = Field(default_factory=list)
     approval_required: bool
     approval_state: Literal["not-approved", "approved"]
     server_approval_session_id: str | None = None

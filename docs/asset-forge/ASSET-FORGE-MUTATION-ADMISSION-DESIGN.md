@@ -9,6 +9,7 @@ Design-only. No mutation admitted by this document.
 - #141 backend read-only/status/preflight/proof-index scaffolding
 - #142 server-owned approval/session substrate
 - #143 server-owned approval enforcement evaluation
+- #144 mutation-admission design
 
 ## First candidate corridor
 Name:
