@@ -9,6 +9,10 @@ Repo-wide working defaults for agents now live in:
 Use those files as the default execution and prioritization reference unless
 the active user instruction explicitly says otherwise.
 
+Current agent instruction packs:
+- `agents/asset-forge-audit-agent/AGENTS.md`
+- `agents/app-capability-audit-agent/AGENTS.md`
+
 Planned contents:
 - editor-control
 - asset-pipeline
