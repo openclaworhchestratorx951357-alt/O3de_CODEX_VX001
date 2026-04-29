@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import sqlite3
 import subprocess
 from collections import deque
@@ -30,6 +31,12 @@ from app.services.executions import executions_service
 from app.services.locks import locks_service
 from app.services.runs import runs_service
 from app.services.schema_validation import schema_validation_service
+from app.services.validation_report_intake import (
+    VALIDATION_REPORT_INTAKE_CAPABILITY,
+    VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV,
+    VALIDATION_REPORT_INTAKE_SCHEMA,
+    build_validation_report_intake_dry_run_plan,
+)
 
 
 def create_test_artifact_record(
@@ -262,6 +269,30 @@ def make_asset_source_inspect_request() -> RequestEnvelope:
         "include_products": True,
         "include_dependencies": True,
     }
+    return request
+
+
+def make_validation_report_intake_dispatch_request() -> RequestEnvelope:
+    request = make_request("validation", VALIDATION_REPORT_INTAKE_CAPABILITY)
+    args = {
+        "schema": VALIDATION_REPORT_INTAKE_SCHEMA,
+        "capability_name": VALIDATION_REPORT_INTAKE_CAPABILITY,
+        "report_id": "validation-report-001",
+        "produced_at_utc": "2026-01-01T00:00:00Z",
+        "producer": {"name": "pytest", "version": "1.0.0"},
+        "result": {"status": "succeeded"},
+        "provenance": {"artifact_refs": ["artifacts/reports/gtest.json"]},
+        "payload": {"summary": "intake dry-run candidate payload"},
+        "integrity": {
+            "payload_sha256": "a" * 64,
+            "payload_size_bytes": 0,
+        },
+    }
+    size_probe = build_validation_report_intake_dry_run_plan(args)
+    payload_size_bytes = size_probe["payload_size_bytes"]
+    assert isinstance(payload_size_bytes, int)
+    args["integrity"]["payload_size_bytes"] = payload_size_bytes
+    request.args = args
     return request
 
 
@@ -1155,6 +1186,85 @@ def test_dispatch_rejects_invalid_tool_for_agent() -> None:
         assert response.ok is False
         assert response.error is not None
         assert response.error.code == "INVALID_TOOL"
+
+
+@pytest.mark.parametrize(
+    ("flag_value", "expected_state"),
+    [
+        (None, "missing_default_off"),
+        ("0", "explicit_off"),
+        ("not-a-bool", "invalid_default_off"),
+    ],
+)
+def test_dispatch_blocks_registered_validation_report_intake_for_non_admitted_gate_states(
+    flag_value: str | None,
+    expected_state: str,
+) -> None:
+    with isolated_database():
+        env_patch = (
+            {}
+            if flag_value is None
+            else {VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV: flag_value}
+        )
+        with patch.dict("os.environ", env_patch, clear=False):
+            if flag_value is None:
+                os.environ.pop(VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV, None)
+            with patch("app.services.dispatcher.adapter_service.execute") as execute_mock:
+                response = dispatcher_service.dispatch(
+                    make_validation_report_intake_dispatch_request()
+                )
+                assert response.ok is False
+                assert response.error is not None
+                assert response.error.code == "DISPATCH_NOT_ADMITTED"
+                assert response.error.details is not None
+                assert response.error.details["dispatch_registered"] is True
+                assert response.error.details["dispatch_candidate"] is True
+                assert response.error.details["dispatch_admitted"] is False
+                assert response.error.details["review_status"] == "dispatch_candidate_blocked"
+                assert response.error.details["admission_flag_state"] == expected_state
+                assert execute_mock.call_count == 0
+
+
+def test_dispatch_blocks_registered_validation_report_intake_when_gate_on_and_payload_valid() -> None:
+    with isolated_database():
+        with patch.dict(
+            "os.environ",
+            {VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV: "1"},
+            clear=False,
+        ):
+            with patch("app.services.dispatcher.adapter_service.execute") as execute_mock:
+                response = dispatcher_service.dispatch(
+                    make_validation_report_intake_dispatch_request()
+                )
+                assert response.ok is False
+                assert response.error is not None
+                assert response.error.code == "DISPATCH_NOT_ADMITTED"
+                assert response.error.details is not None
+                assert response.error.details["admission_flag_state"] == "explicit_on"
+                assert response.error.details["admission_flag_enabled"] is True
+                assert response.error.details["parser_acceptance"] is True
+                assert response.error.details["parser_fail_closed_reasons"] == []
+                assert execute_mock.call_count == 0
+
+
+def test_dispatch_reports_parser_fail_closed_reasons_for_registered_validation_report_intake() -> None:
+    with isolated_database():
+        with patch.dict(
+            "os.environ",
+            {VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV: "1"},
+            clear=False,
+        ):
+            request = make_validation_report_intake_dispatch_request()
+            request.args["payload"]["approval_token"] = "client-token"
+            response = dispatcher_service.dispatch(request)
+            assert response.ok is False
+            assert response.error is not None
+            assert response.error.code == "DISPATCH_NOT_ADMITTED"
+            assert response.error.details is not None
+            assert response.error.details["parser_acceptance"] is False
+            assert "client_authorization_fields_forbidden" in (
+                response.error.details["parser_fail_closed_reasons"]
+            )
 
 
 @pytest.mark.parametrize(
