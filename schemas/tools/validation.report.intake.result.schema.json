@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/validation.report.intake.result.schema.json",
+  "title": "validation.report.intake result",
+  "allOf": [
+    { "$ref": "../dispatch-result.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "tool": { "const": "validation.report.intake" },
+        "agent": { "const": "validation" },
+        "approval_class": { "const": "read_only" },
+        "execution_mode": {
+          "type": "string",
+          "enum": ["simulated", "real"]
+        },
+        "simulated": { "type": "boolean" }
+      }
+    }
+  ]
+}
