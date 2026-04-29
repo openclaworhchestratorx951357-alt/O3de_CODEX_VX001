@@ -7910,14 +7910,67 @@ def test_dispatch_route_records_settings_patch_fallback_provenance_in_hybrid_mod
 
 
 def test_validation_report_intake_endpoint_candidates_remain_unadmitted() -> None:
-    with isolated_client() as client:
-        for path in (
-            "/validation/report/intake",
-            "/validation/reports/intake",
-            "/validation/intake",
-        ):
-            response = client.post(path, json={"schema": "validation.report.intake.v1"})
+    with patch.dict(os.environ, {}, clear=False):
+        os.environ.pop(VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV, None)
+        with isolated_client() as client:
+            response = client.post("/validation/report/intake", json={"schema": "validation.report.intake.v1"})
             assert response.status_code == 404
+            payload = response.json()
+            assert payload["detail"]["code"] == "VALIDATION_REPORT_INTAKE_ENDPOINT_BLOCKED"
+            assert payload["detail"]["admission_flag_state"] == "missing_default_off"
+            assert payload["detail"]["admission_flag_enabled"] is False
+            assert payload["detail"]["review_status"] == "blocked_by_server_gate"
+            assert payload["detail"]["write_status"] == "blocked"
+            assert payload["detail"]["endpoint_admitted"] is False
+            assert payload["detail"]["execution_admitted"] is False
+            assert payload["detail"]["project_write_admitted"] is False
+            assert payload["detail"]["write_executed"] is False
+            assert payload["detail"]["fail_closed_reasons"] == [
+                "endpoint_admission_flag_disabled_or_missing"
+            ]
+
+            for path in (
+                "/validation/reports/intake",
+                "/validation/intake",
+            ):
+                fallback_response = client.post(path, json={"schema": "validation.report.intake.v1"})
+                assert fallback_response.status_code == 404
+
+
+def test_validation_report_intake_endpoint_candidate_blocks_for_explicit_off_gate_state() -> None:
+    with patch.dict(
+        os.environ,
+        {VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV: "off"},
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post("/validation/report/intake", json={"schema": "validation.report.intake.v1"})
+            assert response.status_code == 404
+            payload = response.json()
+            assert payload["detail"]["admission_flag_state"] == "explicit_off"
+            assert payload["detail"]["admission_flag_enabled"] is False
+            assert payload["detail"]["review_status"] == "blocked_by_server_gate"
+            assert payload["detail"]["fail_closed_reasons"] == [
+                "endpoint_admission_flag_disabled_or_missing"
+            ]
+
+
+def test_validation_report_intake_endpoint_candidate_blocks_for_invalid_gate_state() -> None:
+    with patch.dict(
+        os.environ,
+        {VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV: "maybe"},
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post("/validation/report/intake", json={"schema": "validation.report.intake.v1"})
+            assert response.status_code == 404
+            payload = response.json()
+            assert payload["detail"]["admission_flag_state"] == "invalid_default_off"
+            assert payload["detail"]["admission_flag_enabled"] is False
+            assert payload["detail"]["review_status"] == "blocked_by_server_gate"
+            assert payload["detail"]["fail_closed_reasons"] == [
+                "endpoint_admission_flag_invalid_state"
+            ]
 
 
 def test_validation_report_intake_endpoint_candidate_returns_dry_run_plan_when_enabled() -> None:
@@ -7947,6 +8000,8 @@ def test_validation_report_intake_endpoint_candidate_returns_dry_run_plan_when_e
             )
             assert payload["admission_flag_state"] == "explicit_on"
             assert payload["admission_flag_enabled"] is True
+            assert payload["review_status"] == "dry_run_candidate_ready_for_operator_review"
+            assert "dry-run-only" in payload["review_summary"]
             assert payload["fail_closed_reasons"] == []
             assert payload["normalized_artifact_refs"] == ["artifacts/reports/gtest.json"]
 
@@ -7970,6 +8025,8 @@ def test_validation_report_intake_endpoint_candidate_fails_closed_for_client_aut
             assert payload["write_executed"] is False
             assert payload["project_write_admitted"] is False
             assert payload["write_status"] == "blocked"
+            assert payload["review_status"] == "dry_run_candidate_fail_closed"
+            assert "fail-closed" in payload["review_summary"]
             assert "client_authorization_fields_forbidden" in payload["fail_closed_reasons"]
 
 
