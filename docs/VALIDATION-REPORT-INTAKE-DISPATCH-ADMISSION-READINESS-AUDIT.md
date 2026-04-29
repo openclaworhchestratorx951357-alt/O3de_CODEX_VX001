@@ -84,4 +84,6 @@ Implementation touchpoint status:
 
 - completed in
   `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-IMPLEMENTATION-TOUCHPOINT.md`
-- next safe gate is dispatch-admission decision checkpoint
+- decision checkpoint completed in
+  `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-DECISION-CHECKPOINT.md`
+- next safe gate is dispatch-admission catalog registration design
