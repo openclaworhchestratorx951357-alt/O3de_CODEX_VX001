@@ -120,6 +120,7 @@ def _assert_stage_write_dry_run_fields(payload: dict[str, object]) -> None:
     assert isinstance(payload["path_traversal_detected"], bool)
     assert isinstance(payload["fail_closed_reasons"], list)
     assert payload["server_approval_evaluation"]["authorization_granted"] is False
+    assert payload["post_write_readback"]["ingest_readback_bridge_status"] == "not_run"
 
 
 def test_root_includes_current_control_plane_routes() -> None:
@@ -1232,6 +1233,17 @@ def test_asset_forge_o3de_stage_write_proof_only_execution_writes_exact_scope_wh
                 assert payload["manifest_sha256"] == manifest_hash_expected
                 assert payload["post_write_readback"]["destination_hash_matches_expected"] is True
                 assert payload["post_write_readback"]["manifest_hash_matches_expected"] is True
+                assert payload["post_write_readback"]["ingest_readback_bridge_status"] == "blocked"
+                bridge_summary = payload["post_write_readback"]["ingest_readback_bridge"]
+                assert bridge_summary["capability_name"] == "asset_forge.o3de.ingest.readback"
+                assert bridge_summary["readback_status"] == "blocked"
+                assert bridge_summary["selected_platform"] == "pc"
+                assert bridge_summary["source_exists"] is True
+                assert bridge_summary["asset_database_exists"] is False
+                assert bridge_summary["source_found_in_assetdb"] is False
+                assert bridge_summary["product_count"] == 0
+                assert bridge_summary["catalog_exists"] is False
+                assert bridge_summary["catalog_presence"] is False
                 assert json.loads(manifest_path.read_text(encoding="utf-8")) == {
                     "schema": "asset_forge.stage_write_manifest.v1",
                     "corridor_name": "asset_forge.o3de.stage_write.v1",

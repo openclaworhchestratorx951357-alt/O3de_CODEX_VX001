@@ -59,7 +59,7 @@ The stage-write endpoint now reports these dry-run-only fields:
 - admission flag on with missing revert plan reference fails closed
 - admission flag on without exact revert-path allowlist fails closed
 - revert scope mismatch fails closed
-- admission flag true still stays blocked until proof-only execution is explicitly implemented
+- admission flag true still fails closed when any required gate/evidence condition is missing
 - path traversal fails closed
 - destination outside allowlisted staging root fails closed
 - overwrite attempt with `overwrite_policy=deny` fails closed

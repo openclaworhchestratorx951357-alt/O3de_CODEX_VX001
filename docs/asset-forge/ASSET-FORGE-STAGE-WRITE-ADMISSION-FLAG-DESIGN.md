@@ -19,9 +19,9 @@ Implementation status (current):
 - this is not broad mutation admission
 
 ## Intent
-Define the explicit server-owned admission flag required before any future proof-only stage-write execution packet can even be considered for `asset_forge.o3de.stage_write.v1`.
+Define the explicit server-owned admission-flag model and guardrails for proof-only stage-write execution on `asset_forge.o3de.stage_write.v1`.
 
-This packet does not enable stage-write execution.
+This design document itself is non-executable; runtime behavior is implemented in code and remains exact-scope and gate-bounded.
 
 ## Scope
 This design applies only to the first candidate mutation corridor:
@@ -101,7 +101,7 @@ Any PR implementing this flag must include tests proving:
 - flag true but session expired/revoked/rejected => blocked
 - flag true but wrong operation/fingerprint mismatch => blocked
 - flag true but traversal/outside-root/overwrite/hash mismatch => blocked
-- flag true with valid session and valid dry-run checks still remains blocked until proof-only execution gate is explicitly implemented in that same future PR
+- flag true with any missing required gate evidence still fails closed
 - no files are written in every blocked case
 
 ## What remains blocked after this design

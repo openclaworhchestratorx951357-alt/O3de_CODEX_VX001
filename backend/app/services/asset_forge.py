@@ -66,6 +66,7 @@ _STAGE_WRITE_EVIDENCE_BUNDLE_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_EVIDENCE_BUND
 _STAGE_WRITE_POST_WRITE_READBACK_PLAN_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_POST_WRITE_READBACK_PLAN_REF"
 _STAGE_WRITE_REVERT_PLAN_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_REVERT_PLAN_REF"
 _STAGE_WRITE_REVERT_ALLOWED_PATHS_ENV = "ASSET_FORGE_STAGE_WRITE_V1_REVERT_ALLOWED_PATHS"
+_STAGE_WRITE_READBACK_PLATFORM_ENV = "ASSET_FORGE_STAGE_WRITE_V1_READBACK_PLATFORM"
 _STAGE_WRITE_APPROVAL_CAPABILITY = "asset_forge.o3de.stage.write"
 _DEFAULT_MAX_STAGE_BYTES = 524_288_000
 _ASSETDB_EVIDENCE_ROW_LIMIT = 25
@@ -1555,6 +1556,7 @@ class AssetForgeService:
             "source_exists": source_exists,
             "destination_exists": destination_source_path.is_file() if destination_source_path else False,
             "manifest_exists": destination_manifest_path.is_file() if destination_manifest_path else False,
+            "ingest_readback_bridge_status": "not_run",
         }
         safest_next_step = (
             "Keep stage-write blocked and use dry-run proofs to validate bounded corridor constraints before any proof-only execution packet."
@@ -1600,9 +1602,62 @@ class AssetForgeService:
                     write_status = "succeeded"
                     write_executed = True
                     fail_closed_reasons = []
-                    safest_next_step = (
-                        "Run read-only ingest/readback evidence capture for the staged paths and keep placement blocked until a separate packet admits it."
+                    readback_platform = (
+                        os.environ.get(_STAGE_WRITE_READBACK_PLATFORM_ENV, "pc").strip().lower() or "pc"
                     )
+                    try:
+                        readback_record = self.read_o3de_ingest_readback(
+                            AssetForgeO3DEReadbackRequest(
+                                candidate_id=request.candidate_id,
+                                candidate_label=request.candidate_label,
+                                source_asset_relative_path=stage_relative_path,
+                                selected_platform=readback_platform,
+                            )
+                        )
+                        post_write_readback["ingest_readback_bridge_status"] = (
+                            readback_record.readback_status
+                        )
+                        post_write_readback["ingest_readback_bridge"] = {
+                            "capability_name": readback_record.capability_name,
+                            "readback_status": readback_record.readback_status,
+                            "selected_platform": readback_record.selected_platform,
+                            "source_exists": readback_record.source_exists,
+                            "asset_database_exists": readback_record.asset_database_exists,
+                            "source_found_in_assetdb": readback_record.source_found_in_assetdb,
+                            "product_count": readback_record.product_count,
+                            "dependency_count": readback_record.dependency_count,
+                            "catalog_exists": readback_record.catalog_exists,
+                            "catalog_presence": readback_record.catalog_presence,
+                            "catalog_product_path_presence_count": len(
+                                readback_record.catalog_product_path_presence
+                            ),
+                            "warnings": readback_record.warnings[:8],
+                            "safest_next_step": readback_record.safest_next_step,
+                            "source": readback_record.source,
+                        }
+                        if readback_record.readback_status == "succeeded":
+                            safest_next_step = (
+                                "Review bridged readback evidence and continue with placement planning only after explicit operator approval."
+                            )
+                        else:
+                            warnings.append(
+                                "Stage-write succeeded, but bridged readback evidence is blocked; run operator-managed Asset Processor refresh outside this endpoint and rerun readback."
+                            )
+                            safest_next_step = (
+                                "Use the bridged readback blockers to guide an operator-managed Asset Processor refresh, then rerun readback before any placement packet."
+                            )
+                    except (OSError, ValueError) as exc:
+                        post_write_readback["ingest_readback_bridge_status"] = "failed"
+                        post_write_readback["ingest_readback_bridge"] = {
+                            "error": str(exc),
+                            "selected_platform": readback_platform,
+                        }
+                        warnings.append(
+                            "Stage-write succeeded, but post-write readback bridge execution failed; run /asset-forge/o3de/readback directly to capture evidence."
+                        )
+                        safest_next_step = (
+                            "Run /asset-forge/o3de/readback directly for the staged source path to capture evidence before any placement packet."
+                        )
                 else:
                     write_status = "failed"
                     write_executed = True
