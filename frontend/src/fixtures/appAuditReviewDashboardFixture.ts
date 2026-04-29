@@ -48,12 +48,12 @@ export const appAuditReviewDashboardRows: readonly AppAuditReviewRow[] = [
   {
     domain: "Validation",
     capabilityWindow: "test/report lanes",
-    currentMaturity: "mixed admitted workflow + needs baseline",
+    currentMaturity: "dry-run parser scaffold + endpoint unadmitted",
     risk: "Medium",
-    gateStatus: "baseline incomplete",
-    verdict: "blocked",
-    findings: "Validation intake and CI admission maturity still need explicit baseline audit.",
-    nextGate: "validation report intake baseline audit",
+    gateStatus: "fail-closed parser matrix present",
+    verdict: "watch",
+    findings: "Validation intake now has contract + dry-run parser fail-closed coverage, but endpoint admission remains gated.",
+    nextGate: "approval/session dashboard shell",
   },
   {
     domain: "GUI",

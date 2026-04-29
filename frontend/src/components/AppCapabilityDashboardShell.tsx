@@ -111,8 +111,7 @@ export default function AppCapabilityDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Validation report intake baseline audit</strong>, followed by domain-specific
-        read-only and dry-run lanes that preserve fail-closed defaults.
+        Recommended next packet: <strong>Approval/session dashboard shell</strong> (frontend/static-fixture first, intent-only labels, no execution admission changes).
       </p>
     </section>
   );

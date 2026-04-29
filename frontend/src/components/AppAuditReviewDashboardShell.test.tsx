@@ -20,7 +20,7 @@ describe("AppAuditReviewDashboardShell", () => {
     expect(screen.getByText("Automation")).toBeInTheDocument();
 
     expect(
-      screen.getByText("Validation report intake baseline audit", { selector: "strong" }),
+      screen.getByText("Approval/session dashboard shell", { selector: "strong" }),
     ).toBeInTheDocument();
   });
 });
