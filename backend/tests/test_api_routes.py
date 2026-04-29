@@ -80,6 +80,14 @@ def _assert_stage_write_dry_run_fields(payload: dict[str, object]) -> None:
     assert payload["corridor_name"] == "asset_forge.o3de.stage_write.v1"
     assert payload["dry_run_only"] is True
     assert payload["execution_admitted"] is False
+    assert payload["admission_flag_name"] == "asset_forge.o3de.stage_write.v1.proof_only_admission_enabled"
+    assert payload["admission_flag_state"] in {
+        "missing_default_off",
+        "explicit_off",
+        "explicit_on",
+        "invalid_default_off",
+    }
+    assert isinstance(payload["admission_flag_enabled"], bool)
     assert payload["write_executed"] is False
     assert payload["project_write_admitted"] is False
     assert payload["normalized_destination_path"]
@@ -1120,6 +1128,7 @@ def test_asset_forge_o3de_stage_write_valid_dry_run_still_blocks_execution() -> 
             {
                 "ASSET_FORGE_RUNTIME_ROOT": str(runtime_root),
                 "O3DE_TARGET_PROJECT_ROOT": str(project_root),
+                "ASSET_FORGE_STAGE_WRITE_V1_PROOF_ONLY_ADMISSION_ENABLED": "true",
             },
             clear=False,
         ):
@@ -1169,9 +1178,249 @@ def test_asset_forge_o3de_stage_write_valid_dry_run_still_blocks_execution() -> 
                 assert payload["source_hash_match"] is True
                 assert payload["manifest_hash_match"] is True
                 assert payload["overwrite_detected"] is False
+                assert payload["admission_flag_state"] == "explicit_on"
+                assert payload["admission_flag_enabled"] is True
+                assert "proof_only_execution_not_implemented" in payload["fail_closed_reasons"]
                 assert "mutation_admission_not_enabled" in payload["fail_closed_reasons"]
                 assert not (project_root / stage_relative).exists()
                 assert not (project_root / manifest_relative).exists()
+
+
+def test_asset_forge_o3de_stage_write_admission_flag_missing_defaults_off() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir, TemporaryDirectory(
+        ignore_cleanup_errors=True
+    ) as project_dir:
+        runtime_root = Path(runtime_dir)
+        project_root = Path(project_dir)
+        source_dir = runtime_root / "prepared_exports"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        source_bytes = b"stage-source-bytes"
+        source_path = source_dir / "candidate_a.glb"
+        source_path.write_bytes(source_bytes)
+
+        source_artifact_path = "prepared_exports/candidate_a.glb"
+        stage_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        manifest_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json"
+        source_hash_expected = sha256(source_bytes).hexdigest()
+        manifest_hash_expected = _stage_write_expected_manifest_hash(
+            candidate_id="candidate-a",
+            candidate_label="Weathered Ivy Arch",
+            stage_relative_path=stage_relative,
+            manifest_relative_path=manifest_relative,
+            source_artifact_path=source_artifact_path,
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "ASSET_FORGE_RUNTIME_ROOT": str(runtime_root),
+                "O3DE_TARGET_PROJECT_ROOT": str(project_root),
+            },
+            clear=True,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/asset-forge/o3de/stage-write",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_artifact_path": source_artifact_path,
+                        "stage_relative_path": stage_relative,
+                        "manifest_relative_path": manifest_relative,
+                        "approval_state": "approved",
+                        "approval_note": "missing flag defaults off",
+                        "overwrite_policy": "deny",
+                        "source_hash_expected": source_hash_expected,
+                        "manifest_hash_expected": manifest_hash_expected,
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                _assert_stage_write_dry_run_fields(payload)
+                assert payload["write_status"] == "blocked"
+                assert payload["admission_flag_state"] == "missing_default_off"
+                assert payload["admission_flag_enabled"] is False
+                assert "admission_flag_disabled_or_missing" in payload["fail_closed_reasons"]
+                assert not (project_root / stage_relative).exists()
+                assert not (project_root / manifest_relative).exists()
+
+
+def test_asset_forge_o3de_stage_write_admission_flag_explicit_off_stays_blocked() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir, TemporaryDirectory(
+        ignore_cleanup_errors=True
+    ) as project_dir:
+        runtime_root = Path(runtime_dir)
+        project_root = Path(project_dir)
+        source_dir = runtime_root / "prepared_exports"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        source_bytes = b"stage-source-bytes"
+        source_path = source_dir / "candidate_a.glb"
+        source_path.write_bytes(source_bytes)
+
+        source_artifact_path = "prepared_exports/candidate_a.glb"
+        stage_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        manifest_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json"
+        source_hash_expected = sha256(source_bytes).hexdigest()
+        manifest_hash_expected = _stage_write_expected_manifest_hash(
+            candidate_id="candidate-a",
+            candidate_label="Weathered Ivy Arch",
+            stage_relative_path=stage_relative,
+            manifest_relative_path=manifest_relative,
+            source_artifact_path=source_artifact_path,
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "ASSET_FORGE_RUNTIME_ROOT": str(runtime_root),
+                "O3DE_TARGET_PROJECT_ROOT": str(project_root),
+                "ASSET_FORGE_STAGE_WRITE_V1_PROOF_ONLY_ADMISSION_ENABLED": "false",
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/asset-forge/o3de/stage-write",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_artifact_path": source_artifact_path,
+                        "stage_relative_path": stage_relative,
+                        "manifest_relative_path": manifest_relative,
+                        "approval_state": "approved",
+                        "approval_note": "explicit off",
+                        "overwrite_policy": "deny",
+                        "source_hash_expected": source_hash_expected,
+                        "manifest_hash_expected": manifest_hash_expected,
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                _assert_stage_write_dry_run_fields(payload)
+                assert payload["admission_flag_state"] == "explicit_off"
+                assert payload["admission_flag_enabled"] is False
+                assert "admission_flag_disabled_or_missing" in payload["fail_closed_reasons"]
+                assert payload["write_status"] == "blocked"
+
+
+def test_asset_forge_o3de_stage_write_admission_flag_malformed_fails_closed() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir, TemporaryDirectory(
+        ignore_cleanup_errors=True
+    ) as project_dir:
+        runtime_root = Path(runtime_dir)
+        project_root = Path(project_dir)
+        source_dir = runtime_root / "prepared_exports"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        source_bytes = b"stage-source-bytes"
+        source_path = source_dir / "candidate_a.glb"
+        source_path.write_bytes(source_bytes)
+
+        source_artifact_path = "prepared_exports/candidate_a.glb"
+        stage_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        manifest_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json"
+        source_hash_expected = sha256(source_bytes).hexdigest()
+        manifest_hash_expected = _stage_write_expected_manifest_hash(
+            candidate_id="candidate-a",
+            candidate_label="Weathered Ivy Arch",
+            stage_relative_path=stage_relative,
+            manifest_relative_path=manifest_relative,
+            source_artifact_path=source_artifact_path,
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "ASSET_FORGE_RUNTIME_ROOT": str(runtime_root),
+                "O3DE_TARGET_PROJECT_ROOT": str(project_root),
+                "ASSET_FORGE_STAGE_WRITE_V1_PROOF_ONLY_ADMISSION_ENABLED": "banana",
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/asset-forge/o3de/stage-write",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_artifact_path": source_artifact_path,
+                        "stage_relative_path": stage_relative,
+                        "manifest_relative_path": manifest_relative,
+                        "approval_state": "approved",
+                        "approval_note": "malformed flag value",
+                        "overwrite_policy": "deny",
+                        "source_hash_expected": source_hash_expected,
+                        "manifest_hash_expected": manifest_hash_expected,
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                _assert_stage_write_dry_run_fields(payload)
+                assert payload["admission_flag_state"] == "invalid_default_off"
+                assert payload["admission_flag_enabled"] is False
+                assert "admission_flag_invalid_state" in payload["fail_closed_reasons"]
+                assert payload["write_status"] == "blocked"
+
+
+def test_asset_forge_o3de_stage_write_ignores_client_flag_override_attempts() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir, TemporaryDirectory(
+        ignore_cleanup_errors=True
+    ) as project_dir:
+        runtime_root = Path(runtime_dir)
+        project_root = Path(project_dir)
+        source_dir = runtime_root / "prepared_exports"
+        source_dir.mkdir(parents=True, exist_ok=True)
+        source_bytes = b"stage-source-bytes"
+        source_path = source_dir / "candidate_a.glb"
+        source_path.write_bytes(source_bytes)
+
+        source_artifact_path = "prepared_exports/candidate_a.glb"
+        stage_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        manifest_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json"
+        source_hash_expected = sha256(source_bytes).hexdigest()
+        manifest_hash_expected = _stage_write_expected_manifest_hash(
+            candidate_id="candidate-a",
+            candidate_label="Weathered Ivy Arch",
+            stage_relative_path=stage_relative,
+            manifest_relative_path=manifest_relative,
+            source_artifact_path=source_artifact_path,
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "ASSET_FORGE_RUNTIME_ROOT": str(runtime_root),
+                "O3DE_TARGET_PROJECT_ROOT": str(project_root),
+                "ASSET_FORGE_STAGE_WRITE_V1_PROOF_ONLY_ADMISSION_ENABLED": "false",
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/asset-forge/o3de/stage-write",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_artifact_path": source_artifact_path,
+                        "stage_relative_path": stage_relative,
+                        "manifest_relative_path": manifest_relative,
+                        "approval_state": "approved",
+                        "approval_note": "client override attempt",
+                        "overwrite_policy": "deny",
+                        "source_hash_expected": source_hash_expected,
+                        "manifest_hash_expected": manifest_hash_expected,
+                        "execution_admitted": True,
+                        "admission_flag_enabled": True,
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                _assert_stage_write_dry_run_fields(payload)
+                assert payload["admission_flag_state"] == "explicit_off"
+                assert payload["admission_flag_enabled"] is False
+                assert payload["execution_admitted"] is False
+                assert payload["write_executed"] is False
+                assert payload["project_write_admitted"] is False
+                assert payload["write_status"] == "blocked"
 
 
 def test_asset_forge_o3de_stage_write_fails_closed_on_path_traversal() -> None:

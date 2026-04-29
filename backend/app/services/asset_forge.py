@@ -58,6 +58,8 @@ _INSPECT_SCRIPT_ID = "asset_forge_blender_readonly_inspector_v1"
 _ALLOWED_STAGE_SOURCE_EXTENSIONS = {".obj", ".fbx", ".glb", ".gltf"}
 _ALLOWED_STAGE_ROOT_PREFIX = "Assets/Generated/asset_forge/"
 _STAGE_WRITE_CORRIDOR_NAME = "asset_forge.o3de.stage_write.v1"
+_STAGE_WRITE_ADMISSION_FLAG_NAME = "asset_forge.o3de.stage_write.v1.proof_only_admission_enabled"
+_STAGE_WRITE_ADMISSION_FLAG_ENV = "ASSET_FORGE_STAGE_WRITE_V1_PROOF_ONLY_ADMISSION_ENABLED"
 _STAGE_WRITE_APPROVAL_CAPABILITY = "asset_forge.o3de.stage.write"
 _DEFAULT_MAX_STAGE_BYTES = 524_288_000
 _ASSETDB_EVIDENCE_ROW_LIMIT = 25
@@ -169,6 +171,26 @@ def _normalize_project_relative_path(value: str) -> str:
 def _contains_path_traversal(normalized_relative_path: str) -> bool:
     parts = [part for part in normalized_relative_path.split("/") if part]
     return ".." in parts
+
+
+def _resolve_stage_write_admission_flag_state() -> tuple[
+    bool,
+    Literal[
+        "missing_default_off",
+        "explicit_off",
+        "explicit_on",
+        "invalid_default_off",
+    ],
+]:
+    raw = os.environ.get(_STAGE_WRITE_ADMISSION_FLAG_ENV)
+    if raw is None:
+        return False, "missing_default_off"
+    normalized = raw.strip().lower()
+    if normalized in {"1", "true", "yes", "on", "enabled"}:
+        return True, "explicit_on"
+    if normalized in {"0", "false", "no", "off", "disabled"}:
+        return False, "explicit_off"
+    return False, "invalid_default_off"
 
 
 def _planned_manifest_sha256(
@@ -1218,6 +1240,7 @@ class AssetForgeService:
 
         overwrite_policy = request.overwrite_policy.strip().lower() or "deny"
         overwrite_policy_supported = overwrite_policy in _SUPPORTED_STAGE_WRITE_OVERWRITE_POLICIES
+        admission_flag_enabled, admission_flag_state = _resolve_stage_write_admission_flag_state()
         server_approval_evaluation = self._evaluate_server_approval_session(
             approval_session_id=request.approval_session_id,
             expected_capability=_STAGE_WRITE_APPROVAL_CAPABILITY,
@@ -1335,6 +1358,22 @@ class AssetForgeService:
             )
             fail_closed_reasons.append("overwrite_detected")
 
+        if admission_flag_state == "invalid_default_off":
+            warnings.append(
+                f"Admission flag {_STAGE_WRITE_ADMISSION_FLAG_ENV} is malformed; defaulting to fail-closed off."
+            )
+            fail_closed_reasons.append("admission_flag_invalid_state")
+        elif not admission_flag_enabled:
+            warnings.append(
+                f"Admission flag {_STAGE_WRITE_ADMISSION_FLAG_NAME} is off; stage-write remains fail-closed."
+            )
+            fail_closed_reasons.append("admission_flag_disabled_or_missing")
+        else:
+            warnings.append(
+                "Admission flag is on, but proof-only stage-write execution is not implemented in this packet."
+            )
+            fail_closed_reasons.append("proof_only_execution_not_implemented")
+
         warnings.append(
             "Stage write execution remains blocked in this packet because mutation admission is not enabled."
         )
@@ -1355,6 +1394,9 @@ class AssetForgeService:
             corridor_name=_STAGE_WRITE_CORRIDOR_NAME,
             dry_run_only=True,
             execution_admitted=False,
+            admission_flag_name=_STAGE_WRITE_ADMISSION_FLAG_NAME,
+            admission_flag_state=admission_flag_state,
+            admission_flag_enabled=admission_flag_enabled,
             normalized_destination_path=stage_relative_path,
             destination_within_staging_root=destination_within_staging_root,
             staging_root_allowlisted=staging_root_allowlisted,

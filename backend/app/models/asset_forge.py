@@ -249,6 +249,14 @@ class AssetForgeO3DEStageWriteRecord(BaseModel):
     corridor_name: str = Field(..., min_length=1)
     dry_run_only: bool
     execution_admitted: bool
+    admission_flag_name: str = Field(..., min_length=1)
+    admission_flag_state: Literal[
+        "missing_default_off",
+        "explicit_off",
+        "explicit_on",
+        "invalid_default_off",
+    ]
+    admission_flag_enabled: bool
     normalized_destination_path: str = Field(..., min_length=1)
     destination_within_staging_root: bool
     staging_root_allowlisted: bool
