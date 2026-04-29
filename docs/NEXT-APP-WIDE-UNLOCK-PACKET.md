@@ -1,21 +1,20 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake dispatch-admission design packet.
+Validation intake dispatch-admission readiness audit packet.
 
 ## Why this is next
-- Endpoint-candidate admission decision checkpoint is now documented and keeps
-  the capability at read-only audited endpoint-candidate maturity.
-- Dispatch remains explicitly unadmitted for `validation.report.intake`.
-- The next safest move is design-only dispatch-boundary planning before any
-  implementation packet attempts dispatch registration or execution affordance.
+- Dispatch-admission design is now documented with explicit preconditions,
+  refusal matrix requirements, and non-goals.
+- Dispatch remains explicitly unadmitted and default-off.
+- The next safest move is a readiness audit that maps missing implementation
+  gates/tests before any dispatch registration packet is allowed.
 
 ## Scope
 - docs-focused packet (tests optional; no runtime mutation)
-- define exact dispatch admission preconditions and non-goals
-- enumerate fail-closed refusal matrix for dispatch inputs
-- define review/status and rollback boundary requirements for any future
-  dispatch implementation
+- audit current code/tests against dispatch-admission design preconditions
+- identify missing gates/tests and exact implementation touchpoints
+- classify risk and approval requirements for a later implementation packet
 - no execution or mutation admission changes
 
 ## Safety constraints
@@ -27,7 +26,7 @@ Validation intake dispatch-admission design packet.
 
 ## Acceptance checks
 - dispatch remains unadmitted after the packet
-- design specifies exact admission criteria and explicit non-goals
+- readiness report names which gates are satisfied vs missing
 - no broadening of endpoint or dispatch execution/mutation capability
 - no client approval/session fields treated as authorization
 - recommendation for later implementation packet is explicit and testable
@@ -35,6 +34,5 @@ Validation intake dispatch-admission design packet.
 ## Alternative considered
 Flow Trigger Suite productization plan.
 
-This remains valid, but validation-intake dispatch-boundary design is
-recommended first to avoid broadening the intake surface without an explicit
-dispatch safety contract.
+This remains valid, but dispatch-admission readiness audit is recommended first
+to prevent implementation drift from the newly defined dispatch safety contract.
