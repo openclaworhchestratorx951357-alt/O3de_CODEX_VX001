@@ -35,8 +35,9 @@ to concrete test/doc evidence and explicitly record current readiness.
 
 ## Recommended Next Packet
 
-Validation intake endpoint-candidate read-only admission decision refresh:
+Validation intake endpoint-candidate read-only operator examples + refusal
+wording packet:
 
-- use this checklist as evidence input
-- decide whether to keep admission withheld or update read-only public wording
+- add safe/refused operator examples for current candidate-only truth
+- explicitly show endpoint-candidate vs dispatch-unadmitted boundaries
 - keep runtime behavior unchanged unless separately approved
