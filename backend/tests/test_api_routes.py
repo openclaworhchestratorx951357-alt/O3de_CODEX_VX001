@@ -30,6 +30,7 @@ from app.services.asset_forge import asset_forge_service
 from app.services.prompt_sessions import prompt_sessions_service
 from app.services.approvals import approvals_service
 from app.services.validation_report_intake import (
+    VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV,
     VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV,
     build_validation_report_intake_dry_run_plan,
 )
@@ -8078,6 +8079,22 @@ def test_validation_report_intake_dispatch_rejected_even_with_client_approval_fi
         assert payload["error"]["code"] == "INVALID_TOOL"
         assert payload["error"]["details"]["agent"] == "validation"
         assert payload["error"]["details"]["tool"] == "validation.report.intake"
+        assert payload["error"]["details"]["corridor_name"] == "validation.report.intake"
+        assert payload["error"]["details"]["dispatch_candidate"] is True
+        assert payload["error"]["details"]["dispatch_admitted"] is False
+        assert payload["error"]["details"]["dry_run_only"] is True
+        assert payload["error"]["details"]["execution_admitted"] is False
+        assert payload["error"]["details"]["write_executed"] is False
+        assert payload["error"]["details"]["project_write_admitted"] is False
+        assert payload["error"]["details"]["write_status"] == "blocked"
+        assert payload["error"]["details"]["review_code"] == "dispatch_candidate_unadmitted"
+        assert payload["error"]["details"]["review_status"] == "dispatch_candidate_blocked"
+        assert (
+            payload["error"]["details"]["admission_flag_name"]
+            == VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV
+        )
+        assert payload["error"]["details"]["admission_flag_state"] == "missing_default_off"
+        assert payload["error"]["details"]["admission_flag_enabled"] is False
         assert payload["state"]["dirty"] is False
         assert payload["state"]["requires_save"] is False
         assert payload["state"]["requires_reconfigure"] is False
@@ -8128,3 +8145,58 @@ def test_validation_report_intake_dispatch_remains_unadmitted_when_endpoint_flag
             assert payload["ok"] is False
             assert payload["error"]["code"] == "INVALID_TOOL"
             assert payload["error"]["details"]["tool"] == "validation.report.intake"
+            assert payload["error"]["details"]["dispatch_candidate"] is True
+            assert payload["error"]["details"]["dispatch_admitted"] is False
+            assert payload["error"]["details"]["admission_flag_state"] == "missing_default_off"
+
+
+def test_validation_report_intake_dispatch_review_payload_tracks_dispatch_gate_states() -> None:
+    cases = (
+        (
+            "0",
+            "explicit_off",
+            "Dispatch admission is explicitly off; keep it off until implementation touchpoint validation is complete.",
+        ),
+        (
+            "not-a-bool",
+            "invalid_default_off",
+            "Replace invalid dispatch admission-flag value with explicit on/off; invalid values fail closed.",
+        ),
+        (
+            "1",
+            "explicit_on",
+            "Dispatch gate is explicit on, but tool registration remains blocked until exact dispatch-admission implementation gates are closed.",
+        ),
+    )
+
+    for flag_value, expected_state, expected_next_step in cases:
+        with patch.dict(
+            os.environ,
+            {VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV: flag_value},
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/tools/dispatch",
+                    json={
+                        "request_id": f"api-validation-report-intake-gate-{flag_value}",
+                        "tool": "validation.report.intake",
+                        "agent": "validation",
+                        "project_root": "/tmp/project",
+                        "engine_root": "/tmp/engine",
+                        "dry_run": True,
+                        "locks": [],
+                        "timeout_s": 15,
+                        "args": {"schema": "validation.report.intake.v1"},
+                    },
+                )
+
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["ok"] is False
+                assert payload["error"]["code"] == "INVALID_TOOL"
+                assert payload["error"]["details"]["admission_flag_state"] == expected_state
+                assert payload["error"]["details"]["admission_flag_enabled"] == (
+                    expected_state == "explicit_on"
+                )
+                assert payload["error"]["details"]["recommended_next_step"] == expected_next_step
