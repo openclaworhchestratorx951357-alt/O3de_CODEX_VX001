@@ -112,6 +112,6 @@ This design keeps all of the following blocked:
 
 ## Next safe packet
 
-Validation intake endpoint-candidate read-only admission readiness checklist
-(map each evidence gate to concrete test/doc proof and keep admission withheld
-until every gate is explicitly satisfied).
+Validation intake endpoint-candidate read-only admission decision refresh
+(consume readiness-checklist evidence and record whether read-only wording
+should remain withheld or be updated).
