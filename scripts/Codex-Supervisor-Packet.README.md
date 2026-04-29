@@ -1,4 +1,4 @@
-# Codex Supervisor Packet Launcher
+﻿# Codex Supervisor Packet Launcher
 
 This launcher sends a predefined supervisor instruction into a Codex Desktop window,
 with guardrails to prevent collisions with other running triggers.
@@ -119,6 +119,7 @@ powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Lane-Launch-Readiness-Warrant-Operator-Activation-Receipt.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Operator-Activation-Receipt-Lane-Continuity-Warrant.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Lane-Continuity-Warrant-Operator-Stewardship-Receipt.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Operator-Stewardship-Receipt-Lane-Custody-Attestation.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 ```
 
 ## Retention policy helper
@@ -396,6 +397,12 @@ Cadence lane continuity warrant operator stewardship receipt helper:
 
 ```powershell
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Invoke-Codex-Supervisor-Retention-Cadence-Lane-Continuity-Warrant-Operator-Stewardship-Receipt.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project" -OperatorAcknowledged
+
+Cadence operator stewardship receipt lane custody attestation helper:
+
+```powershell
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Invoke-Codex-Supervisor-Retention-Cadence-Operator-Stewardship-Receipt-Lane-Custody-Attestation.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project" -OperatorAcknowledged
+```
 ```
 
 ## Productized rollout controls
