@@ -112,6 +112,6 @@ This design keeps all of the following blocked:
 
 ## Next safe packet
 
-Validation intake endpoint-candidate dry-run implementation packet
-(server-flagged, default-off, fail-closed tests first, no execution/mutation
-admission).
+Validation intake endpoint-candidate admission audit/review packet
+(verify gate-state semantics, refusal matrix, and operator-facing review/status
+truth while preserving default-off and no execution/mutation admission).

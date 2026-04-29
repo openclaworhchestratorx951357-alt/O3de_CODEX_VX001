@@ -1,23 +1,24 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake endpoint-candidate dry-run implementation (default-off).
+Validation intake endpoint-candidate admission audit/review packet.
 
 ## Why this is next
 - Capability, audit, evidence timeline, approval/session, and workspace-status
   shells now exist.
-- Validation intake baseline, contract, parser matrix, and endpoint-candidate
-  admission design now exist.
-- The narrow next move is a server-flagged endpoint-candidate implementation
-  that preserves dry-run-only behavior and proves fail-closed defaults in code.
+- Validation intake endpoint-candidate dry-run implementation now exists behind
+  a server-owned default-off admission flag.
+- The next safest move is an explicit admission audit/review packet that proves
+  gate semantics, refusal coverage, and operator-facing truth labels before any
+  broader read-only admission claim.
 
 ## Scope
-- backend-targeted packet with no runtime execution admission
-- implement endpoint-candidate path behind explicit server-owned admission flag
-  that defaults to off
-- preserve dry-run parser boundary and fail-closed defaults
-- return explicit refusal reasons for unadmitted or invalid requests
-- no backend execution admission changes
+- docs+tests focused packet (optional small backend metadata only)
+- audit endpoint gate states (`missing_default_off`, `explicit_off`,
+  `explicit_on`, `invalid_default_off`)
+- verify fail-closed refusal matrix on malformed/auth-tainted payloads
+- define and verify operator-facing review/status fields for endpoint outcomes
+- no execution or mutation admission changes
 
 ## Safety constraints
 - no runtime bridge execution changes
@@ -27,16 +28,16 @@ Validation intake endpoint-candidate dry-run implementation (default-off).
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- endpoint candidate remains blocked while admission flag is off
-- valid requests return dry-run-only/no-execution flags
-- implementation preserves server-owned authorization and intent-only client
-  fields
+- endpoint remains blocked for missing/invalid/explicit-off flag states
+- explicit-on path remains dry-run-only with write/execution flags false
+- dispatch path for `validation.report.intake` remains unadmitted
+- review/status output remains truthful and fail-closed
 - no mutation/execution admission changes
-- targeted backend tests cover accepted + refused fail-closed paths
+- targeted backend tests cover refusal matrix and gate-state transitions
 
 ## Alternative considered
 Flow Trigger Suite productization plan.
 
-This remains valid, but validation-intake endpoint-candidate implementation is
-recommended first to close the contract-to-runtime gap while preserving strict
-default fail-closed behavior.
+This remains valid, but validation-intake admission audit/review is recommended
+first to harden the new endpoint-candidate boundary before broader workflow
+automation work.
