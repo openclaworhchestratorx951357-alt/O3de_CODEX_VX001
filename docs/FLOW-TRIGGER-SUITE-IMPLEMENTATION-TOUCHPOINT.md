@@ -125,3 +125,8 @@ Flow Trigger Suite validation packet:
 - add targeted validation checks for claim collision, queue append-only
   invariants, and deterministic stop/evidence output across risk classes
 - verify no-runtime-impact behavior end-to-end
+
+Validation packet status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-VALIDATION-PACKET.md`
+- next safe gate is Flow Trigger Suite productized rollout packet
