@@ -109,3 +109,8 @@ Flow Trigger Suite retention enforcement verification packet:
 
 - run retention audit helper against representative local artifact snapshots
 - publish compact before/after evidence guidance for operators
+
+Retention enforcement verification status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-RETENTION-ENFORCEMENT-VERIFICATION.md`
+- next safe gate is Flow Trigger Suite retention operations checkpoint packet
