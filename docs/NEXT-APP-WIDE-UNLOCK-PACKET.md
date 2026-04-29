@@ -1,24 +1,21 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake endpoint-candidate release-readiness decision/checkpoint
-packet.
+TIAF preflight baseline audit packet.
 
 ## Why this is next
-- Operator examples and review-checkpoint guidance now exist for the endpoint
-  candidate.
-- The remaining gap is an explicit release-readiness/long-hold decision for how
-  long this capability should remain default-off reviewable-only.
-- A decision/checkpoint packet can lock the next safe branch point without
-  widening runtime admission.
+- Validation intake endpoint-candidate release-readiness has now been decided
+  as long-hold reviewable default-off.
+- The next separate validation lane with clear project-moving value is TIAF
+  preflight baseline establishment.
+- This advances validation breadth without widening execution or mutation
+  admission through intake.
 
 ## Scope
 - docs/checkpoint focused packet
-- record explicit long-hold vs future-narrow-admission decision
-- define revisit trigger criteria and required evidence for any future
-  admission change
-- preserve server-owned default-off behavior, dry-run-only explicit-on truth,
-  and dispatch-unadmitted boundary
+- audit current TIAF/preflight surfaces and maturity truth
+- record bounded preflight-only contract and blockers
+- define required evidence for future TIAF admission movement
 - no execution or mutation admission changes
 
 ## Safety constraints
@@ -29,10 +26,8 @@ packet.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- release-readiness decision is explicit and evidence-backed
-- revisit triggers are concrete and bounded
-- dispatch path for `validation.report.intake` remains unadmitted unless a
-  separate admission packet says otherwise
+- baseline maturity decision is explicit and evidence-backed
+- TIAF preflight boundaries are concrete and bounded
 - no mutation/execution admission changes
 - docs and matrices remain aligned on the same capability truth
 
@@ -40,5 +35,4 @@ packet.
 Flow Trigger Suite productization plan.
 
 This remains valid, but validation-intake admission audit/review is recommended
-after release-readiness decision/checkpoint so the endpoint boundary remains
-explicit.
+after TIAF preflight baseline if operator prioritizes automation lane packaging.

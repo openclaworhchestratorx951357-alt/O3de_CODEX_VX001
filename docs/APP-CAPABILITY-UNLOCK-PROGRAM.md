@@ -28,6 +28,7 @@ The following patterns are now established:
 - validation report intake endpoint-candidate admission audit/review coverage
 - validation report intake endpoint-candidate admission decision + surface-matrix alignment
 - validation report intake endpoint-candidate operator examples + review checkpoint guidance
+- validation report intake endpoint-candidate release-readiness long-hold decision
 
 ## App-wide domains
 

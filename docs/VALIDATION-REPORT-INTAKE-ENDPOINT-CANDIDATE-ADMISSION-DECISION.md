@@ -99,5 +99,9 @@ Completed by:
 
 Next after operator guidance:
 
-- validation intake endpoint-candidate release-readiness decision/checkpoint
-  packet (docs-only, no execution/mutation admission widening).
+- completed by:
+  `docs/VALIDATION-REPORT-INTAKE-ENDPOINT-CANDIDATE-RELEASE-READINESS-DECISION.md`
+
+Next after release-readiness decision:
+
+- TIAF preflight baseline audit packet.

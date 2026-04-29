@@ -90,6 +90,10 @@ Checkpoint must verify:
 
 ## Recommended Next Packet
 
-Validation intake endpoint-candidate release-readiness decision/checkpoint
-packet (docs-only): explicitly record whether this endpoint remains long-hold
-default-off reviewable or is queued for a future narrow admission change.
+Completed by:
+
+- `docs/VALIDATION-REPORT-INTAKE-ENDPOINT-CANDIDATE-RELEASE-READINESS-DECISION.md`
+
+Next after release-readiness decision:
+
+- TIAF preflight baseline audit packet.
