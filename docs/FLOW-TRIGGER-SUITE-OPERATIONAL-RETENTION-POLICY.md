@@ -113,4 +113,8 @@ Flow Trigger Suite retention enforcement verification packet:
 Retention enforcement verification status:
 
 - completed in `docs/FLOW-TRIGGER-SUITE-RETENTION-ENFORCEMENT-VERIFICATION.md`
-- next safe gate is Flow Trigger Suite retention operations checkpoint packet
+
+Retention operations checkpoint status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-RETENTION-OPERATIONS-CHECKPOINT.md`
+- next safe gate is Flow Trigger Suite retention anomaly drill evidence packet
