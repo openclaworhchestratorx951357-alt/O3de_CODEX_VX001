@@ -1,20 +1,21 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake dispatch-admission readiness audit packet.
+Validation intake dispatch-admission implementation touchpoint packet.
 
 ## Why this is next
-- Dispatch-admission design is now documented with explicit preconditions,
-  refusal matrix requirements, and non-goals.
+- Dispatch-admission readiness audit is now complete and identifies exact
+  missing gates for dispatch registration.
 - Dispatch remains explicitly unadmitted and default-off.
-- The next safest move is a readiness audit that maps missing implementation
-  gates/tests before any dispatch registration packet is allowed.
+- The next safest move is a narrow implementation-touchpoint packet that adds
+  only missing gate scaffolding and review/status fields.
 
 ## Scope
 - docs-focused packet (tests optional; no runtime mutation)
-- audit current code/tests against dispatch-admission design preconditions
-- identify missing gates/tests and exact implementation touchpoints
-- classify risk and approval requirements for a later implementation packet
+- implement dispatch-admission gate scaffolding and intake dispatch review/status
+  payload fields
+- keep dispatch dry-run-only and non-executing
+- extend refusal tests for missing/off/invalid dispatch gate states
 - no execution or mutation admission changes
 
 ## Safety constraints
@@ -25,14 +26,14 @@ Validation intake dispatch-admission readiness audit packet.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- dispatch remains unadmitted after the packet
-- readiness report names which gates are satisfied vs missing
+- dispatch stays default-off and dry-run-only after implementation
+- missing gate list from readiness audit is closed or explicitly deferred
 - no broadening of endpoint or dispatch execution/mutation capability
 - no client approval/session fields treated as authorization
-- recommendation for later implementation packet is explicit and testable
+- recommendation for next packet is explicit and testable
 
 ## Alternative considered
 Flow Trigger Suite productization plan.
 
-This remains valid, but dispatch-admission readiness audit is recommended first
-to prevent implementation drift from the newly defined dispatch safety contract.
+This remains valid, but the dispatch-admission implementation touchpoint packet
+is recommended first to close the next critical-path gate for intake maturity.
