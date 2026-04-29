@@ -15,6 +15,18 @@ Use this priority order when instructions conflict:
 3. This repo's evergreen charter
 4. Other repo docs and roadmap text
 
+## Operator Lock (Do Not Change Without Explicit Approval)
+
+The following files are operator-locked and must not be edited unless the
+operator explicitly asks for that change in the current thread:
+
+- `AGENTS.md`
+- `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`
+
+For these files, broad requests like "continue", "next slice", "cleanup", or
+"improve docs" are not authorization to edit them. Require direct, specific
+operator instruction before modifying either file.
+
 Default standing rule:
 - Use the evergreen charter until the user explicitly replaces or supersedes it.
 - If the user says "use supervisor mode", immediately activate the startup
