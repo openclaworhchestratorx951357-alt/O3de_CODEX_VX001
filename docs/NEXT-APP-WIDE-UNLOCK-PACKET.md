@@ -1,21 +1,20 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake dispatch-admission implementation touchpoint packet.
+Validation intake dispatch-admission decision checkpoint packet.
 
 ## Why this is next
-- Dispatch-admission readiness audit is now complete and identifies exact
-  missing gates for dispatch registration.
+- Dispatch-admission implementation touchpoints are now in place with
+  default-off gate scaffolding and refusal review payload coverage.
 - Dispatch remains explicitly unadmitted and default-off.
-- The next safest move is a narrow implementation-touchpoint packet that adds
-  only missing gate scaffolding and review/status fields.
+- The next safest move is a decision checkpoint packet that evaluates whether
+  additional implementation gates are still required before any admission move.
 
 ## Scope
 - docs-focused packet (tests optional; no runtime mutation)
-- implement dispatch-admission gate scaffolding and intake dispatch review/status
-  payload fields
+- map current implementation truth to maturity labels
+- identify any remaining missing gates for future dispatch registration
 - keep dispatch dry-run-only and non-executing
-- extend refusal tests for missing/off/invalid dispatch gate states
 - no execution or mutation admission changes
 
 ## Safety constraints
@@ -26,8 +25,8 @@ Validation intake dispatch-admission implementation touchpoint packet.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- dispatch stays default-off and dry-run-only after implementation
-- missing gate list from readiness audit is closed or explicitly deferred
+- dispatch remains unadmitted and default-off
+- decision table lists what is complete vs still missing
 - no broadening of endpoint or dispatch execution/mutation capability
 - no client approval/session fields treated as authorization
 - recommendation for next packet is explicit and testable
@@ -35,5 +34,5 @@ Validation intake dispatch-admission implementation touchpoint packet.
 ## Alternative considered
 Flow Trigger Suite productization plan.
 
-This remains valid, but the dispatch-admission implementation touchpoint packet
-is recommended first to close the next critical-path gate for intake maturity.
+This remains valid, but the dispatch-admission decision checkpoint packet is
+recommended first to prevent premature admission claims.
