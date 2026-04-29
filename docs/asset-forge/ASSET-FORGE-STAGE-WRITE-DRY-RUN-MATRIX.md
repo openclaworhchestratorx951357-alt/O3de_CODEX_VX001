@@ -52,4 +52,4 @@ This packet does not:
 - authorize from client approval fields
 
 ## Next packet
-Prepare the proof-only stage-write admission packet design for explicit server-side admission flagging and post-write evidence requirements, still fail-closed by default.
+Implement the server-owned admission flag as an explicit default-off gate with fail-closed behavior and bounded proof-only execution constraints, still without broad mutation admission.

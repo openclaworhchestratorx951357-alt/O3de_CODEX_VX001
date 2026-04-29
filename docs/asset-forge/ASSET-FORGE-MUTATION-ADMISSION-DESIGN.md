@@ -113,7 +113,8 @@ A later PR may implement proof-only stage-write only if:
 ## PR sequencing
 - This PR: design only
 - Next PR: fail-closed test matrix / dry-run plan fields
-- Later PR: proof-only stage-write corridor
+- Next PR after that: explicit server-owned admission-flag design (default off)
+- Later PR: proof-only stage-write corridor implementation behind that flag
 - Later still: Asset Processor observation/readback
 - Later still: placement design, not execution
 
