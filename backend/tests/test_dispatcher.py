@@ -1277,6 +1277,84 @@ def test_dispatch_reports_parser_fail_closed_reasons_for_registered_validation_r
 
 
 @pytest.mark.parametrize(
+    (
+        "flag_value",
+        "inject_client_auth",
+        "expected_ok",
+        "expected_gate_state",
+    ),
+    [
+        (None, False, False, "missing_default_off"),
+        ("0", False, False, "explicit_off"),
+        ("not-a-bool", False, False, "invalid_default_off"),
+        ("1", True, False, "explicit_on"),
+        ("1", False, True, "explicit_on"),
+    ],
+)
+def test_dispatch_validation_report_intake_rollout_boundary_regression_matrix(
+    flag_value: str | None,
+    inject_client_auth: bool,
+    expected_ok: bool,
+    expected_gate_state: str,
+) -> None:
+    with isolated_database():
+        env_patch = (
+            {}
+            if flag_value is None
+            else {VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV: flag_value}
+        )
+        with patch.dict("os.environ", env_patch, clear=False):
+            if flag_value is None:
+                os.environ.pop(VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV, None)
+            request = make_validation_report_intake_dispatch_request()
+            if inject_client_auth:
+                request.args["payload"]["approval_token"] = "client-token"
+
+            response = dispatcher_service.dispatch(request)
+
+            if expected_ok:
+                assert response.ok is True
+                assert response.error is None
+                assert response.result is not None
+                assert response.result.simulated is True
+                assert len(response.artifacts) == 1
+
+                execution = executions_service.list_executions()[0]
+                artifact = artifacts_service.get_artifact(response.artifacts[0])
+                assert artifact is not None
+                assert execution.status == ExecutionStatus.SUCCEEDED
+
+                for payload in (execution.details, artifact.metadata):
+                    assert payload["admission_flag_state"] == expected_gate_state
+                    assert payload["dispatch_admitted"] is True
+                    assert payload["parser_acceptance"] is True
+                    assert payload["execution_admitted"] is False
+                    assert payload["write_executed"] is False
+                    assert payload["project_write_admitted"] is False
+                    assert payload["write_status"] == "admitted_dry_run_only"
+                    assert payload["revert_checklist_required"] is True
+                    assert payload["revert_checklist_validated"] is True
+            else:
+                assert response.ok is False
+                assert response.error is not None
+                assert response.error.code == "DISPATCH_NOT_ADMITTED"
+                assert response.error.details is not None
+                details = response.error.details
+                assert details["admission_flag_state"] == expected_gate_state
+                assert details["dispatch_admitted"] is False
+                assert details["execution_admitted"] is False
+                assert details["write_executed"] is False
+                assert details["project_write_admitted"] is False
+                assert details["write_status"] == "blocked"
+                assert details["revert_checklist_required"] is True
+                assert details["revert_checklist_validated"] is False
+                if inject_client_auth:
+                    assert "client_authorization_fields_forbidden" in (
+                        details["parser_fail_closed_reasons"]
+                    )
+
+
+@pytest.mark.parametrize(
     "tool_name",
     [
         "editor.component.property.list",
