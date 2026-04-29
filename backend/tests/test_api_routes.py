@@ -3931,7 +3931,7 @@ def test_ready_reports_database_status_details() -> None:
             },
             {
                 "family": "validation",
-                "total_tools": 4,
+                "total_tools": 5,
                 "execution_details_tools": 4,
                 "artifact_metadata_tools": 4,
                 "covered_tools": [
@@ -3940,7 +3940,7 @@ def test_ready_reports_database_status_details() -> None:
                     "test.tiaf.sequence",
                     "test.visual.diff",
                 ],
-                "uncovered_tools": [],
+                "uncovered_tools": ["validation.report.intake"],
             },
         ]
         assert "sqlite approvals store" in payload["dependencies"]
@@ -4176,7 +4176,7 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
                 "test.run.gtest",
                 "test.tiaf.sequence",
             ]
-            assert validation["simulated_tool_paths"] == []
+            assert validation["simulated_tool_paths"] == ["validation.report.intake"]
             assert any(
                 "test.visual.diff" in note
                 or "test.run.gtest" in note
@@ -8076,11 +8076,12 @@ def test_validation_report_intake_dispatch_rejected_even_with_client_approval_fi
         assert payload["result"] is None
         assert payload["artifacts"] == []
         assert payload["warnings"] == ["Dispatch rejected before execution."]
-        assert payload["error"]["code"] == "INVALID_TOOL"
+        assert payload["error"]["code"] == "DISPATCH_NOT_ADMITTED"
         assert payload["error"]["details"]["agent"] == "validation"
         assert payload["error"]["details"]["tool"] == "validation.report.intake"
         assert payload["error"]["details"]["corridor_name"] == "validation.report.intake"
         assert payload["error"]["details"]["dispatch_candidate"] is True
+        assert payload["error"]["details"]["dispatch_registered"] is True
         assert payload["error"]["details"]["dispatch_admitted"] is False
         assert payload["error"]["details"]["dry_run_only"] is True
         assert payload["error"]["details"]["execution_admitted"] is False
@@ -8143,9 +8144,10 @@ def test_validation_report_intake_dispatch_remains_unadmitted_when_endpoint_flag
             assert response.status_code == 200
             payload = response.json()
             assert payload["ok"] is False
-            assert payload["error"]["code"] == "INVALID_TOOL"
+            assert payload["error"]["code"] == "DISPATCH_NOT_ADMITTED"
             assert payload["error"]["details"]["tool"] == "validation.report.intake"
             assert payload["error"]["details"]["dispatch_candidate"] is True
+            assert payload["error"]["details"]["dispatch_registered"] is True
             assert payload["error"]["details"]["dispatch_admitted"] is False
             assert payload["error"]["details"]["admission_flag_state"] == "missing_default_off"
 
@@ -8155,17 +8157,17 @@ def test_validation_report_intake_dispatch_review_payload_tracks_dispatch_gate_s
         (
             "0",
             "explicit_off",
-            "Dispatch admission is explicitly off; keep it off until implementation touchpoint validation is complete.",
+            "Dispatch admission is explicitly off; keep dispatch blocked until an explicit dispatch-admission decision packet admits this corridor.",
         ),
         (
             "not-a-bool",
             "invalid_default_off",
-            "Replace invalid dispatch admission-flag value with explicit on/off; invalid values fail closed.",
+            "Dispatch admission flag is invalid; set an explicit on/off value and keep dispatch blocked.",
         ),
         (
             "1",
             "explicit_on",
-            "Dispatch gate is explicit on, but tool registration remains blocked until exact dispatch-admission implementation gates are closed.",
+            "Dispatch gate is explicit on, but dispatch remains unadmitted in this phase; keep execution blocked until explicit admission.",
         ),
     )
 
@@ -8194,7 +8196,7 @@ def test_validation_report_intake_dispatch_review_payload_tracks_dispatch_gate_s
                 assert response.status_code == 200
                 payload = response.json()
                 assert payload["ok"] is False
-                assert payload["error"]["code"] == "INVALID_TOOL"
+                assert payload["error"]["code"] == "DISPATCH_NOT_ADMITTED"
                 assert payload["error"]["details"]["admission_flag_state"] == expected_state
                 assert payload["error"]["details"]["admission_flag_enabled"] == (
                     expected_state == "explicit_on"
