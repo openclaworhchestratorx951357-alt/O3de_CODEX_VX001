@@ -5,6 +5,17 @@
 New Codex threads do not inherit previous chat context. Therefore, this
 repository carries its own startup rules.
 
+## Operator-Locked Policy Files
+
+The following files are operator-locked and must not be modified unless the
+operator explicitly requests the change in the current thread:
+
+- `AGENTS.md`
+- `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`
+
+Requests to "continue", "move to next slice", "clean up", or "refresh docs"
+must not be interpreted as permission to edit these files.
+
 If the operator says "use supervisor mode," Codex must activate Supervisor
 Low-Friction Mode from this protocol.
 
