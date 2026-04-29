@@ -73,4 +73,4 @@ This packet does not:
 - treat client approval fields as authorization
 
 ## Next packet
-Placement runtime admission-decision design for exact proof-only corridor boundaries (still default fail-closed and non-executing).
+Placement bridge-readiness evidence contract for exact runtime command binding (read-only), still default fail-closed and non-executing.
