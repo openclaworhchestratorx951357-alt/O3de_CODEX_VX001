@@ -1,0 +1,31 @@
+{
+  "profiles": [
+    {
+      "name": "standard",
+      "description": "Default supervised rollout profile with medium-risk cadence.",
+      "instruction_file": "scripts/codex_supervisor_packet.txt",
+      "packet_risk": "medium",
+      "cooldown_seconds": 120,
+      "require_operator_ack": true,
+      "allow_locked_scope_approval": false
+    },
+    {
+      "name": "docs_low_risk",
+      "description": "Docs/spec-only local helper profile with low-risk cadence.",
+      "instruction_file": "scripts/codex_supervisor_packet.txt",
+      "packet_risk": "low",
+      "cooldown_seconds": 180,
+      "require_operator_ack": false,
+      "allow_locked_scope_approval": false
+    },
+    {
+      "name": "operator_decision",
+      "description": "Explicit operator-driven profile for edge cases requiring acknowledgement.",
+      "instruction_file": "scripts/codex_supervisor_packet.txt",
+      "packet_risk": "high",
+      "cooldown_seconds": 120,
+      "require_operator_ack": true,
+      "allow_locked_scope_approval": true
+    }
+  ]
+}
