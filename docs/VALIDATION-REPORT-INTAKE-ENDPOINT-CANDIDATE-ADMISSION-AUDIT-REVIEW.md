@@ -63,8 +63,9 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Validation intake endpoint-candidate read-only admission decision refresh:
+Validation intake endpoint-candidate read-only operator examples + refusal
+wording packet:
 
-- consume readiness-checklist evidence as decision input
-- record keep-withheld vs read-only wording update outcome
+- add safe/refused operator examples for current candidate-only truth
+- explicitly show endpoint-candidate vs dispatch-unadmitted boundaries
 - preserve exact public contract wording and refusal boundaries
