@@ -92,7 +92,12 @@ This packet updates matrix truth for `validation.report.intake` in:
 
 ## Recommended Next Packet
 
-Validation intake endpoint-candidate operator examples + review checkpoint
-packet (docs-first): publish safe/refused prompt examples and review-checkpoint
-criteria while preserving default-off, dry-run-only, and dispatch-unadmitted
-boundaries.
+Completed by:
+
+- `docs/VALIDATION-REPORT-INTAKE-ENDPOINT-CANDIDATE-OPERATOR-EXAMPLES.md`
+- `docs/VALIDATION-REPORT-INTAKE-ENDPOINT-CANDIDATE-REVIEW-CHECKPOINT.md`
+
+Next after operator guidance:
+
+- validation intake endpoint-candidate release-readiness decision/checkpoint
+  packet (docs-only, no execution/mutation admission widening).
