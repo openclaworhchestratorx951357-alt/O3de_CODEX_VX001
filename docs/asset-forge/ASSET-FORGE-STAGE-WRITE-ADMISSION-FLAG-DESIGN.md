@@ -8,6 +8,9 @@ Implementation status (current):
 - malformed flag values fail closed
 - server-owned admission evidence metadata is surfaced (`admission_packet_reference`, `admission_operator_id`, `operator_note_present`, `admission_evidence_ready`)
 - when the admission flag is on, missing packet reference/operator identity/operator note evidence fails closed
+- proof-only execution contract metadata is surfaced (`evidence_bundle_reference`, `post_write_readback_plan_reference`, `revert_plan_reference`, `post_write_readback_plan_ready`, `revert_plan_ready`, `revert_plan_exact_scope`)
+- when the admission flag is on, missing evidence-bundle/readback/revert references fail closed
+- revert scope must match exactly the requested source+manifest destination paths or it fails closed
 - client override attempts are ignored
 - stage-write execution is still blocked
 - this is not an admitted execution path

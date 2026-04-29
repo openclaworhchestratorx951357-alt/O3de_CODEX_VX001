@@ -261,6 +261,12 @@ class AssetForgeO3DEStageWriteRecord(BaseModel):
     admission_operator_id: str | None = None
     operator_note_present: bool
     admission_evidence_ready: bool
+    evidence_bundle_reference: str | None = None
+    post_write_readback_plan_reference: str | None = None
+    revert_plan_reference: str | None = None
+    post_write_readback_plan_ready: bool
+    revert_plan_ready: bool
+    revert_plan_exact_scope: bool
     normalized_destination_path: str = Field(..., min_length=1)
     destination_within_staging_root: bool
     staging_root_allowlisted: bool
