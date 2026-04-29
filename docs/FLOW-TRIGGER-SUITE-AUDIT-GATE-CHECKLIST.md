@@ -71,5 +71,10 @@ are satisfied.
 
 ## Recommended Next Packet
 
-Flow Trigger Suite productization design packet (docs/spec): define exact
-implementation touchpoints, tests, and guarded rollout plan under this checklist.
+Completed by:
+
+- `docs/FLOW-TRIGGER-SUITE-PRODUCTIZATION-DESIGN.md`
+
+Next after productization design:
+
+- Flow Trigger Suite implementation readiness checkpoint packet.

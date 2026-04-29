@@ -33,6 +33,7 @@ The following patterns are now established:
 - CI/test execution admission design
 - Flow Trigger Suite productization plan
 - Flow Trigger Suite audit-gate checklist
+- Flow Trigger Suite productization design
 
 ## App-wide domains
 
