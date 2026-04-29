@@ -58,9 +58,8 @@ dispatch execution for validation.report.intake remains unadmitted.
 
 ## Recommended Next Packet
 
-Validation intake endpoint-candidate read-only wording admission finalization
-decision:
+Validation intake endpoint-candidate dispatch-boundary refusal probes packet:
 
-- consume operator-examples evidence plus prior readiness/decision packets
-- decide whether read-only public wording can be safely updated
+- add near-miss refused prompt examples for dispatch-admission claims
+- verify refusal wording remains explicit and fail-closed
 - keep runtime behavior unchanged unless separately approved
