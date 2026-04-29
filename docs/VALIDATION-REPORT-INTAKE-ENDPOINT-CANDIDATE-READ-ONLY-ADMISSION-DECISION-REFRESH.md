@@ -57,9 +57,8 @@ operator-facing packet lands:
 
 ## Recommended Next Packet
 
-Validation intake endpoint-candidate read-only wording admission finalization
-decision:
+Validation intake endpoint-candidate dispatch-boundary refusal probes packet:
 
-- consume readiness + operator-example evidence together
-- record final keep-withheld vs update-read-only wording outcome
+- add near-miss refused prompt examples for dispatch-admission claims
+- verify refusal wording remains explicit and fail-closed
 - keep runtime behavior unchanged
