@@ -75,8 +75,9 @@ validation.report.intake is a read-only admitted public dispatch capability.
 
 ## Recommended Next Packet
 
-Validation intake endpoint-candidate read-only admission decision refresh:
+Validation intake endpoint-candidate read-only operator examples + refusal
+wording packet:
 
-- consume readiness-checklist evidence as decision input
-- record keep-withheld vs read-only wording update outcome
+- add safe/refused operator examples for current candidate-only truth
+- explicitly show endpoint-candidate vs dispatch-unadmitted boundaries
 - preserve dispatch-unadmitted and non-executing boundaries
