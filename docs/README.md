@@ -230,6 +230,7 @@ rounding up capability claims.
 - `docs/PROJECT-CONFIG-READINESS-BASELINE-AUDIT.md`
 - `docs/AUDIT-REVIEW-DASHBOARD-SHELL.md`
 - `docs/VALIDATION-REPORT-INTAKE-BASELINE-AUDIT.md`
+- `docs/VALIDATION-REPORT-INTAKE-CONTRACT-DESIGN.md`
 - `agents/asset-forge-audit-agent/AGENTS.md`
 - `agents/app-capability-audit-agent/AGENTS.md`
 - `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`
