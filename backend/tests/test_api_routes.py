@@ -10,6 +10,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+import pytest
+
 from app.main import app
 from app.models.prompt_control import PromptSessionRecord, PromptSessionStatus
 from app.models.control_plane import (
@@ -8264,3 +8266,107 @@ def test_validation_report_intake_dispatch_admits_explicit_on_with_valid_envelop
             assert artifact["metadata"]["dispatch_admitted"] is True
             assert artifact["metadata"]["parser_acceptance"] is True
             assert artifact["metadata"]["write_executed"] is False
+
+
+@pytest.mark.parametrize(
+    (
+        "flag_value",
+        "inject_client_auth",
+        "expected_ok",
+        "expected_gate_state",
+    ),
+    [
+        (None, False, False, "missing_default_off"),
+        ("0", False, False, "explicit_off"),
+        ("not-a-bool", False, False, "invalid_default_off"),
+        ("1", True, False, "explicit_on"),
+        ("1", False, True, "explicit_on"),
+    ],
+)
+def test_validation_report_intake_dispatch_rollout_boundary_regression_matrix(
+    flag_value: str | None,
+    inject_client_auth: bool,
+    expected_ok: bool,
+    expected_gate_state: str,
+) -> None:
+    env_patch = (
+        {}
+        if flag_value is None
+        else {VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV: flag_value}
+    )
+    with patch.dict(os.environ, env_patch, clear=False):
+        if flag_value is None:
+            os.environ.pop(VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV, None)
+        with isolated_client() as client:
+            envelope = _validation_report_intake_valid_envelope()
+            if inject_client_auth:
+                envelope["payload"]["approval_token"] = "client-token"
+            response = client.post(
+                "/tools/dispatch",
+                json={
+                    "request_id": (
+                        "api-validation-report-intake-boundary-admitted"
+                        if expected_ok
+                        else f"api-validation-report-intake-boundary-blocked-{expected_gate_state}"
+                    ),
+                    "tool": "validation.report.intake",
+                    "agent": "validation",
+                    "project_root": "/tmp/project",
+                    "engine_root": "/tmp/engine",
+                    "dry_run": True,
+                    "locks": [],
+                    "timeout_s": 15,
+                    "args": envelope,
+                },
+            )
+
+            assert response.status_code == 200
+            payload = response.json()
+
+            if expected_ok:
+                assert payload["ok"] is True
+                assert payload["error"] is None
+                assert payload["result"]["simulated"] is True
+                assert len(payload["artifacts"]) == 1
+
+                executions = client.get("/executions")
+                artifacts = client.get("/artifacts")
+                assert executions.status_code == 200
+                assert artifacts.status_code == 200
+
+                execution = next(
+                    entry
+                    for entry in executions.json()["executions"]
+                    if entry["run_id"] == payload["operation_id"]
+                )
+                artifact = next(
+                    entry
+                    for entry in artifacts.json()["artifacts"]
+                    if entry["id"] == payload["artifacts"][0]
+                )
+                for details in (execution["details"], artifact["metadata"]):
+                    assert details["admission_flag_state"] == expected_gate_state
+                    assert details["dispatch_admitted"] is True
+                    assert details["parser_acceptance"] is True
+                    assert details["execution_admitted"] is False
+                    assert details["write_executed"] is False
+                    assert details["project_write_admitted"] is False
+                    assert details["write_status"] == "admitted_dry_run_only"
+                    assert details["revert_checklist_required"] is True
+                    assert details["revert_checklist_validated"] is True
+            else:
+                assert payload["ok"] is False
+                assert payload["error"]["code"] == "DISPATCH_NOT_ADMITTED"
+                details = payload["error"]["details"]
+                assert details["admission_flag_state"] == expected_gate_state
+                assert details["dispatch_admitted"] is False
+                assert details["execution_admitted"] is False
+                assert details["write_executed"] is False
+                assert details["project_write_admitted"] is False
+                assert details["write_status"] == "blocked"
+                assert details["revert_checklist_required"] is True
+                assert details["revert_checklist_validated"] is False
+                if inject_client_auth:
+                    assert "client_authorization_fields_forbidden" in (
+                        details["parser_fail_closed_reasons"]
+                    )
