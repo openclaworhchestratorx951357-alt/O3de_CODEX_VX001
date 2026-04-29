@@ -117,6 +117,7 @@ powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Dispatch-Readiness-Seal-Operator-Runbook-Attestation.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Operator-Runbook-Attestation-Lane-Launch-Readiness-Warrant.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Lane-Launch-Readiness-Warrant-Operator-Activation-Receipt.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Operator-Activation-Receipt-Lane-Continuity-Warrant.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 ```
 
 ## Retention policy helper
@@ -382,6 +383,12 @@ Cadence lane launch readiness warrant operator activation receipt helper:
 
 ```powershell
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Invoke-Codex-Supervisor-Retention-Cadence-Lane-Launch-Readiness-Warrant-Operator-Activation-Receipt.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project" -OperatorAcknowledged
+```
+
+Cadence operator activation receipt lane continuity warrant helper:
+
+```powershell
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Invoke-Codex-Supervisor-Retention-Cadence-Operator-Activation-Receipt-Lane-Continuity-Warrant.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project" -OperatorAcknowledged
 ```
 
 ## Productized rollout controls
