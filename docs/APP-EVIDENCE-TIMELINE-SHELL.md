@@ -37,5 +37,5 @@ This packet is a visibility shell only. It does not unlock execution.
 
 ## Recommended next packet
 
-Workspace status chips shell (frontend/static-fixture first) with truthful
-maturity tags and no backend authorization broadening.
+Validation intake endpoint-candidate admission design (docs/design first) with
+default fail-closed endpoint behavior and no backend authorization broadening.

@@ -1,21 +1,21 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Workspace status chips shell (frontend/static-fixture first).
+Validation intake endpoint-candidate admission design (docs/design first).
 
 ## Why this is next
-- Capability, audit, evidence timeline, and approval/session shells now exist.
-- Operators still need compact workspace-level truth chips that summarize
-  maturity/risk/session posture across desks without opening each dashboard.
-- This improves day-to-day supervision before any additional capability
-  admission work.
+- Capability, audit, evidence timeline, approval/session, and workspace-status
+  shells now exist.
+- The remaining visibility gap is no longer UI shell coverage; it is the exact
+  admission design for `validation.report.intake`.
+- Defining the endpoint-candidate gate now keeps future implementation
+  fail-closed and auditable.
 
 ## Scope
-- frontend-only or docs+frontend shell
-- static fixture first for cross-workspace status and maturity chips
-- explicit labels for `demo`, `plan-only`, `dry-run only`, `proof-only`,
-  `admitted-real`, and `blocked`
-- include links/gates to capability, evidence, and approval/session context
+- docs-first or docs+targeted backend contract design only
+- define endpoint registration/admission gates for `validation.report.intake`
+- preserve dry-run parser boundary and fail-closed defaults
+- define explicit refusal reasons for unadmitted execution paths
 - no backend execution admission changes
 
 ## Safety constraints
@@ -26,13 +26,14 @@ Workspace status chips shell (frontend/static-fixture first).
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- workspace shell renders truthful status chips without claiming execution
-- UI links chip labels to existing dashboard evidence context
+- design names exact old maturity -> new maturity target
+- design keeps endpoint unadmitted by default
+- design preserves server-owned authorization and intent-only client fields
 - no mutation/execution admission changes
-- frontend tests/build/lint pass for touched files
+- docs checks pass (and targeted tests only if touched)
 
 ## Alternative considered
-Validation intake endpoint-candidate admission design.
+Flow Trigger Suite productization plan.
 
-This remains valid, but status chips are recommended first to reduce operator
-ambiguity before any endpoint admission packet is considered.
+This remains valid, but validation-intake admission design is recommended first
+to avoid ambiguous endpoint expansion while broader automation planning continues.

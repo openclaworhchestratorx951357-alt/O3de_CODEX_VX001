@@ -18,6 +18,8 @@ describe("AppApprovalSessionDashboardShell", () => {
 
     expect(screen.getAllByText("false").length).toBeGreaterThan(0);
 
-    expect(screen.getByText("Workspace status chips shell", { selector: "strong" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Validation intake endpoint-candidate admission design", { selector: "strong" }),
+    ).toBeInTheDocument();
   });
 });

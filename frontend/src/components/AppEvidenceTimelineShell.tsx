@@ -101,8 +101,8 @@ export default function AppEvidenceTimelineShell() {
       </ol>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Workspace status chips shell</strong> (frontend/static-fixture first,
-        truthful maturity tags, no execution admission changes).
+        Recommended next packet: <strong>Validation intake endpoint-candidate admission design</strong> (docs/design
+        first, default fail-closed, no execution admission changes).
       </p>
     </section>
   );

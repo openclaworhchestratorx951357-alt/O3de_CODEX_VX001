@@ -17,7 +17,7 @@ describe("AppEvidenceTimelineShell", () => {
     expect(screen.getByText("editor.component.property.write.narrow")).toBeInTheDocument();
 
     expect(
-      screen.getByText("Workspace status chips shell", { selector: "strong" }),
+      screen.getByText("Validation intake endpoint-candidate admission design", { selector: "strong" }),
     ).toBeInTheDocument();
   });
 });

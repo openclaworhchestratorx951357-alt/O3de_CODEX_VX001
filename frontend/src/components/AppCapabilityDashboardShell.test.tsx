@@ -22,7 +22,7 @@ describe("AppCapabilityDashboardShell", () => {
     expect(screen.getByText("codex.flow.trigger.productized")).toBeInTheDocument();
 
     expect(
-      screen.getByText("Workspace status chips shell", { selector: "strong" }),
+      screen.getByText("Validation intake endpoint-candidate admission design", { selector: "strong" }),
     ).toBeInTheDocument();
   });
 });

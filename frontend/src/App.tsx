@@ -106,6 +106,7 @@ const AppCapabilityDashboardShell = lazy(() => import("./components/AppCapabilit
 const AppAuditReviewDashboardShell = lazy(() => import("./components/AppAuditReviewDashboardShell"));
 const AppEvidenceTimelineShell = lazy(() => import("./components/AppEvidenceTimelineShell"));
 const AppApprovalSessionDashboardShell = lazy(() => import("./components/AppApprovalSessionDashboardShell"));
+const AppWorkspaceStatusChipsShell = lazy(() => import("./components/AppWorkspaceStatusChipsShell"));
 const OperatorGuidePanel = lazy(() => import("./components/OperatorGuidePanel"));
 const BuilderWorkspaceDesktop = lazy(() => import("./components/workspaces/BuilderWorkspaceDesktop"));
 const PromptWorkspaceDesktop = lazy(() => import("./components/workspaces/PromptWorkspaceDesktop"));
@@ -6245,6 +6246,7 @@ export default function App() {
         <AppAuditReviewDashboardShell />
         <AppEvidenceTimelineShell />
         <AppApprovalSessionDashboardShell />
+        <AppWorkspaceStatusChipsShell />
         <HomeOverviewPanelDeck {...homeOverviewPanelDeckProps} />
       </div>
     </Suspense>

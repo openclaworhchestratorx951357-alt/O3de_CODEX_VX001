@@ -103,6 +103,15 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
   },
   {
     domain: "Validation",
+    capability: "validation.report.intake",
+    currentMaturity: "dry-run only",
+    desiredNextMaturity: "read-only",
+    risk: "Medium",
+    requiredGate: "schema + provenance + fail-closed parser + server-owned authorization gate",
+    recommendedNextPacket: "Validation intake endpoint-candidate admission design",
+  },
+  {
+    domain: "Validation",
     capability: "backend.test.run",
     currentMaturity: "admitted-real",
     desiredNextMaturity: "reviewable",
@@ -144,7 +153,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     desiredNextMaturity: "reviewable",
     risk: "Medium",
     requiredGate: "truth-label contract + audit review",
-    recommendedNextPacket: "Workspace status chips shell",
+    recommendedNextPacket: "Validation intake endpoint-candidate admission design",
   },
   {
     domain: "GUI",
@@ -153,7 +162,16 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     desiredNextMaturity: "reviewable",
     risk: "Medium",
     requiredGate: "no-authorization-client-field rule + audit review",
-    recommendedNextPacket: "Workspace status chips shell",
+    recommendedNextPacket: "Validation intake endpoint-candidate admission design",
+  },
+  {
+    domain: "GUI",
+    capability: "workspace.status.chips",
+    currentMaturity: "GUI/demo only",
+    desiredNextMaturity: "reviewable",
+    risk: "Low",
+    requiredGate: "truthful label taxonomy + audit review",
+    recommendedNextPacket: "Validation intake endpoint-candidate admission design",
   },
   {
     domain: "Automation",
