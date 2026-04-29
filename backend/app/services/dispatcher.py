@@ -167,11 +167,16 @@ class DispatcherService:
             request.agent == "validation"
             and request.tool == VALIDATION_REPORT_INTAKE_CAPABILITY
         ):
-            return self._reject_validation_report_intake_dispatch_unadmitted(
-                request=request,
-                run_id=run.id,
-                execution_id=execution.id,
+            intake_admission_details = (
+                self._validation_report_intake_dispatch_admission_details(request.args)
             )
+            if not bool(intake_admission_details["dispatch_admitted"]):
+                return self._reject_validation_report_intake_dispatch_unadmitted(
+                    request=request,
+                    run_id=run.id,
+                    execution_id=execution.id,
+                    blocked_details=intake_admission_details,
+                )
 
         policy = policy_service.get_policy(request.agent, request.tool)
         if policy is None:
@@ -493,6 +498,21 @@ class DispatcherService:
         )
 
         result = adapter_report.result
+        if (
+            request.agent == "validation"
+            and request.tool == VALIDATION_REPORT_INTAKE_CAPABILITY
+        ):
+            intake_admission_details = (
+                self._validation_report_intake_dispatch_admission_details(request.args)
+            )
+            adapter_report.execution_details = {
+                **adapter_report.execution_details,
+                **intake_admission_details,
+            }
+            adapter_report.artifact_metadata = {
+                **adapter_report.artifact_metadata,
+                **intake_admission_details,
+            }
         result_validation_errors = schema_validation_service.validate_tool_result(
             schema_ref=policy.result_schema,
             payload=result.model_dump(),
@@ -1540,16 +1560,18 @@ class DispatcherService:
         request: RequestEnvelope,
         run_id: str,
         execution_id: str,
+        blocked_details: dict[str, object] | None = None,
     ) -> ResponseEnvelope:
-        blocked_details = self._validation_report_intake_registered_dispatch_blocked_details(
-            request.args
-        )
+        if blocked_details is None:
+            blocked_details = self._validation_report_intake_dispatch_admission_details(
+                request.args
+            )
         runs_service.update_run(
             run_id,
             status=RunStatus.FAILED,
             result_summary=(
                 "Rejected because validation.report.intake dispatch remains "
-                "unadmitted/default-off."
+                "fail-closed for the current gate/payload state."
             ),
         )
         executions_service.update_execution(
@@ -1560,7 +1582,7 @@ class DispatcherService:
             ],
             result_summary=(
                 "Rejected because validation.report.intake dispatch remains "
-                "unadmitted/default-off."
+                "fail-closed for the current gate/payload state."
             ),
             finished=True,
         )
@@ -1579,7 +1601,7 @@ class DispatcherService:
                 code="DISPATCH_NOT_ADMITTED",
                 message=(
                     "Tool 'validation.report.intake' is registered, but dispatch "
-                    "admission remains fail-closed in this phase."
+                    "admission criteria were not satisfied."
                 ),
                 retryable=False,
                 details=blocked_details,
@@ -1592,12 +1614,20 @@ class DispatcherService:
         self,
         envelope: object,
     ) -> dict[str, object]:
+        return self._validation_report_intake_dispatch_admission_details(envelope)
+
+    def _validation_report_intake_dispatch_admission_details(
+        self,
+        envelope: object,
+    ) -> dict[str, object]:
         gate = get_validation_report_intake_dispatch_gate()
         gate_state = str(gate["admission_flag_state"])
         parser_plan = build_validation_report_intake_dry_run_plan(envelope)
+        parser_accepted = bool(parser_plan["accepted"])
+        dispatch_admitted = gate_state == "explicit_on" and parser_accepted
         recommended_next_step = (
-            "Keep dispatch blocked until an explicit dispatch-admission decision "
-            "packet admits this corridor."
+            "Keep dispatch blocked until explicit-on gate and exact intake "
+            "envelope validation are both satisfied."
         )
         if gate_state == "missing_default_off":
             recommended_next_step = (
@@ -1614,10 +1644,15 @@ class DispatcherService:
                 "Dispatch admission flag is invalid; set an explicit on/off value and "
                 "keep dispatch blocked."
             )
-        elif gate_state == "explicit_on":
+        elif gate_state == "explicit_on" and not parser_accepted:
             recommended_next_step = (
-                "Dispatch gate is explicit on, but dispatch remains unadmitted in this "
-                "phase; keep execution blocked until explicit admission."
+                "Dispatch gate is explicit on, but parser fail-closed checks rejected "
+                "the intake envelope; keep dispatch blocked."
+            )
+        elif dispatch_admitted:
+            recommended_next_step = (
+                "Dispatch admission criteria satisfied; keep this corridor dry-run-only "
+                "and non-mutating while preserving server-owned fail-closed gates."
             )
 
         return {
@@ -1626,16 +1661,33 @@ class DispatcherService:
             "corridor_name": VALIDATION_REPORT_INTAKE_CAPABILITY,
             "dispatch_candidate": True,
             "dispatch_registered": True,
-            "dispatch_admitted": False,
+            "dispatch_admitted": dispatch_admitted,
             "dry_run_only": True,
             "execution_admitted": False,
             "write_executed": False,
             "project_write_admitted": False,
-            "write_status": "blocked",
-            "review_code": "dispatch_candidate_unadmitted",
-            "review_status": "dispatch_candidate_blocked",
+            "write_status": "blocked" if not dispatch_admitted else "admitted_dry_run_only",
+            "review_code": (
+                "dispatch_candidate_blocked"
+                if not dispatch_admitted
+                else "dispatch_candidate_admitted"
+            ),
+            "review_status": (
+                "dispatch_candidate_blocked"
+                if not dispatch_admitted
+                else "dispatch_candidate_admitted"
+            ),
             "recommended_next_step": recommended_next_step,
-            "parser_acceptance": bool(parser_plan["accepted"]),
+            "dispatch_admission_contract_version": "validation.report.intake.dispatch.v1",
+            "dispatch_admission_decision": (
+                "admitted" if dispatch_admitted else "blocked"
+            ),
+            "revert_checklist_required": True,
+            "revert_checklist_validated": dispatch_admitted,
+            "revert_checklist_reference": (
+                "validation.report.intake.dispatch-admission.rollback-checklist.v1"
+            ),
+            "parser_acceptance": parser_accepted,
             "parser_fail_closed_reasons": list(parser_plan["fail_closed_reasons"]),
             "payload_size_bytes": parser_plan["payload_size_bytes"],
             "schema": parser_plan["schema"],
@@ -1668,8 +1720,8 @@ class DispatcherService:
             )
         elif gate_state == "explicit_on":
             recommended_next_step = (
-                "Dispatch gate is explicit on, but tool registration remains blocked "
-                "until dispatch registration and implementation gates are closed."
+                "Dispatch gate is explicit on; keep this corridor constrained to "
+                "the registered validation.report.intake admission contract."
             )
 
         return {

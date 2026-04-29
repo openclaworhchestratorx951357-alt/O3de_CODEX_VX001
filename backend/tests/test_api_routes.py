@@ -3812,8 +3812,8 @@ def test_ready_reports_database_status_details() -> None:
         assert "$schema" in payload["schema_validation"]["active_metadata_keywords"]
         assert "allOf" in payload["schema_validation"]["supported_keywords"]
         assert "oneOf" in payload["schema_validation"]["unsupported_keywords"]
-        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 26
-        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 26
+        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 27
+        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 27
         assert payload["schema_validation"]["persisted_execution_details_tools"] == [
             "asset.batch.process",
             "asset.move.safe",
@@ -3841,6 +3841,7 @@ def test_ready_reports_database_status_details() -> None:
             "test.run.gtest",
             "test.tiaf.sequence",
             "test.visual.diff",
+            "validation.report.intake",
         ]
         assert payload["schema_validation"]["persisted_artifact_metadata_tools"] == [
             "asset.batch.process",
@@ -3869,6 +3870,7 @@ def test_ready_reports_database_status_details() -> None:
             "test.run.gtest",
             "test.tiaf.sequence",
             "test.visual.diff",
+            "validation.report.intake",
         ]
         assert payload["schema_validation"]["persisted_family_coverage"] == [
             {
@@ -3932,15 +3934,16 @@ def test_ready_reports_database_status_details() -> None:
             {
                 "family": "validation",
                 "total_tools": 5,
-                "execution_details_tools": 4,
-                "artifact_metadata_tools": 4,
+                "execution_details_tools": 5,
+                "artifact_metadata_tools": 5,
                 "covered_tools": [
                     "test.run.editor_python",
                     "test.run.gtest",
                     "test.tiaf.sequence",
                     "test.visual.diff",
+                    "validation.report.intake",
                 ],
-                "uncovered_tools": ["validation.report.intake"],
+                "uncovered_tools": [],
             },
         ]
         assert "sqlite approvals store" in payload["dependencies"]
@@ -8088,7 +8091,7 @@ def test_validation_report_intake_dispatch_rejected_even_with_client_approval_fi
         assert payload["error"]["details"]["write_executed"] is False
         assert payload["error"]["details"]["project_write_admitted"] is False
         assert payload["error"]["details"]["write_status"] == "blocked"
-        assert payload["error"]["details"]["review_code"] == "dispatch_candidate_unadmitted"
+        assert payload["error"]["details"]["review_code"] == "dispatch_candidate_blocked"
         assert payload["error"]["details"]["review_status"] == "dispatch_candidate_blocked"
         assert (
             payload["error"]["details"]["admission_flag_name"]
@@ -8167,7 +8170,7 @@ def test_validation_report_intake_dispatch_review_payload_tracks_dispatch_gate_s
         (
             "1",
             "explicit_on",
-            "Dispatch gate is explicit on, but dispatch remains unadmitted in this phase; keep execution blocked until explicit admission.",
+            "Dispatch gate is explicit on, but parser fail-closed checks rejected the intake envelope; keep dispatch blocked.",
         ),
     )
 
@@ -8202,3 +8205,62 @@ def test_validation_report_intake_dispatch_review_payload_tracks_dispatch_gate_s
                     expected_state == "explicit_on"
                 )
                 assert payload["error"]["details"]["recommended_next_step"] == expected_next_step
+
+
+def test_validation_report_intake_dispatch_admits_explicit_on_with_valid_envelope() -> None:
+    with patch.dict(
+        os.environ,
+        {VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV: "1"},
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post(
+                "/tools/dispatch",
+                json={
+                    "request_id": "api-validation-report-intake-admitted-1",
+                    "tool": "validation.report.intake",
+                    "agent": "validation",
+                    "project_root": "/tmp/project",
+                    "engine_root": "/tmp/engine",
+                    "dry_run": True,
+                    "locks": [],
+                    "timeout_s": 15,
+                    "args": _validation_report_intake_valid_envelope(),
+                },
+            )
+
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["ok"] is True
+            assert payload["error"] is None
+            assert payload["result"]["tool"] == "validation.report.intake"
+            assert payload["result"]["agent"] == "validation"
+            assert payload["result"]["simulated"] is True
+            assert payload["result"]["execution_mode"] == "simulated"
+            assert len(payload["artifacts"]) == 1
+
+            executions = client.get("/executions")
+            artifacts = client.get("/artifacts")
+            assert executions.status_code == 200
+            assert artifacts.status_code == 200
+
+            execution = next(
+                entry
+                for entry in executions.json()["executions"]
+                if entry["run_id"] == payload["operation_id"]
+            )
+            artifact = next(
+                entry
+                for entry in artifacts.json()["artifacts"]
+                if entry["id"] == payload["artifacts"][0]
+            )
+            assert execution["status"] == "succeeded"
+            assert execution["details"]["dispatch_admitted"] is True
+            assert execution["details"]["parser_acceptance"] is True
+            assert execution["details"]["parser_fail_closed_reasons"] == []
+            assert execution["details"]["write_status"] == "admitted_dry_run_only"
+            assert execution["details"]["revert_checklist_required"] is True
+            assert execution["details"]["revert_checklist_validated"] is True
+            assert artifact["metadata"]["dispatch_admitted"] is True
+            assert artifact["metadata"]["parser_acceptance"] is True
+            assert artifact["metadata"]["write_executed"] is False
