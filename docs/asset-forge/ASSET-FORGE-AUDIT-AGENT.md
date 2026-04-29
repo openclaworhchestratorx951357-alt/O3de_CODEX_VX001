@@ -21,6 +21,7 @@ This audit agent exists because the Codex Flow Trigger Suite can keep continuati
 - PR #145 stage-write dry-run fail-closed matrix merged.
 - PRs #146 through #154 appear to have advanced additional stage-write/placement readiness work.
 - PR #150 introduced proof-only stage-write execution for `asset_forge.o3de.stage_write.v1` and must be audited as high risk.
+- First checklist audit run artifact: `ASSET-FORGE-AUDIT-RUN-PR-150.md` (high-risk PR #150 replay with gate verdict).
 
 ## Audit-agent operating loop
 For each Asset Forge PR:
