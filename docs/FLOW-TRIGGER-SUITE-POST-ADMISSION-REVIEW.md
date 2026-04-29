@@ -95,3 +95,8 @@ Flow Trigger Suite stability audit packet:
 - verify multi-lane claim behavior, queue/event growth expectations, and state
   retention boundaries under repeated no-dispatch and dispatch-like runs
 - produce compact operational guardrails for future threads
+
+Stability audit status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-STABILITY-AUDIT.md`
+- next safe gate is Flow Trigger Suite operational retention policy packet
