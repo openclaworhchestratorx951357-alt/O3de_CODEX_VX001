@@ -68,3 +68,9 @@ decision checkpoint packet:
 - define operator-facing enablement/disablement checklist for the dispatch gate
 - add explicit rollback decision matrix for gate-on incidents
 - add boundary regression coverage for admitted-path/non-admitted-path parity
+
+Rollout decision checkpoint status:
+
+- completed in
+  `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-POST-REGISTRATION-ADMISSION-ROLLOUT-DECISION-CHECKPOINT.md`
+- next safe gate is post-registration admitted-path boundary regression
