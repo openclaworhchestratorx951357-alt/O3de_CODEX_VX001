@@ -128,6 +128,10 @@ Why:
 - current local helpers are useful but untracked/unproductized
 - should be documented and bounded before deeper automation reliance
 
+Status:
+- completed in `docs/FLOW-TRIGGER-SUITE-PRODUCTIZATION-PLAN.md`
+- next safe gate is Flow Trigger Suite audit-gate checklist packet
+
 ## What stays blocked globally
 - arbitrary shell execution
 - arbitrary Python/Blender/Editor script execution
