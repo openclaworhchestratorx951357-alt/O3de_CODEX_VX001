@@ -1,22 +1,20 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake dispatch-admission post-registration admission contract design packet.
+Validation intake dispatch-admission post-registration admission readiness audit packet.
 
 ## Why this is next
-- Catalog registration implementation touchpoints are now complete (schemas,
-  catalog registration, explicit post-registration dispatcher fail-closed
-  branch, and dispatcher gate-state coverage).
-- The catalog-registration decision checkpoint confirms dispatch must remain
-  unadmitted/default-off in the current phase.
-- The next safe gate is a design-only packet that defines exact
-  post-registration admission requirements before any runtime admission move.
+- Post-registration admission contract design is now complete.
+- Dispatch remains unadmitted/default-off with explicit post-registration
+  fail-closed behavior (`DISPATCH_NOT_ADMITTED`).
+- The next safe gate is a readiness audit that maps the new admission contract
+  to exact implementation/test gaps before any admission move.
 
 ## Scope
 - docs-focused packet (no runtime mutation)
-- define exact future dispatch corridor scope (if admission is considered)
-- define mandatory refusal envelope and fail-closed behavior outside scope
-- define evidence contract for any future admitted execution/artifact path
+- audit admission-contract preconditions against code/tests
+- identify missing gates, missing tests, and risk classification
+- produce a narrow future implementation touchpoint checklist
 - keep dispatch unadmitted/default-off unless a later explicit admission packet
   changes that decision
 
@@ -29,7 +27,8 @@ Validation intake dispatch-admission post-registration admission contract design
 
 ## Acceptance checks
 - dispatch remains unadmitted and default-off
-- post-registration decision gates are documented with explicit non-goals
+- post-registration admission-contract gates are audited with explicit pass/miss
+  status
 - no broadening of endpoint or dispatch execution/mutation capability
 - no client approval/session fields treated as authorization
 - recommendation for next packet is explicit and testable
