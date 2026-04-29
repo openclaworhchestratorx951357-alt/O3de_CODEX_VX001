@@ -63,8 +63,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Validation intake endpoint-candidate admission decision + surface-matrix update:
+Validation intake endpoint-candidate exact public-admission contract:
 
-- classify this endpoint candidate maturity with explicit review semantics
-- record admission-decision posture for broader read-only claims
-- align unlock matrix and operator-facing capability truth wording
+- define exact public wording for current endpoint-candidate truth state
+- lock explicit non-goals/refusal wording for out-of-corridor requests
+- define evidence gates required before any read-only admission update
