@@ -1,20 +1,19 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-App-wide Evidence Timeline shell (frontend/static-fixture first).
+Approval/session dashboard shell (frontend/static-fixture first).
 
 ## Why this is next
-- Capability and audit dashboard shells exist, and validation intake now has a
-  contract + dry-run parser scaffold with fail-closed tests.
-- The remaining operator gap is clear evidence chronology across domains.
-- A timeline shell improves review/audit clarity without admitting execution.
+- Capability, audit, and evidence timeline shells now exist.
+- Operators still need a dedicated truth surface for approval/session state that
+  reinforces intent-only client fields and server-owned authorization.
+- This improves safety clarity before any additional capability admission work.
 
 ## Scope
 - frontend-only or docs+frontend shell
-- static fixture first for cross-domain evidence events
-- clear truth chips (`demo`, `plan-only`, `dry-run only`, `proof-only`,
-  `admitted-real`)
-- include Asset Forge and non-Asset-Forge domains
+- static fixture first for approval/session lifecycle states
+- explicit labels for intent-only client fields vs server authorization
+- include links/gates to capability and evidence timeline context
 - no backend execution admission changes
 
 ## Safety constraints
@@ -25,14 +24,13 @@ App-wide Evidence Timeline shell (frontend/static-fixture first).
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- timeline renders cross-domain evidence records with truthful maturity labels
-- shell explicitly distinguishes simulated/demo vs admitted-real evidence
+- approval/session shell renders bounded lifecycle states with truthful labels
+- UI explicitly separates client intent from server authorization
 - no mutation/execution admission changes
 - frontend tests/build/lint pass for touched files
 
 ## Alternative considered
-Validation intake endpoint candidate design.
+Workspace status chips shell.
 
-This remains valid, but evidence timeline visibility is recommended first so
-future endpoint or admission packets can bind to clearer operator-facing
-review context.
+This remains valid, but approval/session clarity is recommended first to keep
+all upcoming packet decisions fail-closed and auditable.

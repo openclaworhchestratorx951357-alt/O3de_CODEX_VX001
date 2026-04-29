@@ -17,6 +17,7 @@ The following patterns are now established:
 - editor authoring review/restore baseline audit
 - project/config readiness baseline audit
 - audit review dashboard shell (static fixture first)
+- app-wide evidence timeline shell (static fixture first)
 - validation report intake baseline audit
 - validation report intake contract + fail-closed parser design
 - validation report intake dry-run parser scaffold + fail-closed test matrix

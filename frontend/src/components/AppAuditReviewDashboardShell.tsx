@@ -96,7 +96,7 @@ export default function AppAuditReviewDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Validation report intake baseline audit</strong> (docs + targeted tests only).
+        Recommended next packet: <strong>Approval/session dashboard shell</strong> (frontend/static-fixture first, intent-only labels, no execution admission changes).
       </p>
     </section>
   );
