@@ -1,21 +1,22 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake endpoint-candidate admission design (docs/design first).
+Validation intake endpoint-candidate dry-run implementation (default-off).
 
 ## Why this is next
 - Capability, audit, evidence timeline, approval/session, and workspace-status
   shells now exist.
-- The remaining visibility gap is no longer UI shell coverage; it is the exact
-  admission design for `validation.report.intake`.
-- Defining the endpoint-candidate gate now keeps future implementation
-  fail-closed and auditable.
+- Validation intake baseline, contract, parser matrix, and endpoint-candidate
+  admission design now exist.
+- The narrow next move is a server-flagged endpoint-candidate implementation
+  that preserves dry-run-only behavior and proves fail-closed defaults in code.
 
 ## Scope
-- docs-first or docs+targeted backend contract design only
-- define endpoint registration/admission gates for `validation.report.intake`
+- backend-targeted packet with no runtime execution admission
+- implement endpoint-candidate path behind explicit server-owned admission flag
+  that defaults to off
 - preserve dry-run parser boundary and fail-closed defaults
-- define explicit refusal reasons for unadmitted execution paths
+- return explicit refusal reasons for unadmitted or invalid requests
 - no backend execution admission changes
 
 ## Safety constraints
@@ -26,14 +27,16 @@ Validation intake endpoint-candidate admission design (docs/design first).
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- design names exact old maturity -> new maturity target
-- design keeps endpoint unadmitted by default
-- design preserves server-owned authorization and intent-only client fields
+- endpoint candidate remains blocked while admission flag is off
+- valid requests return dry-run-only/no-execution flags
+- implementation preserves server-owned authorization and intent-only client
+  fields
 - no mutation/execution admission changes
-- docs checks pass (and targeted tests only if touched)
+- targeted backend tests cover accepted + refused fail-closed paths
 
 ## Alternative considered
 Flow Trigger Suite productization plan.
 
-This remains valid, but validation-intake admission design is recommended first
-to avoid ambiguous endpoint expansion while broader automation planning continues.
+This remains valid, but validation-intake endpoint-candidate implementation is
+recommended first to close the contract-to-runtime gap while preserving strict
+default fail-closed behavior.
