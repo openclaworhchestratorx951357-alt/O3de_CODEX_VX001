@@ -64,3 +64,9 @@ packet:
   matrix
 - capture a concise evidence index for gate-on/gate-off/rollback drill traces
 - keep runtime and mutation boundaries unchanged
+
+Rollout drill evidence status:
+
+- completed in
+  `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-POST-REGISTRATION-ROLLOUT-DRILL-EVIDENCE.md`
+- next safe gate is post-registration rollout closeout decision checkpoint
