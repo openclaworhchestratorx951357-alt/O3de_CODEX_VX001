@@ -1,21 +1,21 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake dispatch-admission post-registration rollout closeout decision checkpoint packet.
+Flow Trigger Suite productization plan packet.
 
 ## Why this is next
-- Post-registration rollout drill evidence is complete.
-- Operator-auditable drill evidence now covers gate-off, gate-on malformed,
-  gate-on valid, and rollback-to-off traces.
-- Dispatch admission remains bounded to explicit-on + parser-accepted envelopes.
-- The next safe gate is a closeout decision checkpoint packet to lock residual
-  risk posture and phase hold points without widening runtime behavior.
+- Validation intake rollout closeout decision checkpoint is complete.
+- Validation intake admission lane is now phase-closed under explicit hold points.
+- The next project-moving critical path shifts to operator flow tooling
+  productization and audit-gate planning.
+- Flow Trigger Suite planning can proceed without widening runtime execution
+  boundaries in current admission lanes.
 
 ## Scope
-- narrow decision packet
-- evaluate rollout drill evidence sufficiency for current phase closure
-- document residual risk and explicit hold points
-- preserve current bounded admission corridor and dry-run-only behavior
+- narrow design/planning packet
+- define productized trigger flow architecture and collision-safe dispatch model
+- define audit-gate checklist and operator handoff boundaries
+- preserve current bounded admission corridors and dry-run-only behavior
 - keep runtime execution/mutation admission unchanged
 
 ## Safety constraints
@@ -26,15 +26,14 @@ Validation intake dispatch-admission post-registration rollout closeout decision
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- current bounded admission behavior remains unchanged
-- closeout decision and residual risk posture are explicit and operator-auditable
+- plan output is explicit, reviewable, and operator-auditable
+- collision-safe trigger semantics and audit-gate requirements are documented
 - no broadening of endpoint or dispatch execution/mutation capability
 - no client approval/session fields treated as authorization
 - recommendation for the next packet is explicit and testable
 
 ## Alternative considered
-Flow Trigger Suite productization plan.
+Validation intake post-registration operational monitor packet.
 
-This remains valid, but the validation intake rollout closeout decision
-checkpoint packet is
-recommended first to close the next critical-path gate.
+This remains valid, but Flow Trigger Suite productization planning is now the
+next critical-path gate after validation intake closeout.
