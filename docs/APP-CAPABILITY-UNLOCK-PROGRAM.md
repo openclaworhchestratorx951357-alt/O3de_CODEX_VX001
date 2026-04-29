@@ -137,7 +137,8 @@ Status:
 - productized rollout completed in `docs/FLOW-TRIGGER-SUITE-PRODUCTIZED-ROLLOUT-PACKET.md`
 - productized admission decision completed in `docs/FLOW-TRIGGER-SUITE-PRODUCTIZED-ADMISSION-DECISION.md`
 - post-admission review completed in `docs/FLOW-TRIGGER-SUITE-POST-ADMISSION-REVIEW.md`
-- next safe gate is Flow Trigger Suite stability audit packet
+- stability audit completed in `docs/FLOW-TRIGGER-SUITE-STABILITY-AUDIT.md`
+- next safe gate is Flow Trigger Suite operational retention policy packet
 
 ## What stays blocked globally
 - arbitrary shell execution
