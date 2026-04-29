@@ -113,4 +113,8 @@ Implementation touchpoint status:
 Validation packet status:
 
 - completed in `docs/FLOW-TRIGGER-SUITE-VALIDATION-PACKET.md`
-- next safe gate is Flow Trigger Suite productized rollout packet
+
+Productized rollout status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-PRODUCTIZED-ROLLOUT-PACKET.md`
+- next safe gate is Flow Trigger Suite productized admission decision packet
