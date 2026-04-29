@@ -1,6 +1,6 @@
 # Validation Report Intake Dispatch-Admission Post-Registration Admission Contract Design
 
-Status: design-only (no runtime admission change)
+Status: design baseline (superseded by readiness + implementation touchpoint)
 
 ## Purpose
 
@@ -105,4 +105,6 @@ Readiness audit status:
 
 - completed in
   `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-POST-REGISTRATION-ADMISSION-READINESS-AUDIT.md`
-- next safe gate is post-registration admission implementation touchpoint
+- implementation touchpoint completed in
+  `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-POST-REGISTRATION-ADMISSION-IMPLEMENTATION-TOUCHPOINT.md`
+- next safe gate is post-registration admission rollout decision checkpoint
