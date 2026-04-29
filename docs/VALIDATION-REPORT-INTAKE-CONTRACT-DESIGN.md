@@ -143,5 +143,4 @@ Future dry-run parser packets should emit structured evidence fields for:
 
 ## Next safe packet
 
-Validation report intake dry-run parser scaffold and fail-closed test matrix
-(backend tests + docs), still with no execution admission.
+Evidence timeline shell (frontend/static-fixture first), using the intake contract and dry-run parser matrix as validation evidence sources while keeping execution admission unchanged.
