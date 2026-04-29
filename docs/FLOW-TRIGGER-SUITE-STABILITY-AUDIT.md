@@ -79,3 +79,8 @@ Flow Trigger Suite operational retention policy packet:
 
 - define bounded retention/rotation rules for queue/event/state artifacts
 - preserve auditability while limiting unbounded local log growth
+
+Operational retention policy status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-OPERATIONAL-RETENTION-POLICY.md`
+- next safe gate is Flow Trigger Suite retention enforcement verification packet
