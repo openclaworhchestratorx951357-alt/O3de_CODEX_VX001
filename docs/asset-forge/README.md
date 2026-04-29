@@ -78,3 +78,10 @@ This pack is intended to complement existing `docs/AI-ASSET-FORGE-*` and Phase 9
 ## Checkpoint handoff
 
 - `ASSET-FORGE-PR-138-HANDOFF.md` - durable checkpoint handoff for PR #138 status, safety boundaries, split plan, and next packet.
+
+## App-wide governance links
+
+- `../APP-CAPABILITY-UNLOCK-PROGRAM.md`
+- `../APP-CAPABILITY-UNLOCK-MATRIX.md`
+- `../NEXT-APP-WIDE-UNLOCK-PACKET.md`
+- `../../agents/app-capability-audit-agent/AGENTS.md`

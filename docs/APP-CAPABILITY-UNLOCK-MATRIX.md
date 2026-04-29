@@ -1,0 +1,41 @@
+# App Capability Unlock Matrix
+
+Conservative baseline as of current `main`. When uncertain, mark `needs baseline`.
+
+| Domain | Capability | Current maturity | Desired next maturity | Risk | Required gate | Tests/evidence required | Recommended next packet |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Editor | `editor.session.open` | needs baseline | read-only | Medium | runtime truth + audit review | targeted read-only runtime tests + evidence sample | Editor authoring baseline audit |
+| Editor | `editor.level.open` | needs baseline | read-only | Medium | runtime truth + audit review | targeted read-only runtime tests + evidence sample | Editor authoring baseline audit |
+| Editor | `editor.entity.create` | needs baseline | proof-only | High | server-owned approval/session + admission flag | fail-closed mutation tests + bounded proof artifact | Editor authoring mutation design |
+| Editor | `editor.component.add` | needs baseline | proof-only | High | server-owned approval/session + admission flag | fail-closed mutation tests + bounded proof artifact | Editor authoring mutation design |
+| Editor | `editor.component.property.get` | read-only | reviewable | Medium | schema/contract alignment | readback tests + response schema checks | Editor authoring readback review packet |
+| Editor | `editor.component.property.write.narrow` | admitted-real (exact narrow corridor) | reviewable | High | existing exact corridor gates + audit review | corridor regression tests + revert proof | Editor narrow-corridor verification refresh |
+| Editor | `editor.content.restore.narrow` | admitted-real (exact narrow corridor) | reviewable | High | existing exact corridor gates + audit review | restore regression tests + bounded revert proof | Editor restore verification refresh |
+| Editor | `editor.placement.plan` | plan-only | dry-run only | Medium | bounded plan schema + audit review | dry-run-only tests + blocked execution proof | Editor placement plan matrix |
+| Editor | `editor.placement.proof_only` | missing | plan-only | High | explicit admission decision | design doc + fail-closed gate list | Editor placement proof-only design |
+| Asset Forge | `asset_forge.provider.preflight` | preflight-only | reviewable | Medium | no-provider-call guard + audit review | tests proving no provider execution | Asset Forge provider preflight hardening |
+| Asset Forge | `asset_forge.blender.inspect` | preflight-only | reviewable | Medium | no-execution guard + audit review | tests proving no Blender execution | Asset Forge Blender preflight hardening |
+| Asset Forge | `asset_forge.o3de.stage_plan` | dry-run only | reviewable | Medium | dry-run contract + fail-closed tests | dry-run matrix tests + evidence payloads | Asset Forge stage-plan evidence refresh |
+| Asset Forge | `asset_forge.o3de.stage_write.v1` | proof-only | gated execution | High | explicit admission flag + exact path/hash gates | fail-closed tests + post-write readback + revert evidence | Proof-only admission-flag verification packet |
+| Asset Forge | `asset_forge.o3de.readback_bridge` | proof-only | reviewable | High | bridge gate + read-only evidence policy | readback tests + artifact evidence checks | Readback bridge hardening audit |
+| Asset Forge | `asset_forge.placement.readiness` | dry-run only | reviewable | Medium | placement dry-run contract | dry-run tests + blocked execution proof | Placement readiness matrix refresh |
+| Asset Forge | `asset_forge.placement.proof` | plan-only | dry-run only | High | explicit admission flag design | fail-closed design/tests checklist | Placement proof-only admission-flag design |
+| Project/Config | `project.inspect` | read-only | reviewable | Medium | contract alignment + audit review | read-only tests + schema evidence | Project inspect review packet |
+| Project/Config | `settings.inspect` | read-only | reviewable | Medium | contract alignment + audit review | read-only tests + schema evidence | Settings inspect review packet |
+| Project/Config | `settings.patch.narrow` | needs baseline | dry-run only | High | explicit narrow scope + revert proof | fail-closed mutation tests + revert evidence | Settings patch narrow baseline audit |
+| Project/Config | `settings.rollback` | needs baseline | plan-only | High | rollback design contract | design + failure-mode tests | Settings rollback design packet |
+| Project/Config | `build.configure.preflight` | preflight-only | reviewable | Medium | no-build-exec guard + audit review | tests proving configure-only behavior | Build configure preflight review |
+| Project/Config | `build.execute.real` | missing | plan-only | Critical | explicit admission program + operator approval | design + risk controls + cost/revert model | Build execution admission design |
+| Validation | `validation.report.intake` | needs baseline | read-only | Medium | schema + provenance gate | parser tests + malformed-input fail-closed tests | Validation intake baseline audit |
+| Validation | `backend.test.run` | admitted-real (local workflow) | reviewable | Low | command boundary docs | deterministic command evidence | Validation workflow index refresh |
+| Validation | `frontend.test.run` | admitted-real (local workflow) | reviewable | Low | command boundary docs | deterministic command evidence | Validation workflow index refresh |
+| Validation | `TIAF/preflight` | needs baseline | preflight-only | Medium | no-runtime-mutation gate | preflight contract tests + artifact checks | TIAF preflight baseline audit |
+| Validation | `real CI/test execution` | needs baseline | plan-only | High | explicit CI admission decision | CI surface inventory + gate design | CI admission design packet |
+| GUI | `app.capability.dashboard` | missing | GUI/demo only | Medium | truth-label contract + audit review | component tests + fixture truth checks | App-wide Capability Dashboard shell |
+| GUI | `audit.review.dashboard` | missing | GUI/demo only | Medium | truth-label contract + audit review | component tests + fixture truth checks | Audit dashboard shell |
+| GUI | `approval.session.dashboard` | needs baseline | GUI/demo only | Medium | no-authorization-client-field rule | UI tests for intent-only labels | Approval/session dashboard shell |
+| GUI | `evidence.timeline` | needs baseline | GUI/demo only | Medium | evidence schema contract | fixture validation + UI rendering tests | Evidence timeline shell |
+| GUI | `workspace.status.chips` | needs baseline | GUI/demo only | Low | truthful label taxonomy | UI tests for maturity chips | Workspace status chips shell |
+| Automation | `codex.flow.trigger.local` | local helper (non-productized) | docs/spec only | Low | local-only boundary + ignore rules | docs audit + no-runtime-impact verification | Flow Trigger Suite productization plan |
+| Automation | `codex.flow.trigger.audit_gate` | missing | docs/spec only | Medium | audit stop-point contract | governance doc + checklist template | Flow Trigger Suite audit-gate checklist |
+| Automation | `codex.flow.trigger.productized` | missing | plan-only | High | security/review gate + operator approval | design + threat model + CI policy checks | Flow Trigger Suite productization design |

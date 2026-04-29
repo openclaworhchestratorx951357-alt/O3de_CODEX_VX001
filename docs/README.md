@@ -222,7 +222,11 @@ rounding up capability claims.
 - `docs/asset-forge/ASSET-FORGE-POST-145-SAFETY-AUDIT.md`
 - `docs/asset-forge/ASSET-FORGE-AUDIT-REVIEW-GATE-CHECKLIST.md`
 - `docs/asset-forge/ASSET-FORGE-AUDIT-RUN-PR-150.md`
+- `docs/APP-CAPABILITY-UNLOCK-PROGRAM.md`
+- `docs/APP-CAPABILITY-UNLOCK-MATRIX.md`
+- `docs/NEXT-APP-WIDE-UNLOCK-PACKET.md`
 - `agents/asset-forge-audit-agent/AGENTS.md`
+- `agents/app-capability-audit-agent/AGENTS.md`
 - `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
 - `docs/PHASE-6B-REMOTE-EXECUTOR-CONTRACT.md`
