@@ -1,21 +1,21 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Flow Trigger Suite threat-model design packet.
+Flow Trigger Suite implementation touchpoint packet.
 
 ## Why this is next
-- Flow Trigger Suite audit-gate checklist is complete.
-- Checkpoint cadence, block conditions, stop-reason taxonomy, and evidence
-  field contract are now explicit.
-- The next project-moving critical path is threat-model design for queue/claim/
-  dispatch misuse/abuse surfaces.
+- Flow Trigger Suite threat-model design is complete.
+- Misuse/abuse threats are now mapped to deterministic checklist gates and stop
+  reason contracts.
+- The next project-moving critical path is implementing queue/claim/evidence
+  touchpoints that enforce those mitigations in local helper flows.
 - This gate can proceed without widening runtime execution boundaries in
   existing admission lanes.
 
 ## Scope
-- narrow design packet
-- define misuse/abuse threat matrix for flow trigger surfaces
-- map mitigations to checklist gates and residual risk ownership
+- narrow implementation touchpoint packet
+- implement local queue/claim/evidence skeleton for trigger flows
+- enforce fail-closed stop reasons when gate checks fail
 - preserve local-only trigger posture and fail-closed behavior
 - keep runtime execution/mutation admission unchanged
 
@@ -27,14 +27,15 @@ Flow Trigger Suite threat-model design packet.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- threat model is explicit, reviewable, and operator-auditable
-- mitigation mapping to checklist gates is deterministic and testable
+- queue/claim/evidence touchpoints are deterministic and reviewable
+- gate failures produce deterministic stop-reason codes with required evidence
+  fields
 - no broadening of endpoint or dispatch execution/mutation capability
 - no client approval/session fields treated as authorization
 - recommendation for the next packet is explicit and testable
 
 ## Alternative considered
-Flow Trigger Suite implementation touchpoint packet.
+Flow Trigger Suite validation packet.
 
-This remains valid, but threat-model design is now the next critical-path gate
-after checklist formalization.
+This remains valid, but implementation touchpoints are the next critical-path
+gate after threat-model completion.
