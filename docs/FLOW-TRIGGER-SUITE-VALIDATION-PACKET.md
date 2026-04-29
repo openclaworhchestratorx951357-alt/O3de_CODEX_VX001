@@ -91,3 +91,8 @@ Flow Trigger Suite productized rollout packet:
 - define and implement bounded operator-facing rollout controls for the validated
   local helper lane
 - preserve fail-closed posture and explicit operator approval boundaries
+
+Productized rollout status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-PRODUCTIZED-ROLLOUT-PACKET.md`
+- next safe gate is Flow Trigger Suite productized admission decision packet
