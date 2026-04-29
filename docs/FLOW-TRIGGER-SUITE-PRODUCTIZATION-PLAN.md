@@ -133,4 +133,8 @@ Stability audit status:
 Operational retention policy status:
 
 - completed in `docs/FLOW-TRIGGER-SUITE-OPERATIONAL-RETENTION-POLICY.md`
-- next safe gate is Flow Trigger Suite retention enforcement verification packet
+
+Retention enforcement verification status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-RETENTION-ENFORCEMENT-VERIFICATION.md`
+- next safe gate is Flow Trigger Suite retention operations checkpoint packet

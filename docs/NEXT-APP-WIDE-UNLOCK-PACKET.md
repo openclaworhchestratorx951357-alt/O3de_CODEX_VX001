@@ -1,21 +1,21 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Flow Trigger Suite retention enforcement verification packet.
+Flow Trigger Suite retention operations checkpoint packet.
 
 ## Why this is next
-- Flow Trigger Suite operational retention policy is now complete.
-- Deterministic audit/apply retention tooling and policy boundaries are
-  defined.
-- The next project-moving critical path is verification against representative
-  local artifact snapshots with operator-ready before/after guidance.
+- Flow Trigger Suite retention enforcement verification is now complete.
+- Audit-only and apply-mode behaviors are verified against representative
+  snapshots with before/after guidance.
+- The next project-moving critical path is operational checkpointing for
+  scheduled retention audits and escalation rules.
 - This gate can proceed without widening runtime execution boundaries in
   existing admission lanes.
 
 ## Scope
-- narrow retention-verification packet
-- run retention helper against representative artifact snapshots
-- publish compact verification evidence and operator run guidance
+- narrow operations-checkpoint packet
+- define compact scheduled retention-audit checklist
+- define escalation thresholds for archive growth anomalies
 - preserve local-only trigger posture and fail-closed behavior
 - keep runtime execution/mutation admission unchanged
 
@@ -27,14 +27,14 @@ Flow Trigger Suite retention enforcement verification packet.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- retention behavior is empirically verified with deterministic evidence
-- guidance clearly distinguishes audit-only vs apply mode outcomes
+- operational checklist is explicit and repeatable
+- escalation thresholds are deterministic and operator-auditable
 - no broadening of endpoint or dispatch execution/mutation capability
 - no client approval/session fields treated as authorization
 - recommendation for the next packet is explicit and testable
 
 ## Alternative considered
-Flow Trigger Suite broad local cleanup packet.
+Flow Trigger Suite generalized maintenance packet.
 
-This remains valid, but retention enforcement verification is the next
-critical-path gate after policy definition.
+This remains valid, but operational checkpointing is the next critical-path
+gate after retention enforcement verification.
