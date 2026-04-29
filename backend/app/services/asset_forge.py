@@ -62,6 +62,10 @@ _STAGE_WRITE_ADMISSION_FLAG_NAME = "asset_forge.o3de.stage_write.v1.proof_only_a
 _STAGE_WRITE_ADMISSION_FLAG_ENV = "ASSET_FORGE_STAGE_WRITE_V1_PROOF_ONLY_ADMISSION_ENABLED"
 _STAGE_WRITE_ADMISSION_PACKET_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_ADMISSION_PACKET_REF"
 _STAGE_WRITE_ADMISSION_OPERATOR_ID_ENV = "ASSET_FORGE_STAGE_WRITE_V1_ADMISSION_OPERATOR_ID"
+_STAGE_WRITE_EVIDENCE_BUNDLE_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_EVIDENCE_BUNDLE_REF"
+_STAGE_WRITE_POST_WRITE_READBACK_PLAN_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_POST_WRITE_READBACK_PLAN_REF"
+_STAGE_WRITE_REVERT_PLAN_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_REVERT_PLAN_REF"
+_STAGE_WRITE_REVERT_ALLOWED_PATHS_ENV = "ASSET_FORGE_STAGE_WRITE_V1_REVERT_ALLOWED_PATHS"
 _STAGE_WRITE_APPROVAL_CAPABILITY = "asset_forge.o3de.stage.write"
 _DEFAULT_MAX_STAGE_BYTES = 524_288_000
 _ASSETDB_EVIDENCE_ROW_LIMIT = 25
@@ -199,6 +203,27 @@ def _resolve_stage_write_admission_evidence_context() -> tuple[str | None, str |
     packet_reference = os.environ.get(_STAGE_WRITE_ADMISSION_PACKET_REF_ENV, "").strip() or None
     operator_id = os.environ.get(_STAGE_WRITE_ADMISSION_OPERATOR_ID_ENV, "").strip() or None
     return packet_reference, operator_id
+
+
+def _resolve_stage_write_proof_contract_context() -> tuple[str | None, str | None, str | None, set[str]]:
+    evidence_bundle_reference = os.environ.get(_STAGE_WRITE_EVIDENCE_BUNDLE_REF_ENV, "").strip() or None
+    post_write_readback_plan_reference = (
+        os.environ.get(_STAGE_WRITE_POST_WRITE_READBACK_PLAN_REF_ENV, "").strip() or None
+    )
+    revert_plan_reference = os.environ.get(_STAGE_WRITE_REVERT_PLAN_REF_ENV, "").strip() or None
+    raw_allowed_paths = os.environ.get(_STAGE_WRITE_REVERT_ALLOWED_PATHS_ENV, "").strip()
+    allowed_paths: set[str] = set()
+    if raw_allowed_paths:
+        for raw_value in raw_allowed_paths.split(";"):
+            normalized = _normalize_project_relative_path(raw_value)
+            if normalized:
+                allowed_paths.add(normalized)
+    return (
+        evidence_bundle_reference,
+        post_write_readback_plan_reference,
+        revert_plan_reference,
+        allowed_paths,
+    )
 
 
 def _planned_manifest_sha256(
@@ -1250,8 +1275,17 @@ class AssetForgeService:
         overwrite_policy_supported = overwrite_policy in _SUPPORTED_STAGE_WRITE_OVERWRITE_POLICIES
         admission_flag_enabled, admission_flag_state = _resolve_stage_write_admission_flag_state()
         admission_packet_reference, admission_operator_id = _resolve_stage_write_admission_evidence_context()
+        (
+            evidence_bundle_reference,
+            post_write_readback_plan_reference,
+            revert_plan_reference,
+            revert_allowed_paths,
+        ) = _resolve_stage_write_proof_contract_context()
         operator_note_present = bool(request.approval_note.strip())
         admission_evidence_ready = False
+        post_write_readback_plan_ready = False
+        revert_plan_ready = False
+        revert_plan_exact_scope = False
         server_approval_evaluation = self._evaluate_server_approval_session(
             approval_session_id=request.approval_session_id,
             expected_capability=_STAGE_WRITE_APPROVAL_CAPABILITY,
@@ -1394,10 +1428,46 @@ class AssetForgeService:
                     f"Admission operator identity {_STAGE_WRITE_ADMISSION_OPERATOR_ID_ENV} is required when the admission flag is on."
                 )
                 fail_closed_reasons.append("admission_operator_id_missing")
+            if evidence_bundle_reference is None:
+                warnings.append(
+                    f"Proof evidence bundle reference {_STAGE_WRITE_EVIDENCE_BUNDLE_REF_ENV} is required when the admission flag is on."
+                )
+                fail_closed_reasons.append("evidence_bundle_reference_missing")
+            if post_write_readback_plan_reference is None:
+                warnings.append(
+                    f"Post-write readback plan reference {_STAGE_WRITE_POST_WRITE_READBACK_PLAN_REF_ENV} is required when the admission flag is on."
+                )
+                fail_closed_reasons.append("post_write_readback_plan_missing")
+            if revert_plan_reference is None:
+                warnings.append(
+                    f"Revert plan reference {_STAGE_WRITE_REVERT_PLAN_REF_ENV} is required when the admission flag is on."
+                )
+                fail_closed_reasons.append("revert_plan_reference_missing")
+            if not revert_allowed_paths:
+                warnings.append(
+                    f"Exact revert-path allowlist {_STAGE_WRITE_REVERT_ALLOWED_PATHS_ENV} is required when the admission flag is on."
+                )
+                fail_closed_reasons.append("revert_allowed_paths_missing")
+            else:
+                expected_revert_scope = {stage_relative_path, manifest_relative_path}
+                revert_plan_exact_scope = revert_allowed_paths == expected_revert_scope
+                if not revert_plan_exact_scope:
+                    warnings.append(
+                        "Revert allowed-path scope must match exactly the stage and manifest paths for this request."
+                    )
+                    fail_closed_reasons.append("revert_plan_scope_not_exact")
+            post_write_readback_plan_ready = (
+                evidence_bundle_reference is not None
+                and post_write_readback_plan_reference is not None
+            )
+            revert_plan_ready = revert_plan_reference is not None
             admission_evidence_ready = (
                 admission_packet_reference is not None
                 and admission_operator_id is not None
                 and (request.approval_state != "approved" or operator_note_present)
+                and post_write_readback_plan_ready
+                and revert_plan_ready
+                and revert_plan_exact_scope
             )
             if not admission_evidence_ready:
                 warnings.append(
@@ -1436,6 +1506,12 @@ class AssetForgeService:
             admission_operator_id=admission_operator_id,
             operator_note_present=operator_note_present,
             admission_evidence_ready=admission_evidence_ready,
+            evidence_bundle_reference=evidence_bundle_reference,
+            post_write_readback_plan_reference=post_write_readback_plan_reference,
+            revert_plan_reference=revert_plan_reference,
+            post_write_readback_plan_ready=post_write_readback_plan_ready,
+            revert_plan_ready=revert_plan_ready,
+            revert_plan_exact_scope=revert_plan_exact_scope,
             normalized_destination_path=stage_relative_path,
             destination_within_staging_root=destination_within_staging_root,
             staging_root_allowlisted=staging_root_allowlisted,

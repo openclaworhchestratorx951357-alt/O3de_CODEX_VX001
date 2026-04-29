@@ -18,6 +18,12 @@ The stage-write endpoint now reports these dry-run-only fields:
 - `admission_operator_id`
 - `operator_note_present`
 - `admission_evidence_ready`
+- `evidence_bundle_reference`
+- `post_write_readback_plan_reference`
+- `revert_plan_reference`
+- `post_write_readback_plan_ready`
+- `revert_plan_ready`
+- `revert_plan_exact_scope`
 - `write_executed`
 - `project_write_admitted`
 - `normalized_destination_path`
@@ -46,6 +52,11 @@ The stage-write endpoint now reports these dry-run-only fields:
 - admission flag on with missing server admission operator identity fails closed
 - approval state approved without operator note fails closed
 - incomplete admission evidence remains blocked
+- admission flag on with missing evidence bundle reference fails closed
+- admission flag on with missing post-write readback plan reference fails closed
+- admission flag on with missing revert plan reference fails closed
+- admission flag on without exact revert-path allowlist fails closed
+- revert scope mismatch fails closed
 - admission flag true still stays blocked until proof-only execution is explicitly implemented
 - path traversal fails closed
 - destination outside allowlisted staging root fails closed
@@ -66,4 +77,4 @@ This packet does not:
 - authorize from client approval fields
 
 ## Next packet
-Keep stage-write blocked and add proof-only execution evidence-bundle/readback/revert contract checks behind explicit server-owned policy, still default fail-closed and still no broad mutation admission.
+Keep stage-write blocked and implement proof-only execution behind explicit server-owned policy with post-write readback verification and exact revert enforcement, still default fail-closed and still no broad mutation admission.
