@@ -7911,13 +7911,77 @@ def test_dispatch_route_records_settings_patch_fallback_provenance_in_hybrid_mod
 
 def test_validation_report_intake_endpoint_candidates_remain_unadmitted() -> None:
     with isolated_client() as client:
-        for path in (
+        response = client.post(
             "/validation/report/intake",
-            "/validation/reports/intake",
-            "/validation/intake",
+            json={"schema": "validation.report.intake.v1"},
+        )
+        assert response.status_code == 404
+        payload = response.json()["detail"]
+        assert payload["status"] == "blocked"
+        assert payload["review_status"] == "endpoint_candidate_blocked"
+        assert payload["review_code"] == "endpoint_candidate_unadmitted"
+        assert payload["corridor_name"] == "validation.report.intake"
+        assert payload["endpoint_candidate"] is True
+        assert payload["endpoint_admitted"] is False
+        assert payload["dry_run_only"] is True
+        assert payload["execution_admitted"] is False
+        assert payload["write_executed"] is False
+        assert payload["project_write_admitted"] is False
+        assert payload["write_status"] == "blocked"
+        assert payload["admission_flag_name"] == VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV
+        assert payload["admission_flag_state"] == "missing_default_off"
+        assert payload["admission_flag_enabled"] is False
+        assert (
+            payload["recommended_next_step"]
+            == "Set the server-owned admission flag to an explicit truthy value to "
+            "evaluate dry-run-only validation intake behavior."
+        )
+
+        for path in ("/validation/reports/intake", "/validation/intake"):
+            invalid_path_response = client.post(
+                path, json={"schema": "validation.report.intake.v1"}
+            )
+            assert invalid_path_response.status_code == 404
+
+
+def test_validation_report_intake_endpoint_candidate_blocked_review_for_explicit_off_and_invalid_flags() -> None:
+    cases = (
+        (
+            "0",
+            "explicit_off",
+            "Change the server-owned admission flag from explicit off to an explicit "
+            "truthy value for dry-run-only candidate review.",
+        ),
+        (
+            "not-a-bool",
+            "invalid_default_off",
+            "Replace the invalid admission-flag value with an explicit truthy or false "
+            "value; invalid values fail closed to blocked.",
+        ),
+    )
+
+    for flag_value, expected_state, expected_next_step in cases:
+        with patch.dict(
+            os.environ,
+            {VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV: flag_value},
+            clear=False,
         ):
-            response = client.post(path, json={"schema": "validation.report.intake.v1"})
-            assert response.status_code == 404
+            with isolated_client() as client:
+                response = client.post(
+                    "/validation/report/intake",
+                    json={"schema": "validation.report.intake.v1"},
+                )
+                assert response.status_code == 404
+                payload = response.json()["detail"]
+                assert payload["status"] == "blocked"
+                assert payload["review_status"] == "endpoint_candidate_blocked"
+                assert payload["review_code"] == "endpoint_candidate_unadmitted"
+                assert payload["admission_flag_name"] == (
+                    VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV
+                )
+                assert payload["admission_flag_state"] == expected_state
+                assert payload["admission_flag_enabled"] is False
+                assert payload["recommended_next_step"] == expected_next_step
 
 
 def test_validation_report_intake_endpoint_candidate_returns_dry_run_plan_when_enabled() -> None:
@@ -7941,12 +8005,19 @@ def test_validation_report_intake_endpoint_candidate_returns_dry_run_plan_when_e
             assert payload["accepted"] is True
             assert payload["endpoint_candidate"] is True
             assert payload["endpoint_admitted"] is False
+            assert payload["review_code"] == "dry_run_candidate"
+            assert payload["review_status"] == "dry_run_candidate_accepted"
             assert (
                 payload["admission_flag_name"]
                 == VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV
             )
             assert payload["admission_flag_state"] == "explicit_on"
             assert payload["admission_flag_enabled"] is True
+            assert (
+                payload["recommended_next_step"]
+                == "Keep endpoint dry-run-only and preserve dispatch refusal; do not admit "
+                "execution or mutation paths."
+            )
             assert payload["fail_closed_reasons"] == []
             assert payload["normalized_artifact_refs"] == ["artifacts/reports/gtest.json"]
 
@@ -7970,6 +8041,8 @@ def test_validation_report_intake_endpoint_candidate_fails_closed_for_client_aut
             assert payload["write_executed"] is False
             assert payload["project_write_admitted"] is False
             assert payload["write_status"] == "blocked"
+            assert payload["review_code"] == "dry_run_candidate"
+            assert payload["review_status"] == "dry_run_candidate_refused"
             assert "client_authorization_fields_forbidden" in payload["fail_closed_reasons"]
 
 
