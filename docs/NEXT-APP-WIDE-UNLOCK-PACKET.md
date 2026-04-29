@@ -1,21 +1,22 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake dispatch-admission catalog registration readiness audit packet.
+Validation intake dispatch-admission catalog registration implementation touchpoint packet.
 
 ## Why this is next
-- Dispatch-admission catalog registration design is now complete with explicit
-  schema, catalog, policy, dispatcher, and revert requirements.
+- Catalog registration readiness audit is now complete and identifies exact
+  missing implementation gates (schemas, catalog entry, dispatcher branch,
+  dispatcher tests).
 - Dispatch remains explicitly unadmitted and default-off.
-- The next safest move is a readiness audit that verifies those design gates
-  are fully specified and implementation-ready before registration changes.
+- The next safest move is a narrow implementation touchpoint packet that closes
+  only those missing gates while keeping fail-closed boundaries.
 
 ## Scope
 - docs-focused packet (tests optional; no runtime mutation)
-- verify required schema set completeness and naming
-- verify catalog/policy field choices and risk labels
-- verify dispatcher fail-closed contract and test coverage plan
-- verify revert checklist completeness before implementation
+- add required `validation.report.intake` schema set
+- add validation catalog entry and policy exposure for intake
+- add explicit post-registration fail-closed dispatcher gate branch
+- add `test_dispatcher.py` coverage for gate-state behavior
 - no execution or mutation admission changes
 
 ## Safety constraints
@@ -27,7 +28,7 @@ Validation intake dispatch-admission catalog registration readiness audit packet
 
 ## Acceptance checks
 - dispatch remains unadmitted and default-off
-- readiness audit lists satisfied vs missing registration gates
+- missing gates from readiness audit are closed or explicitly deferred
 - no broadening of endpoint or dispatch execution/mutation capability
 - no client approval/session fields treated as authorization
 - recommendation for next packet is explicit and testable
@@ -35,5 +36,5 @@ Validation intake dispatch-admission catalog registration readiness audit packet
 ## Alternative considered
 Flow Trigger Suite productization plan.
 
-This remains valid, but the catalog-registration readiness audit packet is
-recommended first to prevent unsafe implementation drift.
+This remains valid, but the catalog-registration implementation touchpoint
+packet is recommended first to close the next critical-path gate.
