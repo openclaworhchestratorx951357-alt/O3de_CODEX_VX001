@@ -124,3 +124,8 @@ Flow Trigger Suite retention anomaly drill evidence packet:
 
 - exercise warning and escalation scenarios against representative artifacts
 - publish compact operator triage examples for each checkpoint state
+
+Retention anomaly drill evidence status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-RETENTION-ANOMALY-DRILL-EVIDENCE.md`
+- next safe gate is Flow Trigger Suite retention cadence handoff packet
