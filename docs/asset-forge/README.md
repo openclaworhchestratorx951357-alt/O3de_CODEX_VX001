@@ -22,6 +22,7 @@ Purpose: restore Asset Forge as a Meshy-like 3D asset creation studio with Blend
 14. `ASSET-FORGE-STAGE-WRITE-DRY-RUN-MATRIX.md`
 15. `ASSET-FORGE-STAGE-WRITE-ADMISSION-FLAG-DESIGN.md`
 16. `ASSET-FORGE-STAGE-WRITE-PROOF-ONLY-EXECUTION.md`
+17. `ASSET-FORGE-STAGE-WRITE-READBACK-BRIDGE.md`
 
 ## Core correction
 

@@ -16,6 +16,7 @@ Default remains fail-closed and blocked unless every gate passes.
 - deterministic manifest payload generation and hash verification
 - post-write readback hash verification for source + manifest
 - exact-scope failure revert for only the staged source + manifest paths
+- post-write read-only ingest/readback evidence bridge summary capture
 
 ## Required gates before execution can occur
 - server approval decision would allow if mutation admitted
@@ -61,6 +62,7 @@ When every gate passes:
 - `project_write_admitted=true`
 - only the exact approved source + manifest files are written
 - post-write readback hashes are recorded and must match expected values
+- a bridged ingest/readback evidence summary is attached under `post_write_readback`
 
 If execution write/readback fails:
 - response returns `write_status=failed`
@@ -92,4 +94,4 @@ If execution write/readback fails:
   - missing gate evidence
 
 ## Next packet
-Add a post-write O3DE readback evidence bridge for this proof-only corridor (assetdb/catalog visibility only), while keeping placement and broader mutation admission blocked.
+Placement proof-only design/readiness update that consumes stage-write + readback evidence while keeping placement execution blocked by default.
