@@ -923,7 +923,7 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
         },
         {
             "family": "validation",
-            "total_tools": 4,
+            "total_tools": 5,
             "execution_details_tools": 4,
             "artifact_metadata_tools": 4,
             "covered_tools": [
@@ -932,7 +932,7 @@ def test_schema_validation_service_reports_subset_capabilities_truthfully() -> N
                 "test.tiaf.sequence",
                 "test.visual.diff",
             ],
-            "uncovered_tools": [],
+            "uncovered_tools": ["validation.report.intake"],
         },
     ]
     assert any("does not claim full JSON Schema support" in note for note in capability.notes)
