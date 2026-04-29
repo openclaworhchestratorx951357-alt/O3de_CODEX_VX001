@@ -64,3 +64,9 @@ decision checkpoint packet:
 - decide whether rollout drill evidence is sufficient for current phase closure
 - document remaining residual risks and explicit hold points
 - keep runtime and mutation boundaries unchanged
+
+Closeout decision status:
+
+- completed in
+  `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-POST-REGISTRATION-ROLLOUT-CLOSEOUT-DECISION-CHECKPOINT.md`
+- next project-moving gate is Flow Trigger Suite productization planning
