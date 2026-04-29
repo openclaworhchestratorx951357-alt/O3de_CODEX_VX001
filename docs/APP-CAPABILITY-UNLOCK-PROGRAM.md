@@ -25,6 +25,7 @@ The following patterns are now established:
 - validation report intake dry-run parser scaffold + fail-closed test matrix
 - validation report intake endpoint-candidate admission design
 - validation report intake endpoint-candidate dry-run implementation (default-off)
+- CI/test execution admission design
 
 ## App-wide domains
 
