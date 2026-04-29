@@ -12,6 +12,9 @@ VALIDATION_REPORT_INTAKE_MAX_PAYLOAD_BYTES = 524_288
 VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV = (
     "VALIDATION_REPORT_INTAKE_ENDPOINT_ENABLED"
 )
+VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV = (
+    "VALIDATION_REPORT_INTAKE_DISPATCH_ENABLED"
+)
 
 _CLIENT_AUTHORIZATION_FIELDS = {
     "approval_state",
@@ -125,9 +128,24 @@ def build_validation_report_intake_dry_run_plan(
 
 def get_validation_report_intake_endpoint_gate() -> dict[str, Any]:
     raw = os.environ.get(VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV)
+    return _resolve_server_owned_admission_flag(
+        raw=raw,
+        flag_name=VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV,
+    )
+
+
+def get_validation_report_intake_dispatch_gate() -> dict[str, Any]:
+    raw = os.environ.get(VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV)
+    return _resolve_server_owned_admission_flag(
+        raw=raw,
+        flag_name=VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV,
+    )
+
+
+def _resolve_server_owned_admission_flag(*, raw: str | None, flag_name: str) -> dict[str, Any]:
     if raw is None:
         return {
-            "admission_flag_name": VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV,
+            "admission_flag_name": flag_name,
             "admission_flag_state": "missing_default_off",
             "admission_flag_enabled": False,
         }
@@ -135,18 +153,18 @@ def get_validation_report_intake_endpoint_gate() -> dict[str, Any]:
     candidate = raw.strip().lower()
     if candidate in {"1", "true", "yes", "on", "enabled"}:
         return {
-            "admission_flag_name": VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV,
+            "admission_flag_name": flag_name,
             "admission_flag_state": "explicit_on",
             "admission_flag_enabled": True,
         }
     if candidate in {"0", "false", "no", "off", "disabled"}:
         return {
-            "admission_flag_name": VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV,
+            "admission_flag_name": flag_name,
             "admission_flag_state": "explicit_off",
             "admission_flag_enabled": False,
         }
     return {
-        "admission_flag_name": VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV,
+        "admission_flag_name": flag_name,
         "admission_flag_state": "invalid_default_off",
         "admission_flag_enabled": False,
     }
