@@ -39,6 +39,12 @@ _REQUIRED_OBJECT_FIELDS = {
     "integrity",
 }
 
+_ENDPOINT_BLOCK_REASON_BY_GATE_STATE = {
+    "missing_default_off": "endpoint_admission_flag_disabled_or_missing",
+    "explicit_off": "endpoint_admission_flag_disabled_or_missing",
+    "invalid_default_off": "endpoint_admission_flag_invalid_state",
+}
+
 
 def build_validation_report_intake_dry_run_plan(
     envelope: dict[str, Any] | Any,
@@ -120,6 +126,64 @@ def build_validation_report_intake_dry_run_plan(
         "capability_name": capability_name if isinstance(capability_name, str) else None,
         "normalized_artifact_refs": normalized_artifact_refs,
         "fail_closed_reasons": fail_closed_reasons,
+    }
+
+
+def build_validation_report_intake_endpoint_review(
+    *,
+    gate: dict[str, Any],
+    accepted: bool | None = None,
+    fail_closed_reasons: list[str] | None = None,
+) -> dict[str, Any]:
+    gate_state = gate.get("admission_flag_state")
+    gate_enabled = gate.get("admission_flag_enabled") is True
+
+    if not gate_enabled:
+        gate_reason = _ENDPOINT_BLOCK_REASON_BY_GATE_STATE.get(
+            gate_state,
+            "endpoint_admission_gate_blocked",
+        )
+        review_summary = (
+            "Endpoint candidate remains blocked by server-owned admission gate state; "
+            "execution and mutation admission remain disabled."
+        )
+        safest_next_step = (
+            "Set server-owned admission flag to explicit_on only for bounded "
+            "dry-run endpoint-candidate audit/review; keep execution and mutation blocked."
+        )
+        return {
+            "review_status": "blocked_by_server_gate",
+            "review_summary": review_summary,
+            "safest_next_step": safest_next_step,
+            "fail_closed_reasons": [gate_reason],
+        }
+
+    normalized_fail_closed = list(dict.fromkeys(fail_closed_reasons or []))
+    if accepted is True and not normalized_fail_closed:
+        review_status = "dry_run_candidate_ready_for_operator_review"
+        review_summary = (
+            "Endpoint candidate accepted the intake envelope in dry-run-only mode. "
+            "No execution or mutation admission is enabled."
+        )
+        safest_next_step = (
+            "Perform operator review of dry-run intake evidence while preserving "
+            "dispatch refusal and all execution/mutation boundaries."
+        )
+    else:
+        review_status = "dry_run_candidate_fail_closed"
+        review_summary = (
+            "Endpoint candidate evaluated the envelope but refused admission in "
+            "fail-closed dry-run-only mode."
+        )
+        safest_next_step = (
+            "Correct envelope contract/provenance/integrity issues from "
+            "fail_closed_reasons, then retry bounded dry-run intake review."
+        )
+
+    return {
+        "review_status": review_status,
+        "review_summary": review_summary,
+        "safest_next_step": safest_next_step,
     }
 
 
