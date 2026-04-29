@@ -142,7 +142,8 @@ Status:
 - retention enforcement verification completed in `docs/FLOW-TRIGGER-SUITE-RETENTION-ENFORCEMENT-VERIFICATION.md`
 - retention operations checkpoint completed in `docs/FLOW-TRIGGER-SUITE-RETENTION-OPERATIONS-CHECKPOINT.md`
 - retention anomaly drill evidence completed in `docs/FLOW-TRIGGER-SUITE-RETENTION-ANOMALY-DRILL-EVIDENCE.md`
-- next safe gate is Flow Trigger Suite retention cadence handoff packet
+- retention cadence handoff completed in `docs/FLOW-TRIGGER-SUITE-RETENTION-CADENCE-HANDOFF.md`
+- next safe gate is Flow Trigger Suite retention cadence adoption checkpoint packet
 
 ## What stays blocked globally
 - arbitrary shell execution

@@ -1,21 +1,21 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Flow Trigger Suite retention cadence handoff packet.
+Flow Trigger Suite retention cadence adoption checkpoint packet.
 
 ## Why this is next
-- Flow Trigger Suite retention anomaly drill evidence is now complete.
-- Deterministic triage mapping for ready/attention/escalation states is now
-  test-covered and documented.
-- The next project-moving critical path is explicit cadence handoff by lane
-  risk class and on-call shift clarity.
+- Flow Trigger Suite retention cadence handoff is now complete.
+- Deterministic cadence windows and shift-handoff output contracts are
+  implemented and test-covered.
+- The next project-moving critical path is adoption checkpoint evidence from
+  active lanes using ready/attention/escalation outcomes.
 - This gate can proceed without widening runtime execution boundaries in
   existing admission lanes.
 
 ## Scope
-- narrow retention cadence handoff packet
-- define cadence windows for low/medium/high-risk lanes
-- publish compact shift-handoff template for checkpoint anomaly outcomes
+- narrow retention cadence adoption checkpoint packet
+- record representative handoff examples for low/medium/high-risk lanes
+- verify template completeness for ready/attention/escalation outcomes
 - preserve local-only trigger posture and fail-closed behavior
 - keep runtime execution/mutation admission unchanged
 
@@ -27,8 +27,8 @@ Flow Trigger Suite retention cadence handoff packet.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- cadence windows are explicit and deterministic by lane risk class
-- handoff template covers ready/attention/escalation transitions
+- representative lane handoff examples are explicit and reproducible
+- template completeness is verified for ready/attention/escalation outcomes
 - no broadening of endpoint or dispatch execution/mutation capability
 - no client approval/session fields treated as authorization
 - recommendation for the next packet is explicit and testable
@@ -36,5 +36,5 @@ Flow Trigger Suite retention cadence handoff packet.
 ## Alternative considered
 Flow Trigger Suite generalized maintenance packet.
 
-This remains valid, but cadence handoff clarity is the next critical-path gate
-after retention anomaly drill evidence completion.
+This remains valid, but cadence adoption checkpoint evidence is the next
+critical-path gate after retention cadence handoff completion.
