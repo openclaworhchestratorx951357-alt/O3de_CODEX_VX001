@@ -17,6 +17,7 @@ The following patterns are now established:
 - editor authoring review/restore baseline audit
 - project/config readiness baseline audit
 - audit review dashboard shell (static fixture first)
+- validation report intake baseline audit
 
 ## App-wide domains
 

@@ -1,19 +1,19 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation report intake baseline audit.
+Validation report intake contract and fail-closed parser design.
 
 ## Why this is next
-- Capability and audit dashboard shells now exist, and editor/project-config
-  baselines are checkpointed.
-- Validation intake is still marked `needs baseline`; closing that gap improves
-  trust in evidence pipelines across all domains.
-- A baseline audit keeps scope narrow while strengthening cross-domain review.
+- Validation intake baseline is now checkpointed and still lacks an explicit
+  admitted contract.
+- A design packet can define accepted payload shape, provenance requirements,
+  and malformed-input fail-closed behavior without enabling execution.
+- This prepares safe future implementation/testing while keeping scope narrow.
 
 ## Scope
-- docs+backend-read-only audit
-- capture `validation.report.intake` maturity and evidence gaps
-- verify malformed-input/fail-closed expectations
+- docs+tests design packet
+- define intake payload contract and provenance requirements
+- define malformed-input and schema mismatch fail-closed semantics
 - no runtime behavior broadening
 - no backend mutation admission
 - no execution admission changes
@@ -26,13 +26,13 @@ Validation report intake baseline audit.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- baseline report captures validation intake truth and gaps
+- design doc defines exact intake contract and fail-closed rules
 - maturity labels remain conservative and evidence-backed
 - blocked/forbidden surfaces stay explicit
 - no runtime execution behavior changes in this packet
 
 ## Alternative considered
-Audit dashboard truth refresh + validation linkage.
+Evidence timeline shell.
 
-This remains valid, but validation intake baseline audit is recommended first so
-future dashboard linkage work can bind to explicit audited evidence semantics.
+This remains valid, but intake contract design is recommended first so timeline
+and dashboard linkage can bind to explicit validation-intake semantics.
