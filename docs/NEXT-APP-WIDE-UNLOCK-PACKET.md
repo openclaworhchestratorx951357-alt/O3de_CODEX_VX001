@@ -1,19 +1,19 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Flow Trigger Suite implementation readiness checkpoint packet.
+Flow Trigger Suite implementation packet (bounded dry-run instrumentation).
 
 ## Why this is next
-- Flow Trigger Suite productization design is now documented.
-- The next missing gate is a formal readiness checkpoint before implementation.
-- This ensures design and audit-gate criteria are fully satisfied before any
-  implementation packet.
+- Flow Trigger Suite implementation readiness checkpoint is now documented.
+- The next missing gate is a first bounded implementation packet with
+  non-mutating dry-run instrumentation only.
+- This starts execution evidence gathering without widening runtime admission.
 
 ## Scope
 - docs/checkpoint focused packet
-- verify design completeness against audit-gate requirements
-- verify required test-matrix coverage is explicit
-- verify rollback/disable and operator-stop controls are fully specified
+- implement minimal dry-run instrumentation scaffolding for trigger lanes
+- add targeted fail-closed and stop-control tests
+- keep implementation strictly non-mutating and bounded
 - no execution or mutation admission changes
 
 ## Safety constraints
@@ -24,14 +24,13 @@ Flow Trigger Suite implementation readiness checkpoint packet.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- readiness checkpoint verdict is explicit and evidence-backed
-- implementation preconditions are concrete and bounded
+- dry-run instrumentation boundaries are explicit and evidence-backed
+- fail-closed/stop-control tests are concrete and bounded
 - no mutation/execution admission changes
 - docs and matrices remain aligned on the same capability truth
 
 ## Alternative considered
-Flow Trigger Suite implementation packet (bounded dry-run instrumentation).
+Flow Trigger Suite implementation review checkpoint.
 
 This remains valid, and CI/test execution admission can be revisited after
-automation implementation-readiness checkpoint and first bounded
-instrumentation packet.
+automation first instrumentation packet and implementation review checkpoint.

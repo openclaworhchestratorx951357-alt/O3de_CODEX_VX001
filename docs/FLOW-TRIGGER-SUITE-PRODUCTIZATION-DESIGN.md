@@ -79,6 +79,10 @@ Still not admitted in this packet:
 
 ## Recommended Next Packet
 
-Flow Trigger Suite implementation readiness checkpoint packet (docs/checkpoint):
-verify design completeness against audit-gate criteria and required test matrix
-before any implementation packet.
+Completed by:
+
+- `docs/FLOW-TRIGGER-SUITE-IMPLEMENTATION-READINESS-CHECKPOINT.md`
+
+Next after implementation-readiness checkpoint:
+
+- Flow Trigger Suite implementation packet (bounded dry-run instrumentation).

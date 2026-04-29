@@ -34,6 +34,7 @@ The following patterns are now established:
 - Flow Trigger Suite productization plan
 - Flow Trigger Suite audit-gate checklist
 - Flow Trigger Suite productization design
+- Flow Trigger Suite implementation readiness checkpoint
 
 ## App-wide domains
 
