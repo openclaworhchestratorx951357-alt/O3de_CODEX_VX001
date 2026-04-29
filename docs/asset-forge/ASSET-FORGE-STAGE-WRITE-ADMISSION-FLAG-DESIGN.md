@@ -11,9 +11,12 @@ Implementation status (current):
 - proof-only execution contract metadata is surfaced (`evidence_bundle_reference`, `post_write_readback_plan_reference`, `revert_plan_reference`, `post_write_readback_plan_ready`, `revert_plan_ready`, `revert_plan_exact_scope`)
 - when the admission flag is on, missing evidence-bundle/readback/revert references fail closed
 - revert scope must match exactly the requested source+manifest destination paths or it fails closed
+- fully gated proof-only stage-write execution is implemented for exact source+manifest scope only
+- post-write readback hash verification is enforced for source and manifest outputs
+- failed proof-only execution attempts apply exact-scope revert for the two staged files only
 - client override attempts are ignored
-- stage-write execution is still blocked
-- this is not an admitted execution path
+- default behavior remains blocked when any gate fails
+- this is not broad mutation admission
 
 ## Intent
 Define the explicit server-owned admission flag required before any future proof-only stage-write execution packet can even be considered for `asset_forge.o3de.stage_write.v1`.
@@ -102,7 +105,7 @@ Any PR implementing this flag must include tests proving:
 - no files are written in every blocked case
 
 ## What remains blocked after this design
-- all stage-write execution
+- stage-write execution outside the exact proof-only gated corridor
 - all placement execution
 - runtime bridge calls
 - provider generation
