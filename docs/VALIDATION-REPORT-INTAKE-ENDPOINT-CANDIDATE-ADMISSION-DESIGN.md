@@ -112,7 +112,6 @@ This design keeps all of the following blocked:
 
 ## Next safe packet
 
-Validation intake endpoint-candidate exact public-admission contract
-(define exact public corridor wording, non-goals, and evidence gates required
-before any read-only admission update while preserving default-off and no
-execution/mutation admission).
+Validation intake endpoint-candidate read-only admission readiness checklist
+(map each evidence gate to concrete test/doc proof and keep admission withheld
+until every gate is explicitly satisfied).
