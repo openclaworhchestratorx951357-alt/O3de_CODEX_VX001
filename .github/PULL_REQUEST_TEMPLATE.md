@@ -32,6 +32,18 @@ This PR does not:
 
 - TBD
 
+## Asset Forge audit gate (required for Asset Forge PRs)
+
+If this PR touches Asset Forge docs, backend services/routes/models/tests, or
+frontend Asset Forge UI, include all of the following:
+
+- [ ] Mutation truth table included in PR body.
+- [ ] Risky-pattern scan results included (or "no matches").
+- [ ] Explicit safety classification (docs-only / read-only / proof-only / broad mutation).
+- [ ] Validation commands and results included.
+- [ ] Confirmation that client approval fields are not treated as authorization.
+- [ ] Confirmation whether any stage-write/placement/provider/Blender/Asset Processor/runtime bridge behavior changed.
+- [ ] Checklist verdict from `docs/asset-forge/ASSET-FORGE-AUDIT-REVIEW-GATE-CHECKLIST.md`.
 ## Workflow-governor value
 
 Why this PR is project-moving rather than trivial status/docs churn:

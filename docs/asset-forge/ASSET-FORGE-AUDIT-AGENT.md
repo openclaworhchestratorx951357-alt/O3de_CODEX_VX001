@@ -1,4 +1,4 @@
-﻿# Asset Forge Audit Agent
+# Asset Forge Audit Agent
 
 ## Purpose
 This audit agent exists because the Codex Flow Trigger Suite can keep continuation moving quickly with minimal pauses. That speed is useful, but it can outrun careful safety review unless a dedicated audit lane checks each Asset Forge PR against code and tests.
@@ -30,8 +30,9 @@ For each Asset Forge PR:
 4. Run risky-pattern scan.
 5. Check tests.
 6. Produce mutation truth table.
-7. Approve only if claims match code/tests.
-8. Request changes if a safety boundary is ambiguous.
+7. Apply `ASSET-FORGE-AUDIT-REVIEW-GATE-CHECKLIST.md` and record gate pass/fail.
+8. Approve only if claims match code/tests.
+9. Request changes if a safety boundary is ambiguous.
 
 ## Risky-pattern scan
 Search for:
