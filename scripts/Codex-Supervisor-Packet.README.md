@@ -72,6 +72,7 @@ Run deterministic local no-dispatch validation:
 ```powershell
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Packet.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Rollout.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Stability.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 ```
 
 ## Productized rollout controls
