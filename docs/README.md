@@ -235,6 +235,7 @@ rounding up capability claims.
 - `docs/VALIDATION-REPORT-INTAKE-BASELINE-AUDIT.md`
 - `docs/VALIDATION-REPORT-INTAKE-CONTRACT-DESIGN.md`
 - `docs/VALIDATION-REPORT-INTAKE-DRY-RUN-PARSER-MATRIX.md`
+- `docs/VALIDATION-REPORT-INTAKE-ENDPOINT-CANDIDATE-ADMISSION-DESIGN.md`
 - `agents/asset-forge-audit-agent/AGENTS.md`
 - `agents/app-capability-audit-agent/AGENTS.md`
 - `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`

@@ -23,6 +23,7 @@ The following patterns are now established:
 - validation report intake baseline audit
 - validation report intake contract + fail-closed parser design
 - validation report intake dry-run parser scaffold + fail-closed test matrix
+- validation report intake endpoint-candidate admission design
 
 ## App-wide domains
 
