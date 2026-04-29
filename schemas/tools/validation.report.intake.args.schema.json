@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/validation.report.intake.args.schema.json",
+  "title": "validation.report.intake args",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "capability_name",
+    "report_id",
+    "produced_at_utc",
+    "producer",
+    "result",
+    "provenance",
+    "payload",
+    "integrity"
+  ],
+  "properties": {
+    "schema": { "const": "validation.report.intake.v1" },
+    "capability_name": { "const": "validation.report.intake" },
+    "report_id": { "type": "string", "minLength": 1 },
+    "produced_at_utc": { "type": "string", "minLength": 1 },
+    "producer": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "artifact_refs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["payload_sha256", "payload_size_bytes"],
+      "properties": {
+        "payload_sha256": {
+          "type": "string",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "payload_size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
