@@ -57,6 +57,6 @@ This packet does not:
   step (operator-managed Asset Processor refresh outside this endpoint).
 
 ## Next packet
-Placement proof contract/evidence gate checks (operator packet reference,
-evidence bundle reference, readback plan reference, revert statement
-contract), still default fail-closed and non-executing.
+Placement harness/live-proof contract gate alignment (server-owned
+packet/evidence/readback/revert metadata), still default fail-closed and
+non-executing.
