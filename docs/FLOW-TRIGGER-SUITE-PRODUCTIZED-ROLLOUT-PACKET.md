@@ -102,4 +102,8 @@ Flow Trigger Suite productized admission decision packet:
 Productized admission decision status:
 
 - completed in `docs/FLOW-TRIGGER-SUITE-PRODUCTIZED-ADMISSION-DECISION.md`
-- next safe gate is Flow Trigger Suite post-admission review packet
+
+Post-admission review status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-POST-ADMISSION-REVIEW.md`
+- next safe gate is Flow Trigger Suite stability audit packet
