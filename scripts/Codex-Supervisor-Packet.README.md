@@ -101,6 +101,7 @@ powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Handoff-Digest-Readiness-Ledger.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Readiness-Ledger-Handoff-Seal.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Handoff-Seal-Continuity-Register.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Continuity-Register-Handoff-Index.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 ```
 
 ## Retention policy helper
@@ -270,6 +271,12 @@ Cadence handoff seal continuity register helper:
 
 ```powershell
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Invoke-Codex-Supervisor-Retention-Cadence-Handoff-Seal-Continuity-Register.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project" -OperatorAcknowledged
+```
+
+Cadence continuity register handoff index helper:
+
+```powershell
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Invoke-Codex-Supervisor-Retention-Cadence-Continuity-Register-Handoff-Index.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project" -OperatorAcknowledged
 ```
 
 ## Productized rollout controls
