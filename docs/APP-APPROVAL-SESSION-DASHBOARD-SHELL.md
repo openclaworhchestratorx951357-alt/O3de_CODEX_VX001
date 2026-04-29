@@ -39,5 +39,5 @@ This packet is visibility-only and does not unlock execution.
 
 ## Recommended next packet
 
-Workspace status chips shell (frontend/static-fixture first) with truthful
-maturity tags and no execution admission changes.
+Validation intake endpoint-candidate admission design (docs/design first) with
+default fail-closed endpoint behavior and no execution admission changes.
