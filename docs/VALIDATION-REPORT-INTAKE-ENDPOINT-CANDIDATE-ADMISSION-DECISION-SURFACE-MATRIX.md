@@ -59,3 +59,8 @@ Validation intake dispatch-admission design packet (docs+tests planning only):
 - keep dispatch unadmitted by default
 - define required refusal matrix, review fields, and rollback boundaries before
   any dispatch implementation packet is allowed
+
+Design packet status:
+
+- completed in `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-DESIGN.md`
+- next safe gate is dispatch-admission readiness audit
