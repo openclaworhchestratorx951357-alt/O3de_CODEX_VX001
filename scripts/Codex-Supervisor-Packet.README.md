@@ -91,6 +91,7 @@ powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Frozen-Lifecycle-Handoff-Checkpoint.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Frozen-Lifecycle-Startup-Evidence-Rehearsal.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Startup-Evidence-Automation-Gate.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Startup-Evidence-Operator-Launch-Profile.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 ```
 
 ## Retention policy helper
@@ -200,6 +201,12 @@ Cadence startup evidence automation gate helper:
 
 ```powershell
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Invoke-Codex-Supervisor-Retention-Cadence-Startup-Evidence-Automation-Gate.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project"
+```
+
+Cadence startup evidence operator launch profile helper:
+
+```powershell
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Invoke-Codex-Supervisor-Retention-Cadence-Startup-Evidence-Operator-Launch-Profile.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project" -OperatorAcknowledged
 ```
 
 ## Productized rollout controls
