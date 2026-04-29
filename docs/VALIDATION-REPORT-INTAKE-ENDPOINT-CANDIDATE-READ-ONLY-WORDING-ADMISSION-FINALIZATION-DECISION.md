@@ -53,8 +53,8 @@ validation.report.intake remains unadmitted.
 
 ## Recommended Next Packet
 
-Validation intake endpoint-candidate dispatch-boundary refusal probes packet:
+Validation intake endpoint-candidate post-probe wording checkpoint:
 
-- add explicit refused near-miss prompt examples for dispatch-admission claims
-- confirm refusal wording remains stable and truthful against those probes
+- consolidate final public wording after refusal probes
+- record whether any wording adjustments are required across packet docs
 - keep runtime behavior unchanged

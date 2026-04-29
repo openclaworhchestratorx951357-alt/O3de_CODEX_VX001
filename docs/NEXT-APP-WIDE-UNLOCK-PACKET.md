@@ -1,7 +1,7 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake endpoint-candidate dispatch-boundary refusal probes packet.
+Validation intake endpoint-candidate post-probe wording checkpoint.
 
 ## Why this is next
 - Capability, audit, evidence timeline, approval/session, and workspace-status
@@ -9,14 +9,15 @@ Validation intake endpoint-candidate dispatch-boundary refusal probes packet.
 - Validation intake endpoint-candidate dry-run implementation, audit/review
   hardening, admission-decision posture, exact public-admission contract,
   readiness checklist, decision-refresh posture, operator examples/refusal
-  wording, and finalization decision posture are now documented.
-- The next safest move is a refusal-probe packet focused on near-miss dispatch
-  admission phrasing so wording boundaries stay stable under operator prompts.
+  wording, finalization decision posture, and dispatch-boundary refusal probes
+  are now documented.
+- The next safest move is a post-probe wording checkpoint that consolidates
+  final public wording after probe outcomes.
 
 ## Scope
-- docs+probe examples packet (no runtime admission broadening)
-- add near-miss refused prompt examples for dispatch-admission claims
-- verify refusal wording remains explicit about endpoint-candidate vs dispatch
+- docs checkpoint packet (no runtime admission broadening)
+- consolidate final public wording across decision/matrix/next-packet docs
+- explicitly record whether any wording adjustments are required post-probe
 - preserve dispatch-unadmitted and no-mutation/no-execution boundaries
 - no execution or mutation admission changes
 
@@ -28,7 +29,7 @@ Validation intake endpoint-candidate dispatch-boundary refusal probes packet.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- refusal probe outcomes are explicit and fail closed
+- post-probe wording is explicit and consistent across packet docs
 - matrix/readiness wording remains aligned with code/test truth
 - dispatch path for `validation.report.intake` remains unadmitted
 - no mutation/execution admission changes
@@ -37,5 +38,5 @@ Validation intake endpoint-candidate dispatch-boundary refusal probes packet.
 ## Alternative considered
 Flow Trigger Suite productization plan.
 
-This remains valid, but refusal probes should land first so workflow automation
-planning inherits hardened dispatch-boundary wording guidance.
+This remains valid, but post-probe wording checkpoint should land first so
+workflow automation planning inherits one consolidated boundary posture.
