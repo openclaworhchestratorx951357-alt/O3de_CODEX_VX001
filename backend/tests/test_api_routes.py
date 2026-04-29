@@ -207,6 +207,29 @@ def _validation_report_intake_valid_envelope() -> dict[str, object]:
     return envelope
 
 
+def _assert_validation_report_intake_blocked_endpoint_detail(
+    detail: dict[str, object],
+    *,
+    expected_gate_state: str,
+) -> None:
+    assert detail["corridor_name"] == "validation.report.intake"
+    assert detail["capability_name"] == "validation.report.intake"
+    assert detail["endpoint_candidate"] is True
+    assert detail["endpoint_admitted"] is False
+    assert detail["dry_run_only"] is True
+    assert detail["execution_admitted"] is False
+    assert detail["project_write_admitted"] is False
+    assert detail["write_executed"] is False
+    assert detail["write_status"] == "blocked"
+    assert detail["gate_verdict"] == "blocked"
+    assert detail["review_status"] == "endpoint_candidate_blocked"
+    assert detail["fail_closed_reasons"] == ["endpoint_candidate_unadmitted"]
+    assert isinstance(detail["safest_next_step"], str)
+    assert detail["admission_flag_name"] == VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV
+    assert detail["admission_flag_state"] == expected_gate_state
+    assert detail["admission_flag_enabled"] is False
+
+
 def _assert_stage_write_dry_run_fields(payload: dict[str, object]) -> None:
     assert payload["corridor_name"] == "asset_forge.o3de.stage_write.v1"
     assert payload["dry_run_only"] is True
@@ -7918,6 +7941,34 @@ def test_validation_report_intake_endpoint_candidates_remain_unadmitted() -> Non
         ):
             response = client.post(path, json={"schema": "validation.report.intake.v1"})
             assert response.status_code == 404
+            if path == "/validation/report/intake":
+                payload = response.json()
+                assert isinstance(payload["detail"], dict)
+                _assert_validation_report_intake_blocked_endpoint_detail(
+                    payload["detail"],
+                    expected_gate_state="missing_default_off",
+                )
+
+
+def test_validation_report_intake_endpoint_candidate_blocked_review_for_explicit_off_and_invalid_flags() -> None:
+    for flag_value, expected_gate_state in (("off", "explicit_off"), ("wat", "invalid_default_off")):
+        with patch.dict(
+            os.environ,
+            {VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV: flag_value},
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/validation/report/intake",
+                    json={"schema": "validation.report.intake.v1"},
+                )
+                assert response.status_code == 404
+                payload = response.json()
+                assert isinstance(payload["detail"], dict)
+                _assert_validation_report_intake_blocked_endpoint_detail(
+                    payload["detail"],
+                    expected_gate_state=expected_gate_state,
+                )
 
 
 def test_validation_report_intake_endpoint_candidate_returns_dry_run_plan_when_enabled() -> None:
@@ -7941,6 +7992,9 @@ def test_validation_report_intake_endpoint_candidate_returns_dry_run_plan_when_e
             assert payload["accepted"] is True
             assert payload["endpoint_candidate"] is True
             assert payload["endpoint_admitted"] is False
+            assert payload["gate_verdict"] == "dry_run_candidate"
+            assert payload["review_status"] == "dry_run_candidate_accepted"
+            assert isinstance(payload["safest_next_step"], str)
             assert (
                 payload["admission_flag_name"]
                 == VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV
@@ -7970,6 +8024,9 @@ def test_validation_report_intake_endpoint_candidate_fails_closed_for_client_aut
             assert payload["write_executed"] is False
             assert payload["project_write_admitted"] is False
             assert payload["write_status"] == "blocked"
+            assert payload["gate_verdict"] == "dry_run_candidate"
+            assert payload["review_status"] == "dry_run_candidate_refused"
+            assert isinstance(payload["safest_next_step"], str)
             assert "client_authorization_fields_forbidden" in payload["fail_closed_reasons"]
 
 
