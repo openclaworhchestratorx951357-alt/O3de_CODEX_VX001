@@ -33,6 +33,8 @@ def tool_capability_status(tool_name: str) -> str:
         return "plan-only"
     if tool_name == "test.tiaf.sequence":
         return "plan-only"
+    if tool_name == "validation.report.intake":
+        return "simulated-only"
     if tool_name in {
         "editor.entity.exists",
         "editor.component.find",
@@ -462,6 +464,21 @@ CATALOG = ToolsCatalog(
                     default_locks=["test_runtime"],
                     risk="low",
                     tags=["test", "visual"],
+                ),
+                ToolDefinition(
+                    name="validation.report.intake",
+                    description=(
+                        "Validate report-envelope intake payloads through a "
+                        "dispatch-candidate, fail-closed, dry-run-only corridor."
+                    ),
+                    approval_class="read_only",
+                    adapter_family="validation",
+                    capability_status=tool_capability_status("validation.report.intake"),
+                    args_schema=tool_args_schema("validation.report.intake"),
+                    result_schema=tool_result_schema("validation.report.intake"),
+                    default_locks=["test_runtime"],
+                    risk="medium",
+                    tags=["validation", "report", "intake"],
                 ),
             ],
         ),
