@@ -61,3 +61,10 @@ powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Invoke-Codex-Supervis
 - State: `continue-queue\codex-supervisor-packet-state.json`
 - Queue: `continue-queue\codex-supervisor-packet-queue.jsonl`
 - Evidence events: `continue-queue\codex-supervisor-packet-events.jsonl`
+
+## Validation harness
+Run deterministic local no-dispatch validation:
+
+```powershell
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Packet.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
+```
