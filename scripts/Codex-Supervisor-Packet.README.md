@@ -121,6 +121,7 @@ powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Lane-Continuity-Warrant-Operator-Stewardship-Receipt.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Operator-Stewardship-Receipt-Lane-Custody-Attestation.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Lane-Custody-Attestation-Operator-Handoff-Seal.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Operator-Handoff-Seal-Lane-Custody-Ledger.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 ```
 
 ## Retention policy helper
@@ -408,6 +409,12 @@ Cadence lane custody attestation operator handoff seal helper:
 
 ```powershell
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Invoke-Codex-Supervisor-Retention-Cadence-Lane-Custody-Attestation-Operator-Handoff-Seal.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project" -OperatorAcknowledged
+
+Cadence operator handoff seal lane custody ledger helper:
+
+```powershell
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Invoke-Codex-Supervisor-Retention-Cadence-Operator-Handoff-Seal-Lane-Custody-Ledger.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project" -OperatorAcknowledged
+```
 ```
 ```
 ```
