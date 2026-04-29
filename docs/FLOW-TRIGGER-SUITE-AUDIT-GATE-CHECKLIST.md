@@ -139,4 +139,8 @@ Threat-model design status:
 Implementation touchpoint status:
 
 - completed in `docs/FLOW-TRIGGER-SUITE-IMPLEMENTATION-TOUCHPOINT.md`
-- next safe gate is Flow Trigger Suite validation packet
+
+Validation packet status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-VALIDATION-PACKET.md`
+- next safe gate is Flow Trigger Suite productized rollout packet
