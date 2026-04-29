@@ -90,6 +90,17 @@ def test_render_shader_rebuild_is_cataloged_as_plan_only() -> None:
     assert "render_pipeline" in tool.default_locks
 
 
+def test_validation_report_intake_is_cataloged_as_simulated_only_candidate() -> None:
+    tool = catalog_service.get_tool_definition("validation", "validation.report.intake")
+    assert tool is not None
+    assert tool.approval_class == "read_only"
+    assert tool.adapter_family == "validation"
+    assert tool.capability_status == "simulated-only"
+    assert tool.args_schema.endswith("validation.report.intake.args.schema.json")
+    assert tool.result_schema.endswith("validation.report.intake.result.schema.json")
+    assert "test_runtime" in tool.default_locks
+
+
 def test_asset_batch_process_is_cataloged_as_plan_only() -> None:
     tool = catalog_service.get_tool_definition("asset-pipeline", "asset.batch.process")
     assert tool is not None

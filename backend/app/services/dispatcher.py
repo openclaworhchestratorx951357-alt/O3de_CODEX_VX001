@@ -28,6 +28,7 @@ from app.services.runs import runs_service
 from app.services.schema_validation import schema_validation_service
 from app.services.validation_report_intake import (
     VALIDATION_REPORT_INTAKE_CAPABILITY,
+    build_validation_report_intake_dry_run_plan,
     get_validation_report_intake_dispatch_gate,
 )
 from app.services.workspaces import workspaces_service
@@ -160,6 +161,16 @@ class DispatcherService:
                 logs=[
                     f"Rejected tool '{request.tool}' for agent '{request.agent}'."
                 ],
+            )
+
+        if (
+            request.agent == "validation"
+            and request.tool == VALIDATION_REPORT_INTAKE_CAPABILITY
+        ):
+            return self._reject_validation_report_intake_dispatch_unadmitted(
+                request=request,
+                run_id=run.id,
+                execution_id=execution.id,
             )
 
         policy = policy_service.get_policy(request.agent, request.tool)
@@ -1523,6 +1534,116 @@ class DispatcherService:
             )
         return "This run used a real non-simulated control-plane path."
 
+    def _reject_validation_report_intake_dispatch_unadmitted(
+        self,
+        *,
+        request: RequestEnvelope,
+        run_id: str,
+        execution_id: str,
+    ) -> ResponseEnvelope:
+        blocked_details = self._validation_report_intake_registered_dispatch_blocked_details(
+            request.args
+        )
+        runs_service.update_run(
+            run_id,
+            status=RunStatus.FAILED,
+            result_summary=(
+                "Rejected because validation.report.intake dispatch remains "
+                "unadmitted/default-off."
+            ),
+        )
+        executions_service.update_execution(
+            execution_id,
+            status=ExecutionStatus.FAILED,
+            logs=[
+                "validation.report.intake is catalog-registered but dispatch remains fail-closed."
+            ],
+            result_summary=(
+                "Rejected because validation.report.intake dispatch remains "
+                "unadmitted/default-off."
+            ),
+            finished=True,
+        )
+        events_service.record(
+            category="dispatch",
+            severity=EventSeverity.WARNING,
+            message="validation.report.intake dispatch remains fail-closed in this phase.",
+            run_id=run_id,
+            details={"tool": request.tool, "agent": request.agent},
+        )
+        return ResponseEnvelope(
+            request_id=request.request_id,
+            ok=False,
+            operation_id=run_id,
+            error=ResponseError(
+                code="DISPATCH_NOT_ADMITTED",
+                message=(
+                    "Tool 'validation.report.intake' is registered, but dispatch "
+                    "admission remains fail-closed in this phase."
+                ),
+                retryable=False,
+                details=blocked_details,
+            ),
+            warnings=["Dispatch rejected before execution."],
+            logs=["validation.report.intake dispatch is currently fail-closed."],
+        )
+
+    def _validation_report_intake_registered_dispatch_blocked_details(
+        self,
+        envelope: object,
+    ) -> dict[str, object]:
+        gate = get_validation_report_intake_dispatch_gate()
+        gate_state = str(gate["admission_flag_state"])
+        parser_plan = build_validation_report_intake_dry_run_plan(envelope)
+        recommended_next_step = (
+            "Keep dispatch blocked until an explicit dispatch-admission decision "
+            "packet admits this corridor."
+        )
+        if gate_state == "missing_default_off":
+            recommended_next_step = (
+                "Dispatch admission flag is missing/default-off; keep dispatch blocked "
+                "until an explicit dispatch-admission decision packet admits this corridor."
+            )
+        elif gate_state == "explicit_off":
+            recommended_next_step = (
+                "Dispatch admission is explicitly off; keep dispatch blocked until "
+                "an explicit dispatch-admission decision packet admits this corridor."
+            )
+        elif gate_state == "invalid_default_off":
+            recommended_next_step = (
+                "Dispatch admission flag is invalid; set an explicit on/off value and "
+                "keep dispatch blocked."
+            )
+        elif gate_state == "explicit_on":
+            recommended_next_step = (
+                "Dispatch gate is explicit on, but dispatch remains unadmitted in this "
+                "phase; keep execution blocked until explicit admission."
+            )
+
+        return {
+            "agent": "validation",
+            "tool": VALIDATION_REPORT_INTAKE_CAPABILITY,
+            "corridor_name": VALIDATION_REPORT_INTAKE_CAPABILITY,
+            "dispatch_candidate": True,
+            "dispatch_registered": True,
+            "dispatch_admitted": False,
+            "dry_run_only": True,
+            "execution_admitted": False,
+            "write_executed": False,
+            "project_write_admitted": False,
+            "write_status": "blocked",
+            "review_code": "dispatch_candidate_unadmitted",
+            "review_status": "dispatch_candidate_blocked",
+            "recommended_next_step": recommended_next_step,
+            "parser_acceptance": bool(parser_plan["accepted"]),
+            "parser_fail_closed_reasons": list(parser_plan["fail_closed_reasons"]),
+            "payload_size_bytes": parser_plan["payload_size_bytes"],
+            "schema": parser_plan["schema"],
+            "capability_name": parser_plan["capability_name"],
+            "normalized_artifact_refs": list(parser_plan["normalized_artifact_refs"]),
+            **gate,
+        }
+
     def _validation_report_intake_dispatch_unadmitted_details(self) -> dict[str, object]:
         gate = get_validation_report_intake_dispatch_gate()
         gate_state = str(gate["admission_flag_state"])
@@ -1548,7 +1669,7 @@ class DispatcherService:
         elif gate_state == "explicit_on":
             recommended_next_step = (
                 "Dispatch gate is explicit on, but tool registration remains blocked "
-                "until exact dispatch-admission implementation gates are closed."
+                "until dispatch registration and implementation gates are closed."
             )
 
         return {
