@@ -1,23 +1,22 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake endpoint-candidate admission audit/review packet.
+Validation intake endpoint-candidate admission decision surface matrix packet.
 
 ## Why this is next
-- Capability, audit, evidence timeline, approval/session, and workspace-status
-  shells now exist.
-- Validation intake endpoint-candidate dry-run implementation now exists behind
-  a server-owned default-off admission flag.
-- The next safest move is an explicit admission audit/review packet that proves
-  gate semantics, refusal coverage, and operator-facing truth labels before any
-  broader read-only admission claim.
+- Validation intake endpoint-candidate audit/review metadata is now implemented
+  and tested across blocked/off/invalid and explicit-on dry-run outcomes.
+- Dispatch remains unadmitted for `validation.report.intake`, and execution/
+  mutation remain blocked.
+- The next safest move is an explicit admission decision matrix packet to decide
+  whether current evidence is sufficient for a narrow read-only audited maturity
+  claim or whether additional gates are required.
 
 ## Scope
-- docs+tests focused packet (optional small backend metadata only)
-- audit endpoint gate states (`missing_default_off`, `explicit_off`,
-  `explicit_on`, `invalid_default_off`)
-- verify fail-closed refusal matrix on malformed/auth-tainted payloads
-- define and verify operator-facing review/status fields for endpoint outcomes
+- docs-focused packet (tests optional; no runtime mutation)
+- map current gate-state truth and review/status output to maturity labels
+- confirm dispatch remains unadmitted regardless of endpoint gate state
+- decide exact next gate for any broader admission move
 - no execution or mutation admission changes
 
 ## Safety constraints
@@ -28,16 +27,14 @@ Validation intake endpoint-candidate admission audit/review packet.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- endpoint remains blocked for missing/invalid/explicit-off flag states
-- explicit-on path remains dry-run-only with write/execution flags false
-- dispatch path for `validation.report.intake` remains unadmitted
-- review/status output remains truthful and fail-closed
-- no mutation/execution admission changes
-- targeted backend tests cover refusal matrix and gate-state transitions
+- decision table lists admitted vs blocked vs forbidden outcomes exactly
+- no broadening of endpoint or dispatch execution/mutation capability
+- no client approval/session fields treated as authorization
+- recommendation for next implementation packet is explicit and testable
 
 ## Alternative considered
 Flow Trigger Suite productization plan.
 
-This remains valid, but validation-intake admission audit/review is recommended
-first to harden the new endpoint-candidate boundary before broader workflow
+This remains valid, but validation-intake admission decision matrix is
+recommended first to close the maturity decision loop before broader workflow
 automation work.
