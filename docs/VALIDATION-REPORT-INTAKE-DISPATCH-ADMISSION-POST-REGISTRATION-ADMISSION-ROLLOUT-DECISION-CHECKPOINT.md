@@ -84,3 +84,9 @@ regression packet:
 - codify admitted-path vs perimeter parity matrix in tests
 - add explicit regression coverage for rollout checklist scenarios
 - keep runtime and mutation boundaries unchanged
+
+Boundary regression status:
+
+- completed in
+  `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-POST-REGISTRATION-ADMITTED-PATH-BOUNDARY-REGRESSION.md`
+- next safe gate is post-registration rollout drill evidence
