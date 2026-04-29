@@ -26,6 +26,10 @@ from app.services.locks import locks_service
 from app.services.policy import policy_service
 from app.services.runs import runs_service
 from app.services.schema_validation import schema_validation_service
+from app.services.validation_report_intake import (
+    VALIDATION_REPORT_INTAKE_CAPABILITY,
+    get_validation_report_intake_dispatch_gate,
+)
 from app.services.workspaces import workspaces_service
 
 
@@ -110,6 +114,17 @@ class DispatcherService:
             )
 
         if not catalog_service.is_allowed_tool_for_agent(request.agent, request.tool):
+            invalid_tool_details: dict[str, object] = {
+                "agent": request.agent,
+                "tool": request.tool,
+            }
+            if (
+                request.agent == "validation"
+                and request.tool == VALIDATION_REPORT_INTAKE_CAPABILITY
+            ):
+                invalid_tool_details.update(
+                    self._validation_report_intake_dispatch_unadmitted_details()
+                )
             runs_service.update_run(
                 run.id,
                 status=RunStatus.FAILED,
@@ -139,7 +154,7 @@ class DispatcherService:
                         f"'{request.agent}'."
                     ),
                     retryable=False,
-                    details={"agent": request.agent, "tool": request.tool},
+                    details=invalid_tool_details,
                 ),
                 warnings=["Dispatch rejected before execution."],
                 logs=[
@@ -1507,6 +1522,49 @@ class DispatcherService:
                 "bridge-backed path."
             )
         return "This run used a real non-simulated control-plane path."
+
+    def _validation_report_intake_dispatch_unadmitted_details(self) -> dict[str, object]:
+        gate = get_validation_report_intake_dispatch_gate()
+        gate_state = str(gate["admission_flag_state"])
+        recommended_next_step = (
+            "Keep dispatch unadmitted/default-off until dispatch-admission gate "
+            "implementation and validation are completed."
+        )
+        if gate_state == "missing_default_off":
+            recommended_next_step = (
+                "Set the server-owned dispatch admission flag only after the "
+                "implementation touchpoint packet lands and dispatch tests pass."
+            )
+        elif gate_state == "explicit_off":
+            recommended_next_step = (
+                "Dispatch admission is explicitly off; keep it off until "
+                "implementation touchpoint validation is complete."
+            )
+        elif gate_state == "invalid_default_off":
+            recommended_next_step = (
+                "Replace invalid dispatch admission-flag value with explicit on/off; "
+                "invalid values fail closed."
+            )
+        elif gate_state == "explicit_on":
+            recommended_next_step = (
+                "Dispatch gate is explicit on, but tool registration remains blocked "
+                "until exact dispatch-admission implementation gates are closed."
+            )
+
+        return {
+            "corridor_name": VALIDATION_REPORT_INTAKE_CAPABILITY,
+            "dispatch_candidate": True,
+            "dispatch_admitted": False,
+            "dry_run_only": True,
+            "execution_admitted": False,
+            "write_executed": False,
+            "project_write_admitted": False,
+            "write_status": "blocked",
+            "review_code": "dispatch_candidate_unadmitted",
+            "review_status": "dispatch_candidate_blocked",
+            "recommended_next_step": recommended_next_step,
+            **gate,
+        }
 
 
 dispatcher_service = DispatcherService()
