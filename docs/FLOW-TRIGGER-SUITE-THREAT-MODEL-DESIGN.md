@@ -111,3 +111,8 @@ Flow Trigger Suite implementation touchpoint packet:
   mitigations
 - preserve fail-closed behavior and local-only boundaries
 - add targeted no-runtime-impact verification
+
+Implementation touchpoint status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-IMPLEMENTATION-TOUCHPOINT.md`
+- next safe gate is Flow Trigger Suite validation packet
