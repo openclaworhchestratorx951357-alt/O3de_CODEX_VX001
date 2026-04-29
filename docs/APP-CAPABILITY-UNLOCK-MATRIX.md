@@ -22,10 +22,10 @@ Conservative baseline as of current `main`. When uncertain, mark `needs baseline
 | Asset Forge | `asset_forge.placement.proof` | plan-only | dry-run only | High | explicit admission flag design | fail-closed design/tests checklist | Placement proof-only admission-flag design |
 | Project/Config | `project.inspect` | read-only | reviewable | Medium | contract alignment + audit review | read-only tests + schema evidence | Project inspect review packet |
 | Project/Config | `settings.inspect` | read-only | reviewable | Medium | contract alignment + audit review | read-only tests + schema evidence | Settings inspect review packet |
-| Project/Config | `settings.patch.narrow` | needs baseline | dry-run only | High | explicit narrow scope + revert proof | fail-closed mutation tests + revert evidence | Settings patch narrow baseline audit |
-| Project/Config | `settings.rollback` | needs baseline | plan-only | High | rollback design contract | design + failure-mode tests | Settings rollback design packet |
+| Project/Config | `settings.patch.narrow` | admitted-real (narrow mutation-gated) | reversible | High | explicit narrow scope + revert proof | mutation-path tests + backup/readback/revert evidence | Settings patch corridor hardening audit |
+| Project/Config | `settings.rollback` | reviewable (through bounded patch rollback evidence) | reversible | High | rollback design contract | rollback-path tests + revert evidence | Settings rollback boundary audit |
 | Project/Config | `build.configure.preflight` | preflight-only | reviewable | Medium | no-build-exec guard + audit review | tests proving configure-only behavior | Build configure preflight review |
-| Project/Config | `build.execute.real` | missing | plan-only | Critical | explicit admission program + operator approval | design + risk controls + cost/revert model | Build execution admission design |
+| Project/Config | `build.execute.real` | gated execution (explicit named targets) | reviewable | Critical | explicit admission program + operator approval | execution-gate tests + timeout/log/readback evidence | Build execution boundary hardening audit |
 | Validation | `validation.report.intake` | needs baseline | read-only | Medium | schema + provenance gate | parser tests + malformed-input fail-closed tests | Validation intake baseline audit |
 | Validation | `backend.test.run` | admitted-real (local workflow) | reviewable | Low | command boundary docs | deterministic command evidence | Validation workflow index refresh |
 | Validation | `frontend.test.run` | admitted-real (local workflow) | reviewable | Low | command boundary docs | deterministic command evidence | Validation workflow index refresh |
