@@ -1,23 +1,22 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake endpoint-candidate admission decision + surface-matrix update.
+Validation intake endpoint-candidate exact public-admission contract.
 
 ## Why this is next
 - Capability, audit, evidence timeline, approval/session, and workspace-status
   shells now exist.
-- Validation intake endpoint-candidate dry-run implementation and audit/review
-  hardening now exist behind a server-owned default-off admission flag.
-- The next safest move is an explicit admission-decision packet that locks the
-  reviewed maturity classification, updates matrix truth labels, and keeps
-  no-execution/no-mutation boundaries explicit before any broader read-only
-  admission claim.
+- Validation intake endpoint-candidate dry-run implementation, audit/review
+  hardening, and admission-decision posture are now documented.
+- The next safest move is a contract packet that defines exact public wording,
+  non-goals, and evidence gates required before any future read-only admission
+  update.
 
 ## Scope
-- docs-focused decision packet (no runtime admission broadening)
-- classify endpoint-candidate maturity after gate-state audit/review hardening
-- refresh capability unlock matrix language for truthful current maturity
-- document what remains blocked and what evidence is still required
+- docs-focused contract packet (no runtime admission broadening)
+- define exact allowed public corridor wording for endpoint-candidate state
+- define explicit refusal/non-goal wording for out-of-corridor requests
+- define minimum evidence gates required before read-only admission update
 - no execution or mutation admission changes
 
 ## Safety constraints
@@ -28,15 +27,15 @@ Validation intake endpoint-candidate admission decision + surface-matrix update.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- maturity decision explicitly references audit/review evidence
+- contract wording is explicit, narrow, and testable against current behavior
 - matrix/readiness wording remains aligned with code/test truth
 - dispatch path for `validation.report.intake` remains unadmitted
 - no mutation/execution admission changes
-- next required implementation gate is clearly identified
+- next required implementation gate is clearly identified and bounded
 
 ## Alternative considered
 Flow Trigger Suite productization plan.
 
-This remains valid, but the validation-intake admission decision and
-surface-matrix truth update should land first so workflow automation planning
-inherits an audited capability classification.
+This remains valid, but the exact validation-intake public-admission contract
+should land first so workflow automation planning inherits explicit capability
+truth boundaries.
