@@ -538,6 +538,15 @@ class AssetForgeO3DEPlacementHarnessExecuteRecord(BaseModel):
     approval_state: Literal["not-approved", "approved"]
     server_approval_session_id: str | None = None
     server_approval_evaluation: AssetForgeServerApprovalDecisionRecord
+    admission_packet_reference: str | None = None
+    admission_operator_id: str | None = None
+    evidence_bundle_reference: str | None = None
+    readback_plan_reference: str | None = None
+    revert_statement_contract_key: str | None = None
+    revert_statement_contract_match: bool
+    operator_note_present: bool
+    contract_evidence_ready: bool
+    fail_closed_reasons: list[str] = Field(default_factory=list)
     bridge_command_id: str | None = None
     execution_performed: bool
     readback_captured: bool
@@ -572,6 +581,15 @@ class AssetForgeO3DEPlacementLiveProofRecord(BaseModel):
     runtime_gate_enabled: bool
     server_approval_session_id: str | None = None
     server_approval_evaluation: AssetForgeServerApprovalDecisionRecord
+    admission_packet_reference: str | None = None
+    admission_operator_id: str | None = None
+    evidence_bundle_reference: str | None = None
+    readback_plan_reference: str | None = None
+    revert_statement_contract_key: str | None = None
+    revert_statement_contract_match: bool
+    operator_note_present: bool
+    contract_evidence_ready: bool
+    fail_closed_reasons: list[str] = Field(default_factory=list)
     execution_performed: bool
     readback_captured: bool
     entity_exists: bool | None = None
