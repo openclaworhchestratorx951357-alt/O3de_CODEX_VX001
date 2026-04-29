@@ -134,7 +134,8 @@ Status:
 - threat-model design completed in `docs/FLOW-TRIGGER-SUITE-THREAT-MODEL-DESIGN.md`
 - implementation touchpoint completed in `docs/FLOW-TRIGGER-SUITE-IMPLEMENTATION-TOUCHPOINT.md`
 - validation packet completed in `docs/FLOW-TRIGGER-SUITE-VALIDATION-PACKET.md`
-- next safe gate is Flow Trigger Suite productized rollout packet
+- productized rollout completed in `docs/FLOW-TRIGGER-SUITE-PRODUCTIZED-ROLLOUT-PACKET.md`
+- next safe gate is Flow Trigger Suite productized admission decision packet
 
 ## What stays blocked globally
 - arbitrary shell execution
