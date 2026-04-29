@@ -57,6 +57,5 @@ This packet does not:
   step (operator-managed Asset Processor refresh outside this endpoint).
 
 ## Next packet
-Placement harness/live-proof contract gate alignment (server-owned
-packet/evidence/readback/revert metadata), still default fail-closed and
-non-executing.
+Placement runtime admission-decision design for exact proof-only corridor
+boundaries (still default fail-closed and non-executing).

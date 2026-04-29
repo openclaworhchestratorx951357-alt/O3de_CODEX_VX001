@@ -112,6 +112,63 @@ def _placement_expected_revert_contract_key(
     ).hexdigest()
 
 
+def _placement_harness_expected_revert_contract_key(
+    *,
+    candidate_id: str,
+    candidate_label: str,
+    staged_source_relative_path: str,
+    target_level_relative_path: str,
+    target_entity_name: str,
+    target_component: str,
+    selected_platform: str,
+) -> str:
+    staged_source_relative_path = staged_source_relative_path.strip().replace("\\", "/").lstrip("/")
+    target_level_relative_path = target_level_relative_path.strip().replace("\\", "/").lstrip("/")
+    while "//" in staged_source_relative_path:
+        staged_source_relative_path = staged_source_relative_path.replace("//", "/")
+    while "//" in target_level_relative_path:
+        target_level_relative_path = target_level_relative_path.replace("//", "/")
+    payload = {
+        "schema": "asset_forge.placement_harness.revert_contract.v1",
+        "capability_name": "asset_forge.o3de.placement.harness.execute",
+        "candidate_id": candidate_id.strip(),
+        "candidate_label": candidate_label.strip(),
+        "staged_source_relative_path": staged_source_relative_path,
+        "target_level_relative_path": target_level_relative_path,
+        "target_entity_name": target_entity_name.strip(),
+        "target_component": target_component.strip(),
+        "selected_platform": selected_platform.strip().lower(),
+    }
+    return sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _placement_live_proof_expected_revert_contract_key(
+    *,
+    candidate_id: str,
+    candidate_label: str,
+    target_level_relative_path: str,
+    target_entity_name: str,
+    selected_platform: str,
+) -> str:
+    target_level_relative_path = target_level_relative_path.strip().replace("\\", "/").lstrip("/")
+    while "//" in target_level_relative_path:
+        target_level_relative_path = target_level_relative_path.replace("//", "/")
+    payload = {
+        "schema": "asset_forge.placement_live_proof.revert_contract.v1",
+        "capability_name": "asset_forge.o3de.placement.live_proof",
+        "candidate_id": candidate_id.strip(),
+        "candidate_label": candidate_label.strip(),
+        "target_level_relative_path": target_level_relative_path,
+        "target_entity_name": target_entity_name.strip(),
+        "selected_platform": selected_platform.strip().lower(),
+    }
+    return sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
 def _assert_stage_write_dry_run_fields(payload: dict[str, object]) -> None:
     assert payload["corridor_name"] == "asset_forge.o3de.stage_write.v1"
     assert payload["dry_run_only"] is True
@@ -2394,6 +2451,65 @@ def _assert_placement_proof_fail_closed_fields(payload: dict[str, object]) -> No
     assert payload["source"] == "asset-forge-o3de-placement-proof"
 
 
+def _assert_placement_harness_fail_closed_fields(payload: dict[str, object]) -> None:
+    assert payload["capability_name"] == "asset_forge.o3de.placement.harness.execute"
+    assert payload["maturity"] == "proof-only"
+    assert payload["execute_status"] == "blocked"
+    assert payload["bridge_command_id"] is None
+    assert payload["execution_performed"] is False
+    assert payload["readback_captured"] is False
+    assert payload["read_only"] is True
+    assert payload["admission_packet_reference"] is None or isinstance(
+        payload["admission_packet_reference"], str
+    )
+    assert payload["admission_operator_id"] is None or isinstance(
+        payload["admission_operator_id"], str
+    )
+    assert payload["evidence_bundle_reference"] is None or isinstance(
+        payload["evidence_bundle_reference"], str
+    )
+    assert payload["readback_plan_reference"] is None or isinstance(
+        payload["readback_plan_reference"], str
+    )
+    assert payload["revert_statement_contract_key"] is None or isinstance(
+        payload["revert_statement_contract_key"], str
+    )
+    assert isinstance(payload["revert_statement_contract_match"], bool)
+    assert isinstance(payload["operator_note_present"], bool)
+    assert isinstance(payload["contract_evidence_ready"], bool)
+    assert isinstance(payload["fail_closed_reasons"], list)
+    assert payload["source"] == "asset-forge-o3de-placement-harness-execute"
+
+
+def _assert_placement_live_proof_fail_closed_fields(payload: dict[str, object]) -> None:
+    assert payload["capability_name"] == "asset_forge.o3de.placement.live_proof"
+    assert payload["maturity"] == "proof-only"
+    assert payload["proof_status"] == "blocked"
+    assert payload["execution_performed"] is False
+    assert payload["readback_captured"] is False
+    assert payload["read_only"] is True
+    assert payload["admission_packet_reference"] is None or isinstance(
+        payload["admission_packet_reference"], str
+    )
+    assert payload["admission_operator_id"] is None or isinstance(
+        payload["admission_operator_id"], str
+    )
+    assert payload["evidence_bundle_reference"] is None or isinstance(
+        payload["evidence_bundle_reference"], str
+    )
+    assert payload["readback_plan_reference"] is None or isinstance(
+        payload["readback_plan_reference"], str
+    )
+    assert payload["revert_statement_contract_key"] is None or isinstance(
+        payload["revert_statement_contract_key"], str
+    )
+    assert isinstance(payload["revert_statement_contract_match"], bool)
+    assert isinstance(payload["operator_note_present"], bool)
+    assert isinstance(payload["contract_evidence_ready"], bool)
+    assert isinstance(payload["fail_closed_reasons"], list)
+    assert payload["source"] == "asset-forge-o3de-placement-live-proof"
+
+
 def test_asset_forge_o3de_placement_proof_requires_approval() -> None:
     with isolated_client() as client:
         response = client.post(
@@ -2684,11 +2800,8 @@ def test_asset_forge_o3de_placement_harness_execute_requires_approval() -> None:
         )
         assert response.status_code == 200
         payload = response.json()
-        assert payload["capability_name"] == "asset_forge.o3de.placement.harness.execute"
-        assert payload["maturity"] == "proof-only"
-        assert payload["execute_status"] == "blocked"
-        assert payload["execution_performed"] is False
-        assert payload["readback_captured"] is False
+        _assert_placement_harness_fail_closed_fields(payload)
+        assert "approval_state_not_approved" in payload["fail_closed_reasons"]
 
 
 def test_asset_forge_o3de_placement_harness_execute_stays_blocked_even_when_client_claims_approval() -> None:
@@ -2712,11 +2825,95 @@ def test_asset_forge_o3de_placement_harness_execute_stays_blocked_even_when_clie
             )
             assert response.status_code == 200
             payload = response.json()
-            assert payload["execute_status"] == "blocked"
-            assert payload["bridge_command_id"] is None
-            assert payload["execution_performed"] is False
-            assert payload["readback_captured"] is False
+            _assert_placement_harness_fail_closed_fields(payload)
+            assert payload["contract_evidence_ready"] is False
+            assert "admission_packet_reference_missing" in payload["fail_closed_reasons"]
+            assert "admission_operator_id_missing" in payload["fail_closed_reasons"]
+            assert "evidence_bundle_reference_missing" in payload["fail_closed_reasons"]
+            assert "readback_plan_reference_missing" in payload["fail_closed_reasons"]
+            assert "revert_statement_contract_key_missing" in payload["fail_closed_reasons"]
+            assert "placement_harness_execution_not_admitted" in payload["fail_closed_reasons"]
             mocked_bridge_status.assert_not_called()
+
+
+def test_asset_forge_o3de_placement_harness_execute_contract_ready_still_blocked() -> None:
+    revert_contract_key = _placement_harness_expected_revert_contract_key(
+        candidate_id="candidate-a",
+        candidate_label="Weathered Ivy Arch",
+        staged_source_relative_path="Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+        target_level_relative_path="Levels/BridgeLevel01/BridgeLevel01.prefab",
+        target_entity_name="AssetForgeCandidateA",
+        target_component="Mesh",
+        selected_platform="pc",
+    )
+    with patch.dict(
+        "os.environ",
+        {
+            "ASSET_FORGE_PLACEMENT_HARNESS_V1_ADMISSION_PACKET_REF": "packet-13-harness-ready",
+            "ASSET_FORGE_PLACEMENT_HARNESS_V1_ADMISSION_OPERATOR_ID": "operator-qa",
+            "ASSET_FORGE_PLACEMENT_HARNESS_V1_EVIDENCE_BUNDLE_REF": "packet-13-harness-evidence",
+            "ASSET_FORGE_PLACEMENT_HARNESS_V1_READBACK_PLAN_REF": "packet-13-harness-readback-plan",
+            "ASSET_FORGE_PLACEMENT_HARNESS_V1_REVERT_CONTRACT_KEY": revert_contract_key,
+        },
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post(
+                "/asset-forge/o3de/placement-harness/execute",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "target_component": "Mesh",
+                    "selected_platform": "pc",
+                    "approval_state": "approved",
+                    "approval_note": "contract-ready harness evidence",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            _assert_placement_harness_fail_closed_fields(payload)
+            assert payload["revert_statement_contract_match"] is True
+            assert payload["contract_evidence_ready"] is True
+            assert "placement_harness_execution_not_admitted" in payload["fail_closed_reasons"]
+
+
+def test_asset_forge_o3de_placement_harness_execute_contract_mismatch_fails_closed() -> None:
+    with patch.dict(
+        "os.environ",
+        {
+            "ASSET_FORGE_PLACEMENT_HARNESS_V1_ADMISSION_PACKET_REF": "packet-13-harness-ready",
+            "ASSET_FORGE_PLACEMENT_HARNESS_V1_ADMISSION_OPERATOR_ID": "operator-qa",
+            "ASSET_FORGE_PLACEMENT_HARNESS_V1_EVIDENCE_BUNDLE_REF": "packet-13-harness-evidence",
+            "ASSET_FORGE_PLACEMENT_HARNESS_V1_READBACK_PLAN_REF": "packet-13-harness-readback-plan",
+            "ASSET_FORGE_PLACEMENT_HARNESS_V1_REVERT_CONTRACT_KEY": "wrong-harness-contract-key",
+        },
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post(
+                "/asset-forge/o3de/placement-harness/execute",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "target_component": "Mesh",
+                    "selected_platform": "pc",
+                    "approval_state": "approved",
+                    "approval_note": "contract mismatch harness evidence",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            _assert_placement_harness_fail_closed_fields(payload)
+            assert payload["revert_statement_contract_match"] is False
+            assert payload["contract_evidence_ready"] is False
+            assert "revert_statement_contract_key_mismatch" in payload["fail_closed_reasons"]
+            assert "contract_evidence_incomplete" in payload["fail_closed_reasons"]
 
 
 def test_asset_forge_o3de_placement_live_proof_requires_approval() -> None:
@@ -2734,9 +2931,8 @@ def test_asset_forge_o3de_placement_live_proof_requires_approval() -> None:
         )
         assert response.status_code == 200
         payload = response.json()
-        assert payload["proof_status"] == "blocked"
-        assert payload["execution_performed"] is False
-        assert payload["readback_captured"] is False
+        _assert_placement_live_proof_fail_closed_fields(payload)
+        assert "approval_state_not_approved" in payload["fail_closed_reasons"]
         assert any(
             "mutation admission is not enabled"
             in warning
@@ -2775,13 +2971,18 @@ def test_asset_forge_o3de_placement_live_proof_stays_blocked_even_when_client_cl
                     )
                     assert response.status_code == 200
                     payload = response.json()
-                    assert payload["proof_status"] == "blocked"
-                    assert payload["execution_performed"] is False
-                    assert payload["readback_captured"] is False
+                    _assert_placement_live_proof_fail_closed_fields(payload)
                     assert payload["evidence_bundle_path"] is None
                     assert payload["bridge_configured"] is False
                     assert payload["bridge_heartbeat_fresh"] is False
                     assert payload["runtime_gate_enabled"] is False
+                    assert payload["contract_evidence_ready"] is False
+                    assert "admission_packet_reference_missing" in payload["fail_closed_reasons"]
+                    assert "admission_operator_id_missing" in payload["fail_closed_reasons"]
+                    assert "evidence_bundle_reference_missing" in payload["fail_closed_reasons"]
+                    assert "readback_plan_reference_missing" in payload["fail_closed_reasons"]
+                    assert "revert_statement_contract_key_missing" in payload["fail_closed_reasons"]
+                    assert "placement_live_proof_execution_not_admitted" in payload["fail_closed_reasons"]
                     assert any(
                         "mutation admission is not enabled"
                         in warning
@@ -2820,9 +3021,7 @@ def test_asset_forge_o3de_placement_live_proof_stays_blocked_with_server_owned_s
         )
         assert response.status_code == 200
         payload = response.json()
-        assert payload["proof_status"] == "blocked"
-        assert payload["execution_performed"] is False
-        assert payload["readback_captured"] is False
+        _assert_placement_live_proof_fail_closed_fields(payload)
         assert payload["server_approval_session_id"] == session_id
         assert payload["server_approval_evaluation"]["status"] == "pending"
         assert payload["server_approval_evaluation"]["decision_state"] == "pending"
@@ -2869,9 +3068,7 @@ def test_asset_forge_o3de_placement_live_proof_reports_ready_but_not_admitted_fo
         )
         assert response.status_code == 200
         payload = response.json()
-        assert payload["proof_status"] == "blocked"
-        assert payload["execution_performed"] is False
-        assert payload["readback_captured"] is False
+        _assert_placement_live_proof_fail_closed_fields(payload)
         assert payload["server_approval_session_id"] == session_id
         assert payload["server_approval_evaluation"]["status"] == "approved"
         assert payload["server_approval_evaluation"]["decision_state"] == "ready_but_not_admitted"
@@ -2879,6 +3076,101 @@ def test_asset_forge_o3de_placement_live_proof_reports_ready_but_not_admitted_fo
         assert payload["server_approval_evaluation"]["policy_decision"] == "allow_if_mutation_admitted"
         assert payload["server_approval_evaluation"]["policy_would_allow_if_mutation_admitted"] is True
         assert payload["server_approval_evaluation"]["authorization_granted"] is False
+
+
+def test_asset_forge_o3de_placement_live_proof_contract_ready_still_blocked() -> None:
+    revert_contract_key = _placement_live_proof_expected_revert_contract_key(
+        candidate_id="candidate-a",
+        candidate_label="Weathered Ivy Arch",
+        target_level_relative_path="Levels/BridgeLevel01/BridgeLevel01.prefab",
+        target_entity_name="AssetForgeCandidateA",
+        selected_platform="pc",
+    )
+    with patch.dict(
+        "os.environ",
+        {
+            "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_ADMISSION_PACKET_REF": "packet-13-live-proof-ready",
+            "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_ADMISSION_OPERATOR_ID": "operator-qa",
+            "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_EVIDENCE_BUNDLE_REF": "packet-13-live-proof-evidence",
+            "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_READBACK_PLAN_REF": "packet-13-live-proof-readback-plan",
+            "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_REVERT_CONTRACT_KEY": revert_contract_key,
+        },
+        clear=False,
+    ):
+        with isolated_client() as client:
+            session_response = client.post(
+                "/asset-forge/approval-sessions/prepare",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "requested_capability": "asset_forge.o3de.placement.live_proof",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "selected_platform": "pc",
+                },
+            )
+            assert session_response.status_code == 200
+            session_id = session_response.json()["session_id"]
+            original = asset_forge_service._server_approval_sessions[session_id]
+            asset_forge_service._server_approval_sessions[session_id] = original.model_copy(
+                update={
+                    "session_status": "approved",
+                    "decided_at": "2026-04-28T00:00:00+00:00",
+                }
+            )
+            response = client.post(
+                "/asset-forge/o3de/placement-harness/live-proof",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "selected_platform": "pc",
+                    "approval_state": "approved",
+                    "approval_note": "contract-ready live-proof evidence",
+                    "approval_session_id": session_id,
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            _assert_placement_live_proof_fail_closed_fields(payload)
+            assert payload["revert_statement_contract_match"] is True
+            assert payload["contract_evidence_ready"] is True
+            assert "placement_live_proof_execution_not_admitted" in payload["fail_closed_reasons"]
+
+
+def test_asset_forge_o3de_placement_live_proof_contract_mismatch_fails_closed() -> None:
+    with patch.dict(
+        "os.environ",
+        {
+            "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_ADMISSION_PACKET_REF": "packet-13-live-proof-ready",
+            "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_ADMISSION_OPERATOR_ID": "operator-qa",
+            "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_EVIDENCE_BUNDLE_REF": "packet-13-live-proof-evidence",
+            "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_READBACK_PLAN_REF": "packet-13-live-proof-readback-plan",
+            "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_REVERT_CONTRACT_KEY": "wrong-live-proof-contract-key",
+        },
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post(
+                "/asset-forge/o3de/placement-harness/live-proof",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "selected_platform": "pc",
+                    "approval_state": "approved",
+                    "approval_note": "contract mismatch live-proof evidence",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            _assert_placement_live_proof_fail_closed_fields(payload)
+            assert payload["revert_statement_contract_match"] is False
+            assert payload["contract_evidence_ready"] is False
+            assert "revert_statement_contract_key_mismatch" in payload["fail_closed_reasons"]
+            assert "contract_evidence_incomplete" in payload["fail_closed_reasons"]
 
 
 def test_asset_forge_o3de_placement_live_proof_evidence_index_lists_recent_items() -> None:

@@ -73,4 +73,4 @@ This packet does not:
 - treat client approval fields as authorization
 
 ## Next packet
-Placement harness/live-proof contract gate alignment (server-owned packet/evidence/readback/revert metadata) while keeping runtime execution default fail-closed.
+Placement runtime admission-decision design for exact proof-only corridor boundaries (still default fail-closed and non-executing).

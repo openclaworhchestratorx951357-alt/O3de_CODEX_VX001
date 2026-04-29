@@ -68,6 +68,16 @@ _PLACEMENT_PROOF_ADMISSION_OPERATOR_ID_ENV = "ASSET_FORGE_PLACEMENT_PROOF_V1_ADM
 _PLACEMENT_PROOF_EVIDENCE_BUNDLE_REF_ENV = "ASSET_FORGE_PLACEMENT_PROOF_V1_EVIDENCE_BUNDLE_REF"
 _PLACEMENT_PROOF_READBACK_PLAN_REF_ENV = "ASSET_FORGE_PLACEMENT_PROOF_V1_READBACK_PLAN_REF"
 _PLACEMENT_PROOF_REVERT_CONTRACT_KEY_ENV = "ASSET_FORGE_PLACEMENT_PROOF_V1_REVERT_CONTRACT_KEY"
+_PLACEMENT_HARNESS_ADMISSION_PACKET_REF_ENV = "ASSET_FORGE_PLACEMENT_HARNESS_V1_ADMISSION_PACKET_REF"
+_PLACEMENT_HARNESS_ADMISSION_OPERATOR_ID_ENV = "ASSET_FORGE_PLACEMENT_HARNESS_V1_ADMISSION_OPERATOR_ID"
+_PLACEMENT_HARNESS_EVIDENCE_BUNDLE_REF_ENV = "ASSET_FORGE_PLACEMENT_HARNESS_V1_EVIDENCE_BUNDLE_REF"
+_PLACEMENT_HARNESS_READBACK_PLAN_REF_ENV = "ASSET_FORGE_PLACEMENT_HARNESS_V1_READBACK_PLAN_REF"
+_PLACEMENT_HARNESS_REVERT_CONTRACT_KEY_ENV = "ASSET_FORGE_PLACEMENT_HARNESS_V1_REVERT_CONTRACT_KEY"
+_PLACEMENT_LIVE_PROOF_ADMISSION_PACKET_REF_ENV = "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_ADMISSION_PACKET_REF"
+_PLACEMENT_LIVE_PROOF_ADMISSION_OPERATOR_ID_ENV = "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_ADMISSION_OPERATOR_ID"
+_PLACEMENT_LIVE_PROOF_EVIDENCE_BUNDLE_REF_ENV = "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_EVIDENCE_BUNDLE_REF"
+_PLACEMENT_LIVE_PROOF_READBACK_PLAN_REF_ENV = "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_READBACK_PLAN_REF"
+_PLACEMENT_LIVE_PROOF_REVERT_CONTRACT_KEY_ENV = "ASSET_FORGE_PLACEMENT_LIVE_PROOF_V1_REVERT_CONTRACT_KEY"
 _STAGE_WRITE_ADMISSION_PACKET_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_ADMISSION_PACKET_REF"
 _STAGE_WRITE_ADMISSION_OPERATOR_ID_ENV = "ASSET_FORGE_STAGE_WRITE_V1_ADMISSION_OPERATOR_ID"
 _STAGE_WRITE_EVIDENCE_BUNDLE_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_EVIDENCE_BUNDLE_REF"
@@ -294,6 +304,74 @@ def _build_placement_proof_revert_contract_key(
         "stage_write_corridor_name": stage_write_corridor_name.strip(),
         "stage_write_evidence_reference": stage_write_evidence_reference.strip(),
         "stage_write_readback_reference": stage_write_readback_reference.strip(),
+    }
+    serialized = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return sha256(serialized).hexdigest()
+
+
+def _resolve_placement_contract_context(
+    *,
+    admission_packet_ref_env: str,
+    admission_operator_id_env: str,
+    evidence_bundle_ref_env: str,
+    readback_plan_ref_env: str,
+    revert_contract_key_env: str,
+) -> tuple[str | None, str | None, str | None, str | None, str | None]:
+    admission_packet_reference = os.environ.get(admission_packet_ref_env, "").strip() or None
+    admission_operator_id = os.environ.get(admission_operator_id_env, "").strip() or None
+    evidence_bundle_reference = os.environ.get(evidence_bundle_ref_env, "").strip() or None
+    readback_plan_reference = os.environ.get(readback_plan_ref_env, "").strip() or None
+    revert_statement_contract_key = os.environ.get(revert_contract_key_env, "").strip() or None
+    return (
+        admission_packet_reference,
+        admission_operator_id,
+        evidence_bundle_reference,
+        readback_plan_reference,
+        revert_statement_contract_key,
+    )
+
+
+def _build_placement_harness_revert_contract_key(
+    *,
+    candidate_id: str,
+    candidate_label: str,
+    staged_source_relative_path: str,
+    target_level_relative_path: str,
+    target_entity_name: str,
+    target_component: str,
+    selected_platform: str,
+) -> str:
+    payload = {
+        "schema": "asset_forge.placement_harness.revert_contract.v1",
+        "capability_name": "asset_forge.o3de.placement.harness.execute",
+        "candidate_id": candidate_id.strip(),
+        "candidate_label": candidate_label.strip(),
+        "staged_source_relative_path": _normalize_project_relative_path(staged_source_relative_path),
+        "target_level_relative_path": _normalize_project_relative_path(target_level_relative_path),
+        "target_entity_name": target_entity_name.strip(),
+        "target_component": target_component.strip(),
+        "selected_platform": selected_platform.strip().lower(),
+    }
+    serialized = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return sha256(serialized).hexdigest()
+
+
+def _build_placement_live_proof_revert_contract_key(
+    *,
+    candidate_id: str,
+    candidate_label: str,
+    target_level_relative_path: str,
+    target_entity_name: str,
+    selected_platform: str,
+) -> str:
+    payload = {
+        "schema": "asset_forge.placement_live_proof.revert_contract.v1",
+        "capability_name": "asset_forge.o3de.placement.live_proof",
+        "candidate_id": candidate_id.strip(),
+        "candidate_label": candidate_label.strip(),
+        "target_level_relative_path": _normalize_project_relative_path(target_level_relative_path),
+        "target_entity_name": target_entity_name.strip(),
+        "selected_platform": selected_platform.strip().lower(),
     }
     serialized = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
     return sha256(serialized).hexdigest()
@@ -2599,6 +2677,33 @@ class AssetForgeService:
         target_level_relative_path = _normalize_project_relative_path(request.target_level_relative_path)
         target_component = request.target_component.strip() or "Mesh"
         selected_platform = request.selected_platform.strip().lower() or "pc"
+        operator_note_present = bool(request.approval_note.strip())
+        (
+            admission_packet_reference,
+            admission_operator_id,
+            evidence_bundle_reference,
+            readback_plan_reference,
+            revert_statement_contract_key,
+        ) = _resolve_placement_contract_context(
+            admission_packet_ref_env=_PLACEMENT_HARNESS_ADMISSION_PACKET_REF_ENV,
+            admission_operator_id_env=_PLACEMENT_HARNESS_ADMISSION_OPERATOR_ID_ENV,
+            evidence_bundle_ref_env=_PLACEMENT_HARNESS_EVIDENCE_BUNDLE_REF_ENV,
+            readback_plan_ref_env=_PLACEMENT_HARNESS_READBACK_PLAN_REF_ENV,
+            revert_contract_key_env=_PLACEMENT_HARNESS_REVERT_CONTRACT_KEY_ENV,
+        )
+        expected_revert_statement_contract_key = _build_placement_harness_revert_contract_key(
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            staged_source_relative_path=staged_source_relative_path,
+            target_level_relative_path=target_level_relative_path,
+            target_entity_name=request.target_entity_name,
+            target_component=target_component,
+            selected_platform=selected_platform,
+        )
+        revert_statement_contract_match = bool(
+            revert_statement_contract_key
+            and revert_statement_contract_key == expected_revert_statement_contract_key
+        )
         server_approval_evaluation = self._evaluate_server_approval_session(
             approval_session_id=request.approval_session_id,
             expected_capability="asset_forge.o3de.placement.harness.execute",
@@ -2615,15 +2720,69 @@ class AssetForgeService:
         runtime_gate_enabled = False
         bridge_configured = False
         bridge_heartbeat_fresh = False
+        fail_closed_reasons: list[str] = []
         warnings = [
             "One-shot Packet 11 harness endpoint is bounded and evidence-first.",
             "This slice does not auto-apply broad scene/prefab mutation.",
             "Placement runtime harness execution is blocked in PR C.",
         ]
 
+        if request.approval_state != "approved":
+            fail_closed_reasons.append("approval_state_not_approved")
+        if request.approval_state == "approved" and not operator_note_present:
+            fail_closed_reasons.append("approval_note_missing")
+        if admission_packet_reference is None:
+            fail_closed_reasons.append("admission_packet_reference_missing")
+            warnings.append(
+                f"Admission packet reference {_PLACEMENT_HARNESS_ADMISSION_PACKET_REF_ENV} is required."
+            )
+        if admission_operator_id is None:
+            fail_closed_reasons.append("admission_operator_id_missing")
+            warnings.append(
+                f"Admission operator identity {_PLACEMENT_HARNESS_ADMISSION_OPERATOR_ID_ENV} is required."
+            )
+        if evidence_bundle_reference is None:
+            fail_closed_reasons.append("evidence_bundle_reference_missing")
+            warnings.append(
+                f"Evidence bundle reference {_PLACEMENT_HARNESS_EVIDENCE_BUNDLE_REF_ENV} is required."
+            )
+        if readback_plan_reference is None:
+            fail_closed_reasons.append("readback_plan_reference_missing")
+            warnings.append(
+                f"Readback plan reference {_PLACEMENT_HARNESS_READBACK_PLAN_REF_ENV} is required."
+            )
+        if revert_statement_contract_key is None:
+            fail_closed_reasons.append("revert_statement_contract_key_missing")
+            warnings.append(
+                f"Revert statement contract key {_PLACEMENT_HARNESS_REVERT_CONTRACT_KEY_ENV} is required."
+            )
+        elif not revert_statement_contract_match:
+            fail_closed_reasons.append("revert_statement_contract_key_mismatch")
+            warnings.append(
+                "Revert statement contract key mismatch for placement harness exact-scope request."
+            )
+        contract_evidence_ready = (
+            admission_packet_reference is not None
+            and admission_operator_id is not None
+            and evidence_bundle_reference is not None
+            and readback_plan_reference is not None
+            and revert_statement_contract_match
+            and (request.approval_state != "approved" or operator_note_present)
+        )
+        if not contract_evidence_ready:
+            fail_closed_reasons.append("contract_evidence_incomplete")
+            warnings.append(
+                "Placement harness contract evidence is incomplete; execution remains blocked."
+            )
+        if not server_approval_evaluation.policy_would_allow_if_mutation_admitted:
+            fail_closed_reasons.append(
+                f"server_approval:{server_approval_evaluation.decision_code}"
+            )
         warnings.append("Client approval fields are treated as intent only and do not authorize execution.")
         warnings.append("No runtime bridge calls are performed by this endpoint in PR C.")
         warnings.append(server_approval_evaluation.reason)
+        fail_closed_reasons.append("placement_harness_execution_not_admitted")
+        fail_closed_reasons = list(dict.fromkeys(fail_closed_reasons))
         return AssetForgeO3DEPlacementHarnessExecuteRecord(
             capability_name="asset_forge.o3de.placement.harness.execute",
             maturity="proof-only",
@@ -2641,13 +2800,22 @@ class AssetForgeService:
             approval_state=request.approval_state,
             server_approval_session_id=request.approval_session_id,
             server_approval_evaluation=server_approval_evaluation,
+            admission_packet_reference=admission_packet_reference,
+            admission_operator_id=admission_operator_id,
+            evidence_bundle_reference=evidence_bundle_reference,
+            readback_plan_reference=readback_plan_reference,
+            revert_statement_contract_key=revert_statement_contract_key,
+            revert_statement_contract_match=revert_statement_contract_match,
+            operator_note_present=operator_note_present,
+            contract_evidence_ready=contract_evidence_ready,
+            fail_closed_reasons=fail_closed_reasons,
             bridge_command_id=None,
             execution_performed=False,
             readback_captured=False,
             read_only=True,
             warnings=warnings,
             safest_next_step=(
-                "Implement server-owned approval/session enforcement before enabling any placement runtime harness execution."
+                "Keep placement harness execution fail-closed; align server-owned contract evidence and keep runtime execution non-admitted."
             ),
             source="asset-forge-o3de-placement-harness-execute",
         )
@@ -2660,7 +2828,32 @@ class AssetForgeService:
         runtime_gate_enabled = False
         bridge_configured = False
         bridge_heartbeat_fresh = False
+        operator_note_present = bool(request.approval_note.strip())
         target_level_relative_path = _normalize_project_relative_path(request.target_level_relative_path)
+        (
+            admission_packet_reference,
+            admission_operator_id,
+            evidence_bundle_reference,
+            readback_plan_reference,
+            revert_statement_contract_key,
+        ) = _resolve_placement_contract_context(
+            admission_packet_ref_env=_PLACEMENT_LIVE_PROOF_ADMISSION_PACKET_REF_ENV,
+            admission_operator_id_env=_PLACEMENT_LIVE_PROOF_ADMISSION_OPERATOR_ID_ENV,
+            evidence_bundle_ref_env=_PLACEMENT_LIVE_PROOF_EVIDENCE_BUNDLE_REF_ENV,
+            readback_plan_ref_env=_PLACEMENT_LIVE_PROOF_READBACK_PLAN_REF_ENV,
+            revert_contract_key_env=_PLACEMENT_LIVE_PROOF_REVERT_CONTRACT_KEY_ENV,
+        )
+        expected_revert_statement_contract_key = _build_placement_live_proof_revert_contract_key(
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            target_level_relative_path=target_level_relative_path,
+            target_entity_name=request.target_entity_name,
+            selected_platform=selected_platform,
+        )
+        revert_statement_contract_match = bool(
+            revert_statement_contract_key
+            and revert_statement_contract_key == expected_revert_statement_contract_key
+        )
         server_approval_evaluation = self._evaluate_server_approval_session(
             approval_session_id=request.approval_session_id,
             expected_capability="asset_forge.o3de.placement.live_proof",
@@ -2680,12 +2873,66 @@ class AssetForgeService:
         ]
         warnings.append(server_approval_evaluation.reason)
         revert_statement = "No mutation was admitted by this proof path; no revert action required."
+        fail_closed_reasons: list[str] = []
+        if request.approval_state != "approved":
+            fail_closed_reasons.append("approval_state_not_approved")
+        if request.approval_state == "approved" and not operator_note_present:
+            fail_closed_reasons.append("approval_note_missing")
+        if admission_packet_reference is None:
+            fail_closed_reasons.append("admission_packet_reference_missing")
+            warnings.append(
+                f"Admission packet reference {_PLACEMENT_LIVE_PROOF_ADMISSION_PACKET_REF_ENV} is required."
+            )
+        if admission_operator_id is None:
+            fail_closed_reasons.append("admission_operator_id_missing")
+            warnings.append(
+                f"Admission operator identity {_PLACEMENT_LIVE_PROOF_ADMISSION_OPERATOR_ID_ENV} is required."
+            )
+        if evidence_bundle_reference is None:
+            fail_closed_reasons.append("evidence_bundle_reference_missing")
+            warnings.append(
+                f"Evidence bundle reference {_PLACEMENT_LIVE_PROOF_EVIDENCE_BUNDLE_REF_ENV} is required."
+            )
+        if readback_plan_reference is None:
+            fail_closed_reasons.append("readback_plan_reference_missing")
+            warnings.append(
+                f"Readback plan reference {_PLACEMENT_LIVE_PROOF_READBACK_PLAN_REF_ENV} is required."
+            )
+        if revert_statement_contract_key is None:
+            fail_closed_reasons.append("revert_statement_contract_key_missing")
+            warnings.append(
+                f"Revert statement contract key {_PLACEMENT_LIVE_PROOF_REVERT_CONTRACT_KEY_ENV} is required."
+            )
+        elif not revert_statement_contract_match:
+            fail_closed_reasons.append("revert_statement_contract_key_mismatch")
+            warnings.append(
+                "Revert statement contract key mismatch for placement live-proof exact-scope request."
+            )
+        contract_evidence_ready = (
+            admission_packet_reference is not None
+            and admission_operator_id is not None
+            and evidence_bundle_reference is not None
+            and readback_plan_reference is not None
+            and revert_statement_contract_match
+            and (request.approval_state != "approved" or operator_note_present)
+        )
+        if not contract_evidence_ready:
+            fail_closed_reasons.append("contract_evidence_incomplete")
+            warnings.append(
+                "Placement live-proof contract evidence is incomplete; execution remains blocked."
+            )
+        if not server_approval_evaluation.policy_would_allow_if_mutation_admitted:
+            fail_closed_reasons.append(
+                f"server_approval:{server_approval_evaluation.decision_code}"
+            )
 
         # Draft-checkpoint hard stop: client-declared approval metadata is never authorization.
         # Keep live-proof runtime execution disabled until server-owned approval enforcement exists.
         warnings.append(
             "Live proof runtime execution remains blocked in this packet because mutation admission is not enabled."
         )
+        fail_closed_reasons.append("placement_live_proof_execution_not_admitted")
+        fail_closed_reasons = list(dict.fromkeys(fail_closed_reasons))
         return AssetForgeO3DEPlacementLiveProofRecord(
             capability_name="asset_forge.o3de.placement.live_proof",
             maturity="proof-only",
@@ -2700,6 +2947,15 @@ class AssetForgeService:
             runtime_gate_enabled=runtime_gate_enabled,
             server_approval_session_id=request.approval_session_id,
             server_approval_evaluation=server_approval_evaluation,
+            admission_packet_reference=admission_packet_reference,
+            admission_operator_id=admission_operator_id,
+            evidence_bundle_reference=evidence_bundle_reference,
+            readback_plan_reference=readback_plan_reference,
+            revert_statement_contract_key=revert_statement_contract_key,
+            revert_statement_contract_match=revert_statement_contract_match,
+            operator_note_present=operator_note_present,
+            contract_evidence_ready=contract_evidence_ready,
+            fail_closed_reasons=fail_closed_reasons,
             execution_performed=False,
             readback_captured=False,
             entity_exists=None,
@@ -2709,7 +2965,7 @@ class AssetForgeService:
             read_only=True,
             warnings=warnings,
             safest_next_step=(
-                "Keep placement live-proof execution blocked in this checkpoint; require server-owned approval/session enforcement before enabling runtime bridge actions."
+                "Keep placement live-proof execution fail-closed; align server-owned contract evidence and keep runtime execution non-admitted."
             ),
             source="asset-forge-o3de-placement-live-proof",
         )
