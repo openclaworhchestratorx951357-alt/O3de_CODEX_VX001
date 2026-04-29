@@ -17,7 +17,7 @@ describe("AppEvidenceTimelineShell", () => {
     expect(screen.getByText("editor.component.property.write.narrow")).toBeInTheDocument();
 
     expect(
-      screen.getByText("Approval/session dashboard shell", { selector: "strong" }),
+      screen.getByText("Workspace status chips shell", { selector: "strong" }),
     ).toBeInTheDocument();
   });
 });

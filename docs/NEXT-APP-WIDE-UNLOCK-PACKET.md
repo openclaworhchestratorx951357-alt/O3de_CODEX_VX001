@@ -1,19 +1,21 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Approval/session dashboard shell (frontend/static-fixture first).
+Workspace status chips shell (frontend/static-fixture first).
 
 ## Why this is next
-- Capability, audit, and evidence timeline shells now exist.
-- Operators still need a dedicated truth surface for approval/session state that
-  reinforces intent-only client fields and server-owned authorization.
-- This improves safety clarity before any additional capability admission work.
+- Capability, audit, evidence timeline, and approval/session shells now exist.
+- Operators still need compact workspace-level truth chips that summarize
+  maturity/risk/session posture across desks without opening each dashboard.
+- This improves day-to-day supervision before any additional capability
+  admission work.
 
 ## Scope
 - frontend-only or docs+frontend shell
-- static fixture first for approval/session lifecycle states
-- explicit labels for intent-only client fields vs server authorization
-- include links/gates to capability and evidence timeline context
+- static fixture first for cross-workspace status and maturity chips
+- explicit labels for `demo`, `plan-only`, `dry-run only`, `proof-only`,
+  `admitted-real`, and `blocked`
+- include links/gates to capability, evidence, and approval/session context
 - no backend execution admission changes
 
 ## Safety constraints
@@ -24,13 +26,13 @@ Approval/session dashboard shell (frontend/static-fixture first).
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- approval/session shell renders bounded lifecycle states with truthful labels
-- UI explicitly separates client intent from server authorization
+- workspace shell renders truthful status chips without claiming execution
+- UI links chip labels to existing dashboard evidence context
 - no mutation/execution admission changes
 - frontend tests/build/lint pass for touched files
 
 ## Alternative considered
-Workspace status chips shell.
+Validation intake endpoint-candidate admission design.
 
-This remains valid, but approval/session clarity is recommended first to keep
-all upcoming packet decisions fail-closed and auditable.
+This remains valid, but status chips are recommended first to reduce operator
+ambiguity before any endpoint admission packet is considered.

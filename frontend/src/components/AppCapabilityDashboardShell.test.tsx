@@ -22,7 +22,7 @@ describe("AppCapabilityDashboardShell", () => {
     expect(screen.getByText("codex.flow.trigger.productized")).toBeInTheDocument();
 
     expect(
-      screen.getByText("Approval/session dashboard shell", { selector: "strong" }),
+      screen.getByText("Workspace status chips shell", { selector: "strong" }),
     ).toBeInTheDocument();
   });
 });

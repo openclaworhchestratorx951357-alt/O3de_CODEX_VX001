@@ -37,5 +37,5 @@ This packet is a visibility shell only. It does not unlock execution.
 
 ## Recommended next packet
 
-Approval/session dashboard shell (frontend/static-fixture first) with explicit
-intent-only labels and no backend authorization broadening.
+Workspace status chips shell (frontend/static-fixture first) with truthful
+maturity tags and no backend authorization broadening.

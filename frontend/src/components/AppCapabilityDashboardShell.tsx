@@ -111,7 +111,8 @@ export default function AppCapabilityDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Approval/session dashboard shell</strong> (frontend/static-fixture first, intent-only labels, no execution admission changes).
+        Recommended next packet: <strong>Workspace status chips shell</strong> (frontend/static-fixture first,
+        truthful maturity tags, no execution admission changes).
       </p>
     </section>
   );
