@@ -131,11 +131,11 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
   {
     domain: "GUI",
     capability: "audit.review.dashboard",
-    currentMaturity: "missing",
-    desiredNextMaturity: "GUI/demo only",
+    currentMaturity: "GUI/demo only",
+    desiredNextMaturity: "reviewable",
     risk: "Medium",
     requiredGate: "truth-label contract + audit review",
-    recommendedNextPacket: "Audit dashboard shell",
+    recommendedNextPacket: "Audit dashboard truth refresh + validation linkage",
   },
   {
     domain: "Automation",

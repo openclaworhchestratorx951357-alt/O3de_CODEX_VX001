@@ -22,7 +22,7 @@ describe("AppCapabilityDashboardShell", () => {
     expect(screen.getByText("codex.flow.trigger.productized")).toBeInTheDocument();
 
     expect(
-      screen.getByText("Editor Authoring Review/Restore Lane baseline audit", { selector: "strong" }),
+      screen.getByText("Validation report intake baseline audit", { selector: "strong" }),
     ).toBeInTheDocument();
   });
 });

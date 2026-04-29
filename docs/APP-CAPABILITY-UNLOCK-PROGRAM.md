@@ -16,6 +16,7 @@ The following patterns are now established:
 - app-wide capability dashboard shell (static fixture first)
 - editor authoring review/restore baseline audit
 - project/config readiness baseline audit
+- audit review dashboard shell (static fixture first)
 
 ## App-wide domains
 
