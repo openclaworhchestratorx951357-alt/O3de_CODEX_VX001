@@ -63,4 +63,6 @@ Validation intake dispatch-admission design packet (docs+tests planning only):
 Design packet status:
 
 - completed in `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-DESIGN.md`
-- next safe gate is dispatch-admission readiness audit
+- readiness audit completed in
+  `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-READINESS-AUDIT.md`
+- next safe gate is dispatch-admission implementation touchpoint packet
