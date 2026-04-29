@@ -112,6 +112,7 @@ This design keeps all of the following blocked:
 
 ## Next safe packet
 
-Validation intake endpoint-candidate read-only admission decision refresh
-(consume readiness-checklist evidence and record whether read-only wording
-should remain withheld or be updated).
+Validation intake endpoint-candidate read-only operator examples + refusal
+wording packet
+(add safe/refused examples that preserve endpoint-candidate vs
+dispatch-unadmitted boundaries).
