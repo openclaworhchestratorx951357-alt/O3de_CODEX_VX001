@@ -73,8 +73,8 @@ This packet does not admit:
 
 ## Next safe packet
 
-Validation intake endpoint-candidate read-only admission readiness checklist:
+Validation intake endpoint-candidate read-only admission decision refresh:
 
-- keep gate-state audit/review semantics and exact contract wording as baseline
-- map admission gates to concrete tests/evidence
-- keep admission withheld while any evidence gate remains unresolved
+- consume readiness-checklist evidence as decision input
+- preserve exact contract wording unless an explicit decision updates it
+- keep dispatch unadmitted and all non-executing boundaries intact
