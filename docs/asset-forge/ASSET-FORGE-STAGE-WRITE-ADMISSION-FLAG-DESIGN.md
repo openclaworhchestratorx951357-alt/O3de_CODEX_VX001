@@ -3,6 +3,13 @@
 ## Status
 Design-only. No mutation admitted by this document.
 
+Implementation status (current):
+- server-owned admission-flag metadata plumbing is implemented with default-off fail-closed parsing
+- malformed flag values fail closed
+- client override attempts are ignored
+- stage-write execution is still blocked
+- this is not an admitted execution path
+
 ## Intent
 Define the explicit server-owned admission flag required before any future proof-only stage-write execution packet can even be considered for `asset_forge.o3de.stage_write.v1`.
 

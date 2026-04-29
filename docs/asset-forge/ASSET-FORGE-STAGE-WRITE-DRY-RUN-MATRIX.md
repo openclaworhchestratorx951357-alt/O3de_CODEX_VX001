@@ -11,6 +11,9 @@ The stage-write endpoint now reports these dry-run-only fields:
 - `corridor_name`
 - `dry_run_only`
 - `execution_admitted`
+- `admission_flag_name`
+- `admission_flag_state`
+- `admission_flag_enabled`
 - `write_executed`
 - `project_write_admitted`
 - `normalized_destination_path`
@@ -33,6 +36,9 @@ The stage-write endpoint now reports these dry-run-only fields:
 - revoked approval session fails closed
 - wrong operation scope fails closed
 - fingerprint mismatch fails closed
+- admission flag missing/off fails closed by default
+- malformed admission flag fails closed
+- admission flag true still stays blocked until proof-only execution is explicitly implemented
 - path traversal fails closed
 - destination outside allowlisted staging root fails closed
 - overwrite attempt with `overwrite_policy=deny` fails closed
