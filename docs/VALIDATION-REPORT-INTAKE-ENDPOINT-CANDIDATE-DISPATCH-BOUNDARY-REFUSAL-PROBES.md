@@ -62,8 +62,9 @@ execution or change runtime behavior.
 
 ## Recommended Next Packet
 
-Validation intake endpoint-candidate post-probe wording checkpoint:
+Validation intake endpoint-candidate wording maintenance + status snapshot
+refresh:
 
-- consolidate final public wording after these dispatch-boundary probes
-- record whether any wording changes are required across matrix/decision docs
+- keep consolidated wording stable across packet docs
+- refresh status-facing references for the completed packet chain
 - keep runtime behavior unchanged

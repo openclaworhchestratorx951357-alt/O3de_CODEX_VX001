@@ -1,7 +1,7 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation intake endpoint-candidate post-probe wording checkpoint.
+Validation intake endpoint-candidate wording maintenance + status snapshot refresh.
 
 ## Why this is next
 - Capability, audit, evidence timeline, approval/session, and workspace-status
@@ -9,15 +9,15 @@ Validation intake endpoint-candidate post-probe wording checkpoint.
 - Validation intake endpoint-candidate dry-run implementation, audit/review
   hardening, admission-decision posture, exact public-admission contract,
   readiness checklist, decision-refresh posture, operator examples/refusal
-  wording, finalization decision posture, and dispatch-boundary refusal probes
-  are now documented.
-- The next safest move is a post-probe wording checkpoint that consolidates
-  final public wording after probe outcomes.
+  wording, finalization decision posture, dispatch-boundary refusal probes, and
+  post-probe wording checkpoint are now documented.
+- The next safest move is a maintenance/status packet that keeps wording stable
+  and refreshes project-facing status references to this completed chain.
 
 ## Scope
-- docs checkpoint packet (no runtime admission broadening)
-- consolidate final public wording across decision/matrix/next-packet docs
-- explicitly record whether any wording adjustments are required post-probe
+- docs maintenance packet (no runtime admission broadening)
+- keep consolidated wording aligned across packet docs
+- refresh status-facing references for current validation-intake posture
 - preserve dispatch-unadmitted and no-mutation/no-execution boundaries
 - no execution or mutation admission changes
 
@@ -29,7 +29,7 @@ Validation intake endpoint-candidate post-probe wording checkpoint.
 - no client approval fields treated as authorization
 
 ## Acceptance checks
-- post-probe wording is explicit and consistent across packet docs
+- wording remains explicit and consistent across packet docs
 - matrix/readiness wording remains aligned with code/test truth
 - dispatch path for `validation.report.intake` remains unadmitted
 - no mutation/execution admission changes
@@ -38,5 +38,5 @@ Validation intake endpoint-candidate post-probe wording checkpoint.
 ## Alternative considered
 Flow Trigger Suite productization plan.
 
-This remains valid, but post-probe wording checkpoint should land first so
-workflow automation planning inherits one consolidated boundary posture.
+This remains valid, but wording maintenance/status refresh should land first so
+future slices inherit the consolidated boundary posture cleanly.
