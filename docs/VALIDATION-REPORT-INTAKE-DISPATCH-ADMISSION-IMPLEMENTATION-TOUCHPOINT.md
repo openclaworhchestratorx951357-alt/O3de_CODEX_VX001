@@ -61,4 +61,6 @@ Decision checkpoint status:
 
 - completed in
   `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-DECISION-CHECKPOINT.md`
-- next safe gate is dispatch-admission catalog registration design
+- catalog registration design completed in
+  `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-CATALOG-REGISTRATION-DESIGN.md`
+- next safe gate is catalog registration readiness audit
