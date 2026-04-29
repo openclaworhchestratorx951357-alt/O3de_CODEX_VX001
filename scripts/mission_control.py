@@ -1850,10 +1850,72 @@ def command_board(args: argparse.Namespace, context: Context) -> dict[str, Any]:
     return {"status": "ok"}
 
 
+def command_dry_run(args: argparse.Namespace, context: Context) -> dict[str, Any]:
+    command = args.command
+    payload: dict[str, Any] = {
+        "status": "dry_run",
+        "command": command,
+        "note": "No filesystem, process, git worktree, or database mutations were applied.",
+    }
+
+    if command == "create-lane":
+        worker_id = slugify(args.worker_id)
+        branch_name = args.branch_name or f"codex/worker/{worker_id}"
+        worktree_path = (
+            Path(args.worktree_path)
+            if args.worktree_path
+            else context.repo_root.parent / f"{context.repo_root.name}-{worker_id}"
+        )
+        payload["preview"] = {
+            "worker_id": worker_id,
+            "branch_name": branch_name,
+            "worktree_path": str(worktree_path.resolve()),
+            "base_branch": args.base_branch,
+            "bootstrap": not bool(args.no_bootstrap),
+        }
+        payload["would_run"] = [
+            ["git", "worktree", "add", str(worktree_path), "-b", branch_name, args.base_branch],
+            [
+                "powershell",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str((worktree_path / "scripts" / "dev.ps1")),
+                "bootstrap-worktree",
+            ]
+            if not args.no_bootstrap
+            else None,
+        ]
+        payload["would_run"] = [entry for entry in payload["would_run"] if entry is not None]
+        return payload
+
+    if command == "launch-terminal":
+        payload["preview"] = {
+            "worker_id": args.worker_id,
+            "label": args.label,
+            "task_id": args.task_id,
+            "cwd": args.cwd,
+            "command_json": args.command_json,
+        }
+        return payload
+
+    payload["preview"] = {
+        key: value
+        for key, value in vars(args).items()
+        if key not in {"json", "state_dir", "dry_run"} and value not in (None, False, [])
+    }
+    return payload
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Shared worktree coordination for Codex O3DE threads.")
     parser.add_argument("--state-dir", help="Override the shared mission-control state directory.")
     parser.add_argument("--json", action="store_true", help="Print structured JSON instead of the text board.")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview mutating commands without changing worktrees, terminals, or mission-control state.",
+    )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -2003,6 +2065,27 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def dispatch(args: argparse.Namespace, context: Context) -> dict[str, Any]:
+    mutating_command = (
+        args.command in {
+            "sync-worker",
+            "create-lane",
+            "add-task",
+            "claim-task",
+            "release-task",
+            "complete-task",
+            "supersede-task",
+            "heartbeat",
+            "wait-task",
+            "notify-worker",
+            "launch-terminal",
+            "stop-terminal",
+        }
+        or (args.command == "next-task" and (args.claim or args.wait))
+        or (args.command == "notifications" and args.mark_read)
+    )
+    if args.dry_run and mutating_command:
+        return command_dry_run(args, context)
+
     handlers = {
         "init": command_init,
         "board": command_board,
