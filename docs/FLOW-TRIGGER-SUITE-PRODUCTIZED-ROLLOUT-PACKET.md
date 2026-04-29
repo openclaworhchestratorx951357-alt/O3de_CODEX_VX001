@@ -98,3 +98,8 @@ Flow Trigger Suite productized admission decision packet:
 - decide whether profile-governed rollout should be admitted as official local
   helper capability
 - record exact admitted/non-admitted boundaries and residual risks
+
+Productized admission decision status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-PRODUCTIZED-ADMISSION-DECISION.md`
+- next safe gate is Flow Trigger Suite post-admission review packet
