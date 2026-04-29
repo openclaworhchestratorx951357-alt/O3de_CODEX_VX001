@@ -69,3 +69,9 @@ design packet:
 - define execution-details/artifact-metadata evidence contract for any future
   admitted path
 - keep runtime behavior unchanged in this design gate
+
+Post-registration admission-contract design status:
+
+- completed in
+  `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-POST-REGISTRATION-ADMISSION-CONTRACT-DESIGN.md`
+- next safe gate is post-registration admission readiness audit
