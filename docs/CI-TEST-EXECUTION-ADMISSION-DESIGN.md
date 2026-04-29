@@ -71,5 +71,10 @@ When any gate fails:
 
 ## Recommended Next Packet
 
-Flow Trigger Suite productization plan packet (docs/spec), while CI/test
-execution remains design-gated.
+Completed by:
+
+- `docs/FLOW-TRIGGER-SUITE-PRODUCTIZATION-PLAN.md`
+
+Next after productization plan:
+
+- Flow Trigger Suite audit-gate checklist packet.

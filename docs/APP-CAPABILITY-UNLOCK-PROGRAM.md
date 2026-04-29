@@ -31,6 +31,7 @@ The following patterns are now established:
 - validation report intake endpoint-candidate release-readiness long-hold decision
 - TIAF preflight baseline audit
 - CI/test execution admission design
+- Flow Trigger Suite productization plan
 
 ## App-wide domains
 
