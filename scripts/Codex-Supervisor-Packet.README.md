@@ -5,6 +5,8 @@ with guardrails to prevent collisions with other running triggers.
 
 ## Files
 - `scripts\Invoke-Codex-Supervisor-Packet.ps1`
+- `scripts\Invoke-Codex-Supervisor-Rollout.ps1`
+- `scripts\Codex-Supervisor-Rollout-Profiles.json`
 - `scripts\Send-Codex-Instruction.ahk`
 - `scripts\codex_supervisor_packet.txt`
 - `scripts\Install-Codex-Supervisor-Packet-Launcher.ps1`
@@ -38,7 +40,9 @@ powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Install-Codex-Supervi
 
 This creates:
 - `scripts\Run-Codex-Supervisor-Packet.cmd`
+- `scripts\Run-Codex-Supervisor-Rollout.cmd`
 - optional desktop shortcut `Codex Supervisor Packet.lnk`
+- optional desktop shortcut `Codex Supervisor Rollout.lnk`
 
 ## Run
 ```powershell
@@ -67,4 +71,17 @@ Run deterministic local no-dispatch validation:
 
 ```powershell
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Packet.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Rollout.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
 ```
+
+## Productized rollout controls
+Use the rollout wrapper for bounded profiles:
+
+```powershell
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Invoke-Codex-Supervisor-Rollout.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project" -Profile standard -OperatorAcknowledged
+```
+
+Profiles are defined in `scripts\Codex-Supervisor-Rollout-Profiles.json`:
+- `standard`: medium-risk, requires operator acknowledgment
+- `docs_low_risk`: low-risk docs profile
+- `operator_decision`: high-risk operator-driven profile with explicit locked-scope approval support
