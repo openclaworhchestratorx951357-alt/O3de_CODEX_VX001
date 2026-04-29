@@ -56,5 +56,10 @@ Any future narrow admission change must provide all of:
 
 ## Recommended Next Packet
 
-TIAF preflight baseline audit packet (validation domain), to advance a separate
-high-leverage validation lane without broadening the intake endpoint boundary.
+Completed by:
+
+- `docs/TIAF-PREFLIGHT-BASELINE-AUDIT.md`
+
+Next after TIAF baseline:
+
+- CI/test execution admission design packet.
