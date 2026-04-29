@@ -131,3 +131,8 @@ Flow Trigger Suite threat-model design packet:
 - map threat mitigations to the checklist gates
 - keep automation local-only and fail-closed until mitigation coverage is
   design-complete
+
+Threat-model design status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-THREAT-MODEL-DESIGN.md`
+- next safe gate is Flow Trigger Suite implementation touchpoint packet
