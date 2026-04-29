@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tools/validation.report.intake.execution-details.schema.json",
+  "title": "validation.report.intake execution details",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "dispatch_candidate",
+    "dispatch_admitted",
+    "execution_admitted",
+    "write_executed",
+    "project_write_admitted",
+    "write_status"
+  ],
+  "properties": {
+    "dispatch_candidate": { "type": "boolean" },
+    "dispatch_registered": { "type": "boolean" },
+    "dispatch_admitted": { "type": "boolean" },
+    "dry_run_only": { "type": "boolean" },
+    "execution_admitted": { "type": "boolean" },
+    "write_executed": { "type": "boolean" },
+    "project_write_admitted": { "type": "boolean" },
+    "write_status": { "type": "string", "minLength": 1 },
+    "review_code": { "type": "string", "minLength": 1 },
+    "review_status": { "type": "string", "minLength": 1 },
+    "recommended_next_step": { "type": "string", "minLength": 1 },
+    "admission_flag_name": { "type": "string", "minLength": 1 },
+    "admission_flag_state": { "type": "string", "minLength": 1 },
+    "admission_flag_enabled": { "type": "boolean" },
+    "parser_acceptance": { "type": "boolean" },
+    "parser_fail_closed_reasons": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "payload_size_bytes": { "type": ["integer", "null"], "minimum": 0 },
+    "schema": { "type": ["string", "null"], "minLength": 1 },
+    "capability_name": { "type": ["string", "null"], "minLength": 1 },
+    "normalized_artifact_refs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}
