@@ -1,6 +1,6 @@
 # Current Status
 
-Status date: 2026-04-27
+Status date: 2026-04-29
 
 This file is a human and agent handoff snapshot. It summarizes the latest
 repository truth without replacing code, tests, runtime proof artifacts, or the
@@ -21,8 +21,21 @@ Use this order when status sources disagree:
 At the time this status snapshot was updated, `main` is:
 
 ```text
-a12a3a79935197140600753eb20fbd487e679491
+6c11e218af7fc88f7cea8f0fac7fabcebfe8cd54
 ```
+
+Validation intake endpoint-candidate chain update:
+
+- The `validation.report.intake` stream now has a completed bounded docs/test
+  chain covering endpoint gate-state audit/review semantics, admission
+  decision posture, exact public-admission contract wording, read-only
+  readiness checklist, decision refresh, operator safe/refused examples,
+  wording finalization, dispatch-boundary refusal probes, and post-probe
+  wording checkpoint.
+- Current truth remains conservative: server-gated dry-run endpoint candidate,
+  dispatch unadmitted, execution/mutation unadmitted.
+- This status refresh packet records that consolidated posture for future
+  thread handoff stability.
 
 The latest runtime/capability movement is the Phase 9
 `asset.source.inspect` project-general proof path, structured schema hardening,
