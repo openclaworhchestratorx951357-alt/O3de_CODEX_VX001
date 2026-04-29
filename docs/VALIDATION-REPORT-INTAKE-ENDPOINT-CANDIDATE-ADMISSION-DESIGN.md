@@ -112,6 +112,7 @@ This design keeps all of the following blocked:
 
 ## Next safe packet
 
-Validation intake endpoint-candidate admission audit/review packet
-(verify gate-state semantics, refusal matrix, and operator-facing review/status
-truth while preserving default-off and no execution/mutation admission).
+Validation intake endpoint-candidate exact public-admission contract
+(define exact public corridor wording, non-goals, and evidence gates required
+before any read-only admission update while preserving default-off and no
+execution/mutation admission).
