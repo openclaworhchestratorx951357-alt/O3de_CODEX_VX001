@@ -218,6 +218,9 @@ rounding up capability claims.
 - `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET.md`
 - `docs/asset-forge/ASSET-FORGE-PR-138-HANDOFF.md`
 - `docs/asset-forge/ASSET-FORGE-MUTATION-ADMISSION-DESIGN.md`
+- `docs/asset-forge/ASSET-FORGE-AUDIT-AGENT.md`
+- `docs/asset-forge/ASSET-FORGE-POST-145-SAFETY-AUDIT.md`
+- `agents/asset-forge-audit-agent/AGENTS.md`
 - `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`
 - `docs/PRODUCTION-BUILD-ROADMAP.md`
 - `docs/PHASE-6B-REMOTE-EXECUTOR-CONTRACT.md`

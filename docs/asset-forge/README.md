@@ -28,6 +28,9 @@ Purpose: restore Asset Forge as a Meshy-like 3D asset creation studio with Blend
 20. `ASSET-FORGE-PLACEMENT-PROOF-CONTRACT-GATES.md`
 21. `ASSET-FORGE-PLACEMENT-HARNESS-LIVE-PROOF-CONTRACT-GATES.md`
 22. `ASSET-FORGE-PLACEMENT-RUNTIME-ADMISSION-DECISION-DESIGN.md`
+23. `ASSET-FORGE-AUDIT-AGENT.md`
+24. `ASSET-FORGE-POST-145-SAFETY-AUDIT.md`
+25. `../../agents/asset-forge-audit-agent/AGENTS.md`
 
 ## Core correction
 
