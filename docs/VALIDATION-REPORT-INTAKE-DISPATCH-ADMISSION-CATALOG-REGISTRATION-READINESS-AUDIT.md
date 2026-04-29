@@ -61,3 +61,11 @@ Validation intake dispatch-admission catalog registration implementation touchpo
 - add validation catalog entry and resulting policy exposure
 - keep dispatch default-off + fail-closed until explicit gate-on conditions
 - add `test_dispatcher.py` gate-state coverage
+
+Implementation + decision status:
+
+- implementation touchpoint completed on
+  `codex/validation-intake-endpoint-candidate-admission-decision-surface-matrix-r62`
+- decision checkpoint completed in
+  `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-CATALOG-REGISTRATION-DECISION-CHECKPOINT.md`
+- next safe gate is post-registration admission contract design
