@@ -1,6 +1,6 @@
 # Validation Report Intake Dispatch-Admission Post-Registration Admission Readiness Audit
 
-Status: readiness audit complete (no runtime admission change)
+Status: readiness audit complete (historical; superseded by implementation touchpoint)
 
 ## Purpose
 
@@ -67,3 +67,8 @@ touchpoint packet:
   envelopes
 - add admitted-path execution-details/artifact-metadata persistence coverage
 - add explicit revert/rollback checklist validation
+
+Implementation status update:
+
+- completed in
+  `docs/VALIDATION-REPORT-INTAKE-DISPATCH-ADMISSION-POST-REGISTRATION-ADMISSION-IMPLEMENTATION-TOUCHPOINT.md`
