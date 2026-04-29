@@ -423,6 +423,14 @@ class AssetForgeO3DEPlacementProofRecord(BaseModel):
     stage_write_readback_status: Literal["not_run", "blocked", "failed", "succeeded"]
     stage_write_evidence_ready: bool
     stage_write_readback_ready: bool
+    admission_packet_reference: str | None = None
+    admission_operator_id: str | None = None
+    evidence_bundle_reference: str | None = None
+    readback_plan_reference: str | None = None
+    revert_statement_contract_key: str | None = None
+    revert_statement_contract_match: bool
+    operator_note_present: bool
+    contract_evidence_ready: bool
     fail_closed_reasons: list[str] = Field(default_factory=list)
     placement_proof_policy: dict[str, object] = Field(default_factory=dict)
     placement_execution_status: Literal["blocked"]

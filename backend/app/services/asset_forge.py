@@ -63,6 +63,11 @@ _STAGE_WRITE_ADMISSION_FLAG_ENV = "ASSET_FORGE_STAGE_WRITE_V1_PROOF_ONLY_ADMISSI
 _PLACEMENT_PROOF_CORRIDOR_NAME = "asset_forge.o3de.placement.proof.v1"
 _PLACEMENT_PROOF_ADMISSION_FLAG_NAME = "asset_forge.o3de.placement.proof.v1.admission_enabled"
 _PLACEMENT_PROOF_ADMISSION_FLAG_ENV = "ASSET_FORGE_PLACEMENT_PROOF_V1_ADMISSION_ENABLED"
+_PLACEMENT_PROOF_ADMISSION_PACKET_REF_ENV = "ASSET_FORGE_PLACEMENT_PROOF_V1_ADMISSION_PACKET_REF"
+_PLACEMENT_PROOF_ADMISSION_OPERATOR_ID_ENV = "ASSET_FORGE_PLACEMENT_PROOF_V1_ADMISSION_OPERATOR_ID"
+_PLACEMENT_PROOF_EVIDENCE_BUNDLE_REF_ENV = "ASSET_FORGE_PLACEMENT_PROOF_V1_EVIDENCE_BUNDLE_REF"
+_PLACEMENT_PROOF_READBACK_PLAN_REF_ENV = "ASSET_FORGE_PLACEMENT_PROOF_V1_READBACK_PLAN_REF"
+_PLACEMENT_PROOF_REVERT_CONTRACT_KEY_ENV = "ASSET_FORGE_PLACEMENT_PROOF_V1_REVERT_CONTRACT_KEY"
 _STAGE_WRITE_ADMISSION_PACKET_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_ADMISSION_PACKET_REF"
 _STAGE_WRITE_ADMISSION_OPERATOR_ID_ENV = "ASSET_FORGE_STAGE_WRITE_V1_ADMISSION_OPERATOR_ID"
 _STAGE_WRITE_EVIDENCE_BUNDLE_REF_ENV = "ASSET_FORGE_STAGE_WRITE_V1_EVIDENCE_BUNDLE_REF"
@@ -248,6 +253,50 @@ def _resolve_stage_write_proof_contract_context() -> tuple[str | None, str | Non
         revert_plan_reference,
         allowed_paths,
     )
+
+
+def _resolve_placement_proof_contract_context() -> tuple[str | None, str | None, str | None, str | None, str | None]:
+    admission_packet_reference = os.environ.get(_PLACEMENT_PROOF_ADMISSION_PACKET_REF_ENV, "").strip() or None
+    admission_operator_id = os.environ.get(_PLACEMENT_PROOF_ADMISSION_OPERATOR_ID_ENV, "").strip() or None
+    evidence_bundle_reference = os.environ.get(_PLACEMENT_PROOF_EVIDENCE_BUNDLE_REF_ENV, "").strip() or None
+    readback_plan_reference = os.environ.get(_PLACEMENT_PROOF_READBACK_PLAN_REF_ENV, "").strip() or None
+    revert_statement_contract_key = os.environ.get(_PLACEMENT_PROOF_REVERT_CONTRACT_KEY_ENV, "").strip() or None
+    return (
+        admission_packet_reference,
+        admission_operator_id,
+        evidence_bundle_reference,
+        readback_plan_reference,
+        revert_statement_contract_key,
+    )
+
+
+def _build_placement_proof_revert_contract_key(
+    *,
+    candidate_id: str,
+    candidate_label: str,
+    staged_source_relative_path: str,
+    target_level_relative_path: str,
+    target_entity_name: str,
+    target_component: str,
+    stage_write_corridor_name: str,
+    stage_write_evidence_reference: str,
+    stage_write_readback_reference: str,
+) -> str:
+    payload = {
+        "schema": "asset_forge.placement_proof.revert_contract.v1",
+        "corridor_name": _PLACEMENT_PROOF_CORRIDOR_NAME,
+        "candidate_id": candidate_id.strip(),
+        "candidate_label": candidate_label.strip(),
+        "staged_source_relative_path": _normalize_project_relative_path(staged_source_relative_path),
+        "target_level_relative_path": _normalize_project_relative_path(target_level_relative_path),
+        "target_entity_name": target_entity_name.strip(),
+        "target_component": target_component.strip(),
+        "stage_write_corridor_name": stage_write_corridor_name.strip(),
+        "stage_write_evidence_reference": stage_write_evidence_reference.strip(),
+        "stage_write_readback_reference": stage_write_readback_reference.strip(),
+    }
+    serialized = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return sha256(serialized).hexdigest()
 
 
 def _planned_stage_write_manifest_payload(
@@ -2185,6 +2234,30 @@ class AssetForgeService:
         stage_write_readback_ready = (
             bool(stage_write_readback_reference) and stage_write_readback_status == "succeeded"
         )
+        (
+            admission_packet_reference,
+            admission_operator_id,
+            evidence_bundle_reference,
+            readback_plan_reference,
+            revert_statement_contract_key,
+        ) = _resolve_placement_proof_contract_context()
+        operator_note_present = bool(request.approval_note.strip())
+        expected_revert_statement_contract_key = _build_placement_proof_revert_contract_key(
+            candidate_id=request.candidate_id,
+            candidate_label=request.candidate_label,
+            staged_source_relative_path=staged_source_relative_path,
+            target_level_relative_path=target_level_relative_path,
+            target_entity_name=request.target_entity_name,
+            target_component=target_component,
+            stage_write_corridor_name=requested_stage_write_corridor_name,
+            stage_write_evidence_reference=stage_write_evidence_reference,
+            stage_write_readback_reference=stage_write_readback_reference,
+        )
+        revert_statement_contract_match = bool(
+            revert_statement_contract_key
+            and revert_statement_contract_key == expected_revert_statement_contract_key
+        )
+        contract_evidence_ready = False
         staged_source_allowlisted = staged_source_relative_path.lower().startswith(
             _ALLOWED_STAGE_ROOT_PREFIX.lower()
         )
@@ -2213,6 +2286,49 @@ class AssetForgeService:
             warnings.append(
                 "Admission flag is on, but this packet does not admit placement runtime execution."
             )
+            if admission_packet_reference is None:
+                fail_closed_reasons.append("admission_packet_reference_missing")
+                warnings.append(
+                    f"Admission packet reference {_PLACEMENT_PROOF_ADMISSION_PACKET_REF_ENV} is required when the admission flag is on."
+                )
+            if admission_operator_id is None:
+                fail_closed_reasons.append("admission_operator_id_missing")
+                warnings.append(
+                    f"Admission operator identity {_PLACEMENT_PROOF_ADMISSION_OPERATOR_ID_ENV} is required when the admission flag is on."
+                )
+            if evidence_bundle_reference is None:
+                fail_closed_reasons.append("evidence_bundle_reference_missing")
+                warnings.append(
+                    f"Evidence bundle reference {_PLACEMENT_PROOF_EVIDENCE_BUNDLE_REF_ENV} is required when the admission flag is on."
+                )
+            if readback_plan_reference is None:
+                fail_closed_reasons.append("readback_plan_reference_missing")
+                warnings.append(
+                    f"Readback plan reference {_PLACEMENT_PROOF_READBACK_PLAN_REF_ENV} is required when the admission flag is on."
+                )
+            if revert_statement_contract_key is None:
+                fail_closed_reasons.append("revert_statement_contract_key_missing")
+                warnings.append(
+                    f"Revert statement contract key {_PLACEMENT_PROOF_REVERT_CONTRACT_KEY_ENV} is required when the admission flag is on."
+                )
+            elif not revert_statement_contract_match:
+                fail_closed_reasons.append("revert_statement_contract_key_mismatch")
+                warnings.append(
+                    "Revert statement contract key did not match the expected exact-scope placement-proof request contract."
+                )
+            contract_evidence_ready = (
+                admission_packet_reference is not None
+                and admission_operator_id is not None
+                and evidence_bundle_reference is not None
+                and readback_plan_reference is not None
+                and revert_statement_contract_match
+                and operator_note_present
+            )
+            if not contract_evidence_ready:
+                fail_closed_reasons.append("contract_evidence_incomplete")
+                warnings.append(
+                    "Placement proof contract evidence is incomplete; execution remains blocked and fail-closed."
+                )
         if requested_stage_write_corridor_name != _STAGE_WRITE_CORRIDOR_NAME:
             fail_closed_reasons.append("stage_write_corridor_mismatch")
             warnings.append(
@@ -2257,6 +2373,12 @@ class AssetForgeService:
             "allowed_stage_prefix": _ALLOWED_STAGE_ROOT_PREFIX,
             "allowed_level_prefix": "Levels/",
             "allowed_level_suffix": ".prefab",
+            "required_admission_packet_ref_env": _PLACEMENT_PROOF_ADMISSION_PACKET_REF_ENV,
+            "required_admission_operator_id_env": _PLACEMENT_PROOF_ADMISSION_OPERATOR_ID_ENV,
+            "required_evidence_bundle_ref_env": _PLACEMENT_PROOF_EVIDENCE_BUNDLE_REF_ENV,
+            "required_readback_plan_ref_env": _PLACEMENT_PROOF_READBACK_PLAN_REF_ENV,
+            "required_revert_contract_key_env": _PLACEMENT_PROOF_REVERT_CONTRACT_KEY_ENV,
+            "required_revert_contract_key": expected_revert_statement_contract_key,
         }
 
         def _build_blocked_record(safest_next_step: str) -> AssetForgeO3DEPlacementProofRecord:
@@ -2287,6 +2409,14 @@ class AssetForgeService:
                 stage_write_readback_status=stage_write_readback_status,
                 stage_write_evidence_ready=stage_write_evidence_ready,
                 stage_write_readback_ready=stage_write_readback_ready,
+                admission_packet_reference=admission_packet_reference,
+                admission_operator_id=admission_operator_id,
+                evidence_bundle_reference=evidence_bundle_reference,
+                readback_plan_reference=readback_plan_reference,
+                revert_statement_contract_key=revert_statement_contract_key,
+                revert_statement_contract_match=revert_statement_contract_match,
+                operator_note_present=operator_note_present,
+                contract_evidence_ready=contract_evidence_ready,
                 fail_closed_reasons=fail_closed_reasons,
                 placement_proof_policy=placement_proof_policy,
                 placement_execution_status="blocked",
@@ -2304,7 +2434,7 @@ class AssetForgeService:
                 "Keep this endpoint blocked; do not treat client approval fields as authorization."
             )
 
-        if not request.approval_note.strip():
+        if not operator_note_present:
             fail_closed_reasons.append("approval_note_missing")
             warnings.append("Approval note is required when approval_state is approved.")
             return _build_blocked_record(

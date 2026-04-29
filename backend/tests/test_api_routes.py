@@ -76,6 +76,42 @@ def _stage_write_expected_manifest_hash(
     ).hexdigest()
 
 
+def _placement_expected_revert_contract_key(
+    *,
+    candidate_id: str,
+    candidate_label: str,
+    staged_source_relative_path: str,
+    target_level_relative_path: str,
+    target_entity_name: str,
+    target_component: str,
+    stage_write_corridor_name: str,
+    stage_write_evidence_reference: str,
+    stage_write_readback_reference: str,
+) -> str:
+    staged_source_relative_path = staged_source_relative_path.strip().replace("\\", "/").lstrip("/")
+    target_level_relative_path = target_level_relative_path.strip().replace("\\", "/").lstrip("/")
+    while "//" in staged_source_relative_path:
+        staged_source_relative_path = staged_source_relative_path.replace("//", "/")
+    while "//" in target_level_relative_path:
+        target_level_relative_path = target_level_relative_path.replace("//", "/")
+    payload = {
+        "schema": "asset_forge.placement_proof.revert_contract.v1",
+        "corridor_name": "asset_forge.o3de.placement.proof.v1",
+        "candidate_id": candidate_id.strip(),
+        "candidate_label": candidate_label.strip(),
+        "staged_source_relative_path": staged_source_relative_path,
+        "target_level_relative_path": target_level_relative_path,
+        "target_entity_name": target_entity_name.strip(),
+        "target_component": target_component.strip(),
+        "stage_write_corridor_name": stage_write_corridor_name.strip(),
+        "stage_write_evidence_reference": stage_write_evidence_reference.strip(),
+        "stage_write_readback_reference": stage_write_readback_reference.strip(),
+    }
+    return sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
 def _assert_stage_write_dry_run_fields(payload: dict[str, object]) -> None:
     assert payload["corridor_name"] == "asset_forge.o3de.stage_write.v1"
     assert payload["dry_run_only"] is True
@@ -2336,6 +2372,24 @@ def _assert_placement_proof_fail_closed_fields(payload: dict[str, object]) -> No
     assert isinstance(payload["stage_write_corridor_name"], str)
     assert isinstance(payload["stage_write_evidence_ready"], bool)
     assert isinstance(payload["stage_write_readback_ready"], bool)
+    assert payload["admission_packet_reference"] is None or isinstance(
+        payload["admission_packet_reference"], str
+    )
+    assert payload["admission_operator_id"] is None or isinstance(
+        payload["admission_operator_id"], str
+    )
+    assert payload["evidence_bundle_reference"] is None or isinstance(
+        payload["evidence_bundle_reference"], str
+    )
+    assert payload["readback_plan_reference"] is None or isinstance(
+        payload["readback_plan_reference"], str
+    )
+    assert payload["revert_statement_contract_key"] is None or isinstance(
+        payload["revert_statement_contract_key"], str
+    )
+    assert isinstance(payload["revert_statement_contract_match"], bool)
+    assert isinstance(payload["operator_note_present"], bool)
+    assert isinstance(payload["contract_evidence_ready"], bool)
     assert isinstance(payload["fail_closed_reasons"], list)
     assert payload["source"] == "asset-forge-o3de-placement-proof"
 
@@ -2389,6 +2443,7 @@ def test_asset_forge_o3de_placement_proof_blocked_when_runtime_gate_disabled() -
             assert payload["proof_runtime_gate_enabled"] is False
             assert payload["admission_flag_state"] == "missing_default_off"
             assert payload["admission_flag_enabled"] is False
+            assert payload["contract_evidence_ready"] is False
             assert "stage_write_evidence_reference_missing" in payload["fail_closed_reasons"]
             assert "stage_write_readback_reference_missing" in payload["fail_closed_reasons"]
             assert "stage_write_readback_not_succeeded" in payload["fail_closed_reasons"]
@@ -2425,8 +2480,113 @@ def test_asset_forge_o3de_placement_proof_ready_looking_evidence_stays_blocked()
             assert payload["admission_flag_enabled"] is True
             assert payload["stage_write_evidence_ready"] is True
             assert payload["stage_write_readback_ready"] is True
+            assert payload["contract_evidence_ready"] is False
+            assert "admission_packet_reference_missing" in payload["fail_closed_reasons"]
+            assert "admission_operator_id_missing" in payload["fail_closed_reasons"]
+            assert "evidence_bundle_reference_missing" in payload["fail_closed_reasons"]
+            assert "readback_plan_reference_missing" in payload["fail_closed_reasons"]
+            assert "revert_statement_contract_key_missing" in payload["fail_closed_reasons"]
+            assert "contract_evidence_incomplete" in payload["fail_closed_reasons"]
             assert "placement_proof_execution_not_admitted" in payload["fail_closed_reasons"]
             assert "server_approval:missing_session" in payload["fail_closed_reasons"]
+
+
+def test_asset_forge_o3de_placement_proof_contract_ready_still_blocked() -> None:
+    stage_write_evidence_reference = "packet-10/stage-write-evidence.json"
+    stage_write_readback_reference = "packet-10/readback-evidence.json"
+    revert_contract_key = _placement_expected_revert_contract_key(
+        candidate_id="candidate-a",
+        candidate_label="Weathered Ivy Arch",
+        staged_source_relative_path="Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+        target_level_relative_path="Levels/BridgeLevel01/BridgeLevel01.prefab",
+        target_entity_name="AssetForgeCandidateA",
+        target_component="Mesh",
+        stage_write_corridor_name="asset_forge.o3de.stage_write.v1",
+        stage_write_evidence_reference=stage_write_evidence_reference,
+        stage_write_readback_reference=stage_write_readback_reference,
+    )
+    with patch.dict(
+        "os.environ",
+        {
+            "ASSET_FORGE_PLACEMENT_PROOF_V1_ADMISSION_ENABLED": "true",
+            "ASSET_FORGE_PLACEMENT_PROOF_V1_ADMISSION_PACKET_REF": "packet-12-placement-proof-ready",
+            "ASSET_FORGE_PLACEMENT_PROOF_V1_ADMISSION_OPERATOR_ID": "operator-qa",
+            "ASSET_FORGE_PLACEMENT_PROOF_V1_EVIDENCE_BUNDLE_REF": "packet-12-evidence-bundle",
+            "ASSET_FORGE_PLACEMENT_PROOF_V1_READBACK_PLAN_REF": "packet-12-readback-plan",
+            "ASSET_FORGE_PLACEMENT_PROOF_V1_REVERT_CONTRACT_KEY": revert_contract_key,
+        },
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post(
+                "/asset-forge/o3de/placement-proof",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "target_component": "Mesh",
+                    "approval_state": "approved",
+                    "approval_note": "contract gate review packet attached",
+                    "stage_write_corridor_name": "asset_forge.o3de.stage_write.v1",
+                    "stage_write_evidence_reference": stage_write_evidence_reference,
+                    "stage_write_readback_reference": stage_write_readback_reference,
+                    "stage_write_readback_status": "succeeded",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            _assert_placement_proof_fail_closed_fields(payload)
+            assert payload["admission_flag_state"] == "explicit_on"
+            assert payload["admission_flag_enabled"] is True
+            assert payload["revert_statement_contract_match"] is True
+            assert payload["contract_evidence_ready"] is True
+            assert payload["proof_status"] == "blocked"
+            assert payload["execution_admitted"] is False
+            assert payload["placement_write_admitted"] is False
+            assert payload["write_occurred"] is False
+            assert "placement_proof_execution_not_admitted" in payload["fail_closed_reasons"]
+
+
+def test_asset_forge_o3de_placement_proof_contract_mismatch_fails_closed() -> None:
+    with patch.dict(
+        "os.environ",
+        {
+            "ASSET_FORGE_PLACEMENT_PROOF_V1_ADMISSION_ENABLED": "true",
+            "ASSET_FORGE_PLACEMENT_PROOF_V1_ADMISSION_PACKET_REF": "packet-12-placement-proof-ready",
+            "ASSET_FORGE_PLACEMENT_PROOF_V1_ADMISSION_OPERATOR_ID": "operator-qa",
+            "ASSET_FORGE_PLACEMENT_PROOF_V1_EVIDENCE_BUNDLE_REF": "packet-12-evidence-bundle",
+            "ASSET_FORGE_PLACEMENT_PROOF_V1_READBACK_PLAN_REF": "packet-12-readback-plan",
+            "ASSET_FORGE_PLACEMENT_PROOF_V1_REVERT_CONTRACT_KEY": "wrong-contract-key",
+        },
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post(
+                "/asset-forge/o3de/placement-proof",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "target_component": "Mesh",
+                    "approval_state": "approved",
+                    "approval_note": "contract gate mismatch test",
+                    "stage_write_corridor_name": "asset_forge.o3de.stage_write.v1",
+                    "stage_write_evidence_reference": "packet-10/stage-write-evidence.json",
+                    "stage_write_readback_reference": "packet-10/readback-evidence.json",
+                    "stage_write_readback_status": "succeeded",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            _assert_placement_proof_fail_closed_fields(payload)
+            assert payload["revert_statement_contract_match"] is False
+            assert payload["contract_evidence_ready"] is False
+            assert "revert_statement_contract_key_mismatch" in payload["fail_closed_reasons"]
+            assert "contract_evidence_incomplete" in payload["fail_closed_reasons"]
 
 
 def test_asset_forge_o3de_placement_proof_malformed_admission_flag_fails_closed() -> None:
