@@ -138,7 +138,8 @@ Status:
 - productized admission decision completed in `docs/FLOW-TRIGGER-SUITE-PRODUCTIZED-ADMISSION-DECISION.md`
 - post-admission review completed in `docs/FLOW-TRIGGER-SUITE-POST-ADMISSION-REVIEW.md`
 - stability audit completed in `docs/FLOW-TRIGGER-SUITE-STABILITY-AUDIT.md`
-- next safe gate is Flow Trigger Suite operational retention policy packet
+- operational retention policy completed in `docs/FLOW-TRIGGER-SUITE-OPERATIONAL-RETENTION-POLICY.md`
+- next safe gate is Flow Trigger Suite retention enforcement verification packet
 
 ## What stays blocked globally
 - arbitrary shell execution
