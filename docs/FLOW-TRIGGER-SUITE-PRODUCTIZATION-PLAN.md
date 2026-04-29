@@ -97,3 +97,8 @@ Flow Trigger Suite audit-gate checklist packet:
 - define exact checkpoint cadence and block conditions
 - define stop-reason taxonomy and required evidence fields
 - keep automation local-only and fail-closed until checklist gates are met
+
+Audit-gate checklist status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-AUDIT-GATE-CHECKLIST.md`
+- next safe gate is Flow Trigger Suite threat-model design
