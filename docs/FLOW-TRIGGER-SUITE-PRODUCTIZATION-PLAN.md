@@ -60,6 +60,10 @@ Reference context:
 
 ## Recommended Next Packet
 
-Flow Trigger Suite audit-gate checklist packet (docs-only): define exact
-operator stop-points, required audit evidence fields, and fail-closed decision
-criteria before any implementation packet.
+Completed by:
+
+- `docs/FLOW-TRIGGER-SUITE-AUDIT-GATE-CHECKLIST.md`
+
+Next after audit-gate checklist:
+
+- Flow Trigger Suite productization design packet (docs/spec).

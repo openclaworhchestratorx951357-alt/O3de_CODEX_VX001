@@ -32,6 +32,7 @@ The following patterns are now established:
 - TIAF preflight baseline audit
 - CI/test execution admission design
 - Flow Trigger Suite productization plan
+- Flow Trigger Suite audit-gate checklist
 
 ## App-wide domains
 
