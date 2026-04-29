@@ -1225,26 +1225,35 @@ def test_dispatch_blocks_registered_validation_report_intake_for_non_admitted_ga
                 assert execute_mock.call_count == 0
 
 
-def test_dispatch_blocks_registered_validation_report_intake_when_gate_on_and_payload_valid() -> None:
+def test_dispatch_admits_registered_validation_report_intake_when_gate_on_and_payload_valid() -> None:
     with isolated_database():
         with patch.dict(
             "os.environ",
             {VALIDATION_REPORT_INTAKE_DISPATCH_ADMISSION_FLAG_ENV: "1"},
             clear=False,
         ):
-            with patch("app.services.dispatcher.adapter_service.execute") as execute_mock:
-                response = dispatcher_service.dispatch(
-                    make_validation_report_intake_dispatch_request()
-                )
-                assert response.ok is False
-                assert response.error is not None
-                assert response.error.code == "DISPATCH_NOT_ADMITTED"
-                assert response.error.details is not None
-                assert response.error.details["admission_flag_state"] == "explicit_on"
-                assert response.error.details["admission_flag_enabled"] is True
-                assert response.error.details["parser_acceptance"] is True
-                assert response.error.details["parser_fail_closed_reasons"] == []
-                assert execute_mock.call_count == 0
+            response = dispatcher_service.dispatch(
+                make_validation_report_intake_dispatch_request()
+            )
+            assert response.ok is True
+            assert response.error is None
+            assert response.result is not None
+            assert response.result.simulated is True
+            assert len(response.artifacts) == 1
+
+            execution = executions_service.list_executions()[0]
+            artifact = artifacts_service.get_artifact(response.artifacts[0])
+            assert artifact is not None
+            assert execution.status == ExecutionStatus.SUCCEEDED
+            assert execution.details["dispatch_admitted"] is True
+            assert execution.details["parser_acceptance"] is True
+            assert execution.details["parser_fail_closed_reasons"] == []
+            assert execution.details["revert_checklist_required"] is True
+            assert execution.details["revert_checklist_validated"] is True
+            assert execution.details["write_status"] == "admitted_dry_run_only"
+            assert artifact.metadata["dispatch_admitted"] is True
+            assert artifact.metadata["parser_acceptance"] is True
+            assert artifact.metadata["write_executed"] is False
 
 
 def test_dispatch_reports_parser_fail_closed_reasons_for_registered_validation_report_intake() -> None:
