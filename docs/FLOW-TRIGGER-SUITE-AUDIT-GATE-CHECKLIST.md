@@ -135,4 +135,8 @@ Flow Trigger Suite threat-model design packet:
 Threat-model design status:
 
 - completed in `docs/FLOW-TRIGGER-SUITE-THREAT-MODEL-DESIGN.md`
-- next safe gate is Flow Trigger Suite implementation touchpoint packet
+
+Implementation touchpoint status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-IMPLEMENTATION-TOUCHPOINT.md`
+- next safe gate is Flow Trigger Suite validation packet
