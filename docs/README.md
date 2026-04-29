@@ -225,6 +225,7 @@ rounding up capability claims.
 - `docs/APP-CAPABILITY-UNLOCK-PROGRAM.md`
 - `docs/APP-CAPABILITY-UNLOCK-MATRIX.md`
 - `docs/NEXT-APP-WIDE-UNLOCK-PACKET.md`
+- `docs/APP-CAPABILITY-DASHBOARD-SHELL.md`
 - `agents/asset-forge-audit-agent/AGENTS.md`
 - `agents/app-capability-audit-agent/AGENTS.md`
 - `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`

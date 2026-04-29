@@ -31,7 +31,7 @@ Conservative baseline as of current `main`. When uncertain, mark `needs baseline
 | Validation | `frontend.test.run` | admitted-real (local workflow) | reviewable | Low | command boundary docs | deterministic command evidence | Validation workflow index refresh |
 | Validation | `TIAF/preflight` | needs baseline | preflight-only | Medium | no-runtime-mutation gate | preflight contract tests + artifact checks | TIAF preflight baseline audit |
 | Validation | `real CI/test execution` | needs baseline | plan-only | High | explicit CI admission decision | CI surface inventory + gate design | CI admission design packet |
-| GUI | `app.capability.dashboard` | missing | GUI/demo only | Medium | truth-label contract + audit review | component tests + fixture truth checks | App-wide Capability Dashboard shell |
+| GUI | `app.capability.dashboard` | GUI/demo only | reviewable | Medium | truth-label contract + audit review | component tests + fixture truth checks | App-wide dashboard truth refresh + editor lane linkage |
 | GUI | `audit.review.dashboard` | missing | GUI/demo only | Medium | truth-label contract + audit review | component tests + fixture truth checks | Audit dashboard shell |
 | GUI | `approval.session.dashboard` | needs baseline | GUI/demo only | Medium | no-authorization-client-field rule | UI tests for intent-only labels | Approval/session dashboard shell |
 | GUI | `evidence.timeline` | needs baseline | GUI/demo only | Medium | evidence schema contract | fixture validation + UI rendering tests | Evidence timeline shell |

@@ -102,6 +102,7 @@ import type {
 const OperationsWorkspaceDesktop = lazy(() => import("./components/workspaces/OperationsWorkspaceDesktop"));
 const AIAssetForgePanel = lazy(() => import("./components/AIAssetForgePanel"));
 const HomeOverviewPanelDeck = lazy(() => import("./components/HomeOverviewPanelDeck"));
+const AppCapabilityDashboardShell = lazy(() => import("./components/AppCapabilityDashboardShell"));
 const OperatorGuidePanel = lazy(() => import("./components/OperatorGuidePanel"));
 const BuilderWorkspaceDesktop = lazy(() => import("./components/workspaces/BuilderWorkspaceDesktop"));
 const PromptWorkspaceDesktop = lazy(() => import("./components/workspaces/PromptWorkspaceDesktop"));
@@ -6236,7 +6237,10 @@ export default function App() {
         "Loading the Home overview deck and local review memory surfaces.",
       )}
     >
-      <HomeOverviewPanelDeck {...homeOverviewPanelDeckProps} />
+      <div style={homeOverviewStackStyle}>
+        <AppCapabilityDashboardShell />
+        <HomeOverviewPanelDeck {...homeOverviewPanelDeckProps} />
+      </div>
     </Suspense>
   );
   const runtimeOverviewProps = {
@@ -7551,6 +7555,11 @@ const desktopShortcutMetaStyle = {
   color: "var(--app-muted-color)",
   fontSize: 13,
   lineHeight: 1.45,
+} satisfies CSSProperties;
+
+const homeOverviewStackStyle = {
+  display: "grid",
+  gap: 16,
 } satisfies CSSProperties;
 
 const desktopSummaryStripStyle = {
