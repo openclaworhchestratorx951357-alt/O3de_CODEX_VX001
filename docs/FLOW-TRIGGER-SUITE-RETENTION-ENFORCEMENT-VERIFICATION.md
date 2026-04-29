@@ -89,3 +89,8 @@ Flow Trigger Suite retention operations checkpoint packet:
 
 - publish compact operational checklist for scheduled retention audits
 - record escalation rules for archive growth anomalies
+
+Retention operations checkpoint status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-RETENTION-OPERATIONS-CHECKPOINT.md`
+- next safe gate is Flow Trigger Suite retention anomaly drill evidence packet

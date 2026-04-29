@@ -139,7 +139,9 @@ Status:
 - post-admission review completed in `docs/FLOW-TRIGGER-SUITE-POST-ADMISSION-REVIEW.md`
 - stability audit completed in `docs/FLOW-TRIGGER-SUITE-STABILITY-AUDIT.md`
 - operational retention policy completed in `docs/FLOW-TRIGGER-SUITE-OPERATIONAL-RETENTION-POLICY.md`
-- next safe gate is Flow Trigger Suite retention enforcement verification packet
+- retention enforcement verification completed in `docs/FLOW-TRIGGER-SUITE-RETENTION-ENFORCEMENT-VERIFICATION.md`
+- retention operations checkpoint completed in `docs/FLOW-TRIGGER-SUITE-RETENTION-OPERATIONS-CHECKPOINT.md`
+- next safe gate is Flow Trigger Suite retention anomaly drill evidence packet
 
 ## What stays blocked globally
 - arbitrary shell execution
