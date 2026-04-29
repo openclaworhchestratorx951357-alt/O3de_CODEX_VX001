@@ -95,4 +95,8 @@ Flow Trigger Suite productized rollout packet:
 Productized rollout status:
 
 - completed in `docs/FLOW-TRIGGER-SUITE-PRODUCTIZED-ROLLOUT-PACKET.md`
-- next safe gate is Flow Trigger Suite productized admission decision packet
+
+Productized admission decision status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-PRODUCTIZED-ADMISSION-DECISION.md`
+- next safe gate is Flow Trigger Suite post-admission review packet
