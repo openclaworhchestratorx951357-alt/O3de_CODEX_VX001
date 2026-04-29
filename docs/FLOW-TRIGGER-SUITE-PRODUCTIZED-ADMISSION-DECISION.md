@@ -84,3 +84,8 @@ Flow Trigger Suite post-admission review packet:
 - document operator-safe prompt/examples and refused/blocked examples for the
   admitted local-only corridor
 - refresh compact review/readiness status for future-thread handoff
+
+Post-admission review status:
+
+- completed in `docs/FLOW-TRIGGER-SUITE-POST-ADMISSION-REVIEW.md`
+- next safe gate is Flow Trigger Suite stability audit packet
