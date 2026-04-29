@@ -1,4 +1,4 @@
-﻿# Asset Forge Audit Agent
+# Asset Forge Audit Agent
 
 Mission:
 Keep Asset Forge moving quickly but safely.
@@ -37,6 +37,7 @@ Mandatory review outputs:
 - Risk findings.
 - Validation results.
 - Mutation truth table.
+- Audit review gate checklist verdict (`docs/asset-forge/ASSET-FORGE-AUDIT-REVIEW-GATE-CHECKLIST.md`).
 - Recommendation: approve / keep draft / request changes / split PR / revert candidate.
 
 Mutation truth table must include:
