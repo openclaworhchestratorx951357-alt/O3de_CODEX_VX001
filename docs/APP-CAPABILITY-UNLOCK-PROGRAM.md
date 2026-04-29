@@ -30,6 +30,7 @@ The following patterns are now established:
 - validation report intake endpoint-candidate operator examples + review checkpoint guidance
 - validation report intake endpoint-candidate release-readiness long-hold decision
 - TIAF preflight baseline audit
+- CI/test execution admission design
 
 ## App-wide domains
 

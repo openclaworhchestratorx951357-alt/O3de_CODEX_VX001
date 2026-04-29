@@ -51,6 +51,10 @@ This baseline confirms the following remain not admitted:
 
 ## Recommended Next Packet
 
-CI/test execution admission design packet (docs-first): define explicit
-admission gates, evidence expectations, and refusal behavior for any future
-execution-capable validation corridor.
+Completed by:
+
+- `docs/CI-TEST-EXECUTION-ADMISSION-DESIGN.md`
+
+Next after CI/test execution design:
+
+- Flow Trigger Suite productization plan packet.
