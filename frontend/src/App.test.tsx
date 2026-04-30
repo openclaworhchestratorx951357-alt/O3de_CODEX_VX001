@@ -386,6 +386,58 @@ describe("App desktop smoke", () => {
     expect(await screen.findByLabelText("AI Asset Forge")).toBeInTheDocument();
   });
 
+  it("opens cockpit Prompt Studio with a contextual template chooser and prefill-only safety", async () => {
+    render(<App />);
+
+    fireEvent.click(getDesktopNavButton(/Create Game/i));
+    await screen.findAllByText("Create Game Cockpit");
+    const createGameWorkspaceHeading = (await screen.findAllByText("Create Game Cockpit"))[0];
+    const createGameWorkspace = createGameWorkspaceHeading.closest("section");
+    expect(createGameWorkspace).not.toBeNull();
+    fireEvent.click(within(createGameWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
+    const createGameChooser = await screen.findByLabelText("Prompt template chooser context");
+    expect(createGameChooser).toHaveTextContent("Create Game template quick-load");
+    expect(createGameChooser).toHaveTextContent("Source workspace: Create Game");
+    expect(createGameChooser).toHaveTextContent(
+      "No preview, execute, placement, or mutation runs automatically.",
+    );
+    fireEvent.click(
+      within(createGameChooser).getByRole("button", { name: "Load template: Create safe game entity prompt" }),
+    );
+    expect((await screen.findAllByText("Loaded mission draft: Create safe game entity prompt")).length).toBeGreaterThan(0);
+    expect(screen.queryByLabelText("Prompt template chooser context")).not.toBeInTheDocument();
+
+    fireEvent.click(getDesktopNavButton(/Create Movie/i));
+    await screen.findAllByText("Create Movie Cockpit");
+    const createMovieWorkspaceHeading = (await screen.findAllByText("Create Movie Cockpit"))[0];
+    const createMovieWorkspace = createMovieWorkspaceHeading.closest("section");
+    expect(createMovieWorkspace).not.toBeNull();
+    fireEvent.click(within(createMovieWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
+    const createMovieChooser = await screen.findByLabelText("Prompt template chooser context");
+    expect(createMovieChooser).toHaveTextContent("Create Movie template quick-load");
+    expect(createMovieChooser).toHaveTextContent("Source workspace: Create Movie");
+    fireEvent.click(
+      within(createMovieChooser).getByRole("button", {
+        name: "Load template: Cinematic placement proof-only candidate prompt",
+      }),
+    );
+    expect((await screen.findAllByText("Loaded mission draft: Cinematic placement proof-only candidate prompt")).length).toBeGreaterThan(0);
+
+    fireEvent.click(getDesktopNavButton(/Load Project/i));
+    await screen.findAllByText("Load Project Cockpit");
+    const loadProjectWorkspaceHeading = (await screen.findAllByText("Load Project Cockpit"))[0];
+    const loadProjectWorkspace = loadProjectWorkspaceHeading.closest("section");
+    expect(loadProjectWorkspace).not.toBeNull();
+    fireEvent.click(within(loadProjectWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
+    const loadProjectChooser = await screen.findByLabelText("Prompt template chooser context");
+    expect(loadProjectChooser).toHaveTextContent("Load Project template quick-load");
+    expect(loadProjectChooser).toHaveTextContent("Source workspace: Load Project");
+    fireEvent.click(
+      within(loadProjectChooser).getByRole("button", { name: "Load template: Load project inspection prompt" }),
+    );
+    expect((await screen.findAllByText("Loaded mission draft: Load project inspection prompt")).length).toBeGreaterThan(0);
+  });
+
   it("opens truth-rail evidence actions with latest record context in Records", async () => {
     const now = new Date().toISOString();
     apiMocks.fetchRunCards.mockResolvedValue([

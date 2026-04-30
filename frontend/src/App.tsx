@@ -287,6 +287,26 @@ type RecordsEvidenceContext = {
   relatedPromptSessionId?: string;
 };
 
+type PromptTemplateChooserEntry = {
+  id: string;
+  label: string;
+  detail: string;
+  truthState: string;
+  draft: MissionPromptDraft;
+  sourceSurfaceLabel: string;
+};
+
+type PromptTemplateChooserContext = {
+  id: string;
+  sourceWorkspaceId: DesktopWorkspaceId;
+  sourceSurfaceLabel: string;
+  title: string;
+  subtitle: string;
+  openedAtIso: string;
+  templates: PromptTemplateChooserEntry[];
+  nextSafeAction: string;
+};
+
 type PromptReturnResumeChecklist = {
   id: string;
   sourceWorkspaceId: DesktopWorkspaceId;
@@ -682,6 +702,8 @@ export default function App() {
     useState<PromptEvidenceContext | null>(null);
   const [recordsEvidenceContext, setRecordsEvidenceContext] =
     useState<RecordsEvidenceContext | null>(null);
+  const [promptTemplateChooserContext, setPromptTemplateChooserContext] =
+    useState<PromptTemplateChooserContext | null>(null);
   const [latestPlacementProofOnlyReview, setLatestPlacementProofOnlyReview] =
     useState<PlacementProofOnlyReviewSnapshot | null>(null);
   const [promptReturnResumeChecklist, setPromptReturnResumeChecklist] =
@@ -4921,6 +4943,9 @@ export default function App() {
   const activeRecordsEvidenceContext = activeWorkspaceId === "records"
     ? recordsEvidenceContext
     : null;
+  const activePromptTemplateChooserContext = activeWorkspaceId === "prompt"
+    ? promptTemplateChooserContext
+    : null;
   const activeDesktopNavItemId: DesktopNavItemId = activeWorkspaceId;
   const desktopNavSections = [
     {
@@ -5148,9 +5173,15 @@ export default function App() {
     setActiveRuntimeSurface("workspaces");
   }
 
-  function openPromptStudio(options?: { preservePromptEvidenceContext?: boolean }): void {
+  function openPromptStudio(options?: {
+    preservePromptEvidenceContext?: boolean;
+    preservePromptTemplateChooserContext?: boolean;
+  }): void {
     if (!options?.preservePromptEvidenceContext) {
       setPromptEvidenceContext(null);
+    }
+    if (!options?.preservePromptTemplateChooserContext) {
+      setPromptTemplateChooserContext(null);
     }
     setActiveWorkspaceId("prompt");
   }
@@ -5174,6 +5205,7 @@ export default function App() {
       sourceSurfaceLabel,
       openedAtIso: new Date().toISOString(),
     });
+    setPromptTemplateChooserContext(null);
     setActiveWorkspaceId("prompt");
   }
 
@@ -5183,6 +5215,7 @@ export default function App() {
     sourceWorkspaceId: DesktopWorkspaceId,
   ): void {
     setPromptEvidenceContext(null);
+    setPromptTemplateChooserContext(null);
     setPromptLaunchDraftRequest({
       requestId: crypto.randomUUID(),
       draft,
@@ -5191,6 +5224,142 @@ export default function App() {
       sourceWorkspaceId,
     });
     setActiveWorkspaceId("prompt");
+  }
+
+  function openPromptStudioWithTemplateChooserContext(
+    sourceWorkspaceId: DesktopWorkspaceId,
+    sourceSurfaceLabel: string,
+    title: string,
+    subtitle: string,
+    templates: Array<Omit<PromptTemplateChooserEntry, "id">>,
+    nextSafeAction: string,
+  ): void {
+    setPromptEvidenceContext(null);
+    setPromptTemplateChooserContext({
+      id: crypto.randomUUID(),
+      sourceWorkspaceId,
+      sourceSurfaceLabel,
+      title,
+      subtitle,
+      openedAtIso: new Date().toISOString(),
+      templates: templates.map((template) => ({
+        ...template,
+        id: crypto.randomUUID(),
+      })),
+      nextSafeAction,
+    });
+    setActiveWorkspaceId("prompt");
+  }
+
+  function openPromptStudioFromCreateGameCockpit(): void {
+    openPromptStudioWithTemplateChooserContext(
+      "create-game",
+      "Create Game cockpit command bar / open prompt studio",
+      "Create Game template quick-load",
+      "Pick a safe game-authoring template to prefill Prompt Studio. This does not execute any prompt.",
+      [
+        {
+          label: "Inspect project evidence prompt",
+          detail: "Read-only project orientation before content mutation.",
+          truthState: "read-only / non-mutating",
+          draft: inspectProjectMissionPromptDraft,
+          sourceSurfaceLabel: "Create Game cockpit / inspect project template",
+        },
+        {
+          label: "Create safe game entity prompt",
+          detail: "Admitted-real narrow editor corridor for one root-level entity.",
+          truthState: "admitted-real narrow",
+          draft: createGameEntityMissionPromptDraft,
+          sourceSurfaceLabel: "Create Game cockpit / create entity template",
+        },
+        {
+          label: "Add allowlisted Mesh component prompt",
+          detail: "Allowlisted component lane with readback evidence expectation.",
+          truthState: "admitted-real allowlisted",
+          draft: addAllowlistedMeshMissionPromptDraft,
+          sourceSurfaceLabel: "Create Game cockpit / add allowlisted component template",
+        },
+      ],
+      "Choose one template, preview the plan, and keep operations inside admitted lanes.",
+    );
+  }
+
+  function openPromptStudioFromCreateMovieCockpit(): void {
+    openPromptStudioWithTemplateChooserContext(
+      "create-movie",
+      "Create Movie cockpit command bar / open prompt studio",
+      "Create Movie template quick-load",
+      "Pick a cinematic-safe template to prefill Prompt Studio. No prompt runs automatically.",
+      [
+        {
+          label: "Inspect cinematic target prompt",
+          detail: "Read-only cinematic readiness check.",
+          truthState: "read-only / cinematic planning",
+          draft: inspectCinematicTargetMissionPromptDraft,
+          sourceSurfaceLabel: "Create Movie cockpit / inspect cinematic target template",
+        },
+        {
+          label: "Create cinematic camera placeholder prompt",
+          detail: "Narrow admitted-real camera placeholder entity request.",
+          truthState: "admitted-real narrow",
+          draft: createCinematicCameraPlaceholderMissionPromptDraft,
+          sourceSurfaceLabel: "Create Movie cockpit / camera placeholder template",
+        },
+        {
+          label: "Cinematic placement proof-only candidate prompt",
+          detail: "Fail-closed placement proof candidate capture with non-admitted execution/write flags.",
+          truthState: "proof-only / fail-closed / non-mutating",
+          draft: cinematicPlacementProofOnlyMissionPromptDraft,
+          sourceSurfaceLabel: "Create Movie cockpit / placement proof-only template",
+        },
+      ],
+      "Use proof-only templates for placement review; real placement remains blocked by separate admission gates.",
+    );
+  }
+
+  function openPromptStudioFromLoadProjectCockpit(): void {
+    openPromptStudioWithTemplateChooserContext(
+      "load-project",
+      "Load Project cockpit command bar / open prompt studio",
+      "Load Project template quick-load",
+      "Prefill a target-readiness prompt without mutating project files.",
+      [
+        {
+          label: "Load project inspection prompt",
+          detail: "Read-only project/engine/target assumptions summary.",
+          truthState: "read-only / no project file writes",
+          draft: inspectLoadProjectMissionPromptDraft,
+          sourceSurfaceLabel: "Load Project cockpit / inspect target template",
+        },
+      ],
+      "Run read-only inspection first, then decide the next admitted authoring step.",
+    );
+  }
+
+  function openPromptStudioFromAssetForgeCockpit(): void {
+    openPromptStudioWithTemplateChooserContext(
+      "asset-forge",
+      "Asset Forge cockpit command bar / open prompt studio",
+      "Asset Forge template quick-load",
+      "Select an Asset Forge prompt template for review-first execution planning.",
+      [
+        {
+          label: "Inspect project evidence prompt",
+          detail: "Read-only orientation before candidate staging/proof review.",
+          truthState: "read-only / non-mutating",
+          draft: inspectProjectMissionPromptDraft,
+          sourceSurfaceLabel: "Asset Forge workflow / inspect project template",
+        },
+        {
+          label: "Placement proof-only candidate prompt",
+          detail: "Fail-closed placement proof-only candidate with bounded evidence references.",
+          truthState: "proof-only / fail-closed / non-mutating",
+          draft: placementProofOnlyMissionPromptDraft,
+          sourceSurfaceLabel: "Asset Forge workflow / placement proof-only template",
+        },
+      ],
+      "Use proof-only review paths for placement; execution and placement writes remain non-admitted.",
+    );
   }
 
   function openPromptStudioWithPlacementProofTemplateFromHome(): void {
@@ -7776,6 +7945,121 @@ export default function App() {
     );
   }
 
+  function renderPromptTemplateChooserContextCard(
+    context: PromptTemplateChooserContext,
+  ): JSX.Element {
+    return (
+      <section
+        aria-label="Prompt template chooser context"
+        style={{
+          marginBottom: 14,
+          border: "1px solid rgba(250, 204, 21, 0.45)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(52, 40, 16, 0.95), rgba(18, 30, 42, 0.95))",
+          boxShadow: "0 10px 24px rgba(10, 14, 20, 0.35)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 10,
+        }}
+      >
+        <div style={{ display: "grid", gap: 3 }}>
+          <span
+            style={{
+              fontSize: 12,
+              letterSpacing: 0.3,
+              textTransform: "uppercase",
+              color: "rgba(255, 232, 161, 0.95)",
+              fontWeight: 700,
+            }}
+          >
+            Cockpit template chooser
+          </span>
+          <strong style={{ color: "var(--app-text-color)" }}>{context.title}</strong>
+          <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+            {context.subtitle}
+          </p>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 8,
+            color: "var(--app-subtle-color)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Source workspace: <strong>{workspaceMeta[context.sourceWorkspaceId].title}</strong>
+          </span>
+          <span>
+            Source surface: <strong>{context.sourceSurfaceLabel}</strong>
+          </span>
+          <span>
+            Opened (ISO): <strong>{context.openedAtIso}</strong>
+          </span>
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Safety: selecting a template only prefills Prompt Studio fields. No preview, execute, placement, or mutation runs automatically.
+        </p>
+        <div style={{ display: "grid", gap: 8 }}>
+          {context.templates.map((template) => (
+            <article
+              key={template.id}
+              style={{
+                border: "1px solid rgba(248, 222, 145, 0.38)",
+                borderRadius: 10,
+                background: "rgba(17, 26, 36, 0.62)",
+                padding: "10px 11px",
+                display: "grid",
+                gap: 7,
+              }}
+            >
+              <div style={{ display: "grid", gap: 4 }}>
+                <strong style={{ color: "var(--app-text-color)" }}>{template.label}</strong>
+                <span style={{ color: "var(--app-subtle-color)", fontSize: 13 }}>{template.detail}</span>
+              </div>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignSelf: "start",
+                  border: "1px solid rgba(248, 222, 145, 0.55)",
+                  borderRadius: 999,
+                  padding: "2px 8px",
+                  fontSize: 12,
+                  color: "rgba(255, 232, 161, 0.95)",
+                }}
+              >
+                {template.truthState}
+              </span>
+              <button
+                type="button"
+                onClick={() => openPromptStudioWithMissionDraft(
+                  template.draft,
+                  template.sourceSurfaceLabel,
+                  context.sourceWorkspaceId,
+                )}
+              >
+                {`Load template: ${template.label}`}
+              </button>
+            </article>
+          ))}
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Next safe action: <strong>{context.nextSafeAction}</strong>
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <button type="button" onClick={() => setActiveWorkspaceId(context.sourceWorkspaceId)}>
+            Return to source cockpit
+          </button>
+          <button type="button" onClick={() => setPromptTemplateChooserContext(null)}>
+            Dismiss template chooser
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   function renderPromptReturnResumeChecklist(
     checklist: PromptReturnResumeChecklist,
   ): JSX.Element {
@@ -8357,7 +8641,7 @@ export default function App() {
               )}
             >
               <AIAssetForgePanel
-                onOpenPromptStudio={openPromptStudio}
+                onOpenPromptStudio={openPromptStudioFromAssetForgeCockpit}
                 onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
                 onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
                 onOpenRuntimeOverview={openRuntimeOverview}
@@ -8449,6 +8733,9 @@ export default function App() {
         {activeRecordsEvidenceContext ? (
           renderRecordsEvidenceContextBanner(activeRecordsEvidenceContext)
         ) : null}
+        {activePromptTemplateChooserContext ? (
+          renderPromptTemplateChooserContextCard(activePromptTemplateChooserContext)
+        ) : null}
 
         {activeWorkspaceId === "home" ? (
           <div
@@ -8502,7 +8789,7 @@ export default function App() {
               )}
             >
               <CreateGameWorkspaceView
-                onOpenPromptStudio={openPromptStudio}
+                onOpenPromptStudio={openPromptStudioFromCreateGameCockpit}
                 onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenRecords={openRecordsRuns}
@@ -8541,7 +8828,7 @@ export default function App() {
               )}
             >
               <CreateMovieWorkspaceView
-                onOpenPromptStudio={openPromptStudio}
+                onOpenPromptStudio={openPromptStudioFromCreateMovieCockpit}
                 onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenRecords={openRecordsRuns}
@@ -8580,7 +8867,7 @@ export default function App() {
               )}
             >
               <LoadProjectWorkspaceView
-                onOpenPromptStudio={openPromptStudio}
+                onOpenPromptStudio={openPromptStudioFromLoadProjectCockpit}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenRecords={openRecordsRuns}
                 onLaunchInspectTemplate={openPromptStudioWithInspectLoadProjectTemplate}
