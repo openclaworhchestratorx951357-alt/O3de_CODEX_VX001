@@ -272,6 +272,16 @@ type PromptReturnResumeChecklist = {
   nextSafeAction: string;
 };
 
+type CockpitStageFocusHighlight = {
+  id: string;
+  workspaceId: DesktopWorkspaceId;
+  stageLabel: string;
+  stageDetail: string;
+  sourceDraftLabel: string;
+  sourceSurfaceLabel: string;
+  setAtIso: string;
+};
+
 type OperationsSurfaceId =
   | "dispatch"
   | "agents"
@@ -643,6 +653,8 @@ export default function App() {
     useState<PromptLaunchDraftRequest | null>(null);
   const [promptReturnResumeChecklist, setPromptReturnResumeChecklist] =
     useState<PromptReturnResumeChecklist | null>(null);
+  const [cockpitStageFocusHighlight, setCockpitStageFocusHighlight] =
+    useState<CockpitStageFocusHighlight | null>(null);
   const [activeOperationsSurface, setActiveOperationsSurface] =
     useState<OperationsSurfaceId>("dispatch");
   const [activeRuntimeSurface, setActiveRuntimeSurface] =
@@ -4866,6 +4878,10 @@ export default function App() {
     && promptReturnResumeChecklist.sourceWorkspaceId === activeWorkspaceId
     ? promptReturnResumeChecklist
     : null;
+  const activeCockpitStageFocusHighlight = cockpitStageFocusHighlight
+    && cockpitStageFocusHighlight.workspaceId === activeWorkspaceId
+    ? cockpitStageFocusHighlight
+    : null;
   const activeDesktopNavItemId: DesktopNavItemId = activeWorkspaceId;
   const desktopNavSections = [
     {
@@ -7510,62 +7526,180 @@ export default function App() {
       return null;
     }
     const draftId = draftRequest.draft.id;
+    const sourceSurfaceLabel = draftRequest.sourceSurfaceLabel?.trim() || "unknown source surface";
+
+    function createStageFocusAction(
+      workspaceId: DesktopWorkspaceId,
+      stageLabel: string,
+      stageDetail: string,
+      actionLabel: string,
+      actionDetail: string,
+    ): { label: string; detail: string; run: () => void } {
+      return {
+        label: actionLabel,
+        detail: actionDetail,
+        run: () => {
+          setCockpitStageFocusHighlight({
+            id: crypto.randomUUID(),
+            workspaceId,
+            stageLabel,
+            stageDetail,
+            sourceDraftLabel: draftRequest.draft.label,
+            sourceSurfaceLabel,
+            setAtIso: new Date().toISOString(),
+          });
+          setActiveWorkspaceId(workspaceId);
+        },
+      };
+    }
 
     if (sourceWorkspaceId === "create-game" && draftId === "create-game-safe-entity") {
-      return {
-        label: "Open Create Game cockpit (Gameplay Entities stage)",
-        detail: "Returns to Create Game so you can continue the Gameplay Entities stage context safely.",
-        run: () => setActiveWorkspaceId("create-game"),
-      };
+      return createStageFocusAction(
+        "create-game",
+        "Gameplay Entities",
+        "Continue safe root-level entity authoring context only.",
+        "Open Create Game cockpit (Gameplay Entities stage)",
+        "Returns to Create Game so you can continue the Gameplay Entities stage context safely.",
+      );
     }
     if (sourceWorkspaceId === "create-game" && draftId === "add-allowlisted-mesh-component") {
-      return {
-        label: "Open Create Game cockpit (Components stage)",
-        detail: "Returns to Create Game so you can continue the allowlisted Components stage context safely.",
-        run: () => setActiveWorkspaceId("create-game"),
-      };
+      return createStageFocusAction(
+        "create-game",
+        "Components",
+        "Continue allowlisted component context only; arbitrary property writes remain blocked.",
+        "Open Create Game cockpit (Components stage)",
+        "Returns to Create Game so you can continue the allowlisted Components stage context safely.",
+      );
     }
     if (sourceWorkspaceId === "create-movie" && draftId === "create-cinematic-camera-placeholder") {
-      return {
-        label: "Open Create Movie cockpit (Camera stage)",
-        detail: "Returns to Create Movie so you can continue camera placeholder planning without broad scene mutation.",
-        run: () => setActiveWorkspaceId("create-movie"),
-      };
+      return createStageFocusAction(
+        "create-movie",
+        "Camera",
+        "Continue cinematic camera placeholder planning without broad scene mutation.",
+        "Open Create Movie cockpit (Camera stage)",
+        "Returns to Create Movie so you can continue camera placeholder planning without broad scene mutation.",
+      );
     }
     if (sourceWorkspaceId === "create-movie" && draftId === "cinematic-placement-proof-only-candidate") {
-      return {
-        label: "Open Create Movie cockpit (Characters / Props stage)",
-        detail: "Returns to Create Movie so you can continue proof-only cinematic prop review with blocked-placement truth.",
-        run: () => setActiveWorkspaceId("create-movie"),
-      };
+      return createStageFocusAction(
+        "create-movie",
+        "Characters / Props",
+        "Continue proof-only cinematic prop review. Placement execution/write remain non-admitted.",
+        "Open Create Movie cockpit (Characters / Props stage)",
+        "Returns to Create Movie so you can continue proof-only cinematic prop review with blocked-placement truth.",
+      );
     }
     if (sourceWorkspaceId === "load-project" && draftId === "inspect-load-project-target") {
-      return {
-        label: "Open Load Project cockpit (Target checklist stage)",
-        detail: "Returns to Load Project so you can continue read-only target verification before authoring.",
-        run: () => setActiveWorkspaceId("load-project"),
-      };
+      return createStageFocusAction(
+        "load-project",
+        "Project connection checklist",
+        "Continue read-only target verification before any authoring action.",
+        "Open Load Project cockpit (Target checklist stage)",
+        "Returns to Load Project so you can continue read-only target verification before authoring.",
+      );
     }
     if (sourceWorkspaceId === "asset-forge" && draftId === "placement-proof-only-candidate") {
-      return {
-        label: "Open Asset Forge cockpit (Placement Proof stage)",
-        detail: "Returns to Asset Forge so you can continue placement proof-only review and evidence checks.",
-        run: () => setActiveWorkspaceId("asset-forge"),
-      };
+      return createStageFocusAction(
+        "asset-forge",
+        "Placement Proof",
+        "Continue proof-only placement review and evidence checks only.",
+        "Open Asset Forge cockpit (Placement Proof stage)",
+        "Returns to Asset Forge so you can continue placement proof-only review and evidence checks.",
+      );
     }
     if (sourceWorkspaceId === "home" && draftId === "inspect-project-read-only") {
-      return {
-        label: "Open Home cockpit (Inspect mission stage)",
-        detail: "Returns to Home so you can continue read-only mission orientation and choose the next safe step.",
-        run: () => setActiveWorkspaceId("home"),
-      };
+      return createStageFocusAction(
+        "home",
+        "Inspect mission",
+        "Continue read-only mission orientation and choose the next safe step.",
+        "Open Home cockpit (Inspect mission stage)",
+        "Returns to Home so you can continue read-only mission orientation and choose the next safe step.",
+      );
     }
 
-    return {
-      label: `Open ${workspaceMeta[sourceWorkspaceId].title} cockpit`,
-      detail: "Returns to the source cockpit context only. No prompt execution is triggered.",
-      run: () => setActiveWorkspaceId(sourceWorkspaceId),
-    };
+    return createStageFocusAction(
+      sourceWorkspaceId,
+      "Source cockpit context",
+      "Continue the source cockpit context only. No prompt execution is triggered.",
+      `Open ${workspaceMeta[sourceWorkspaceId].title} cockpit`,
+      "Returns to the source cockpit context only. No prompt execution is triggered.",
+    );
+  }
+
+  function renderCockpitStageFocusHighlight(
+    highlight: CockpitStageFocusHighlight,
+  ): JSX.Element {
+    return (
+      <section
+        aria-label="Cockpit stage focus"
+        style={{
+          marginBottom: 14,
+          border: "1px solid rgba(255, 203, 118, 0.62)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(51, 39, 20, 0.96), rgba(20, 31, 45, 0.96))",
+          boxShadow: "0 10px 24px rgba(8, 12, 18, 0.35)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 8,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 10,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "grid", gap: 3 }}>
+            <span
+              style={{
+                fontSize: 12,
+                letterSpacing: 0.3,
+                textTransform: "uppercase",
+                color: "rgba(255, 221, 160, 0.95)",
+                fontWeight: 700,
+              }}
+            >
+              Cockpit stage focus
+            </span>
+            <strong style={{ color: "var(--app-text-color)" }}>
+              Focused stage: {highlight.stageLabel}
+            </strong>
+          </div>
+          <button type="button" onClick={() => setCockpitStageFocusHighlight(null)}>
+            Dismiss focus
+          </button>
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          {highlight.stageDetail}
+        </p>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 8,
+            color: "var(--app-subtle-color)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Source draft: <strong>{highlight.sourceDraftLabel}</strong>
+          </span>
+          <span>
+            Source handoff: <strong>{highlight.sourceSurfaceLabel}</strong>
+          </span>
+          <span>
+            Focus set (ISO): <strong>{highlight.setAtIso}</strong>
+          </span>
+        </div>
+        <p style={{ margin: 0, color: "var(--app-text-color)", fontSize: 13 }}>
+          Safety: UI focus only. No prompt execution, no runtime command, and no mutation occurs from this highlight.
+        </p>
+      </section>
+    );
   }
 
   function renderPromptHandoffContextCard(
@@ -7862,6 +7996,9 @@ export default function App() {
             {activePromptReturnResumeChecklist ? (
               renderPromptReturnResumeChecklist(activePromptReturnResumeChecklist)
             ) : null}
+            {activeCockpitStageFocusHighlight ? (
+              renderCockpitStageFocusHighlight(activeCockpitStageFocusHighlight)
+            ) : null}
             <Suspense
               fallback={renderWorkspaceLoadingFallback(
                 "Asset Forge",
@@ -7943,6 +8080,9 @@ export default function App() {
         ) : null}
         {activePromptReturnResumeChecklist ? (
           renderPromptReturnResumeChecklist(activePromptReturnResumeChecklist)
+        ) : null}
+        {activeCockpitStageFocusHighlight ? (
+          renderCockpitStageFocusHighlight(activeCockpitStageFocusHighlight)
         ) : null}
         {activeWorkspaceId === "prompt" && promptLaunchDraftRequest ? (
           renderPromptHandoffContextCard(promptLaunchDraftRequest)
