@@ -1,7 +1,8 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
+import type { DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
+import CockpitSurfaceWorkspaceLayout from "./CockpitSurfaceWorkspaceLayout";
 import {
   getWorkspaceSurfaceGuide,
   getWorkspaceWindowGuide,
@@ -47,43 +48,23 @@ export default function OperationsWorkspaceView({
         commandCenterWindow.instructions,
         activeSurfaceGuide.instructions,
       )}
-      toolbar={(
-        <DesktopTabStrip
-          items={items}
-          activeItemId={activeSurfaceId}
-          onSelectItem={(surfaceId) => onSelectSurface(surfaceId as OperationsSurfaceId)}
-        />
-      )}
     >
-      <div style={surfaceStackStyle}>
-        <div aria-hidden={activeSurfaceId !== "dispatch"} style={activeSurfaceId === "dispatch" ? visibleSurfaceStyle : hiddenSurfaceStyle}>
-          {dispatchContent}
-        </div>
-        <div aria-hidden={activeSurfaceId !== "agents"} style={activeSurfaceId === "agents" ? visibleSurfaceStyle : hiddenSurfaceStyle}>
-          {agentsContent}
-        </div>
-        <div aria-hidden={activeSurfaceId !== "approvals"} style={activeSurfaceId === "approvals" ? visibleSurfaceStyle : hiddenSurfaceStyle}>
-          {approvalsContent}
-        </div>
-        <div aria-hidden={activeSurfaceId !== "timeline"} style={activeSurfaceId === "timeline" ? visibleSurfaceStyle : hiddenSurfaceStyle}>
-          {timelineContent}
-        </div>
-      </div>
+      <CockpitSurfaceWorkspaceLayout
+        cockpitId="operations"
+        activeSurfaceId={activeSurfaceId}
+        items={items}
+        onSelectSurface={onSelectSurface}
+        activeSurfaceGuideChecklist={activeSurfaceGuide.instructions}
+        workAreaTitle="Operations dominant work area"
+        workAreaSubtitle="Center command viewport for dispatch, agents, approvals, and timeline follow-up"
+        summaryTitle="Operations queue and timeline summary drawer"
+        surfaceContent={{
+          dispatch: dispatchContent,
+          agents: agentsContent,
+          approvals: approvalsContent,
+          timeline: timelineContent,
+        }}
+      />
     </DesktopWindow>
   );
 }
-
-const surfaceStackStyle = {
-  display: "grid",
-  minWidth: 0,
-} satisfies CSSProperties;
-
-const visibleSurfaceStyle = {
-  display: "grid",
-  gap: 16,
-  minWidth: 0,
-} satisfies CSSProperties;
-
-const hiddenSurfaceStyle = {
-  display: "none",
-} satisfies CSSProperties;

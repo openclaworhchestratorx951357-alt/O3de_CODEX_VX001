@@ -79,6 +79,11 @@ const COCKPIT_LAYOUT_VERSION_OVERRIDES: Record<string, number> = {
   "create-movie": 2,
   "load-project": 2,
   "asset-forge": 2,
+  "prompt": 2,
+  "builder": 2,
+  "operations": 2,
+  "runtime": 2,
+  "records": 2,
 };
 
 export function getCockpitLayoutVersion(cockpitId: string): number {

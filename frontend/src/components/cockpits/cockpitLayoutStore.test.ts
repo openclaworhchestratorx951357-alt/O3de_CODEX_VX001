@@ -205,4 +205,34 @@ describe("cockpitLayoutStore", () => {
     expect(loaded.zones.center).toContain("panel-b");
     expect(loaded.zones.right).toContain("panel-c");
   });
+
+  it("normalizes old runtime saved layout versions to the App OS cockpit default", () => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      "runtime": {
+        cockpitId: "runtime",
+        version: 1,
+        zones: {
+          top: [],
+          left: ["panel-b"],
+          center: ["panel-a"],
+          right: ["panel-c"],
+          bottom: [],
+        },
+        sizes: {
+          leftPrimaryRatio: 0.45,
+          centerPrimaryRatio: 0.55,
+          topPrimaryRatio: 0.55,
+        },
+        collapsedPanelIds: [],
+        updatedAt: "2026-04-30T00:00:00.000Z",
+      },
+    }));
+
+    const loaded = readCockpitLayoutState("runtime", panels, "app-os-cockpit");
+
+    expect(loaded.version).toBe(2);
+    expect(loaded.zones.left).toContain("panel-a");
+    expect(loaded.zones.center).toContain("panel-b");
+    expect(loaded.zones.right).toContain("panel-c");
+  });
 });

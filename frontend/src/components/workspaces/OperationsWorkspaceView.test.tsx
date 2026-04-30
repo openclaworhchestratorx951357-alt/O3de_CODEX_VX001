@@ -44,8 +44,9 @@ describe("OperationsWorkspaceView", () => {
 
     expect(screen.getByText("Approvals content")).toBeInTheDocument();
     expect(screen.getByText("How to use this workspace")).toBeInTheDocument();
-    expect(screen.getByText(/Treat Command Center as the queue-and-control lane for operator action/i)).toBeInTheDocument();
-    expect(screen.getByText(/Use this tab whenever the approvals counter is non-zero/i)).toBeInTheDocument();
+    expect(screen.getByTestId("dockable-layout-operations")).toBeInTheDocument();
+    expect(screen.getAllByText(/Treat Command Center as the queue-and-control lane for operator action/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Use this tab whenever the approvals counter is non-zero/i).length).toBeGreaterThan(0);
     expect(screen.getByText("Dispatch content").closest("[aria-hidden='true']")).not.toBeNull();
     expect(screen.getByText("Agents content").closest("[aria-hidden='true']")).not.toBeNull();
     expect(screen.getByText("Timeline content").closest("[aria-hidden='true']")).not.toBeNull();

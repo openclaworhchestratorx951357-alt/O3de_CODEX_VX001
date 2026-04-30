@@ -1,7 +1,8 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
+import type { DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
+import CockpitSurfaceWorkspaceLayout from "./CockpitSurfaceWorkspaceLayout";
 import {
   getWorkspaceSurfaceGuide,
   getWorkspaceWindowGuide,
@@ -51,43 +52,23 @@ export default function RuntimeWorkspaceView({
         activeWindow.instructions,
         activeSurfaceGuide.instructions,
       )}
-      toolbar={(
-        <DesktopTabStrip
-          items={items}
-          activeItemId={activeSurfaceId}
-          onSelectItem={(surfaceId) => onSelectSurface(surfaceId as RuntimeSurfaceId)}
-        />
-      )}
     >
-      <div style={surfaceStackStyle}>
-        <div aria-hidden={activeSurfaceId !== "overview"} style={activeSurfaceId === "overview" ? visibleSurfaceStyle : hiddenSurfaceStyle}>
-          {overviewContent}
-        </div>
-        <div aria-hidden={activeSurfaceId !== "executors"} style={activeSurfaceId === "executors" ? visibleSurfaceStyle : hiddenSurfaceStyle}>
-          {executorsContent}
-        </div>
-        <div aria-hidden={activeSurfaceId !== "workspaces"} style={activeSurfaceId === "workspaces" ? visibleSurfaceStyle : hiddenSurfaceStyle}>
-          {workspacesContent}
-        </div>
-        <div aria-hidden={activeSurfaceId !== "governance"} style={activeSurfaceId === "governance" ? visibleSurfaceStyle : hiddenSurfaceStyle}>
-          {governanceContent}
-        </div>
-      </div>
+      <CockpitSurfaceWorkspaceLayout
+        cockpitId="runtime"
+        activeSurfaceId={activeSurfaceId}
+        items={items}
+        onSelectSurface={onSelectSurface}
+        activeSurfaceGuideChecklist={activeSurfaceGuide.instructions}
+        workAreaTitle="Runtime dominant work area"
+        workAreaSubtitle="Center runtime viewport for active surface operations and evidence"
+        summaryTitle="Runtime evidence and lane summary drawer"
+        surfaceContent={{
+          overview: overviewContent,
+          executors: executorsContent,
+          workspaces: workspacesContent,
+          governance: governanceContent,
+        }}
+      />
     </DesktopWindow>
   );
 }
-
-const surfaceStackStyle = {
-  display: "grid",
-  minWidth: 0,
-} satisfies CSSProperties;
-
-const visibleSurfaceStyle = {
-  display: "grid",
-  gap: 16,
-  minWidth: 0,
-} satisfies CSSProperties;
-
-const hiddenSurfaceStyle = {
-  display: "none",
-} satisfies CSSProperties;

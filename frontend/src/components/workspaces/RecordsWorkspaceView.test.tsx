@@ -38,8 +38,9 @@ describe("RecordsWorkspaceView", () => {
 
     expect(screen.getByText("Executions content")).toBeInTheDocument();
     expect(screen.getByText("How to use this workspace")).toBeInTheDocument();
-    expect(screen.getByText(/Treat this workspace as the closeout and handoff evidence source/i)).toBeInTheDocument();
-    expect(screen.getByText(/Use this tab when warnings or truth labels need review/i)).toBeInTheDocument();
+    expect(screen.getByTestId("dockable-layout-records")).toBeInTheDocument();
+    expect(screen.getAllByText(/Treat this workspace as the closeout and handoff evidence source/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Use this tab when warnings or truth labels need review/i).length).toBeGreaterThan(0);
     expect(screen.getByText("Runs content").closest("[aria-hidden='true']")).not.toBeNull();
     expect(screen.getByText("Artifacts content").closest("[aria-hidden='true']")).not.toBeNull();
   });

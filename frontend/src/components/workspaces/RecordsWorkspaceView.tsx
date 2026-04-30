@@ -1,7 +1,8 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 
-import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
+import type { DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
+import CockpitSurfaceWorkspaceLayout from "./CockpitSurfaceWorkspaceLayout";
 import {
   getWorkspaceSurfaceGuide,
   getWorkspaceWindowGuide,
@@ -47,43 +48,23 @@ export default function RecordsWorkspaceView({
         recordsExplorerWindow.instructions,
         activeSurfaceGuide.instructions,
       )}
-      toolbar={(
-        <DesktopTabStrip
-          items={items}
-          activeItemId={activeSurfaceId}
-          onSelectItem={(surfaceId) => onSelectSurface(surfaceId as RecordsSurfaceId)}
-        />
-      )}
     >
-      <div style={surfaceStackStyle}>
-        <div aria-hidden={activeSurfaceId !== "runs"} style={activeSurfaceId === "runs" ? visibleSurfaceStyle : hiddenSurfaceStyle}>
-          {runsContent}
-        </div>
-        <div aria-hidden={activeSurfaceId !== "executions"} style={activeSurfaceId === "executions" ? visibleSurfaceStyle : hiddenSurfaceStyle}>
-          {executionsContent}
-        </div>
-        <div aria-hidden={activeSurfaceId !== "artifacts"} style={activeSurfaceId === "artifacts" ? visibleSurfaceStyle : hiddenSurfaceStyle}>
-          {artifactsContent}
-        </div>
-        <div aria-hidden={activeSurfaceId !== "events"} style={activeSurfaceId === "events" ? visibleSurfaceStyle : hiddenSurfaceStyle}>
-          {eventsContent}
-        </div>
-      </div>
+      <CockpitSurfaceWorkspaceLayout
+        cockpitId="records"
+        activeSurfaceId={activeSurfaceId}
+        items={items}
+        onSelectSurface={onSelectSurface}
+        activeSurfaceGuideChecklist={activeSurfaceGuide.instructions}
+        workAreaTitle="Records dominant work area"
+        workAreaSubtitle="Center records viewport for active lane review and persisted evidence detail"
+        summaryTitle="Records lane summary drawer"
+        surfaceContent={{
+          runs: runsContent,
+          executions: executionsContent,
+          artifacts: artifactsContent,
+          events: eventsContent,
+        }}
+      />
     </DesktopWindow>
   );
 }
-
-const surfaceStackStyle = {
-  display: "grid",
-  minWidth: 0,
-} satisfies CSSProperties;
-
-const visibleSurfaceStyle = {
-  display: "grid",
-  gap: 16,
-  minWidth: 0,
-} satisfies CSSProperties;
-
-const hiddenSurfaceStyle = {
-  display: "none",
-} satisfies CSSProperties;

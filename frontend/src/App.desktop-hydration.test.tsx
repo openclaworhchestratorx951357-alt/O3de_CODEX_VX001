@@ -253,11 +253,13 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Catalog browsing, dispatch, approvals, and live timeline control.",
     ));
-    expect(await screen.findByText(
-      "Catalog, typed dispatch, and latest response envelope.",
-      {},
-      { timeout: LAZY_SURFACE_TIMEOUT_MS },
-    )).toBeInTheDocument();
+    expect((
+      await screen.findAllByText(
+        "Catalog, typed dispatch, and latest response envelope.",
+        {},
+        { timeout: LAZY_SURFACE_TIMEOUT_MS },
+      )
+    ).length).toBeGreaterThan(0);
 
     fireEvent.click(getDesktopTabButton(
       "Agents",
@@ -292,11 +294,13 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Catalog browsing, dispatch, approvals, and live timeline control.",
     ));
-    expect(await screen.findByText(
-      "Catalog, typed dispatch, and latest response envelope.",
-      {},
-      { timeout: LAZY_SURFACE_TIMEOUT_MS },
-    )).toBeInTheDocument();
+    expect((
+      await screen.findAllByText(
+        "Catalog, typed dispatch, and latest response envelope.",
+        {},
+        { timeout: LAZY_SURFACE_TIMEOUT_MS },
+      )
+    ).length).toBeGreaterThan(0);
 
     const approvalsSurfaceButton = getDesktopTabButton(
       "Approvals",
@@ -331,11 +335,13 @@ describe("App desktop hydration", () => {
     fireEvent.click(getLaunchpadButton(
       "Catalog browsing, dispatch, approvals, and live timeline control.",
     ));
-    expect(await screen.findByText(
-      "Catalog, typed dispatch, and latest response envelope.",
-      {},
-      { timeout: LAZY_SURFACE_TIMEOUT_MS },
-    )).toBeInTheDocument();
+    expect((
+      await screen.findAllByText(
+        "Catalog, typed dispatch, and latest response envelope.",
+        {},
+        { timeout: LAZY_SURFACE_TIMEOUT_MS },
+      )
+    ).length).toBeGreaterThan(0);
 
     const timelineSurfaceButton = getDesktopTabButton(
       "Timeline",
@@ -596,7 +602,7 @@ describe("App desktop hydration", () => {
 
       render(<App />);
 
-      expect(await screen.findByText(expectedVisibleText)).toBeInTheDocument();
+      expect((await screen.findAllByText(expectedVisibleText)).length).toBeGreaterThan(0);
       const defaultSurfaceButton = getDesktopTabButton(expectedTabLabel, expectedTabDetail);
 
       expect(window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY)).toBe(workspaceId);
@@ -620,7 +626,7 @@ describe("App desktop hydration", () => {
 
       render(<App />);
 
-      expect(await screen.findByText(expectedVisibleText)).toBeInTheDocument();
+      expect((await screen.findAllByText(expectedVisibleText)).length).toBeGreaterThan(0);
       const defaultSurfaceButton = getDesktopTabButton(expectedTabLabel, expectedTabDetail);
 
       expect(window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY)).toBe(workspaceId);

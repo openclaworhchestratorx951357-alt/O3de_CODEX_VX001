@@ -4,6 +4,8 @@ import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
 import GuidedAdvancedSection from "../GuidedAdvancedSection";
 import RecommendedActionsPanel from "../RecommendedActionsPanel";
+import DockableCockpitLayout from "../cockpits/DockableCockpitLayout";
+import type { CockpitPanelDefinition } from "../cockpits/cockpitLayoutTypes";
 import {
   getWorkspaceGuide,
   getWorkspaceWindowGuide,
@@ -103,6 +105,209 @@ export default function BuilderWorkspaceView({
             instructions: builderWorkspace.operatorChecklist,
           };
 
+  const activeSurfaceContent = activeSurfaceId === "start" ? (
+    <div style={builderSurfaceStackStyle}>
+      <div style={builderTwoPaneGridStyle}>
+        <DesktopWindow
+          variant="nested"
+          title={overviewWindow.title}
+          subtitle={overviewWindow.subtitle}
+          helpTooltip={overviewWindow.tooltip}
+          guideTitle="How to use this window"
+          guideChecklist={overviewWindow.instructions}
+        >
+          {overviewContent}
+        </DesktopWindow>
+        <DesktopWindow
+          variant="nested"
+          title={laneCreateWindow.title}
+          subtitle={laneCreateWindow.subtitle}
+          helpTooltip={laneCreateWindow.tooltip}
+          guideTitle="How to use this window"
+          guideChecklist={laneCreateWindow.instructions}
+        >
+          {laneCreateContent}
+        </DesktopWindow>
+      </div>
+      <GuidedAdvancedSection
+        guidedMode={guidedMode}
+        title="Worktree lane inventory"
+        description="Worktree inventory and branch details are still one click away, but guided mode keeps the first Builder screen focused on setup and recommendations."
+      >
+        <DesktopWindow
+          variant="nested"
+          title={worktreesWindow.title}
+          subtitle={worktreesWindow.subtitle}
+          helpTooltip={worktreesWindow.tooltip}
+          guideTitle="How to use this window"
+          guideChecklist={worktreesWindow.instructions}
+        >
+          {worktreesContent}
+        </DesktopWindow>
+      </GuidedAdvancedSection>
+    </div>
+  ) : activeSurfaceId === "mission-control" ? (
+    <DesktopWindow
+      variant="nested"
+      title={missionBoardWindow.title}
+      subtitle={missionBoardWindow.subtitle}
+      helpTooltip={missionBoardWindow.tooltip}
+    >
+      {missionBoardContent}
+    </DesktopWindow>
+  ) : activeSurfaceId === "active-lane" ? (
+    <div style={builderTwoPaneGridStyle}>
+      <DesktopWindow
+        variant="nested"
+        title={workerLifecycleWindow.title}
+        subtitle={workerLifecycleWindow.subtitle}
+        helpTooltip={workerLifecycleWindow.tooltip}
+        guideTitle="How to use this window"
+        guideChecklist={workerLifecycleWindow.instructions}
+      >
+        {workerLifecycleContent}
+      </DesktopWindow>
+      <DesktopWindow
+        variant="nested"
+        title={workerTerminalsWindow.title}
+        subtitle={workerTerminalsWindow.subtitle}
+        helpTooltip={workerTerminalsWindow.tooltip}
+        guideTitle="How to use this window"
+        guideChecklist={workerTerminalsWindow.instructions}
+      >
+        {terminalsContent}
+      </DesktopWindow>
+    </div>
+  ) : (
+    <DesktopWindow
+      variant="nested"
+      title={autonomyInboxWindow.title}
+      subtitle={autonomyInboxWindow.subtitle}
+      helpTooltip={autonomyInboxWindow.tooltip}
+    >
+      {autonomyInboxContent}
+    </DesktopWindow>
+  );
+
+  const cockpitPanels: CockpitPanelDefinition[] = [
+    {
+      id: "builder-command-strip",
+      title: "Builder command strip",
+      subtitle: "Top pipeline strip for surface selection",
+      truthState: "workspace routing",
+      defaultZone: "top",
+      collapsible: false,
+      scrollMode: "none",
+      priority: "tools",
+      minHeight: 96,
+      defaultHeight: 112,
+      render: () => (
+        <DesktopTabStrip
+          items={items}
+          activeItemId={activeSurfaceId}
+          onSelectItem={(surfaceId) => setActiveSurfaceId(surfaceId as BuilderSurfaceId)}
+        />
+      ),
+    },
+    {
+      id: "builder-tools-outliner",
+      title: "Builder tools and outliner",
+      subtitle: "Left lane for cockpit surface shortcuts and safe operator focus",
+      truthState: "read-only navigation",
+      defaultZone: "left",
+      collapsible: true,
+      scrollMode: "content",
+      priority: "tools",
+      minWidth: 260,
+      minHeight: 260,
+      defaultHeight: 360,
+      render: () => (
+        <section style={builderInfoStackStyle}>
+          {items.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setActiveSurfaceId(item.id as BuilderSurfaceId)}
+              style={{
+                ...builderNavButtonStyle,
+                ...(item.id === activeSurfaceId ? builderNavButtonActiveStyle : null),
+              }}
+            >
+              <strong>{item.label}</strong>
+              <span style={builderNavDetailStyle}>{item.detail}</span>
+            </button>
+          ))}
+        </section>
+      ),
+    },
+    {
+      id: "builder-main-work-area",
+      title: "Builder dominant work area",
+      subtitle: "Center workspace for lane setup, mission control, active lane operations, and autonomy inbox work",
+      truthState: "active surface",
+      defaultZone: "center",
+      collapsible: true,
+      scrollMode: "content",
+      priority: "primary",
+      minWidth: 560,
+      minHeight: 360,
+      defaultHeight: 580,
+      render: () => activeSurfaceContent,
+    },
+    {
+      id: "builder-inspector",
+      title: "Inspector and checklist",
+      subtitle: "Right lane for active surface details and operator guidance",
+      truthState: "status / guidance",
+      defaultZone: "right",
+      collapsible: true,
+      scrollMode: "content",
+      priority: "status",
+      minWidth: 300,
+      minHeight: 260,
+      defaultHeight: 340,
+      render: () => (
+        <section style={builderInfoStackStyle}>
+          <article style={builderInfoCardStyle}>
+            <strong>Active surface</strong>
+            <p style={builderInfoDetailStyle}>{activeSurface.title}</p>
+            <p style={builderInfoDetailStyle}>{activeSurface.subtitle}</p>
+            <p style={builderInfoDetailStyle}>
+              <strong>Tooltip:</strong> {activeSurface.tooltip}
+            </p>
+          </article>
+          <article style={builderInfoCardStyle}>
+            <strong>Checklist</strong>
+            <ul style={builderChecklistStyle}>
+              {activeSurface.instructions.map((instruction) => (
+                <li key={instruction}>{instruction}</li>
+              ))}
+            </ul>
+          </article>
+        </section>
+      ),
+    },
+    {
+      id: "builder-evidence-drawer",
+      title: "Recommendations and evidence drawer",
+      subtitle: "Bottom drawer for recommended actions and follow-up context",
+      truthState: "review / next action",
+      defaultZone: "bottom",
+      collapsible: true,
+      scrollMode: "content",
+      priority: "evidence",
+      minHeight: 180,
+      defaultHeight: 220,
+      render: () => (
+        <RecommendedActionsPanel
+          title="Builder recommendations"
+          description="Local coordination guidance based on current worker lanes, mission-board tasks, waiters, notifications, terminals, and Builder inbox state."
+          entries={recommendationEntries}
+        />
+      ),
+    },
+  ];
+
   return (
     <DesktopWindow
       title={activeSurface.title}
@@ -110,102 +315,19 @@ export default function BuilderWorkspaceView({
       helpTooltip={activeSurface.tooltip}
       guideTitle="How to use this workspace"
       guideChecklist={activeSurface.instructions}
-      toolbar={(
-        <DesktopTabStrip
-          items={items}
-          activeItemId={activeSurfaceId}
-          onSelectItem={(surfaceId) => setActiveSurfaceId(surfaceId as BuilderSurfaceId)}
-        />
-      )}
     >
-      <RecommendedActionsPanel
-        title="Builder recommendations"
-        description="Local coordination guidance based on current worker lanes, mission-board tasks, waiters, notifications, terminals, and Builder inbox state."
-        entries={recommendationEntries}
+      <DockableCockpitLayout
+        cockpitId="builder"
+        panels={cockpitPanels}
+        defaultPresetId="app-os-cockpit"
+        splitConstraints={{
+          leftMinWidth: 270,
+          centerMinWidth: 560,
+          rightMinWidth: 320,
+          mainMinHeight: 280,
+          bottomMinHeight: 180,
+        }}
       />
-      {activeSurfaceId === "start" ? (
-        <div style={builderSurfaceStackStyle}>
-          <div style={builderTwoPaneGridStyle}>
-            <DesktopWindow
-              variant="nested"
-              title={overviewWindow.title}
-              subtitle={overviewWindow.subtitle}
-              helpTooltip={overviewWindow.tooltip}
-              guideTitle="How to use this window"
-              guideChecklist={overviewWindow.instructions}
-            >
-              {overviewContent}
-            </DesktopWindow>
-            <DesktopWindow
-              variant="nested"
-              title={laneCreateWindow.title}
-              subtitle={laneCreateWindow.subtitle}
-              helpTooltip={laneCreateWindow.tooltip}
-              guideTitle="How to use this window"
-              guideChecklist={laneCreateWindow.instructions}
-            >
-              {laneCreateContent}
-            </DesktopWindow>
-          </div>
-          <GuidedAdvancedSection
-            guidedMode={guidedMode}
-            title="Worktree lane inventory"
-            description="Worktree inventory and branch details are still one click away, but guided mode keeps the first Builder screen focused on setup and recommendations."
-          >
-            <DesktopWindow
-              variant="nested"
-              title={worktreesWindow.title}
-              subtitle={worktreesWindow.subtitle}
-              helpTooltip={worktreesWindow.tooltip}
-              guideTitle="How to use this window"
-              guideChecklist={worktreesWindow.instructions}
-            >
-              {worktreesContent}
-            </DesktopWindow>
-          </GuidedAdvancedSection>
-        </div>
-      ) : activeSurfaceId === "mission-control" ? (
-        <DesktopWindow
-          variant="nested"
-          title={missionBoardWindow.title}
-          subtitle={missionBoardWindow.subtitle}
-          helpTooltip={missionBoardWindow.tooltip}
-        >
-          {missionBoardContent}
-        </DesktopWindow>
-      ) : activeSurfaceId === "active-lane" ? (
-        <div style={builderTwoPaneGridStyle}>
-          <DesktopWindow
-            variant="nested"
-            title={workerLifecycleWindow.title}
-            subtitle={workerLifecycleWindow.subtitle}
-            helpTooltip={workerLifecycleWindow.tooltip}
-            guideTitle="How to use this window"
-            guideChecklist={workerLifecycleWindow.instructions}
-          >
-            {workerLifecycleContent}
-          </DesktopWindow>
-          <DesktopWindow
-            variant="nested"
-            title={workerTerminalsWindow.title}
-            subtitle={workerTerminalsWindow.subtitle}
-            helpTooltip={workerTerminalsWindow.tooltip}
-            guideTitle="How to use this window"
-            guideChecklist={workerTerminalsWindow.instructions}
-          >
-            {terminalsContent}
-          </DesktopWindow>
-        </div>
-      ) : (
-        <DesktopWindow
-          variant="nested"
-          title={autonomyInboxWindow.title}
-          subtitle={autonomyInboxWindow.subtitle}
-          helpTooltip={autonomyInboxWindow.tooltip}
-        >
-          {autonomyInboxContent}
-        </DesktopWindow>
-      )}
     </DesktopWindow>
   );
 }
@@ -247,4 +369,59 @@ const builderTwoPaneGridStyle = {
   gap: 16,
   gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
   alignItems: "start",
+} satisfies CSSProperties;
+
+const builderInfoStackStyle = {
+  display: "grid",
+  gap: 10,
+} satisfies CSSProperties;
+
+const builderInfoCardStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 10,
+  background: "var(--app-panel-bg-alt)",
+  padding: "10px 11px",
+  display: "grid",
+  gap: 8,
+} satisfies CSSProperties;
+
+const builderInfoDetailStyle = {
+  margin: 0,
+  fontSize: 12,
+  color: "var(--app-subtle-color)",
+  overflowWrap: "anywhere",
+} satisfies CSSProperties;
+
+const builderChecklistStyle = {
+  margin: 0,
+  paddingLeft: 18,
+  display: "grid",
+  gap: 6,
+  fontSize: 12,
+  color: "var(--app-subtle-color)",
+} satisfies CSSProperties;
+
+const builderNavButtonStyle = {
+  borderWidth: 1,
+  borderStyle: "solid",
+  borderColor: "var(--app-panel-border)",
+  borderRadius: 10,
+  background: "var(--app-panel-bg-alt)",
+  color: "var(--app-text-color)",
+  display: "grid",
+  gap: 4,
+  textAlign: "left",
+  padding: "10px 11px",
+  cursor: "pointer",
+} satisfies CSSProperties;
+
+const builderNavButtonActiveStyle = {
+  borderColor: "color-mix(in srgb, var(--app-accent) 48%, var(--app-panel-border))",
+  boxShadow: "0 0 0 2px color-mix(in srgb, var(--app-accent) 24%, transparent)",
+} satisfies CSSProperties;
+
+const builderNavDetailStyle = {
+  fontSize: 12,
+  color: "var(--app-subtle-color)",
+  overflowWrap: "anywhere",
 } satisfies CSSProperties;
