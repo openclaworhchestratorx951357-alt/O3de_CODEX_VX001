@@ -51,5 +51,5 @@ Status taxonomy vocabulary aligned in this shell:
 
 ## Recommended next packet
 
-Validation workflow hold-boundary long-hold checkpoint packet
-(`codex/validation-workflow-hold-boundary-long-hold-checkpoint-packet`).
+Approval/session dashboard baseline audit
+(`codex/approval-session-dashboard-baseline-audit`).

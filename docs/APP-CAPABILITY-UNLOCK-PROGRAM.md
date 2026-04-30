@@ -901,7 +901,7 @@ Why:
   proof linkage
 - advances validation confidence without broadening runtime admission
 
-### BX. Validation Workflow Hold-boundary Long-hold Checkpoint Packet
+### BX. Validation Workflow Hold-boundary Long-hold Checkpoint Packet (completed)
 Why:
 - validation workflow hold-boundary release-readiness decision packet is now
   complete and stable
@@ -910,6 +910,15 @@ Why:
   remains intact under explicit long-hold handoff wording and
   boundary-preservation proof linkage
 - advances validation confidence without broadening runtime admission
+
+### BY. Approval/session Dashboard Baseline Audit
+Why:
+- validation workflow hold-boundary long-hold checkpoint packet is now complete
+  and stable
+- next highest-value operator UX lane is explicit approval/session dashboard
+  baseline truth audit so server-owned authorization and validation-hold
+  semantics remain deterministic across app-wide shell recommendation surfaces
+- advances operator clarity without broadening runtime admission
 
 ## What stays blocked globally
 - arbitrary shell execution

@@ -19,6 +19,16 @@ export const appEvidenceTimelineFixtureGeneratedAt = "2026-05-01";
 
 export const appEvidenceTimelineRows: readonly AppEvidenceTimelineRow[] = [
   {
+    recordedAtUtc: "2026-05-01T00:00:28Z",
+    domain: "Validation",
+    evidenceLane: "validation workflow hold-boundary long-hold checkpoint packet",
+    capabilityWindow: "TIAF/preflight + real CI/test execution held-lane long-hold stream handoff checkpoint",
+    truthLabel: "plan-only",
+    summary:
+      "Validation workflow hold-boundary long-hold checkpoint now verifies deterministic held-lane release-readiness hold/no-go posture remains intact under explicit held-lane long-hold stream-handoff wording and boundary-preservation linkage for TIAF/preflight and real CI/test execution across recommendation surfaces and timeline summaries while preserving non-admitting no-broadening posture.",
+    reviewStatus: "pass-validation-workflow-hold-boundary-long-hold-checkpoint-packet",
+  },
+  {
     recordedAtUtc: "2026-05-01T00:00:27Z",
     domain: "Validation",
     evidenceLane: "validation workflow hold-boundary release-readiness decision packet",

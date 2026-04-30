@@ -711,6 +711,11 @@ rounding up capability claims.
   `TIAF/preflight` and real CI/test execution across recommendation surfaces
   and timeline summaries, then rolls app-wide focus to the validation workflow
   hold-boundary long-hold checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-LONG-HOLD-CHECKPOINT-PACKET.md`
+  records held-lane long-hold stream-handoff checkpoint evidence for
+  `TIAF/preflight` and real CI/test execution across recommendation surfaces
+  and timeline summaries, then rolls app-wide focus to the approval/session
+  dashboard baseline audit packet.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof

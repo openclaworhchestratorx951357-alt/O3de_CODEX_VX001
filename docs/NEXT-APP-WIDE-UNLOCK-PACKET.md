@@ -1,14 +1,13 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Validation workflow hold-boundary long-hold checkpoint packet
-(`codex/validation-workflow-hold-boundary-long-hold-checkpoint-packet`).
+Approval/session dashboard baseline audit
+(`codex/approval-session-dashboard-baseline-audit`).
 
 ## Why this is next
-- Validation workflow hold-boundary release-readiness decision packet is now
-  complete with deterministic held-lane self-management posture checkpointing
-  under explicit held-lane hold/no-go decision wording and
-  boundary-preservation release-readiness proof linkage.
+- Validation workflow hold-boundary long-hold checkpoint packet is now complete
+  with deterministic held-lane stream-handoff posture checkpointing under
+  explicit long-hold wording and boundary-preservation linkage.
 - Validation workflow index + drift-guard + quick-reference + command-evidence
   + hold-boundary consistency + hold-boundary examples + wording-audit
   + review-status parity + taxonomy + chronology + progression-integrity
@@ -20,7 +19,8 @@ Validation workflow hold-boundary long-hold checkpoint packet
   + usability + accessibility + inclusivity + equity + fairness + impartiality
   + neutrality + objectivity + nonpartisanship + independence + autonomy
   + self-governance + self-determination + agency + self-authorship + self-direction
-  + self-command + self-management + release-readiness decision
+  + self-command + self-management + release-readiness decision + long-hold
+  stream handoff
   checkpoints now
   keep
   deterministic command, wording, status-token, truth-label, timeline-ordering,
@@ -33,19 +33,18 @@ Validation workflow hold-boundary long-hold checkpoint packet
   unchanged.
 - Build execution and rollback hold/no-go posture remain explicit.
 - Placement/provider/Blender/Asset Processor broadening remains held.
-- The next highest-value app-wide gap is focused held-lane long-hold stream
-  handoff checkpointing so release-readiness hold/no-go posture remains
-  deterministic under explicit long-hold handoff wording and
-  boundary-preservation proof language.
+- The next highest-value app-wide gap is approval/session dashboard baseline
+  parity so operator-visible authorization and validation-hold wording remain
+  deterministic under explicit server-owned gate-state truth language.
 
 ## Scope
-- produce a focused Validation workflow hold-boundary long-hold checkpoint
+- produce a focused approval/session dashboard baseline audit packet
+- audit approval/session dashboard fixture truth for server-owned authorization,
+  fail-closed gate-state semantics, and validation-hold linkage wording
+- preserve explicit non-authorizing client-field posture across dashboard
+  surfaces
+- keep recommendation surfaces aligned to the approval/session baseline audit
   packet
-- audit held-lane long-hold stream handoff parity for `TIAF/preflight` and
-  real CI/test execution across recommendation surfaces and timeline summaries
-- preserve explicit non-admitting and no-runtime-mutation posture across held
-  validation lanes
-- keep recommendation surfaces aligned to the long-hold checkpoint packet
 - preserve no-touch runtime zones and no-broadening posture
 
 ## Safety constraints
@@ -61,10 +60,10 @@ Validation workflow hold-boundary long-hold checkpoint packet
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- held-lane long-hold stream handoff parity for `TIAF/preflight` and real
-  CI/test execution remains deterministic and aligned across app-wide shell
-  recommendation surfaces and timeline summaries while preserving explicit
-  release-readiness hold/no-go posture
+- approval/session dashboard baseline wording parity remains deterministic and
+  aligned across app-wide shell recommendation surfaces and timeline summaries
+  while preserving explicit server-owned gate-state truth and non-authorizing
+  client-field semantics
 - canonical validation command set, command-to-evidence ownership,
   hold-boundary consistency checkpoints, operator-safe examples, wording
   audit, review-status parity, taxonomy, chronology, progression-integrity,
@@ -77,7 +76,8 @@ Validation workflow hold-boundary long-hold checkpoint packet
   nonpartisanship, independence, autonomy, self-governance,
   self-determination, agency, self-authorship, self-direction, self-command,
   self-management, release-readiness decision, and long-hold stream handoff
-  checkpoints remain explicit and unchanged
+  checkpoints remain explicit and unchanged while approval/session baseline
+  wording remains aligned
 - editor restore/readback hold boundaries remain explicit
 - Flow Trigger runtime-admission hold posture remains explicit and unchanged
 - blocked and hold/no-go boundaries remain explicit in app-wide recommendation
@@ -86,9 +86,9 @@ Validation workflow hold-boundary long-hold checkpoint packet
 - docs remain aligned with runtime/test truth
 
 ## Alternative considered
-Direct CI/runtime admission broadening without first checkpointing deterministic
-held-lane long-hold stream-handoff parity under explicit release-readiness
-hold/no-go wording consistency checks.
+Direct approval/session dashboard broadening without first checkpointing
+deterministic baseline parity under explicit server-owned gate-state truth and
+non-authorizing client-field wording consistency checks.
 
 This remains deferred for safety. Keep hold posture explicit first, then
 consider any future admission revisit.

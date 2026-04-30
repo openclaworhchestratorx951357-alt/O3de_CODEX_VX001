@@ -424,6 +424,24 @@ Release-readiness invariant:
   wording, timeline evidence rows, recommendation surfaces, and linked fixture
   assertions together.
 
+Held-lane long-hold checkpoints:
+
+| Held lane checkpoint evidence | Canonical long-hold posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary long-hold checkpoint packet` | deterministic release-readiness hold/no-go posture remains intact under explicit long-hold stream-handoff wording and boundary-preservation linkage | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through long-hold checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through long-hold checkpoint rollovers | timeline summaries + fixture tests |
+
+Long-hold invariant:
+
+- held-lane long-hold stream-handoff posture must remain deterministic
+  (release-readiness hold/no-go posture preserved under explicit long-hold
+  wording and boundary-preservation linkage) across recommendation surfaces and
+  timeline summaries while preserving downstream `TIAF/preflight` and real
+  CI/test long-hold posture, unless a dedicated packet updates matrix wording,
+  timeline evidence rows, recommendation surfaces, and linked fixture
+  assertions together.
+
 ## Docs And Repo Hygiene
 
 | Change type | Recommended validation | Proves | Does not prove |

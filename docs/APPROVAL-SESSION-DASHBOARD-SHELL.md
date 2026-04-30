@@ -71,8 +71,8 @@ broadened.
 
 ## Recommended next packet
 
-Validation workflow hold-boundary long-hold checkpoint packet
-(`codex/validation-workflow-hold-boundary-long-hold-checkpoint-packet`):
+Approval/session dashboard baseline audit
+(`codex/approval-session-dashboard-baseline-audit`):
 
 - keep CI/test long-hold checkpoint wording aligned with the existing
   fail-closed approval/session boundary model

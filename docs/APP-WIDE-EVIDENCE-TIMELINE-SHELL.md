@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Validation workflow hold-boundary long-hold checkpoint packet
-(`codex/validation-workflow-hold-boundary-long-hold-checkpoint-packet`):
+Approval/session dashboard baseline audit
+(`codex/approval-session-dashboard-baseline-audit`):
 
 - keep CI/test execution long-hold checkpoint posture explicit while preserving
   no-admission timeline truth
