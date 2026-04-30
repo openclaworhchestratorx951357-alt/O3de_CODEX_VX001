@@ -19,6 +19,16 @@ export const appEvidenceTimelineFixtureGeneratedAt = "2026-05-01";
 
 export const appEvidenceTimelineRows: readonly AppEvidenceTimelineRow[] = [
   {
+    recordedAtUtc: "2026-05-01T00:00:32Z",
+    domain: "GUI",
+    evidenceLane: "approval/session dashboard truth refresh + validation linkage packet",
+    capabilityWindow: "approval/session shell + validation-hold truth linkage refresh checkpoint",
+    truthLabel: "demo",
+    summary:
+      "Approval/session dashboard truth-refresh linkage checkpoint now verifies deterministic server-owned authorization truth, fail-closed validation-hold review semantics, and non-authorizing client-field posture remain aligned across shell, timeline, and recommendation surfaces while preserving non-admitting runtime boundaries.",
+    reviewStatus: "pass-approval-session-dashboard-truth-refresh-validation-linkage-packet",
+  },
+  {
     recordedAtUtc: "2026-05-01T00:00:31Z",
     domain: "GUI",
     evidenceLane: "approval/session dashboard shell static-fixture-first packet",

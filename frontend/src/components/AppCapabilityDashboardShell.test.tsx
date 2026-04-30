@@ -32,6 +32,6 @@ describe("AppCapabilityDashboardShell", () => {
     expect(screen.getAllByText("hold-default-off").length).toBeGreaterThan(0);
     expect(screen.getAllByText("blocked").length).toBeGreaterThan(0);
 
-    expect(screen.getByText("Approval/session dashboard truth refresh + validation linkage", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("App-wide evidence timeline shell + approval/validation linkage audit", { selector: "strong" })).toBeInTheDocument();
   });
 });

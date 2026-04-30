@@ -949,13 +949,23 @@ Why:
   client-field semantics
 - advances operator clarity without broadening runtime admission
 
-### CC. Approval/session Dashboard Truth Refresh + Validation Linkage
+### CC. Approval/session Dashboard Truth Refresh + Validation Linkage (completed)
 Why:
 - approval/session dashboard shell (static fixture first) packet is now
   complete and stable
 - next highest-value operator UX lane is explicit truth-refresh linkage
   checkpointing so approval/session and validation-hold review wording remains
   deterministic across shell, timeline, and recommendation surfaces
+- advances operator clarity without broadening runtime admission
+
+### CD. App-wide Evidence Timeline Shell + Approval/validation Linkage Audit
+Why:
+- approval/session dashboard truth refresh + validation linkage packet is now
+  complete and stable
+- next highest-value operator UX lane is explicit evidence-timeline linkage
+  audit checkpointing so approval/session and validation hold-state chronology
+  remains deterministic across cross-domain timeline and recommendation
+  surfaces
 - advances operator clarity without broadening runtime admission
 
 ## What stays blocked globally

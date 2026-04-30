@@ -71,8 +71,8 @@ broadened.
 
 ## Recommended next packet
 
-Approval/session dashboard truth refresh + validation linkage
-(`codex/approval-session-dashboard-truth-refresh-validation-linkage`):
+App-wide evidence timeline shell + approval/validation linkage audit
+(`codex/app-wide-evidence-timeline-shell-approval-validation-linkage-audit`):
 
 - keep server-owned authorization and fail-closed gate-state wording aligned
   with the existing approval/session boundary model across baseline/shell

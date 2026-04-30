@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Approval/session dashboard truth refresh + validation linkage
-(`codex/approval-session-dashboard-truth-refresh-validation-linkage`):
+App-wide evidence timeline shell + approval/validation linkage audit
+(`codex/app-wide-evidence-timeline-shell-approval-validation-linkage-audit`):
 
 - keep approval/session baseline + shell + timeline wording aligned under
   server-owned authorization truth and fail-closed gate-state semantics
