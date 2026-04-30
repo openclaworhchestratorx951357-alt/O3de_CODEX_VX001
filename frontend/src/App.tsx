@@ -7502,6 +7502,110 @@ export default function App() {
     );
   }
 
+  function renderPromptHandoffContextCard(
+    draftRequest: PromptLaunchDraftRequest,
+  ): JSX.Element {
+    const sourceWorkspaceId = draftRequest.sourceWorkspaceId ?? null;
+    const sourceWorkspaceLabel = sourceWorkspaceId
+      ? workspaceMeta[sourceWorkspaceId].title
+      : "Unknown source workspace";
+    const launchedAtIso = draftRequest.launchedAtIso?.trim() || "unknown";
+    const sourceSurfaceLabel = draftRequest.sourceSurfaceLabel?.trim() || "unknown source surface";
+    const truthLabels = draftRequest.draft.truthLabels.length > 0
+      ? draftRequest.draft.truthLabels.join(", ")
+      : "unknown";
+
+    return (
+      <section
+        aria-label="Prompt handoff context card"
+        style={{
+          marginBottom: 14,
+          border: "1px solid rgba(84, 177, 122, 0.55)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(22, 47, 35, 0.95), rgba(18, 32, 44, 0.95))",
+          boxShadow: "0 10px 26px rgba(6, 15, 23, 0.32)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 10,
+        }}
+      >
+        <div style={{ display: "grid", gap: 4 }}>
+          <span
+            style={{
+              fontSize: 12,
+              letterSpacing: 0.3,
+              textTransform: "uppercase",
+              color: "rgba(159, 226, 191, 0.95)",
+              fontWeight: 700,
+            }}
+          >
+            Prompt handoff context
+          </span>
+          <strong style={{ color: "var(--app-text-color)" }}>
+            Loaded mission draft: {draftRequest.draft.label}
+          </strong>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 8,
+            color: "var(--app-subtle-color)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Source workspace: <strong>{sourceWorkspaceLabel}</strong>
+          </span>
+          <span>
+            Source handoff: <strong>{sourceSurfaceLabel}</strong>
+          </span>
+          <span>
+            Truth labels: <strong>{truthLabels}</strong>
+          </span>
+          <span>
+            Prefill launched (ISO): <strong>{launchedAtIso}</strong>
+          </span>
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Safety: this handoff only prefills Prompt Studio. No preview or execution is automatic, and blocked corridors remain blocked.
+        </p>
+        <p style={{ margin: 0, color: "var(--app-text-color)", fontSize: 13 }}>
+          Guidance: {draftRequest.draft.guidance}
+        </p>
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              if (sourceWorkspaceId) {
+                returnToSourceWorkspaceFromPrompt(sourceWorkspaceId);
+              }
+            }}
+            disabled={!sourceWorkspaceId}
+          >
+            Return to source cockpit
+          </button>
+          <button type="button" onClick={openRecordsRuns}>
+            Open Records
+          </button>
+          <button type="button" onClick={openRuntimeOverview}>
+            Open Runtime Overview
+          </button>
+          <button type="button" onClick={() => setPromptLaunchDraftRequest(null)}>
+            Clear handoff context
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   const renderOperationsWorkspace = () => (
     <Suspense
       fallback={renderWorkspaceLoadingFallback(
@@ -7748,6 +7852,9 @@ export default function App() {
         ) : null}
         {activePromptReturnResumeChecklist ? (
           renderPromptReturnResumeChecklist(activePromptReturnResumeChecklist)
+        ) : null}
+        {activeWorkspaceId === "prompt" && promptLaunchDraftRequest ? (
+          renderPromptHandoffContextCard(promptLaunchDraftRequest)
         ) : null}
 
         {activeWorkspaceId === "home" ? (
