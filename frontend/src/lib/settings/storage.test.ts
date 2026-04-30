@@ -21,6 +21,7 @@ describe("settings storage", () => {
     expect(profile.version).toBe(1);
     expect(profile.settings.appearance.themeMode).toBe("system");
     expect(profile.settings.layout.preferredLandingSection).toBe("home");
+    expect(profile.settings.layout.workspaceTreeDefaultMode).toBe("auto");
     expect(profile.settings.layout.guidedMode).toBe(true);
     expect(profile.settings.layout.guidedTourCompleted).toBe(false);
   });
@@ -38,6 +39,7 @@ describe("settings storage", () => {
       },
       layout: {
         preferredLandingSection: "runtime",
+        workspaceTreeDefaultMode: "auto",
         showDesktopTelemetry: false,
         guidedMode: false,
         guidedTourCompleted: true,
@@ -57,6 +59,7 @@ describe("settings storage", () => {
 
     expect(profile.settings.appearance.themeMode).toBe("dark");
     expect(profile.settings.layout.preferredLandingSection).toBe("runtime");
+    expect(profile.settings.layout.workspaceTreeDefaultMode).toBe("auto");
     expect(profile.settings.layout.guidedMode).toBe(false);
     expect(profile.settings.layout.guidedTourCompleted).toBe(true);
     expect(profile.settings.operatorDefaults.timeoutSeconds).toBe(90);
@@ -82,6 +85,7 @@ describe("settings storage", () => {
     expect(profile.settings.appearance.themeMode).toBe("dark");
     expect(profile.settings.appearance.density).toBe("comfortable");
     expect(profile.settings.layout.preferredLandingSection).toBe("records");
+    expect(profile.settings.layout.workspaceTreeDefaultMode).toBe("auto");
     expect(profile.settings.layout.guidedMode).toBe(true);
     expect(profile.settings.layout.guidedTourCompleted).toBe(false);
   });
@@ -99,6 +103,7 @@ describe("settings storage", () => {
       },
       layout: {
         preferredLandingSection: "runtime",
+        workspaceTreeDefaultMode: "auto",
         showDesktopTelemetry: false,
         guidedMode: false,
         guidedTourCompleted: true,
@@ -141,6 +146,7 @@ describe("settings storage", () => {
       },
       layout: {
         preferredLandingSection: "operations",
+        workspaceTreeDefaultMode: "auto",
         showDesktopTelemetry: true,
         guidedMode: false,
         guidedTourCompleted: true,

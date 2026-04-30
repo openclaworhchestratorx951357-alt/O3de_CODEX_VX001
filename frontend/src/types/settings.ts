@@ -7,6 +7,7 @@ export const THEME_MODE_VALUES = ["light", "dark", "system"] as const;
 export const DENSITY_VALUES = ["comfortable", "compact"] as const;
 export const CONTENT_MAX_WIDTH_VALUES = ["focused", "wide", "full"] as const;
 export const CARD_RADIUS_VALUES = ["soft", "rounded", "pillowed"] as const;
+export const WORKSPACE_TREE_DEFAULT_MODE_VALUES = ["auto", "grouped", "all"] as const;
 export const LANDING_SECTION_VALUES = [
   "home",
   "asset-forge",
@@ -30,6 +31,7 @@ export type ThemeMode = (typeof THEME_MODE_VALUES)[number];
 export type DensityMode = (typeof DENSITY_VALUES)[number];
 export type ContentMaxWidth = (typeof CONTENT_MAX_WIDTH_VALUES)[number];
 export type CardRadiusMode = (typeof CARD_RADIUS_VALUES)[number];
+export type WorkspaceTreeDefaultMode = (typeof WORKSPACE_TREE_DEFAULT_MODE_VALUES)[number];
 export type LandingSection = (typeof LANDING_SECTION_VALUES)[number];
 
 export type AppearanceSettings = {
@@ -44,6 +46,7 @@ export type AppearanceSettings = {
 
 export type LayoutSettings = {
   preferredLandingSection: LandingSection;
+  workspaceTreeDefaultMode: WorkspaceTreeDefaultMode;
   showDesktopTelemetry: boolean;
   guidedMode: boolean;
   guidedTourCompleted: boolean;

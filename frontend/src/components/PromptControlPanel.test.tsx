@@ -671,6 +671,7 @@ const waitingSession: PromptSessionRecord = {
         },
         layout: {
           preferredLandingSection: "prompt",
+          workspaceTreeDefaultMode: "auto",
           showDesktopTelemetry: true,
           guidedMode: true,
           guidedTourCompleted: true,

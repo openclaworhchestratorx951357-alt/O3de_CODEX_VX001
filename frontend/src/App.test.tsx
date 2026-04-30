@@ -957,6 +957,7 @@ describe("App desktop smoke", () => {
         },
         layout: {
           preferredLandingSection: "prompt",
+          workspaceTreeDefaultMode: "auto",
           showDesktopTelemetry: false,
           guidedMode: true,
           guidedTourCompleted: true,

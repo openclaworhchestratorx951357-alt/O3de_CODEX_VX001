@@ -10,6 +10,7 @@ import type {
   OperatorDefaultsSettings,
   SettingsProfile,
   ThemeMode,
+  WorkspaceTreeDefaultMode,
 } from "../../types/settings";
 import {
   CARD_RADIUS_VALUES,
@@ -19,6 +20,7 @@ import {
   LOCK_NAME_VALUES,
   SETTINGS_PROFILE_VERSION,
   THEME_MODE_VALUES,
+  WORKSPACE_TREE_DEFAULT_MODE_VALUES,
 } from "../../types/settings";
 import { createDefaultSettings, createSettingsProfile } from "./defaults";
 
@@ -56,6 +58,12 @@ function sanitizeLandingSection(value: unknown): LandingSection {
   return isOneOf(value, LANDING_SECTION_VALUES)
     ? value
     : createDefaultSettings().layout.preferredLandingSection;
+}
+
+function sanitizeWorkspaceTreeDefaultMode(value: unknown): WorkspaceTreeDefaultMode {
+  return isOneOf(value, WORKSPACE_TREE_DEFAULT_MODE_VALUES)
+    ? value
+    : createDefaultSettings().layout.workspaceTreeDefaultMode;
 }
 
 function sanitizeBoolean(value: unknown, fallback: boolean): boolean {
@@ -131,6 +139,7 @@ export function normalizeSettings(input?: DeepPartial<AppSettings> | null): AppS
 
   const layout: LayoutSettings = {
     preferredLandingSection: sanitizeLandingSection(layoutInput.preferredLandingSection),
+    workspaceTreeDefaultMode: sanitizeWorkspaceTreeDefaultMode(layoutInput.workspaceTreeDefaultMode),
     showDesktopTelemetry: sanitizeBoolean(
       layoutInput.showDesktopTelemetry,
       defaults.layout.showDesktopTelemetry,

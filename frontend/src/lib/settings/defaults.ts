@@ -16,6 +16,7 @@ export function createDefaultSettings(): AppSettings {
     },
     layout: {
       preferredLandingSection: "home",
+      workspaceTreeDefaultMode: "auto",
       showDesktopTelemetry: true,
       guidedMode: true,
       guidedTourCompleted: false,

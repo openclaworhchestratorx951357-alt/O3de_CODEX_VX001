@@ -86,6 +86,7 @@ describe("SettingsProvider", () => {
         },
         layout: {
           preferredLandingSection: "runtime",
+          workspaceTreeDefaultMode: "auto",
           showDesktopTelemetry: true,
           guidedMode: true,
           guidedTourCompleted: true,
@@ -132,6 +133,7 @@ describe("SettingsProvider", () => {
         },
         layout: {
           preferredLandingSection: "home",
+          workspaceTreeDefaultMode: "auto",
           showDesktopTelemetry: true,
           guidedMode: true,
           guidedTourCompleted: true,

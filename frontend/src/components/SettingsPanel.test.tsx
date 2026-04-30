@@ -208,4 +208,18 @@ describe("SettingsPanel", () => {
     expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"guidedMode":true');
     expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"guidedTourCompleted":false');
   });
+
+  it("saves the workspace tree default view mode from layout settings", () => {
+    render(
+      <SettingsProvider>
+        <SettingsPanel />
+      </SettingsProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    fireEvent.change(screen.getByLabelText("Workspace tree default view"), { target: { value: "all" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Settings" }));
+
+    expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain('"workspaceTreeDefaultMode":"all"');
+  });
 });

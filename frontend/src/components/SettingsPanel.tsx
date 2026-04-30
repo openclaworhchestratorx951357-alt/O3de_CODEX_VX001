@@ -12,6 +12,7 @@ import {
   LANDING_SECTION_VALUES,
   LOCK_NAME_VALUES,
   THEME_MODE_VALUES,
+  WORKSPACE_TREE_DEFAULT_MODE_VALUES,
 } from "../types/settings";
 
 function formatFieldLabel(value: string): string {
@@ -33,6 +34,17 @@ function formatThemeToggleLabel(value: AppSettings["appearance"]["themeMode"]): 
 
 function formatGuidedModeToggleLabel(value: boolean): string {
   return value ? "Guided" : "Advanced";
+}
+
+function formatWorkspaceTreeDefaultModeLabel(value: AppSettings["layout"]["workspaceTreeDefaultMode"]): string {
+  switch (value) {
+    case "auto":
+      return "Auto (small screens open All apps)";
+    case "grouped":
+      return "Grouped";
+    case "all":
+      return "All apps";
+  }
 }
 
 function parseLocks(value: string): AppSettings["operatorDefaults"]["locks"] {
@@ -492,6 +504,27 @@ export default function SettingsPanel({
                   >
                     {LANDING_SECTION_VALUES.map((value) => (
                       <option key={value} value={value}>{formatFieldLabel(value)}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label style={fieldStyle}>
+                  Workspace tree default view
+                  <select
+                    value={draft.layout.workspaceTreeDefaultMode}
+                    onChange={(event) => updateDraft({
+                      ...draft,
+                      layout: {
+                        ...draft.layout,
+                        workspaceTreeDefaultMode: event.target.value as AppSettings["layout"]["workspaceTreeDefaultMode"],
+                      },
+                    })}
+                    style={inputStyle}
+                  >
+                    {WORKSPACE_TREE_DEFAULT_MODE_VALUES.map((value) => (
+                      <option key={value} value={value}>
+                        {formatWorkspaceTreeDefaultModeLabel(value)}
+                      </option>
                     ))}
                   </select>
                 </label>

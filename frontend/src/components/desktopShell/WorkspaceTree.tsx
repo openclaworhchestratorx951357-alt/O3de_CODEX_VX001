@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
+import { useSettings } from "../../lib/settings/hooks";
+import type { WorkspaceTreeDefaultMode } from "../../types/settings";
 import { toneStyles } from "./sharedStyles";
 import type { DesktopShellNavSection } from "./types";
 
@@ -14,6 +16,7 @@ type WorkspaceTreeProps = {
 type WorkspaceTreeViewMode = "grouped" | "all";
 
 const WORKSPACE_TREE_VIEW_MODE_SESSION_KEY = "o3de.app.workspaceTree.viewMode.v1";
+const SMALL_HEIGHT_ALL_APPS_THRESHOLD_PX = 720;
 
 function readPersistedWorkspaceTreeViewMode(): WorkspaceTreeViewMode | null {
   if (typeof window === "undefined") {
@@ -32,6 +35,20 @@ function readPersistedWorkspaceTreeViewMode(): WorkspaceTreeViewMode | null {
   return null;
 }
 
+function resolveWorkspaceTreeDefaultViewMode(
+  configuredDefaultMode: WorkspaceTreeDefaultMode,
+): WorkspaceTreeViewMode {
+  if (configuredDefaultMode === "grouped" || configuredDefaultMode === "all") {
+    return configuredDefaultMode;
+  }
+
+  if (typeof window !== "undefined" && window.innerHeight <= SMALL_HEIGHT_ALL_APPS_THRESHOLD_PX) {
+    return "all";
+  }
+
+  return "grouped";
+}
+
 export default function WorkspaceTree({
   activeWorkspaceId,
   activeNavItemId,
@@ -39,6 +56,8 @@ export default function WorkspaceTree({
   workspaceTitle,
   onSelectWorkspace,
 }: WorkspaceTreeProps) {
+  const { settings } = useSettings();
+  const workspaceTreeDefaultMode = settings.layout.workspaceTreeDefaultMode;
   const currentNavItemId = activeNavItemId ?? activeWorkspaceId;
   const activeNavItem = navSections
     .flatMap((section) => section.items)
@@ -60,7 +79,8 @@ export default function WorkspaceTree({
   );
   const [expandedSectionIds, setExpandedSectionIds] = useState<string[]>(allSectionIds);
   const [viewMode, setViewMode] = useState<WorkspaceTreeViewMode>(() => (
-    readPersistedWorkspaceTreeViewMode() ?? "grouped"
+    readPersistedWorkspaceTreeViewMode()
+    ?? resolveWorkspaceTreeDefaultViewMode(workspaceTreeDefaultMode)
   ));
 
   useEffect(() => {
@@ -81,6 +101,14 @@ export default function WorkspaceTree({
       // Session persistence is best-effort only; tree behavior must remain usable without storage.
     }
   }, [viewMode]);
+
+  useEffect(() => {
+    const persistedViewMode = readPersistedWorkspaceTreeViewMode();
+    if (persistedViewMode) {
+      return;
+    }
+    setViewMode(resolveWorkspaceTreeDefaultViewMode(workspaceTreeDefaultMode));
+  }, [workspaceTreeDefaultMode]);
 
   function toggleNavSection(sectionId: string) {
     setExpandedSectionIds((currentSectionIds) => {
@@ -104,7 +132,7 @@ export default function WorkspaceTree({
   }
 
   function resetNavDefaults() {
-    setViewMode("grouped");
+    setViewMode(resolveWorkspaceTreeDefaultViewMode(workspaceTreeDefaultMode));
     setExpandedSectionIds(allSectionIds);
     try {
       window.sessionStorage.removeItem(WORKSPACE_TREE_VIEW_MODE_SESSION_KEY);

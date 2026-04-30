@@ -192,6 +192,7 @@ describe("DesktopShell", () => {
         },
         layout: {
           preferredLandingSection: "home",
+          workspaceTreeDefaultMode: "auto",
           showDesktopTelemetry: true,
           guidedMode: true,
           guidedTourCompleted: true,
@@ -354,5 +355,137 @@ describe("DesktopShell", () => {
     );
 
     expect(screen.getByRole("button", { name: "Expand all workspace groups" })).not.toBeDisabled();
+  });
+
+  it("uses the settings-configured workspace tree default mode when no session override exists", () => {
+    window.localStorage.setItem(
+      SETTINGS_PROFILE_STORAGE_KEY,
+      JSON.stringify(createSettingsProfile({
+        appearance: {
+          themeMode: "system",
+          accentColor: DEFAULT_ACCENT_COLOR,
+          density: "comfortable",
+          contentMaxWidth: "wide",
+          cardRadius: "rounded",
+          reducedMotion: false,
+          fontScale: 1,
+        },
+        layout: {
+          preferredLandingSection: "home",
+          workspaceTreeDefaultMode: "all",
+          showDesktopTelemetry: true,
+          guidedMode: true,
+          guidedTourCompleted: true,
+        },
+        operatorDefaults: {
+          projectRoot: "",
+          engineRoot: "",
+          dryRun: true,
+          timeoutSeconds: 30,
+          locks: ["project_config"],
+        },
+      })),
+    );
+
+    render(
+      <SettingsProvider>
+        <DesktopShell
+          appTitle="O3DE Agent Control App"
+          appSubtitle="Desktop operator shell"
+          workspaceTitle="Home"
+          workspaceSubtitle="Overview and launch surface"
+          activeWorkspaceId="home"
+          navSections={[
+            {
+              id: "start",
+              label: "Start",
+              detail: "Begin with a calmer orientation surface.",
+              items: [
+                {
+                  id: "home",
+                  label: "Home",
+                  subtitle: "Overview and launch surface",
+                },
+              ],
+            },
+            {
+              id: "inspect",
+              label: "Inspect",
+              detail: "Review persisted evidence and warnings.",
+              items: [
+                {
+                  id: "records",
+                  label: "Records",
+                  subtitle: "Runs, executions, artifacts",
+                },
+              ],
+            },
+          ]}
+          onSelectWorkspace={vi.fn()}
+        >
+          <div>Workspace body</div>
+        </DesktopShell>
+      </SettingsProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: "Show all cockpit apps view" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Expand all workspace groups" })).toBeDisabled();
+  });
+
+  it("defaults to all-apps mode on first run when viewport height is small and mode is auto", () => {
+    const originalInnerHeight = window.innerHeight;
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 680,
+    });
+
+    try {
+      render(
+        <DesktopShell
+          appTitle="O3DE Agent Control App"
+          appSubtitle="Desktop operator shell"
+          workspaceTitle="Home"
+          workspaceSubtitle="Overview and launch surface"
+          activeWorkspaceId="home"
+          navSections={[
+            {
+              id: "start",
+              label: "Start",
+              detail: "Begin with a calmer orientation surface.",
+              items: [
+                {
+                  id: "home",
+                  label: "Home",
+                  subtitle: "Overview and launch surface",
+                },
+              ],
+            },
+            {
+              id: "inspect",
+              label: "Inspect",
+              detail: "Review persisted evidence and warnings.",
+              items: [
+                {
+                  id: "records",
+                  label: "Records",
+                  subtitle: "Runs, executions, artifacts",
+                },
+              ],
+            },
+          ]}
+          onSelectWorkspace={vi.fn()}
+        >
+          <div>Workspace body</div>
+        </DesktopShell>,
+      );
+
+      expect(screen.getByRole("button", { name: "Show all cockpit apps view" })).toHaveAttribute("aria-pressed", "true");
+      expect(screen.getByRole("button", { name: "Expand all workspace groups" })).toBeDisabled();
+    } finally {
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: originalInnerHeight,
+      });
+    }
   });
 });
