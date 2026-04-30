@@ -1,5 +1,10 @@
 import MissionTruthRail from "../MissionTruthRail";
 import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
+import {
+  cinematicPlacementProofOnlyMissionPromptDraft,
+  createCinematicCameraPlaceholderMissionPromptDraft,
+  inspectCinematicTargetMissionPromptDraft,
+} from "../../lib/missionPromptTemplates";
 import CockpitWorkspaceShell, {
   type CockpitBlockedCapability,
   type CockpitPipelineStep,
@@ -12,6 +17,8 @@ type CreateMovieWorkspaceViewProps = {
   onOpenAssetForge?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenRecords?: () => void;
+  onLaunchInspectTemplate?: () => void;
+  onLaunchCameraTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
@@ -158,27 +165,6 @@ const toolCards: CockpitToolCard[] = [
   },
 ];
 
-const promptTemplates: CockpitPromptTemplate[] = [
-  {
-    id: "inspect",
-    label: "Template 1",
-    truthLabels: "read-only",
-    promptText: "Inspect the current O3DE project and summarize whether it is ready for a cinematic scene workflow. Do not mutate content.",
-  },
-  {
-    id: "camera-placeholder",
-    label: "Template 2",
-    truthLabels: "admitted-real narrow editor lane",
-    promptText: "Open level \"Levels/DefaultLevel\" in the editor and create one root-level entity named \"CinematicCameraPlaceholder\". Do not set parent_entity_id, prefab_asset, position, components, or properties.",
-  },
-  {
-    id: "placement-proof",
-    label: "Template 3",
-    truthLabels: "proof-only / fail-closed / non-mutating / real placement not admitted",
-    promptText: "In the editor, create a placement proof-only candidate with candidate_id \"candidate-a\", candidate_label \"Weathered Ivy Arch\", staged_source_relative_path \"Assets/Generated/asset_forge/candidate_a/candidate_a.glb\", target_level_relative_path \"Levels/BridgeLevel01/BridgeLevel01.prefab\", target_entity_name \"CinematicPropCandidateA\", target_component \"Mesh\", stage_write_evidence_reference \"packet-10/stage-write-evidence.json\", stage_write_readback_reference \"packet-10/readback-evidence.json\", stage_write_readback_status \"succeeded\", approval_state \"approved\", and approval_note \"bounded proof-only cinematic prop review\".",
-  },
-];
-
 const blockedCapabilities: CockpitBlockedCapability[] = [
   {
     id: "full-movie-generation",
@@ -229,6 +215,8 @@ export default function CreateMovieWorkspaceView({
   onOpenAssetForge,
   onOpenRuntimeOverview,
   onOpenRecords,
+  onLaunchInspectTemplate,
+  onLaunchCameraTemplate,
   onLaunchPlacementProofTemplate,
   onViewLatestRun,
   onViewExecution,
@@ -253,6 +241,33 @@ export default function CreateMovieWorkspaceView({
     }
     return { ...card, onAction: onOpenPromptStudio };
   });
+
+  const promptTemplates: CockpitPromptTemplate[] = [
+    {
+      id: "inspect",
+      label: "Template 1",
+      truthLabels: "read-only",
+      promptText: inspectCinematicTargetMissionPromptDraft.promptText,
+      actionLabel: "Load cinematic inspect template in Prompt Studio",
+      onAction: onLaunchInspectTemplate,
+    },
+    {
+      id: "camera-placeholder",
+      label: "Template 2",
+      truthLabels: "admitted-real narrow editor lane",
+      promptText: createCinematicCameraPlaceholderMissionPromptDraft.promptText,
+      actionLabel: "Load camera placeholder template in Prompt Studio",
+      onAction: onLaunchCameraTemplate,
+    },
+    {
+      id: "placement-proof",
+      label: "Template 3",
+      truthLabels: "proof-only / fail-closed / non-mutating / real placement not admitted",
+      promptText: cinematicPlacementProofOnlyMissionPromptDraft.promptText,
+      actionLabel: "Load placement proof-only template in Prompt Studio",
+      onAction: onLaunchPlacementProofTemplate,
+    },
+  ];
 
   return (
     <CockpitWorkspaceShell

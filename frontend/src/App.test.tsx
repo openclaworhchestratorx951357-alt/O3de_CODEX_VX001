@@ -141,7 +141,20 @@ vi.mock("./components/PromptControlPanel", () => ({
 }));
 
 vi.mock("./components/workspaces/PromptWorkspaceDesktop", () => ({
-  default: () => <div>PromptWorkspaceDesktop stub</div>,
+  default: (
+    props: {
+      promptLaunchDraftRequest?: {
+        draft?: { label?: string };
+      } | null;
+    },
+  ) => (
+    <div>
+      <div>PromptWorkspaceDesktop stub</div>
+      {props.promptLaunchDraftRequest?.draft?.label ? (
+        <div>{`Loaded mission draft: ${props.promptLaunchDraftRequest.draft.label}`}</div>
+      ) : null}
+    </div>
+  ),
 }));
 
 vi.mock("./components/SystemStatusPanel", () => ({
@@ -363,6 +376,28 @@ describe("App desktop smoke", () => {
     expect(screen.queryByText("Create Game")).toBeNull();
     expect(within(forgePanel).getByLabelText("Asset Forge studio header")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Asset Forge candidate gallery")).toBeInTheDocument();
+  });
+
+  it("loads cockpit templates into Prompt Studio as prefilled mission drafts", async () => {
+    render(<App />);
+
+    fireEvent.click(getDesktopNavButton(/Create Game/i));
+    await screen.findAllByText("Create Game Cockpit");
+    fireEvent.click(screen.getByRole("button", { name: "Load create-entity template in Prompt Studio" }));
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+    expect(screen.getByText("Loaded mission draft: Create safe game entity prompt")).toBeInTheDocument();
+
+    fireEvent.click(getDesktopNavButton(/Create Movie/i));
+    await screen.findAllByText("Create Movie Cockpit");
+    fireEvent.click(screen.getByRole("button", { name: "Load placement proof-only template in Prompt Studio" }));
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+    expect(screen.getByText("Loaded mission draft: Cinematic placement proof-only candidate prompt")).toBeInTheDocument();
+
+    fireEvent.click(getDesktopNavButton(/Load Project/i));
+    await screen.findAllByText("Load Project Cockpit");
+    fireEvent.click(screen.getByRole("button", { name: "Load project inspect template in Prompt Studio" }));
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+    expect(screen.getByText("Loaded mission draft: Load project inspection prompt")).toBeInTheDocument();
   });
 
   it("returns to Home from the Asset Forge app header", async () => {

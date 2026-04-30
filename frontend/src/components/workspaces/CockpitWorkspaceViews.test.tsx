@@ -14,6 +14,7 @@ describe("Cockpit workspace views", () => {
     expect(screen.getByText("Concept")).toBeInTheDocument();
     expect(screen.getByText("Project Target")).toBeInTheDocument();
     expect(screen.getByText("Review / Continue")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Load create-entity template in Prompt Studio" })).toBeDisabled();
     expect(screen.getByText(/Full game generation blocked/i)).toBeInTheDocument();
     expect(screen.getByText(/Arbitrary scripts blocked/i)).toBeInTheDocument();
   });
@@ -25,6 +26,7 @@ describe("Cockpit workspace views", () => {
     expect(screen.getByText("Cinematic pipeline")).toBeInTheDocument();
     expect(screen.getByText("Story / Shot Plan")).toBeInTheDocument();
     expect(screen.getByText("Characters / Props")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Load placement proof-only template in Prompt Studio" })).toBeDisabled();
     expect(screen.getByText(/proof-only \/ fail-closed \/ non-mutating \/ real placement not admitted/i)).toBeInTheDocument();
     expect(screen.getAllByText(/execution_admitted=false/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/placement_write_admitted=false/i).length).toBeGreaterThan(0);
@@ -39,6 +41,7 @@ describe("Cockpit workspace views", () => {
     expect(screen.getByText("Project root selected")).toBeInTheDocument();
     expect(screen.getByText("Prompt capabilities loaded")).toBeInTheDocument();
     expect(screen.getByText("Current target summary")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Load project inspect template in Prompt Studio" })).toBeDisabled();
     expect(screen.getByText(/does not create\/register projects, write project files/i)).toBeInTheDocument();
   });
 });

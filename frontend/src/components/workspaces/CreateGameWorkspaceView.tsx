@@ -1,5 +1,10 @@
 import MissionTruthRail from "../MissionTruthRail";
 import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
+import {
+  addAllowlistedMeshMissionPromptDraft,
+  createGameEntityMissionPromptDraft,
+  inspectProjectMissionPromptDraft,
+} from "../../lib/missionPromptTemplates";
 import CockpitWorkspaceShell, {
   type CockpitBlockedCapability,
   type CockpitPipelineStep,
@@ -12,6 +17,9 @@ type CreateGameWorkspaceViewProps = {
   onOpenAssetForge?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenRecords?: () => void;
+  onLaunchInspectTemplate?: () => void;
+  onLaunchCreateEntityTemplate?: () => void;
+  onLaunchAddMeshTemplate?: () => void;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
@@ -166,27 +174,6 @@ const toolCards: CockpitToolCard[] = [
   },
 ];
 
-const promptTemplates: CockpitPromptTemplate[] = [
-  {
-    id: "inspect",
-    label: "Template 1",
-    truthLabels: "read-only",
-    promptText: "Inspect the current O3DE project and summarize the target evidence, active level assumptions, available prompt capabilities, and safest next game-authoring step. Do not mutate content.",
-  },
-  {
-    id: "create-entity",
-    label: "Template 2",
-    truthLabels: "admitted-real narrow editor lane",
-    promptText: "Open level \"Levels/DefaultLevel\" in the editor and create one root-level entity named \"GamePrototypeEntity\". Do not set parent_entity_id, prefab_asset, position, components, or properties.",
-  },
-  {
-    id: "add-mesh",
-    label: "Template 3",
-    truthLabels: "allowlisted editor component lane",
-    promptText: "Open the editor session, use the previous created entity if available, and add an allowlisted Mesh component. Return readback evidence.",
-  },
-];
-
 const blockedCapabilities: CockpitBlockedCapability[] = [
   {
     id: "full-game-generation",
@@ -237,6 +224,9 @@ export default function CreateGameWorkspaceView({
   onOpenAssetForge,
   onOpenRuntimeOverview,
   onOpenRecords,
+  onLaunchInspectTemplate,
+  onLaunchCreateEntityTemplate,
+  onLaunchAddMeshTemplate,
   onViewLatestRun,
   onViewExecution,
   onViewArtifact,
@@ -256,6 +246,33 @@ export default function CreateGameWorkspaceView({
         ? onOpenRecords
         : onOpenPromptStudio,
   }));
+
+  const promptTemplates: CockpitPromptTemplate[] = [
+    {
+      id: "inspect",
+      label: "Template 1",
+      truthLabels: "read-only",
+      promptText: inspectProjectMissionPromptDraft.promptText,
+      actionLabel: "Load inspect template in Prompt Studio",
+      onAction: onLaunchInspectTemplate,
+    },
+    {
+      id: "create-entity",
+      label: "Template 2",
+      truthLabels: "admitted-real narrow editor lane",
+      promptText: createGameEntityMissionPromptDraft.promptText,
+      actionLabel: "Load create-entity template in Prompt Studio",
+      onAction: onLaunchCreateEntityTemplate,
+    },
+    {
+      id: "add-mesh",
+      label: "Template 3",
+      truthLabels: "allowlisted editor component lane",
+      promptText: addAllowlistedMeshMissionPromptDraft.promptText,
+      actionLabel: "Load add-Mesh template in Prompt Studio",
+      onAction: onLaunchAddMeshTemplate,
+    },
+  ];
 
   return (
     <CockpitWorkspaceShell

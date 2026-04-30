@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 
 import MissionTruthRail from "../MissionTruthRail";
 import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
+import { inspectLoadProjectMissionPromptDraft } from "../../lib/missionPromptTemplates";
 import CockpitWorkspaceShell, {
   type CockpitBlockedCapability,
   type CockpitPipelineStep,
@@ -14,6 +15,7 @@ type LoadProjectWorkspaceViewProps = {
   onOpenRuntimeOverview?: () => void;
   onOpenRecords?: () => void;
   onOpenSettings?: () => void;
+  onLaunchInspectTemplate?: () => void;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
@@ -155,7 +157,7 @@ const promptTemplates: CockpitPromptTemplate[] = [
     id: "inspect-project",
     label: "Project inspection template",
     truthLabels: "read-only / no project file writes",
-    promptText: "Inspect the current O3DE project and summarize the project evidence, engine root, active target assumptions, prompt capability readiness, and safest next authoring step. Do not mutate content.",
+    promptText: inspectLoadProjectMissionPromptDraft.promptText,
   },
 ];
 
@@ -214,6 +216,7 @@ export default function LoadProjectWorkspaceView({
   onOpenRuntimeOverview,
   onOpenRecords,
   onOpenSettings,
+  onLaunchInspectTemplate,
   onViewLatestRun,
   onViewExecution,
   onViewArtifact,
@@ -248,6 +251,12 @@ export default function LoadProjectWorkspaceView({
   const summaryReadiness = readiness
     ? readiness.ok ? "ready" : "not ready"
     : "not loaded";
+
+  const promptTemplatesWithAction: CockpitPromptTemplate[] = promptTemplates.map((template) => ({
+    ...template,
+    actionLabel: "Load project inspect template in Prompt Studio",
+    onAction: onLaunchInspectTemplate,
+  }));
 
   const targetSummary = (
     <div style={summaryStackStyle}>
@@ -308,7 +317,7 @@ export default function LoadProjectWorkspaceView({
       pipelineSteps={checklistSteps}
       toolCardsTitle="Load Project tools"
       toolCards={cardsWithActions}
-      promptTemplates={promptTemplates}
+      promptTemplates={promptTemplatesWithAction}
       blockedCapabilities={blockedCapabilities}
       reviewNote="This workspace does not create/register projects, write project files, enable/disable Gems, or run build/export automation."
     />

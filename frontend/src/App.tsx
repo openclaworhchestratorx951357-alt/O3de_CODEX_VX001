@@ -71,6 +71,13 @@ import {
 } from "./lib/laneController";
 import { buildHomeRecommendationDescriptors, type HomeRecommendationActionId } from "./lib/recommendations";
 import {
+  addAllowlistedMeshMissionPromptDraft,
+  cinematicPlacementProofOnlyMissionPromptDraft,
+  createCinematicCameraPlaceholderMissionPromptDraft,
+  createGameEntityMissionPromptDraft,
+  inspectCinematicTargetMissionPromptDraft,
+  inspectLoadProjectMissionPromptDraft,
+  inspectProjectMissionPromptDraft,
   placementProofOnlyMissionPromptDraft,
   type MissionPromptDraft,
 } from "./lib/missionPromptTemplates";
@@ -5071,12 +5078,44 @@ export default function App() {
     setActiveWorkspaceId("prompt");
   }
 
-  function openPromptStudioWithPlacementProofTemplate(): void {
+  function openPromptStudioWithMissionDraft(draft: MissionPromptDraft): void {
     setPromptLaunchDraftRequest({
       requestId: crypto.randomUUID(),
-      draft: placementProofOnlyMissionPromptDraft,
+      draft,
     });
     setActiveWorkspaceId("prompt");
+  }
+
+  function openPromptStudioWithPlacementProofTemplate(): void {
+    openPromptStudioWithMissionDraft(placementProofOnlyMissionPromptDraft);
+  }
+
+  function openPromptStudioWithCinematicPlacementProofTemplate(): void {
+    openPromptStudioWithMissionDraft(cinematicPlacementProofOnlyMissionPromptDraft);
+  }
+
+  function openPromptStudioWithInspectProjectTemplate(): void {
+    openPromptStudioWithMissionDraft(inspectProjectMissionPromptDraft);
+  }
+
+  function openPromptStudioWithCreateGameEntityTemplate(): void {
+    openPromptStudioWithMissionDraft(createGameEntityMissionPromptDraft);
+  }
+
+  function openPromptStudioWithAddAllowlistedMeshTemplate(): void {
+    openPromptStudioWithMissionDraft(addAllowlistedMeshMissionPromptDraft);
+  }
+
+  function openPromptStudioWithInspectCinematicTargetTemplate(): void {
+    openPromptStudioWithMissionDraft(inspectCinematicTargetMissionPromptDraft);
+  }
+
+  function openPromptStudioWithCreateCinematicCameraTemplate(): void {
+    openPromptStudioWithMissionDraft(createCinematicCameraPlaceholderMissionPromptDraft);
+  }
+
+  function openPromptStudioWithInspectLoadProjectTemplate(): void {
+    openPromptStudioWithMissionDraft(inspectLoadProjectMissionPromptDraft);
   }
 
   function openRecordsRuns(): void {
@@ -7517,6 +7556,9 @@ export default function App() {
                 onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenRecords={openRecordsRuns}
+                onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplate}
+                onLaunchCreateEntityTemplate={openPromptStudioWithCreateGameEntityTemplate}
+                onLaunchAddMeshTemplate={openPromptStudioWithAddAllowlistedMeshTemplate}
                 onViewLatestRun={openRecordsRuns}
                 onViewExecution={openRecordsExecutions}
                 onViewArtifact={openRecordsArtifacts}
@@ -7548,7 +7590,9 @@ export default function App() {
                 onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenRecords={openRecordsRuns}
-                onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplate}
+                onLaunchInspectTemplate={openPromptStudioWithInspectCinematicTargetTemplate}
+                onLaunchCameraTemplate={openPromptStudioWithCreateCinematicCameraTemplate}
+                onLaunchPlacementProofTemplate={openPromptStudioWithCinematicPlacementProofTemplate}
                 onViewLatestRun={openRecordsRuns}
                 onViewExecution={openRecordsExecutions}
                 onViewArtifact={openRecordsArtifacts}
@@ -7579,6 +7623,7 @@ export default function App() {
                 onOpenPromptStudio={openPromptStudio}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenRecords={openRecordsRuns}
+                onLaunchInspectTemplate={openPromptStudioWithInspectLoadProjectTemplate}
                 onViewLatestRun={openRecordsRuns}
                 onViewExecution={openRecordsExecutions}
                 onViewArtifact={openRecordsArtifacts}

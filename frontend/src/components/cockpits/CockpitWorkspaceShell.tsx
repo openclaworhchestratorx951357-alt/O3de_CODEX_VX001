@@ -32,6 +32,8 @@ export type CockpitPromptTemplate = {
   label: string;
   truthLabels: string;
   promptText: string;
+  actionLabel?: string;
+  onAction?: () => void;
 };
 
 export type CockpitBlockedCapability = {
@@ -163,6 +165,16 @@ export default function CockpitWorkspaceShell({
               <strong>{template.label}</strong>
               <p style={styles.detail}><strong>Truth label:</strong> {template.truthLabels}</p>
               <pre style={styles.templateBody}>{template.promptText}</pre>
+              {template.actionLabel ? (
+                <button
+                  type="button"
+                  onClick={template.onAction}
+                  disabled={!template.onAction}
+                  style={styles.primaryButton}
+                >
+                  {template.actionLabel}
+                </button>
+              ) : null}
             </article>
           ))}
         </div>
