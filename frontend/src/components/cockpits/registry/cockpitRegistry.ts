@@ -41,6 +41,14 @@ function buildDefinitionMap(definitions: readonly CockpitDefinition[]): Map<Cock
 
 const definitionMap = buildDefinitionMap(cockpitDefinitions);
 
+export function isRegisteredCockpitId(id: string): id is CockpitId {
+  return definitionMap.has(id as CockpitId);
+}
+
+export function getRegisteredCockpitIds(): CockpitId[] {
+  return [...definitionMap.keys()];
+}
+
 export function validateCockpitDefinition(definition: CockpitDefinition): string[] {
   const issues: string[] = [];
 

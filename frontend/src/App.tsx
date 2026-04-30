@@ -11,6 +11,7 @@ import RecommendedActionsPanel from "./components/RecommendedActionsPanel";
 import AppControlCommandCenter from "./components/AppControlCommandCenter";
 import HomeWorkspaceView from "./components/workspaces/HomeWorkspaceView";
 import SettingsPanel from "./components/SettingsPanel";
+import RegistryCockpitFallbackWorkspace from "./components/workspaces/RegistryCockpitFallbackWorkspace";
 import type { HomeOverviewPanelDeckProps } from "./components/HomeOverviewPanelDeck";
 import {
   getShellQuickStatGuide,
@@ -22,6 +23,7 @@ import {
   getAllCockpitDefinitions,
   getCockpitDefinition,
   getCockpitNavSections,
+  isRegisteredCockpitId,
 } from "./components/cockpits/registry/cockpitRegistry";
 import type { CockpitId, CockpitPromptDraftId, CockpitUiActionId } from "./components/cockpits/registry/cockpitRegistryTypes";
 import {
@@ -250,6 +252,30 @@ type LanePresetSource = "manual" | "session";
 type DesktopWorkspaceId = CockpitId;
 
 type DesktopNavItemId = DesktopWorkspaceId;
+
+const DEFAULT_WORKSPACE_ID: DesktopWorkspaceId = "home";
+
+const WIRED_WORKSPACE_IDS = new Set<DesktopWorkspaceId>([
+  "home",
+  "asset-forge",
+  "create-game",
+  "create-movie",
+  "load-project",
+  "prompt",
+  "builder",
+  "operations",
+  "runtime",
+  "records",
+]);
+
+function resolveRegisteredWorkspaceId(
+  candidateWorkspaceId: string | null | undefined,
+): DesktopWorkspaceId {
+  if (candidateWorkspaceId && isRegisteredCockpitId(candidateWorkspaceId)) {
+    return candidateWorkspaceId as DesktopWorkspaceId;
+  }
+  return DEFAULT_WORKSPACE_ID;
+}
 
 type PromptLaunchDraftRequest = {
   requestId: string;
@@ -655,6 +681,9 @@ function isEventsTimelineSavedView(value: unknown): value is EventsTimelineSaved
 
 export default function App() {
   const { settings, saveSettings } = useSettings();
+  const initialLandingWorkspaceId = resolveRegisteredWorkspaceId(
+    settings.layout.preferredLandingSection,
+  );
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
   const [approvals, setApprovals] = useState<ApprovalListItem[]>([]);
@@ -743,10 +772,10 @@ export default function App() {
   const [laneOperatorNoteDraft, setLaneOperatorNoteDraft] = useState("");
   const [laneExportStatus, setLaneExportStatus] = useState<LaneExportStatus | null>(null);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<DesktopWorkspaceId>(
-    settings.layout.preferredLandingSection as DesktopWorkspaceId,
+    initialLandingWorkspaceId,
   );
   const [visitedWorkspaceIds, setVisitedWorkspaceIds] = useState<DesktopWorkspaceId[]>([
-    settings.layout.preferredLandingSection as DesktopWorkspaceId,
+    initialLandingWorkspaceId,
   ]);
   const [promptLaunchDraftRequest, setPromptLaunchDraftRequest] =
     useState<PromptLaunchDraftRequest | null>(null);
@@ -2459,19 +2488,8 @@ export default function App() {
     }
 
     const storedWorkspace = window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY);
-    if (
-      storedWorkspace === "home"
-      || storedWorkspace === "create-game"
-      || storedWorkspace === "create-movie"
-      || storedWorkspace === "load-project"
-      || storedWorkspace === "asset-forge"
-      || storedWorkspace === "prompt"
-      || storedWorkspace === "builder"
-      || storedWorkspace === "operations"
-      || storedWorkspace === "runtime"
-      || storedWorkspace === "records"
-    ) {
-      setActiveWorkspaceId(storedWorkspace);
+    if (storedWorkspace && isRegisteredCockpitId(storedWorkspace)) {
+      setActiveWorkspaceId(storedWorkspace as DesktopWorkspaceId);
     }
 
     const storedOperationsSurface = window.sessionStorage.getItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY);
@@ -2514,24 +2532,11 @@ export default function App() {
   }, [activeWorkspaceId]);
 
   function selectDesktopNavigation(navItemId: string): void {
-    switch (navItemId as DesktopNavItemId) {
-      case "home":
-        setActiveWorkspaceId("home");
-        return;
-      case "create-game":
-      case "create-movie":
-      case "load-project":
-      case "asset-forge":
-      case "prompt":
-      case "builder":
-      case "operations":
-      case "runtime":
-      case "records":
-        setActiveWorkspaceId(navItemId as DesktopWorkspaceId);
-        return;
-      default:
-        setActiveWorkspaceId("home");
+    if (isRegisteredCockpitId(navItemId)) {
+      setActiveWorkspaceId(navItemId as DesktopWorkspaceId);
+      return;
     }
+    setActiveWorkspaceId(DEFAULT_WORKSPACE_ID);
   }
 
   useEffect(() => {
@@ -4933,6 +4938,9 @@ export default function App() {
   const activePromptTemplateChooserContext = activeWorkspaceId === "prompt"
     ? promptTemplateChooserContext
     : null;
+  const fallbackWorkspaceIds = visitedWorkspaceIds.filter((workspaceId) => (
+    !WIRED_WORKSPACE_IDS.has(workspaceId)
+  ));
   const activeDesktopNavItemId: DesktopNavItemId = activeWorkspaceId;
   const navBadgeByWorkspace: Partial<Record<DesktopWorkspaceId, string | null>> = {
     home: attentionRecommendations.length > 0 ? String(attentionRecommendations.length) : null,
@@ -5414,21 +5422,7 @@ export default function App() {
   }
 
   function returnToSourceWorkspaceFromPrompt(sourceWorkspaceId: string): void {
-    const allowedWorkspaceIds: DesktopWorkspaceId[] = [
-      "home",
-      "create-game",
-      "create-movie",
-      "load-project",
-      "asset-forge",
-      "prompt",
-      "builder",
-      "operations",
-      "runtime",
-      "records",
-    ];
-    const resolvedWorkspaceId = allowedWorkspaceIds.includes(sourceWorkspaceId as DesktopWorkspaceId)
-      ? sourceWorkspaceId as DesktopWorkspaceId
-      : "home";
+    const resolvedWorkspaceId = resolveRegisteredWorkspaceId(sourceWorkspaceId);
     const sourceSurfaceLabel = promptLaunchDraftRequest?.sourceSurfaceLabel?.trim()
       || `${workspaceMeta[resolvedWorkspaceId].title} mission handoff`;
     const draftLabel = promptLaunchDraftRequest?.draft?.label?.trim() || "Mission template";
@@ -9009,7 +9003,7 @@ export default function App() {
                   openRecordsRuns();
                   return;
                 }
-                setActiveWorkspaceId(cockpitId);
+                setActiveWorkspaceId(resolveRegisteredWorkspaceId(cockpitId));
               }}
               onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromHome}
               onLaunchCreateEntityTemplate={openPromptStudioWithCreateGameEntityTemplate}
@@ -9265,6 +9259,19 @@ export default function App() {
             {renderRecordsWorkspace()}
           </div>
         ) : null}
+
+        {fallbackWorkspaceIds.map((workspaceId) => (
+          <div
+            key={`fallback-${workspaceId}`}
+            aria-hidden={activeWorkspaceId !== workspaceId}
+            style={activeWorkspaceId === workspaceId ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
+          >
+            <RegistryCockpitFallbackWorkspace
+              cockpitId={workspaceId}
+              onSelectWorkspace={selectDesktopNavigation}
+            />
+          </div>
+        ))}
       </DesktopShell>
 
       {settings.layout.guidedMode && !settings.layout.guidedTourCompleted ? (

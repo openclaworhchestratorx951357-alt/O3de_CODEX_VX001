@@ -8,12 +8,21 @@ import {
   getCockpitRegistryValidationIssues,
   getCockpitsByCategory,
   getHomeLaunchCockpits,
+  getRegisteredCockpitIds,
+  isRegisteredCockpitId,
 } from "./cockpitRegistry";
 
 describe("cockpitRegistry", () => {
   it("registers unique cockpit ids", () => {
     const ids = getAllCockpitDefinitions().map((definition) => definition.id);
     expect(new Set(ids).size).toBe(ids.length);
+    expect(new Set(getRegisteredCockpitIds()).size).toBe(ids.length);
+  });
+
+  it("reports registered cockpit ids for routing guards", () => {
+    expect(isRegisteredCockpitId("home")).toBe(true);
+    expect(isRegisteredCockpitId("asset-forge")).toBe(true);
+    expect(isRegisteredCockpitId("not-a-real-cockpit")).toBe(false);
   });
 
   it("ensures required cockpit metadata fields exist", () => {
