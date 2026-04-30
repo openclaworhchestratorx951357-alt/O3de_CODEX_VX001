@@ -1470,6 +1470,13 @@ class PromptOrchestratorService:
                     missing_proof.append(
                         f"Server approval blocker reason: {server_reason}"
                     )
+                remediation = self._editor_placement_server_approval_remediation(
+                    decision_code
+                )
+                if remediation is not None:
+                    missing_proof.append(
+                        f"Server blocker remediation ({decision_code}): {remediation}"
+                    )
             fail_closed_reasons = details.get("fail_closed_reasons")
             if isinstance(fail_closed_reasons, list) and fail_closed_reasons:
                 reasons = ", ".join(str(item) for item in fail_closed_reasons[:5])
@@ -1532,6 +1539,48 @@ class PromptOrchestratorService:
             f"Safest next step: {safest_next_step}",
         ]
         return "\n".join(sections)
+
+    def _editor_placement_server_approval_remediation(
+        self,
+        decision_code: object,
+    ) -> str | None:
+        if not isinstance(decision_code, str) or not decision_code:
+            return None
+        remediations = {
+            "missing_session": (
+                "Prepare a server-owned approval session for this exact bounded request, then rerun this same proof-only prompt."
+            ),
+            "session_not_found": (
+                "Create a fresh server-owned session and use its exact session id on the next bounded proof-only request."
+            ),
+            "requested_operation_mismatch": (
+                "Recreate the server-owned session for asset_forge.o3de.placement.execute and keep all other request fields exact."
+            ),
+            "request_fingerprint_mismatch": (
+                "Regenerate a server-owned session bound to this exact request fingerprint; do not widen candidate, stage, level, or target scope."
+            ),
+            "session_expired": (
+                "Prepare a new non-expired server-owned session and immediately rerun the same bounded request."
+            ),
+            "session_revoked": (
+                "Issue a replacement server-owned session for the same exact request scope before retrying."
+            ),
+            "session_rejected": (
+                "Resolve the rejection cause with operator review, then prepare a new server-owned session for the same bounded request."
+            ),
+            "session_pending": (
+                "Wait for an explicit server decision on the existing session; keep runtime placement blocked until that decision is recorded."
+            ),
+            "ready_but_mutation_not_admitted": (
+                "Keep this proof-only corridor blocked and wait for a separate explicit mutation-admission packet before attempting runtime placement."
+            ),
+        }
+        return remediations.get(
+            decision_code,
+            (
+                "Review server approval state and retry only the same bounded proof-only request without widening scope."
+            ),
+        )
 
     def _build_editor_entity_exists_review_summary(
         self,

@@ -2611,9 +2611,152 @@ def test_prompt_session_executes_editor_placement_proof_only_candidate_with_fail
                 in payload["final_result_summary"]
             )
             assert (
+                "Server blocker remediation (missing_session): Prepare a server-owned approval session for this exact bounded request, then rerun this same proof-only prompt."
+                in payload["final_result_summary"]
+            )
+            assert (
                 "No editor placement runtime command was admitted or executed."
                 in payload["final_result_summary"]
             )
+
+
+@pytest.mark.parametrize(
+    ("decision_code", "decision_state", "status", "expected_remediation"),
+    [
+        (
+            "missing_session",
+            "denied",
+            "missing",
+            "Prepare a server-owned approval session for this exact bounded request, then rerun this same proof-only prompt.",
+        ),
+        (
+            "session_not_found",
+            "denied",
+            "not_found",
+            "Create a fresh server-owned session and use its exact session id on the next bounded proof-only request.",
+        ),
+        (
+            "requested_operation_mismatch",
+            "denied",
+            "approved",
+            "Recreate the server-owned session for asset_forge.o3de.placement.execute and keep all other request fields exact.",
+        ),
+        (
+            "request_fingerprint_mismatch",
+            "denied",
+            "approved",
+            "Regenerate a server-owned session bound to this exact request fingerprint; do not widen candidate, stage, level, or target scope.",
+        ),
+        (
+            "session_expired",
+            "denied",
+            "expired",
+            "Prepare a new non-expired server-owned session and immediately rerun the same bounded request.",
+        ),
+        (
+            "session_revoked",
+            "denied",
+            "revoked",
+            "Issue a replacement server-owned session for the same exact request scope before retrying.",
+        ),
+        (
+            "session_rejected",
+            "denied",
+            "rejected",
+            "Resolve the rejection cause with operator review, then prepare a new server-owned session for the same bounded request.",
+        ),
+        (
+            "session_pending",
+            "pending",
+            "pending",
+            "Wait for an explicit server decision on the existing session; keep runtime placement blocked until that decision is recorded.",
+        ),
+        (
+            "ready_but_mutation_not_admitted",
+            "ready_but_not_admitted",
+            "approved",
+            "Keep this proof-only corridor blocked and wait for a separate explicit mutation-admission packet before attempting runtime placement.",
+        ),
+    ],
+)
+def test_editor_placement_proof_only_review_summary_includes_decision_code_remediation_mapping(
+    decision_code: str,
+    decision_state: str,
+    status: str,
+    expected_remediation: str,
+) -> None:
+    session = PromptSessionRecord(
+        prompt_id=f"prompt-editor-placement-proof-only-review-{decision_code}",
+        plan_id=f"plan-editor-placement-proof-only-review-{decision_code}",
+        status=PromptSessionStatus.COMPLETED,
+        prompt_text="Create a bounded editor placement proof-only candidate.",
+        project_root="C:/project",
+        engine_root="C:/engine",
+        plan=PromptPlan(
+            prompt_id=f"prompt-editor-placement-proof-only-review-{decision_code}",
+            plan_id=f"plan-editor-placement-proof-only-review-{decision_code}",
+            admitted=True,
+            summary="Editor placement proof-only review plan.",
+            steps=[
+                PromptPlanStep(
+                    step_id="editor-placement-proof-only-1",
+                    tool="editor.placement.proof_only",
+                    agent="editor-control",
+                    args={},
+                    approval_class="read_only",
+                    capability_status_required="simulated-only",
+                    capability_maturity="simulated-only",
+                )
+            ],
+        ),
+        latest_child_responses=[
+            {
+                "prompt_step_id": "editor-placement-proof-only-1",
+                "ok": True,
+                "execution_details": {
+                    "capability_name": "editor.placement.proof_only",
+                    "proof_status": "blocked",
+                    "execution_admitted": False,
+                    "placement_write_admitted": False,
+                    "mutation_occurred": False,
+                    "read_only": True,
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "target_component": "Mesh",
+                    "source": "asset-forge-editor-placement-proof-only",
+                    "server_approval_evaluation": {
+                        "decision_state": decision_state,
+                        "decision_code": decision_code,
+                        "reason": "Server-owned approval state blocks runtime admission in this packet.",
+                        "status": status,
+                        "policy_would_allow_if_mutation_admitted": (
+                            decision_code == "ready_but_mutation_not_admitted"
+                        ),
+                        "authorization_granted": False,
+                        "session_provided": decision_code != "missing_session",
+                        "operation_matches": decision_code
+                        not in {"missing_session", "requested_operation_mismatch"},
+                        "binding_matches": decision_code
+                        not in {"missing_session", "request_fingerprint_mismatch"},
+                    },
+                },
+            }
+        ],
+    )
+
+    summary = PromptOrchestratorService()._build_editor_placement_proof_only_review_summary(
+        session
+    )
+
+    assert summary is not None
+    assert "Review result: succeeded_fail_closed_blocked" in summary
+    assert (
+        f"Server blocker remediation ({decision_code}): {expected_remediation}"
+        in summary
+    )
 
 
 @pytest.mark.parametrize(

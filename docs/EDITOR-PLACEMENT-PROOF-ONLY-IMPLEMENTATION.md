@@ -43,6 +43,8 @@ preserving blocked/non-admitted runtime execution and mutation posture.
 - surfaced explicit server-owned approval/session blocker readout in that review
   summary, including decision state/code, session status, policy gates, and
   blocker reason text
+- added explicit per-decision-code remediation guidance in the same review
+  summary so operators get exact next actions for each server approval blocker
 
 ## Files
 
