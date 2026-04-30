@@ -86,7 +86,7 @@ Result summary:
 
 ## Recommended next packet
 
-Editor placement plan matrix baseline audit:
+Editor placement proof-only design:
 
 - tighten provider preflight no-provider-call safeguards and evidence wording
 - preserve stage-plan/stage-write/readback non-authorizing boundaries

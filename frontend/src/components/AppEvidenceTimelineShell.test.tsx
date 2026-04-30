@@ -663,6 +663,6 @@ describe("AppEvidenceTimelineShell", () => {
     expect(screen.getByText("codex.flow.trigger.audit_gate checklist stop-point contract")).toBeInTheDocument();
     expect(screen.getByText("pass-flow-trigger-audit-gate-checklist")).toBeInTheDocument();
 
-    expect(screen.getByText("Editor placement plan matrix baseline audit", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Editor placement proof-only design", { selector: "strong" })).toBeInTheDocument();
   });
 });

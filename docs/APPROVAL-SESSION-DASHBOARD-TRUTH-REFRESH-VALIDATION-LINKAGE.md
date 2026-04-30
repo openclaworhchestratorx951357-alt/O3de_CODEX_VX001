@@ -69,5 +69,5 @@ server-owned authorization model, without widening runtime admission.
 
 ## Recommended next packet
 
-Editor placement plan matrix baseline audit
-(`codex/editor-placement-plan-matrix-baseline-audit`).
+Editor placement proof-only design
+(`codex/editor-placement-proof-only-design`).

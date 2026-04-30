@@ -71,8 +71,8 @@ broadened.
 
 ## Recommended next packet
 
-Editor placement plan matrix baseline audit
-(`codex/editor-placement-plan-matrix-baseline-audit`):
+Editor placement proof-only design
+(`codex/editor-placement-proof-only-design`):
 
 - keep server-owned authorization and fail-closed gate-state wording aligned
   with the existing approval/session boundary model across baseline/shell

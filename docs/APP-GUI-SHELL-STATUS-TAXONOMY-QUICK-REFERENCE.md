@@ -53,5 +53,5 @@ These labels are operator guidance only and never authorize runtime behavior.
 
 ## Recommended next packet
 
-Editor placement plan matrix baseline audit
-(`codex/editor-placement-plan-matrix-baseline-audit`).
+Editor placement proof-only design
+(`codex/editor-placement-proof-only-design`).

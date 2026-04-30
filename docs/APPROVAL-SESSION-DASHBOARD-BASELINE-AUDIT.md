@@ -103,8 +103,8 @@ superseded for current dashboard behavior by:
 
 ## Recommended next packet
 
-Editor placement plan matrix baseline audit
-(`codex/editor-placement-plan-matrix-baseline-audit`):
+Editor placement proof-only design
+(`codex/editor-placement-proof-only-design`):
 
 - keep baseline, shell, and timeline wording aligned for server-owned
   authorization truth

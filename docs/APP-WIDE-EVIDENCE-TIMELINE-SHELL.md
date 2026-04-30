@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Editor placement plan matrix baseline audit
-(`codex/editor-placement-plan-matrix-baseline-audit`):
+Editor placement proof-only design
+(`codex/editor-placement-proof-only-design`):
 
 - keep approval/session baseline + shell + timeline wording aligned under
   server-owned authorization truth and fail-closed gate-state semantics

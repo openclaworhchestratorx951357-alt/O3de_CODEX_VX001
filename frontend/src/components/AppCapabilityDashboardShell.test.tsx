@@ -37,6 +37,6 @@ describe("AppCapabilityDashboardShell", () => {
     expect(screen.getAllByText("hold-default-off").length).toBeGreaterThan(0);
     expect(screen.getAllByText("blocked").length).toBeGreaterThan(0);
 
-    expect(screen.getByText("Editor placement plan matrix baseline audit", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Editor placement proof-only design", { selector: "strong" })).toBeInTheDocument();
   });
 });

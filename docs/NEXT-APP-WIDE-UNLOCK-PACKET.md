@@ -1,8 +1,8 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Editor placement plan matrix baseline audit
-(`codex/editor-placement-plan-matrix-baseline-audit`).
+Editor placement proof-only design
+(`codex/editor-placement-proof-only-design`).
 
 ## Why this is next
 - GUI shell taxonomy parity checkpoint + quick-reference refresh packet is now
@@ -28,17 +28,19 @@ Editor placement plan matrix baseline audit
   complete with an explicit hold/no-go posture and no runtime broadening.
 - Placement proof-only admission-flag long-hold checkpoint is now complete and
   explicitly hands off the stream to the next editor-lane planning packet.
-- The next highest-value gate is re-establishing editor placement-plan matrix
-  baseline truth and cross-lane dependencies before any new editor placement
-  proof-only design discussion.
+- Editor placement plan matrix baseline audit is now complete and confirms
+  current plan-only placement truth plus cross-lane dependency boundaries.
+- The next highest-value gate is defining explicit editor placement proof-only
+  candidate scope, fail-closed gates, and non-goals before any readiness audit
+  or implementation discussion.
 
 ## Scope
-- produce a focused editor placement plan matrix baseline audit packet
-- re-establish current `editor.placement.plan` baseline truth from code/tests
-  and status vocabulary
-- map editor-lane refusal boundaries versus Asset Forge placement-plan surfaces
+- produce a focused editor placement proof-only design packet
+- define exact proof-only candidate scope and explicit non-goals
+- define required fail-closed gates and evidence dependencies for a future
+  readiness audit
 - preserve explicit blocked-status language for assignment/placement execution
-  while editor-lane planning evidence is refreshed
+  while editor placement proof-only design boundaries are refreshed
 - keep recommendation surfaces aligned to this next packet across capability,
   audit, workspace, timeline, and shell guidance
 - preserve explicit non-authorizing client-field posture and fail-closed
@@ -60,7 +62,7 @@ Editor placement plan matrix baseline audit
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- Editor placement plan matrix baseline audit recommendation wording is
+- Editor placement proof-only design recommendation wording is
   deterministic and aligned across shell recommendation surfaces
 - explicit hold gates remain reviewable and non-admitting:
   assignment/placement execution stays blocked without a separate future
@@ -80,7 +82,7 @@ Editor placement plan matrix baseline audit
 
 ## Alternative considered
 Direct placement runtime-admission broadening without first tightening
-editor placement-plan matrix baseline boundaries.
+editor placement proof-only design boundaries.
 
-This remains deferred for safety. Keep editor placement-plan matrix baseline
-boundaries explicit first, then consider any future proof-only design revisit.
+This remains deferred for safety. Keep editor placement proof-only design
+boundaries explicit first, then consider any future readiness-audit revisit.

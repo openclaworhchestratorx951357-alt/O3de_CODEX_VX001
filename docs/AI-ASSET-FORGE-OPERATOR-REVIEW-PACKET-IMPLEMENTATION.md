@@ -74,7 +74,7 @@ Latest refresh evidence:
 
 ## Recommended next packet
 
-Editor placement plan matrix baseline audit packet:
+Editor placement proof-only design packet:
 
 - define exact assignment-design candidate boundaries before proof/admission
 - preserve review-packet hold-state and non-admission constraints
