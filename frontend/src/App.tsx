@@ -269,6 +269,24 @@ type PromptSessionFocusRequest = {
   sourceSurfaceLabel?: string | null;
 };
 
+type PromptEvidenceContext = {
+  id: string;
+  promptSessionId: string;
+  sourceWorkspaceId: DesktopWorkspaceId;
+  sourceSurfaceLabel: string;
+  openedAtIso: string;
+};
+
+type RecordsEvidenceContext = {
+  id: string;
+  targetKind: "run" | "execution" | "artifact";
+  targetId: string;
+  sourceWorkspaceId: DesktopWorkspaceId;
+  sourceSurfaceLabel: string;
+  openedAtIso: string;
+  relatedPromptSessionId?: string;
+};
+
 type PromptReturnResumeChecklist = {
   id: string;
   sourceWorkspaceId: DesktopWorkspaceId;
@@ -660,6 +678,10 @@ export default function App() {
     useState<PromptLaunchDraftRequest | null>(null);
   const [promptSessionFocusRequest, setPromptSessionFocusRequest] =
     useState<PromptSessionFocusRequest | null>(null);
+  const [promptEvidenceContext, setPromptEvidenceContext] =
+    useState<PromptEvidenceContext | null>(null);
+  const [recordsEvidenceContext, setRecordsEvidenceContext] =
+    useState<RecordsEvidenceContext | null>(null);
   const [latestPlacementProofOnlyReview, setLatestPlacementProofOnlyReview] =
     useState<PlacementProofOnlyReviewSnapshot | null>(null);
   const [promptReturnResumeChecklist, setPromptReturnResumeChecklist] =
@@ -4893,6 +4915,12 @@ export default function App() {
     && cockpitStageFocusHighlight.workspaceId === activeWorkspaceId
     ? cockpitStageFocusHighlight
     : null;
+  const activePromptEvidenceContext = activeWorkspaceId === "prompt"
+    ? promptEvidenceContext
+    : null;
+  const activeRecordsEvidenceContext = activeWorkspaceId === "records"
+    ? recordsEvidenceContext
+    : null;
   const activeDesktopNavItemId: DesktopNavItemId = activeWorkspaceId;
   const desktopNavSections = [
     {
@@ -5120,7 +5148,10 @@ export default function App() {
     setActiveRuntimeSurface("workspaces");
   }
 
-  function openPromptStudio(): void {
+  function openPromptStudio(options?: { preservePromptEvidenceContext?: boolean }): void {
+    if (!options?.preservePromptEvidenceContext) {
+      setPromptEvidenceContext(null);
+    }
     setActiveWorkspaceId("prompt");
   }
 
@@ -5129,10 +5160,19 @@ export default function App() {
     if (!trimmedPromptId) {
       return;
     }
+    const sourceWorkspaceId = activeWorkspaceId;
+    const sourceSurfaceLabel = `${workspaceMeta[sourceWorkspaceId].title} mission truth rail`;
     setPromptSessionFocusRequest({
       requestId: crypto.randomUUID(),
       promptId: trimmedPromptId,
-      sourceSurfaceLabel: "mission truth rail proof-only remediation snapshot",
+      sourceSurfaceLabel,
+    });
+    setPromptEvidenceContext({
+      id: crypto.randomUUID(),
+      promptSessionId: trimmedPromptId,
+      sourceWorkspaceId,
+      sourceSurfaceLabel,
+      openedAtIso: new Date().toISOString(),
     });
     setActiveWorkspaceId("prompt");
   }
@@ -5142,6 +5182,7 @@ export default function App() {
     sourceSurfaceLabel: string,
     sourceWorkspaceId: DesktopWorkspaceId,
   ): void {
+    setPromptEvidenceContext(null);
     setPromptLaunchDraftRequest({
       requestId: crypto.randomUUID(),
       draft,
@@ -5300,17 +5341,26 @@ export default function App() {
     setActiveWorkspaceId(resolvedWorkspaceId);
   }
 
-  function openRecordsRuns(): void {
+  function openRecordsRuns(options?: { preserveEvidenceContext?: boolean }): void {
+    if (!options?.preserveEvidenceContext) {
+      setRecordsEvidenceContext(null);
+    }
     setActiveWorkspaceId("records");
     setActiveRecordsSurface("runs");
   }
 
-  function openRecordsExecutions(): void {
+  function openRecordsExecutions(options?: { preserveEvidenceContext?: boolean }): void {
+    if (!options?.preserveEvidenceContext) {
+      setRecordsEvidenceContext(null);
+    }
     setActiveWorkspaceId("records");
     setActiveRecordsSurface("executions");
   }
 
-  function openRecordsArtifacts(): void {
+  function openRecordsArtifacts(options?: { preserveEvidenceContext?: boolean }): void {
+    if (!options?.preserveEvidenceContext) {
+      setRecordsEvidenceContext(null);
+    }
     setActiveWorkspaceId("records");
     setActiveRecordsSurface("artifacts");
   }
@@ -5361,7 +5411,18 @@ export default function App() {
     if (!trimmedRunId) {
       return;
     }
-    openRecordsRuns();
+    const sourceWorkspaceId = activeWorkspaceId;
+    const sourceSurfaceLabel = `${workspaceMeta[sourceWorkspaceId].title} mission truth rail`;
+    setRecordsEvidenceContext({
+      id: crypto.randomUUID(),
+      targetKind: "run",
+      targetId: trimmedRunId,
+      sourceWorkspaceId,
+      sourceSurfaceLabel,
+      openedAtIso: new Date().toISOString(),
+      relatedPromptSessionId: latestPlacementProofOnlyReview?.promptSessionId,
+    });
+    openRecordsRuns({ preserveEvidenceContext: true });
     await openRunDetail(trimmedRunId);
   }
 
@@ -5370,7 +5431,18 @@ export default function App() {
     if (!trimmedExecutionId) {
       return;
     }
-    openRecordsExecutions();
+    const sourceWorkspaceId = activeWorkspaceId;
+    const sourceSurfaceLabel = `${workspaceMeta[sourceWorkspaceId].title} mission truth rail`;
+    setRecordsEvidenceContext({
+      id: crypto.randomUUID(),
+      targetKind: "execution",
+      targetId: trimmedExecutionId,
+      sourceWorkspaceId,
+      sourceSurfaceLabel,
+      openedAtIso: new Date().toISOString(),
+      relatedPromptSessionId: latestPlacementProofOnlyReview?.promptSessionId,
+    });
+    openRecordsExecutions({ preserveEvidenceContext: true });
     await openExecutionDetail(trimmedExecutionId);
   }
 
@@ -5379,7 +5451,18 @@ export default function App() {
     if (!trimmedArtifactId) {
       return;
     }
-    openRecordsArtifacts();
+    const sourceWorkspaceId = activeWorkspaceId;
+    const sourceSurfaceLabel = `${workspaceMeta[sourceWorkspaceId].title} mission truth rail`;
+    setRecordsEvidenceContext({
+      id: crypto.randomUUID(),
+      targetKind: "artifact",
+      targetId: trimmedArtifactId,
+      sourceWorkspaceId,
+      sourceSurfaceLabel,
+      openedAtIso: new Date().toISOString(),
+      relatedPromptSessionId: latestPlacementProofOnlyReview?.promptSessionId,
+    });
+    openRecordsArtifacts({ preserveEvidenceContext: true });
     await openArtifactDetail(trimmedArtifactId);
   }
 
@@ -7512,6 +7595,187 @@ export default function App() {
     );
   }
 
+  function renderPromptEvidenceContextBanner(
+    context: PromptEvidenceContext,
+  ): JSX.Element {
+    return (
+      <section
+        aria-label="Prompt focused evidence context"
+        style={{
+          marginBottom: 14,
+          border: "1px solid rgba(96, 165, 250, 0.55)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(17, 35, 58, 0.96), rgba(16, 28, 41, 0.96))",
+          boxShadow: "0 10px 24px rgba(8, 13, 19, 0.35)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 8,
+        }}
+      >
+        <div style={{ display: "grid", gap: 3 }}>
+          <span
+            style={{
+              fontSize: 12,
+              letterSpacing: 0.3,
+              textTransform: "uppercase",
+              color: "rgba(167, 212, 255, 0.95)",
+              fontWeight: 700,
+            }}
+          >
+            Focused evidence context
+          </span>
+          <strong style={{ color: "var(--app-text-color)" }}>
+            Prompt session: {context.promptSessionId}
+          </strong>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 8,
+            color: "var(--app-subtle-color)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Source workspace: <strong>{workspaceMeta[context.sourceWorkspaceId].title}</strong>
+          </span>
+          <span>
+            Source surface: <strong>{context.sourceSurfaceLabel}</strong>
+          </span>
+          <span>
+            Opened (ISO): <strong>{context.openedAtIso}</strong>
+          </span>
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Safety: navigation only. No prompt preview, execute, or mutation is triggered automatically.
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setActiveWorkspaceId(context.sourceWorkspaceId)}
+          >
+            Return to source cockpit
+          </button>
+          <button type="button" onClick={() => openRecordsRuns()}>
+            Open Records
+          </button>
+          <button type="button" onClick={() => setPromptEvidenceContext(null)}>
+            Dismiss evidence context
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  function renderRecordsEvidenceContextBanner(
+    context: RecordsEvidenceContext,
+  ): JSX.Element {
+    const targetLabel = context.targetKind === "run"
+      ? "Run"
+      : context.targetKind === "execution"
+        ? "Execution"
+        : "Artifact";
+
+    return (
+      <section
+        aria-label="Records focused evidence context"
+        style={{
+          marginBottom: 14,
+          border: "1px solid rgba(100, 215, 170, 0.52)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(21, 48, 40, 0.95), rgba(16, 30, 43, 0.95))",
+          boxShadow: "0 10px 24px rgba(8, 14, 20, 0.35)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 8,
+        }}
+      >
+        <div style={{ display: "grid", gap: 3 }}>
+          <span
+            style={{
+              fontSize: 12,
+              letterSpacing: 0.3,
+              textTransform: "uppercase",
+              color: "rgba(176, 239, 214, 0.95)",
+              fontWeight: 700,
+            }}
+          >
+            Focused evidence context
+          </span>
+          <strong style={{ color: "var(--app-text-color)" }}>
+            {targetLabel} target: {context.targetId}
+          </strong>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 8,
+            color: "var(--app-subtle-color)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Source workspace: <strong>{workspaceMeta[context.sourceWorkspaceId].title}</strong>
+          </span>
+          <span>
+            Source surface: <strong>{context.sourceSurfaceLabel}</strong>
+          </span>
+          <span>
+            Opened (ISO): <strong>{context.openedAtIso}</strong>
+          </span>
+          <span>
+            Related prompt session: <strong>{context.relatedPromptSessionId ?? "not captured"}</strong>
+          </span>
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Safety: evidence drill-in only. No runtime execution, placement write, or mutation is admitted from this banner.
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => setActiveWorkspaceId(context.sourceWorkspaceId)}
+          >
+            Return to source cockpit
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (context.targetKind === "run") {
+                openRecordsRuns({ preserveEvidenceContext: true });
+                openRunDetail(context.targetId);
+                return;
+              }
+              if (context.targetKind === "execution") {
+                openRecordsExecutions({ preserveEvidenceContext: true });
+                openExecutionDetail(context.targetId);
+                return;
+              }
+              openRecordsArtifacts({ preserveEvidenceContext: true });
+              openArtifactDetail(context.targetId);
+            }}
+          >
+            Re-open focused evidence
+          </button>
+          {context.relatedPromptSessionId ? (
+            <button
+              type="button"
+              onClick={() => openPromptSessionFromTruthRail(context.relatedPromptSessionId ?? "")}
+            >
+              Open related prompt session
+            </button>
+          ) : null}
+          <button type="button" onClick={() => setRecordsEvidenceContext(null)}>
+            Dismiss evidence context
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   function renderPromptReturnResumeChecklist(
     checklist: PromptReturnResumeChecklist,
   ): JSX.Element {
@@ -7904,7 +8168,7 @@ export default function App() {
           >
             Return to source cockpit
           </button>
-          <button type="button" onClick={openRecordsRuns}>
+          <button type="button" onClick={() => openRecordsRuns()}>
             Open Records
           </button>
           <button type="button" onClick={openRuntimeOverview}>
@@ -8178,6 +8442,12 @@ export default function App() {
         ) : null}
         {activeWorkspaceId === "prompt" && promptLaunchDraftRequest ? (
           renderPromptHandoffContextCard(promptLaunchDraftRequest)
+        ) : null}
+        {activePromptEvidenceContext ? (
+          renderPromptEvidenceContextBanner(activePromptEvidenceContext)
+        ) : null}
+        {activeRecordsEvidenceContext ? (
+          renderRecordsEvidenceContextBanner(activeRecordsEvidenceContext)
         ) : null}
 
         {activeWorkspaceId === "home" ? (

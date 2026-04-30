@@ -149,10 +149,47 @@ vi.mock("./components/workspaces/PromptWorkspaceDesktop", () => ({
         sourceWorkspaceId?: string | null;
       } | null;
       onReturnToSourceWorkspace?: ((workspaceId: string) => void) | undefined;
+      onPlacementProofOnlyReviewChange?: ((snapshot: unknown) => void) | undefined;
     },
   ) => (
     <div>
       <div>PromptWorkspaceDesktop stub</div>
+      <button
+        type="button"
+        onClick={() => props.onPlacementProofOnlyReviewChange?.({
+          capabilityName: "editor.placement.proof_only",
+          promptSessionId: "prompt-proof-1",
+          childRunId: "run-1",
+          childExecutionId: "execution-1",
+          childArtifactId: "artifact-1",
+          proofStatus: "blocked",
+          candidateId: "candidate-a",
+          candidateLabel: "Weathered Ivy Arch",
+          artifactId: "artifact-1",
+          artifactLabel: "placement-proof-artifact",
+          stagedSourceRelativePath: "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+          targetLevelRelativePath: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+          targetEntityName: "AssetForgeCandidateA",
+          targetComponent: "Mesh",
+          stageWriteEvidenceReference: "packet-10/stage-write-evidence.json",
+          stageWriteReadbackReference: "packet-10/readback-evidence.json",
+          stageWriteReadbackStatus: "succeeded",
+          executionMode: "simulated",
+          inspectionSurface: "asset-forge-editor-placement-proof-only",
+          executionAdmitted: false,
+          placementWriteAdmitted: false,
+          mutationOccurred: false,
+          readOnly: true,
+          failClosedReasons: ["server_approval:missing_session", "execution_admission_disabled"],
+          serverDecisionCode: "missing_session",
+          serverDecisionState: "denied",
+          serverStatus: "missing",
+          serverReason: "No server-owned approval session was provided; endpoint remains blocked.",
+          serverRemediation: "Prepare a server-owned approval session for this exact bounded request, then rerun this same proof-only prompt.",
+        })}
+      >
+        Emit proof-only review snapshot
+      </button>
       {props.promptLaunchDraftRequest?.draft?.label ? (
         <div>{`Loaded mission draft: ${props.promptLaunchDraftRequest.draft.label}`}</div>
       ) : null}
@@ -472,6 +509,42 @@ describe("App desktop smoke", () => {
     fireEvent.click(screen.getByRole("button", { name: "View artifact" }));
     await waitFor(() => expect(apiMocks.fetchArtifact).toHaveBeenCalledTimes(1));
     expect(await screen.findByText("Artifact Detail")).toBeInTheDocument();
+
+    fireEvent.click(getDesktopNavButton(/Prompt Studio/i));
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Emit proof-only review snapshot" }));
+
+    fireEvent.click(getDesktopNavButton(/Create Game/i));
+    await screen.findAllByText("Create Game Cockpit");
+
+    fireEvent.click(screen.getByRole("button", { name: "Open proof prompt session" }));
+    const promptEvidenceBanner = await screen.findByLabelText("Prompt focused evidence context");
+    expect(promptEvidenceBanner).toHaveTextContent("Prompt session: prompt-proof-1");
+    expect(promptEvidenceBanner).toHaveTextContent("Source workspace: Create Game");
+    expect(promptEvidenceBanner).toHaveTextContent("Source surface: Create Game mission truth rail");
+    expect(promptEvidenceBanner).toHaveTextContent(
+      "Safety: navigation only. No prompt preview, execute, or mutation is triggered automatically.",
+    );
+    fireEvent.click(within(promptEvidenceBanner).getByRole("button", { name: "Return to source cockpit" }));
+    await screen.findAllByText("Create Game Cockpit");
+
+    apiMocks.fetchRun.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Open proof run" }));
+    await waitFor(() => expect(apiMocks.fetchRun).toHaveBeenCalledTimes(1));
+    const recordsEvidenceBanner = await screen.findByLabelText("Records focused evidence context");
+    expect(recordsEvidenceBanner).toHaveTextContent("Run target: run-1");
+    expect(recordsEvidenceBanner).toHaveTextContent("Source workspace: Create Game");
+    expect(recordsEvidenceBanner).toHaveTextContent("Source surface: Create Game mission truth rail");
+    expect(recordsEvidenceBanner).toHaveTextContent("Related prompt session: prompt-proof-1");
+    expect(recordsEvidenceBanner).toHaveTextContent(
+      "Safety: evidence drill-in only. No runtime execution, placement write, or mutation is admitted from this banner.",
+    );
+
+    fireEvent.click(within(recordsEvidenceBanner).getByRole("button", { name: "Open related prompt session" }));
+    const promptEvidenceFromRecords = await screen.findByLabelText("Prompt focused evidence context");
+    expect(promptEvidenceFromRecords).toHaveTextContent("Prompt session: prompt-proof-1");
+    expect(promptEvidenceFromRecords).toHaveTextContent("Source workspace: Records");
+    expect(promptEvidenceFromRecords).toHaveTextContent("Source surface: Records mission truth rail");
   });
 
   it("opens Asset Forge as its own workspace and shows the Packet 01 studio shell", async () => {
