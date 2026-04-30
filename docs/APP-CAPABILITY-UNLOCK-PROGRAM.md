@@ -173,6 +173,7 @@ The following patterns are now established:
 - validation workflow hold-boundary long-hold checkpoint packet
 - approval/session dashboard baseline audit
 - approval/session dashboard parity checkpoint packet
+- approval/session dashboard long-hold checkpoint packet
 - approval/session dashboard shell (static fixture first)
 - approval/session dashboard truth refresh + validation linkage
 - app-wide evidence timeline shell + approval/validation linkage audit
@@ -921,13 +922,21 @@ Why:
   semantics remain deterministic across app-wide shell recommendation surfaces
 - advances operator clarity without broadening runtime admission
 
-### BZ. Approval/session Dashboard Parity Checkpoint Packet
+### BZ. Approval/session Dashboard Parity Checkpoint Packet (completed)
 Why:
 - approval/session dashboard baseline audit is now complete and reconciled with
   implemented shell/timeline surfaces
 - next highest-value operator UX lane is cross-surface parity checkpointing so
   server-owned authorization and validation-hold gate-state wording stay
   deterministic across baseline, shell, timeline, and recommendation surfaces
+- advances operator clarity without broadening runtime admission
+
+### CA. Approval/session Dashboard Long-hold Checkpoint Packet
+Why:
+- approval/session dashboard parity checkpoint packet is now complete and stable
+- next highest-value operator UX lane is explicit long-hold stream-handoff
+  checkpointing so approval/session parity wording remains deterministic across
+  future handoffs without implicit authorization drift
 - advances operator clarity without broadening runtime admission
 
 ## What stays blocked globally

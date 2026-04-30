@@ -141,7 +141,7 @@ export default function AppApprovalSessionDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Approval/session dashboard parity checkpoint packet</strong>.
+        Recommended next packet: <strong>Approval/session dashboard long-hold checkpoint packet</strong>.
       </p>
     </section>
   );

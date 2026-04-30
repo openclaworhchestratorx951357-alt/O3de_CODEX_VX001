@@ -11,21 +11,32 @@ describe("build execution long-hold fixture guardrails", () => {
     expect(buildExecutionCapability).toBeDefined();
     expect(buildExecutionCapability?.requiredGate).toContain("explicit named target");
     expect(buildExecutionCapability?.requiredGate).toContain("timeout/log/result evidence");
-    expect(buildExecutionCapability?.recommendedNextPacket).toBe("Approval/session dashboard parity checkpoint packet");
+    expect(buildExecutionCapability?.recommendedNextPacket).toBe("Approval/session dashboard long-hold checkpoint packet");
 
     const buildExecutionAudit = appAuditReviewDashboardRows.find((row) => row.domain === "Project/Config");
     expect(buildExecutionAudit).toBeDefined();
     expect(buildExecutionAudit?.capabilityWindow).toBe("build.execute.real long-hold checkpoint");
-    expect(buildExecutionAudit?.nextGate).toBe("Approval/session dashboard parity checkpoint packet");
+    expect(buildExecutionAudit?.nextGate).toBe("Approval/session dashboard long-hold checkpoint packet");
     expect(buildExecutionAudit?.findings).toContain("Long-hold checkpoint");
 
     const buildExecutionStatus = appWorkspaceStatusChipRows.find((row) => row.capabilityWindow === "build.execute.real");
     expect(buildExecutionStatus).toBeDefined();
     expect(buildExecutionStatus?.summary).toContain("hold/no-go posture explicit");
-    expect(buildExecutionStatus?.nextGate).toBe("Approval/session dashboard parity checkpoint packet");
+    expect(buildExecutionStatus?.nextGate).toBe("Approval/session dashboard long-hold checkpoint packet");
   });
 
   it("records build execution long-hold checkpoint evidence while preserving prior checkpoints", () => {
+    const approvalSessionDashboardParityRow = appEvidenceTimelineRows.find(
+      (row) => row.evidenceLane === "approval/session dashboard parity checkpoint packet",
+    );
+    expect(approvalSessionDashboardParityRow).toBeDefined();
+    expect(approvalSessionDashboardParityRow?.reviewStatus).toBe(
+      "pass-approval-session-dashboard-parity-checkpoint-packet",
+    );
+    expect(approvalSessionDashboardParityRow?.summary).toContain(
+      "deterministic server-owned authorization truth and fail-closed validation-hold gate-state semantics remain aligned",
+    );
+
     const validationWorkflowHoldBoundaryLongHoldRow = appEvidenceTimelineRows.find(
       (row) => row.evidenceLane === "validation workflow hold-boundary long-hold checkpoint packet",
     );

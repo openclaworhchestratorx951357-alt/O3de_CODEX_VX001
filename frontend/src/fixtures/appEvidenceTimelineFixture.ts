@@ -19,6 +19,16 @@ export const appEvidenceTimelineFixtureGeneratedAt = "2026-05-01";
 
 export const appEvidenceTimelineRows: readonly AppEvidenceTimelineRow[] = [
   {
+    recordedAtUtc: "2026-05-01T00:00:29Z",
+    domain: "GUI",
+    evidenceLane: "approval/session dashboard parity checkpoint packet",
+    capabilityWindow: "approval/session baseline + shell + timeline + recommendation parity checkpoint",
+    truthLabel: "demo",
+    summary:
+      "Approval/session dashboard parity checkpoint now verifies deterministic server-owned authorization truth and fail-closed validation-hold gate-state semantics remain aligned across baseline, shell, timeline, and recommendation surfaces while preserving non-authorizing client-field posture and non-admitting runtime boundaries.",
+    reviewStatus: "pass-approval-session-dashboard-parity-checkpoint-packet",
+  },
+  {
     recordedAtUtc: "2026-05-01T00:00:28Z",
     domain: "Validation",
     evidenceLane: "validation workflow hold-boundary long-hold checkpoint packet",

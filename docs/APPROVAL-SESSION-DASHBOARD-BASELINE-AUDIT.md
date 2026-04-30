@@ -103,8 +103,8 @@ superseded for current dashboard behavior by:
 
 ## Recommended next packet
 
-Approval/session dashboard parity checkpoint packet
-(`codex/approval-session-dashboard-parity-checkpoint-packet`):
+Approval/session dashboard long-hold checkpoint packet
+(`codex/approval-session-dashboard-long-hold-checkpoint-packet`):
 
 - keep baseline, shell, and timeline wording aligned for server-owned
   authorization truth

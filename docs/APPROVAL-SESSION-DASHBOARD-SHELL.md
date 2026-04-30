@@ -71,8 +71,8 @@ broadened.
 
 ## Recommended next packet
 
-Approval/session dashboard parity checkpoint packet
-(`codex/approval-session-dashboard-parity-checkpoint-packet`):
+Approval/session dashboard long-hold checkpoint packet
+(`codex/approval-session-dashboard-long-hold-checkpoint-packet`):
 
 - keep server-owned authorization and fail-closed gate-state wording aligned
   with the existing approval/session boundary model across baseline/shell

@@ -1,13 +1,14 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Approval/session dashboard parity checkpoint packet
-(`codex/approval-session-dashboard-parity-checkpoint-packet`).
+Approval/session dashboard long-hold checkpoint packet
+(`codex/approval-session-dashboard-long-hold-checkpoint-packet`).
 
 ## Why this is next
-- Validation workflow hold-boundary long-hold checkpoint packet is now complete
-  with deterministic held-lane stream-handoff posture checkpointing under
-  explicit long-hold wording and boundary-preservation linkage.
+- Approval/session dashboard parity checkpoint packet is now complete with
+  deterministic baseline/shell/timeline/recommendation wording alignment under
+  explicit server-owned gate-state truth language and non-authorizing
+  client-field semantics.
 - Validation workflow index + drift-guard + quick-reference + command-evidence
   + hold-boundary consistency + hold-boundary examples + wording-audit
   + review-status parity + taxonomy + chronology + progression-integrity
@@ -33,18 +34,17 @@ Approval/session dashboard parity checkpoint packet
   unchanged.
 - Build execution and rollback hold/no-go posture remain explicit.
 - Placement/provider/Blender/Asset Processor broadening remains held.
-- The next highest-value app-wide gap is approval/session dashboard parity
-  checkpointing so operator-visible authorization and validation-hold wording
-  remain deterministic under explicit server-owned gate-state truth language
-  across baseline, shell, timeline, and recommendation surfaces.
+- The next highest-value app-wide gap is approval/session long-hold stream
+  handoff checkpointing so parity wording remains deterministic under explicit
+  server-owned gate-state truth language across future handoffs.
 
 ## Scope
-- produce a focused approval/session dashboard parity checkpoint packet
-- audit cross-surface parity for approval/session baseline, shell fixture,
-  timeline rows, and recommendation wording
+- produce a focused approval/session dashboard long-hold checkpoint packet
+- audit long-hold stream-handoff parity for approval/session baseline/shell/
+  timeline/recommendation wording
 - preserve explicit non-authorizing client-field posture across dashboard
   surfaces
-- keep recommendation surfaces aligned to the approval/session parity
+- keep recommendation surfaces aligned to the approval/session long-hold
   checkpoint packet
 - preserve no-touch runtime zones and no-broadening posture
 
@@ -61,9 +61,9 @@ Approval/session dashboard parity checkpoint packet
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- approval/session baseline/shell/timeline wording parity remains deterministic
-  and aligned across app-wide shell recommendation surfaces and timeline
-  summaries while preserving explicit server-owned gate-state truth and
+- approval/session long-hold stream-handoff parity remains deterministic and
+  aligned across app-wide shell recommendation surfaces and timeline summaries
+  while preserving explicit server-owned gate-state truth and
   non-authorizing client-field semantics
 - canonical validation command set, command-to-evidence ownership,
   hold-boundary consistency checkpoints, operator-safe examples, wording
@@ -77,8 +77,8 @@ Approval/session dashboard parity checkpoint packet
   nonpartisanship, independence, autonomy, self-governance,
   self-determination, agency, self-authorship, self-direction, self-command,
   self-management, release-readiness decision, and long-hold stream handoff
-  checkpoints remain explicit and unchanged while approval/session
-  baseline/shell/timeline wording remains aligned
+  checkpoints remain explicit and unchanged while approval/session long-hold
+  wording remains aligned
 - editor restore/readback hold boundaries remain explicit
 - Flow Trigger runtime-admission hold posture remains explicit and unchanged
 - blocked and hold/no-go boundaries remain explicit in app-wide recommendation
@@ -88,8 +88,8 @@ Approval/session dashboard parity checkpoint packet
 
 ## Alternative considered
 Direct approval/session dashboard broadening without first checkpointing
-deterministic cross-surface parity under explicit server-owned gate-state truth
-and non-authorizing client-field wording consistency checks.
+deterministic long-hold stream-handoff parity under explicit server-owned
+gate-state truth and non-authorizing client-field wording consistency checks.
 
 This remains deferred for safety. Keep hold posture explicit first, then
 consider any future admission revisit.

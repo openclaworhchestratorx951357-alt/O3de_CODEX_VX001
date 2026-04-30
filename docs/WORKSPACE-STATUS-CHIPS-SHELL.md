@@ -47,8 +47,8 @@ mutation admission.
 
 ## Recommended next packet
 
-Approval/session dashboard parity checkpoint packet
-(`codex/approval-session-dashboard-parity-checkpoint-packet`).
+Approval/session dashboard long-hold checkpoint packet
+(`codex/approval-session-dashboard-long-hold-checkpoint-packet`).
 
 
 
