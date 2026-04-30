@@ -32,9 +32,22 @@ describe("cockpitLayoutDefaults", () => {
     expect(defaults.presetId).toBe("asset-forge-studio");
   });
 
-  it("uses App OS cockpit preset for create-game", () => {
+  it("uses cockpit-specific presets for major cockpit apps", () => {
+    expect(getCockpitLayoutDefaults("home").presetId).toBe("home-launcher");
+    expect(getCockpitLayoutDefaults("create-game").presetId).toBe("create-game-cockpit");
+    expect(getCockpitLayoutDefaults("create-movie").presetId).toBe("create-movie-cockpit");
+    expect(getCockpitLayoutDefaults("load-project").presetId).toBe("load-project-cockpit");
+    expect(getCockpitLayoutDefaults("prompt").presetId).toBe("prompt-studio-cockpit");
+    expect(getCockpitLayoutDefaults("builder").presetId).toBe("builder-cockpit");
+    expect(getCockpitLayoutDefaults("operations").presetId).toBe("operations-cockpit");
+    expect(getCockpitLayoutDefaults("runtime").presetId).toBe("runtime-cockpit");
+    expect(getCockpitLayoutDefaults("records").presetId).toBe("records-cockpit");
+  });
+
+  it("keeps center-first split constraints for major cockpit apps", () => {
     const defaults = getCockpitLayoutDefaults("create-game");
-    expect(defaults.presetId).toBe("app-os-cockpit");
+    expect(defaults.splitConstraints.centerMinWidth).toBeGreaterThan(defaults.splitConstraints.leftMinWidth);
+    expect(defaults.splitConstraints.centerMinWidth).toBeGreaterThan(defaults.splitConstraints.rightMinWidth);
   });
 
   it("falls back safely for unknown cockpit ids", () => {

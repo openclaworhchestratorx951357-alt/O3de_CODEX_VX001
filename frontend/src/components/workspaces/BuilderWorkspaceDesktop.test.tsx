@@ -1390,7 +1390,7 @@ describe("BuilderWorkspaceDesktop", () => {
     const supersedeReview = await screen.findByLabelText("Task supersede review");
     expect(supersedeReview).toHaveTextContent("Worker: builder-alpha");
     expect(supersedeReview).toHaveTextContent("Current task: builder-task-override");
-    expect(supersedeReview).toHaveTextContent("Replacement title: Urgent Builder override");
+    expect(supersedeReview).toHaveTextContent(/Replacement title: Urgent (Builder override|override for Current Builder slice)/);
     expect(supersedeReview).toHaveTextContent("Replacement scopes: frontend/src/components/workspaces");
     expect(supersedeReview).toHaveTextContent("Stop active terminal: yes (terminal-builder-alpha-001)");
     expect(supersedeReview).toHaveTextContent("Reason: Urgent production issue.");

@@ -94,7 +94,7 @@ describe("Cockpit workspace views", () => {
     render(<CreateGameWorkspaceView />);
 
     expect(screen.getByTestId("create-game-top-zone")).toHaveTextContent("Cockpit identity");
-    expect(screen.getByTestId("create-game-left-zone")).toHaveTextContent("Command bar");
+    expect(screen.getByTestId("create-game-top-zone")).toHaveTextContent("Command bar");
     expect(screen.getByTestId("create-game-left-zone")).toHaveTextContent("Game cockpit tools");
     expect(screen.getByTestId("create-game-center-zone")).toHaveTextContent("Game creation pipeline");
     expect(screen.getByTestId("create-game-right-zone")).toHaveTextContent("Blocked capabilities and future unlocks");
@@ -105,7 +105,7 @@ describe("Cockpit workspace views", () => {
     render(<CreateMovieWorkspaceView />);
 
     expect(screen.getByTestId("create-movie-top-zone")).toHaveTextContent("Cockpit identity");
-    expect(screen.getByTestId("create-movie-left-zone")).toHaveTextContent("Command bar");
+    expect(screen.getByTestId("create-movie-top-zone")).toHaveTextContent("Command bar");
     expect(screen.getByTestId("create-movie-left-zone")).toHaveTextContent("Movie cockpit tools");
     expect(screen.getByTestId("create-movie-center-zone")).toHaveTextContent("Cinematic pipeline");
     expect(screen.getByTestId("create-movie-right-zone")).toHaveTextContent("Blocked capabilities and future unlocks");
@@ -116,7 +116,7 @@ describe("Cockpit workspace views", () => {
     render(<LoadProjectWorkspaceView />);
 
     expect(screen.getByTestId("load-project-top-zone")).toHaveTextContent("Cockpit identity");
-    expect(screen.getByTestId("load-project-left-zone")).toHaveTextContent("Command bar");
+    expect(screen.getByTestId("load-project-top-zone")).toHaveTextContent("Command bar");
     expect(screen.getByTestId("load-project-left-zone")).toHaveTextContent("Load Project tools");
     expect(screen.getByTestId("load-project-center-zone")).toHaveTextContent("Project connection checklist");
     expect(screen.getByTestId("load-project-right-zone")).toHaveTextContent("Blocked capabilities and future unlocks");

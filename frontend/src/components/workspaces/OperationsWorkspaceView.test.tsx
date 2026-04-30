@@ -45,6 +45,11 @@ describe("OperationsWorkspaceView", () => {
     expect(screen.getByText("Approvals content")).toBeInTheDocument();
     expect(screen.getByText("How to use this workspace")).toBeInTheDocument();
     expect(screen.getByTestId("dockable-layout-operations")).toBeInTheDocument();
+    expect(screen.getByTestId("operations-top-zone")).toHaveTextContent("Surface strip");
+    expect(screen.getByTestId("operations-left-zone")).toHaveTextContent("Surface navigator");
+    expect(screen.getByTestId("operations-center-zone")).toHaveTextContent("Operations dominant work area");
+    expect(screen.getByTestId("operations-right-zone")).toHaveTextContent("Inspector and truth");
+    expect(screen.getByTestId("operations-bottom-zone")).toHaveTextContent("Operations queue and timeline summary drawer");
     expect(screen.getAllByText(/Treat Command Center as the queue-and-control lane for operator action/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Use this tab whenever the approvals counter is non-zero/i).length).toBeGreaterThan(0);
     expect(screen.getByText("Dispatch content").closest("[aria-hidden='true']")).not.toBeNull();

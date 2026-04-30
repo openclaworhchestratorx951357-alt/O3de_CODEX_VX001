@@ -139,9 +139,9 @@ describe("cockpitLayoutStore", () => {
     expect(loaded.zones.center).toEqual(["asset-forge-studio"]);
     expect(loaded.zones.right).toEqual(["asset-forge-truth"]);
     expect(loaded.zones.bottom).toEqual(["asset-forge-evidence"]);
-    expect(loaded.sizes.leftPrimaryRatio).toBeCloseTo(0.24);
-    expect(loaded.sizes.centerPrimaryRatio).toBeCloseTo(0.72);
-    expect(loaded.sizes.topPrimaryRatio).toBeCloseTo(0.8);
+    expect(loaded.sizes.leftPrimaryRatio).toBeCloseTo(0.27);
+    expect(loaded.sizes.centerPrimaryRatio).toBeCloseTo(0.76);
+    expect(loaded.sizes.topPrimaryRatio).toBeCloseTo(0.82);
   });
 
   it("normalizes old asset-forge saved layout versions to the new default preset", () => {
@@ -168,7 +168,7 @@ describe("cockpitLayoutStore", () => {
 
     const loaded = readCockpitLayoutState("asset-forge", assetForgePanels, "asset-forge-studio");
 
-    expect(loaded.version).toBe(3);
+    expect(loaded.version).toBe(4);
     expect(loaded.zones.top).toEqual(["asset-forge-command-strip"]);
     expect(loaded.zones.left).toEqual(["asset-forge-tools"]);
     expect(loaded.zones.center).toEqual(["asset-forge-studio"]);
@@ -198,9 +198,9 @@ describe("cockpitLayoutStore", () => {
       },
     }));
 
-    const loaded = readCockpitLayoutState("create-game", panels, "app-os-cockpit");
+    const loaded = readCockpitLayoutState("create-game", panels, "create-game-cockpit");
 
-    expect(loaded.version).toBe(3);
+    expect(loaded.version).toBe(4);
     expect(loaded.zones.left).toContain("panel-a");
     expect(loaded.zones.center).toContain("panel-b");
     expect(loaded.zones.right).toContain("panel-c");
@@ -228,9 +228,9 @@ describe("cockpitLayoutStore", () => {
       },
     }));
 
-    const loaded = readCockpitLayoutState("runtime", panels, "app-os-cockpit");
+    const loaded = readCockpitLayoutState("runtime", panels, "runtime-cockpit");
 
-    expect(loaded.version).toBe(3);
+    expect(loaded.version).toBe(4);
     expect(loaded.zones.left).toContain("panel-a");
     expect(loaded.zones.center).toContain("panel-b");
     expect(loaded.zones.right).toContain("panel-c");

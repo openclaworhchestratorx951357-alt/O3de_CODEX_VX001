@@ -126,8 +126,8 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
       collapsible: true,
       scrollMode: "content",
       priority: "tools",
-      minHeight: 150,
-      defaultHeight: 190,
+      minHeight: 110,
+      defaultHeight: 136,
       render: () => (
         <AssetForgeCommandStrip
           onOpenPromptStudio={props.onOpenPromptStudio}
@@ -148,7 +148,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
       priority: "tools",
       minWidth: 240,
       minHeight: 280,
-      defaultHeight: 420,
+      defaultHeight: 400,
       render: () => (
         <AssetForgeToolsOutlinerPanel
           taskModel={taskModel}
@@ -170,7 +170,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
       priority: "status",
       minWidth: 280,
       minHeight: 260,
-      defaultHeight: 320,
+      defaultHeight: 300,
       render: () => (
         <MissionTruthRail
           locationLabel="Asset Forge"
@@ -213,7 +213,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
       priority: "status",
       minWidth: 280,
       minHeight: 210,
-      defaultHeight: 260,
+      defaultHeight: 250,
       render: () => (
         <AssetForgeInspectorPanel
           projectLabel={props.projectProfile?.name ?? "unknown project"}
@@ -236,7 +236,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
       scrollMode: "content",
       priority: "evidence",
       minHeight: 180,
-      defaultHeight: 230,
+      defaultHeight: 210,
       render: () => (
         <section aria-label="Asset Forge evidence drawer" style={evidenceDrawerStyle}>
           <div style={evidenceDrawerActionRowStyle}>
@@ -279,7 +279,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
       priority: "primary",
       minWidth: 520,
       minHeight: 360,
-      defaultHeight: 560,
+      defaultHeight: 620,
       render: () => (
         <AssetForgeStudioPacket01
           projectProfile={props.projectProfile}

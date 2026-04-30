@@ -4,6 +4,15 @@ export type CockpitLayoutZone = "top" | "left" | "center" | "right" | "bottom";
 
 export type CockpitLayoutPresetId =
   | "app-os-cockpit"
+  | "home-launcher"
+  | "create-game-cockpit"
+  | "create-movie-cockpit"
+  | "load-project-cockpit"
+  | "prompt-studio-cockpit"
+  | "builder-cockpit"
+  | "operations-cockpit"
+  | "runtime-cockpit"
+  | "records-cockpit"
   | "balanced"
   | "focus"
   | "review"
@@ -75,15 +84,15 @@ export const DEFAULT_COCKPIT_LAYOUT_SIZES: CockpitLayoutSizes = {
 export const COCKPIT_LAYOUT_VERSION = 1;
 
 const COCKPIT_LAYOUT_VERSION_OVERRIDES: Record<string, number> = {
-  "create-game": 3,
-  "create-movie": 3,
-  "load-project": 3,
-  "asset-forge": 3,
-  "prompt": 3,
-  "builder": 3,
-  "operations": 3,
-  "runtime": 3,
-  "records": 3,
+  "create-game": 4,
+  "create-movie": 4,
+  "load-project": 4,
+  "asset-forge": 4,
+  "prompt": 4,
+  "builder": 4,
+  "operations": 4,
+  "runtime": 4,
+  "records": 4,
 };
 
 export function getCockpitLayoutVersion(cockpitId: string): number {

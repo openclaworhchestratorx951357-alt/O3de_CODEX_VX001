@@ -20,6 +20,11 @@ describe("BuilderWorkspaceView", () => {
 
     expect(screen.getByText("Overview content")).toBeInTheDocument();
     expect(screen.getByTestId("dockable-layout-builder")).toBeInTheDocument();
+    expect(screen.getByTestId("builder-top-zone")).toHaveTextContent("Builder command strip");
+    expect(screen.getByTestId("builder-left-zone")).toHaveTextContent("Builder tools and outliner");
+    expect(screen.getByTestId("builder-center-zone")).toHaveTextContent("Builder dominant work area");
+    expect(screen.getByTestId("builder-right-zone")).toHaveTextContent("Inspector and checklist");
+    expect(screen.getByTestId("builder-bottom-zone")).toHaveTextContent("Recommendations and evidence drawer");
     expect(screen.getByText("Lane creation content")).toBeInTheDocument();
     expect(screen.getByText("Worktrees content")).toBeInTheDocument();
     expect(screen.getByText("How to use this workspace")).toBeInTheDocument();

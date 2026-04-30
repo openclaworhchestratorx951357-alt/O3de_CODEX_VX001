@@ -107,12 +107,12 @@ export default function CockpitWorkspaceShell({
       title: "Command bar",
       subtitle: "Mission-safe launch and navigation actions",
       truthState: "actions",
-      defaultZone: "left",
+      defaultZone: "top",
       collapsible: true,
       scrollMode: "content",
       priority: "tools",
-      minHeight: 150,
-      defaultHeight: 180,
+      minHeight: 100,
+      defaultHeight: 126,
       render: () => (
         <div style={actionRowStyle}>
           {commandActions.map((action) => (
