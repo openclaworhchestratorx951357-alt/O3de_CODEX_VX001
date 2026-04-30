@@ -112,6 +112,12 @@ export default function DockableCockpitLayout({
     () => getPanelIdFingerprint(panels),
     [panels],
   );
+  const leftMinWidth = splitConstraints?.leftMinWidth ?? 220;
+  const centerMinWidth = splitConstraints?.centerMinWidth ?? 260;
+  const rightMinWidth = splitConstraints?.rightMinWidth ?? 220;
+  const mainMinHeight = splitConstraints?.mainMinHeight ?? 220;
+  const bottomMinHeight = splitConstraints?.bottomMinHeight ?? 150;
+  const compactWidthThreshold = Math.max(1100, leftMinWidth + centerMinWidth + rightMinWidth);
 
   useEffect(() => {
     setLayoutState(readCockpitLayoutState(cockpitId, panels, defaultPresetId));
@@ -135,23 +141,17 @@ export default function DockableCockpitLayout({
     }
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width ?? 0;
-      setIsCompact(width < 1100);
+      setIsCompact(width < compactWidthThreshold);
     });
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [compactWidthThreshold]);
 
   const panelById = useMemo(() => {
     return new Map(panels.map((panel) => [panel.id, panel]));
   }, [panels]);
 
   const defaultPresetSizes = useMemo(() => getPresetSizes(defaultPresetId), [defaultPresetId]);
-
-  const leftMinWidth = splitConstraints?.leftMinWidth ?? 220;
-  const centerMinWidth = splitConstraints?.centerMinWidth ?? 260;
-  const rightMinWidth = splitConstraints?.rightMinWidth ?? 220;
-  const mainMinHeight = splitConstraints?.mainMinHeight ?? 220;
-  const bottomMinHeight = splitConstraints?.bottomMinHeight ?? 150;
 
   const collapsedPanelIdSet = useMemo(() => {
     return new Set(layoutState.collapsedPanelIds);

@@ -24,6 +24,12 @@ describe("cockpitLayoutDefaults", () => {
     for (const cockpitId of cockpitIds) {
       expect(defaults[cockpitId]).toBeDefined();
       expect(defaults[cockpitId].splitConstraints.centerMinWidth).toBeGreaterThan(500);
+      expect(defaults[cockpitId].splitConstraints.centerMinWidth).toBeGreaterThan(defaults[cockpitId].splitConstraints.leftMinWidth);
+      expect(defaults[cockpitId].splitConstraints.centerMinWidth).toBeGreaterThan(defaults[cockpitId].splitConstraints.rightMinWidth);
+      const desktopMinWidth = defaults[cockpitId].splitConstraints.leftMinWidth
+        + defaults[cockpitId].splitConstraints.centerMinWidth
+        + defaults[cockpitId].splitConstraints.rightMinWidth;
+      expect(desktopMinWidth).toBeLessThanOrEqual(1110);
     }
   });
 

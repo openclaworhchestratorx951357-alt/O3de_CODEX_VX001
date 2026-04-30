@@ -84,15 +84,15 @@ export const DEFAULT_COCKPIT_LAYOUT_SIZES: CockpitLayoutSizes = {
 export const COCKPIT_LAYOUT_VERSION = 1;
 
 const COCKPIT_LAYOUT_VERSION_OVERRIDES: Record<string, number> = {
-  "create-game": 4,
-  "create-movie": 4,
-  "load-project": 4,
-  "asset-forge": 4,
-  "prompt": 4,
-  "builder": 4,
-  "operations": 4,
-  "runtime": 4,
-  "records": 4,
+  "create-game": 5,
+  "create-movie": 5,
+  "load-project": 5,
+  "asset-forge": 5,
+  "prompt": 5,
+  "builder": 5,
+  "operations": 5,
+  "runtime": 5,
+  "records": 5,
 };
 
 export function getCockpitLayoutVersion(cockpitId: string): number {
