@@ -1,6 +1,6 @@
 # Audit Review Dashboard Shell
 
-Status: frontend/static-fixture first
+Status: frontend/static-fixture shell with status-taxonomy truth refresh
 
 ## Purpose
 
@@ -12,8 +12,9 @@ packets.
 
 - frontend-only shell surface
 - static fixture rows for cross-domain audit verdicts
-- explicit maturity/risk/gate labels
-- explicit no-execution boundary labels
+- explicit maturity/status-taxonomy/risk/gate labels
+- explicit non-authorizing boundary labels
+- cross-shell taxonomy vocabulary linkage
 
 ## Not in scope
 
@@ -28,3 +29,8 @@ packets.
 - `frontend/src/fixtures/appAuditReviewDashboardFixture.ts`
 - `frontend/src/components/AppAuditReviewDashboardShell.test.tsx`
 - `frontend/src/App.tsx` Home Overview integration
+
+## Recommended next packet
+
+Validation workflow hold-boundary release-readiness decision packet
+(`codex/validation-workflow-hold-boundary-release-readiness-decision-packet`).

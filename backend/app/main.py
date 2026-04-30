@@ -21,6 +21,7 @@ from app.api.routes.runs import router as runs_router
 from app.api.routes.summary import router as summary_router
 from app.api.routes.tools import router as tools_router
 from app.api.routes.tools_catalog import router as tools_catalog_router
+from app.api.routes.validation_report_intake import router as validation_report_intake_router
 from app.models.api import RootStatus
 from app.services.adapters import adapter_service
 from app.services.db import initialize_database
@@ -75,6 +76,7 @@ app.include_router(adapters_router)
 app.include_router(app_control_router)
 app.include_router(summary_router)
 app.include_router(asset_forge_router)
+app.include_router(validation_report_intake_router)
 app.include_router(tools_router)
 app.include_router(tools_catalog_router)
 app.include_router(runs_router)
@@ -120,13 +122,17 @@ def root() -> RootStatus:
         "/asset-forge/o3de/stage-plan",
         "/asset-forge/o3de/stage-write",
         "/asset-forge/o3de/readback",
+        "/asset-forge/o3de/review-packet",
+        "/asset-forge/o3de/assignment-design",
         "/asset-forge/o3de/placement-plan",
         "/asset-forge/o3de/placement-proof",
+        "/asset-forge/o3de/editor-placement-proof-only",
         "/asset-forge/o3de/placement-evidence",
         "/asset-forge/o3de/placement-harness/prepare",
         "/asset-forge/o3de/placement-harness/execute",
         "/asset-forge/o3de/placement-harness/live-proof",
         "/asset-forge/o3de/placement-harness/evidence-index",
+        "/validation/report/intake",
         "/tools/catalog",
         "/tools/dispatch",
         "/runs",

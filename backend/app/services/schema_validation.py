@@ -417,6 +417,12 @@ class SchemaValidationService:
             ("editor.entity.exists", "artifact-metadata"): (
                 "schemas/tools/editor.entity.exists.artifact-metadata.schema.json"
             ),
+            ("editor.placement.proof_only", "execution-details"): (
+                "schemas/tools/editor.placement.proof_only.execution-details.schema.json"
+            ),
+            ("editor.placement.proof_only", "artifact-metadata"): (
+                "schemas/tools/editor.placement.proof_only.artifact-metadata.schema.json"
+            ),
             ("editor.level.open", "execution-details"): (
                 "schemas/tools/editor.level.open.execution-details.schema.json"
             ),

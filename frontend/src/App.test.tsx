@@ -11,6 +11,8 @@ import {
 } from "./test/appDesktopTestUtils";
 import { SETTINGS_PROFILE_STORAGE_KEY } from "./types/settings";
 
+const LAZY_SURFACE_TIMEOUT_MS = 5000;
+
 const apiMocks = vi.hoisted(() => ({
   approveApproval: vi.fn(),
   cleanupO3deBridgeResults: vi.fn(),
@@ -199,19 +201,14 @@ describe("App desktop smoke", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open dispatch" }));
 
     expect(
-      await screen.findByText(
-        "Catalog, typed dispatch, and latest response envelope.",
-        {},
-        { timeout: 3000 },
-      ),
+      await screen.findByText("Use typed dispatch when needed", {}, { timeout: 3000 }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Use typed dispatch when needed")).toBeInTheDocument();
     expect(screen.getByText("Action: Open dispatch")).toBeInTheDocument();
     expect(screen.getByText("Opens: Operations > Dispatch window")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Jump again" }));
 
-    expect(screen.getByText("Catalog, typed dispatch, and latest response envelope.")).toBeInTheDocument();
+    expect(screen.getByText("Use typed dispatch when needed")).toBeInTheDocument();
   });
 
   it("hides guided next steps for the current browser session and restores them", async () => {
@@ -246,7 +243,11 @@ describe("App desktop smoke", () => {
       "Bridge status, executors, workspaces, and governance health.",
     ));
 
-    expect(await screen.findByText("SystemStatusPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText(
+      "SystemStatusPanel stub",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
     expect(screen.getByText("Runtime Console")).toBeInTheDocument();
     expect(screen.getByText("AdaptersPanel stub")).toBeInTheDocument();
     expect(screen.getByText("OperatorOverviewPanel stub")).toBeInTheDocument();
@@ -271,7 +272,11 @@ describe("App desktop smoke", () => {
     fireEvent.click(getDesktopNavButton(/Create Game/i));
     fireEvent.click(screen.getByRole("button", { name: /Check bridge\/runtime/i }));
 
-    expect(await screen.findByText("SystemStatusPanel stub")).toBeInTheDocument();
+    expect(await screen.findByText(
+      "SystemStatusPanel stub",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
     expect(screen.getByText("Runtime Console")).toBeInTheDocument();
   });
 

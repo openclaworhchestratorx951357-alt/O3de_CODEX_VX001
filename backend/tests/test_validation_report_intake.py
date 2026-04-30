@@ -1,7 +1,12 @@
+import os
+from unittest.mock import patch
+
 from app.services.validation_report_intake import (
     VALIDATION_REPORT_INTAKE_CAPABILITY,
+    VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV,
     VALIDATION_REPORT_INTAKE_SCHEMA,
     build_validation_report_intake_dry_run_plan,
+    get_validation_report_intake_endpoint_gate,
 )
 
 
@@ -116,3 +121,38 @@ def test_validation_report_intake_dry_run_plan_fails_closed_for_oversized_payloa
 
     assert plan["accepted"] is False
     assert "payload_size_over_cap" in plan["fail_closed_reasons"]
+
+
+def test_validation_report_intake_endpoint_gate_states_are_fail_closed_by_default() -> None:
+    with patch.dict(os.environ, {}, clear=False):
+        os.environ.pop(VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV, None)
+        gate = get_validation_report_intake_endpoint_gate()
+    assert gate["admission_flag_state"] == "missing_default_off"
+    assert gate["admission_flag_enabled"] is False
+
+    with patch.dict(
+        os.environ,
+        {VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV: "off"},
+        clear=False,
+    ):
+        gate = get_validation_report_intake_endpoint_gate()
+    assert gate["admission_flag_state"] == "explicit_off"
+    assert gate["admission_flag_enabled"] is False
+
+    with patch.dict(
+        os.environ,
+        {VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV: "true"},
+        clear=False,
+    ):
+        gate = get_validation_report_intake_endpoint_gate()
+    assert gate["admission_flag_state"] == "explicit_on"
+    assert gate["admission_flag_enabled"] is True
+
+    with patch.dict(
+        os.environ,
+        {VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV: "garbage"},
+        clear=False,
+    ):
+        gate = get_validation_report_intake_endpoint_gate()
+    assert gate["admission_flag_state"] == "invalid_default_off"
+    assert gate["admission_flag_enabled"] is False

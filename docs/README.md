@@ -182,6 +182,530 @@ rounding up capability claims.
   Forge GLB.
 - `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET.md` defines the required
   generated-asset operator review packet before assignment or placement design.
+- `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET-IMPLEMENTATION.md` records the
+  first proof-only backend implementation of that structured review packet
+  output.
+- `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET-OPERATOR-EXAMPLES.md` provides
+  safe blocked/ready decision examples for that review packet while preserving
+  non-admission boundaries.
+- `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET-REVIEW-CHECKPOINT.md`
+  checkpoints current review-status taxonomy and non-authorizing boundaries.
+- `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET-RELEASE-READINESS-DECISION.md`
+  records the hold decision and no-broadening gates for this review stream.
+- `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET-LONG-HOLD-CHECKPOINT.md`
+  checkpoints the held review posture and stream handoff boundaries.
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-DESIGN-BASELINE-AUDIT.md`
+  audits current assignment-design candidate truth without admitting execution.
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-DESIGN-CONTRACT.md`
+  defines bounded assignment-design contract fields and fail-closed rules.
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-DESIGN-READINESS-AUDIT.md`
+  verifies ready vs missing gates before any assignment-design runtime packet.
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-PROOF-ONLY-IMPLEMENTATION.md`
+  records the plan-only assignment-design endpoint candidate and fail-closed
+  runtime checks.
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-OPERATOR-EXAMPLES.md` provides safe
+  blocked/ready examples for assignment-design requests while preserving
+  non-admission boundaries.
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-REVIEW-CHECKPOINT.md` checkpoints
+  assignment-design status/fail-closed taxonomy and non-authorizing posture.
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-RELEASE-READINESS-DECISION.md`
+  records the hold decision and no-broadening gates for assignment design.
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-LONG-HOLD-CHECKPOINT.md`
+  checkpoints the held assignment-design posture and placement-lane handoff.
+- `docs/AI-ASSET-FORGE-PLACEMENT-BRIDGE-READINESS-BASELINE-AUDIT.md`
+  audits current placement proof/harness/evidence bridge-readiness truth before
+  any runtime-admission design.
+- `docs/AI-ASSET-FORGE-PLACEMENT-BRIDGE-READINESS-CONTRACT-DESIGN.md`
+  defines bounded server-owned bridge-readiness contract fields and fail-closed
+  no-go rules before placement-runtime admission.
+- `docs/AI-ASSET-FORGE-PLACEMENT-BRIDGE-READINESS-READINESS-AUDIT.md`
+  records ready vs missing placement bridge-readiness gates and preserves
+  blocked runtime execution/mutation posture before proof-only implementation.
+- `docs/AI-ASSET-FORGE-PLACEMENT-BRIDGE-READINESS-PROOF-ONLY-IMPLEMENTATION.md`
+  records read-only bridge preflight contract signals for harness/live-proof
+  surfaces while keeping placement runtime execution blocked/non-admitted.
+- `docs/AI-ASSET-FORGE-PLACEMENT-BRIDGE-READINESS-OPERATOR-EXAMPLES.md`
+  checkpoints safe/refused operator examples and bridge-readiness fail-closed
+  vocabulary while preserving non-authorizing execution boundaries.
+- `docs/AI-ASSET-FORGE-PLACEMENT-BRIDGE-READINESS-RELEASE-READINESS-DECISION.md`
+  records the held release-readiness posture and no-go gates before any
+  placement bridge-readiness admission broadening.
+- `docs/AI-ASSET-FORGE-PLACEMENT-BRIDGE-READINESS-LONG-HOLD-CHECKPOINT.md`
+  checkpoints held bridge-readiness posture and stream handoff boundaries
+  before any future runtime-admission candidate movement.
+- `docs/AI-ASSET-FORGE-PLACEMENT-RUNTIME-ADMISSION-BASELINE-AUDIT.md`
+  audits current placement runtime-admission candidate truth and preserves
+  explicit non-admission/no-go boundaries.
+- `docs/AI-ASSET-FORGE-PLACEMENT-RUNTIME-ADMISSION-CONTRACT-DESIGN.md`
+  defines exact runtime-admission contract design boundaries and fail-closed
+  no-go rules without admitting runtime execution.
+- `docs/AI-ASSET-FORGE-PLACEMENT-RUNTIME-ADMISSION-READINESS-AUDIT.md`
+  classifies ready vs missing runtime-admission gates and keeps execution
+  blocked/non-admitted while identifying bounded implementation touchpoints.
+- `docs/AI-ASSET-FORGE-PLACEMENT-RUNTIME-ADMISSION-PROOF-ONLY-IMPLEMENTATION.md`
+  records bounded proof-only runtime-admission contract/reporting fields for
+  harness/live-proof surfaces while preserving blocked execution posture.
+- `docs/AI-ASSET-FORGE-PLACEMENT-RUNTIME-ADMISSION-OPERATOR-EXAMPLES-CHECKPOINT.md`
+  checkpoints safe blocked examples and runtime-contract vocabulary for
+  runtime-admission harness/live-proof requests while preserving non-admission.
+- `docs/AI-ASSET-FORGE-PLACEMENT-RUNTIME-ADMISSION-RELEASE-READINESS-DECISION.md`
+  records the held runtime-admission release posture and no-go gates before any
+  placement execution broadening.
+- `docs/AI-ASSET-FORGE-PLACEMENT-RUNTIME-ADMISSION-LONG-HOLD-CHECKPOINT.md`
+  checkpoints held runtime-admission posture and stream handoff boundaries
+  before any future admission revisit.
+- `docs/AI-ASSET-FORGE-READBACK-BRIDGE-HARDENING-AUDIT.md`
+  re-audits readback bridge fail-closed/reporting-only boundaries and keeps
+  execution/mutation corridors non-admitted.
+- `docs/AI-ASSET-FORGE-STAGE-PLAN-EVIDENCE-REFRESH.md`
+  refreshes stage-plan deterministic evidence/policy wording while preserving
+  non-authorizing execution boundaries.
+- `docs/AI-ASSET-FORGE-PROVIDER-PREFLIGHT-HARDENING.md`
+  hardens provider preflight no-provider-call evidence wording while preserving
+  blocked provider generation/runtime execution boundaries.
+- `docs/AI-ASSET-FORGE-BLENDER-PREFLIGHT-HARDENING.md`
+  hardens Blender preflight no-execution evidence wording while preserving
+  blocked Blender prep/runtime execution boundaries.
+- `docs/AI-ASSET-FORGE-PLACEMENT-READINESS-MATRIX-REFRESH.md`
+  refreshes placement dry-run readiness matrix truth and fail-closed evidence
+  wording while preserving blocked placement runtime execution boundaries.
+- `docs/AI-ASSET-FORGE-PLACEMENT-PROOF-ONLY-ADMISSION-FLAG-DESIGN.md`
+  defines placement proof-only admission-flag fail-closed state/evidence
+  semantics while preserving blocked placement runtime execution boundaries.
+- `docs/AI-ASSET-FORGE-PLACEMENT-PROOF-ONLY-ADMISSION-FLAG-VERIFICATION-CHECKPOINT.md`
+  checkpoints verified proof-only admission-flag state/evidence permutations
+  while preserving blocked placement runtime execution boundaries.
+- `docs/AI-ASSET-FORGE-PLACEMENT-PROOF-ONLY-ADMISSION-FLAG-RELEASE-READINESS-DECISION.md`
+  records hold/no-go release posture for the proof-only admission-flag lane
+  while preserving blocked placement runtime execution boundaries.
+- `docs/AI-ASSET-FORGE-PLACEMENT-PROOF-ONLY-ADMISSION-FLAG-LONG-HOLD-CHECKPOINT.md`
+  checkpoints held proof-only admission-flag posture and stream handoff
+  boundaries while preserving blocked placement runtime execution boundaries.
+- `docs/EDITOR-PLACEMENT-PLAN-MATRIX-BASELINE-AUDIT.md`
+  re-establishes plan-only editor placement matrix truth and cross-lane
+  dependencies while preserving blocked execution boundaries.
+- `docs/EDITOR-PLACEMENT-PROOF-ONLY-DESIGN.md`
+  defines bounded editor placement proof-only scope, fail-closed gates, and
+  non-goals while preserving blocked execution boundaries.
+- `docs/EDITOR-PLACEMENT-PROOF-ONLY-READINESS-AUDIT.md`
+  classifies ready vs missing proof-only editor placement gates and names exact
+  bounded implementation touchpoints while preserving blocked execution
+  boundaries.
+- `docs/EDITOR-PLACEMENT-PROOF-ONLY-IMPLEMENTATION.md`
+  records the bounded fail-closed `editor.placement.proof_only` corridor
+  implementation while preserving blocked/non-admitted execution and mutation
+  boundaries.
+- `docs/EDITOR-PLACEMENT-PROOF-ONLY-OPERATOR-EXAMPLES-CHECKPOINT.md`
+  checkpoints safe/refused operator examples and fail-closed reason taxonomy
+  for the bounded proof-only editor placement corridor.
+- `docs/EDITOR-PLACEMENT-PROOF-ONLY-RELEASE-READINESS-DECISION.md`
+  records the explicit hold/no-go decision for execution/mutation broadening
+  of the bounded proof-only editor placement corridor.
+- `docs/EDITOR-PLACEMENT-PROOF-ONLY-LONG-HOLD-CHECKPOINT.md`
+  checkpoints the held proof-only placement posture and stream handoff
+  boundaries before any runtime-admission revisit.
+- `docs/EDITOR-PLACEMENT-RUNTIME-ADMISSION-BASELINE-AUDIT.md`
+  establishes current truth and exact ready vs missing gates for a future
+  editor placement runtime-admission lane without admitting execution.
+- `docs/EDITOR-PLACEMENT-RUNTIME-ADMISSION-CONTRACT-DESIGN.md`
+  defines exact bounded runtime-admission contract requirements and fail-closed
+  no-go boundaries without admitting execution.
+- `docs/EDITOR-PLACEMENT-RUNTIME-ADMISSION-READINESS-AUDIT.md`
+  classifies ready vs missing runtime-admission gates against the contract
+  design and identifies bounded implementation touchpoints.
+- `docs/EDITOR-PLACEMENT-RUNTIME-ADMISSION-PROOF-ONLY-IMPLEMENTATION.md`
+  records bounded runtime-admission contract/reporting implementation deltas
+  for the editor proof-only lane while preserving blocked execution/mutation.
+- `docs/EDITOR-PLACEMENT-RUNTIME-ADMISSION-OPERATOR-EXAMPLES-CHECKPOINT.md`
+  checkpoints operator-facing safe/refused examples and fail-closed taxonomy
+  for the contract-enriched editor proof-only lane.
+- `docs/EDITOR-PLACEMENT-RUNTIME-ADMISSION-RELEASE-READINESS-DECISION.md`
+  records explicit hold/no-go posture and exact admission gates required before
+  any runtime-execution broadening discussion.
+- `docs/EDITOR-PLACEMENT-RUNTIME-ADMISSION-LONG-HOLD-CHECKPOINT.md`
+  checkpoints held runtime-admission posture and stream handoff boundaries
+  after the release-readiness hold decision.
+- `docs/ASSET-FORGE-STAGE-WRITE-ADMISSION-FLAG-VERIFICATION.md` checkpoints
+  proof-only `asset_forge.o3de.stage_write.v1` admission-flag verification and
+  the next stream handoff.
+- `docs/BUILD-CONFIGURE-PREFLIGHT-REVIEW.md` checkpoints
+  `build.configure.preflight` no-execution boundary truth and rolls stream
+  handoff to build execution boundary hardening audit.
+- `docs/BUILD-EXECUTION-BOUNDARY-HARDENING-AUDIT.md` checkpoints
+  `build.execute.real` explicit named-target execution boundaries and rolls
+  stream handoff to build execution release-readiness decision.
+- `docs/BUILD-EXECUTION-RELEASE-READINESS-DECISION.md` records the explicit
+  hold/no-go decision for build-execution broadening and rolls stream handoff
+  to build execution long-hold checkpoint.
+- `docs/BUILD-EXECUTION-LONG-HOLD-CHECKPOINT.md` checkpoints held
+  build-execution posture after release-readiness decision and rolls stream
+  handoff to editor narrow-corridor verification refresh.
+- `docs/EDITOR-NARROW-CORRIDOR-VERIFICATION-REFRESH.md` checkpoints verified
+  exact editor narrow-corridor boundary truth and rolls stream handoff to Flow
+  Trigger Suite productization plan.
+- `docs/FLOW-TRIGGER-SUITE-PRODUCTIZATION-PLAN.md` documents bounded local
+  helper productization planning gates and rolls stream handoff to Flow Trigger
+  Suite audit-gate checklist.
+- `docs/FLOW-TRIGGER-SUITE-AUDIT-GATE-CHECKLIST.md` records the completed
+  helper audit stop-point checklist and rolls stream handoff to Flow Trigger
+  Suite productization design.
+- `docs/FLOW-TRIGGER-SUITE-PRODUCTIZATION-DESIGN.md` records bounded helper
+  productization contract design (non-admitting) and rolls stream handoff to
+  Flow Trigger Suite security-review gate.
+- `docs/FLOW-TRIGGER-SUITE-SECURITY-REVIEW-GATE.md` records completed helper
+  threat/review control gates (non-admitting) and rolls stream handoff to Flow
+  Trigger Suite operator-approval gate.
+- `docs/FLOW-TRIGGER-SUITE-OPERATOR-APPROVAL-GATE.md` records completed helper
+  operator-approval semantics (non-admitting) and rolls stream handoff to Flow
+  Trigger Suite runtime-admission readiness audit.
+- `docs/FLOW-TRIGGER-SUITE-RUNTIME-ADMISSION-READINESS-AUDIT.md` records
+  completed readiness classification (non-admitting) and rolls stream handoff
+  to Flow Trigger Suite runtime-admission contract design.
+- `docs/FLOW-TRIGGER-SUITE-RUNTIME-ADMISSION-CONTRACT-DESIGN.md` records the
+  exact deny-by-default runtime-admission contract/state machine
+  (non-admitting) and rolls stream handoff to Flow Trigger Suite
+  runtime-admission proof-only implementation.
+- `docs/FLOW-TRIGGER-SUITE-RUNTIME-ADMISSION-PROOF-ONLY-IMPLEMENTATION.md`
+  records bounded proof-only runtime-admission contract-evaluation vectors
+  (non-admitting) and rolls stream handoff to Flow Trigger Suite
+  runtime-admission operator-examples checkpoint.
+- `docs/FLOW-TRIGGER-SUITE-RUNTIME-ADMISSION-OPERATOR-EXAMPLES-CHECKPOINT.md`
+  records safe blocked and safe ready-for-review proof-only example taxonomy
+  with deterministic fail-closed reason vocabulary and rolls stream handoff to
+  Flow Trigger Suite runtime-admission release-readiness decision.
+- `docs/FLOW-TRIGGER-SUITE-RUNTIME-ADMISSION-RELEASE-READINESS-DECISION.md`
+  records explicit hold/no-go posture for runtime-admission broadening and
+  rolls stream handoff to Flow Trigger Suite runtime-admission long-hold
+  checkpoint.
+- `docs/FLOW-TRIGGER-SUITE-RUNTIME-ADMISSION-LONG-HOLD-CHECKPOINT.md`
+  checkpoints held Flow Trigger runtime-admission posture and stream handoff
+  boundaries, then rolls app-wide focus to editor restore verification refresh.
+- `docs/EDITOR-RESTORE-VERIFICATION-REFRESH.md` checkpoints exact editor
+  restore-corridor verification truth and rolls stream handoff to editor
+  authoring readback review packet.
+- `docs/EDITOR-AUTHORING-READBACK-REVIEW-PACKET.md` checkpoints editor
+  authoring readback review truth and rolls stream handoff to editor readback
+  contract alignment audit.
+- `docs/EDITOR-READBACK-CONTRACT-ALIGNMENT-AUDIT.md` checkpoints editor
+  readback contract wording parity and rolls stream handoff to editor readback
+  operator examples checkpoint.
+- `docs/EDITOR-READBACK-OPERATOR-EXAMPLES-CHECKPOINT.md` checkpoints
+  safe/refused editor readback operator examples and rolls stream handoff to
+  editor readback release-readiness decision.
+- `docs/EDITOR-READBACK-RELEASE-READINESS-DECISION.md` records explicit
+  hold/no-go release posture for editor readback broadening and rolls stream
+  handoff to editor readback long-hold checkpoint.
+- `docs/EDITOR-READBACK-LONG-HOLD-CHECKPOINT.md` checkpoints held editor
+  readback posture and stream handoff boundaries, then rolls app-wide focus to
+  TIAF preflight baseline audit.
+- `docs/TIAF-PREFLIGHT-BASELINE-AUDIT.md` records baseline maturity and
+  no-admission boundaries for `TIAF/preflight`, then rolls app-wide focus to
+  CI admission design packet.
+- `docs/CI-ADMISSION-DESIGN-PACKET.md` records explicit CI/test-execution
+  admission boundary design and fail-closed gate requirements, then rolls
+  app-wide focus to the CI admission readiness audit packet.
+- `docs/CI-ADMISSION-READINESS-AUDIT-PACKET.md` records CI/test-execution
+  readiness-gate audit results and preserved non-admitting boundaries, then
+  rolls app-wide focus to the CI admission proof-only harness packet.
+- `docs/CI-ADMISSION-PROOF-ONLY-HARNESS-PACKET.md` records bounded
+  CI/test-execution proof-only harness checkpoint posture and preserved
+  non-admitting boundaries, then
+  rolls app-wide focus to the CI admission release-readiness decision packet.
+- `docs/CI-ADMISSION-RELEASE-READINESS-DECISION-PACKET.md` records explicit
+  CI/test-execution hold/no-go release-readiness decision posture and preserved
+  non-admitting boundaries, then
+  rolls app-wide focus to the CI admission long-hold checkpoint packet.
+- `docs/CI-ADMISSION-LONG-HOLD-CHECKPOINT-PACKET.md` records explicit
+  CI/test-execution long-hold stream handoff posture and preserved
+  non-admitting boundaries, then
+  rolls app-wide focus to the TIAF preflight contract design packet.
+- `docs/TIAF-PREFLIGHT-CONTRACT-DESIGN-PACKET.md` records explicit
+  `TIAF/preflight` contract boundaries, fail-closed semantics, and
+  non-admitting no-runtime-mutation posture, then
+  rolls app-wide focus to the TIAF preflight readiness audit packet.
+- `docs/TIAF-PREFLIGHT-READINESS-AUDIT-PACKET.md` records explicit
+  `TIAF/preflight` readiness-gate classification and bounded implementation
+  touchpoint inventory while preserving non-admitting no-runtime-mutation
+  posture, then
+  rolls app-wide focus to the TIAF preflight proof-only harness packet.
+- `docs/TIAF-PREFLIGHT-PROOF-ONLY-HARNESS-PACKET.md` records bounded
+  `TIAF/preflight` proof-only harness checkpoint posture and preserved
+  fail-closed non-admitting boundaries, then
+  rolls app-wide focus to the TIAF preflight release-readiness decision packet.
+- `docs/TIAF-PREFLIGHT-RELEASE-READINESS-DECISION-PACKET.md` records explicit
+  `TIAF/preflight` hold/no-go release-readiness posture and preserved
+  fail-closed non-admitting boundaries, then
+  rolls app-wide focus to the TIAF preflight long-hold checkpoint packet.
+- `docs/TIAF-PREFLIGHT-LONG-HOLD-CHECKPOINT-PACKET.md` records explicit
+  `TIAF/preflight` long-hold stream handoff posture and preserved fail-closed
+  non-admitting boundaries, then
+  rolls app-wide focus to the validation workflow index refresh packet.
+- `docs/VALIDATION-WORKFLOW-INDEX-REFRESH-PACKET.md` records explicit
+  backend/frontend validation-command index refresh truth and preserved
+  non-admitting boundaries, then
+  rolls app-wide focus to the validation workflow drift-guard checkpoint
+  packet.
+- `docs/VALIDATION-WORKFLOW-DRIFT-GUARD-CHECKPOINT-PACKET.md` records explicit
+  validation-command drift-guard parity checkpoints across app-wide shell and
+  workflow guidance surfaces while preserving non-admitting boundaries, then
+  rolls app-wide focus to the validation workflow quick-reference packet.
+- `docs/VALIDATION-WORKFLOW-QUICK-REFERENCE-PACKET.md` records one concise
+  deterministic validation workflow quick-reference and preserved held-lane
+  boundaries, then rolls app-wide focus to the validation workflow
+  command-evidence checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-COMMAND-EVIDENCE-CHECKPOINT-PACKET.md` records
+  explicit command-to-evidence ownership checkpoints for canonical validation
+  workflow commands and preserved held-lane boundaries, then rolls app-wide
+  focus to the validation workflow hold-boundary consistency packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-CONSISTENCY-PACKET.md` records
+  deterministic held-lane boundary wording checkpoints for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces, then rolls app-wide
+  focus to the validation workflow hold-boundary example checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-EXAMPLE-CHECKPOINT-PACKET.md`
+  records operator-safe held-lane examples for `TIAF/preflight` and real
+  CI/test execution while preserving canonical non-admitting wording, then
+  rolls app-wide focus to the validation workflow hold-boundary wording-audit
+  packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-WORDING-AUDIT-PACKET.md` records
+  canonical held-lane wording parity checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  review-status parity packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-REVIEW-STATUS-PARITY-PACKET.md`
+  records held-lane review-status token parity checkpoint evidence for
+  `TIAF/preflight` and real CI/test execution across recommendation surfaces and
+  timeline summaries, then rolls app-wide focus to the validation workflow
+  hold-boundary taxonomy checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-TAXONOMY-CHECKPOINT-PACKET.md`
+  records held-lane taxonomy parity checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  chronology checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-CHRONOLOGY-CHECKPOINT-PACKET.md`
+  records held-lane chronology parity checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  progression integrity packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-PROGRESSION-INTEGRITY-PACKET.md`
+  records held-lane progression integrity checkpoint evidence for
+  `TIAF/preflight` and real CI/test execution across recommendation surfaces and
+  timeline summaries, then rolls app-wide focus to the validation workflow
+  hold-boundary stability checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-STABILITY-CHECKPOINT-PACKET.md`
+  records held-lane stability checkpoint evidence for `TIAF/preflight` and real
+  CI/test execution across recommendation surfaces and timeline summaries, then
+  rolls app-wide focus to the validation workflow hold-boundary resilience
+  checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-RESILIENCE-CHECKPOINT-PACKET.md`
+  records held-lane resilience checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary continuity
+  checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-CONTINUITY-CHECKPOINT-PACKET.md`
+  records held-lane continuity checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary durability
+  checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-DURABILITY-CHECKPOINT-PACKET.md`
+  records held-lane durability checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary endurance
+  checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-ENDURANCE-CHECKPOINT-PACKET.md`
+  records held-lane endurance checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary longevity
+  checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-LONGEVITY-CHECKPOINT-PACKET.md`
+  records held-lane longevity checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary
+  sustainability checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-SUSTAINABILITY-CHECKPOINT-PACKET.md`
+  records held-lane sustainability checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  maintainability checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-MAINTAINABILITY-CHECKPOINT-PACKET.md`
+  records held-lane maintainability checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  adaptability checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-ADAPTABILITY-CHECKPOINT-PACKET.md`
+  records held-lane adaptability checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary
+  operability checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-OPERABILITY-CHECKPOINT-PACKET.md`
+  records held-lane operability checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary
+  auditability checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-AUDITABILITY-CHECKPOINT-PACKET.md`
+  records held-lane auditability checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary
+  traceability checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-TRACEABILITY-CHECKPOINT-PACKET.md`
+  records held-lane traceability checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary
+  provenance checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-PROVENANCE-CHECKPOINT-PACKET.md`
+  records held-lane provenance checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary
+  accountability checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-ACCOUNTABILITY-CHECKPOINT-PACKET.md`
+  records held-lane accountability checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  assurance checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-ASSURANCE-CHECKPOINT-PACKET.md`
+  records held-lane assurance checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  confidence checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-CONFIDENCE-CHECKPOINT-PACKET.md`
+  records held-lane confidence checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  certainty checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-CERTAINTY-CHECKPOINT-PACKET.md`
+  records held-lane certainty checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  determinism checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-DETERMINISM-CHECKPOINT-PACKET.md`
+  records held-lane determinism checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  repeatability checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-REPEATABILITY-CHECKPOINT-PACKET.md`
+  records held-lane repeatability checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  reproducibility checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-REPRODUCIBILITY-CHECKPOINT-PACKET.md`
+  records held-lane reproducibility checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  predictability checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-PREDICTABILITY-CHECKPOINT-PACKET.md`
+  records held-lane predictability checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  reliability checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-RELIABILITY-CHECKPOINT-PACKET.md`
+  records held-lane reliability checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary
+  availability checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-AVAILABILITY-CHECKPOINT-PACKET.md`
+  records held-lane availability checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary
+  serviceability checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-SERVICEABILITY-CHECKPOINT-PACKET.md`
+  records held-lane serviceability checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  supportability checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-SUPPORTABILITY-CHECKPOINT-PACKET.md`
+  records held-lane supportability checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  usability checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-USABILITY-CHECKPOINT-PACKET.md`
+  records held-lane usability checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  accessibility checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-ACCESSIBILITY-CHECKPOINT-PACKET.md`
+  records held-lane accessibility checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  inclusivity checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-INCLUSIVITY-CHECKPOINT-PACKET.md`
+  records held-lane inclusivity checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  equity checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-EQUITY-CHECKPOINT-PACKET.md`
+  records held-lane equity checkpoint evidence for `TIAF/preflight` and real
+  CI/test execution across recommendation surfaces and timeline summaries, then
+  rolls app-wide focus to the validation workflow hold-boundary fairness
+  checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-FAIRNESS-CHECKPOINT-PACKET.md`
+  records held-lane fairness checkpoint evidence for `TIAF/preflight` and real
+  CI/test execution across recommendation surfaces and timeline summaries, then
+  rolls app-wide focus to the validation workflow hold-boundary impartiality
+  checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-IMPARTIALITY-CHECKPOINT-PACKET.md`
+  records held-lane impartiality checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary neutrality
+  checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-NEUTRALITY-CHECKPOINT-PACKET.md`
+  records held-lane neutrality checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary objectivity
+  checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-OBJECTIVITY-CHECKPOINT-PACKET.md`
+  records held-lane objectivity checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary
+  nonpartisanship checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-NONPARTISANSHIP-CHECKPOINT-PACKET.md`
+  records held-lane nonpartisanship checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  independence checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-INDEPENDENCE-CHECKPOINT-PACKET.md`
+  records held-lane independence checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary autonomy
+  checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-AUTONOMY-CHECKPOINT-PACKET.md`
+  records held-lane autonomy checkpoint evidence for `TIAF/preflight` and real
+  CI/test execution across recommendation surfaces and timeline summaries, then
+  rolls app-wide focus to the validation workflow hold-boundary
+  self-governance checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-SELF-GOVERNANCE-CHECKPOINT-PACKET.md`
+  records held-lane self-governance checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  self-determination checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-SELF-DETERMINATION-CHECKPOINT-PACKET.md`
+  records held-lane self-determination checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  agency checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-AGENCY-CHECKPOINT-PACKET.md`
+  records held-lane agency checkpoint evidence for `TIAF/preflight` and real
+  CI/test execution across recommendation surfaces and timeline summaries, then
+  rolls app-wide focus to the validation workflow hold-boundary self-authorship
+  checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-SELF-AUTHORSHIP-CHECKPOINT-PACKET.md`
+  records held-lane self-authorship checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  self-direction checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-SELF-DIRECTION-CHECKPOINT-PACKET.md`
+  records held-lane self-direction checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  self-command checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-SELF-COMMAND-CHECKPOINT-PACKET.md`
+  records held-lane self-command checkpoint evidence for `TIAF/preflight` and
+  real CI/test execution across recommendation surfaces and timeline summaries,
+  then rolls app-wide focus to the validation workflow hold-boundary
+  self-management checkpoint packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-SELF-MANAGEMENT-CHECKPOINT-PACKET.md`
+  records held-lane self-management checkpoint evidence for `TIAF/preflight`
+  and real CI/test execution across recommendation surfaces and timeline
+  summaries, then rolls app-wide focus to the validation workflow hold-boundary
+  release-readiness decision packet.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof
@@ -216,6 +740,56 @@ rounding up capability claims.
 - `docs/AI-ASSET-FORGE-O3DE-SOURCE-STAGING-PROOF.md`
 - `docs/AI-ASSET-FORGE-ASSET-PROCESSOR-VALIDATION.md`
 - `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET.md`
+- `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET-IMPLEMENTATION.md`
+- `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET-OPERATOR-EXAMPLES.md`
+- `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET-REVIEW-CHECKPOINT.md`
+- `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET-RELEASE-READINESS-DECISION.md`
+- `docs/AI-ASSET-FORGE-OPERATOR-REVIEW-PACKET-LONG-HOLD-CHECKPOINT.md`
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-DESIGN-BASELINE-AUDIT.md`
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-DESIGN-CONTRACT.md`
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-DESIGN-READINESS-AUDIT.md`
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-PROOF-ONLY-IMPLEMENTATION.md`
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-OPERATOR-EXAMPLES.md`
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-REVIEW-CHECKPOINT.md`
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-RELEASE-READINESS-DECISION.md`
+- `docs/AI-ASSET-FORGE-ENTITY-ASSIGNMENT-LONG-HOLD-CHECKPOINT.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-BRIDGE-READINESS-BASELINE-AUDIT.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-BRIDGE-READINESS-CONTRACT-DESIGN.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-BRIDGE-READINESS-READINESS-AUDIT.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-BRIDGE-READINESS-PROOF-ONLY-IMPLEMENTATION.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-BRIDGE-READINESS-OPERATOR-EXAMPLES.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-BRIDGE-READINESS-RELEASE-READINESS-DECISION.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-BRIDGE-READINESS-LONG-HOLD-CHECKPOINT.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-RUNTIME-ADMISSION-BASELINE-AUDIT.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-RUNTIME-ADMISSION-CONTRACT-DESIGN.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-RUNTIME-ADMISSION-READINESS-AUDIT.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-RUNTIME-ADMISSION-PROOF-ONLY-IMPLEMENTATION.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-RUNTIME-ADMISSION-OPERATOR-EXAMPLES-CHECKPOINT.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-RUNTIME-ADMISSION-RELEASE-READINESS-DECISION.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-RUNTIME-ADMISSION-LONG-HOLD-CHECKPOINT.md`
+- `docs/AI-ASSET-FORGE-READBACK-BRIDGE-HARDENING-AUDIT.md`
+- `docs/AI-ASSET-FORGE-STAGE-PLAN-EVIDENCE-REFRESH.md`
+- `docs/AI-ASSET-FORGE-PROVIDER-PREFLIGHT-HARDENING.md`
+- `docs/AI-ASSET-FORGE-BLENDER-PREFLIGHT-HARDENING.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-READINESS-MATRIX-REFRESH.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-PROOF-ONLY-ADMISSION-FLAG-DESIGN.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-PROOF-ONLY-ADMISSION-FLAG-VERIFICATION-CHECKPOINT.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-PROOF-ONLY-ADMISSION-FLAG-RELEASE-READINESS-DECISION.md`
+- `docs/AI-ASSET-FORGE-PLACEMENT-PROOF-ONLY-ADMISSION-FLAG-LONG-HOLD-CHECKPOINT.md`
+- `docs/EDITOR-PLACEMENT-PLAN-MATRIX-BASELINE-AUDIT.md`
+- `docs/EDITOR-PLACEMENT-PROOF-ONLY-DESIGN.md`
+- `docs/EDITOR-PLACEMENT-PROOF-ONLY-READINESS-AUDIT.md`
+- `docs/EDITOR-PLACEMENT-PROOF-ONLY-IMPLEMENTATION.md`
+- `docs/EDITOR-PLACEMENT-PROOF-ONLY-OPERATOR-EXAMPLES-CHECKPOINT.md`
+- `docs/EDITOR-PLACEMENT-PROOF-ONLY-RELEASE-READINESS-DECISION.md`
+- `docs/EDITOR-PLACEMENT-PROOF-ONLY-LONG-HOLD-CHECKPOINT.md`
+- `docs/EDITOR-PLACEMENT-RUNTIME-ADMISSION-BASELINE-AUDIT.md`
+- `docs/EDITOR-PLACEMENT-RUNTIME-ADMISSION-CONTRACT-DESIGN.md`
+- `docs/EDITOR-PLACEMENT-RUNTIME-ADMISSION-READINESS-AUDIT.md`
+- `docs/EDITOR-PLACEMENT-RUNTIME-ADMISSION-PROOF-ONLY-IMPLEMENTATION.md`
+- `docs/EDITOR-PLACEMENT-RUNTIME-ADMISSION-OPERATOR-EXAMPLES-CHECKPOINT.md`
+- `docs/EDITOR-PLACEMENT-RUNTIME-ADMISSION-RELEASE-READINESS-DECISION.md`
+- `docs/EDITOR-PLACEMENT-RUNTIME-ADMISSION-LONG-HOLD-CHECKPOINT.md`
 - `docs/asset-forge/ASSET-FORGE-PR-138-HANDOFF.md`
 - `docs/asset-forge/ASSET-FORGE-MUTATION-ADMISSION-DESIGN.md`
 - `docs/asset-forge/ASSET-FORGE-AUDIT-AGENT.md`
@@ -225,13 +799,39 @@ rounding up capability claims.
 - `docs/APP-CAPABILITY-UNLOCK-PROGRAM.md`
 - `docs/APP-CAPABILITY-UNLOCK-MATRIX.md`
 - `docs/NEXT-APP-WIDE-UNLOCK-PACKET.md`
+- `docs/PROJECT-INSPECT-REVIEW-PACKET.md`
+- `docs/SETTINGS-INSPECT-REVIEW-PACKET.md`
+- `docs/SETTINGS-PATCH-CORRIDOR-HARDENING-AUDIT.md`
+- `docs/SETTINGS-ROLLBACK-BOUNDARY-AUDIT.md`
+- `docs/SETTINGS-ROLLBACK-VERIFICATION-CHECKPOINT.md`
+- `docs/SETTINGS-ROLLBACK-RELEASE-READINESS-DECISION.md`
+- `docs/SETTINGS-ROLLBACK-LONG-HOLD-CHECKPOINT.md`
+- `docs/BUILD-CONFIGURE-PREFLIGHT-REVIEW.md`
+- `docs/BUILD-EXECUTION-BOUNDARY-HARDENING-AUDIT.md`
+- `docs/BUILD-EXECUTION-RELEASE-READINESS-DECISION.md`
+- `docs/ASSET-FORGE-STAGE-WRITE-ADMISSION-FLAG-VERIFICATION.md`
+- `docs/APP-GUI-SHELL-STATUS-TAXONOMY-QUICK-REFERENCE.md`
 - `docs/APP-CAPABILITY-DASHBOARD-SHELL.md`
+- `docs/APP-CAPABILITY-DASHBOARD-TRUTH-REFRESH-STATUS-CHIP-LINKAGE.md`
+- `docs/APP-WIDE-EVIDENCE-TIMELINE-SHELL.md`
+- `docs/APPROVAL-SESSION-DASHBOARD-BASELINE-AUDIT.md`
+- `docs/APPROVAL-SESSION-DASHBOARD-SHELL.md`
+- `docs/APPROVAL-SESSION-DASHBOARD-TRUTH-REFRESH-VALIDATION-LINKAGE.md`
+- `docs/WORKSPACE-STATUS-CHIPS-SHELL.md`
 - `docs/EDITOR-AUTHORING-REVIEW-RESTORE-BASELINE-AUDIT.md`
 - `docs/PROJECT-CONFIG-READINESS-BASELINE-AUDIT.md`
 - `docs/AUDIT-REVIEW-DASHBOARD-SHELL.md`
+- `docs/AUDIT-REVIEW-DASHBOARD-TRUTH-REFRESH-STATUS-CHIP-LINKAGE.md`
 - `docs/VALIDATION-REPORT-INTAKE-BASELINE-AUDIT.md`
 - `docs/VALIDATION-REPORT-INTAKE-CONTRACT-DESIGN.md`
 - `docs/VALIDATION-REPORT-INTAKE-DRY-RUN-PARSER-MATRIX.md`
+- `docs/VALIDATION-REPORT-INTAKE-ENDPOINT-CANDIDATE-ADMISSION-DESIGN.md`
+- `docs/VALIDATION-REPORT-INTAKE-ENDPOINT-CANDIDATE-DRY-RUN-IMPLEMENTATION.md`
+- `docs/VALIDATION-REPORT-INTAKE-ENDPOINT-CANDIDATE-ADMISSION-AUDIT-REVIEW.md`
+- `docs/VALIDATION-REPORT-INTAKE-ENDPOINT-CANDIDATE-OPERATOR-EXAMPLES.md`
+- `docs/VALIDATION-REPORT-INTAKE-ENDPOINT-CANDIDATE-REVIEW-CHECKPOINT.md`
+- `docs/VALIDATION-REPORT-INTAKE-ENDPOINT-CANDIDATE-RELEASE-READINESS-DECISION.md`
+- `docs/VALIDATION-REPORT-INTAKE-ENDPOINT-CANDIDATE-LONG-HOLD-CHECKPOINT.md`
 - `agents/asset-forge-audit-agent/AGENTS.md`
 - `agents/app-capability-audit-agent/AGENTS.md`
 - `docs/PRODUCTION-REMOTE-AUTOMATION-PLAN.md`

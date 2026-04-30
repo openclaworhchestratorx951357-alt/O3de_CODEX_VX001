@@ -386,6 +386,17 @@ def test_prompt_session_preview_compiles_typed_steps_across_families() -> None:
         )
         assert editor_entity_exists["capability_maturity"] == "hybrid-read-only"
         assert editor_entity_exists["safety_envelope"]["backup_class"] == "none"
+        editor_placement_proof_only = next(
+            item
+            for item in capabilities
+            if item["tool_name"] == "editor.placement.proof_only"
+        )
+        assert editor_placement_proof_only["capability_maturity"] == "simulated-only"
+        assert (
+            editor_placement_proof_only["safety_envelope"]["natural_language_status"]
+            == "prompt-ready-simulated"
+        )
+        assert editor_placement_proof_only["real_adapter_availability"] is False
 
 
 def test_prompt_shortcuts_return_fast_contextual_viewport_recommendations() -> None:
@@ -2429,6 +2440,57 @@ def test_prompt_session_refuses_candidate_editor_mutation_intents_without_sessio
             "restore/reload verification" in requirement
             for requirement in payload["plan"]["capability_requirements"]
         )
+
+
+def test_prompt_session_plans_editor_placement_proof_only_candidate_when_explicitly_requested() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-editor-placement-proof-only-plan-1",
+                "prompt_text": (
+                    'In the editor, create a placement proof-only candidate with '
+                    'candidate_id "candidate-a", candidate_label "Weathered Ivy Arch", '
+                    'staged_source_relative_path "Assets/Generated/asset_forge/candidate_a/candidate_a.glb", '
+                    'target_level_relative_path "Levels/BridgeLevel01/BridgeLevel01.prefab", '
+                    'target_entity_name "AssetForgeCandidateA", target_component "Mesh", '
+                    'stage_write_evidence_reference "packet-10/stage-write-evidence.json", '
+                    'stage_write_readback_reference "packet-10/readback-evidence.json", '
+                    'stage_write_readback_status "succeeded", approval_state "approved", '
+                    'and approval_note "bounded proof-only review".'
+                ),
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": True,
+                "preferred_domains": ["editor-control"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "planned"
+        assert payload["admitted_capabilities"] == ["editor.placement.proof_only"]
+        assert payload["refused_capabilities"] == []
+        assert [step["tool"] for step in payload["plan"]["steps"]] == [
+            "editor.placement.proof_only"
+        ]
+        step = payload["plan"]["steps"][0]
+        assert step["step_id"] == "editor-placement-proof-only-1"
+        assert step["capability_status_required"] == "simulated-only"
+        assert step["simulated_allowed"] is True
+        assert step["args"] == {
+            "candidate_id": "candidate-a",
+            "candidate_label": "Weathered Ivy Arch",
+            "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+            "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+            "target_entity_name": "AssetForgeCandidateA",
+            "target_component": "Mesh",
+            "approval_state": "approved",
+            "approval_note": "bounded proof-only review",
+            "stage_write_corridor_name": "asset_forge.o3de.stage_write.v1",
+            "stage_write_evidence_reference": "packet-10/stage-write-evidence.json",
+            "stage_write_readback_reference": "packet-10/readback-evidence.json",
+            "stage_write_readback_status": "succeeded",
+        }
 
 
 @pytest.mark.parametrize(

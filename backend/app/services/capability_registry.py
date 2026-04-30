@@ -125,6 +125,25 @@ def _default_safety_envelope_for_tool(tool_name: str) -> PromptSafetyEnvelope:
             retention_class="editor-runtime-evidence",
             natural_language_status="prompt-ready-read-only",
         )
+    if tool_name == "editor.placement.proof_only":
+        return _build_safety_envelope(
+            state_scope=(
+                "Bounded proof-only placement candidate planning scope with explicit "
+                "staged source path, target level/entity/component, stage-write "
+                "evidence references, and server-owned approval/session binding checks."
+            ),
+            backup_class="none",
+            rollback_class="none",
+            verification_class=(
+                "bounded allowlist, evidence-reference, and server-owned session-binding verification"
+            ),
+            retention_class="operator-summary-evidence",
+            natural_language_status="prompt-ready-simulated",
+            candidate_expansion_boundary=(
+                "Placement runtime execution, broad scene/prefab mutation, and "
+                "client-asserted authorization remain non-admitted."
+            ),
+        )
     if (
         tool_name
         == "editor.component.property.write.camera_bool_make_active_on_activation"
@@ -509,6 +528,35 @@ _CAPABILITY_METADATA: dict[str, dict[str, Any]] = {
         "real_adapter_availability": True,
         "dry_run_availability": False,
         "simulation_fallback_availability": False,
+    },
+    "editor.placement.proof_only": {
+        "capability_maturity": "simulated-only",
+        "planner_intent_aliases": [
+            "editor placement proof-only candidate",
+            "proof-only placement candidate",
+            "placement candidate review gate",
+        ],
+        "natural_language_affordances": [
+            "Create a bounded editor placement proof-only candidate record with fail-closed gates and no placement execution admission."
+        ],
+        "allowlisted_parameter_surfaces": [
+            "candidate_id",
+            "candidate_label",
+            "staged_source_relative_path",
+            "target_level_relative_path",
+            "target_entity_name",
+            "target_component",
+            "approval_state",
+            "approval_note",
+            "approval_session_id",
+            "stage_write_corridor_name",
+            "stage_write_evidence_reference",
+            "stage_write_readback_reference",
+            "stage_write_readback_status",
+        ],
+        "real_adapter_availability": False,
+        "dry_run_availability": True,
+        "simulation_fallback_availability": True,
     },
     "editor.component.property.write.camera_bool_make_active_on_activation": {
         "capability_maturity": "hybrid-mutation",

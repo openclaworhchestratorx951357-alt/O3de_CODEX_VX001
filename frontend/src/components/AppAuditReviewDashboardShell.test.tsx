@@ -4,23 +4,28 @@ import { describe, expect, it } from "vitest";
 import AppAuditReviewDashboardShell from "./AppAuditReviewDashboardShell";
 
 describe("AppAuditReviewDashboardShell", () => {
-  it("renders cross-domain audit fixture verdicts without implying execution admission", () => {
+  it("renders cross-domain audit verdicts with status-taxonomy-aligned review labels", () => {
     render(<AppAuditReviewDashboardShell />);
 
     expect(screen.getByTestId("app-audit-review-dashboard-shell")).toBeInTheDocument();
     expect(screen.getByText("Audit review dashboard shell (static fixture)")).toBeInTheDocument();
     expect(screen.getByText("Static fixture only")).toBeInTheDocument();
+    expect(screen.getByText("Server-owned authorization truth")).toBeInTheDocument();
+    expect(screen.getByText("Client fields are intent-only")).toBeInTheDocument();
     expect(screen.getByText("No backend execution admission changes")).toBeInTheDocument();
+    expect(screen.getByText("No mutation corridor broadening")).toBeInTheDocument();
 
-    expect(screen.getByText("Editor")).toBeInTheDocument();
+    expect(screen.getAllByText("Editor").length).toBeGreaterThan(0);
     expect(screen.getByText("Asset Forge")).toBeInTheDocument();
     expect(screen.getByText("Project/Config")).toBeInTheDocument();
+    expect(screen.getByText("build.execute.real long-hold checkpoint")).toBeInTheDocument();
     expect(screen.getByText("Validation")).toBeInTheDocument();
     expect(screen.getByText("GUI")).toBeInTheDocument();
     expect(screen.getByText("Automation")).toBeInTheDocument();
+    expect(screen.getByText("Status taxonomy mix")).toBeInTheDocument();
+    expect(screen.getAllByText("hold-default-off").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("blocked").length).toBeGreaterThan(0);
 
-    expect(
-      screen.getByText("Validation report intake baseline audit", { selector: "strong" }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Validation workflow hold-boundary release-readiness decision packet", { selector: "strong" })).toBeInTheDocument();
   });
 });

@@ -14,8 +14,11 @@ import {
 } from "./summaryPrimitives";
 
 const executionBoundaryLabels = [
+  "Static fixture only",
+  "Server-owned authorization truth",
+  "Client fields are intent-only",
   "No backend execution admission changes",
-  "No mutation path enablement",
+  "No mutation corridor broadening",
   "No provider / Blender / Asset Processor execution",
   "No placement execution",
 ] as const;
@@ -23,6 +26,7 @@ const executionBoundaryLabels = [
 export default function AppCapabilityDashboardShell() {
   const domainCounts = countByKey(appCapabilityDashboardRows, (row) => row.domain);
   const maturityCounts = countByKey(appCapabilityDashboardRows, (row) => row.currentMaturity);
+  const statusTaxonomyCounts = countByKey(appCapabilityDashboardRows, (row) => row.statusTaxonomy);
 
   return (
     <section
@@ -73,6 +77,18 @@ export default function AppCapabilityDashboardShell() {
             ))}
           </div>
         </article>
+        <article style={summaryCardStyle}>
+          <strong>Status taxonomy mix</strong>
+          <div style={chipWrapStyle}>
+            {Object.entries(statusTaxonomyCounts).map(([taxonomy, count]) => (
+              <StatusChip
+                key={taxonomy}
+                label={`${taxonomy}: ${count}`}
+                tone={getTaxonomyTone(taxonomy as (typeof appCapabilityDashboardRows)[number]["statusTaxonomy"])}
+              />
+            ))}
+          </div>
+        </article>
       </div>
 
       <div style={tableWrapStyle}>
@@ -83,8 +99,10 @@ export default function AppCapabilityDashboardShell() {
               <th style={headerCellStyle}>Capability</th>
               <th style={headerCellStyle}>Current</th>
               <th style={headerCellStyle}>Next</th>
+              <th style={headerCellStyle}>Status taxonomy</th>
               <th style={headerCellStyle}>Risk</th>
               <th style={headerCellStyle}>Required gate</th>
+              <th style={headerCellStyle}>Recommended packet</th>
             </tr>
           </thead>
           <tbody>
@@ -101,9 +119,13 @@ export default function AppCapabilityDashboardShell() {
                   <StatusChip label={row.desiredNextMaturity} tone={getMaturityTone(row.desiredNextMaturity)} />
                 </td>
                 <td style={bodyCellStyle}>
+                  <StatusChip label={row.statusTaxonomy} tone={getTaxonomyTone(row.statusTaxonomy)} />
+                </td>
+                <td style={bodyCellStyle}>
                   <StatusChip label={row.risk} tone={getRiskTone(row.risk)} />
                 </td>
                 <td style={bodyCellStyle}>{row.requiredGate}</td>
+                <td style={bodyCellStyle}>{row.recommendedNextPacket}</td>
               </tr>
             ))}
           </tbody>
@@ -111,8 +133,7 @@ export default function AppCapabilityDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Validation report intake baseline audit</strong>, followed by domain-specific
-        read-only and dry-run lanes that preserve fail-closed defaults.
+        Recommended next packet: <strong>Validation workflow hold-boundary release-readiness decision packet</strong>.
       </p>
     </section>
   );
@@ -149,7 +170,25 @@ function getMaturityTone(maturity: CapabilityMaturity): "neutral" | "info" | "su
   if (maturity === "read-only" || maturity === "preflight-only" || maturity === "dry-run only" || maturity === "GUI/demo only") {
     return "info";
   }
-  if (maturity === "missing" || maturity === "needs baseline") {
+  if (maturity === "missing" || maturity === "needs baseline" || maturity === "hold-default-off" || maturity === "blocked") {
+    return "danger";
+  }
+  return "neutral";
+}
+
+function getTaxonomyTone(
+  taxonomy: (typeof appCapabilityDashboardRows)[number]["statusTaxonomy"],
+): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (taxonomy === "admitted-real") {
+    return "success";
+  }
+  if (taxonomy === "proof-only") {
+    return "warning";
+  }
+  if (taxonomy === "dry-run only" || taxonomy === "plan-only" || taxonomy === "demo") {
+    return "info";
+  }
+  if (taxonomy === "hold-default-off" || taxonomy === "blocked") {
     return "danger";
   }
   return "neutral";
@@ -164,7 +203,7 @@ const boundaryLabelRowStyle = {
 const topGridStyle = {
   display: "grid",
   gap: 12,
-  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
 } satisfies CSSProperties;
 
 const chipWrapStyle = {
@@ -183,7 +222,7 @@ const tableWrapStyle = {
 const tableStyle = {
   width: "100%",
   borderCollapse: "collapse",
-  minWidth: 820,
+  minWidth: 1100,
 } satisfies CSSProperties;
 
 const headerCellStyle = {

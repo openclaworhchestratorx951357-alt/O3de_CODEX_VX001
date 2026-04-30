@@ -29,6 +29,10 @@ from app.repositories.control_plane import control_plane_repository
 from app.services.asset_forge import asset_forge_service
 from app.services.prompt_sessions import prompt_sessions_service
 from app.services.approvals import approvals_service
+from app.services.validation_report_intake import (
+    VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV,
+    build_validation_report_intake_dry_run_plan,
+)
 from app.services.db import (
     configure_database,
     connection,
@@ -52,6 +56,40 @@ def isolated_client() -> TestClient:
         finally:
             asset_forge_service.reset_server_approval_sessions_for_tests()
             configure_database(None)
+
+
+def _validation_report_intake_valid_envelope() -> dict[str, object]:
+    envelope: dict[str, object] = {
+        "schema": "validation.report.intake.v1",
+        "capability_name": "validation.report.intake",
+        "report_id": "report-001",
+        "produced_at_utc": "2026-04-29T00:00:00Z",
+        "producer": {
+            "tool_name": "test.run.gtest",
+            "runner_family": "cli",
+            "execution_mode": "simulated",
+        },
+        "result": {
+            "status": "blocked",
+            "summary": "Blocked by policy.",
+            "warning_count": 0,
+            "error_count": 1,
+        },
+        "provenance": {
+            "source_kind": "local-run",
+            "artifact_refs": ["artifacts/reports/gtest.json"],
+        },
+        "payload": {
+            "tests": [{"name": "Suite.TestA", "status": "blocked"}],
+        },
+        "integrity": {
+            "payload_sha256": "a" * 64,
+            "payload_size_bytes": 0,
+        },
+    }
+    plan = build_validation_report_intake_dry_run_plan(envelope)
+    envelope["integrity"]["payload_size_bytes"] = plan["payload_size_bytes"]
+    return envelope
 
 
 def _stage_write_expected_manifest_hash(
@@ -97,6 +135,42 @@ def _placement_expected_revert_contract_key(
     payload = {
         "schema": "asset_forge.placement_proof.revert_contract.v1",
         "corridor_name": "asset_forge.o3de.placement.proof.v1",
+        "candidate_id": candidate_id.strip(),
+        "candidate_label": candidate_label.strip(),
+        "staged_source_relative_path": staged_source_relative_path,
+        "target_level_relative_path": target_level_relative_path,
+        "target_entity_name": target_entity_name.strip(),
+        "target_component": target_component.strip(),
+        "stage_write_corridor_name": stage_write_corridor_name.strip(),
+        "stage_write_evidence_reference": stage_write_evidence_reference.strip(),
+        "stage_write_readback_reference": stage_write_readback_reference.strip(),
+    }
+    return sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+
+
+def _editor_placement_expected_revert_contract_key(
+    *,
+    candidate_id: str,
+    candidate_label: str,
+    staged_source_relative_path: str,
+    target_level_relative_path: str,
+    target_entity_name: str,
+    target_component: str,
+    stage_write_corridor_name: str,
+    stage_write_evidence_reference: str,
+    stage_write_readback_reference: str,
+) -> str:
+    staged_source_relative_path = staged_source_relative_path.strip().replace("\\", "/").lstrip("/")
+    target_level_relative_path = target_level_relative_path.strip().replace("\\", "/").lstrip("/")
+    while "//" in staged_source_relative_path:
+        staged_source_relative_path = staged_source_relative_path.replace("//", "/")
+    while "//" in target_level_relative_path:
+        target_level_relative_path = target_level_relative_path.replace("//", "/")
+    payload = {
+        "schema": "editor.placement.proof_only.revert_contract.v1",
+        "corridor_name": "editor.placement.proof_only.v1",
         "candidate_id": candidate_id.strip(),
         "candidate_label": candidate_label.strip(),
         "staged_source_relative_path": staged_source_relative_path,
@@ -239,8 +313,11 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert "/asset-forge/o3de/stage-plan" in payload["routes"]
         assert "/asset-forge/o3de/stage-write" in payload["routes"]
         assert "/asset-forge/o3de/readback" in payload["routes"]
+        assert "/asset-forge/o3de/review-packet" in payload["routes"]
+        assert "/asset-forge/o3de/assignment-design" in payload["routes"]
         assert "/asset-forge/o3de/placement-plan" in payload["routes"]
         assert "/asset-forge/o3de/placement-proof" in payload["routes"]
+        assert "/asset-forge/o3de/editor-placement-proof-only" in payload["routes"]
         assert "/asset-forge/o3de/placement-evidence" in payload["routes"]
         assert "/asset-forge/o3de/placement-harness/prepare" in payload["routes"]
         assert "/asset-forge/o3de/placement-harness/execute" in payload["routes"]
@@ -2354,6 +2431,659 @@ def test_asset_forge_o3de_readback_reports_assetdb_and_catalog_evidence() -> Non
                 assert payload["source"] == "asset-forge-o3de-ingest-readback"
 
 
+def test_asset_forge_o3de_review_packet_blocks_when_provenance_is_missing() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as project_dir:
+        project_root = Path(project_dir)
+        source_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        source_path = project_root / source_relative
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"staged-source-bytes")
+
+        with patch.dict(
+            "os.environ",
+            {"O3DE_TARGET_PROJECT_ROOT": str(project_root)},
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/asset-forge/o3de/review-packet",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_asset_relative_path": source_relative,
+                        "provenance_metadata_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json",
+                        "selected_platform": "pc",
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["capability_name"] == "asset_forge.o3de.review.packet"
+                assert payload["maturity"] == "proof-only"
+                assert payload["review_packet_version"] == "asset_forge.operator_review_packet.v1"
+                assert payload["review_status"] == "missing_provenance"
+                assert "Provenance metadata" in payload["blocked_reason"]
+                assert payload["read_only"] is True
+                assert payload["mutation_occurred"] is False
+                assert payload["operator_decision"] == "pending"
+                assert "Provide a valid .forge.json" in payload["next_safest_step"]
+                assert payload["source"] == "asset-forge-o3de-operator-review-packet"
+
+
+def test_asset_forge_o3de_review_packet_reports_structured_read_only_evidence() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as project_dir:
+        project_root = Path(project_dir)
+        source_relative = "Assets/Generated/asset_forge/triposr_chair_001/triposr_chair_001.glb"
+        source_path = project_root / source_relative
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"staged-source-for-review-packet")
+
+        (project_root / "project.json").write_text(
+            json.dumps({"project_name": "McpSandbox"}),
+            encoding="utf-8",
+        )
+
+        provenance_relative = "Assets/Generated/asset_forge/triposr_chair_001/triposr_chair_001.forge.json"
+        provenance_path = project_root / provenance_relative
+        provenance_path.write_text(
+            json.dumps(
+                {
+                    "asset_slug": "triposr_chair_001",
+                    "generation": {
+                        "backend": "triposr",
+                        "backend_repository": "https://example.com/triposr",
+                        "backend_commit": "abc1234",
+                        "model_name": "TripoSR",
+                        "model_source": "local-cache",
+                        "input_prompt": "Weathered wooden chair",
+                        "seed": 42,
+                        "settings": {"guidance_scale": 7.5},
+                        "generated_at_utc": "2026-04-27T22:05:00Z",
+                        "output_path": "D:/forge/raw/triposr_chair_001.obj",
+                        "output_sha256": "b" * 64,
+                    },
+                    "cleanup": {
+                        "tool": "blender",
+                        "settings": {"unit_scale": "1.0"},
+                        "output_path": "D:/forge/clean/triposr_chair_001.glb",
+                        "output_sha256": "c" * 64,
+                    },
+                    "license": {
+                        "name": "TripoSR License",
+                        "url": "https://example.com/license/triposr",
+                        "commercial_use_allowed": True,
+                        "intended_use": "internal_prototype",
+                    },
+                    "quality_review": {
+                        "status": "pending_operator_review",
+                        "mesh_quality_review": "UVs missing; material quality not validated.",
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        cache_root = project_root / "Cache"
+        cache_root.mkdir(parents=True, exist_ok=True)
+        assetdb_path = cache_root / "assetdb.sqlite"
+        connection = sqlite3.connect(assetdb_path)
+        try:
+            connection.executescript(
+                """
+                CREATE TABLE Sources (
+                    SourceID INTEGER PRIMARY KEY,
+                    SourceName TEXT NOT NULL,
+                    SourceGuid BLOB
+                );
+                CREATE TABLE Jobs (
+                    JobID INTEGER PRIMARY KEY,
+                    SourcePK INTEGER NOT NULL,
+                    JobKey TEXT,
+                    Platform TEXT,
+                    Status INTEGER,
+                    WarningCount INTEGER,
+                    ErrorCount INTEGER
+                );
+                CREATE TABLE Products (
+                    ProductID INTEGER PRIMARY KEY,
+                    JobPK INTEGER NOT NULL,
+                    ProductName TEXT
+                );
+                CREATE TABLE ProductDependencies (
+                    ProductDependencyID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ProductPK INTEGER NOT NULL,
+                    Platform TEXT,
+                    DependencySourceGuid BLOB,
+                    DependencySubID INTEGER,
+                    DependencyFlags INTEGER,
+                    UnresolvedPath TEXT
+                );
+                """
+            )
+            connection.execute(
+                "INSERT INTO Sources (SourceID, SourceName, SourceGuid) VALUES (?, ?, ?)",
+                (
+                    3216,
+                    source_relative.replace("\\", "/"),
+                    bytes.fromhex("A7FF11AC580354B6A918A8AF225DAA3A"),
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO Jobs (JobID, SourcePK, JobKey, Platform, Status, WarningCount, ErrorCount)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (4401, 3216, "Scene compilation", "pc", 4, 4, 0),
+            )
+            connection.execute(
+                "INSERT INTO Products (ProductID, JobPK, ProductName) VALUES (?, ?, ?)",
+                (
+                    9001,
+                    4401,
+                    "pc/assets/generated/asset_forge/triposr_chair_001/triposr_chair_001.azmodel",
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO ProductDependencies (
+                    ProductPK,
+                    Platform,
+                    DependencySourceGuid,
+                    DependencySubID,
+                    DependencyFlags,
+                    UnresolvedPath
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    9001,
+                    "pc",
+                    bytes.fromhex("0102030405060708090A0B0C0D0E0F10"),
+                    12,
+                    3,
+                    "materials/triposr_chair_001.material",
+                ),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        catalog_path = project_root / "Cache" / "pc" / "assetcatalog.xml"
+        catalog_path.parent.mkdir(parents=True, exist_ok=True)
+        catalog_path.write_bytes(
+            (
+                "<AssetCatalog>"
+                "<ProductPath>assets/generated/asset_forge/triposr_chair_001/triposr_chair_001.azmodel</ProductPath>"
+                "</AssetCatalog>"
+            ).encode("utf-8")
+        )
+
+        with patch.dict(
+            "os.environ",
+            {"O3DE_TARGET_PROJECT_ROOT": str(project_root)},
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/asset-forge/o3de/review-packet",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_asset_relative_path": source_relative,
+                        "provenance_metadata_relative_path": provenance_relative,
+                        "selected_platform": "pc",
+                        "operator_decision": "pending",
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["capability_name"] == "asset_forge.o3de.review.packet"
+                assert payload["maturity"] == "proof-only"
+                assert payload["review_packet_version"] == "asset_forge.operator_review_packet.v1"
+                assert payload["review_status"] == "asset_processor_warnings_need_review"
+                assert payload["blocked_reason"].startswith("Asset Processor reported 4 warning")
+                assert payload["asset_slug"] == "triposr_chair_001"
+                assert payload["project_name"] == "McpSandbox"
+                assert payload["source_asset_path"] == source_relative
+                assert payload["provenance_metadata_path"] == provenance_relative
+                assert len(payload["source_asset_sha256"]) == 64
+                assert payload["read_only"] is True
+                assert payload["mutation_occurred"] is False
+                assert payload["operator_decision"] == "pending"
+                assert payload["phase9_readback"]["source_id"] == 3216
+                assert payload["phase9_readback"]["catalog_presence"] is True
+                assert payload["phase9_readback"]["dependency_count"] == 1
+                assert payload["asset_processor"]["asset_processor_warnings"] == 4
+                assert payload["asset_processor"]["asset_processor_errors"] == 0
+                assert payload["provenance"]["generation_backend"] == "triposr"
+                assert payload["provenance"]["model_name"] == "TripoSR"
+                assert payload["provenance"]["commercial_use_allowed"] is True
+                assert payload["o3de_source"]["provenance_metadata_sha256"] is not None
+                assert payload["source"] == "asset-forge-o3de-operator-review-packet"
+
+
+def test_asset_forge_o3de_review_packet_supports_ready_and_approved_decision_states() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as project_dir:
+        project_root = Path(project_dir)
+        source_relative = "Assets/Generated/asset_forge/candidate_ready/candidate_ready.glb"
+        source_path = project_root / source_relative
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"staged-source-ready")
+
+        (project_root / "project.json").write_text(
+            json.dumps({"project_name": "McpSandbox"}),
+            encoding="utf-8",
+        )
+
+        provenance_relative = "Assets/Generated/asset_forge/candidate_ready/candidate_ready.forge.json"
+        provenance_path = project_root / provenance_relative
+        provenance_path.write_text(
+            json.dumps(
+                {
+                    "asset_slug": "candidate_ready",
+                    "generation": {
+                        "backend": "triposr",
+                        "model_name": "TripoSR",
+                        "input_prompt": "Modular industrial crate",
+                        "seed": 1234,
+                    },
+                    "license": {
+                        "name": "TripoSR License",
+                        "url": "https://example.com/license/triposr",
+                        "commercial_use_allowed": True,
+                        "intended_use": "internal_prototype",
+                    },
+                    "quality_review": {
+                        "status": "ready_for_operator_decision",
+                        "mesh_quality_review": "Topology and scale reviewed for prototype use.",
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        cache_root = project_root / "Cache"
+        cache_root.mkdir(parents=True, exist_ok=True)
+        assetdb_path = cache_root / "assetdb.sqlite"
+        connection = sqlite3.connect(assetdb_path)
+        try:
+            connection.executescript(
+                """
+                CREATE TABLE Sources (
+                    SourceID INTEGER PRIMARY KEY,
+                    SourceName TEXT NOT NULL,
+                    SourceGuid BLOB
+                );
+                CREATE TABLE Jobs (
+                    JobID INTEGER PRIMARY KEY,
+                    SourcePK INTEGER NOT NULL,
+                    JobKey TEXT,
+                    Platform TEXT,
+                    Status INTEGER,
+                    WarningCount INTEGER,
+                    ErrorCount INTEGER
+                );
+                CREATE TABLE Products (
+                    ProductID INTEGER PRIMARY KEY,
+                    JobPK INTEGER NOT NULL,
+                    ProductName TEXT
+                );
+                CREATE TABLE ProductDependencies (
+                    ProductDependencyID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ProductPK INTEGER NOT NULL,
+                    Platform TEXT,
+                    DependencySourceGuid BLOB,
+                    DependencySubID INTEGER,
+                    DependencyFlags INTEGER,
+                    UnresolvedPath TEXT
+                );
+                """
+            )
+            connection.execute(
+                "INSERT INTO Sources (SourceID, SourceName, SourceGuid) VALUES (?, ?, ?)",
+                (
+                    3810,
+                    source_relative.replace("\\", "/"),
+                    bytes.fromhex("ABCDEF1234567890ABCDEF1234567890"),
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO Jobs (JobID, SourcePK, JobKey, Platform, Status, WarningCount, ErrorCount)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (5901, 3810, "Scene compilation", "pc", 4, 0, 0),
+            )
+            connection.execute(
+                "INSERT INTO Products (ProductID, JobPK, ProductName) VALUES (?, ?, ?)",
+                (
+                    9101,
+                    5901,
+                    "pc/assets/generated/asset_forge/candidate_ready/candidate_ready.azmodel",
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO ProductDependencies (
+                    ProductPK,
+                    Platform,
+                    DependencySourceGuid,
+                    DependencySubID,
+                    DependencyFlags,
+                    UnresolvedPath
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    9101,
+                    "pc",
+                    bytes.fromhex("00112233445566778899AABBCCDDEEFF"),
+                    9,
+                    1,
+                    "materials/candidate_ready.material",
+                ),
+            )
+            connection.commit()
+        finally:
+            connection.close()
+
+        catalog_path = project_root / "Cache" / "pc" / "assetcatalog.xml"
+        catalog_path.parent.mkdir(parents=True, exist_ok=True)
+        catalog_path.write_bytes(
+            (
+                "<AssetCatalog>"
+                "<ProductPath>assets/generated/asset_forge/candidate_ready/candidate_ready.azmodel</ProductPath>"
+                "</AssetCatalog>"
+            ).encode("utf-8")
+        )
+
+        with patch.dict(
+            "os.environ",
+            {"O3DE_TARGET_PROJECT_ROOT": str(project_root)},
+            clear=False,
+        ):
+            with isolated_client() as client:
+                ready_response = client.post(
+                    "/asset-forge/o3de/review-packet",
+                    json={
+                        "candidate_id": "candidate-ready",
+                        "candidate_label": "Candidate Ready",
+                        "source_asset_relative_path": source_relative,
+                        "provenance_metadata_relative_path": provenance_relative,
+                        "selected_platform": "pc",
+                        "operator_decision": "pending",
+                    },
+                )
+                assert ready_response.status_code == 200
+                ready_payload = ready_response.json()
+                assert ready_payload["review_status"] == "ready_for_operator_decision"
+                assert ready_payload["blocked_reason"] is None
+                assert ready_payload["operator_decision"] == "pending"
+                assert ready_payload["read_only"] is True
+                assert ready_payload["mutation_occurred"] is False
+                assert "assignment/placement execution blocked" in ready_payload["next_safest_step"]
+
+                approved_response = client.post(
+                    "/asset-forge/o3de/review-packet",
+                    json={
+                        "candidate_id": "candidate-ready",
+                        "candidate_label": "Candidate Ready",
+                        "source_asset_relative_path": source_relative,
+                        "provenance_metadata_relative_path": provenance_relative,
+                        "selected_platform": "pc",
+                        "operator_decision": "approve_assignment_design_only",
+                    },
+                )
+                assert approved_response.status_code == 200
+                approved_payload = approved_response.json()
+                assert approved_payload["review_status"] == "operator_approved_assignment_design"
+                assert approved_payload["blocked_reason"] is None
+                assert approved_payload["operator_decision"] == "approve_assignment_design_only"
+                assert approved_payload["read_only"] is True
+                assert approved_payload["mutation_occurred"] is False
+                assert "do not execute assignment or placement" in approved_payload["next_safest_step"]
+                assert (
+                    "read-only and non-authorizing"
+                    in approved_payload["o3de_source"]["staging_approval_source"]
+                )
+
+
+def _prepare_assignment_design_ready_project(project_root: Path) -> tuple[str, str]:
+    source_relative = (
+        "Assets/Generated/asset_forge/candidate_assignment/candidate_assignment.glb"
+    )
+    source_path = project_root / source_relative
+    source_path.parent.mkdir(parents=True, exist_ok=True)
+    source_path.write_bytes(b"assignment-ready-source")
+
+    (project_root / "project.json").write_text(
+        json.dumps({"project_name": "McpSandbox"}),
+        encoding="utf-8",
+    )
+
+    provenance_relative = (
+        "Assets/Generated/asset_forge/candidate_assignment/candidate_assignment.forge.json"
+    )
+    provenance_path = project_root / provenance_relative
+    provenance_path.write_text(
+        json.dumps(
+            {
+                "asset_slug": "candidate_assignment",
+                "generation": {
+                    "backend": "triposr",
+                    "model_name": "TripoSR",
+                    "input_prompt": "Stone archway with ivy",
+                    "seed": 2026,
+                },
+                "license": {
+                    "name": "TripoSR License",
+                    "url": "https://example.com/license/triposr",
+                    "commercial_use_allowed": True,
+                    "intended_use": "internal_prototype",
+                },
+                "quality_review": {
+                    "status": "ready_for_operator_decision",
+                    "mesh_quality_review": "Candidate reviewed for assignment-design planning.",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    cache_root = project_root / "Cache"
+    cache_root.mkdir(parents=True, exist_ok=True)
+    assetdb_path = cache_root / "assetdb.sqlite"
+    connection = sqlite3.connect(assetdb_path)
+    try:
+        connection.executescript(
+            """
+            CREATE TABLE Sources (
+                SourceID INTEGER PRIMARY KEY,
+                SourceName TEXT NOT NULL,
+                SourceGuid BLOB
+            );
+            CREATE TABLE Jobs (
+                JobID INTEGER PRIMARY KEY,
+                SourcePK INTEGER NOT NULL,
+                JobKey TEXT,
+                Platform TEXT,
+                Status INTEGER,
+                WarningCount INTEGER,
+                ErrorCount INTEGER
+            );
+            CREATE TABLE Products (
+                ProductID INTEGER PRIMARY KEY,
+                JobPK INTEGER NOT NULL,
+                ProductName TEXT
+            );
+            CREATE TABLE ProductDependencies (
+                ProductDependencyID INTEGER PRIMARY KEY AUTOINCREMENT,
+                ProductPK INTEGER NOT NULL,
+                Platform TEXT,
+                DependencySourceGuid BLOB,
+                DependencySubID INTEGER,
+                DependencyFlags INTEGER,
+                UnresolvedPath TEXT
+            );
+            """
+        )
+        connection.execute(
+            "INSERT INTO Sources (SourceID, SourceName, SourceGuid) VALUES (?, ?, ?)",
+            (
+                4821,
+                source_relative.replace("\\", "/"),
+                bytes.fromhex("11223344556677889900AABBCCDDEEFF"),
+            ),
+        )
+        connection.execute(
+            """
+            INSERT INTO Jobs (JobID, SourcePK, JobKey, Platform, Status, WarningCount, ErrorCount)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (6701, 4821, "Scene compilation", "pc", 4, 0, 0),
+        )
+        connection.execute(
+            "INSERT INTO Products (ProductID, JobPK, ProductName) VALUES (?, ?, ?)",
+            (
+                9301,
+                6701,
+                "pc/assets/generated/asset_forge/candidate_assignment/candidate_assignment.azmodel",
+            ),
+        )
+        connection.execute(
+            """
+            INSERT INTO ProductDependencies (
+                ProductPK,
+                Platform,
+                DependencySourceGuid,
+                DependencySubID,
+                DependencyFlags,
+                UnresolvedPath
+            ) VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                9301,
+                "pc",
+                bytes.fromhex("00112233445566778899AABBCCDDEE11"),
+                3,
+                1,
+                "materials/candidate_assignment.material",
+            ),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    catalog_path = project_root / "Cache" / "pc" / "assetcatalog.xml"
+    catalog_path.parent.mkdir(parents=True, exist_ok=True)
+    catalog_path.write_bytes(
+        (
+            "<AssetCatalog>"
+            "<ProductPath>assets/generated/asset_forge/candidate_assignment/candidate_assignment.azmodel</ProductPath>"
+            "</AssetCatalog>"
+        ).encode("utf-8")
+    )
+
+    return source_relative, provenance_relative
+
+
+def test_asset_forge_o3de_assignment_design_blocks_without_design_approval() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as project_dir:
+        project_root = Path(project_dir)
+        source_relative, provenance_relative = _prepare_assignment_design_ready_project(
+            project_root
+        )
+
+        with patch.dict(
+            "os.environ",
+            {"O3DE_TARGET_PROJECT_ROOT": str(project_root)},
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/asset-forge/o3de/assignment-design",
+                    json={
+                        "candidate_id": "candidate-assignment",
+                        "candidate_label": "Candidate Assignment",
+                        "source_asset_relative_path": source_relative,
+                        "provenance_metadata_relative_path": provenance_relative,
+                        "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                        "target_entity_name": "AssetForgeAssignmentCandidate",
+                        "target_component": "Mesh",
+                        "selected_platform": "pc",
+                        "operator_decision_reference": "pending",
+                        "review_packet_reference": "packet-13/review-packet.json",
+                        "stage_write_evidence_reference": "packet-10/stage-write-evidence.json",
+                        "stage_write_readback_reference": "packet-10/readback-evidence.json",
+                        "stage_write_readback_status": "succeeded",
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["capability_name"] == "asset_forge.o3de.assignment.design"
+                assert payload["maturity"] == "plan-only"
+                assert payload["assignment_design_status"] == "blocked"
+                assert (
+                    "operator_decision_not_assignment_design_approval"
+                    in payload["fail_closed_reasons"]
+                )
+                assert (
+                    "review_packet_not_assignment_design_approved"
+                    in payload["fail_closed_reasons"]
+                )
+                assert payload["assignment_execution_status"] == "blocked"
+                assert payload["assignment_write_admitted"] is False
+                assert payload["read_only"] is True
+                assert payload["mutation_occurred"] is False
+                assert payload["source"] == "asset-forge-o3de-assignment-design"
+
+
+def test_asset_forge_o3de_assignment_design_reports_ready_plan_only_state() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as project_dir:
+        project_root = Path(project_dir)
+        source_relative, provenance_relative = _prepare_assignment_design_ready_project(
+            project_root
+        )
+
+        with patch.dict(
+            "os.environ",
+            {"O3DE_TARGET_PROJECT_ROOT": str(project_root)},
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/asset-forge/o3de/assignment-design",
+                    json={
+                        "candidate_id": "candidate-assignment",
+                        "candidate_label": "Candidate Assignment",
+                        "source_asset_relative_path": source_relative,
+                        "provenance_metadata_relative_path": provenance_relative,
+                        "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                        "target_entity_name": "AssetForgeAssignmentCandidate",
+                        "target_component": "Mesh",
+                        "selected_platform": "pc",
+                        "operator_decision_reference": "approve_assignment_design_only",
+                        "review_packet_reference": "packet-13/review-packet.json",
+                        "stage_write_evidence_reference": "packet-10/stage-write-evidence.json",
+                        "stage_write_readback_reference": "packet-10/readback-evidence.json",
+                        "stage_write_readback_status": "succeeded",
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["capability_name"] == "asset_forge.o3de.assignment.design"
+                assert payload["maturity"] == "plan-only"
+                assert payload["assignment_design_status"] == "ready-for-approval"
+                assert payload["blocked_reason"] is None
+                assert payload["review_packet_status"] == "operator_approved_assignment_design"
+                assert payload["fail_closed_reasons"] == []
+                assert payload["stage_write_evidence_ready"] is True
+                assert payload["stage_write_readback_ready"] is True
+                assert payload["assignment_execution_status"] == "blocked"
+                assert payload["assignment_write_admitted"] is False
+                assert payload["read_only"] is True
+                assert payload["mutation_occurred"] is False
+                assert "long-hold checkpoint packet" in payload["next_safest_step"]
+                assert payload["source"] == "asset-forge-o3de-assignment-design"
+
+
 def test_asset_forge_o3de_placement_plan_returns_ready_for_approval() -> None:
     with isolated_client() as client:
         response = client.post(
@@ -2451,6 +3181,85 @@ def _assert_placement_proof_fail_closed_fields(payload: dict[str, object]) -> No
     assert payload["source"] == "asset-forge-o3de-placement-proof"
 
 
+def _assert_editor_placement_proof_only_fail_closed_fields(
+    payload: dict[str, object],
+) -> None:
+    assert payload["capability_name"] == "editor.placement.proof_only"
+    assert payload["corridor_name"] == "editor.placement.proof_only.v1"
+    assert payload["maturity"] == "proof-only"
+    assert payload["proof_status"] in {"approval-required", "blocked"}
+    assert payload["dry_run_only"] is True
+    assert payload["execution_admitted"] is False
+    assert payload["placement_write_admitted"] is False
+    assert payload["mutation_occurred"] is False
+    assert payload["read_only"] is True
+    assert payload["runtime_gate_env"] == "ASSET_FORGE_ENABLE_EDITOR_PLACEMENT_RUNTIME_PROOF"
+    assert isinstance(payload["runtime_gate_enabled"], bool)
+    assert (
+        payload["admission_flag_name"]
+        == "editor.placement.proof_only.v1.runtime_admission_enabled"
+    )
+    assert payload["admission_flag_state"] in {
+        "missing_default_off",
+        "explicit_off",
+        "explicit_on",
+        "invalid_default_off",
+    }
+    assert isinstance(payload["admission_flag_enabled"], bool)
+    assert isinstance(payload["stage_write_evidence_ready"], bool)
+    assert isinstance(payload["stage_write_readback_ready"], bool)
+    assert payload["admission_packet_reference"] is None or isinstance(
+        payload["admission_packet_reference"], str
+    )
+    assert payload["admission_operator_id"] is None or isinstance(
+        payload["admission_operator_id"], str
+    )
+    assert payload["evidence_bundle_reference"] is None or isinstance(
+        payload["evidence_bundle_reference"], str
+    )
+    assert payload["readback_plan_reference"] is None or isinstance(
+        payload["readback_plan_reference"], str
+    )
+    assert payload["revert_statement_contract_key"] is None or isinstance(
+        payload["revert_statement_contract_key"], str
+    )
+    assert isinstance(payload["revert_statement_contract_match"], bool)
+    assert isinstance(payload["operator_note_present"], bool)
+    assert isinstance(payload["contract_evidence_ready"], bool)
+    assert isinstance(payload["bridge_readiness_contract"], dict)
+    assert (
+        payload["bridge_readiness_contract"]["schema"]
+        == "asset_forge.placement_bridge_readiness.v1"
+    )
+    assert isinstance(payload["runtime_command_contract"], dict)
+    assert (
+        payload["runtime_command_contract"]["schema"]
+        == "editor.placement_runtime.command_contract.v1"
+    )
+    assert payload["runtime_command_contract"]["execution_admitted"] is False
+    assert payload["runtime_command_contract"]["status"] == "blocked_non_admitted"
+    assert isinstance(payload["runtime_result_contract"], dict)
+    assert (
+        payload["runtime_result_contract"]["schema"]
+        == "editor.placement_runtime.result_contract.v1"
+    )
+    assert payload["runtime_result_contract"]["status"] == "blocked_non_admitted"
+    assert isinstance(payload["post_run_verification_contract"], dict)
+    assert (
+        payload["post_run_verification_contract"]["schema"]
+        == "editor.placement_runtime.post_run_verification_contract.v1"
+    )
+    assert payload["post_run_verification_contract"]["execution_admitted"] is False
+    assert isinstance(payload["revert_scope_contract"], dict)
+    assert (
+        payload["revert_scope_contract"]["schema"]
+        == "editor.placement_runtime.revert_scope_contract.v1"
+    )
+    assert payload["revert_scope_contract"]["execution_admitted"] is False
+    assert isinstance(payload["fail_closed_reasons"], list)
+    assert payload["source"] == "asset-forge-editor-placement-proof-only"
+
+
 def _assert_placement_harness_fail_closed_fields(payload: dict[str, object]) -> None:
     assert payload["capability_name"] == "asset_forge.o3de.placement.harness.execute"
     assert payload["maturity"] == "proof-only"
@@ -2475,9 +3284,27 @@ def _assert_placement_harness_fail_closed_fields(payload: dict[str, object]) -> 
         payload["revert_statement_contract_key"], str
     )
     assert isinstance(payload["revert_statement_contract_match"], bool)
+    assert isinstance(payload["runtime_command_contract"], dict)
+    assert payload["runtime_command_contract"]["schema"] == "asset_forge.placement_runtime.command_contract.v1"
+    assert payload["runtime_command_contract"]["execution_admitted"] is False
+    assert payload["runtime_command_contract"]["status"] == "blocked_non_admitted"
+    assert isinstance(payload["runtime_result_contract"], dict)
+    assert payload["runtime_result_contract"]["schema"] == "asset_forge.placement_runtime.result_contract.v1"
+    assert payload["runtime_result_contract"]["status"] == "blocked_non_admitted"
+    assert isinstance(payload["post_run_verification_contract"], dict)
+    assert (
+        payload["post_run_verification_contract"]["schema"]
+        == "asset_forge.placement_runtime.post_run_verification_contract.v1"
+    )
+    assert payload["post_run_verification_contract"]["execution_admitted"] is False
+    assert isinstance(payload["revert_scope_contract"], dict)
+    assert payload["revert_scope_contract"]["schema"] == "asset_forge.placement_runtime.revert_scope_contract.v1"
+    assert payload["revert_scope_contract"]["execution_admitted"] is False
     assert isinstance(payload["operator_note_present"], bool)
     assert isinstance(payload["contract_evidence_ready"], bool)
     assert isinstance(payload["fail_closed_reasons"], list)
+    assert isinstance(payload["bridge_readiness_contract"], dict)
+    assert payload["bridge_readiness_contract"]["schema"] == "asset_forge.placement_bridge_readiness.v1"
     assert payload["source"] == "asset-forge-o3de-placement-harness-execute"
 
 
@@ -2504,9 +3331,27 @@ def _assert_placement_live_proof_fail_closed_fields(payload: dict[str, object]) 
         payload["revert_statement_contract_key"], str
     )
     assert isinstance(payload["revert_statement_contract_match"], bool)
+    assert isinstance(payload["runtime_command_contract"], dict)
+    assert payload["runtime_command_contract"]["schema"] == "asset_forge.placement_runtime.command_contract.v1"
+    assert payload["runtime_command_contract"]["execution_admitted"] is False
+    assert payload["runtime_command_contract"]["status"] == "blocked_non_admitted"
+    assert isinstance(payload["runtime_result_contract"], dict)
+    assert payload["runtime_result_contract"]["schema"] == "asset_forge.placement_runtime.result_contract.v1"
+    assert payload["runtime_result_contract"]["status"] == "blocked_non_admitted"
+    assert isinstance(payload["post_run_verification_contract"], dict)
+    assert (
+        payload["post_run_verification_contract"]["schema"]
+        == "asset_forge.placement_runtime.post_run_verification_contract.v1"
+    )
+    assert payload["post_run_verification_contract"]["execution_admitted"] is False
+    assert isinstance(payload["revert_scope_contract"], dict)
+    assert payload["revert_scope_contract"]["schema"] == "asset_forge.placement_runtime.revert_scope_contract.v1"
+    assert payload["revert_scope_contract"]["execution_admitted"] is False
     assert isinstance(payload["operator_note_present"], bool)
     assert isinstance(payload["contract_evidence_ready"], bool)
     assert isinstance(payload["fail_closed_reasons"], list)
+    assert isinstance(payload["bridge_readiness_contract"], dict)
+    assert payload["bridge_readiness_contract"]["schema"] == "asset_forge.placement_bridge_readiness.v1"
     assert payload["source"] == "asset-forge-o3de-placement-live-proof"
 
 
@@ -2737,6 +3582,186 @@ def test_asset_forge_o3de_placement_proof_malformed_admission_flag_fails_closed(
             assert "admission_flag_invalid_state" in payload["fail_closed_reasons"]
 
 
+def test_asset_forge_o3de_editor_placement_proof_only_requires_approval() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/asset-forge/o3de/editor-placement-proof-only",
+            json={
+                "candidate_id": "candidate-a",
+                "candidate_label": "Weathered Ivy Arch",
+                "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                "target_entity_name": "AssetForgeCandidateA",
+                "target_component": "Mesh",
+                "approval_state": "not-approved",
+                "approval_note": "",
+                "stage_write_corridor_name": "asset_forge.o3de.stage_write.v1",
+                "stage_write_evidence_reference": "packet-10/stage-write-evidence.json",
+                "stage_write_readback_reference": "packet-10/readback-evidence.json",
+                "stage_write_readback_status": "succeeded",
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        _assert_editor_placement_proof_only_fail_closed_fields(payload)
+        assert payload["proof_status"] == "approval-required"
+        assert "approval_state_not_approved" in payload["fail_closed_reasons"]
+        assert (
+            "editor_placement_proof_only_execution_not_admitted"
+            in payload["fail_closed_reasons"]
+        )
+
+
+def test_asset_forge_o3de_editor_placement_proof_only_ready_looking_stays_blocked() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/asset-forge/o3de/editor-placement-proof-only",
+            json={
+                "candidate_id": "candidate-a",
+                "candidate_label": "Weathered Ivy Arch",
+                "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                "target_entity_name": "AssetForgeCandidateA",
+                "target_component": "Mesh",
+                "approval_state": "approved",
+                "approval_note": "bounded proof-only review",
+                "stage_write_corridor_name": "asset_forge.o3de.stage_write.v1",
+                "stage_write_evidence_reference": "packet-10/stage-write-evidence.json",
+                "stage_write_readback_reference": "packet-10/readback-evidence.json",
+                "stage_write_readback_status": "succeeded",
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        _assert_editor_placement_proof_only_fail_closed_fields(payload)
+        assert payload["proof_status"] == "blocked"
+        assert payload["stage_write_evidence_ready"] is True
+        assert payload["stage_write_readback_ready"] is True
+        assert (
+            "server_approval:missing_session" in payload["fail_closed_reasons"]
+        )
+        assert (
+            "editor_placement_proof_only_execution_not_admitted"
+            in payload["fail_closed_reasons"]
+        )
+
+
+def test_asset_forge_o3de_editor_placement_proof_only_contract_ready_still_blocked() -> None:
+    stage_write_evidence_reference = "packet-10/stage-write-evidence.json"
+    stage_write_readback_reference = "packet-10/readback-evidence.json"
+    revert_contract_key = _editor_placement_expected_revert_contract_key(
+        candidate_id="candidate-a",
+        candidate_label="Weathered Ivy Arch",
+        staged_source_relative_path="Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+        target_level_relative_path="Levels/BridgeLevel01/BridgeLevel01.prefab",
+        target_entity_name="AssetForgeCandidateA",
+        target_component="Mesh",
+        stage_write_corridor_name="asset_forge.o3de.stage_write.v1",
+        stage_write_evidence_reference=stage_write_evidence_reference,
+        stage_write_readback_reference=stage_write_readback_reference,
+    )
+    with patch.dict(
+        "os.environ",
+        {
+            "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_RUNTIME_ADMISSION_ENABLED": "true",
+            "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_ADMISSION_PACKET_REF": "packet-16-editor-runtime-ready",
+            "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_ADMISSION_OPERATOR_ID": "operator-qa",
+            "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_EVIDENCE_BUNDLE_REF": "packet-16-editor-runtime-evidence",
+            "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_READBACK_PLAN_REF": "packet-16-editor-runtime-readback-plan",
+            "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_REVERT_CONTRACT_KEY": revert_contract_key,
+        },
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post(
+                "/asset-forge/o3de/editor-placement-proof-only",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "target_component": "Mesh",
+                    "approval_state": "approved",
+                    "approval_note": "contract-ready editor runtime packet evidence",
+                    "stage_write_corridor_name": "asset_forge.o3de.stage_write.v1",
+                    "stage_write_evidence_reference": stage_write_evidence_reference,
+                    "stage_write_readback_reference": stage_write_readback_reference,
+                    "stage_write_readback_status": "succeeded",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            _assert_editor_placement_proof_only_fail_closed_fields(payload)
+            assert payload["admission_flag_state"] == "explicit_on"
+            assert payload["admission_flag_enabled"] is True
+            assert payload["revert_statement_contract_match"] is True
+            assert payload["contract_evidence_ready"] is True
+            assert payload["runtime_command_contract"]["contract_evidence_status"] == "ready"
+            assert payload["post_run_verification_contract"]["status"] == "ready"
+            assert payload["revert_scope_contract"]["status"] == "ready"
+            assert payload["proof_status"] == "blocked"
+            assert payload["execution_admitted"] is False
+            assert payload["placement_write_admitted"] is False
+            assert payload["mutation_occurred"] is False
+            assert (
+                "editor_placement_proof_only_execution_not_admitted"
+                in payload["fail_closed_reasons"]
+            )
+            assert "server_approval:missing_session" in payload["fail_closed_reasons"]
+
+
+def test_asset_forge_o3de_editor_placement_proof_only_contract_mismatch_fails_closed() -> None:
+    with patch.dict(
+        "os.environ",
+        {
+            "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_RUNTIME_ADMISSION_ENABLED": "true",
+            "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_ADMISSION_PACKET_REF": "packet-16-editor-runtime-ready",
+            "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_ADMISSION_OPERATOR_ID": "operator-qa",
+            "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_EVIDENCE_BUNDLE_REF": "packet-16-editor-runtime-evidence",
+            "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_READBACK_PLAN_REF": "packet-16-editor-runtime-readback-plan",
+            "ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_REVERT_CONTRACT_KEY": "wrong-editor-contract-key",
+        },
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post(
+                "/asset-forge/o3de/editor-placement-proof-only",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "target_component": "Mesh",
+                    "approval_state": "approved",
+                    "approval_note": "contract mismatch editor runtime packet evidence",
+                    "stage_write_corridor_name": "asset_forge.o3de.stage_write.v1",
+                    "stage_write_evidence_reference": "packet-10/stage-write-evidence.json",
+                    "stage_write_readback_reference": "packet-10/readback-evidence.json",
+                    "stage_write_readback_status": "succeeded",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            _assert_editor_placement_proof_only_fail_closed_fields(payload)
+            assert payload["admission_flag_state"] == "explicit_on"
+            assert payload["admission_flag_enabled"] is True
+            assert payload["revert_statement_contract_match"] is False
+            assert payload["contract_evidence_ready"] is False
+            assert (
+                payload["runtime_command_contract"]["contract_evidence_status"]
+                == "incomplete"
+            )
+            assert payload["post_run_verification_contract"]["status"] == "incomplete"
+            assert payload["revert_scope_contract"]["status"] == "incomplete"
+            assert (
+                "revert_statement_contract_key_mismatch"
+                in payload["fail_closed_reasons"]
+            )
+            assert "contract_evidence_incomplete" in payload["fail_closed_reasons"]
+
+
 def test_asset_forge_o3de_placement_evidence_blocks_without_project_root() -> None:
     with patch.dict("os.environ", {"O3DE_PROJECT_ROOT": ""}, clear=False):
         with isolated_client() as client:
@@ -2780,6 +3805,9 @@ def test_asset_forge_o3de_placement_harness_prepare_defaults_blocked() -> None:
             assert payload["harness_status"] == "blocked"
             assert payload["execution_performed"] is False
             assert payload["read_only"] is True
+            assert payload["bridge_readiness_contract"]["schema"] == "asset_forge.placement_bridge_readiness.v1"
+            assert payload["bridge_readiness_contract"]["runtime_gate_enabled"] is False
+            assert payload["bridge_readiness_contract"]["readiness_status"] == "blocked"
             assert payload["source"] == "asset-forge-o3de-placement-harness-prepare"
 
 
@@ -2809,6 +3837,15 @@ def test_asset_forge_o3de_placement_harness_execute_stays_blocked_even_when_clie
         "app.services.o3de_target.O3DETargetService.get_bridge_status",
         autospec=True,
     ) as mocked_bridge_status:
+        mocked_bridge_status.return_value = type(
+            "BridgeStatus",
+            (),
+            {
+                "configured": False,
+                "heartbeat_fresh": False,
+                "heartbeat_age_s": None,
+            },
+        )()
         with isolated_client() as client:
             response = client.post(
                 "/asset-forge/o3de/placement-harness/execute",
@@ -2827,13 +3864,19 @@ def test_asset_forge_o3de_placement_harness_execute_stays_blocked_even_when_clie
             payload = response.json()
             _assert_placement_harness_fail_closed_fields(payload)
             assert payload["contract_evidence_ready"] is False
+            assert payload["runtime_command_contract"]["contract_evidence_status"] == "incomplete"
+            assert payload["post_run_verification_contract"]["status"] == "incomplete"
+            assert payload["post_run_verification_contract"]["verification_plan_ready"] is False
+            assert payload["revert_scope_contract"]["status"] == "incomplete"
             assert "admission_packet_reference_missing" in payload["fail_closed_reasons"]
             assert "admission_operator_id_missing" in payload["fail_closed_reasons"]
             assert "evidence_bundle_reference_missing" in payload["fail_closed_reasons"]
             assert "readback_plan_reference_missing" in payload["fail_closed_reasons"]
             assert "revert_statement_contract_key_missing" in payload["fail_closed_reasons"]
+            assert "bridge_not_configured" in payload["fail_closed_reasons"]
+            assert "bridge_heartbeat_not_fresh" in payload["fail_closed_reasons"]
             assert "placement_harness_execution_not_admitted" in payload["fail_closed_reasons"]
-            mocked_bridge_status.assert_not_called()
+            mocked_bridge_status.assert_called_once()
 
 
 def test_asset_forge_o3de_placement_harness_execute_contract_ready_still_blocked() -> None:
@@ -2877,6 +3920,10 @@ def test_asset_forge_o3de_placement_harness_execute_contract_ready_still_blocked
             _assert_placement_harness_fail_closed_fields(payload)
             assert payload["revert_statement_contract_match"] is True
             assert payload["contract_evidence_ready"] is True
+            assert payload["runtime_command_contract"]["contract_evidence_status"] == "ready"
+            assert payload["post_run_verification_contract"]["status"] == "ready"
+            assert payload["post_run_verification_contract"]["verification_plan_ready"] is True
+            assert payload["revert_scope_contract"]["status"] == "ready"
             assert "placement_harness_execution_not_admitted" in payload["fail_closed_reasons"]
 
 
@@ -2957,6 +4004,15 @@ def test_asset_forge_o3de_placement_live_proof_stays_blocked_even_when_client_cl
                 "app.services.o3de_target.O3DETargetService.get_bridge_status",
                 autospec=True,
             ) as mocked_bridge_status:
+                mocked_bridge_status.return_value = type(
+                    "BridgeStatus",
+                    (),
+                    {
+                        "configured": False,
+                        "heartbeat_fresh": False,
+                        "heartbeat_age_s": None,
+                    },
+                )()
                 with isolated_client() as client:
                     response = client.post(
                         "/asset-forge/o3de/placement-harness/live-proof",
@@ -2975,20 +4031,26 @@ def test_asset_forge_o3de_placement_live_proof_stays_blocked_even_when_client_cl
                     assert payload["evidence_bundle_path"] is None
                     assert payload["bridge_configured"] is False
                     assert payload["bridge_heartbeat_fresh"] is False
-                    assert payload["runtime_gate_enabled"] is False
+                    assert payload["runtime_gate_enabled"] is True
                     assert payload["contract_evidence_ready"] is False
+                    assert payload["runtime_command_contract"]["contract_evidence_status"] == "incomplete"
+                    assert payload["post_run_verification_contract"]["status"] == "incomplete"
+                    assert payload["post_run_verification_contract"]["verification_plan_ready"] is False
+                    assert payload["revert_scope_contract"]["status"] == "incomplete"
                     assert "admission_packet_reference_missing" in payload["fail_closed_reasons"]
                     assert "admission_operator_id_missing" in payload["fail_closed_reasons"]
                     assert "evidence_bundle_reference_missing" in payload["fail_closed_reasons"]
                     assert "readback_plan_reference_missing" in payload["fail_closed_reasons"]
                     assert "revert_statement_contract_key_missing" in payload["fail_closed_reasons"]
+                    assert "bridge_not_configured" in payload["fail_closed_reasons"]
+                    assert "bridge_heartbeat_not_fresh" in payload["fail_closed_reasons"]
                     assert "placement_live_proof_execution_not_admitted" in payload["fail_closed_reasons"]
                     assert any(
                         "mutation admission is not enabled"
                         in warning
                         for warning in payload["warnings"]
                     )
-                    mocked_bridge_status.assert_not_called()
+                    mocked_bridge_status.assert_called_once()
 
 
 def test_asset_forge_o3de_placement_live_proof_stays_blocked_with_server_owned_session() -> None:
@@ -3136,6 +4198,10 @@ def test_asset_forge_o3de_placement_live_proof_contract_ready_still_blocked() ->
             _assert_placement_live_proof_fail_closed_fields(payload)
             assert payload["revert_statement_contract_match"] is True
             assert payload["contract_evidence_ready"] is True
+            assert payload["runtime_command_contract"]["contract_evidence_status"] == "ready"
+            assert payload["post_run_verification_contract"]["status"] == "ready"
+            assert payload["post_run_verification_contract"]["verification_plan_ready"] is True
+            assert payload["revert_scope_contract"]["status"] == "ready"
             assert "placement_live_proof_execution_not_admitted" in payload["fail_closed_reasons"]
 
 
@@ -3773,8 +4839,8 @@ def test_ready_reports_database_status_details() -> None:
         assert "$schema" in payload["schema_validation"]["active_metadata_keywords"]
         assert "allOf" in payload["schema_validation"]["supported_keywords"]
         assert "oneOf" in payload["schema_validation"]["unsupported_keywords"]
-        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 26
-        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 26
+        assert payload["schema_validation"]["persisted_execution_details_tool_count"] == 27
+        assert payload["schema_validation"]["persisted_artifact_metadata_tool_count"] == 27
         assert payload["schema_validation"]["persisted_execution_details_tools"] == [
             "asset.batch.process",
             "asset.move.safe",
@@ -3790,6 +4856,7 @@ def test_ready_reports_database_status_details() -> None:
             "editor.entity.create",
             "editor.entity.exists",
             "editor.level.open",
+            "editor.placement.proof_only",
             "editor.session.open",
             "gem.enable",
             "project.inspect",
@@ -3818,6 +4885,7 @@ def test_ready_reports_database_status_details() -> None:
             "editor.entity.create",
             "editor.entity.exists",
             "editor.level.open",
+            "editor.placement.proof_only",
             "editor.session.open",
             "gem.enable",
             "project.inspect",
@@ -3834,9 +4902,9 @@ def test_ready_reports_database_status_details() -> None:
         assert payload["schema_validation"]["persisted_family_coverage"] == [
             {
                 "family": "editor-control",
-                "total_tools": 9,
-                "execution_details_tools": 9,
-                "artifact_metadata_tools": 9,
+                "total_tools": 10,
+                "execution_details_tools": 10,
+                "artifact_metadata_tools": 10,
                 "covered_tools": [
                     "editor.component.add",
                     "editor.component.find",
@@ -3846,6 +4914,7 @@ def test_ready_reports_database_status_details() -> None:
                     "editor.entity.create",
                     "editor.entity.exists",
                     "editor.level.open",
+                    "editor.placement.proof_only",
                     "editor.session.open",
                 ],
                 "uncovered_tools": [],
@@ -4104,7 +5173,9 @@ def test_adapters_endpoint_reports_hybrid_registry_summary() -> None:
             assert forbidden_editor_property_paths.isdisjoint(
                 editor_control["gated_tool_paths"]
             )
-            assert editor_control["simulated_tool_paths"] == []
+            assert editor_control["simulated_tool_paths"] == [
+                "editor.placement.proof_only"
+            ]
             assert any(
                 "editor.component.property.get" in note
                 for note in editor_control["notes"]
@@ -7871,15 +8942,104 @@ def test_dispatch_route_records_settings_patch_fallback_provenance_in_hybrid_mod
                 )
 
 
-def test_validation_report_intake_endpoint_candidates_remain_unadmitted() -> None:
+def test_validation_report_intake_endpoint_candidate_remains_blocked_for_default_off_gate_states() -> None:
+    blocked_message = "Validation report intake endpoint candidate remains blocked"
+    for raw_flag, expected_state in (
+        (None, "missing_default_off"),
+        ("off", "explicit_off"),
+        ("garbage", "invalid_default_off"),
+    ):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop(VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV, None)
+            if raw_flag is not None:
+                os.environ[VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV] = raw_flag
+
+            with isolated_client() as client:
+                response = client.post(
+                    "/validation/report/intake",
+                    json={"schema": "validation.report.intake.v1"},
+                )
+                assert response.status_code == 404
+                payload = response.json()
+                assert blocked_message in payload["detail"]
+                if expected_state == "missing_default_off":
+                    assert (
+                        VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV
+                        not in os.environ
+                    )
+                else:
+                    assert (
+                        os.environ[VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV]
+                        == raw_flag
+                    )
+
+
+def test_validation_report_intake_alternative_paths_remain_unadmitted() -> None:
     with isolated_client() as client:
-        for path in (
-            "/validation/report/intake",
-            "/validation/reports/intake",
-            "/validation/intake",
-        ):
+        for path in ("/validation/reports/intake", "/validation/intake"):
             response = client.post(path, json={"schema": "validation.report.intake.v1"})
             assert response.status_code == 404
+
+
+def test_validation_report_intake_endpoint_candidate_returns_dry_run_plan_when_enabled() -> None:
+    envelope = _validation_report_intake_valid_envelope()
+    with patch.dict(
+        os.environ,
+        {VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV: "true"},
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post("/validation/report/intake", json=envelope)
+            assert response.status_code == 200
+
+            payload = response.json()
+            assert payload["corridor_name"] == "validation.report.intake"
+            assert payload["dry_run_only"] is True
+            assert payload["execution_admitted"] is False
+            assert payload["write_executed"] is False
+            assert payload["project_write_admitted"] is False
+            assert payload["write_status"] == "blocked"
+            assert payload["accepted"] is True
+            assert payload["endpoint_candidate"] is True
+            assert payload["endpoint_admitted"] is False
+            assert (
+                payload["admission_flag_name"]
+                == VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV
+            )
+            assert payload["admission_flag_state"] == "explicit_on"
+            assert payload["admission_flag_enabled"] is True
+            assert payload["fail_closed_reasons"] == []
+            assert payload["normalized_artifact_refs"] == ["artifacts/reports/gtest.json"]
+
+
+def test_validation_report_intake_endpoint_candidate_fails_closed_for_client_auth_fields() -> None:
+    envelope = _validation_report_intake_valid_envelope()
+    envelope["payload"]["approval_state"] = "approved"
+    with patch.dict(
+        os.environ,
+        {VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV: "1"},
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post("/validation/report/intake", json=envelope)
+            assert response.status_code == 200
+
+            payload = response.json()
+            assert payload["accepted"] is False
+            assert payload["dry_run_only"] is True
+            assert payload["execution_admitted"] is False
+            assert payload["write_executed"] is False
+            assert payload["project_write_admitted"] is False
+            assert payload["write_status"] == "blocked"
+            assert payload["endpoint_candidate"] is True
+            assert payload["endpoint_admitted"] is False
+            assert (
+                payload["admission_flag_name"]
+                == VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV
+            )
+            assert payload["admission_flag_state"] == "explicit_on"
+            assert payload["admission_flag_enabled"] is True
+            assert "client_authorization_fields_forbidden" in payload["fail_closed_reasons"]
 
 
 def test_validation_report_intake_dispatch_rejected_even_with_client_approval_fields() -> None:
@@ -7935,3 +9095,32 @@ def test_validation_report_intake_dispatch_rejected_even_with_client_approval_fi
         assert execution["details"]["adapter_family"] == "validation"
         assert "simulated" in execution["details"]["execution_boundary"].lower()
         assert artifacts.json()["artifacts"] == []
+
+
+def test_validation_report_intake_dispatch_remains_unadmitted_when_endpoint_flag_enabled() -> None:
+    with patch.dict(
+        os.environ,
+        {VALIDATION_REPORT_INTAKE_ENDPOINT_ADMISSION_FLAG_ENV: "true"},
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post(
+                "/tools/dispatch",
+                json={
+                    "request_id": "api-validation-report-intake-2",
+                    "tool": "validation.report.intake",
+                    "agent": "validation",
+                    "project_root": "/tmp/project",
+                    "engine_root": "/tmp/engine",
+                    "dry_run": True,
+                    "locks": [],
+                    "timeout_s": 15,
+                    "args": {"schema": "validation.report.intake.v1"},
+                },
+            )
+
+            assert response.status_code == 200
+            payload = response.json()
+            assert payload["ok"] is False
+            assert payload["error"]["code"] == "INVALID_TOOL"
+            assert payload["error"]["details"]["tool"] == "validation.report.intake"
