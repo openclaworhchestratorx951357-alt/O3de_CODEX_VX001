@@ -39,7 +39,7 @@ function formatGuidedModeToggleLabel(value: boolean): string {
 function formatWorkspaceTreeDefaultModeLabel(value: AppSettings["layout"]["workspaceTreeDefaultMode"]): string {
   switch (value) {
     case "auto":
-      return "Auto (small screens open All apps)";
+      return "Auto (default All apps)";
     case "grouped":
       return "Grouped";
     case "all":

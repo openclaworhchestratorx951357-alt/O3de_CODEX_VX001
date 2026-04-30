@@ -275,6 +275,7 @@ describe("App desktop smoke", () => {
     expect(navRail).not.toBeNull();
 
     const navScope = within(navRail as HTMLElement);
+    fireEvent.click(navScope.getByRole("button", { name: "Show grouped workspace tree view" }));
     fireEvent.click(navScope.getByRole("button", { name: "Collapse to current workspace group" }));
     expect(navScope.queryByRole("button", { name: /Create Game/i })).not.toBeInTheDocument();
 
@@ -282,7 +283,7 @@ describe("App desktop smoke", () => {
     expect(navScope.getByRole("button", { name: /Create Game/i })).toBeInTheDocument();
     expect(navScope.getByRole("button", { name: /Prompt Studio/i })).toBeInTheDocument();
     fireEvent.click(navScope.getByRole("button", { name: "Reset workspace tree defaults" }));
-    expect(navScope.getByRole("button", { name: "Expand all workspace groups" })).not.toBeDisabled();
+    expect(navScope.getByRole("button", { name: "Expand all workspace groups" })).toBeDisabled();
 
     fireEvent.click(navScope.getByRole("button", { name: "Show grouped workspace tree view" }));
     fireEvent.click(navScope.getByRole("button", { name: "Expand all workspace groups" }));

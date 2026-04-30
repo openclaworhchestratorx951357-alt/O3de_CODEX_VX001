@@ -98,13 +98,15 @@ describe("DesktopShell", () => {
     expect(screen.getByText("Control surface")).toBeInTheDocument();
     expect(screen.getByText("Now open")).toBeInTheDocument();
     expect(screen.getAllByText("Start").length).toBeGreaterThan(0);
-    expect(screen.getByText("Inspect")).toBeInTheDocument();
+    expect(screen.getByText(/Inspect -/i)).toBeInTheDocument();
     expect(screen.getByText("Active workspace")).toBeInTheDocument();
     expect(screen.getByText("Workspace body")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Expand all workspace groups" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Collapse to current workspace group" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /records/i })).toBeInTheDocument();
 
+    expect(screen.getByRole("button", { name: "Show all cockpit apps view" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Show grouped workspace tree view" }));
     fireEvent.click(screen.getByRole("button", { name: "Collapse to current workspace group" }));
     expect(screen.queryByRole("button", { name: /records/i })).not.toBeInTheDocument();
 
@@ -274,7 +276,7 @@ describe("DesktopShell", () => {
     expect(desktopSurface).toHaveStyle("overflow: hidden");
   });
 
-  it("persists all-apps preference for the session and restores grouped defaults on reset", () => {
+  it("persists all-apps preference for the session and keeps all-app defaults on reset when auto mode resolves all-apps", () => {
     const onSelectWorkspace = vi.fn();
     const navSections = [
       {
@@ -337,7 +339,7 @@ describe("DesktopShell", () => {
 
     expect(screen.getByRole("button", { name: "Expand all workspace groups" })).toBeDisabled();
     fireEvent.click(screen.getByRole("button", { name: "Reset workspace tree defaults" }));
-    expect(screen.getByRole("button", { name: "Expand all workspace groups" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Expand all workspace groups" })).toBeDisabled();
     secondRender.unmount();
 
     render(
@@ -354,7 +356,7 @@ describe("DesktopShell", () => {
       </DesktopShell>,
     );
 
-    expect(screen.getByRole("button", { name: "Expand all workspace groups" })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: "Expand all workspace groups" })).toBeDisabled();
   });
 
   it("uses the settings-configured workspace tree default mode when no session override exists", () => {

@@ -4,6 +4,7 @@ import {
   getAllCockpitLayoutDefaults,
   getCockpitLayoutDefaults,
 } from "./cockpitLayoutDefaults";
+import { getCockpitLayoutVersion } from "./cockpitLayoutTypes";
 
 describe("cockpitLayoutDefaults", () => {
   it("provides default layout config for every first-class cockpit", () => {
@@ -29,7 +30,9 @@ describe("cockpitLayoutDefaults", () => {
       const desktopMinWidth = defaults[cockpitId].splitConstraints.leftMinWidth
         + defaults[cockpitId].splitConstraints.centerMinWidth
         + defaults[cockpitId].splitConstraints.rightMinWidth;
-      expect(desktopMinWidth).toBeLessThanOrEqual(1110);
+      expect(desktopMinWidth).toBeLessThanOrEqual(1220);
+      expect(defaults[cockpitId].splitConstraints.mainMinHeight).toBeGreaterThanOrEqual(300);
+      expect(defaults[cockpitId].splitConstraints.bottomMinHeight).toBeGreaterThanOrEqual(170);
     }
   });
 
@@ -54,6 +57,25 @@ describe("cockpitLayoutDefaults", () => {
     const defaults = getCockpitLayoutDefaults("create-game");
     expect(defaults.splitConstraints.centerMinWidth).toBeGreaterThan(defaults.splitConstraints.leftMinWidth);
     expect(defaults.splitConstraints.centerMinWidth).toBeGreaterThan(defaults.splitConstraints.rightMinWidth);
+  });
+
+  it("bumps first-class cockpit layout versions so stale saved layouts normalize to the refreshed defaults", () => {
+    const cockpitIds = [
+      "home",
+      "create-game",
+      "create-movie",
+      "load-project",
+      "asset-forge",
+      "prompt",
+      "builder",
+      "operations",
+      "runtime",
+      "records",
+    ];
+
+    for (const cockpitId of cockpitIds) {
+      expect(getCockpitLayoutVersion(cockpitId)).toBe(6);
+    }
   });
 
   it("falls back safely for unknown cockpit ids", () => {

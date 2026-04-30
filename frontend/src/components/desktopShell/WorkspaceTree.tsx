@@ -46,7 +46,9 @@ function resolveWorkspaceTreeDefaultViewMode(
     return "all";
   }
 
-  return "grouped";
+  // Auto mode now prefers all-app visibility on first load so every cockpit stays reachable
+  // without collapsing to a single group lane.
+  return "all";
 }
 
 function resolveWorkspaceTreeViewModeForSession(
