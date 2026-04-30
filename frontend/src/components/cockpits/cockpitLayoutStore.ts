@@ -41,10 +41,11 @@ function writeStorageSnapshot(snapshot: PersistedLayouts): void {
 export function readCockpitLayoutState(
   cockpitId: string,
   panels: CockpitPanelDefinition[],
+  defaultPresetId: CockpitLayoutPresetId = "balanced",
 ): CockpitLayoutState {
   const snapshot = readStorageSnapshot();
   const persisted = snapshot[cockpitId];
-  return normalizeCockpitLayout(persisted, panels, cockpitId);
+  return normalizeCockpitLayout(persisted, panels, cockpitId, defaultPresetId);
 }
 
 export function writeCockpitLayoutState(layout: CockpitLayoutState): void {

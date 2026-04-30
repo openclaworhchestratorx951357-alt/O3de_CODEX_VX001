@@ -35,6 +35,39 @@ const panels: CockpitPanelDefinition[] = [
   },
 ];
 
+const assetForgePanels: CockpitPanelDefinition[] = [
+  {
+    id: "asset-forge-command-strip",
+    title: "Command strip",
+    defaultZone: "top",
+    render: () => null,
+  },
+  {
+    id: "asset-forge-tools",
+    title: "Tools",
+    defaultZone: "left",
+    render: () => null,
+  },
+  {
+    id: "asset-forge-studio",
+    title: "Studio",
+    defaultZone: "center",
+    render: () => null,
+  },
+  {
+    id: "asset-forge-truth",
+    title: "Truth",
+    defaultZone: "right",
+    render: () => null,
+  },
+  {
+    id: "asset-forge-evidence",
+    title: "Evidence",
+    defaultZone: "bottom",
+    render: () => null,
+  },
+];
+
 function createLayout(cockpitId = "create-game"): CockpitLayoutState {
   return createDefaultCockpitLayout(cockpitId, panels, "balanced");
 }
@@ -209,5 +242,42 @@ describe("cockpitLayoutReducer", () => {
 
     const disallowedAttempt = movePanelToZone(layout, "allowed-panel", "right", 0, restrictedPanels);
     expect(disallowedAttempt).toEqual(layout);
+  });
+
+  it("normalizes old asset-forge saved layouts back to the new asset-forge studio default", () => {
+    const savedLayout = {
+      cockpitId: "asset-forge",
+      version: 1,
+      zones: {
+        top: [],
+        left: ["asset-forge-studio"],
+        center: ["asset-forge-tools"],
+        right: ["asset-forge-command-strip", "asset-forge-evidence"],
+        bottom: ["asset-forge-truth"],
+      },
+      sizes: {
+        leftPrimaryRatio: 0.33,
+        centerPrimaryRatio: 0.49,
+        topPrimaryRatio: 0.58,
+      },
+      collapsedPanelIds: [],
+      updatedAt: "2026-04-30T00:00:00.000Z",
+    };
+
+    const normalized = normalizeCockpitLayout(
+      savedLayout,
+      assetForgePanels,
+      "asset-forge",
+      "asset-forge-studio",
+    );
+    const expected = createDefaultCockpitLayout(
+      "asset-forge",
+      assetForgePanels,
+      "asset-forge-studio",
+    );
+
+    expect(normalized.version).toBe(expected.version);
+    expect(normalized.zones).toEqual(expected.zones);
+    expect(normalized.sizes).toEqual(expected.sizes);
   });
 });

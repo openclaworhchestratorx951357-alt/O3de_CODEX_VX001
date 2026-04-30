@@ -12,9 +12,9 @@ import type {
   CockpitPanelDefinition,
 } from "./cockpitLayoutTypes";
 import {
-  COCKPIT_LAYOUT_VERSION,
   COCKPIT_LAYOUT_ZONES,
   DEFAULT_COCKPIT_LAYOUT_SIZES,
+  getCockpitLayoutVersion,
 } from "./cockpitLayoutTypes";
 
 function createEmptyZones(): CockpitLayoutZones {
@@ -144,7 +144,7 @@ export function createDefaultCockpitLayout(
     : getPresetSizes(presetId);
   return {
     cockpitId,
-    version: COCKPIT_LAYOUT_VERSION,
+    version: getCockpitLayoutVersion(cockpitId),
     zones,
     sizes,
     collapsedPanelIds: [],
@@ -156,14 +156,19 @@ export function normalizeCockpitLayout(
   savedLayout: Partial<CockpitLayoutState> | null | undefined,
   panels: CockpitPanelDefinition[],
   cockpitId: string,
+  defaultPresetId: CockpitLayoutPresetId = "balanced",
 ): CockpitLayoutState {
-  const defaults = createDefaultCockpitLayout(cockpitId, panels);
+  const expectedVersion = getCockpitLayoutVersion(cockpitId);
+  const defaults = createDefaultCockpitLayout(cockpitId, panels, defaultPresetId);
   if (!savedLayout) {
+    return defaults;
+  }
+  if (savedLayout.version !== expectedVersion) {
     return defaults;
   }
   return {
     cockpitId,
-    version: COCKPIT_LAYOUT_VERSION,
+    version: expectedVersion,
     zones: sanitizeZones(savedLayout.zones, panels),
     sizes: sanitizeSizes(savedLayout.sizes),
     collapsedPanelIds: sanitizeCollapsedPanelIds(savedLayout.collapsedPanelIds, panels),

@@ -96,6 +96,17 @@ const presetDefinitions: Record<CockpitLayoutPresetId, CockpitLayoutPresetDefini
     },
     placePanel: (panel) => panel.defaultZone,
   },
+  "asset-forge-studio": {
+    id: "asset-forge-studio",
+    label: "Asset Forge Studio",
+    description: "Blender/Unreal-style creator cockpit with dominant center workspace and compact evidence drawer.",
+    sizes: {
+      leftPrimaryRatio: 0.26,
+      centerPrimaryRatio: 0.66,
+      topPrimaryRatio: 0.79,
+    },
+    placePanel: (panel) => panel.defaultZone,
+  },
 };
 
 function createEmptyZones(): CockpitLayoutZones {

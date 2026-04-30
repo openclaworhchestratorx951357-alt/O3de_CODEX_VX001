@@ -2,7 +2,13 @@ import type { ReactNode } from "react";
 
 export type CockpitLayoutZone = "top" | "left" | "center" | "right" | "bottom";
 
-export type CockpitLayoutPresetId = "balanced" | "focus" | "review" | "compact" | "wide-screen";
+export type CockpitLayoutPresetId =
+  | "balanced"
+  | "focus"
+  | "review"
+  | "compact"
+  | "wide-screen"
+  | "asset-forge-studio";
 
 export type CockpitPanelPriority = "primary" | "secondary" | "evidence" | "tools" | "status";
 
@@ -66,3 +72,11 @@ export const DEFAULT_COCKPIT_LAYOUT_SIZES: CockpitLayoutSizes = {
 };
 
 export const COCKPIT_LAYOUT_VERSION = 1;
+
+const COCKPIT_LAYOUT_VERSION_OVERRIDES: Record<string, number> = {
+  "asset-forge": 2,
+};
+
+export function getCockpitLayoutVersion(cockpitId: string): number {
+  return COCKPIT_LAYOUT_VERSION_OVERRIDES[cockpitId] ?? COCKPIT_LAYOUT_VERSION;
+}

@@ -19,6 +19,7 @@ import {
 } from "./cockpitLayoutStore";
 import {
   getCockpitLayoutPresetChoices,
+  getPresetSizes,
 } from "./cockpitLayoutPresets";
 import type {
   CockpitDragState,
@@ -34,6 +35,13 @@ type DockableCockpitLayoutProps = {
   panels: CockpitPanelDefinition[];
   defaultPresetId?: CockpitLayoutPresetId;
   toolbar?: ReactNode;
+  splitConstraints?: {
+    leftMinWidth?: number;
+    centerMinWidth?: number;
+    rightMinWidth?: number;
+    mainMinHeight?: number;
+    bottomMinHeight?: number;
+  };
 };
 
 function getPanelIdFingerprint(panels: CockpitPanelDefinition[]): string {
@@ -88,10 +96,11 @@ export default function DockableCockpitLayout({
   panels,
   defaultPresetId = "balanced",
   toolbar,
+  splitConstraints,
 }: DockableCockpitLayoutProps) {
   const [selectedPresetId, setSelectedPresetId] = useState<CockpitLayoutPresetId>(defaultPresetId);
   const [layoutState, setLayoutState] = useState<CockpitLayoutState>(() => (
-    readCockpitLayoutState(cockpitId, panels)
+    readCockpitLayoutState(cockpitId, panels, defaultPresetId)
   ));
   const [isCompact, setIsCompact] = useState(false);
   const [dragState, setDragState] = useState<CockpitDragState | null>(null);
@@ -105,10 +114,11 @@ export default function DockableCockpitLayout({
   );
 
   useEffect(() => {
-    setLayoutState(readCockpitLayoutState(cockpitId, panels));
+    setLayoutState(readCockpitLayoutState(cockpitId, panels, defaultPresetId));
+    setSelectedPresetId(defaultPresetId);
     setDragState(null);
     dragHoverRef.current = null;
-  }, [cockpitId, panelFingerprint, panels]);
+  }, [cockpitId, defaultPresetId, panelFingerprint, panels]);
 
   useEffect(() => {
     if (skipPersistOnceRef.current) {
@@ -134,6 +144,14 @@ export default function DockableCockpitLayout({
   const panelById = useMemo(() => {
     return new Map(panels.map((panel) => [panel.id, panel]));
   }, [panels]);
+
+  const defaultPresetSizes = useMemo(() => getPresetSizes(defaultPresetId), [defaultPresetId]);
+
+  const leftMinWidth = splitConstraints?.leftMinWidth ?? 220;
+  const centerMinWidth = splitConstraints?.centerMinWidth ?? 260;
+  const rightMinWidth = splitConstraints?.rightMinWidth ?? 220;
+  const mainMinHeight = splitConstraints?.mainMinHeight ?? 220;
+  const bottomMinHeight = splitConstraints?.bottomMinHeight ?? 150;
 
   const collapsedPanelIdSet = useMemo(() => {
     return new Set(layoutState.collapsedPanelIds);
@@ -481,9 +499,9 @@ export default function DockableCockpitLayout({
       ariaLabel={`${cockpitId} left column resize handle`}
       handleTitle="Resize left and center/right zones"
       sizeRatio={layoutState.sizes.leftPrimaryRatio}
-      resetRatio={0.3}
-      minPrimary={220}
-      minSecondary={320}
+      resetRatio={defaultPresetSizes.leftPrimaryRatio}
+      minPrimary={leftMinWidth}
+      minSecondary={centerMinWidth + rightMinWidth}
       onSizeRatioChange={(nextRatio) => {
         setLayoutState((current) => ({
           ...current,
@@ -502,9 +520,9 @@ export default function DockableCockpitLayout({
           ariaLabel={`${cockpitId} center and right column resize handle`}
           handleTitle="Resize center and right zones"
           sizeRatio={layoutState.sizes.centerPrimaryRatio}
-          resetRatio={0.62}
-          minPrimary={260}
-          minSecondary={220}
+          resetRatio={defaultPresetSizes.centerPrimaryRatio}
+          minPrimary={centerMinWidth}
+          minSecondary={rightMinWidth}
           onSizeRatioChange={(nextRatio) => {
             setLayoutState((current) => ({
               ...current,
@@ -541,9 +559,9 @@ export default function DockableCockpitLayout({
             ariaLabel={`${cockpitId} main and bottom zone resize handle`}
             handleTitle="Resize main zones and bottom evidence drawer"
             sizeRatio={layoutState.sizes.topPrimaryRatio}
-            resetRatio={0.74}
-            minPrimary={220}
-            minSecondary={150}
+            resetRatio={defaultPresetSizes.topPrimaryRatio}
+            minPrimary={mainMinHeight}
+            minSecondary={bottomMinHeight}
             onSizeRatioChange={(nextRatio) => {
               setLayoutState((current) => ({
                 ...current,

@@ -100,6 +100,41 @@ const crossZonePanels: CockpitPanelDefinition[] = [
   },
 ];
 
+const assetForgeLikePanels: CockpitPanelDefinition[] = [
+  {
+    id: "asset-forge-command-strip",
+    title: "Command strip",
+    defaultZone: "top",
+    render: () => <div>Command strip body</div>,
+  },
+  {
+    id: "asset-forge-tools",
+    title: "Tools",
+    defaultZone: "left",
+    render: () => <div>Tools body</div>,
+  },
+  {
+    id: "asset-forge-studio",
+    title: "Studio",
+    defaultZone: "center",
+    render: () => <div>Studio body</div>,
+    priority: "primary",
+  },
+  {
+    id: "asset-forge-truth",
+    title: "Truth",
+    defaultZone: "right",
+    render: () => <div>Truth body</div>,
+  },
+  {
+    id: "asset-forge-evidence",
+    title: "Evidence",
+    defaultZone: "bottom",
+    render: () => <div>Evidence body</div>,
+    priority: "evidence",
+  },
+];
+
 function mockPanelRect(
   target: HTMLElement,
   rect: Pick<DOMRect, "top" | "bottom" | "left" | "right" | "width" | "height">,
@@ -345,5 +380,29 @@ describe("DockableCockpitLayout", () => {
     );
 
     expect(screen.getByTestId("dockable-panel-body-panel-a")).toHaveStyle({ overflow: "auto" });
+  });
+
+  it("applies asset-forge-studio default preset on first load and on reset", () => {
+    render(
+      <DockableCockpitLayout
+        cockpitId="asset-forge"
+        panels={assetForgeLikePanels}
+        defaultPresetId="asset-forge-studio"
+      />,
+    );
+
+    expect(within(screen.getByTestId("asset-forge-top-zone")).getByLabelText("Command strip panel")).toBeInTheDocument();
+    expect(within(screen.getByTestId("asset-forge-left-zone")).getByLabelText("Tools panel")).toBeInTheDocument();
+    expect(within(screen.getByTestId("asset-forge-center-zone")).getByLabelText("Studio panel")).toBeInTheDocument();
+    expect(within(screen.getByTestId("asset-forge-right-zone")).getByLabelText("Truth panel")).toBeInTheDocument();
+    expect(within(screen.getByTestId("asset-forge-bottom-zone")).getByLabelText("Evidence panel")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset layout" }));
+
+    expect(within(screen.getByTestId("asset-forge-top-zone")).getByLabelText("Command strip panel")).toBeInTheDocument();
+    expect(within(screen.getByTestId("asset-forge-left-zone")).getByLabelText("Tools panel")).toBeInTheDocument();
+    expect(within(screen.getByTestId("asset-forge-center-zone")).getByLabelText("Studio panel")).toBeInTheDocument();
+    expect(within(screen.getByTestId("asset-forge-right-zone")).getByLabelText("Truth panel")).toBeInTheDocument();
+    expect(within(screen.getByTestId("asset-forge-bottom-zone")).getByLabelText("Evidence panel")).toBeInTheDocument();
   });
 });

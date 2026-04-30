@@ -35,6 +35,39 @@ const panels: CockpitPanelDefinition[] = [
   },
 ];
 
+const assetForgePanels: CockpitPanelDefinition[] = [
+  {
+    id: "asset-forge-command-strip",
+    title: "Command strip",
+    defaultZone: "top",
+    render: () => null,
+  },
+  {
+    id: "asset-forge-tools",
+    title: "Tools",
+    defaultZone: "left",
+    render: () => null,
+  },
+  {
+    id: "asset-forge-studio",
+    title: "Studio",
+    defaultZone: "center",
+    render: () => null,
+  },
+  {
+    id: "asset-forge-truth",
+    title: "Truth",
+    defaultZone: "right",
+    render: () => null,
+  },
+  {
+    id: "asset-forge-evidence",
+    title: "Evidence",
+    defaultZone: "bottom",
+    render: () => null,
+  },
+];
+
 describe("cockpitLayoutStore", () => {
   beforeEach(() => {
     window.localStorage.removeItem(STORAGE_KEY);
@@ -96,5 +129,50 @@ describe("cockpitLayoutStore", () => {
 
     expect(reloaded.zones).toEqual(freshDefault.zones);
     expect(reloaded.collapsedPanelIds).toEqual([]);
+  });
+
+  it("uses the provided default preset when no saved layout exists", () => {
+    const loaded = readCockpitLayoutState("asset-forge", assetForgePanels, "asset-forge-studio");
+
+    expect(loaded.zones.top).toEqual(["asset-forge-command-strip"]);
+    expect(loaded.zones.left).toEqual(["asset-forge-tools"]);
+    expect(loaded.zones.center).toEqual(["asset-forge-studio"]);
+    expect(loaded.zones.right).toEqual(["asset-forge-truth"]);
+    expect(loaded.zones.bottom).toEqual(["asset-forge-evidence"]);
+    expect(loaded.sizes.leftPrimaryRatio).toBeCloseTo(0.26);
+    expect(loaded.sizes.centerPrimaryRatio).toBeCloseTo(0.66);
+    expect(loaded.sizes.topPrimaryRatio).toBeCloseTo(0.79);
+  });
+
+  it("normalizes old asset-forge saved layout versions to the new default preset", () => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      "asset-forge": {
+        cockpitId: "asset-forge",
+        version: 1,
+        zones: {
+          top: [],
+          left: ["asset-forge-studio"],
+          center: ["asset-forge-tools"],
+          right: ["asset-forge-truth"],
+          bottom: ["asset-forge-command-strip", "asset-forge-evidence"],
+        },
+        sizes: {
+          leftPrimaryRatio: 0.4,
+          centerPrimaryRatio: 0.5,
+          topPrimaryRatio: 0.5,
+        },
+        collapsedPanelIds: [],
+        updatedAt: "2026-04-30T00:00:00.000Z",
+      },
+    }));
+
+    const loaded = readCockpitLayoutState("asset-forge", assetForgePanels, "asset-forge-studio");
+
+    expect(loaded.version).toBe(2);
+    expect(loaded.zones.top).toEqual(["asset-forge-command-strip"]);
+    expect(loaded.zones.left).toEqual(["asset-forge-tools"]);
+    expect(loaded.zones.center).toEqual(["asset-forge-studio"]);
+    expect(loaded.zones.right).toEqual(["asset-forge-truth"]);
+    expect(loaded.zones.bottom).toEqual(["asset-forge-evidence"]);
   });
 });

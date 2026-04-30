@@ -116,6 +116,48 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
 
   const cockpitPanels = useMemo<CockpitPanelDefinition[]>(() => [
     {
+      id: "asset-forge-command-strip",
+      title: "Asset Forge command strip",
+      subtitle: "Compact workflow posture with safe launch actions",
+      truthState: "plan-only / preflight / proof-only",
+      defaultZone: "top",
+      collapsible: true,
+      scrollMode: "content",
+      priority: "tools",
+      minHeight: 150,
+      defaultHeight: 190,
+      render: () => (
+        <AssetForgeCommandStrip
+          onOpenPromptStudio={props.onOpenPromptStudio}
+          onOpenRuntimeOverview={props.onOpenRuntimeOverview}
+          onOpenRecords={props.onOpenRecords}
+          onViewEvidence={props.onViewEvidence}
+        />
+      ),
+    },
+    {
+      id: "asset-forge-tools-outliner",
+      title: "Tools, candidates, and outliner",
+      subtitle: "Left dock for tool mode, candidate shortlist, and target outliner posture",
+      truthState: "read-only / plan-only",
+      defaultZone: "left",
+      collapsible: true,
+      scrollMode: "content",
+      priority: "tools",
+      minWidth: 240,
+      minHeight: 280,
+      defaultHeight: 420,
+      render: () => (
+        <AssetForgeToolsOutlinerPanel
+          taskModel={taskModel}
+          providerStatus={providerStatus}
+          onOpenPromptStudio={props.onOpenPromptStudio}
+          onLaunchInspectTemplate={props.onLaunchInspectTemplate}
+          onLaunchPlacementProofTemplate={props.onLaunchPlacementProofTemplate}
+        />
+      ),
+    },
+    {
       id: "asset-forge-truth-rail",
       title: "Mission truth rail",
       subtitle: "Safety, readiness, and latest evidence context",
@@ -124,7 +166,8 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
       collapsible: true,
       scrollMode: "content",
       priority: "status",
-      minHeight: 240,
+      minWidth: 280,
+      minHeight: 260,
       defaultHeight: 320,
       render: () => (
         <MissionTruthRail
@@ -158,25 +201,69 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
       ),
     },
     {
-      id: "asset-forge-guided-pipeline",
-      title: "Asset Forge guided pipeline",
-      subtitle: "Describe to review with explicit blocked and proof-only gates",
-      truthState: "plan/preflight/proof-only",
-      defaultZone: "left",
+      id: "asset-forge-inspector-blockers",
+      title: "Inspector and blockers",
+      subtitle: "Selected target assumptions, blocked lanes, and next unlock guidance",
+      truthState: "blocked / preflight",
+      defaultZone: "right",
       collapsible: true,
       scrollMode: "content",
-      priority: "tools",
+      priority: "status",
+      minWidth: 280,
       minHeight: 210,
-      defaultHeight: 320,
+      defaultHeight: 260,
       render: () => (
-        <AssetForgeGuidedPipeline
-          onOpenPromptStudio={props.onOpenPromptStudio}
-          onLaunchInspectTemplate={props.onLaunchInspectTemplate}
-          onLaunchPlacementProofTemplate={props.onLaunchPlacementProofTemplate}
-          onOpenRuntimeOverview={props.onOpenRuntimeOverview}
-          onOpenRecords={props.onOpenRecords}
-          onViewEvidence={props.onViewEvidence}
+        <AssetForgeInspectorPanel
+          projectLabel={props.projectProfile?.name ?? "unknown project"}
+          providerStatus={providerStatus}
+          blenderStatus={blenderStatus}
+          bridgeStatus={props.bridgeStatus
+            ? (props.bridgeStatus.configured ? "configured" : "not configured")
+            : "unknown"}
+          adaptersMode={props.adapters?.active_mode ?? "unknown"}
         />
+      ),
+    },
+    {
+      id: "asset-forge-evidence-drawer",
+      title: "Evidence, prompts, and logs drawer",
+      subtitle: "Bottom drawer for proof-only templates, evidence links, and fail-closed explanations",
+      truthState: "proof-only / fail-closed / review",
+      defaultZone: "bottom",
+      collapsible: true,
+      scrollMode: "content",
+      priority: "evidence",
+      minHeight: 180,
+      defaultHeight: 230,
+      render: () => (
+        <section aria-label="Asset Forge evidence drawer" style={evidenceDrawerStyle}>
+          <div style={evidenceDrawerActionRowStyle}>
+            <button type="button" onClick={props.onViewLatestRun} disabled={!props.onViewLatestRun} style={evidenceDrawerButtonStyle}>
+              View latest run
+            </button>
+            <button type="button" onClick={props.onViewExecution} disabled={!props.onViewExecution} style={evidenceDrawerButtonStyle}>
+              View latest execution
+            </button>
+            <button type="button" onClick={props.onViewArtifact} disabled={!props.onViewArtifact} style={evidenceDrawerButtonStyle}>
+              View latest artifact
+            </button>
+            <button type="button" onClick={props.onViewEvidence} disabled={!props.onViewEvidence} style={evidenceDrawerButtonStyle}>
+              Open evidence index
+            </button>
+          </div>
+          <p style={evidenceDrawerDetailStyle}>
+            Proof-only placement remains fail-closed and non-mutating: execution admitted is `no`, placement write admitted is `no`,
+            and broad mutation surfaces are blocked.
+          </p>
+          <AssetForgeGuidedPipeline
+            onOpenPromptStudio={props.onOpenPromptStudio}
+            onLaunchInspectTemplate={props.onLaunchInspectTemplate}
+            onLaunchPlacementProofTemplate={props.onLaunchPlacementProofTemplate}
+            onOpenRuntimeOverview={props.onOpenRuntimeOverview}
+            onOpenRecords={props.onOpenRecords}
+            onViewEvidence={props.onViewEvidence}
+          />
+        </section>
       ),
     },
     {
@@ -188,6 +275,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
       collapsible: true,
       scrollMode: "content",
       priority: "primary",
+      minWidth: 520,
       minHeight: 360,
       defaultHeight: 560,
       render: () => (
@@ -251,7 +339,179 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
       <DockableCockpitLayout
         cockpitId="asset-forge"
         panels={cockpitPanels}
+        defaultPresetId="asset-forge-studio"
+        splitConstraints={{
+          leftMinWidth: 240,
+          centerMinWidth: 520,
+          rightMinWidth: 280,
+          mainMinHeight: 240,
+          bottomMinHeight: 160,
+        }}
       />
+    </section>
+  );
+}
+
+type AssetForgeCommandStripProps = {
+  onOpenPromptStudio?: () => void;
+  onOpenRuntimeOverview?: () => void;
+  onOpenRecords?: () => void;
+  onViewEvidence?: () => void;
+};
+
+function AssetForgeCommandStrip({
+  onOpenPromptStudio,
+  onOpenRuntimeOverview,
+  onOpenRecords,
+  onViewEvidence,
+}: AssetForgeCommandStripProps) {
+  return (
+    <section aria-label="Asset Forge command strip" style={commandStripStyle}>
+      <p style={commandStripLabelStyle}>Asset Forge workflow strip</p>
+      <div style={commandStripStageRowStyle}>
+        {[
+          "Describe",
+          "Candidate",
+          "Preflight",
+          "Stage plan",
+          "Proof-only placement",
+          "Review",
+        ].map((stageLabel) => (
+          <span key={stageLabel} style={commandStripStageChipStyle}>
+            {stageLabel}
+          </span>
+        ))}
+      </div>
+      <div style={commandStripActionsStyle}>
+        <button type="button" onClick={onOpenPromptStudio} disabled={!onOpenPromptStudio} style={commandStripButtonStyle}>
+          Open Prompt Studio
+        </button>
+        <button type="button" onClick={onOpenRuntimeOverview} disabled={!onOpenRuntimeOverview} style={commandStripButtonStyle}>
+          Open Runtime
+        </button>
+        <button type="button" onClick={onOpenRecords} disabled={!onOpenRecords} style={commandStripButtonStyle}>
+          Open Records
+        </button>
+        <button type="button" onClick={onViewEvidence} disabled={!onViewEvidence} style={commandStripButtonStyle}>
+          View evidence
+        </button>
+      </div>
+    </section>
+  );
+}
+
+type AssetForgeToolsOutlinerPanelProps = {
+  taskModel: AssetForgeTaskRecord | null;
+  providerStatus: AssetForgeProviderStatusRecord | null;
+  onOpenPromptStudio?: () => void;
+  onLaunchInspectTemplate?: () => void;
+  onLaunchPlacementProofTemplate?: () => void;
+};
+
+function AssetForgeToolsOutlinerPanel({
+  taskModel,
+  providerStatus,
+  onOpenPromptStudio,
+  onLaunchInspectTemplate,
+  onLaunchPlacementProofTemplate,
+}: AssetForgeToolsOutlinerPanelProps) {
+  const candidateLabels = taskModel?.candidates?.map((candidate) => candidate.display_name) ?? [];
+
+  return (
+    <section aria-label="Asset Forge tools and outliner panel" style={toolRailStyle}>
+      <div style={toolRailCardStyle}>
+        <strong>Tool rail</strong>
+        <div style={toolRailChipRowStyle}>
+          <span style={toolRailChipStyle}>Select</span>
+          <span style={toolRailChipStyle}>Move</span>
+          <span style={toolRailChipStyle}>Rotate</span>
+          <span style={toolRailChipStyle}>Scale</span>
+          <span style={toolRailChipStyle}>Annotate</span>
+        </div>
+      </div>
+      <div style={toolRailCardStyle}>
+        <strong>Candidate outliner</strong>
+        <p style={toolRailDetailStyle}>
+          {candidateLabels.length > 0
+            ? `Loaded ${candidateLabels.length} candidate entries.`
+            : "No latest run selected; candidate list unavailable."}
+        </p>
+        {candidateLabels.length > 0 ? (
+          <ul style={toolRailListStyle}>
+            {candidateLabels.slice(0, 6).map((candidateLabel) => (
+              <li key={candidateLabel}>{candidateLabel}</li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+      <div style={toolRailCardStyle}>
+        <strong>Provider posture</strong>
+        <p style={toolRailDetailStyle}>
+          Mode: {providerStatus?.provider_mode ?? "unknown"}.
+        </p>
+        <p style={toolRailDetailStyle}>
+          Generation execution: {providerStatus?.generation_execution_status ?? "unknown"}.
+        </p>
+      </div>
+      <div style={toolRailActionsStyle}>
+        <button type="button" onClick={onOpenPromptStudio} disabled={!onOpenPromptStudio} style={toolRailButtonStyle}>
+          Open Prompt Studio
+        </button>
+        <button type="button" onClick={onLaunchInspectTemplate} disabled={!onLaunchInspectTemplate} style={toolRailButtonStyle}>
+          Load inspect template
+        </button>
+        <button
+          type="button"
+          onClick={onLaunchPlacementProofTemplate}
+          disabled={!onLaunchPlacementProofTemplate}
+          style={toolRailButtonStyle}
+        >
+          Load placement proof-only template
+        </button>
+      </div>
+    </section>
+  );
+}
+
+type AssetForgeInspectorPanelProps = {
+  projectLabel: string;
+  providerStatus: AssetForgeProviderStatusRecord | null;
+  blenderStatus: AssetForgeBlenderStatusRecord | null;
+  bridgeStatus: string;
+  adaptersMode: string;
+};
+
+function AssetForgeInspectorPanel({
+  projectLabel,
+  providerStatus,
+  blenderStatus,
+  bridgeStatus,
+  adaptersMode,
+}: AssetForgeInspectorPanelProps) {
+  return (
+    <section aria-label="Asset Forge inspector and blockers panel" style={inspectorStyle}>
+      <article style={inspectorCardStyle}>
+        <strong>Inspector details</strong>
+        <p style={inspectorDetailStyle}><strong>Project:</strong> {projectLabel || "unknown"}</p>
+        <p style={inspectorDetailStyle}><strong>Bridge:</strong> {bridgeStatus || "unknown"}</p>
+        <p style={inspectorDetailStyle}><strong>Adapter mode:</strong> {adaptersMode || "unknown"}</p>
+      </article>
+      <article style={inspectorCardStyle}>
+        <strong>Blocked capabilities</strong>
+        <ul style={inspectorListStyle}>
+          <li>Provider generation blocked until admitted corridor exists.</li>
+          <li>Blender execution blocked ({blenderStatus?.blender_prep_execution_status ?? "unknown"}).</li>
+          <li>Asset Processor execution blocked in this cockpit packet.</li>
+          <li>Placement execution blocked (execution_admitted=false).</li>
+          <li>Placement write blocked (placement_write_admitted=false).</li>
+        </ul>
+      </article>
+      <article style={inspectorCardStyle}>
+        <strong>Next safe unlock</strong>
+        <p style={inspectorDetailStyle}>
+          {providerStatus?.safest_next_step ?? "Use read-only/preflight/proof-only evidence and keep fail-closed posture explicit."}
+        </p>
+      </article>
     </section>
   );
 }
@@ -261,4 +521,171 @@ const panelStyle = {
   minWidth: 0,
   minHeight: 0,
   height: "100%",
+} satisfies CSSProperties;
+
+const commandStripStyle = {
+  display: "grid",
+  gap: 10,
+  minWidth: 0,
+} satisfies CSSProperties;
+
+const commandStripLabelStyle = {
+  margin: 0,
+  fontSize: 12,
+  textTransform: "uppercase",
+  letterSpacing: 0.3,
+  color: "var(--app-subtle-color)",
+} satisfies CSSProperties;
+
+const commandStripStageRowStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
+} satisfies CSSProperties;
+
+const commandStripStageChipStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 999,
+  padding: "3px 10px",
+  fontSize: 12,
+  background: "var(--app-panel-bg-muted)",
+  color: "var(--app-text-color)",
+} satisfies CSSProperties;
+
+const commandStripActionsStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
+} satisfies CSSProperties;
+
+const commandStripButtonStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 8,
+  padding: "6px 10px",
+  background: "var(--app-panel-bg-alt)",
+  color: "var(--app-text-color)",
+  cursor: "pointer",
+} satisfies CSSProperties;
+
+const toolRailStyle = {
+  display: "grid",
+  gap: 10,
+  minWidth: 0,
+} satisfies CSSProperties;
+
+const toolRailCardStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 10,
+  background: "var(--app-panel-bg-muted)",
+  padding: 10,
+  display: "grid",
+  gap: 8,
+  minWidth: 0,
+} satisfies CSSProperties;
+
+const toolRailChipRowStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 6,
+} satisfies CSSProperties;
+
+const toolRailChipStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 999,
+  padding: "2px 8px",
+  fontSize: 11,
+  background: "var(--app-panel-bg)",
+  color: "var(--app-text-color)",
+} satisfies CSSProperties;
+
+const toolRailDetailStyle = {
+  margin: 0,
+  fontSize: 12,
+  color: "var(--app-subtle-color)",
+  overflowWrap: "anywhere",
+} satisfies CSSProperties;
+
+const toolRailListStyle = {
+  margin: 0,
+  paddingLeft: 18,
+  display: "grid",
+  gap: 4,
+  fontSize: 12,
+  color: "var(--app-text-color)",
+} satisfies CSSProperties;
+
+const toolRailActionsStyle = {
+  display: "grid",
+  gap: 8,
+} satisfies CSSProperties;
+
+const toolRailButtonStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 8,
+  padding: "6px 10px",
+  background: "var(--app-panel-bg-alt)",
+  color: "var(--app-text-color)",
+  cursor: "pointer",
+  textAlign: "left",
+} satisfies CSSProperties;
+
+const inspectorStyle = {
+  display: "grid",
+  gap: 10,
+  minWidth: 0,
+} satisfies CSSProperties;
+
+const inspectorCardStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 10,
+  background: "var(--app-panel-bg-muted)",
+  padding: 10,
+  display: "grid",
+  gap: 7,
+  minWidth: 0,
+} satisfies CSSProperties;
+
+const inspectorDetailStyle = {
+  margin: 0,
+  fontSize: 12,
+  color: "var(--app-subtle-color)",
+  overflowWrap: "anywhere",
+} satisfies CSSProperties;
+
+const inspectorListStyle = {
+  margin: 0,
+  paddingLeft: 18,
+  display: "grid",
+  gap: 4,
+  fontSize: 12,
+  color: "var(--app-text-color)",
+} satisfies CSSProperties;
+
+const evidenceDrawerStyle = {
+  display: "grid",
+  gap: 10,
+  minWidth: 0,
+  minHeight: 0,
+} satisfies CSSProperties;
+
+const evidenceDrawerActionRowStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
+} satisfies CSSProperties;
+
+const evidenceDrawerButtonStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 8,
+  padding: "6px 10px",
+  background: "var(--app-panel-bg-alt)",
+  color: "var(--app-text-color)",
+  cursor: "pointer",
+} satisfies CSSProperties;
+
+const evidenceDrawerDetailStyle = {
+  margin: 0,
+  fontSize: 12,
+  color: "var(--app-subtle-color)",
+  overflowWrap: "anywhere",
 } satisfies CSSProperties;
