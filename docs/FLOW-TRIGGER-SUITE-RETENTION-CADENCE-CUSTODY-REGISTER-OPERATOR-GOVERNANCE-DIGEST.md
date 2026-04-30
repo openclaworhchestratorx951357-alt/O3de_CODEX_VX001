@@ -1,7 +1,7 @@
-# Flow Trigger Suite Retention Cadence Custody Register Operator Governance Digest
+﻿# Flow Trigger Suite Retention Cadence Custody Register Operator Governance Digest
 
-Status: custody register operator governance digest complete (local-only operational governance)  
-Scope: compact operator governance digest artifact derived from custody register outputs  
+Status: custody register operator governance digest complete (local-only operational governance)
+Scope: compact operator governance digest artifact derived from custody register outputs
 Behavior impact: none beyond local governance-digest evidence artifacts
 
 ## Purpose
