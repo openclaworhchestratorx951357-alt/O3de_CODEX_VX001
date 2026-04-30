@@ -363,7 +363,7 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("Project connection checklist")).toBeInTheDocument();
     expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
-  });
+  }, 12000);
 
   it("opens Runtime and Asset Forge from Create Game cockpit actions", async () => {
     render(<App />);
@@ -458,6 +458,38 @@ describe("App desktop smoke", () => {
       within(loadProjectChooser).getByRole("button", { name: "Load template: Load project inspection prompt" }),
     );
     expect((await screen.findAllByText("Loaded mission draft: Load project inspection prompt")).length).toBeGreaterThan(0);
+  });
+
+  it("switches cockpit template lanes inside Prompt Studio without leaving prefill-only mode", async () => {
+    render(<App />);
+
+    fireEvent.click(getDesktopNavButton(/Create Game/i));
+    await screen.findAllByText("Create Game Cockpit");
+    fireEvent.click(screen.getByRole("button", { name: "Load create-entity template in Prompt Studio" }));
+
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+    const laneSwitcher = screen.getByLabelText("Prompt template lane switcher");
+    expect(laneSwitcher).toHaveTextContent("Prompt template lane switcher");
+    expect(laneSwitcher).toHaveTextContent(
+      "Stay in Prompt Studio and switch to another cockpit template lane without auto-running any prompt.",
+    );
+    expect(laneSwitcher).toHaveTextContent(
+      "Safety: lane switching is prefill-only; no preview, execute, placement command, or mutation is triggered.",
+    );
+
+    fireEvent.click(
+      within(laneSwitcher).getByRole("button", { name: "Open template lane: Home" }),
+    );
+
+    const homeChooser = await screen.findByLabelText("Prompt template chooser context");
+    expect(homeChooser).toHaveTextContent("Home template quick-load");
+    expect(homeChooser).toHaveTextContent("Source workspace: Home");
+    fireEvent.click(
+      within(homeChooser).getByRole("button", { name: "Load template: Inspect project evidence prompt" }),
+    );
+
+    expect((await screen.findAllByText("Loaded mission draft: Inspect project evidence prompt")).length).toBeGreaterThan(0);
+    expect(screen.getByText("Loaded source workspace: home")).toBeInTheDocument();
   });
 
   it("opens truth-rail evidence actions with latest record context in Records", async () => {

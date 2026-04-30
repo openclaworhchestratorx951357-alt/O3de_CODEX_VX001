@@ -5402,6 +5402,28 @@ export default function App() {
     );
   }
 
+  function openPromptTemplateChooserLane(
+    sourceWorkspaceId: "home" | "create-game" | "create-movie" | "load-project" | "asset-forge",
+  ): void {
+    if (sourceWorkspaceId === "home") {
+      openPromptStudioFromHomeCockpit();
+      return;
+    }
+    if (sourceWorkspaceId === "create-game") {
+      openPromptStudioFromCreateGameCockpit();
+      return;
+    }
+    if (sourceWorkspaceId === "create-movie") {
+      openPromptStudioFromCreateMovieCockpit();
+      return;
+    }
+    if (sourceWorkspaceId === "load-project") {
+      openPromptStudioFromLoadProjectCockpit();
+      return;
+    }
+    openPromptStudioFromAssetForgeCockpit();
+  }
+
   function openPromptStudioWithPlacementProofTemplateFromHome(): void {
     openPromptStudioWithMissionDraft(
       placementProofOnlyMissionPromptDraft,
@@ -8295,6 +8317,115 @@ export default function App() {
     );
   }
 
+  function renderPromptTemplateLaneSwitcherCard(): JSX.Element {
+    const templateLaneEntries: Array<{
+      workspaceId: "home" | "create-game" | "create-movie" | "load-project" | "asset-forge";
+      label: string;
+      detail: string;
+      truthState: string;
+    }> = [
+      {
+        workspaceId: "home",
+        label: "Home",
+        detail: "Inspect, safe entity, allowlisted component, and placement proof-only templates.",
+        truthState: "mission-first prefill-only",
+      },
+      {
+        workspaceId: "create-game",
+        label: "Create Game",
+        detail: "Game-authoring templates for narrow admitted entity/component lanes.",
+        truthState: "admitted-real narrow + prefill-only",
+      },
+      {
+        workspaceId: "create-movie",
+        label: "Create Movie",
+        detail: "Cinematic planning and proof-only placement candidate templates.",
+        truthState: "plan/proof-only + prefill-only",
+      },
+      {
+        workspaceId: "load-project",
+        label: "Load Project",
+        detail: "Read-only project/target readiness templates.",
+        truthState: "read-only + prefill-only",
+      },
+      {
+        workspaceId: "asset-forge",
+        label: "Asset Forge",
+        detail: "Asset Forge review and placement proof-only candidate templates.",
+        truthState: "proof-only/fail-closed + prefill-only",
+      },
+    ];
+
+    return (
+      <section
+        aria-label="Prompt template lane switcher"
+        style={{
+          border: "1px solid rgba(148, 163, 184, 0.35)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(16, 30, 45, 0.93), rgba(14, 25, 37, 0.93))",
+          boxShadow: "0 10px 22px rgba(6, 12, 20, 0.28)",
+          padding: "11px 12px",
+          display: "grid",
+          gap: 8,
+        }}
+      >
+        <div style={{ display: "grid", gap: 3 }}>
+          <strong style={{ color: "var(--app-text-color)" }}>
+            Prompt template lane switcher
+          </strong>
+          <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+            Stay in Prompt Studio and switch to another cockpit template lane without auto-running any prompt.
+          </p>
+        </div>
+        <div style={{ display: "grid", gap: 8 }}>
+          {templateLaneEntries.map((lane) => (
+            <article
+              key={lane.workspaceId}
+              style={{
+                border: "1px solid rgba(147, 197, 253, 0.24)",
+                borderRadius: 10,
+                padding: "8px 9px",
+                background: "rgba(10, 18, 29, 0.62)",
+                display: "grid",
+                gap: 6,
+              }}
+            >
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                <strong style={{ color: "var(--app-text-color)" }}>{lane.label}</strong>
+                <span
+                  style={{
+                    border: "1px solid rgba(147, 197, 253, 0.5)",
+                    borderRadius: 999,
+                    padding: "2px 8px",
+                    fontSize: 12,
+                    color: "rgba(191, 219, 254, 0.95)",
+                  }}
+                >
+                  {lane.truthState}
+                </span>
+              </div>
+              <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+                {lane.detail}
+              </p>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => openPromptTemplateChooserLane(lane.workspaceId)}
+                >
+                  {`Open template lane: ${lane.label}`}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Safety: lane switching is prefill-only; no preview, execute, placement command, or mutation is triggered.
+        </p>
+      </section>
+    );
+  }
+
   function renderPromptIntakeContextPanel(): JSX.Element | null {
     if (
       !promptLaunchDraftRequest
@@ -8405,6 +8536,7 @@ export default function App() {
         <p style={{ margin: 0, color: "var(--app-text-color)", fontSize: 13 }}>
           Next safe action: <strong>{nextSafeAction}</strong>
         </p>
+        {renderPromptTemplateLaneSwitcherCard()}
         {promptLaunchDraftRequest ? renderPromptHandoffContextCard(promptLaunchDraftRequest) : null}
         {activePromptEvidenceContext ? renderPromptEvidenceContextBanner(activePromptEvidenceContext) : null}
         {activePromptTemplateChooserContext ? (
