@@ -7,6 +7,7 @@ import {
   inspectCinematicTargetMissionPromptDraft,
 } from "../../lib/missionPromptTemplates";
 import CockpitWorkspaceShell, {
+  type CockpitAction,
   type CockpitBlockedCapability,
   type CockpitPipelineStep,
   type CockpitPromptTemplate,
@@ -18,6 +19,8 @@ type CreateMovieWorkspaceViewProps = {
   onOpenAssetForge?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenRecords?: () => void;
+  commandActions?: CockpitAction[];
+  toolActionHandlers?: Partial<Record<string, (() => void) | undefined>>;
   onLaunchInspectTemplate?: () => void;
   onLaunchCameraTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
@@ -218,9 +221,10 @@ const blockedCapabilities: CockpitBlockedCapability[] = [
 
 export default function CreateMovieWorkspaceView({
   onOpenPromptStudio,
-  onOpenAssetForge,
   onOpenRuntimeOverview,
   onOpenRecords,
+  commandActions,
+  toolActionHandlers,
   onLaunchInspectTemplate,
   onLaunchCameraTemplate,
   onLaunchPlacementProofTemplate,
@@ -240,24 +244,10 @@ export default function CreateMovieWorkspaceView({
   latestArtifactId,
   latestPlacementProofOnlyReview,
 }: CreateMovieWorkspaceViewProps) {
-  const cardsWithActions = toolCards.map((card) => {
-    if (card.actionLabel === "Open Asset Forge") {
-      return { ...card, onAction: onOpenAssetForge };
-    }
-    if (card.actionLabel === "Open Records") {
-      return { ...card, onAction: onOpenRecords };
-    }
-    if (card.id === "inspect-cinematic-target") {
-      return { ...card, onAction: onLaunchInspectTemplate ?? onOpenPromptStudio };
-    }
-    if (card.id === "camera-placeholder") {
-      return { ...card, onAction: onLaunchCameraTemplate ?? onOpenPromptStudio };
-    }
-    if (card.actionLabel === "Use placement proof template") {
-      return { ...card, onAction: onLaunchPlacementProofTemplate };
-    }
-    return { ...card, onAction: onOpenPromptStudio };
-  });
+  const cardsWithActions = toolCards.map((card) => ({
+    ...card,
+    onAction: toolActionHandlers?.[card.id] ?? onOpenPromptStudio,
+  }));
 
   const promptTemplates: CockpitPromptTemplate[] = [
     {
@@ -293,13 +283,7 @@ export default function CreateMovieWorkspaceView({
       subtitle="Build cinematic scenes, shots, cameras, props, and review evidence through safe stages."
       truthLabel="cinematic mission cockpit / planning + narrow editor actions + proof-only placement support"
       missionPurpose="Keep cinematic work bounded: plan first, use narrow editor operations, then use proof-only placement and evidence review."
-      commandActions={[
-        { label: "Inspect Cinematic Target", onClick: onLaunchInspectTemplate ?? onOpenPromptStudio },
-        { label: "Open Prompt Studio", onClick: onOpenPromptStudio },
-        { label: "Open Asset Forge", onClick: onOpenAssetForge },
-        { label: "Open Runtime", onClick: onOpenRuntimeOverview },
-        { label: "Open Records", onClick: onOpenRecords },
-      ]}
+      commandActions={commandActions ?? []}
       truthRail={(
         <MissionTruthRail
           locationLabel="Create Movie Cockpit"

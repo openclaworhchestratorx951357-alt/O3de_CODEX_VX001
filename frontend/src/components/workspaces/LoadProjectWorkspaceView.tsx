@@ -5,6 +5,7 @@ import type { PlacementProofOnlyReviewSnapshot } from "../../lib/promptPlacement
 import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
 import { inspectLoadProjectMissionPromptDraft } from "../../lib/missionPromptTemplates";
 import CockpitWorkspaceShell, {
+  type CockpitAction,
   type CockpitBlockedCapability,
   type CockpitPipelineStep,
   type CockpitPromptTemplate,
@@ -16,6 +17,8 @@ type LoadProjectWorkspaceViewProps = {
   onOpenRuntimeOverview?: () => void;
   onOpenRecords?: () => void;
   onOpenSettings?: () => void;
+  commandActions?: CockpitAction[];
+  toolActionHandlers?: Partial<Record<string, (() => void) | undefined>>;
   onLaunchInspectTemplate?: () => void;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
@@ -221,7 +224,8 @@ export default function LoadProjectWorkspaceView({
   onOpenPromptStudio,
   onOpenRuntimeOverview,
   onOpenRecords,
-  onOpenSettings,
+  commandActions,
+  toolActionHandlers,
   onLaunchInspectTemplate,
   onViewLatestRun,
   onViewExecution,
@@ -239,21 +243,10 @@ export default function LoadProjectWorkspaceView({
   latestArtifactId,
   latestPlacementProofOnlyReview,
 }: LoadProjectWorkspaceViewProps) {
-  const cardsWithActions = toolCards.map((card) => {
-    if (card.actionLabel === "Open Runtime Overview") {
-      return { ...card, onAction: onOpenRuntimeOverview };
-    }
-    if (card.actionLabel === "Open Records") {
-      return { ...card, onAction: onOpenRecords };
-    }
-    if (card.actionLabel === "Open Settings") {
-      return { ...card, onAction: onOpenSettings };
-    }
-    if (card.id === "inspect-project") {
-      return { ...card, onAction: onLaunchInspectTemplate ?? onOpenPromptStudio };
-    }
-    return { ...card, onAction: onOpenPromptStudio };
-  });
+  const cardsWithActions = toolCards.map((card) => ({
+    ...card,
+    onAction: toolActionHandlers?.[card.id] ?? onOpenPromptStudio,
+  }));
 
   const summaryProjectPath = valueOrUnknown(bridgeStatus?.project_root, "not loaded");
   const summaryEngineRoot = "unknown";
@@ -324,14 +317,7 @@ export default function LoadProjectWorkspaceView({
       subtitle="Connect, inspect, and verify the active O3DE project target before authoring."
       truthLabel="read-only / configuration preflight cockpit"
       missionPurpose="Prove target assumptions first; keep unknown values explicit; then launch bounded authoring from verified state."
-      commandActions={[
-        { label: "Inspect Project", onClick: onLaunchInspectTemplate ?? onOpenPromptStudio },
-        { label: "Refresh Target Status", onClick: onOpenRuntimeOverview },
-        { label: "Open Prompt Studio", onClick: onOpenPromptStudio },
-        { label: "Open Runtime", onClick: onOpenRuntimeOverview },
-        { label: "Open Records", onClick: onOpenRecords },
-        { label: "Open Settings", onClick: onOpenSettings },
-      ]}
+      commandActions={commandActions ?? []}
       truthRail={targetSummary}
       pipelineTitle="Project connection checklist"
       pipelineSteps={checklistSteps}

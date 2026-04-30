@@ -20,6 +20,19 @@ export type CockpitCategory =
   | "inspect"
   | "system";
 
+export type CockpitUiActionId =
+  | "open-prompt-studio"
+  | "launch-inspect-template"
+  | "launch-create-entity-template"
+  | "launch-add-mesh-template"
+  | "launch-camera-template"
+  | "launch-placement-proof-template"
+  | "open-asset-forge"
+  | "open-runtime"
+  | "open-records"
+  | "open-settings"
+  | "refresh-target-status";
+
 export type CockpitTruthState =
   | "read-only"
   | "plan-only"
@@ -35,6 +48,7 @@ export type CockpitTruthState =
 export type CockpitCommand = {
   id: string;
   label: string;
+  actionId?: CockpitUiActionId;
   description?: string;
   targetWorkspaceId?: CockpitId;
   truthState: CockpitTruthState;
@@ -98,6 +112,11 @@ export type CockpitBlockedCapability = {
   nextUnlock: string;
 };
 
+export type CockpitToolActionBinding = {
+  cardId: string;
+  actionId: CockpitUiActionId;
+};
+
 export type CockpitHomeCard = {
   title: string;
   description: string;
@@ -121,6 +140,7 @@ export type CockpitDefinition = {
   showInHomeLauncher: boolean;
   homeCard: CockpitHomeCard;
   commandBar: CockpitCommand[];
+  toolActionBindings: CockpitToolActionBinding[];
   pipeline: CockpitPipelineStage[];
   panels: CockpitPanelDefinition[];
   promptTemplates: CockpitPromptTemplate[];

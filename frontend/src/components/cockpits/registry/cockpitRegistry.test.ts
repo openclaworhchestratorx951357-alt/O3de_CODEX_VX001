@@ -46,6 +46,51 @@ describe("cockpitRegistry", () => {
     expect(getCockpitDefinition("create-game")?.title).toBe("Create Game");
   });
 
+  it("declares command and tool action bindings for creator cockpit apps", () => {
+    const createGame = getCockpitDefinition("create-game");
+    const createMovie = getCockpitDefinition("create-movie");
+    const loadProject = getCockpitDefinition("load-project");
+
+    expect(createGame?.commandBar.map((command) => command.label)).toEqual(expect.arrayContaining([
+      "Inspect Project",
+      "Open Prompt Studio",
+      "Open Asset Forge",
+      "Open Runtime",
+      "Open Records",
+    ]));
+    expect(createMovie?.commandBar.map((command) => command.label)).toEqual(expect.arrayContaining([
+      "Inspect Cinematic Target",
+      "Open Prompt Studio",
+      "Open Asset Forge",
+      "Open Runtime",
+      "Open Records",
+    ]));
+    expect(loadProject?.commandBar.map((command) => command.label)).toEqual(expect.arrayContaining([
+      "Inspect Project",
+      "Refresh Target Status",
+      "Open Prompt Studio",
+      "Open Runtime",
+      "Open Records",
+      "Open Settings",
+    ]));
+
+    expect(createGame?.toolActionBindings.map((binding) => binding.cardId)).toEqual(expect.arrayContaining([
+      "inspect-project",
+      "create-safe-entity",
+      "add-component",
+    ]));
+    expect(createMovie?.toolActionBindings.map((binding) => binding.cardId)).toEqual(expect.arrayContaining([
+      "inspect-cinematic-target",
+      "camera-placeholder",
+      "placement-proof-only",
+    ]));
+    expect(loadProject?.toolActionBindings.map((binding) => binding.cardId)).toEqual(expect.arrayContaining([
+      "inspect-project",
+      "refresh-target",
+      "open-settings",
+    ]));
+  });
+
   it("returns create category cockpits for the create section", () => {
     const ids = getCockpitsByCategory("create").map((cockpit) => cockpit.id);
     expect(ids).toEqual(expect.arrayContaining([

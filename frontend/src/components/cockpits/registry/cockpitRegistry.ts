@@ -64,6 +64,9 @@ export function validateCockpitDefinition(definition: CockpitDefinition): string
     if (!command.truthState?.trim()) {
       issues.push(`${definition.id}: command ${command.id} missing truthState`);
     }
+    if (!command.actionId?.trim()) {
+      issues.push(`${definition.id}: command ${command.id} missing actionId`);
+    }
   }
   for (const template of definition.promptTemplates) {
     if (template.autoExecute !== false) {

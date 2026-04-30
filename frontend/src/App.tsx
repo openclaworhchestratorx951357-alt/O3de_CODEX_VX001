@@ -23,7 +23,7 @@ import {
   getCockpitDefinition,
   getCockpitNavSections,
 } from "./components/cockpits/registry/cockpitRegistry";
-import type { CockpitId, CockpitPromptDraftId } from "./components/cockpits/registry/cockpitRegistryTypes";
+import type { CockpitId, CockpitPromptDraftId, CockpitUiActionId } from "./components/cockpits/registry/cockpitRegistryTypes";
 import {
   approveApproval,
   fetchAdapters,
@@ -5327,6 +5327,100 @@ export default function App() {
     openPromptStudioWithRegistryTemplate("load-project", "inspect-project-target");
   }
 
+  function resolveCockpitUiActionHandler(
+    cockpitId: CockpitId,
+    actionId: CockpitUiActionId | undefined,
+  ): (() => void) | undefined {
+    if (!actionId) {
+      return undefined;
+    }
+    if (cockpitId === "create-game") {
+      switch (actionId) {
+        case "open-prompt-studio":
+          return openPromptStudioFromCreateGameCockpit;
+        case "launch-inspect-template":
+          return openPromptStudioWithInspectProjectTemplateFromCreateGame;
+        case "launch-create-entity-template":
+          return openPromptStudioWithCreateGameEntityTemplate;
+        case "launch-add-mesh-template":
+          return openPromptStudioWithAddAllowlistedMeshTemplate;
+        case "open-asset-forge":
+          return () => setActiveWorkspaceId("asset-forge");
+        case "open-runtime":
+          return openRuntimeOverview;
+        case "open-records":
+          return openRecordsRuns;
+        default:
+          return undefined;
+      }
+    }
+    if (cockpitId === "create-movie") {
+      switch (actionId) {
+        case "open-prompt-studio":
+          return openPromptStudioFromCreateMovieCockpit;
+        case "launch-inspect-template":
+          return openPromptStudioWithInspectCinematicTargetTemplate;
+        case "launch-camera-template":
+          return openPromptStudioWithCreateCinematicCameraTemplate;
+        case "launch-placement-proof-template":
+          return openPromptStudioWithCinematicPlacementProofTemplate;
+        case "open-asset-forge":
+          return () => setActiveWorkspaceId("asset-forge");
+        case "open-runtime":
+          return openRuntimeOverview;
+        case "open-records":
+          return openRecordsRuns;
+        default:
+          return undefined;
+      }
+    }
+    if (cockpitId === "load-project") {
+      switch (actionId) {
+        case "open-prompt-studio":
+          return openPromptStudioFromLoadProjectCockpit;
+        case "launch-inspect-template":
+          return openPromptStudioWithInspectLoadProjectTemplate;
+        case "refresh-target-status":
+          return openRuntimeOverview;
+        case "open-runtime":
+          return openRuntimeOverview;
+        case "open-records":
+          return openRecordsRuns;
+        case "open-settings":
+          return undefined;
+        default:
+          return undefined;
+      }
+    }
+    return undefined;
+  }
+
+  function buildCockpitCommandActions(
+    cockpitId: "create-game" | "create-movie" | "load-project",
+  ): Array<{ label: string; onClick?: () => void }> {
+    return (getCockpitDefinition(cockpitId)?.commandBar ?? []).map((command) => ({
+      label: command.label,
+      onClick: resolveCockpitUiActionHandler(cockpitId, command.actionId),
+    }));
+  }
+
+  function buildCockpitToolActionHandlers(
+    cockpitId: "create-game" | "create-movie" | "load-project",
+  ): Partial<Record<string, (() => void) | undefined>> {
+    const handlers: Partial<Record<string, (() => void) | undefined>> = {};
+    for (const binding of getCockpitDefinition(cockpitId)?.toolActionBindings ?? []) {
+      handlers[binding.cardId] = resolveCockpitUiActionHandler(cockpitId, binding.actionId);
+    }
+    return handlers;
+  }
+
+  const createGameCommandActions = buildCockpitCommandActions("create-game");
+  const createMovieCommandActions = buildCockpitCommandActions("create-movie");
+  const loadProjectCommandActions = buildCockpitCommandActions("load-project");
+  const createGameToolActionHandlers = buildCockpitToolActionHandlers("create-game");
+  const createMovieToolActionHandlers = buildCockpitToolActionHandlers("create-movie");
+  const loadProjectToolActionHandlers = buildCockpitToolActionHandlers("load-project");
+
   function getPromptReturnNextSafeAction(workspaceId: DesktopWorkspaceId): string {
     switch (workspaceId) {
       case "home":
@@ -9119,6 +9213,8 @@ export default function App() {
                 onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenRecords={openRecordsRuns}
+                commandActions={createGameCommandActions}
+                toolActionHandlers={createGameToolActionHandlers}
                 onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromCreateGame}
                 onLaunchCreateEntityTemplate={openPromptStudioWithCreateGameEntityTemplate}
                 onLaunchAddMeshTemplate={openPromptStudioWithAddAllowlistedMeshTemplate}
@@ -9158,6 +9254,8 @@ export default function App() {
                 onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenRecords={openRecordsRuns}
+                commandActions={createMovieCommandActions}
+                toolActionHandlers={createMovieToolActionHandlers}
                 onLaunchInspectTemplate={openPromptStudioWithInspectCinematicTargetTemplate}
                 onLaunchCameraTemplate={openPromptStudioWithCreateCinematicCameraTemplate}
                 onLaunchPlacementProofTemplate={openPromptStudioWithCinematicPlacementProofTemplate}
@@ -9196,6 +9294,8 @@ export default function App() {
                 onOpenPromptStudio={openPromptStudioFromLoadProjectCockpit}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenRecords={openRecordsRuns}
+                commandActions={loadProjectCommandActions}
+                toolActionHandlers={loadProjectToolActionHandlers}
                 onLaunchInspectTemplate={openPromptStudioWithInspectLoadProjectTemplate}
                 onViewLatestRun={openLatestRunEvidence}
                 onViewExecution={openLatestExecutionEvidence}
