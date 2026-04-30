@@ -8060,6 +8060,341 @@ export default function App() {
     );
   }
 
+  function formatPromptBooleanFlagValue(value: boolean | undefined): string {
+    if (value === true) {
+      return "true";
+    }
+    if (value === false) {
+      return "false";
+    }
+    return "unknown";
+  }
+
+  function renderPromptPlacementProofOnlyReviewCard(
+    review: PlacementProofOnlyReviewSnapshot,
+  ): JSX.Element {
+    const executionAdmittedValue = formatPromptBooleanFlagValue(review.executionAdmitted);
+    const placementWriteAdmittedValue = formatPromptBooleanFlagValue(review.placementWriteAdmitted);
+    const mutationOccurredValue = formatPromptBooleanFlagValue(review.mutationOccurred);
+    const failClosedReasons = review.failClosedReasons.length > 0
+      ? review.failClosedReasons.join(", ")
+      : "not reported";
+    const guidance = review.serverRemediation
+      ?? "Prepare a server-owned approval session for this exact bounded request, then rerun this same proof-only prompt.";
+
+    return (
+      <section
+        aria-label="Prompt placement proof-only review context"
+        style={{
+          border: "1px solid rgba(252, 165, 165, 0.5)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(60, 26, 28, 0.96), rgba(24, 32, 45, 0.95))",
+          boxShadow: "0 10px 24px rgba(10, 13, 19, 0.36)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 9,
+        }}
+      >
+        <div style={{ display: "grid", gap: 4 }}>
+          <span
+            style={{
+              fontSize: 12,
+              letterSpacing: 0.3,
+              textTransform: "uppercase",
+              color: "rgba(254, 202, 202, 0.95)",
+              fontWeight: 700,
+            }}
+          >
+            Placement proof-only review snapshot
+          </span>
+          <strong style={{ color: "var(--app-text-color)" }}>
+            Capability: {review.capabilityName}
+          </strong>
+          <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+            Candidate: <strong>{review.candidateId ?? "not reported"}</strong>
+            {" / "}
+            <strong>{review.candidateLabel ?? "not reported"}</strong>
+          </p>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 8,
+            color: "var(--app-subtle-color)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Prompt session: <strong>{review.promptSessionId}</strong>
+          </span>
+          <span>
+            Staged source: <strong>{review.stagedSourceRelativePath ?? "not reported"}</strong>
+          </span>
+          <span>
+            Target level: <strong>{review.targetLevelRelativePath ?? "not reported"}</strong>
+          </span>
+          <span>
+            Target entity/component:{" "}
+            <strong>{`${review.targetEntityName ?? "not reported"} / ${review.targetComponent ?? "not reported"}`}</strong>
+          </span>
+          <span>
+            Stage-write evidence ref: <strong>{review.stageWriteEvidenceReference ?? "not reported"}</strong>
+          </span>
+          <span>
+            Stage-write readback ref: <strong>{review.stageWriteReadbackReference ?? "not reported"}</strong>
+          </span>
+          <span>
+            Stage-write readback status: <strong>{review.stageWriteReadbackStatus ?? "not reported"}</strong>
+          </span>
+          <span>
+            Inspection surface: <strong>{review.inspectionSurface ?? "not reported"}</strong>
+          </span>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <span
+            style={{
+              border: "1px solid rgba(252, 165, 165, 0.6)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(254, 202, 202, 0.95)",
+            }}
+          >
+            {`execution_admitted=${executionAdmittedValue}`}
+          </span>
+          <span
+            style={{
+              border: "1px solid rgba(252, 165, 165, 0.6)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(254, 202, 202, 0.95)",
+            }}
+          >
+            {`placement_write_admitted=${placementWriteAdmittedValue}`}
+          </span>
+          <span
+            style={{
+              border: "1px solid rgba(252, 165, 165, 0.6)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(254, 202, 202, 0.95)",
+            }}
+          >
+            {`mutation_occurred=${mutationOccurredValue}`}
+          </span>
+          <span
+            style={{
+              border: "1px solid rgba(252, 165, 165, 0.6)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(254, 202, 202, 0.95)",
+            }}
+          >
+            {`read_only=${formatPromptBooleanFlagValue(review.readOnly)}`}
+          </span>
+        </div>
+        <div style={{ color: "var(--app-subtle-color)", fontSize: 13, display: "grid", gap: 4 }}>
+          <span>
+            Fail-closed reasons: <strong>{failClosedReasons}</strong>
+          </span>
+          <span>
+            Server decision:{" "}
+            <strong>{`${review.serverDecisionCode ?? "not reported"} / ${review.serverDecisionState ?? "not reported"}`}</strong>
+          </span>
+          {review.serverReason ? (
+            <span>
+              Server reason: <strong>{review.serverReason}</strong>
+            </span>
+          ) : null}
+        </div>
+        <p style={{ margin: 0, color: "var(--app-text-color)", fontSize: 13 }}>
+          Placement proof-only remains fail-closed and non-mutating: placement execution is non-admitted,
+          placement write is non-admitted, and no mutation occurred. Real placement requires a separate
+          exact admission corridor with readback and revert/restore proof.
+        </p>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Server blocker remediation: <strong>{guidance}</strong>
+        </p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {review.promptSessionId ? (
+            <button
+              type="button"
+              onClick={() => openPromptSessionFromTruthRail(review.promptSessionId)}
+            >
+              Open proof prompt session
+            </button>
+          ) : null}
+          {review.childRunId ? (
+            <button type="button" onClick={() => { void openRunEvidenceById(review.childRunId ?? ""); }}>
+              Open proof run
+            </button>
+          ) : null}
+          {review.childExecutionId ? (
+            <button type="button" onClick={() => { void openExecutionEvidenceById(review.childExecutionId ?? ""); }}>
+              Open proof execution
+            </button>
+          ) : null}
+          {review.childArtifactId ? (
+            <button type="button" onClick={() => { void openArtifactEvidenceById(review.childArtifactId ?? ""); }}>
+              Open proof artifact
+            </button>
+          ) : null}
+          <button type="button" onClick={openOperationsApprovals}>
+            Open Operations approvals
+          </button>
+          <button type="button" onClick={() => openRecordsRuns()}>
+            Open Records
+          </button>
+        </div>
+      </section>
+    );
+  }
+
+  function renderPromptIntakeContextPanel(): JSX.Element | null {
+    if (
+      !promptLaunchDraftRequest
+      && !activePromptEvidenceContext
+      && !activePromptTemplateChooserContext
+      && !latestPlacementProofOnlyReview
+    ) {
+      return null;
+    }
+
+    const contextCount = [
+      promptLaunchDraftRequest,
+      activePromptEvidenceContext,
+      activePromptTemplateChooserContext,
+      latestPlacementProofOnlyReview,
+    ].filter((entry) => Boolean(entry)).length;
+
+    const nextSafeAction = latestPlacementProofOnlyReview?.serverRemediation
+      ?? activePromptTemplateChooserContext?.nextSafeAction
+      ?? promptLaunchDraftRequest?.draft?.guidance
+      ?? "Preview the loaded prompt plan and stay inside admitted or proof-only corridors.";
+
+    return (
+      <section
+        aria-label="Prompt intake context panel"
+        style={{
+          marginBottom: 14,
+          border: "1px solid rgba(148, 163, 184, 0.42)",
+          borderRadius: 14,
+          background:
+            "linear-gradient(135deg, rgba(20, 31, 44, 0.96), rgba(17, 28, 41, 0.95))",
+          boxShadow: "0 12px 28px rgba(7, 12, 20, 0.36)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 10,
+        }}
+      >
+        <div style={{ display: "grid", gap: 4 }}>
+          <span
+            style={{
+              fontSize: 12,
+              letterSpacing: 0.3,
+              textTransform: "uppercase",
+              color: "rgba(189, 220, 255, 0.95)",
+              fontWeight: 700,
+            }}
+          >
+            Prompt intake context
+          </span>
+          <strong style={{ color: "var(--app-text-color)" }}>
+            Mission-first prompt context lanes: {contextCount}
+          </strong>
+          <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+            Safety: prefill-only and review-only context. No prompt auto-execution, no runtime placement
+            command admission, and no mutation is triggered from this panel.
+          </p>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <span
+            style={{
+              border: "1px solid rgba(147, 197, 253, 0.65)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(191, 219, 254, 0.96)",
+            }}
+          >
+            prefill-only
+          </span>
+          <span
+            style={{
+              border: "1px solid rgba(147, 197, 253, 0.65)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(191, 219, 254, 0.96)",
+            }}
+          >
+            fail-closed truth preserved
+          </span>
+          {latestPlacementProofOnlyReview ? (
+            <>
+              <span
+                style={{
+                  border: "1px solid rgba(252, 165, 165, 0.65)",
+                  borderRadius: 999,
+                  padding: "2px 9px",
+                  fontSize: 12,
+                  color: "rgba(254, 202, 202, 0.96)",
+                }}
+              >
+                {`execution_admitted=${formatPromptBooleanFlagValue(latestPlacementProofOnlyReview.executionAdmitted)}`}
+              </span>
+              <span
+                style={{
+                  border: "1px solid rgba(252, 165, 165, 0.65)",
+                  borderRadius: 999,
+                  padding: "2px 9px",
+                  fontSize: 12,
+                  color: "rgba(254, 202, 202, 0.96)",
+                }}
+              >
+                {`placement_write_admitted=${formatPromptBooleanFlagValue(latestPlacementProofOnlyReview.placementWriteAdmitted)}`}
+              </span>
+            </>
+          ) : null}
+        </div>
+        <p style={{ margin: 0, color: "var(--app-text-color)", fontSize: 13 }}>
+          Next safe action: <strong>{nextSafeAction}</strong>
+        </p>
+        {promptLaunchDraftRequest ? renderPromptHandoffContextCard(promptLaunchDraftRequest) : null}
+        {activePromptEvidenceContext ? renderPromptEvidenceContextBanner(activePromptEvidenceContext) : null}
+        {activePromptTemplateChooserContext ? (
+          renderPromptTemplateChooserContextCard(activePromptTemplateChooserContext)
+        ) : null}
+        {latestPlacementProofOnlyReview ? (
+          renderPromptPlacementProofOnlyReviewCard(latestPlacementProofOnlyReview)
+        ) : null}
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <button type="button" onClick={openRuntimeOverview}>
+            Open Runtime overview
+          </button>
+          <button type="button" onClick={() => openRecordsRuns()}>
+            Open Records
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPromptLaunchDraftRequest(null);
+              setPromptEvidenceContext(null);
+              setPromptTemplateChooserContext(null);
+            }}
+          >
+            Clear prompt intake context
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   function renderPromptReturnResumeChecklist(
     checklist: PromptReturnResumeChecklist,
   ): JSX.Element {
@@ -8724,17 +9059,9 @@ export default function App() {
         {activeCockpitStageFocusHighlight ? (
           renderCockpitStageFocusHighlight(activeCockpitStageFocusHighlight)
         ) : null}
-        {activeWorkspaceId === "prompt" && promptLaunchDraftRequest ? (
-          renderPromptHandoffContextCard(promptLaunchDraftRequest)
-        ) : null}
-        {activePromptEvidenceContext ? (
-          renderPromptEvidenceContextBanner(activePromptEvidenceContext)
-        ) : null}
+        {activeWorkspaceId === "prompt" ? renderPromptIntakeContextPanel() : null}
         {activeRecordsEvidenceContext ? (
           renderRecordsEvidenceContextBanner(activeRecordsEvidenceContext)
-        ) : null}
-        {activePromptTemplateChooserContext ? (
-          renderPromptTemplateChooserContextCard(activePromptTemplateChooserContext)
         ) : null}
 
         {activeWorkspaceId === "home" ? (

@@ -395,6 +395,10 @@ describe("App desktop smoke", () => {
     const createGameWorkspace = createGameWorkspaceHeading.closest("section");
     expect(createGameWorkspace).not.toBeNull();
     fireEvent.click(within(createGameWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
+    const promptIntakePanel = await screen.findByLabelText("Prompt intake context panel");
+    expect(promptIntakePanel).toHaveTextContent("Mission-first prompt context lanes");
+    expect(promptIntakePanel).toHaveTextContent("prefill-only");
+    expect(promptIntakePanel).toHaveTextContent("No prompt auto-execution");
     const createGameChooser = await screen.findByLabelText("Prompt template chooser context");
     expect(createGameChooser).toHaveTextContent("Create Game template quick-load");
     expect(createGameChooser).toHaveTextContent("Source workspace: Create Game");
@@ -565,6 +569,17 @@ describe("App desktop smoke", () => {
     fireEvent.click(getDesktopNavButton(/Prompt Studio/i));
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Emit proof-only review snapshot" }));
+    const proofOnlyReviewContext = await screen.findByLabelText("Prompt placement proof-only review context");
+    expect(proofOnlyReviewContext).toHaveTextContent("Capability: editor.placement.proof_only");
+    expect(proofOnlyReviewContext).toHaveTextContent("execution_admitted=false");
+    expect(proofOnlyReviewContext).toHaveTextContent("placement_write_admitted=false");
+    expect(proofOnlyReviewContext).toHaveTextContent("mutation_occurred=false");
+    expect(proofOnlyReviewContext).toHaveTextContent(
+      "Placement proof-only remains fail-closed and non-mutating: placement execution is non-admitted",
+    );
+    expect(proofOnlyReviewContext).toHaveTextContent(
+      "Server blocker remediation: Prepare a server-owned approval session for this exact bounded request, then rerun this same proof-only prompt.",
+    );
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
     await screen.findAllByText("Create Game Cockpit");
