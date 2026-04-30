@@ -72,7 +72,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     statusTaxonomy: "proof-only",
     risk: "High",
     requiredGate: "explicit admission flag + exact path/hash gates",
-    recommendedNextPacket: "Proof-only admission-flag verification packet",
+    recommendedNextPacket: "Asset Forge stage-write admission-flag verification refresh",
   },
   {
     domain: "Project/Config",
