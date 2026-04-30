@@ -2588,6 +2588,22 @@ def test_prompt_session_executes_editor_placement_proof_only_candidate_with_fail
             assert details["mutation_occurred"] is False
             assert details["read_only"] is True
             assert details["source"] == "asset-forge-editor-placement-proof-only"
+            assert (
+                "Review result: succeeded_fail_closed_blocked"
+                in payload["final_result_summary"]
+            )
+            assert (
+                "Capability editor.placement.proof_only executed as simulated proof-only evidence."
+                in payload["final_result_summary"]
+            )
+            assert (
+                "execution_admitted=False, placement_write_admitted=False, mutation_occurred=False, read_only=True."
+                in payload["final_result_summary"]
+            )
+            assert (
+                "No editor placement runtime command was admitted or executed."
+                in payload["final_result_summary"]
+            )
 
 
 @pytest.mark.parametrize(

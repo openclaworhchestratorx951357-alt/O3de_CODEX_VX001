@@ -37,6 +37,9 @@ preserving blocked/non-admitted runtime execution and mutation posture.
   `editor.placement.proof_only` in both hybrid and simulated adapter fallbacks
   so prompt execution remains fail-closed instead of failing with
   `INVALID_PERSISTED_PAYLOAD`
+- added operator-facing prompt execution review summaries for
+  `editor.placement.proof_only` that explicitly report fail-closed/non-admitted
+  evidence, missing proof boundaries, and safest next step guidance
 
 ## Files
 

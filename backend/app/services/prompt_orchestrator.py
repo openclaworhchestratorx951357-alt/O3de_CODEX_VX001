@@ -43,6 +43,9 @@ _EDITOR_ENTITY_EXISTS_STEP_IDS = {
     "editor-level-1",
     "editor-entity-exists-1",
 }
+_EDITOR_PLACEMENT_PROOF_ONLY_STEP_IDS = {
+    "editor-placement-proof-only-1",
+}
 _EDITOR_PROPERTY_REFUSAL_PREFIX = "editor.component.property.get"
 
 
@@ -541,6 +544,12 @@ class PromptOrchestratorService:
         return None
 
     def _build_operator_review_summary(self, session: PromptSessionRecord) -> str | None:
+        editor_placement_proof_only_review_summary = (
+            self._build_editor_placement_proof_only_review_summary(session)
+        )
+        if editor_placement_proof_only_review_summary is not None:
+            return editor_placement_proof_only_review_summary
+
         entity_exists_review_summary = self._build_editor_entity_exists_review_summary(
             session
         )
@@ -1325,6 +1334,164 @@ class PromptOrchestratorService:
             camera_bool_restore_response=camera_bool_restore_response,
         )
         safest_next_step = self._editor_safest_next_step(result_label=result_label)
+
+        sections = [
+            f"Review result: {result_label}",
+            f"Requested action: {session.prompt_text}",
+            self._format_review_section("Executed action", executed_actions),
+            self._format_review_section("Verified facts", verified_facts),
+            self._format_review_section("Assumptions", assumptions),
+            self._format_review_section("Missing proof", missing_proof),
+            f"Safest next step: {safest_next_step}",
+        ]
+        return "\n".join(sections)
+
+    def _build_editor_placement_proof_only_review_summary(
+        self,
+        session: PromptSessionRecord,
+    ) -> str | None:
+        planned_steps = session.plan.steps if session.plan is not None else []
+        if not any(
+            step.step_id in _EDITOR_PLACEMENT_PROOF_ONLY_STEP_IDS for step in planned_steps
+        ):
+            return None
+
+        placement_response = self._latest_successful_response_for_step(
+            session,
+            "editor-placement-proof-only-1",
+        )
+        failed_response = None
+        if session.status != PromptSessionStatus.COMPLETED:
+            failed_response = next(
+                (
+                    response_record
+                    for response_record in reversed(session.latest_child_responses)
+                    if response_record.get("ok") is False
+                    and response_record.get("prompt_step_id")
+                    in _EDITOR_PLACEMENT_PROOF_ONLY_STEP_IDS
+                    and (
+                        not isinstance(response_record.get("error"), dict)
+                        or response_record["error"].get("code") != "APPROVAL_REQUIRED"
+                    )
+                ),
+                None,
+            )
+
+        result_label = "incomplete_proof_unavailable"
+        if failed_response is not None:
+            result_label = "failed_runtime_error"
+        elif placement_response is not None:
+            details = placement_response.get("execution_details", {})
+            execution_admitted = details.get("execution_admitted")
+            placement_write_admitted = details.get("placement_write_admitted")
+            mutation_occurred = details.get("mutation_occurred")
+            proof_status = details.get("proof_status")
+            if (
+                execution_admitted is False
+                and placement_write_admitted is False
+                and mutation_occurred is False
+            ):
+                if proof_status == "approval-required":
+                    result_label = "blocked_approval_required"
+                else:
+                    result_label = "succeeded_fail_closed_blocked"
+            else:
+                result_label = "incomplete_non_admission_unverified"
+
+        executed_actions: list[str] = []
+        verified_facts: list[str] = []
+        assumptions: list[str] = []
+        missing_proof: list[str] = []
+        safest_next_step = (
+            "Use the recorded bounded proof-only candidate for operator review; keep runtime placement blocked."
+        )
+
+        if placement_response is not None:
+            details = placement_response.get("execution_details", {})
+            candidate_id = details.get("candidate_id")
+            candidate_label = details.get("candidate_label")
+            staged_source = details.get("staged_source_relative_path")
+            target_level = details.get("target_level_relative_path")
+            target_entity = details.get("target_entity_name")
+            target_component = details.get("target_component")
+
+            executed_actions.append(
+                "Evaluated the bounded editor placement proof-only request through the fail-closed candidate corridor."
+            )
+            if candidate_id and candidate_label:
+                executed_actions.append(
+                    f"Recorded candidate {candidate_id} ({candidate_label}) for review-only placement evidence."
+                )
+            if staged_source and target_level:
+                executed_actions.append(
+                    f"Bound staged source {staged_source} to target level {target_level} without admitting runtime placement."
+                )
+
+            verified_facts.append(
+                "Capability editor.placement.proof_only executed as simulated proof-only evidence."
+            )
+            if target_entity and target_component:
+                verified_facts.append(
+                    f"Placement target scope captured entity {target_entity} with component {target_component}."
+                )
+            verified_facts.append(
+                "Non-admission flags recorded: "
+                f"execution_admitted={details.get('execution_admitted')}, "
+                f"placement_write_admitted={details.get('placement_write_admitted')}, "
+                f"mutation_occurred={details.get('mutation_occurred')}, "
+                f"read_only={details.get('read_only')}."
+            )
+            fail_closed_reasons = details.get("fail_closed_reasons")
+            if isinstance(fail_closed_reasons, list) and fail_closed_reasons:
+                reasons = ", ".join(str(item) for item in fail_closed_reasons[:5])
+                verified_facts.append(f"Fail-closed reasons captured: {reasons}.")
+
+            assumptions.append(
+                "Client approval fields are treated as intent evidence only and are not authorization for runtime placement execution."
+            )
+            assumptions.append(
+                "The review relies on persisted bounded candidate evidence from the admitted proof-only corridor."
+            )
+
+            missing_proof.append(
+                "No editor placement runtime command was admitted or executed."
+            )
+            missing_proof.append(
+                "No level/prefab mutation, broad scene mutation, or generalized placement corridor was admitted."
+            )
+            missing_proof.append(
+                "This review does not claim real placement execution, readback of placed runtime state, or restore execution."
+            )
+            safest_next_step = (
+                str(details.get("safest_next_step"))
+                if isinstance(details.get("safest_next_step"), str)
+                and str(details.get("safest_next_step"))
+                else safest_next_step
+            )
+        elif failed_response is not None:
+            error = failed_response.get("error", {})
+            message = error.get("message") if isinstance(error, dict) else None
+            executed_actions.append(
+                "Prompt execution stopped before proof-only placement evidence could be finalized."
+            )
+            missing_proof.append(
+                message
+                if isinstance(message, str) and message
+                else "The proof-only placement step failed before persisted evidence was available."
+            )
+            assumptions.append(
+                "No bounded proof-only placement evidence record is available because the step failed."
+            )
+            safest_next_step = (
+                "Review the recorded failure details, then retry the same bounded proof-only request without widening scope."
+            )
+        else:
+            missing_proof.append(
+                "No successful bounded proof-only placement evidence record was produced."
+            )
+            assumptions.append(
+                "Prompt completion did not produce proof-only placement evidence for this step."
+            )
 
         sections = [
             f"Review result: {result_label}",
