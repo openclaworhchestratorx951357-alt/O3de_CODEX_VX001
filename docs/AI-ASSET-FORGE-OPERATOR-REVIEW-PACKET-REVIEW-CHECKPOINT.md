@@ -69,7 +69,7 @@ Current status set:
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag long-hold checkpoint packet:
+Editor placement plan matrix baseline audit packet:
 
 - define exact assignment-design candidate boundaries before proof/admission
 - preserve review-packet hold-state and non-admission constraints

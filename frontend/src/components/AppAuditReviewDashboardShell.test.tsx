@@ -31,6 +31,6 @@ describe("AppAuditReviewDashboardShell", () => {
     expect(screen.getAllByText("hold-default-off").length).toBeGreaterThan(0);
     expect(screen.getAllByText("blocked").length).toBeGreaterThan(0);
 
-    expect(screen.getByText("Asset Forge placement proof-only admission-flag long-hold checkpoint", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Editor placement plan matrix baseline audit", { selector: "strong" })).toBeInTheDocument();
   });
 });

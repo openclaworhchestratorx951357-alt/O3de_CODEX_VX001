@@ -103,8 +103,8 @@ superseded for current dashboard behavior by:
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag long-hold checkpoint
-(`codex/ai-asset-forge-placement-proof-only-admission-flag-long-hold-checkpoint`):
+Editor placement plan matrix baseline audit
+(`codex/editor-placement-plan-matrix-baseline-audit`):
 
 - keep baseline, shell, and timeline wording aligned for server-owned
   authorization truth

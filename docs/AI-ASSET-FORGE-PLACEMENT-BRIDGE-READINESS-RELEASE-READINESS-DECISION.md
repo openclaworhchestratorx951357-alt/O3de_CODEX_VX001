@@ -85,7 +85,7 @@ re-verified:
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag long-hold checkpoint:
+Editor placement plan matrix baseline audit:
 
 - checkpoint held release posture and stream handoff boundaries
 - preserve non-authorizing placement execution boundaries

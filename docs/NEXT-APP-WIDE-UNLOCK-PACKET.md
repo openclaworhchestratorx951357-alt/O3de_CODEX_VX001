@@ -1,8 +1,8 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Asset Forge placement proof-only admission-flag long-hold checkpoint
-(`codex/ai-asset-forge-placement-proof-only-admission-flag-long-hold-checkpoint`).
+Editor placement plan matrix baseline audit
+(`codex/editor-placement-plan-matrix-baseline-audit`).
 
 ## Why this is next
 - GUI shell taxonomy parity checkpoint + quick-reference refresh packet is now
@@ -26,19 +26,19 @@ Asset Forge placement proof-only admission-flag long-hold checkpoint
   assignment, and placement runtime execution remain unadmitted.
 - Placement proof-only admission-flag release-readiness decision is now
   complete with an explicit hold/no-go posture and no runtime broadening.
-- The next highest-value gate is checkpointing that held posture and stream
-  handoff boundaries so the next capability lane can advance without reopening
-  admission-gate drift.
+- Placement proof-only admission-flag long-hold checkpoint is now complete and
+  explicitly hands off the stream to the next editor-lane planning packet.
+- The next highest-value gate is re-establishing editor placement-plan matrix
+  baseline truth and cross-lane dependencies before any new editor placement
+  proof-only design discussion.
 
 ## Scope
-- produce a focused Asset Forge placement proof-only admission-flag
-  long-hold checkpoint packet
-- checkpoint the explicit hold/no-go decision from verified placement/editor
-  admission-flag state/evidence outcomes
-- preserve explicit admission-flag identity, state model, and fail-closed
-  evidence boundaries
+- produce a focused editor placement plan matrix baseline audit packet
+- re-establish current `editor.placement.plan` baseline truth from code/tests
+  and status vocabulary
+- map editor-lane refusal boundaries versus Asset Forge placement-plan surfaces
 - preserve explicit blocked-status language for assignment/placement execution
-  in this packet
+  while editor-lane planning evidence is refreshed
 - keep recommendation surfaces aligned to this next packet across capability,
   audit, workspace, timeline, and shell guidance
 - preserve explicit non-authorizing client-field posture and fail-closed
@@ -60,7 +60,7 @@ Asset Forge placement proof-only admission-flag long-hold checkpoint
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- Asset Forge placement proof-only admission-flag long-hold checkpoint recommendation wording is
+- Editor placement plan matrix baseline audit recommendation wording is
   deterministic and aligned across shell recommendation surfaces
 - explicit hold gates remain reviewable and non-admitting:
   assignment/placement execution stays blocked without a separate future
@@ -80,7 +80,7 @@ Asset Forge placement proof-only admission-flag long-hold checkpoint
 
 ## Alternative considered
 Direct placement runtime-admission broadening without first tightening
-placement proof-only admission-flag long-hold boundaries.
+editor placement-plan matrix baseline boundaries.
 
-This remains deferred for safety. Keep placement proof-only admission-flag
-long-hold boundaries explicit first, then consider any future admission revisit.
+This remains deferred for safety. Keep editor placement-plan matrix baseline
+boundaries explicit first, then consider any future proof-only design revisit.

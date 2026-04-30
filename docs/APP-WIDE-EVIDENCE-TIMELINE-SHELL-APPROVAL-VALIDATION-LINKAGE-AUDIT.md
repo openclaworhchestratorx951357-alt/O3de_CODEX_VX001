@@ -69,5 +69,5 @@ server-owned authorization truth without widening runtime admission.
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag long-hold checkpoint
-(`codex/ai-asset-forge-placement-proof-only-admission-flag-long-hold-checkpoint`).
+Editor placement plan matrix baseline audit
+(`codex/editor-placement-plan-matrix-baseline-audit`).

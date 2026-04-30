@@ -80,7 +80,7 @@ Result summary:
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag long-hold checkpoint:
+Editor placement plan matrix baseline audit:
 
 - tighten Blender preflight no-execution safeguards and evidence wording
 - preserve provider/stage-plan/stage-write/readback non-authorizing boundaries

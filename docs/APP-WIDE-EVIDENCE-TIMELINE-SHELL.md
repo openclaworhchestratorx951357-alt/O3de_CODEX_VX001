@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag long-hold checkpoint
-(`codex/ai-asset-forge-placement-proof-only-admission-flag-long-hold-checkpoint`):
+Editor placement plan matrix baseline audit
+(`codex/editor-placement-plan-matrix-baseline-audit`):
 
 - keep approval/session baseline + shell + timeline wording aligned under
   server-owned authorization truth and fail-closed gate-state semantics

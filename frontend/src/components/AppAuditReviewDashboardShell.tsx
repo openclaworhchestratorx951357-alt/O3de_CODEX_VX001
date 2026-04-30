@@ -114,7 +114,7 @@ export default function AppAuditReviewDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Asset Forge placement proof-only admission-flag long-hold checkpoint</strong>.
+        Recommended next packet: <strong>Editor placement plan matrix baseline audit</strong>.
       </p>
     </section>
   );

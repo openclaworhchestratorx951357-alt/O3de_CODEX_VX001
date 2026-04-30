@@ -86,7 +86,7 @@ Result summary:
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag long-hold checkpoint:
+Editor placement plan matrix baseline audit:
 
 - tighten provider preflight no-provider-call safeguards and evidence wording
 - preserve stage-plan/stage-write/readback non-authorizing boundaries
