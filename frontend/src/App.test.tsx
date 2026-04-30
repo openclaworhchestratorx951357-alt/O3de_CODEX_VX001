@@ -268,6 +268,29 @@ describe("App desktop smoke", () => {
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
   });
 
+  it("keeps all cockpit destinations reachable from the workspace tree controls", async () => {
+    render(<App />);
+
+    const navRail = screen.getByText("Control surface").closest("aside");
+    expect(navRail).not.toBeNull();
+
+    const navScope = within(navRail as HTMLElement);
+    fireEvent.click(navScope.getByRole("button", { name: "Collapse to current workspace group" }));
+    expect(navScope.queryByRole("button", { name: /Create Game/i })).not.toBeInTheDocument();
+
+    fireEvent.click(navScope.getByRole("button", { name: "Expand all workspace groups" }));
+
+    expect(navScope.getByRole("button", { name: /Create Game/i })).toBeInTheDocument();
+    expect(navScope.getByRole("button", { name: /Create Movie/i })).toBeInTheDocument();
+    expect(navScope.getByRole("button", { name: /Load Project/i })).toBeInTheDocument();
+    expect(navScope.getByRole("button", { name: /Asset Forge/i })).toBeInTheDocument();
+    expect(navScope.getByRole("button", { name: /Prompt Studio/i })).toBeInTheDocument();
+    expect(navScope.getByRole("button", { name: /Builder/i })).toBeInTheDocument();
+    expect(navScope.getByRole("button", { name: /Command Center/i })).toBeInTheDocument();
+    expect(navScope.getByRole("button", { name: /Runtime/i })).toBeInTheDocument();
+    expect(navScope.getByRole("button", { name: /Records/i })).toBeInTheDocument();
+  });
+
   it("replays a recent guided jump", async () => {
     render(<App />);
 

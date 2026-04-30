@@ -100,8 +100,15 @@ describe("DesktopShell", () => {
     expect(screen.getByText("Inspect")).toBeInTheDocument();
     expect(screen.getByText("Active workspace")).toBeInTheDocument();
     expect(screen.getByText("Workspace body")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Expand all workspace groups" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Collapse to current workspace group" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /records/i })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /inspect/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Collapse to current workspace group" }));
+    expect(screen.queryByRole("button", { name: /records/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand all workspace groups" }));
+    expect(screen.getByRole("button", { name: /records/i })).toBeInTheDocument();
 
     expect(
       screen.getByRole("button", { name: /records/i }),

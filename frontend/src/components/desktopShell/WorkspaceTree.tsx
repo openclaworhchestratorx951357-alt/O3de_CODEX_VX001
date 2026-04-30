@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import { toneStyles } from "./sharedStyles";
 import type { DesktopShellNavSection } from "./types";
@@ -26,16 +26,42 @@ export default function WorkspaceTree({
     section.items.some((item) => item.id === currentNavItemId)
   ));
   const activeNavSectionId = activeNavSection?.id ?? "start";
-  const [expandedSectionId, setExpandedSectionId] = useState(activeNavSectionId);
+  const allSectionIds = useMemo(
+    () => navSections.map((section) => section.id),
+    [navSections],
+  );
+  const [expandedSectionIds, setExpandedSectionIds] = useState<string[]>(allSectionIds);
 
   useEffect(() => {
-    setExpandedSectionId(activeNavSectionId);
-  }, [activeNavSectionId]);
+    setExpandedSectionIds((currentSectionIds) => {
+      const knownSectionIds = currentSectionIds.filter((id) => allSectionIds.includes(id));
+      const withActiveSection = knownSectionIds.includes(activeNavSectionId)
+        ? knownSectionIds
+        : [...knownSectionIds, activeNavSectionId];
+
+      return withActiveSection.length > 0 ? withActiveSection : allSectionIds;
+    });
+  }, [activeNavSectionId, allSectionIds]);
 
   function toggleNavSection(sectionId: string) {
-    setExpandedSectionId((currentSectionId) => (
-      currentSectionId === sectionId ? activeNavSectionId : sectionId
-    ));
+    setExpandedSectionIds((currentSectionIds) => {
+      if (currentSectionIds.includes(sectionId)) {
+        const nextSectionIds = currentSectionIds.filter((id) => id !== sectionId);
+        if (nextSectionIds.length === 0) {
+          return [activeNavSectionId];
+        }
+        return nextSectionIds;
+      }
+      return [...currentSectionIds, sectionId];
+    });
+  }
+
+  function expandAllSections() {
+    setExpandedSectionIds(allSectionIds);
+  }
+
+  function collapseToActiveSection() {
+    setExpandedSectionIds([activeNavSectionId]);
   }
 
   return (
@@ -44,18 +70,36 @@ export default function WorkspaceTree({
         <span style={navSectionEyebrowStyle}>Workspace tree</span>
         <strong style={navSectionTitleStyle}>Control surface</strong>
         <span style={navSectionDetailStyle}>
-          Open one group at a time so the right side stays available for large editor and viewer surfaces.
+          Every cockpit is reachable here. Expand/collapse groups and scroll this rail to reach any destination.
         </span>
         <span style={currentWorkspacePillStyle}>
           <span>Now open</span>
           <strong>{activeNavItem?.label ?? workspaceTitle}</strong>
         </span>
+        <div style={navSectionActionRowStyle}>
+          <button
+            type="button"
+            onClick={expandAllSections}
+            style={navSectionActionButtonStyle}
+            aria-label="Expand all workspace groups"
+          >
+            Expand all
+          </button>
+          <button
+            type="button"
+            onClick={collapseToActiveSection}
+            style={navSectionActionButtonStyle}
+            aria-label="Collapse to current workspace group"
+          >
+            Collapse to active
+          </button>
+        </div>
       </div>
 
       <div style={navScrollableRegionStyle}>
         {navSections.map((section) => {
           const sectionActive = section.items.some((item) => item.id === activeWorkspaceId);
-          const sectionExpanded = expandedSectionId === section.id;
+          const sectionExpanded = expandedSectionIds.includes(section.id);
           return (
             <section key={section.id} style={navGroupStyle}>
               <button
@@ -65,7 +109,10 @@ export default function WorkspaceTree({
                 style={navGroupSummaryStyle}
                 title={section.detail}
               >
-                <span style={navGroupSummaryLabelStyle}>{section.label}</span>
+                <span style={navGroupSummaryLabelGroupStyle}>
+                  <span style={navGroupSummaryLabelStyle}>{section.label}</span>
+                  <span style={navGroupSummaryCountStyle}>{`${section.items.length} app${section.items.length === 1 ? "" : "s"}`}</span>
+                </span>
                 <span style={navGroupMetaStyle}>
                   {sectionActive ? (
                     <span style={{ ...navBadgeStyle, ...toneStyles.info }}>
@@ -116,11 +163,11 @@ export default function WorkspaceTree({
 }
 
 const navRailStyle = {
-  flex: "0 0 clamp(220px, 17vw, 280px)",
+  flex: "0 0 clamp(236px, 18vw, 320px)",
   alignSelf: "stretch",
   position: "relative",
-  minWidth: 220,
-  maxWidth: 280,
+  minWidth: 236,
+  maxWidth: 320,
   height: "100%",
   maxHeight: "100%",
   display: "grid",
@@ -138,7 +185,7 @@ const navRailStyle = {
 
 const navSectionHeaderStyle = {
   display: "grid",
-  gap: 8,
+  gap: 10,
 } satisfies CSSProperties;
 
 const navSectionEyebrowStyle = {
@@ -156,7 +203,7 @@ const navSectionTitleStyle = {
 
 const navSectionDetailStyle = {
   color: "var(--app-muted-color)",
-  fontSize: 13,
+  fontSize: 12,
   lineHeight: 1.45,
 } satisfies CSSProperties;
 
@@ -176,6 +223,22 @@ const currentWorkspacePillStyle = {
   boxShadow: "var(--app-active-shadow)",
 } satisfies CSSProperties;
 
+const navSectionActionRowStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 6,
+} satisfies CSSProperties;
+
+const navSectionActionButtonStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "4px 8px",
+  background: "var(--app-panel-bg-alt)",
+  color: "var(--app-text-color)",
+  fontSize: 11,
+  cursor: "pointer",
+} satisfies CSSProperties;
+
 const navScrollableRegionStyle = {
   display: "grid",
   alignContent: "start",
@@ -183,7 +246,8 @@ const navScrollableRegionStyle = {
   minHeight: 0,
   overflowY: "auto",
   overflowX: "hidden",
-  paddingRight: 2,
+  paddingRight: 4,
+  scrollbarWidth: "thin",
 } satisfies CSSProperties;
 
 const navGroupStyle = {
@@ -210,6 +274,12 @@ const navGroupSummaryStyle = {
   textAlign: "left",
 } satisfies CSSProperties;
 
+const navGroupSummaryLabelGroupStyle = {
+  display: "grid",
+  gap: 2,
+  minWidth: 0,
+} satisfies CSSProperties;
+
 const navGroupSummaryLabelStyle = {
   fontSize: 13,
   lineHeight: 1.15,
@@ -217,6 +287,14 @@ const navGroupSummaryLabelStyle = {
   letterSpacing: "0.08em",
   color: "var(--app-subtle-color)",
   fontWeight: 800,
+} satisfies CSSProperties;
+
+const navGroupSummaryCountStyle = {
+  fontSize: 10,
+  lineHeight: 1.2,
+  color: "var(--app-muted-color)",
+  textTransform: "uppercase",
+  letterSpacing: "0.04em",
 } satisfies CSSProperties;
 
 const navGroupMetaStyle = {
@@ -237,6 +315,11 @@ const navListStyle = {
   display: "grid",
   gap: 6,
   padding: "6px 0 2px",
+  maxHeight: "clamp(130px, 34vh, 360px)",
+  overflowY: "auto",
+  overflowX: "hidden",
+  minHeight: 0,
+  scrollbarWidth: "thin",
 } satisfies CSSProperties;
 
 const navButtonStyle = {
@@ -282,10 +365,8 @@ const navButtonSubtitleStyle = {
   color: "var(--app-muted-color)",
   fontSize: 11,
   lineHeight: 1.35,
-  overflow: "hidden",
-  textOverflow: "ellipsis",
+  overflowWrap: "anywhere",
   whiteSpace: "normal" as const,
-  maxHeight: 30,
 } satisfies CSSProperties;
 
 const navBadgeStyle = {
