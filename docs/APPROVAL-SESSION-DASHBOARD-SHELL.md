@@ -71,8 +71,8 @@ broadened.
 
 ## Recommended next packet
 
-GUI shell taxonomy parity checkpoint + quick-reference refresh
-(`codex/gui-shell-taxonomy-parity-checkpoint-quick-reference-refresh`):
+Asset Forge stage-write admission-flag verification refresh
+(`codex/asset-forge-stage-write-admission-flag-verification-refresh`):
 
 - keep server-owned authorization and fail-closed gate-state wording aligned
   with the existing approval/session boundary model across baseline/shell

@@ -67,5 +67,5 @@ authorization or execution admission.
 
 ## Recommended next packet
 
-GUI shell taxonomy parity checkpoint + quick-reference refresh
-(`codex/gui-shell-taxonomy-parity-checkpoint-quick-reference-refresh`).
+Asset Forge stage-write admission-flag verification refresh
+(`codex/asset-forge-stage-write-admission-flag-verification-refresh`).

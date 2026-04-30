@@ -10,13 +10,13 @@ import {
   summaryMutedTextStyle,
   summarySectionStyle,
 } from "./summaryPrimitives";
+import {
+  getStatusChipLinkageCue,
+  sharedShellBoundaryLabels,
+} from "./appShellTaxonomyParity";
 
 const boundaryLabels = [
-  "Static fixture only",
-  "Server-owned authorization truth",
-  "No execution admission broadening",
-  "No mutation corridor broadening",
-  "No client-side authorization",
+  ...sharedShellBoundaryLabels,
 ] as const;
 
 export default function AppWorkspaceStatusChipsShell() {
@@ -69,6 +69,7 @@ export default function AppWorkspaceStatusChipsShell() {
               <th style={headerCellStyle}>Workspace surface</th>
               <th style={headerCellStyle}>Capability window</th>
               <th style={headerCellStyle}>Status taxonomy</th>
+              <th style={headerCellStyle}>Status-chip linkage cue</th>
               <th style={headerCellStyle}>Boundary</th>
               <th style={headerCellStyle}>Summary</th>
               <th style={headerCellStyle}>Next gate</th>
@@ -84,6 +85,7 @@ export default function AppWorkspaceStatusChipsShell() {
                 <td style={bodyCellStyle}>
                   <StatusChip label={row.taxonomy} tone={getTaxonomyTone(row.taxonomy)} />
                 </td>
+                <td style={bodyCellStyle}>{getStatusChipLinkageCue(row.taxonomy)}</td>
                 <td style={bodyCellStyle}>{row.boundary}</td>
                 <td style={bodyCellStyle}>{row.summary}</td>
                 <td style={bodyCellStyle}>{row.nextGate}</td>
@@ -94,7 +96,7 @@ export default function AppWorkspaceStatusChipsShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>GUI shell taxonomy parity checkpoint + quick-reference refresh</strong>.
+        Recommended next packet: <strong>Asset Forge stage-write admission-flag verification refresh</strong>.
       </p>
     </section>
   );
@@ -149,7 +151,7 @@ const tableWrapStyle = {
 const tableStyle = {
   width: "100%",
   borderCollapse: "collapse",
-  minWidth: 1180,
+  minWidth: 1360,
 } satisfies CSSProperties;
 
 const headerCellStyle = {

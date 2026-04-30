@@ -10,15 +10,9 @@ import {
   summaryMutedTextStyle,
   summarySectionStyle,
 } from "./summaryPrimitives";
+import { sharedShellBoundaryLabels } from "./appShellTaxonomyParity";
 
-const boundaryLabels = [
-  "Static fixture only",
-  "Server-owned approval/session and gate-state truth",
-  "Client authorization fields stay intent-only",
-  "No backend execution admission changes",
-  "No mutation corridor admission changes",
-  "Dispatch unadmitted for validation.report.intake",
-] as const;
+const boundaryLabels = [...sharedShellBoundaryLabels] as const;
 
 export default function AppEvidenceTimelineShell() {
   const domainCounts = countBy(appEvidenceTimelineRows, (row) => row.domain);
@@ -111,7 +105,7 @@ export default function AppEvidenceTimelineShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>GUI shell taxonomy parity checkpoint + quick-reference refresh</strong>.
+        Recommended next packet: <strong>Asset Forge stage-write admission-flag verification refresh</strong>.
       </p>
     </section>
   );

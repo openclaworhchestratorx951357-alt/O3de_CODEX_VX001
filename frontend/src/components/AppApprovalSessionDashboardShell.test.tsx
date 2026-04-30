@@ -10,10 +10,13 @@ describe("AppApprovalSessionDashboardShell", () => {
     expect(screen.getByTestId("app-approval-session-dashboard-shell")).toBeInTheDocument();
     expect(screen.getByText("Approval/session dashboard shell (static fixture)")).toBeInTheDocument();
     expect(screen.getByText("Static fixture only")).toBeInTheDocument();
-    expect(screen.getByText("Server-owned authorization model")).toBeInTheDocument();
+    expect(screen.getByText("Server-owned authorization truth")).toBeInTheDocument();
     expect(screen.getByText("Client fields are intent-only")).toBeInTheDocument();
     expect(screen.getByText("Fail-closed gate-state enforcement")).toBeInTheDocument();
     expect(screen.getByText("Dispatch unadmitted for validation.report.intake")).toBeInTheDocument();
+    expect(screen.getByText("No backend execution admission changes")).toBeInTheDocument();
+    expect(screen.getByText("No mutation corridor broadening")).toBeInTheDocument();
+    expect(screen.getByText("Status chips must preserve shared taxonomy cues")).toBeInTheDocument();
 
     expect(screen.getByText("General approvals queue")).toBeInTheDocument();
     expect(screen.getByText("Asset Forge approval sessions")).toBeInTheDocument();
@@ -39,6 +42,6 @@ describe("AppApprovalSessionDashboardShell", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("client fields remain intent-only and non-authorizing", { exact: false })).toBeInTheDocument();
 
-    expect(screen.getByText("GUI shell taxonomy parity checkpoint + quick-reference refresh", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Asset Forge stage-write admission-flag verification refresh", { selector: "strong" })).toBeInTheDocument();
   });
 });

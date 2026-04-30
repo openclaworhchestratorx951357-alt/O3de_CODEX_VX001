@@ -11,21 +11,32 @@ describe("build execution long-hold fixture guardrails", () => {
     expect(buildExecutionCapability).toBeDefined();
     expect(buildExecutionCapability?.requiredGate).toContain("explicit named target");
     expect(buildExecutionCapability?.requiredGate).toContain("timeout/log/result evidence");
-    expect(buildExecutionCapability?.recommendedNextPacket).toBe("GUI shell taxonomy parity checkpoint + quick-reference refresh");
+    expect(buildExecutionCapability?.recommendedNextPacket).toBe("Asset Forge stage-write admission-flag verification refresh");
 
     const buildExecutionAudit = appAuditReviewDashboardRows.find((row) => row.domain === "Project/Config");
     expect(buildExecutionAudit).toBeDefined();
     expect(buildExecutionAudit?.capabilityWindow).toBe("build.execute.real long-hold checkpoint");
-    expect(buildExecutionAudit?.nextGate).toBe("GUI shell taxonomy parity checkpoint + quick-reference refresh");
+    expect(buildExecutionAudit?.nextGate).toBe("Asset Forge stage-write admission-flag verification refresh");
     expect(buildExecutionAudit?.findings).toContain("Long-hold checkpoint");
 
     const buildExecutionStatus = appWorkspaceStatusChipRows.find((row) => row.capabilityWindow === "build.execute.real");
     expect(buildExecutionStatus).toBeDefined();
     expect(buildExecutionStatus?.summary).toContain("hold/no-go posture explicit");
-    expect(buildExecutionStatus?.nextGate).toBe("GUI shell taxonomy parity checkpoint + quick-reference refresh");
+    expect(buildExecutionStatus?.nextGate).toBe("Asset Forge stage-write admission-flag verification refresh");
   });
 
   it("records build execution long-hold checkpoint evidence while preserving prior checkpoints", () => {
+    const guiShellTaxonomyParityCheckpointQuickReferenceRefreshRow = appEvidenceTimelineRows.find(
+      (row) => row.evidenceLane === "GUI shell taxonomy parity checkpoint + quick-reference refresh packet",
+    );
+    expect(guiShellTaxonomyParityCheckpointQuickReferenceRefreshRow).toBeDefined();
+    expect(guiShellTaxonomyParityCheckpointQuickReferenceRefreshRow?.reviewStatus).toBe(
+      "pass-gui-shell-taxonomy-parity-checkpoint-quick-reference-refresh-packet",
+    );
+    expect(guiShellTaxonomyParityCheckpointQuickReferenceRefreshRow?.summary).toContain(
+      "deterministic shared boundary labels, status-chip taxonomy cues, server-owned authorization truth language, fail-closed validation semantics, and non-authorizing client-field posture remain aligned",
+    );
+
     const auditReviewDashboardTruthRefreshStatusChipLinkageRow = appEvidenceTimelineRows.find(
       (row) => row.evidenceLane === "audit review dashboard truth refresh + status-chip linkage packet",
     );

@@ -14,15 +14,9 @@ import {
   summaryMutedTextStyle,
   summarySectionStyle,
 } from "./summaryPrimitives";
+import { sharedShellBoundaryLabels } from "./appShellTaxonomyParity";
 
-const boundaryLabels = [
-  "Static fixture only",
-  "Server-owned authorization model",
-  "Client fields are intent-only",
-  "Fail-closed gate-state enforcement",
-  "Dispatch unadmitted for validation.report.intake",
-  "No backend admission changes",
-] as const;
+const boundaryLabels = [...sharedShellBoundaryLabels] as const;
 
 export default function AppApprovalSessionDashboardShell() {
   const truthCounts = countBy(appApprovalSessionDashboardRows, (row) => row.truthLabel);
@@ -141,7 +135,7 @@ export default function AppApprovalSessionDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>GUI shell taxonomy parity checkpoint + quick-reference refresh</strong>.
+        Recommended next packet: <strong>Asset Forge stage-write admission-flag verification refresh</strong>.
       </p>
     </section>
   );

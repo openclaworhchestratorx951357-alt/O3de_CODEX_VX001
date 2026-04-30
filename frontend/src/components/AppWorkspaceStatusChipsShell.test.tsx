@@ -11,8 +11,12 @@ describe("AppWorkspaceStatusChipsShell", () => {
     expect(screen.getByText("Workspace status chips shell (static fixture)")).toBeInTheDocument();
     expect(screen.getByText("Static fixture only")).toBeInTheDocument();
     expect(screen.getByText("Server-owned authorization truth")).toBeInTheDocument();
-    expect(screen.getByText("No execution admission broadening")).toBeInTheDocument();
+    expect(screen.getByText("Client fields are intent-only")).toBeInTheDocument();
+    expect(screen.getByText("Fail-closed gate-state enforcement")).toBeInTheDocument();
+    expect(screen.getByText("Dispatch unadmitted for validation.report.intake")).toBeInTheDocument();
+    expect(screen.getByText("No backend execution admission changes")).toBeInTheDocument();
     expect(screen.getByText("No mutation corridor broadening")).toBeInTheDocument();
+    expect(screen.getByText("Status chips must preserve shared taxonomy cues")).toBeInTheDocument();
 
     expect(screen.getAllByText("admitted-real").length).toBeGreaterThan(0);
     expect(screen.getAllByText("proof-only").length).toBeGreaterThan(1);
@@ -33,7 +37,11 @@ describe("AppWorkspaceStatusChipsShell", () => {
     expect(screen.getByText("Asset Forge stage write")).toBeInTheDocument();
     expect(screen.getByText("Project config patch corridor")).toBeInTheDocument();
     expect(screen.getByText("Placement execution")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Admitted-real chips stay green across capability, audit, workspace, and timeline shells.")
+        .length,
+    ).toBeGreaterThan(0);
 
-    expect(screen.getByText("GUI shell taxonomy parity checkpoint + quick-reference refresh", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Asset Forge stage-write admission-flag verification refresh", { selector: "strong" })).toBeInTheDocument();
   });
 });

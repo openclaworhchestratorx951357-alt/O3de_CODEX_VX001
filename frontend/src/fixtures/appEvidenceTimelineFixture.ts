@@ -19,6 +19,16 @@ export const appEvidenceTimelineFixtureGeneratedAt = "2026-05-01";
 
 export const appEvidenceTimelineRows: readonly AppEvidenceTimelineRow[] = [
   {
+    recordedAtUtc: "2026-05-01T00:00:37Z",
+    domain: "GUI",
+    evidenceLane: "GUI shell taxonomy parity checkpoint + quick-reference refresh packet",
+    capabilityWindow: "cross-shell taxonomy parity + quick-reference drift-check checkpoint",
+    truthLabel: "demo",
+    summary:
+      "GUI shell taxonomy parity checkpoint now verifies deterministic shared boundary labels, status-chip taxonomy cues, server-owned authorization truth language, fail-closed validation semantics, and non-authorizing client-field posture remain aligned across capability, audit, approval/session, evidence timeline, workspace shell, and recommendation surfaces while preserving non-admitting runtime boundaries.",
+    reviewStatus: "pass-gui-shell-taxonomy-parity-checkpoint-quick-reference-refresh-packet",
+  },
+  {
     recordedAtUtc: "2026-05-01T00:00:36Z",
     domain: "GUI",
     evidenceLane: "audit review dashboard truth refresh + status-chip linkage packet",

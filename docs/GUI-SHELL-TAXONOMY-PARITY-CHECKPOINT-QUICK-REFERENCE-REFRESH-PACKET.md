@@ -1,16 +1,18 @@
-# Audit Review Dashboard Truth Refresh + Status-Chip Linkage Packet
+﻿# GUI Shell Taxonomy Parity Checkpoint + Quick-reference Refresh Packet
 
-Status: completed (frontend fixture/shell truth-linkage checkpoint; non-admitting)
+Status: completed (frontend shell parity + quick-reference refresh; non-admitting)
 
 ## Purpose
 
-Checkpoint deterministic status-chip linkage cues in the audit review dashboard so shared taxonomy semantics stay aligned across capability, audit, workspace, and timeline shells.
+Checkpoint app-wide GUI shell taxonomy parity so shared boundary labels and status-chip linkage cues remain deterministic across capability, audit, approval/session, evidence timeline, and workspace shells.
 
 ## Scope completed
 
-- refreshed audit-review shell wording to keep server-owned authorization truth and non-authorizing client-field semantics explicit
-- added explicit status-chip linkage cues per taxonomy on audit review cards
-- preserved static-fixture-first, non-admitting posture and fail-closed hold boundaries
+- introduced shared boundary/taxonomy helper for GUI shells
+- aligned boundary-label wording across all five app overview shells
+- extended workspace status chips shell with explicit status-chip linkage cues
+- preserved non-admitting runtime boundaries and fail-closed hold posture
+- refreshed GUI taxonomy quick-reference wording and drift checks
 - rolled recommendation surfaces to the next packet: Asset Forge stage-write admission-flag verification refresh
 - added timeline evidence row for this packet completion
 
@@ -25,12 +27,14 @@ Checkpoint deterministic status-chip linkage cues in the audit review dashboard 
 
 ## Evidence
 
+- `frontend/src/components/appShellTaxonomyParity.ts`
+- `frontend/src/components/AppCapabilityDashboardShell.tsx`
 - `frontend/src/components/AppAuditReviewDashboardShell.tsx`
-- `frontend/src/components/AppAuditReviewDashboardShell.test.tsx`
-- `frontend/src/fixtures/appAuditReviewDashboardFixture.ts`
+- `frontend/src/components/AppApprovalSessionDashboardShell.tsx`
+- `frontend/src/components/AppEvidenceTimelineShell.tsx`
+- `frontend/src/components/AppWorkspaceStatusChipsShell.tsx`
 - `frontend/src/fixtures/appEvidenceTimelineFixture.ts`
-- `frontend/src/fixtures/settingsRollbackReleaseReadinessDecision.test.ts`
-- recommendation/taxonomy linkage docs updated across app shell packet surfaces
+- `docs/APP-GUI-SHELL-STATUS-TAXONOMY-QUICK-REFERENCE.md`
 
 ## Validation
 

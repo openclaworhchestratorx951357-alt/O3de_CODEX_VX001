@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-GUI shell taxonomy parity checkpoint + quick-reference refresh
-(`codex/gui-shell-taxonomy-parity-checkpoint-quick-reference-refresh`):
+Asset Forge stage-write admission-flag verification refresh
+(`codex/asset-forge-stage-write-admission-flag-verification-refresh`):
 
 - keep approval/session baseline + shell + timeline wording aligned under
   server-owned authorization truth and fail-closed gate-state semantics

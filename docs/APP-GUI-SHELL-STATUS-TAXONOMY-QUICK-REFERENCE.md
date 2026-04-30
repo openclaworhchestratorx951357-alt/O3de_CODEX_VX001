@@ -1,6 +1,6 @@
 # App GUI Shell Status Taxonomy Quick Reference
 
-Status: taxonomy parity checkpoint complete (frontend/docs alignment)
+Status: taxonomy parity checkpoint complete (shared shell-boundary helper + quick-reference refresh)
 
 ## Purpose
 
@@ -25,9 +25,17 @@ mutation admission.
 - `Client fields are intent-only`
 - `Fail-closed gate-state enforcement`
 - `Dispatch unadmitted for validation.report.intake`
-- `No execution or mutation admission changes`
+- `No backend execution admission changes`
+- `No mutation corridor broadening`
+- `Status chips must preserve shared taxonomy cues`
 
 These labels are operator guidance only and never authorize runtime behavior.
+
+## Shared helper evidence
+
+- `frontend/src/components/appShellTaxonomyParity.ts`
+  - `sharedShellBoundaryLabels`
+  - `getStatusChipLinkageCue`
 
 ## Shells using this vocabulary
 
@@ -39,13 +47,11 @@ These labels are operator guidance only and never authorize runtime behavior.
 
 ## Drift checks
 
-- `npm --prefix frontend test`
-- `npm --prefix frontend run build`
-- `npm --prefix frontend run lint`
+- `npm --prefix frontend test -- src/components/AppCapabilityDashboardShell.test.tsx src/components/AppAuditReviewDashboardShell.test.tsx src/components/AppApprovalSessionDashboardShell.test.tsx src/components/AppEvidenceTimelineShell.test.tsx src/components/AppWorkspaceStatusChipsShell.test.tsx src/fixtures/settingsRollbackReleaseReadinessDecision.test.ts`
 - `git diff --check`
 - `git diff --cached --check`
 
 ## Recommended next packet
 
-GUI shell taxonomy parity checkpoint + quick-reference refresh
-(`codex/gui-shell-taxonomy-parity-checkpoint-quick-reference-refresh`).
+Asset Forge stage-write admission-flag verification refresh
+(`codex/asset-forge-stage-write-admission-flag-verification-refresh`).

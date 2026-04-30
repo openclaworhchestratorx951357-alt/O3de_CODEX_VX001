@@ -180,7 +180,8 @@ The following patterns are now established:
 - workspace status chips shell + truth taxonomy linkage (completed)
 - app capability dashboard truth refresh + status-chip linkage (completed)
 - audit review dashboard truth refresh + status-chip linkage (completed)
-- GUI shell taxonomy parity checkpoint + quick-reference refresh (next)
+- GUI shell taxonomy parity checkpoint + quick-reference refresh (completed)
+- Asset Forge stage-write admission-flag verification refresh (next)
 
 ## App-wide domains
 

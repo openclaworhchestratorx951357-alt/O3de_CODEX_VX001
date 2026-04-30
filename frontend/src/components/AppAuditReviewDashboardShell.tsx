@@ -12,14 +12,13 @@ import {
   summaryMutedTextStyle,
   summarySectionStyle,
 } from "./summaryPrimitives";
+import {
+  getStatusChipLinkageCue,
+  sharedShellBoundaryLabels,
+} from "./appShellTaxonomyParity";
 
 const boundaryLabels = [
-  "Static fixture only",
-  "Server-owned authorization truth",
-  "Client fields are intent-only",
-  "No backend execution admission changes",
-  "No mutation corridor broadening",
-  "Status chips must preserve shared taxonomy cues",
+  ...sharedShellBoundaryLabels,
 ] as const;
 
 export default function AppAuditReviewDashboardShell() {
@@ -115,7 +114,7 @@ export default function AppAuditReviewDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>GUI shell taxonomy parity checkpoint + quick-reference refresh</strong>.
+        Recommended next packet: <strong>Asset Forge stage-write admission-flag verification refresh</strong>.
       </p>
     </section>
   );
@@ -168,30 +167,6 @@ function getTaxonomyTone(
     return "danger";
   }
   return "neutral";
-}
-
-function getStatusChipLinkageCue(
-  taxonomy: (typeof appAuditReviewDashboardRows)[number]["statusTaxonomy"],
-): string {
-  if (taxonomy === "admitted-real") {
-    return "Admitted-real chips stay green across capability, audit, workspace, and timeline shells.";
-  }
-  if (taxonomy === "proof-only") {
-    return "Proof-only chips stay warning across capability, audit, workspace, and timeline shells.";
-  }
-  if (taxonomy === "dry-run only") {
-    return "Dry-run-only chips stay info-classified across capability, audit, workspace, and timeline shells.";
-  }
-  if (taxonomy === "plan-only") {
-    return "Plan-only chips stay info-classified with non-admitting wording across app shells.";
-  }
-  if (taxonomy === "demo") {
-    return "Demo chips stay display-only with non-authorizing shell language across app surfaces.";
-  }
-  if (taxonomy === "hold-default-off") {
-    return "Hold-default-off chips stay fail-closed with server-gated default-off semantics across shells.";
-  }
-  return "Blocked chips stay refusal-first outside exact admitted corridors across app surfaces.";
 }
 
 const topGridStyle = {

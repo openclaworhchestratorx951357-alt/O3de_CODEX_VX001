@@ -103,8 +103,8 @@ superseded for current dashboard behavior by:
 
 ## Recommended next packet
 
-GUI shell taxonomy parity checkpoint + quick-reference refresh
-(`codex/gui-shell-taxonomy-parity-checkpoint-quick-reference-refresh`):
+Asset Forge stage-write admission-flag verification refresh
+(`codex/asset-forge-stage-write-admission-flag-verification-refresh`):
 
 - keep baseline, shell, and timeline wording aligned for server-owned
   authorization truth

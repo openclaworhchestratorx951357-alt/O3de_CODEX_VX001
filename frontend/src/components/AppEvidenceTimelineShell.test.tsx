@@ -10,9 +10,12 @@ describe("AppEvidenceTimelineShell", () => {
     expect(screen.getByTestId("app-evidence-timeline-shell")).toBeInTheDocument();
     expect(screen.getByText("App-wide Evidence Timeline shell (static fixture)")).toBeInTheDocument();
     expect(screen.getByText("Static fixture only")).toBeInTheDocument();
-    expect(screen.getByText("Server-owned approval/session and gate-state truth")).toBeInTheDocument();
-    expect(screen.getByText("Client authorization fields stay intent-only")).toBeInTheDocument();
+    expect(screen.getByText("Server-owned authorization truth")).toBeInTheDocument();
+    expect(screen.getByText("Client fields are intent-only")).toBeInTheDocument();
+    expect(screen.getByText("Fail-closed gate-state enforcement")).toBeInTheDocument();
     expect(screen.getByText("No backend execution admission changes")).toBeInTheDocument();
+    expect(screen.getByText("No mutation corridor broadening")).toBeInTheDocument();
+    expect(screen.getByText("Status chips must preserve shared taxonomy cues")).toBeInTheDocument();
     expect(screen.getByText("Dispatch unadmitted for validation.report.intake")).toBeInTheDocument();
 
     expect(screen.getAllByText("Validation").length).toBeGreaterThan(0);
@@ -29,6 +32,11 @@ describe("AppEvidenceTimelineShell", () => {
     expect(screen.getAllByText("admitted-real").length).toBeGreaterThan(0);
     expect(screen.getByText("hold-default-off")).toBeInTheDocument();
     expect(screen.getByText("linked-validation-hold")).toBeInTheDocument();
+    expect(screen.getByText("GUI shell taxonomy parity checkpoint + quick-reference refresh packet")).toBeInTheDocument();
+    expect(
+      screen.getByText("cross-shell taxonomy parity + quick-reference drift-check checkpoint"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("pass-gui-shell-taxonomy-parity-checkpoint-quick-reference-refresh-packet")).toBeInTheDocument();
     expect(screen.getByText("audit review dashboard truth refresh + status-chip linkage packet")).toBeInTheDocument();
     expect(
       screen.getByText("audit dashboard taxonomy + status-chip linkage cue checkpoint"),
@@ -655,6 +663,6 @@ describe("AppEvidenceTimelineShell", () => {
     expect(screen.getByText("codex.flow.trigger.audit_gate checklist stop-point contract")).toBeInTheDocument();
     expect(screen.getByText("pass-flow-trigger-audit-gate-checklist")).toBeInTheDocument();
 
-    expect(screen.getByText("GUI shell taxonomy parity checkpoint + quick-reference refresh", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Asset Forge stage-write admission-flag verification refresh", { selector: "strong" })).toBeInTheDocument();
   });
 });
