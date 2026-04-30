@@ -10,7 +10,6 @@ import WorkspaceNextStepsPanel, {
 import RecommendedActionsPanel from "./components/RecommendedActionsPanel";
 import AppControlCommandCenter from "./components/AppControlCommandCenter";
 import HomeWorkspaceView from "./components/workspaces/HomeWorkspaceView";
-import type { HomeTaskModeId } from "./components/HomeTaskModePanel";
 import SettingsPanel from "./components/SettingsPanel";
 import type { HomeOverviewPanelDeckProps } from "./components/HomeOverviewPanelDeck";
 import {
@@ -116,6 +115,9 @@ const BuilderWorkspaceDesktop = lazy(() => import("./components/workspaces/Build
 const PromptWorkspaceDesktop = lazy(() => import("./components/workspaces/PromptWorkspaceDesktop"));
 const RecordsWorkspaceDesktop = lazy(() => import("./components/workspaces/RecordsWorkspaceDesktop"));
 const RuntimeWorkspaceDesktop = lazy(() => import("./components/workspaces/RuntimeWorkspaceDesktop"));
+const CreateGameWorkspaceView = lazy(() => import("./components/workspaces/CreateGameWorkspaceView"));
+const CreateMovieWorkspaceView = lazy(() => import("./components/workspaces/CreateMovieWorkspaceView"));
+const LoadProjectWorkspaceView = lazy(() => import("./components/workspaces/LoadProjectWorkspaceView"));
 
 type ToolsCatalog = {
   agents: CatalogAgent[];
@@ -233,6 +235,9 @@ type LanePresetSource = "manual" | "session";
 
 type DesktopWorkspaceId =
   | "home"
+  | "create-game"
+  | "create-movie"
+  | "load-project"
   | "asset-forge"
   | "prompt"
   | "builder"
@@ -240,11 +245,7 @@ type DesktopWorkspaceId =
   | "runtime"
   | "records";
 
-type DesktopNavItemId =
-  | DesktopWorkspaceId
-  | "home-o3de-game"
-  | "home-o3de-cinematic"
-  | "home-load-project";
+type DesktopNavItemId = DesktopWorkspaceId;
 
 type PromptLaunchDraftRequest = {
   requestId: string;
@@ -615,7 +616,6 @@ export default function App() {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<DesktopWorkspaceId>(
     settings.layout.preferredLandingSection as DesktopWorkspaceId,
   );
-  const [homeTaskModeId, setHomeTaskModeId] = useState<HomeTaskModeId>("o3de-game");
   const [visitedWorkspaceIds, setVisitedWorkspaceIds] = useState<DesktopWorkspaceId[]>([
     settings.layout.preferredLandingSection as DesktopWorkspaceId,
   ]);
@@ -2320,6 +2320,10 @@ export default function App() {
     const storedWorkspace = window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY);
     if (
       storedWorkspace === "home"
+      || storedWorkspace === "create-game"
+      || storedWorkspace === "create-movie"
+      || storedWorkspace === "load-project"
+      || storedWorkspace === "asset-forge"
       || storedWorkspace === "prompt"
       || storedWorkspace === "builder"
       || storedWorkspace === "operations"
@@ -2371,21 +2375,11 @@ export default function App() {
   function selectDesktopNavigation(navItemId: string): void {
     switch (navItemId as DesktopNavItemId) {
       case "home":
-        setHomeTaskModeId("o3de-game");
         setActiveWorkspaceId("home");
         return;
-      case "home-o3de-game":
-        setHomeTaskModeId("o3de-game");
-        setActiveWorkspaceId("home");
-        return;
-      case "home-o3de-cinematic":
-        setHomeTaskModeId("o3de-cinematic");
-        setActiveWorkspaceId("home");
-        return;
-      case "home-load-project":
-        setHomeTaskModeId("load-project");
-        setActiveWorkspaceId("home");
-        return;
+      case "create-game":
+      case "create-movie":
+      case "load-project":
       case "asset-forge":
       case "prompt":
       case "builder":
@@ -2395,7 +2389,6 @@ export default function App() {
         setActiveWorkspaceId(navItemId as DesktopWorkspaceId);
         return;
       default:
-        setHomeTaskModeId("o3de-game");
         setActiveWorkspaceId("home");
     }
   }
@@ -4809,6 +4802,18 @@ export default function App() {
       title: homeWorkspaceGuide.workspaceTitle,
       subtitle: homeWorkspaceGuide.workspaceSubtitle,
     },
+    "create-game": {
+      title: "Create Game",
+      subtitle: "Create Game Cockpit with staged mission workflow, bounded editor actions, and evidence review.",
+    },
+    "create-movie": {
+      title: "Create Movie",
+      subtitle: "Create Movie Cockpit with cinematic planning, proof-only placement review, and explicit blockers.",
+    },
+    "load-project": {
+      title: "Load Project",
+      subtitle: "Load Project Cockpit for read-only target verification and preflight readiness checks.",
+    },
     "asset-forge": {
       title: "Asset Forge",
       subtitle: "O3DE-native production asset toolbench with read-only evidence, review, and gated creation planning.",
@@ -4835,15 +4840,7 @@ export default function App() {
     },
   };
   const activeWorkspaceMeta = workspaceMeta[activeWorkspaceId];
-  const activeDesktopNavItemId: DesktopNavItemId = activeWorkspaceId === "home"
-    ? homeTaskModeId === "o3de-game"
-      ? "home-o3de-game"
-      : homeTaskModeId === "o3de-cinematic"
-        ? "home-o3de-cinematic"
-        : homeTaskModeId === "load-project"
-          ? "home-load-project"
-          : "home"
-    : activeWorkspaceId;
+  const activeDesktopNavItemId: DesktopNavItemId = activeWorkspaceId;
   const desktopNavSections = [
     {
       id: "start",
@@ -4866,28 +4863,28 @@ export default function App() {
       detail: "Use natural-language or mission-control surfaces to start and shape work.",
       items: [
         {
-          id: "home-o3de-game",
+          id: "create-game",
           label: "Create Game",
-          subtitle: "Open the O3DE game creation desk",
+          subtitle: "Open the Create Game cockpit environment",
           badge: null,
           tone: "success",
-          helpTooltip: "Open Home directly into the O3DE game creation desk with scenario guidance and tool dock context.",
+          helpTooltip: "Open the first-class Create Game cockpit with mission pipeline, tools, and blocked-capability guidance.",
         },
         {
-          id: "home-o3de-cinematic",
+          id: "create-movie",
           label: "Create Movie",
-          subtitle: "Open the O3DE cinematic desk",
+          subtitle: "Open the Create Movie cockpit environment",
           badge: null,
           tone: "info",
-          helpTooltip: "Open Home directly into the O3DE cinematic creation desk for trailer, previs, and short-film guidance.",
+          helpTooltip: "Open the first-class Create Movie cockpit for cinematic pipeline, proof-only placement, and review guidance.",
         },
         {
-          id: "home-load-project",
+          id: "load-project",
           label: "Load Project",
-          subtitle: "Reconnect an existing O3DE project",
+          subtitle: "Open the Load Project cockpit environment",
           badge: null,
           tone: "neutral",
-          helpTooltip: "Open Home directly into the guided O3DE project loading surface for existing projects.",
+          helpTooltip: "Open the first-class Load Project cockpit for target verification and configuration preflight.",
         },
         {
           id: "asset-forge",
@@ -7472,22 +7469,23 @@ export default function App() {
           />
         ) : null}
 
-        {visitedWorkspaceIds.includes("home") ? (
+        {activeWorkspaceId === "home" ? (
           <div
-            aria-hidden={activeWorkspaceId !== "home"}
-            style={activeWorkspaceId === "home" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
+            aria-hidden={false}
+            style={activeWorkspacePaneStyle}
           >
             <HomeWorkspaceView
               missionControlContent={homeMissionControlContent}
               launchpadContent={homeLaunchpadContent}
               overviewContent={homeOverviewContent}
               guideContent={homeGuideContent}
-              activeTaskModeId={homeTaskModeId}
               onOpenPromptStudio={openPromptStudio}
               onOpenRuntimeOverview={openRuntimeOverview}
-              onOpenBuilder={() => setActiveWorkspaceId("builder")}
               onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
               onOpenRecords={openRecordsRuns}
+              onOpenCreateGame={() => setActiveWorkspaceId("create-game")}
+              onOpenCreateMovie={() => setActiveWorkspaceId("create-movie")}
+              onOpenLoadProject={() => setActiveWorkspaceId("load-project")}
               onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplate}
               onViewLatestRun={openRecordsRuns}
               onViewExecution={openRecordsExecutions}
@@ -7499,8 +7497,100 @@ export default function App() {
               latestRunId={latestRunId}
               latestExecutionId={latestExecutionId}
               latestArtifactId={latestArtifactId}
-              onActiveTaskModeChange={setHomeTaskModeId}
             />
+          </div>
+        ) : null}
+
+        {visitedWorkspaceIds.includes("create-game") ? (
+          <div
+            aria-hidden={activeWorkspaceId !== "create-game"}
+            style={activeWorkspaceId === "create-game" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
+          >
+            <Suspense
+              fallback={renderWorkspaceLoadingFallback(
+                "Create Game",
+                "Loading Create Game cockpit mission pipeline and tool cards.",
+              )}
+            >
+              <CreateGameWorkspaceView
+                onOpenPromptStudio={openPromptStudio}
+                onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
+                onOpenRuntimeOverview={openRuntimeOverview}
+                onOpenRecords={openRecordsRuns}
+                onViewLatestRun={openRecordsRuns}
+                onViewExecution={openRecordsExecutions}
+                onViewArtifact={openRecordsArtifacts}
+                onViewEvidence={openRecordsEvents}
+                bridgeStatus={o3deBridgeStatus}
+                adapters={adapters}
+                readiness={readiness}
+                latestRunId={latestRunId}
+                latestExecutionId={latestExecutionId}
+                latestArtifactId={latestArtifactId}
+              />
+            </Suspense>
+          </div>
+        ) : null}
+
+        {visitedWorkspaceIds.includes("create-movie") ? (
+          <div
+            aria-hidden={activeWorkspaceId !== "create-movie"}
+            style={activeWorkspaceId === "create-movie" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
+          >
+            <Suspense
+              fallback={renderWorkspaceLoadingFallback(
+                "Create Movie",
+                "Loading Create Movie cockpit cinematic pipeline and proof-only placement guidance.",
+              )}
+            >
+              <CreateMovieWorkspaceView
+                onOpenPromptStudio={openPromptStudio}
+                onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
+                onOpenRuntimeOverview={openRuntimeOverview}
+                onOpenRecords={openRecordsRuns}
+                onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplate}
+                onViewLatestRun={openRecordsRuns}
+                onViewExecution={openRecordsExecutions}
+                onViewArtifact={openRecordsArtifacts}
+                onViewEvidence={openRecordsEvents}
+                bridgeStatus={o3deBridgeStatus}
+                adapters={adapters}
+                readiness={readiness}
+                latestRunId={latestRunId}
+                latestExecutionId={latestExecutionId}
+                latestArtifactId={latestArtifactId}
+              />
+            </Suspense>
+          </div>
+        ) : null}
+
+        {visitedWorkspaceIds.includes("load-project") ? (
+          <div
+            aria-hidden={activeWorkspaceId !== "load-project"}
+            style={activeWorkspaceId === "load-project" ? activeWorkspacePaneStyle : hiddenWorkspacePaneStyle}
+          >
+            <Suspense
+              fallback={renderWorkspaceLoadingFallback(
+                "Load Project",
+                "Loading Load Project cockpit target summary and checklist.",
+              )}
+            >
+              <LoadProjectWorkspaceView
+                onOpenPromptStudio={openPromptStudio}
+                onOpenRuntimeOverview={openRuntimeOverview}
+                onOpenRecords={openRecordsRuns}
+                onViewLatestRun={openRecordsRuns}
+                onViewExecution={openRecordsExecutions}
+                onViewArtifact={openRecordsArtifacts}
+                onViewEvidence={openRecordsEvents}
+                bridgeStatus={o3deBridgeStatus}
+                adapters={adapters}
+                readiness={readiness}
+                latestRunId={latestRunId}
+                latestExecutionId={latestExecutionId}
+                latestArtifactId={latestArtifactId}
+              />
+            </Suspense>
           </div>
         ) : null}
 

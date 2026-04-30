@@ -243,11 +243,6 @@ describe("App desktop smoke", () => {
   it("opens the runtime workspace from the home launchpad without leaving a blank shell", async () => {
     render(<App />);
 
-    fireEvent.click(await screen.findByRole(
-      "tab",
-      { name: /Develop the App/i },
-      { timeout: LAZY_SURFACE_TIMEOUT_MS },
-    ));
     fireEvent.click(getLaunchpadButton(
       "Bridge status, executors, workspaces, and governance health.",
     ));
@@ -262,24 +257,49 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("OperatorOverviewPanel stub")).toBeInTheDocument();
   });
 
-  it("opens the Home O3DE creation desks from shell nav and reaches real app workspaces from their actions", async () => {
+  it("opens Create Game, Create Movie, and Load Project as first-class cockpit environments", async () => {
     render(<App />);
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
 
-    expect(await screen.findByText("O3DE game creation desk")).toBeInTheDocument();
-    expect(screen.getByLabelText("Asset Forge workspace launcher")).toBeInTheDocument();
-    expect(screen.queryByLabelText("AI Asset Forge")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Forge top application menu")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Create with natural language/i }));
+    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
+    expect(screen.getByText("Game creation pipeline")).toBeInTheDocument();
+    expect(screen.getByText("Now open")).toBeInTheDocument();
+    expect(getDesktopNavButton(/Create Game/i)).toBeInTheDocument();
+    expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Mission Control/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Guidebook/i })).not.toBeInTheDocument();
 
+    fireEvent.click(screen.getAllByRole("button", { name: "Open Prompt Studio" })[0]);
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Home/i));
+    expect(await screen.findByText("Home start here")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Start Here/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Mission Control/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Guidebook/i })).toBeInTheDocument();
+
     fireEvent.click(getDesktopNavButton(/Create Movie/i));
-    expect(await screen.findByText("O3DE cinematic creation desk")).toBeInTheDocument();
+    expect((await screen.findAllByText("Create Movie Cockpit")).length).toBeGreaterThan(0);
+    expect(screen.getByText("Cinematic pipeline")).toBeInTheDocument();
+    expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
+
+    fireEvent.click(getDesktopNavButton(/Load Project/i));
+    expect((await screen.findAllByText("Load Project Cockpit")).length).toBeGreaterThan(0);
+    expect(screen.getByText("Project connection checklist")).toBeInTheDocument();
+    expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
+  });
+
+  it("opens Runtime and Asset Forge from Create Game cockpit actions", async () => {
+    render(<App />);
+
     fireEvent.click(getDesktopNavButton(/Create Game/i));
-    fireEvent.click(screen.getByRole("button", { name: /Check bridge\/runtime/i }));
+
+    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole("button", { name: "Open Runtime" })[0]);
 
     expect(await screen.findByText(
       "SystemStatusPanel stub",
@@ -287,6 +307,11 @@ describe("App desktop smoke", () => {
       { timeout: LAZY_SURFACE_TIMEOUT_MS },
     )).toBeInTheDocument();
     expect(screen.getByText("Runtime Console")).toBeInTheDocument();
+
+    fireEvent.click(getDesktopNavButton(/Create Game/i));
+    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole("button", { name: "Open Asset Forge" })[0]);
+    expect(await screen.findByLabelText("AI Asset Forge")).toBeInTheDocument();
   });
 
   it("opens Asset Forge as its own workspace and shows the Packet 01 studio shell", async () => {
@@ -320,12 +345,12 @@ describe("App desktop smoke", () => {
     expect(within(forgePanel).getByText("Name: Broken Keystone Span")).toBeInTheDocument();
   });
 
-  it("opens the full Asset Forge workspace from Create Game launcher", async () => {
+  it("opens the full Asset Forge workspace from Create Game cockpit", async () => {
     render(<App />);
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
-    const assetForgeLauncher = await screen.findByLabelText("Asset Forge workspace launcher");
-    const launchButton = within(assetForgeLauncher).getByRole("button", { name: "Open Asset Forge workspace" });
+    await screen.findAllByText("Create Game Cockpit");
+    const launchButton = screen.getAllByRole("button", { name: "Open Asset Forge" })[0];
 
     fireEvent.click(launchButton);
 
@@ -349,7 +374,7 @@ describe("App desktop smoke", () => {
     const backToHomeButton = screen.getByRole("button", { name: "Back to Home" });
     fireEvent.click(backToHomeButton);
 
-    expect(await screen.findByRole("button", { name: /Home/i })).toBeInTheDocument();
+    expect(await screen.findByText("Home start here")).toBeInTheDocument();
     expect(getDesktopNavButton(/Home/i)).toBeInTheDocument();
     expect(screen.queryByLabelText("AssetForgeWorkspacePage")).toBeNull();
   });

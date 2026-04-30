@@ -1,8 +1,8 @@
-import { Suspense, lazy, useState, type CSSProperties, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
-import type { HomeTaskModeId } from "../HomeTaskModePanel";
+import HomeCockpitLaunchPanel from "../HomeCockpitLaunchPanel";
 import MissionCardDeck from "../MissionCardDeck";
 import MissionTruthRail from "../MissionTruthRail";
 import { getShellWorkspaceGuide, getShellWorkspaceWindowGuide } from "../../content/operatorGuideShell";
@@ -15,12 +15,13 @@ type HomeWorkspaceViewProps = {
   launchpadContent: ReactNode;
   overviewContent: ReactNode;
   guideContent: ReactNode;
-  activeTaskModeId?: HomeTaskModeId;
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
-  onOpenBuilder?: () => void;
   onOpenAssetForge?: () => void;
   onOpenRecords?: () => void;
+  onOpenCreateGame?: () => void;
+  onOpenCreateMovie?: () => void;
+  onOpenLoadProject?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
@@ -32,7 +33,6 @@ type HomeWorkspaceViewProps = {
   latestRunId?: string | null;
   latestExecutionId?: string | null;
   latestArtifactId?: string | null;
-  onActiveTaskModeChange?: (modeId: HomeTaskModeId) => void;
 };
 
 const missionControlWindow = getShellWorkspaceWindowGuide("home", "mission-control");
@@ -40,7 +40,6 @@ const launchpadWindow = getShellWorkspaceWindowGuide("home", "launchpad");
 const overviewWindow = getShellWorkspaceWindowGuide("home", "operator-overview");
 const guidebookWindow = getShellWorkspaceWindowGuide("home", "guidebook");
 const homeWorkspace = getShellWorkspaceGuide("home");
-const HomeTaskModePanel = lazy(() => import("../HomeTaskModePanel"));
 
 const items: DesktopTabStripItem[] = [
   {
@@ -68,12 +67,13 @@ export default function HomeWorkspaceView({
   launchpadContent,
   overviewContent,
   guideContent,
-  activeTaskModeId,
   onOpenPromptStudio,
   onOpenRuntimeOverview,
-  onOpenBuilder,
   onOpenAssetForge,
   onOpenRecords,
+  onOpenCreateGame,
+  onOpenCreateMovie,
+  onOpenLoadProject,
   onLaunchPlacementProofTemplate,
   onViewLatestRun,
   onViewExecution,
@@ -85,7 +85,6 @@ export default function HomeWorkspaceView({
   latestRunId,
   latestExecutionId,
   latestArtifactId,
-  onActiveTaskModeChange,
 }: HomeWorkspaceViewProps) {
   const [activeSurfaceId, setActiveSurfaceId] = useState<HomeSurfaceId>("start");
 
@@ -154,16 +153,15 @@ export default function HomeWorkspaceView({
             onOpenRecords={onOpenRecords}
             onLaunchPlacementProofTemplate={onLaunchPlacementProofTemplate}
           />
-          <Suspense fallback={<div style={taskModeLoadingStyle}>Loading task launcher...</div>}>
-            <HomeTaskModePanel
-              activeModeId={activeTaskModeId}
-              onOpenPromptStudio={onOpenPromptStudio}
-              onOpenRuntimeOverview={onOpenRuntimeOverview}
-              onOpenBuilder={onOpenBuilder}
-              onOpenAssetForge={onOpenAssetForge}
-              onActiveModeChange={onActiveTaskModeChange}
-            />
-          </Suspense>
+          <HomeCockpitLaunchPanel
+            onOpenCreateGame={onOpenCreateGame}
+            onOpenCreateMovie={onOpenCreateMovie}
+            onOpenLoadProject={onOpenLoadProject}
+            onOpenPromptStudio={onOpenPromptStudio}
+            onOpenAssetForge={onOpenAssetForge}
+            onOpenRuntimeOverview={onOpenRuntimeOverview}
+            onOpenRecords={onOpenRecords}
+          />
           <DesktopWindow
             variant="nested"
             title={missionControlWindow.title}
@@ -230,14 +228,4 @@ const guidedGridStyle = {
 const guidedShellStyle = {
   display: "grid",
   gap: 16,
-} satisfies CSSProperties;
-
-const taskModeLoadingStyle = {
-  minHeight: 120,
-  display: "grid",
-  placeItems: "center",
-  border: "1px solid var(--app-panel-border)",
-  borderRadius: "var(--app-card-radius)",
-  background: "var(--app-panel-bg-muted)",
-  color: "var(--app-text-muted)",
 } satisfies CSSProperties;
