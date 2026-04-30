@@ -14,7 +14,7 @@ import {
 } from "../../content/operatorGuide";
 import type { BuilderRecommendationActionId, RecommendationDescriptor } from "../../lib/recommendations";
 
-type BuilderSurfaceId = "start" | "mission-control" | "active-lane" | "autonomy";
+type BuilderSurfaceId = "start" | "mission-control" | "active-lane" | "autonomy" | "cockpit-builder";
 
 type BuilderWorkspaceViewProps = {
   overviewContent: ReactNode;
@@ -24,6 +24,7 @@ type BuilderWorkspaceViewProps = {
   workerLifecycleContent: ReactNode;
   terminalsContent: ReactNode;
   autonomyInboxContent: ReactNode;
+  cockpitBuilderContent?: ReactNode;
   recommendations?: readonly RecommendationDescriptor<BuilderRecommendationActionId>[];
   guidedMode?: boolean;
 };
@@ -36,6 +37,18 @@ const workerLifecycleWindow = getWorkspaceWindowGuide("builder", "worker-lifecyc
 const workerTerminalsWindow = getWorkspaceWindowGuide("builder", "worker-terminals");
 const autonomyInboxWindow = getWorkspaceWindowGuide("builder", "autonomy-inbox");
 const builderWorkspace = getWorkspaceGuide("builder");
+const cockpitBuilderWindow = {
+  title: "Cockpit Builder",
+  subtitle: "Generate cockpit definition JSON previews and session-only launcher prototypes.",
+  tooltip: "Use Cockpit Builder to scaffold a new cockpit definition safely before committing registry code changes.",
+  instructions: [
+    "Fill the cockpit fields to generate a definition preview; route key and panel metadata update live.",
+    "Copy JSON or save a session-only Home preview for local validation; this does not write files.",
+    "Keep prompt templates preview-only with autoExecute=false and explicit safety labels.",
+    "List blocked capabilities with reason and next unlock so future packets stay truthful.",
+    "Commit finalized definitions in a separate reviewed slice to make them first-class cockpit apps.",
+  ],
+};
 
 const items: DesktopTabStripItem[] = [
   {
@@ -62,6 +75,12 @@ const items: DesktopTabStripItem[] = [
     detail: "Review the Builder inbox and related guidance in its own quieter surface.",
     helpTooltip: autonomyInboxWindow.tooltip,
   },
+  {
+    id: "cockpit-builder",
+    label: "Cockpit Builder",
+    detail: "Generate cockpit JSON definitions, preview safe metadata, and stage session-only launcher drafts.",
+    helpTooltip: cockpitBuilderWindow.tooltip,
+  },
 ];
 
 export default function BuilderWorkspaceView({
@@ -72,6 +91,7 @@ export default function BuilderWorkspaceView({
   workerLifecycleContent,
   terminalsContent,
   autonomyInboxContent,
+  cockpitBuilderContent,
   recommendations = [],
   guidedMode = true,
 }: BuilderWorkspaceViewProps) {
@@ -100,6 +120,8 @@ export default function BuilderWorkspaceView({
         }
       : activeSurfaceId === "autonomy"
         ? autonomyInboxWindow
+        : activeSurfaceId === "cockpit-builder"
+          ? cockpitBuilderWindow
         : {
             title: "Builder start here",
             subtitle: "Begin with lane setup and current state before drilling into coordination or worker-specific tools.",
@@ -181,14 +203,34 @@ export default function BuilderWorkspaceView({
       </DesktopWindow>
     </div>
   ) : (
-    <DesktopWindow
-      variant="nested"
-      title={autonomyInboxWindow.title}
-      subtitle={autonomyInboxWindow.subtitle}
-      helpTooltip={autonomyInboxWindow.tooltip}
-    >
-      {autonomyInboxContent}
-    </DesktopWindow>
+    activeSurfaceId === "autonomy" ? (
+      <DesktopWindow
+        variant="nested"
+        title={autonomyInboxWindow.title}
+        subtitle={autonomyInboxWindow.subtitle}
+        helpTooltip={autonomyInboxWindow.tooltip}
+      >
+        {autonomyInboxContent}
+      </DesktopWindow>
+    ) : (
+      <DesktopWindow
+        variant="nested"
+        title={cockpitBuilderWindow.title}
+        subtitle={cockpitBuilderWindow.subtitle}
+        helpTooltip={cockpitBuilderWindow.tooltip}
+        guideTitle="How to use this window"
+        guideChecklist={cockpitBuilderWindow.instructions}
+      >
+        {cockpitBuilderContent ?? (
+          <article style={builderInfoCardStyle}>
+            <strong>Cockpit Builder panel unavailable</strong>
+            <p style={builderInfoDetailStyle}>
+              Attach a Cockpit Builder panel to this surface to generate local JSON cockpit previews.
+            </p>
+          </article>
+        )}
+      </DesktopWindow>
+    )
   );
 
   const cockpitPanels: CockpitPanelDefinition[] = [

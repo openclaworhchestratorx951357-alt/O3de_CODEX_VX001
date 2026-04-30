@@ -63,6 +63,7 @@ import type {
   CodexControlWorktree,
 } from "../../types/contracts";
 import ActionReviewCard from "../ActionReviewCard";
+import CockpitBuilderPanel from "../cockpits/CockpitBuilderPanel";
 import {
   INITIAL_AUTONOMY_JOB_DRAFT,
   INITIAL_AUTONOMY_OBJECTIVE_DRAFT,
@@ -4801,6 +4802,19 @@ export default function BuilderWorkspaceDesktop() {
     </div>
   );
 
+  const cockpitBuilderContent = (
+    <div style={stackStyle}>
+      <article style={summaryCardStyle}>
+        <strong>Instant cockpit builder</strong>
+        <p style={mutedParagraphStyle}>
+          Build cockpit definitions in one place, copy JSON previews, and stage session-only launcher previews.
+          This panel does not execute prompts, dispatch backend tools, or write files.
+        </p>
+      </article>
+      <CockpitBuilderPanel />
+    </div>
+  );
+
   return (
     <BuilderWorkspaceView
       overviewContent={overviewContent}
@@ -4810,6 +4824,7 @@ export default function BuilderWorkspaceDesktop() {
       workerLifecycleContent={workerLifecycleContent}
       terminalsContent={terminalsContent}
       autonomyInboxContent={autonomyInboxContent}
+      cockpitBuilderContent={cockpitBuilderContent}
       recommendations={builderRecommendations}
       guidedMode={settings.layout.guidedMode}
     />

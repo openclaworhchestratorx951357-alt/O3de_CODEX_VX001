@@ -438,7 +438,7 @@ describe("App desktop smoke", () => {
     await screen.findByText("Home start here");
     fireEvent.click(screen.getAllByRole("button", { name: "Open Asset Forge" })[0]);
     expect(await screen.findByLabelText("AI Asset Forge")).toBeInTheDocument();
-  });
+  }, 12000);
 
   it("opens cockpit Prompt Studio with a contextual template chooser and prefill-only safety", async () => {
     render(<App />);

@@ -14,6 +14,7 @@ describe("BuilderWorkspaceView", () => {
         workerLifecycleContent={<div>Worker lifecycle content</div>}
         terminalsContent={<div>Managed terminals content</div>}
         autonomyInboxContent={<div>Autonomy inbox content</div>}
+        cockpitBuilderContent={<div>Cockpit builder content</div>}
       />,
     );
 
@@ -45,6 +46,10 @@ describe("BuilderWorkspaceView", () => {
     expect(screen.getByText("Autonomy inbox content")).toBeInTheDocument();
     expect(screen.getAllByText(/Use the inbox summary cards to see whether there are active objectives/i).length).toBeGreaterThan(0);
     expect(screen.queryByText("Mission board content")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByRole("button", { name: /cockpit builder/i })[0]);
+    expect(screen.getByText("Cockpit builder content")).toBeInTheDocument();
+    expect(screen.getAllByText(/Copy JSON or save a session-only Home preview/i).length).toBeGreaterThan(0);
   });
 
   it("uses Builder recommendations to switch nested surfaces", () => {
@@ -57,6 +62,7 @@ describe("BuilderWorkspaceView", () => {
         workerLifecycleContent={<div>Worker lifecycle content</div>}
         terminalsContent={<div>Managed terminals content</div>}
         autonomyInboxContent={<div>Autonomy inbox content</div>}
+        cockpitBuilderContent={<div>Cockpit builder content</div>}
         recommendations={[
           {
             id: "builder-autonomy",
