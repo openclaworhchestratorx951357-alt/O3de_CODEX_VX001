@@ -731,12 +731,10 @@ describe("App desktop smoke", () => {
     fireEvent.click(getDesktopNavButton(/Asset Forge/i));
 
     const forgePanel = await screen.findByLabelText("AI Asset Forge");
-    expect(screen.getByLabelText("AppHeader")).toBeInTheDocument();
     expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
+    expect(screen.getByText("Control surface")).toBeInTheDocument();
     expect(screen.getAllByText(/Asset Forge/i).length).toBeGreaterThan(0);
-    expect(screen.queryByText("ACTIVE WORKSPACE Home")).toBeNull();
-    expect(screen.queryByText("Control surface")).toBeNull();
-    expect(screen.queryByText("Create Game")).toBeNull();
+    expect(screen.queryByText("Home start here")).toBeNull();
     expect(screen.queryByLabelText("O3DE game creation desk")).toBeNull();
     expect(within(forgePanel).getByLabelText("Asset Forge studio header")).toBeInTheDocument();
     expect(within(forgePanel).getByText("Generate, prepare, and stage O3DE-ready 3D assets.")).toBeInTheDocument();
@@ -756,7 +754,7 @@ describe("App desktop smoke", () => {
     expect(within(forgePanel).getByText("Name: Broken Keystone Span")).toBeInTheDocument();
   });
 
-  it("opens the full Asset Forge workspace from Create Game cockpit", async () => {
+  it("opens Asset Forge from Create Game cockpit while keeping App OS shell navigation", async () => {
     render(<App />);
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
@@ -766,12 +764,10 @@ describe("App desktop smoke", () => {
     fireEvent.click(launchButton);
 
     const forgePanel = await screen.findByLabelText("AI Asset Forge");
-    expect(screen.getByLabelText("AppHeader")).toBeInTheDocument();
     expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
+    expect(screen.getByText("Control surface")).toBeInTheDocument();
     expect(screen.queryByLabelText("O3DE game creation desk")).toBeNull();
-    expect(screen.queryByText("ACTIVE WORKSPACE Home")).toBeNull();
-    expect(screen.queryByText("Control surface")).toBeNull();
-    expect(screen.queryByText("Create Game")).toBeNull();
+    expect(screen.queryByText("Home start here")).toBeNull();
     expect(within(forgePanel).getByLabelText("Asset Forge studio header")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Asset Forge candidate gallery")).toBeInTheDocument();
   });
@@ -908,18 +904,17 @@ describe("App desktop smoke", () => {
     expect(screen.queryByLabelText("Mission handoff resume checklist")).not.toBeInTheDocument();
   });
 
-  it("returns to Home from the Asset Forge app header", async () => {
+  it("returns to Home from Asset Forge via App OS workspace navigation", async () => {
     render(<App />);
 
     fireEvent.click(getDesktopNavButton(/Asset Forge/i));
 
     await screen.findByLabelText("AssetForgeWorkspacePage");
-    const backToHomeButton = screen.getByRole("button", { name: "Back to Home" });
-    fireEvent.click(backToHomeButton);
+    fireEvent.click(getDesktopNavButton(/Home/i));
 
     expect(await screen.findByText("Home start here")).toBeInTheDocument();
     expect(getDesktopNavButton(/Home/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText("AssetForgeWorkspacePage")).toBeNull();
+    expect(screen.getByLabelText("AssetForgeWorkspacePage")).toHaveAttribute("aria-hidden", "true");
   });
 
   it("shows a truthful empty catalog state instead of fallback agent data when live catalog data is unavailable", async () => {
