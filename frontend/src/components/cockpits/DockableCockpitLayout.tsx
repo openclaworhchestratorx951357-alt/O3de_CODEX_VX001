@@ -581,7 +581,7 @@ const dropSlotStyle = {
 } satisfies CSSProperties;
 
 const dropSlotActiveStyle = {
-  borderColor: "var(--app-accent)",
+  border: "1px dashed var(--app-accent)",
   background: "color-mix(in srgb, var(--app-accent) 22%, transparent)",
   boxShadow: "0 0 0 1px color-mix(in srgb, var(--app-accent) 30%, transparent)",
 } satisfies CSSProperties;
@@ -598,7 +598,7 @@ const emptyZoneStyle = {
 } satisfies CSSProperties;
 
 const emptyZoneActiveStyle = {
-  borderColor: "var(--app-accent)",
+  border: "1px dashed var(--app-accent)",
   color: "var(--app-text-color)",
   background: "color-mix(in srgb, var(--app-accent) 18%, transparent)",
 } satisfies CSSProperties;

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   clearCockpitLayoutState,
   createCockpitLayoutStateFromPreset,
+  moveCockpitPanelToZone,
   readCockpitLayoutState,
   writeCockpitLayoutState,
 } from "./cockpitLayoutStore";
@@ -75,5 +76,25 @@ describe("cockpitLayoutStore", () => {
     const parsed = JSON.parse(raw ?? "{}") as Record<string, unknown>;
     expect(parsed["create-game"]).toBeUndefined();
     expect(parsed["load-project"]).toBeDefined();
+  });
+
+  it("reset path clears persisted moved layout for a cockpit", () => {
+    const defaultLayout = createCockpitLayoutStateFromPreset("create-game", panels, "balanced");
+    const movedLayout = moveCockpitPanelToZone(
+      defaultLayout,
+      "panel-a",
+      "right",
+      0,
+      panels,
+    );
+
+    writeCockpitLayoutState(movedLayout);
+    clearCockpitLayoutState("create-game");
+
+    const reloaded = readCockpitLayoutState("create-game", panels);
+    const freshDefault = createCockpitLayoutStateFromPreset("create-game", panels, "balanced");
+
+    expect(reloaded.zones).toEqual(freshDefault.zones);
+    expect(reloaded.collapsedPanelIds).toEqual([]);
   });
 });
