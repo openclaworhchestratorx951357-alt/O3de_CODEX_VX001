@@ -69,7 +69,7 @@ Current status set:
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag design packet:
+Asset Forge placement proof-only admission-flag release-readiness decision packet:
 
 - define exact assignment-design candidate boundaries before proof/admission
 - preserve review-packet hold-state and non-admission constraints

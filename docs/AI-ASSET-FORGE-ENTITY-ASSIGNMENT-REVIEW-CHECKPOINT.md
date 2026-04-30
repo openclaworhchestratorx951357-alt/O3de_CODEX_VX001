@@ -72,7 +72,7 @@ Current reason set:
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag design:
+Asset Forge placement proof-only admission-flag release-readiness decision:
 
 - record hold/go decision for assignment-design surface broadening
 - preserve plan-only/non-authorizing boundaries unless a future admission packet

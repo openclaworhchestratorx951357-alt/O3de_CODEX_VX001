@@ -78,7 +78,7 @@ the next packet selection while this hold checkpoint remains stable.
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag design:
+Asset Forge placement proof-only admission-flag release-readiness decision:
 
 - tighten provider preflight no-provider-call safeguards and evidence wording
 - preserve stage-plan/stage-write/readback non-authorizing boundaries

@@ -183,7 +183,7 @@ The following patterns are now established:
 - GUI shell taxonomy parity checkpoint + quick-reference refresh (completed)
 - Asset Forge stage-write admission-flag verification refresh (completed)
 - AI Asset Forge operator review packet implementation + boundary regression refresh (completed)
-- Asset Forge placement proof-only admission-flag design (next)
+- Asset Forge placement proof-only admission-flag release-readiness decision (next)
 
 ## App-wide domains
 

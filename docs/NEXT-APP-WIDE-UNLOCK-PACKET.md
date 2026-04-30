@@ -1,8 +1,8 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Asset Forge placement proof-only admission-flag design
-(`codex/ai-asset-forge-placement-proof-only-admission-flag-design`).
+Asset Forge placement proof-only admission-flag release-readiness decision
+(`codex/ai-asset-forge-placement-proof-only-admission-flag-release-readiness-decision`).
 
 ## Why this is next
 - GUI shell taxonomy parity checkpoint + quick-reference refresh packet is now
@@ -18,18 +18,22 @@ Asset Forge placement proof-only admission-flag design
   refresh is now checkpointed under explicit proof-only/non-admitting
   constraints.
 - Asset Forge placement readiness matrix refresh recommendation roll-forward is
-  now complete, and that packet explicitly hands off to placement proof-only
+  now complete, and that packet explicitly handed off to placement proof-only
   admission-flag design.
-- The next highest-value gate is tightening placement proof-only admission-flag
-  identity/state/evidence semantics while keeping provider generation, Blender
-  execution, Asset Processor admission, assignment, and placement runtime
-  execution unadmitted.
+- Placement proof-only admission-flag verification hardening is now complete
+  with explicit placement/editor missing/off/invalid/on fail-closed coverage,
+  while provider generation, Blender execution, Asset Processor admission,
+  assignment, and placement runtime execution remain unadmitted.
+- The next highest-value gate is recording an explicit release-readiness
+  hold/no-go decision from that verified admission-flag evidence baseline.
 
 ## Scope
-- produce a focused Asset Forge placement proof-only admission-flag design
-  packet
-- record explicit placement proof-only admission-flag identity, state model,
-  and fail-closed evidence boundaries
+- produce a focused Asset Forge placement proof-only admission-flag
+  release-readiness decision packet
+- record an explicit hold/no-go decision from verified placement/editor
+  admission-flag state/evidence outcomes
+- preserve explicit admission-flag identity, state model, and fail-closed
+  evidence boundaries
 - preserve explicit blocked-status language for assignment/placement execution
   in this packet
 - keep recommendation surfaces aligned to this next packet across capability,
@@ -53,7 +57,7 @@ Asset Forge placement proof-only admission-flag design
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- Asset Forge placement proof-only admission-flag design recommendation wording is
+- Asset Forge placement proof-only admission-flag release-readiness decision recommendation wording is
   deterministic and aligned across shell recommendation surfaces
 - explicit hold gates remain reviewable and non-admitting:
   assignment/placement execution stays blocked without a separate future
@@ -73,7 +77,8 @@ Asset Forge placement proof-only admission-flag design
 
 ## Alternative considered
 Direct placement runtime-admission broadening without first tightening
-placement proof-only admission-flag design boundaries.
+placement proof-only admission-flag release-readiness boundaries.
 
 This remains deferred for safety. Keep placement proof-only admission-flag
-design boundaries explicit first, then consider any future admission revisit.
+release-readiness boundaries explicit first, then consider any future admission
+revisit.

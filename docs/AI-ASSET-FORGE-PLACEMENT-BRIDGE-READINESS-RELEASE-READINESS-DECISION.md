@@ -85,7 +85,7 @@ re-verified:
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag design:
+Asset Forge placement proof-only admission-flag release-readiness decision:
 
 - checkpoint held release posture and stream handoff boundaries
 - preserve non-authorizing placement execution boundaries

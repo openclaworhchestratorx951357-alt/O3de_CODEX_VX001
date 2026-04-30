@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag design
-(`codex/ai-asset-forge-placement-proof-only-admission-flag-design`):
+Asset Forge placement proof-only admission-flag release-readiness decision
+(`codex/ai-asset-forge-placement-proof-only-admission-flag-release-readiness-decision`):
 
 - keep approval/session baseline + shell + timeline wording aligned under
   server-owned authorization truth and fail-closed gate-state semantics

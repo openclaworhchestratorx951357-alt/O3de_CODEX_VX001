@@ -69,5 +69,5 @@ server-owned authorization truth without widening runtime admission.
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag design
-(`codex/ai-asset-forge-placement-proof-only-admission-flag-design`).
+Asset Forge placement proof-only admission-flag release-readiness decision
+(`codex/ai-asset-forge-placement-proof-only-admission-flag-release-readiness-decision`).

@@ -80,7 +80,7 @@ Result summary:
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag design:
+Asset Forge placement proof-only admission-flag release-readiness decision:
 
 - tighten Blender preflight no-execution safeguards and evidence wording
 - preserve provider/stage-plan/stage-write/readback non-authorizing boundaries

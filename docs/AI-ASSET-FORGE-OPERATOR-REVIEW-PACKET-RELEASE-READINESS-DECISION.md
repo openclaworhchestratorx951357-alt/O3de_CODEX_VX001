@@ -75,7 +75,7 @@ re-verified:
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag design:
+Asset Forge placement proof-only admission-flag release-readiness decision:
 
 - define exact assignment-design candidate boundaries before proof/admission
 - preserve review-packet hold-state and non-admission constraints
