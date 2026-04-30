@@ -2469,6 +2469,46 @@ def test_asset_forge_o3de_review_packet_blocks_when_provenance_is_missing() -> N
                 assert payload["source"] == "asset-forge-o3de-operator-review-packet"
 
 
+def test_asset_forge_o3de_review_packet_keeps_blocked_status_when_operator_decision_is_supplied() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as project_dir:
+        project_root = Path(project_dir)
+        source_relative = "Assets/Generated/asset_forge/candidate_a/candidate_a.glb"
+        source_path = project_root / source_relative
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_bytes(b"staged-source-bytes")
+
+        with patch.dict(
+            "os.environ",
+            {"O3DE_TARGET_PROJECT_ROOT": str(project_root)},
+            clear=False,
+        ):
+            with isolated_client() as client:
+                response = client.post(
+                    "/asset-forge/o3de/review-packet",
+                    json={
+                        "candidate_id": "candidate-a",
+                        "candidate_label": "Weathered Ivy Arch",
+                        "source_asset_relative_path": source_relative,
+                        "provenance_metadata_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.forge.json",
+                        "selected_platform": "pc",
+                        "operator_decision": "approve_assignment_design_only",
+                    },
+                )
+                assert response.status_code == 200
+                payload = response.json()
+                assert payload["review_status"] == "missing_provenance"
+                assert "Provenance metadata" in payload["blocked_reason"]
+                assert payload["operator_decision"] == "approve_assignment_design_only"
+                assert any(
+                    "Operator decision was recorded but evidence gates remain blocked"
+                    in warning
+                    for warning in payload["warnings"]
+                )
+                assert "Provide a valid .forge.json" in payload["next_safest_step"]
+                assert payload["read_only"] is True
+                assert payload["mutation_occurred"] is False
+
+
 def test_asset_forge_o3de_review_packet_reports_structured_read_only_evidence() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as project_dir:
         project_root = Path(project_dir)
@@ -2843,6 +2883,32 @@ def test_asset_forge_o3de_review_packet_supports_ready_and_approved_decision_sta
                     "read-only and non-authorizing"
                     in approved_payload["o3de_source"]["staging_approval_source"]
                 )
+
+                license_review_response = client.post(
+                    "/asset-forge/o3de/review-packet",
+                    json={
+                        "candidate_id": "candidate-ready",
+                        "candidate_label": "Candidate Ready",
+                        "source_asset_relative_path": source_relative,
+                        "provenance_metadata_relative_path": provenance_relative,
+                        "selected_platform": "pc",
+                        "operator_decision": "request_license_review",
+                    },
+                )
+                assert license_review_response.status_code == 200
+                license_review_payload = license_review_response.json()
+                assert license_review_payload["review_status"] == "license_review_required"
+                assert (
+                    license_review_payload["blocked_reason"]
+                    == "Operator requested explicit license/commercial-use review."
+                )
+                assert license_review_payload["operator_decision"] == "request_license_review"
+                assert (
+                    "Record explicit license/commercial-use disposition"
+                    in license_review_payload["next_safest_step"]
+                )
+                assert license_review_payload["read_only"] is True
+                assert license_review_payload["mutation_occurred"] is False
 
 
 def _prepare_assignment_design_ready_project(project_root: Path) -> tuple[str, str]:

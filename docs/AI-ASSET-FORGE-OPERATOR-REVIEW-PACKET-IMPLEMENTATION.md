@@ -1,6 +1,6 @@
 ﻿# AI Asset Forge Operator Review Packet Implementation
 
-Status: implemented (proof-only review packet output; no execution/mutation admission)
+Status: implemented + boundary regression refresh (proof-only review packet output; no execution/mutation admission)
 
 ## Purpose
 
@@ -36,6 +36,11 @@ project-local provenance metadata.
   - no provider/Blender/Asset Processor execution
   - no assignment/placement execution
   - no project writes
+- follow-on boundary hardening:
+  - added regression coverage to prove operator decision fields cannot override
+    blocked evidence gates
+  - added regression coverage for `request_license_review` decision-state
+    mapping under ready evidence
 
 ## Files
 
@@ -52,6 +57,10 @@ project-local provenance metadata.
 - `python -m pytest backend/tests/test_validation_report_intake.py backend/tests/test_api_routes.py -k "stage_write or validation_report_intake or review_packet" -q`
 - `git diff --check`
 - `git diff --cached --check`
+
+Latest refresh evidence:
+
+- `python -m pytest backend/tests/test_validation_report_intake.py backend/tests/test_api_routes.py -k "stage_write or validation_report_intake or review_packet"` -> `40 passed, 117 deselected`
 
 ## Boundaries preserved
 
