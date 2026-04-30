@@ -43,7 +43,7 @@ export const appWorkspaceStatusChipRows: readonly WorkspaceStatusChipRow[] = [
     summary:
       "Read-only editor property readback long-hold posture remains explicit while write/restore scope stays exact and narrow.",
     boundary: "read-only review only",
-    nextGate: "Asset Forge placement readiness matrix refresh",
+    nextGate: "Asset Forge placement proof-only admission-flag design",
   },
   {
     workspace: "Settings inspect review lane",
@@ -52,7 +52,7 @@ export const appWorkspaceStatusChipRows: readonly WorkspaceStatusChipRow[] = [
     summary:
       "Read-only settings inspection remains admitted through project.inspect include_settings with explicit requested/matched/missing settings evidence wording.",
     boundary: "read-only only",
-    nextGate: "Asset Forge placement readiness matrix refresh",
+    nextGate: "Asset Forge placement proof-only admission-flag design",
   },
   {
     workspace: "Build configure preflight review lane",
@@ -61,7 +61,7 @@ export const appWorkspaceStatusChipRows: readonly WorkspaceStatusChipRow[] = [
     summary:
       "Real configure preflight remains dry_run-only with plan/provenance evidence; configure command execution is still not admitted in this lane.",
     boundary: "no configure mutation or build execute admission",
-    nextGate: "Asset Forge placement readiness matrix refresh",
+    nextGate: "Asset Forge placement proof-only admission-flag design",
   },
   {
     workspace: "Build execution long-hold lane",
@@ -70,7 +70,7 @@ export const appWorkspaceStatusChipRows: readonly WorkspaceStatusChipRow[] = [
     summary:
       "Long-hold checkpoint keeps hold/no-go posture explicit for build.execute.real broadening while preserving named-target execution controls and timeout/log/result evidence boundaries.",
     boundary: "explicit named-target gated execution only",
-    nextGate: "Asset Forge placement readiness matrix refresh",
+    nextGate: "Asset Forge placement proof-only admission-flag design",
   },
   {
     workspace: "Asset Forge stage write",
@@ -87,7 +87,7 @@ export const appWorkspaceStatusChipRows: readonly WorkspaceStatusChipRow[] = [
     summary:
       "Narrow mutation path stays admitted only for explicit manifest-backed patch scope; rollback remains bounded by class identity, backup linkage, and post-rollback readback evidence expectations.",
     boundary: "exact corridor only",
-    nextGate: "Asset Forge placement readiness matrix refresh",
+    nextGate: "Asset Forge placement proof-only admission-flag design",
   },
   {
     workspace: "Automation productization",
@@ -96,7 +96,7 @@ export const appWorkspaceStatusChipRows: readonly WorkspaceStatusChipRow[] = [
     summary:
       "Productization plan, audit-gate checklist, bounded productization design, security-review controls, operator-approval semantics, runtime-admission readiness audit, runtime-admission contract design, proof-only implementation, operator-examples checkpoint, release-readiness hold/no-go decision, and long-hold checkpoint are now documented; helper automation remains non-admitted.",
     boundary: "local helper only",
-    nextGate: "Asset Forge placement readiness matrix refresh",
+    nextGate: "Asset Forge placement proof-only admission-flag design",
   },
   {
     workspace: "Editor broad mutation",
@@ -104,7 +104,7 @@ export const appWorkspaceStatusChipRows: readonly WorkspaceStatusChipRow[] = [
     taxonomy: "blocked",
     summary: "Broad editor mutation remains blocked outside exact admitted corridors.",
     boundary: "no generic write corridor",
-    nextGate: "Asset Forge placement readiness matrix refresh",
+    nextGate: "Asset Forge placement proof-only admission-flag design",
   },
   {
     workspace: "Placement execution",
@@ -112,6 +112,6 @@ export const appWorkspaceStatusChipRows: readonly WorkspaceStatusChipRow[] = [
     taxonomy: "dry-run only",
     summary: "Placement planning and readiness stay dry-run-focused; execution remains unadmitted.",
     boundary: "no placement execution",
-    nextGate: "Asset Forge placement readiness matrix refresh",
+    nextGate: "Asset Forge placement proof-only admission-flag design",
   },
 ];

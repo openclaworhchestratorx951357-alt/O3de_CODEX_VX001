@@ -71,8 +71,8 @@ broadened.
 
 ## Recommended next packet
 
-Asset Forge placement readiness matrix refresh
-(`codex/ai-asset-forge-placement-readiness-matrix-refresh`):
+Asset Forge placement proof-only admission-flag design
+(`codex/ai-asset-forge-placement-proof-only-admission-flag-design`):
 
 - keep server-owned authorization and fail-closed gate-state wording aligned
   with the existing approval/session boundary model across baseline/shell

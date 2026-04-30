@@ -105,7 +105,7 @@ export default function AppEvidenceTimelineShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Asset Forge placement readiness matrix refresh</strong>.
+        Recommended next packet: <strong>Asset Forge placement proof-only admission-flag design</strong>.
       </p>
     </section>
   );

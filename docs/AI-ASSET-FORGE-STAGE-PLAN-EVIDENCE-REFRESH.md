@@ -86,7 +86,7 @@ Result summary:
 
 ## Recommended next packet
 
-Asset Forge placement readiness matrix refresh:
+Asset Forge placement proof-only admission-flag design:
 
 - tighten provider preflight no-provider-call safeguards and evidence wording
 - preserve stage-plan/stage-write/readback non-authorizing boundaries

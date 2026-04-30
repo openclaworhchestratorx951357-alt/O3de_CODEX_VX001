@@ -105,7 +105,7 @@ Result summary:
 
 ## Recommended next packet
 
-Asset Forge placement readiness matrix refresh:
+Asset Forge placement proof-only admission-flag design:
 
 - define exact bounded contract fields for a future runtime-admission candidate
 - define explicit no-go rules and non-goals for admission design scope

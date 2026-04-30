@@ -89,7 +89,7 @@ re-verified:
 
 ## Recommended next packet
 
-Asset Forge placement readiness matrix refresh:
+Asset Forge placement proof-only admission-flag design:
 
 - checkpoint held release posture and stream handoff boundaries
 - preserve proof-only blocked execution and non-authorizing posture

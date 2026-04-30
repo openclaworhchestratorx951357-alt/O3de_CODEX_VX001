@@ -52,5 +52,5 @@ Status taxonomy vocabulary aligned in this shell:
 
 ## Recommended next packet
 
-Asset Forge placement readiness matrix refresh
-(`codex/ai-asset-forge-placement-readiness-matrix-refresh`).
+Asset Forge placement proof-only admission-flag design
+(`codex/ai-asset-forge-placement-proof-only-admission-flag-design`).
