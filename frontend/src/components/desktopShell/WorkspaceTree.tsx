@@ -49,6 +49,17 @@ function resolveWorkspaceTreeDefaultViewMode(
   return "grouped";
 }
 
+function resolveWorkspaceTreeViewModeForSession(
+  configuredDefaultMode: WorkspaceTreeDefaultMode,
+): WorkspaceTreeViewMode {
+  const resolvedDefaultMode = resolveWorkspaceTreeDefaultViewMode(configuredDefaultMode);
+  if (configuredDefaultMode === "auto" && resolvedDefaultMode === "all") {
+    // In auto mode, small-height accessibility wins over stale session overrides.
+    return "all";
+  }
+  return readPersistedWorkspaceTreeViewMode() ?? resolvedDefaultMode;
+}
+
 export default function WorkspaceTree({
   activeWorkspaceId,
   activeNavItemId,
@@ -79,8 +90,7 @@ export default function WorkspaceTree({
   );
   const [expandedSectionIds, setExpandedSectionIds] = useState<string[]>(allSectionIds);
   const [viewMode, setViewMode] = useState<WorkspaceTreeViewMode>(() => (
-    readPersistedWorkspaceTreeViewMode()
-    ?? resolveWorkspaceTreeDefaultViewMode(workspaceTreeDefaultMode)
+    resolveWorkspaceTreeViewModeForSession(workspaceTreeDefaultMode)
   ));
 
   useEffect(() => {
@@ -103,11 +113,16 @@ export default function WorkspaceTree({
   }, [viewMode]);
 
   useEffect(() => {
+    const resolvedDefaultMode = resolveWorkspaceTreeDefaultViewMode(workspaceTreeDefaultMode);
+    if (workspaceTreeDefaultMode === "auto" && resolvedDefaultMode === "all") {
+      setViewMode("all");
+      return;
+    }
     const persistedViewMode = readPersistedWorkspaceTreeViewMode();
     if (persistedViewMode) {
       return;
     }
-    setViewMode(resolveWorkspaceTreeDefaultViewMode(workspaceTreeDefaultMode));
+    setViewMode(resolvedDefaultMode);
   }, [workspaceTreeDefaultMode]);
 
   function toggleNavSection(sectionId: string) {
