@@ -4159,6 +4159,64 @@ def test_prompt_session_plans_editor_component_property_read_from_added_componen
                 assert create_payload["refused_capabilities"] == []
 
 
+def test_prompt_session_plans_editor_component_property_read_from_allowlisted_component_phrase() -> None:
+    with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
+        project_root = Path(temp_dir)
+        (project_root / "project.json").write_text(
+            json.dumps(
+                {
+                    "project_name": "PromptEditorProject",
+                    "version": "1.0.0",
+                    "gem_names": ["PythonEditorBindings"],
+                }
+            ),
+            encoding="utf-8",
+        )
+        with patch.dict(
+            "os.environ",
+            {
+                "O3DE_ADAPTER_MODE": "hybrid",
+            },
+            clear=False,
+        ):
+            with isolated_client() as client:
+                create_response = client.post(
+                    "/prompt/sessions",
+                    json={
+                        "prompt_id": "prompt-editor-property-plan-allowlisted-1",
+                        "prompt_text": (
+                            'Open level "Levels/Main.level", create entity named "Hero", '
+                            "add an allowlisted Mesh component, then read back the relevant component/property evidence."
+                        ),
+                        "project_root": str(project_root),
+                        "engine_root": "C:/engine",
+                        "dry_run": False,
+                        "preferred_domains": ["editor-control"],
+                    },
+                )
+                assert create_response.status_code == 200
+                create_payload = create_response.json()
+                assert create_payload["status"] == "planned"
+                assert [step["tool"] for step in create_payload["plan"]["steps"]] == [
+                    "editor.session.open",
+                    "editor.level.open",
+                    "editor.entity.create",
+                    "editor.component.add",
+                    "editor.component.property.get",
+                ]
+                assert create_payload["plan"]["steps"][3]["args"] == {
+                    "entity_id": "$step:editor-entity-1.entity_id",
+                    "components": ["Mesh"],
+                    "level_path": "Levels/Main.level",
+                }
+                assert create_payload["plan"]["steps"][4]["args"] == {
+                    "component_id": "$step:editor-component-1.added_component_refs[0].component_id",
+                    "property_path": "Controller|Configuration|Model Asset",
+                    "level_path": "Levels/Main.level",
+                }
+                assert create_payload["refused_capabilities"] == []
+
+
 def test_prompt_session_plans_live_component_find_without_property_list() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as temp_dir:
         project_root = Path(temp_dir)

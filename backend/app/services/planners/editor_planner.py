@@ -811,8 +811,8 @@ def plan_editor_prompt(
             elif entity_id is None:
                 quoted_values = extract_quoted_values(prompt_text)
                 entity_id = quoted_values[0] if quoted_values else None
-            component_name = None
-            if component_matches:
+            component_name = _extract_component_name(prompt_text)
+            if component_name is None and component_matches:
                 normalized_component_name = re.sub(
                     r"^(?:a|an|the)\s+",
                     "",
