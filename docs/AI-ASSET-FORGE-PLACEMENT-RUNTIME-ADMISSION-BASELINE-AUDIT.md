@@ -105,7 +105,7 @@ Result summary:
 
 ## Recommended next packet
 
-Asset Forge Blender preflight hardening:
+Asset Forge placement readiness matrix refresh:
 
 - define exact bounded contract fields for a future runtime-admission candidate
 - define explicit no-go rules and non-goals for admission design scope

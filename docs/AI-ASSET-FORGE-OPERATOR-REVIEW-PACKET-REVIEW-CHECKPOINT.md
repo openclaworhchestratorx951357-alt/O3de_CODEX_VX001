@@ -69,7 +69,7 @@ Current status set:
 
 ## Recommended next packet
 
-Asset Forge Blender preflight hardening packet:
+Asset Forge placement readiness matrix refresh packet:
 
 - define exact assignment-design candidate boundaries before proof/admission
 - preserve review-packet hold-state and non-admission constraints

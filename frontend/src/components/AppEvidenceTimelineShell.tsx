@@ -105,7 +105,7 @@ export default function AppEvidenceTimelineShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Asset Forge Blender preflight hardening</strong>.
+        Recommended next packet: <strong>Asset Forge placement readiness matrix refresh</strong>.
       </p>
     </section>
   );

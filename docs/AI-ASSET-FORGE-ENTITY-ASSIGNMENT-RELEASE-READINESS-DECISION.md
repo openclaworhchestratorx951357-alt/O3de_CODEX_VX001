@@ -81,7 +81,7 @@ re-verified:
 
 ## Recommended next packet
 
-Asset Forge Blender preflight hardening:
+Asset Forge placement readiness matrix refresh:
 
 - checkpoint held assignment-design posture and stream handoff boundaries
 - preserve plan-only/non-authorizing boundaries

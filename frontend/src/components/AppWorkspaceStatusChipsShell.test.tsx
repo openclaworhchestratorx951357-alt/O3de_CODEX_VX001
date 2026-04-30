@@ -42,6 +42,6 @@ describe("AppWorkspaceStatusChipsShell", () => {
         .length,
     ).toBeGreaterThan(0);
 
-    expect(screen.getByText("Asset Forge Blender preflight hardening", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Asset Forge placement readiness matrix refresh", { selector: "strong" })).toBeInTheDocument();
   });
 });

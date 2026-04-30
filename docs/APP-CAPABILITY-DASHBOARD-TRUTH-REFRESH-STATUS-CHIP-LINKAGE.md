@@ -39,5 +39,5 @@ shells.
 
 ## Recommended next packet
 
-Asset Forge Blender preflight hardening
-(`codex/ai-asset-forge-blender-preflight-hardening`).
+Asset Forge placement readiness matrix refresh
+(`codex/ai-asset-forge-placement-readiness-matrix-refresh`).

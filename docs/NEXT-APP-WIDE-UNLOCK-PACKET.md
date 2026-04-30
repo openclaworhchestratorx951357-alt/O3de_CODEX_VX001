@@ -1,8 +1,8 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Asset Forge Blender preflight hardening
-(`codex/ai-asset-forge-blender-preflight-hardening`).
+Asset Forge placement readiness matrix refresh
+(`codex/ai-asset-forge-placement-readiness-matrix-refresh`).
 
 ## Why this is next
 - GUI shell taxonomy parity checkpoint + quick-reference refresh packet is now
@@ -17,23 +17,25 @@ Asset Forge Blender preflight hardening
 - AI Asset Forge operator review packet implementation plus boundary regression
   refresh is now checkpointed under explicit proof-only/non-admitting
   constraints.
-- Asset Forge provider preflight hardening recommendation roll-forward is now
-  complete, and that packet explicitly hands off to Blender preflight
-  hardening.
-- The next highest-value gate is preserving Blender detection/probe evidence as
-  preflight-only while keeping provider generation, Blender execution, Asset
-  Processor admission, assignment, and placement execution unadmitted.
+- Asset Forge Blender preflight hardening recommendation roll-forward is now
+  complete, and that packet explicitly hands off to placement readiness matrix
+  refresh.
+- The next highest-value gate is refreshing dry-run placement readiness matrix
+  wording and evidence expectations while keeping provider generation, Blender
+  execution, Asset Processor admission, assignment, and placement runtime
+  execution unadmitted.
 
 ## Scope
-- produce a focused Asset Forge Blender preflight hardening
+- produce a focused Asset Forge placement readiness matrix refresh
   packet
-- record explicit no-execution and non-authorizing Blender preflight boundaries
+- record explicit dry-run placement-readiness and fail-closed evidence
+  boundaries
 - preserve explicit blocked-status language for assignment/placement execution
   in this packet
 - keep recommendation surfaces aligned to this next packet across capability,
   audit, workspace, timeline, and shell guidance
 - preserve explicit non-authorizing client-field posture and fail-closed
-  validation semantics in preflight guidance
+  validation semantics in placement-readiness guidance
 - keep provider/stage-plan/stage-write/readback/placement corridors explicitly
   non-broadened and fail-closed in this packet
 - preserve no-touch runtime zones and no-broadening posture
@@ -51,7 +53,7 @@ Asset Forge Blender preflight hardening
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- Asset Forge Blender preflight hardening recommendation wording is
+- Asset Forge placement readiness matrix refresh recommendation wording is
   deterministic and aligned across shell recommendation surfaces
 - explicit hold gates remain reviewable and non-admitting:
   assignment/placement execution stays blocked without a separate future
@@ -70,8 +72,8 @@ Asset Forge Blender preflight hardening
 - docs remain aligned with runtime/test truth
 
 ## Alternative considered
-Direct provider/Blender execution broadening without preserving explicit
-preflight-only, non-authorizing boundaries.
+Direct placement runtime-admission broadening without first refreshing dry-run
+placement-readiness matrix boundaries.
 
-This remains deferred for safety. Keep preflight boundaries explicit first, then
-consider any future admission revisit.
+This remains deferred for safety. Keep dry-run placement-readiness boundaries
+explicit first, then consider any future admission revisit.
