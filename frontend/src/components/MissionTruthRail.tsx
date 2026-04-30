@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 
+import type { PlacementProofOnlyReviewSnapshot } from "../lib/promptPlacementProofOnlyReview";
 import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../types/contracts";
 
 type MissionTruthRailProps = {
@@ -16,6 +17,7 @@ type MissionTruthRailProps = {
   latestRunId?: string | null;
   latestExecutionId?: string | null;
   latestArtifactId?: string | null;
+  latestPlacementProofOnlyReview?: PlacementProofOnlyReviewSnapshot | null;
   nextSafeAction: string;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
@@ -41,6 +43,16 @@ function valueOrUnknown(value: string | null | undefined, fallback: string): str
   return trimmed ? trimmed : fallback;
 }
 
+function flagValue(value: boolean | null | undefined): string {
+  if (value === true) {
+    return "true";
+  }
+  if (value === false) {
+    return "false";
+  }
+  return "unknown";
+}
+
 export default function MissionTruthRail({
   locationLabel,
   projectLabel,
@@ -55,6 +67,7 @@ export default function MissionTruthRail({
   latestRunId,
   latestExecutionId,
   latestArtifactId,
+  latestPlacementProofOnlyReview = null,
   nextSafeAction,
   onViewLatestRun,
   onViewExecution,
@@ -64,6 +77,7 @@ export default function MissionTruthRail({
   onOpenRuntimeOverview,
   onOpenRecords,
 }: MissionTruthRailProps) {
+  const placementProofReview = latestPlacementProofOnlyReview;
   const resolvedProjectPath = valueOrUnknown(projectPath, valueOrUnknown(bridgeStatus?.project_root, "not loaded"));
   const resolvedProjectLabel = valueOrUnknown(projectLabel, "unknown project");
   const bridgeLabel = bridgeStatus
@@ -90,6 +104,9 @@ export default function MissionTruthRail({
   if (!latestRunId) {
     warnings.push("no latest run selected");
   }
+  if (!placementProofReview) {
+    warnings.push("no latest placement proof-only snapshot selected");
+  }
 
   return (
     <section aria-label={`${locationLabel} mission truth rail`} style={styles.shell} data-testid="mission-truth-rail">
@@ -109,9 +126,48 @@ export default function MissionTruthRail({
         <TruthRow label="Latest execution" value={latestExecutionId ?? "no latest execution selected"} />
         <TruthRow label="Latest artifact" value={latestArtifactId ?? "no latest artifact selected"} />
       </div>
+      <section aria-label="Latest placement proof-only remediation snapshot" style={styles.snapshot}>
+        <strong>Latest placement proof-only remediation snapshot</strong>
+        {placementProofReview ? (
+          <div style={styles.grid}>
+            <TruthRow label="Capability" value={placementProofReview.capabilityName} />
+            <TruthRow label="Proof status" value={placementProofReview.proofStatus ?? "not reported"} />
+            <TruthRow label="Candidate id" value={placementProofReview.candidateId ?? "not reported"} />
+            <TruthRow label="Candidate label" value={placementProofReview.candidateLabel ?? "not reported"} />
+            <TruthRow label="Artifact reference" value={formatArtifactReference(placementProofReview.artifactLabel, placementProofReview.artifactId)} />
+            <TruthRow label="Staged source path" value={placementProofReview.stagedSourceRelativePath ?? "not reported"} />
+            <TruthRow label="Target level path" value={placementProofReview.targetLevelRelativePath ?? "not reported"} />
+            <TruthRow label="Target entity" value={placementProofReview.targetEntityName ?? "not reported"} />
+            <TruthRow label="Target component" value={placementProofReview.targetComponent ?? "not reported"} />
+            <TruthRow label="Stage-write evidence ref" value={placementProofReview.stageWriteEvidenceReference ?? "not reported"} />
+            <TruthRow label="Stage-write readback ref" value={placementProofReview.stageWriteReadbackReference ?? "not reported"} />
+            <TruthRow label="Stage-write readback status" value={placementProofReview.stageWriteReadbackStatus ?? "not reported"} />
+            <TruthRow label="Execution mode" value={placementProofReview.executionMode ?? "not reported"} />
+            <TruthRow label="Inspection surface" value={placementProofReview.inspectionSurface ?? "not reported"} />
+            <TruthRow label="execution_admitted" value={flagValue(placementProofReview.executionAdmitted)} />
+            <TruthRow label="placement_write_admitted" value={flagValue(placementProofReview.placementWriteAdmitted)} />
+            <TruthRow label="mutation_occurred" value={flagValue(placementProofReview.mutationOccurred)} />
+            <TruthRow label="read_only" value={flagValue(placementProofReview.readOnly)} />
+            <TruthRow label="Fail-closed reasons" value={placementProofReview.failClosedReasons.length > 0 ? placementProofReview.failClosedReasons.join(", ") : "not reported"} />
+            <TruthRow label="Server decision code" value={placementProofReview.serverDecisionCode ?? "not reported"} />
+            <TruthRow label="Server decision state" value={placementProofReview.serverDecisionState ?? "not reported"} />
+            <TruthRow label="Server status" value={placementProofReview.serverStatus ?? "not reported"} />
+            <TruthRow label="Server blocker reason" value={placementProofReview.serverReason ?? "not reported"} />
+            <TruthRow label="Server blocker remediation" value={placementProofReview.serverRemediation ?? "not reported"} />
+          </div>
+        ) : (
+          <p style={styles.detail}>no latest placement proof-only snapshot selected</p>
+        )}
+      </section>
 
       <p style={styles.detail}>
         Placement proof truth: `execution_admitted=false`, `placement_write_admitted=false`, `mutation_occurred=false` on fail-closed proof-only outcomes.
+      </p>
+      <p style={styles.detail}>
+        Real placement remains blocked: placement runtime execution is non-admitted, placement write is non-admitted, and no mutation occurred on proof-only results.
+      </p>
+      <p style={styles.detail}>
+        Next missing gate: exact placement admission corridor with server-owned approval/session truth, readback proof, and revert/restore proof.
       </p>
       <p style={styles.detail}><strong>Next safe action:</strong> {nextSafeAction}</p>
 
@@ -148,6 +204,16 @@ function TruthRow({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatArtifactReference(label: string | undefined, id: string | undefined): string {
+  if (!label && !id) {
+    return "not reported";
+  }
+  if (label && id) {
+    return `${label} (${id})`;
+  }
+  return label ?? id ?? "not reported";
+}
+
 const styles = {
   shell: {
     border: "1px solid var(--app-panel-border)",
@@ -174,6 +240,14 @@ const styles = {
     display: "grid",
     gap: 8,
     gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+  },
+  snapshot: {
+    display: "grid",
+    gap: 8,
+    border: "1px solid var(--app-panel-border)",
+    borderRadius: 8,
+    padding: "10px 12px",
+    background: "var(--app-panel-bg-muted)",
   },
   row: {
     display: "grid",

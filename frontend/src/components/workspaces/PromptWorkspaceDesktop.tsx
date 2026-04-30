@@ -8,6 +8,7 @@ type PromptWorkspaceDesktopProps = {
   selectedExecutorId: ComponentProps<typeof PromptControlPanel>["selectedExecutorId"];
   promptLaunchDraftRequest?: ComponentProps<typeof PromptControlPanel>["promptLaunchDraftRequest"];
   onReturnToSourceWorkspace?: ComponentProps<typeof PromptControlPanel>["onReturnToSourceWorkspace"];
+  onPlacementProofOnlyReviewChange?: ComponentProps<typeof PromptControlPanel>["onPlacementProofOnlyReviewChange"];
 };
 
 export default function PromptWorkspaceDesktop({
@@ -15,6 +16,7 @@ export default function PromptWorkspaceDesktop({
   selectedExecutorId,
   promptLaunchDraftRequest,
   onReturnToSourceWorkspace,
+  onPlacementProofOnlyReviewChange,
 }: PromptWorkspaceDesktopProps) {
   return (
     <PromptWorkspaceView
@@ -24,6 +26,7 @@ export default function PromptWorkspaceDesktop({
           selectedExecutorId={selectedExecutorId}
           promptLaunchDraftRequest={promptLaunchDraftRequest}
           onReturnToSourceWorkspace={onReturnToSourceWorkspace}
+          onPlacementProofOnlyReviewChange={onPlacementProofOnlyReviewChange}
         />
       )}
     />

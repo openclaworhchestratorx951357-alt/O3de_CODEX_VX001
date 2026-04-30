@@ -1,4 +1,5 @@
 import MissionTruthRail from "../MissionTruthRail";
+import type { PlacementProofOnlyReviewSnapshot } from "../../lib/promptPlacementProofOnlyReview";
 import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
 import {
   cinematicPlacementProofOnlyMissionPromptDraft,
@@ -30,6 +31,7 @@ type CreateMovieWorkspaceViewProps = {
   latestRunId?: string | null;
   latestExecutionId?: string | null;
   latestArtifactId?: string | null;
+  latestPlacementProofOnlyReview?: PlacementProofOnlyReviewSnapshot | null;
 };
 
 const pipelineSteps: CockpitPipelineStep[] = [
@@ -228,6 +230,7 @@ export default function CreateMovieWorkspaceView({
   latestRunId,
   latestExecutionId,
   latestArtifactId,
+  latestPlacementProofOnlyReview,
 }: CreateMovieWorkspaceViewProps) {
   const cardsWithActions = toolCards.map((card) => {
     if (card.actionLabel === "Open Asset Forge") {
@@ -297,6 +300,7 @@ export default function CreateMovieWorkspaceView({
           latestRunId={latestRunId ?? null}
           latestExecutionId={latestExecutionId ?? null}
           latestArtifactId={latestArtifactId ?? null}
+          latestPlacementProofOnlyReview={latestPlacementProofOnlyReview ?? null}
           nextSafeAction="Use proof-only placement templates for prop planning, then review evidence before any future admission request."
           onViewLatestRun={onViewLatestRun}
           onViewExecution={onViewExecution}

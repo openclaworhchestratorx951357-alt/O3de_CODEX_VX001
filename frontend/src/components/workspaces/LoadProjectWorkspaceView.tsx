@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 
 import MissionTruthRail from "../MissionTruthRail";
+import type { PlacementProofOnlyReviewSnapshot } from "../../lib/promptPlacementProofOnlyReview";
 import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
 import { inspectLoadProjectMissionPromptDraft } from "../../lib/missionPromptTemplates";
 import CockpitWorkspaceShell, {
@@ -26,6 +27,7 @@ type LoadProjectWorkspaceViewProps = {
   latestRunId?: string | null;
   latestExecutionId?: string | null;
   latestArtifactId?: string | null;
+  latestPlacementProofOnlyReview?: PlacementProofOnlyReviewSnapshot | null;
 };
 
 const checklistSteps: CockpitPipelineStep[] = [
@@ -227,6 +229,7 @@ export default function LoadProjectWorkspaceView({
   latestRunId,
   latestExecutionId,
   latestArtifactId,
+  latestPlacementProofOnlyReview,
 }: LoadProjectWorkspaceViewProps) {
   const cardsWithActions = toolCards.map((card) => {
     if (card.actionLabel === "Open Runtime Overview") {
@@ -286,6 +289,7 @@ export default function LoadProjectWorkspaceView({
         latestRunId={latestRunId ?? null}
         latestExecutionId={latestExecutionId ?? null}
         latestArtifactId={latestArtifactId ?? null}
+        latestPlacementProofOnlyReview={latestPlacementProofOnlyReview ?? null}
         nextSafeAction="Run a read-only inspect prompt before moving into Create Game or Create Movie cockpit actions."
         onViewLatestRun={onViewLatestRun}
         onViewExecution={onViewExecution}

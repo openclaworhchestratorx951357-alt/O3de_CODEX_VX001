@@ -392,6 +392,80 @@ describe("PromptControlPanel", () => {
     });
   });
 
+  it("emits the latest placement proof-only remediation snapshot for the selected session", async () => {
+    const onPlacementProofOnlyReviewChange = vi.fn();
+    const placementProofSession: PromptSessionRecord = {
+      ...makePlannedSession(),
+      prompt_id: "prompt-proof-1",
+      latest_child_responses: [
+        {
+          ok: true,
+          result: {
+            tool: "editor.placement.proof_only",
+            execution_mode: "simulated",
+            simulated: true,
+          },
+          execution_details: {
+            capability_name: "editor.placement.proof_only",
+            proof_status: "blocked",
+            candidate_id: "candidate-a",
+            candidate_label: "Weathered Ivy Arch",
+            staged_source_relative_path: "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+            target_level_relative_path: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+            target_entity_name: "AssetForgeCandidateA",
+            target_component: "Mesh",
+            stage_write_evidence_reference: "packet-10/stage-write-evidence.json",
+            stage_write_readback_reference: "packet-10/readback-evidence.json",
+            stage_write_readback_status: "succeeded",
+            artifact_id: "artifact-42",
+            artifact_label: "placement-proof-artifact",
+            execution_admitted: false,
+            placement_write_admitted: false,
+            mutation_occurred: false,
+            read_only: true,
+            fail_closed_reasons: ["server_approval:missing_session"],
+            source: "asset-forge-editor-placement-proof-only",
+            server_approval_evaluation: {
+              decision_state: "denied",
+              decision_code: "missing_session",
+              status: "missing",
+              reason: "No server-owned approval session was provided; endpoint remains blocked.",
+            },
+          },
+        },
+      ],
+      final_result_summary:
+        "Review result: succeeded_fail_closed_blocked. "
+        + "Server blocker remediation (missing_session): Prepare a server-owned approval session for this exact bounded request, then rerun this same proof-only prompt. "
+        + "No editor placement runtime command was admitted or executed.",
+    };
+    apiMocks.fetchPromptSessions.mockResolvedValue([placementProofSession]);
+    apiMocks.fetchPromptSession.mockResolvedValue(placementProofSession);
+
+    render(
+      <PromptControlPanel
+        onPlacementProofOnlyReviewChange={onPlacementProofOnlyReviewChange}
+      />,
+    );
+
+    await screen.findByText("Prompt Capability Registry");
+    await waitFor(() => {
+      const latestEmission = onPlacementProofOnlyReviewChange.mock.calls[
+        onPlacementProofOnlyReviewChange.mock.calls.length - 1
+      ]?.[0];
+      expect(latestEmission).toEqual(expect.objectContaining({
+        capabilityName: "editor.placement.proof_only",
+        candidateId: "candidate-a",
+        targetLevelRelativePath: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+        targetComponent: "Mesh",
+        executionAdmitted: false,
+        placementWriteAdmitted: false,
+        mutationOccurred: false,
+        serverDecisionCode: "missing_session",
+      }));
+    });
+  });
+
   it("shows approval pause continuity and child lineage after executing a selected prompt", async () => {
     const plannedSession = makePlannedSession();
 const waitingSession: PromptSessionRecord = {

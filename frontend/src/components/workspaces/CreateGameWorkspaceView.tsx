@@ -1,4 +1,5 @@
 import MissionTruthRail from "../MissionTruthRail";
+import type { PlacementProofOnlyReviewSnapshot } from "../../lib/promptPlacementProofOnlyReview";
 import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
 import {
   addAllowlistedMeshMissionPromptDraft,
@@ -30,6 +31,7 @@ type CreateGameWorkspaceViewProps = {
   latestRunId?: string | null;
   latestExecutionId?: string | null;
   latestArtifactId?: string | null;
+  latestPlacementProofOnlyReview?: PlacementProofOnlyReviewSnapshot | null;
 };
 
 const pipelineSteps: CockpitPipelineStep[] = [
@@ -237,6 +239,7 @@ export default function CreateGameWorkspaceView({
   latestRunId,
   latestExecutionId,
   latestArtifactId,
+  latestPlacementProofOnlyReview,
 }: CreateGameWorkspaceViewProps) {
   const cardsWithActions = toolCards.map((card) => ({
     ...card,
@@ -302,6 +305,7 @@ export default function CreateGameWorkspaceView({
           latestRunId={latestRunId ?? null}
           latestExecutionId={latestExecutionId ?? null}
           latestArtifactId={latestArtifactId ?? null}
+          latestPlacementProofOnlyReview={latestPlacementProofOnlyReview ?? null}
           nextSafeAction="Run one bounded prompt step, review evidence, then choose one next narrow action."
           onViewLatestRun={onViewLatestRun}
           onViewExecution={onViewExecution}

@@ -81,6 +81,7 @@ import {
   placementProofOnlyMissionPromptDraft,
   type MissionPromptDraft,
 } from "./lib/missionPromptTemplates";
+import type { PlacementProofOnlyReviewSnapshot } from "./lib/promptPlacementProofOnlyReview";
 import { useSettings } from "./lib/settings/hooks";
 import type { FocusedSection, TruthFilterState } from "./lib/laneController";
 import type {
@@ -651,6 +652,8 @@ export default function App() {
   ]);
   const [promptLaunchDraftRequest, setPromptLaunchDraftRequest] =
     useState<PromptLaunchDraftRequest | null>(null);
+  const [latestPlacementProofOnlyReview, setLatestPlacementProofOnlyReview] =
+    useState<PlacementProofOnlyReviewSnapshot | null>(null);
   const [promptReturnResumeChecklist, setPromptReturnResumeChecklist] =
     useState<PromptReturnResumeChecklist | null>(null);
   const [cockpitStageFocusHighlight, setCockpitStageFocusHighlight] =
@@ -8065,6 +8068,7 @@ export default function App() {
                 latestRunId={latestRunId}
                 latestExecutionId={latestExecutionId}
                 latestArtifactId={latestArtifactId}
+                latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
               />
             </Suspense>
           </div>
@@ -8155,6 +8159,7 @@ export default function App() {
               latestRunId={latestRunId}
               latestExecutionId={latestExecutionId}
               latestArtifactId={latestArtifactId}
+              latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
             />
           </div>
         ) : null}
@@ -8188,6 +8193,7 @@ export default function App() {
                 latestRunId={latestRunId}
                 latestExecutionId={latestExecutionId}
                 latestArtifactId={latestArtifactId}
+                latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
               />
             </Suspense>
           </div>
@@ -8222,6 +8228,7 @@ export default function App() {
                 latestRunId={latestRunId}
                 latestExecutionId={latestExecutionId}
                 latestArtifactId={latestArtifactId}
+                latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
               />
             </Suspense>
           </div>
@@ -8253,6 +8260,7 @@ export default function App() {
                 latestRunId={latestRunId}
                 latestExecutionId={latestExecutionId}
                 latestArtifactId={latestArtifactId}
+                latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
               />
             </Suspense>
           </div>
@@ -8274,6 +8282,7 @@ export default function App() {
                 selectedExecutorId={selectedExecutorId}
                 promptLaunchDraftRequest={promptLaunchDraftRequest}
                 onReturnToSourceWorkspace={returnToSourceWorkspaceFromPrompt}
+                onPlacementProofOnlyReviewChange={setLatestPlacementProofOnlyReview}
               />
             </Suspense>
           </div>

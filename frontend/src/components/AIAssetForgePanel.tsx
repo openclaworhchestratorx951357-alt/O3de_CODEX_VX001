@@ -3,6 +3,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import AssetForgeStudioPacket01 from "./AssetForgeStudioPacket01";
 import AssetForgeGuidedPipeline from "./AssetForgeGuidedPipeline";
 import MissionTruthRail from "./MissionTruthRail";
+import type { PlacementProofOnlyReviewSnapshot } from "../lib/promptPlacementProofOnlyReview";
 import {
   fetchAssetForgeBlenderStatus,
   fetchAssetForgeProviderStatus,
@@ -41,6 +42,7 @@ type AIAssetForgePanelProps = {
   latestRunId?: string | null;
   latestExecutionId?: string | null;
   latestArtifactId?: string | null;
+  latestPlacementProofOnlyReview?: PlacementProofOnlyReviewSnapshot | null;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
@@ -122,6 +124,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
         latestRunId={props.latestRunId ?? null}
         latestExecutionId={props.latestExecutionId ?? null}
         latestArtifactId={props.latestArtifactId ?? null}
+        latestPlacementProofOnlyReview={props.latestPlacementProofOnlyReview ?? null}
         nextSafeAction="Open Prompt Studio and run the bounded placement proof-only template, then review persisted evidence."
         onViewLatestRun={props.onViewLatestRun}
         onViewExecution={props.onViewExecution}

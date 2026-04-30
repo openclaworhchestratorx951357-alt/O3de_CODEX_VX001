@@ -5,6 +5,7 @@ import DesktopWindow from "../DesktopWindow";
 import HomeCockpitLaunchPanel from "../HomeCockpitLaunchPanel";
 import MissionCardDeck from "../MissionCardDeck";
 import MissionTruthRail from "../MissionTruthRail";
+import type { PlacementProofOnlyReviewSnapshot } from "../../lib/promptPlacementProofOnlyReview";
 import { getShellWorkspaceGuide, getShellWorkspaceWindowGuide } from "../../content/operatorGuideShell";
 import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
 
@@ -36,6 +37,7 @@ type HomeWorkspaceViewProps = {
   latestRunId?: string | null;
   latestExecutionId?: string | null;
   latestArtifactId?: string | null;
+  latestPlacementProofOnlyReview?: PlacementProofOnlyReviewSnapshot | null;
 };
 
 const missionControlWindow = getShellWorkspaceWindowGuide("home", "mission-control");
@@ -91,6 +93,7 @@ export default function HomeWorkspaceView({
   latestRunId,
   latestExecutionId,
   latestArtifactId,
+  latestPlacementProofOnlyReview,
 }: HomeWorkspaceViewProps) {
   const [activeSurfaceId, setActiveSurfaceId] = useState<HomeSurfaceId>("start");
 
@@ -136,6 +139,7 @@ export default function HomeWorkspaceView({
             latestRunId={latestRunId ?? null}
             latestExecutionId={latestExecutionId ?? null}
             latestArtifactId={latestArtifactId ?? null}
+            latestPlacementProofOnlyReview={latestPlacementProofOnlyReview ?? null}
             nextSafeAction="Choose a mission card, open Prompt Studio, then run one bounded admitted/proof-only step and review evidence."
             onViewLatestRun={onViewLatestRun}
             onViewExecution={onViewExecution}

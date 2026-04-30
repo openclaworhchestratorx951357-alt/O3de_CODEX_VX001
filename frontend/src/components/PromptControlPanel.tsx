@@ -17,6 +17,10 @@ import {
   fetchPromptSessions,
 } from "../lib/api";
 import { loadActiveO3DEProjectProfile } from "../lib/o3deProjectProfiles";
+import {
+  summarizePlacementProofOnlyReview,
+  type PlacementProofOnlyReviewSnapshot,
+} from "../lib/promptPlacementProofOnlyReview";
 import type {
   O3DETargetConfig,
   PromptCapabilityEntry,
@@ -50,6 +54,7 @@ type PromptControlPanelProps = {
   selectedExecutorId?: string | null;
   promptLaunchDraftRequest?: PromptLaunchDraftRequest | null;
   onReturnToSourceWorkspace?: (workspaceId: string) => void;
+  onPlacementProofOnlyReviewChange?: (review: PlacementProofOnlyReviewSnapshot | null) => void;
 };
 
 export type PromptLaunchDraftRequest = {
@@ -258,6 +263,7 @@ export default function PromptControlPanel({
   selectedExecutorId = null,
   promptLaunchDraftRequest = null,
   onReturnToSourceWorkspace,
+  onPlacementProofOnlyReviewChange,
 }: PromptControlPanelProps) {
   const { settings } = useSettings();
   const [activeProjectProfile] = useState(() => loadActiveO3DEProjectProfile());
@@ -436,6 +442,15 @@ export default function PromptControlPanel({
       cancelled = true;
     };
   }, [selectedPromptId]);
+
+  useEffect(() => {
+    if (!onPlacementProofOnlyReviewChange) {
+      return;
+    }
+    onPlacementProofOnlyReviewChange(
+      selectedSession ? summarizePlacementProofOnlyReview(selectedSession) : null,
+    );
+  }, [onPlacementProofOnlyReviewChange, selectedSession]);
 
   useEffect(() => {
     if (!promptLaunchDraftRequest) {
