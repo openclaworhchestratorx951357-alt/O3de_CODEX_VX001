@@ -5291,6 +5291,42 @@ export default function App() {
     setActiveRecordsSurface("artifacts");
   }
 
+  async function openLatestRunEvidence(): Promise<void> {
+    openRecordsRuns();
+    let runId = latestRunId;
+    if (!runId) {
+      const loadedRuns = await loadRuns();
+      runId = loadedRuns[0]?.id ?? null;
+    }
+    if (runId) {
+      await openRunDetail(runId);
+    }
+  }
+
+  async function openLatestExecutionEvidence(): Promise<void> {
+    openRecordsExecutions();
+    let executionId = latestExecutionId;
+    if (!executionId) {
+      const loadedExecutions = await loadExecutions();
+      executionId = loadedExecutions[0]?.id ?? null;
+    }
+    if (executionId) {
+      await openExecutionDetail(executionId);
+    }
+  }
+
+  async function openLatestArtifactEvidence(): Promise<void> {
+    openRecordsArtifacts();
+    let artifactId = latestArtifactId;
+    if (!artifactId) {
+      const loadedArtifacts = await loadArtifacts();
+      artifactId = loadedArtifacts[0]?.id ?? null;
+    }
+    if (artifactId) {
+      await openArtifactDetail(artifactId);
+    }
+  }
+
   function openRecordsEvents(): void {
     setActiveWorkspaceId("records");
     setActiveRecordsSurface("events");
@@ -8012,9 +8048,9 @@ export default function App() {
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
                 onOpenRecords={openRecordsRuns}
-                onViewLatestRun={openRecordsRuns}
-                onViewExecution={openRecordsExecutions}
-                onViewArtifact={openRecordsArtifacts}
+                onViewLatestRun={openLatestRunEvidence}
+                onViewExecution={openLatestExecutionEvidence}
+                onViewArtifact={openLatestArtifactEvidence}
                 onViewEvidence={openRecordsEvents}
                 bridgeStatus={o3deBridgeStatus}
                 policies={policies}
@@ -8109,9 +8145,9 @@ export default function App() {
               onLaunchCreateEntityTemplate={openPromptStudioWithCreateGameEntityTemplate}
               onLaunchAddMeshTemplate={openPromptStudioWithAddAllowlistedMeshTemplate}
               onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromHome}
-              onViewLatestRun={openRecordsRuns}
-              onViewExecution={openRecordsExecutions}
-              onViewArtifact={openRecordsArtifacts}
+              onViewLatestRun={openLatestRunEvidence}
+              onViewExecution={openLatestExecutionEvidence}
+              onViewArtifact={openLatestArtifactEvidence}
               onViewEvidence={openRecordsEvents}
               bridgeStatus={o3deBridgeStatus}
               adapters={adapters}
@@ -8142,9 +8178,9 @@ export default function App() {
                 onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromCreateGame}
                 onLaunchCreateEntityTemplate={openPromptStudioWithCreateGameEntityTemplate}
                 onLaunchAddMeshTemplate={openPromptStudioWithAddAllowlistedMeshTemplate}
-                onViewLatestRun={openRecordsRuns}
-                onViewExecution={openRecordsExecutions}
-                onViewArtifact={openRecordsArtifacts}
+                onViewLatestRun={openLatestRunEvidence}
+                onViewExecution={openLatestExecutionEvidence}
+                onViewArtifact={openLatestArtifactEvidence}
                 onViewEvidence={openRecordsEvents}
                 bridgeStatus={o3deBridgeStatus}
                 adapters={adapters}
@@ -8176,9 +8212,9 @@ export default function App() {
                 onLaunchInspectTemplate={openPromptStudioWithInspectCinematicTargetTemplate}
                 onLaunchCameraTemplate={openPromptStudioWithCreateCinematicCameraTemplate}
                 onLaunchPlacementProofTemplate={openPromptStudioWithCinematicPlacementProofTemplate}
-                onViewLatestRun={openRecordsRuns}
-                onViewExecution={openRecordsExecutions}
-                onViewArtifact={openRecordsArtifacts}
+                onViewLatestRun={openLatestRunEvidence}
+                onViewExecution={openLatestExecutionEvidence}
+                onViewArtifact={openLatestArtifactEvidence}
                 onViewEvidence={openRecordsEvents}
                 bridgeStatus={o3deBridgeStatus}
                 adapters={adapters}
@@ -8207,9 +8243,9 @@ export default function App() {
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenRecords={openRecordsRuns}
                 onLaunchInspectTemplate={openPromptStudioWithInspectLoadProjectTemplate}
-                onViewLatestRun={openRecordsRuns}
-                onViewExecution={openRecordsExecutions}
-                onViewArtifact={openRecordsArtifacts}
+                onViewLatestRun={openLatestRunEvidence}
+                onViewExecution={openLatestExecutionEvidence}
+                onViewArtifact={openLatestArtifactEvidence}
                 onViewEvidence={openRecordsEvents}
                 bridgeStatus={o3deBridgeStatus}
                 adapters={adapters}

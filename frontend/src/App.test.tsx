@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
@@ -183,6 +183,11 @@ describe("App desktop smoke", () => {
     window.sessionStorage.clear();
     window.localStorage.clear();
     vi.clearAllMocks();
+    Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    });
 
     setPendingAppApiMocks(apiMocks);
   });
@@ -342,6 +347,131 @@ describe("App desktop smoke", () => {
     expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
     fireEvent.click(screen.getAllByRole("button", { name: "Open Asset Forge" })[0]);
     expect(await screen.findByLabelText("AI Asset Forge")).toBeInTheDocument();
+  });
+
+  it("opens truth-rail evidence actions with latest record context in Records", async () => {
+    const now = new Date().toISOString();
+    apiMocks.fetchRunCards.mockResolvedValue([
+      {
+        id: "run-1",
+        request_id: "request-1",
+        agent: "system",
+        tool: "project.inspect",
+        status: "succeeded",
+        dry_run: true,
+        execution_mode: "simulated",
+      },
+    ]);
+    apiMocks.fetchRunsSummaryForFilter.mockResolvedValue({
+      settingsPatchAuditSummary: {
+        total_runs: 0,
+        preflight: 0,
+        blocked: 0,
+        succeeded: 0,
+        rolled_back: 0,
+        other: 0,
+        available_filters: [],
+      },
+      runAudits: [],
+    });
+    apiMocks.fetchExecutionCardsForTruthFilter.mockResolvedValue([
+      {
+        id: "execution-1",
+        run_id: "run-1",
+        request_id: "request-1",
+        agent: "system",
+        tool: "project.inspect",
+        execution_mode: "simulated",
+        status: "succeeded",
+        started_at: now,
+        finished_at: now,
+        warning_count: 0,
+        artifact_count: 1,
+      },
+    ]);
+    apiMocks.fetchArtifactCardsForTruthFilter.mockResolvedValue([
+      {
+        id: "artifact-1",
+        run_id: "run-1",
+        execution_id: "execution-1",
+        label: "inspect-summary",
+        kind: "json",
+        uri: "file://artifact-1.json",
+        simulated: true,
+        created_at: now,
+      },
+    ]);
+    apiMocks.fetchRun.mockResolvedValue({
+      id: "run-1",
+      request_id: "request-1",
+      agent: "system",
+      tool: "project.inspect",
+      status: "succeeded",
+      created_at: now,
+      updated_at: now,
+      dry_run: true,
+      requested_locks: [],
+      granted_locks: [],
+      warnings: [],
+      execution_mode: "simulated",
+      result_summary: "run ok",
+    });
+    apiMocks.fetchExecution.mockResolvedValue({
+      id: "execution-1",
+      run_id: "run-1",
+      request_id: "request-1",
+      agent: "system",
+      tool: "project.inspect",
+      execution_mode: "simulated",
+      status: "succeeded",
+      started_at: now,
+      finished_at: now,
+      warnings: [],
+      logs: [],
+      artifact_ids: ["artifact-1"],
+      details: {},
+      result_summary: "execution ok",
+    });
+    apiMocks.fetchArtifact.mockResolvedValue({
+      id: "artifact-1",
+      run_id: "run-1",
+      execution_id: "execution-1",
+      label: "inspect-summary",
+      kind: "json",
+      uri: "file://artifact-1.json",
+      simulated: true,
+      created_at: now,
+      metadata: {},
+    });
+
+    render(<App />);
+
+    fireEvent.click(getDesktopNavButton(/Create Game/i));
+    await screen.findAllByText("Create Game Cockpit");
+
+    apiMocks.fetchRun.mockClear();
+    apiMocks.fetchExecution.mockClear();
+    apiMocks.fetchArtifact.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: "View latest run" }));
+    await waitFor(() => expect(apiMocks.fetchRun).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("Run Detail")).toBeInTheDocument();
+
+    fireEvent.click(getDesktopNavButton(/Create Game/i));
+    await screen.findAllByText("Create Game Cockpit");
+
+    apiMocks.fetchExecution.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "View execution" }));
+    await waitFor(() => expect(apiMocks.fetchExecution).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("Execution Detail")).toBeInTheDocument();
+
+    fireEvent.click(getDesktopNavButton(/Create Game/i));
+    await screen.findAllByText("Create Game Cockpit");
+
+    apiMocks.fetchArtifact.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "View artifact" }));
+    await waitFor(() => expect(apiMocks.fetchArtifact).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText("Artifact Detail")).toBeInTheDocument();
   });
 
   it("opens Asset Forge as its own workspace and shows the Packet 01 studio shell", async () => {
