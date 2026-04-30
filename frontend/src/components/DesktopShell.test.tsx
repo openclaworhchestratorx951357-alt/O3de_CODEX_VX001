@@ -23,6 +23,7 @@ Object.defineProperty(window, "matchMedia", {
 describe("DesktopShell", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    window.sessionStorage.clear();
     document.documentElement.style.colorScheme = "";
     vi.clearAllMocks();
   });
@@ -270,5 +271,88 @@ describe("DesktopShell", () => {
     expect(desktopSurface).toHaveStyle("padding-left: 18px");
     expect(desktopSurface).toHaveStyle("width: 100%");
     expect(desktopSurface).toHaveStyle("overflow: hidden");
+  });
+
+  it("persists all-apps preference for the session and restores grouped defaults on reset", () => {
+    const onSelectWorkspace = vi.fn();
+    const navSections = [
+      {
+        id: "start",
+        label: "Start",
+        detail: "Begin with a calmer orientation surface.",
+        items: [
+          {
+            id: "home",
+            label: "Home",
+            subtitle: "Overview and launch surface",
+          },
+        ],
+      },
+      {
+        id: "inspect",
+        label: "Inspect",
+        detail: "Review persisted evidence and warnings.",
+        items: [
+          {
+            id: "records",
+            label: "Records",
+            subtitle: "Runs, executions, artifacts",
+          },
+        ],
+      },
+    ] as const;
+
+    const firstRender = render(
+      <DesktopShell
+        appTitle="O3DE Agent Control App"
+        appSubtitle="Desktop operator shell"
+        workspaceTitle="Home"
+        workspaceSubtitle="Overview and launch surface"
+        activeWorkspaceId="home"
+        navSections={navSections}
+        onSelectWorkspace={onSelectWorkspace}
+      >
+        <div>Workspace body</div>
+      </DesktopShell>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Show all cockpit apps view" }));
+    expect(screen.getByRole("button", { name: "Expand all workspace groups" })).toBeDisabled();
+    firstRender.unmount();
+
+    const secondRender = render(
+      <DesktopShell
+        appTitle="O3DE Agent Control App"
+        appSubtitle="Desktop operator shell"
+        workspaceTitle="Home"
+        workspaceSubtitle="Overview and launch surface"
+        activeWorkspaceId="home"
+        navSections={navSections}
+        onSelectWorkspace={onSelectWorkspace}
+      >
+        <div>Workspace body</div>
+      </DesktopShell>,
+    );
+
+    expect(screen.getByRole("button", { name: "Expand all workspace groups" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Reset workspace tree defaults" }));
+    expect(screen.getByRole("button", { name: "Expand all workspace groups" })).not.toBeDisabled();
+    secondRender.unmount();
+
+    render(
+      <DesktopShell
+        appTitle="O3DE Agent Control App"
+        appSubtitle="Desktop operator shell"
+        workspaceTitle="Home"
+        workspaceSubtitle="Overview and launch surface"
+        activeWorkspaceId="home"
+        navSections={navSections}
+        onSelectWorkspace={onSelectWorkspace}
+      >
+        <div>Workspace body</div>
+      </DesktopShell>,
+    );
+
+    expect(screen.getByRole("button", { name: "Expand all workspace groups" })).not.toBeDisabled();
   });
 });

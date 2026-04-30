@@ -13,6 +13,25 @@ type WorkspaceTreeProps = {
 
 type WorkspaceTreeViewMode = "grouped" | "all";
 
+const WORKSPACE_TREE_VIEW_MODE_SESSION_KEY = "o3de.app.workspaceTree.viewMode.v1";
+
+function readPersistedWorkspaceTreeViewMode(): WorkspaceTreeViewMode | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    const persistedValue = window.sessionStorage.getItem(WORKSPACE_TREE_VIEW_MODE_SESSION_KEY);
+    if (persistedValue === "grouped" || persistedValue === "all") {
+      return persistedValue;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 export default function WorkspaceTree({
   activeWorkspaceId,
   activeNavItemId,
@@ -40,7 +59,9 @@ export default function WorkspaceTree({
     [navSections],
   );
   const [expandedSectionIds, setExpandedSectionIds] = useState<string[]>(allSectionIds);
-  const [viewMode, setViewMode] = useState<WorkspaceTreeViewMode>("grouped");
+  const [viewMode, setViewMode] = useState<WorkspaceTreeViewMode>(() => (
+    readPersistedWorkspaceTreeViewMode() ?? "grouped"
+  ));
 
   useEffect(() => {
     setExpandedSectionIds((currentSectionIds) => {
@@ -52,6 +73,14 @@ export default function WorkspaceTree({
       return withActiveSection.length > 0 ? withActiveSection : allSectionIds;
     });
   }, [activeNavSectionId, allSectionIds]);
+
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(WORKSPACE_TREE_VIEW_MODE_SESSION_KEY, viewMode);
+    } catch {
+      // Session persistence is best-effort only; tree behavior must remain usable without storage.
+    }
+  }, [viewMode]);
 
   function toggleNavSection(sectionId: string) {
     setExpandedSectionIds((currentSectionIds) => {
@@ -72,6 +101,16 @@ export default function WorkspaceTree({
 
   function collapseToActiveSection() {
     setExpandedSectionIds([activeNavSectionId]);
+  }
+
+  function resetNavDefaults() {
+    setViewMode("grouped");
+    setExpandedSectionIds(allSectionIds);
+    try {
+      window.sessionStorage.removeItem(WORKSPACE_TREE_VIEW_MODE_SESSION_KEY);
+    } catch {
+      // Storage reset remains optional; visual reset still applies immediately.
+    }
   }
 
   return (
@@ -129,6 +168,14 @@ export default function WorkspaceTree({
           >
             Collapse to active
           </button>
+          <button
+            type="button"
+            onClick={resetNavDefaults}
+            style={navSectionActionButtonStyle}
+            aria-label="Reset workspace tree defaults"
+          >
+            Reset defaults
+          </button>
         </div>
       </div>
 
@@ -163,7 +210,7 @@ export default function WorkspaceTree({
                       ) : null}
                     </div>
                     <span style={navButtonSubtitleStyle}>
-                      {`${item.sectionLabel} · ${item.subtitle}`}
+                      {`${item.sectionLabel} - ${item.subtitle}`}
                     </span>
                   </button>
                 );
