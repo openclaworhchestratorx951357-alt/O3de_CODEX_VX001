@@ -19,6 +19,11 @@ import {
   operatorGuideShellApp,
 } from "./content/operatorGuideShell";
 import {
+  getAllCockpitDefinitions,
+  getCockpitNavSections,
+} from "./components/cockpits/registry/cockpitRegistry";
+import type { CockpitId } from "./components/cockpits/registry/cockpitRegistryTypes";
+import {
   approveApproval,
   fetchAdapters,
   fetchApprovalCards,
@@ -241,17 +246,7 @@ type LanePresetStatus = {
 
 type LanePresetSource = "manual" | "session";
 
-type DesktopWorkspaceId =
-  | "home"
-  | "create-game"
-  | "create-movie"
-  | "load-project"
-  | "asset-forge"
-  | "prompt"
-  | "builder"
-  | "operations"
-  | "runtime"
-  | "records";
+type DesktopWorkspaceId = CockpitId;
 
 type DesktopNavItemId = DesktopWorkspaceId;
 
@@ -4876,58 +4871,26 @@ export default function App() {
   const warningExecutionCount = executions.filter((execution) => execution.warning_count > 0).length;
   const unresolvedRunCount = runs.filter(isUnresolvedRun).length;
   const bridgeStatusLabel = o3deBridgeStatus?.heartbeat_fresh ? "fresh" : "check";
-  const homeWorkspaceGuide = getShellWorkspaceGuide("home");
   const promptWorkspaceGuide = getShellWorkspaceGuide("prompt");
   const builderWorkspaceGuide = getShellWorkspaceGuide("builder");
   const operationsWorkspaceGuide = getShellWorkspaceGuide("operations");
   const runtimeWorkspaceGuide = getShellWorkspaceGuide("runtime");
   const recordsWorkspaceGuide = getShellWorkspaceGuide("records");
+  const cockpitDefinitions = getAllCockpitDefinitions();
   const approvalsQuickStatGuide = getShellQuickStatGuide("approvals");
   const bridgeQuickStatGuide = getShellQuickStatGuide("bridge");
   const warningsQuickStatGuide = getShellQuickStatGuide("warnings");
   const runsQuickStatGuide = getShellQuickStatGuide("runs");
-  const workspaceMeta: Record<DesktopWorkspaceId, { title: string; subtitle: string }> = {
-    home: {
-      title: homeWorkspaceGuide.workspaceTitle,
-      subtitle: homeWorkspaceGuide.workspaceSubtitle,
+  const workspaceMeta = cockpitDefinitions.reduce<Record<DesktopWorkspaceId, { title: string; subtitle: string }>>(
+    (next, cockpit) => {
+      next[cockpit.id] = {
+        title: cockpit.title,
+        subtitle: cockpit.workspaceSubtitle,
+      };
+      return next;
     },
-    "create-game": {
-      title: "Create Game",
-      subtitle: "Create Game Cockpit with staged mission workflow, bounded editor actions, and evidence review.",
-    },
-    "create-movie": {
-      title: "Create Movie",
-      subtitle: "Create Movie Cockpit with cinematic planning, proof-only placement review, and explicit blockers.",
-    },
-    "load-project": {
-      title: "Load Project",
-      subtitle: "Load Project Cockpit for read-only target verification and preflight readiness checks.",
-    },
-    "asset-forge": {
-      title: "Asset Forge",
-      subtitle: "O3DE-native production asset toolbench with read-only evidence, review, and gated creation planning.",
-    },
-    prompt: {
-      title: promptWorkspaceGuide.workspaceTitle,
-      subtitle: promptWorkspaceGuide.workspaceSubtitle,
-    },
-    builder: {
-      title: builderWorkspaceGuide.workspaceTitle,
-      subtitle: builderWorkspaceGuide.workspaceSubtitle,
-    },
-    operations: {
-      title: operationsWorkspaceGuide.workspaceTitle,
-      subtitle: operationsWorkspaceGuide.workspaceSubtitle,
-    },
-    runtime: {
-      title: runtimeWorkspaceGuide.workspaceTitle,
-      subtitle: runtimeWorkspaceGuide.workspaceSubtitle,
-    },
-    records: {
-      title: recordsWorkspaceGuide.workspaceTitle,
-      subtitle: recordsWorkspaceGuide.workspaceSubtitle,
-    },
-  };
+    {} as Record<DesktopWorkspaceId, { title: string; subtitle: string }>,
+  );
   const activeWorkspaceMeta = workspaceMeta[activeWorkspaceId];
   const activePromptReturnResumeChecklist = promptReturnResumeChecklist
     && promptReturnResumeChecklist.sourceWorkspaceId === activeWorkspaceId
@@ -4947,118 +4910,35 @@ export default function App() {
     ? promptTemplateChooserContext
     : null;
   const activeDesktopNavItemId: DesktopNavItemId = activeWorkspaceId;
-  const desktopNavSections = [
-    {
-      id: "start",
-      label: "Start",
-      detail: "Orient yourself first and keep the first decision surface calm.",
-      items: [
-        {
-          id: "home",
-          label: homeWorkspaceGuide.navLabel,
-          subtitle: homeWorkspaceGuide.navSubtitle,
-          badge: attentionRecommendations.length > 0 ? String(attentionRecommendations.length) : null,
-          tone: attentionRecommendations.length > 0 ? "warning" : "info",
-          helpTooltip: homeWorkspaceGuide.tooltip,
-        },
-      ],
-    },
-    {
-      id: "create",
-      label: "Create",
-      detail: "Use natural-language or mission-control surfaces to start and shape work.",
-      items: [
-        {
-          id: "create-game",
-          label: "Create Game",
-          subtitle: "Open the Create Game cockpit environment",
-          badge: null,
-          tone: "success",
-          helpTooltip: "Open the first-class Create Game cockpit with mission pipeline, tools, and blocked-capability guidance.",
-        },
-        {
-          id: "create-movie",
-          label: "Create Movie",
-          subtitle: "Open the Create Movie cockpit environment",
-          badge: null,
-          tone: "info",
-          helpTooltip: "Open the first-class Create Movie cockpit for cinematic pipeline, proof-only placement, and review guidance.",
-        },
-        {
-          id: "load-project",
-          label: "Load Project",
-          subtitle: "Open the Load Project cockpit environment",
-          badge: null,
-          tone: "neutral",
-          helpTooltip: "Open the first-class Load Project cockpit for target verification and configuration preflight.",
-        },
-        {
-          id: "asset-forge",
-          label: "Asset Forge",
-          subtitle: "Open the O3DE-native asset studio workspace",
-          badge: null,
-          tone: "info",
-          helpTooltip: "Open Asset Forge as its own production workspace for read-only asset evidence, preview pages, and gated operator review.",
-        },
-        {
-          id: "prompt",
-          label: promptWorkspaceGuide.navLabel,
-          subtitle: promptWorkspaceGuide.navSubtitle,
-          badge: null,
-          tone: "info",
-          helpTooltip: promptWorkspaceGuide.tooltip,
-        },
-        {
-          id: "builder",
-          label: builderWorkspaceGuide.navLabel,
-          subtitle: builderWorkspaceGuide.navSubtitle,
-          badge: null,
-          tone: "info",
-          helpTooltip: builderWorkspaceGuide.tooltip,
-        },
-      ],
-    },
-    {
-      id: "operate",
-      label: "Operate",
-      detail: "Coordinate approvals, live runtime status, and editor health without leaving the shell.",
-      items: [
-        {
-          id: "operations",
-          label: operationsWorkspaceGuide.navLabel,
-          subtitle: operationsWorkspaceGuide.navSubtitle,
-          badge: pendingApprovalCount > 0 ? String(pendingApprovalCount) : null,
-          tone: pendingApprovalCount > 0 ? "warning" : "neutral",
-          helpTooltip: operationsWorkspaceGuide.tooltip,
-        },
-        {
-          id: "runtime",
-          label: runtimeWorkspaceGuide.navLabel,
-          subtitle: runtimeWorkspaceGuide.navSubtitle,
-          badge: bridgeStatusLabel,
-          tone: o3deBridgeStatus?.heartbeat_fresh ? "success" : "warning",
-          helpTooltip: runtimeWorkspaceGuide.tooltip,
-        },
-      ],
-    },
-    {
-      id: "inspect",
-      label: "Inspect",
-      detail: "Review persisted runs, executions, and artifacts once work has moved or completed.",
-      items: [
-        {
-          id: "records",
-          label: recordsWorkspaceGuide.navLabel,
-          subtitle: recordsWorkspaceGuide.navSubtitle,
-          badge: unresolvedRunCount + warningExecutionCount > 0
-            ? String(unresolvedRunCount + warningExecutionCount)
-            : null,
-          tone: unresolvedRunCount + warningExecutionCount > 0 ? "warning" : "neutral",
-          helpTooltip: recordsWorkspaceGuide.tooltip,
-        },
-      ],
-    },
-  ] as const;
+  const navBadgeByWorkspace: Partial<Record<DesktopWorkspaceId, string | null>> = {
+    home: attentionRecommendations.length > 0 ? String(attentionRecommendations.length) : null,
+    operations: pendingApprovalCount > 0 ? String(pendingApprovalCount) : null,
+    runtime: bridgeStatusLabel,
+    records: unresolvedRunCount + warningExecutionCount > 0
+      ? String(unresolvedRunCount + warningExecutionCount)
+      : null,
+  };
+  const navToneByWorkspace: Partial<Record<DesktopWorkspaceId, "neutral" | "info" | "success" | "warning">> = {
+    home: attentionRecommendations.length > 0 ? "warning" : "info",
+    operations: pendingApprovalCount > 0 ? "warning" : "neutral",
+    runtime: o3deBridgeStatus?.heartbeat_fresh ? "success" : "warning",
+    records: unresolvedRunCount + warningExecutionCount > 0 ? "warning" : "neutral",
+  };
+  const desktopNavSections = getCockpitNavSections()
+    .map((section) => ({
+      id: section.id,
+      label: section.label,
+      detail: section.detail,
+      items: section.items.map((cockpit) => ({
+        id: cockpit.id,
+        label: cockpit.navLabel,
+        subtitle: cockpit.navSubtitle,
+        badge: navBadgeByWorkspace[cockpit.id] ?? null,
+        tone: navToneByWorkspace[cockpit.id] ?? cockpit.navTone,
+        helpTooltip: cockpit.navTooltip,
+      })),
+    }))
+    .filter((section) => section.items.length > 0);
   const desktopQuickStats = [
     {
       label: approvalsQuickStatGuide.label,
@@ -9250,9 +9130,21 @@ export default function App() {
               onOpenRuntimeOverview={openRuntimeOverview}
               onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
               onOpenRecords={openRecordsRuns}
-              onOpenCreateGame={() => setActiveWorkspaceId("create-game")}
-              onOpenCreateMovie={() => setActiveWorkspaceId("create-movie")}
-              onOpenLoadProject={() => setActiveWorkspaceId("load-project")}
+              onOpenCockpit={(cockpitId) => {
+                if (cockpitId === "prompt") {
+                  openPromptStudioFromHomeCockpit();
+                  return;
+                }
+                if (cockpitId === "runtime") {
+                  openRuntimeOverview();
+                  return;
+                }
+                if (cockpitId === "records") {
+                  openRecordsRuns();
+                  return;
+                }
+                setActiveWorkspaceId(cockpitId);
+              }}
               onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromHome}
               onLaunchCreateEntityTemplate={openPromptStudioWithCreateGameEntityTemplate}
               onLaunchAddMeshTemplate={openPromptStudioWithAddAllowlistedMeshTemplate}

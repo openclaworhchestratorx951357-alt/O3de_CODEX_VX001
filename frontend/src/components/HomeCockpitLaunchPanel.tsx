@@ -1,9 +1,10 @@
 import type { CSSProperties } from "react";
 
+import { getHomeLaunchCockpits } from "./cockpits/registry/cockpitRegistry";
+import type { CockpitId } from "./cockpits/registry/cockpitRegistryTypes";
+
 type HomeCockpitLaunchPanelProps = {
-  onOpenCreateGame?: () => void;
-  onOpenCreateMovie?: () => void;
-  onOpenLoadProject?: () => void;
+  onOpenCockpit?: (cockpitId: CockpitId) => void;
   onOpenAssetForge?: () => void;
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
@@ -15,74 +16,52 @@ type CockpitLaunchCard = {
   title: string;
   detail: string;
   truthState: string;
-  blocked: string;
-  nextSafeAction: string;
+  safetyNote: string;
   actionLabel: string;
-  onClick?: () => void;
+  cockpitId: CockpitId;
 };
 
 export default function HomeCockpitLaunchPanel({
-  onOpenCreateGame,
-  onOpenCreateMovie,
-  onOpenLoadProject,
+  onOpenCockpit,
   onOpenAssetForge,
   onOpenPromptStudio,
   onOpenRuntimeOverview,
   onOpenRecords,
 }: HomeCockpitLaunchPanelProps) {
-  const cards: CockpitLaunchCard[] = [
-    {
-      id: "create-game",
-      title: "Create Game Cockpit",
-      detail: "Build a game through staged concept, level, entity, component, and review steps.",
-      truthState: "mission cockpit / narrow admitted editor actions + read-only support",
-      blocked: "Full game generation and broad mutation remain blocked.",
-      nextSafeAction: "Open cockpit and start with inspect or a narrow admitted editor plan.",
-      actionLabel: "Open Create Game",
-      onClick: onOpenCreateGame,
-    },
-    {
-      id: "create-movie",
-      title: "Create Movie Cockpit",
-      detail: "Plan cinematic shots, camera placeholders, and proof-only prop placement review.",
-      truthState: "planning + narrow editor actions + proof-only placement",
-      blocked: "Render/export automation and placement writes remain blocked.",
-      nextSafeAction: "Open cockpit and use proof-only templates before any future admission packet.",
-      actionLabel: "Open Create Movie",
-      onClick: onOpenCreateMovie,
-    },
-    {
-      id: "load-project",
-      title: "Load Project Cockpit",
-      detail: "Verify active target, bridge status, and readiness before authoring prompts.",
-      truthState: "read-only / configuration preflight",
-      blocked: "Project registration and project file writes are not admitted in this packet.",
-      nextSafeAction: "Open cockpit and verify target checklist before continuing.",
-      actionLabel: "Open Load Project",
-      onClick: onOpenLoadProject,
-    },
-  ];
+  const cards: CockpitLaunchCard[] = getHomeLaunchCockpits().map((cockpit) => ({
+    id: cockpit.id,
+    cockpitId: cockpit.id,
+    title: cockpit.homeCard.title,
+    detail: cockpit.homeCard.description,
+    truthState: cockpit.homeCard.truthState,
+    safetyNote: cockpit.homeCard.safetyNote,
+    actionLabel: cockpit.homeCard.primaryActionLabel,
+  }));
 
   return (
     <section aria-label="Cockpit launch shortcuts" data-testid="home-cockpit-launch-panel" style={styles.shell}>
       <header style={styles.header}>
         <strong>Cockpit launch shortcuts</strong>
         <p style={styles.detail}>
-          Create Game, Create Movie, and Load Project now run as first-class cockpit environments in the App OS shell.
+          Launch first-class cockpit apps from registry definitions. Add one cockpit definition and it appears here automatically.
         </p>
       </header>
 
       <div style={styles.grid}>
         {cards.map((card) => (
-          <article key={card.id} style={styles.card}>
+          <article key={card.id} data-testid={`home-cockpit-card-${card.id}`} style={styles.card}>
             <div style={styles.cardHeader}>
               <strong>{card.title}</strong>
               <span style={styles.truthBadge}>{card.truthState}</span>
             </div>
             <p style={styles.detail}><strong>Does:</strong> {card.detail}</p>
-            <p style={styles.detail}><strong>Blocked:</strong> {card.blocked}</p>
-            <p style={styles.detail}><strong>Next safe action:</strong> {card.nextSafeAction}</p>
-            <button type="button" onClick={card.onClick} disabled={!card.onClick} style={styles.primaryButton}>
+            <p style={styles.detail}><strong>Safety note:</strong> {card.safetyNote}</p>
+            <button
+              type="button"
+              onClick={() => onOpenCockpit?.(card.cockpitId)}
+              disabled={!onOpenCockpit}
+              style={styles.primaryButton}
+            >
               {card.actionLabel}
             </button>
           </article>

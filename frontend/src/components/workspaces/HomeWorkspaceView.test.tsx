@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import HomeWorkspaceView from "./HomeWorkspaceView";
+import { getHomeLaunchCockpits } from "../cockpits/registry/cockpitRegistry";
 
 describe("HomeWorkspaceView", () => {
   it("renders Home start-here surface with cockpit launch shortcuts", () => {
@@ -23,12 +24,33 @@ describe("HomeWorkspaceView", () => {
     expect(screen.getByRole("button", { name: "Open Create Game" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open Create Movie" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open Load Project" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Open Asset Forge" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "Open Prompt Studio" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "Open Builder" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "Open Operations" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "Open Runtime" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("button", { name: "Open Records" }).length).toBeGreaterThan(0);
+  });
+
+  it("renders home launch cards from cockpit registry definitions", () => {
+    render(
+      <HomeWorkspaceView
+        missionControlContent={<div>Mission control content</div>}
+        launchpadContent={<div>Launchpad content</div>}
+        overviewContent={<div>Overview content</div>}
+        guideContent={<div>Guide content</div>}
+      />,
+    );
+
+    for (const cockpit of getHomeLaunchCockpits()) {
+      const card = screen.getByTestId(`home-cockpit-card-${cockpit.id}`);
+      expect(card).toBeInTheDocument();
+      expect(within(card).getByRole("button", { name: cockpit.homeCard.primaryActionLabel })).toBeInTheDocument();
+    }
   });
 
   it("fires cockpit launch callbacks", () => {
-    const onOpenCreateGame = vi.fn();
-    const onOpenCreateMovie = vi.fn();
-    const onOpenLoadProject = vi.fn();
+    const onOpenCockpit = vi.fn();
 
     render(
       <HomeWorkspaceView
@@ -36,18 +58,20 @@ describe("HomeWorkspaceView", () => {
         launchpadContent={<div>Launchpad content</div>}
         overviewContent={<div>Overview content</div>}
         guideContent={<div>Guide content</div>}
-        onOpenCreateGame={onOpenCreateGame}
-        onOpenCreateMovie={onOpenCreateMovie}
-        onOpenLoadProject={onOpenLoadProject}
+        onOpenCockpit={onOpenCockpit}
       />,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Open Create Game" }));
     fireEvent.click(screen.getByRole("button", { name: "Open Create Movie" }));
     fireEvent.click(screen.getByRole("button", { name: "Open Load Project" }));
+    fireEvent.click(
+      within(screen.getByTestId("home-cockpit-card-asset-forge")).getByRole("button", { name: "Open Asset Forge" }),
+    );
 
-    expect(onOpenCreateGame).toHaveBeenCalledTimes(1);
-    expect(onOpenCreateMovie).toHaveBeenCalledTimes(1);
-    expect(onOpenLoadProject).toHaveBeenCalledTimes(1);
+    expect(onOpenCockpit).toHaveBeenNthCalledWith(1, "create-game");
+    expect(onOpenCockpit).toHaveBeenNthCalledWith(2, "create-movie");
+    expect(onOpenCockpit).toHaveBeenNthCalledWith(3, "load-project");
+    expect(onOpenCockpit).toHaveBeenNthCalledWith(4, "asset-forge");
   });
 });

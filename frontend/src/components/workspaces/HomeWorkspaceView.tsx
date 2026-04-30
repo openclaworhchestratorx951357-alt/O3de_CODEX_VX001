@@ -5,6 +5,7 @@ import DesktopWindow from "../DesktopWindow";
 import HomeCockpitLaunchPanel from "../HomeCockpitLaunchPanel";
 import MissionCardDeck from "../MissionCardDeck";
 import MissionTruthRail from "../MissionTruthRail";
+import type { CockpitId } from "../cockpits/registry/cockpitRegistryTypes";
 import type { PlacementProofOnlyReviewSnapshot } from "../../lib/promptPlacementProofOnlyReview";
 import { getShellWorkspaceGuide, getShellWorkspaceWindowGuide } from "../../content/operatorGuideShell";
 import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
@@ -20,9 +21,7 @@ type HomeWorkspaceViewProps = {
   onOpenRuntimeOverview?: () => void;
   onOpenAssetForge?: () => void;
   onOpenRecords?: () => void;
-  onOpenCreateGame?: () => void;
-  onOpenCreateMovie?: () => void;
-  onOpenLoadProject?: () => void;
+  onOpenCockpit?: (cockpitId: CockpitId) => void;
   onLaunchInspectTemplate?: () => void;
   onLaunchCreateEntityTemplate?: () => void;
   onLaunchAddMeshTemplate?: () => void;
@@ -80,9 +79,7 @@ export default function HomeWorkspaceView({
   onOpenRuntimeOverview,
   onOpenAssetForge,
   onOpenRecords,
-  onOpenCreateGame,
-  onOpenCreateMovie,
-  onOpenLoadProject,
+  onOpenCockpit,
   onLaunchInspectTemplate,
   onLaunchCreateEntityTemplate,
   onLaunchAddMeshTemplate,
@@ -179,9 +176,7 @@ export default function HomeWorkspaceView({
             onLaunchPlacementProofTemplate={onLaunchPlacementProofTemplate}
           />
           <HomeCockpitLaunchPanel
-            onOpenCreateGame={onOpenCreateGame}
-            onOpenCreateMovie={onOpenCreateMovie}
-            onOpenLoadProject={onOpenLoadProject}
+            onOpenCockpit={onOpenCockpit}
             onOpenPromptStudio={onOpenPromptStudio}
             onOpenAssetForge={onOpenAssetForge}
             onOpenRuntimeOverview={onOpenRuntimeOverview}

@@ -417,6 +417,29 @@ describe("App desktop smoke", () => {
     expect(await screen.findByLabelText("AI Asset Forge")).toBeInTheDocument();
   });
 
+  it("opens cockpit environments from Home launcher cards", async () => {
+    render(<App />);
+    await screen.findByText("Home start here");
+
+    fireEvent.click(screen.getByRole("button", { name: "Open Create Game" }));
+    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
+
+    fireEvent.click(getDesktopNavButton(/Home/i));
+    await screen.findByText("Home start here");
+    fireEvent.click(screen.getByRole("button", { name: "Open Create Movie" }));
+    expect((await screen.findAllByText("Create Movie Cockpit")).length).toBeGreaterThan(0);
+
+    fireEvent.click(getDesktopNavButton(/Home/i));
+    await screen.findByText("Home start here");
+    fireEvent.click(screen.getByRole("button", { name: "Open Load Project" }));
+    expect((await screen.findAllByText("Load Project Cockpit")).length).toBeGreaterThan(0);
+
+    fireEvent.click(getDesktopNavButton(/Home/i));
+    await screen.findByText("Home start here");
+    fireEvent.click(screen.getAllByRole("button", { name: "Open Asset Forge" })[0]);
+    expect(await screen.findByLabelText("AI Asset Forge")).toBeInTheDocument();
+  });
+
   it("opens cockpit Prompt Studio with a contextual template chooser and prefill-only safety", async () => {
     render(<App />);
 
