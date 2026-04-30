@@ -2,6 +2,7 @@ import { useMemo, type CSSProperties, type ReactNode } from "react";
 
 import DesktopWindow from "../DesktopWindow";
 import DockableCockpitLayout from "../cockpits/DockableCockpitLayout";
+import { getCockpitLayoutDefaults } from "../cockpits/cockpitLayoutDefaults";
 import type { CockpitPanelDefinition } from "../cockpits/cockpitLayoutTypes";
 import { getWorkspaceWindowGuide } from "../../content/operatorGuide";
 
@@ -14,6 +15,7 @@ const promptStudioWindow = getWorkspaceWindowGuide("prompt", "prompt-studio");
 export default function PromptWorkspaceView({
   content,
 }: PromptWorkspaceViewProps) {
+  const layoutDefaults = getCockpitLayoutDefaults("prompt");
   const panels = useMemo<CockpitPanelDefinition[]>(() => ([
     {
       id: "prompt-command-strip",
@@ -135,14 +137,8 @@ export default function PromptWorkspaceView({
       <DockableCockpitLayout
         cockpitId="prompt"
         panels={panels}
-        defaultPresetId="app-os-cockpit"
-        splitConstraints={{
-          leftMinWidth: 260,
-          centerMinWidth: 520,
-          rightMinWidth: 300,
-          mainMinHeight: 280,
-          bottomMinHeight: 170,
-        }}
+        defaultPresetId={layoutDefaults.presetId}
+        splitConstraints={layoutDefaults.splitConstraints}
       />
     </DesktopWindow>
   );

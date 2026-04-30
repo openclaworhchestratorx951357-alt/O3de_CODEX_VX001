@@ -2,6 +2,7 @@ import { useMemo, type CSSProperties, type ReactNode } from "react";
 
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DockableCockpitLayout from "../cockpits/DockableCockpitLayout";
+import { getCockpitLayoutDefaults } from "../cockpits/cockpitLayoutDefaults";
 import type { CockpitPanelDefinition } from "../cockpits/cockpitLayoutTypes";
 
 type CockpitSurfaceWorkspaceLayoutProps<SurfaceId extends string> = {
@@ -27,6 +28,7 @@ export default function CockpitSurfaceWorkspaceLayout<SurfaceId extends string>(
   workAreaSubtitle,
   summaryTitle = "Surface summary",
 }: CockpitSurfaceWorkspaceLayoutProps<SurfaceId>) {
+  const layoutDefaults = getCockpitLayoutDefaults(cockpitId);
   const activeItem = items.find((item) => item.id === activeSurfaceId);
 
   const panels = useMemo<CockpitPanelDefinition[]>(() => ([
@@ -191,14 +193,8 @@ export default function CockpitSurfaceWorkspaceLayout<SurfaceId extends string>(
     <DockableCockpitLayout
       cockpitId={cockpitId}
       panels={panels}
-      defaultPresetId="app-os-cockpit"
-      splitConstraints={{
-        leftMinWidth: 260,
-        centerMinWidth: 520,
-        rightMinWidth: 300,
-        mainMinHeight: 280,
-        bottomMinHeight: 170,
-      }}
+      defaultPresetId={layoutDefaults.presetId}
+      splitConstraints={layoutDefaults.splitConstraints}
     />
   );
 }

@@ -5,6 +5,7 @@ import DesktopWindow from "../DesktopWindow";
 import GuidedAdvancedSection from "../GuidedAdvancedSection";
 import RecommendedActionsPanel from "../RecommendedActionsPanel";
 import DockableCockpitLayout from "../cockpits/DockableCockpitLayout";
+import { getCockpitLayoutDefaults } from "../cockpits/cockpitLayoutDefaults";
 import type { CockpitPanelDefinition } from "../cockpits/cockpitLayoutTypes";
 import {
   getWorkspaceGuide,
@@ -74,6 +75,7 @@ export default function BuilderWorkspaceView({
   recommendations = [],
   guidedMode = true,
 }: BuilderWorkspaceViewProps) {
+  const layoutDefaults = getCockpitLayoutDefaults("builder");
   const [activeSurfaceId, setActiveSurfaceId] = useState<BuilderSurfaceId>("start");
   const recommendationEntries = recommendations.map((entry) => ({
     ...entry,
@@ -319,14 +321,8 @@ export default function BuilderWorkspaceView({
       <DockableCockpitLayout
         cockpitId="builder"
         panels={cockpitPanels}
-        defaultPresetId="app-os-cockpit"
-        splitConstraints={{
-          leftMinWidth: 270,
-          centerMinWidth: 560,
-          rightMinWidth: 320,
-          mainMinHeight: 280,
-          bottomMinHeight: 180,
-        }}
+        defaultPresetId={layoutDefaults.presetId}
+        splitConstraints={layoutDefaults.splitConstraints}
       />
     </DesktopWindow>
   );

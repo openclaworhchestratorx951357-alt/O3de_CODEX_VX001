@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from "react";
 
 import DesktopWindow from "../DesktopWindow";
 import DockableCockpitLayout from "./DockableCockpitLayout";
+import { getCockpitLayoutDefaults } from "./cockpitLayoutDefaults";
 import type { CockpitPanelDefinition } from "./cockpitLayoutTypes";
 
 export type CockpitAction = {
@@ -78,6 +79,7 @@ export default function CockpitWorkspaceShell({
   truthRail,
   reviewNote,
 }: CockpitWorkspaceShellProps) {
+  const layoutDefaults = getCockpitLayoutDefaults(cockpitId);
   const panelDefinitions: CockpitPanelDefinition[] = [
     {
       id: "identity",
@@ -293,14 +295,8 @@ export default function CockpitWorkspaceShell({
       <DockableCockpitLayout
         cockpitId={cockpitId}
         panels={panelDefinitions}
-        defaultPresetId="app-os-cockpit"
-        splitConstraints={{
-          leftMinWidth: 240,
-          centerMinWidth: 500,
-          rightMinWidth: 280,
-          mainMinHeight: 240,
-          bottomMinHeight: 160,
-        }}
+        defaultPresetId={layoutDefaults.presetId}
+        splitConstraints={layoutDefaults.splitConstraints}
       />
     </DesktopWindow>
   );

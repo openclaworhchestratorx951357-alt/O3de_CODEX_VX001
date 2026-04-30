@@ -4,6 +4,7 @@ import AssetForgeStudioPacket01 from "./AssetForgeStudioPacket01";
 import AssetForgeGuidedPipeline from "./AssetForgeGuidedPipeline";
 import MissionTruthRail from "./MissionTruthRail";
 import DockableCockpitLayout from "./cockpits/DockableCockpitLayout";
+import { getCockpitLayoutDefaults } from "./cockpits/cockpitLayoutDefaults";
 import type { CockpitPanelDefinition } from "./cockpits/cockpitLayoutTypes";
 import type { PlacementProofOnlyReviewSnapshot } from "../lib/promptPlacementProofOnlyReview";
 import {
@@ -57,6 +58,7 @@ type AIAssetForgePanelProps = {
 };
 
 export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
+  const layoutDefaults = getCockpitLayoutDefaults("asset-forge");
   const [taskModel, setTaskModel] = useState<AssetForgeTaskRecord | null>(null);
   const [providerStatus, setProviderStatus] = useState<AssetForgeProviderStatusRecord | null>(null);
   const [blenderStatus, setBlenderStatus] = useState<AssetForgeBlenderStatusRecord | null>(null);
@@ -339,14 +341,8 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
       <DockableCockpitLayout
         cockpitId="asset-forge"
         panels={cockpitPanels}
-        defaultPresetId="asset-forge-studio"
-        splitConstraints={{
-          leftMinWidth: 240,
-          centerMinWidth: 520,
-          rightMinWidth: 280,
-          mainMinHeight: 240,
-          bottomMinHeight: 160,
-        }}
+        defaultPresetId={layoutDefaults.presetId}
+        splitConstraints={layoutDefaults.splitConstraints}
       />
     </section>
   );
