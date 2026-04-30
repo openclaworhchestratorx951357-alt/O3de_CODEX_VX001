@@ -103,7 +103,7 @@ Result summary:
 
 ## Recommended next packet
 
-Editor placement proof-only design:
+Editor placement proof-only readiness audit:
 
 - define exact scope and non-goals for a future proof-only editor placement
   corridor design packet

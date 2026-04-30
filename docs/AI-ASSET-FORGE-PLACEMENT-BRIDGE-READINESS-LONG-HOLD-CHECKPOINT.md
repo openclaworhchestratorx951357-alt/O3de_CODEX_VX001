@@ -72,7 +72,7 @@ the next packet selection while this hold checkpoint remains stable.
 
 ## Recommended next packet
 
-Editor placement proof-only design:
+Editor placement proof-only readiness audit:
 
 - establish current truth for any future placement runtime-admission candidate
 - classify safe/no-go boundaries for potential exact-scope admission work

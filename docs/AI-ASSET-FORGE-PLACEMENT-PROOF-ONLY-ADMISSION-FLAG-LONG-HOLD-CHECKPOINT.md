@@ -77,7 +77,7 @@ the next packet selection while this hold checkpoint remains stable.
 
 ## Recommended next packet
 
-Editor placement proof-only design:
+Editor placement proof-only readiness audit:
 
 - establish current truth for `editor.placement.plan` and its cross-lane
   dependencies before any new editor placement execution discussion

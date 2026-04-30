@@ -89,7 +89,7 @@ re-verified:
 
 ## Recommended next packet
 
-Editor placement proof-only design:
+Editor placement proof-only readiness audit:
 
 - checkpoint held release posture and stream handoff boundaries
 - preserve proof-only blocked execution and non-authorizing posture

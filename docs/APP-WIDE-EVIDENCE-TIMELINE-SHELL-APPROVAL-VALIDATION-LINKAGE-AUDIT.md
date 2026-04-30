@@ -69,5 +69,5 @@ server-owned authorization truth without widening runtime admission.
 
 ## Recommended next packet
 
-Editor placement proof-only design
-(`codex/editor-placement-proof-only-design`).
+Editor placement proof-only readiness audit
+(`codex/editor-placement-proof-only-readiness-audit`).

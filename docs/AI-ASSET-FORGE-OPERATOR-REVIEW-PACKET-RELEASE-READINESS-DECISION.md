@@ -75,7 +75,7 @@ re-verified:
 
 ## Recommended next packet
 
-Editor placement proof-only design:
+Editor placement proof-only readiness audit:
 
 - define exact assignment-design candidate boundaries before proof/admission
 - preserve review-packet hold-state and non-admission constraints

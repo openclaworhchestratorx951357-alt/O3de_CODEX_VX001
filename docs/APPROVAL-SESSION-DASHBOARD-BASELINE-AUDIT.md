@@ -103,8 +103,8 @@ superseded for current dashboard behavior by:
 
 ## Recommended next packet
 
-Editor placement proof-only design
-(`codex/editor-placement-proof-only-design`):
+Editor placement proof-only readiness audit
+(`codex/editor-placement-proof-only-readiness-audit`):
 
 - keep baseline, shell, and timeline wording aligned for server-owned
   authorization truth

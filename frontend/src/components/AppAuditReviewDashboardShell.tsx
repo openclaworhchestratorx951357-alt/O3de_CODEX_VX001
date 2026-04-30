@@ -114,7 +114,7 @@ export default function AppAuditReviewDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Editor placement proof-only design</strong>.
+        Recommended next packet: <strong>Editor placement proof-only readiness audit</strong>.
       </p>
     </section>
   );

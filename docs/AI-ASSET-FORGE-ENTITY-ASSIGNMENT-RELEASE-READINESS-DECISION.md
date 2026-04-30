@@ -81,7 +81,7 @@ re-verified:
 
 ## Recommended next packet
 
-Editor placement proof-only design:
+Editor placement proof-only readiness audit:
 
 - checkpoint held assignment-design posture and stream handoff boundaries
 - preserve plan-only/non-authorizing boundaries

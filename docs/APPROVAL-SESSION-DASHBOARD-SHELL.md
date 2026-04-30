@@ -71,8 +71,8 @@ broadened.
 
 ## Recommended next packet
 
-Editor placement proof-only design
-(`codex/editor-placement-proof-only-design`):
+Editor placement proof-only readiness audit
+(`codex/editor-placement-proof-only-readiness-audit`):
 
 - keep server-owned authorization and fail-closed gate-state wording aligned
   with the existing approval/session boundary model across baseline/shell

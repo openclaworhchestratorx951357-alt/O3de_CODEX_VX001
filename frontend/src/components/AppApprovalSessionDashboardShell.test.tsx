@@ -42,6 +42,6 @@ describe("AppApprovalSessionDashboardShell", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("client fields remain intent-only and non-authorizing", { exact: false })).toBeInTheDocument();
 
-    expect(screen.getByText("Editor placement proof-only design", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Editor placement proof-only readiness audit", { selector: "strong" })).toBeInTheDocument();
   });
 });
