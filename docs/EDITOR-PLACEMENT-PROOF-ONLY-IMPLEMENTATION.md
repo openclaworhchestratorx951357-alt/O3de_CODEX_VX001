@@ -40,6 +40,9 @@ preserving blocked/non-admitted runtime execution and mutation posture.
 - added operator-facing prompt execution review summaries for
   `editor.placement.proof_only` that explicitly report fail-closed/non-admitted
   evidence, missing proof boundaries, and safest next step guidance
+- surfaced explicit server-owned approval/session blocker readout in that review
+  summary, including decision state/code, session status, policy gates, and
+  blocker reason text
 
 ## Files
 

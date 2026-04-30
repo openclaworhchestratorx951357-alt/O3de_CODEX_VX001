@@ -2601,6 +2601,16 @@ def test_prompt_session_executes_editor_placement_proof_only_candidate_with_fail
                 in payload["final_result_summary"]
             )
             assert (
+                "Server approval evaluation: decision_state=denied, decision_code=missing_session, status=missing, "
+                "policy_would_allow_if_mutation_admitted=False, authorization_granted=False, session_provided=False, "
+                "operation_matches=False, binding_matches=False."
+                in payload["final_result_summary"]
+            )
+            assert (
+                "Server approval blocker reason: No server-owned approval session was provided; endpoint remains blocked."
+                in payload["final_result_summary"]
+            )
+            assert (
                 "No editor placement runtime command was admitted or executed."
                 in payload["final_result_summary"]
             )

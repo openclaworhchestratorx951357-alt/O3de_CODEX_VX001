@@ -1441,6 +1441,35 @@ class PromptOrchestratorService:
                 f"mutation_occurred={details.get('mutation_occurred')}, "
                 f"read_only={details.get('read_only')}."
             )
+            server_approval_evaluation = details.get("server_approval_evaluation")
+            if isinstance(server_approval_evaluation, dict):
+                decision_state = server_approval_evaluation.get("decision_state")
+                decision_code = server_approval_evaluation.get("decision_code")
+                session_status = server_approval_evaluation.get("status")
+                policy_would_allow = server_approval_evaluation.get(
+                    "policy_would_allow_if_mutation_admitted"
+                )
+                authorization_granted = server_approval_evaluation.get(
+                    "authorization_granted"
+                )
+                session_provided = server_approval_evaluation.get("session_provided")
+                operation_matches = server_approval_evaluation.get("operation_matches")
+                binding_matches = server_approval_evaluation.get("binding_matches")
+                verified_facts.append(
+                    "Server approval evaluation: "
+                    f"decision_state={decision_state}, decision_code={decision_code}, "
+                    f"status={session_status}, "
+                    f"policy_would_allow_if_mutation_admitted={policy_would_allow}, "
+                    f"authorization_granted={authorization_granted}, "
+                    f"session_provided={session_provided}, "
+                    f"operation_matches={operation_matches}, "
+                    f"binding_matches={binding_matches}."
+                )
+                server_reason = server_approval_evaluation.get("reason")
+                if isinstance(server_reason, str) and server_reason:
+                    missing_proof.append(
+                        f"Server approval blocker reason: {server_reason}"
+                    )
             fail_closed_reasons = details.get("fail_closed_reasons")
             if isinstance(fail_closed_reasons, list) and fail_closed_reasons:
                 reasons = ", ".join(str(item) for item in fail_closed_reasons[:5])
