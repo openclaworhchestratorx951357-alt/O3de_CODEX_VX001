@@ -257,6 +257,8 @@ type DesktopNavItemId = DesktopWorkspaceId;
 type PromptLaunchDraftRequest = {
   requestId: string;
   draft: MissionPromptDraft;
+  sourceSurfaceLabel?: string | null;
+  launchedAtIso?: string | null;
 };
 
 type OperationsSurfaceId =
@@ -5078,44 +5080,73 @@ export default function App() {
     setActiveWorkspaceId("prompt");
   }
 
-  function openPromptStudioWithMissionDraft(draft: MissionPromptDraft): void {
+  function openPromptStudioWithMissionDraft(
+    draft: MissionPromptDraft,
+    sourceSurfaceLabel: string,
+  ): void {
     setPromptLaunchDraftRequest({
       requestId: crypto.randomUUID(),
       draft,
+      sourceSurfaceLabel,
+      launchedAtIso: new Date().toISOString(),
     });
     setActiveWorkspaceId("prompt");
   }
 
   function openPromptStudioWithPlacementProofTemplate(): void {
-    openPromptStudioWithMissionDraft(placementProofOnlyMissionPromptDraft);
+    openPromptStudioWithMissionDraft(
+      placementProofOnlyMissionPromptDraft,
+      "Mission workflow / placement proof-only template",
+    );
   }
 
   function openPromptStudioWithCinematicPlacementProofTemplate(): void {
-    openPromptStudioWithMissionDraft(cinematicPlacementProofOnlyMissionPromptDraft);
+    openPromptStudioWithMissionDraft(
+      cinematicPlacementProofOnlyMissionPromptDraft,
+      "Create Movie cockpit / placement proof-only template",
+    );
   }
 
   function openPromptStudioWithInspectProjectTemplate(): void {
-    openPromptStudioWithMissionDraft(inspectProjectMissionPromptDraft);
+    openPromptStudioWithMissionDraft(
+      inspectProjectMissionPromptDraft,
+      "Home or Asset Forge / inspect project template",
+    );
   }
 
   function openPromptStudioWithCreateGameEntityTemplate(): void {
-    openPromptStudioWithMissionDraft(createGameEntityMissionPromptDraft);
+    openPromptStudioWithMissionDraft(
+      createGameEntityMissionPromptDraft,
+      "Create Game cockpit / create entity template",
+    );
   }
 
   function openPromptStudioWithAddAllowlistedMeshTemplate(): void {
-    openPromptStudioWithMissionDraft(addAllowlistedMeshMissionPromptDraft);
+    openPromptStudioWithMissionDraft(
+      addAllowlistedMeshMissionPromptDraft,
+      "Create Game cockpit / add allowlisted component template",
+    );
   }
 
   function openPromptStudioWithInspectCinematicTargetTemplate(): void {
-    openPromptStudioWithMissionDraft(inspectCinematicTargetMissionPromptDraft);
+    openPromptStudioWithMissionDraft(
+      inspectCinematicTargetMissionPromptDraft,
+      "Create Movie cockpit / inspect cinematic target template",
+    );
   }
 
   function openPromptStudioWithCreateCinematicCameraTemplate(): void {
-    openPromptStudioWithMissionDraft(createCinematicCameraPlaceholderMissionPromptDraft);
+    openPromptStudioWithMissionDraft(
+      createCinematicCameraPlaceholderMissionPromptDraft,
+      "Create Movie cockpit / camera placeholder template",
+    );
   }
 
   function openPromptStudioWithInspectLoadProjectTemplate(): void {
-    openPromptStudioWithMissionDraft(inspectLoadProjectMissionPromptDraft);
+    openPromptStudioWithMissionDraft(
+      inspectLoadProjectMissionPromptDraft,
+      "Load Project cockpit / inspect target template",
+    );
   }
 
   function openRecordsRuns(): void {

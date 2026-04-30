@@ -54,6 +54,8 @@ type PromptControlPanelProps = {
 export type PromptLaunchDraftRequest = {
   requestId: string;
   draft: MissionPromptDraft;
+  sourceSurfaceLabel?: string | null;
+  launchedAtIso?: string | null;
 };
 
 type PromptDraftRecommendation = {
@@ -283,6 +285,10 @@ export default function PromptControlPanel({
   const [loadedPromptRecommendation, setLoadedPromptRecommendation] =
     useState<PromptDraftRecommendation | null>(null);
   const [loadedMissionDraft, setLoadedMissionDraft] = useState<MissionPromptDraft | null>(null);
+  const [loadedMissionDraftSourceSurfaceLabel, setLoadedMissionDraftSourceSurfaceLabel] =
+    useState<string | null>(null);
+  const [loadedMissionDraftLaunchedAtIso, setLoadedMissionDraftLaunchedAtIso] =
+    useState<string | null>(null);
   const previousOperatorDefaultsRef = useRef(settings.operatorDefaults);
   const lastPromptLaunchRequestIdRef = useRef<string | null>(null);
   const suppressNextDryRunDefaultsSyncRef = useRef(false);
@@ -443,6 +449,12 @@ export default function PromptControlPanel({
     setDryRun(draft.dryRun);
     setLoadedPromptRecommendation(null);
     setLoadedMissionDraft(draft);
+    setLoadedMissionDraftSourceSurfaceLabel(
+      promptLaunchDraftRequest.sourceSurfaceLabel?.trim() || "unknown source surface",
+    );
+    setLoadedMissionDraftLaunchedAtIso(
+      promptLaunchDraftRequest.launchedAtIso?.trim() || new Date().toISOString(),
+    );
     setPromptRecommendationMessage(`Loaded mission template: ${draft.label}.`);
   }, [promptLaunchDraftRequest]);
 
@@ -676,6 +688,8 @@ export default function PromptControlPanel({
               type="button"
               onClick={() => {
                 setLoadedMissionDraft(null);
+                setLoadedMissionDraftSourceSurfaceLabel(null);
+                setLoadedMissionDraftLaunchedAtIso(null);
                 setPromptRecommendationMessage(null);
               }}
             >
@@ -694,6 +708,15 @@ export default function PromptControlPanel({
             </span>
             <span>
               Dry run: <strong>{loadedMissionDraft.dryRun ? "preferred" : "off for proof-only execution review"}</strong>
+            </span>
+            <span>
+              Loaded from: <strong>{loadedMissionDraftSourceSurfaceLabel ?? "unknown source surface"}</strong>
+            </span>
+            <span>
+              Prefill timestamp (ISO): <strong>{loadedMissionDraftLaunchedAtIso ?? "unknown"}</strong>
+            </span>
+            <span>
+              Execution path: <strong>prefill-only; manual preview and explicit execute are still required</strong>
             </span>
           </div>
           <p style={subtleTextStyle}>{loadedMissionDraft.guidance}</p>

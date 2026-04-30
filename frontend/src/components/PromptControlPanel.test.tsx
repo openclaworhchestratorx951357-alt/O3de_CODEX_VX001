@@ -353,6 +353,8 @@ describe("PromptControlPanel", () => {
         promptLaunchDraftRequest={{
           requestId: "mission-request-1",
           draft: placementProofOnlyMissionPromptDraft,
+          sourceSurfaceLabel: "Create Movie cockpit / placement proof-only template",
+          launchedAtIso: "2026-04-30T12:00:00.000Z",
         }}
       />,
     );
@@ -364,6 +366,13 @@ describe("PromptControlPanel", () => {
     expect(screen.getByLabelText("Mission template handoff review")).toBeInTheDocument();
     expect(screen.getByText(/proof-only, fail-closed, non-mutating, real placement not admitted/i)).toBeInTheDocument();
     expect(screen.getByText(/execution_admitted=false/i)).toBeInTheDocument();
+    expect(screen.getByText(/Loaded from:/i)).toBeInTheDocument();
+    expect(screen.getByText("Create Movie cockpit / placement proof-only template")).toBeInTheDocument();
+    expect(screen.getByText(/Prefill timestamp \(ISO\):/i)).toBeInTheDocument();
+    expect(screen.getByText("2026-04-30T12:00:00.000Z")).toBeInTheDocument();
+    expect(
+      screen.getByText(/prefill-only; manual preview and explicit execute are still required/i),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText("Prompt text")).toHaveValue(
       placementProofOnlyMissionPromptDraft.promptText,
     );
