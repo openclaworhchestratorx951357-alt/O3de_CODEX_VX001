@@ -5702,6 +5702,9 @@ export default function App() {
       helpTooltip: getShellWorkspaceSurfaceGuide("records", "events").tooltip,
     },
   ] as const;
+  const latestRunId = selectedRunId ?? runs[0]?.id ?? null;
+  const latestExecutionId = selectedExecutionId ?? executions[0]?.id ?? null;
+  const latestArtifactId = selectedArtifactId ?? artifacts[0]?.id ?? null;
   const homeMissionControlContent = (
     <LayoutHeader
       title={operatorGuideShellApp.title}
@@ -7377,6 +7380,11 @@ export default function App() {
                 onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
+                onOpenRecords={openRecordsRuns}
+                onViewLatestRun={openRecordsRuns}
+                onViewExecution={openRecordsExecutions}
+                onViewArtifact={openRecordsArtifacts}
+                onViewEvidence={openRecordsEvents}
                 bridgeStatus={o3deBridgeStatus}
                 policies={policies}
                 policiesLoading={policiesLoading}
@@ -7387,6 +7395,9 @@ export default function App() {
                 adapters={adapters}
                 adaptersLoading={adaptersLoading}
                 adaptersError={adaptersError}
+                latestRunId={latestRunId}
+                latestExecutionId={latestExecutionId}
+                latestArtifactId={latestArtifactId}
               />
             </Suspense>
           </div>
@@ -7452,6 +7463,17 @@ export default function App() {
               onOpenRuntimeOverview={openRuntimeOverview}
               onOpenBuilder={() => setActiveWorkspaceId("builder")}
               onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
+              onOpenRecords={openRecordsRuns}
+              onViewLatestRun={openRecordsRuns}
+              onViewExecution={openRecordsExecutions}
+              onViewArtifact={openRecordsArtifacts}
+              onViewEvidence={openRecordsEvents}
+              bridgeStatus={o3deBridgeStatus}
+              adapters={adapters}
+              readiness={readiness}
+              latestRunId={latestRunId}
+              latestExecutionId={latestExecutionId}
+              latestArtifactId={latestArtifactId}
               onActiveTaskModeChange={setHomeTaskModeId}
             />
           </div>

@@ -264,7 +264,11 @@ describe("App desktop hydration", () => {
       "Available operator families and owned tool lanes.",
     ));
 
-    expect(await screen.findByText("Agent Control")).toBeInTheDocument();
+    expect(await screen.findByText(
+      "Agent Control",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
     ).toBe("operations");
@@ -275,7 +279,11 @@ describe("App desktop hydration", () => {
     unmount();
     render(<App />);
 
-    expect(await screen.findByText("Agent Control")).toBeInTheDocument();
+    expect(await screen.findByText(
+      "Agent Control",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
   });
 
   it("restores the command center approvals surface from session storage after remount", async () => {

@@ -186,7 +186,12 @@ describe("App desktop smoke", () => {
   it("opens prompt workspace from the home recommendation strip", async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Open Prompt Studio" }));
+    const recommendationStrip = screen.getByText("Recommended next steps").closest("section");
+    expect(recommendationStrip).not.toBeNull();
+
+    fireEvent.click(
+      within(recommendationStrip as HTMLElement).getByRole("button", { name: "Open Prompt Studio" }),
+    );
 
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
   });
