@@ -256,12 +256,22 @@ export default function MissionTruthRail({
 }
 
 function TruthRow({ label, value }: { label: string; value: string }) {
+  const safetyCritical = isSafetyCriticalLabel(label);
   return (
-    <div style={styles.row}>
-      <span style={styles.rowLabel}>{label}</span>
-      <code style={styles.rowValue}>{value}</code>
+    <div style={{ ...styles.row, ...(safetyCritical ? styles.rowSafety : null) }}>
+      <span style={{ ...styles.rowLabel, ...(safetyCritical ? styles.rowLabelSafety : null) }}>{label}</span>
+      <code style={{ ...styles.rowValue, ...(safetyCritical ? styles.rowValueSafety : null) }}>{value}</code>
     </div>
   );
+}
+
+function isSafetyCriticalLabel(label: string): boolean {
+  const normalized = label.toLowerCase();
+  return normalized === "mutation admitted"
+    || normalized === "placement write admitted"
+    || normalized === "execution_admitted"
+    || normalized === "placement_write_admitted"
+    || normalized === "mutation_occurred";
 }
 
 function formatArtifactReference(label: string | undefined, id: string | undefined): string {
@@ -276,12 +286,13 @@ function formatArtifactReference(label: string | undefined, id: string | undefin
 
 const styles = {
   shell: {
-    border: "1px solid var(--app-panel-border)",
+    border: "1px solid var(--app-panel-border-strong)",
     borderRadius: "var(--app-card-radius)",
     padding: 12,
     display: "grid",
     gap: 10,
-    background: "var(--app-panel-bg)",
+    background: "var(--app-truth-rail-shell-bg)",
+    boxShadow: "var(--app-shadow-soft)",
   },
   header: {
     display: "flex",
@@ -290,11 +301,13 @@ const styles = {
     gap: 10,
   },
   label: {
-    border: "1px solid var(--app-panel-border)",
+    border: "1px solid var(--app-panel-border-strong)",
     borderRadius: 999,
     padding: "2px 10px",
     fontSize: 12,
-    color: "var(--app-subtle-color)",
+    color: "var(--app-text-color)",
+    background: "var(--app-active-bg)",
+    boxShadow: "var(--app-shadow-soft)",
   },
   grid: {
     display: "grid",
@@ -304,10 +317,11 @@ const styles = {
   snapshot: {
     display: "grid",
     gap: 8,
-    border: "1px solid var(--app-panel-border)",
+    border: "1px solid var(--app-panel-border-strong)",
     borderRadius: 8,
     padding: "10px 12px",
-    background: "var(--app-panel-bg-muted)",
+    background: "var(--app-truth-rail-snapshot-bg)",
+    boxShadow: "var(--app-shadow-soft)",
   },
   row: {
     display: "grid",
@@ -315,20 +329,37 @@ const styles = {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 8,
     padding: "8px 10px",
-    background: "var(--app-panel-bg-muted)",
+    background: "var(--app-truth-rail-row-bg)",
+    boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.05)",
+  },
+  rowSafety: {
+    borderColor: "var(--app-warning-border)",
+    background: "var(--app-truth-rail-safety-bg)",
+    boxShadow: "inset 3px 0 0 rgba(248, 199, 108, 0.72), inset 0 1px 0 rgba(255, 252, 242, 0.12)",
   },
   rowLabel: {
     fontSize: 12,
     color: "var(--app-subtle-color)",
+    letterSpacing: "0.02em",
+  },
+  rowLabelSafety: {
+    color: "var(--app-warning-text)",
+    fontWeight: 700,
   },
   rowValue: {
     fontSize: 12,
     overflowWrap: "anywhere",
+    color: "var(--app-text-color)",
+    fontWeight: 600,
+  },
+  rowValueSafety: {
+    color: "var(--app-text-color)",
+    textShadow: "0 0 14px rgba(248, 199, 108, 0.2)",
   },
   detail: {
     margin: 0,
     fontSize: 13,
-    color: "var(--app-subtle-color)",
+    color: "var(--app-muted-color)",
   },
   warningBox: {
     border: "1px solid rgba(232, 184, 73, 0.6)",

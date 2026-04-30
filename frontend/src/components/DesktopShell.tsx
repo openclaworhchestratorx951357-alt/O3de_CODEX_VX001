@@ -141,7 +141,7 @@ const wallpaperGlowTopStyle = {
   width: 420,
   height: 420,
   borderRadius: "50%",
-  background: "rgba(118, 170, 255, 0.36)",
+  background: "var(--app-shell-glow-primary)",
   filter: "blur(96px)",
   pointerEvents: "none",
 } satisfies CSSProperties;
@@ -152,7 +152,7 @@ const wallpaperGlowBottomStyle = {
   width: 460,
   height: 460,
   borderRadius: "50%",
-  background: "rgba(33, 127, 255, 0.18)",
+  background: "var(--app-shell-glow-secondary)",
   filter: "blur(108px)",
   pointerEvents: "none",
 } satisfies CSSProperties;
@@ -166,9 +166,10 @@ const taskbarStyle = {
   gap: 14,
   minHeight: 64,
   padding: "10px 18px",
-  background: "var(--app-panel-bg)",
-  borderBottom: "1px solid var(--app-panel-border)",
+  background: "var(--app-shell-taskbar-bg)",
+  borderBottom: "1px solid var(--app-panel-border-strong)",
   backdropFilter: "blur(18px)",
+  boxShadow: "var(--app-shadow-soft)",
   overflow: "visible",
 } satisfies CSSProperties;
 
@@ -254,8 +255,8 @@ const workspaceShellStyle = {
   gap: 12,
   gridTemplateRows: "auto minmax(0, 1fr)",
   padding: 16,
-  background: "var(--app-panel-bg)",
-  border: "1px solid var(--app-panel-border)",
+  background: "linear-gradient(160deg, var(--app-panel-bg) 0%, var(--app-panel-bg-alt) 100%)",
+  border: "1px solid var(--app-panel-border-strong)",
   borderRadius: "var(--app-window-radius)",
   boxShadow: "var(--app-shadow-strong)",
   backdropFilter: "blur(20px)",

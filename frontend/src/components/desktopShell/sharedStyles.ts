@@ -25,11 +25,6 @@ export const toneStyles: Record<DesktopShellTone, CSSProperties> = {
   },
 };
 
-export const raisedControlShadow = "0 6px 14px rgba(0, 0, 0, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.08)";
+export const raisedControlShadow = "var(--app-raised-shadow)";
 
-export const goldSelectedShadow = [
-  "0 0 0 1px rgba(248, 212, 119, 0.94)",
-  "0 0 14px rgba(248, 212, 119, 0.42)",
-  "0 10px 22px rgba(0, 0, 0, 0.24)",
-  "inset 0 1px 0 rgba(255, 255, 255, 0.18)",
-].join(", ");
+export const goldSelectedShadow = "var(--app-selected-shadow)";
