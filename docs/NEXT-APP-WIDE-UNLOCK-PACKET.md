@@ -1,33 +1,29 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Approval/session dashboard shell (static fixture first)
-(`codex/approval-session-dashboard-shell-static-fixture-first`).
+Approval/session dashboard truth refresh + validation linkage
+(`codex/approval-session-dashboard-truth-refresh-validation-linkage`).
 
 ## Why this is next
-- Approval/session dashboard long-hold checkpoint packet is now complete with
-  deterministic long-hold stream-handoff parity across baseline, shell,
-  timeline, and recommendation surfaces under explicit server-owned gate-state
-  truth and non-authorizing client-field semantics.
+- Approval/session dashboard shell (static fixture first) checkpoint is now
+  complete with deterministic shell boundary wording under explicit
+  server-owned gate-state truth and non-authorizing client-field semantics.
+- Approval/session baseline, parity, long-hold, and shell-static recommendation
+  surfaces are aligned and non-admitting.
 - Validation workflow checkpoint chain and hold/no-go posture remain explicit,
-  non-admitting, and unchanged across app-wide guidance surfaces.
-- Exact Camera bool restore/write corridor boundaries remain explicit and
-  regression-checked.
-- Broad editor mutation, broad restore, provider/Blender/Asset Processor,
-  placement execution, and CI/runtime execution broadening remain held.
-- The next highest-value app-wide gap is reinforcing approval/session shell
-  static-fixture wording and field-linkage clarity before any future dashboard
-  truth-refresh broadening.
+  fail-closed, and unchanged across app-wide guidance surfaces.
+- The next highest-value app-wide gap is truth-refresh linkage checkpointing so
+  approval/session and validation-hold review wording remains deterministic
+  across shell, timeline, and recommendation surfaces.
 
 ## Scope
-- produce a focused approval/session dashboard shell (static fixture first)
-  packet
-- audit shell static-fixture wording and linkage cues for deterministic
-  server-owned authorization truth
+- produce a focused approval/session dashboard truth refresh + validation
+  linkage packet
+- reinforce server-owned gate-state language in approval/session shell and
+  linked timeline/recommendation surfaces
 - preserve explicit non-authorizing client-field posture across dashboard
   surfaces
-- keep recommendation surfaces aligned to the approval/session dashboard shell
-  (static fixture first) packet
+- keep recommendation surfaces aligned to this truth-refresh linkage packet
 - preserve no-touch runtime zones and no-broadening posture
 
 ## Safety constraints
@@ -43,8 +39,8 @@ Approval/session dashboard shell (static fixture first)
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- approval/session shell static-fixture wording and linkage remain deterministic
-  and aligned across app-wide recommendation surfaces while preserving explicit
+- approval/session truth-refresh linkage wording remains deterministic and
+  aligned across app-wide recommendation surfaces while preserving explicit
   server-owned gate-state truth and non-authorizing client-field semantics
 - canonical validation command set, command-to-evidence ownership,
   hold-boundary consistency checkpoints, operator-safe examples, wording audit,
@@ -58,8 +54,8 @@ Approval/session dashboard shell (static fixture first)
 - docs remain aligned with runtime/test truth
 
 ## Alternative considered
-Direct approval/session dashboard broadening without first reinforcing static
-fixture shell truth linkage under explicit server-owned gate-state language and
+Direct approval/session dashboard broadening without first checkpointing
+truth-refresh linkage under explicit server-owned gate-state language and
 non-authorizing client-field consistency checks.
 
 This remains deferred for safety. Keep hold posture explicit first, then

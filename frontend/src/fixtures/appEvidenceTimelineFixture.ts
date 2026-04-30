@@ -19,6 +19,16 @@ export const appEvidenceTimelineFixtureGeneratedAt = "2026-05-01";
 
 export const appEvidenceTimelineRows: readonly AppEvidenceTimelineRow[] = [
   {
+    recordedAtUtc: "2026-05-01T00:00:31Z",
+    domain: "GUI",
+    evidenceLane: "approval/session dashboard shell static-fixture-first packet",
+    capabilityWindow: "approval/session shell static-fixture wording and boundary-linkage checkpoint",
+    truthLabel: "demo",
+    summary:
+      "Approval/session dashboard shell static-fixture-first checkpoint now verifies deterministic server-owned authorization truth, fail-closed validation-hold gate-state language, and non-authorizing client-field posture remain explicit across shell, timeline, and recommendation surfaces while preserving non-admitting runtime boundaries.",
+    reviewStatus: "pass-approval-session-dashboard-shell-static-fixture-first-packet",
+  },
+  {
     recordedAtUtc: "2026-05-01T00:00:30Z",
     domain: "GUI",
     evidenceLane: "approval/session dashboard long-hold checkpoint packet",

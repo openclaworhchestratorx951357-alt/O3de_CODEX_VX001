@@ -939,7 +939,7 @@ Why:
   future handoffs without implicit authorization drift
 - advances operator clarity without broadening runtime admission
 
-### CB. Approval/session Dashboard Shell (static fixture first)
+### CB. Approval/session Dashboard Shell (static fixture first) (completed)
 Why:
 - approval/session dashboard long-hold checkpoint packet is now complete and
   stable
@@ -947,6 +947,15 @@ Why:
   reinforcement so approval/session gate-state review language remains
   deterministic while preserving server-owned authorization and non-authorizing
   client-field semantics
+- advances operator clarity without broadening runtime admission
+
+### CC. Approval/session Dashboard Truth Refresh + Validation Linkage
+Why:
+- approval/session dashboard shell (static fixture first) packet is now
+  complete and stable
+- next highest-value operator UX lane is explicit truth-refresh linkage
+  checkpointing so approval/session and validation-hold review wording remains
+  deterministic across shell, timeline, and recommendation surfaces
 - advances operator clarity without broadening runtime admission
 
 ## What stays blocked globally

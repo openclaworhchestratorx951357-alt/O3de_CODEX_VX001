@@ -11,21 +11,32 @@ describe("build execution long-hold fixture guardrails", () => {
     expect(buildExecutionCapability).toBeDefined();
     expect(buildExecutionCapability?.requiredGate).toContain("explicit named target");
     expect(buildExecutionCapability?.requiredGate).toContain("timeout/log/result evidence");
-    expect(buildExecutionCapability?.recommendedNextPacket).toBe("Approval/session dashboard shell (static fixture first)");
+    expect(buildExecutionCapability?.recommendedNextPacket).toBe("Approval/session dashboard truth refresh + validation linkage");
 
     const buildExecutionAudit = appAuditReviewDashboardRows.find((row) => row.domain === "Project/Config");
     expect(buildExecutionAudit).toBeDefined();
     expect(buildExecutionAudit?.capabilityWindow).toBe("build.execute.real long-hold checkpoint");
-    expect(buildExecutionAudit?.nextGate).toBe("Approval/session dashboard shell (static fixture first)");
+    expect(buildExecutionAudit?.nextGate).toBe("Approval/session dashboard truth refresh + validation linkage");
     expect(buildExecutionAudit?.findings).toContain("Long-hold checkpoint");
 
     const buildExecutionStatus = appWorkspaceStatusChipRows.find((row) => row.capabilityWindow === "build.execute.real");
     expect(buildExecutionStatus).toBeDefined();
     expect(buildExecutionStatus?.summary).toContain("hold/no-go posture explicit");
-    expect(buildExecutionStatus?.nextGate).toBe("Approval/session dashboard shell (static fixture first)");
+    expect(buildExecutionStatus?.nextGate).toBe("Approval/session dashboard truth refresh + validation linkage");
   });
 
   it("records build execution long-hold checkpoint evidence while preserving prior checkpoints", () => {
+    const approvalSessionDashboardShellStaticFixtureFirstRow = appEvidenceTimelineRows.find(
+      (row) => row.evidenceLane === "approval/session dashboard shell static-fixture-first packet",
+    );
+    expect(approvalSessionDashboardShellStaticFixtureFirstRow).toBeDefined();
+    expect(approvalSessionDashboardShellStaticFixtureFirstRow?.reviewStatus).toBe(
+      "pass-approval-session-dashboard-shell-static-fixture-first-packet",
+    );
+    expect(approvalSessionDashboardShellStaticFixtureFirstRow?.summary).toContain(
+      "deterministic server-owned authorization truth, fail-closed validation-hold gate-state language, and non-authorizing client-field posture remain explicit",
+    );
+
     const approvalSessionDashboardLongHoldRow = appEvidenceTimelineRows.find(
       (row) => row.evidenceLane === "approval/session dashboard long-hold checkpoint packet",
     );

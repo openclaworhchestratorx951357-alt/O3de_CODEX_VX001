@@ -67,5 +67,5 @@ authorization or execution admission.
 
 ## Recommended next packet
 
-Approval/session dashboard shell (static fixture first)
-(`codex/approval-session-dashboard-shell-static-fixture-first`).
+Approval/session dashboard truth refresh + validation linkage
+(`codex/approval-session-dashboard-truth-refresh-validation-linkage`).

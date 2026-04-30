@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Approval/session dashboard shell (static fixture first)
-(`codex/approval-session-dashboard-shell-static-fixture-first`):
+Approval/session dashboard truth refresh + validation linkage
+(`codex/approval-session-dashboard-truth-refresh-validation-linkage`):
 
 - keep approval/session baseline + shell + timeline wording aligned under
   server-owned authorization truth and fail-closed gate-state semantics

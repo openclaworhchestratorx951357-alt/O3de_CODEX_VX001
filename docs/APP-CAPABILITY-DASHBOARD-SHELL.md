@@ -51,5 +51,5 @@ Status taxonomy vocabulary aligned in this shell:
 
 ## Recommended next packet
 
-Approval/session dashboard shell (static fixture first)
-(`codex/approval-session-dashboard-shell-static-fixture-first`).
+Approval/session dashboard truth refresh + validation linkage
+(`codex/approval-session-dashboard-truth-refresh-validation-linkage`).
