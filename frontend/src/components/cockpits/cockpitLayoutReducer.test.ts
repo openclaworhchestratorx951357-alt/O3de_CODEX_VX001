@@ -57,6 +57,14 @@ describe("cockpitLayoutReducer", () => {
     expect(reordered.zones.left).toEqual(["panel-b", "panel-a"]);
   });
 
+  it("reorderPanel places a panel after a later target in the same zone", () => {
+    const layout = createLayout();
+
+    const reordered = reorderPanel(layout, "panel-a", "left", 2, panels);
+
+    expect(reordered.zones.left).toEqual(["panel-b", "panel-a"]);
+  });
+
   it("movePanelToZone can move a panel into an empty zone", () => {
     const layout = createLayout();
 
@@ -64,6 +72,24 @@ describe("cockpitLayoutReducer", () => {
 
     expect(moved.zones.top).toEqual(["panel-a"]);
     expect(moved.zones.left).toEqual(["panel-b"]);
+  });
+
+  it("movePanelToZone inserts before an existing target panel in another zone", () => {
+    const layout = createLayout();
+
+    const moved = movePanelToZone(layout, "panel-a", "right", 0, panels);
+
+    expect(moved.zones.left).toEqual(["panel-b"]);
+    expect(moved.zones.right).toEqual(["panel-a", "panel-d"]);
+  });
+
+  it("movePanelToZone inserts after an existing target panel in another zone", () => {
+    const layout = createLayout();
+
+    const moved = movePanelToZone(layout, "panel-a", "right", 1, panels);
+
+    expect(moved.zones.left).toEqual(["panel-b"]);
+    expect(moved.zones.right).toEqual(["panel-d", "panel-a"]);
   });
 
   it("normalizeCockpitLayout removes unknown panel ids safely", () => {
@@ -139,5 +165,49 @@ describe("cockpitLayoutReducer", () => {
 
     expect(moved.zones.bottom).toContain("panel-a");
     expect(moved.collapsedPanelIds).toContain("panel-a");
+  });
+
+  it("does not duplicate panel ids after repeated moves", () => {
+    const layout = createLayout();
+
+    const movedRight = movePanelToZone(layout, "panel-a", "right", 0, panels);
+    const movedTop = movePanelToZone(movedRight, "panel-a", "top", 0, panels);
+    const movedLeft = movePanelToZone(movedTop, "panel-a", "left", 1, panels);
+    const allIds = Object.values(movedLeft.zones).flat();
+
+    expect(new Set(allIds).size).toBe(allIds.length);
+    expect(allIds.filter((panelId) => panelId === "panel-a")).toHaveLength(1);
+  });
+
+  it("blocks moves for locked or disallowed-zone panels", () => {
+    const restrictedPanels: CockpitPanelDefinition[] = [
+      {
+        id: "locked-panel",
+        title: "Locked panel",
+        defaultZone: "left",
+        locked: true,
+        render: () => null,
+      },
+      {
+        id: "allowed-panel",
+        title: "Allowed panel",
+        defaultZone: "left",
+        allowedZones: ["left", "center"],
+        render: () => null,
+      },
+      {
+        id: "right-panel",
+        title: "Right panel",
+        defaultZone: "right",
+        render: () => null,
+      },
+    ];
+    const layout = createDefaultCockpitLayout("restricted", restrictedPanels, "balanced");
+
+    const lockedAttempt = movePanelToZone(layout, "locked-panel", "right", 0, restrictedPanels);
+    expect(lockedAttempt).toEqual(layout);
+
+    const disallowedAttempt = movePanelToZone(layout, "allowed-panel", "right", 0, restrictedPanels);
+    expect(disallowedAttempt).toEqual(layout);
   });
 });

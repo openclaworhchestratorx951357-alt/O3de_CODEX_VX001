@@ -61,6 +61,28 @@ function isZoneAllowed(panel: CockpitPanelDefinition, zone: CockpitLayoutZone): 
   return true;
 }
 
+function resolvePanelInsertTarget(
+  event: ReactDragEvent<HTMLElement>,
+  panelElement: HTMLElement,
+  panelIndex: number,
+): { targetIndex: number; insertPosition: "before" | "after" } {
+  const rect = panelElement.getBoundingClientRect();
+  const pointerY = Number.isFinite(event.clientY)
+    ? event.clientY
+    : rect.top + (rect.height / 2);
+  const pointerX = Number.isFinite(event.clientX)
+    ? event.clientX
+    : rect.left + (rect.width / 2);
+  const useHorizontalAxis = panelElement.getAttribute("data-drop-axis") === "horizontal";
+  const insertBefore = useHorizontalAxis
+    ? pointerX <= (rect.left + (rect.width / 2))
+    : pointerY <= (rect.top + (rect.height / 2));
+  return {
+    targetIndex: insertBefore ? panelIndex : panelIndex + 1,
+    insertPosition: insertBefore ? "before" : "after",
+  };
+}
+
 export default function DockableCockpitLayout({
   cockpitId,
   panels,
@@ -75,6 +97,7 @@ export default function DockableCockpitLayout({
   const [dragState, setDragState] = useState<CockpitDragState | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const skipPersistOnceRef = useRef(false);
+  const dragHoverRef = useRef<CockpitDragState | null>(null);
 
   const panelFingerprint = useMemo(
     () => getPanelIdFingerprint(panels),
@@ -84,6 +107,7 @@ export default function DockableCockpitLayout({
   useEffect(() => {
     setLayoutState(readCockpitLayoutState(cockpitId, panels));
     setDragState(null);
+    dragHoverRef.current = null;
   }, [cockpitId, panelFingerprint, panels]);
 
   useEffect(() => {
@@ -145,12 +169,14 @@ export default function DockableCockpitLayout({
     setLayoutState(createCockpitLayoutStateFromPreset(cockpitId, panels, defaultPresetId));
     setSelectedPresetId(defaultPresetId);
     setDragState(null);
+    dragHoverRef.current = null;
   }
 
   function applyPreset(presetId: CockpitLayoutPresetId): void {
     setSelectedPresetId(presetId);
     setLayoutState(createCockpitLayoutStateFromPreset(cockpitId, panels, presetId));
     setDragState(null);
+    dragHoverRef.current = null;
   }
 
   function startPanelDrag(panelId: string): void {
@@ -162,18 +188,21 @@ export default function DockableCockpitLayout({
     if (!origin) {
       return;
     }
-    setDragState({
+    const nextState: CockpitDragState = {
       panelId,
       sourceZoneId: origin.zone,
       overZoneId: origin.zone,
       overPanelId: null,
       insertPosition: "inside",
       targetIndex: origin.index,
-    });
+    };
+    dragHoverRef.current = nextState;
+    setDragState(nextState);
   }
 
   function endPanelDrag(): void {
     setDragState(null);
+    dragHoverRef.current = null;
   }
 
   function handleDropTargetHover(
@@ -191,8 +220,24 @@ export default function DockableCockpitLayout({
       return;
     }
     event.preventDefault();
+    const nextDragState: CockpitDragState = {
+      ...dragState,
+      overZoneId: targetZone,
+      overPanelId,
+      insertPosition,
+      targetIndex,
+    };
+    dragHoverRef.current = nextDragState;
     setDragState((current) => {
       if (!current) {
+        return current;
+      }
+      if (
+        current.overZoneId === targetZone
+        && current.targetIndex === targetIndex
+        && current.overPanelId === overPanelId
+        && current.insertPosition === insertPosition
+      ) {
         return current;
       }
       return {
@@ -223,6 +268,57 @@ export default function DockableCockpitLayout({
       panels,
     ));
     setDragState(null);
+    dragHoverRef.current = null;
+  }
+
+  function handlePanelHover(
+    event: ReactDragEvent<HTMLElement>,
+    targetZone: CockpitLayoutZone,
+    targetPanelId: string,
+    targetPanelIndex: number,
+  ): void {
+    if (!dragState) {
+      return;
+    }
+    const draggedPanel = panelById.get(dragState.panelId);
+    if (!draggedPanel || !isZoneAllowed(draggedPanel, targetZone)) {
+      return;
+    }
+    event.preventDefault();
+    const target = resolvePanelInsertTarget(event, event.currentTarget, targetPanelIndex);
+    handleDropTargetHover(
+      event,
+      targetZone,
+      target.targetIndex,
+      targetPanelId,
+      target.insertPosition,
+    );
+  }
+
+  function handlePanelDrop(
+    event: ReactDragEvent<HTMLElement>,
+    targetZone: CockpitLayoutZone,
+    targetPanelId: string,
+    targetPanelIndex: number,
+  ): void {
+    if (!dragState) {
+      return;
+    }
+    const draggedPanel = panelById.get(dragState.panelId);
+    if (!draggedPanel || !isZoneAllowed(draggedPanel, targetZone)) {
+      return;
+    }
+    const target = resolvePanelInsertTarget(event, event.currentTarget, targetPanelIndex);
+    const hoverSnapshot = dragHoverRef.current;
+    const resolvedTargetIndex = (
+      hoverSnapshot
+      && hoverSnapshot.overZoneId === targetZone
+      && hoverSnapshot.overPanelId === targetPanelId
+      && hoverSnapshot.targetIndex !== null
+    )
+      ? hoverSnapshot.targetIndex
+      : target.targetIndex;
+    handleDropTargetRelease(event, targetZone, resolvedTargetIndex);
   }
 
   function renderDropSlot(
@@ -273,6 +369,13 @@ export default function DockableCockpitLayout({
           }
           if (visiblePanelIds.length === 0) {
             event.preventDefault();
+            dragHoverRef.current = dragState ? ({
+              ...dragState,
+              overZoneId: zone,
+              overPanelId: null,
+              insertPosition: "inside",
+              targetIndex: 0,
+            }) : dragHoverRef.current;
             setDragState((current) => current ? ({
               ...current,
               overZoneId: zone,
@@ -308,30 +411,56 @@ export default function DockableCockpitLayout({
             return null;
           }
           const isDragging = dragState?.panelId === panel.id;
+          const panelTargetBeforeHighlighted = dragState
+            && dragState.overZoneId === zone
+            && dragState.overPanelId === panel.id
+            && dragState.insertPosition === "before";
+          const panelTargetAfterHighlighted = dragState
+            && dragState.overZoneId === zone
+            && dragState.overPanelId === panel.id
+            && dragState.insertPosition === "after";
+          const panelTargetActive = dragState
+            && dragState.panelId !== panel.id
+            && dragState.overZoneId === zone
+            && dragState.overPanelId === panel.id;
           return (
             <div key={`${panel.id}-container`} style={panelContainerStyle}>
               {renderDropSlot(zone, index, panel.id, "before", `${panel.id}-before`)}
-              <DockablePanel
-                panelId={panel.id}
-                title={panel.title}
-                subtitle={panel.subtitle}
-                truthState={panel.truthState}
-                collapsed={collapsedPanelIdSet.has(panel.id)}
-                collapsible={panel.collapsible !== false}
-                draggable={panel.draggable !== false}
-                locked={panel.locked}
-                allowedZones={panel.allowedZones}
-                isDragging={Boolean(isDragging)}
-                onDragStart={startPanelDrag}
-                onDragEnd={endPanelDrag}
-                onToggleCollapse={() => togglePanelCollapse(panel.id)}
-                onMoveToZone={(targetZone) => setPanelZone(panel.id, targetZone)}
-                minWidth={panel.minWidth}
-                minHeight={panel.minHeight}
-                defaultHeight={panel.defaultHeight}
-                scrollMode={panel.scrollMode}
-                body={panel.render()}
-              />
+              <div
+                aria-label={`${panel.title} panel drop target`}
+                data-testid={`${cockpitId}-${zone}-panel-target-${panel.id}`}
+                data-drop-axis="vertical"
+                onDragOver={(event) => handlePanelHover(event, zone, panel.id, index)}
+                onDrop={(event) => handlePanelDrop(event, zone, panel.id, index)}
+                style={{
+                  ...panelDropTargetStyle,
+                  ...(panelTargetActive ? panelDropTargetActiveStyle : null),
+                  ...(panelTargetBeforeHighlighted ? panelDropTargetBeforeStyle : null),
+                  ...(panelTargetAfterHighlighted ? panelDropTargetAfterStyle : null),
+                }}
+              >
+                <DockablePanel
+                  panelId={panel.id}
+                  title={panel.title}
+                  subtitle={panel.subtitle}
+                  truthState={panel.truthState}
+                  collapsed={collapsedPanelIdSet.has(panel.id)}
+                  collapsible={panel.collapsible !== false}
+                  draggable={panel.draggable !== false}
+                  locked={panel.locked}
+                  allowedZones={panel.allowedZones}
+                  isDragging={Boolean(isDragging)}
+                  onDragStart={startPanelDrag}
+                  onDragEnd={endPanelDrag}
+                  onToggleCollapse={() => togglePanelCollapse(panel.id)}
+                  onMoveToZone={(targetZone) => setPanelZone(panel.id, targetZone)}
+                  minWidth={panel.minWidth}
+                  minHeight={panel.minHeight}
+                  defaultHeight={panel.defaultHeight}
+                  scrollMode={panel.scrollMode}
+                  body={panel.render()}
+                />
+              </div>
               {index === visiblePanelIds.length - 1
                 ? renderDropSlot(zone, index + 1, panel.id, "after", `${panel.id}-after`)
                 : null}
@@ -570,6 +699,29 @@ const panelContainerStyle = {
   display: "grid",
   gap: 4,
   minWidth: 0,
+} satisfies CSSProperties;
+
+const panelDropTargetStyle = {
+  minWidth: 0,
+  minHeight: 0,
+  borderRadius: 12,
+  borderWidth: 1,
+  borderStyle: "solid",
+  borderColor: "transparent",
+  transition: "border-color 120ms ease, background 120ms ease, box-shadow 120ms ease",
+} satisfies CSSProperties;
+
+const panelDropTargetActiveStyle = {
+  borderColor: "color-mix(in srgb, var(--app-accent) 45%, var(--app-panel-border))",
+  background: "color-mix(in srgb, var(--app-accent) 9%, transparent)",
+} satisfies CSSProperties;
+
+const panelDropTargetBeforeStyle = {
+  boxShadow: "inset 0 3px 0 0 var(--app-accent)",
+} satisfies CSSProperties;
+
+const panelDropTargetAfterStyle = {
+  boxShadow: "inset 0 -3px 0 0 var(--app-accent)",
 } satisfies CSSProperties;
 
 const dropSlotStyle = {

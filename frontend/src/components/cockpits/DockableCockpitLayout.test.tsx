@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { createEvent, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import DockableCockpitLayout from "./DockableCockpitLayout";
@@ -58,8 +58,85 @@ const reorderPanels: CockpitPanelDefinition[] = [
   },
 ];
 
+const reorderThreePanels: CockpitPanelDefinition[] = [
+  {
+    id: "panel-a",
+    title: "Panel A",
+    defaultZone: "left",
+    render: () => <div>Panel A body</div>,
+  },
+  {
+    id: "panel-b",
+    title: "Panel B",
+    defaultZone: "left",
+    render: () => <div>Panel B body</div>,
+  },
+  {
+    id: "panel-c",
+    title: "Panel C",
+    defaultZone: "left",
+    render: () => <div>Panel C body</div>,
+  },
+];
+
+const crossZonePanels: CockpitPanelDefinition[] = [
+  {
+    id: "panel-a",
+    title: "Panel A",
+    defaultZone: "left",
+    render: () => <div>Panel A body</div>,
+  },
+  {
+    id: "panel-b",
+    title: "Panel B",
+    defaultZone: "right",
+    render: () => <div>Panel B body</div>,
+  },
+  {
+    id: "panel-c",
+    title: "Panel C",
+    defaultZone: "right",
+    render: () => <div>Panel C body</div>,
+  },
+];
+
+function mockPanelRect(
+  target: HTMLElement,
+  rect: Pick<DOMRect, "top" | "bottom" | "left" | "right" | "width" | "height">,
+) {
+  vi.spyOn(target, "getBoundingClientRect").mockImplementation(() => ({
+    ...rect,
+    x: rect.left,
+    y: rect.top,
+    toJSON: () => ({}),
+  } as DOMRect));
+}
+
+function firePanelDragOverAt(
+  target: HTMLElement,
+  transfer: DataTransfer,
+  point: { clientX: number; clientY: number },
+) {
+  const dragOverEvent = createEvent.dragOver(target, { dataTransfer: transfer, bubbles: true, cancelable: true });
+  Object.defineProperty(dragOverEvent, "clientX", { value: point.clientX });
+  Object.defineProperty(dragOverEvent, "clientY", { value: point.clientY });
+  fireEvent(target, dragOverEvent);
+}
+
+function firePanelDropAt(
+  target: HTMLElement,
+  transfer: DataTransfer,
+  point: { clientX: number; clientY: number },
+) {
+  const dropEvent = createEvent.drop(target, { dataTransfer: transfer, bubbles: true, cancelable: true });
+  Object.defineProperty(dropEvent, "clientX", { value: point.clientX });
+  Object.defineProperty(dropEvent, "clientY", { value: point.clientY });
+  fireEvent(target, dropEvent);
+}
+
 describe("DockableCockpitLayout", () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     window.localStorage.removeItem(STORAGE_KEY);
   });
 
@@ -120,6 +197,99 @@ describe("DockableCockpitLayout", () => {
     const headings = within(screen.getByTestId("reorder-test-left-zone")).getAllByRole("heading", { level: 3 });
     expect(headings[0]).toHaveTextContent("Panel B");
     expect(headings[1]).toHaveTextContent("Panel A");
+  });
+
+  it("drops on an existing panel top-half to insert before it", () => {
+    render(
+      <DockableCockpitLayout
+        cockpitId="panel-hover-before"
+        panels={reorderPanels}
+      />,
+    );
+
+    const transfer = dataTransferMock();
+    const panelATarget = screen.getByTestId("panel-hover-before-left-panel-target-panel-a");
+    mockPanelRect(panelATarget, {
+      top: 100,
+      bottom: 200,
+      left: 20,
+      right: 320,
+      width: 300,
+      height: 100,
+    });
+    fireEvent.dragStart(
+      screen.getByRole("button", { name: "Move panel Panel B" }),
+      { dataTransfer: transfer },
+    );
+    firePanelDragOverAt(panelATarget, transfer, { clientY: 120, clientX: 80 });
+    firePanelDropAt(panelATarget, transfer, { clientY: 120, clientX: 80 });
+
+    const headings = within(screen.getByTestId("panel-hover-before-left-zone")).getAllByRole("heading", { level: 3 });
+    expect(headings[0]).toHaveTextContent("Panel B");
+    expect(headings[1]).toHaveTextContent("Panel A");
+  });
+
+  it("drops on an existing panel bottom-half to insert after it", () => {
+    render(
+      <DockableCockpitLayout
+        cockpitId="panel-hover-after"
+        panels={reorderThreePanels}
+      />,
+    );
+
+    const transfer = dataTransferMock();
+    const panelBTarget = screen.getByTestId("panel-hover-after-left-panel-target-panel-b");
+    mockPanelRect(panelBTarget, {
+      top: 100,
+      bottom: 200,
+      left: 20,
+      right: 320,
+      width: 300,
+      height: 100,
+    });
+    fireEvent.dragStart(
+      screen.getByRole("button", { name: "Move panel Panel A" }),
+      { dataTransfer: transfer },
+    );
+    firePanelDragOverAt(panelBTarget, transfer, { clientY: 190, clientX: 80 });
+    firePanelDropAt(panelBTarget, transfer, { clientY: 190, clientX: 80 });
+
+    const headings = within(screen.getByTestId("panel-hover-after-left-zone")).getAllByRole("heading", { level: 3 });
+    expect(headings[0]).toHaveTextContent("Panel B");
+    expect(headings[1]).toHaveTextContent("Panel A");
+    expect(headings[2]).toHaveTextContent("Panel C");
+  });
+
+  it("inserts into another populated zone using hovered panel position", () => {
+    render(
+      <DockableCockpitLayout
+        cockpitId="panel-hover-cross-zone"
+        panels={crossZonePanels}
+      />,
+    );
+
+    const transfer = dataTransferMock();
+    const panelBRightTarget = screen.getByTestId("panel-hover-cross-zone-right-panel-target-panel-b");
+    mockPanelRect(panelBRightTarget, {
+      top: 200,
+      bottom: 300,
+      left: 20,
+      right: 320,
+      width: 300,
+      height: 100,
+    });
+    fireEvent.dragStart(
+      screen.getByRole("button", { name: "Move panel Panel A" }),
+      { dataTransfer: transfer },
+    );
+    firePanelDragOverAt(panelBRightTarget, transfer, { clientY: 210, clientX: 80 });
+    firePanelDropAt(panelBRightTarget, transfer, { clientY: 210, clientX: 80 });
+
+    const rightHeadings = within(screen.getByTestId("panel-hover-cross-zone-right-zone"))
+      .getAllByRole("heading", { level: 3 });
+    expect(rightHeadings[0]).toHaveTextContent("Panel A");
+    expect(rightHeadings[1]).toHaveTextContent("Panel B");
+    expect(rightHeadings[2]).toHaveTextContent("Panel C");
   });
 
   it("resets layout back to default after moving and keeps panel collapse usable", () => {
