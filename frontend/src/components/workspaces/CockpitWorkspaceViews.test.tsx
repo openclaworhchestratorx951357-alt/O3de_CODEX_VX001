@@ -45,7 +45,7 @@ describe("Cockpit workspace views", () => {
 
     expect(screen.getByTestId("dockable-layout-create-movie")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Reset layout" }));
-    expect(screen.getByText("Cinematic pipeline")).toBeInTheDocument();
+    expect(screen.getAllByText("Cinematic pipeline").length).toBeGreaterThan(0);
     expect(screen.getByText("Story / Shot Plan")).toBeInTheDocument();
     expect(screen.getByText("Characters / Props")).toBeInTheDocument();
   });
@@ -54,7 +54,7 @@ describe("Cockpit workspace views", () => {
     render(<CreateMovieWorkspaceView />);
 
     expect(screen.getAllByText("Create Movie Cockpit").length).toBeGreaterThan(0);
-    expect(screen.getByText("Cinematic pipeline")).toBeInTheDocument();
+    expect(screen.getAllByText("Cinematic pipeline").length).toBeGreaterThan(0);
     expect(screen.getByText("Story / Shot Plan")).toBeInTheDocument();
     expect(screen.getByText("Characters / Props")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Load placement proof-only template in Prompt Studio" })).toBeDisabled();

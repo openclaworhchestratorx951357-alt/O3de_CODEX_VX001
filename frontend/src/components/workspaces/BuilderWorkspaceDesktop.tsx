@@ -92,6 +92,7 @@ import type {
 } from "./builderWorkspace/types";
 import BuilderAutonomyRecommendationsPanel from "./builderWorkspace/BuilderAutonomyRecommendationsPanel";
 import BuilderWorkspaceView from "./BuilderWorkspaceView";
+import CockpitBuilderPanel from "../cockpits/CockpitBuilderPanel";
 
 function formatTimestamp(value?: string | null): string {
   if (!value) {
@@ -4271,6 +4272,8 @@ export default function BuilderWorkspaceDesktop() {
           </div>
         </div>
       </article>
+
+      <CockpitBuilderPanel />
 
       <div style={summaryGridStyle}>
         <article style={summaryCardStyle}>

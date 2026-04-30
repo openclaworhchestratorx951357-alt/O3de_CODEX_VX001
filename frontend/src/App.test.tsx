@@ -358,7 +358,7 @@ describe("App desktop smoke", () => {
       {},
       { timeout: LAZY_SURFACE_TIMEOUT_MS },
     )).length).toBeGreaterThan(0);
-    expect(screen.getByText("Cinematic pipeline")).toBeInTheDocument();
+    expect(screen.getAllByText("Cinematic pipeline").length).toBeGreaterThan(0);
     expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
 
@@ -372,6 +372,51 @@ describe("App desktop smoke", () => {
     expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
   }, 12000);
+
+  it("renders registry-driven home cockpit launcher cards and launches major cockpits", async () => {
+    render(<App />);
+
+    const launcherDeck = await screen.findByTestId("cockpit-launcher-deck");
+    expect(launcherDeck).toBeInTheDocument();
+    expect(within(launcherDeck).getByText("Create Game Cockpit")).toBeInTheDocument();
+    expect(within(launcherDeck).getByText("Create Movie Cockpit")).toBeInTheDocument();
+    expect(within(launcherDeck).getByText("Load Project Cockpit")).toBeInTheDocument();
+    expect(within(launcherDeck).getByText("Asset Forge Cockpit")).toBeInTheDocument();
+    expect(within(launcherDeck).getByText("Prompt Studio")).toBeInTheDocument();
+    expect(within(launcherDeck).getByText("Builder")).toBeInTheDocument();
+    expect(within(launcherDeck).getByText("Runtime")).toBeInTheDocument();
+    expect(within(launcherDeck).getByText("Records")).toBeInTheDocument();
+    expect(within(launcherDeck).getByText("Operations")).toBeInTheDocument();
+
+    fireEvent.click(within(launcherDeck).getByRole("button", { name: "Open Create Game" }));
+    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
+    expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
+
+    fireEvent.click(getDesktopNavButton(/Home/i));
+    await screen.findByText("Home start here");
+    fireEvent.click(within(await screen.findByTestId("cockpit-launcher-deck")).getByRole("button", { name: "Open Create Movie" }));
+    expect((await screen.findAllByText("Create Movie Cockpit")).length).toBeGreaterThan(0);
+
+    fireEvent.click(getDesktopNavButton(/Home/i));
+    await screen.findByText("Home start here");
+    fireEvent.click(within(await screen.findByTestId("cockpit-launcher-deck")).getByRole("button", { name: "Open Load Project" }));
+    expect((await screen.findAllByText("Load Project Cockpit")).length).toBeGreaterThan(0);
+
+    fireEvent.click(getDesktopNavButton(/Home/i));
+    await screen.findByText("Home start here");
+    fireEvent.click(within(await screen.findByTestId("cockpit-launcher-deck")).getByRole("button", { name: "Open Asset Forge" }));
+    expect(await screen.findByLabelText("AI Asset Forge")).toBeInTheDocument();
+  }, 12000);
+
+  it("shows Cockpit Builder panel inside Builder workspace", async () => {
+    render(<App />);
+
+    fireEvent.click(getDesktopNavButton(/Builder/i));
+    await screen.findByText("Builder start here");
+    fireEvent.click(await screen.findByRole("button", { name: /Autonomy/i }));
+    expect(await screen.findByLabelText("Cockpit Builder panel")).toBeInTheDocument();
+    expect(screen.getByLabelText("Cockpit builder JSON preview")).toBeInTheDocument();
+  });
 
   it("opens Runtime and Asset Forge from Create Game cockpit actions", async () => {
     render(<App />);
@@ -417,10 +462,10 @@ describe("App desktop smoke", () => {
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
     await screen.findAllByText("Create Game Cockpit");
-    const createGameWorkspaceHeading = (await screen.findAllByText("Create Game Cockpit"))[0];
-    const createGameWorkspace = createGameWorkspaceHeading.closest("section");
-    expect(createGameWorkspace).not.toBeNull();
-    fireEvent.click(within(createGameWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
+    fireEvent.click(
+      within(screen.getByTestId("dockable-layout-create-game"))
+        .getAllByRole("button", { name: "Open Prompt Studio" })[0],
+    );
     const promptIntakePanel = await screen.findByLabelText("Prompt intake context panel");
     expect(promptIntakePanel).toHaveTextContent("Mission-first prompt context lanes");
     expect(promptIntakePanel).toHaveTextContent("prefill-only");
@@ -439,10 +484,10 @@ describe("App desktop smoke", () => {
 
     fireEvent.click(getDesktopNavButton(/Create Movie/i));
     await screen.findAllByText("Create Movie Cockpit");
-    const createMovieWorkspaceHeading = (await screen.findAllByText("Create Movie Cockpit"))[0];
-    const createMovieWorkspace = createMovieWorkspaceHeading.closest("section");
-    expect(createMovieWorkspace).not.toBeNull();
-    fireEvent.click(within(createMovieWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
+    fireEvent.click(
+      within(screen.getByTestId("dockable-layout-create-movie"))
+        .getAllByRole("button", { name: "Open Prompt Studio" })[0],
+    );
     const createMovieChooser = await screen.findByLabelText("Prompt template chooser context");
     expect(createMovieChooser).toHaveTextContent("Create Movie template quick-load");
     expect(createMovieChooser).toHaveTextContent("Source workspace: Create Movie");
@@ -455,10 +500,10 @@ describe("App desktop smoke", () => {
 
     fireEvent.click(getDesktopNavButton(/Load Project/i));
     await screen.findAllByText("Load Project Cockpit");
-    const loadProjectWorkspaceHeading = (await screen.findAllByText("Load Project Cockpit"))[0];
-    const loadProjectWorkspace = loadProjectWorkspaceHeading.closest("section");
-    expect(loadProjectWorkspace).not.toBeNull();
-    fireEvent.click(within(loadProjectWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
+    fireEvent.click(
+      within(screen.getByTestId("dockable-layout-load-project"))
+        .getAllByRole("button", { name: "Open Prompt Studio" })[0],
+    );
     const loadProjectChooser = await screen.findByLabelText("Prompt template chooser context");
     expect(loadProjectChooser).toHaveTextContent("Load Project template quick-load");
     expect(loadProjectChooser).toHaveTextContent("Source workspace: Load Project");

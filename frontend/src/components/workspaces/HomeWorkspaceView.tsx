@@ -23,6 +23,8 @@ type HomeWorkspaceViewProps = {
   onOpenCreateGame?: () => void;
   onOpenCreateMovie?: () => void;
   onOpenLoadProject?: () => void;
+  onOpenBuilder?: () => void;
+  onOpenOperations?: () => void;
   onLaunchInspectTemplate?: () => void;
   onLaunchCreateEntityTemplate?: () => void;
   onLaunchAddMeshTemplate?: () => void;
@@ -83,6 +85,8 @@ export default function HomeWorkspaceView({
   onOpenCreateGame,
   onOpenCreateMovie,
   onOpenLoadProject,
+  onOpenBuilder,
+  onOpenOperations,
   onLaunchInspectTemplate,
   onLaunchCreateEntityTemplate,
   onLaunchAddMeshTemplate,
@@ -186,6 +190,8 @@ export default function HomeWorkspaceView({
             onOpenAssetForge={onOpenAssetForge}
             onOpenRuntimeOverview={onOpenRuntimeOverview}
             onOpenRecords={onOpenRecords}
+            onOpenBuilder={onOpenBuilder}
+            onOpenOperations={onOpenOperations}
           />
           <DesktopWindow
             variant="nested"

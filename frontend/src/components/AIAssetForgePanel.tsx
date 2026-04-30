@@ -211,6 +211,48 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
         />
       ),
     },
+    {
+      id: "asset-forge-evidence-drawer",
+      title: "Bottom evidence and prompt drawer",
+      subtitle: "Evidence links, prompt templates, and explicit blocked execution copy",
+      truthState: "review / proof-only",
+      defaultZone: "bottom",
+      collapsible: true,
+      scrollMode: "content",
+      priority: "evidence",
+      minHeight: 180,
+      defaultHeight: 220,
+      render: () => (
+        <section style={evidenceDrawerStyle} aria-label="Asset Forge bottom evidence drawer">
+          <p style={drawerDetailStyle}>
+            Layout model: left tools/candidates, center dominant studio viewport, right truth/inspector, bottom evidence/prompts/logs.
+          </p>
+          <p style={drawerDetailStyle}>
+            Safety posture: provider generation blocked, Blender execution blocked, Asset Processor execution blocked, placement execution blocked, placement write blocked, material/prefab mutation blocked.
+          </p>
+          <div style={drawerActionRowStyle}>
+            <button type="button" onClick={props.onViewLatestRun} disabled={!props.onViewLatestRun} style={drawerButtonStyle}>
+              View latest run
+            </button>
+            <button type="button" onClick={props.onViewExecution} disabled={!props.onViewExecution} style={drawerButtonStyle}>
+              View execution
+            </button>
+            <button type="button" onClick={props.onViewArtifact} disabled={!props.onViewArtifact} style={drawerButtonStyle}>
+              View artifact
+            </button>
+            <button type="button" onClick={props.onViewEvidence} disabled={!props.onViewEvidence} style={drawerButtonStyle}>
+              View evidence
+            </button>
+            <button type="button" onClick={props.onOpenPromptStudio} disabled={!props.onOpenPromptStudio} style={drawerButtonStyle}>
+              Open Prompt Studio
+            </button>
+            <button type="button" onClick={props.onLaunchPlacementProofTemplate} disabled={!props.onLaunchPlacementProofTemplate} style={drawerButtonStyle}>
+              Load placement proof-only template
+            </button>
+          </div>
+        </section>
+      ),
+    },
   ], [
     blenderStatus,
     props.adapters,
@@ -261,4 +303,31 @@ const panelStyle = {
   minWidth: 0,
   minHeight: 0,
   height: "100%",
+} satisfies CSSProperties;
+
+const evidenceDrawerStyle = {
+  display: "grid",
+  gap: 8,
+} satisfies CSSProperties;
+
+const drawerDetailStyle = {
+  margin: 0,
+  fontSize: 13,
+  color: "var(--app-subtle-color)",
+  overflowWrap: "anywhere",
+} satisfies CSSProperties;
+
+const drawerActionRowStyle = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+} satisfies CSSProperties;
+
+const drawerButtonStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 8,
+  padding: "6px 10px",
+  background: "var(--app-panel-bg-alt)",
+  color: "var(--app-text-color)",
+  cursor: "pointer",
 } satisfies CSSProperties;
