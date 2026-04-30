@@ -1,4 +1,4 @@
-﻿# AI Asset Forge Operator Review Packet Long-Hold Checkpoint
+# AI Asset Forge Operator Review Packet Long-Hold Checkpoint
 
 Status: long-hold checkpointed (proof-only; read-only; non-authorizing)
 
@@ -64,13 +64,8 @@ the next packet selection while this hold checkpoint remains stable.
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission release-readiness decision:
+Asset Forge placement runtime-admission long-hold checkpoint:
 
 - define exact assignment-design candidate boundaries before proof/admission
 - preserve review-packet hold-state and non-admission constraints
 - keep assignment/placement execution corridors blocked
-
-
-
-
-

@@ -1,4 +1,4 @@
-﻿# AI Asset Forge Entity Assignment Review Checkpoint
+# AI Asset Forge Entity Assignment Review Checkpoint
 
 Status: checkpointed (plan-only assignment design; non-admitting)
 
@@ -72,13 +72,9 @@ Current reason set:
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission release-readiness decision:
+Asset Forge placement runtime-admission long-hold checkpoint:
 
 - record hold/go decision for assignment-design surface broadening
 - preserve plan-only/non-authorizing boundaries unless a future admission packet
   proves otherwise
 - keep assignment and placement execution corridors blocked
-
-
-
-

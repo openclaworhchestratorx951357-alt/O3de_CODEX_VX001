@@ -103,8 +103,8 @@ superseded for current dashboard behavior by:
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission release-readiness decision
-(`codex/ai-asset-forge-placement-runtime-admission-release-readiness-decision`):
+Asset Forge placement runtime-admission long-hold checkpoint
+(`codex/ai-asset-forge-placement-runtime-admission-long-hold-checkpoint`):
 
 - keep baseline, shell, and timeline wording aligned for server-owned
   authorization truth

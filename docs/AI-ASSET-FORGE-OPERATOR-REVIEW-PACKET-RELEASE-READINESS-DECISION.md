@@ -1,4 +1,4 @@
-﻿# AI Asset Forge Operator Review Packet Release Readiness Decision
+# AI Asset Forge Operator Review Packet Release Readiness Decision
 
 Status: decision recorded (design/audit only; no runtime broadening)
 
@@ -75,13 +75,8 @@ re-verified:
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission release-readiness decision:
+Asset Forge placement runtime-admission long-hold checkpoint:
 
 - define exact assignment-design candidate boundaries before proof/admission
 - preserve review-packet hold-state and non-admission constraints
 - keep assignment/placement execution corridors blocked
-
-
-
-
-

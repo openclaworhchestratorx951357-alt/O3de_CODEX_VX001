@@ -71,8 +71,8 @@ broadened.
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission release-readiness decision
-(`codex/ai-asset-forge-placement-runtime-admission-release-readiness-decision`):
+Asset Forge placement runtime-admission long-hold checkpoint
+(`codex/ai-asset-forge-placement-runtime-admission-long-hold-checkpoint`):
 
 - keep server-owned authorization and fail-closed gate-state wording aligned
   with the existing approval/session boundary model across baseline/shell

@@ -42,6 +42,6 @@ describe("AppWorkspaceStatusChipsShell", () => {
         .length,
     ).toBeGreaterThan(0);
 
-    expect(screen.getByText("Asset Forge placement runtime-admission release-readiness decision", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Asset Forge placement runtime-admission long-hold checkpoint", { selector: "strong" })).toBeInTheDocument();
   });
 });

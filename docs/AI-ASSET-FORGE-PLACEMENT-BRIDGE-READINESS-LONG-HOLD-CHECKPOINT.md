@@ -1,4 +1,4 @@
-﻿# AI Asset Forge Placement Bridge-Readiness Long-Hold Checkpoint
+# AI Asset Forge Placement Bridge-Readiness Long-Hold Checkpoint
 
 Status: long-hold checkpointed (plan-only/proof-only; non-authorizing)
 
@@ -72,9 +72,8 @@ the next packet selection while this hold checkpoint remains stable.
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission release-readiness decision:
+Asset Forge placement runtime-admission long-hold checkpoint:
 
 - establish current truth for any future placement runtime-admission candidate
 - classify safe/no-go boundaries for potential exact-scope admission work
 - preserve non-authorizing placement bridge-readiness hold boundaries
-

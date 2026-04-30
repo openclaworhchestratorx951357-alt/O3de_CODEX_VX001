@@ -1,4 +1,4 @@
-﻿# AI Asset Forge Operator Review Packet Implementation
+# AI Asset Forge Operator Review Packet Implementation
 
 Status: implemented + boundary regression refresh (proof-only review packet output; no execution/mutation admission)
 
@@ -74,13 +74,8 @@ Latest refresh evidence:
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission release-readiness decision packet:
+Asset Forge placement runtime-admission long-hold checkpoint packet:
 
 - define exact assignment-design candidate boundaries before proof/admission
 - preserve review-packet hold-state and non-admission constraints
 - keep assignment/placement execution corridors blocked
-
-
-
-
-

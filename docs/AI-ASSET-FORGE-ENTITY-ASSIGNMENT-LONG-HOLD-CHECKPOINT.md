@@ -1,4 +1,4 @@
-﻿# AI Asset Forge Entity Assignment Long-Hold Checkpoint
+# AI Asset Forge Entity Assignment Long-Hold Checkpoint
 
 Status: long-hold checkpointed (plan-only; non-authorizing)
 
@@ -71,12 +71,10 @@ the next packet selection while this hold checkpoint remains stable.
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission release-readiness decision:
+Asset Forge placement runtime-admission long-hold checkpoint:
 
 - establish current truth for placement proof/runtime-harness fail-closed
   surfaces
 - classify what is plan-only/proof-only/blocked vs missing
 - preserve assignment/placement/provider/Blender/Asset Processor no-admission
   boundaries
-
-

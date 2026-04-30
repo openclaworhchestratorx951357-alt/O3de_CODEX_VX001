@@ -1,4 +1,4 @@
-﻿# AI Asset Forge Operator Review Packet Review Checkpoint
+# AI Asset Forge Operator Review Packet Review Checkpoint
 
 Status: checkpointed (proof-only operator review packet; non-admitting)
 
@@ -69,13 +69,8 @@ Current status set:
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission release-readiness decision packet:
+Asset Forge placement runtime-admission long-hold checkpoint packet:
 
 - define exact assignment-design candidate boundaries before proof/admission
 - preserve review-packet hold-state and non-admission constraints
 - keep assignment/placement execution corridors blocked
-
-
-
-
-

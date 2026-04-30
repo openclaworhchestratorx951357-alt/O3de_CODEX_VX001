@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission release-readiness decision
-(`codex/ai-asset-forge-placement-runtime-admission-release-readiness-decision`):
+Asset Forge placement runtime-admission long-hold checkpoint
+(`codex/ai-asset-forge-placement-runtime-admission-long-hold-checkpoint`):
 
 - keep approval/session baseline + shell + timeline wording aligned under
   server-owned authorization truth and fail-closed gate-state semantics

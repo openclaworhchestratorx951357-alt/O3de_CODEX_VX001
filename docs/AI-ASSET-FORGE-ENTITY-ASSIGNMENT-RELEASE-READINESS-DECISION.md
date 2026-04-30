@@ -1,4 +1,4 @@
-﻿# AI Asset Forge Entity Assignment Release Readiness Decision
+# AI Asset Forge Entity Assignment Release Readiness Decision
 
 Status: decision recorded (design/audit only; no runtime broadening)
 
@@ -81,11 +81,8 @@ re-verified:
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission release-readiness decision:
+Asset Forge placement runtime-admission long-hold checkpoint:
 
 - checkpoint held assignment-design posture and stream handoff boundaries
 - preserve plan-only/non-authorizing boundaries
 - keep assignment and placement execution corridors blocked
-
-
-

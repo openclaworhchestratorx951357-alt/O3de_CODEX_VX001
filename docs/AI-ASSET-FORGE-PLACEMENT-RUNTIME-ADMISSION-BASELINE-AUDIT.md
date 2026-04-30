@@ -1,4 +1,4 @@
-﻿# AI Asset Forge Placement Runtime-Admission Baseline Audit
+# AI Asset Forge Placement Runtime-Admission Baseline Audit
 
 Status: baseline audit only (no runtime admission change)
 
@@ -105,9 +105,8 @@ Result summary:
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission release-readiness decision:
+Asset Forge placement runtime-admission long-hold checkpoint:
 
 - define exact bounded contract fields for a future runtime-admission candidate
 - define explicit no-go rules and non-goals for admission design scope
 - keep all runtime execution and mutation non-admitted
-

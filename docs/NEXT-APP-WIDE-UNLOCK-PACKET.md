@@ -1,8 +1,8 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Asset Forge placement runtime-admission release-readiness decision
-(`codex/ai-asset-forge-placement-runtime-admission-release-readiness-decision`).
+Asset Forge placement runtime-admission long-hold checkpoint
+(`codex/ai-asset-forge-placement-runtime-admission-long-hold-checkpoint`).
 
 ## Why this is next
 - GUI shell taxonomy parity checkpoint + quick-reference refresh packet is now
@@ -17,21 +17,21 @@ Asset Forge placement runtime-admission release-readiness decision
 - AI Asset Forge operator review packet implementation plus boundary regression
   refresh is now checkpointed under explicit proof-only/non-admitting
   constraints.
-- The next highest-value gate is recording a focused placement runtime-admission
-  release-readiness decision that keeps assignment/placement execution
-  unadmitted while formalizing future go/no-go boundaries.
+- The next highest-value gate is checkpointing the placement runtime-admission
+  long-hold state so assignment/placement execution stays unadmitted while the
+  held go/no-go boundaries remain explicit.
 
 ## Scope
-- produce a focused Asset Forge placement runtime-admission release-readiness decision
+- produce a focused Asset Forge placement runtime-admission long-hold checkpoint
   packet
-- record explicit go/no-go decision criteria for any future placement
+- record explicit hold-state and handoff boundaries for any future placement
   runtime-admission revisit
 - preserve explicit blocked-status language for assignment/placement execution
   in this packet
 - keep recommendation surfaces aligned to this next packet across capability,
   audit, workspace, timeline, and shell guidance
 - preserve explicit non-authorizing client-field posture and fail-closed
-  validation semantics in placement decision-linked guidance
+  validation semantics in placement hold guidance
 - keep stage-write, review-packet, and placement corridors explicitly non-broadened and
   fail-closed in this packet
 - preserve no-touch runtime zones and no-broadening posture
@@ -49,9 +49,9 @@ Asset Forge placement runtime-admission release-readiness decision
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- Asset Forge placement runtime-admission release-readiness decision recommendation wording is
+- Asset Forge placement runtime-admission long-hold checkpoint recommendation wording is
   deterministic and aligned across shell recommendation surfaces
-- explicit decision gates remain reviewable and non-admitting:
+- explicit hold gates remain reviewable and non-admitting:
   assignment/placement execution stays blocked without a separate future
   admission packet
 - structured review-packet boundaries remain explicit: bounded candidate review
@@ -69,7 +69,7 @@ Asset Forge placement runtime-admission release-readiness decision
 
 ## Alternative considered
 Direct placement runtime-admission broadening without first recording explicit
-release-readiness decision gates and preserving non-admitting hold boundaries.
+long-hold checkpoint gates and preserving non-admitting hold boundaries.
 
 This remains deferred for safety. Keep hold posture explicit first, then
 consider any future admission revisit.

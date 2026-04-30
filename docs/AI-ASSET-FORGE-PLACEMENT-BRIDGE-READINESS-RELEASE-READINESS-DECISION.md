@@ -1,4 +1,4 @@
-﻿# AI Asset Forge Placement Bridge-Readiness Release Readiness Decision
+# AI Asset Forge Placement Bridge-Readiness Release Readiness Decision
 
 Status: decision recorded (design/audit only; no runtime broadening)
 
@@ -85,9 +85,8 @@ re-verified:
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission release-readiness decision:
+Asset Forge placement runtime-admission long-hold checkpoint:
 
 - checkpoint held release posture and stream handoff boundaries
 - preserve non-authorizing placement execution boundaries
 - keep assignment/placement execution corridors blocked
-
