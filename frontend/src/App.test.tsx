@@ -389,6 +389,24 @@ describe("App desktop smoke", () => {
   it("opens cockpit Prompt Studio with a contextual template chooser and prefill-only safety", async () => {
     render(<App />);
 
+    const homeWorkspaceHeading = await screen.findByText("Home start here");
+    const homeWorkspace = homeWorkspaceHeading.closest("section");
+    expect(homeWorkspace).not.toBeNull();
+    fireEvent.click(within(homeWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
+    const homeChooser = await screen.findByLabelText("Prompt template chooser context");
+    expect(homeChooser).toHaveTextContent("Home template quick-load");
+    expect(homeChooser).toHaveTextContent("Source workspace: Home");
+    expect(homeChooser).toHaveTextContent(
+      "No preview, execute, placement, or mutation runs automatically.",
+    );
+    fireEvent.click(
+      within(homeChooser).getByRole("button", { name: "Load template: Placement proof-only candidate prompt" }),
+    );
+    expect((await screen.findAllByText("Loaded mission draft: Placement proof-only candidate prompt")).length).toBeGreaterThan(0);
+
+    fireEvent.click(getDesktopNavButton(/Home/i));
+    await screen.findByText("Home start here");
+
     fireEvent.click(getDesktopNavButton(/Create Game/i));
     await screen.findAllByText("Create Game Cockpit");
     const createGameWorkspaceHeading = (await screen.findAllByText("Create Game Cockpit"))[0];

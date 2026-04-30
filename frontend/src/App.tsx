@@ -5362,6 +5362,46 @@ export default function App() {
     );
   }
 
+  function openPromptStudioFromHomeCockpit(): void {
+    openPromptStudioWithTemplateChooserContext(
+      "home",
+      "Home cockpit start-here rail / open prompt studio",
+      "Home template quick-load",
+      "Choose a mission-first template to prefill Prompt Studio. This stays prefill-only and does not auto-execute.",
+      [
+        {
+          label: "Inspect project evidence prompt",
+          detail: "Read-only orientation before admitted or proof-only steps.",
+          truthState: "read-only / non-mutating",
+          draft: inspectProjectMissionPromptDraft,
+          sourceSurfaceLabel: "Home mission workflow / inspect project template",
+        },
+        {
+          label: "Create safe game entity prompt",
+          detail: "Narrow admitted-real root-level entity request.",
+          truthState: "admitted-real narrow",
+          draft: createGameEntityMissionPromptDraft,
+          sourceSurfaceLabel: "Home mission workflow / create entity template",
+        },
+        {
+          label: "Add allowlisted Mesh component prompt",
+          detail: "Allowlisted component lane with readback evidence expectation.",
+          truthState: "admitted-real allowlisted",
+          draft: addAllowlistedMeshMissionPromptDraft,
+          sourceSurfaceLabel: "Home mission workflow / add allowlisted component template",
+        },
+        {
+          label: "Placement proof-only candidate prompt",
+          detail: "Fail-closed placement proof candidate with non-admitted execution/write flags.",
+          truthState: "proof-only / fail-closed / non-mutating",
+          draft: placementProofOnlyMissionPromptDraft,
+          sourceSurfaceLabel: "Home mission workflow / placement proof-only template",
+        },
+      ],
+      "Pick one template, preview the plan, then execute only inside admitted or proof-only boundaries.",
+    );
+  }
+
   function openPromptStudioWithPlacementProofTemplateFromHome(): void {
     openPromptStudioWithMissionDraft(
       placementProofOnlyMissionPromptDraft,
@@ -9074,7 +9114,7 @@ export default function App() {
               launchpadContent={homeLaunchpadContent}
               overviewContent={homeOverviewContent}
               guideContent={homeGuideContent}
-              onOpenPromptStudio={openPromptStudio}
+              onOpenPromptStudio={openPromptStudioFromHomeCockpit}
               onOpenRuntimeOverview={openRuntimeOverview}
               onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
               onOpenRecords={openRecordsRuns}
