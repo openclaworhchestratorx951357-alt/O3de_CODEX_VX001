@@ -71,8 +71,8 @@ broadened.
 
 ## Recommended next packet
 
-Asset Forge provider preflight hardening
-(`codex/ai-asset-forge-provider-preflight-hardening`):
+Asset Forge Blender preflight hardening
+(`codex/ai-asset-forge-blender-preflight-hardening`):
 
 - keep server-owned authorization and fail-closed gate-state wording aligned
   with the existing approval/session boundary model across baseline/shell

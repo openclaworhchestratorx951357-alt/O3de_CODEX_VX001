@@ -1,8 +1,8 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Asset Forge provider preflight hardening
-(`codex/ai-asset-forge-provider-preflight-hardening`).
+Asset Forge Blender preflight hardening
+(`codex/ai-asset-forge-blender-preflight-hardening`).
 
 ## Why this is next
 - GUI shell taxonomy parity checkpoint + quick-reference refresh packet is now
@@ -17,23 +17,25 @@ Asset Forge provider preflight hardening
 - AI Asset Forge operator review packet implementation plus boundary regression
   refresh is now checkpointed under explicit proof-only/non-admitting
   constraints.
-- The next highest-value gate is checkpointing the placement runtime-admission
-  long-hold state so assignment/placement execution stays unadmitted while the
-  held go/no-go boundaries remain explicit.
+- Asset Forge provider preflight hardening recommendation roll-forward is now
+  complete, and that packet explicitly hands off to Blender preflight
+  hardening.
+- The next highest-value gate is preserving Blender detection/probe evidence as
+  preflight-only while keeping provider generation, Blender execution, Asset
+  Processor admission, assignment, and placement execution unadmitted.
 
 ## Scope
-- produce a focused Asset Forge provider preflight hardening
+- produce a focused Asset Forge Blender preflight hardening
   packet
-- record explicit hold-state and handoff boundaries for any future placement
-  runtime-admission revisit
+- record explicit no-execution and non-authorizing Blender preflight boundaries
 - preserve explicit blocked-status language for assignment/placement execution
   in this packet
 - keep recommendation surfaces aligned to this next packet across capability,
   audit, workspace, timeline, and shell guidance
 - preserve explicit non-authorizing client-field posture and fail-closed
-  validation semantics in placement hold guidance
-- keep stage-write, review-packet, and placement corridors explicitly non-broadened and
-  fail-closed in this packet
+  validation semantics in preflight guidance
+- keep provider/stage-plan/stage-write/readback/placement corridors explicitly
+  non-broadened and fail-closed in this packet
 - preserve no-touch runtime zones and no-broadening posture
 
 ## Safety constraints
@@ -49,7 +51,7 @@ Asset Forge provider preflight hardening
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- Asset Forge provider preflight hardening recommendation wording is
+- Asset Forge Blender preflight hardening recommendation wording is
   deterministic and aligned across shell recommendation surfaces
 - explicit hold gates remain reviewable and non-admitting:
   assignment/placement execution stays blocked without a separate future
@@ -68,8 +70,8 @@ Asset Forge provider preflight hardening
 - docs remain aligned with runtime/test truth
 
 ## Alternative considered
-Direct placement runtime-admission broadening without first recording explicit
-long-hold checkpoint gates and preserving non-admitting hold boundaries.
+Direct provider/Blender execution broadening without preserving explicit
+preflight-only, non-authorizing boundaries.
 
-This remains deferred for safety. Keep hold posture explicit first, then
+This remains deferred for safety. Keep preflight boundaries explicit first, then
 consider any future admission revisit.

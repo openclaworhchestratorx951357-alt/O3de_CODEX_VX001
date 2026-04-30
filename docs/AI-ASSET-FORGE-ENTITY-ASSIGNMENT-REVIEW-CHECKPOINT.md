@@ -72,7 +72,7 @@ Current reason set:
 
 ## Recommended next packet
 
-Asset Forge provider preflight hardening:
+Asset Forge Blender preflight hardening:
 
 - record hold/go decision for assignment-design surface broadening
 - preserve plan-only/non-authorizing boundaries unless a future admission packet

@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Asset Forge provider preflight hardening
-(`codex/ai-asset-forge-provider-preflight-hardening`):
+Asset Forge Blender preflight hardening
+(`codex/ai-asset-forge-blender-preflight-hardening`):
 
 - keep approval/session baseline + shell + timeline wording aligned under
   server-owned authorization truth and fail-closed gate-state semantics

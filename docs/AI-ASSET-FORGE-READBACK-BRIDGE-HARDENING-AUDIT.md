@@ -81,7 +81,7 @@ Result summary:
 
 ## Recommended next packet
 
-Asset Forge provider preflight hardening:
+Asset Forge Blender preflight hardening:
 
 - tighten provider preflight no-provider-call safeguards and evidence wording
 - preserve stage-plan/stage-write/readback non-authorizing boundaries

@@ -114,7 +114,7 @@ export default function AppAuditReviewDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Asset Forge provider preflight hardening</strong>.
+        Recommended next packet: <strong>Asset Forge Blender preflight hardening</strong>.
       </p>
     </section>
   );

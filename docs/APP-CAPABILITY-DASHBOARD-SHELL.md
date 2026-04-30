@@ -52,5 +52,5 @@ Status taxonomy vocabulary aligned in this shell:
 
 ## Recommended next packet
 
-Asset Forge provider preflight hardening
-(`codex/ai-asset-forge-provider-preflight-hardening`).
+Asset Forge Blender preflight hardening
+(`codex/ai-asset-forge-blender-preflight-hardening`).

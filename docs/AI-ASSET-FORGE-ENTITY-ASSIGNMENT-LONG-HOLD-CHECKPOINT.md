@@ -71,7 +71,7 @@ the next packet selection while this hold checkpoint remains stable.
 
 ## Recommended next packet
 
-Asset Forge provider preflight hardening:
+Asset Forge Blender preflight hardening:
 
 - establish current truth for placement proof/runtime-harness fail-closed
   surfaces
