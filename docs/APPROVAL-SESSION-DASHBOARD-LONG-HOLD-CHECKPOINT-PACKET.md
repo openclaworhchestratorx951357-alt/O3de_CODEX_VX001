@@ -1,19 +1,21 @@
-# Approval/session Dashboard Parity Checkpoint Packet
+# Approval/session Dashboard Long-hold Checkpoint Packet
 
-Status: completed (cross-surface parity checkpoint; non-admitting)
+Status: completed (long-hold checkpoint; non-admitting)
 
 ## Purpose
 
-Checkpoint deterministic parity for approval/session baseline, shell, timeline,
-and recommendation surfaces so server-owned authorization truth and fail-closed
-validation-hold semantics remain explicit without broadening runtime admission.
+Checkpoint explicit long-hold stream-handoff posture for approval/session
+dashboard recommendation and evidence surfaces without broadening runtime
+authorization or execution admission.
 
 ## Scope in this packet
 
-- align approval/session baseline, shell, timeline, and recommendation wording
-- preserve explicit non-authorizing client-field posture across all linked
-  surfaces
-- preserve explicit fail-closed gate-state matrix semantics
+- record long-hold stream-handoff parity for approval/session baseline, shell,
+  timeline, and recommendation wording
+- preserve explicit server-owned authorization truth language across linked
+  dashboard surfaces
+- preserve explicit non-authorizing client-field posture and fail-closed
+  validation-hold semantics
 - roll app-wide recommendation surfaces to the next project-moving packet
 
 ## Not in scope
@@ -24,17 +26,19 @@ validation-hold semantics remain explicit without broadening runtime admission.
 - no provider/Blender/Asset Processor/placement admission changes
 - no CI/runtime execution admission broadening
 
-## Parity checkpoint
+## Long-hold checkpoint
 
-- approval/session baseline + shell + timeline wording now stays deterministic
-  under one server-owned authorization truth model
-- validation-hold gate-state semantics remain explicit and fail-closed
+- approval/session baseline + shell + timeline + recommendation wording remains
+  deterministic under one server-owned gate-state truth model
+- long-hold stream-handoff semantics are now explicit and stable across linked
+  surfaces
 - client approval/session fields remain intent-only and non-authorizing
-- all linked recommendation surfaces now point to one next packet
+- validation hold boundaries remain fail-closed and non-admitting
 
 ## Evidence
 
 - `docs/APPROVAL-SESSION-DASHBOARD-BASELINE-AUDIT.md`
+- `docs/APPROVAL-SESSION-DASHBOARD-PARITY-CHECKPOINT-PACKET.md`
 - `docs/APPROVAL-SESSION-DASHBOARD-SHELL.md`
 - `docs/APP-WIDE-EVIDENCE-TIMELINE-SHELL.md`
 - `docs/APP-CAPABILITY-UNLOCK-MATRIX.md`
@@ -44,6 +48,7 @@ validation-hold semantics remain explicit without broadening runtime admission.
 - `docs/APP-CAPABILITY-DASHBOARD-SHELL.md`
 - `docs/AUDIT-REVIEW-DASHBOARD-SHELL.md`
 - `docs/WORKSPACE-STATUS-CHIPS-SHELL.md`
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-LONG-HOLD-CHECKPOINT-PACKET.md`
 - `frontend/src/fixtures/appEvidenceTimelineFixture.ts`
 - `frontend/src/fixtures/appCapabilityDashboardFixture.ts`
 - `frontend/src/fixtures/appAuditReviewDashboardFixture.ts`

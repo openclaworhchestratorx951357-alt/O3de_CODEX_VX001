@@ -39,7 +39,7 @@ describe("AppApprovalSessionDashboardShell", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("client fields remain intent-only and non-authorizing", { exact: false })).toBeInTheDocument();
 
-    expect(screen.getByText("Approval/session dashboard long-hold checkpoint packet", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Approval/session dashboard shell (static fixture first)", { selector: "strong" })).toBeInTheDocument();
   });
 });
 

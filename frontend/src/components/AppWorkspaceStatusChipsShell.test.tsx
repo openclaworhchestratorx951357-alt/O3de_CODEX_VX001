@@ -34,7 +34,7 @@ describe("AppWorkspaceStatusChipsShell", () => {
     expect(screen.getByText("Project config patch corridor")).toBeInTheDocument();
     expect(screen.getByText("Placement execution")).toBeInTheDocument();
 
-    expect(screen.getByText("Approval/session dashboard long-hold checkpoint packet", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Approval/session dashboard shell (static fixture first)", { selector: "strong" })).toBeInTheDocument();
   });
 });
 

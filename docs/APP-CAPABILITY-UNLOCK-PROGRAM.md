@@ -931,12 +931,22 @@ Why:
   deterministic across baseline, shell, timeline, and recommendation surfaces
 - advances operator clarity without broadening runtime admission
 
-### CA. Approval/session Dashboard Long-hold Checkpoint Packet
+### CA. Approval/session Dashboard Long-hold Checkpoint Packet (completed)
 Why:
 - approval/session dashboard parity checkpoint packet is now complete and stable
 - next highest-value operator UX lane is explicit long-hold stream-handoff
   checkpointing so approval/session parity wording remains deterministic across
   future handoffs without implicit authorization drift
+- advances operator clarity without broadening runtime admission
+
+### CB. Approval/session Dashboard Shell (static fixture first)
+Why:
+- approval/session dashboard long-hold checkpoint packet is now complete and
+  stable
+- next highest-value operator UX lane is explicit static-fixture shell
+  reinforcement so approval/session gate-state review language remains
+  deterministic while preserving server-owned authorization and non-authorizing
+  client-field semantics
 - advances operator clarity without broadening runtime admission
 
 ## What stays blocked globally

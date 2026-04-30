@@ -19,6 +19,17 @@ export const appEvidenceTimelineFixtureGeneratedAt = "2026-05-01";
 
 export const appEvidenceTimelineRows: readonly AppEvidenceTimelineRow[] = [
   {
+    recordedAtUtc: "2026-05-01T00:00:30Z",
+    domain: "GUI",
+    evidenceLane: "approval/session dashboard long-hold checkpoint packet",
+    capabilityWindow:
+      "approval/session baseline + shell + timeline + recommendation long-hold stream handoff checkpoint",
+    truthLabel: "demo",
+    summary:
+      "Approval/session dashboard long-hold checkpoint now verifies deterministic server-owned authorization truth, fail-closed validation-hold semantics, and non-authorizing client-field posture remain aligned across baseline, shell, timeline, and recommendation surfaces under explicit long-hold stream-handoff wording while preserving non-admitting runtime boundaries.",
+    reviewStatus: "pass-approval-session-dashboard-long-hold-checkpoint-packet",
+  },
+  {
     recordedAtUtc: "2026-05-01T00:00:29Z",
     domain: "GUI",
     evidenceLane: "approval/session dashboard parity checkpoint packet",

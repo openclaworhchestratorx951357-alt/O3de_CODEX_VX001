@@ -111,7 +111,7 @@ export default function AppAuditReviewDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Approval/session dashboard long-hold checkpoint packet</strong>.
+        Recommended next packet: <strong>Approval/session dashboard shell (static fixture first)</strong>.
       </p>
     </section>
   );

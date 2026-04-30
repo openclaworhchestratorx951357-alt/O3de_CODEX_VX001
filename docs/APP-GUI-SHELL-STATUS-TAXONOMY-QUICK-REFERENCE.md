@@ -47,8 +47,8 @@ These labels are operator guidance only and never authorize runtime behavior.
 
 ## Recommended next packet
 
-Approval/session dashboard long-hold checkpoint packet
-(`codex/approval-session-dashboard-long-hold-checkpoint-packet`).
+Approval/session dashboard shell (static fixture first)
+(`codex/approval-session-dashboard-shell-static-fixture-first`).
 
 
 

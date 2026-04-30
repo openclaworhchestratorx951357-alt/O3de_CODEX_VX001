@@ -26,6 +26,6 @@ describe("AppAuditReviewDashboardShell", () => {
     expect(screen.getAllByText("hold-default-off").length).toBeGreaterThan(0);
     expect(screen.getAllByText("blocked").length).toBeGreaterThan(0);
 
-    expect(screen.getByText("Approval/session dashboard long-hold checkpoint packet", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Approval/session dashboard shell (static fixture first)", { selector: "strong" })).toBeInTheDocument();
   });
 });

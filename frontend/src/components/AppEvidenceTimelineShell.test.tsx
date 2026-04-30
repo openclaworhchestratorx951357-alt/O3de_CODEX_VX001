@@ -29,6 +29,13 @@ describe("AppEvidenceTimelineShell", () => {
     expect(screen.getAllByText("admitted-real").length).toBeGreaterThan(0);
     expect(screen.getByText("hold-default-off")).toBeInTheDocument();
     expect(screen.getByText("linked-validation-hold")).toBeInTheDocument();
+    expect(screen.getByText("approval/session dashboard long-hold checkpoint packet")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "approval/session baseline + shell + timeline + recommendation long-hold stream handoff checkpoint",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("pass-approval-session-dashboard-long-hold-checkpoint-packet")).toBeInTheDocument();
     expect(screen.getByText("approval/session dashboard parity checkpoint packet")).toBeInTheDocument();
     expect(
       screen.getByText("approval/session baseline + shell + timeline + recommendation parity checkpoint"),
@@ -614,7 +621,7 @@ describe("AppEvidenceTimelineShell", () => {
     expect(screen.getByText("codex.flow.trigger.audit_gate checklist stop-point contract")).toBeInTheDocument();
     expect(screen.getByText("pass-flow-trigger-audit-gate-checklist")).toBeInTheDocument();
 
-    expect(screen.getByText("Approval/session dashboard long-hold checkpoint packet", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Approval/session dashboard shell (static fixture first)", { selector: "strong" })).toBeInTheDocument();
   });
 });
 

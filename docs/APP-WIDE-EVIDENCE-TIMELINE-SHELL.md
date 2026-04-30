@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Approval/session dashboard long-hold checkpoint packet
-(`codex/approval-session-dashboard-long-hold-checkpoint-packet`):
+Approval/session dashboard shell (static fixture first)
+(`codex/approval-session-dashboard-shell-static-fixture-first`):
 
 - keep approval/session baseline + shell + timeline wording aligned under
   server-owned authorization truth and fail-closed gate-state semantics
