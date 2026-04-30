@@ -249,6 +249,9 @@ export default function LoadProjectWorkspaceView({
     if (card.actionLabel === "Open Settings") {
       return { ...card, onAction: onOpenSettings };
     }
+    if (card.id === "inspect-project") {
+      return { ...card, onAction: onLaunchInspectTemplate ?? onOpenPromptStudio };
+    }
     return { ...card, onAction: onOpenPromptStudio };
   });
 
@@ -322,7 +325,7 @@ export default function LoadProjectWorkspaceView({
       truthLabel="read-only / configuration preflight cockpit"
       missionPurpose="Prove target assumptions first; keep unknown values explicit; then launch bounded authoring from verified state."
       commandActions={[
-        { label: "Inspect Project", onClick: onOpenPromptStudio },
+        { label: "Inspect Project", onClick: onLaunchInspectTemplate ?? onOpenPromptStudio },
         { label: "Refresh Target Status", onClick: onOpenRuntimeOverview },
         { label: "Open Prompt Studio", onClick: onOpenPromptStudio },
         { label: "Open Runtime", onClick: onOpenRuntimeOverview },

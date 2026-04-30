@@ -249,14 +249,24 @@ export default function CreateGameWorkspaceView({
   latestArtifactId,
   latestPlacementProofOnlyReview,
 }: CreateGameWorkspaceViewProps) {
-  const cardsWithActions = toolCards.map((card) => ({
-    ...card,
-    onAction: card.actionLabel === "Open Asset Forge"
-      ? onOpenAssetForge
-      : card.actionLabel === "Open Records"
-        ? onOpenRecords
-        : onOpenPromptStudio,
-  }));
+  const cardsWithActions = toolCards.map((card) => {
+    if (card.actionLabel === "Open Asset Forge") {
+      return { ...card, onAction: onOpenAssetForge };
+    }
+    if (card.actionLabel === "Open Records") {
+      return { ...card, onAction: onOpenRecords };
+    }
+    if (card.id === "inspect-project") {
+      return { ...card, onAction: onLaunchInspectTemplate ?? onOpenPromptStudio };
+    }
+    if (card.id === "create-safe-entity") {
+      return { ...card, onAction: onLaunchCreateEntityTemplate ?? onOpenPromptStudio };
+    }
+    if (card.id === "add-component") {
+      return { ...card, onAction: onLaunchAddMeshTemplate ?? onOpenPromptStudio };
+    }
+    return { ...card, onAction: onOpenPromptStudio };
+  });
 
   const promptTemplates: CockpitPromptTemplate[] = [
     {
@@ -293,7 +303,7 @@ export default function CreateGameWorkspaceView({
       truthLabel="mission cockpit / narrow admitted editor actions + read-only and preflight support"
       missionPurpose="Start from concept, move through bounded editor actions, and keep evidence-first review before any future scope expansion."
       commandActions={[
-        { label: "Inspect Project", onClick: onOpenPromptStudio },
+        { label: "Inspect Project", onClick: onLaunchInspectTemplate ?? onOpenPromptStudio },
         { label: "Open Prompt Studio", onClick: onOpenPromptStudio },
         { label: "Open Asset Forge", onClick: onOpenAssetForge },
         { label: "Open Runtime", onClick: onOpenRuntimeOverview },

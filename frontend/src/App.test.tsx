@@ -805,6 +805,34 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("Loaded source workspace: load-project")).toBeInTheDocument();
   });
 
+  it("prefills inspect templates from cockpit command bars without opening the chooser lane", async () => {
+    render(<App />);
+
+    fireEvent.click(getDesktopNavButton(/Create Game/i));
+    await screen.findAllByText("Create Game Cockpit");
+    fireEvent.click(screen.getByRole("button", { name: "Inspect Project" }));
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+    expect(screen.getAllByText("Loaded mission draft: Inspect project evidence prompt").length).toBeGreaterThan(0);
+    expect(screen.getByText("Loaded source workspace: create-game")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Prompt template chooser context")).toBeNull();
+
+    fireEvent.click(getDesktopNavButton(/Create Movie/i));
+    await screen.findAllByText("Create Movie Cockpit");
+    fireEvent.click(screen.getByRole("button", { name: "Inspect Cinematic Target" }));
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+    expect(screen.getAllByText("Loaded mission draft: Inspect cinematic target prompt").length).toBeGreaterThan(0);
+    expect(screen.getByText("Loaded source workspace: create-movie")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Prompt template chooser context")).toBeNull();
+
+    fireEvent.click(getDesktopNavButton(/Load Project/i));
+    await screen.findAllByText("Load Project Cockpit");
+    fireEvent.click(screen.getByRole("button", { name: "Inspect Project" }));
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+    expect(screen.getAllByText("Loaded mission draft: Load project inspection prompt").length).toBeGreaterThan(0);
+    expect(screen.getByText("Loaded source workspace: load-project")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Prompt template chooser context")).toBeNull();
+  });
+
   it("runs source-aware handoff quick actions to reopen the intended cockpit context", async () => {
     render(<App />);
 
