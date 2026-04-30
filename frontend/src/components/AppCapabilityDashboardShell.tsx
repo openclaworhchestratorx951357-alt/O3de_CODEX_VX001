@@ -135,7 +135,7 @@ export default function AppCapabilityDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Asset Forge placement proof-only admission-flag release-readiness decision</strong>.
+        Recommended next packet: <strong>Asset Forge placement proof-only admission-flag long-hold checkpoint</strong>.
       </p>
     </section>
   );

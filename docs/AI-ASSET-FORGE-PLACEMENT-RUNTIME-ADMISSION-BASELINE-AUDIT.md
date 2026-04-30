@@ -105,7 +105,7 @@ Result summary:
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag release-readiness decision:
+Asset Forge placement proof-only admission-flag long-hold checkpoint:
 
 - define exact bounded contract fields for a future runtime-admission candidate
 - define explicit no-go rules and non-goals for admission design scope

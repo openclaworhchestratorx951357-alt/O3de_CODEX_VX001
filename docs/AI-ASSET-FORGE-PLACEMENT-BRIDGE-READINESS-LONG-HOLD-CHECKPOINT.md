@@ -72,7 +72,7 @@ the next packet selection while this hold checkpoint remains stable.
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag release-readiness decision:
+Asset Forge placement proof-only admission-flag long-hold checkpoint:
 
 - establish current truth for any future placement runtime-admission candidate
 - classify safe/no-go boundaries for potential exact-scope admission work

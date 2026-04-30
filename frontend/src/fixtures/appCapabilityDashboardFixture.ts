@@ -52,7 +52,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     statusTaxonomy: "admitted-real",
     risk: "Medium",
     requiredGate: "manifest-backed contract alignment + provenance review truth",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
   {
     domain: "Project/Config",
@@ -62,7 +62,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     statusTaxonomy: "admitted-real",
     risk: "Medium",
     requiredGate: "project.inspect include_settings contract + requested_settings_keys evidence truth",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
   {
     domain: "Asset Forge",
@@ -72,7 +72,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     statusTaxonomy: "proof-only",
     risk: "High",
     requiredGate: "explicit admission flag + exact path/hash gates",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
   {
     domain: "Project/Config",
@@ -83,7 +83,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     risk: "High",
     requiredGate:
       "explicit narrow scope + manifest backup + post-write verification + bounded rollback-class evidence",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
   {
     domain: "Project/Config",
@@ -93,7 +93,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     statusTaxonomy: "admitted-real",
     risk: "High",
     requiredGate: "rollback class boundary verification + backup identity linkage + post-rollback readback evidence",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
   {
     domain: "Project/Config",
@@ -104,7 +104,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     risk: "Medium",
     requiredGate:
       "dry_run-only preflight semantics + no configure command execution + explicit fallback classification",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
   {
     domain: "Project/Config",
@@ -115,7 +115,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     risk: "Critical",
     requiredGate:
       "explicit named target + approval token + timeout/log/result evidence + no broad build-execution or cleanup claims",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
   {
     domain: "Editor",
@@ -125,7 +125,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     statusTaxonomy: "admitted-real",
     risk: "Medium",
     requiredGate: "readback contract alignment + operator examples + release-readiness hold/no-go decision + long-hold checkpoint + requested-path evidence truth",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
   {
     domain: "Editor",
@@ -135,7 +135,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     statusTaxonomy: "admitted-real",
     risk: "High",
     requiredGate: "existing exact corridor gates + regression-check evidence across capability/audit/status/timeline surfaces",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
   {
     domain: "GUI",
@@ -145,7 +145,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     statusTaxonomy: "demo",
     risk: "Medium",
     requiredGate: "truth-label contract + status-taxonomy alignment",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
   {
     domain: "GUI",
@@ -155,7 +155,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     statusTaxonomy: "demo",
     risk: "Medium",
     requiredGate: "truth-label contract + status-taxonomy alignment",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
   {
     domain: "GUI",
@@ -165,7 +165,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     statusTaxonomy: "demo",
     risk: "Low",
     requiredGate: "truthful label taxonomy + cross-shell vocabulary alignment",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
   {
     domain: "GUI",
@@ -175,7 +175,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     statusTaxonomy: "demo",
     risk: "Medium",
     requiredGate: "evidence schema contract + cross-dashboard truth alignment",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
   {
     domain: "Automation",
@@ -186,7 +186,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     risk: "High",
     requiredGate:
       "operator-examples + release-readiness checkpoints complete + explicit long-hold checkpoint + fail-closed invariants",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
   {
     domain: "Editor",
@@ -196,7 +196,7 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     statusTaxonomy: "blocked",
     risk: "High",
     requiredGate: "exact-corridor-only policy + refusal coverage",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
   {
     domain: "Asset Forge",
@@ -206,6 +206,6 @@ export const appCapabilityDashboardRows: readonly AppCapabilityDashboardRow[] = 
     statusTaxonomy: "plan-only",
     risk: "High",
     requiredGate: "explicit admission flag design + blocked execution proof",
-    recommendedNextPacket: "Asset Forge placement proof-only admission-flag release-readiness decision",
+    recommendedNextPacket: "Asset Forge placement proof-only admission-flag long-hold checkpoint",
   },
 ];

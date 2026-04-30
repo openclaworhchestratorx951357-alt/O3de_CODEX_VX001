@@ -31,6 +31,6 @@ describe("AppAuditReviewDashboardShell", () => {
     expect(screen.getAllByText("hold-default-off").length).toBeGreaterThan(0);
     expect(screen.getAllByText("blocked").length).toBeGreaterThan(0);
 
-    expect(screen.getByText("Asset Forge placement proof-only admission-flag release-readiness decision", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Asset Forge placement proof-only admission-flag long-hold checkpoint", { selector: "strong" })).toBeInTheDocument();
   });
 });

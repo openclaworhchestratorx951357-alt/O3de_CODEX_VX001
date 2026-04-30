@@ -42,6 +42,6 @@ describe("AppApprovalSessionDashboardShell", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("client fields remain intent-only and non-authorizing", { exact: false })).toBeInTheDocument();
 
-    expect(screen.getByText("Asset Forge placement proof-only admission-flag release-readiness decision", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Asset Forge placement proof-only admission-flag long-hold checkpoint", { selector: "strong" })).toBeInTheDocument();
   });
 });

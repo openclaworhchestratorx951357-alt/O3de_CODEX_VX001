@@ -39,5 +39,5 @@ shells.
 
 ## Recommended next packet
 
-Asset Forge placement proof-only admission-flag release-readiness decision
-(`codex/ai-asset-forge-placement-proof-only-admission-flag-release-readiness-decision`).
+Asset Forge placement proof-only admission-flag long-hold checkpoint
+(`codex/ai-asset-forge-placement-proof-only-admission-flag-long-hold-checkpoint`).
