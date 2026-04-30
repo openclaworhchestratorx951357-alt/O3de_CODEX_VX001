@@ -27,6 +27,7 @@ describe("AssetForgeGuidedPipeline", () => {
 
   it("fires contextual navigation actions", () => {
     const onOpenPromptStudio = vi.fn();
+    const onLaunchInspectTemplate = vi.fn();
     const onLaunchPlacementProofTemplate = vi.fn();
     const onOpenRuntimeOverview = vi.fn();
     const onOpenRecords = vi.fn();
@@ -35,6 +36,7 @@ describe("AssetForgeGuidedPipeline", () => {
     render(
       <AssetForgeGuidedPipeline
         onOpenPromptStudio={onOpenPromptStudio}
+        onLaunchInspectTemplate={onLaunchInspectTemplate}
         onLaunchPlacementProofTemplate={onLaunchPlacementProofTemplate}
         onOpenRuntimeOverview={onOpenRuntimeOverview}
         onOpenRecords={onOpenRecords}
@@ -43,12 +45,14 @@ describe("AssetForgeGuidedPipeline", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Open Prompt Studio" }));
-    fireEvent.click(screen.getByRole("button", { name: "Use placement proof template" }));
+    fireEvent.click(screen.getByRole("button", { name: "Load inspect template in Prompt Studio" }));
+    fireEvent.click(screen.getByRole("button", { name: "Load placement proof-only template in Prompt Studio" }));
     fireEvent.click(screen.getByRole("button", { name: "Open Runtime Overview" }));
     fireEvent.click(screen.getByRole("button", { name: "Open Records" }));
     fireEvent.click(screen.getByRole("button", { name: "View evidence" }));
 
     expect(onOpenPromptStudio).toHaveBeenCalledTimes(1);
+    expect(onLaunchInspectTemplate).toHaveBeenCalledTimes(1);
     expect(onLaunchPlacementProofTemplate).toHaveBeenCalledTimes(1);
     expect(onOpenRuntimeOverview).toHaveBeenCalledTimes(1);
     expect(onOpenRecords).toHaveBeenCalledTimes(1);

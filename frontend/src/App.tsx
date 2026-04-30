@@ -7437,6 +7437,7 @@ export default function App() {
             >
               <AIAssetForgePanel
                 onOpenPromptStudio={openPromptStudio}
+                onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplate}
                 onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplate}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
@@ -7525,6 +7526,9 @@ export default function App() {
               onOpenCreateGame={() => setActiveWorkspaceId("create-game")}
               onOpenCreateMovie={() => setActiveWorkspaceId("create-movie")}
               onOpenLoadProject={() => setActiveWorkspaceId("load-project")}
+              onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplate}
+              onLaunchCreateEntityTemplate={openPromptStudioWithCreateGameEntityTemplate}
+              onLaunchAddMeshTemplate={openPromptStudioWithAddAllowlistedMeshTemplate}
               onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplate}
               onViewLatestRun={openRecordsRuns}
               onViewExecution={openRecordsExecutions}

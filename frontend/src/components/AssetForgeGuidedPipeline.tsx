@@ -1,7 +1,13 @@
 import type { CSSProperties } from "react";
 
+import {
+  inspectProjectMissionPromptDraft,
+  placementProofOnlyMissionPromptDraft,
+} from "../lib/missionPromptTemplates";
+
 type AssetForgeGuidedPipelineProps = {
   onOpenPromptStudio?: () => void;
+  onLaunchInspectTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenRecords?: () => void;
@@ -119,6 +125,7 @@ const blockedExplanations = [
 
 export default function AssetForgeGuidedPipeline({
   onOpenPromptStudio,
+  onLaunchInspectTemplate,
   onLaunchPlacementProofTemplate,
   onOpenRuntimeOverview,
   onOpenRecords,
@@ -135,11 +142,47 @@ export default function AssetForgeGuidedPipeline({
 
       <div style={styles.actionRow}>
         <button type="button" onClick={onOpenPromptStudio} disabled={!onOpenPromptStudio} style={styles.button}>Open Prompt Studio</button>
-        <button type="button" onClick={onLaunchPlacementProofTemplate} disabled={!onLaunchPlacementProofTemplate} style={styles.button}>Use placement proof template</button>
         <button type="button" onClick={onOpenRuntimeOverview} disabled={!onOpenRuntimeOverview} style={styles.button}>Open Runtime Overview</button>
         <button type="button" onClick={onOpenRecords} disabled={!onOpenRecords} style={styles.button}>Open Records</button>
         <button type="button" onClick={onViewEvidence} disabled={!onViewEvidence} style={styles.button}>View evidence</button>
       </div>
+
+      <section style={styles.templateSection} aria-label="Asset Forge contextual prompt templates">
+        <strong>Contextual prompt templates (prefill only)</strong>
+        <p style={styles.detail}>Templates load into Prompt Studio for preview. They do not auto-execute or bypass admission gates.</p>
+        <div style={styles.grid}>
+          <article style={styles.stepCard}>
+            <div style={styles.stepHeader}>
+              <strong>Inspect project template</strong>
+              <span style={styles.truth}>read-only</span>
+            </div>
+            <pre style={styles.template}>{inspectProjectMissionPromptDraft.promptText}</pre>
+            <button
+              type="button"
+              onClick={onLaunchInspectTemplate}
+              disabled={!onLaunchInspectTemplate}
+              style={styles.button}
+            >
+              Load inspect template in Prompt Studio
+            </button>
+          </article>
+          <article style={styles.stepCard}>
+            <div style={styles.stepHeader}>
+              <strong>Placement proof-only template</strong>
+              <span style={styles.truth}>proof-only / fail-closed</span>
+            </div>
+            <pre style={styles.template}>{placementProofOnlyMissionPromptDraft.promptText}</pre>
+            <button
+              type="button"
+              onClick={onLaunchPlacementProofTemplate}
+              disabled={!onLaunchPlacementProofTemplate}
+              style={styles.button}
+            >
+              Load placement proof-only template in Prompt Studio
+            </button>
+          </article>
+        </div>
+      </section>
 
       <div style={styles.grid}>
         {pipelineSteps.map((step) => (
@@ -237,6 +280,20 @@ const styles = {
     padding: "8px 10px",
     display: "grid",
     gap: 6,
+  },
+  templateSection: {
+    border: "1px solid rgba(173, 204, 238, 0.55)",
+    borderRadius: 8,
+    background: "rgba(24, 40, 62, 0.45)",
+    padding: "8px 10px",
+    display: "grid",
+    gap: 8,
+  },
+  template: {
+    margin: 0,
+    whiteSpace: "pre-wrap",
+    overflowWrap: "anywhere",
+    fontSize: 12,
   },
   list: {
     margin: 0,

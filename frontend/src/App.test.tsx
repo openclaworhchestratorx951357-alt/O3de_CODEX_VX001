@@ -400,6 +400,20 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("Loaded mission draft: Load project inspection prompt")).toBeInTheDocument();
   });
 
+  it("loads Home and Asset Forge contextual templates into Prompt Studio as prefilled mission drafts", async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Load inspect template in Prompt Studio" }));
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+    expect(screen.getByText("Loaded mission draft: Inspect project evidence prompt")).toBeInTheDocument();
+
+    fireEvent.click(getDesktopNavButton(/Asset Forge/i));
+    await screen.findByLabelText("AI Asset Forge");
+    fireEvent.click(screen.getByRole("button", { name: "Load placement proof-only template in Prompt Studio" }));
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+    expect(screen.getByText("Loaded mission draft: Placement proof-only candidate prompt")).toBeInTheDocument();
+  });
+
   it("returns to Home from the Asset Forge app header", async () => {
     render(<App />);
 

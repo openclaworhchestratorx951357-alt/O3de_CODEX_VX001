@@ -1,6 +1,11 @@
 import type { CSSProperties } from "react";
 
-import { placementProofOnlyMissionPromptDraft } from "../lib/missionPromptTemplates";
+import {
+  addAllowlistedMeshMissionPromptDraft,
+  createGameEntityMissionPromptDraft,
+  inspectProjectMissionPromptDraft,
+  placementProofOnlyMissionPromptDraft,
+} from "../lib/missionPromptTemplates";
 
 type MissionCardDeckProps = {
   latestRunId?: string | null;
@@ -14,6 +19,9 @@ type MissionCardDeckProps = {
   onOpenAssetForge?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenRecords?: () => void;
+  onLaunchInspectTemplate?: () => void;
+  onLaunchCreateEntityTemplate?: () => void;
+  onLaunchAddMeshTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
 };
 
@@ -117,6 +125,41 @@ function destinationAction(
   return { label: "Open Records", onClick: actions.onOpenRecords };
 }
 
+function templateAction(
+  cardId: MissionCard["id"],
+  actions: MissionCardDeckProps,
+): { label: string; promptText: string; onClick?: () => void } | null {
+  if (cardId === "inspect-project") {
+    return {
+      label: "Load inspect template in Prompt Studio",
+      promptText: inspectProjectMissionPromptDraft.promptText,
+      onClick: actions.onLaunchInspectTemplate,
+    };
+  }
+  if (cardId === "create-safe-entity") {
+    return {
+      label: "Load create-entity template in Prompt Studio",
+      promptText: createGameEntityMissionPromptDraft.promptText,
+      onClick: actions.onLaunchCreateEntityTemplate,
+    };
+  }
+  if (cardId === "add-allowlisted-component") {
+    return {
+      label: "Load add-component template in Prompt Studio",
+      promptText: addAllowlistedMeshMissionPromptDraft.promptText,
+      onClick: actions.onLaunchAddMeshTemplate,
+    };
+  }
+  if (cardId === "placement-proof-only") {
+    return {
+      label: "Load placement proof-only template in Prompt Studio",
+      promptText: placementProofOnlyMissionPromptDraft.promptText,
+      onClick: actions.onLaunchPlacementProofTemplate,
+    };
+  }
+  return null;
+}
+
 export default function MissionCardDeck(props: MissionCardDeckProps) {
   return (
     <section aria-label="Mission card deck" style={styles.shell} data-testid="mission-card-deck">
@@ -140,6 +183,7 @@ export default function MissionCardDeck(props: MissionCardDeckProps) {
       <div style={styles.grid}>
         {cards.map((card) => {
           const primaryAction = destinationAction(card.destination, props);
+          const contextualTemplateAction = templateAction(card.id, props);
           return (
             <article key={card.id} style={styles.card}>
               <div style={styles.cardHeader}>
@@ -152,21 +196,23 @@ export default function MissionCardDeck(props: MissionCardDeckProps) {
               <p style={styles.detail}><strong>What remains blocked:</strong> {card.blocked}</p>
               <p style={styles.detail}><strong>Next unlock:</strong> {card.nextUnlock}</p>
 
-              {card.id === "placement-proof-only" ? (
+              {contextualTemplateAction ? (
                 <div style={styles.templateBox}>
                   <strong>Suggested prompt template</strong>
-                  <p style={styles.detail}>Label: proof-only, fail-closed, non-mutating, real placement not admitted.</p>
-                  <pre style={styles.template}>{placementProofOnlyMissionPromptDraft.promptText}</pre>
-                  <p style={styles.detail}>
-                    Explicit truth: placement execution is non-admitted, placement write is non-admitted, and no mutation occurred.
-                  </p>
+                  <p style={styles.detail}>Prefill only. Open Prompt Studio, preview plan, then execute manually if admitted.</p>
+                  <pre style={styles.template}>{contextualTemplateAction.promptText}</pre>
+                  {card.id === "placement-proof-only" ? (
+                    <p style={styles.detail}>
+                      Explicit truth: placement execution is non-admitted, placement write is non-admitted, and no mutation occurred.
+                    </p>
+                  ) : null}
                   <button
                     type="button"
-                    onClick={props.onLaunchPlacementProofTemplate}
-                    disabled={!props.onLaunchPlacementProofTemplate}
+                    onClick={contextualTemplateAction.onClick}
+                    disabled={!contextualTemplateAction.onClick}
                     style={styles.templateButton}
                   >
-                    Use template in Prompt Studio
+                    {contextualTemplateAction.label}
                   </button>
                 </div>
               ) : null}

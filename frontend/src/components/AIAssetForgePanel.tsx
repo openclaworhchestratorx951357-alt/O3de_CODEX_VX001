@@ -22,6 +22,7 @@ import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 type AIAssetForgePanelProps = {
   projectProfile?: O3DEProjectProfile;
   onOpenPromptStudio?: () => void;
+  onLaunchInspectTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenBuilder?: () => void;
@@ -132,6 +133,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
       />
       <AssetForgeGuidedPipeline
         onOpenPromptStudio={props.onOpenPromptStudio}
+        onLaunchInspectTemplate={props.onLaunchInspectTemplate}
         onLaunchPlacementProofTemplate={props.onLaunchPlacementProofTemplate}
         onOpenRuntimeOverview={props.onOpenRuntimeOverview}
         onOpenRecords={props.onOpenRecords}

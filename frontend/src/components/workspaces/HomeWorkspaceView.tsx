@@ -22,6 +22,9 @@ type HomeWorkspaceViewProps = {
   onOpenCreateGame?: () => void;
   onOpenCreateMovie?: () => void;
   onOpenLoadProject?: () => void;
+  onLaunchInspectTemplate?: () => void;
+  onLaunchCreateEntityTemplate?: () => void;
+  onLaunchAddMeshTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
@@ -74,6 +77,9 @@ export default function HomeWorkspaceView({
   onOpenCreateGame,
   onOpenCreateMovie,
   onOpenLoadProject,
+  onLaunchInspectTemplate,
+  onLaunchCreateEntityTemplate,
+  onLaunchAddMeshTemplate,
   onLaunchPlacementProofTemplate,
   onViewLatestRun,
   onViewExecution,
@@ -151,6 +157,9 @@ export default function HomeWorkspaceView({
             onOpenAssetForge={onOpenAssetForge}
             onOpenRuntimeOverview={onOpenRuntimeOverview}
             onOpenRecords={onOpenRecords}
+            onLaunchInspectTemplate={onLaunchInspectTemplate}
+            onLaunchCreateEntityTemplate={onLaunchCreateEntityTemplate}
+            onLaunchAddMeshTemplate={onLaunchAddMeshTemplate}
             onLaunchPlacementProofTemplate={onLaunchPlacementProofTemplate}
           />
           <HomeCockpitLaunchPanel
