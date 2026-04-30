@@ -29,6 +29,9 @@ describe("AppEvidenceTimelineShell", () => {
     expect(screen.getAllByText("admitted-real").length).toBeGreaterThan(0);
     expect(screen.getByText("hold-default-off")).toBeInTheDocument();
     expect(screen.getByText("linked-validation-hold")).toBeInTheDocument();
+    expect(screen.getByText("workspace status chips shell + truth taxonomy linkage packet")).toBeInTheDocument();
+    expect(screen.getByText("workspace status taxonomy + cross-shell linkage checkpoint")).toBeInTheDocument();
+    expect(screen.getByText("pass-workspace-status-chips-shell-truth-taxonomy-linkage-packet")).toBeInTheDocument();
     expect(
       screen.getByText("app-wide evidence timeline shell + approval/validation linkage audit packet"),
     ).toBeInTheDocument();
@@ -642,7 +645,7 @@ describe("AppEvidenceTimelineShell", () => {
     expect(screen.getByText("codex.flow.trigger.audit_gate checklist stop-point contract")).toBeInTheDocument();
     expect(screen.getByText("pass-flow-trigger-audit-gate-checklist")).toBeInTheDocument();
 
-    expect(screen.getByText("Workspace status chips shell + truth taxonomy linkage", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("App capability dashboard truth refresh + status-chip linkage", { selector: "strong" })).toBeInTheDocument();
   });
 });
 

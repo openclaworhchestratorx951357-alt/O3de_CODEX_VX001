@@ -1,20 +1,19 @@
-# App-wide Evidence Timeline Shell + Approval/validation Linkage Audit
+# Workspace Status Chips Shell + Truth Taxonomy Linkage Packet
 
-Status: completed (timeline-linkage audit checkpoint; non-admitting)
+Status: completed (status-chip taxonomy checkpoint; non-admitting)
 
 ## Purpose
 
-Checkpoint cross-domain evidence timeline chronology and approval/validation
-linkage wording so operator-facing timeline semantics remain deterministic under
+Checkpoint workspace status chip taxonomy and cross-shell linkage wording so
+held-lane and approval/session state semantics remain deterministic under
 server-owned authorization truth without widening runtime admission.
 
 ## Scope in this packet
 
-- audit approval/session and validation hold-state timeline rows for chronology
-  and linkage wording consistency
+- audit workspace status chip taxonomy wording and cross-shell linkage cues
 - preserve explicit fail-closed validation semantics and non-authorizing
-  client-field posture in timeline-linked guidance
-- preserve explicit server-owned gate-state truth language across timeline and
+  client-field posture in status-chip-linked guidance
+- preserve explicit server-owned gate-state truth language across shell and
   recommendation surfaces
 - roll app-wide recommendation surfaces to the next project-moving packet
 
@@ -26,18 +25,19 @@ server-owned authorization truth without widening runtime admission.
 - no provider/Blender/Asset Processor/placement admission changes
 - no CI/runtime execution admission broadening
 
-## Linkage audit checkpoint
+## Taxonomy checkpoint
 
-- timeline chronology and cross-domain linkage wording now remain deterministic
-  under one server-owned authorization truth model
-- approval/session and validation hold-state row semantics remain explicit and
+- workspace status chip taxonomy now remains deterministic and aligned with
+  app-wide shell vocabulary
+- held-lane and approval/session status semantics remain explicit and
   fail-closed
 - client approval/session fields remain intent-only and non-authorizing
 - recommendation surfaces now point to one next packet
 
 ## Evidence
 
-- `docs/APP-WIDE-EVIDENCE-TIMELINE-SHELL.md`
+- `docs/WORKSPACE-STATUS-CHIPS-SHELL.md`
+- `docs/APP-WIDE-EVIDENCE-TIMELINE-SHELL-APPROVAL-VALIDATION-LINKAGE-AUDIT.md`
 - `docs/APPROVAL-SESSION-DASHBOARD-TRUTH-REFRESH-VALIDATION-LINKAGE.md`
 - `docs/APPROVAL-SESSION-DASHBOARD-SHELL-STATIC-FIXTURE-FIRST-PACKET.md`
 - `docs/APPROVAL-SESSION-DASHBOARD-LONG-HOLD-CHECKPOINT-PACKET.md`
@@ -49,7 +49,6 @@ server-owned authorization truth without widening runtime admission.
 - `docs/APP-GUI-SHELL-STATUS-TAXONOMY-QUICK-REFERENCE.md`
 - `docs/APP-CAPABILITY-DASHBOARD-SHELL.md`
 - `docs/AUDIT-REVIEW-DASHBOARD-SHELL.md`
-- `docs/WORKSPACE-STATUS-CHIPS-SHELL.md`
 - `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-LONG-HOLD-CHECKPOINT-PACKET.md`
 - `frontend/src/fixtures/appEvidenceTimelineFixture.ts`
 - `frontend/src/fixtures/appCapabilityDashboardFixture.ts`

@@ -968,13 +968,22 @@ Why:
   surfaces
 - advances operator clarity without broadening runtime admission
 
-### CE. Workspace Status Chips Shell + Truth Taxonomy Linkage
+### CE. Workspace Status Chips Shell + Truth Taxonomy Linkage (completed)
 Why:
 - app-wide evidence timeline shell + approval/validation linkage audit packet
   is now complete and stable
 - next highest-value operator UX lane is explicit workspace status taxonomy
   checkpointing so held-lane and approval/session state chips stay deterministic
   across app-wide shells and recommendation surfaces
+- advances operator clarity without broadening runtime admission
+
+### CF. App Capability Dashboard Truth Refresh + Status-chip Linkage
+Why:
+- workspace status chips shell + truth taxonomy linkage packet is now complete
+  and stable
+- next highest-value operator UX lane is explicit capability-dashboard status
+  linkage checkpointing so dashboard truth labels and status-chip vocabulary
+  remain deterministic across app-wide shells and recommendation surfaces
 - advances operator clarity without broadening runtime admission
 
 ## What stays blocked globally

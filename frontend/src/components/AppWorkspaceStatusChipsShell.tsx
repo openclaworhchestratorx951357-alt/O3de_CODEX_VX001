@@ -94,7 +94,7 @@ export default function AppWorkspaceStatusChipsShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Workspace status chips shell + truth taxonomy linkage</strong>.
+        Recommended next packet: <strong>App capability dashboard truth refresh + status-chip linkage</strong>.
       </p>
     </section>
   );

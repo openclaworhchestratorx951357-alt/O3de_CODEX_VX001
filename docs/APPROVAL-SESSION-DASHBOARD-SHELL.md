@@ -71,8 +71,8 @@ broadened.
 
 ## Recommended next packet
 
-Workspace status chips shell + truth taxonomy linkage
-(`codex/workspace-status-chips-shell-truth-taxonomy-linkage`):
+App capability dashboard truth refresh + status-chip linkage
+(`codex/app-capability-dashboard-truth-refresh-status-chip-linkage`):
 
 - keep server-owned authorization and fail-closed gate-state wording aligned
   with the existing approval/session boundary model across baseline/shell

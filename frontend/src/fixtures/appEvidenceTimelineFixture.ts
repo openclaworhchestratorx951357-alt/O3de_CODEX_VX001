@@ -19,6 +19,16 @@ export const appEvidenceTimelineFixtureGeneratedAt = "2026-05-01";
 
 export const appEvidenceTimelineRows: readonly AppEvidenceTimelineRow[] = [
   {
+    recordedAtUtc: "2026-05-01T00:00:34Z",
+    domain: "GUI",
+    evidenceLane: "workspace status chips shell + truth taxonomy linkage packet",
+    capabilityWindow: "workspace status taxonomy + cross-shell linkage checkpoint",
+    truthLabel: "demo",
+    summary:
+      "Workspace status chips taxonomy checkpoint now verifies deterministic held-lane and approval/session status labeling, server-owned authorization truth language, fail-closed validation semantics, and non-authorizing client-field posture remain aligned across app-wide shell and recommendation surfaces while preserving non-admitting runtime boundaries.",
+    reviewStatus: "pass-workspace-status-chips-shell-truth-taxonomy-linkage-packet",
+  },
+  {
     recordedAtUtc: "2026-05-01T00:00:33Z",
     domain: "GUI",
     evidenceLane: "app-wide evidence timeline shell + approval/validation linkage audit packet",

@@ -67,5 +67,5 @@ truth-refresh linkage broadening.
 
 ## Recommended next packet
 
-Workspace status chips shell + truth taxonomy linkage
-(`codex/workspace-status-chips-shell-truth-taxonomy-linkage`).
+App capability dashboard truth refresh + status-chip linkage
+(`codex/app-capability-dashboard-truth-refresh-status-chip-linkage`).

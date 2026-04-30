@@ -103,8 +103,8 @@ superseded for current dashboard behavior by:
 
 ## Recommended next packet
 
-Workspace status chips shell + truth taxonomy linkage
-(`codex/workspace-status-chips-shell-truth-taxonomy-linkage`):
+App capability dashboard truth refresh + status-chip linkage
+(`codex/app-capability-dashboard-truth-refresh-status-chip-linkage`):
 
 - keep baseline, shell, and timeline wording aligned for server-owned
   authorization truth

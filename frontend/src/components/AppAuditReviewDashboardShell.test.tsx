@@ -26,6 +26,6 @@ describe("AppAuditReviewDashboardShell", () => {
     expect(screen.getAllByText("hold-default-off").length).toBeGreaterThan(0);
     expect(screen.getAllByText("blocked").length).toBeGreaterThan(0);
 
-    expect(screen.getByText("Workspace status chips shell + truth taxonomy linkage", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("App capability dashboard truth refresh + status-chip linkage", { selector: "strong" })).toBeInTheDocument();
   });
 });

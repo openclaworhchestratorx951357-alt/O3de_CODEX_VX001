@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Workspace status chips shell + truth taxonomy linkage
-(`codex/workspace-status-chips-shell-truth-taxonomy-linkage`):
+App capability dashboard truth refresh + status-chip linkage
+(`codex/app-capability-dashboard-truth-refresh-status-chip-linkage`):
 
 - keep approval/session baseline + shell + timeline wording aligned under
   server-owned authorization truth and fail-closed gate-state semantics
