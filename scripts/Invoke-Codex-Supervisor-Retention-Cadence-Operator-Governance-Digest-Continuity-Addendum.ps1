@@ -271,4 +271,3 @@ $lines = @(
 Set-Content -Path $OutputTextFile -Value $lines -Encoding UTF8
 
 Write-Host $reportJson
-
