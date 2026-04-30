@@ -25,6 +25,9 @@ export default function PromptExecutionTimeline({
   const childResponseSummaries = session
     ? session.latest_child_responses.map((response, index) => summarizeChildResponse(response, index))
     : [];
+  const placementProofReview = session
+    ? summarizePlacementProofOnlyReview(session)
+    : null;
 
   return (
     <section style={panelStyle}>
@@ -82,6 +85,83 @@ export default function PromptExecutionTimeline({
                   </li>
                 ))}
               </ul>
+            </article>
+          ) : null}
+          {placementProofReview ? (
+            <article style={groupStyle} aria-label="Placement proof-only review">
+              <strong>Placement proof-only review</strong>
+              <div style={subtleTextStyle}>Capability: {placementProofReview.capabilityName}</div>
+              <div style={subtleTextStyle}>Proof status: {placementProofReview.proofStatus ?? "not reported"}</div>
+              <div style={subtleTextStyle}>Candidate id: {placementProofReview.candidateId ?? "not reported"}</div>
+              <div style={subtleTextStyle}>Candidate label: {placementProofReview.candidateLabel ?? "not reported"}</div>
+              <div style={subtleTextStyle}>
+                Staged source path: {placementProofReview.stagedSourceRelativePath ?? "not reported"}
+              </div>
+              <div style={subtleTextStyle}>
+                Target level path: {placementProofReview.targetLevelRelativePath ?? "not reported"}
+              </div>
+              <div style={subtleTextStyle}>
+                Target entity: {placementProofReview.targetEntityName ?? "not reported"}
+              </div>
+              <div style={subtleTextStyle}>
+                Target component: {placementProofReview.targetComponent ?? "not reported"}
+              </div>
+              <div style={subtleTextStyle}>
+                Stage-write evidence ref: {placementProofReview.stageWriteEvidenceReference ?? "not reported"}
+              </div>
+              <div style={subtleTextStyle}>
+                Stage-write readback ref: {placementProofReview.stageWriteReadbackReference ?? "not reported"}
+              </div>
+              <div style={subtleTextStyle}>
+                Stage-write readback status: {placementProofReview.stageWriteReadbackStatus ?? "not reported"}
+              </div>
+              <div style={subtleTextStyle}>Execution mode: {placementProofReview.executionMode ?? "not reported"}</div>
+              <div style={subtleTextStyle}>
+                Inspection surface: {placementProofReview.inspectionSurface ?? "not reported"}
+              </div>
+              <div style={subtleTextStyle}>
+                Placement execution admitted:{" "}
+                {formatBooleanLabel(placementProofReview.executionAdmitted, "execution_admitted")}
+              </div>
+              <div style={subtleTextStyle}>
+                Placement write admitted:{" "}
+                {formatBooleanLabel(placementProofReview.placementWriteAdmitted, "placement_write_admitted")}
+              </div>
+              <div style={subtleTextStyle}>
+                Mutation occurred:{" "}
+                {formatBooleanLabel(placementProofReview.mutationOccurred, "mutation_occurred")}
+              </div>
+              <div style={subtleTextStyle}>
+                Read only: {formatBooleanLabel(placementProofReview.readOnly, "read_only")}
+              </div>
+              {placementProofReview.failClosedReasons.length > 0 ? (
+                <div style={subtleTextStyle}>
+                  Fail-closed reasons: {placementProofReview.failClosedReasons.join(", ")}
+                </div>
+              ) : null}
+              {placementProofReview.serverDecisionCode
+              || placementProofReview.serverDecisionState
+              || placementProofReview.serverStatus ? (
+                <div style={subtleTextStyle}>
+                  Server approval: decision_code={placementProofReview.serverDecisionCode ?? "not reported"},{" "}
+                  decision_state={placementProofReview.serverDecisionState ?? "not reported"},{" "}
+                  status={placementProofReview.serverStatus ?? "not reported"}.
+                </div>
+                ) : null}
+              {placementProofReview.serverReason ? (
+                <div style={subtleTextStyle}>Server blocker reason: {placementProofReview.serverReason}</div>
+              ) : null}
+              {placementProofReview.serverRemediation ? (
+                <div style={subtleTextStyle}>
+                  Server blocker remediation: {placementProofReview.serverRemediation}
+                </div>
+              ) : null}
+              <div style={subtleTextStyle}>
+                Placement proof-only remains fail-closed and non-mutating: placement runtime execution is non-admitted, placement writes are non-admitted, and no mutation occurred.
+              </div>
+              <div style={subtleTextStyle}>
+                Next missing gate: exact placement admission corridor with server-owned approval/session truth, readback proof, and revert/restore proof.
+              </div>
             </article>
           ) : null}
           {childResponseSummaries.length > 0 ? (
@@ -151,6 +231,116 @@ type ChildResponseSummary = {
   errorCode?: string;
 };
 
+type PlacementProofOnlyReview = {
+  capabilityName: string;
+  proofStatus?: string;
+  candidateId?: string;
+  candidateLabel?: string;
+  stagedSourceRelativePath?: string;
+  targetLevelRelativePath?: string;
+  targetEntityName?: string;
+  targetComponent?: string;
+  stageWriteEvidenceReference?: string;
+  stageWriteReadbackReference?: string;
+  stageWriteReadbackStatus?: string;
+  executionMode?: string;
+  inspectionSurface?: string;
+  executionAdmitted?: boolean;
+  placementWriteAdmitted?: boolean;
+  mutationOccurred?: boolean;
+  readOnly?: boolean;
+  failClosedReasons: string[];
+  serverDecisionCode?: string;
+  serverDecisionState?: string;
+  serverStatus?: string;
+  serverReason?: string;
+  serverRemediation?: string;
+};
+
+function summarizePlacementProofOnlyReview(
+  session: PromptSessionRecord,
+): PlacementProofOnlyReview | null {
+  for (const response of session.latest_child_responses) {
+    const responseRecord = asRecord(response);
+    if (!responseRecord) {
+      continue;
+    }
+    const result = asRecord(responseRecord.result);
+    const executionDetails = asRecord(responseRecord.execution_details);
+    const capabilityName = readString(executionDetails, "capability_name");
+    const resultTool = readString(result, "tool") ?? readString(responseRecord, "tool");
+
+    if (capabilityName !== "editor.placement.proof_only" && resultTool !== "editor.placement.proof_only") {
+      continue;
+    }
+
+    const serverApprovalEvaluation = asRecord(executionDetails?.server_approval_evaluation);
+    const decisionCode = readString(serverApprovalEvaluation, "decision_code");
+
+    return {
+      capabilityName: capabilityName ?? "editor.placement.proof_only",
+      proofStatus: readString(executionDetails, "proof_status"),
+      candidateId: readString(executionDetails, "candidate_id"),
+      candidateLabel: readString(executionDetails, "candidate_label"),
+      stagedSourceRelativePath: readString(executionDetails, "staged_source_relative_path"),
+      targetLevelRelativePath: readString(executionDetails, "target_level_relative_path"),
+      targetEntityName: readString(executionDetails, "target_entity_name"),
+      targetComponent: readString(executionDetails, "target_component"),
+      stageWriteEvidenceReference: readString(executionDetails, "stage_write_evidence_reference"),
+      stageWriteReadbackReference: readString(executionDetails, "stage_write_readback_reference"),
+      stageWriteReadbackStatus: readString(executionDetails, "stage_write_readback_status"),
+      executionMode: readString(result, "execution_mode") ?? readString(responseRecord, "execution_mode"),
+      inspectionSurface: readString(executionDetails, "source") ?? readString(executionDetails, "inspection_surface"),
+      executionAdmitted: readBoolean(executionDetails, "execution_admitted"),
+      placementWriteAdmitted: readBoolean(executionDetails, "placement_write_admitted"),
+      mutationOccurred: readBoolean(executionDetails, "mutation_occurred"),
+      readOnly: readBoolean(executionDetails, "read_only"),
+      failClosedReasons: readStringArray(executionDetails, "fail_closed_reasons"),
+      serverDecisionCode: decisionCode,
+      serverDecisionState: readString(serverApprovalEvaluation, "decision_state"),
+      serverStatus: readString(serverApprovalEvaluation, "status"),
+      serverReason: readString(serverApprovalEvaluation, "reason"),
+      serverRemediation: extractServerBlockerRemediation(session.final_result_summary, decisionCode),
+    };
+  }
+
+  return null;
+}
+
+function extractServerBlockerRemediation(
+  finalResultSummary: string | null | undefined,
+  decisionCode: string | undefined,
+): string | undefined {
+  if (!finalResultSummary) {
+    return undefined;
+  }
+
+  const marker = decisionCode
+    ? `Server blocker remediation (${decisionCode}): `
+    : "Server blocker remediation:";
+  const markerIndex = finalResultSummary.indexOf(marker);
+  if (markerIndex < 0) {
+    return undefined;
+  }
+
+  const startIndex = markerIndex + marker.length;
+  const tail = finalResultSummary.slice(startIndex).trim();
+  const stopMarkers = [
+    " No editor placement runtime command was admitted or executed.",
+    " Placement proof-only remains fail-closed",
+  ];
+
+  let endIndex = tail.length;
+  for (const stopMarker of stopMarkers) {
+    const markerPosition = tail.indexOf(stopMarker);
+    if (markerPosition >= 0) {
+      endIndex = Math.min(endIndex, markerPosition);
+    }
+  }
+
+  return tail.slice(0, endIndex).trim();
+}
+
 function summarizeChildResponse(
   response: Record<string, unknown>,
   index: number,
@@ -199,6 +389,26 @@ function readBoolean(record: Record<string, unknown> | null, key: string): boole
 
   const value = record[key];
   return typeof value === "boolean" ? value : undefined;
+}
+
+function readStringArray(record: Record<string, unknown> | null, key: string): string[] {
+  if (!record) {
+    return [];
+  }
+
+  const value = record[key];
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === "string");
+}
+
+function formatBooleanLabel(value: boolean | undefined, flagName: string): string {
+  if (value === undefined) {
+    return "unknown";
+  }
+  return value ? `yes (${flagName}=true)` : `no (${flagName}=false)`;
 }
 
 function TimelineGroup({ title, values }: { title: string; values: string[] }) {
