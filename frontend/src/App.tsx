@@ -7502,6 +7502,72 @@ export default function App() {
     );
   }
 
+  function getPromptHandoffSourceQuickAction(
+    draftRequest: PromptLaunchDraftRequest,
+  ): { label: string; detail: string; run: () => void } | null {
+    const sourceWorkspaceId = draftRequest.sourceWorkspaceId ?? null;
+    if (!sourceWorkspaceId) {
+      return null;
+    }
+    const draftId = draftRequest.draft.id;
+
+    if (sourceWorkspaceId === "create-game" && draftId === "create-game-safe-entity") {
+      return {
+        label: "Open Create Game cockpit (Gameplay Entities stage)",
+        detail: "Returns to Create Game so you can continue the Gameplay Entities stage context safely.",
+        run: () => setActiveWorkspaceId("create-game"),
+      };
+    }
+    if (sourceWorkspaceId === "create-game" && draftId === "add-allowlisted-mesh-component") {
+      return {
+        label: "Open Create Game cockpit (Components stage)",
+        detail: "Returns to Create Game so you can continue the allowlisted Components stage context safely.",
+        run: () => setActiveWorkspaceId("create-game"),
+      };
+    }
+    if (sourceWorkspaceId === "create-movie" && draftId === "create-cinematic-camera-placeholder") {
+      return {
+        label: "Open Create Movie cockpit (Camera stage)",
+        detail: "Returns to Create Movie so you can continue camera placeholder planning without broad scene mutation.",
+        run: () => setActiveWorkspaceId("create-movie"),
+      };
+    }
+    if (sourceWorkspaceId === "create-movie" && draftId === "cinematic-placement-proof-only-candidate") {
+      return {
+        label: "Open Create Movie cockpit (Characters / Props stage)",
+        detail: "Returns to Create Movie so you can continue proof-only cinematic prop review with blocked-placement truth.",
+        run: () => setActiveWorkspaceId("create-movie"),
+      };
+    }
+    if (sourceWorkspaceId === "load-project" && draftId === "inspect-load-project-target") {
+      return {
+        label: "Open Load Project cockpit (Target checklist stage)",
+        detail: "Returns to Load Project so you can continue read-only target verification before authoring.",
+        run: () => setActiveWorkspaceId("load-project"),
+      };
+    }
+    if (sourceWorkspaceId === "asset-forge" && draftId === "placement-proof-only-candidate") {
+      return {
+        label: "Open Asset Forge cockpit (Placement Proof stage)",
+        detail: "Returns to Asset Forge so you can continue placement proof-only review and evidence checks.",
+        run: () => setActiveWorkspaceId("asset-forge"),
+      };
+    }
+    if (sourceWorkspaceId === "home" && draftId === "inspect-project-read-only") {
+      return {
+        label: "Open Home cockpit (Inspect mission stage)",
+        detail: "Returns to Home so you can continue read-only mission orientation and choose the next safe step.",
+        run: () => setActiveWorkspaceId("home"),
+      };
+    }
+
+    return {
+      label: `Open ${workspaceMeta[sourceWorkspaceId].title} cockpit`,
+      detail: "Returns to the source cockpit context only. No prompt execution is triggered.",
+      run: () => setActiveWorkspaceId(sourceWorkspaceId),
+    };
+  }
+
   function renderPromptHandoffContextCard(
     draftRequest: PromptLaunchDraftRequest,
   ): JSX.Element {
@@ -7514,6 +7580,7 @@ export default function App() {
     const truthLabels = draftRequest.draft.truthLabels.length > 0
       ? draftRequest.draft.truthLabels.join(", ")
       : "unknown";
+    const sourceQuickAction = getPromptHandoffSourceQuickAction(draftRequest);
 
     return (
       <section
@@ -7574,6 +7641,30 @@ export default function App() {
         <p style={{ margin: 0, color: "var(--app-text-color)", fontSize: 13 }}>
           Guidance: {draftRequest.draft.guidance}
         </p>
+        {sourceQuickAction ? (
+          <div
+            style={{
+              border: "1px solid rgba(131, 197, 162, 0.45)",
+              borderRadius: 10,
+              padding: "10px 12px",
+              background: "rgba(12, 26, 34, 0.72)",
+              display: "grid",
+              gap: 6,
+            }}
+          >
+            <strong style={{ color: "var(--app-text-color)", fontSize: 13 }}>
+              Source-aware next action
+            </strong>
+            <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+              {sourceQuickAction.detail}
+            </p>
+            <div>
+              <button type="button" onClick={sourceQuickAction.run}>
+                {sourceQuickAction.label}
+              </button>
+            </div>
+          </div>
+        ) : null}
         <div
           style={{
             display: "flex",

@@ -408,6 +408,8 @@ describe("App desktop smoke", () => {
     expect(handoffCard).toHaveTextContent("Source workspace: Create Game");
     expect(handoffCard).toHaveTextContent("Source handoff: Create Game cockpit / create entity template");
     expect(handoffCard).toHaveTextContent("Safety: this handoff only prefills Prompt Studio.");
+    expect(handoffCard).toHaveTextContent("Source-aware next action");
+    expect(within(handoffCard).getByRole("button", { name: "Open Create Game cockpit (Gameplay Entities stage)" })).toBeInTheDocument();
     expect(screen.getAllByText("Loaded mission draft: Create safe game entity prompt").length).toBeGreaterThan(0);
     expect(screen.getByText("Loaded source: Create Game cockpit / create entity template")).toBeInTheDocument();
     expect(screen.getByText("Loaded source workspace: create-game")).toBeInTheDocument();
@@ -427,6 +429,30 @@ describe("App desktop smoke", () => {
     expect(screen.getAllByText("Loaded mission draft: Load project inspection prompt").length).toBeGreaterThan(0);
     expect(screen.getByText("Loaded source: Load Project cockpit / inspect target template")).toBeInTheDocument();
     expect(screen.getByText("Loaded source workspace: load-project")).toBeInTheDocument();
+  });
+
+  it("runs source-aware handoff quick actions to reopen the intended cockpit context", async () => {
+    render(<App />);
+
+    fireEvent.click(getDesktopNavButton(/Create Game/i));
+    await screen.findAllByText("Create Game Cockpit");
+    fireEvent.click(screen.getByRole("button", { name: "Load create-entity template in Prompt Studio" }));
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+    const createGameHandoffCard = screen.getByLabelText("Prompt handoff context card");
+    fireEvent.click(
+      within(createGameHandoffCard).getByRole("button", { name: "Open Create Game cockpit (Gameplay Entities stage)" }),
+    );
+    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
+
+    fireEvent.click(getDesktopNavButton(/Home/i));
+    expect(await screen.findByText("Home start here")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Load inspect template in Prompt Studio" }));
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+    const homeHandoffCard = screen.getByLabelText("Prompt handoff context card");
+    fireEvent.click(
+      within(homeHandoffCard).getByRole("button", { name: "Open Home cockpit (Inspect mission stage)" }),
+    );
+    expect(await screen.findByText("Home start here")).toBeInTheDocument();
   });
 
   it("loads Home and Asset Forge contextual templates into Prompt Studio as prefilled mission drafts", async () => {
