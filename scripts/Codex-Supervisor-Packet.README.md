@@ -477,3 +477,15 @@ Cadence custody register operator governance digest helper:
 ```powershell
 powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Invoke-Codex-Supervisor-Retention-Cadence-Custody-Register-Operator-Governance-Digest.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project" -OperatorAcknowledged
 ```
+
+Additional validation harness command:
+
+```powershell
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Operator-Governance-Digest-Continuity-Addendum.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
+```
+
+Cadence operator governance digest continuity addendum helper:
+
+```powershell
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Invoke-Codex-Supervisor-Retention-Cadence-Operator-Governance-Digest-Continuity-Addendum.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project" -OperatorAcknowledged
+```
