@@ -3,7 +3,10 @@ import { Suspense, lazy, useState, type CSSProperties, type ReactNode } from "re
 import DesktopTabStrip, { type DesktopTabStripItem } from "../DesktopTabStrip";
 import DesktopWindow from "../DesktopWindow";
 import type { HomeTaskModeId } from "../HomeTaskModePanel";
+import MissionCardDeck from "../MissionCardDeck";
+import MissionTruthRail from "../MissionTruthRail";
 import { getShellWorkspaceGuide, getShellWorkspaceWindowGuide } from "../../content/operatorGuideShell";
+import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
 
 type HomeSurfaceId = "start" | "mission-control" | "guidebook";
 
@@ -17,6 +20,17 @@ type HomeWorkspaceViewProps = {
   onOpenRuntimeOverview?: () => void;
   onOpenBuilder?: () => void;
   onOpenAssetForge?: () => void;
+  onOpenRecords?: () => void;
+  onViewLatestRun?: () => void;
+  onViewExecution?: () => void;
+  onViewArtifact?: () => void;
+  onViewEvidence?: () => void;
+  bridgeStatus?: O3DEBridgeStatus | null;
+  adapters?: AdaptersResponse | null;
+  readiness?: ReadinessStatus | null;
+  latestRunId?: string | null;
+  latestExecutionId?: string | null;
+  latestArtifactId?: string | null;
   onActiveTaskModeChange?: (modeId: HomeTaskModeId) => void;
 };
 
@@ -58,6 +72,17 @@ export default function HomeWorkspaceView({
   onOpenRuntimeOverview,
   onOpenBuilder,
   onOpenAssetForge,
+  onOpenRecords,
+  onViewLatestRun,
+  onViewExecution,
+  onViewArtifact,
+  onViewEvidence,
+  bridgeStatus,
+  adapters,
+  readiness,
+  latestRunId,
+  latestExecutionId,
+  latestArtifactId,
   onActiveTaskModeChange,
 }: HomeWorkspaceViewProps) {
   const [activeSurfaceId, setActiveSurfaceId] = useState<HomeSurfaceId>("start");
@@ -90,6 +115,42 @@ export default function HomeWorkspaceView({
     >
       {activeSurfaceId === "start" ? (
         <div style={guidedShellStyle}>
+          <MissionTruthRail
+            locationLabel="Home / Start Here"
+            projectLabel="active operator target"
+            projectPath={bridgeStatus?.project_root ?? null}
+            bridgeStatus={bridgeStatus}
+            adapters={adapters}
+            readiness={readiness}
+            currentExecutionMode={readiness?.execution_mode ?? null}
+            executionAdmitted={false}
+            placementWriteAdmitted={false}
+            mutationOccurred={false}
+            latestRunId={latestRunId ?? null}
+            latestExecutionId={latestExecutionId ?? null}
+            latestArtifactId={latestArtifactId ?? null}
+            nextSafeAction="Choose a mission card, open Prompt Studio, then run one bounded admitted/proof-only step and review evidence."
+            onViewLatestRun={onViewLatestRun}
+            onViewExecution={onViewExecution}
+            onViewArtifact={onViewArtifact}
+            onViewEvidence={onViewEvidence}
+            onOpenPromptStudio={onOpenPromptStudio}
+            onOpenRuntimeOverview={onOpenRuntimeOverview}
+            onOpenRecords={onOpenRecords}
+          />
+          <MissionCardDeck
+            latestRunId={latestRunId ?? null}
+            latestExecutionId={latestExecutionId ?? null}
+            latestArtifactId={latestArtifactId ?? null}
+            onViewLatestRun={onViewLatestRun}
+            onViewExecution={onViewExecution}
+            onViewArtifact={onViewArtifact}
+            onViewEvidence={onViewEvidence}
+            onOpenPromptStudio={onOpenPromptStudio}
+            onOpenAssetForge={onOpenAssetForge}
+            onOpenRuntimeOverview={onOpenRuntimeOverview}
+            onOpenRecords={onOpenRecords}
+          />
           <Suspense fallback={<div style={taskModeLoadingStyle}>Loading task launcher...</div>}>
             <HomeTaskModePanel
               activeModeId={activeTaskModeId}
