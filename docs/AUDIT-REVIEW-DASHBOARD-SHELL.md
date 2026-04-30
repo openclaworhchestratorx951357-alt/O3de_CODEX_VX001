@@ -1,6 +1,6 @@
 # Audit Review Dashboard Shell
 
-Status: frontend/static-fixture shell with status-taxonomy truth refresh
+Status: frontend/static-fixture shell with status-taxonomy and status-chip linkage cue truth refresh
 
 ## Purpose
 
@@ -13,6 +13,7 @@ packets.
 - frontend-only shell surface
 - static fixture rows for cross-domain audit verdicts
 - explicit maturity/status-taxonomy/risk/gate labels
+- explicit status-chip linkage cues per taxonomy row for cross-shell parity
 - explicit non-authorizing boundary labels
 - cross-shell taxonomy vocabulary linkage
 
@@ -32,5 +33,5 @@ packets.
 
 ## Recommended next packet
 
-Audit review dashboard truth refresh + status-chip linkage
-(`codex/audit-review-dashboard-truth-refresh-status-chip-linkage`).
+GUI shell taxonomy parity checkpoint + quick-reference refresh
+(`codex/gui-shell-taxonomy-parity-checkpoint-quick-reference-refresh`).

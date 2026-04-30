@@ -1,29 +1,29 @@
-# Next App-wide Unlock Packet
+﻿# Next App-wide Unlock Packet
 
 ## Recommendation
-Audit review dashboard truth refresh + status-chip linkage
-(`codex/audit-review-dashboard-truth-refresh-status-chip-linkage`).
+GUI shell taxonomy parity checkpoint + quick-reference refresh
+(`codex/gui-shell-taxonomy-parity-checkpoint-quick-reference-refresh`).
 
 ## Why this is next
-- App capability dashboard truth refresh + status-chip linkage packet is now
+- Audit review dashboard truth refresh + status-chip linkage packet is now
   complete and stable under explicit server-owned authorization truth language.
-- Capability-dashboard status-chip linkage cues are now deterministic and
-  aligned across capability, audit, workspace, timeline, and recommendation
-  surfaces.
+- Audit dashboard verdict/risk/taxonomy status-chip linkage cues are now
+  deterministic and aligned across capability, audit, workspace, timeline, and
+  recommendation surfaces.
 - Validation workflow hold/no-go posture remains explicit, fail-closed, and
   unchanged across app-wide guidance.
-- The next highest-value operator UX gap is audit-review dashboard
-  status-chip linkage checkpointing so verdict/risk/taxonomy language remains
-  deterministic across capability, audit, evidence, and workspace shells.
+- The next highest-value operator UX gap is app-wide GUI shell taxonomy parity
+  checkpointing so capability, audit, approval/session, evidence timeline, and
+  workspace shell quick-reference language stays deterministic.
 
 ## Scope
-- produce a focused audit review dashboard truth refresh + status-chip
-  linkage packet
-- audit review-dashboard verdict/risk/taxonomy wording and status-chip
-  linkage cues for deterministic held-lane and approval/session semantics
+- produce a focused GUI shell taxonomy parity checkpoint + quick-reference
+  refresh packet
+- audit cross-shell taxonomy wording and quick-reference guidance for
+  deterministic held-lane and approval/session semantics
 - preserve explicit non-authorizing client-field posture and fail-closed
-  validation semantics in audit-linked guidance
-- keep recommendation surfaces aligned to this audit-review linkage packet
+  validation semantics in shell-linked guidance
+- keep recommendation surfaces aligned to this GUI-shell taxonomy parity packet
 - preserve no-touch runtime zones and no-broadening posture
 
 ## Safety constraints
@@ -39,10 +39,10 @@ Audit review dashboard truth refresh + status-chip linkage
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- audit-review verdict/risk/taxonomy and status-chip linkage wording remain
-  deterministic and aligned across shell recommendation surfaces while
-  preserving explicit server-owned gate-state truth and non-authorizing
-  client-field semantics
+- GUI shell taxonomy parity wording remains deterministic and aligned across
+  capability, audit, approval/session, evidence timeline, and workspace shell
+  recommendation surfaces while preserving explicit server-owned gate-state
+  truth and non-authorizing client-field semantics
 - canonical validation command set, command-to-evidence ownership,
   hold-boundary consistency checkpoints, operator-safe examples, wording audit,
   review-status parity, taxonomy, chronology, and progression-integrity remain
@@ -54,9 +54,9 @@ Audit review dashboard truth refresh + status-chip linkage
 - docs remain aligned with runtime/test truth
 
 ## Alternative considered
-Direct audit-dashboard broadening without first checkpointing verdict/risk/
-status-chip linkage consistency under explicit server-owned gate-state language
-and non-authorizing client-field semantics.
+Direct GUI-shell broadening without first checkpointing taxonomy parity and
+quick-reference wording consistency under explicit server-owned gate-state
+language and non-authorizing client-field semantics.
 
 This remains deferred for safety. Keep hold posture explicit first, then
 consider any future admission revisit.

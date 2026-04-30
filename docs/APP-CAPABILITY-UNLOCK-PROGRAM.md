@@ -179,8 +179,8 @@ The following patterns are now established:
 - app-wide evidence timeline shell + approval/validation linkage audit
 - workspace status chips shell + truth taxonomy linkage (completed)
 - app capability dashboard truth refresh + status-chip linkage (completed)
-- audit review dashboard truth refresh + status-chip linkage (next)
-- GUI shell taxonomy parity checkpoint + quick-reference refresh
+- audit review dashboard truth refresh + status-chip linkage (completed)
+- GUI shell taxonomy parity checkpoint + quick-reference refresh (next)
 
 ## App-wide domains
 

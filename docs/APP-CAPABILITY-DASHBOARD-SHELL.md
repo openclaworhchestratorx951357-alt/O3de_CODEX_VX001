@@ -52,5 +52,5 @@ Status taxonomy vocabulary aligned in this shell:
 
 ## Recommended next packet
 
-Audit review dashboard truth refresh + status-chip linkage
-(`codex/audit-review-dashboard-truth-refresh-status-chip-linkage`).
+GUI shell taxonomy parity checkpoint + quick-reference refresh
+(`codex/gui-shell-taxonomy-parity-checkpoint-quick-reference-refresh`).

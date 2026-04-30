@@ -111,7 +111,7 @@ export default function AppEvidenceTimelineShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Audit review dashboard truth refresh + status-chip linkage</strong>.
+        Recommended next packet: <strong>GUI shell taxonomy parity checkpoint + quick-reference refresh</strong>.
       </p>
     </section>
   );

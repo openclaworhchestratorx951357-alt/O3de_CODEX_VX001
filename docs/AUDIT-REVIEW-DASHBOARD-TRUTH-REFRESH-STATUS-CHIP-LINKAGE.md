@@ -1,6 +1,6 @@
 ﻿# Audit Review Dashboard Truth Refresh + Status-Chip Linkage
 
-Status: implemented (frontend fixture + shell truth linkage only)
+Status: implemented (frontend fixture + shell truth linkage only; non-admitting)
 
 ## Purpose
 
@@ -13,6 +13,7 @@ matches the shared status-chip taxonomy vocabulary.
 - update shell boundary labels to match non-authorizing operator truth
 - add status-taxonomy mix card
 - surface taxonomy chips on each audit row
+- add explicit per-taxonomy status-chip linkage cues for cross-shell parity
 - update targeted component tests for taxonomy-aligned wording
 - keep shell display-only and non-executing
 
@@ -26,16 +27,14 @@ matches the shared status-chip taxonomy vocabulary.
 
 ## Validation
 
-- `npm --prefix frontend test`
-- `npm --prefix frontend run build`
-- `npm --prefix frontend run lint`
+- `npm --prefix frontend test -- src/components/AppCapabilityDashboardShell.test.tsx src/components/AppAuditReviewDashboardShell.test.tsx src/components/AppApprovalSessionDashboardShell.test.tsx src/components/AppEvidenceTimelineShell.test.tsx src/components/AppWorkspaceStatusChipsShell.test.tsx src/fixtures/settingsRollbackReleaseReadinessDecision.test.ts`
 - `git diff --check`
 - `git diff --cached --check`
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission release-readiness decision
-(`codex/ai-asset-forge-placement-runtime-admission-release-readiness-decision`).
+GUI shell taxonomy parity checkpoint + quick-reference refresh
+(`codex/gui-shell-taxonomy-parity-checkpoint-quick-reference-refresh`).
 
 
 

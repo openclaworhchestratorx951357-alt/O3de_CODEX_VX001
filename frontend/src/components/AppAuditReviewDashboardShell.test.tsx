@@ -14,6 +14,7 @@ describe("AppAuditReviewDashboardShell", () => {
     expect(screen.getByText("Client fields are intent-only")).toBeInTheDocument();
     expect(screen.getByText("No backend execution admission changes")).toBeInTheDocument();
     expect(screen.getByText("No mutation corridor broadening")).toBeInTheDocument();
+    expect(screen.getByText("Status chips must preserve shared taxonomy cues")).toBeInTheDocument();
 
     expect(screen.getAllByText("Editor").length).toBeGreaterThan(0);
     expect(screen.getByText("Asset Forge")).toBeInTheDocument();
@@ -23,9 +24,13 @@ describe("AppAuditReviewDashboardShell", () => {
     expect(screen.getByText("GUI")).toBeInTheDocument();
     expect(screen.getByText("Automation")).toBeInTheDocument();
     expect(screen.getByText("Status taxonomy mix")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Admitted-real chips stay green across capability, audit, workspace, and timeline shells.")
+        .length,
+    ).toBeGreaterThan(0);
     expect(screen.getAllByText("hold-default-off").length).toBeGreaterThan(0);
     expect(screen.getAllByText("blocked").length).toBeGreaterThan(0);
 
-    expect(screen.getByText("Audit review dashboard truth refresh + status-chip linkage", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("GUI shell taxonomy parity checkpoint + quick-reference refresh", { selector: "strong" })).toBeInTheDocument();
   });
 });

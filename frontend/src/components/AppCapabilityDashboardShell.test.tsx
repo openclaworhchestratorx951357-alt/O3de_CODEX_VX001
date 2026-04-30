@@ -37,6 +37,6 @@ describe("AppCapabilityDashboardShell", () => {
     expect(screen.getAllByText("hold-default-off").length).toBeGreaterThan(0);
     expect(screen.getAllByText("blocked").length).toBeGreaterThan(0);
 
-    expect(screen.getByText("Audit review dashboard truth refresh + status-chip linkage", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("GUI shell taxonomy parity checkpoint + quick-reference refresh", { selector: "strong" })).toBeInTheDocument();
   });
 });

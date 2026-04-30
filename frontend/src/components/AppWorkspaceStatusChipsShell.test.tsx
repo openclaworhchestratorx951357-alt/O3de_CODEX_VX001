@@ -34,6 +34,6 @@ describe("AppWorkspaceStatusChipsShell", () => {
     expect(screen.getByText("Project config patch corridor")).toBeInTheDocument();
     expect(screen.getByText("Placement execution")).toBeInTheDocument();
 
-    expect(screen.getByText("Audit review dashboard truth refresh + status-chip linkage", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("GUI shell taxonomy parity checkpoint + quick-reference refresh", { selector: "strong" })).toBeInTheDocument();
   });
 });
