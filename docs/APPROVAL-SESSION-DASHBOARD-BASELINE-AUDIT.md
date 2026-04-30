@@ -103,8 +103,8 @@ superseded for current dashboard behavior by:
 
 ## Recommended next packet
 
-AI Asset Forge operator review packet implementation
-(`codex/ai-asset-forge-operator-review-packet-implementation`):
+Asset Forge placement runtime-admission release-readiness decision
+(`codex/ai-asset-forge-placement-runtime-admission-release-readiness-decision`):
 
 - keep baseline, shell, and timeline wording aligned for server-owned
   authorization truth

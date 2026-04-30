@@ -42,6 +42,6 @@ describe("AppApprovalSessionDashboardShell", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("client fields remain intent-only and non-authorizing", { exact: false })).toBeInTheDocument();
 
-    expect(screen.getByText("AI Asset Forge operator review packet implementation", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Asset Forge placement runtime-admission release-readiness decision", { selector: "strong" })).toBeInTheDocument();
   });
 });

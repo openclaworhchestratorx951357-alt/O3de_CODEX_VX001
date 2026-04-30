@@ -663,6 +663,6 @@ describe("AppEvidenceTimelineShell", () => {
     expect(screen.getByText("codex.flow.trigger.audit_gate checklist stop-point contract")).toBeInTheDocument();
     expect(screen.getByText("pass-flow-trigger-audit-gate-checklist")).toBeInTheDocument();
 
-    expect(screen.getByText("AI Asset Forge operator review packet implementation", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Asset Forge placement runtime-admission release-readiness decision", { selector: "strong" })).toBeInTheDocument();
   });
 });

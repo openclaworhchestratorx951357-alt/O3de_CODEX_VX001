@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-AI Asset Forge operator review packet implementation
-(`codex/ai-asset-forge-operator-review-packet-implementation`):
+Asset Forge placement runtime-admission release-readiness decision
+(`codex/ai-asset-forge-placement-runtime-admission-release-readiness-decision`):
 
 - keep approval/session baseline + shell + timeline wording aligned under
   server-owned authorization truth and fail-closed gate-state semantics

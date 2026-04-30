@@ -48,7 +48,7 @@ project mutation. The corridor remains proof-only and exactly gated.
 
 ## Recommended next packet
 
-`codex/ai-asset-forge-operator-review-packet-implementation`
+`codex/ai-asset-forge-placement-runtime-admission-release-readiness-decision`
 
 - keep admission-flag gate-state evidence and recommendation surfaces aligned
   while preserving explicit non-admitting hold boundaries

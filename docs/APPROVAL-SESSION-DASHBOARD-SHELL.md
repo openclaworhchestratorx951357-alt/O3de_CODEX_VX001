@@ -71,8 +71,8 @@ broadened.
 
 ## Recommended next packet
 
-AI Asset Forge operator review packet implementation
-(`codex/ai-asset-forge-operator-review-packet-implementation`):
+Asset Forge placement runtime-admission release-readiness decision
+(`codex/ai-asset-forge-placement-runtime-admission-release-readiness-decision`):
 
 - keep server-owned authorization and fail-closed gate-state wording aligned
   with the existing approval/session boundary model across baseline/shell

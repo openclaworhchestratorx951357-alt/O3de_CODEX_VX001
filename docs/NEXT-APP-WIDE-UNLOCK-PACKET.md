@@ -1,8 +1,8 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-AI Asset Forge operator review packet implementation
-(`codex/ai-asset-forge-operator-review-packet-implementation`).
+Asset Forge placement runtime-admission release-readiness decision
+(`codex/ai-asset-forge-placement-runtime-admission-release-readiness-decision`).
 
 ## Why this is next
 - GUI shell taxonomy parity checkpoint + quick-reference refresh packet is now
@@ -14,18 +14,25 @@ AI Asset Forge operator review packet implementation
   unchanged across app-wide guidance.
 - Asset Forge stage-write admission-flag verification refresh is now
   checkpointed with passing targeted backend and frontend evidence.
-- The next highest-value gate is implementing the structured AI Asset Forge
-  operator review packet output for bounded generated-asset candidates while
-  keeping assignment, placement, and production admission blocked.
+- AI Asset Forge operator review packet implementation plus boundary regression
+  refresh is now checkpointed under explicit proof-only/non-admitting
+  constraints.
+- The next highest-value gate is recording a focused placement runtime-admission
+  release-readiness decision that keeps assignment/placement execution
+  unadmitted while formalizing future go/no-go boundaries.
 
 ## Scope
-- produce a focused AI Asset Forge operator review packet implementation
+- produce a focused Asset Forge placement runtime-admission release-readiness decision
   packet
+- record explicit go/no-go decision criteria for any future placement
+  runtime-admission revisit
+- preserve explicit blocked-status language for assignment/placement execution
+  in this packet
 - keep recommendation surfaces aligned to this next packet across capability,
   audit, workspace, timeline, and shell guidance
 - preserve explicit non-authorizing client-field posture and fail-closed
-  validation semantics in review/status-linked guidance
-- keep stage-write and placement corridors explicitly non-broadened and
+  validation semantics in placement decision-linked guidance
+- keep stage-write, review-packet, and placement corridors explicitly non-broadened and
   fail-closed in this packet
 - preserve no-touch runtime zones and no-broadening posture
 
@@ -42,8 +49,11 @@ AI Asset Forge operator review packet implementation
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- AI Asset Forge operator review packet implementation recommendation wording is
+- Asset Forge placement runtime-admission release-readiness decision recommendation wording is
   deterministic and aligned across shell recommendation surfaces
+- explicit decision gates remain reviewable and non-admitting:
+  assignment/placement execution stays blocked without a separate future
+  admission packet
 - structured review-packet boundaries remain explicit: bounded candidate review
   emphasis, non-authorizing client fields, and no assignment/placement/production
   admission broadening
@@ -58,9 +68,8 @@ AI Asset Forge operator review packet implementation
 - docs remain aligned with runtime/test truth
 
 ## Alternative considered
-Direct assignment/placement or production-admission broadening without first
-keeping recommendation surfaces and review-packet hold boundaries explicitly
-aligned.
+Direct placement runtime-admission broadening without first recording explicit
+release-readiness decision gates and preserving non-admitting hold boundaries.
 
 This remains deferred for safety. Keep hold posture explicit first, then
 consider any future admission revisit.

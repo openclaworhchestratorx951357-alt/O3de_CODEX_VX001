@@ -33,5 +33,5 @@ packets.
 
 ## Recommended next packet
 
-AI Asset Forge operator review packet implementation
-(`codex/ai-asset-forge-operator-review-packet-implementation`).
+Asset Forge placement runtime-admission release-readiness decision
+(`codex/ai-asset-forge-placement-runtime-admission-release-readiness-decision`).

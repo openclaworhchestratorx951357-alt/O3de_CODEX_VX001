@@ -105,7 +105,7 @@ export default function AppEvidenceTimelineShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>AI Asset Forge operator review packet implementation</strong>.
+        Recommended next packet: <strong>Asset Forge placement runtime-admission release-readiness decision</strong>.
       </p>
     </section>
   );

@@ -182,7 +182,8 @@ The following patterns are now established:
 - audit review dashboard truth refresh + status-chip linkage (completed)
 - GUI shell taxonomy parity checkpoint + quick-reference refresh (completed)
 - Asset Forge stage-write admission-flag verification refresh (completed)
-- AI Asset Forge operator review packet implementation (next)
+- AI Asset Forge operator review packet implementation + boundary regression refresh (completed)
+- Asset Forge placement runtime-admission release-readiness decision (next)
 
 ## App-wide domains
 
