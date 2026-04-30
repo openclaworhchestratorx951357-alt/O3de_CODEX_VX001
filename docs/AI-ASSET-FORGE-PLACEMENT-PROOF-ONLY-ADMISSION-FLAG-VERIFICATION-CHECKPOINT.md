@@ -5,13 +5,14 @@ non-authorizing)
 
 ## Purpose
 
-Checkpoint verified placement proof-only admission-flag behavior so fail-closed
-state and evidence permutations remain explicit before any broader admission
-discussion.
+Checkpoint verified placement and editor placement proof-only admission-flag
+behavior so fail-closed state and evidence permutations remain explicit before
+any broader admission discussion.
 
 ## Scope
 
-- verify admission-flag state permutations against runtime and tests
+- verify placement and editor admission-flag state permutations against runtime
+  and tests
 - verify fail-closed reasons for missing, invalid, and incomplete evidence
 - verify explicit-on still remains non-authorizing for placement execution
 - preserve provider/Blender/stage-plan/stage-write/readback non-authorizing
@@ -39,6 +40,8 @@ Flag identity remains explicit and unchanged:
 
 - `admission_flag_name=asset_forge.o3de.placement.proof.v1.admission_enabled`
 - `ASSET_FORGE_PLACEMENT_PROOF_V1_ADMISSION_ENABLED`
+- `admission_flag_name=editor.placement.proof_only.v1.runtime_admission_enabled`
+- `ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_RUNTIME_ADMISSION_ENABLED`
 
 State/evidence permutations verified:
 
@@ -69,6 +72,13 @@ State/evidence permutations verified:
   - `revert_statement_contract_match=false`
   - fail-closed includes `revert_statement_contract_key_mismatch` and
     `contract_evidence_incomplete`
+- editor proof-only default-missing/off/malformed paths:
+  - `missing_default_off` and `explicit_off` stay fail-closed with
+    `admission_flag_disabled_or_missing`
+  - `invalid_default_off` stays fail-closed with
+    `admission_flag_invalid_state`
+  - runtime remains blocked and non-admitting with
+    `editor_placement_proof_only_execution_not_admitted`
 
 Checkpoint conclusion:
 
@@ -96,7 +106,7 @@ Commands run:
 
 Result summary:
 
-- targeted placement proof admission-flag tests passed
+- targeted placement and editor placement proof admission-flag tests passed
 - diff checks passed (CRLF warnings only)
 
 ## Recommended next packet

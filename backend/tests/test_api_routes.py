@@ -3476,6 +3476,38 @@ def test_asset_forge_o3de_placement_proof_blocked_when_runtime_gate_disabled() -
             assert "stage_write_readback_not_succeeded" in payload["fail_closed_reasons"]
 
 
+def test_asset_forge_o3de_placement_proof_explicit_off_admission_flag_fails_closed() -> None:
+    with patch.dict(
+        "os.environ",
+        {"ASSET_FORGE_PLACEMENT_PROOF_V1_ADMISSION_ENABLED": "off"},
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post(
+                "/asset-forge/o3de/placement-proof",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "target_component": "Mesh",
+                    "approval_state": "approved",
+                    "approval_note": "explicit-off gate semantics check",
+                    "stage_write_corridor_name": "asset_forge.o3de.stage_write.v1",
+                    "stage_write_evidence_reference": "packet-10/stage-write-evidence.json",
+                    "stage_write_readback_reference": "packet-10/readback-evidence.json",
+                    "stage_write_readback_status": "succeeded",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            _assert_placement_proof_fail_closed_fields(payload)
+            assert payload["admission_flag_state"] == "explicit_off"
+            assert payload["admission_flag_enabled"] is False
+            assert "admission_flag_disabled_or_missing" in payload["fail_closed_reasons"]
+
+
 def test_asset_forge_o3de_placement_proof_ready_looking_evidence_stays_blocked() -> None:
     with patch.dict(
         "os.environ",
@@ -3671,11 +3703,49 @@ def test_asset_forge_o3de_editor_placement_proof_only_requires_approval() -> Non
         payload = response.json()
         _assert_editor_placement_proof_only_fail_closed_fields(payload)
         assert payload["proof_status"] == "approval-required"
+        assert payload["admission_flag_state"] == "missing_default_off"
+        assert payload["admission_flag_enabled"] is False
         assert "approval_state_not_approved" in payload["fail_closed_reasons"]
         assert (
             "editor_placement_proof_only_execution_not_admitted"
             in payload["fail_closed_reasons"]
         )
+
+
+def test_asset_forge_o3de_editor_placement_proof_only_explicit_off_flag_fails_closed() -> None:
+    with patch.dict(
+        "os.environ",
+        {"ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_RUNTIME_ADMISSION_ENABLED": "off"},
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post(
+                "/asset-forge/o3de/editor-placement-proof-only",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "target_component": "Mesh",
+                    "approval_state": "approved",
+                    "approval_note": "explicit-off editor placement gate check",
+                    "stage_write_corridor_name": "asset_forge.o3de.stage_write.v1",
+                    "stage_write_evidence_reference": "packet-10/stage-write-evidence.json",
+                    "stage_write_readback_reference": "packet-10/readback-evidence.json",
+                    "stage_write_readback_status": "succeeded",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            _assert_editor_placement_proof_only_fail_closed_fields(payload)
+            assert payload["admission_flag_state"] == "explicit_off"
+            assert payload["admission_flag_enabled"] is False
+            assert "admission_flag_disabled_or_missing" in payload["fail_closed_reasons"]
+            assert (
+                "editor_placement_proof_only_execution_not_admitted"
+                in payload["fail_closed_reasons"]
+            )
 
 
 def test_asset_forge_o3de_editor_placement_proof_only_ready_looking_stays_blocked() -> None:
@@ -3826,6 +3896,42 @@ def test_asset_forge_o3de_editor_placement_proof_only_contract_mismatch_fails_cl
                 in payload["fail_closed_reasons"]
             )
             assert "contract_evidence_incomplete" in payload["fail_closed_reasons"]
+
+
+def test_asset_forge_o3de_editor_placement_proof_only_malformed_admission_flag_fails_closed() -> None:
+    with patch.dict(
+        "os.environ",
+        {"ASSET_FORGE_EDITOR_PLACEMENT_PROOF_ONLY_V1_RUNTIME_ADMISSION_ENABLED": "banana"},
+        clear=False,
+    ):
+        with isolated_client() as client:
+            response = client.post(
+                "/asset-forge/o3de/editor-placement-proof-only",
+                json={
+                    "candidate_id": "candidate-a",
+                    "candidate_label": "Weathered Ivy Arch",
+                    "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+                    "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+                    "target_entity_name": "AssetForgeCandidateA",
+                    "target_component": "Mesh",
+                    "approval_state": "approved",
+                    "approval_note": "malformed editor placement admission flag",
+                    "stage_write_corridor_name": "asset_forge.o3de.stage_write.v1",
+                    "stage_write_evidence_reference": "packet-10/stage-write-evidence.json",
+                    "stage_write_readback_reference": "packet-10/readback-evidence.json",
+                    "stage_write_readback_status": "succeeded",
+                },
+            )
+            assert response.status_code == 200
+            payload = response.json()
+            _assert_editor_placement_proof_only_fail_closed_fields(payload)
+            assert payload["admission_flag_state"] == "invalid_default_off"
+            assert payload["admission_flag_enabled"] is False
+            assert "admission_flag_invalid_state" in payload["fail_closed_reasons"]
+            assert (
+                "editor_placement_proof_only_execution_not_admitted"
+                in payload["fail_closed_reasons"]
+            )
 
 
 def test_asset_forge_o3de_placement_evidence_blocks_without_project_root() -> None:
