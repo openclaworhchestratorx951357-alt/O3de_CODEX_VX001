@@ -75,7 +75,7 @@ re-verified:
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission long-hold checkpoint:
+Asset Forge provider preflight hardening:
 
 - define exact assignment-design candidate boundaries before proof/admission
 - preserve review-packet hold-state and non-admission constraints

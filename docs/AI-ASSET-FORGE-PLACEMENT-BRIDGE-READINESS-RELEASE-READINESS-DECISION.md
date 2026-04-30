@@ -85,7 +85,7 @@ re-verified:
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission long-hold checkpoint:
+Asset Forge provider preflight hardening:
 
 - checkpoint held release posture and stream handoff boundaries
 - preserve non-authorizing placement execution boundaries

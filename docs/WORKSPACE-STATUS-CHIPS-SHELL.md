@@ -47,5 +47,5 @@ mutation admission.
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission long-hold checkpoint
-(`codex/ai-asset-forge-placement-runtime-admission-long-hold-checkpoint`).
+Asset Forge provider preflight hardening
+(`codex/ai-asset-forge-provider-preflight-hardening`).

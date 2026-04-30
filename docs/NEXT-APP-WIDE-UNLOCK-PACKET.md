@@ -1,8 +1,8 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Asset Forge placement runtime-admission long-hold checkpoint
-(`codex/ai-asset-forge-placement-runtime-admission-long-hold-checkpoint`).
+Asset Forge provider preflight hardening
+(`codex/ai-asset-forge-provider-preflight-hardening`).
 
 ## Why this is next
 - GUI shell taxonomy parity checkpoint + quick-reference refresh packet is now
@@ -22,7 +22,7 @@ Asset Forge placement runtime-admission long-hold checkpoint
   held go/no-go boundaries remain explicit.
 
 ## Scope
-- produce a focused Asset Forge placement runtime-admission long-hold checkpoint
+- produce a focused Asset Forge provider preflight hardening
   packet
 - record explicit hold-state and handoff boundaries for any future placement
   runtime-admission revisit
@@ -49,7 +49,7 @@ Asset Forge placement runtime-admission long-hold checkpoint
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- Asset Forge placement runtime-admission long-hold checkpoint recommendation wording is
+- Asset Forge provider preflight hardening recommendation wording is
   deterministic and aligned across shell recommendation surfaces
 - explicit hold gates remain reviewable and non-admitting:
   assignment/placement execution stays blocked without a separate future

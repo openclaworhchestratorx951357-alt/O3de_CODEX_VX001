@@ -71,7 +71,7 @@ the next packet selection while this hold checkpoint remains stable.
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission long-hold checkpoint:
+Asset Forge provider preflight hardening:
 
 - establish current truth for placement proof/runtime-harness fail-closed
   surfaces
