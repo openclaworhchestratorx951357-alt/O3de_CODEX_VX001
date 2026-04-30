@@ -71,14 +71,16 @@ broadened.
 
 ## Recommended next packet
 
-Approval/session dashboard baseline audit
-(`codex/approval-session-dashboard-baseline-audit`):
+Approval/session dashboard parity checkpoint packet
+(`codex/approval-session-dashboard-parity-checkpoint-packet`):
 
-- keep CI/test long-hold checkpoint wording aligned with the existing
-  fail-closed approval/session boundary model
-- keep approval/session + validation hold semantics explicit across handoff
-  wording
-- preserve non-authorizing client-field boundary wording
+- keep server-owned authorization and fail-closed gate-state wording aligned
+  with the existing approval/session boundary model across baseline/shell
+  surfaces
+- keep approval/session + validation-hold gate-state semantics explicit across
+  baseline, shell, timeline, and recommendation wording
+- preserve non-authorizing client-field boundary wording without runtime
+  admission broadening
 
 
 

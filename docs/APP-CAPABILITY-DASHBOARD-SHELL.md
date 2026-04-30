@@ -51,5 +51,5 @@ Status taxonomy vocabulary aligned in this shell:
 
 ## Recommended next packet
 
-Approval/session dashboard baseline audit
-(`codex/approval-session-dashboard-baseline-audit`).
+Approval/session dashboard parity checkpoint packet
+(`codex/approval-session-dashboard-parity-checkpoint-packet`).

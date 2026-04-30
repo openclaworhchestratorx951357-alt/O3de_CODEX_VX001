@@ -61,14 +61,15 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Approval/session dashboard baseline audit
-(`codex/approval-session-dashboard-baseline-audit`):
+Approval/session dashboard parity checkpoint packet
+(`codex/approval-session-dashboard-parity-checkpoint-packet`):
 
-- keep CI/test execution long-hold checkpoint posture explicit while preserving
-  no-admission timeline truth
-- keep Flow Trigger runtime-admission hold checkpoints and fail-closed taxonomy
-  visible for handoff truth
-- preserve restore-boundary and non-admitting runtime posture for held lanes
+- keep approval/session baseline + shell + timeline wording aligned under
+  server-owned authorization truth and fail-closed gate-state semantics
+- keep client authorization fields explicitly non-authorizing across timeline
+  summaries and recommendation surfaces
+- preserve non-admitting runtime posture and no-admission timeline truth for
+  held validation lanes
 
 
 

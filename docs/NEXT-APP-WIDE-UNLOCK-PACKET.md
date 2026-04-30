@@ -1,8 +1,8 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Approval/session dashboard baseline audit
-(`codex/approval-session-dashboard-baseline-audit`).
+Approval/session dashboard parity checkpoint packet
+(`codex/approval-session-dashboard-parity-checkpoint-packet`).
 
 ## Why this is next
 - Validation workflow hold-boundary long-hold checkpoint packet is now complete
@@ -33,18 +33,19 @@ Approval/session dashboard baseline audit
   unchanged.
 - Build execution and rollback hold/no-go posture remain explicit.
 - Placement/provider/Blender/Asset Processor broadening remains held.
-- The next highest-value app-wide gap is approval/session dashboard baseline
-  parity so operator-visible authorization and validation-hold wording remain
-  deterministic under explicit server-owned gate-state truth language.
+- The next highest-value app-wide gap is approval/session dashboard parity
+  checkpointing so operator-visible authorization and validation-hold wording
+  remain deterministic under explicit server-owned gate-state truth language
+  across baseline, shell, timeline, and recommendation surfaces.
 
 ## Scope
-- produce a focused approval/session dashboard baseline audit packet
-- audit approval/session dashboard fixture truth for server-owned authorization,
-  fail-closed gate-state semantics, and validation-hold linkage wording
+- produce a focused approval/session dashboard parity checkpoint packet
+- audit cross-surface parity for approval/session baseline, shell fixture,
+  timeline rows, and recommendation wording
 - preserve explicit non-authorizing client-field posture across dashboard
   surfaces
-- keep recommendation surfaces aligned to the approval/session baseline audit
-  packet
+- keep recommendation surfaces aligned to the approval/session parity
+  checkpoint packet
 - preserve no-touch runtime zones and no-broadening posture
 
 ## Safety constraints
@@ -60,10 +61,10 @@ Approval/session dashboard baseline audit
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- approval/session dashboard baseline wording parity remains deterministic and
-  aligned across app-wide shell recommendation surfaces and timeline summaries
-  while preserving explicit server-owned gate-state truth and non-authorizing
-  client-field semantics
+- approval/session baseline/shell/timeline wording parity remains deterministic
+  and aligned across app-wide shell recommendation surfaces and timeline
+  summaries while preserving explicit server-owned gate-state truth and
+  non-authorizing client-field semantics
 - canonical validation command set, command-to-evidence ownership,
   hold-boundary consistency checkpoints, operator-safe examples, wording
   audit, review-status parity, taxonomy, chronology, progression-integrity,
@@ -76,8 +77,8 @@ Approval/session dashboard baseline audit
   nonpartisanship, independence, autonomy, self-governance,
   self-determination, agency, self-authorship, self-direction, self-command,
   self-management, release-readiness decision, and long-hold stream handoff
-  checkpoints remain explicit and unchanged while approval/session baseline
-  wording remains aligned
+  checkpoints remain explicit and unchanged while approval/session
+  baseline/shell/timeline wording remains aligned
 - editor restore/readback hold boundaries remain explicit
 - Flow Trigger runtime-admission hold posture remains explicit and unchanged
 - blocked and hold/no-go boundaries remain explicit in app-wide recommendation
@@ -87,8 +88,8 @@ Approval/session dashboard baseline audit
 
 ## Alternative considered
 Direct approval/session dashboard broadening without first checkpointing
-deterministic baseline parity under explicit server-owned gate-state truth and
-non-authorizing client-field wording consistency checks.
+deterministic cross-surface parity under explicit server-owned gate-state truth
+and non-authorizing client-field wording consistency checks.
 
 This remains deferred for safety. Keep hold posture explicit first, then
 consider any future admission revisit.

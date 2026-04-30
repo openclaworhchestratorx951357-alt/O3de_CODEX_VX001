@@ -1,11 +1,12 @@
 # Approval Session Dashboard Baseline Audit
 
-Status: baseline audited (no runtime admission change)
+Status: completed (baseline audited and reconciled; no runtime admission change)
 
 ## Purpose
 
-Establish the current truthful baseline for approval and session visibility
-before any dedicated approval/session dashboard shell packet.
+Establish and preserve the truthful approval/session baseline so later shell and
+timeline packets can stay anchored to explicit server-owned authorization and
+fail-closed validation-hold semantics.
 
 ## Current backend surfaces
 
@@ -39,15 +40,21 @@ Current behavior:
 
 ## Current frontend surfaces
 
-Approval visibility currently exists through existing operations workspace
-surfaces, not a dedicated approval/session dashboard shell.
+Baseline observation captured in this packet:
 
-Observed UI truth:
+- `ApprovalQueue` rendered approval list/cards, decision actions, and status
+  chips in existing operations workspace surfaces
+- operations workspace routed approval interactions through that queue
+- no dedicated `approval.session.dashboard` component/shell was present at
+  baseline capture time
 
-- `ApprovalQueue` renders approval list/cards, decision actions, and status
-  chips
-- operations workspace routes approval interactions through that queue
-- no dedicated `approval.session.dashboard` component/shell is present yet
+Current state after downstream packets:
+
+- dedicated `approval.session.dashboard` fixture shell is now implemented
+- dashboard truth linkage for validation-hold gate-state semantics is now
+  explicit
+- these downstream surfaces do not broaden runtime admission and remain
+  non-authorizing for client approval fields
 
 ## Authorization boundary truth
 
@@ -69,6 +76,15 @@ For `approval.session.dashboard` in app unlock tracking:
 This packet does not add a new runtime endpoint, mutation path, or public
 admission.
 
+## Historical baseline and superseding packets
+
+This baseline audit remains the canonical pre-shell reference and is now
+superseded for current dashboard behavior by:
+
+- `docs/APPROVAL-SESSION-DASHBOARD-SHELL.md`
+- `docs/APPROVAL-SESSION-DASHBOARD-TRUTH-REFRESH-VALIDATION-LINKAGE.md`
+- `docs/APP-WIDE-EVIDENCE-TIMELINE-SHELL.md`
+
 ## Evidence
 
 - `backend/app/api/routes/approvals.py`
@@ -81,13 +97,19 @@ admission.
 - `frontend/src/App.tsx`
 - `frontend/src/lib/api.ts`
 - `frontend/src/types/contracts.ts`
+- `frontend/src/components/AppApprovalSessionDashboardShell.tsx`
+- `frontend/src/fixtures/appApprovalSessionDashboardFixture.ts`
+- `frontend/src/components/AppApprovalSessionDashboardShell.test.tsx`
 
 ## Recommended next packet
 
-Approval/session dashboard shell (frontend/static-fixture first):
+Approval/session dashboard parity checkpoint packet
+(`codex/approval-session-dashboard-parity-checkpoint-packet`):
 
-- add a dedicated approval/session dashboard shell
-- keep all approval/session labels truthful and explicit
-- preserve `client fields are intent-only` boundary text
-- no runtime admission broadening
+- keep baseline, shell, and timeline wording aligned for server-owned
+  authorization truth
+- keep validation-hold gate-state matrix language deterministic across app-wide
+  recommendation surfaces
+- preserve explicit non-authorizing client-field boundary wording with no
+  runtime admission broadening
 

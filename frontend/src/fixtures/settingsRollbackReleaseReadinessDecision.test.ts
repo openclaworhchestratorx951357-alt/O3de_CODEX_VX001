@@ -11,18 +11,18 @@ describe("build execution long-hold fixture guardrails", () => {
     expect(buildExecutionCapability).toBeDefined();
     expect(buildExecutionCapability?.requiredGate).toContain("explicit named target");
     expect(buildExecutionCapability?.requiredGate).toContain("timeout/log/result evidence");
-    expect(buildExecutionCapability?.recommendedNextPacket).toBe("Approval/session dashboard baseline audit");
+    expect(buildExecutionCapability?.recommendedNextPacket).toBe("Approval/session dashboard parity checkpoint packet");
 
     const buildExecutionAudit = appAuditReviewDashboardRows.find((row) => row.domain === "Project/Config");
     expect(buildExecutionAudit).toBeDefined();
     expect(buildExecutionAudit?.capabilityWindow).toBe("build.execute.real long-hold checkpoint");
-    expect(buildExecutionAudit?.nextGate).toBe("Approval/session dashboard baseline audit");
+    expect(buildExecutionAudit?.nextGate).toBe("Approval/session dashboard parity checkpoint packet");
     expect(buildExecutionAudit?.findings).toContain("Long-hold checkpoint");
 
     const buildExecutionStatus = appWorkspaceStatusChipRows.find((row) => row.capabilityWindow === "build.execute.real");
     expect(buildExecutionStatus).toBeDefined();
     expect(buildExecutionStatus?.summary).toContain("hold/no-go posture explicit");
-    expect(buildExecutionStatus?.nextGate).toBe("Approval/session dashboard baseline audit");
+    expect(buildExecutionStatus?.nextGate).toBe("Approval/session dashboard parity checkpoint packet");
   });
 
   it("records build execution long-hold checkpoint evidence while preserving prior checkpoints", () => {

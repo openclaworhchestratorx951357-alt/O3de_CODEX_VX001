@@ -609,7 +609,7 @@ describe("AppEvidenceTimelineShell", () => {
     expect(screen.getByText("codex.flow.trigger.audit_gate checklist stop-point contract")).toBeInTheDocument();
     expect(screen.getByText("pass-flow-trigger-audit-gate-checklist")).toBeInTheDocument();
 
-    expect(screen.getByText("Approval/session dashboard baseline audit", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Approval/session dashboard parity checkpoint packet", { selector: "strong" })).toBeInTheDocument();
   });
 });
 
