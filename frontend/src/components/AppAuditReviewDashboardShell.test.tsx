@@ -31,6 +31,6 @@ describe("AppAuditReviewDashboardShell", () => {
     expect(screen.getAllByText("hold-default-off").length).toBeGreaterThan(0);
     expect(screen.getAllByText("blocked").length).toBeGreaterThan(0);
 
-    expect(screen.getByText("Asset Forge stage-write admission-flag verification refresh", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("AI Asset Forge operator review packet implementation", { selector: "strong" })).toBeInTheDocument();
   });
 });

@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Asset Forge stage-write admission-flag verification refresh
-(`codex/asset-forge-stage-write-admission-flag-verification-refresh`):
+AI Asset Forge operator review packet implementation
+(`codex/ai-asset-forge-operator-review-packet-implementation`):
 
 - keep approval/session baseline + shell + timeline wording aligned under
   server-owned authorization truth and fail-closed gate-state semantics

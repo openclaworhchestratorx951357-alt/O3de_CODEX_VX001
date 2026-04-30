@@ -39,5 +39,5 @@ shells.
 
 ## Recommended next packet
 
-Asset Forge stage-write admission-flag verification refresh
-(`codex/asset-forge-stage-write-admission-flag-verification-refresh`).
+AI Asset Forge operator review packet implementation
+(`codex/ai-asset-forge-operator-review-packet-implementation`).

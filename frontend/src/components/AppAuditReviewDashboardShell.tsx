@@ -114,7 +114,7 @@ export default function AppAuditReviewDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Asset Forge stage-write admission-flag verification refresh</strong>.
+        Recommended next packet: <strong>AI Asset Forge operator review packet implementation</strong>.
       </p>
     </section>
   );
