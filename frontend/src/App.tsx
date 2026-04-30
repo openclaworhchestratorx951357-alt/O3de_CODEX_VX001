@@ -262,6 +262,16 @@ type PromptLaunchDraftRequest = {
   sourceWorkspaceId?: DesktopWorkspaceId | null;
 };
 
+type PromptReturnResumeChecklist = {
+  id: string;
+  sourceWorkspaceId: DesktopWorkspaceId;
+  sourceSurfaceLabel: string;
+  draftLabel: string;
+  launchedAtIso: string | null;
+  returnedAtIso: string;
+  nextSafeAction: string;
+};
+
 type OperationsSurfaceId =
   | "dispatch"
   | "agents"
@@ -631,6 +641,8 @@ export default function App() {
   ]);
   const [promptLaunchDraftRequest, setPromptLaunchDraftRequest] =
     useState<PromptLaunchDraftRequest | null>(null);
+  const [promptReturnResumeChecklist, setPromptReturnResumeChecklist] =
+    useState<PromptReturnResumeChecklist | null>(null);
   const [activeOperationsSurface, setActiveOperationsSurface] =
     useState<OperationsSurfaceId>("dispatch");
   const [activeRuntimeSurface, setActiveRuntimeSurface] =
@@ -4850,6 +4862,10 @@ export default function App() {
     },
   };
   const activeWorkspaceMeta = workspaceMeta[activeWorkspaceId];
+  const activePromptReturnResumeChecklist = promptReturnResumeChecklist
+    && promptReturnResumeChecklist.sourceWorkspaceId === activeWorkspaceId
+    ? promptReturnResumeChecklist
+    : null;
   const activeDesktopNavItemId: DesktopNavItemId = activeWorkspaceId;
   const desktopNavSections = [
     {
@@ -5184,6 +5200,33 @@ export default function App() {
     );
   }
 
+  function getPromptReturnNextSafeAction(workspaceId: DesktopWorkspaceId): string {
+    switch (workspaceId) {
+      case "home":
+        return "Resume from Home mission cards, then preview the loaded prompt plan before any execution.";
+      case "create-game":
+        return "Continue the Create Game pipeline stage you launched from, then preview the loaded prompt plan.";
+      case "create-movie":
+        return "Continue the Create Movie cinematic pipeline stage you launched from, then preview the loaded prompt plan.";
+      case "load-project":
+        return "Continue the Load Project checklist and run the read-only inspect prompt preview.";
+      case "asset-forge":
+        return "Continue the Asset Forge pipeline, then review proof-only placement evidence and blockers.";
+      case "prompt":
+        return "Review the loaded prompt and preview the plan before any execution request.";
+      case "builder":
+        return "Review Builder handoff context and keep runtime actions in admitted or proof-only corridors.";
+      case "operations":
+        return "Review pending approvals and execute only admitted typed control-plane actions.";
+      case "runtime":
+        return "Review runtime bridge and adapter truth before attempting the next guided action.";
+      case "records":
+        return "Review latest run, execution, and artifact evidence before choosing the next mission action.";
+      default:
+        return "Review the active workspace truth rail and continue with the next safe, non-mutating step.";
+    }
+  }
+
   function returnToSourceWorkspaceFromPrompt(sourceWorkspaceId: string): void {
     const allowedWorkspaceIds: DesktopWorkspaceId[] = [
       "home",
@@ -5197,11 +5240,24 @@ export default function App() {
       "runtime",
       "records",
     ];
-    if (allowedWorkspaceIds.includes(sourceWorkspaceId as DesktopWorkspaceId)) {
-      setActiveWorkspaceId(sourceWorkspaceId as DesktopWorkspaceId);
-      return;
-    }
-    setActiveWorkspaceId("home");
+    const resolvedWorkspaceId = allowedWorkspaceIds.includes(sourceWorkspaceId as DesktopWorkspaceId)
+      ? sourceWorkspaceId as DesktopWorkspaceId
+      : "home";
+    const sourceSurfaceLabel = promptLaunchDraftRequest?.sourceSurfaceLabel?.trim()
+      || `${workspaceMeta[resolvedWorkspaceId].title} mission handoff`;
+    const draftLabel = promptLaunchDraftRequest?.draft?.label?.trim() || "Mission template";
+    const launchedAtIso = promptLaunchDraftRequest?.launchedAtIso?.trim() || null;
+
+    setPromptReturnResumeChecklist({
+      id: crypto.randomUUID(),
+      sourceWorkspaceId: resolvedWorkspaceId,
+      sourceSurfaceLabel,
+      draftLabel,
+      launchedAtIso,
+      returnedAtIso: new Date().toISOString(),
+      nextSafeAction: getPromptReturnNextSafeAction(resolvedWorkspaceId),
+    });
+    setActiveWorkspaceId(resolvedWorkspaceId);
   }
 
   function openRecordsRuns(): void {
@@ -7353,6 +7409,99 @@ export default function App() {
     );
   }
 
+  function renderPromptReturnResumeChecklist(
+    checklist: PromptReturnResumeChecklist,
+  ): JSX.Element {
+    return (
+      <section
+        aria-label="Mission handoff resume checklist"
+        style={{
+          marginBottom: 14,
+          border: "1px solid rgba(97, 173, 255, 0.55)",
+          borderRadius: 12,
+          background:
+            "linear-gradient(135deg, rgba(30, 40, 57, 0.95), rgba(16, 27, 41, 0.95))",
+          boxShadow: "0 10px 26px rgba(7, 12, 20, 0.35)",
+          padding: "12px 14px",
+          display: "grid",
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ display: "grid", gap: 4 }}>
+            <span
+              style={{
+                fontSize: 12,
+                letterSpacing: 0.3,
+                textTransform: "uppercase",
+                color: "rgba(162, 201, 255, 0.95)",
+                fontWeight: 700,
+              }}
+            >
+              Mission handoff resume checklist
+            </span>
+            <strong style={{ color: "var(--app-text-color)" }}>
+              Loaded draft: {checklist.draftLabel}
+            </strong>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPromptReturnResumeChecklist(null)}
+            style={{
+              minHeight: 30,
+              border: "1px solid rgba(140, 170, 205, 0.55)",
+              borderRadius: 8,
+              padding: "0 10px",
+              background: "rgba(20, 30, 44, 0.9)",
+              color: "var(--app-text-color)",
+              cursor: "pointer",
+              fontWeight: 600,
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+            gap: 8,
+            color: "var(--app-subtle-color)",
+            fontSize: 13,
+          }}
+        >
+          <span>
+            Source handoff: <strong>{checklist.sourceSurfaceLabel}</strong>
+          </span>
+          <span>
+            Launched (ISO): <strong>{checklist.launchedAtIso ?? "unknown"}</strong>
+          </span>
+          <span>
+            Returned (ISO): <strong>{checklist.returnedAtIso}</strong>
+          </span>
+          <span>
+            Workspace: <strong>{workspaceMeta[checklist.sourceWorkspaceId].title}</strong>
+          </span>
+        </div>
+        <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
+          Truth state: <strong>prefill-only</strong>, <strong>fail-closed where blocked</strong>, and{" "}
+          <strong>non-mutating</strong>. Returning from Prompt Studio does not execute prompts.
+        </p>
+        <p style={{ margin: 0, color: "var(--app-text-color)", fontSize: 13 }}>
+          Next safe action: <strong>{checklist.nextSafeAction}</strong>
+        </p>
+      </section>
+    );
+  }
+
   const renderOperationsWorkspace = () => (
     <Suspense
       fallback={renderWorkspaceLoadingFallback(
@@ -7515,6 +7664,9 @@ export default function App() {
           }}
         >
           <div style={{ height: "100%", minHeight: 0 }}>
+            {activePromptReturnResumeChecklist ? (
+              renderPromptReturnResumeChecklist(activePromptReturnResumeChecklist)
+            ) : null}
             <Suspense
               fallback={renderWorkspaceLoadingFallback(
                 "Asset Forge",
@@ -7593,6 +7745,9 @@ export default function App() {
             onExpand={expandWorkspaceNextSteps}
             onReplayRecentAction={replayWorkspaceNextStepAction}
           />
+        ) : null}
+        {activePromptReturnResumeChecklist ? (
+          renderPromptReturnResumeChecklist(activePromptReturnResumeChecklist)
         ) : null}
 
         {activeWorkspaceId === "home" ? (

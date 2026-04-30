@@ -453,6 +453,16 @@ describe("App desktop smoke", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Return to source cockpit" }));
     expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
+    const resumeChecklist = screen.getByLabelText("Mission handoff resume checklist");
+    expect(resumeChecklist).toBeInTheDocument();
+    expect(resumeChecklist).toHaveTextContent("Loaded draft: Create safe game entity prompt");
+    expect(resumeChecklist).toHaveTextContent("Source handoff: Create Game cockpit / create entity template");
+    expect(resumeChecklist).toHaveTextContent("Truth state: prefill-only");
+    expect(resumeChecklist).toHaveTextContent(
+      "Next safe action: Continue the Create Game pipeline stage you launched from, then preview the loaded prompt plan.",
+    );
+    fireEvent.click(within(resumeChecklist).getByRole("button", { name: "Dismiss" }));
+    expect(screen.queryByLabelText("Mission handoff resume checklist")).not.toBeInTheDocument();
   });
 
   it("returns to Home from the Asset Forge app header", async () => {
