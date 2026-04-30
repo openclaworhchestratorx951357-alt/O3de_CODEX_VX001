@@ -47,8 +47,8 @@ These labels are operator guidance only and never authorize runtime behavior.
 
 ## Recommended next packet
 
-App-wide evidence timeline shell + approval/validation linkage audit
-(`codex/app-wide-evidence-timeline-shell-approval-validation-linkage-audit`).
+Workspace status chips shell + truth taxonomy linkage
+(`codex/workspace-status-chips-shell-truth-taxonomy-linkage`).
 
 
 

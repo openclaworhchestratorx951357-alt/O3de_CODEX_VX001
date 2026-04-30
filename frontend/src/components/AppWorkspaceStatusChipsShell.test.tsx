@@ -34,7 +34,7 @@ describe("AppWorkspaceStatusChipsShell", () => {
     expect(screen.getByText("Project config patch corridor")).toBeInTheDocument();
     expect(screen.getByText("Placement execution")).toBeInTheDocument();
 
-    expect(screen.getByText("App-wide evidence timeline shell + approval/validation linkage audit", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Workspace status chips shell + truth taxonomy linkage", { selector: "strong" })).toBeInTheDocument();
   });
 });
 

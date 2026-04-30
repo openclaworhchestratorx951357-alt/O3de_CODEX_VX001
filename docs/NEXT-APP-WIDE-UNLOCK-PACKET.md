@@ -1,28 +1,28 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-App-wide evidence timeline shell + approval/validation linkage audit
-(`codex/app-wide-evidence-timeline-shell-approval-validation-linkage-audit`).
+Workspace status chips shell + truth taxonomy linkage
+(`codex/workspace-status-chips-shell-truth-taxonomy-linkage`).
 
 ## Why this is next
-- Approval/session dashboard truth-refresh linkage packet is now complete and
-  stable under explicit server-owned authorization truth language.
-- Baseline/parity/long-hold/shell-static/truth-refresh recommendation surfaces
-  are aligned and remain non-admitting.
+- App-wide evidence timeline shell + approval/validation linkage audit packet
+  is now complete and stable under explicit server-owned authorization truth
+  language.
+- Approval/session and validation chronology/linkage wording is aligned and
+  non-admitting across timeline and recommendation surfaces.
 - Validation workflow hold/no-go posture remains explicit, fail-closed, and
   unchanged across app-wide shell guidance.
-- The next highest-value operator UX gap is cross-domain evidence-timeline
-  chronology and linkage audit so approval/session and validation semantics stay
-  deterministic across timeline and recommendation surfaces.
+- The next highest-value operator UX gap is workspace status chip taxonomy
+  linkage checkpointing so held-lane and approval/session state labels remain
+  deterministic across app-wide shells and recommendation surfaces.
 
 ## Scope
-- produce a focused app-wide evidence timeline shell + approval/validation
-  linkage audit packet
-- audit timeline row chronology, linkage wording, and review-status tokens for
-  approval/session and validation hold-state alignment
+- produce a focused workspace status chips shell + truth taxonomy linkage packet
+- audit status-chip taxonomy wording and cross-shell linkage cues for
+  deterministic held-lane and approval/session state semantics
 - preserve explicit non-authorizing client-field posture and fail-closed
-  validation semantics in timeline-linked guidance
-- keep recommendation surfaces aligned to this evidence-timeline audit packet
+  validation semantics in chip-linked guidance
+- keep recommendation surfaces aligned to this status-chip taxonomy packet
 - preserve no-touch runtime zones and no-broadening posture
 
 ## Safety constraints
@@ -38,13 +38,13 @@ App-wide evidence timeline shell + approval/validation linkage audit
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- app-wide evidence timeline chronology and linkage wording remain deterministic
-  and aligned across shell recommendation surfaces while preserving explicit
+- workspace status chip taxonomy and linkage wording remain deterministic and
+  aligned across shell recommendation surfaces while preserving explicit
   server-owned gate-state truth and non-authorizing client-field semantics
 - canonical validation command set, command-to-evidence ownership,
   hold-boundary consistency checkpoints, operator-safe examples, wording audit,
-  review-status parity, taxonomy, and progression-integrity remain explicit and
-  unchanged
+  review-status parity, taxonomy, chronology, and progression-integrity remain
+  explicit and unchanged
 - editor restore/readback hold boundaries remain explicit
 - Flow Trigger runtime-admission hold posture remains explicit and unchanged
 - blocked and hold/no-go boundaries remain explicit in recommendation surfaces
@@ -52,9 +52,9 @@ App-wide evidence timeline shell + approval/validation linkage audit
 - docs remain aligned with runtime/test truth
 
 ## Alternative considered
-Direct approval/session dashboard broadening without first checkpointing
-cross-domain evidence chronology/linkage consistency under explicit
-server-owned gate-state language and non-authorizing client-field semantics.
+Direct dashboard broadening without first checkpointing workspace status chip
+truth taxonomy consistency under explicit server-owned gate-state language and
+non-authorizing client-field semantics.
 
 This remains deferred for safety. Keep hold posture explicit first, then
 consider any future admission revisit.

@@ -111,7 +111,7 @@ export default function AppEvidenceTimelineShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>App-wide evidence timeline shell + approval/validation linkage audit</strong>.
+        Recommended next packet: <strong>Workspace status chips shell + truth taxonomy linkage</strong>.
       </p>
     </section>
   );

@@ -19,6 +19,16 @@ export const appEvidenceTimelineFixtureGeneratedAt = "2026-05-01";
 
 export const appEvidenceTimelineRows: readonly AppEvidenceTimelineRow[] = [
   {
+    recordedAtUtc: "2026-05-01T00:00:33Z",
+    domain: "GUI",
+    evidenceLane: "app-wide evidence timeline shell + approval/validation linkage audit packet",
+    capabilityWindow: "cross-domain evidence chronology + approval/validation linkage audit checkpoint",
+    truthLabel: "demo",
+    summary:
+      "App-wide evidence timeline linkage audit checkpoint now verifies deterministic cross-domain chronology, server-owned authorization truth, fail-closed validation-hold semantics, and non-authorizing client-field posture remain aligned across timeline and recommendation surfaces while preserving non-admitting runtime boundaries.",
+    reviewStatus: "pass-app-wide-evidence-timeline-shell-approval-validation-linkage-audit-packet",
+  },
+  {
     recordedAtUtc: "2026-05-01T00:00:32Z",
     domain: "GUI",
     evidenceLane: "approval/session dashboard truth refresh + validation linkage packet",

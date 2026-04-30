@@ -71,8 +71,8 @@ broadened.
 
 ## Recommended next packet
 
-App-wide evidence timeline shell + approval/validation linkage audit
-(`codex/app-wide-evidence-timeline-shell-approval-validation-linkage-audit`):
+Workspace status chips shell + truth taxonomy linkage
+(`codex/workspace-status-chips-shell-truth-taxonomy-linkage`):
 
 - keep server-owned authorization and fail-closed gate-state wording aligned
   with the existing approval/session boundary model across baseline/shell

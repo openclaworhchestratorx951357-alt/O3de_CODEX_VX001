@@ -39,7 +39,7 @@ describe("AppApprovalSessionDashboardShell", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("client fields remain intent-only and non-authorizing", { exact: false })).toBeInTheDocument();
 
-    expect(screen.getByText("App-wide evidence timeline shell + approval/validation linkage audit", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Workspace status chips shell + truth taxonomy linkage", { selector: "strong" })).toBeInTheDocument();
   });
 });
 

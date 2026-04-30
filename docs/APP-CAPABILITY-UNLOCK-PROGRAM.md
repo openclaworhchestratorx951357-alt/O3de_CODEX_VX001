@@ -958,7 +958,7 @@ Why:
   deterministic across shell, timeline, and recommendation surfaces
 - advances operator clarity without broadening runtime admission
 
-### CD. App-wide Evidence Timeline Shell + Approval/validation Linkage Audit
+### CD. App-wide Evidence Timeline Shell + Approval/validation Linkage Audit (completed)
 Why:
 - approval/session dashboard truth refresh + validation linkage packet is now
   complete and stable
@@ -966,6 +966,15 @@ Why:
   audit checkpointing so approval/session and validation hold-state chronology
   remains deterministic across cross-domain timeline and recommendation
   surfaces
+- advances operator clarity without broadening runtime admission
+
+### CE. Workspace Status Chips Shell + Truth Taxonomy Linkage
+Why:
+- app-wide evidence timeline shell + approval/validation linkage audit packet
+  is now complete and stable
+- next highest-value operator UX lane is explicit workspace status taxonomy
+  checkpointing so held-lane and approval/session state chips stay deterministic
+  across app-wide shells and recommendation surfaces
 - advances operator clarity without broadening runtime admission
 
 ## What stays blocked globally

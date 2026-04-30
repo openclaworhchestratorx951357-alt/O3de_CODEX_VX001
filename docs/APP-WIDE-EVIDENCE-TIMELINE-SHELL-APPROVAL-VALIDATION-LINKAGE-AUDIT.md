@@ -1,48 +1,48 @@
-# Approval Session Dashboard Truth Refresh + Validation Linkage
+# App-wide Evidence Timeline Shell + Approval/validation Linkage Audit
 
-Status: completed (truth-refresh linkage checkpoint; non-admitting)
+Status: completed (timeline-linkage audit checkpoint; non-admitting)
 
 ## Purpose
 
-Checkpoint approval/session truth-refresh linkage so operator-facing shell
-language remains deterministic with validation-hold review semantics under one
-server-owned authorization model, without widening runtime admission.
+Checkpoint cross-domain evidence timeline chronology and approval/validation
+linkage wording so operator-facing timeline semantics remain deterministic under
+server-owned authorization truth without widening runtime admission.
 
 ## Scope in this packet
 
-- refresh approval/session shell/timeline linkage wording to keep validation
-  hold-state semantics explicit
-- preserve explicit fail-closed matrix language for blocked endpoint states,
-  client authorization-field rejection posture, and unadmitted
-  `validation.report.intake` dispatch behavior
-- preserve explicit non-authorizing client-field posture across linked
+- audit approval/session and validation hold-state timeline rows for chronology
+  and linkage wording consistency
+- preserve explicit fail-closed validation semantics and non-authorizing
+  client-field posture in timeline-linked guidance
+- preserve explicit server-owned gate-state truth language across timeline and
   recommendation surfaces
 - roll app-wide recommendation surfaces to the next project-moving packet
 
 ## Not in scope
 
-- no backend route or runtime behavior changes
+- no backend runtime behavior changes
 - no approval/session authorization broadening
 - no execution or mutation admission broadening
 - no provider/Blender/Asset Processor/placement admission changes
 - no CI/runtime execution admission broadening
 
-## Truth-refresh linkage checkpoint
+## Linkage audit checkpoint
 
-- approval/session shell and linked timeline wording now remain deterministic
-  under explicit server-owned gate-state truth language
-- validation-hold semantics stay fail-closed and non-admitting
-- client approval/session fields stay intent-only and non-authorizing
+- timeline chronology and cross-domain linkage wording now remain deterministic
+  under one server-owned authorization truth model
+- approval/session and validation hold-state row semantics remain explicit and
+  fail-closed
+- client approval/session fields remain intent-only and non-authorizing
 - recommendation surfaces now point to one next packet
 
 ## Evidence
 
-- `docs/APPROVAL-SESSION-DASHBOARD-SHELL.md`
+- `docs/APP-WIDE-EVIDENCE-TIMELINE-SHELL.md`
+- `docs/APPROVAL-SESSION-DASHBOARD-TRUTH-REFRESH-VALIDATION-LINKAGE.md`
 - `docs/APPROVAL-SESSION-DASHBOARD-SHELL-STATIC-FIXTURE-FIRST-PACKET.md`
 - `docs/APPROVAL-SESSION-DASHBOARD-LONG-HOLD-CHECKPOINT-PACKET.md`
 - `docs/APPROVAL-SESSION-DASHBOARD-PARITY-CHECKPOINT-PACKET.md`
 - `docs/APPROVAL-SESSION-DASHBOARD-BASELINE-AUDIT.md`
-- `docs/APP-WIDE-EVIDENCE-TIMELINE-SHELL.md`
 - `docs/APP-CAPABILITY-UNLOCK-MATRIX.md`
 - `docs/APP-CAPABILITY-UNLOCK-PROGRAM.md`
 - `docs/NEXT-APP-WIDE-UNLOCK-PACKET.md`

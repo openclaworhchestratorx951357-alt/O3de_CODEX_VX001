@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-App-wide evidence timeline shell + approval/validation linkage audit
-(`codex/app-wide-evidence-timeline-shell-approval-validation-linkage-audit`):
+Workspace status chips shell + truth taxonomy linkage
+(`codex/workspace-status-chips-shell-truth-taxonomy-linkage`):
 
 - keep approval/session baseline + shell + timeline wording aligned under
   server-owned authorization truth and fail-closed gate-state semantics

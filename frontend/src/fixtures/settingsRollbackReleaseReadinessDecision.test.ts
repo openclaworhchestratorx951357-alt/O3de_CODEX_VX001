@@ -11,21 +11,32 @@ describe("build execution long-hold fixture guardrails", () => {
     expect(buildExecutionCapability).toBeDefined();
     expect(buildExecutionCapability?.requiredGate).toContain("explicit named target");
     expect(buildExecutionCapability?.requiredGate).toContain("timeout/log/result evidence");
-    expect(buildExecutionCapability?.recommendedNextPacket).toBe("App-wide evidence timeline shell + approval/validation linkage audit");
+    expect(buildExecutionCapability?.recommendedNextPacket).toBe("Workspace status chips shell + truth taxonomy linkage");
 
     const buildExecutionAudit = appAuditReviewDashboardRows.find((row) => row.domain === "Project/Config");
     expect(buildExecutionAudit).toBeDefined();
     expect(buildExecutionAudit?.capabilityWindow).toBe("build.execute.real long-hold checkpoint");
-    expect(buildExecutionAudit?.nextGate).toBe("App-wide evidence timeline shell + approval/validation linkage audit");
+    expect(buildExecutionAudit?.nextGate).toBe("Workspace status chips shell + truth taxonomy linkage");
     expect(buildExecutionAudit?.findings).toContain("Long-hold checkpoint");
 
     const buildExecutionStatus = appWorkspaceStatusChipRows.find((row) => row.capabilityWindow === "build.execute.real");
     expect(buildExecutionStatus).toBeDefined();
     expect(buildExecutionStatus?.summary).toContain("hold/no-go posture explicit");
-    expect(buildExecutionStatus?.nextGate).toBe("App-wide evidence timeline shell + approval/validation linkage audit");
+    expect(buildExecutionStatus?.nextGate).toBe("Workspace status chips shell + truth taxonomy linkage");
   });
 
   it("records build execution long-hold checkpoint evidence while preserving prior checkpoints", () => {
+    const appWideEvidenceTimelineAuditRow = appEvidenceTimelineRows.find(
+      (row) => row.evidenceLane === "app-wide evidence timeline shell + approval/validation linkage audit packet",
+    );
+    expect(appWideEvidenceTimelineAuditRow).toBeDefined();
+    expect(appWideEvidenceTimelineAuditRow?.reviewStatus).toBe(
+      "pass-app-wide-evidence-timeline-shell-approval-validation-linkage-audit-packet",
+    );
+    expect(appWideEvidenceTimelineAuditRow?.summary).toContain(
+      "deterministic cross-domain chronology, server-owned authorization truth, fail-closed validation-hold semantics, and non-authorizing client-field posture remain aligned",
+    );
+
     const approvalSessionDashboardTruthRefreshValidationLinkageRow = appEvidenceTimelineRows.find(
       (row) => row.evidenceLane === "approval/session dashboard truth refresh + validation linkage packet",
     );

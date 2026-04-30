@@ -28,7 +28,7 @@ export const appAuditReviewDashboardRows: readonly AppAuditReviewRow[] = [
     verdict: "pass",
     findings:
       "Editor readback long-hold checkpoint now preserves held no-go broadening posture and stream handoff boundaries while exact Camera bool restore/write corridor boundaries remain unchanged and broad mutation/restore lanes stay fail-closed.",
-    nextGate: "App-wide evidence timeline shell + approval/validation linkage audit",
+    nextGate: "Workspace status chips shell + truth taxonomy linkage",
   },
   {
     domain: "Editor",
@@ -39,7 +39,7 @@ export const appAuditReviewDashboardRows: readonly AppAuditReviewRow[] = [
     gateStatus: "blocked outside exact admitted corridors",
     verdict: "blocked",
     findings: "Broad editor mutation lanes remain unadmitted and must fail closed.",
-    nextGate: "App-wide evidence timeline shell + approval/validation linkage audit",
+    nextGate: "Workspace status chips shell + truth taxonomy linkage",
   },
   {
     domain: "Asset Forge",
@@ -62,7 +62,7 @@ export const appAuditReviewDashboardRows: readonly AppAuditReviewRow[] = [
     verdict: "watch",
     findings:
       "Long-hold checkpoint preserves no-go broadening posture for build.execute.real while keeping explicit named-target execution evidence and non-admission of broad execution, cleanup, or rollback-class claims.",
-    nextGate: "App-wide evidence timeline shell + approval/validation linkage audit",
+    nextGate: "Workspace status chips shell + truth taxonomy linkage",
   },
   {
     domain: "Validation",
@@ -84,7 +84,7 @@ export const appAuditReviewDashboardRows: readonly AppAuditReviewRow[] = [
     gateStatus: "cross-shell truth labels aligned",
     verdict: "pass",
     findings: "Shell taxonomy now aligns across capability, approval/session, evidence timeline, and workspace status chips.",
-    nextGate: "App-wide evidence timeline shell + approval/validation linkage audit",
+    nextGate: "Workspace status chips shell + truth taxonomy linkage",
   },
   {
     domain: "Automation",
@@ -97,6 +97,6 @@ export const appAuditReviewDashboardRows: readonly AppAuditReviewRow[] = [
     verdict: "watch",
     findings:
       "Local speed helpers remain non-admitted; long-hold checkpoint now preserves held runtime-admission posture and stream handoff boundaries.",
-    nextGate: "App-wide evidence timeline shell + approval/validation linkage audit",
+    nextGate: "Workspace status chips shell + truth taxonomy linkage",
   },
 ];

@@ -103,8 +103,8 @@ superseded for current dashboard behavior by:
 
 ## Recommended next packet
 
-App-wide evidence timeline shell + approval/validation linkage audit
-(`codex/app-wide-evidence-timeline-shell-approval-validation-linkage-audit`):
+Workspace status chips shell + truth taxonomy linkage
+(`codex/workspace-status-chips-shell-truth-taxonomy-linkage`):
 
 - keep baseline, shell, and timeline wording aligned for server-owned
   authorization truth
