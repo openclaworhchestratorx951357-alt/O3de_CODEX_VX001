@@ -53,6 +53,16 @@ export type CockpitPipelineStage = {
   nextAction?: string;
 };
 
+export type CockpitPromptDraftId =
+  | "inspect-project"
+  | "create-game-entity"
+  | "add-allowlisted-mesh"
+  | "inspect-cinematic-target"
+  | "create-cinematic-camera-placeholder"
+  | "cinematic-placement-proof-only"
+  | "inspect-load-project"
+  | "placement-proof-only";
+
 export type CockpitPromptTemplate = {
   id: string;
   label: string;
@@ -61,6 +71,8 @@ export type CockpitPromptTemplate = {
   truthState: CockpitTruthState;
   safetyLabels: string[];
   autoExecute: false;
+  draftId?: CockpitPromptDraftId;
+  sourceSurfaceLabel?: string;
 };
 
 export type CockpitPanelDefinition = {

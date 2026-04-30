@@ -20,9 +20,10 @@ import {
 } from "./content/operatorGuideShell";
 import {
   getAllCockpitDefinitions,
+  getCockpitDefinition,
   getCockpitNavSections,
 } from "./components/cockpits/registry/cockpitRegistry";
-import type { CockpitId } from "./components/cockpits/registry/cockpitRegistryTypes";
+import type { CockpitId, CockpitPromptDraftId } from "./components/cockpits/registry/cockpitRegistryTypes";
 import {
   approveApproval,
   fetchAdapters,
@@ -300,6 +301,64 @@ type PromptTemplateChooserContext = {
   openedAtIso: string;
   templates: PromptTemplateChooserEntry[];
   nextSafeAction: string;
+};
+
+type PromptTemplateChooserWorkspaceId =
+  | "home"
+  | "create-game"
+  | "create-movie"
+  | "load-project"
+  | "asset-forge";
+
+type PromptTemplateChooserDescriptor = {
+  sourceSurfaceLabel: string;
+  title: string;
+  subtitle: string;
+  nextSafeAction: string;
+};
+
+const promptTemplateChooserDescriptors = {
+  home: {
+    sourceSurfaceLabel: "Home cockpit start-here rail / open prompt studio",
+    title: "Home template quick-load",
+    subtitle: "Choose a mission-first template to prefill Prompt Studio. This stays prefill-only and does not auto-execute.",
+    nextSafeAction: "Pick one template, preview the plan, then execute only inside admitted or proof-only boundaries.",
+  },
+  "create-game": {
+    sourceSurfaceLabel: "Create Game cockpit command bar / open prompt studio",
+    title: "Create Game template quick-load",
+    subtitle: "Pick a safe game-authoring template to prefill Prompt Studio. This does not execute any prompt.",
+    nextSafeAction: "Choose one template, preview the plan, and keep operations inside admitted lanes.",
+  },
+  "create-movie": {
+    sourceSurfaceLabel: "Create Movie cockpit command bar / open prompt studio",
+    title: "Create Movie template quick-load",
+    subtitle: "Pick a cinematic-safe template to prefill Prompt Studio. No prompt runs automatically.",
+    nextSafeAction: "Use proof-only templates for placement review; real placement remains blocked by separate admission gates.",
+  },
+  "load-project": {
+    sourceSurfaceLabel: "Load Project cockpit command bar / open prompt studio",
+    title: "Load Project template quick-load",
+    subtitle: "Prefill a target-readiness prompt without mutating project files.",
+    nextSafeAction: "Run read-only inspection first, then decide the next admitted authoring step.",
+  },
+  "asset-forge": {
+    sourceSurfaceLabel: "Asset Forge cockpit command bar / open prompt studio",
+    title: "Asset Forge template quick-load",
+    subtitle: "Select an Asset Forge prompt template for review-first execution planning.",
+    nextSafeAction: "Use proof-only review paths for placement; execution and placement writes remain non-admitted.",
+  },
+} satisfies Record<PromptTemplateChooserWorkspaceId, PromptTemplateChooserDescriptor>;
+
+const missionPromptDraftByRegistryId: Record<CockpitPromptDraftId, MissionPromptDraft> = {
+  "inspect-project": inspectProjectMissionPromptDraft,
+  "create-game-entity": createGameEntityMissionPromptDraft,
+  "add-allowlisted-mesh": addAllowlistedMeshMissionPromptDraft,
+  "inspect-cinematic-target": inspectCinematicTargetMissionPromptDraft,
+  "create-cinematic-camera-placeholder": createCinematicCameraPlaceholderMissionPromptDraft,
+  "cinematic-placement-proof-only": cinematicPlacementProofOnlyMissionPromptDraft,
+  "inspect-load-project": inspectLoadProjectMissionPromptDraft,
+  "placement-proof-only": placementProofOnlyMissionPromptDraft,
 };
 
 type PromptReturnResumeChecklist = {
@@ -5131,265 +5190,141 @@ export default function App() {
     setActiveWorkspaceId("prompt");
   }
 
-  function openPromptStudioFromCreateGameCockpit(): void {
+  function buildPromptTemplateChooserEntriesFromRegistry(
+    sourceWorkspaceId: PromptTemplateChooserWorkspaceId,
+  ): Array<Omit<PromptTemplateChooserEntry, "id">> {
+    const definition = getCockpitDefinition(sourceWorkspaceId);
+    if (!definition) {
+      return [];
+    }
+
+    return definition.promptTemplates.flatMap((template) => {
+      if (!template.draftId) {
+        return [];
+      }
+      const draft = missionPromptDraftByRegistryId[template.draftId];
+      if (!draft) {
+        return [];
+      }
+      const fallbackSourceLabel = `${workspaceMeta[sourceWorkspaceId].title} cockpit / ${template.id} template`;
+      return [{
+        label: template.label,
+        detail: template.description,
+        truthState: template.truthState,
+        draft,
+        sourceSurfaceLabel: template.sourceSurfaceLabel?.trim() || fallbackSourceLabel,
+      }];
+    });
+  }
+
+  function openPromptStudioFromCockpitTemplateRegistry(
+    sourceWorkspaceId: PromptTemplateChooserWorkspaceId,
+  ): void {
+    const descriptor = promptTemplateChooserDescriptors[sourceWorkspaceId];
+    const templates = buildPromptTemplateChooserEntriesFromRegistry(sourceWorkspaceId);
+    if (templates.length === 0) {
+      openPromptStudio();
+      return;
+    }
     openPromptStudioWithTemplateChooserContext(
-      "create-game",
-      "Create Game cockpit command bar / open prompt studio",
-      "Create Game template quick-load",
-      "Pick a safe game-authoring template to prefill Prompt Studio. This does not execute any prompt.",
-      [
-        {
-          label: "Inspect project evidence prompt",
-          detail: "Read-only project orientation before content mutation.",
-          truthState: "read-only / non-mutating",
-          draft: inspectProjectMissionPromptDraft,
-          sourceSurfaceLabel: "Create Game cockpit / inspect project template",
-        },
-        {
-          label: "Create safe game entity prompt",
-          detail: "Admitted-real narrow editor corridor for one root-level entity.",
-          truthState: "admitted-real narrow",
-          draft: createGameEntityMissionPromptDraft,
-          sourceSurfaceLabel: "Create Game cockpit / create entity template",
-        },
-        {
-          label: "Add allowlisted Mesh component prompt",
-          detail: "Allowlisted component lane with readback evidence expectation.",
-          truthState: "admitted-real allowlisted",
-          draft: addAllowlistedMeshMissionPromptDraft,
-          sourceSurfaceLabel: "Create Game cockpit / add allowlisted component template",
-        },
-      ],
-      "Choose one template, preview the plan, and keep operations inside admitted lanes.",
+      sourceWorkspaceId,
+      descriptor.sourceSurfaceLabel,
+      descriptor.title,
+      descriptor.subtitle,
+      templates,
+      descriptor.nextSafeAction,
     );
+  }
+
+  function openPromptStudioWithRegistryTemplate(
+    sourceWorkspaceId: PromptTemplateChooserWorkspaceId,
+    templateId: string,
+  ): void {
+    const template = getCockpitDefinition(sourceWorkspaceId)?.promptTemplates.find((entry) => entry.id === templateId);
+    if (!template?.draftId) {
+      openPromptStudioFromCockpitTemplateRegistry(sourceWorkspaceId);
+      return;
+    }
+    const draft = missionPromptDraftByRegistryId[template.draftId];
+    if (!draft) {
+      openPromptStudioFromCockpitTemplateRegistry(sourceWorkspaceId);
+      return;
+    }
+    openPromptStudioWithMissionDraft(
+      draft,
+      template.sourceSurfaceLabel?.trim() || `${workspaceMeta[sourceWorkspaceId].title} cockpit / ${template.id} template`,
+      sourceWorkspaceId,
+    );
+  }
+
+  function openPromptStudioFromCreateGameCockpit(): void {
+    openPromptStudioFromCockpitTemplateRegistry("create-game");
   }
 
   function openPromptStudioFromCreateMovieCockpit(): void {
-    openPromptStudioWithTemplateChooserContext(
-      "create-movie",
-      "Create Movie cockpit command bar / open prompt studio",
-      "Create Movie template quick-load",
-      "Pick a cinematic-safe template to prefill Prompt Studio. No prompt runs automatically.",
-      [
-        {
-          label: "Inspect cinematic target prompt",
-          detail: "Read-only cinematic readiness check.",
-          truthState: "read-only / cinematic planning",
-          draft: inspectCinematicTargetMissionPromptDraft,
-          sourceSurfaceLabel: "Create Movie cockpit / inspect cinematic target template",
-        },
-        {
-          label: "Create cinematic camera placeholder prompt",
-          detail: "Narrow admitted-real camera placeholder entity request.",
-          truthState: "admitted-real narrow",
-          draft: createCinematicCameraPlaceholderMissionPromptDraft,
-          sourceSurfaceLabel: "Create Movie cockpit / camera placeholder template",
-        },
-        {
-          label: "Cinematic placement proof-only candidate prompt",
-          detail: "Fail-closed placement proof candidate capture with non-admitted execution/write flags.",
-          truthState: "proof-only / fail-closed / non-mutating",
-          draft: cinematicPlacementProofOnlyMissionPromptDraft,
-          sourceSurfaceLabel: "Create Movie cockpit / placement proof-only template",
-        },
-      ],
-      "Use proof-only templates for placement review; real placement remains blocked by separate admission gates.",
-    );
+    openPromptStudioFromCockpitTemplateRegistry("create-movie");
   }
 
   function openPromptStudioFromLoadProjectCockpit(): void {
-    openPromptStudioWithTemplateChooserContext(
-      "load-project",
-      "Load Project cockpit command bar / open prompt studio",
-      "Load Project template quick-load",
-      "Prefill a target-readiness prompt without mutating project files.",
-      [
-        {
-          label: "Load project inspection prompt",
-          detail: "Read-only project/engine/target assumptions summary.",
-          truthState: "read-only / no project file writes",
-          draft: inspectLoadProjectMissionPromptDraft,
-          sourceSurfaceLabel: "Load Project cockpit / inspect target template",
-        },
-      ],
-      "Run read-only inspection first, then decide the next admitted authoring step.",
-    );
+    openPromptStudioFromCockpitTemplateRegistry("load-project");
   }
 
   function openPromptStudioFromAssetForgeCockpit(): void {
-    openPromptStudioWithTemplateChooserContext(
-      "asset-forge",
-      "Asset Forge cockpit command bar / open prompt studio",
-      "Asset Forge template quick-load",
-      "Select an Asset Forge prompt template for review-first execution planning.",
-      [
-        {
-          label: "Inspect project evidence prompt",
-          detail: "Read-only orientation before candidate staging/proof review.",
-          truthState: "read-only / non-mutating",
-          draft: inspectProjectMissionPromptDraft,
-          sourceSurfaceLabel: "Asset Forge workflow / inspect project template",
-        },
-        {
-          label: "Placement proof-only candidate prompt",
-          detail: "Fail-closed placement proof-only candidate with bounded evidence references.",
-          truthState: "proof-only / fail-closed / non-mutating",
-          draft: placementProofOnlyMissionPromptDraft,
-          sourceSurfaceLabel: "Asset Forge workflow / placement proof-only template",
-        },
-      ],
-      "Use proof-only review paths for placement; execution and placement writes remain non-admitted.",
-    );
+    openPromptStudioFromCockpitTemplateRegistry("asset-forge");
   }
 
   function openPromptStudioFromHomeCockpit(): void {
-    openPromptStudioWithTemplateChooserContext(
-      "home",
-      "Home cockpit start-here rail / open prompt studio",
-      "Home template quick-load",
-      "Choose a mission-first template to prefill Prompt Studio. This stays prefill-only and does not auto-execute.",
-      [
-        {
-          label: "Inspect project evidence prompt",
-          detail: "Read-only orientation before admitted or proof-only steps.",
-          truthState: "read-only / non-mutating",
-          draft: inspectProjectMissionPromptDraft,
-          sourceSurfaceLabel: "Home mission workflow / inspect project template",
-        },
-        {
-          label: "Create safe game entity prompt",
-          detail: "Narrow admitted-real root-level entity request.",
-          truthState: "admitted-real narrow",
-          draft: createGameEntityMissionPromptDraft,
-          sourceSurfaceLabel: "Home mission workflow / create entity template",
-        },
-        {
-          label: "Add allowlisted Mesh component prompt",
-          detail: "Allowlisted component lane with readback evidence expectation.",
-          truthState: "admitted-real allowlisted",
-          draft: addAllowlistedMeshMissionPromptDraft,
-          sourceSurfaceLabel: "Home mission workflow / add allowlisted component template",
-        },
-        {
-          label: "Placement proof-only candidate prompt",
-          detail: "Fail-closed placement proof candidate with non-admitted execution/write flags.",
-          truthState: "proof-only / fail-closed / non-mutating",
-          draft: placementProofOnlyMissionPromptDraft,
-          sourceSurfaceLabel: "Home mission workflow / placement proof-only template",
-        },
-      ],
-      "Pick one template, preview the plan, then execute only inside admitted or proof-only boundaries.",
-    );
+    openPromptStudioFromCockpitTemplateRegistry("home");
   }
 
   function openPromptTemplateChooserLane(
     sourceWorkspaceId: "home" | "create-game" | "create-movie" | "load-project" | "asset-forge",
   ): void {
-    if (sourceWorkspaceId === "home") {
-      openPromptStudioFromHomeCockpit();
-      return;
-    }
-    if (sourceWorkspaceId === "create-game") {
-      openPromptStudioFromCreateGameCockpit();
-      return;
-    }
-    if (sourceWorkspaceId === "create-movie") {
-      openPromptStudioFromCreateMovieCockpit();
-      return;
-    }
-    if (sourceWorkspaceId === "load-project") {
-      openPromptStudioFromLoadProjectCockpit();
-      return;
-    }
-    openPromptStudioFromAssetForgeCockpit();
+    openPromptStudioFromCockpitTemplateRegistry(sourceWorkspaceId);
   }
 
   function openPromptStudioWithPlacementProofTemplateFromHome(): void {
-    openPromptStudioWithMissionDraft(
-      placementProofOnlyMissionPromptDraft,
-      "Home mission workflow / placement proof-only template",
-      "home",
-    );
+    openPromptStudioWithRegistryTemplate("home", "placement-proof-only");
   }
 
   function openPromptStudioWithPlacementProofTemplateFromAssetForge(): void {
-    openPromptStudioWithMissionDraft(
-      placementProofOnlyMissionPromptDraft,
-      "Asset Forge workflow / placement proof-only template",
-      "asset-forge",
-    );
+    openPromptStudioWithRegistryTemplate("asset-forge", "placement-proof-only");
   }
 
   function openPromptStudioWithCinematicPlacementProofTemplate(): void {
-    openPromptStudioWithMissionDraft(
-      cinematicPlacementProofOnlyMissionPromptDraft,
-      "Create Movie cockpit / placement proof-only template",
-      "create-movie",
-    );
+    openPromptStudioWithRegistryTemplate("create-movie", "cinematic-placement-proof-only");
   }
 
   function openPromptStudioWithInspectProjectTemplateFromHome(): void {
-    openPromptStudioWithMissionDraft(
-      inspectProjectMissionPromptDraft,
-      "Home mission workflow / inspect project template",
-      "home",
-    );
+    openPromptStudioWithRegistryTemplate("home", "inspect-project");
   }
 
   function openPromptStudioWithInspectProjectTemplateFromAssetForge(): void {
-    openPromptStudioWithMissionDraft(
-      inspectProjectMissionPromptDraft,
-      "Asset Forge workflow / inspect project template",
-      "asset-forge",
-    );
+    openPromptStudioWithRegistryTemplate("asset-forge", "inspect-project");
   }
 
   function openPromptStudioWithInspectProjectTemplateFromCreateGame(): void {
-    openPromptStudioWithMissionDraft(
-      inspectProjectMissionPromptDraft,
-      "Create Game cockpit / inspect project template",
-      "create-game",
-    );
+    openPromptStudioWithRegistryTemplate("create-game", "inspect-project");
   }
 
   function openPromptStudioWithCreateGameEntityTemplate(): void {
-    openPromptStudioWithMissionDraft(
-      createGameEntityMissionPromptDraft,
-      "Create Game cockpit / create entity template",
-      "create-game",
-    );
+    openPromptStudioWithRegistryTemplate("create-game", "create-safe-entity");
   }
 
   function openPromptStudioWithAddAllowlistedMeshTemplate(): void {
-    openPromptStudioWithMissionDraft(
-      addAllowlistedMeshMissionPromptDraft,
-      "Create Game cockpit / add allowlisted component template",
-      "create-game",
-    );
+    openPromptStudioWithRegistryTemplate("create-game", "add-allowlisted-mesh");
   }
 
   function openPromptStudioWithInspectCinematicTargetTemplate(): void {
-    openPromptStudioWithMissionDraft(
-      inspectCinematicTargetMissionPromptDraft,
-      "Create Movie cockpit / inspect cinematic target template",
-      "create-movie",
-    );
+    openPromptStudioWithRegistryTemplate("create-movie", "inspect-cinematic-target");
   }
 
   function openPromptStudioWithCreateCinematicCameraTemplate(): void {
-    openPromptStudioWithMissionDraft(
-      createCinematicCameraPlaceholderMissionPromptDraft,
-      "Create Movie cockpit / camera placeholder template",
-      "create-movie",
-    );
+    openPromptStudioWithRegistryTemplate("create-movie", "create-cinematic-camera-placeholder");
   }
 
   function openPromptStudioWithInspectLoadProjectTemplate(): void {
-    openPromptStudioWithMissionDraft(
-      inspectLoadProjectMissionPromptDraft,
-      "Load Project cockpit / inspect target template",
-      "load-project",
-    );
+    openPromptStudioWithRegistryTemplate("load-project", "inspect-project-target");
   }
 
   function getPromptReturnNextSafeAction(workspaceId: DesktopWorkspaceId): string {

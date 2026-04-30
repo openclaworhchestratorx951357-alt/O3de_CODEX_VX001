@@ -90,7 +90,25 @@ describe("cockpitRegistry", () => {
   });
 
   it("returns prompt templates for known and unknown cockpit ids", () => {
-    expect(getCockpitPromptTemplates("create-game")).toEqual([]);
+    expect(getCockpitPromptTemplates("create-game").map((template) => template.id))
+      .toEqual(expect.arrayContaining([
+        "inspect-project",
+        "create-safe-entity",
+        "add-allowlisted-mesh",
+      ]));
+    expect(getCockpitPromptTemplates("create-movie").map((template) => template.id))
+      .toEqual(expect.arrayContaining([
+        "inspect-cinematic-target",
+        "create-cinematic-camera-placeholder",
+        "cinematic-placement-proof-only",
+      ]));
+    expect(getCockpitPromptTemplates("load-project").map((template) => template.id))
+      .toEqual(expect.arrayContaining(["inspect-project-target"]));
+    expect(getCockpitPromptTemplates("asset-forge").map((template) => template.id))
+      .toEqual(expect.arrayContaining([
+        "inspect-project",
+        "placement-proof-only",
+      ]));
     expect(getCockpitPromptTemplates("prompt")).toEqual([]);
   });
 });
