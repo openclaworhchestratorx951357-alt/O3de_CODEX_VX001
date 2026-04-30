@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SettingsProvider } from "../lib/settings/context";
@@ -100,6 +100,15 @@ describe("DesktopShell", () => {
     expect(screen.getByText("Inspect")).toBeInTheDocument();
     expect(screen.getByText("Active workspace")).toBeInTheDocument();
     expect(screen.getByText("Workspace body")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /records/i })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand all groups" }));
+    const workspaceTree = screen.getByLabelText("Workspace menu tree");
+    expect(within(workspaceTree).getAllByRole("button", { name: /home/i }).length).toBeGreaterThan(0);
+    expect(within(workspaceTree).getByRole("button", { name: /records/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Focus active group" }));
+    expect(screen.queryByRole("button", { name: /records/i })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /inspect/i }));
 

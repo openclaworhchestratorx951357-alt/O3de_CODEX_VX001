@@ -26,16 +26,34 @@ export default function WorkspaceTree({
     section.items.some((item) => item.id === currentNavItemId)
   ));
   const activeNavSectionId = activeNavSection?.id ?? "start";
+  const [expandAllGroups, setExpandAllGroups] = useState(false);
   const [expandedSectionId, setExpandedSectionId] = useState(activeNavSectionId);
 
   useEffect(() => {
-    setExpandedSectionId(activeNavSectionId);
-  }, [activeNavSectionId]);
+    if (!expandAllGroups) {
+      setExpandedSectionId(activeNavSectionId);
+    }
+  }, [activeNavSectionId, expandAllGroups]);
 
   function toggleNavSection(sectionId: string) {
+    if (expandAllGroups) {
+      setExpandAllGroups(false);
+      setExpandedSectionId(sectionId);
+      return;
+    }
     setExpandedSectionId((currentSectionId) => (
       currentSectionId === sectionId ? activeNavSectionId : sectionId
     ));
+  }
+
+  function toggleExpandAllGroups(): void {
+    setExpandAllGroups((current) => {
+      const next = !current;
+      if (!next) {
+        setExpandedSectionId(activeNavSectionId);
+      }
+      return next;
+    });
   }
 
   return (
@@ -44,8 +62,15 @@ export default function WorkspaceTree({
         <span style={navSectionEyebrowStyle}>Workspace tree</span>
         <strong style={navSectionTitleStyle}>Control surface</strong>
         <span style={navSectionDetailStyle}>
-          Open one group at a time so the right side stays available for large editor and viewer surfaces.
+          Open one group at a time, or expand all groups when you need faster cockpit access.
         </span>
+        <button
+          type="button"
+          onClick={toggleExpandAllGroups}
+          style={expandAllButtonStyle}
+        >
+          {expandAllGroups ? "Focus active group" : "Expand all groups"}
+        </button>
         <span style={currentWorkspacePillStyle}>
           <span>Now open</span>
           <strong>{activeNavItem?.label ?? workspaceTitle}</strong>
@@ -55,7 +80,7 @@ export default function WorkspaceTree({
       <div style={navScrollableRegionStyle}>
         {navSections.map((section) => {
           const sectionActive = section.items.some((item) => item.id === activeWorkspaceId);
-          const sectionExpanded = expandedSectionId === section.id;
+          const sectionExpanded = expandAllGroups || expandedSectionId === section.id;
           return (
             <section key={section.id} style={navGroupStyle}>
               <button
@@ -158,6 +183,18 @@ const navSectionDetailStyle = {
   color: "var(--app-muted-color)",
   fontSize: 13,
   lineHeight: 1.45,
+} satisfies CSSProperties;
+
+const expandAllButtonStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "5px 9px",
+  width: "fit-content",
+  background: "var(--app-panel-bg-alt)",
+  color: "var(--app-text-color)",
+  fontSize: 12,
+  cursor: "pointer",
+  boxShadow: "var(--app-shadow-soft)",
 } satisfies CSSProperties;
 
 const currentWorkspacePillStyle = {
