@@ -25,6 +25,10 @@ type CreateMovieWorkspaceViewProps = {
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
   onViewEvidence?: () => void;
+  onOpenPromptSessionDetail?: (promptId: string) => void;
+  onOpenExecutionDetail?: (executionId: string) => void;
+  onOpenArtifactDetail?: (artifactId: string) => void;
+  onOpenRunDetail?: (runId: string) => void;
   bridgeStatus?: O3DEBridgeStatus | null;
   adapters?: AdaptersResponse | null;
   readiness?: ReadinessStatus | null;
@@ -224,6 +228,10 @@ export default function CreateMovieWorkspaceView({
   onViewExecution,
   onViewArtifact,
   onViewEvidence,
+  onOpenPromptSessionDetail,
+  onOpenExecutionDetail,
+  onOpenArtifactDetail,
+  onOpenRunDetail,
   bridgeStatus,
   adapters,
   readiness,
@@ -309,6 +317,10 @@ export default function CreateMovieWorkspaceView({
           onOpenPromptStudio={onOpenPromptStudio}
           onOpenRuntimeOverview={onOpenRuntimeOverview}
           onOpenRecords={onOpenRecords}
+          onOpenPromptSessionDetail={onOpenPromptSessionDetail}
+          onOpenExecutionDetail={onOpenExecutionDetail}
+          onOpenArtifactDetail={onOpenArtifactDetail}
+          onOpenRunDetail={onOpenRunDetail}
         />
       )}
       pipelineTitle="Cinematic pipeline"

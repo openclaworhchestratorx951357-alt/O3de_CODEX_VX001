@@ -31,6 +31,10 @@ type HomeWorkspaceViewProps = {
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
   onViewEvidence?: () => void;
+  onOpenPromptSessionDetail?: (promptId: string) => void;
+  onOpenExecutionDetail?: (executionId: string) => void;
+  onOpenArtifactDetail?: (artifactId: string) => void;
+  onOpenRunDetail?: (runId: string) => void;
   bridgeStatus?: O3DEBridgeStatus | null;
   adapters?: AdaptersResponse | null;
   readiness?: ReadinessStatus | null;
@@ -87,6 +91,10 @@ export default function HomeWorkspaceView({
   onViewExecution,
   onViewArtifact,
   onViewEvidence,
+  onOpenPromptSessionDetail,
+  onOpenExecutionDetail,
+  onOpenArtifactDetail,
+  onOpenRunDetail,
   bridgeStatus,
   adapters,
   readiness,
@@ -148,6 +156,10 @@ export default function HomeWorkspaceView({
             onOpenPromptStudio={onOpenPromptStudio}
             onOpenRuntimeOverview={onOpenRuntimeOverview}
             onOpenRecords={onOpenRecords}
+            onOpenPromptSessionDetail={onOpenPromptSessionDetail}
+            onOpenExecutionDetail={onOpenExecutionDetail}
+            onOpenArtifactDetail={onOpenArtifactDetail}
+            onOpenRunDetail={onOpenRunDetail}
           />
           <MissionCardDeck
             latestRunId={latestRunId ?? null}

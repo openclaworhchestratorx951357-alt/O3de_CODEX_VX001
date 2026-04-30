@@ -26,6 +26,10 @@ type MissionTruthRailProps = {
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenRecords?: () => void;
+  onOpenPromptSessionDetail?: (promptId: string) => void;
+  onOpenExecutionDetail?: (executionId: string) => void;
+  onOpenArtifactDetail?: (artifactId: string) => void;
+  onOpenRunDetail?: (runId: string) => void;
 };
 
 function yesNoUnknown(value: boolean | null | undefined): string {
@@ -76,6 +80,10 @@ export default function MissionTruthRail({
   onOpenPromptStudio,
   onOpenRuntimeOverview,
   onOpenRecords,
+  onOpenPromptSessionDetail,
+  onOpenExecutionDetail,
+  onOpenArtifactDetail,
+  onOpenRunDetail,
 }: MissionTruthRailProps) {
   const placementProofReview = latestPlacementProofOnlyReview;
   const resolvedProjectPath = valueOrUnknown(projectPath, valueOrUnknown(bridgeStatus?.project_root, "not loaded"));
@@ -129,32 +137,84 @@ export default function MissionTruthRail({
       <section aria-label="Latest placement proof-only remediation snapshot" style={styles.snapshot}>
         <strong>Latest placement proof-only remediation snapshot</strong>
         {placementProofReview ? (
-          <div style={styles.grid}>
-            <TruthRow label="Capability" value={placementProofReview.capabilityName} />
-            <TruthRow label="Proof status" value={placementProofReview.proofStatus ?? "not reported"} />
-            <TruthRow label="Candidate id" value={placementProofReview.candidateId ?? "not reported"} />
-            <TruthRow label="Candidate label" value={placementProofReview.candidateLabel ?? "not reported"} />
-            <TruthRow label="Artifact reference" value={formatArtifactReference(placementProofReview.artifactLabel, placementProofReview.artifactId)} />
-            <TruthRow label="Staged source path" value={placementProofReview.stagedSourceRelativePath ?? "not reported"} />
-            <TruthRow label="Target level path" value={placementProofReview.targetLevelRelativePath ?? "not reported"} />
-            <TruthRow label="Target entity" value={placementProofReview.targetEntityName ?? "not reported"} />
-            <TruthRow label="Target component" value={placementProofReview.targetComponent ?? "not reported"} />
-            <TruthRow label="Stage-write evidence ref" value={placementProofReview.stageWriteEvidenceReference ?? "not reported"} />
-            <TruthRow label="Stage-write readback ref" value={placementProofReview.stageWriteReadbackReference ?? "not reported"} />
-            <TruthRow label="Stage-write readback status" value={placementProofReview.stageWriteReadbackStatus ?? "not reported"} />
-            <TruthRow label="Execution mode" value={placementProofReview.executionMode ?? "not reported"} />
-            <TruthRow label="Inspection surface" value={placementProofReview.inspectionSurface ?? "not reported"} />
-            <TruthRow label="execution_admitted" value={flagValue(placementProofReview.executionAdmitted)} />
-            <TruthRow label="placement_write_admitted" value={flagValue(placementProofReview.placementWriteAdmitted)} />
-            <TruthRow label="mutation_occurred" value={flagValue(placementProofReview.mutationOccurred)} />
-            <TruthRow label="read_only" value={flagValue(placementProofReview.readOnly)} />
-            <TruthRow label="Fail-closed reasons" value={placementProofReview.failClosedReasons.length > 0 ? placementProofReview.failClosedReasons.join(", ") : "not reported"} />
-            <TruthRow label="Server decision code" value={placementProofReview.serverDecisionCode ?? "not reported"} />
-            <TruthRow label="Server decision state" value={placementProofReview.serverDecisionState ?? "not reported"} />
-            <TruthRow label="Server status" value={placementProofReview.serverStatus ?? "not reported"} />
-            <TruthRow label="Server blocker reason" value={placementProofReview.serverReason ?? "not reported"} />
-            <TruthRow label="Server blocker remediation" value={placementProofReview.serverRemediation ?? "not reported"} />
-          </div>
+          <>
+            <div style={styles.grid}>
+              <TruthRow label="Capability" value={placementProofReview.capabilityName} />
+              <TruthRow label="Prompt session id" value={placementProofReview.promptSessionId} />
+              <TruthRow label="Proof run id" value={placementProofReview.childRunId ?? "not reported"} />
+              <TruthRow label="Proof execution id" value={placementProofReview.childExecutionId ?? "not reported"} />
+              <TruthRow label="Proof artifact id" value={placementProofReview.childArtifactId ?? "not reported"} />
+              <TruthRow label="Proof status" value={placementProofReview.proofStatus ?? "not reported"} />
+              <TruthRow label="Candidate id" value={placementProofReview.candidateId ?? "not reported"} />
+              <TruthRow label="Candidate label" value={placementProofReview.candidateLabel ?? "not reported"} />
+              <TruthRow label="Artifact reference" value={formatArtifactReference(placementProofReview.artifactLabel, placementProofReview.artifactId)} />
+              <TruthRow label="Staged source path" value={placementProofReview.stagedSourceRelativePath ?? "not reported"} />
+              <TruthRow label="Target level path" value={placementProofReview.targetLevelRelativePath ?? "not reported"} />
+              <TruthRow label="Target entity" value={placementProofReview.targetEntityName ?? "not reported"} />
+              <TruthRow label="Target component" value={placementProofReview.targetComponent ?? "not reported"} />
+              <TruthRow label="Stage-write evidence ref" value={placementProofReview.stageWriteEvidenceReference ?? "not reported"} />
+              <TruthRow label="Stage-write readback ref" value={placementProofReview.stageWriteReadbackReference ?? "not reported"} />
+              <TruthRow label="Stage-write readback status" value={placementProofReview.stageWriteReadbackStatus ?? "not reported"} />
+              <TruthRow label="Execution mode" value={placementProofReview.executionMode ?? "not reported"} />
+              <TruthRow label="Inspection surface" value={placementProofReview.inspectionSurface ?? "not reported"} />
+              <TruthRow label="execution_admitted" value={flagValue(placementProofReview.executionAdmitted)} />
+              <TruthRow label="placement_write_admitted" value={flagValue(placementProofReview.placementWriteAdmitted)} />
+              <TruthRow label="mutation_occurred" value={flagValue(placementProofReview.mutationOccurred)} />
+              <TruthRow label="read_only" value={flagValue(placementProofReview.readOnly)} />
+              <TruthRow label="Fail-closed reasons" value={placementProofReview.failClosedReasons.length > 0 ? placementProofReview.failClosedReasons.join(", ") : "not reported"} />
+              <TruthRow label="Server decision code" value={placementProofReview.serverDecisionCode ?? "not reported"} />
+              <TruthRow label="Server decision state" value={placementProofReview.serverDecisionState ?? "not reported"} />
+              <TruthRow label="Server status" value={placementProofReview.serverStatus ?? "not reported"} />
+              <TruthRow label="Server blocker reason" value={placementProofReview.serverReason ?? "not reported"} />
+              <TruthRow label="Server blocker remediation" value={placementProofReview.serverRemediation ?? "not reported"} />
+            </div>
+            <div style={styles.actions}>
+              <button
+                type="button"
+                onClick={() => onOpenPromptSessionDetail?.(placementProofReview.promptSessionId)}
+                disabled={!onOpenPromptSessionDetail}
+                style={styles.button}
+              >
+                Open proof prompt session
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (placementProofReview.childRunId) {
+                    onOpenRunDetail?.(placementProofReview.childRunId);
+                  }
+                }}
+                disabled={!placementProofReview.childRunId || !onOpenRunDetail}
+                style={styles.button}
+              >
+                Open proof run
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (placementProofReview.childExecutionId) {
+                    onOpenExecutionDetail?.(placementProofReview.childExecutionId);
+                  }
+                }}
+                disabled={!placementProofReview.childExecutionId || !onOpenExecutionDetail}
+                style={styles.button}
+              >
+                Open proof execution
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (placementProofReview.childArtifactId) {
+                    onOpenArtifactDetail?.(placementProofReview.childArtifactId);
+                  }
+                }}
+                disabled={!placementProofReview.childArtifactId || !onOpenArtifactDetail}
+                style={styles.button}
+              >
+                Open proof artifact
+              </button>
+            </div>
+          </>
         ) : (
           <p style={styles.detail}>no latest placement proof-only snapshot selected</p>
         )}

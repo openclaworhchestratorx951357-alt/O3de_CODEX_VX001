@@ -55,6 +55,7 @@ type PromptControlPanelProps = {
   promptLaunchDraftRequest?: PromptLaunchDraftRequest | null;
   onReturnToSourceWorkspace?: (workspaceId: string) => void;
   onPlacementProofOnlyReviewChange?: (review: PlacementProofOnlyReviewSnapshot | null) => void;
+  focusPromptIdRequest?: PromptSessionFocusRequest | null;
 };
 
 export type PromptLaunchDraftRequest = {
@@ -63,6 +64,12 @@ export type PromptLaunchDraftRequest = {
   sourceSurfaceLabel?: string | null;
   launchedAtIso?: string | null;
   sourceWorkspaceId?: string | null;
+};
+
+export type PromptSessionFocusRequest = {
+  requestId: string;
+  promptId: string;
+  sourceSurfaceLabel?: string | null;
 };
 
 type PromptDraftRecommendation = {
@@ -264,6 +271,7 @@ export default function PromptControlPanel({
   promptLaunchDraftRequest = null,
   onReturnToSourceWorkspace,
   onPlacementProofOnlyReviewChange,
+  focusPromptIdRequest = null,
 }: PromptControlPanelProps) {
   const { settings } = useSettings();
   const [activeProjectProfile] = useState(() => loadActiveO3DEProjectProfile());
@@ -302,6 +310,7 @@ export default function PromptControlPanel({
     useState<string | null>(null);
   const previousOperatorDefaultsRef = useRef(settings.operatorDefaults);
   const lastPromptLaunchRequestIdRef = useRef<string | null>(null);
+  const lastPromptFocusRequestIdRef = useRef<string | null>(null);
   const suppressNextDryRunDefaultsSyncRef = useRef(false);
   const initialProjectRootRef = useRef(projectRoot);
   const initialEngineRootRef = useRef(engineRoot);
@@ -451,6 +460,23 @@ export default function PromptControlPanel({
       selectedSession ? summarizePlacementProofOnlyReview(selectedSession) : null,
     );
   }, [onPlacementProofOnlyReviewChange, selectedSession]);
+
+  useEffect(() => {
+    if (!focusPromptIdRequest) {
+      return;
+    }
+    if (lastPromptFocusRequestIdRef.current === focusPromptIdRequest.requestId) {
+      return;
+    }
+    lastPromptFocusRequestIdRef.current = focusPromptIdRequest.requestId;
+    const promptId = focusPromptIdRequest.promptId.trim();
+    if (!promptId) {
+      return;
+    }
+    setSelectedPromptId(promptId);
+    const sourceSurface = focusPromptIdRequest.sourceSurfaceLabel?.trim() || "mission truth rail";
+    setPromptRecommendationMessage(`Opened prompt session ${promptId} from ${sourceSurface}.`);
+  }, [focusPromptIdRequest]);
 
   useEffect(() => {
     if (!promptLaunchDraftRequest) {

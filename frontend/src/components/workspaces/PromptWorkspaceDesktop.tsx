@@ -9,6 +9,7 @@ type PromptWorkspaceDesktopProps = {
   promptLaunchDraftRequest?: ComponentProps<typeof PromptControlPanel>["promptLaunchDraftRequest"];
   onReturnToSourceWorkspace?: ComponentProps<typeof PromptControlPanel>["onReturnToSourceWorkspace"];
   onPlacementProofOnlyReviewChange?: ComponentProps<typeof PromptControlPanel>["onPlacementProofOnlyReviewChange"];
+  focusPromptIdRequest?: ComponentProps<typeof PromptControlPanel>["focusPromptIdRequest"];
 };
 
 export default function PromptWorkspaceDesktop({
@@ -17,6 +18,7 @@ export default function PromptWorkspaceDesktop({
   promptLaunchDraftRequest,
   onReturnToSourceWorkspace,
   onPlacementProofOnlyReviewChange,
+  focusPromptIdRequest,
 }: PromptWorkspaceDesktopProps) {
   return (
     <PromptWorkspaceView
@@ -27,6 +29,7 @@ export default function PromptWorkspaceDesktop({
           promptLaunchDraftRequest={promptLaunchDraftRequest}
           onReturnToSourceWorkspace={onReturnToSourceWorkspace}
           onPlacementProofOnlyReviewChange={onPlacementProofOnlyReviewChange}
+          focusPromptIdRequest={focusPromptIdRequest}
         />
       )}
     />

@@ -397,6 +397,9 @@ describe("PromptControlPanel", () => {
     const placementProofSession: PromptSessionRecord = {
       ...makePlannedSession(),
       prompt_id: "prompt-proof-1",
+      child_run_ids: ["run-proof-1"],
+      child_execution_ids: ["exec-proof-1"],
+      child_artifact_ids: ["artifact-proof-1"],
       latest_child_responses: [
         {
           ok: true,
@@ -455,6 +458,10 @@ describe("PromptControlPanel", () => {
       ]?.[0];
       expect(latestEmission).toEqual(expect.objectContaining({
         capabilityName: "editor.placement.proof_only",
+        promptSessionId: "prompt-proof-1",
+        childRunId: "run-proof-1",
+        childExecutionId: "exec-proof-1",
+        childArtifactId: "artifact-proof-1",
         candidateId: "candidate-a",
         targetLevelRelativePath: "Levels/BridgeLevel01/BridgeLevel01.prefab",
         targetComponent: "Mesh",
@@ -464,6 +471,24 @@ describe("PromptControlPanel", () => {
         serverDecisionCode: "missing_session",
       }));
     });
+  });
+
+  it("focuses an exact prompt session id when requested by mission truth rail handoff", async () => {
+    render(
+      <PromptControlPanel
+        focusPromptIdRequest={{
+          requestId: "focus-request-1",
+          promptId: "prompt-proof-2",
+          sourceSurfaceLabel: "mission truth rail",
+        }}
+      />,
+    );
+
+    await screen.findByText("Prompt Capability Registry");
+    await waitFor(() => {
+      expect(apiMocks.fetchPromptSession).toHaveBeenCalledWith("prompt-proof-2");
+    });
+    expect(screen.getByText("Opened prompt session prompt-proof-2 from mission truth rail.")).toBeInTheDocument();
   });
 
   it("shows approval pause continuity and child lineage after executing a selected prompt", async () => {

@@ -263,6 +263,12 @@ type PromptLaunchDraftRequest = {
   sourceWorkspaceId?: DesktopWorkspaceId | null;
 };
 
+type PromptSessionFocusRequest = {
+  requestId: string;
+  promptId: string;
+  sourceSurfaceLabel?: string | null;
+};
+
 type PromptReturnResumeChecklist = {
   id: string;
   sourceWorkspaceId: DesktopWorkspaceId;
@@ -652,6 +658,8 @@ export default function App() {
   ]);
   const [promptLaunchDraftRequest, setPromptLaunchDraftRequest] =
     useState<PromptLaunchDraftRequest | null>(null);
+  const [promptSessionFocusRequest, setPromptSessionFocusRequest] =
+    useState<PromptSessionFocusRequest | null>(null);
   const [latestPlacementProofOnlyReview, setLatestPlacementProofOnlyReview] =
     useState<PlacementProofOnlyReviewSnapshot | null>(null);
   const [promptReturnResumeChecklist, setPromptReturnResumeChecklist] =
@@ -5116,6 +5124,19 @@ export default function App() {
     setActiveWorkspaceId("prompt");
   }
 
+  function openPromptSessionFromTruthRail(promptId: string): void {
+    const trimmedPromptId = promptId.trim();
+    if (!trimmedPromptId) {
+      return;
+    }
+    setPromptSessionFocusRequest({
+      requestId: crypto.randomUUID(),
+      promptId: trimmedPromptId,
+      sourceSurfaceLabel: "mission truth rail proof-only remediation snapshot",
+    });
+    setActiveWorkspaceId("prompt");
+  }
+
   function openPromptStudioWithMissionDraft(
     draft: MissionPromptDraft,
     sourceSurfaceLabel: string,
@@ -5333,6 +5354,33 @@ export default function App() {
   function openRecordsEvents(): void {
     setActiveWorkspaceId("records");
     setActiveRecordsSurface("events");
+  }
+
+  async function openRunEvidenceById(runId: string): Promise<void> {
+    const trimmedRunId = runId.trim();
+    if (!trimmedRunId) {
+      return;
+    }
+    openRecordsRuns();
+    await openRunDetail(trimmedRunId);
+  }
+
+  async function openExecutionEvidenceById(executionId: string): Promise<void> {
+    const trimmedExecutionId = executionId.trim();
+    if (!trimmedExecutionId) {
+      return;
+    }
+    openRecordsExecutions();
+    await openExecutionDetail(trimmedExecutionId);
+  }
+
+  async function openArtifactEvidenceById(artifactId: string): Promise<void> {
+    const trimmedArtifactId = artifactId.trim();
+    if (!trimmedArtifactId) {
+      return;
+    }
+    openRecordsArtifacts();
+    await openArtifactDetail(trimmedArtifactId);
   }
 
   function focusAppControlEvents(): void {
@@ -8055,6 +8103,10 @@ export default function App() {
                 onViewExecution={openLatestExecutionEvidence}
                 onViewArtifact={openLatestArtifactEvidence}
                 onViewEvidence={openRecordsEvents}
+                onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+                onOpenRunDetail={openRunEvidenceById}
+                onOpenExecutionDetail={openExecutionEvidenceById}
+                onOpenArtifactDetail={openArtifactEvidenceById}
                 bridgeStatus={o3deBridgeStatus}
                 policies={policies}
                 policiesLoading={policiesLoading}
@@ -8153,6 +8205,10 @@ export default function App() {
               onViewExecution={openLatestExecutionEvidence}
               onViewArtifact={openLatestArtifactEvidence}
               onViewEvidence={openRecordsEvents}
+              onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+              onOpenRunDetail={openRunEvidenceById}
+              onOpenExecutionDetail={openExecutionEvidenceById}
+              onOpenArtifactDetail={openArtifactEvidenceById}
               bridgeStatus={o3deBridgeStatus}
               adapters={adapters}
               readiness={readiness}
@@ -8187,6 +8243,10 @@ export default function App() {
                 onViewExecution={openLatestExecutionEvidence}
                 onViewArtifact={openLatestArtifactEvidence}
                 onViewEvidence={openRecordsEvents}
+                onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+                onOpenRunDetail={openRunEvidenceById}
+                onOpenExecutionDetail={openExecutionEvidenceById}
+                onOpenArtifactDetail={openArtifactEvidenceById}
                 bridgeStatus={o3deBridgeStatus}
                 adapters={adapters}
                 readiness={readiness}
@@ -8222,6 +8282,10 @@ export default function App() {
                 onViewExecution={openLatestExecutionEvidence}
                 onViewArtifact={openLatestArtifactEvidence}
                 onViewEvidence={openRecordsEvents}
+                onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+                onOpenRunDetail={openRunEvidenceById}
+                onOpenExecutionDetail={openExecutionEvidenceById}
+                onOpenArtifactDetail={openArtifactEvidenceById}
                 bridgeStatus={o3deBridgeStatus}
                 adapters={adapters}
                 readiness={readiness}
@@ -8254,6 +8318,10 @@ export default function App() {
                 onViewExecution={openLatestExecutionEvidence}
                 onViewArtifact={openLatestArtifactEvidence}
                 onViewEvidence={openRecordsEvents}
+                onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+                onOpenRunDetail={openRunEvidenceById}
+                onOpenExecutionDetail={openExecutionEvidenceById}
+                onOpenArtifactDetail={openArtifactEvidenceById}
                 bridgeStatus={o3deBridgeStatus}
                 adapters={adapters}
                 readiness={readiness}
@@ -8283,6 +8351,7 @@ export default function App() {
                 promptLaunchDraftRequest={promptLaunchDraftRequest}
                 onReturnToSourceWorkspace={returnToSourceWorkspaceFromPrompt}
                 onPlacementProofOnlyReviewChange={setLatestPlacementProofOnlyReview}
+                focusPromptIdRequest={promptSessionFocusRequest}
               />
             </Suspense>
           </div>

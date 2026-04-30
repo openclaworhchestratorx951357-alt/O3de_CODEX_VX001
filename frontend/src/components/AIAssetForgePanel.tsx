@@ -47,6 +47,10 @@ type AIAssetForgePanelProps = {
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
   onViewEvidence?: () => void;
+  onOpenPromptSessionDetail?: (promptId: string) => void;
+  onOpenExecutionDetail?: (executionId: string) => void;
+  onOpenArtifactDetail?: (artifactId: string) => void;
+  onOpenRunDetail?: (runId: string) => void;
   onOpenRecords?: () => void;
 };
 
@@ -133,6 +137,10 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
         onOpenPromptStudio={props.onOpenPromptStudio}
         onOpenRuntimeOverview={props.onOpenRuntimeOverview}
         onOpenRecords={props.onOpenRecords}
+        onOpenPromptSessionDetail={props.onOpenPromptSessionDetail}
+        onOpenExecutionDetail={props.onOpenExecutionDetail}
+        onOpenArtifactDetail={props.onOpenArtifactDetail}
+        onOpenRunDetail={props.onOpenRunDetail}
       />
       <AssetForgeGuidedPipeline
         onOpenPromptStudio={props.onOpenPromptStudio}

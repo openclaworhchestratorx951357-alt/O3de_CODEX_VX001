@@ -2,6 +2,10 @@ import type { PromptSessionRecord } from "../types/contracts";
 
 export type PlacementProofOnlyReviewSnapshot = {
   capabilityName: string;
+  promptSessionId: string;
+  childRunId?: string;
+  childExecutionId?: string;
+  childArtifactId?: string;
   proofStatus?: string;
   candidateId?: string;
   candidateLabel?: string;
@@ -48,16 +52,21 @@ export function summarizePlacementProofOnlyReview(
     const serverApprovalEvaluation = asRecord(executionDetails?.server_approval_evaluation);
     const decisionCode = readString(serverApprovalEvaluation, "decision_code");
 
+    const artifactId =
+      readString(executionDetails, "artifact_id")
+      ?? readString(executionDetails, "proof_artifact_id")
+      ?? readString(result, "artifact_id")
+      ?? readString(responseRecord, "artifact_id");
     return {
       capabilityName: capabilityName ?? "editor.placement.proof_only",
+      promptSessionId: session.prompt_id,
+      childRunId: getLastString(session.child_run_ids),
+      childExecutionId: getLastString(session.child_execution_ids),
+      childArtifactId: getLastString(session.child_artifact_ids) ?? artifactId,
       proofStatus: readString(executionDetails, "proof_status"),
       candidateId: readString(executionDetails, "candidate_id"),
       candidateLabel: readString(executionDetails, "candidate_label"),
-      artifactId:
-        readString(executionDetails, "artifact_id")
-        ?? readString(executionDetails, "proof_artifact_id")
-        ?? readString(result, "artifact_id")
-        ?? readString(responseRecord, "artifact_id"),
+      artifactId,
       artifactLabel:
         readString(executionDetails, "artifact_label")
         ?? readString(result, "artifact_label")
@@ -157,4 +166,12 @@ function readStringArray(record: Record<string, unknown> | null, key: string): s
   }
 
   return value.filter((item): item is string => typeof item === "string");
+}
+
+function getLastString(values: readonly string[] | undefined): string | undefined {
+  if (!values || values.length === 0) {
+    return undefined;
+  }
+  const value = values[values.length - 1];
+  return typeof value === "string" && value.trim() ? value : undefined;
 }

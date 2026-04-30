@@ -26,6 +26,11 @@ describe("MissionTruthRail", () => {
   });
 
   it("renders the latest placement proof-only remediation snapshot when provided", () => {
+    const onOpenPromptSessionDetail = vi.fn();
+    const onOpenExecutionDetail = vi.fn();
+    const onOpenArtifactDetail = vi.fn();
+    const onOpenRunDetail = vi.fn();
+
     render(
       <MissionTruthRail
         locationLabel="Create Movie Cockpit"
@@ -33,8 +38,16 @@ describe("MissionTruthRail", () => {
         executionAdmitted={false}
         placementWriteAdmitted={false}
         mutationOccurred={false}
+        onOpenPromptSessionDetail={onOpenPromptSessionDetail}
+        onOpenExecutionDetail={onOpenExecutionDetail}
+        onOpenArtifactDetail={onOpenArtifactDetail}
+        onOpenRunDetail={onOpenRunDetail}
         latestPlacementProofOnlyReview={{
           capabilityName: "editor.placement.proof_only",
+          promptSessionId: "prompt-proof-1",
+          childRunId: "run-proof-1",
+          childExecutionId: "exec-proof-1",
+          childArtifactId: "artifact-proof-1",
           proofStatus: "blocked",
           candidateId: "candidate-a",
           candidateLabel: "Weathered Ivy Arch",
@@ -72,6 +85,19 @@ describe("MissionTruthRail", () => {
     expect(screen.getByText("missing")).toBeInTheDocument();
     expect(screen.getByText("No server-owned approval session was provided; endpoint remains blocked.")).toBeInTheDocument();
     expect(screen.getByText(/placement runtime execution is non-admitted/i)).toBeInTheDocument();
+    expect(screen.getByText("prompt-proof-1")).toBeInTheDocument();
+    expect(screen.getByText("exec-proof-1")).toBeInTheDocument();
+    expect(screen.getByText("artifact-proof-1")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Open proof prompt session" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open proof run" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open proof execution" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open proof artifact" }));
+
+    expect(onOpenPromptSessionDetail).toHaveBeenCalledWith("prompt-proof-1");
+    expect(onOpenRunDetail).toHaveBeenCalledWith("run-proof-1");
+    expect(onOpenExecutionDetail).toHaveBeenCalledWith("exec-proof-1");
+    expect(onOpenArtifactDetail).toHaveBeenCalledWith("artifact-proof-1");
   });
 
   it("exposes contextual action buttons", () => {
