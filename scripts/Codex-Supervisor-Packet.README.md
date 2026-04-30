@@ -465,3 +465,15 @@ Profiles are defined in `scripts\Codex-Supervisor-Rollout-Profiles.json`:
 - `standard`: medium-risk, requires operator acknowledgment
 - `docs_low_risk`: low-risk docs profile
 - `operator_decision`: high-risk operator-driven profile with explicit locked-scope approval support
+
+Additional validation harness command:
+
+```powershell
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Test-Codex-Supervisor-Retention-Cadence-Custody-Register-Operator-Governance-Digest.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project-clean-main-sync"
+```
+
+Cadence custody register operator governance digest helper:
+
+```powershell
+powershell -NoLogo -ExecutionPolicy Bypass -File .\scripts\Invoke-Codex-Supervisor-Retention-Cadence-Custody-Register-Operator-Governance-Digest.ps1 -RepoRoot "C:\Users\topgu\OneDrive\Documents\New project" -OperatorAcknowledged
+```
