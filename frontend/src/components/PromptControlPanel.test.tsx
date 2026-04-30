@@ -348,13 +348,16 @@ describe("PromptControlPanel", () => {
   });
 
   it("loads a mission proof-only template handoff into editable prompt fields", async () => {
+    const onReturnToSourceWorkspace = vi.fn();
     render(
       <PromptControlPanel
+        onReturnToSourceWorkspace={onReturnToSourceWorkspace}
         promptLaunchDraftRequest={{
           requestId: "mission-request-1",
           draft: placementProofOnlyMissionPromptDraft,
           sourceSurfaceLabel: "Create Movie cockpit / placement proof-only template",
           launchedAtIso: "2026-04-30T12:00:00.000Z",
+          sourceWorkspaceId: "create-movie",
         }}
       />,
     );
@@ -370,9 +373,13 @@ describe("PromptControlPanel", () => {
     expect(screen.getByText("Create Movie cockpit / placement proof-only template")).toBeInTheDocument();
     expect(screen.getByText(/Prefill timestamp \(ISO\):/i)).toBeInTheDocument();
     expect(screen.getByText("2026-04-30T12:00:00.000Z")).toBeInTheDocument();
+    expect(screen.getByText(/Source workspace id:/i)).toBeInTheDocument();
+    expect(screen.getByText("create-movie")).toBeInTheDocument();
     expect(
       screen.getByText(/prefill-only; manual preview and explicit execute are still required/i),
     ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Return to source cockpit" }));
+    expect(onReturnToSourceWorkspace).toHaveBeenCalledWith("create-movie");
     expect(screen.getByLabelText("Prompt text")).toHaveValue(
       placementProofOnlyMissionPromptDraft.promptText,
     );

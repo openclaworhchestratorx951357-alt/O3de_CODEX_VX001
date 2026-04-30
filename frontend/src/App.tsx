@@ -259,6 +259,7 @@ type PromptLaunchDraftRequest = {
   draft: MissionPromptDraft;
   sourceSurfaceLabel?: string | null;
   launchedAtIso?: string | null;
+  sourceWorkspaceId?: DesktopWorkspaceId | null;
 };
 
 type OperationsSurfaceId =
@@ -5083,20 +5084,31 @@ export default function App() {
   function openPromptStudioWithMissionDraft(
     draft: MissionPromptDraft,
     sourceSurfaceLabel: string,
+    sourceWorkspaceId: DesktopWorkspaceId,
   ): void {
     setPromptLaunchDraftRequest({
       requestId: crypto.randomUUID(),
       draft,
       sourceSurfaceLabel,
       launchedAtIso: new Date().toISOString(),
+      sourceWorkspaceId,
     });
     setActiveWorkspaceId("prompt");
   }
 
-  function openPromptStudioWithPlacementProofTemplate(): void {
+  function openPromptStudioWithPlacementProofTemplateFromHome(): void {
     openPromptStudioWithMissionDraft(
       placementProofOnlyMissionPromptDraft,
-      "Mission workflow / placement proof-only template",
+      "Home mission workflow / placement proof-only template",
+      "home",
+    );
+  }
+
+  function openPromptStudioWithPlacementProofTemplateFromAssetForge(): void {
+    openPromptStudioWithMissionDraft(
+      placementProofOnlyMissionPromptDraft,
+      "Asset Forge workflow / placement proof-only template",
+      "asset-forge",
     );
   }
 
@@ -5104,13 +5116,31 @@ export default function App() {
     openPromptStudioWithMissionDraft(
       cinematicPlacementProofOnlyMissionPromptDraft,
       "Create Movie cockpit / placement proof-only template",
+      "create-movie",
     );
   }
 
-  function openPromptStudioWithInspectProjectTemplate(): void {
+  function openPromptStudioWithInspectProjectTemplateFromHome(): void {
     openPromptStudioWithMissionDraft(
       inspectProjectMissionPromptDraft,
-      "Home or Asset Forge / inspect project template",
+      "Home mission workflow / inspect project template",
+      "home",
+    );
+  }
+
+  function openPromptStudioWithInspectProjectTemplateFromAssetForge(): void {
+    openPromptStudioWithMissionDraft(
+      inspectProjectMissionPromptDraft,
+      "Asset Forge workflow / inspect project template",
+      "asset-forge",
+    );
+  }
+
+  function openPromptStudioWithInspectProjectTemplateFromCreateGame(): void {
+    openPromptStudioWithMissionDraft(
+      inspectProjectMissionPromptDraft,
+      "Create Game cockpit / inspect project template",
+      "create-game",
     );
   }
 
@@ -5118,6 +5148,7 @@ export default function App() {
     openPromptStudioWithMissionDraft(
       createGameEntityMissionPromptDraft,
       "Create Game cockpit / create entity template",
+      "create-game",
     );
   }
 
@@ -5125,6 +5156,7 @@ export default function App() {
     openPromptStudioWithMissionDraft(
       addAllowlistedMeshMissionPromptDraft,
       "Create Game cockpit / add allowlisted component template",
+      "create-game",
     );
   }
 
@@ -5132,6 +5164,7 @@ export default function App() {
     openPromptStudioWithMissionDraft(
       inspectCinematicTargetMissionPromptDraft,
       "Create Movie cockpit / inspect cinematic target template",
+      "create-movie",
     );
   }
 
@@ -5139,6 +5172,7 @@ export default function App() {
     openPromptStudioWithMissionDraft(
       createCinematicCameraPlaceholderMissionPromptDraft,
       "Create Movie cockpit / camera placeholder template",
+      "create-movie",
     );
   }
 
@@ -5146,7 +5180,28 @@ export default function App() {
     openPromptStudioWithMissionDraft(
       inspectLoadProjectMissionPromptDraft,
       "Load Project cockpit / inspect target template",
+      "load-project",
     );
+  }
+
+  function returnToSourceWorkspaceFromPrompt(sourceWorkspaceId: string): void {
+    const allowedWorkspaceIds: DesktopWorkspaceId[] = [
+      "home",
+      "create-game",
+      "create-movie",
+      "load-project",
+      "asset-forge",
+      "prompt",
+      "builder",
+      "operations",
+      "runtime",
+      "records",
+    ];
+    if (allowedWorkspaceIds.includes(sourceWorkspaceId as DesktopWorkspaceId)) {
+      setActiveWorkspaceId(sourceWorkspaceId as DesktopWorkspaceId);
+      return;
+    }
+    setActiveWorkspaceId("home");
   }
 
   function openRecordsRuns(): void {
@@ -7468,8 +7523,8 @@ export default function App() {
             >
               <AIAssetForgePanel
                 onOpenPromptStudio={openPromptStudio}
-                onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplate}
-                onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplate}
+                onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
+                onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
                 onOpenRecords={openRecordsRuns}
@@ -7557,10 +7612,10 @@ export default function App() {
               onOpenCreateGame={() => setActiveWorkspaceId("create-game")}
               onOpenCreateMovie={() => setActiveWorkspaceId("create-movie")}
               onOpenLoadProject={() => setActiveWorkspaceId("load-project")}
-              onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplate}
+              onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromHome}
               onLaunchCreateEntityTemplate={openPromptStudioWithCreateGameEntityTemplate}
               onLaunchAddMeshTemplate={openPromptStudioWithAddAllowlistedMeshTemplate}
-              onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplate}
+              onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromHome}
               onViewLatestRun={openRecordsRuns}
               onViewExecution={openRecordsExecutions}
               onViewArtifact={openRecordsArtifacts}
@@ -7591,7 +7646,7 @@ export default function App() {
                 onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenRecords={openRecordsRuns}
-                onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplate}
+                onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromCreateGame}
                 onLaunchCreateEntityTemplate={openPromptStudioWithCreateGameEntityTemplate}
                 onLaunchAddMeshTemplate={openPromptStudioWithAddAllowlistedMeshTemplate}
                 onViewLatestRun={openRecordsRuns}
@@ -7689,6 +7744,7 @@ export default function App() {
                 selectedWorkspaceId={selectedWorkspaceId}
                 selectedExecutorId={selectedExecutorId}
                 promptLaunchDraftRequest={promptLaunchDraftRequest}
+                onReturnToSourceWorkspace={returnToSourceWorkspaceFromPrompt}
               />
             </Suspense>
           </div>

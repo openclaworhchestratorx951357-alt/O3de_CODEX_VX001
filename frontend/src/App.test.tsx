@@ -146,7 +146,9 @@ vi.mock("./components/workspaces/PromptWorkspaceDesktop", () => ({
       promptLaunchDraftRequest?: {
         draft?: { label?: string };
         sourceSurfaceLabel?: string | null;
+        sourceWorkspaceId?: string | null;
       } | null;
+      onReturnToSourceWorkspace?: ((workspaceId: string) => void) | undefined;
     },
   ) => (
     <div>
@@ -156,6 +158,17 @@ vi.mock("./components/workspaces/PromptWorkspaceDesktop", () => ({
       ) : null}
       {props.promptLaunchDraftRequest?.sourceSurfaceLabel ? (
         <div>{`Loaded source: ${props.promptLaunchDraftRequest.sourceSurfaceLabel}`}</div>
+      ) : null}
+      {props.promptLaunchDraftRequest?.sourceWorkspaceId ? (
+        <div>{`Loaded source workspace: ${props.promptLaunchDraftRequest.sourceWorkspaceId}`}</div>
+      ) : null}
+      {props.promptLaunchDraftRequest?.sourceWorkspaceId && props.onReturnToSourceWorkspace ? (
+        <button
+          type="button"
+          onClick={() => props.onReturnToSourceWorkspace?.(props.promptLaunchDraftRequest?.sourceWorkspaceId ?? "home")}
+        >
+          Return to source cockpit
+        </button>
       ) : null}
     </div>
   ),
@@ -391,6 +404,7 @@ describe("App desktop smoke", () => {
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
     expect(screen.getByText("Loaded mission draft: Create safe game entity prompt")).toBeInTheDocument();
     expect(screen.getByText("Loaded source: Create Game cockpit / create entity template")).toBeInTheDocument();
+    expect(screen.getByText("Loaded source workspace: create-game")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Create Movie/i));
     await screen.findAllByText("Create Movie Cockpit");
@@ -398,6 +412,7 @@ describe("App desktop smoke", () => {
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
     expect(screen.getByText("Loaded mission draft: Cinematic placement proof-only candidate prompt")).toBeInTheDocument();
     expect(screen.getByText("Loaded source: Create Movie cockpit / placement proof-only template")).toBeInTheDocument();
+    expect(screen.getByText("Loaded source workspace: create-movie")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Load Project/i));
     await screen.findAllByText("Load Project Cockpit");
@@ -405,6 +420,7 @@ describe("App desktop smoke", () => {
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
     expect(screen.getByText("Loaded mission draft: Load project inspection prompt")).toBeInTheDocument();
     expect(screen.getByText("Loaded source: Load Project cockpit / inspect target template")).toBeInTheDocument();
+    expect(screen.getByText("Loaded source workspace: load-project")).toBeInTheDocument();
   });
 
   it("loads Home and Asset Forge contextual templates into Prompt Studio as prefilled mission drafts", async () => {
@@ -413,14 +429,30 @@ describe("App desktop smoke", () => {
     fireEvent.click(screen.getByRole("button", { name: "Load inspect template in Prompt Studio" }));
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
     expect(screen.getByText("Loaded mission draft: Inspect project evidence prompt")).toBeInTheDocument();
-    expect(screen.getByText("Loaded source: Home or Asset Forge / inspect project template")).toBeInTheDocument();
+    expect(screen.getByText("Loaded source: Home mission workflow / inspect project template")).toBeInTheDocument();
+    expect(screen.getByText("Loaded source workspace: home")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Asset Forge/i));
     await screen.findByLabelText("AI Asset Forge");
     fireEvent.click(screen.getByRole("button", { name: "Load placement proof-only template in Prompt Studio" }));
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
     expect(screen.getByText("Loaded mission draft: Placement proof-only candidate prompt")).toBeInTheDocument();
-    expect(screen.getByText("Loaded source: Mission workflow / placement proof-only template")).toBeInTheDocument();
+    expect(screen.getByText("Loaded source: Asset Forge workflow / placement proof-only template")).toBeInTheDocument();
+    expect(screen.getByText("Loaded source workspace: asset-forge")).toBeInTheDocument();
+  });
+
+  it("returns from Prompt Studio to the source cockpit using mission handoff metadata", async () => {
+    render(<App />);
+
+    fireEvent.click(getDesktopNavButton(/Create Game/i));
+    await screen.findAllByText("Create Game Cockpit");
+
+    fireEvent.click(screen.getByRole("button", { name: "Load create-entity template in Prompt Studio" }));
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+    expect(screen.getByText("Loaded source workspace: create-game")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Return to source cockpit" }));
+    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
   });
 
   it("returns to Home from the Asset Forge app header", async () => {

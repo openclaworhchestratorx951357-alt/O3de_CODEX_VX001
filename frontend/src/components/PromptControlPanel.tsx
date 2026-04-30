@@ -49,6 +49,7 @@ type PromptControlPanelProps = {
   selectedWorkspaceId?: string | null;
   selectedExecutorId?: string | null;
   promptLaunchDraftRequest?: PromptLaunchDraftRequest | null;
+  onReturnToSourceWorkspace?: (workspaceId: string) => void;
 };
 
 export type PromptLaunchDraftRequest = {
@@ -56,6 +57,7 @@ export type PromptLaunchDraftRequest = {
   draft: MissionPromptDraft;
   sourceSurfaceLabel?: string | null;
   launchedAtIso?: string | null;
+  sourceWorkspaceId?: string | null;
 };
 
 type PromptDraftRecommendation = {
@@ -255,6 +257,7 @@ export default function PromptControlPanel({
   selectedWorkspaceId = null,
   selectedExecutorId = null,
   promptLaunchDraftRequest = null,
+  onReturnToSourceWorkspace,
 }: PromptControlPanelProps) {
   const { settings } = useSettings();
   const [activeProjectProfile] = useState(() => loadActiveO3DEProjectProfile());
@@ -288,6 +291,8 @@ export default function PromptControlPanel({
   const [loadedMissionDraftSourceSurfaceLabel, setLoadedMissionDraftSourceSurfaceLabel] =
     useState<string | null>(null);
   const [loadedMissionDraftLaunchedAtIso, setLoadedMissionDraftLaunchedAtIso] =
+    useState<string | null>(null);
+  const [loadedMissionDraftSourceWorkspaceId, setLoadedMissionDraftSourceWorkspaceId] =
     useState<string | null>(null);
   const previousOperatorDefaultsRef = useRef(settings.operatorDefaults);
   const lastPromptLaunchRequestIdRef = useRef<string | null>(null);
@@ -454,6 +459,9 @@ export default function PromptControlPanel({
     );
     setLoadedMissionDraftLaunchedAtIso(
       promptLaunchDraftRequest.launchedAtIso?.trim() || new Date().toISOString(),
+    );
+    setLoadedMissionDraftSourceWorkspaceId(
+      promptLaunchDraftRequest.sourceWorkspaceId?.trim() || null,
     );
     setPromptRecommendationMessage(`Loaded mission template: ${draft.label}.`);
   }, [promptLaunchDraftRequest]);
@@ -690,6 +698,7 @@ export default function PromptControlPanel({
                 setLoadedMissionDraft(null);
                 setLoadedMissionDraftSourceSurfaceLabel(null);
                 setLoadedMissionDraftLaunchedAtIso(null);
+                setLoadedMissionDraftSourceWorkspaceId(null);
                 setPromptRecommendationMessage(null);
               }}
             >
@@ -716,8 +725,24 @@ export default function PromptControlPanel({
               Prefill timestamp (ISO): <strong>{loadedMissionDraftLaunchedAtIso ?? "unknown"}</strong>
             </span>
             <span>
+              Source workspace id: <strong>{loadedMissionDraftSourceWorkspaceId ?? "unknown"}</strong>
+            </span>
+            <span>
               Execution path: <strong>prefill-only; manual preview and explicit execute are still required</strong>
             </span>
+          </div>
+          <div style={loadedTemplateActionsStyle}>
+            <button
+              type="button"
+              onClick={() => {
+                if (loadedMissionDraftSourceWorkspaceId && onReturnToSourceWorkspace) {
+                  onReturnToSourceWorkspace(loadedMissionDraftSourceWorkspaceId);
+                }
+              }}
+              disabled={!loadedMissionDraftSourceWorkspaceId || !onReturnToSourceWorkspace}
+            >
+              Return to source cockpit
+            </button>
           </div>
           <p style={subtleTextStyle}>{loadedMissionDraft.guidance}</p>
         </article>
@@ -1039,6 +1064,12 @@ const loadedTemplateGridStyle = {
   gap: 8,
   gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
   color: "var(--app-text-color)",
+} satisfies CSSProperties;
+
+const loadedTemplateActionsStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
 } satisfies CSSProperties;
 
 const checkboxStyle = {
