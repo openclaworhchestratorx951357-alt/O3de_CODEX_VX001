@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import type { PromptSessionRecord } from "../types/contracts";
 import PanelGuideDetails from "./PanelGuideDetails";
-import StatusChip from "./StatusChip";
+import StatusChip, { type StatusChipTone } from "./StatusChip";
 import {
   getBooleanFlagTone,
   getExecutionModeTone,
@@ -90,10 +90,29 @@ export default function PromptExecutionTimeline({
           {placementProofReview ? (
             <article style={groupStyle} aria-label="Placement proof-only review">
               <strong>Placement proof-only review</strong>
+              <div style={badgeRowStyle}>
+                <StatusChip label="proof-only" tone="warning" />
+                <StatusChip label="fail-closed" tone="danger" />
+                <StatusChip
+                  label={`execution_admitted=${formatBooleanFlagValue(placementProofReview.executionAdmitted)}`}
+                  tone={getTriStateBooleanTone(placementProofReview.executionAdmitted, { trueTone: "danger", falseTone: "neutral" })}
+                />
+                <StatusChip
+                  label={`placement_write_admitted=${formatBooleanFlagValue(placementProofReview.placementWriteAdmitted)}`}
+                  tone={getTriStateBooleanTone(placementProofReview.placementWriteAdmitted, { trueTone: "danger", falseTone: "neutral" })}
+                />
+                <StatusChip
+                  label={`mutation_occurred=${formatBooleanFlagValue(placementProofReview.mutationOccurred)}`}
+                  tone={getTriStateBooleanTone(placementProofReview.mutationOccurred, { trueTone: "danger", falseTone: "success" })}
+                />
+              </div>
               <div style={subtleTextStyle}>Capability: {placementProofReview.capabilityName}</div>
               <div style={subtleTextStyle}>Proof status: {placementProofReview.proofStatus ?? "not reported"}</div>
               <div style={subtleTextStyle}>Candidate id: {placementProofReview.candidateId ?? "not reported"}</div>
               <div style={subtleTextStyle}>Candidate label: {placementProofReview.candidateLabel ?? "not reported"}</div>
+              <div style={subtleTextStyle}>
+                Artifact reference: {formatArtifactReference(placementProofReview.artifactLabel, placementProofReview.artifactId)}
+              </div>
               <div style={subtleTextStyle}>
                 Staged source path: {placementProofReview.stagedSourceRelativePath ?? "not reported"}
               </div>
@@ -152,9 +171,10 @@ export default function PromptExecutionTimeline({
                 <div style={subtleTextStyle}>Server blocker reason: {placementProofReview.serverReason}</div>
               ) : null}
               {placementProofReview.serverRemediation ? (
-                <div style={subtleTextStyle}>
-                  Server blocker remediation: {placementProofReview.serverRemediation}
-                </div>
+                <article style={serverRemediationCardStyle}>
+                  <strong style={serverRemediationHeadingStyle}>Server blocker remediation</strong>
+                  <div style={subtleTextStyle}>{placementProofReview.serverRemediation}</div>
+                </article>
               ) : null}
               <div style={subtleTextStyle}>
                 Placement proof-only remains fail-closed and non-mutating: placement runtime execution is non-admitted, placement writes are non-admitted, and no mutation occurred.
@@ -236,6 +256,8 @@ type PlacementProofOnlyReview = {
   proofStatus?: string;
   candidateId?: string;
   candidateLabel?: string;
+  artifactId?: string;
+  artifactLabel?: string;
   stagedSourceRelativePath?: string;
   targetLevelRelativePath?: string;
   targetEntityName?: string;
@@ -282,6 +304,15 @@ function summarizePlacementProofOnlyReview(
       proofStatus: readString(executionDetails, "proof_status"),
       candidateId: readString(executionDetails, "candidate_id"),
       candidateLabel: readString(executionDetails, "candidate_label"),
+      artifactId:
+        readString(executionDetails, "artifact_id")
+        ?? readString(executionDetails, "proof_artifact_id")
+        ?? readString(result, "artifact_id")
+        ?? readString(responseRecord, "artifact_id"),
+      artifactLabel:
+        readString(executionDetails, "artifact_label")
+        ?? readString(result, "artifact_label")
+        ?? readString(responseRecord, "artifact_label"),
       stagedSourceRelativePath: readString(executionDetails, "staged_source_relative_path"),
       targetLevelRelativePath: readString(executionDetails, "target_level_relative_path"),
       targetEntityName: readString(executionDetails, "target_entity_name"),
@@ -411,6 +442,36 @@ function formatBooleanLabel(value: boolean | undefined, flagName: string): strin
   return value ? `yes (${flagName}=true)` : `no (${flagName}=false)`;
 }
 
+function formatBooleanFlagValue(value: boolean | undefined): string {
+  if (value === undefined) {
+    return "unknown";
+  }
+  return value ? "true" : "false";
+}
+
+function getTriStateBooleanTone(
+  value: boolean | undefined,
+  options: { trueTone: StatusChipTone; falseTone: StatusChipTone },
+): StatusChipTone {
+  if (value === undefined) {
+    return "neutral";
+  }
+  return getBooleanFlagTone(value, {
+    trueTone: options.trueTone,
+    falseTone: options.falseTone,
+  });
+}
+
+function formatArtifactReference(label: string | undefined, id: string | undefined): string {
+  if (!label && !id) {
+    return "not reported";
+  }
+  if (label && id) {
+    return `${label} (${id})`;
+  }
+  return label ?? id ?? "not reported";
+}
+
 function TimelineGroup({ title, values }: { title: string; values: string[] }) {
   return (
     <article title={promptExecutionTimelineChildLineageControlGuide.tooltip} style={groupStyle}>
@@ -479,6 +540,27 @@ const childResponseHeaderStyle = {
   justifyContent: "space-between",
   alignItems: "center",
   flexWrap: "wrap",
+} satisfies CSSProperties;
+
+const badgeRowStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 6,
+  marginTop: 8,
+} satisfies CSSProperties;
+
+const serverRemediationCardStyle = {
+  border: "1px solid rgba(245, 189, 88, 0.45)",
+  borderRadius: "var(--app-card-radius)",
+  padding: "10px 12px",
+  background: "rgba(120, 83, 17, 0.14)",
+  display: "grid",
+  gap: 4,
+} satisfies CSSProperties;
+
+const serverRemediationHeadingStyle = {
+  color: "var(--app-text-color)",
+  fontSize: 13,
 } satisfies CSSProperties;
 
 const responseStyle = {

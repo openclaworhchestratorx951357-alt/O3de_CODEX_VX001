@@ -118,6 +118,8 @@ describe("PromptExecutionTimeline", () => {
             stage_write_evidence_reference: "packet-10/stage-write-evidence.json",
             stage_write_readback_reference: "packet-10/readback-evidence.json",
             stage_write_readback_status: "succeeded",
+            artifact_id: "artifact-42",
+            artifact_label: "placement-proof-artifact",
             execution_admitted: false,
             placement_write_admitted: false,
             mutation_occurred: false,
@@ -149,10 +151,16 @@ describe("PromptExecutionTimeline", () => {
     const reviewCard = screen.getByLabelText("Placement proof-only review");
 
     expect(within(reviewCard).getByText("Capability: editor.placement.proof_only")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("proof-only")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("fail-closed")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("execution_admitted=false")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("placement_write_admitted=false")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("mutation_occurred=false")).toBeInTheDocument();
     expect(within(reviewCard).getByText("Candidate id: candidate-a")).toBeInTheDocument();
     expect(within(reviewCard).getByText(/Staged source path:/)).toHaveTextContent(
       "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
     );
+    expect(within(reviewCard).getByText("Artifact reference: placement-proof-artifact (artifact-42)")).toBeInTheDocument();
     expect(within(reviewCard).getByText(/Target level path:/)).toHaveTextContent(
       "Levels/BridgeLevel01/BridgeLevel01.prefab",
     );
@@ -176,7 +184,9 @@ describe("PromptExecutionTimeline", () => {
     expect(within(reviewCard).getByText(/Server blocker reason:/)).toHaveTextContent(
       "No server-owned approval session was provided; endpoint remains blocked.",
     );
-    expect(within(reviewCard).getByText(/Server blocker remediation:/)).toHaveTextContent(
+    expect(within(reviewCard).getByText("Server blocker remediation")).toBeInTheDocument();
+    expect(within(reviewCard).getByText("Prepare a server-owned approval session for this exact bounded request, then rerun this same proof-only prompt.")).toBeInTheDocument();
+    expect(within(reviewCard).getByText(/Prepare a server-owned approval session/)).toHaveTextContent(
       "Prepare a server-owned approval session for this exact bounded request, then rerun this same proof-only prompt.",
     );
     expect(within(reviewCard).getByText(/placement runtime execution is non-admitted/i)).toBeInTheDocument();
