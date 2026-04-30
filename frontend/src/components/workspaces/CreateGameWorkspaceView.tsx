@@ -287,6 +287,7 @@ export default function CreateGameWorkspaceView({
 
   return (
     <CockpitWorkspaceShell
+      cockpitId="create-game"
       title="Create Game Cockpit"
       subtitle="Build an O3DE game through safe prompt-driven stages."
       truthLabel="mission cockpit / narrow admitted editor actions + read-only and preflight support"

@@ -1,0 +1,56 @@
+import type { ReactNode } from "react";
+
+export type CockpitLayoutZone = "top" | "left" | "center" | "right" | "bottom";
+
+export type CockpitLayoutPresetId = "balanced" | "focus" | "review" | "compact" | "wide-screen";
+
+export type CockpitPanelPriority = "primary" | "secondary" | "evidence" | "tools" | "status";
+
+export type CockpitPanelDefinition = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  truthState?: string;
+  defaultZone: CockpitLayoutZone;
+  minWidth?: number;
+  minHeight?: number;
+  defaultWidth?: number;
+  defaultHeight?: number;
+  collapsible?: boolean;
+  scrollMode?: "panel" | "content" | "none";
+  priority?: CockpitPanelPriority;
+  render: () => ReactNode;
+};
+
+export type CockpitLayoutZones = Record<CockpitLayoutZone, string[]>;
+
+export type CockpitLayoutSizes = {
+  leftPrimaryRatio: number;
+  centerPrimaryRatio: number;
+  topPrimaryRatio: number;
+};
+
+export type CockpitLayoutState = {
+  cockpitId: string;
+  version: number;
+  zones: CockpitLayoutZones;
+  sizes: CockpitLayoutSizes;
+  collapsedPanelIds: string[];
+  updatedAt: string;
+};
+
+export const COCKPIT_LAYOUT_ZONES: readonly CockpitLayoutZone[] = [
+  "top",
+  "left",
+  "center",
+  "right",
+  "bottom",
+];
+
+export const DEFAULT_COCKPIT_LAYOUT_SIZES: CockpitLayoutSizes = {
+  leftPrimaryRatio: 0.3,
+  centerPrimaryRatio: 0.62,
+  topPrimaryRatio: 0.74,
+};
+
+export const COCKPIT_LAYOUT_VERSION = 1;

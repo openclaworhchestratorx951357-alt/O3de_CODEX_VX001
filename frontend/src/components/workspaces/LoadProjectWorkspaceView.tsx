@@ -316,6 +316,7 @@ export default function LoadProjectWorkspaceView({
 
   return (
     <CockpitWorkspaceShell
+      cockpitId="load-project"
       title="Load Project Cockpit"
       subtitle="Connect, inspect, and verify the active O3DE project target before authoring."
       truthLabel="read-only / configuration preflight cockpit"

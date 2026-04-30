@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import CreateGameWorkspaceView from "./CreateGameWorkspaceView";
@@ -6,6 +6,27 @@ import CreateMovieWorkspaceView from "./CreateMovieWorkspaceView";
 import LoadProjectWorkspaceView from "./LoadProjectWorkspaceView";
 
 describe("Cockpit workspace views", () => {
+  it("renders Create Game cockpit inside DockableCockpitLayout and supports collapse/expand/reset", () => {
+    render(<CreateGameWorkspaceView />);
+
+    expect(screen.getByTestId("dockable-layout-create-game")).toBeInTheDocument();
+    expect(screen.getByText("Game creation pipeline")).toBeInTheDocument();
+    expect(screen.getByLabelText("create-game left column resize handle")).toBeInTheDocument();
+    expect(screen.getByLabelText("create-game center and right column resize handle")).toBeInTheDocument();
+    const pipelineBody = screen.getByTestId("dockable-panel-body-pipeline");
+    expect(pipelineBody).toHaveStyle({ overflow: "auto" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse Game creation pipeline panel" }));
+    expect(screen.queryByTestId("dockable-panel-body-pipeline")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand Game creation pipeline panel" }));
+    expect(screen.getByTestId("dockable-panel-body-pipeline")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset layout" }));
+    expect(screen.getByText("Concept")).toBeInTheDocument();
+    expect(screen.getByText("Review / Continue")).toBeInTheDocument();
+  });
+
   it("renders Create Game cockpit pipeline and blocked capability warnings", () => {
     render(<CreateGameWorkspaceView />);
 
@@ -17,6 +38,16 @@ describe("Cockpit workspace views", () => {
     expect(screen.getByRole("button", { name: "Load create-entity template in Prompt Studio" })).toBeDisabled();
     expect(screen.getByText(/Full game generation blocked/i)).toBeInTheDocument();
     expect(screen.getByText(/Arbitrary scripts blocked/i)).toBeInTheDocument();
+  });
+
+  it("renders Create Movie cockpit inside DockableCockpitLayout with reset-stable content", () => {
+    render(<CreateMovieWorkspaceView />);
+
+    expect(screen.getByTestId("dockable-layout-create-movie")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reset layout" }));
+    expect(screen.getByText("Cinematic pipeline")).toBeInTheDocument();
+    expect(screen.getByText("Story / Shot Plan")).toBeInTheDocument();
+    expect(screen.getByText("Characters / Props")).toBeInTheDocument();
   });
 
   it("renders Create Movie cockpit pipeline and proof-only blocked messaging", () => {
@@ -31,6 +62,16 @@ describe("Cockpit workspace views", () => {
     expect(screen.getAllByText(/execution_admitted=false/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/placement_write_admitted=false/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/mutation_occurred=false/i).length).toBeGreaterThan(0);
+  });
+
+  it("renders Load Project cockpit inside DockableCockpitLayout with reset-stable content", () => {
+    render(<LoadProjectWorkspaceView />);
+
+    expect(screen.getByTestId("dockable-layout-load-project")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Reset layout" }));
+    expect(screen.getByText("Project connection checklist")).toBeInTheDocument();
+    expect(screen.getByText("Project root selected")).toBeInTheDocument();
+    expect(screen.getByText("Current target summary")).toBeInTheDocument();
   });
 
   it("renders Load Project cockpit checklist and no-project-write claim", () => {

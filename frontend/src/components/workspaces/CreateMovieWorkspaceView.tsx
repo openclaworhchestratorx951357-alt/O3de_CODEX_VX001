@@ -282,6 +282,7 @@ export default function CreateMovieWorkspaceView({
 
   return (
     <CockpitWorkspaceShell
+      cockpitId="create-movie"
       title="Create Movie Cockpit"
       subtitle="Build cinematic scenes, shots, cameras, props, and review evidence through safe stages."
       truthLabel="cinematic mission cockpit / planning + narrow editor actions + proof-only placement support"
