@@ -243,7 +243,11 @@ describe("App desktop smoke", () => {
   it("opens the runtime workspace from the home launchpad without leaving a blank shell", async () => {
     render(<App />);
 
-    fireEvent.click(await screen.findByRole("tab", { name: /Develop the App/i }));
+    fireEvent.click(await screen.findByRole(
+      "tab",
+      { name: /Develop the App/i },
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    ));
     fireEvent.click(getLaunchpadButton(
       "Bridge status, executors, workspaces, and governance health.",
     ));

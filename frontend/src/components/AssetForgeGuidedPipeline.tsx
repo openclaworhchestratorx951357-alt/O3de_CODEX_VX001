@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 
 type AssetForgeGuidedPipelineProps = {
   onOpenPromptStudio?: () => void;
+  onLaunchPlacementProofTemplate?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenRecords?: () => void;
   onViewEvidence?: () => void;
@@ -118,6 +119,7 @@ const blockedExplanations = [
 
 export default function AssetForgeGuidedPipeline({
   onOpenPromptStudio,
+  onLaunchPlacementProofTemplate,
   onOpenRuntimeOverview,
   onOpenRecords,
   onViewEvidence,
@@ -133,6 +135,7 @@ export default function AssetForgeGuidedPipeline({
 
       <div style={styles.actionRow}>
         <button type="button" onClick={onOpenPromptStudio} disabled={!onOpenPromptStudio} style={styles.button}>Open Prompt Studio</button>
+        <button type="button" onClick={onLaunchPlacementProofTemplate} disabled={!onLaunchPlacementProofTemplate} style={styles.button}>Use placement proof template</button>
         <button type="button" onClick={onOpenRuntimeOverview} disabled={!onOpenRuntimeOverview} style={styles.button}>Open Runtime Overview</button>
         <button type="button" onClick={onOpenRecords} disabled={!onOpenRecords} style={styles.button}>Open Records</button>
         <button type="button" onClick={onViewEvidence} disabled={!onViewEvidence} style={styles.button}>View evidence</button>

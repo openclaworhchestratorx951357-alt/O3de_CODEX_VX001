@@ -7401,6 +7401,7 @@ export default function App() {
             >
               <AIAssetForgePanel
                 onOpenPromptStudio={openPromptStudio}
+                onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplate}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
                 onOpenRecords={openRecordsRuns}
