@@ -11,6 +11,8 @@ type WorkspaceTreeProps = {
   onSelectWorkspace: (workspaceId: string) => void;
 };
 
+type WorkspaceTreeViewMode = "grouped" | "all";
+
 export default function WorkspaceTree({
   activeWorkspaceId,
   activeNavItemId,
@@ -30,7 +32,15 @@ export default function WorkspaceTree({
     () => navSections.map((section) => section.id),
     [navSections],
   );
+  const allWorkspaceItems = useMemo(
+    () => navSections.flatMap((section) => section.items.map((item) => ({
+      ...item,
+      sectionLabel: section.label,
+    }))),
+    [navSections],
+  );
   const [expandedSectionIds, setExpandedSectionIds] = useState<string[]>(allSectionIds);
+  const [viewMode, setViewMode] = useState<WorkspaceTreeViewMode>("grouped");
 
   useEffect(() => {
     setExpandedSectionIds((currentSectionIds) => {
@@ -70,7 +80,7 @@ export default function WorkspaceTree({
         <span style={navSectionEyebrowStyle}>Workspace tree</span>
         <strong style={navSectionTitleStyle}>Control surface</strong>
         <span style={navSectionDetailStyle}>
-          Every cockpit is reachable here. Expand/collapse groups and scroll this rail to reach any destination.
+          Every cockpit is reachable here. Use Grouped or All apps view and scroll this rail to reach every destination.
         </span>
         <span style={currentWorkspacePillStyle}>
           <span>Now open</span>
@@ -79,9 +89,34 @@ export default function WorkspaceTree({
         <div style={navSectionActionRowStyle}>
           <button
             type="button"
+            onClick={() => setViewMode("grouped")}
+            style={{
+              ...navSectionActionButtonStyle,
+              ...(viewMode === "grouped" ? navSectionActionButtonActiveStyle : null),
+            }}
+            aria-label="Show grouped workspace tree view"
+            aria-pressed={viewMode === "grouped"}
+          >
+            Grouped
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("all")}
+            style={{
+              ...navSectionActionButtonStyle,
+              ...(viewMode === "all" ? navSectionActionButtonActiveStyle : null),
+            }}
+            aria-label="Show all cockpit apps view"
+            aria-pressed={viewMode === "all"}
+          >
+            All apps
+          </button>
+          <button
+            type="button"
             onClick={expandAllSections}
             style={navSectionActionButtonStyle}
             aria-label="Expand all workspace groups"
+            disabled={viewMode !== "grouped"}
           >
             Expand all
           </button>
@@ -90,6 +125,7 @@ export default function WorkspaceTree({
             onClick={collapseToActiveSection}
             style={navSectionActionButtonStyle}
             aria-label="Collapse to current workspace group"
+            disabled={viewMode !== "grouped"}
           >
             Collapse to active
           </button>
@@ -97,7 +133,44 @@ export default function WorkspaceTree({
       </div>
 
       <div style={navScrollableRegionStyle}>
-        {navSections.map((section) => {
+        {viewMode === "all" ? (
+          <section style={navGroupStyle} aria-label="All cockpit apps list">
+            <div style={allAppsHeaderStyle}>
+              <span style={navGroupSummaryLabelStyle}>All cockpit apps</span>
+              <span style={navGroupSummaryCountStyle}>{`${allWorkspaceItems.length} total`}</span>
+            </div>
+            <div style={navListStyle}>
+              {allWorkspaceItems.map((item) => {
+                const active = item.id === currentNavItemId;
+                const tone = toneStyles[item.tone ?? "neutral"];
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => onSelectWorkspace(item.id)}
+                    title={item.helpTooltip ?? undefined}
+                    style={{
+                      ...navButtonStyle,
+                      ...(active ? activeNavButtonStyle : null),
+                    }}
+                  >
+                    <div style={navButtonHeaderStyle}>
+                      <strong style={navButtonLabelStyle}>{item.label}</strong>
+                      {item.badge ? (
+                        <span style={{ ...navBadgeStyle, ...tone }}>
+                          {item.badge}
+                        </span>
+                      ) : null}
+                    </div>
+                    <span style={navButtonSubtitleStyle}>
+                      {`${item.sectionLabel} · ${item.subtitle}`}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        ) : navSections.map((section) => {
           const sectionActive = section.items.some((item) => item.id === activeWorkspaceId);
           const sectionExpanded = expandedSectionIds.includes(section.id);
           return (
@@ -163,11 +236,11 @@ export default function WorkspaceTree({
 }
 
 const navRailStyle = {
-  flex: "0 0 clamp(236px, 18vw, 320px)",
+  flex: "0 0 clamp(248px, 20vw, 356px)",
   alignSelf: "stretch",
   position: "relative",
-  minWidth: 236,
-  maxWidth: 320,
+  minWidth: 248,
+  maxWidth: 356,
   height: "100%",
   maxHeight: "100%",
   display: "grid",
@@ -230,13 +303,21 @@ const navSectionActionRowStyle = {
 } satisfies CSSProperties;
 
 const navSectionActionButtonStyle = {
-  border: "1px solid var(--app-panel-border)",
+  borderWidth: 1,
+  borderStyle: "solid",
+  borderColor: "var(--app-panel-border)",
   borderRadius: "var(--app-pill-radius)",
   padding: "4px 8px",
   background: "var(--app-panel-bg-alt)",
   color: "var(--app-text-color)",
   fontSize: 11,
   cursor: "pointer",
+} satisfies CSSProperties;
+
+const navSectionActionButtonActiveStyle = {
+  borderColor: "var(--app-active-border)",
+  background: "var(--app-active-bg)",
+  boxShadow: "var(--app-active-shadow)",
 } satisfies CSSProperties;
 
 const navScrollableRegionStyle = {
@@ -258,6 +339,15 @@ const navGroupStyle = {
   background: "var(--app-panel-elevated)",
   boxShadow: "var(--app-shadow-soft)",
   overflow: "hidden",
+} satisfies CSSProperties;
+
+const allAppsHeaderStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 8,
+  padding: "9px 11px 7px",
+  borderBottom: "1px solid var(--app-panel-border)",
 } satisfies CSSProperties;
 
 const navGroupSummaryStyle = {
@@ -315,11 +405,7 @@ const navListStyle = {
   display: "grid",
   gap: 6,
   padding: "6px 0 2px",
-  maxHeight: "clamp(130px, 34vh, 360px)",
-  overflowY: "auto",
-  overflowX: "hidden",
   minHeight: 0,
-  scrollbarWidth: "thin",
 } satisfies CSSProperties;
 
 const navButtonStyle = {

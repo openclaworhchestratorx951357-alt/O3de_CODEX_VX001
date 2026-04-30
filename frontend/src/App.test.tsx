@@ -278,6 +278,11 @@ describe("App desktop smoke", () => {
     fireEvent.click(navScope.getByRole("button", { name: "Collapse to current workspace group" }));
     expect(navScope.queryByRole("button", { name: /Create Game/i })).not.toBeInTheDocument();
 
+    fireEvent.click(navScope.getByRole("button", { name: "Show all cockpit apps view" }));
+    expect(navScope.getByRole("button", { name: /Create Game/i })).toBeInTheDocument();
+    expect(navScope.getByRole("button", { name: /Prompt Studio/i })).toBeInTheDocument();
+
+    fireEvent.click(navScope.getByRole("button", { name: "Show grouped workspace tree view" }));
     fireEvent.click(navScope.getByRole("button", { name: "Expand all workspace groups" }));
 
     expect(navScope.getByRole("button", { name: /Create Game/i })).toBeInTheDocument();
