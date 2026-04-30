@@ -31,6 +31,12 @@ preserving blocked/non-admitted runtime execution and mutation posture.
   `editor.placement.proof_only` as simulated/proof-only maturity
 - added targeted tests for route behavior, planner path, catalog visibility, and
   schema validation updates
+- wired prompt-session execution for `editor.placement.proof_only` through the
+  bounded Asset Forge proof-only service path in hybrid adapter mode
+- fixed persisted execution/artifact payload conformance for
+  `editor.placement.proof_only` in both hybrid and simulated adapter fallbacks
+  so prompt execution remains fail-closed instead of failing with
+  `INVALID_PERSISTED_PAYLOAD`
 
 ## Files
 

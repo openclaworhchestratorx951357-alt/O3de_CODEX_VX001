@@ -2541,6 +2541,55 @@ def test_prompt_session_plans_editor_placement_proof_only_candidate_with_asset_f
         }
 
 
+def test_prompt_session_executes_editor_placement_proof_only_candidate_with_fail_closed_evidence(
+    ) -> None:
+    with patch.dict("os.environ", {"O3DE_ADAPTER_MODE": "hybrid"}, clear=False):
+        with isolated_client() as client:
+            create_response = client.post(
+                "/prompt/sessions",
+                json={
+                    "prompt_id": "prompt-editor-placement-proof-only-execute-1",
+                    "prompt_text": (
+                        'In the editor, create a placement proof-only candidate with '
+                        'candidate_id "candidate-a", candidate_label "Weathered Ivy Arch", '
+                        'staged_source_relative_path "Assets/Generated/asset_forge/candidate_a/candidate_a.glb", '
+                        'target_level_relative_path "Levels/BridgeLevel01/BridgeLevel01.prefab", '
+                        'target_entity_name "AssetForgeCandidateA", target_component "Mesh", '
+                        'stage_write_evidence_reference "packet-10/stage-write-evidence.json", '
+                        'stage_write_readback_reference "packet-10/readback-evidence.json", '
+                        'stage_write_readback_status "succeeded", approval_state "approved", '
+                        'and approval_note "bounded proof-only review".'
+                    ),
+                    "project_root": "C:/project",
+                    "engine_root": "C:/engine",
+                    "dry_run": True,
+                    "preferred_domains": ["editor-control"],
+                },
+            )
+            assert create_response.status_code == 200
+            create_payload = create_response.json()
+            assert create_payload["status"] == "planned"
+
+            execute_response = client.post(
+                "/prompt/sessions/prompt-editor-placement-proof-only-execute-1/execute"
+            )
+            assert execute_response.status_code == 200
+            payload = execute_response.json()
+            assert payload["status"] == "completed"
+            assert len(payload["latest_child_responses"]) == 1
+            child_response = payload["latest_child_responses"][0]
+            assert child_response["ok"] is True
+            assert child_response["result"]["tool"] == "editor.placement.proof_only"
+            assert child_response["result"]["execution_mode"] == "simulated"
+            details = child_response["execution_details"]
+            assert details["capability_name"] == "editor.placement.proof_only"
+            assert details["execution_admitted"] is False
+            assert details["placement_write_admitted"] is False
+            assert details["mutation_occurred"] is False
+            assert details["read_only"] is True
+            assert details["source"] == "asset-forge-editor-placement-proof-only"
+
+
 @pytest.mark.parametrize(
     ("prompt_id", "prompt_text"),
     [
