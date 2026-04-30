@@ -1,8 +1,8 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-Editor placement proof-only readiness audit
-(`codex/editor-placement-proof-only-readiness-audit`).
+Editor placement proof-only implementation
+(`codex/editor-placement-proof-only-implementation`).
 
 ## Why this is next
 - GUI shell taxonomy parity checkpoint + quick-reference refresh packet is now
@@ -32,18 +32,15 @@ Editor placement proof-only readiness audit
   current plan-only placement truth plus cross-lane dependency boundaries.
 - Editor placement proof-only design is now complete with explicit candidate
   scope, fail-closed gates, and no-admission boundaries.
-- The next highest-value gate is auditing runtime/test touchpoints for each
-  designed gate and identifying exact missing pieces before any proof-only
-  implementation discussion.
+- The next highest-value gate is implementing one bounded proof-only corridor
+  from the audited gates while preserving explicit non-admitting defaults.
 
 ## Scope
-- produce a focused editor placement proof-only readiness audit packet
-- audit each designed fail-closed gate against current runtime/test
-  touchpoints and bounded implementation readiness
-- identify missing gates and exact files/touchpoints for a future proof-only
-  implementation packet
+- implement one bounded editor placement proof-only corridor packet
+- wire the explicit route/model/service/planner touchpoints identified by the
+  readiness audit into a fail-closed, non-admitting path
 - preserve explicit blocked-status language for assignment/placement execution
-  while editor placement proof-only readiness boundaries are refreshed
+  beyond this proof-only corridor
 - keep recommendation surfaces aligned to this next packet across capability,
   audit, workspace, timeline, and shell guidance
 - preserve explicit non-authorizing client-field posture and fail-closed
@@ -65,7 +62,7 @@ Editor placement proof-only readiness audit
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- Editor placement proof-only readiness audit recommendation wording is
+- Editor placement proof-only implementation recommendation wording is
   deterministic and aligned across shell recommendation surfaces
 - explicit hold gates remain reviewable and non-admitting:
   assignment/placement execution stays blocked without a separate future
@@ -85,8 +82,8 @@ Editor placement proof-only readiness audit
 
 ## Alternative considered
 Direct placement runtime-admission broadening without first tightening
-editor placement proof-only readiness-audit boundaries.
+editor placement proof-only implementation boundaries.
 
 This remains deferred for safety. Keep editor placement proof-only
-readiness-audit boundaries explicit first, then consider any future
-proof-only-implementation revisit.
+implementation strictly bounded and non-admitting first, then consider any
+future runtime-admission revisit.

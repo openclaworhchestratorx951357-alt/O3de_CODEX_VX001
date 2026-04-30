@@ -78,7 +78,7 @@ the next packet selection while this hold checkpoint remains stable.
 
 ## Recommended next packet
 
-Editor placement proof-only readiness audit:
+Editor placement proof-only implementation:
 
 - tighten provider preflight no-provider-call safeguards and evidence wording
 - preserve stage-plan/stage-write/readback non-authorizing boundaries

@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Editor placement proof-only readiness audit
-(`codex/editor-placement-proof-only-readiness-audit`):
+Editor placement proof-only implementation
+(`codex/editor-placement-proof-only-implementation`):
 
 - keep approval/session baseline + shell + timeline wording aligned under
   server-owned authorization truth and fail-closed gate-state semantics

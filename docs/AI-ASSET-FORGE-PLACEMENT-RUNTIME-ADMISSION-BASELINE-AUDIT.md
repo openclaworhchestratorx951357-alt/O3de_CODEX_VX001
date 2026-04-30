@@ -105,7 +105,7 @@ Result summary:
 
 ## Recommended next packet
 
-Editor placement proof-only readiness audit:
+Editor placement proof-only implementation:
 
 - define exact bounded contract fields for a future runtime-admission candidate
 - define explicit no-go rules and non-goals for admission design scope

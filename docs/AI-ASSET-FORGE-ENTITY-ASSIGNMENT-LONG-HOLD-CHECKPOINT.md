@@ -71,7 +71,7 @@ the next packet selection while this hold checkpoint remains stable.
 
 ## Recommended next packet
 
-Editor placement proof-only readiness audit:
+Editor placement proof-only implementation:
 
 - establish current truth for placement proof/runtime-harness fail-closed
   surfaces

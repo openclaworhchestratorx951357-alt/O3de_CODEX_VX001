@@ -80,7 +80,7 @@ Result summary:
 
 ## Recommended next packet
 
-Editor placement proof-only readiness audit:
+Editor placement proof-only implementation:
 
 - tighten Blender preflight no-execution safeguards and evidence wording
 - preserve provider/stage-plan/stage-write/readback non-authorizing boundaries

@@ -105,7 +105,7 @@ export default function AppEvidenceTimelineShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Editor placement proof-only readiness audit</strong>.
+        Recommended next packet: <strong>Editor placement proof-only implementation</strong>.
       </p>
     </section>
   );

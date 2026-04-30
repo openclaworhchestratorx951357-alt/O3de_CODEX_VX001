@@ -47,5 +47,5 @@ mutation admission.
 
 ## Recommended next packet
 
-Editor placement proof-only readiness audit
-(`codex/editor-placement-proof-only-readiness-audit`).
+Editor placement proof-only implementation
+(`codex/editor-placement-proof-only-implementation`).
