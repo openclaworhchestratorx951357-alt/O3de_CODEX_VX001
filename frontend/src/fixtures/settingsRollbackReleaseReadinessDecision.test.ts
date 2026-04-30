@@ -11,21 +11,32 @@ describe("build execution long-hold fixture guardrails", () => {
     expect(buildExecutionCapability).toBeDefined();
     expect(buildExecutionCapability?.requiredGate).toContain("explicit named target");
     expect(buildExecutionCapability?.requiredGate).toContain("timeout/log/result evidence");
-    expect(buildExecutionCapability?.recommendedNextPacket).toBe("Validation workflow hold-boundary release-readiness decision packet");
+    expect(buildExecutionCapability?.recommendedNextPacket).toBe("Validation workflow hold-boundary long-hold checkpoint packet");
 
     const buildExecutionAudit = appAuditReviewDashboardRows.find((row) => row.domain === "Project/Config");
     expect(buildExecutionAudit).toBeDefined();
     expect(buildExecutionAudit?.capabilityWindow).toBe("build.execute.real long-hold checkpoint");
-    expect(buildExecutionAudit?.nextGate).toBe("Validation workflow hold-boundary release-readiness decision packet");
+    expect(buildExecutionAudit?.nextGate).toBe("Validation workflow hold-boundary long-hold checkpoint packet");
     expect(buildExecutionAudit?.findings).toContain("Long-hold checkpoint");
 
     const buildExecutionStatus = appWorkspaceStatusChipRows.find((row) => row.capabilityWindow === "build.execute.real");
     expect(buildExecutionStatus).toBeDefined();
     expect(buildExecutionStatus?.summary).toContain("hold/no-go posture explicit");
-    expect(buildExecutionStatus?.nextGate).toBe("Validation workflow hold-boundary release-readiness decision packet");
+    expect(buildExecutionStatus?.nextGate).toBe("Validation workflow hold-boundary long-hold checkpoint packet");
   });
 
   it("records build execution long-hold checkpoint evidence while preserving prior checkpoints", () => {
+    const validationWorkflowHoldBoundaryReleaseReadinessRow = appEvidenceTimelineRows.find(
+      (row) => row.evidenceLane === "validation workflow hold-boundary release-readiness decision packet",
+    );
+    expect(validationWorkflowHoldBoundaryReleaseReadinessRow).toBeDefined();
+    expect(validationWorkflowHoldBoundaryReleaseReadinessRow?.reviewStatus).toBe(
+      "pass-validation-workflow-hold-boundary-release-readiness-decision-packet",
+    );
+    expect(validationWorkflowHoldBoundaryReleaseReadinessRow?.summary).toContain(
+      "deterministic held-lane self-management posture remains intact under explicit held-lane hold/no-go decision wording and boundary-preservation release-readiness proof linkage",
+    );
+
     const validationWorkflowHoldBoundarySelfManagementRow = appEvidenceTimelineRows.find(
       (row) => row.evidenceLane === "validation workflow hold-boundary self-management checkpoint packet",
     );

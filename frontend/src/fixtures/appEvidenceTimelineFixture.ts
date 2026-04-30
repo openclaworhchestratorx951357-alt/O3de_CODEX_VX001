@@ -15,9 +15,19 @@ export type AppEvidenceTimelineRow = {
   reviewStatus: string;
 };
 
-export const appEvidenceTimelineFixtureGeneratedAt = "2026-04-30";
+export const appEvidenceTimelineFixtureGeneratedAt = "2026-05-01";
 
 export const appEvidenceTimelineRows: readonly AppEvidenceTimelineRow[] = [
+  {
+    recordedAtUtc: "2026-05-01T00:00:27Z",
+    domain: "Validation",
+    evidenceLane: "validation workflow hold-boundary release-readiness decision packet",
+    capabilityWindow: "TIAF/preflight + real CI/test execution held-lane release-readiness decision checkpoint",
+    truthLabel: "plan-only",
+    summary:
+      "Validation workflow hold-boundary release-readiness decision checkpoint now verifies deterministic held-lane self-management posture remains intact under explicit held-lane hold/no-go decision wording and boundary-preservation release-readiness proof linkage for TIAF/preflight and real CI/test execution across recommendation surfaces and timeline summaries while preserving non-admitting no-broadening posture.",
+    reviewStatus: "pass-validation-workflow-hold-boundary-release-readiness-decision-packet",
+  },
   {
     recordedAtUtc: "2026-05-01T00:00:26Z",
     domain: "Validation",

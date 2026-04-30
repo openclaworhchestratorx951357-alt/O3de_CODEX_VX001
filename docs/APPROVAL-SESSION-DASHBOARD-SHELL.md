@@ -71,8 +71,8 @@ broadened.
 
 ## Recommended next packet
 
-Validation workflow hold-boundary release-readiness decision packet
-(`codex/validation-workflow-hold-boundary-release-readiness-decision-packet`):
+Validation workflow hold-boundary long-hold checkpoint packet
+(`codex/validation-workflow-hold-boundary-long-hold-checkpoint-packet`):
 
 - keep CI/test long-hold checkpoint wording aligned with the existing
   fail-closed approval/session boundary model

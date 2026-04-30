@@ -133,7 +133,7 @@ export default function AppCapabilityDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Validation workflow hold-boundary release-readiness decision packet</strong>.
+        Recommended next packet: <strong>Validation workflow hold-boundary long-hold checkpoint packet</strong>.
       </p>
     </section>
   );

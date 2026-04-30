@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-Validation workflow hold-boundary release-readiness decision packet
-(`codex/validation-workflow-hold-boundary-release-readiness-decision-packet`):
+Validation workflow hold-boundary long-hold checkpoint packet
+(`codex/validation-workflow-hold-boundary-long-hold-checkpoint-packet`):
 
 - keep CI/test execution long-hold checkpoint posture explicit while preserving
   no-admission timeline truth

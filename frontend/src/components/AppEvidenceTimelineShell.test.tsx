@@ -29,6 +29,13 @@ describe("AppEvidenceTimelineShell", () => {
     expect(screen.getAllByText("admitted-real").length).toBeGreaterThan(0);
     expect(screen.getByText("hold-default-off")).toBeInTheDocument();
     expect(screen.getByText("linked-validation-hold")).toBeInTheDocument();
+    expect(screen.getByText("validation workflow hold-boundary release-readiness decision packet")).toBeInTheDocument();
+    expect(
+      screen.getByText("TIAF/preflight + real CI/test execution held-lane release-readiness decision checkpoint"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("pass-validation-workflow-hold-boundary-release-readiness-decision-packet"),
+    ).toBeInTheDocument();
     expect(screen.getByText("validation workflow hold-boundary self-management checkpoint packet")).toBeInTheDocument();
     expect(
       screen.getByText("TIAF/preflight + real CI/test execution held-lane self-management checkpoint"),
@@ -597,7 +604,7 @@ describe("AppEvidenceTimelineShell", () => {
     expect(screen.getByText("codex.flow.trigger.audit_gate checklist stop-point contract")).toBeInTheDocument();
     expect(screen.getByText("pass-flow-trigger-audit-gate-checklist")).toBeInTheDocument();
 
-    expect(screen.getByText("Validation workflow hold-boundary release-readiness decision packet", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Validation workflow hold-boundary long-hold checkpoint packet", { selector: "strong" })).toBeInTheDocument();
   });
 });
 

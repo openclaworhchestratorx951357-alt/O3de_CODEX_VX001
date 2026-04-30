@@ -47,8 +47,8 @@ These labels are operator guidance only and never authorize runtime behavior.
 
 ## Recommended next packet
 
-Validation workflow hold-boundary release-readiness decision packet
-(`codex/validation-workflow-hold-boundary-release-readiness-decision-packet`).
+Validation workflow hold-boundary long-hold checkpoint packet
+(`codex/validation-workflow-hold-boundary-long-hold-checkpoint-packet`).
 
 
 

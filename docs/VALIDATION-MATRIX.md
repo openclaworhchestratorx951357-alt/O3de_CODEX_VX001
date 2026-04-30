@@ -406,6 +406,24 @@ Self-management invariant:
   wording, timeline evidence rows, recommendation surfaces, and linked fixture
   assertions together.
 
+Held-lane release-readiness decision checkpoints:
+
+| Held lane checkpoint evidence | Canonical release-readiness posture | Expected consistency scope |
+| --- | --- | --- |
+| `validation workflow hold-boundary release-readiness decision packet` | deterministic self-management posture remains intact under explicit held-lane hold/no-go decision wording and boundary-preservation release-readiness proof linkage | timeline summaries + app-wide shell recommendation surfaces + fixture tests |
+| `tiaf preflight long-hold checkpoint packet` | held-lane non-admitting/no-runtime-mutation posture remains explicit and unchanged through release-readiness decision checkpoint rollovers | timeline summaries + fixture tests |
+| `ci admission long-hold checkpoint packet` | held-lane non-admitting execution posture remains explicit and unchanged through release-readiness decision checkpoint rollovers | timeline summaries + fixture tests |
+
+Release-readiness invariant:
+
+- held-lane release-readiness must remain deterministic (self-management
+  posture preserved under explicit held-lane hold/no-go decision wording and
+  boundary-preservation release-readiness proof linkage) across recommendation
+  surfaces and timeline summaries while preserving downstream `TIAF/preflight`
+  and real CI/test long-hold posture, unless a dedicated packet updates matrix
+  wording, timeline evidence rows, recommendation surfaces, and linked fixture
+  assertions together.
+
 ## Docs And Repo Hygiene
 
 | Change type | Recommended validation | Proves | Does not prove |

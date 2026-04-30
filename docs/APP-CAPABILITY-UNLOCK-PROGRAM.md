@@ -170,6 +170,7 @@ The following patterns are now established:
 - validation workflow hold-boundary self-command checkpoint packet
 - validation workflow hold-boundary self-management checkpoint packet
 - validation workflow hold-boundary release-readiness decision packet
+- validation workflow hold-boundary long-hold checkpoint packet
 - approval/session dashboard baseline audit
 - approval/session dashboard shell (static fixture first)
 - approval/session dashboard truth refresh + validation linkage
@@ -890,7 +891,7 @@ Why:
   linkage
 - advances validation confidence without broadening runtime admission
 
-### BW. Validation Workflow Hold-boundary Release-readiness Decision Packet
+### BW. Validation Workflow Hold-boundary Release-readiness Decision Packet (completed)
 Why:
 - validation workflow hold-boundary self-management checkpoint packet is now
   complete and stable
@@ -898,6 +899,16 @@ Why:
   decision checkpointing so deterministic self-management posture remains
   intact under explicit hold/no-go decision wording and boundary-preservation
   proof linkage
+- advances validation confidence without broadening runtime admission
+
+### BX. Validation Workflow Hold-boundary Long-hold Checkpoint Packet
+Why:
+- validation workflow hold-boundary release-readiness decision packet is now
+  complete and stable
+- next highest-value validation lane is explicit held-lane long-hold stream
+  handoff checkpointing so deterministic release-readiness hold/no-go posture
+  remains intact under explicit long-hold handoff wording and
+  boundary-preservation proof linkage
 - advances validation confidence without broadening runtime admission
 
 ## What stays blocked globally

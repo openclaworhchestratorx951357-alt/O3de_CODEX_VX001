@@ -706,6 +706,11 @@ rounding up capability claims.
   and real CI/test execution across recommendation surfaces and timeline
   summaries, then rolls app-wide focus to the validation workflow hold-boundary
   release-readiness decision packet.
+- `docs/VALIDATION-WORKFLOW-HOLD-BOUNDARY-RELEASE-READINESS-DECISION-PACKET.md`
+  records held-lane release-readiness decision checkpoint evidence for
+  `TIAF/preflight` and real CI/test execution across recommendation surfaces
+  and timeline summaries, then rolls app-wide focus to the validation workflow
+  hold-boundary long-hold checkpoint packet.
 - `docs/PHASE-8-EDITOR-COMPONENT-PROPERTY-WRITE-CANDIDATE.md` tracks why broad
   component property writes remain unadmitted.
 - `docs/OPERATOR-EDITOR-RUNTIME-PROOF-CHECKLIST.md` records live editor proof

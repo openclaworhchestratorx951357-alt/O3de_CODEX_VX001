@@ -26,6 +26,6 @@ describe("AppAuditReviewDashboardShell", () => {
     expect(screen.getAllByText("hold-default-off").length).toBeGreaterThan(0);
     expect(screen.getAllByText("blocked").length).toBeGreaterThan(0);
 
-    expect(screen.getByText("Validation workflow hold-boundary release-readiness decision packet", { selector: "strong" })).toBeInTheDocument();
+    expect(screen.getByText("Validation workflow hold-boundary long-hold checkpoint packet", { selector: "strong" })).toBeInTheDocument();
   });
 });
