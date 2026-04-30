@@ -1,11 +1,15 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import CreateGameWorkspaceView from "./CreateGameWorkspaceView";
 import CreateMovieWorkspaceView from "./CreateMovieWorkspaceView";
 import LoadProjectWorkspaceView from "./LoadProjectWorkspaceView";
 
 describe("Cockpit workspace views", () => {
+  beforeEach(() => {
+    window.localStorage.removeItem("o3de.appos.cockpit-layouts.v1");
+  });
+
   it("renders Create Game cockpit inside DockableCockpitLayout and supports collapse/expand/reset", () => {
     render(<CreateGameWorkspaceView />);
 
@@ -84,5 +88,38 @@ describe("Cockpit workspace views", () => {
     expect(screen.getByText("Current target summary")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Load project inspect template in Prompt Studio" })).toBeDisabled();
     expect(screen.getByText(/does not create\/register projects, write project files/i)).toBeInTheDocument();
+  });
+
+  it("opens Create Game with App OS cockpit default zones", () => {
+    render(<CreateGameWorkspaceView />);
+
+    expect(screen.getByTestId("create-game-top-zone")).toHaveTextContent("Cockpit identity");
+    expect(screen.getByTestId("create-game-left-zone")).toHaveTextContent("Command bar");
+    expect(screen.getByTestId("create-game-left-zone")).toHaveTextContent("Game cockpit tools");
+    expect(screen.getByTestId("create-game-center-zone")).toHaveTextContent("Game creation pipeline");
+    expect(screen.getByTestId("create-game-right-zone")).toHaveTextContent("Blocked capabilities and future unlocks");
+    expect(screen.getByTestId("create-game-bottom-zone")).toHaveTextContent("Suggested prompt templates");
+  });
+
+  it("opens Create Movie with App OS cockpit default zones", () => {
+    render(<CreateMovieWorkspaceView />);
+
+    expect(screen.getByTestId("create-movie-top-zone")).toHaveTextContent("Cockpit identity");
+    expect(screen.getByTestId("create-movie-left-zone")).toHaveTextContent("Command bar");
+    expect(screen.getByTestId("create-movie-left-zone")).toHaveTextContent("Movie cockpit tools");
+    expect(screen.getByTestId("create-movie-center-zone")).toHaveTextContent("Cinematic pipeline");
+    expect(screen.getByTestId("create-movie-right-zone")).toHaveTextContent("Blocked capabilities and future unlocks");
+    expect(screen.getByTestId("create-movie-bottom-zone")).toHaveTextContent("Suggested prompt templates");
+  });
+
+  it("opens Load Project with App OS cockpit default zones", () => {
+    render(<LoadProjectWorkspaceView />);
+
+    expect(screen.getByTestId("load-project-top-zone")).toHaveTextContent("Cockpit identity");
+    expect(screen.getByTestId("load-project-left-zone")).toHaveTextContent("Command bar");
+    expect(screen.getByTestId("load-project-left-zone")).toHaveTextContent("Load Project tools");
+    expect(screen.getByTestId("load-project-center-zone")).toHaveTextContent("Project connection checklist");
+    expect(screen.getByTestId("load-project-right-zone")).toHaveTextContent("Blocked capabilities and future unlocks");
+    expect(screen.getByTestId("load-project-bottom-zone")).toHaveTextContent("Suggested prompt templates");
   });
 });

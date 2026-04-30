@@ -15,6 +15,17 @@ type CockpitLayoutPresetDefinition = {
 };
 
 const presetDefinitions: Record<CockpitLayoutPresetId, CockpitLayoutPresetDefinition> = {
+  "app-os-cockpit": {
+    id: "app-os-cockpit",
+    label: "App OS Cockpit",
+    description: "Blender/Unreal-style cockpit default with dominant center work area, useful side rails, and compact bottom drawer.",
+    sizes: {
+      leftPrimaryRatio: 0.26,
+      centerPrimaryRatio: 0.66,
+      topPrimaryRatio: 0.79,
+    },
+    placePanel: (panel) => panel.defaultZone,
+  },
   balanced: {
     id: "balanced",
     label: "Balanced",

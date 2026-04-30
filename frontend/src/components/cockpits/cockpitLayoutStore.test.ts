@@ -175,4 +175,34 @@ describe("cockpitLayoutStore", () => {
     expect(loaded.zones.right).toEqual(["asset-forge-truth"]);
     expect(loaded.zones.bottom).toEqual(["asset-forge-evidence"]);
   });
+
+  it("normalizes old create-game saved layout versions back to the current default", () => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      "create-game": {
+        cockpitId: "create-game",
+        version: 1,
+        zones: {
+          top: [],
+          left: ["panel-b"],
+          center: ["panel-a"],
+          right: ["panel-c"],
+          bottom: [],
+        },
+        sizes: {
+          leftPrimaryRatio: 0.45,
+          centerPrimaryRatio: 0.55,
+          topPrimaryRatio: 0.55,
+        },
+        collapsedPanelIds: [],
+        updatedAt: "2026-04-30T00:00:00.000Z",
+      },
+    }));
+
+    const loaded = readCockpitLayoutState("create-game", panels, "app-os-cockpit");
+
+    expect(loaded.version).toBe(2);
+    expect(loaded.zones.left).toContain("panel-a");
+    expect(loaded.zones.center).toContain("panel-b");
+    expect(loaded.zones.right).toContain("panel-c");
+  });
 });

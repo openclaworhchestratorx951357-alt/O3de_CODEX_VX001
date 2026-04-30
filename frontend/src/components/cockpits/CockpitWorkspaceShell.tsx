@@ -293,6 +293,14 @@ export default function CockpitWorkspaceShell({
       <DockableCockpitLayout
         cockpitId={cockpitId}
         panels={panelDefinitions}
+        defaultPresetId="app-os-cockpit"
+        splitConstraints={{
+          leftMinWidth: 240,
+          centerMinWidth: 500,
+          rightMinWidth: 280,
+          mainMinHeight: 240,
+          bottomMinHeight: 160,
+        }}
       />
     </DesktopWindow>
   );
