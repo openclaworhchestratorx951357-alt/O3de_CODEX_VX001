@@ -21,6 +21,7 @@ type HomeWorkspaceViewProps = {
   onOpenBuilder?: () => void;
   onOpenAssetForge?: () => void;
   onOpenRecords?: () => void;
+  onLaunchPlacementProofTemplate?: () => void;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
@@ -73,6 +74,7 @@ export default function HomeWorkspaceView({
   onOpenBuilder,
   onOpenAssetForge,
   onOpenRecords,
+  onLaunchPlacementProofTemplate,
   onViewLatestRun,
   onViewExecution,
   onViewArtifact,
@@ -150,6 +152,7 @@ export default function HomeWorkspaceView({
             onOpenAssetForge={onOpenAssetForge}
             onOpenRuntimeOverview={onOpenRuntimeOverview}
             onOpenRecords={onOpenRecords}
+            onLaunchPlacementProofTemplate={onLaunchPlacementProofTemplate}
           />
           <Suspense fallback={<div style={taskModeLoadingStyle}>Loading task launcher...</div>}>
             <HomeTaskModePanel

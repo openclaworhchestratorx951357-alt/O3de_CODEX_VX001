@@ -71,6 +71,10 @@ import {
   resetPresetLaneFocus,
 } from "./lib/laneController";
 import { buildHomeRecommendationDescriptors, type HomeRecommendationActionId } from "./lib/recommendations";
+import {
+  placementProofOnlyMissionPromptDraft,
+  type MissionPromptDraft,
+} from "./lib/missionPromptTemplates";
 import { useSettings } from "./lib/settings/hooks";
 import type { FocusedSection, TruthFilterState } from "./lib/laneController";
 import type {
@@ -241,6 +245,11 @@ type DesktopNavItemId =
   | "home-o3de-game"
   | "home-o3de-cinematic"
   | "home-load-project";
+
+type PromptLaunchDraftRequest = {
+  requestId: string;
+  draft: MissionPromptDraft;
+};
 
 type OperationsSurfaceId =
   | "dispatch"
@@ -610,6 +619,8 @@ export default function App() {
   const [visitedWorkspaceIds, setVisitedWorkspaceIds] = useState<DesktopWorkspaceId[]>([
     settings.layout.preferredLandingSection as DesktopWorkspaceId,
   ]);
+  const [promptLaunchDraftRequest, setPromptLaunchDraftRequest] =
+    useState<PromptLaunchDraftRequest | null>(null);
   const [activeOperationsSurface, setActiveOperationsSurface] =
     useState<OperationsSurfaceId>("dispatch");
   const [activeRuntimeSurface, setActiveRuntimeSurface] =
@@ -5059,6 +5070,18 @@ export default function App() {
     setActiveRuntimeSurface("workspaces");
   }
 
+  function openPromptStudio(): void {
+    setActiveWorkspaceId("prompt");
+  }
+
+  function openPromptStudioWithPlacementProofTemplate(): void {
+    setPromptLaunchDraftRequest({
+      requestId: crypto.randomUUID(),
+      draft: placementProofOnlyMissionPromptDraft,
+    });
+    setActiveWorkspaceId("prompt");
+  }
+
   function openRecordsRuns(): void {
     setActiveWorkspaceId("records");
     setActiveRecordsSurface("runs");
@@ -7377,7 +7400,7 @@ export default function App() {
               )}
             >
               <AIAssetForgePanel
-                onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
+                onOpenPromptStudio={openPromptStudio}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
                 onOpenRecords={openRecordsRuns}
@@ -7459,11 +7482,12 @@ export default function App() {
               overviewContent={homeOverviewContent}
               guideContent={homeGuideContent}
               activeTaskModeId={homeTaskModeId}
-              onOpenPromptStudio={() => setActiveWorkspaceId("prompt")}
+              onOpenPromptStudio={openPromptStudio}
               onOpenRuntimeOverview={openRuntimeOverview}
               onOpenBuilder={() => setActiveWorkspaceId("builder")}
               onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}
               onOpenRecords={openRecordsRuns}
+              onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplate}
               onViewLatestRun={openRecordsRuns}
               onViewExecution={openRecordsExecutions}
               onViewArtifact={openRecordsArtifacts}
@@ -7493,6 +7517,7 @@ export default function App() {
               <PromptWorkspaceDesktop
                 selectedWorkspaceId={selectedWorkspaceId}
                 selectedExecutorId={selectedExecutorId}
+                promptLaunchDraftRequest={promptLaunchDraftRequest}
               />
             </Suspense>
           </div>

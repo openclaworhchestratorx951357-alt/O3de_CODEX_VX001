@@ -25,6 +25,7 @@ describe("MissionCardDeck", () => {
     const onOpenAssetForge = vi.fn();
     const onOpenRuntimeOverview = vi.fn();
     const onOpenRecords = vi.fn();
+    const onLaunchPlacementProofTemplate = vi.fn();
     const onViewLatestRun = vi.fn();
     const onViewExecution = vi.fn();
     const onViewArtifact = vi.fn();
@@ -39,6 +40,7 @@ describe("MissionCardDeck", () => {
         onOpenAssetForge={onOpenAssetForge}
         onOpenRuntimeOverview={onOpenRuntimeOverview}
         onOpenRecords={onOpenRecords}
+        onLaunchPlacementProofTemplate={onLaunchPlacementProofTemplate}
         onViewLatestRun={onViewLatestRun}
         onViewExecution={onViewExecution}
         onViewArtifact={onViewArtifact}
@@ -61,6 +63,9 @@ describe("MissionCardDeck", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open Prompt Studio" })[0]);
     expect(onOpenPromptStudio).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Use template in Prompt Studio" }));
+    expect(onLaunchPlacementProofTemplate).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getAllByRole("button", { name: "Open Runtime Overview" })[0]);
     expect(onOpenRuntimeOverview).toHaveBeenCalledTimes(1);

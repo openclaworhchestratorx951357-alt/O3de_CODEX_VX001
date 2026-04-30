@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import { placementProofOnlyMissionPromptDraft } from "../lib/missionPromptTemplates";
+
 type MissionCardDeckProps = {
   latestRunId?: string | null;
   latestExecutionId?: string | null;
@@ -12,6 +14,7 @@ type MissionCardDeckProps = {
   onOpenAssetForge?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenRecords?: () => void;
+  onLaunchPlacementProofTemplate?: () => void;
 };
 
 type MissionCard = {
@@ -98,8 +101,6 @@ const cards: MissionCard[] = [
   },
 ];
 
-const placementPromptTemplate = `In the editor, create a placement proof-only candidate with candidate_id "candidate-a", candidate_label "Weathered Ivy Arch", staged_source_relative_path "Assets/Generated/asset_forge/candidate_a/candidate_a.glb", target_level_relative_path "Levels/BridgeLevel01/BridgeLevel01.prefab", target_entity_name "AssetForgeCandidateA", target_component "Mesh", stage_write_evidence_reference "packet-10/stage-write-evidence.json", stage_write_readback_reference "packet-10/readback-evidence.json", stage_write_readback_status "succeeded", approval_state "approved", and approval_note "bounded proof-only review".`;
-
 function destinationAction(
   destination: MissionCard["destination"],
   actions: MissionCardDeckProps,
@@ -155,10 +156,18 @@ export default function MissionCardDeck(props: MissionCardDeckProps) {
                 <div style={styles.templateBox}>
                   <strong>Suggested prompt template</strong>
                   <p style={styles.detail}>Label: proof-only, fail-closed, non-mutating, real placement not admitted.</p>
-                  <pre style={styles.template}>{placementPromptTemplate}</pre>
+                  <pre style={styles.template}>{placementProofOnlyMissionPromptDraft.promptText}</pre>
                   <p style={styles.detail}>
                     Explicit truth: placement execution is non-admitted, placement write is non-admitted, and no mutation occurred.
                   </p>
+                  <button
+                    type="button"
+                    onClick={props.onLaunchPlacementProofTemplate}
+                    disabled={!props.onLaunchPlacementProofTemplate}
+                    style={styles.templateButton}
+                  >
+                    Use template in Prompt Studio
+                  </button>
                 </div>
               ) : null}
 
@@ -240,6 +249,15 @@ const styles = {
     whiteSpace: "pre-wrap",
     fontSize: 12,
     overflowWrap: "anywhere",
+  },
+  templateButton: {
+    border: "1px solid #5faeff",
+    borderRadius: 8,
+    padding: "6px 10px",
+    background: "rgba(19, 33, 49, 0.85)",
+    color: "var(--app-text-color)",
+    cursor: "pointer",
+    fontWeight: 700,
   },
   button: {
     border: "1px solid var(--app-panel-border)",

@@ -25,6 +25,7 @@ import type {
 } from "../types/contracts";
 import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 import { useSettings } from "../lib/settings/hooks";
+import type { MissionPromptDraft } from "../lib/missionPromptTemplates";
 import PanelGuideDetails from "./PanelGuideDetails";
 import PromptCapabilityPanel from "./PromptCapabilityPanel";
 import PromptExecutionTimeline from "./PromptExecutionTimeline";
@@ -47,6 +48,12 @@ const promptControlExecuteSelectedGuide = getPanelControlGuide("prompt-control",
 type PromptControlPanelProps = {
   selectedWorkspaceId?: string | null;
   selectedExecutorId?: string | null;
+  promptLaunchDraftRequest?: PromptLaunchDraftRequest | null;
+};
+
+export type PromptLaunchDraftRequest = {
+  requestId: string;
+  draft: MissionPromptDraft;
 };
 
 type PromptDraftRecommendation = {
@@ -245,6 +252,7 @@ function getPromptRecommendationGroupLabel(group: PromptDraftRecommendation["gro
 export default function PromptControlPanel({
   selectedWorkspaceId = null,
   selectedExecutorId = null,
+  promptLaunchDraftRequest = null,
 }: PromptControlPanelProps) {
   const { settings } = useSettings();
   const [activeProjectProfile] = useState(() => loadActiveO3DEProjectProfile());
@@ -274,7 +282,10 @@ export default function PromptControlPanel({
   const [promptRecommendationMessage, setPromptRecommendationMessage] = useState<string | null>(null);
   const [loadedPromptRecommendation, setLoadedPromptRecommendation] =
     useState<PromptDraftRecommendation | null>(null);
+  const [loadedMissionDraft, setLoadedMissionDraft] = useState<MissionPromptDraft | null>(null);
   const previousOperatorDefaultsRef = useRef(settings.operatorDefaults);
+  const lastPromptLaunchRequestIdRef = useRef<string | null>(null);
+  const suppressNextDryRunDefaultsSyncRef = useRef(false);
   const initialProjectRootRef = useRef(projectRoot);
   const initialEngineRootRef = useRef(engineRoot);
   const effectiveWorkspaceId = workspaceIdEdited ? workspaceId : (selectedWorkspaceId ?? "");
@@ -416,6 +427,26 @@ export default function PromptControlPanel({
   }, [selectedPromptId]);
 
   useEffect(() => {
+    if (!promptLaunchDraftRequest) {
+      return;
+    }
+    if (lastPromptLaunchRequestIdRef.current === promptLaunchDraftRequest.requestId) {
+      return;
+    }
+    lastPromptLaunchRequestIdRef.current = promptLaunchDraftRequest.requestId;
+
+    const { draft } = promptLaunchDraftRequest;
+    setPromptText(draft.promptText);
+    setPreferredDomainsText(draft.preferredDomainsText);
+    setOperatorNote(draft.operatorNote);
+    suppressNextDryRunDefaultsSyncRef.current = true;
+    setDryRun(draft.dryRun);
+    setLoadedPromptRecommendation(null);
+    setLoadedMissionDraft(draft);
+    setPromptRecommendationMessage(`Loaded mission template: ${draft.label}.`);
+  }, [promptLaunchDraftRequest]);
+
+  useEffect(() => {
     const previousDefaults = previousOperatorDefaultsRef.current;
     const previousProjectRoot = previousDefaults.projectRoot;
     const previousEngineRoot = previousDefaults.engineRoot;
@@ -428,7 +459,9 @@ export default function PromptControlPanel({
     if (engineRoot === previousEngineRoot || (!engineRoot && !previousEngineRoot)) {
       setEngineRoot(nextEngineRoot);
     }
-    if (dryRun === previousDefaults.dryRun) {
+    if (suppressNextDryRunDefaultsSyncRef.current) {
+      suppressNextDryRunDefaultsSyncRef.current = false;
+    } else if (dryRun === previousDefaults.dryRun) {
       setDryRun(settings.operatorDefaults.dryRun);
     }
 
@@ -497,6 +530,7 @@ export default function PromptControlPanel({
     setPreferredDomainsText(recommendation.preferredDomainsText);
     setOperatorNote(recommendation.operatorNote);
     setDryRun(recommendation.dryRun);
+    setLoadedMissionDraft(null);
     setLoadedPromptRecommendation(recommendation);
     setPromptRecommendationMessage(`Loaded recommended prompt template: ${recommendation.label}.`);
   }
@@ -626,6 +660,43 @@ export default function PromptControlPanel({
               Dry run: <strong>{loadedPromptRecommendation.dryRun ? "preferred" : "off for admitted real path"}</strong>
             </span>
           </div>
+        </article>
+      ) : null}
+      {loadedMissionDraft ? (
+        <article style={loadedTemplateReviewStyle} aria-label="Mission template handoff review">
+          <div style={loadedTemplateHeaderStyle}>
+            <div style={loadedTemplateTitleGroupStyle}>
+              <span style={loadedTemplateEyebrowStyle}>Mission template handoff</span>
+              <strong>{loadedMissionDraft.label}</strong>
+              <span style={subtleTextStyle}>
+                Review these mission-filled values, edit if needed, preview plan, then execute only within admitted/proof-only boundaries.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setLoadedMissionDraft(null);
+                setPromptRecommendationMessage(null);
+              }}
+            >
+              Clear review
+            </button>
+          </div>
+          <div style={loadedTemplateGridStyle}>
+            <span>
+              Template id: <strong>{loadedMissionDraft.id}</strong>
+            </span>
+            <span>
+              Changed fields: <strong>Prompt text, preferred domains, operator note, dry run</strong>
+            </span>
+            <span>
+              Truth labels: <strong>{loadedMissionDraft.truthLabels.join(", ")}</strong>
+            </span>
+            <span>
+              Dry run: <strong>{loadedMissionDraft.dryRun ? "preferred" : "off for proof-only execution review"}</strong>
+            </span>
+          </div>
+          <p style={subtleTextStyle}>{loadedMissionDraft.guidance}</p>
         </article>
       ) : null}
       <form onSubmit={handlePreviewPlan} style={{ display: "grid", gap: 12 }}>

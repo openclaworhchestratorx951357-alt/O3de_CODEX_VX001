@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SettingsProvider } from "../lib/settings/context";
 import { createSettingsProfile, DEFAULT_ACCENT_COLOR } from "../lib/settings/defaults";
+import { placementProofOnlyMissionPromptDraft } from "../lib/missionPromptTemplates";
 import {
   createDefaultO3DEProjectProfilesStore,
   createO3DEProjectProfile,
@@ -344,6 +345,35 @@ describe("PromptControlPanel", () => {
     expect(screen.getByLabelText("Prompt text")).toHaveValue(
       "Open an editor session for the selected McpSandbox project profile and report the real editor-session evidence. Do not open a level or mutate content in this prompt.",
     );
+  });
+
+  it("loads a mission proof-only template handoff into editable prompt fields", async () => {
+    render(
+      <PromptControlPanel
+        promptLaunchDraftRequest={{
+          requestId: "mission-request-1",
+          draft: placementProofOnlyMissionPromptDraft,
+        }}
+      />,
+    );
+
+    await screen.findByText("Prompt Capability Registry");
+    expect(
+      screen.getByText("Loaded mission template: Placement proof-only candidate prompt."),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Mission template handoff review")).toBeInTheDocument();
+    expect(screen.getByText(/proof-only, fail-closed, non-mutating, real placement not admitted/i)).toBeInTheDocument();
+    expect(screen.getByText(/execution_admitted=false/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Prompt text")).toHaveValue(
+      placementProofOnlyMissionPromptDraft.promptText,
+    );
+    expect(screen.getByLabelText("Preferred domains (comma-separated)")).toHaveValue("editor-control");
+    expect(screen.getByLabelText("Operator note")).toHaveValue(
+      "Mission template handoff: placement proof-only request, fail-closed, non-mutating, and execution/write non-admitted.",
+    );
+    await waitFor(() => {
+      expect(screen.getByRole("checkbox")).not.toBeChecked();
+    });
   });
 
   it("shows approval pause continuity and child lineage after executing a selected prompt", async () => {
