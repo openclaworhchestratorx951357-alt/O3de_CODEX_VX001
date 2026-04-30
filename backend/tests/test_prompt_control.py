@@ -2493,6 +2493,54 @@ def test_prompt_session_plans_editor_placement_proof_only_candidate_when_explici
         }
 
 
+def test_prompt_session_plans_editor_placement_proof_only_candidate_with_asset_forge_natural_phrase() -> None:
+    with isolated_client() as client:
+        response = client.post(
+            "/prompt/sessions",
+            json={
+                "prompt_id": "prompt-editor-placement-proof-only-plan-asset-forge-1",
+                "prompt_text": (
+                    "Create an Asset Forge placement proof only candidate with "
+                    'candidate id "candidate-b", labeled "Weathered Ivy Arch", '
+                    'staged generated asset "Assets/Generated/asset_forge/candidate_b/candidate_b.glb", '
+                    'target level "Levels/BridgeLevel01/BridgeLevel01.prefab", '
+                    'target entity name "AssetForgeCandidateB", '
+                    'stage-write evidence "packet-11/stage-write-evidence.json", '
+                    'stage-write readback "packet-11/readback-evidence.json", '
+                    'readback status "succeeded", approval approved, and '
+                    'approval note "bounded proof-only review".'
+                ),
+                "project_root": "C:/project",
+                "engine_root": "C:/engine",
+                "dry_run": True,
+                "preferred_domains": ["editor-control"],
+            },
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "planned"
+        assert payload["admitted_capabilities"] == ["editor.placement.proof_only"]
+        assert payload["refused_capabilities"] == []
+        assert [step["tool"] for step in payload["plan"]["steps"]] == [
+            "editor.placement.proof_only"
+        ]
+        step = payload["plan"]["steps"][0]
+        assert step["args"] == {
+            "candidate_id": "candidate-b",
+            "candidate_label": "Weathered Ivy Arch",
+            "staged_source_relative_path": "Assets/Generated/asset_forge/candidate_b/candidate_b.glb",
+            "target_level_relative_path": "Levels/BridgeLevel01/BridgeLevel01.prefab",
+            "target_entity_name": "AssetForgeCandidateB",
+            "target_component": "Mesh",
+            "approval_state": "approved",
+            "approval_note": "bounded proof-only review",
+            "stage_write_corridor_name": "asset_forge.o3de.stage_write.v1",
+            "stage_write_evidence_reference": "packet-11/stage-write-evidence.json",
+            "stage_write_readback_reference": "packet-11/readback-evidence.json",
+            "stage_write_readback_status": "succeeded",
+        }
+
+
 @pytest.mark.parametrize(
     ("prompt_id", "prompt_text"),
     [

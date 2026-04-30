@@ -234,7 +234,17 @@ def _extract_editor_placement_proof_only_args(
     prompt_text: str,
 ) -> dict[str, object] | None:
     normalized = prompt_text.lower()
-    if "editor" not in normalized or "placement" not in normalized or "proof-only" not in normalized:
+    has_proof_only_marker = "proof-only" in normalized or "proof only" in normalized
+    has_editor_or_asset_forge_context = (
+        "editor" in normalized
+        or "asset forge" in normalized
+        or "asset_forge" in normalized
+    )
+    if (
+        not has_editor_or_asset_forge_context
+        or "placement" not in normalized
+        or not has_proof_only_marker
+    ):
         return None
 
     def _extract(*phrases: str) -> str | None:
@@ -245,10 +255,18 @@ def _extract_editor_placement_proof_only_args(
         return None
 
     candidate_id = _extract("candidate_id ", "candidate id ")
-    candidate_label = _extract("candidate_label ", "candidate label ")
+    candidate_label = _extract(
+        "candidate_label ",
+        "candidate label ",
+        "labeled ",
+    )
     staged_source_relative_path = _extract(
         "staged_source_relative_path ",
         "staged source relative path ",
+        "staged generated asset path ",
+        "staged generated asset ",
+        "staged asset path ",
+        "staged asset ",
         "staged source path ",
         "staged source ",
     )
@@ -266,11 +284,15 @@ def _extract_editor_placement_proof_only_args(
     )
     stage_write_evidence_reference = _extract(
         "stage_write_evidence_reference ",
+        "stage-write evidence reference ",
+        "stage-write evidence ",
         "stage write evidence reference ",
         "stage write evidence ",
     )
     stage_write_readback_reference = _extract(
         "stage_write_readback_reference ",
+        "stage-write readback reference ",
+        "stage-write readback ",
         "stage write readback reference ",
         "stage write readback ",
     )
@@ -288,10 +310,22 @@ def _extract_editor_placement_proof_only_args(
         return None
 
     target_component = _extract("target_component ", "target component ") or "Mesh"
-    approval_state_raw = (
-        _extract("approval_state ", "approval state ") or "not-approved"
-    )
+    approval_state_raw = _extract("approval_state ", "approval state ")
+    if approval_state_raw is None:
+        approval_state_match = re.search(
+            r"\bapproval\s+(approved|not[- ]approved)\b",
+            normalized,
+        )
+        if approval_state_match:
+            approval_state_raw = approval_state_match.group(1)
+    if approval_state_raw is None:
+        approval_state_raw = "not-approved"
     approval_state_normalized = approval_state_raw.strip().lower()
+    if approval_state_normalized not in {"approved", "not-approved"}:
+        if approval_state_normalized == "not approved":
+            approval_state_normalized = "not-approved"
+        else:
+            approval_state_normalized = "not-approved"
     if approval_state_normalized not in {"approved", "not-approved"}:
         approval_state_normalized = "not-approved"
     approval_note = _extract("approval_note ", "approval note ") or ""
@@ -299,7 +333,9 @@ def _extract_editor_placement_proof_only_args(
     readback_status_raw = (
         _extract(
             "stage_write_readback_status ",
+            "stage-write readback status ",
             "stage write readback status ",
+            "readback status ",
         )
         or "succeeded"
     )
