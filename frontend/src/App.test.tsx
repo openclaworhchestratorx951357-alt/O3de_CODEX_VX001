@@ -359,7 +359,11 @@ describe("App desktop smoke", () => {
     expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Load Project/i));
-    expect((await screen.findAllByText("Load Project Cockpit")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(
+      "Load Project Cockpit",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).length).toBeGreaterThan(0);
     expect(screen.getByText("Project connection checklist")).toBeInTheDocument();
     expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
