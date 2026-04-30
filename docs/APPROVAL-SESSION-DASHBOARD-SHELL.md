@@ -71,8 +71,8 @@ broadened.
 
 ## Recommended next packet
 
-App capability dashboard truth refresh + status-chip linkage
-(`codex/app-capability-dashboard-truth-refresh-status-chip-linkage`):
+Audit review dashboard truth refresh + status-chip linkage
+(`codex/audit-review-dashboard-truth-refresh-status-chip-linkage`):
 
 - keep server-owned authorization and fail-closed gate-state wording aligned
   with the existing approval/session boundary model across baseline/shell
@@ -81,25 +81,3 @@ App capability dashboard truth refresh + status-chip linkage
   baseline, shell, timeline, and recommendation wording
 - preserve non-authorizing client-field boundary wording without runtime
   admission broadening
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

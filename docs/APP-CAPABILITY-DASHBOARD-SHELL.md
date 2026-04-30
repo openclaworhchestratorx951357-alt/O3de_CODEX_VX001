@@ -1,6 +1,6 @@
 # App-wide Capability Dashboard Shell
 
-Status: frontend/static-fixture shell with status-taxonomy truth refresh
+Status: frontend/static-fixture shell with status-taxonomy and status-chip linkage cue truth refresh
 
 ## Purpose
 
@@ -12,6 +12,7 @@ Provide an app-wide operator dashboard shell for capability maturity without ena
 - static fixture rows for cross-domain capability maturity
 - explicit truth labels for current maturity, desired next maturity, status
   taxonomy, and risk
+- explicit status-chip linkage cues per taxonomy row for cross-shell parity
 - explicit non-authorizing boundary labels
 - status-taxonomy linkage with approval/session and evidence timeline shells
 
@@ -51,5 +52,5 @@ Status taxonomy vocabulary aligned in this shell:
 
 ## Recommended next packet
 
-App capability dashboard truth refresh + status-chip linkage
-(`codex/app-capability-dashboard-truth-refresh-status-chip-linkage`).
+Audit review dashboard truth refresh + status-chip linkage
+(`codex/audit-review-dashboard-truth-refresh-status-chip-linkage`).

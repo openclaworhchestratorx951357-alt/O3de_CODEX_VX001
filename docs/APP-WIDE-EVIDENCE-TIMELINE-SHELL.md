@@ -61,8 +61,8 @@ This packet does not admit:
 
 ## Recommended next packet
 
-App capability dashboard truth refresh + status-chip linkage
-(`codex/app-capability-dashboard-truth-refresh-status-chip-linkage`):
+Audit review dashboard truth refresh + status-chip linkage
+(`codex/audit-review-dashboard-truth-refresh-status-chip-linkage`):
 
 - keep approval/session baseline + shell + timeline wording aligned under
   server-owned authorization truth and fail-closed gate-state semantics
@@ -70,25 +70,3 @@ App capability dashboard truth refresh + status-chip linkage
   summaries and recommendation surfaces
 - preserve non-admitting runtime posture and no-admission timeline truth for
   held validation lanes
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

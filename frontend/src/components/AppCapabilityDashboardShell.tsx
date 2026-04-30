@@ -19,6 +19,7 @@ const executionBoundaryLabels = [
   "Client fields are intent-only",
   "No backend execution admission changes",
   "No mutation corridor broadening",
+  "Status chips must preserve shared taxonomy cues",
   "No provider / Blender / Asset Processor execution",
   "No placement execution",
 ] as const;
@@ -100,6 +101,7 @@ export default function AppCapabilityDashboardShell() {
               <th style={headerCellStyle}>Current</th>
               <th style={headerCellStyle}>Next</th>
               <th style={headerCellStyle}>Status taxonomy</th>
+              <th style={headerCellStyle}>Status-chip linkage cue</th>
               <th style={headerCellStyle}>Risk</th>
               <th style={headerCellStyle}>Required gate</th>
               <th style={headerCellStyle}>Recommended packet</th>
@@ -121,6 +123,7 @@ export default function AppCapabilityDashboardShell() {
                 <td style={bodyCellStyle}>
                   <StatusChip label={row.statusTaxonomy} tone={getTaxonomyTone(row.statusTaxonomy)} />
                 </td>
+                <td style={bodyCellStyle}>{getStatusChipLinkageCue(row.statusTaxonomy)}</td>
                 <td style={bodyCellStyle}>
                   <StatusChip label={row.risk} tone={getRiskTone(row.risk)} />
                 </td>
@@ -133,7 +136,7 @@ export default function AppCapabilityDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>App capability dashboard truth refresh + status-chip linkage</strong>.
+        Recommended next packet: <strong>Audit review dashboard truth refresh + status-chip linkage</strong>.
       </p>
     </section>
   );
@@ -194,6 +197,30 @@ function getTaxonomyTone(
   return "neutral";
 }
 
+function getStatusChipLinkageCue(
+  taxonomy: (typeof appCapabilityDashboardRows)[number]["statusTaxonomy"],
+): string {
+  if (taxonomy === "admitted-real") {
+    return "Admitted-real chips stay green across capability, audit, workspace, and timeline shells.";
+  }
+  if (taxonomy === "proof-only") {
+    return "Proof-only chips stay warning across capability, audit, workspace, and timeline shells.";
+  }
+  if (taxonomy === "dry-run only") {
+    return "Dry-run-only chips stay info-classified across capability, audit, workspace, and timeline shells.";
+  }
+  if (taxonomy === "plan-only") {
+    return "Plan-only chips stay info-classified with non-admitting wording across app shells.";
+  }
+  if (taxonomy === "demo") {
+    return "Demo chips stay display-only with non-authorizing shell language across app surfaces.";
+  }
+  if (taxonomy === "hold-default-off") {
+    return "Hold-default-off chips stay fail-closed with server-gated default-off semantics across shells.";
+  }
+  return "Blocked chips stay refusal-first outside exact admitted corridors across app surfaces.";
+}
+
 const boundaryLabelRowStyle = {
   display: "flex",
   gap: 8,
@@ -222,7 +249,7 @@ const tableWrapStyle = {
 const tableStyle = {
   width: "100%",
   borderCollapse: "collapse",
-  minWidth: 1100,
+  minWidth: 1320,
 } satisfies CSSProperties;
 
 const headerCellStyle = {

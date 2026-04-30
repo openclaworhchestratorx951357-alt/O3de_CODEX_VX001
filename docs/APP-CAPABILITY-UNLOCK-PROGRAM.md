@@ -177,9 +177,9 @@ The following patterns are now established:
 - approval/session dashboard shell (static fixture first)
 - approval/session dashboard truth refresh + validation linkage
 - app-wide evidence timeline shell + approval/validation linkage audit
-- workspace status chips shell + truth taxonomy linkage
-- app capability dashboard truth refresh + status-chip linkage
-- audit review dashboard truth refresh + status-chip linkage
+- workspace status chips shell + truth taxonomy linkage (completed)
+- app capability dashboard truth refresh + status-chip linkage (completed)
+- audit review dashboard truth refresh + status-chip linkage (next)
 - GUI shell taxonomy parity checkpoint + quick-reference refresh
 
 ## App-wide domains

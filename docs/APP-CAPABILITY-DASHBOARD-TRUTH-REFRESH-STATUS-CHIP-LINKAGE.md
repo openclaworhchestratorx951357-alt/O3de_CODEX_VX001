@@ -1,6 +1,6 @@
-﻿# App Capability Dashboard Truth Refresh + Status-Chip Linkage
+# App Capability Dashboard Truth Refresh + Status-Chip Linkage
 
-Status: implemented (frontend fixture + shell truth linkage only)
+Status: implemented (frontend fixture + shell truth linkage only; non-admitting)
 
 ## Purpose
 
@@ -13,6 +13,7 @@ shells.
 - refresh capability dashboard fixture rows to include status taxonomy
 - add status-taxonomy mix card in capability dashboard shell
 - extend table with status taxonomy and recommended packet fields
+- add explicit per-taxonomy status-chip linkage cues for cross-shell parity
 - tighten boundary chips:
   - static fixture only
   - server-owned authorization truth
@@ -32,20 +33,11 @@ shells.
 
 ## Validation
 
-- `npm --prefix frontend test`
-- `npm --prefix frontend run build`
-- `npm --prefix frontend run lint`
+- `npm --prefix frontend test -- src/components/AppCapabilityDashboardShell.test.tsx src/components/AppAuditReviewDashboardShell.test.tsx src/components/AppApprovalSessionDashboardShell.test.tsx src/components/AppEvidenceTimelineShell.test.tsx src/components/AppWorkspaceStatusChipsShell.test.tsx src/fixtures/settingsRollbackReleaseReadinessDecision.test.ts`
 - `git diff --check`
 - `git diff --cached --check`
 
 ## Recommended next packet
 
-Asset Forge placement runtime-admission release-readiness decision
-(`codex/ai-asset-forge-placement-runtime-admission-release-readiness-decision`).
-
-
-
-
-
-
-
+Audit review dashboard truth refresh + status-chip linkage
+(`codex/audit-review-dashboard-truth-refresh-status-chip-linkage`).

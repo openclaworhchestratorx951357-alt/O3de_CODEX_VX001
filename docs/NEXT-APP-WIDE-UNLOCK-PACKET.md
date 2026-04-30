@@ -1,29 +1,29 @@
 # Next App-wide Unlock Packet
 
 ## Recommendation
-App capability dashboard truth refresh + status-chip linkage
-(`codex/app-capability-dashboard-truth-refresh-status-chip-linkage`).
+Audit review dashboard truth refresh + status-chip linkage
+(`codex/audit-review-dashboard-truth-refresh-status-chip-linkage`).
 
 ## Why this is next
-- Workspace status chips shell + truth taxonomy linkage packet is now complete
-  and stable under explicit server-owned authorization truth language.
-- Status-chip taxonomy wording is aligned and non-admitting across app-wide
-  shell and recommendation surfaces.
+- App capability dashboard truth refresh + status-chip linkage packet is now
+  complete and stable under explicit server-owned authorization truth language.
+- Capability-dashboard status-chip linkage cues are now deterministic and
+  aligned across capability, audit, workspace, timeline, and recommendation
+  surfaces.
 - Validation workflow hold/no-go posture remains explicit, fail-closed, and
   unchanged across app-wide guidance.
-- The next highest-value operator UX gap is capability-dashboard status-chip
-  linkage checkpointing so truth labels and status-chip vocabulary remain
+- The next highest-value operator UX gap is audit-review dashboard
+  status-chip linkage checkpointing so verdict/risk/taxonomy language remains
   deterministic across capability, audit, evidence, and workspace shells.
 
 ## Scope
-- produce a focused app capability dashboard truth refresh + status-chip
+- produce a focused audit review dashboard truth refresh + status-chip
   linkage packet
-- audit capability-dashboard truth labels and status-chip linkage cues for
-  deterministic held-lane and approval/session semantics
+- audit review-dashboard verdict/risk/taxonomy wording and status-chip
+  linkage cues for deterministic held-lane and approval/session semantics
 - preserve explicit non-authorizing client-field posture and fail-closed
-  validation semantics in dashboard-linked guidance
-- keep recommendation surfaces aligned to this capability-dashboard linkage
-  packet
+  validation semantics in audit-linked guidance
+- keep recommendation surfaces aligned to this audit-review linkage packet
 - preserve no-touch runtime zones and no-broadening posture
 
 ## Safety constraints
@@ -39,7 +39,7 @@ App capability dashboard truth refresh + status-chip linkage
 - no CI/runtime execution admission broadening in this packet
 
 ## Acceptance checks
-- capability-dashboard truth labels and status-chip linkage wording remain
+- audit-review verdict/risk/taxonomy and status-chip linkage wording remain
   deterministic and aligned across shell recommendation surfaces while
   preserving explicit server-owned gate-state truth and non-authorizing
   client-field semantics
@@ -54,7 +54,7 @@ App capability dashboard truth refresh + status-chip linkage
 - docs remain aligned with runtime/test truth
 
 ## Alternative considered
-Direct dashboard broadening without first checkpointing capability-dashboard
+Direct audit-dashboard broadening without first checkpointing verdict/risk/
 status-chip linkage consistency under explicit server-owned gate-state language
 and non-authorizing client-field semantics.
 

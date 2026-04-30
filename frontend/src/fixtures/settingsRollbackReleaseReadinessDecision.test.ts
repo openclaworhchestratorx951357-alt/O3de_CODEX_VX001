@@ -11,21 +11,32 @@ describe("build execution long-hold fixture guardrails", () => {
     expect(buildExecutionCapability).toBeDefined();
     expect(buildExecutionCapability?.requiredGate).toContain("explicit named target");
     expect(buildExecutionCapability?.requiredGate).toContain("timeout/log/result evidence");
-    expect(buildExecutionCapability?.recommendedNextPacket).toBe("App capability dashboard truth refresh + status-chip linkage");
+    expect(buildExecutionCapability?.recommendedNextPacket).toBe("Audit review dashboard truth refresh + status-chip linkage");
 
     const buildExecutionAudit = appAuditReviewDashboardRows.find((row) => row.domain === "Project/Config");
     expect(buildExecutionAudit).toBeDefined();
     expect(buildExecutionAudit?.capabilityWindow).toBe("build.execute.real long-hold checkpoint");
-    expect(buildExecutionAudit?.nextGate).toBe("App capability dashboard truth refresh + status-chip linkage");
+    expect(buildExecutionAudit?.nextGate).toBe("Audit review dashboard truth refresh + status-chip linkage");
     expect(buildExecutionAudit?.findings).toContain("Long-hold checkpoint");
 
     const buildExecutionStatus = appWorkspaceStatusChipRows.find((row) => row.capabilityWindow === "build.execute.real");
     expect(buildExecutionStatus).toBeDefined();
     expect(buildExecutionStatus?.summary).toContain("hold/no-go posture explicit");
-    expect(buildExecutionStatus?.nextGate).toBe("App capability dashboard truth refresh + status-chip linkage");
+    expect(buildExecutionStatus?.nextGate).toBe("Audit review dashboard truth refresh + status-chip linkage");
   });
 
   it("records build execution long-hold checkpoint evidence while preserving prior checkpoints", () => {
+    const appCapabilityDashboardTruthRefreshStatusChipLinkageRow = appEvidenceTimelineRows.find(
+      (row) => row.evidenceLane === "app capability dashboard truth refresh + status-chip linkage packet",
+    );
+    expect(appCapabilityDashboardTruthRefreshStatusChipLinkageRow).toBeDefined();
+    expect(appCapabilityDashboardTruthRefreshStatusChipLinkageRow?.reviewStatus).toBe(
+      "pass-app-capability-dashboard-truth-refresh-status-chip-linkage-packet",
+    );
+    expect(appCapabilityDashboardTruthRefreshStatusChipLinkageRow?.summary).toContain(
+      "deterministic status-chip taxonomy cues, server-owned authorization truth language, fail-closed validation semantics, and non-authorizing client-field posture remain aligned",
+    );
+
     const workspaceStatusChipsTruthTaxonomyRow = appEvidenceTimelineRows.find(
       (row) => row.evidenceLane === "workspace status chips shell + truth taxonomy linkage packet",
     );
@@ -891,21 +902,3 @@ describe("build execution long-hold fixture guardrails", () => {
     expect(rollbackLongHoldRow?.summary).toContain("hold/no-go posture");
   });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

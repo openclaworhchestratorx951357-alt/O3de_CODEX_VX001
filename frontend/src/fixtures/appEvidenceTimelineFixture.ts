@@ -19,6 +19,16 @@ export const appEvidenceTimelineFixtureGeneratedAt = "2026-05-01";
 
 export const appEvidenceTimelineRows: readonly AppEvidenceTimelineRow[] = [
   {
+    recordedAtUtc: "2026-05-01T00:00:35Z",
+    domain: "GUI",
+    evidenceLane: "app capability dashboard truth refresh + status-chip linkage packet",
+    capabilityWindow: "capability dashboard taxonomy + status-chip linkage cue checkpoint",
+    truthLabel: "demo",
+    summary:
+      "App capability dashboard truth-refresh linkage checkpoint now verifies deterministic status-chip taxonomy cues, server-owned authorization truth language, fail-closed validation semantics, and non-authorizing client-field posture remain aligned across capability, audit, workspace, timeline, and recommendation surfaces while preserving non-admitting runtime boundaries.",
+    reviewStatus: "pass-app-capability-dashboard-truth-refresh-status-chip-linkage-packet",
+  },
+  {
     recordedAtUtc: "2026-05-01T00:00:34Z",
     domain: "GUI",
     evidenceLane: "workspace status chips shell + truth taxonomy linkage packet",
@@ -1105,4 +1115,3 @@ export const appEvidenceTimelineRows: readonly AppEvidenceTimelineRow[] = [
     reviewStatus: "blocked-admission",
   },
 ];
-

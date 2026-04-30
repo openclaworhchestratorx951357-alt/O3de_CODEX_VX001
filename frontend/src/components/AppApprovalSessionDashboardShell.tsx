@@ -141,7 +141,7 @@ export default function AppApprovalSessionDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>App capability dashboard truth refresh + status-chip linkage</strong>.
+        Recommended next packet: <strong>Audit review dashboard truth refresh + status-chip linkage</strong>.
       </p>
     </section>
   );
@@ -235,23 +235,3 @@ const bodyCellStyle = {
   padding: "10px 12px",
   verticalAlign: "top",
 } satisfies CSSProperties;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
