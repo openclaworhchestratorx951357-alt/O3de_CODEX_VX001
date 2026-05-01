@@ -16,7 +16,7 @@ export const appWorkspaceStatusChipsGeneratedAt = "2026-04-29";
 export const appWorkspaceStatusChips: readonly WorkspaceStatusChip[] = [
   {
     id: "workspace-home-capability",
-    workspace: "Home",
+    workspace: "Legacy Mission Desk",
     label: "capability dashboard",
     maturity: "GUI/demo only",
     risk: "Medium",
@@ -26,7 +26,7 @@ export const appWorkspaceStatusChips: readonly WorkspaceStatusChip[] = [
   },
   {
     id: "workspace-home-audit",
-    workspace: "Home",
+    workspace: "Legacy Mission Desk",
     label: "audit review",
     maturity: "GUI/demo only",
     risk: "Medium",
@@ -36,7 +36,7 @@ export const appWorkspaceStatusChips: readonly WorkspaceStatusChip[] = [
   },
   {
     id: "workspace-home-evidence",
-    workspace: "Home",
+    workspace: "Legacy Mission Desk",
     label: "evidence timeline",
     maturity: "GUI/demo only",
     risk: "Medium",
@@ -46,7 +46,7 @@ export const appWorkspaceStatusChips: readonly WorkspaceStatusChip[] = [
   },
   {
     id: "workspace-home-approval",
-    workspace: "Home",
+    workspace: "Legacy Mission Desk",
     label: "approval/session truth",
     maturity: "GUI/demo only",
     risk: "Medium",

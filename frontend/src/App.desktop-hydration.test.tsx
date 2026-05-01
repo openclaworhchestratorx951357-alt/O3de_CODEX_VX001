@@ -254,7 +254,7 @@ describe("App desktop hydration", () => {
 
   async function openHomeWorkspace(): Promise<void> {
     fireEvent.click(getDesktopNavButton(/Legacy Mission Desk/i));
-    expect(await screen.findByText("Home start here")).toBeInTheDocument();
+    expect(await screen.findByText("Legacy Mission Desk start here")).toBeInTheDocument();
   }
 
   it("maps legacy home workspace session values to the Asset Forge primary shell at startup", async () => {

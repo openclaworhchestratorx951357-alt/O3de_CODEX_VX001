@@ -318,7 +318,7 @@ describe("App desktop smoke", () => {
 
   async function openHomeWorkspace(): Promise<void> {
     fireEvent.click(getDesktopNavButton(/Legacy Mission Desk/i));
-    expect(await screen.findByText("Home start here")).toBeInTheDocument();
+    expect(await screen.findByText("Legacy Mission Desk start here")).toBeInTheDocument();
   }
 
   it("uses Asset Forge as the app home shell and exposes built-in app navigation", async () => {
@@ -477,7 +477,7 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("Game creation pipeline")).toBeInTheDocument();
     expect(screen.getByText("Now open")).toBeInTheDocument();
     expect(getDesktopNavButton(/Create Game/i)).toBeInTheDocument();
-    expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
+    expect(screen.queryByText("Legacy Mission Desk start here")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Mission Control/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Guidebook/i })).not.toBeInTheDocument();
@@ -486,7 +486,7 @@ describe("App desktop smoke", () => {
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Legacy Mission Desk/i));
-    expect(await screen.findByText("Home start here")).toBeInTheDocument();
+    expect(await screen.findByText("Legacy Mission Desk start here")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Start Here/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Mission Control/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Guidebook/i })).toBeInTheDocument();
@@ -498,7 +498,7 @@ describe("App desktop smoke", () => {
       { timeout: LAZY_SURFACE_TIMEOUT_MS },
     )).length).toBeGreaterThan(0);
     expect(screen.getByText("Cinematic pipeline")).toBeInTheDocument();
-    expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
+    expect(screen.queryByText("Legacy Mission Desk start here")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Load Project/i));
@@ -508,7 +508,7 @@ describe("App desktop smoke", () => {
       { timeout: LAZY_SURFACE_TIMEOUT_MS },
     )).length).toBeGreaterThan(0);
     expect(screen.getByText("Project connection checklist")).toBeInTheDocument();
-    expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
+    expect(screen.queryByText("Legacy Mission Desk start here")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
   }, 12000);
 
@@ -583,7 +583,7 @@ describe("App desktop smoke", () => {
     render(<App />);
     await openHomeWorkspace();
 
-    const homeWorkspaceHeading = await screen.findByText("Home start here");
+    const homeWorkspaceHeading = await screen.findByText("Legacy Mission Desk start here");
     const homeWorkspace = homeWorkspaceHeading.closest("section");
     expect(homeWorkspace).not.toBeNull();
     fireEvent.click(within(homeWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
@@ -599,7 +599,7 @@ describe("App desktop smoke", () => {
     expect((await screen.findAllByText("Loaded mission draft: Placement proof-only candidate prompt")).length).toBeGreaterThan(0);
 
     fireEvent.click(getDesktopNavButton(/Legacy Mission Desk/i));
-    await screen.findByText("Home start here");
+    await screen.findByText("Legacy Mission Desk start here");
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
     await screen.findAllByText("Create Game Cockpit");
@@ -963,7 +963,7 @@ describe("App desktop smoke", () => {
     expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
 
     fireEvent.click(getDesktopNavButton(/Legacy Mission Desk/i));
-    expect(await screen.findByText("Home start here")).toBeInTheDocument();
+    expect(await screen.findByText("Legacy Mission Desk start here")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Load inspect template in Prompt Studio" }));
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
     const homeHandoffCard = screen.getByLabelText("Prompt handoff context card");
@@ -1042,7 +1042,7 @@ describe("App desktop smoke", () => {
     render(<App />);
     await openHomeWorkspace();
 
-    const homeWorkspaceHeading = await screen.findByText("Home start here");
+    const homeWorkspaceHeading = await screen.findByText("Legacy Mission Desk start here");
     const homeWorkspace = homeWorkspaceHeading.closest("section");
     expect(homeWorkspace).not.toBeNull();
     fireEvent.click(within(homeWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);

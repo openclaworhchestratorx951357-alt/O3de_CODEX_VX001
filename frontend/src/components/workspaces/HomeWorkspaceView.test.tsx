@@ -14,7 +14,7 @@ describe("HomeWorkspaceView", () => {
       />,
     );
 
-    expect(screen.getByText("Home start here")).toBeInTheDocument();
+    expect(screen.getByText("Legacy Mission Desk start here")).toBeInTheDocument();
     expect(screen.getByText("Mission control content")).toBeInTheDocument();
     expect(screen.getByText("Launchpad content")).toBeInTheDocument();
     expect(screen.getByText("Overview content")).toBeInTheDocument();

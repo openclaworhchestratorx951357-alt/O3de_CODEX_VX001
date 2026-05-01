@@ -12,7 +12,7 @@ describe("AppWorkspaceStatusChipsShell", () => {
     expect(screen.getByText("Static fixture only")).toBeInTheDocument();
     expect(screen.getByText("No backend execution admission changes")).toBeInTheDocument();
 
-    expect(screen.getAllByText("Home")).toHaveLength(4);
+    expect(screen.getAllByText("Legacy Mission Desk")).toHaveLength(4);
     expect(screen.getByText("Asset Forge")).toBeInTheDocument();
     expect(screen.getByText("Runtime")).toBeInTheDocument();
     expect(screen.getByText("Records")).toBeInTheDocument();

@@ -113,7 +113,7 @@ export default function HomeWorkspaceView({
     : activeSurfaceId === "guidebook"
       ? guidebookWindow
       : {
-          title: "Home start here",
+          title: "Legacy Mission Desk start here",
           subtitle: "Use a calmer launch surface first, then switch into coordination or reference when you need it.",
           tooltip: "This guided home surface groups launchpad and overview content into one beginner-safe destination.",
           instructions: homeWorkspace.operatorChecklist,
@@ -137,7 +137,7 @@ export default function HomeWorkspaceView({
       {activeSurfaceId === "start" ? (
         <div style={guidedShellStyle}>
           <MissionTruthRail
-            locationLabel="Home / Start Here"
+            locationLabel="Legacy Mission Desk / Start Here"
             projectLabel="active operator target"
             projectPath={bridgeStatus?.project_root ?? null}
             bridgeStatus={bridgeStatus}

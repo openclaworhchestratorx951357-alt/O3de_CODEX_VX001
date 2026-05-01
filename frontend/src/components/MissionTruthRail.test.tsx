@@ -7,7 +7,7 @@ describe("MissionTruthRail", () => {
   it("shows explicit unknown/not-loaded warnings when telemetry is missing", () => {
     render(
       <MissionTruthRail
-        locationLabel="Home / Start Here"
+        locationLabel="Legacy Mission Desk / Start Here"
         nextSafeAction="Open Prompt Studio"
         executionAdmitted={false}
         placementWriteAdmitted={false}
