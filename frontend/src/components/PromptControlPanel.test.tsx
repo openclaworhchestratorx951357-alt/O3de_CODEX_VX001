@@ -366,15 +366,19 @@ describe("PromptControlPanel", () => {
     expect(
       screen.getByText("Loaded mission template: Placement proof-only candidate prompt."),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Mission template handoff review")).toBeInTheDocument();
+    const missionHandoffReview = screen.getByLabelText("Mission template handoff review");
+    expect(missionHandoffReview).toBeInTheDocument();
     expect(screen.getByText(/proof-only, fail-closed, non-mutating, real placement not admitted/i)).toBeInTheDocument();
     expect(screen.getByText(/execution_admitted=false/i)).toBeInTheDocument();
     expect(screen.getByText(/Loaded from:/i)).toBeInTheDocument();
     expect(screen.getByText("Create Movie cockpit / placement proof-only template")).toBeInTheDocument();
     expect(screen.getByText(/Prefill timestamp \(ISO\):/i)).toBeInTheDocument();
     expect(screen.getByText("2026-04-30T12:00:00.000Z")).toBeInTheDocument();
+    expect(missionHandoffReview).toHaveTextContent("Source workspace: Create Movie");
     expect(screen.getByText(/Source workspace id:/i)).toBeInTheDocument();
     expect(screen.getByText("create-movie")).toBeInTheDocument();
+    expect(screen.getByLabelText("Mission handoff source cockpit context badges")).toHaveTextContent("Source category: Create");
+    expect(screen.getByLabelText("Mission handoff source cockpit context badges")).toHaveTextContent("Source cockpit truth: proof-only");
     expect(
       screen.getByText(/prefill-only; manual preview and explicit execute are still required/i),
     ).toBeInTheDocument();

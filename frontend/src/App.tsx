@@ -26,7 +26,12 @@ import {
   getCockpitPromptTemplateIdForAction,
   isRegisteredCockpitId,
 } from "./components/cockpits/registry/cockpitRegistry";
-import type { CockpitId, CockpitPromptDraftId, CockpitUiActionId } from "./components/cockpits/registry/cockpitRegistryTypes";
+import type {
+  CockpitCategory,
+  CockpitId,
+  CockpitPromptDraftId,
+  CockpitUiActionId,
+} from "./components/cockpits/registry/cockpitRegistryTypes";
 import {
   approveApproval,
   fetchAdapters,
@@ -336,6 +341,29 @@ type PromptTemplateChooserDescriptor = {
   subtitle: string;
   nextSafeAction: string;
 };
+
+type PromptSourceCockpitContext = {
+  title: string;
+  idLabel: string;
+  categoryLabel: string;
+  truthStateLabel: string;
+};
+
+const cockpitCategoryLabelById: Record<CockpitCategory, string> = {
+  start: "Start",
+  create: "Create",
+  build: "Build",
+  operate: "Operate",
+  inspect: "Inspect",
+  system: "System",
+};
+
+function formatCockpitCategoryLabel(category: CockpitCategory | null | undefined): string {
+  if (!category) {
+    return "unknown";
+  }
+  return cockpitCategoryLabelById[category];
+}
 
 const promptTemplateChooserDescriptors: Partial<Record<CockpitId, PromptTemplateChooserDescriptor>> = {
   home: {
@@ -7827,6 +7855,21 @@ export default function App() {
   function renderPromptTemplateChooserContextCard(
     context: PromptTemplateChooserContext,
   ): JSX.Element {
+    const sourceCockpitDefinition = getCockpitDefinition(context.sourceWorkspaceId);
+    const sourceCockpitContext: PromptSourceCockpitContext = sourceCockpitDefinition
+      ? {
+          title: sourceCockpitDefinition.title,
+          idLabel: sourceCockpitDefinition.id,
+          categoryLabel: formatCockpitCategoryLabel(sourceCockpitDefinition.category),
+          truthStateLabel: sourceCockpitDefinition.truthState,
+        }
+      : {
+          title: context.sourceWorkspaceId,
+          idLabel: context.sourceWorkspaceId,
+          categoryLabel: "unknown",
+          truthStateLabel: "unknown",
+        };
+
     return (
       <section
         aria-label="Prompt template chooser context"
@@ -7869,13 +7912,51 @@ export default function App() {
           }}
         >
           <span>
-            Source workspace: <strong>{workspaceMeta[context.sourceWorkspaceId].title}</strong>
+            Source workspace: <strong>{sourceCockpitContext.title}</strong>
           </span>
           <span>
             Source surface: <strong>{context.sourceSurfaceLabel}</strong>
           </span>
           <span>
             Opened (ISO): <strong>{context.openedAtIso}</strong>
+          </span>
+        </div>
+        <div
+          aria-label="Prompt template chooser source cockpit badges"
+          style={{ display: "flex", flexWrap: "wrap", gap: 8 }}
+        >
+          <span
+            style={{
+              border: "1px solid rgba(248, 222, 145, 0.45)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(255, 232, 161, 0.95)",
+            }}
+          >
+            Source cockpit id: <strong>{sourceCockpitContext.idLabel}</strong>
+          </span>
+          <span
+            style={{
+              border: "1px solid rgba(248, 222, 145, 0.45)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(255, 232, 161, 0.95)",
+            }}
+          >
+            Source category: <strong>{sourceCockpitContext.categoryLabel}</strong>
+          </span>
+          <span
+            style={{
+              border: "1px solid rgba(248, 222, 145, 0.45)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(255, 232, 161, 0.95)",
+            }}
+          >
+            Source cockpit truth: <strong>{sourceCockpitContext.truthStateLabel}</strong>
           </span>
         </div>
         <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>
@@ -8665,9 +8746,13 @@ export default function App() {
     draftRequest: PromptLaunchDraftRequest,
   ): JSX.Element {
     const sourceWorkspaceId = draftRequest.sourceWorkspaceId ?? null;
-    const sourceWorkspaceLabel = sourceWorkspaceId
-      ? workspaceMeta[sourceWorkspaceId].title
-      : "Unknown source workspace";
+    const sourceCockpitDefinition = sourceWorkspaceId
+      ? getCockpitDefinition(sourceWorkspaceId)
+      : undefined;
+    const sourceWorkspaceLabel = sourceCockpitDefinition?.title ?? "Unknown source workspace";
+    const sourceWorkspaceIdLabel = sourceCockpitDefinition?.id ?? sourceWorkspaceId ?? "unknown";
+    const sourceWorkspaceCategoryLabel = formatCockpitCategoryLabel(sourceCockpitDefinition?.category);
+    const sourceWorkspaceTruthStateLabel = sourceCockpitDefinition?.truthState ?? "unknown";
     const launchedAtIso = draftRequest.launchedAtIso?.trim() || "unknown";
     const sourceSurfaceLabel = draftRequest.sourceSurfaceLabel?.trim() || "unknown source surface";
     const truthLabels = draftRequest.draft.truthLabels.length > 0
@@ -8726,6 +8811,44 @@ export default function App() {
           </span>
           <span>
             Prefill launched (ISO): <strong>{launchedAtIso}</strong>
+          </span>
+        </div>
+        <div
+          aria-label="Prompt handoff source cockpit badges"
+          style={{ display: "flex", flexWrap: "wrap", gap: 8 }}
+        >
+          <span
+            style={{
+              border: "1px solid rgba(131, 197, 162, 0.45)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(159, 226, 191, 0.95)",
+            }}
+          >
+            Source cockpit id: <strong>{sourceWorkspaceIdLabel}</strong>
+          </span>
+          <span
+            style={{
+              border: "1px solid rgba(131, 197, 162, 0.45)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(159, 226, 191, 0.95)",
+            }}
+          >
+            Source category: <strong>{sourceWorkspaceCategoryLabel}</strong>
+          </span>
+          <span
+            style={{
+              border: "1px solid rgba(131, 197, 162, 0.45)",
+              borderRadius: 999,
+              padding: "2px 9px",
+              fontSize: 12,
+              color: "rgba(159, 226, 191, 0.95)",
+            }}
+          >
+            Source cockpit truth: <strong>{sourceWorkspaceTruthStateLabel}</strong>
           </span>
         </div>
         <p style={{ margin: 0, color: "var(--app-subtle-color)", fontSize: 13 }}>

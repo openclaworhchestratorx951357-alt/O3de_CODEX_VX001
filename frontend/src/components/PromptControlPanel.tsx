@@ -9,6 +9,10 @@ import {
 
 import { getPanelControlGuide, getPanelGuide } from "../content/operatorGuide";
 import {
+  getCockpitDefinition,
+  isRegisteredCockpitId,
+} from "./cockpits/registry/cockpitRegistry";
+import {
   createPromptSession,
   executePromptSession,
   fetchO3deTarget,
@@ -30,6 +34,7 @@ import type {
 import type { O3DEProjectProfile } from "../types/o3deProjectProfiles";
 import { useSettings } from "../lib/settings/hooks";
 import type { MissionPromptDraft } from "../lib/missionPromptTemplates";
+import type { CockpitCategory } from "./cockpits/registry/cockpitRegistryTypes";
 import PanelGuideDetails from "./PanelGuideDetails";
 import PromptCapabilityPanel from "./PromptCapabilityPanel";
 import PromptExecutionTimeline from "./PromptExecutionTimeline";
@@ -91,6 +96,51 @@ type PromptDraftRecommendationGroup = {
   description: string;
   entries: PromptDraftRecommendation[];
 };
+
+type PromptMissionSourceContext = {
+  workspaceLabel: string;
+  workspaceIdLabel: string;
+  categoryLabel: string;
+  truthStateLabel: string;
+};
+
+const cockpitCategoryLabelById: Record<CockpitCategory, string> = {
+  start: "Start",
+  create: "Create",
+  build: "Build",
+  operate: "Operate",
+  inspect: "Inspect",
+  system: "System",
+};
+
+function formatCockpitCategoryLabel(category: CockpitCategory | null | undefined): string {
+  if (!category) {
+    return "unknown";
+  }
+  return cockpitCategoryLabelById[category];
+}
+
+function resolvePromptMissionSourceContext(
+  sourceWorkspaceId: string | null,
+): PromptMissionSourceContext {
+  if (sourceWorkspaceId && isRegisteredCockpitId(sourceWorkspaceId)) {
+    const definition = getCockpitDefinition(sourceWorkspaceId);
+    if (definition) {
+      return {
+        workspaceLabel: definition.title,
+        workspaceIdLabel: definition.id,
+        categoryLabel: formatCockpitCategoryLabel(definition.category),
+        truthStateLabel: definition.truthState,
+      };
+    }
+  }
+  return {
+    workspaceLabel: "Unknown source workspace",
+    workspaceIdLabel: sourceWorkspaceId ?? "unknown",
+    categoryLabel: "unknown",
+    truthStateLabel: "unknown",
+  };
+}
 
 function hasPromptCapability(
   capabilities: readonly PromptCapabilityEntry[],
@@ -333,6 +383,7 @@ export default function PromptControlPanel({
     sessionCount: sessions.length,
   });
   const promptDraftRecommendationGroups = groupPromptDraftRecommendations(promptDraftRecommendations);
+  const missionSourceContext = resolvePromptMissionSourceContext(loadedMissionDraftSourceWorkspaceId);
 
   const getDefaultProjectRoot = useCallback((nextTarget: O3DETargetConfig | null): string => (
     settings.operatorDefaults.projectRoot
@@ -766,10 +817,21 @@ export default function PromptControlPanel({
               Prefill timestamp (ISO): <strong>{loadedMissionDraftLaunchedAtIso ?? "unknown"}</strong>
             </span>
             <span>
-              Source workspace id: <strong>{loadedMissionDraftSourceWorkspaceId ?? "unknown"}</strong>
+              Source workspace: <strong>{missionSourceContext.workspaceLabel}</strong>
+            </span>
+            <span>
+              Source workspace id: <strong>{missionSourceContext.workspaceIdLabel}</strong>
             </span>
             <span>
               Execution path: <strong>prefill-only; manual preview and explicit execute are still required</strong>
+            </span>
+          </div>
+          <div style={missionSourceBadgesStyle} aria-label="Mission handoff source cockpit context badges">
+            <span style={missionSourceBadgeStyle}>
+              Source category: <strong>{missionSourceContext.categoryLabel}</strong>
+            </span>
+            <span style={missionSourceBadgeStyle}>
+              Source cockpit truth: <strong>{missionSourceContext.truthStateLabel}</strong>
             </span>
           </div>
           <div style={loadedTemplateActionsStyle}>
@@ -1111,6 +1173,21 @@ const loadedTemplateActionsStyle = {
   display: "flex",
   flexWrap: "wrap",
   gap: 8,
+} satisfies CSSProperties;
+
+const missionSourceBadgesStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
+} satisfies CSSProperties;
+
+const missionSourceBadgeStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: "var(--app-pill-radius)",
+  padding: "2px 8px",
+  fontSize: 12,
+  color: "var(--app-text-color)",
+  background: "var(--app-panel-bg-muted)",
 } satisfies CSSProperties;
 
 const checkboxStyle = {

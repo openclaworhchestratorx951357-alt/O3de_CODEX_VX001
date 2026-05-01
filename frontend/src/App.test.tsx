@@ -420,11 +420,8 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("Runtime Console")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
-    const createGameTitles = await screen.findAllByText("Create Game Cockpit");
-    expect(createGameTitles.length).toBeGreaterThan(0);
-    const createGameWorkspaceSection = createGameTitles[0]?.closest("section");
-    expect(createGameWorkspaceSection).toBeTruthy();
-    fireEvent.click(within(createGameWorkspaceSection as HTMLElement).getAllByRole("button", { name: "Open Asset Forge" })[0]);
+    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole("button", { name: "Open Asset Forge" })[0]);
     expect(await screen.findByLabelText("AI Asset Forge")).toBeInTheDocument();
   });
 
@@ -461,6 +458,8 @@ describe("App desktop smoke", () => {
     const homeChooser = await screen.findByLabelText("Prompt template chooser context");
     expect(homeChooser).toHaveTextContent("Home template quick-load");
     expect(homeChooser).toHaveTextContent("Source workspace: Home");
+    expect(homeChooser).toHaveTextContent("Source category: Start");
+    expect(homeChooser).toHaveTextContent("Source cockpit truth: read-only");
     expect(homeChooser).toHaveTextContent(
       "No preview, execute, placement, or mutation runs automatically.",
     );
@@ -485,6 +484,8 @@ describe("App desktop smoke", () => {
     const createGameChooser = await screen.findByLabelText("Prompt template chooser context");
     expect(createGameChooser).toHaveTextContent("Create Game template quick-load");
     expect(createGameChooser).toHaveTextContent("Source workspace: Create Game");
+    expect(createGameChooser).toHaveTextContent("Source category: Create");
+    expect(createGameChooser).toHaveTextContent("Source cockpit truth: admitted-real");
     expect(createGameChooser).toHaveTextContent(
       "No preview, execute, placement, or mutation runs automatically.",
     );
@@ -503,6 +504,8 @@ describe("App desktop smoke", () => {
     const createMovieChooser = await screen.findByLabelText("Prompt template chooser context");
     expect(createMovieChooser).toHaveTextContent("Create Movie template quick-load");
     expect(createMovieChooser).toHaveTextContent("Source workspace: Create Movie");
+    expect(createMovieChooser).toHaveTextContent("Source category: Create");
+    expect(createMovieChooser).toHaveTextContent("Source cockpit truth: proof-only");
     fireEvent.click(
       within(createMovieChooser).getByRole("button", {
         name: "Load template: Cinematic placement proof-only candidate prompt",
@@ -519,6 +522,8 @@ describe("App desktop smoke", () => {
     const loadProjectChooser = await screen.findByLabelText("Prompt template chooser context");
     expect(loadProjectChooser).toHaveTextContent("Load Project template quick-load");
     expect(loadProjectChooser).toHaveTextContent("Source workspace: Load Project");
+    expect(loadProjectChooser).toHaveTextContent("Source category: Create");
+    expect(loadProjectChooser).toHaveTextContent("Source cockpit truth: preflight-only");
     fireEvent.click(
       within(loadProjectChooser).getByRole("button", { name: "Load template: Load project inspection prompt" }),
     );
@@ -787,6 +792,8 @@ describe("App desktop smoke", () => {
     expect(handoffCard).toBeInTheDocument();
     expect(handoffCard).toHaveTextContent("Loaded mission draft: Create safe game entity prompt");
     expect(handoffCard).toHaveTextContent("Source workspace: Create Game");
+    expect(handoffCard).toHaveTextContent("Source category: Create");
+    expect(handoffCard).toHaveTextContent("Source cockpit truth: admitted-real");
     expect(handoffCard).toHaveTextContent("Source handoff: Create Game cockpit / create entity template");
     expect(handoffCard).toHaveTextContent("Safety: this handoff only prefills Prompt Studio.");
     expect(handoffCard).toHaveTextContent("Source-aware next action");
