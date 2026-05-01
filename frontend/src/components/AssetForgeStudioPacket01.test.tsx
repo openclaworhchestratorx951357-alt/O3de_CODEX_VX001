@@ -2062,6 +2062,42 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Bridge contract preview: none/i)).toBeInTheDocument();
   });
 
+  it("renders runtime-harness execute runtime contract key summaries when runtime contracts are empty", async () => {
+    apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
+    apiMocks.executeAssetForgeO3DEPlacementRuntimeHarness.mockResolvedValueOnce(
+      makePlacementHarnessExecuteReport({
+        runtime_command_contract:
+          {} as unknown as AssetForgeO3DEPlacementHarnessExecuteRecord["runtime_command_contract"],
+        runtime_result_contract:
+          {} as unknown as AssetForgeO3DEPlacementHarnessExecuteRecord["runtime_result_contract"],
+        post_run_verification_contract:
+          {} as unknown as AssetForgeO3DEPlacementHarnessExecuteRecord["post_run_verification_contract"],
+        revert_scope_contract:
+          {} as unknown as AssetForgeO3DEPlacementHarnessExecuteRecord["revert_scope_contract"],
+      }),
+    );
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create plan-only placement target" }));
+    expect(await screen.findByText(/Plan status: ready-for-approval/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Approval acknowledged for one-shot harness execute gate"));
+    fireEvent.change(screen.getByLabelText("Harness execute approval note"), {
+      target: { value: "Operator approved one-shot harness execute gate." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit one-shot runtime harness gate" }));
+
+    expect(await screen.findByText(/Runtime command contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime command contract preview: none/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime result contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime result contract preview: none/i)).toBeInTheDocument();
+    expect(screen.getByText(/Post-run verification contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Post-run verification contract preview: none/i)).toBeInTheDocument();
+    expect(screen.getByText(/Revert scope contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Revert scope contract preview: none/i)).toBeInTheDocument();
+  });
+
   it("submits live proof with optional approval session id and renders fail-closed details", async () => {
     apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
     apiMocks.executeAssetForgeO3DEPlacementLiveProof.mockResolvedValueOnce(makePlacementLiveProofReport());
@@ -2268,6 +2304,42 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Server approval contract preview: none/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract keys: 0/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract preview: none/i)).toBeInTheDocument();
+  });
+
+  it("renders live-proof runtime contract key summaries when runtime contracts are empty", async () => {
+    apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
+    apiMocks.executeAssetForgeO3DEPlacementLiveProof.mockResolvedValueOnce(
+      makePlacementLiveProofReport({
+        runtime_command_contract:
+          {} as unknown as AssetForgeO3DEPlacementLiveProofRecord["runtime_command_contract"],
+        runtime_result_contract:
+          {} as unknown as AssetForgeO3DEPlacementLiveProofRecord["runtime_result_contract"],
+        post_run_verification_contract:
+          {} as unknown as AssetForgeO3DEPlacementLiveProofRecord["post_run_verification_contract"],
+        revert_scope_contract:
+          {} as unknown as AssetForgeO3DEPlacementLiveProofRecord["revert_scope_contract"],
+      }),
+    );
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create plan-only placement target" }));
+    expect(await screen.findByText(/Plan status: ready-for-approval/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Approval acknowledged for one-shot harness execute gate"));
+    fireEvent.change(screen.getByLabelText("Harness execute approval note"), {
+      target: { value: "Operator approved one-shot live proof gate." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Run one-shot live proof (read-only)" }));
+
+    expect(await screen.findByText(/Runtime command contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime command contract preview: none/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime result contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime result contract preview: none/i)).toBeInTheDocument();
+    expect(screen.getByText(/Post-run verification contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Post-run verification contract preview: none/i)).toBeInTheDocument();
+    expect(screen.getByText(/Revert scope contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Revert scope contract preview: none/i)).toBeInTheDocument();
   });
 
   it("shows policy-loading status for provider lane while registry data is pending", () => {
