@@ -1,78 +1,80 @@
 # Validation Report Intake Endpoint-Candidate Dry-Run Implementation
 
-Status: implemented (dry-run only; no execution or mutation admission)
+Status: implemented (server-flagged endpoint candidate, default-off, dry-run-only)
 
 ## Purpose
 
-Implement a server-gated endpoint candidate for `validation.report.intake`
-while preserving fail-closed default-off behavior and keeping all execution and
-write paths blocked.
+Implement the endpoint-candidate dry-run packet for
+`validation.report.intake` without admitting execution or mutation behavior.
 
-## Capability movement
+## Scope in this packet
 
-- capability: `validation.report.intake`
-- old maturity: `dry-run only (internal parser scaffold; endpoint unadmitted)`
-- new maturity: `dry-run only (server-gated endpoint candidate, default-off)`
-- execution admitted: `no`
-- mutation admitted: `no`
-
-## Implemented scope
-
-- added endpoint candidate:
+- add a server-flagged endpoint candidate:
   - `POST /validation/report/intake`
-- added server-owned default-off admission flag gate:
-  - `VALIDATION_REPORT_INTAKE_ENDPOINT_ENABLED`
-- explicit gate states returned by service helper:
-  - `missing_default_off`
-  - `explicit_off`
-  - `explicit_on`
-  - `invalid_default_off`
-- explicit-on path returns parser-backed dry-run output only
-- endpoint response preserves non-executing/non-mutating fields:
+- keep default behavior fail-closed and blocked while the flag is off
+- reuse the existing dry-run parser plan from
+  `app.services.validation_report_intake`
+- keep `/tools/dispatch` behavior unchanged for `validation.report.intake`
+  (still rejected as invalid/unregistered)
+
+## Server-owned admission flag
+
+- environment variable:
+  `VALIDATION_REPORT_INTAKE_ENDPOINT_ENABLED`
+- accepted truthy values:
+  `1`, `true`, `yes`, `on`, `enabled`
+- accepted false values:
+  `0`, `false`, `no`, `off`, `disabled`
+- missing or invalid values default to blocked/off
+
+## Endpoint behavior
+
+When the admission flag is off or invalid:
+
+- endpoint returns `404`
+- no dry-run plan is admitted
+
+When the admission flag is explicitly on:
+
+- endpoint returns a dry-run-only plan
+- response preserves:
   - `dry_run_only=true`
   - `execution_admitted=false`
   - `write_executed=false`
   - `project_write_admitted=false`
   - `write_status=blocked`
-  - `endpoint_candidate=true`
-  - `endpoint_admitted=false`
-- fail-closed behavior preserved for malformed or auth-tainted payloads
-- `/tools/dispatch` remains unadmitted for `validation.report.intake`
+- parser `accepted` and `fail_closed_reasons` are returned directly
+- no execution, no subprocess, no file writes
 
-## Files
+## Fail-closed coverage added
 
-- `backend/app/api/routes/validation_report_intake.py`
-- `backend/app/services/validation_report_intake.py`
-- `backend/app/main.py`
-- `backend/tests/test_validation_report_intake.py`
-- `backend/tests/test_api_routes.py`
+- endpoint candidate remains blocked by default
+- valid envelope returns dry-run-only plan when flag is on
+- client authorization fields in payload fail closed when flag is on
+- dispatch remains unadmitted for `validation.report.intake` even if endpoint
+  flag is on
 
-## Safety boundaries preserved
+## Boundary confirmation
 
-- no provider generation
-- no Blender execution
-- no Asset Processor admission/execute
-- no placement execution
-- no broad mutation admission
-- no client approval/session fields accepted as authorization
+This packet does not admit:
 
-## Validation commands
+- runtime execution through validation intake
+- project mutation through validation intake
+- provider/Blender/Asset Processor/placement execution
+- client approval/session fields as authorization
+- `validation.report.intake` in `/tools/dispatch`
+
+## Validation
 
 - `python -m pytest backend/tests/test_validation_report_intake.py backend/tests/test_api_routes.py -k "validation_report_intake" -q`
 - `python -m pytest backend/tests -k "validation or report or inspection_surface" -q`
-- `python -m pytest backend/tests -k "asset_forge or approval" -q`
-- `npm --prefix frontend test`
-- `npm --prefix frontend run build`
-- `npm --prefix frontend run lint`
 - `git diff --check`
 - `git diff --cached --check`
 
-## Recommended next packet
+## Next safe packet
 
 Validation intake endpoint-candidate admission audit/review packet:
 
-- audit gate states and fail-closed refusal matrix end-to-end
-- verify operator-facing review/status fields
-- reconfirm no execution/mutation admission
-- reconfirm `/tools/dispatch` remains unadmitted for
-  `validation.report.intake`
+- verify gate semantics and refusal matrix on the integrated endpoint path
+- document operator-facing review/status fields
+- keep default-off and no execution/mutation admission

@@ -1,140 +1,115 @@
-export type ApprovalSessionTruthLabel =
-  | "admitted-real"
-  | "preflight-only"
-  | "gui-demo"
-  | "blocked";
+import type { CapabilityRisk } from "./appCapabilityDashboardFixture";
 
-export type ApprovalSessionGateState =
-  | "missing_default_off"
-  | "explicit_off"
-  | "explicit_on"
-  | "invalid_default_off";
+export type ApprovalSessionTruthLabel = "intent-only" | "server-evaluated" | "blocked" | "admitted-by-server";
 
-export type ApprovalSessionDashboardRow = {
-  lane: string;
-  sourceSurface: string;
+export type ApprovalSessionStatus =
+  | "missing"
+  | "expired"
+  | "revoked"
+  | "fingerprint_mismatch"
+  | "ready_but_not_admitted"
+  | "admitted";
+
+export type AppApprovalSessionDashboardRow = {
+  id: string;
+  domain: string;
+  operation: string;
+  clientIntent: string;
+  serverEvaluation: string;
+  sessionStatus: ApprovalSessionStatus;
+  authorizationSource: string;
   truthLabel: ApprovalSessionTruthLabel;
-  authorizationModel: string;
-  runtimeAdmission: string;
-  summary: string;
-  nextGate: string;
-};
-
-export type ApprovalSessionGateStateRow = {
-  gateState: ApprovalSessionGateState;
-  endpointAvailability: string;
-  reviewImplication: string;
-};
-
-export type ApprovalSessionFailClosedMatrixRow = {
-  scenario: string;
-  expectedStatus: string;
-  boundary: string;
+  executionAdmitted: boolean;
+  projectWriteAdmitted: boolean;
+  risk: CapabilityRisk;
+  notes: string;
 };
 
 export const appApprovalSessionDashboardGeneratedAt = "2026-04-29";
 
-export const appApprovalSessionDashboardOperatorReviewFields = [
-  "admission_flag_name",
-  "admission_flag_state",
-  "admission_flag_enabled",
-  "endpoint_candidate",
-  "endpoint_admitted",
-  "dry_run_only",
-  "execution_admitted",
-  "write_executed",
-  "project_write_admitted",
-  "write_status",
-  "accepted",
-  "fail_closed_reasons",
-] as const;
-
-export const appApprovalSessionDashboardGateStateRows: readonly ApprovalSessionGateStateRow[] = [
+export const appApprovalSessionDashboardRows: readonly AppApprovalSessionDashboardRow[] = [
   {
-    gateState: "missing_default_off",
-    endpointAvailability: "endpoint blocked (404)",
-    reviewImplication: "default-off safety when no operator flag is present",
+    id: "approval-row-validation-intent-only",
+    domain: "Validation",
+    operation: "validation.report.intake",
+    clientIntent: "approval_state=approved",
+    serverEvaluation: "denied (endpoint unadmitted)",
+    sessionStatus: "missing",
+    authorizationSource: "server-owned evaluation only",
+    truthLabel: "intent-only",
+    executionAdmitted: false,
+    projectWriteAdmitted: false,
+    risk: "Medium",
+    notes: "Client approval fields remain intent-only and cannot authorize execution.",
   },
   {
-    gateState: "explicit_off",
-    endpointAvailability: "endpoint blocked (404)",
-    reviewImplication: "operator explicitly keeps intake candidate disabled",
+    id: "approval-row-asset-forge-stage-plan",
+    domain: "Asset Forge",
+    operation: "asset_forge.o3de.stage_plan",
+    clientIntent: "approval_state=approved + session id",
+    serverEvaluation: "ready_but_not_admitted",
+    sessionStatus: "ready_but_not_admitted",
+    authorizationSource: "server-owned evaluation only",
+    truthLabel: "server-evaluated",
+    executionAdmitted: false,
+    projectWriteAdmitted: false,
+    risk: "High",
+    notes: "Server checks can pass while execution remains blocked by admission gates.",
   },
   {
-    gateState: "explicit_on",
-    endpointAvailability: "endpoint candidate returns dry-run review payload",
-    reviewImplication: "still non-admitted for execution and mutation",
+    id: "approval-row-editor-write",
+    domain: "Editor",
+    operation: "editor.component.property.write.narrow",
+    clientIntent: "approved request",
+    serverEvaluation: "admitted exact corridor",
+    sessionStatus: "admitted",
+    authorizationSource: "server-owned corridor gate",
+    truthLabel: "admitted-by-server",
+    executionAdmitted: true,
+    projectWriteAdmitted: false,
+    risk: "High",
+    notes: "Only exact admitted editor corridor is allowed; generic writes remain blocked.",
   },
   {
-    gateState: "invalid_default_off",
-    endpointAvailability: "endpoint blocked (404)",
-    reviewImplication: "invalid values fail closed to default-off behavior",
-  },
-];
-
-export const appApprovalSessionDashboardFailClosedRows: readonly ApprovalSessionFailClosedMatrixRow[] = [
-  {
-    scenario: "Endpoint gate is missing/off/invalid",
-    expectedStatus: "POST /validation/report/intake responds 404 blocked detail",
-    boundary: "no execution admission and no mutation admission",
-  },
-  {
-    scenario: "Client authorization fields are supplied",
-    expectedStatus: "dry-run payload keeps accepted=false with client_authorization_fields_forbidden",
-    boundary: "client fields remain intent-only and non-authorizing",
-  },
-  {
-    scenario: "Dispatch route is used for validation.report.intake",
-    expectedStatus: "/tools/dispatch keeps validation.report.intake unadmitted (INVALID_TOOL)",
-    boundary: "endpoint candidate does not broaden tool-dispatch admission",
-  },
-];
-
-export const appApprovalSessionDashboardRows: readonly ApprovalSessionDashboardRow[] = [
-  {
-    lane: "General approvals queue",
-    sourceSurface: "/approvals + /approvals/cards + approve/reject",
-    truthLabel: "admitted-real",
-    authorizationModel: "server-owned approval record + token",
-    runtimeAdmission: "decision routes admitted; bounded to existing approval records",
-    summary: "Pending approvals can be approved/rejected through server-managed records with run/event updates.",
-    nextGate: "dashboard truth refresh + cross-surface review linkage",
-  },
-  {
-    lane: "Asset Forge approval sessions",
-    sourceSurface: "/asset-forge/approval-sessions*",
-    truthLabel: "preflight-only",
-    authorizationModel: "server-owned session model; client fields are intent-only",
-    runtimeAdmission: "mutation execution not admitted",
-    summary: "Session evaluation is fail-closed and can be ready-but-not-admitted while mutation lanes stay blocked.",
-    nextGate: "separate mutation-admission packet (explicit approval required)",
-  },
-  {
-    lane: "Approval session dashboard shell",
-    sourceSurface: "frontend static fixture shell",
-    truthLabel: "gui-demo",
-    authorizationModel: "display-only; no authorization side effects",
-    runtimeAdmission: "no backend admission change",
-    summary: "Dashboard shell improves operator clarity without introducing new runtime capability.",
-    nextGate: "truth refresh + validation linkage",
-  },
-  {
-    lane: "Client authorization fields",
-    sourceSurface: "approval_state / approval_session_id / approval_token",
+    id: "approval-row-stage-write-proof",
+    domain: "Asset Forge",
+    operation: "asset_forge.o3de.stage_write.v1",
+    clientIntent: "approved request",
+    serverEvaluation: "revoked session fails closed",
+    sessionStatus: "revoked",
+    authorizationSource: "server-owned approval/session checks",
     truthLabel: "blocked",
-    authorizationModel: "intent-only; never sufficient for admission alone",
-    runtimeAdmission: "client-only authorization remains blocked",
-    summary: "Client-supplied approval fields are non-authorizing and must not be treated as admission grants.",
-    nextGate: "keep refusal assertions and boundary wording explicit",
+    executionAdmitted: false,
+    projectWriteAdmitted: false,
+    risk: "High",
+    notes: "Fail-closed session state blocks proof-only corridor execution.",
   },
   {
-    lane: "Validation intake endpoint candidate",
-    sourceSurface: "/validation/report/intake",
-    truthLabel: "preflight-only",
-    authorizationModel: "server-owned endpoint flag + fail-closed parser checks",
-    runtimeAdmission: "dry-run-only plan payload; execution and mutation blocked",
-    summary:
-      "When gate state is explicit_on, response still reports endpoint_admitted=false, execution_admitted=false, and write_status=blocked.",
-    nextGate: "long-hold checkpoint maintenance; keep dispatch unadmitted",
+    id: "approval-row-project-config",
+    domain: "Project/Config",
+    operation: "settings.patch.narrow",
+    clientIntent: "approved request",
+    serverEvaluation: "expired session fails closed",
+    sessionStatus: "expired",
+    authorizationSource: "server-owned corridor gate",
+    truthLabel: "blocked",
+    executionAdmitted: false,
+    projectWriteAdmitted: false,
+    risk: "High",
+    notes: "Expired session cannot authorize mutation even for narrow settings corridor.",
   },
-];
+  {
+    id: "approval-row-fingerprint-mismatch",
+    domain: "Asset Forge",
+    operation: "asset_forge.o3de.stage_write.v1",
+    clientIntent: "approval_session_id provided",
+    serverEvaluation: "fingerprint mismatch fails closed",
+    sessionStatus: "fingerprint_mismatch",
+    authorizationSource: "server-owned approval/session checks",
+    truthLabel: "blocked",
+    executionAdmitted: false,
+    projectWriteAdmitted: false,
+    risk: "High",
+    notes: "Fingerprint mismatch prevents authorization and keeps write path blocked.",
+  },
+] as const;
