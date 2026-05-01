@@ -664,6 +664,45 @@ describe("AssetForgeBlenderCockpit", () => {
     expect(locationX).toHaveValue("0");
   });
 
+  it("resets editor layout from the visible reset control", () => {
+    render(<AssetForgeBlenderCockpit />);
+
+    const toolShelf = screen.getByLabelText("Asset Forge left tool shelf");
+    fireEvent.click(within(toolShelf).getByRole("button", { name: /Delete/i }));
+    expect(screen.getByText("Active tool: Delete")).toBeInTheDocument();
+
+    const wireframeModeButton = screen.getByRole("button", { name: "Wireframe" });
+    fireEvent.click(wireframeModeButton);
+    expect(screen.getByText("Viewport mode: Wireframe")).toBeInTheDocument();
+
+    const locationX = screen.getByLabelText("Location X");
+    fireEvent.change(locationX, { target: { value: "12.5" } });
+    expect(locationX).toHaveValue("12.5");
+
+    fireEvent.click(screen.getByRole("button", { name: "Reset Layout" }));
+
+    expect(screen.getByText("Active tool: Transform")).toBeInTheDocument();
+    expect(screen.getByText("Viewport mode: Solid")).toBeInTheDocument();
+    expect(locationX).toHaveValue("0");
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /Editor layout reset locally\. UI-only state restored; no backend mutation\./i,
+    );
+  });
+
+  it("renders a light/dark theme toggle and reports the selected mode", () => {
+    render(<AssetForgeBlenderCockpit />);
+
+    const toggle = screen.getByLabelText("Asset Forge theme mode toggle");
+    expect(within(toggle).getByRole("button", { name: "Light" })).toBeInTheDocument();
+    expect(within(toggle).getByRole("button", { name: "Dark" })).toBeInTheDocument();
+
+    fireEvent.click(within(toggle).getByRole("button", { name: "Dark" }));
+    expect(screen.getByRole("status")).toHaveTextContent(/Dark theme applied from Asset Forge\./i);
+
+    fireEvent.click(within(toggle).getByRole("button", { name: "Light" }));
+    expect(screen.getByRole("status")).toHaveTextContent(/Light theme applied from Asset Forge\./i);
+  });
+
   it("switches properties tabs and keeps material mutation blocked", () => {
     render(<AssetForgeBlenderCockpit />);
 
