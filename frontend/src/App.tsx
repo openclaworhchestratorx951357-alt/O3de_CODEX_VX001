@@ -5640,7 +5640,7 @@ export default function App() {
     );
   }
 
-  function getPromptReturnNextSafeAction(workspaceId: DesktopWorkspaceId): string {
+function getPromptReturnNextSafeAction(workspaceId: DesktopWorkspaceId): string {
     switch (workspaceId) {
       case "home":
         return "Resume from Home mission cards, then preview the loaded prompt plan before any execution.";
@@ -5664,12 +5664,19 @@ export default function App() {
         return "Review latest run, execution, and artifact evidence before choosing the next mission action.";
       default:
         return "Review the active workspace truth rail and continue with the next safe, non-mutating step.";
-    }
   }
+}
 
-  function returnToSourceWorkspaceFromPrompt(sourceWorkspaceId: string): void {
-    const allowedWorkspaceIds: DesktopWorkspaceId[] = [
-      "home",
+function resolveLegacySourceWorkspaceId(workspaceId: DesktopWorkspaceId): DesktopWorkspaceId {
+  if (workspaceId === "home") {
+    return "asset-forge";
+  }
+  return workspaceId;
+}
+
+function returnToSourceWorkspaceFromPrompt(sourceWorkspaceId: string): void {
+  const allowedWorkspaceIds: DesktopWorkspaceId[] = [
+    "home",
       "create-game",
       "create-movie",
       "load-project",
@@ -5677,12 +5684,12 @@ export default function App() {
       "prompt",
       "builder",
       "operations",
-      "runtime",
-      "records",
-    ];
-    const resolvedWorkspaceId = allowedWorkspaceIds.includes(sourceWorkspaceId as DesktopWorkspaceId)
-      ? sourceWorkspaceId as DesktopWorkspaceId
-      : "home";
+    "runtime",
+    "records",
+  ];
+  const resolvedWorkspaceId = allowedWorkspaceIds.includes(sourceWorkspaceId as DesktopWorkspaceId)
+    ? resolveLegacySourceWorkspaceId(sourceWorkspaceId as DesktopWorkspaceId)
+    : "asset-forge";
     const sourceSurfaceLabel = promptLaunchDraftRequest?.sourceSurfaceLabel?.trim()
       || `${workspaceMeta[resolvedWorkspaceId].title} mission handoff`;
     const draftLabel = promptLaunchDraftRequest?.draft?.label?.trim() || "Mission template";

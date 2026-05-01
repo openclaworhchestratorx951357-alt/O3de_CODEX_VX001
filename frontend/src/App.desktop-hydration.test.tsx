@@ -265,7 +265,7 @@ describe("App desktop hydration", () => {
         { timeout: LAZY_SURFACE_TIMEOUT_MS },
       ),
     ).toBeInTheDocument();
-    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
+    expect(await screen.findByLabelText("Asset Forge Blender-like editor")).toBeInTheDocument();
 
     unmount();
     render(<App />);
@@ -277,7 +277,7 @@ describe("App desktop hydration", () => {
         { timeout: LAZY_SURFACE_TIMEOUT_MS },
       ),
     ).toBeInTheDocument();
-    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
+    expect(await screen.findByLabelText("Asset Forge Blender-like editor")).toBeInTheDocument();
   });
 
   it("restores the command center agents surface from session storage after remount", async () => {

@@ -1027,6 +1027,28 @@ describe("App desktop smoke", () => {
     expect(screen.queryByLabelText("Mission handoff resume checklist")).not.toBeInTheDocument();
   });
 
+  it("redirects legacy home prompt-return handoff back into Asset Forge shell", async () => {
+    render(<App />);
+
+    const homeWorkspaceHeading = await screen.findByText("Home start here");
+    const homeWorkspace = homeWorkspaceHeading.closest("section");
+    expect(homeWorkspace).not.toBeNull();
+    fireEvent.click(within(homeWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
+    const chooser = await screen.findByLabelText("Prompt template chooser context");
+    fireEvent.click(
+      within(chooser).getByRole("button", { name: "Load template: Inspect project evidence prompt" }),
+    );
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
+
+    const handoffCard = screen.getByLabelText("Prompt handoff context card");
+    fireEvent.click(within(handoffCard).getByRole("button", { name: "Return to source cockpit" }));
+
+    expect(await screen.findByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
+    expect(screen.getByLabelText("AI Asset Forge")).toBeInTheDocument();
+    const resumeChecklist = screen.getByLabelText("Mission handoff resume checklist");
+    expect(resumeChecklist).toHaveTextContent("Next safe action: Continue the Asset Forge pipeline");
+  });
+
   it("keeps Asset Forge as the primary shell header surface", async () => {
     render(<App />);
 
