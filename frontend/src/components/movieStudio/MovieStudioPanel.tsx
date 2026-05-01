@@ -169,6 +169,7 @@ export default function MovieStudioPanel() {
   const [historyLog, setHistoryLog] = useState<string[]>([]);
   const [handoffStatus, setHandoffStatus] = useState<string>("Ready");
   const [o3deStatus, setO3deStatus] = useState<string>("Checking O3DE bridge...");
+  const [o3deLastCheck, setO3deLastCheck] = useState<string>("Pending first check");
 
   const trackCount = TRACKS.length;
   const clipCount = useMemo(
@@ -348,11 +349,17 @@ export default function MovieStudioPanel() {
       );
     } catch {
       setO3deStatus("Target: Unavailable | Bridge: Unavailable");
+    } finally {
+      setO3deLastCheck(new Date().toISOString());
     }
   }
 
   useEffect(() => {
     void refreshO3deStatus();
+    const refreshTimer = window.setInterval(() => {
+      void refreshO3deStatus();
+    }, 30000);
+    return () => window.clearInterval(refreshTimer);
   }, []);
 
   function nudgePlayhead(frameDelta: number) {
@@ -441,7 +448,10 @@ export default function MovieStudioPanel() {
         ))}
       </nav>
       <section aria-label="O3DE status" style={s.o3deStrip}>
-        <p style={s.o3deStripText}>{o3deStatus}</p>
+        <div>
+          <p style={s.o3deStripText}>{o3deStatus}</p>
+          <p style={s.o3deStripMeta}>Last check: {o3deLastCheck}</p>
+        </div>
         <button type="button" onClick={() => void refreshO3deStatus()} style={s.toolbarButton}>
           Refresh O3DE
         </button>
@@ -836,6 +846,11 @@ const s = {
   o3deStripText: {
     margin: 0,
     fontSize: 12,
+    color: "var(--app-text-muted)",
+  },
+  o3deStripMeta: {
+    margin: "3px 0 0",
+    fontSize: 11,
     color: "var(--app-text-muted)",
   },
   pageTab: {
