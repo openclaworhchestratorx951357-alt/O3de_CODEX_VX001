@@ -2,23 +2,23 @@ import type { CSSProperties } from "react";
 
 import StatusChip from "./StatusChip";
 import {
-  appApprovalSessionDashboardFailClosedRows,
-  appApprovalSessionDashboardGateStateRows,
   appApprovalSessionDashboardGeneratedAt,
-  appApprovalSessionDashboardOperatorReviewFields,
   appApprovalSessionDashboardRows,
-  type ApprovalSessionGateState,
+  type ApprovalSessionStatus,
   type ApprovalSessionTruthLabel,
 } from "../fixtures/appApprovalSessionDashboardFixture";
-import {
-  summaryMutedTextStyle,
-  summarySectionStyle,
-} from "./summaryPrimitives";
-import { sharedShellBoundaryLabels } from "./appShellTaxonomyParity";
+import type { CapabilityRisk } from "../fixtures/appCapabilityDashboardFixture";
+import { summaryCardStyle, summaryMutedTextStyle, summarySectionStyle } from "./summaryPrimitives";
 
-const boundaryLabels = [...sharedShellBoundaryLabels] as const;
+const boundaryLabels = [
+  "Static fixture only",
+  "Server-owned authorization only",
+  "Client approval fields are intent-only",
+  "No execution admission changes",
+] as const;
 
 export default function AppApprovalSessionDashboardShell() {
+  const statusCounts = countBy(appApprovalSessionDashboardRows, (row) => row.sessionStatus);
   const truthCounts = countBy(appApprovalSessionDashboardRows, (row) => row.truthLabel);
 
   return (
@@ -29,14 +29,15 @@ export default function AppApprovalSessionDashboardShell() {
         gap: 16,
         marginBottom: 24,
         background:
-          "linear-gradient(135deg, rgba(17, 107, 173, 0.17) 0%, var(--app-panel-bg-muted) 58%, rgba(196, 145, 20, 0.15) 100%)",
+          "linear-gradient(128deg, rgba(45, 134, 84, 0.14) 0%, var(--app-panel-bg-muted) 52%, rgba(18, 112, 164, 0.14) 100%)",
       }}
       data-testid="app-approval-session-dashboard-shell"
     >
       <header style={{ display: "grid", gap: 8 }}>
         <strong>Approval/session dashboard shell (static fixture)</strong>
         <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-          Operator-facing shell for approval and server-session truth without widening runtime authorization.
+          Operator truth view that separates client intent from server-owned authorization and shows fail-closed
+          session outcomes.
         </p>
         <p style={{ ...summaryMutedTextStyle, margin: 0, fontSize: 12 }}>
           Fixture baseline: {appApprovalSessionDashboardGeneratedAt}
@@ -49,93 +50,98 @@ export default function AppApprovalSessionDashboardShell() {
         ))}
       </div>
 
-      <article style={summaryCardStyle}>
-        <strong>Truth-label mix</strong>
-        <div style={chipWrapStyle}>
-          {Object.entries(truthCounts).map(([truthLabel, count]) => (
-            <StatusChip
-              key={truthLabel}
-              label={`${truthLabel}: ${count}`}
-              tone={getTruthTone(truthLabel as ApprovalSessionTruthLabel)}
-            />
-          ))}
-        </div>
-      </article>
-
       <div style={topGridStyle}>
         <article style={summaryCardStyle}>
-          <strong>Server gate-state matrix</strong>
-          <div style={stackStyle}>
-            {appApprovalSessionDashboardGateStateRows.map((row) => (
-              <div key={row.gateState} style={matrixRowStyle}>
-                <StatusChip label={row.gateState} tone={getGateStateTone(row.gateState)} />
-                <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-                  {row.endpointAvailability}. {row.reviewImplication}
-                </p>
-              </div>
+          <strong>Session status mix</strong>
+          <div style={chipWrapStyle}>
+            {Object.entries(statusCounts).map(([status, count]) => (
+              <StatusChip
+                key={status}
+                label={`${status}: ${count}`}
+                tone={getSessionStatusTone(status as ApprovalSessionStatus)}
+              />
             ))}
           </div>
         </article>
-
         <article style={summaryCardStyle}>
-          <strong>Operator review/status fields</strong>
+          <strong>Authorization truth mix</strong>
           <div style={chipWrapStyle}>
-            {appApprovalSessionDashboardOperatorReviewFields.map((fieldName) => (
-              <StatusChip key={fieldName} label={fieldName} tone="neutral" />
+            {Object.entries(truthCounts).map(([truthLabel, count]) => (
+              <StatusChip
+                key={truthLabel}
+                label={`${truthLabel}: ${count}`}
+                tone={getTruthTone(truthLabel as ApprovalSessionTruthLabel)}
+              />
             ))}
           </div>
-          <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-            These fields are review output only; they do not authorize execution or mutation.
-          </p>
         </article>
       </div>
-
-      <article style={summaryCardStyle}>
-        <strong>Fail-closed refusal matrix</strong>
-        <div style={stackStyle}>
-          {appApprovalSessionDashboardFailClosedRows.map((row) => (
-            <p key={row.scenario} style={{ ...summaryMutedTextStyle, margin: 0 }}>
-              <strong>{row.scenario}:</strong> {row.expectedStatus}. {row.boundary}.
-            </p>
-          ))}
-        </div>
-      </article>
 
       <div style={tableWrapStyle}>
         <table style={tableStyle}>
           <thead>
             <tr>
-              <th style={headerCellStyle}>Lane</th>
-              <th style={headerCellStyle}>Source surface</th>
-              <th style={headerCellStyle}>Truth label</th>
-              <th style={headerCellStyle}>Authorization model</th>
-              <th style={headerCellStyle}>Runtime admission</th>
-              <th style={headerCellStyle}>Summary</th>
-              <th style={headerCellStyle}>Next gate</th>
+              <th style={headerCellStyle}>Domain</th>
+              <th style={headerCellStyle}>Operation</th>
+              <th style={headerCellStyle}>Client intent</th>
+              <th style={headerCellStyle}>Server evaluation</th>
+              <th style={headerCellStyle}>Session status</th>
+              <th style={headerCellStyle}>Truth</th>
+              <th style={headerCellStyle}>Execution admitted</th>
+              <th style={headerCellStyle}>Project write admitted</th>
             </tr>
           </thead>
           <tbody>
             {appApprovalSessionDashboardRows.map((row) => (
-              <tr key={`${row.lane}:${row.truthLabel}`}>
-                <td style={bodyCellStyle}>{row.lane}</td>
+              <tr key={row.id}>
+                <td style={bodyCellStyle}>{row.domain}</td>
                 <td style={bodyCellStyle}>
-                  <code>{row.sourceSurface}</code>
+                  <code>{row.operation}</code>
+                </td>
+                <td style={bodyCellStyle}>{row.clientIntent}</td>
+                <td style={bodyCellStyle}>{row.serverEvaluation}</td>
+                <td style={bodyCellStyle}>
+                  <StatusChip label={row.sessionStatus} tone={getSessionStatusTone(row.sessionStatus)} />
                 </td>
                 <td style={bodyCellStyle}>
                   <StatusChip label={row.truthLabel} tone={getTruthTone(row.truthLabel)} />
                 </td>
-                <td style={bodyCellStyle}>{row.authorizationModel}</td>
-                <td style={bodyCellStyle}>{row.runtimeAdmission}</td>
-                <td style={bodyCellStyle}>{row.summary}</td>
-                <td style={bodyCellStyle}>{row.nextGate}</td>
+                <td style={bodyCellStyle}>
+                  <StatusChip label={String(row.executionAdmitted)} tone={row.executionAdmitted ? "success" : "danger"} />
+                </td>
+                <td style={bodyCellStyle}>
+                  <StatusChip
+                    label={String(row.projectWriteAdmitted)}
+                    tone={row.projectWriteAdmitted ? "success" : "danger"}
+                  />
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
+      <div style={noteGridStyle}>
+        {appApprovalSessionDashboardRows.map((row) => (
+          <article key={`${row.id}:note`} style={summaryCardStyle}>
+            <div style={rowHeadStyle}>
+              <strong>{row.domain}</strong>
+              <StatusChip label={row.risk} tone={getRiskTone(row.risk)} />
+            </div>
+            <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
+              <code>{row.operation}</code>
+            </p>
+            <p style={{ ...summaryMutedTextStyle, margin: 0 }}>{row.notes}</p>
+            <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
+              <strong>Authorization source:</strong> {row.authorizationSource}
+            </p>
+          </article>
+        ))}
+      </div>
+
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Editor placement proof-only implementation</strong>.
+        Recommended next packet: <strong>Validation intake endpoint-candidate admission design</strong> (docs/design
+        first, default fail-closed, no execution admission changes).
       </p>
     </section>
   );
@@ -149,58 +155,55 @@ function countBy<T>(rows: readonly T[], getKey: (row: T) => string): Record<stri
   }, {});
 }
 
-function getTruthTone(label: ApprovalSessionTruthLabel): "neutral" | "info" | "success" | "warning" | "danger" {
-  if (label === "admitted-real") {
-    return "success";
+function getRiskTone(risk: CapabilityRisk): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (risk === "Critical") {
+    return "danger";
   }
-  if (label === "preflight-only" || label === "gui-demo") {
+  if (risk === "High") {
+    return "warning";
+  }
+  if (risk === "Medium") {
     return "info";
   }
-  if (label === "blocked") {
+  return "success";
+}
+
+function getSessionStatusTone(status: ApprovalSessionStatus): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (status === "admitted") {
+    return "success";
+  }
+  if (status === "ready_but_not_admitted") {
+    return "warning";
+  }
+  if (status === "missing" || status === "expired" || status === "revoked" || status === "fingerprint_mismatch") {
     return "danger";
   }
   return "neutral";
 }
 
-function getGateStateTone(state: ApprovalSessionGateState): "neutral" | "info" | "success" | "warning" | "danger" {
-  if (state === "explicit_on") {
-    return "info";
+function getTruthTone(truthLabel: ApprovalSessionTruthLabel): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (truthLabel === "admitted-by-server") {
+    return "success";
   }
-  if (state === "invalid_default_off") {
+  if (truthLabel === "blocked") {
     return "danger";
   }
-  return "warning";
+  if (truthLabel === "server-evaluated") {
+    return "warning";
+  }
+  return "info";
 }
+
+const topGridStyle = {
+  display: "grid",
+  gap: 12,
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+} satisfies CSSProperties;
 
 const chipWrapStyle = {
   display: "flex",
   gap: 8,
   flexWrap: "wrap",
-} satisfies CSSProperties;
-
-const topGridStyle = {
-  display: "grid",
-  gap: 12,
-  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-} satisfies CSSProperties;
-
-const stackStyle = {
-  display: "grid",
-  gap: 8,
-} satisfies CSSProperties;
-
-const matrixRowStyle = {
-  display: "grid",
-  gap: 8,
-} satisfies CSSProperties;
-
-const summaryCardStyle = {
-  border: "1px solid var(--app-panel-border)",
-  borderRadius: "var(--app-card-radius)",
-  padding: 12,
-  background: "var(--app-panel-bg)",
-  display: "grid",
-  gap: 8,
 } satisfies CSSProperties;
 
 const tableWrapStyle = {
@@ -213,7 +216,7 @@ const tableWrapStyle = {
 const tableStyle = {
   width: "100%",
   borderCollapse: "collapse",
-  minWidth: 1180,
+  minWidth: 980,
 } satisfies CSSProperties;
 
 const headerCellStyle = {
@@ -228,4 +231,17 @@ const bodyCellStyle = {
   borderBottom: "1px solid var(--app-panel-border)",
   padding: "10px 12px",
   verticalAlign: "top",
+} satisfies CSSProperties;
+
+const noteGridStyle = {
+  display: "grid",
+  gap: 12,
+  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+} satisfies CSSProperties;
+
+const rowHeadStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 8,
 } satisfies CSSProperties;
