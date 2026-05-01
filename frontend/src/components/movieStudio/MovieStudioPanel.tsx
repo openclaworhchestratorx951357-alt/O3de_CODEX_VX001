@@ -577,6 +577,27 @@ export default function MovieStudioPanel() {
           <p style={s.timelineMeta}>
             Active page: <strong>{STUDIO_PAGES.find((page) => page.id === activePage)?.label}</strong>
           </p>
+          <section aria-label="Program viewer" style={s.viewerShell}>
+            <header style={s.viewerHeader}>
+              <h4 style={s.viewerTitle}>Program Viewer</h4>
+              <span style={s.viewerBadge}>{isPlaying ? "Live Playback" : "Paused Frame"}</span>
+            </header>
+            <div style={s.viewerStage}>
+              <div style={s.viewerOverlayTop}>
+                <strong>{selectedClip.label}</strong>
+                <span>
+                  {selectedClip.start} - {selectedClip.end}
+                </span>
+              </div>
+              <div style={s.viewerCenterMark}>FRAME PREVIEW</div>
+              <div style={s.viewerOverlayBottom}>
+                <span>Playhead {playhead}</span>
+                <span>{rangePresetLabel(timelineRange)}</span>
+                <span>{timelineZoom}x</span>
+                <span>{playbackRate}</span>
+              </div>
+            </div>
+          </section>
           <div style={s.timelineToolbar}>
             <label style={s.inputLabel}>
               Playhead
@@ -1057,6 +1078,72 @@ const s = {
     margin: "0 0 10px",
     fontSize: 12,
     color: "var(--app-text-muted)",
+  },
+  viewerShell: {
+    border: "1px solid var(--app-panel-border)",
+    borderRadius: 10,
+    background: "rgba(9, 13, 20, 0.76)",
+    padding: 8,
+    marginBottom: 10,
+    display: "grid",
+    gap: 8,
+  },
+  viewerHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  viewerTitle: {
+    margin: 0,
+    fontSize: 13,
+  },
+  viewerBadge: {
+    fontSize: 11,
+    color: "var(--app-text-muted)",
+    border: "1px solid var(--app-panel-border)",
+    borderRadius: 999,
+    padding: "2px 8px",
+  },
+  viewerStage: {
+    minHeight: 260,
+    border: "1px solid rgba(120, 190, 255, 0.35)",
+    borderRadius: 8,
+    background:
+      "radial-gradient(circle at 50% 35%, rgba(75, 116, 173, 0.24), rgba(14, 20, 30, 0.92) 58%), linear-gradient(135deg, rgba(19, 29, 45, 0.95), rgba(8, 12, 20, 0.98))",
+    display: "grid",
+    gridTemplateRows: "auto 1fr auto",
+    overflow: "hidden",
+  },
+  viewerOverlayTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 8,
+    padding: "8px 10px",
+    fontSize: 11,
+    color: "#e4efff",
+    background: "linear-gradient(180deg, rgba(4, 7, 12, 0.75), rgba(4, 7, 12, 0.05))",
+  },
+  viewerCenterMark: {
+    alignSelf: "center",
+    justifySelf: "center",
+    color: "rgba(226, 238, 255, 0.72)",
+    fontSize: 12,
+    letterSpacing: "0.12em",
+    border: "1px dashed rgba(170, 214, 255, 0.45)",
+    borderRadius: 999,
+    padding: "8px 16px",
+  },
+  viewerOverlayBottom: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 8,
+    flexWrap: "wrap",
+    padding: "8px 10px",
+    fontSize: 11,
+    color: "#dce9ff",
+    background: "linear-gradient(0deg, rgba(4, 7, 12, 0.75), rgba(4, 7, 12, 0.08))",
   },
   timelineToolbar: {
     display: "grid",
