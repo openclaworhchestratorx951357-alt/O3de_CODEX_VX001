@@ -22,6 +22,7 @@ describe("MovieStudioPanel", () => {
     expect(screen.getByRole("button", { name: "Refresh O3DE" })).toBeInTheDocument();
     expect(screen.getByText((content) => content.startsWith("O3DE Health:"))).toBeInTheDocument();
     expect(screen.getByText((content) => content.startsWith("Last check:"))).toBeInTheDocument();
+    expect(screen.getByText((content) => content.includes("Freshness:"))).toBeInTheDocument();
     expect(screen.getByText((content) => content.includes("Consecutive failures:"))).toBeInTheDocument();
     expect(screen.getByText((content) => content.startsWith("Recent checks:"))).toBeInTheDocument();
     expect(screen.getByText("Schema: movie_studio.handoff.v1")).toBeInTheDocument();

@@ -298,6 +298,11 @@ export default function MovieStudioPanel() {
     ],
   );
   const playheadValid = isValidTimecode(playhead);
+  const o3deFreshness = useMemo(() => {
+    const epoch = Date.parse(o3deLastCheck);
+    if (Number.isNaN(epoch)) return "Unknown";
+    return Date.now() - epoch <= 45000 ? "Fresh" : "Stale";
+  }, [o3deLastCheck]);
 
   const snapshotCurrent = useCallback(
     (): TimelineHistorySnapshot => ({
@@ -588,7 +593,9 @@ export default function MovieStudioPanel() {
             O3DE Health: {o3deHealth === "healthy" ? "Healthy" : o3deHealth === "degraded" ? "Degraded" : "Unavailable"}
           </p>
           <p style={s.o3deStripText}>{o3deStatus}</p>
-          <p style={s.o3deStripMeta}>Last check: {o3deLastCheck} | Consecutive failures: {o3deFailureCount}</p>
+          <p style={s.o3deStripMeta}>
+            Last check: {o3deLastCheck} | Freshness: {o3deFreshness} | Consecutive failures: {o3deFailureCount}
+          </p>
           <p style={s.o3deStripMeta}>
             Recent checks: {o3deStatusLog.length > 0 ? o3deStatusLog[0] : "none yet"}
           </p>
