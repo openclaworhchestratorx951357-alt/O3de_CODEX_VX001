@@ -49,12 +49,13 @@ describe("MovieStudioPanel", () => {
 
     fireEvent.change(screen.getByLabelText("Playhead"), { target: { value: "00:99:00:99" } });
     expect(screen.getByText("Playhead must be HH:MM:SS:FF at 24fps.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Marker" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Copy Packet" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Copy JSON" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Download .txt" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Download .json" })).toBeDisabled();
 
-    fireEvent.click(screen.getByRole("button", { name: "Add Marker" }));
     expect(screen.queryByRole("button", { name: "00:99:00:99" })).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Copy Packet" }));
-    expect(screen.getByText("Playhead timecode is invalid")).toBeInTheDocument();
   });
 
   it("updates timeline range and zoom controls", () => {

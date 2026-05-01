@@ -645,7 +645,12 @@ export default function MovieStudioPanel() {
                 placeholder="Search clip name"
               />
             </label>
-            <button type="button" onClick={addMarker} style={s.toolbarButton}>
+            <button
+              type="button"
+              onClick={addMarker}
+              style={playheadValid ? s.toolbarButton : s.toolbarButtonDisabled}
+              disabled={!playheadValid}
+            >
               Add Marker
             </button>
             <button
@@ -886,16 +891,36 @@ export default function MovieStudioPanel() {
               </p>
               <p style={s.handoffMeta}>Schema: {MOVIE_STUDIO_HANDOFF_SCHEMA}</p>
               <div style={s.handoffActions}>
-                <button type="button" onClick={() => void copyHandoffSummary()} style={s.toolbarButton}>
+                <button
+                  type="button"
+                  onClick={() => void copyHandoffSummary()}
+                  style={playheadValid ? s.toolbarButton : s.toolbarButtonDisabled}
+                  disabled={!playheadValid}
+                >
                   Copy Packet
                 </button>
-                <button type="button" onClick={() => void copyHandoffJson()} style={s.toolbarButton}>
+                <button
+                  type="button"
+                  onClick={() => void copyHandoffJson()}
+                  style={playheadValid ? s.toolbarButton : s.toolbarButtonDisabled}
+                  disabled={!playheadValid}
+                >
                   Copy JSON
                 </button>
-                <button type="button" onClick={downloadHandoffSummary} style={s.toolbarButton}>
+                <button
+                  type="button"
+                  onClick={downloadHandoffSummary}
+                  style={playheadValid ? s.toolbarButton : s.toolbarButtonDisabled}
+                  disabled={!playheadValid}
+                >
                   Download .txt
                 </button>
-                <button type="button" onClick={downloadHandoffJson} style={s.toolbarButton}>
+                <button
+                  type="button"
+                  onClick={downloadHandoffJson}
+                  style={playheadValid ? s.toolbarButton : s.toolbarButtonDisabled}
+                  disabled={!playheadValid}
+                >
                   Download .json
                 </button>
                 <span style={s.handoffStatus}>{handoffStatus}</span>
