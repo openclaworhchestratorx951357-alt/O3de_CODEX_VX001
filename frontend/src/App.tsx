@@ -261,6 +261,17 @@ type DesktopWorkspaceId =
 
 type DesktopNavItemId = DesktopWorkspaceId;
 
+type AssetForgeDockedWorkspaceId =
+  | "none"
+  | "create-game"
+  | "create-movie"
+  | "load-project"
+  | "prompt"
+  | "builder"
+  | "operations"
+  | "runtime"
+  | "records";
+
 function resolveInitialDesktopWorkspaceId(preferredWorkspaceId: string): DesktopWorkspaceId {
   if (preferredWorkspaceId === "home") {
     return "asset-forge";
@@ -743,6 +754,8 @@ export default function App() {
   const [laneExportStatus, setLaneExportStatus] = useState<LaneExportStatus | null>(null);
   const initialWorkspaceId = getInitialDesktopWorkspaceId(settings.layout.preferredLandingSection);
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<DesktopWorkspaceId>(initialWorkspaceId);
+  const [assetForgeDockedWorkspaceId, setAssetForgeDockedWorkspaceId] =
+    useState<AssetForgeDockedWorkspaceId>("none");
   const [visitedWorkspaceIds, setVisitedWorkspaceIds] = useState<DesktopWorkspaceId[]>([
     initialWorkspaceId,
   ]);
@@ -2540,6 +2553,13 @@ export default function App() {
         ? currentWorkspaceIds
         : [...currentWorkspaceIds, activeWorkspaceId]
     ));
+  }, [activeWorkspaceId]);
+
+  useEffect(() => {
+    if (activeWorkspaceId === "asset-forge") {
+      return;
+    }
+    setAssetForgeDockedWorkspaceId("none");
   }, [activeWorkspaceId]);
 
   useEffect(() => {
@@ -5652,6 +5672,75 @@ export default function App() {
     setActiveRecordsSurface("runs");
   }
 
+  function openAssetForgeDockedWorkspace(workspaceId: Exclude<AssetForgeDockedWorkspaceId, "none">): void {
+    setAssetForgeDockedWorkspaceId(workspaceId);
+  }
+
+  function openRecordsRunsInAssetForgeDock(options?: { preserveEvidenceContext?: boolean }): void {
+    if (!options?.preserveEvidenceContext) {
+      setRecordsEvidenceContext(null);
+    }
+    setActiveRecordsSurface("runs");
+    openAssetForgeDockedWorkspace("records");
+  }
+
+  function openRecordsExecutionsInAssetForgeDock(options?: { preserveEvidenceContext?: boolean }): void {
+    if (!options?.preserveEvidenceContext) {
+      setRecordsEvidenceContext(null);
+    }
+    setActiveRecordsSurface("executions");
+    openAssetForgeDockedWorkspace("records");
+  }
+
+  function openRecordsArtifactsInAssetForgeDock(options?: { preserveEvidenceContext?: boolean }): void {
+    if (!options?.preserveEvidenceContext) {
+      setRecordsEvidenceContext(null);
+    }
+    setActiveRecordsSurface("artifacts");
+    openAssetForgeDockedWorkspace("records");
+  }
+
+  function openRecordsEventsInAssetForgeDock(): void {
+    setActiveRecordsSurface("events");
+    openAssetForgeDockedWorkspace("records");
+  }
+
+  async function openLatestRunEvidenceInAssetForgeDock(): Promise<void> {
+    openRecordsRunsInAssetForgeDock();
+    let runId = latestRunId;
+    if (!runId) {
+      const loadedRuns = await loadRuns();
+      runId = loadedRuns[0]?.id ?? null;
+    }
+    if (runId) {
+      await openRunDetail(runId);
+    }
+  }
+
+  async function openLatestExecutionEvidenceInAssetForgeDock(): Promise<void> {
+    openRecordsExecutionsInAssetForgeDock();
+    let executionId = latestExecutionId;
+    if (!executionId) {
+      const loadedExecutions = await loadExecutions();
+      executionId = loadedExecutions[0]?.id ?? null;
+    }
+    if (executionId) {
+      await openExecutionDetail(executionId);
+    }
+  }
+
+  async function openLatestArtifactEvidenceInAssetForgeDock(): Promise<void> {
+    openRecordsArtifactsInAssetForgeDock();
+    let artifactId = latestArtifactId;
+    if (!artifactId) {
+      const loadedArtifacts = await loadArtifacts();
+      artifactId = loadedArtifacts[0]?.id ?? null;
+    }
+    if (artifactId) {
+      await openArtifactDetail(artifactId);
+    }
+  }
+
   function openRecordsExecutions(options?: { preserveEvidenceContext?: boolean }): void {
     if (!options?.preserveEvidenceContext) {
       setRecordsEvidenceContext(null);
@@ -7888,6 +7977,264 @@ export default function App() {
       />
     </Suspense>
   );
+
+  function renderAssetForgeDockedWorkspaceContent() {
+    switch (assetForgeDockedWorkspaceId) {
+      case "create-game":
+        return (
+          <Suspense
+            fallback={renderWorkspaceLoadingFallback(
+              "Create Game",
+              "Loading Create Game cockpit mission pipeline and tool cards.",
+            )}
+          >
+            <CreateGameWorkspaceView
+              onOpenPromptStudio={() => {
+                openPromptStudioFromCreateGameCockpit();
+                setActiveWorkspaceId("asset-forge");
+                openAssetForgeDockedWorkspace("prompt");
+              }}
+              onOpenAssetForge={() => {
+                setActiveWorkspaceId("asset-forge");
+                setAssetForgeDockedWorkspaceId("none");
+              }}
+              onOpenRuntimeOverview={() => {
+                setActiveRuntimeSurface("overview");
+                openAssetForgeDockedWorkspace("runtime");
+              }}
+              onOpenRecords={openRecordsRunsInAssetForgeDock}
+              onLaunchInspectTemplate={() => {
+                openPromptStudioWithInspectProjectTemplateFromCreateGame();
+                setActiveWorkspaceId("asset-forge");
+                openAssetForgeDockedWorkspace("prompt");
+              }}
+              onLaunchCreateEntityTemplate={() => {
+                openPromptStudioWithCreateGameEntityTemplate();
+                setActiveWorkspaceId("asset-forge");
+                openAssetForgeDockedWorkspace("prompt");
+              }}
+              onLaunchAddMeshTemplate={() => {
+                openPromptStudioWithAddAllowlistedMeshTemplate();
+                setActiveWorkspaceId("asset-forge");
+                openAssetForgeDockedWorkspace("prompt");
+              }}
+              onViewLatestRun={() => { void openLatestRunEvidenceInAssetForgeDock(); }}
+              onViewExecution={() => { void openLatestExecutionEvidenceInAssetForgeDock(); }}
+              onViewArtifact={() => { void openLatestArtifactEvidenceInAssetForgeDock(); }}
+              onViewEvidence={openRecordsEventsInAssetForgeDock}
+              onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+              onOpenRunDetail={async (runId) => {
+                openRecordsRunsInAssetForgeDock({ preserveEvidenceContext: true });
+                await openRunEvidenceById(runId);
+                setActiveWorkspaceId("asset-forge");
+              }}
+              onOpenExecutionDetail={async (executionId) => {
+                openRecordsExecutionsInAssetForgeDock({ preserveEvidenceContext: true });
+                await openExecutionEvidenceById(executionId);
+                setActiveWorkspaceId("asset-forge");
+              }}
+              onOpenArtifactDetail={async (artifactId) => {
+                openRecordsArtifactsInAssetForgeDock({ preserveEvidenceContext: true });
+                await openArtifactEvidenceById(artifactId);
+                setActiveWorkspaceId("asset-forge");
+              }}
+              bridgeStatus={o3deBridgeStatus}
+              adapters={adapters}
+              readiness={readiness}
+              latestRunId={latestRunId}
+              latestExecutionId={latestExecutionId}
+              latestArtifactId={latestArtifactId}
+              latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
+            />
+          </Suspense>
+        );
+      case "create-movie":
+        return (
+          <Suspense
+            fallback={renderWorkspaceLoadingFallback(
+              "Create Movie",
+              "Loading Create Movie cockpit cinematic pipeline and proof-only placement guidance.",
+            )}
+          >
+            <CreateMovieWorkspaceView
+              onOpenPromptStudio={() => {
+                openPromptStudioFromCreateMovieCockpit();
+                setActiveWorkspaceId("asset-forge");
+                openAssetForgeDockedWorkspace("prompt");
+              }}
+              onOpenAssetForge={() => {
+                setActiveWorkspaceId("asset-forge");
+                setAssetForgeDockedWorkspaceId("none");
+              }}
+              onOpenRuntimeOverview={() => {
+                setActiveRuntimeSurface("overview");
+                openAssetForgeDockedWorkspace("runtime");
+              }}
+              onOpenRecords={openRecordsRunsInAssetForgeDock}
+              onLaunchInspectTemplate={() => {
+                openPromptStudioWithInspectCinematicTargetTemplate();
+                setActiveWorkspaceId("asset-forge");
+                openAssetForgeDockedWorkspace("prompt");
+              }}
+              onLaunchCameraTemplate={() => {
+                openPromptStudioWithCreateCinematicCameraTemplate();
+                setActiveWorkspaceId("asset-forge");
+                openAssetForgeDockedWorkspace("prompt");
+              }}
+              onLaunchPlacementProofTemplate={() => {
+                openPromptStudioWithCinematicPlacementProofTemplate();
+                setActiveWorkspaceId("asset-forge");
+                openAssetForgeDockedWorkspace("prompt");
+              }}
+              onViewLatestRun={() => { void openLatestRunEvidenceInAssetForgeDock(); }}
+              onViewExecution={() => { void openLatestExecutionEvidenceInAssetForgeDock(); }}
+              onViewArtifact={() => { void openLatestArtifactEvidenceInAssetForgeDock(); }}
+              onViewEvidence={openRecordsEventsInAssetForgeDock}
+              onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+              onOpenRunDetail={async (runId) => {
+                openRecordsRunsInAssetForgeDock({ preserveEvidenceContext: true });
+                await openRunEvidenceById(runId);
+                setActiveWorkspaceId("asset-forge");
+              }}
+              onOpenExecutionDetail={async (executionId) => {
+                openRecordsExecutionsInAssetForgeDock({ preserveEvidenceContext: true });
+                await openExecutionEvidenceById(executionId);
+                setActiveWorkspaceId("asset-forge");
+              }}
+              onOpenArtifactDetail={async (artifactId) => {
+                openRecordsArtifactsInAssetForgeDock({ preserveEvidenceContext: true });
+                await openArtifactEvidenceById(artifactId);
+                setActiveWorkspaceId("asset-forge");
+              }}
+              bridgeStatus={o3deBridgeStatus}
+              adapters={adapters}
+              readiness={readiness}
+              latestRunId={latestRunId}
+              latestExecutionId={latestExecutionId}
+              latestArtifactId={latestArtifactId}
+              latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
+            />
+          </Suspense>
+        );
+      case "load-project":
+        return (
+          <Suspense
+            fallback={renderWorkspaceLoadingFallback(
+              "Load Project",
+              "Loading Load Project cockpit target summary and checklist.",
+            )}
+          >
+            <LoadProjectWorkspaceView
+              onOpenPromptStudio={() => {
+                openPromptStudioFromLoadProjectCockpit();
+                setActiveWorkspaceId("asset-forge");
+                openAssetForgeDockedWorkspace("prompt");
+              }}
+              onOpenRuntimeOverview={() => {
+                setActiveRuntimeSurface("overview");
+                openAssetForgeDockedWorkspace("runtime");
+              }}
+              onOpenRecords={openRecordsRunsInAssetForgeDock}
+              onLaunchInspectTemplate={() => {
+                openPromptStudioWithInspectLoadProjectTemplate();
+                setActiveWorkspaceId("asset-forge");
+                openAssetForgeDockedWorkspace("prompt");
+              }}
+              onViewLatestRun={() => { void openLatestRunEvidenceInAssetForgeDock(); }}
+              onViewExecution={() => { void openLatestExecutionEvidenceInAssetForgeDock(); }}
+              onViewArtifact={() => { void openLatestArtifactEvidenceInAssetForgeDock(); }}
+              onViewEvidence={openRecordsEventsInAssetForgeDock}
+              onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+              onOpenRunDetail={async (runId) => {
+                openRecordsRunsInAssetForgeDock({ preserveEvidenceContext: true });
+                await openRunEvidenceById(runId);
+                setActiveWorkspaceId("asset-forge");
+              }}
+              onOpenExecutionDetail={async (executionId) => {
+                openRecordsExecutionsInAssetForgeDock({ preserveEvidenceContext: true });
+                await openExecutionEvidenceById(executionId);
+                setActiveWorkspaceId("asset-forge");
+              }}
+              onOpenArtifactDetail={async (artifactId) => {
+                openRecordsArtifactsInAssetForgeDock({ preserveEvidenceContext: true });
+                await openArtifactEvidenceById(artifactId);
+                setActiveWorkspaceId("asset-forge");
+              }}
+              bridgeStatus={o3deBridgeStatus}
+              adapters={adapters}
+              readiness={readiness}
+              latestRunId={latestRunId}
+              latestExecutionId={latestExecutionId}
+              latestArtifactId={latestArtifactId}
+              latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
+            />
+          </Suspense>
+        );
+      case "prompt":
+        return (
+          <Suspense
+            fallback={renderWorkspaceLoadingFallback(
+              "Prompt Studio",
+              "Loading natural-language planning and admitted execution controls.",
+            )}
+          >
+            <PromptWorkspaceDesktop
+              selectedWorkspaceId={selectedWorkspaceId}
+              selectedExecutorId={selectedExecutorId}
+              promptLaunchDraftRequest={promptLaunchDraftRequest}
+              onReturnToSourceWorkspace={returnToSourceWorkspaceFromPrompt}
+              onPlacementProofOnlyReviewChange={setLatestPlacementProofOnlyReview}
+              focusPromptIdRequest={promptSessionFocusRequest}
+            />
+          </Suspense>
+        );
+      case "builder":
+        return (
+          <Suspense
+            fallback={renderWorkspaceLoadingFallback(
+              "Builder",
+              "Loading worktree lanes, mission-control visibility, and Codex handoff scaffolding.",
+            )}
+          >
+            <BuilderWorkspaceDesktop />
+          </Suspense>
+        );
+      case "operations":
+        return renderOperationsWorkspace();
+      case "runtime":
+        return renderRuntimeWorkspace();
+      case "records":
+        return renderRecordsWorkspace();
+      case "none":
+      default:
+        return null;
+    }
+  }
+
+  function getAssetForgeDockedWorkspaceTitle(workspaceId: AssetForgeDockedWorkspaceId): string {
+    switch (workspaceId) {
+      case "create-game":
+        return "Create Game module";
+      case "create-movie":
+        return "Create Movie module";
+      case "load-project":
+        return "Load Project module";
+      case "prompt":
+        return "Prompt Studio module";
+      case "builder":
+        return "Builder module";
+      case "operations":
+        return "Operations module";
+      case "runtime":
+        return "Runtime module";
+      case "records":
+        return "Records module";
+      case "none":
+      default:
+        return "Module";
+    }
+  }
+
   function renderWorkspaceLoadingFallback(title: string, detail: string) {
     return (
       <section aria-busy="true" aria-live="polite" style={desktopWorkspaceLoadingCardStyle}>
@@ -9206,7 +9553,7 @@ export default function App() {
             boxSizing: "border-box",
           }}
         >
-          <div style={{ height: "100%", minHeight: 0 }}>
+          <div style={{ height: "100%", minHeight: 0, position: "relative" }}>
             {activePromptReturnResumeChecklist ? (
               renderPromptReturnResumeChecklist(activePromptReturnResumeChecklist)
             ) : null}
@@ -9221,25 +9568,60 @@ export default function App() {
             >
               <AIAssetForgePanel
                 onOpenHome={() => setActiveWorkspaceId("home")}
-                onOpenCreateGame={() => setActiveWorkspaceId("create-game")}
-                onOpenCreateMovie={() => setActiveWorkspaceId("create-movie")}
-                onOpenLoadProject={() => setActiveWorkspaceId("load-project")}
-                onOpenPromptStudio={openPromptStudioFromAssetForgeCockpit}
-                onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
-                onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
-                onLaunchPromptTemplate={openPromptStudioWithAssetForgeEditorTemplate}
-                onOpenRuntimeOverview={openRuntimeOverview}
-                onOpenBuilder={() => setActiveWorkspaceId("builder")}
-                onOpenOperations={() => setActiveWorkspaceId("operations")}
-                onOpenRecords={openRecordsRuns}
-                onViewLatestRun={openLatestRunEvidence}
-                onViewExecution={openLatestExecutionEvidence}
-                onViewArtifact={openLatestArtifactEvidence}
-                onViewEvidence={openRecordsEvents}
-                onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
-                onOpenRunDetail={openRunEvidenceById}
-                onOpenExecutionDetail={openExecutionEvidenceById}
-                onOpenArtifactDetail={openArtifactEvidenceById}
+                onOpenCreateGame={() => openAssetForgeDockedWorkspace("create-game")}
+                onOpenCreateMovie={() => openAssetForgeDockedWorkspace("create-movie")}
+                onOpenLoadProject={() => openAssetForgeDockedWorkspace("load-project")}
+                onOpenPromptStudio={() => {
+                  openPromptStudioFromAssetForgeCockpit();
+                  setActiveWorkspaceId("asset-forge");
+                  openAssetForgeDockedWorkspace("prompt");
+                }}
+                onLaunchInspectTemplate={() => {
+                  openPromptStudioWithInspectProjectTemplateFromAssetForge();
+                  setActiveWorkspaceId("asset-forge");
+                  openAssetForgeDockedWorkspace("prompt");
+                }}
+                onLaunchPlacementProofTemplate={() => {
+                  openPromptStudioWithPlacementProofTemplateFromAssetForge();
+                  setActiveWorkspaceId("asset-forge");
+                  openAssetForgeDockedWorkspace("prompt");
+                }}
+                onLaunchPromptTemplate={(template) => {
+                  openPromptStudioWithAssetForgeEditorTemplate(template);
+                  setActiveWorkspaceId("asset-forge");
+                  openAssetForgeDockedWorkspace("prompt");
+                }}
+                onOpenRuntimeOverview={() => {
+                  setActiveRuntimeSurface("overview");
+                  openAssetForgeDockedWorkspace("runtime");
+                }}
+                onOpenBuilder={() => openAssetForgeDockedWorkspace("builder")}
+                onOpenOperations={() => openAssetForgeDockedWorkspace("operations")}
+                onOpenRecords={openRecordsRunsInAssetForgeDock}
+                onViewLatestRun={() => { void openLatestRunEvidenceInAssetForgeDock(); }}
+                onViewExecution={() => { void openLatestExecutionEvidenceInAssetForgeDock(); }}
+                onViewArtifact={() => { void openLatestArtifactEvidenceInAssetForgeDock(); }}
+                onViewEvidence={openRecordsEventsInAssetForgeDock}
+                onOpenPromptSessionDetail={(promptId) => {
+                  openPromptSessionFromTruthRail(promptId);
+                  setActiveWorkspaceId("asset-forge");
+                  openAssetForgeDockedWorkspace("prompt");
+                }}
+                onOpenRunDetail={async (runId) => {
+                  openRecordsRunsInAssetForgeDock({ preserveEvidenceContext: true });
+                  await openRunEvidenceById(runId);
+                  setActiveWorkspaceId("asset-forge");
+                }}
+                onOpenExecutionDetail={async (executionId) => {
+                  openRecordsExecutionsInAssetForgeDock({ preserveEvidenceContext: true });
+                  await openExecutionEvidenceById(executionId);
+                  setActiveWorkspaceId("asset-forge");
+                }}
+                onOpenArtifactDetail={async (artifactId) => {
+                  openRecordsArtifactsInAssetForgeDock({ preserveEvidenceContext: true });
+                  await openArtifactEvidenceById(artifactId);
+                  setActiveWorkspaceId("asset-forge");
+                }}
                 bridgeStatus={o3deBridgeStatus}
                 policies={policies}
                 policiesLoading={policiesLoading}
@@ -9256,6 +9638,70 @@ export default function App() {
                 latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
               />
             </Suspense>
+            {assetForgeDockedWorkspaceId !== "none" ? (
+              <aside
+                aria-label="Asset Forge docked workspace panel"
+                style={{
+                  position: "absolute",
+                  top: 14,
+                  right: 14,
+                  bottom: 14,
+                  width: "min(44vw, 720px)",
+                  minWidth: 440,
+                  maxWidth: "92vw",
+                  minHeight: 0,
+                  display: "grid",
+                  gridTemplateRows: "44px minmax(0, 1fr)",
+                  border: "1px solid var(--app-panel-border-strong)",
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  background: "var(--app-panel-bg)",
+                  boxShadow: "0 18px 36px rgba(4, 9, 18, 0.45)",
+                  zIndex: 8,
+                }}
+              >
+                <header
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    padding: "0 10px",
+                    borderBottom: "1px solid var(--app-panel-border)",
+                    background: "var(--app-panel-bg-elevated)",
+                  }}
+                >
+                  <strong style={{ fontSize: 13 }}>
+                    {getAssetForgeDockedWorkspaceTitle(assetForgeDockedWorkspaceId)}
+                  </strong>
+                  <button
+                    type="button"
+                    onClick={() => setAssetForgeDockedWorkspaceId("none")}
+                    style={{
+                      minHeight: 26,
+                      border: "1px solid var(--app-panel-border)",
+                      borderRadius: 6,
+                      padding: "0 8px",
+                      background: "var(--app-panel-bg)",
+                      color: "var(--app-text-color)",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Close
+                  </button>
+                </header>
+                <div
+                  style={{
+                    minHeight: 0,
+                    overflow: "auto",
+                    background: "var(--app-shell-bg)",
+                  }}
+                >
+                  {renderAssetForgeDockedWorkspaceContent()}
+                </div>
+              </aside>
+            ) : null}
           </div>
         </main>
       </section>
