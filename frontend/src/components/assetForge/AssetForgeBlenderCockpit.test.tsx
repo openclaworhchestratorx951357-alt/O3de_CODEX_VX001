@@ -338,6 +338,7 @@ describe("AssetForgeBlenderCockpit", () => {
       onOpenRecords: vi.fn(),
       onOpenRecordsExecutions: vi.fn(),
       onOpenRecordsArtifacts: vi.fn(),
+      onOpenRecordsEvents: vi.fn(),
       onLaunchPlacementProofTemplate: vi.fn(),
     };
 
@@ -367,6 +368,7 @@ describe("AssetForgeBlenderCockpit", () => {
     expect(within(appMenu).getByRole("menuitem", { name: /Records Runs/i })).toBeInTheDocument();
     expect(within(appMenu).getByRole("menuitem", { name: /Records Executions/i })).toBeInTheDocument();
     expect(within(appMenu).getByRole("menuitem", { name: /Records Artifacts/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Records Events/i })).toBeInTheDocument();
 
     fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Home/i }));
     expect(callbacks.onOpenHome).toHaveBeenCalledTimes(1);
@@ -430,6 +432,11 @@ describe("AssetForgeBlenderCockpit", () => {
     const appMenuRecordsArtifacts = screen.getByRole("menu", { name: "App menu" });
     fireEvent.click(within(appMenuRecordsArtifacts).getByRole("menuitem", { name: /Records Artifacts/i }));
     expect(callbacks.onOpenRecordsArtifacts).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuRecordsEvents = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuRecordsEvents).getByRole("menuitem", { name: /Records Events/i }));
+    expect(callbacks.onOpenRecordsEvents).toHaveBeenCalledTimes(1);
 
     fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
     const appMenuReopened = screen.getByRole("menu", { name: "App menu" });

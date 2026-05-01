@@ -67,6 +67,7 @@ type AIAssetForgePanelProps = {
   onOpenRecords?: () => void;
   onOpenRecordsExecutions?: () => void;
   onOpenRecordsArtifacts?: () => void;
+  onOpenRecordsEvents?: () => void;
 };
 
 type WorkspaceMode = "asset_forge" | "movie_studio";
@@ -215,6 +216,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
           onOpenRecords={props.onOpenRecords}
           onOpenRecordsExecutions={props.onOpenRecordsExecutions}
           onOpenRecordsArtifacts={props.onOpenRecordsArtifacts}
+          onOpenRecordsEvents={props.onOpenRecordsEvents}
           onOpenRuntimeOverview={props.onOpenRuntimeOverview}
           onOpenRuntimeGovernance={props.onOpenRuntimeGovernance}
           onOpenRuntimeExecutors={props.onOpenRuntimeExecutors}

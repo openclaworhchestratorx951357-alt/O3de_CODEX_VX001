@@ -39,6 +39,7 @@ type Props = {
   onOpenRecords?: () => void;
   onOpenRecordsExecutions?: () => void;
   onOpenRecordsArtifacts?: () => void;
+  onOpenRecordsEvents?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenRuntimeGovernance?: () => void;
   onOpenRuntimeExecutors?: () => void;
@@ -444,6 +445,13 @@ const assetForgeShellMenuGroups: MenuGroup[] = [
         tone: "read-only",
         action: "open-records-artifacts",
         status: "Opened Records Artifacts from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-records-events",
+        label: "Records Events",
+        tone: "read-only",
+        action: "open-records-events",
+        status: "Opened Records Events from Asset Forge shell navigation only.",
       },
     ],
   },
@@ -1094,6 +1102,7 @@ export default function AssetForgeBlenderCockpit({
   onOpenRecords,
   onOpenRecordsExecutions,
   onOpenRecordsArtifacts,
+  onOpenRecordsEvents,
   onOpenRuntimeOverview,
   onOpenRuntimeGovernance,
   onOpenRuntimeExecutors,
@@ -1301,6 +1310,13 @@ export default function AssetForgeBlenderCockpit({
         onOpenRecordsArtifacts();
       } else {
         onViewArtifact?.();
+      }
+      setStatusMessage(item.status);
+    } else if (item.action === "open-records-events") {
+      if (onOpenRecordsEvents) {
+        onOpenRecordsEvents();
+      } else {
+        onViewEvidence?.();
       }
       setStatusMessage(item.status);
     } else if (item.action === "open-workspace-home") {

@@ -9226,6 +9226,7 @@ export default function App() {
                 onOpenRecords={openRecordsRuns}
                 onOpenRecordsExecutions={openRecordsExecutions}
                 onOpenRecordsArtifacts={openRecordsArtifacts}
+                onOpenRecordsEvents={openRecordsEvents}
                 onViewLatestRun={openLatestRunEvidence}
                 onViewExecution={openLatestExecutionEvidence}
                 onViewArtifact={openLatestArtifactEvidence}
