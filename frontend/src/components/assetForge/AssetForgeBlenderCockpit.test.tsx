@@ -327,7 +327,7 @@ describe("AssetForgeBlenderCockpit", () => {
     const properties = screen.getByLabelText("Asset Forge transform and material properties");
     fireEvent.click(within(properties).getByRole("button", { name: "Proof" }));
 
-    expect(within(properties).getByText("Backend Transform Plan")).toBeInTheDocument();
+    expect(within(properties).getAllByText("Backend Transform Plan").length).toBeGreaterThan(0);
     fireEvent.click(within(properties).getByRole("button", { name: "Load template" }));
 
     expect(onLaunchPromptTemplate).toHaveBeenCalledWith({
@@ -339,6 +339,21 @@ describe("AssetForgeBlenderCockpit", () => {
       safety_labels: ["plan-only", "autoExecute=false", "no mutation"],
       auto_execute: false,
     });
+  });
+
+  it("shows backend prompt-template safety labels before Prompt Studio handoff", () => {
+    render(<AssetForgeBlenderCockpit editorModel={buildEditorModelWithPromptTemplate()} />);
+
+    const properties = screen.getByLabelText("Asset Forge transform and material properties");
+    fireEvent.click(within(properties).getByRole("button", { name: "Proof" }));
+
+    const handoffSummary = within(properties).getByLabelText("Prompt template handoff safety summary");
+    expect(handoffSummary).toHaveTextContent("Backend Transform Plan");
+    expect(handoffSummary).toHaveTextContent("Backend supplied transform plan template.");
+    expect(handoffSummary).toHaveTextContent("plan-only");
+    expect(handoffSummary).toHaveTextContent("autoExecute=false");
+    expect(handoffSummary).toHaveTextContent("no mutation");
+    expect(handoffSummary).toHaveTextContent("Prompt Studio opens this as a dry-run editable draft");
   });
 
   it("renders tools and outliner rows from backend editor model when provided", () => {

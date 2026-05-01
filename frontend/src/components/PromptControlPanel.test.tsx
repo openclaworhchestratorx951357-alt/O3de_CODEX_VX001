@@ -392,6 +392,59 @@ describe("PromptControlPanel", () => {
     });
   });
 
+  it("marks Asset Forge editor-model handoffs as preview-first and keeps copy fallback manual", async () => {
+    const writeText = vi.fn().mockRejectedValueOnce(new Error("clipboard blocked"));
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+
+    render(
+      <PromptControlPanel
+        promptLaunchDraftRequest={{
+          requestId: "asset-forge-editor-template-1",
+          draft: {
+            id: "asset-forge-editor-model-backend-transform-plan",
+            label: "Backend Transform Plan",
+            promptText: "Plan a transform update from backend model values. Do not mutate content.",
+            preferredDomainsText: "project-build",
+            operatorNote: [
+              "Asset Forge editor model handoff: Backend supplied transform plan template.",
+              "autoExecute=false.",
+              "No provider generation, Blender execution, Asset Processor execution, placement write, or mutation is admitted by this handoff.",
+            ].join(" "),
+            dryRun: true,
+            truthLabels: ["plan-only", "autoExecute=false", "non-mutating"],
+            guidance: "Preview and edit this backend-supplied Asset Forge template in Prompt Studio.",
+          },
+          sourceSurfaceLabel: "Asset Forge editor model / Backend Transform Plan",
+          launchedAtIso: "2026-05-01T04:30:00.000Z",
+          sourceWorkspaceId: "asset-forge",
+        }}
+      />,
+    );
+
+    await screen.findByText("Prompt Capability Registry");
+    const sourceBanner = screen.getByLabelText("Asset Forge editor model handoff safety banner");
+    expect(sourceBanner).toHaveTextContent("Backend-supplied Asset Forge editor template");
+    expect(sourceBanner).toHaveTextContent("preview-first");
+    expect(sourceBanner).toHaveTextContent("autoExecute=false");
+    expect(sourceBanner).toHaveTextContent("No provider generation, Blender execution, Asset Processor execution, placement write, or mutation is admitted");
+    expect(screen.getByLabelText("Prompt text")).toHaveValue(
+      "Plan a transform update from backend model values. Do not mutate content.",
+    );
+    expect(screen.getByRole("checkbox")).toBeChecked();
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy loaded prompt text" }));
+
+    expect(writeText).toHaveBeenCalledWith(
+      "Plan a transform update from backend model values. Do not mutate content.",
+    );
+    expect(
+      await screen.findByText("Clipboard unavailable. Loaded prompt remains visible for manual copy. autoExecute=false."),
+    ).toBeInTheDocument();
+  });
+
   it("emits the latest placement proof-only remediation snapshot for the selected session", async () => {
     const onPlacementProofOnlyReviewChange = vi.fn();
     const placementProofSession: PromptSessionRecord = {

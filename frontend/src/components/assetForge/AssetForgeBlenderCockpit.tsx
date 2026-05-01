@@ -896,6 +896,19 @@ export default function AssetForgeBlenderCockpit({
           <Badge tone={selectedPromptTemplate?.truth ?? "read-only"} />
         </div>
         <div style={styles.promptPreview}>{selectedPromptTemplate?.text}</div>
+        <div
+          aria-label="Prompt template handoff safety summary"
+          style={styles.promptTemplateSafetySummary}
+        >
+          <strong>{selectedPromptTemplate?.label}</strong>
+          <span>{selectedPromptTemplate?.description}</span>
+          <span>Prompt Studio opens this as a dry-run editable draft; no auto-execution or mutation dispatch occurs.</span>
+          <span style={styles.promptTemplateSafetyLabels}>
+            {(selectedPromptTemplate?.safetyLabels ?? ["autoExecute=false", "non-mutating"]).map((label) => (
+              <span key={label} style={styles.promptTemplateSafetyLabel}>{label}</span>
+            ))}
+          </span>
+        </div>
         <div style={styles.propertyActionRow}>
           <button type="button" onClick={copyPromptTemplate} style={styles.smallButton}>Copy template</button>
           <button type="button" onClick={onOpenPromptStudio} style={styles.smallButton}>Open Prompt Studio</button>
@@ -1938,6 +1951,35 @@ const styles = {
     padding: 4,
     fontSize: 10,
     lineHeight: 1.35,
+  },
+  promptTemplateSafetySummary: {
+    display: "grid",
+    gap: 3,
+    minWidth: 0,
+    padding: "4px",
+    border: "1px solid #9aa0a8",
+    background: "#fff7ed",
+    color: "#172033",
+    fontSize: 10,
+    lineHeight: 1.35,
+    overflowWrap: "anywhere",
+  },
+  promptTemplateSafetyLabels: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 3,
+    minWidth: 0,
+  },
+  promptTemplateSafetyLabel: {
+    display: "inline-flex",
+    alignItems: "center",
+    border: "1px solid #d6a536",
+    borderRadius: 3,
+    background: "#fff4cc",
+    color: "#3b2f0a",
+    padding: "1px 4px",
+    fontSize: 9,
+    fontWeight: 800,
   },
   timelineStrip: {
     minWidth: 0,

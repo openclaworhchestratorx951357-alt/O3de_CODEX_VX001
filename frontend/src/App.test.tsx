@@ -884,7 +884,7 @@ describe("App desktop smoke", () => {
     const properties = await within(forgePanel).findByLabelText("Asset Forge transform and material properties");
 
     fireEvent.click(within(properties).getByRole("button", { name: "Proof" }));
-    expect(await within(properties).findByText("Backend Transform Plan")).toBeInTheDocument();
+    expect((await within(properties).findAllByText("Backend Transform Plan")).length).toBeGreaterThan(0);
     fireEvent.click(within(properties).getByRole("button", { name: "Load template" }));
 
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
