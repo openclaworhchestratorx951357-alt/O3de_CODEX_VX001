@@ -178,6 +178,7 @@ export default function MovieStudioPanel() {
   const [historyFuture, setHistoryFuture] = useState<TimelineHistorySnapshot[]>([]);
   const [historyLog, setHistoryLog] = useState<string[]>([]);
   const [handoffStatus, setHandoffStatus] = useState<string>("Ready");
+  const [shortcutsVisible, setShortcutsVisible] = useState<boolean>(false);
   const [o3deStatus, setO3deStatus] = useState<string>("Checking O3DE bridge...");
   const [o3deLastCheck, setO3deLastCheck] = useState<string>("Pending first check");
   const [o3deHealth, setO3deHealth] = useState<"healthy" | "degraded" | "unavailable">("degraded");
@@ -964,8 +965,25 @@ export default function MovieStudioPanel() {
               <strong>Snap:</strong> {snapMode}
             </p>
             <p style={s.inspectorLine}>
-              <strong>Shortcuts:</strong> Space play/pause, J prev, K stop, L next, Shift+R reset view, Shift+O refresh O3DE, Shift+S copy O3DE status, Shift+X clear O3DE log, Shift+H copy handoff packet, Shift+J copy handoff JSON
+              <strong>Shortcuts:</strong> Space play/pause, J prev, K stop, L next
             </p>
+            <button
+              type="button"
+              onClick={() => setShortcutsVisible((current) => !current)}
+              style={s.toolbarButton}
+            >
+              {shortcutsVisible ? "Hide Shortcuts" : "Show Shortcuts"}
+            </button>
+            {shortcutsVisible ? (
+              <ul style={s.shortcutList}>
+                <li style={s.shortcutItem}>Shift+R reset view</li>
+                <li style={s.shortcutItem}>Shift+O refresh O3DE</li>
+                <li style={s.shortcutItem}>Shift+S copy O3DE status</li>
+                <li style={s.shortcutItem}>Shift+X clear O3DE log</li>
+                <li style={s.shortcutItem}>Shift+H copy handoff packet</li>
+                <li style={s.shortcutItem}>Shift+J copy handoff JSON</li>
+              </ul>
+            ) : null}
             <div style={s.historyBox}>
               <strong style={s.historyTitle}>Timeline History</strong>
               <ul style={s.historyList}>
@@ -1448,6 +1466,16 @@ const s = {
     gap: 3,
   },
   historyItem: {
+    fontSize: 11,
+    color: "var(--app-text-muted)",
+  },
+  shortcutList: {
+    margin: "8px 0 0",
+    paddingLeft: 16,
+    display: "grid",
+    gap: 2,
+  },
+  shortcutItem: {
     fontSize: 11,
     color: "var(--app-text-muted)",
   },

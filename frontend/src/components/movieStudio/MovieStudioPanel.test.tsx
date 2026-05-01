@@ -210,6 +210,17 @@ describe("MovieStudioPanel", () => {
     await screen.findByText("Copied JSON packet");
   });
 
+  it("toggles extended shortcut legend visibility", () => {
+    render(<MovieStudioPanel />);
+    expect(screen.getByRole("button", { name: "Show Shortcuts" })).toBeInTheDocument();
+    expect(screen.queryByText("Shift+R reset view")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Show Shortcuts" }));
+    expect(screen.getByRole("button", { name: "Hide Shortcuts" })).toBeInTheDocument();
+    expect(screen.getByText("Shift+R reset view")).toBeInTheDocument();
+    expect(screen.getByText("Shift+J copy handoff JSON")).toBeInTheDocument();
+  });
+
   it("supports keyboard transport shortcuts", () => {
     render(<MovieStudioPanel />);
 
