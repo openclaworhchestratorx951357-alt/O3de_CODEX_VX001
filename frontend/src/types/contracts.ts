@@ -1365,6 +1365,29 @@ export interface AssetForgeTimelineRecord {
   status: string;
 }
 
+export interface AssetForgeWorkflowStageRecord {
+  stage_id: string;
+  label: string;
+  truth_state: AssetForgeEditorTruthState;
+  action: string;
+  status: string;
+  prompt_template_id?: string | null;
+  execution_admitted: boolean;
+  mutation_admitted: boolean;
+  auto_execute: boolean;
+}
+
+export interface AssetForgeStatusStripTabRecord {
+  tab_id: string;
+  label: string;
+  truth_state: AssetForgeEditorTruthState;
+  action: string;
+  status: string;
+  execution_admitted: boolean;
+  mutation_admitted: boolean;
+  auto_execute: boolean;
+}
+
 export interface AssetForgeEvidenceSummaryRecord {
   latest_run_id: string | null;
   latest_execution_id: string | null;
@@ -1424,11 +1447,13 @@ export interface AssetForgeEditorModelRecord {
   viewport: AssetForgeViewportRecord;
   tools: AssetForgeEditorToolRecord[];
   context_menu_groups: AssetForgeContextMenuGroupRecord[];
+  workflow_stages: AssetForgeWorkflowStageRecord[];
   outliner: AssetForgeOutlinerNodeRecord[];
   transform: AssetForgeTransformRecord;
   properties: AssetForgePropertiesRecord;
   material_preview: AssetForgeMaterialPreviewRecord;
   timeline: AssetForgeTimelineRecord;
+  status_strip_tabs: AssetForgeStatusStripTabRecord[];
   evidence: AssetForgeEvidenceSummaryRecord;
   prompt_templates: AssetForgePromptTemplateRecord[];
   blocked_capabilities: AssetForgeBlockedCapabilityRecord[];

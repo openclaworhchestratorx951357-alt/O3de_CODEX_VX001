@@ -43,7 +43,7 @@ type Tone = "demo" | "read-only" | "plan-only" | "preflight-only" | "proof-only"
 type Axis = "x" | "y" | "z";
 type TransformGroup = "location" | "rotation" | "scale" | "dimensions";
 type PropertiesTab = "Transform" | "Object" | "Material" | "Proof" | "Safety";
-type BottomTab = "Timeline" | "Evidence" | "Prompt Template" | "Logs" | "Latest Artifacts";
+type BottomTab = string;
 type MaterialSubTab = "Surface" | "Wire" | "Volume" | "Halo";
 
 type EditorTool = {
@@ -94,6 +94,23 @@ type MenuGroup = {
   items: MenuItem[];
 };
 
+type WorkflowStage = {
+  id: string;
+  label: string;
+  truth: string;
+  action: string;
+  status: string;
+  promptTemplateId: string | null;
+};
+
+type StatusStripTab = {
+  id: string;
+  label: string;
+  truth: string;
+  action: string;
+  status: string;
+};
+
 const fallbackTools = [
   ["transform", "Transform", "T", "demo"],
   ["translate", "Translate", "G", "demo"],
@@ -134,14 +151,22 @@ const fallbackOutliner = [
 ] as const;
 
 const fallbackStages = [
-  ["Describe", "plan-only"],
-  ["Candidate", "demo"],
-  ["Preflight", "preflight-only"],
-  ["Stage Plan", "plan-only"],
-  ["Stage Write", "proof-only"],
-  ["Readback", "review"],
-  ["Placement Proof", "proof-only"],
-  ["Review", "review"],
+  ["describe", "Describe", "plan-only", "select-template-inspect-candidate", "Description planning is UI-only; no prompt auto-executes.", "inspect-candidate"],
+  ["candidate", "Candidate", "demo", "select-object", "Candidate selection is UI-only; no provider generation is admitted.", ""],
+  ["preflight", "Preflight", "preflight-only", "preflight", "Preflight is metadata-only; no backend tools execute.", "inspect-candidate"],
+  ["stage-plan", "Stage Plan", "plan-only", "stage-plan", "Stage planning is plan-only; no files are written.", ""],
+  ["stage-write", "Stage Write", "proof-only", "select-template-placement-proof-only", "Stage write remains proof-only metadata; no project write occurs.", "placement-proof-only"],
+  ["readback", "Readback", "review", "open-evidence", "Readback opens evidence only; no runtime execution occurs.", ""],
+  ["placement-proof", "Placement Proof", "proof-only", "select-template-placement-proof-only", "Placement proof stays proof-only; no placement write is admitted.", "placement-proof-only"],
+  ["review", "Review", "review", "open-evidence", "Review is read-only operator evidence.", ""],
+] as const;
+
+const fallbackStatusStripTabs = [
+  ["timeline", "Timeline", "demo", "timeline", "Timeline frame strip is UI-only; no animation playback occurs."],
+  ["evidence", "Evidence", "read-only", "evidence", "Evidence drill-in only; no runtime execution."],
+  ["prompt-template", "Prompt Template", "read-only", "prompt-template", "Prompt templates are preview-first with autoExecute=false."],
+  ["logs", "Logs", "read-only", "logs", "Blocked operations explain next unlock before any execution exists."],
+  ["latest-artifacts", "Latest Artifacts", "read-only", "latest-artifacts", "Latest run/execution/artifact ids are read-only references."],
 ] as const;
 
 const defaultTransformDraft: TransformDraft = {
@@ -292,6 +317,62 @@ function getMenuGroups(model?: AssetForgeEditorModelRecord | null): MenuGroup[] 
     .filter((group) => group.items.length > 0);
 
   return groups.length > 0 ? groups : menuGroups;
+}
+
+function getWorkflowStages(model?: AssetForgeEditorModelRecord | null): WorkflowStage[] {
+  if (!model?.workflow_stages?.length) {
+    return fallbackStages.map(([id, label, truth, action, status, promptTemplateId]) => ({
+      id,
+      label,
+      truth,
+      action,
+      status,
+      promptTemplateId: promptTemplateId || null,
+    }));
+  }
+
+  const stages = model.workflow_stages.map((stage) => {
+    const unsafeAdmission = stage.execution_admitted || stage.mutation_admitted || stage.auto_execute;
+    return {
+      id: stage.stage_id,
+      label: stage.label,
+      truth: unsafeAdmission ? "blocked" : stage.truth_state,
+      action: unsafeAdmission ? "blocked" : stage.action,
+      status: unsafeAdmission
+        ? `${stage.label} is blocked by the frontend safety rail because backend stage metadata requested execution, mutation, or auto-execution.`
+        : stage.status,
+      promptTemplateId: unsafeAdmission ? null : (stage.prompt_template_id ?? null),
+    };
+  });
+
+  return stages.length > 0 ? stages : getWorkflowStages();
+}
+
+function getStatusStripTabs(model?: AssetForgeEditorModelRecord | null): StatusStripTab[] {
+  if (!model?.status_strip_tabs?.length) {
+    return fallbackStatusStripTabs.map(([id, label, truth, action, status]) => ({
+      id,
+      label,
+      truth,
+      action,
+      status,
+    }));
+  }
+
+  const tabs = model.status_strip_tabs.map((tab) => {
+    const unsafeAdmission = tab.execution_admitted || tab.mutation_admitted || tab.auto_execute;
+    return {
+      id: tab.tab_id,
+      label: tab.label,
+      truth: unsafeAdmission ? "blocked" : tab.truth_state,
+      action: unsafeAdmission ? "blocked" : tab.action,
+      status: unsafeAdmission
+        ? `${tab.label} is blocked by the frontend safety rail because backend status-strip metadata requested execution, mutation, or auto-execution.`
+        : tab.status,
+    };
+  });
+
+  return tabs.length > 0 ? tabs : getStatusStripTabs();
 }
 
 const toolSafetyDetails: Record<string, Pick<EditorTool, "description" | "blockedReason" | "nextUnlock" | "enabled" | "promptTemplateId">> = {
@@ -629,6 +710,8 @@ export default function AssetForgeBlenderCockpit({
   const overlays = getOverlayLines(editorModel);
   const promptTemplates = useMemo(() => getPromptTemplates(editorModel), [editorModel]);
   const editorMenuGroups = useMemo(() => getMenuGroups(editorModel), [editorModel]);
+  const workflowStages = useMemo(() => getWorkflowStages(editorModel), [editorModel]);
+  const statusStripTabs = useMemo(() => getStatusStripTabs(editorModel), [editorModel]);
   const propertyRows = getPropertyRows({
     model: editorModel,
     providerStatus,
@@ -665,8 +748,8 @@ export default function AssetForgeBlenderCockpit({
   ] as const satisfies readonly [TransformGroup, string][];
   const axisList = ["x", "y", "z"] as const;
   const propertyTabs = ["Transform", "Object", "Material", "Proof", "Safety"] as const;
-  const bottomTabs = ["Timeline", "Evidence", "Prompt Template", "Logs", "Latest Artifacts"] as const;
   const viewportModes = editorModel?.viewport?.shading_modes ?? ["Solid", "Wireframe", "Material Preview", "O3DE Preview"];
+  const selectedStatusStripTab = statusStripTabs.find((tab) => tab.label === selectedBottomTab);
 
   function resetTransformDraft() {
     setTransformDraft(defaultTransformDraft);
@@ -988,18 +1071,20 @@ export default function AssetForgeBlenderCockpit({
   }
 
   function renderBottomContent() {
-    if (selectedBottomTab === "Evidence") {
+    const selectedBottomAction = selectedStatusStripTab?.action ?? selectedBottomTab;
+
+    if (selectedBottomAction === "evidence" || selectedBottomTab === "Evidence") {
       return (
         <div style={styles.bottomContentRow}>
           <button type="button" onClick={onViewLatestRun} style={styles.smallButton}>Latest run</button>
           <button type="button" onClick={onViewExecution} style={styles.smallButton}>Execution</button>
           <button type="button" onClick={onViewArtifact} style={styles.smallButton}>Artifact</button>
           <button type="button" onClick={onViewEvidence} style={styles.smallButton}>Evidence drawer</button>
-          <span style={styles.statusText}>Evidence drill-in only; no runtime execution.</span>
+          <span style={styles.statusText}>{selectedStatusStripTab?.status ?? "Evidence drill-in only; no runtime execution."}</span>
         </div>
       );
     }
-    if (selectedBottomTab === "Prompt Template") {
+    if (selectedBottomAction === "prompt-template" || selectedBottomTab === "Prompt Template") {
       return (
         <div style={styles.bottomContentRow}>
           <span style={styles.statusText}>{selectedPromptTemplate?.label}: autoExecute=false</span>
@@ -1009,21 +1094,30 @@ export default function AssetForgeBlenderCockpit({
         </div>
       );
     }
-    if (selectedBottomTab === "Logs") {
+    if (selectedBottomAction === "logs" || selectedBottomTab === "Logs") {
       return (
         <div style={styles.bottomContentRow}>
           <span style={styles.statusText}>{statusMessage}</span>
-          <span style={styles.statusText}>Blocked operations explain next unlock before any execution exists.</span>
+          <span style={styles.statusText}>{selectedStatusStripTab?.status ?? "Blocked operations explain next unlock before any execution exists."}</span>
         </div>
       );
     }
-    if (selectedBottomTab === "Latest Artifacts") {
+    if (selectedBottomAction === "latest-artifacts" || selectedBottomTab === "Latest Artifacts") {
       return (
         <div style={styles.bottomContentRow}>
           <span style={styles.statusText}>Run: {latestRunId ?? "not selected"}</span>
           <span style={styles.statusText}>Exec: {latestExecutionId ?? "not selected"}</span>
           <span style={styles.statusText}>Artifact: {latestArtifactId ?? "not selected"}</span>
           <span style={styles.statusText}>{latestPlacementProofOnlyReview ? "proof-only snapshot loaded" : "no placement proof snapshot"}</span>
+        </div>
+      );
+    }
+    if (selectedBottomAction !== "timeline" && selectedBottomTab !== "Timeline" && selectedStatusStripTab) {
+      return (
+        <div style={styles.bottomContentRow}>
+          <Badge tone={selectedStatusStripTab.truth} />
+          <span style={styles.statusText}>{selectedStatusStripTab.status}</span>
+          <span style={styles.statusText}>Status strip action is UI-only; no backend dispatch occurs.</span>
         </div>
       );
     }
@@ -1037,7 +1131,7 @@ export default function AssetForgeBlenderCockpit({
         </div>
         <span>End 250</span>
         <span style={styles.statusText}>Frame 1</span>
-        <span style={styles.statusText}>{statusMessage}</span>
+        <span style={styles.statusText}>{selectedStatusStripTab?.status ?? statusMessage}</span>
       </div>
     );
   }
@@ -1103,10 +1197,10 @@ export default function AssetForgeBlenderCockpit({
       </section>
 
       <nav style={styles.stageBar} aria-label="Asset Forge workflow stages">
-        {fallbackStages.map(([label, tone]) => (
-          <div key={label} style={styles.stageTab}>
-            <span style={styles.stageLabel}>{label}</span>
-            <Badge tone={tone} />
+        {workflowStages.map((stage) => (
+          <div key={stage.id} style={styles.stageTab} title={stage.status}>
+            <span style={styles.stageLabel}>{stage.label}</span>
+            <Badge tone={stage.truth} />
           </div>
         ))}
       </nav>
@@ -1307,21 +1401,22 @@ export default function AssetForgeBlenderCockpit({
 
       <footer style={styles.timelineStrip} aria-label="Asset Forge timeline evidence and prompt strip">
         <div style={styles.timelineTabs}>
-          {bottomTabs.map((tab) => (
+          {statusStripTabs.map((tab) => (
             <button
-              key={tab}
+              key={tab.id}
               type="button"
               onClick={() => {
-                setSelectedBottomTab(tab);
-                setStatusMessage(`${tab} bottom strip selected. UI state only.`);
+                setSelectedBottomTab(tab.label);
+                setStatusMessage(`${tab.label} bottom strip selected. UI state only.`);
               }}
               style={{
                 ...styles.bottomTabButton,
-                ...(selectedBottomTab === tab ? styles.selectedBottomTabButton : {}),
+                ...(selectedBottomTab === tab.label ? styles.selectedBottomTabButton : {}),
               }}
-              aria-pressed={selectedBottomTab === tab}
+              aria-pressed={selectedBottomTab === tab.label}
+              title={tab.status}
             >
-              {tab}
+              {tab.label}
             </button>
           ))}
         </div>

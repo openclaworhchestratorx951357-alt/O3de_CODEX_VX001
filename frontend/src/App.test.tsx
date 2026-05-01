@@ -117,6 +117,7 @@ function buildAssetForgePromptTemplateEditorModel(): AssetForgeEditorModelRecord
     },
     tools: [],
     context_menu_groups: [],
+    workflow_stages: [],
     outliner: [],
     transform: {
       location: { x: 0, y: 0, z: 0, admitted: false },
@@ -148,6 +149,7 @@ function buildAssetForgePromptTemplateEditorModel(): AssetForgeEditorModelRecord
       current_frame: 1,
       status: "read-only",
     },
+    status_strip_tabs: [],
     evidence: {
       latest_run_id: null,
       latest_execution_id: null,

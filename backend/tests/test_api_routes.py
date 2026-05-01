@@ -473,6 +473,32 @@ def test_asset_forge_editor_model_route_returns_read_only_contract() -> None:
     assert all(item["blocked_reason"] for item in blocked_menu_items)
     assert all(item["next_unlock"] for item in blocked_menu_items)
 
+    workflow_stage_labels = {stage["label"] for stage in payload["workflow_stages"]}
+    for required_stage in {
+        "Describe",
+        "Candidate",
+        "Preflight",
+        "Stage Plan",
+        "Stage Write",
+        "Readback",
+        "Placement Proof",
+        "Review",
+    }:
+        assert required_stage in workflow_stage_labels
+    assert all(stage["execution_admitted"] is False for stage in payload["workflow_stages"])
+    assert all(stage["mutation_admitted"] is False for stage in payload["workflow_stages"])
+    assert all(stage["auto_execute"] is False for stage in payload["workflow_stages"])
+    stage_write = next(stage for stage in payload["workflow_stages"] if stage["label"] == "Stage Write")
+    assert stage_write["truth_state"] == "proof-only"
+    assert "proof-only" in stage_write["status"]
+
+    status_tab_labels = {tab["label"] for tab in payload["status_strip_tabs"]}
+    for required_tab in {"Timeline", "Evidence", "Prompt Template", "Logs", "Latest Artifacts"}:
+        assert required_tab in status_tab_labels
+    assert all(tab["execution_admitted"] is False for tab in payload["status_strip_tabs"])
+    assert all(tab["mutation_admitted"] is False for tab in payload["status_strip_tabs"])
+    assert all(tab["auto_execute"] is False for tab in payload["status_strip_tabs"])
+
     outliner_labels = {node["label"] for node in payload["outliner"]}
     for required_node in {"Asset Root", "Mesh_LOD0", "Materials", "Textures"}:
         assert required_node in outliner_labels

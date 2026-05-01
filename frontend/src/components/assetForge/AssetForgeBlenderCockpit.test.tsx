@@ -59,6 +59,7 @@ function buildEditorModelFixture(): AssetForgeEditorModelRecord {
       },
     ],
     context_menu_groups: [],
+    workflow_stages: [],
     outliner: [
       {
         node_id: "backend-root",
@@ -108,6 +109,7 @@ function buildEditorModelFixture(): AssetForgeEditorModelRecord {
       current_frame: 1,
       status: "fixture timeline",
     },
+    status_strip_tabs: [],
     evidence: {
       latest_run_id: null,
       latest_execution_id: null,
@@ -161,6 +163,58 @@ function buildEditorModelWithBackendMenus(): AssetForgeEditorModelRecord {
       },
     ],
   };
+}
+
+function buildEditorModelWithBackendWorkflowStatus(): AssetForgeEditorModelRecord {
+  const model = buildEditorModelFixture() as AssetForgeEditorModelRecord & {
+    workflow_stages: Array<{
+      stage_id: string;
+      label: string;
+      truth_state: string;
+      action: string;
+      status: string;
+      execution_admitted: boolean;
+      mutation_admitted: boolean;
+      auto_execute: boolean;
+    }>;
+    status_strip_tabs: Array<{
+      tab_id: string;
+      label: string;
+      truth_state: string;
+      action: string;
+      status: string;
+      execution_admitted: boolean;
+      mutation_admitted: boolean;
+      auto_execute: boolean;
+    }>;
+  };
+
+  model.workflow_stages = [
+    {
+      stage_id: "backend-stage",
+      label: "Backend Stage",
+      truth_state: "read-only",
+      action: "backend-stage",
+      status: "Backend supplied workflow stage.",
+      execution_admitted: false,
+      mutation_admitted: false,
+      auto_execute: false,
+    },
+  ];
+  model.status_strip_tabs = [
+    {
+      tab_id: "backend-status",
+      label: "Backend Status",
+      truth_state: "read-only",
+      action: "backend-status",
+      status: "Backend supplied status tab. UI state only.",
+      execution_admitted: false,
+      mutation_admitted: false,
+      auto_execute: false,
+    },
+  ];
+
+  return model;
 }
 
 describe("AssetForgeBlenderCockpit", () => {
@@ -432,5 +486,17 @@ describe("AssetForgeBlenderCockpit", () => {
 
     expect(screen.getByText("Viewport mode: Wireframe")).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent(/Backend supplied menu changed viewport mode locally/i);
+  });
+
+  it("renders workflow stages and bottom status tabs from the backend editor model", () => {
+    render(<AssetForgeBlenderCockpit editorModel={buildEditorModelWithBackendWorkflowStatus()} />);
+
+    expect(screen.getByText("Backend Stage")).toBeInTheDocument();
+
+    const bottomStrip = screen.getByLabelText("Asset Forge timeline evidence and prompt strip");
+    fireEvent.click(within(bottomStrip).getByRole("button", { name: "Backend Status" }));
+
+    expect(within(bottomStrip).getByText(/Backend supplied status tab/i)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/Backend Status bottom strip selected/i);
   });
 });

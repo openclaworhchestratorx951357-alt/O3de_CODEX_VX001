@@ -128,6 +128,29 @@ class AssetForgeTimelineRecord(BaseModel):
     status: str
 
 
+class AssetForgeWorkflowStageRecord(BaseModel):
+    stage_id: str
+    label: str
+    truth_state: TruthState
+    action: str
+    status: str
+    prompt_template_id: str | None = None
+    execution_admitted: bool = False
+    mutation_admitted: bool = False
+    auto_execute: bool = False
+
+
+class AssetForgeStatusStripTabRecord(BaseModel):
+    tab_id: str
+    label: str
+    truth_state: TruthState
+    action: str
+    status: str
+    execution_admitted: bool = False
+    mutation_admitted: bool = False
+    auto_execute: bool = False
+
+
 class AssetForgeContextMenuItemRecord(BaseModel):
     item_id: str
     label: str
@@ -161,11 +184,13 @@ class AssetForgeEditorModelRecord(BaseModel):
     viewport: AssetForgeViewportRecord
     tools: list[AssetForgeEditorToolRecord]
     context_menu_groups: list[AssetForgeContextMenuGroupRecord]
+    workflow_stages: list[AssetForgeWorkflowStageRecord]
     outliner: list[AssetForgeOutlinerNodeRecord]
     transform: AssetForgeTransformRecord
     properties: AssetForgePropertiesRecord
     material_preview: AssetForgeMaterialPreviewRecord
     timeline: AssetForgeTimelineRecord
+    status_strip_tabs: list[AssetForgeStatusStripTabRecord]
     evidence: AssetForgeEvidenceSummaryRecord
     prompt_templates: list[AssetForgePromptTemplateRecord]
     blocked_capabilities: list[AssetForgeBlockedCapabilityRecord]
@@ -281,6 +306,47 @@ def _blocked_menu_item(
         status,
         blocked_reason=blocked_reason,
         next_unlock=next_unlock,
+    )
+
+
+def _workflow_stage(
+    stage_id: str,
+    label: str,
+    truth_state: TruthState,
+    action: str,
+    status: str,
+    *,
+    prompt_template_id: str | None = None,
+) -> AssetForgeWorkflowStageRecord:
+    return AssetForgeWorkflowStageRecord(
+        stage_id=stage_id,
+        label=label,
+        truth_state=truth_state,
+        action=action,
+        status=status,
+        prompt_template_id=prompt_template_id,
+        execution_admitted=False,
+        mutation_admitted=False,
+        auto_execute=False,
+    )
+
+
+def _status_strip_tab(
+    tab_id: str,
+    label: str,
+    truth_state: TruthState,
+    action: str,
+    status: str,
+) -> AssetForgeStatusStripTabRecord:
+    return AssetForgeStatusStripTabRecord(
+        tab_id=tab_id,
+        label=label,
+        truth_state=truth_state,
+        action=action,
+        status=status,
+        execution_admitted=False,
+        mutation_admitted=False,
+        auto_execute=False,
     )
 
 
@@ -506,6 +572,68 @@ def build_asset_forge_editor_model() -> AssetForgeEditorModelRecord:
                 ],
             ),
         ],
+        workflow_stages=[
+            _workflow_stage(
+                "describe",
+                "Describe",
+                "plan-only",
+                "select-template-inspect-candidate",
+                "Creative description is plan-only metadata; no prompt auto-executes.",
+                prompt_template_id="inspect-candidate",
+            ),
+            _workflow_stage(
+                "candidate",
+                "Candidate",
+                "demo",
+                "select-object",
+                "Candidate selection is UI state only; no provider generation is admitted.",
+            ),
+            _workflow_stage(
+                "preflight",
+                "Preflight",
+                "preflight-only",
+                "preflight",
+                "Preflight can review readiness metadata only; no tools execute.",
+                prompt_template_id="inspect-candidate",
+            ),
+            _workflow_stage(
+                "stage-plan",
+                "Stage Plan",
+                "plan-only",
+                "stage-plan",
+                "Stage planning remains plan-only; no source files are written.",
+            ),
+            _workflow_stage(
+                "stage-write",
+                "Stage Write",
+                "proof-only",
+                "select-template-placement-proof-only",
+                "Stage write remains proof-only metadata; no project write or Asset Processor execution occurs.",
+                prompt_template_id="placement-proof-only",
+            ),
+            _workflow_stage(
+                "readback",
+                "Readback",
+                "read-only",
+                "open-evidence",
+                "Readback opens evidence only; no runtime execution or cache mutation occurs.",
+            ),
+            _workflow_stage(
+                "placement-proof",
+                "Placement Proof",
+                "proof-only",
+                "select-template-placement-proof-only",
+                "Placement proof stays proof-only; placement write is not admitted.",
+                prompt_template_id="placement-proof-only",
+            ),
+            _workflow_stage(
+                "review",
+                "Review",
+                "read-only",
+                "open-evidence",
+                "Review is read-only operator evidence; approval does not mutate assets.",
+            ),
+        ],
         outliner=[
             AssetForgeOutlinerNodeRecord(node_id="scene", label="Scene", kind="scene", depth=0, truth_state="read-only"),
             AssetForgeOutlinerNodeRecord(node_id="asset-root", label="Asset Root", kind="root", depth=1, truth_state="demo", selected=True),
@@ -539,6 +667,43 @@ def build_asset_forge_editor_model() -> AssetForgeEditorModelRecord:
             current_frame=1,
             status="timeline_ui_only_no_animation_execution",
         ),
+        status_strip_tabs=[
+            _status_strip_tab(
+                "timeline",
+                "Timeline",
+                "demo",
+                "timeline",
+                "Timeline frame strip is UI-only; no animation playback or keyframe execution occurs.",
+            ),
+            _status_strip_tab(
+                "evidence",
+                "Evidence",
+                "read-only",
+                "evidence",
+                "Evidence drill-in opens read-only run/execution/artifact references.",
+            ),
+            _status_strip_tab(
+                "prompt-template",
+                "Prompt Template",
+                "read-only",
+                "prompt-template",
+                "Prompt templates are preview-first with autoExecute=false.",
+            ),
+            _status_strip_tab(
+                "logs",
+                "Logs",
+                "read-only",
+                "logs",
+                "Logs summarize UI-only blocked/preflight/proof-only messages.",
+            ),
+            _status_strip_tab(
+                "latest-artifacts",
+                "Latest Artifacts",
+                "read-only",
+                "latest-artifacts",
+                "Latest artifact identifiers are read-only references when present.",
+            ),
+        ],
         evidence=AssetForgeEvidenceSummaryRecord(
             stage_write_evidence_reference="packet-10/stage-write-evidence.json",
             stage_write_readback_reference="packet-10/readback-evidence.json",
