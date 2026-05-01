@@ -1296,6 +1296,12 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Manifest path: Assets\/Generated\/asset_forge/i)).toBeInTheDocument();
     expect(screen.getByText(/Allowed staging prefix: Assets\/Generated\/asset_forge\//i)).toBeInTheDocument();
     expect(screen.getByText(/Allowed output extensions: \.glb, \.gltf, \.fbx, \.obj/i)).toBeInTheDocument();
+    expect(screen.getByText(/Stage plan policy keys: 4/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Stage plan policy preview: allowed_output_extensions, allowed_staging_prefix, approval_required_for_write \(\+1 more\)/i,
+      ),
+    ).toBeInTheDocument();
   });
 
   it("requires explicit approval for stage write and renders approval-required status", async () => {
@@ -1531,6 +1537,12 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Target level: Levels\/BridgeLevel01\/BridgeLevel01\.prefab/i)).toBeInTheDocument();
     expect(screen.getByText(/Placement writes admitted: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Allowed stage prefix: Assets\/Generated\/asset_forge\//i)).toBeInTheDocument();
+    expect(screen.getByText(/Placement plan policy keys: 6/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Placement plan policy preview: allowed_stage_prefix, allowed_stage_extensions, allowed_level_prefix \(\+3 more\)/i,
+      ),
+    ).toBeInTheDocument();
   });
 
   it("renders evidence index read-only and source metadata", async () => {

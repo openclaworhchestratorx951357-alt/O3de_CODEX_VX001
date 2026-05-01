@@ -2609,6 +2609,8 @@ export default function AssetForgeStudioPacket01({
               <li>Allowed output extensions: {Array.isArray(stagePlanReport.stage_plan_policy["allowed_output_extensions"])
                 ? (stagePlanReport.stage_plan_policy["allowed_output_extensions"] as string[]).join(", ")
                 : "unknown"}</li>
+              <li>Stage plan policy keys: {contractSummaryKeyCount(stagePlanReport.stage_plan_policy)}</li>
+              <li>Stage plan policy preview: {contractSummaryKeyPreview(stagePlanReport.stage_plan_policy)}</li>
               <li>Approval required: {stagePlanReport.approval_required ? "yes" : "no"}</li>
               <li>Project writes admitted: {stagePlanReport.project_write_admitted ? "yes" : "no"}</li>
             </ul>
@@ -3019,6 +3021,8 @@ export default function AssetForgeStudioPacket01({
                 ? (placementPlanReport.placement_plan_policy["allowed_stage_extensions"] as string[]).join(", ")
                 : ".glb, .gltf, .fbx, .obj"}</li>
               <li>Allowed level path: {String(placementPlanReport.placement_plan_policy["allowed_level_prefix"] ?? "Levels/")}*{String(placementPlanReport.placement_plan_policy["allowed_level_suffix"] ?? ".prefab")}</li>
+              <li>Placement plan policy keys: {contractSummaryKeyCount(placementPlanReport.placement_plan_policy)}</li>
+              <li>Placement plan policy preview: {contractSummaryKeyPreview(placementPlanReport.placement_plan_policy)}</li>
             </ul>
           ) : null}
           <div style={s.actionWrap}>
