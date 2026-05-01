@@ -98,7 +98,10 @@ describe("DesktopShell", () => {
     expect(screen.getByText("Control surface")).toBeInTheDocument();
     expect(screen.getByText("Now open")).toBeInTheDocument();
     expect(screen.getAllByText("Start").length).toBeGreaterThan(0);
-    expect(screen.getByText(/Inspect -/i)).toBeInTheDocument();
+    const allAppsSubtitle = screen.getByText(/Inspect -/i);
+    expect(allAppsSubtitle).toBeInTheDocument();
+    expect(allAppsSubtitle).toHaveStyle("white-space: nowrap");
+    expect(allAppsSubtitle).toHaveStyle("text-overflow: ellipsis");
     expect(screen.getByText("Active workspace")).toBeInTheDocument();
     expect(screen.getByText("Workspace body")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Expand all workspace groups" })).toBeInTheDocument();

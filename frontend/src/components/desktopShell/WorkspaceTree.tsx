@@ -242,8 +242,8 @@ export default function WorkspaceTree({
                     onClick={() => onSelectWorkspace(item.id)}
                     title={item.helpTooltip ?? undefined}
                     style={{
-                      ...navButtonStyle,
-                      ...(active ? activeNavButtonStyle : null),
+                      ...allAppsNavButtonStyle,
+                      ...(active ? activeAllAppsNavButtonStyle : null),
                     }}
                   >
                     <div style={navButtonHeaderStyle}>
@@ -524,6 +524,19 @@ const activeNavButtonStyle = {
   boxShadow: "var(--app-active-shadow)",
 } satisfies CSSProperties;
 
+const allAppsNavButtonStyle = {
+  ...navButtonStyle,
+  padding: "6px 9px",
+  gap: 2,
+  borderRadius: "calc(var(--app-panel-radius) - 6px)",
+  boxShadow: "none",
+} satisfies CSSProperties;
+
+const activeAllAppsNavButtonStyle = {
+  ...activeNavButtonStyle,
+  boxShadow: "none",
+} satisfies CSSProperties;
+
 const navButtonHeaderStyle = {
   display: "flex",
   justifyContent: "space-between",
@@ -541,10 +554,11 @@ const navButtonLabelStyle = {
 
 const navButtonSubtitleStyle = {
   color: "var(--app-muted-color)",
-  fontSize: 11,
-  lineHeight: 1.35,
-  overflowWrap: "anywhere",
-  whiteSpace: "normal" as const,
+  fontSize: 10,
+  lineHeight: 1.25,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap" as const,
 } satisfies CSSProperties;
 
 const navBadgeStyle = {
