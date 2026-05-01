@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import MissionTruthRail from "../MissionTruthRail";
 import type { PlacementProofOnlyReviewSnapshot } from "../../lib/promptPlacementProofOnlyReview";
 import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
-import { inspectLoadProjectMissionPromptDraft } from "../../lib/missionPromptTemplates";
+import { getCockpitDefinition } from "../cockpits/registry/cockpitRegistry";
 import CockpitWorkspaceShell, {
   type CockpitAction,
   type CockpitBlockedCapability,
@@ -19,7 +19,7 @@ type LoadProjectWorkspaceViewProps = {
   onOpenSettings?: () => void;
   commandActions?: CockpitAction[];
   toolActionHandlers?: Partial<Record<string, (() => void) | undefined>>;
-  onLaunchInspectTemplate?: () => void;
+  promptTemplateActionHandlers?: Partial<Record<string, (() => void) | undefined>>;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
@@ -161,15 +161,6 @@ const toolCards: CockpitToolCard[] = [
   },
 ];
 
-const promptTemplates: CockpitPromptTemplate[] = [
-  {
-    id: "inspect-project",
-    label: "Project inspection template",
-    truthLabels: "read-only / no project file writes",
-    promptText: inspectLoadProjectMissionPromptDraft.promptText,
-  },
-];
-
 const blockedCapabilities: CockpitBlockedCapability[] = [
   {
     id: "select-project-folder",
@@ -226,7 +217,7 @@ export default function LoadProjectWorkspaceView({
   onOpenRecords,
   commandActions,
   toolActionHandlers,
-  onLaunchInspectTemplate,
+  promptTemplateActionHandlers,
   onViewLatestRun,
   onViewExecution,
   onViewArtifact,
@@ -259,10 +250,13 @@ export default function LoadProjectWorkspaceView({
     ? readiness.ok ? "ready" : "not ready"
     : "not loaded";
 
-  const promptTemplatesWithAction: CockpitPromptTemplate[] = promptTemplates.map((template) => ({
-    ...template,
+  const promptTemplatesWithAction = (getCockpitDefinition("load-project")?.promptTemplates ?? []).map<CockpitPromptTemplate>((template) => ({
+    id: template.id,
+    label: template.label,
+    truthLabels: "read-only / no project file writes",
+    promptText: template.text,
     actionLabel: "Load project inspect template in Prompt Studio",
-    onAction: onLaunchInspectTemplate,
+    onAction: promptTemplateActionHandlers?.[template.id] ?? onOpenPromptStudio,
   }));
 
   const targetSummary = (

@@ -5270,10 +5270,6 @@ export default function App() {
     openPromptStudioWithRegistryTemplate("asset-forge", "placement-proof-only");
   }
 
-  function openPromptStudioWithCinematicPlacementProofTemplate(): void {
-    openPromptStudioWithRegistryTemplate("create-movie", "cinematic-placement-proof-only");
-  }
-
   function openPromptStudioWithInspectProjectTemplateFromHome(): void {
     openPromptStudioWithRegistryTemplate("home", "inspect-project");
   }
@@ -5282,28 +5278,12 @@ export default function App() {
     openPromptStudioWithRegistryTemplate("asset-forge", "inspect-project");
   }
 
-  function openPromptStudioWithInspectProjectTemplateFromCreateGame(): void {
-    openPromptStudioWithRegistryTemplate("create-game", "inspect-project");
-  }
-
   function openPromptStudioWithCreateGameEntityTemplate(): void {
     openPromptStudioWithRegistryTemplate("create-game", "create-safe-entity");
   }
 
   function openPromptStudioWithAddAllowlistedMeshTemplate(): void {
     openPromptStudioWithRegistryTemplate("create-game", "add-allowlisted-mesh");
-  }
-
-  function openPromptStudioWithInspectCinematicTargetTemplate(): void {
-    openPromptStudioWithRegistryTemplate("create-movie", "inspect-cinematic-target");
-  }
-
-  function openPromptStudioWithCreateCinematicCameraTemplate(): void {
-    openPromptStudioWithRegistryTemplate("create-movie", "create-cinematic-camera-placeholder");
-  }
-
-  function openPromptStudioWithInspectLoadProjectTemplate(): void {
-    openPromptStudioWithRegistryTemplate("load-project", "inspect-project-target");
   }
 
   function resolveCockpitUiActionHandler(
@@ -5365,12 +5345,25 @@ export default function App() {
     return handlers;
   }
 
+  function buildCockpitPromptTemplateActionHandlers(
+    cockpitId: CockpitId,
+  ): Partial<Record<string, (() => void) | undefined>> {
+    const handlers: Partial<Record<string, (() => void) | undefined>> = {};
+    for (const template of getCockpitDefinition(cockpitId)?.promptTemplates ?? []) {
+      handlers[template.id] = () => openPromptStudioWithRegistryTemplate(cockpitId, template.id);
+    }
+    return handlers;
+  }
+
   const createGameCommandActions = buildCockpitCommandActions("create-game");
   const createMovieCommandActions = buildCockpitCommandActions("create-movie");
   const loadProjectCommandActions = buildCockpitCommandActions("load-project");
   const createGameToolActionHandlers = buildCockpitToolActionHandlers("create-game");
   const createMovieToolActionHandlers = buildCockpitToolActionHandlers("create-movie");
   const loadProjectToolActionHandlers = buildCockpitToolActionHandlers("load-project");
+  const createGamePromptTemplateActionHandlers = buildCockpitPromptTemplateActionHandlers("create-game");
+  const createMoviePromptTemplateActionHandlers = buildCockpitPromptTemplateActionHandlers("create-movie");
+  const loadProjectPromptTemplateActionHandlers = buildCockpitPromptTemplateActionHandlers("load-project");
 
   function getPromptReturnNextSafeAction(workspaceId: DesktopWorkspaceId): string {
     switch (workspaceId) {
@@ -9070,9 +9063,7 @@ export default function App() {
                 onOpenRecords={openRecordsRuns}
                 commandActions={createGameCommandActions}
                 toolActionHandlers={createGameToolActionHandlers}
-                onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromCreateGame}
-                onLaunchCreateEntityTemplate={openPromptStudioWithCreateGameEntityTemplate}
-                onLaunchAddMeshTemplate={openPromptStudioWithAddAllowlistedMeshTemplate}
+                promptTemplateActionHandlers={createGamePromptTemplateActionHandlers}
                 onViewLatestRun={openLatestRunEvidence}
                 onViewExecution={openLatestExecutionEvidence}
                 onViewArtifact={openLatestArtifactEvidence}
@@ -9111,9 +9102,7 @@ export default function App() {
                 onOpenRecords={openRecordsRuns}
                 commandActions={createMovieCommandActions}
                 toolActionHandlers={createMovieToolActionHandlers}
-                onLaunchInspectTemplate={openPromptStudioWithInspectCinematicTargetTemplate}
-                onLaunchCameraTemplate={openPromptStudioWithCreateCinematicCameraTemplate}
-                onLaunchPlacementProofTemplate={openPromptStudioWithCinematicPlacementProofTemplate}
+                promptTemplateActionHandlers={createMoviePromptTemplateActionHandlers}
                 onViewLatestRun={openLatestRunEvidence}
                 onViewExecution={openLatestExecutionEvidence}
                 onViewArtifact={openLatestArtifactEvidence}
@@ -9151,7 +9140,7 @@ export default function App() {
                 onOpenRecords={openRecordsRuns}
                 commandActions={loadProjectCommandActions}
                 toolActionHandlers={loadProjectToolActionHandlers}
-                onLaunchInspectTemplate={openPromptStudioWithInspectLoadProjectTemplate}
+                promptTemplateActionHandlers={loadProjectPromptTemplateActionHandlers}
                 onViewLatestRun={openLatestRunEvidence}
                 onViewExecution={openLatestExecutionEvidence}
                 onViewArtifact={openLatestArtifactEvidence}

@@ -1,11 +1,7 @@
 import MissionTruthRail from "../MissionTruthRail";
 import type { PlacementProofOnlyReviewSnapshot } from "../../lib/promptPlacementProofOnlyReview";
 import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
-import {
-  cinematicPlacementProofOnlyMissionPromptDraft,
-  createCinematicCameraPlaceholderMissionPromptDraft,
-  inspectCinematicTargetMissionPromptDraft,
-} from "../../lib/missionPromptTemplates";
+import { getCockpitDefinition } from "../cockpits/registry/cockpitRegistry";
 import CockpitWorkspaceShell, {
   type CockpitAction,
   type CockpitBlockedCapability,
@@ -21,9 +17,7 @@ type CreateMovieWorkspaceViewProps = {
   onOpenRecords?: () => void;
   commandActions?: CockpitAction[];
   toolActionHandlers?: Partial<Record<string, (() => void) | undefined>>;
-  onLaunchInspectTemplate?: () => void;
-  onLaunchCameraTemplate?: () => void;
-  onLaunchPlacementProofTemplate?: () => void;
+  promptTemplateActionHandlers?: Partial<Record<string, (() => void) | undefined>>;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
@@ -225,9 +219,7 @@ export default function CreateMovieWorkspaceView({
   onOpenRecords,
   commandActions,
   toolActionHandlers,
-  onLaunchInspectTemplate,
-  onLaunchCameraTemplate,
-  onLaunchPlacementProofTemplate,
+  promptTemplateActionHandlers,
   onViewLatestRun,
   onViewExecution,
   onViewArtifact,
@@ -249,32 +241,26 @@ export default function CreateMovieWorkspaceView({
     onAction: toolActionHandlers?.[card.id] ?? onOpenPromptStudio,
   }));
 
-  const promptTemplates: CockpitPromptTemplate[] = [
-    {
-      id: "inspect",
-      label: "Template 1",
-      truthLabels: "read-only",
-      promptText: inspectCinematicTargetMissionPromptDraft.promptText,
-      actionLabel: "Load cinematic inspect template in Prompt Studio",
-      onAction: onLaunchInspectTemplate,
-    },
-    {
-      id: "camera-placeholder",
-      label: "Template 2",
-      truthLabels: "admitted-real narrow editor lane",
-      promptText: createCinematicCameraPlaceholderMissionPromptDraft.promptText,
-      actionLabel: "Load camera placeholder template in Prompt Studio",
-      onAction: onLaunchCameraTemplate,
-    },
-    {
-      id: "placement-proof",
-      label: "Template 3",
-      truthLabels: "proof-only / fail-closed / non-mutating / real placement not admitted",
-      promptText: cinematicPlacementProofOnlyMissionPromptDraft.promptText,
-      actionLabel: "Load placement proof-only template in Prompt Studio",
-      onAction: onLaunchPlacementProofTemplate,
-    },
-  ];
+  const promptTemplates = (getCockpitDefinition("create-movie")?.promptTemplates ?? []).map<CockpitPromptTemplate>((template) => {
+    const truthLabelByTemplateId: Record<string, string> = {
+      "inspect-cinematic-target": "read-only",
+      "create-cinematic-camera-placeholder": "admitted-real narrow editor lane",
+      "cinematic-placement-proof-only": "proof-only / fail-closed / non-mutating / real placement not admitted",
+    };
+    const actionLabelByTemplateId: Record<string, string> = {
+      "inspect-cinematic-target": "Load cinematic inspect template in Prompt Studio",
+      "create-cinematic-camera-placeholder": "Load camera placeholder template in Prompt Studio",
+      "cinematic-placement-proof-only": "Load placement proof-only template in Prompt Studio",
+    };
+    return {
+      id: template.id,
+      label: template.label,
+      truthLabels: truthLabelByTemplateId[template.id] ?? template.safetyLabels.join(" / "),
+      promptText: template.text,
+      actionLabel: actionLabelByTemplateId[template.id] ?? "Load template in Prompt Studio",
+      onAction: promptTemplateActionHandlers?.[template.id] ?? onOpenPromptStudio,
+    };
+  });
 
   return (
     <CockpitWorkspaceShell

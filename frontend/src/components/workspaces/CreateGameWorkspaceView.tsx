@@ -1,11 +1,7 @@
 import MissionTruthRail from "../MissionTruthRail";
 import type { PlacementProofOnlyReviewSnapshot } from "../../lib/promptPlacementProofOnlyReview";
 import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
-import {
-  addAllowlistedMeshMissionPromptDraft,
-  createGameEntityMissionPromptDraft,
-  inspectProjectMissionPromptDraft,
-} from "../../lib/missionPromptTemplates";
+import { getCockpitDefinition } from "../cockpits/registry/cockpitRegistry";
 import CockpitWorkspaceShell, {
   type CockpitAction,
   type CockpitBlockedCapability,
@@ -21,9 +17,7 @@ type CreateGameWorkspaceViewProps = {
   onOpenRecords?: () => void;
   commandActions?: CockpitAction[];
   toolActionHandlers?: Partial<Record<string, (() => void) | undefined>>;
-  onLaunchInspectTemplate?: () => void;
-  onLaunchCreateEntityTemplate?: () => void;
-  onLaunchAddMeshTemplate?: () => void;
+  promptTemplateActionHandlers?: Partial<Record<string, (() => void) | undefined>>;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
@@ -234,9 +228,7 @@ export default function CreateGameWorkspaceView({
   onOpenRecords,
   commandActions,
   toolActionHandlers,
-  onLaunchInspectTemplate,
-  onLaunchCreateEntityTemplate,
-  onLaunchAddMeshTemplate,
+  promptTemplateActionHandlers,
   onViewLatestRun,
   onViewExecution,
   onViewArtifact,
@@ -258,32 +250,26 @@ export default function CreateGameWorkspaceView({
     onAction: toolActionHandlers?.[card.id] ?? onOpenPromptStudio,
   }));
 
-  const promptTemplates: CockpitPromptTemplate[] = [
-    {
-      id: "inspect",
-      label: "Template 1",
-      truthLabels: "read-only",
-      promptText: inspectProjectMissionPromptDraft.promptText,
-      actionLabel: "Load inspect template in Prompt Studio",
-      onAction: onLaunchInspectTemplate,
-    },
-    {
-      id: "create-entity",
-      label: "Template 2",
-      truthLabels: "admitted-real narrow editor lane",
-      promptText: createGameEntityMissionPromptDraft.promptText,
-      actionLabel: "Load create-entity template in Prompt Studio",
-      onAction: onLaunchCreateEntityTemplate,
-    },
-    {
-      id: "add-mesh",
-      label: "Template 3",
-      truthLabels: "allowlisted editor component lane",
-      promptText: addAllowlistedMeshMissionPromptDraft.promptText,
-      actionLabel: "Load add-Mesh template in Prompt Studio",
-      onAction: onLaunchAddMeshTemplate,
-    },
-  ];
+  const promptTemplates = (getCockpitDefinition("create-game")?.promptTemplates ?? []).map<CockpitPromptTemplate>((template) => {
+    const truthLabelByTemplateId: Record<string, string> = {
+      "inspect-project": "read-only",
+      "create-safe-entity": "admitted-real narrow editor lane",
+      "add-allowlisted-mesh": "allowlisted editor component lane",
+    };
+    const actionLabelByTemplateId: Record<string, string> = {
+      "inspect-project": "Load inspect template in Prompt Studio",
+      "create-safe-entity": "Load create-entity template in Prompt Studio",
+      "add-allowlisted-mesh": "Load add-Mesh template in Prompt Studio",
+    };
+    return {
+      id: template.id,
+      label: template.label,
+      truthLabels: truthLabelByTemplateId[template.id] ?? template.safetyLabels.join(" / "),
+      promptText: template.text,
+      actionLabel: actionLabelByTemplateId[template.id] ?? "Load template in Prompt Studio",
+      onAction: promptTemplateActionHandlers?.[template.id] ?? onOpenPromptStudio,
+    };
+  });
 
   return (
     <CockpitWorkspaceShell
