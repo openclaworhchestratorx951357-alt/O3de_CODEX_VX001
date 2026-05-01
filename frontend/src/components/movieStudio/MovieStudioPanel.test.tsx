@@ -177,6 +177,12 @@ describe("MovieStudioPanel", () => {
     await screen.findByText("Copied O3DE status");
   });
 
+  it("supports Shift+S shortcut for O3DE status copy", async () => {
+    render(<MovieStudioPanel />);
+    fireEvent.keyDown(window, { key: "S", shiftKey: true });
+    await screen.findByText("Copied O3DE status");
+  });
+
   it("supports keyboard transport shortcuts", () => {
     render(<MovieStudioPanel />);
 
