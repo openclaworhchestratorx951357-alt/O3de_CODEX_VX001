@@ -294,12 +294,15 @@ describe("MovieStudioPanel", () => {
     fireEvent.change(screen.getByLabelText("Playhead"), { target: { value: "00:00:22:00" } });
     fireEvent.change(screen.getByLabelText("Find Clip"), { target: { value: "Temp Score" } });
     fireEvent.change(screen.getByLabelText("Snap"), { target: { value: "marker" } });
+    fireEvent.click(screen.getByRole("button", { name: "Show Shortcuts" }));
     unmount();
 
     render(<MovieStudioPanel />);
     expect(screen.getByLabelText("Playhead")).toHaveValue("00:00:22:00");
     expect(screen.getByLabelText("Find Clip")).toHaveValue("Temp Score");
     expect(screen.getByLabelText("Snap")).toHaveValue("marker");
+    expect(screen.getByRole("button", { name: "Hide Shortcuts" })).toBeInTheDocument();
+    expect(screen.getByText("Shift+R reset view")).toBeInTheDocument();
   });
 
   it("nudges playhead by frame and supports undo for snap mode changes", () => {

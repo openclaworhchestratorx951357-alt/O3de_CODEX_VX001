@@ -96,6 +96,7 @@ type MovieStudioSessionState = {
   clipFilter: string;
   trackFilter: "all" | "video" | "audio";
   snapMode: "off" | "frame" | "marker";
+  shortcutsVisible: boolean;
 };
 
 const FRAMES_PER_SECOND = 24;
@@ -143,6 +144,7 @@ function loadMovieStudioSessionState(): MovieStudioSessionState | null {
     const playbackRate = parsed.playbackRate === "0.5x" || parsed.playbackRate === "2.0x" ? parsed.playbackRate : "1.0x";
     const trackFilter = parsed.trackFilter === "video" || parsed.trackFilter === "audio" ? parsed.trackFilter : "all";
     const snapMode = parsed.snapMode === "frame" || parsed.snapMode === "marker" ? parsed.snapMode : "off";
+    const shortcutsVisible = parsed.shortcutsVisible === true;
     return {
       playhead: typeof parsed.playhead === "string" ? parsed.playhead : INITIAL_PLAYHEAD,
       markers: Array.isArray(parsed.markers) ? parsed.markers.filter((item): item is string => typeof item === "string") : INITIAL_MARKERS,
@@ -153,6 +155,7 @@ function loadMovieStudioSessionState(): MovieStudioSessionState | null {
       clipFilter: typeof parsed.clipFilter === "string" ? parsed.clipFilter : "",
       trackFilter,
       snapMode,
+      shortcutsVisible,
     };
   } catch {
     return null;
@@ -178,7 +181,7 @@ export default function MovieStudioPanel() {
   const [historyFuture, setHistoryFuture] = useState<TimelineHistorySnapshot[]>([]);
   const [historyLog, setHistoryLog] = useState<string[]>([]);
   const [handoffStatus, setHandoffStatus] = useState<string>("Ready");
-  const [shortcutsVisible, setShortcutsVisible] = useState<boolean>(false);
+  const [shortcutsVisible, setShortcutsVisible] = useState<boolean>(sessionState?.shortcutsVisible ?? false);
   const [o3deStatus, setO3deStatus] = useState<string>("Checking O3DE bridge...");
   const [o3deLastCheck, setO3deLastCheck] = useState<string>("Pending first check");
   const [o3deHealth, setO3deHealth] = useState<"healthy" | "degraded" | "unavailable">("degraded");
@@ -445,9 +448,10 @@ export default function MovieStudioPanel() {
       clipFilter,
       trackFilter,
       snapMode,
+      shortcutsVisible,
     };
     window.sessionStorage.setItem(MOVIE_STUDIO_SESSION_KEY, JSON.stringify(payload));
-  }, [playhead, markers, selectedMarker, timelineRange, timelineZoom, playbackRate, clipFilter, trackFilter, snapMode]);
+  }, [playhead, markers, selectedMarker, timelineRange, timelineZoom, playbackRate, clipFilter, trackFilter, snapMode, shortcutsVisible]);
 
   async function refreshO3deStatus() {
     if (o3deRefreshInFlightRef.current) return;
