@@ -1,26 +1,23 @@
 import type { CSSProperties } from "react";
 
 import StatusChip from "./StatusChip";
+import type { CapabilityMaturity, CapabilityRisk } from "../fixtures/appCapabilityDashboardFixture";
 import {
-  appWorkspaceStatusChipRows,
-  appWorkspaceStatusChipsFixtureGeneratedAt,
-  type WorkspaceStatusTaxonomy,
+  appWorkspaceStatusChips,
+  appWorkspaceStatusChipsGeneratedAt,
 } from "../fixtures/appWorkspaceStatusChipsFixture";
-import {
-  summaryMutedTextStyle,
-  summarySectionStyle,
-} from "./summaryPrimitives";
-import {
-  getStatusChipLinkageCue,
-  sharedShellBoundaryLabels,
-} from "./appShellTaxonomyParity";
+import { summaryCardStyle, summaryMutedTextStyle, summarySectionStyle } from "./summaryPrimitives";
 
 const boundaryLabels = [
-  ...sharedShellBoundaryLabels,
+  "Static fixture only",
+  "No backend execution admission changes",
+  "No mutation path enablement",
+  "No client-side authorization",
 ] as const;
 
 export default function AppWorkspaceStatusChipsShell() {
-  const taxonomyCounts = countBy(appWorkspaceStatusChipRows, (row) => row.taxonomy);
+  const workspaceCounts = countBy(appWorkspaceStatusChips, (chip) => chip.workspace);
+  const statusCounts = countBy(appWorkspaceStatusChips, (chip) => chip.status);
 
   return (
     <section
@@ -29,17 +26,19 @@ export default function AppWorkspaceStatusChipsShell() {
         display: "grid",
         gap: 16,
         marginBottom: 24,
-        background: "linear-gradient(140deg, rgba(20, 122, 88, 0.17) 0%, var(--app-panel-bg-muted) 58%, rgba(173, 127, 22, 0.15) 100%)",
+        background:
+          "linear-gradient(122deg, rgba(220, 110, 43, 0.14) 0%, var(--app-panel-bg-muted) 52%, rgba(30, 120, 173, 0.14) 100%)",
       }}
       data-testid="app-workspace-status-chips-shell"
     >
       <header style={{ display: "grid", gap: 8 }}>
         <strong>Workspace status chips shell (static fixture)</strong>
         <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-          App-wide maturity taxonomy snapshot for quick operator review without admitting new runtime behavior.
+          Compact cross-workspace truth chips for maturity, risk, and blocked/watch/ready posture without implying
+          execution admission.
         </p>
         <p style={{ ...summaryMutedTextStyle, margin: 0, fontSize: 12 }}>
-          Fixture baseline: {appWorkspaceStatusChipsFixtureGeneratedAt}
+          Fixture baseline: {appWorkspaceStatusChipsGeneratedAt}
         </p>
       </header>
 
@@ -49,54 +48,48 @@ export default function AppWorkspaceStatusChipsShell() {
         ))}
       </div>
 
-      <article style={summaryCardStyle}>
-        <strong>Taxonomy mix</strong>
-        <div style={chipWrapStyle}>
-          {Object.entries(taxonomyCounts).map(([taxonomy, count]) => (
-            <StatusChip
-              key={taxonomy}
-              label={`${taxonomy}: ${count}`}
-              tone={getTaxonomyTone(taxonomy as WorkspaceStatusTaxonomy)}
-            />
-          ))}
-        </div>
-      </article>
-
-      <div style={tableWrapStyle}>
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              <th style={headerCellStyle}>Workspace surface</th>
-              <th style={headerCellStyle}>Capability window</th>
-              <th style={headerCellStyle}>Status taxonomy</th>
-              <th style={headerCellStyle}>Status-chip linkage cue</th>
-              <th style={headerCellStyle}>Boundary</th>
-              <th style={headerCellStyle}>Summary</th>
-              <th style={headerCellStyle}>Next gate</th>
-            </tr>
-          </thead>
-          <tbody>
-            {appWorkspaceStatusChipRows.map((row) => (
-              <tr key={`${row.workspace}:${row.capabilityWindow}`}>
-                <td style={bodyCellStyle}>{row.workspace}</td>
-                <td style={bodyCellStyle}>
-                  <code>{row.capabilityWindow}</code>
-                </td>
-                <td style={bodyCellStyle}>
-                  <StatusChip label={row.taxonomy} tone={getTaxonomyTone(row.taxonomy)} />
-                </td>
-                <td style={bodyCellStyle}>{getStatusChipLinkageCue(row.taxonomy)}</td>
-                <td style={bodyCellStyle}>{row.boundary}</td>
-                <td style={bodyCellStyle}>{row.summary}</td>
-                <td style={bodyCellStyle}>{row.nextGate}</td>
-              </tr>
+      <div style={topGridStyle}>
+        <article style={summaryCardStyle}>
+          <strong>Workspace coverage</strong>
+          <div style={chipWrapStyle}>
+            {Object.entries(workspaceCounts).map(([workspace, count]) => (
+              <StatusChip key={workspace} label={`${workspace}: ${count}`} tone="info" />
             ))}
-          </tbody>
-        </table>
+          </div>
+        </article>
+        <article style={summaryCardStyle}>
+          <strong>Status mix</strong>
+          <div style={chipWrapStyle}>
+            {Object.entries(statusCounts).map(([status, count]) => (
+              <StatusChip key={status} label={`${status}: ${count}`} tone={getStatusTone(status)} />
+            ))}
+          </div>
+        </article>
+      </div>
+
+      <div style={cardGridStyle}>
+        {appWorkspaceStatusChips.map((chip) => (
+          <article key={chip.id} style={summaryCardStyle}>
+            <div style={rowHeadStyle}>
+              <strong>{chip.workspace}</strong>
+              <StatusChip label={chip.status} tone={getStatusTone(chip.status)} />
+            </div>
+            <div style={chipWrapStyle}>
+              <StatusChip label={chip.label} tone="neutral" />
+              <StatusChip label={chip.maturity} tone={getMaturityTone(chip.maturity)} />
+              <StatusChip label={chip.risk} tone={getRiskTone(chip.risk)} />
+            </div>
+            <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
+              <code>{chip.evidenceLink}</code>
+            </p>
+            <p style={{ ...summaryMutedTextStyle, margin: 0 }}>{chip.note}</p>
+          </article>
+        ))}
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Editor placement proof-only implementation</strong>.
+        Recommended next packet: <strong>Validation intake endpoint-candidate admission design</strong> (docs/design
+        first, default fail-closed, no execution admission changes).
       </p>
     </section>
   );
@@ -110,21 +103,59 @@ function countBy<T>(rows: readonly T[], getKey: (row: T) => string): Record<stri
   }, {});
 }
 
-function getTaxonomyTone(taxonomy: WorkspaceStatusTaxonomy): "neutral" | "info" | "success" | "warning" | "danger" {
-  if (taxonomy === "admitted-real") {
+function getStatusTone(status: string): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (status === "ready") {
     return "success";
   }
-  if (taxonomy === "proof-only") {
+  if (status === "watch") {
     return "warning";
   }
-  if (taxonomy === "dry-run only" || taxonomy === "plan-only" || taxonomy === "demo") {
-    return "info";
-  }
-  if (taxonomy === "blocked" || taxonomy === "hold-default-off") {
+  if (status === "blocked") {
     return "danger";
   }
   return "neutral";
 }
+
+function getRiskTone(risk: CapabilityRisk): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (risk === "Critical") {
+    return "danger";
+  }
+  if (risk === "High") {
+    return "warning";
+  }
+  if (risk === "Medium") {
+    return "info";
+  }
+  return "success";
+}
+
+function getMaturityTone(maturity: CapabilityMaturity): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (maturity === "admitted-real" || maturity === "reviewable" || maturity === "production-ready") {
+    return "success";
+  }
+  if (maturity === "proof-only" || maturity === "gated execution") {
+    return "warning";
+  }
+  if (maturity === "read-only" || maturity === "preflight-only" || maturity === "dry-run only" || maturity === "GUI/demo only") {
+    return "info";
+  }
+  if (maturity === "missing" || maturity === "needs baseline") {
+    return "danger";
+  }
+  return "neutral";
+}
+
+const topGridStyle = {
+  display: "grid",
+  gap: 12,
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+} satisfies CSSProperties;
+
+const cardGridStyle = {
+  display: "grid",
+  gap: 12,
+  gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+} satisfies CSSProperties;
 
 const chipWrapStyle = {
   display: "flex",
@@ -132,38 +163,9 @@ const chipWrapStyle = {
   flexWrap: "wrap",
 } satisfies CSSProperties;
 
-const summaryCardStyle = {
-  border: "1px solid var(--app-panel-border)",
-  borderRadius: "var(--app-card-radius)",
-  padding: 12,
-  background: "var(--app-panel-bg)",
-  display: "grid",
+const rowHeadStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
   gap: 8,
-} satisfies CSSProperties;
-
-const tableWrapStyle = {
-  overflowX: "auto",
-  border: "1px solid var(--app-panel-border)",
-  borderRadius: "var(--app-card-radius)",
-  background: "var(--app-panel-bg)",
-} satisfies CSSProperties;
-
-const tableStyle = {
-  width: "100%",
-  borderCollapse: "collapse",
-  minWidth: 1360,
-} satisfies CSSProperties;
-
-const headerCellStyle = {
-  borderBottom: "1px solid var(--app-panel-border)",
-  textAlign: "left",
-  padding: "10px 12px",
-  fontSize: 12,
-  color: "var(--app-muted-color)",
-} satisfies CSSProperties;
-
-const bodyCellStyle = {
-  borderBottom: "1px solid var(--app-panel-border)",
-  padding: "10px 12px",
-  verticalAlign: "top",
 } satisfies CSSProperties;
