@@ -2487,7 +2487,6 @@ export default function App() {
     "create-game",
     "create-movie",
     "load-project",
-    "asset-forge",
   ];
   const isImmersiveCockpitWorkspace = immersiveCockpitWorkspaceIds.includes(activeWorkspaceId);
 
@@ -9108,12 +9107,109 @@ export default function App() {
     </Suspense>
   );
 
+  if (activeWorkspaceId === "asset-forge") {
+    return (
+      <section
+        aria-label="Asset Forge full workspace"
+        style={{
+          height: "100vh",
+          minHeight: "100vh",
+          display: "grid",
+          gridTemplateRows: "auto minmax(0, 1fr)",
+          background: "var(--app-shell-bg)",
+          color: "var(--app-text-color)",
+          fontFamily: '"Segoe UI Variable", "Segoe UI", "Trebuchet MS", sans-serif',
+          overflow: "hidden",
+        }}
+      >
+        <header
+          aria-label="Asset Forge page header"
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            padding: "6px 10px",
+            borderBottom: "1px solid var(--app-panel-border)",
+            background: "var(--app-panel-bg)",
+          }}
+        >
+          <button
+            type="button"
+            aria-label="Back to Home"
+            onClick={() => setActiveWorkspaceId("home")}
+            style={{
+              minHeight: 30,
+              border: "1px solid #61adff",
+              borderRadius: 8,
+              padding: "0 12px",
+              background: "var(--app-panel-elevated)",
+              color: "var(--app-text-color)",
+              fontWeight: 700,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              boxShadow: "0 0 0 1px rgba(97, 173, 255, 0.45), 0 0 14px rgba(44, 138, 255, 0.35)",
+            }}
+          >
+            Back to Home
+          </button>
+        </header>
+        <main aria-label="AssetForgeWorkspacePage" style={{ minHeight: 0, overflow: "hidden" }}>
+          <div style={{ height: "100%", minHeight: 0 }}>
+            {activePromptReturnResumeChecklist ? (
+              renderPromptReturnResumeChecklist(activePromptReturnResumeChecklist)
+            ) : null}
+            {activeCockpitStageFocusHighlight ? (
+              renderCockpitStageFocusHighlight(activeCockpitStageFocusHighlight)
+            ) : null}
+            <Suspense
+              fallback={renderWorkspaceLoadingFallback(
+                "Asset Forge",
+                "Loading the O3DE-native asset studio workspace.",
+              )}
+            >
+              <AIAssetForgePanel
+                onOpenPromptStudio={openPromptStudioFromAssetForgeCockpit}
+                onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
+                onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
+                onPrefillPromptTemplate={openPromptStudioWithAssetForgeEditorTemplate}
+                onOpenRuntimeOverview={openRuntimeOverview}
+                onOpenBuilder={() => setActiveWorkspaceId("builder")}
+                onOpenRecords={openRecordsRuns}
+                onViewLatestRun={openLatestRunEvidence}
+                onViewExecution={openLatestExecutionEvidence}
+                onViewArtifact={openLatestArtifactEvidence}
+                onViewEvidence={openRecordsEvents}
+                onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
+                onOpenRunDetail={openRunEvidenceById}
+                onOpenExecutionDetail={openExecutionEvidenceById}
+                onOpenArtifactDetail={openArtifactEvidenceById}
+                bridgeStatus={o3deBridgeStatus}
+                policies={policies}
+                policiesLoading={policiesLoading}
+                policiesError={policiesError}
+                readiness={readiness}
+                readinessLoading={readinessLoading}
+                readinessError={readinessError}
+                adapters={adapters}
+                adaptersLoading={adaptersLoading}
+                adaptersError={adaptersError}
+                latestRunId={latestRunId}
+                latestExecutionId={latestExecutionId}
+                latestArtifactId={latestArtifactId}
+                latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
+              />
+            </Suspense>
+          </div>
+        </main>
+      </section>
+    );
+  }
+
   if (isImmersiveCockpitWorkspace) {
     const immersiveWorkspacePageHeight = assetForgeHeaderHeight > 0
       ? `calc(100vh - ${assetForgeHeaderHeight}px)`
       : "calc(100vh - 88px)";
     const immersiveWorkspaceTitle = workspaceMeta[activeWorkspaceId].title;
-    const immersiveWorkspaceSubtitle = workspaceMeta[activeWorkspaceId].subtitle;
     const immersiveContent = (() => {
       if (activeWorkspaceId === "create-game") {
         return (
@@ -9220,51 +9316,12 @@ export default function App() {
         );
       }
 
-      return (
-        <Suspense
-          fallback={renderWorkspaceLoadingFallback(
-            "Asset Forge",
-            "Loading the O3DE-native asset studio workspace.",
-          )}
-        >
-          <AIAssetForgePanel
-            onOpenPromptStudio={openPromptStudioFromAssetForgeCockpit}
-            onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
-            onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
-            onPrefillPromptTemplate={openPromptStudioWithAssetForgeEditorTemplate}
-            onOpenRuntimeOverview={openRuntimeOverview}
-            onOpenBuilder={() => setActiveWorkspaceId("builder")}
-            onOpenRecords={openRecordsRuns}
-            onViewLatestRun={openLatestRunEvidence}
-            onViewExecution={openLatestExecutionEvidence}
-            onViewArtifact={openLatestArtifactEvidence}
-            onViewEvidence={openRecordsEvents}
-            onOpenPromptSessionDetail={openPromptSessionFromTruthRail}
-            onOpenRunDetail={openRunEvidenceById}
-            onOpenExecutionDetail={openExecutionEvidenceById}
-            onOpenArtifactDetail={openArtifactEvidenceById}
-            bridgeStatus={o3deBridgeStatus}
-            policies={policies}
-            policiesLoading={policiesLoading}
-            policiesError={policiesError}
-            readiness={readiness}
-            readinessLoading={readinessLoading}
-            readinessError={readinessError}
-            adapters={adapters}
-            adaptersLoading={adaptersLoading}
-            adaptersError={adaptersError}
-            latestRunId={latestRunId}
-            latestExecutionId={latestExecutionId}
-            latestArtifactId={latestArtifactId}
-            latestPlacementProofOnlyReview={latestPlacementProofOnlyReview}
-          />
-        </Suspense>
-      );
+      return null;
     })();
 
     return (
       <section
-        aria-label={activeWorkspaceId === "asset-forge" ? "Asset Forge full workspace" : "Immersive cockpit workspace"}
+        aria-label="Immersive cockpit workspace"
         style={{
           height: "100vh",
           minHeight: "100vh",
@@ -9280,14 +9337,14 @@ export default function App() {
           aria-label="AppHeader"
           ref={assetForgeHeaderRef}
           style={{
-            padding: "12px 16px",
+            padding: "8px 12px",
             borderBottom: "1px solid var(--app-panel-border)",
             background: "var(--app-panel-bg)",
             boxShadow: "var(--app-shadow-soft)",
             position: "relative",
             zIndex: 1,
             display: "grid",
-            gap: 10,
+            gap: 6,
           }}
         >
           <div
@@ -9300,12 +9357,9 @@ export default function App() {
             }}
           >
             <div>
-              <strong style={{ fontSize: 20, color: "var(--app-text-color)" }}>
+              <strong style={{ fontSize: 18, color: "var(--app-text-color)" }}>
                 {immersiveWorkspaceTitle}
               </strong>
-              <p style={{ margin: "6px 0 0 0", color: "var(--app-subtle-color)" }}>
-                {immersiveWorkspaceSubtitle}
-              </p>
             </div>
             <button
               type="button"
@@ -9376,7 +9430,7 @@ export default function App() {
           </div>
         </header>
         <main
-          aria-label={activeWorkspaceId === "asset-forge" ? "AssetForgeWorkspacePage" : "ImmersiveCockpitWorkspacePage"}
+          aria-label="ImmersiveCockpitWorkspacePage"
           style={{
             minHeight: 0,
             height: immersiveWorkspacePageHeight,

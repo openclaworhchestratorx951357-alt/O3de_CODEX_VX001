@@ -677,12 +677,13 @@ describe("App desktop smoke", () => {
     fireEvent.click(getDesktopNavButton(/Asset Forge/i));
 
     const forgePanel = await screen.findByLabelText("AI Asset Forge");
-    expect(screen.getByLabelText("AppHeader")).toBeInTheDocument();
+    expect(screen.queryByLabelText("AppHeader")).toBeNull();
+    expect(screen.getByLabelText("Asset Forge page header")).toBeInTheDocument();
     expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
     expect(screen.getAllByText(/Asset Forge/i).length).toBeGreaterThan(0);
     expect(screen.queryByText("ACTIVE WORKSPACE Home")).toBeNull();
     expect(screen.queryByText("Control surface")).toBeNull();
-    expect(screen.getByRole("button", { name: "Create Game" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create Game" })).toBeNull();
     expect(screen.queryByLabelText("O3DE game creation desk")).toBeNull();
     expect(within(forgePanel).getByLabelText("Asset Forge Blender-style editor cockpit")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Asset Forge workflow stages")).toBeInTheDocument();
@@ -714,12 +715,13 @@ describe("App desktop smoke", () => {
     fireEvent.click(launchButton);
 
     const forgePanel = await screen.findByLabelText("AI Asset Forge");
-    expect(screen.getByLabelText("AppHeader")).toBeInTheDocument();
+    expect(screen.queryByLabelText("AppHeader")).toBeNull();
+    expect(screen.getByLabelText("Asset Forge page header")).toBeInTheDocument();
     expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
     expect(screen.queryByLabelText("O3DE game creation desk")).toBeNull();
     expect(screen.queryByText("ACTIVE WORKSPACE Home")).toBeNull();
     expect(screen.queryByText("Control surface")).toBeNull();
-    expect(screen.getByRole("button", { name: "Create Game" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Create Game" })).toBeNull();
     expect(within(forgePanel).getByLabelText("Asset Forge Blender-style editor cockpit")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Asset Forge left tool and outliner area")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Asset Forge center viewport area")).toBeInTheDocument();
