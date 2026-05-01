@@ -74,6 +74,7 @@ function sanitizeZones(
   panels: CockpitPanelDefinition[],
 ): CockpitLayoutZones {
   const defaults = createZonesFromPanelDefaults(panels);
+  const panelLookup = buildPanelLookup(panels);
   if (!zones) {
     return defaults;
   }
@@ -83,6 +84,10 @@ function sanitizeZones(
   for (const zone of COCKPIT_LAYOUT_ZONES) {
     for (const panelId of zones[zone] ?? []) {
       if (!panelIdSet.has(panelId) || placed.has(panelId)) {
+        continue;
+      }
+      const panel = panelLookup.get(panelId);
+      if (panel?.allowedZones && !panel.allowedZones.includes(zone)) {
         continue;
       }
       sanitized[zone].push(panelId);

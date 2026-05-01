@@ -309,17 +309,19 @@ export default function CreateMovieWorkspaceView({
               <span>Character_A</span>
               <span>Prop_LightRig</span>
             </aside>
-            <div style={viewerCanvasStyle}>
-              <div style={viewerTopBarStyle}>
-                <span>Shading: Solid</span>
-                <span>View: Perspective</span>
-                <span>Overlays: On</span>
-              </div>
-              <div style={viewerCenterMarkStyle}>LIVE CINEMATIC PREVIEW</div>
-              <div style={viewerBottomBarStyle}>
-                <span>Frame 124 / 480</span>
-                <span>24 fps</span>
-                <span>Camera Lock</span>
+            <div style={viewerCanvasFrameStyle}>
+              <div style={viewerCanvasStyle} aria-label="Cinematic viewer canvas">
+                <div style={viewerTopBarStyle}>
+                  <span>Shading: Solid</span>
+                  <span>View: Perspective</span>
+                  <span>Overlays: On</span>
+                </div>
+                <div style={viewerCenterMarkStyle}>LIVE CINEMATIC PREVIEW</div>
+                <div style={viewerBottomBarStyle}>
+                  <span>Frame 124 / 480</span>
+                  <span>24 fps</span>
+                  <span>Camera Lock</span>
+                </div>
               </div>
             </div>
             <aside style={viewerRailStyle}>
@@ -409,9 +411,9 @@ const viewerBadgeStyle = {
 
 const viewerStageStyle = {
   display: "grid",
-  gridTemplateColumns: "180px minmax(0, 1fr) 180px",
+  gridTemplateColumns: "146px minmax(0, 1fr) 146px",
   gap: 8,
-  minHeight: 230,
+  minHeight: 340,
 } satisfies CSSProperties;
 
 const viewerRailStyle = {
@@ -425,6 +427,14 @@ const viewerRailStyle = {
   fontSize: 12,
 } satisfies CSSProperties;
 
+const viewerCanvasFrameStyle = {
+  minWidth: 0,
+  minHeight: 0,
+  display: "grid",
+  placeItems: "center",
+  padding: 4,
+} satisfies CSSProperties;
+
 const viewerCanvasStyle = {
   border: "1px solid var(--app-panel-border)",
   borderRadius: 8,
@@ -432,7 +442,10 @@ const viewerCanvasStyle = {
     "linear-gradient(180deg, rgba(19, 31, 49, 0.95) 0%, rgba(11, 20, 34, 0.95) 100%)",
   display: "grid",
   gridTemplateRows: "auto 1fr auto",
-  minHeight: 230,
+  width: "100%",
+  maxWidth: "min(68vh, 100%)",
+  aspectRatio: "1 / 1",
+  minHeight: 280,
 } satisfies CSSProperties;
 
 const viewerTopBarStyle = {

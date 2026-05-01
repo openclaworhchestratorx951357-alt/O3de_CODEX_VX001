@@ -45,6 +45,7 @@ describe("Cockpit workspace views", () => {
 
     expect(screen.getByTestId("dockable-layout-create-movie")).toBeInTheDocument();
     expect(screen.getByLabelText("Cinematic viewport")).toBeInTheDocument();
+    expect(screen.getByLabelText("Cinematic viewer canvas")).toBeInTheDocument();
     expect(screen.getByText("Blender-Style Program Viewer")).toBeInTheDocument();
     expect(screen.getByText("LIVE CINEMATIC PREVIEW")).toBeInTheDocument();
     expect(screen.getByText("Frame 124 / 480")).toBeInTheDocument();

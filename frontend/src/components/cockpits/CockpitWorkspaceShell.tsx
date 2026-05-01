@@ -90,8 +90,8 @@ export default function CockpitWorkspaceShell({
       collapsible: false,
       scrollMode: "none",
       priority: "status",
-      minHeight: 130,
-      defaultHeight: 150,
+      minHeight: 86,
+      defaultHeight: 104,
       render: () => (
         <section style={identityCardStyle}>
           <div style={identityHeaderStyle}>
@@ -290,11 +290,12 @@ export default function CockpitWorkspaceShell({
       subtitle: "Live safety and evidence posture",
       truthState: "status/evidence",
       defaultZone: "right",
+      allowedZones: ["right", "bottom"],
       collapsible: true,
       scrollMode: "content",
       priority: "status",
-      minHeight: 220,
-      defaultHeight: 320,
+      minHeight: 150,
+      defaultHeight: 190,
       render: () => truthRail,
     });
   }

@@ -210,4 +210,45 @@ describe("cockpitLayoutReducer", () => {
     const disallowedAttempt = movePanelToZone(layout, "allowed-panel", "right", 0, restrictedPanels);
     expect(disallowedAttempt).toEqual(layout);
   });
+
+  it("normalizeCockpitLayout rehomes panels from disallowed persisted zones", () => {
+    const restrictedPanels: CockpitPanelDefinition[] = [
+      {
+        id: "status-panel",
+        title: "Status panel",
+        defaultZone: "right",
+        allowedZones: ["right", "bottom"],
+        render: () => null,
+      },
+      {
+        id: "workspace-panel",
+        title: "Workspace panel",
+        defaultZone: "center",
+        render: () => null,
+      },
+    ];
+    const savedLayout = {
+      cockpitId: "create-movie",
+      version: 1,
+      zones: {
+        top: ["status-panel"],
+        left: [],
+        center: ["workspace-panel"],
+        right: [],
+        bottom: [],
+      },
+      sizes: {
+        leftPrimaryRatio: 0.4,
+        centerPrimaryRatio: 0.6,
+        topPrimaryRatio: 0.8,
+      },
+      collapsedPanelIds: [],
+      updatedAt: "2026-05-01T00:00:00.000Z",
+    };
+
+    const normalized = normalizeCockpitLayout(savedLayout, restrictedPanels, "create-movie");
+
+    expect(normalized.zones.top).not.toContain("status-panel");
+    expect(normalized.zones.right).toContain("status-panel");
+  });
 });
