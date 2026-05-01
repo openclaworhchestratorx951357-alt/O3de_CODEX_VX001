@@ -170,6 +170,8 @@ export default function MovieStudioPanel() {
   const [handoffStatus, setHandoffStatus] = useState<string>("Ready");
   const [o3deStatus, setO3deStatus] = useState<string>("Checking O3DE bridge...");
   const [o3deLastCheck, setO3deLastCheck] = useState<string>("Pending first check");
+  const [o3deHealth, setO3deHealth] = useState<"healthy" | "degraded" | "unavailable">("degraded");
+  const [o3deFailureCount, setO3deFailureCount] = useState<number>(0);
 
   const trackCount = TRACKS.length;
   const clipCount = useMemo(
@@ -347,8 +349,12 @@ export default function MovieStudioPanel() {
       setO3deStatus(
         `Target: ${targetConfigured ? "Ready" : "Needs setup"} | Bridge: ${bridgeHealthy ? "Healthy" : "Degraded"}`,
       );
+      setO3deHealth(targetConfigured && bridgeHealthy ? "healthy" : "degraded");
+      setO3deFailureCount(0);
     } catch {
       setO3deStatus("Target: Unavailable | Bridge: Unavailable");
+      setO3deHealth("unavailable");
+      setO3deFailureCount((current) => current + 1);
     } finally {
       setO3deLastCheck(new Date().toISOString());
     }
@@ -449,8 +455,11 @@ export default function MovieStudioPanel() {
       </nav>
       <section aria-label="O3DE status" style={s.o3deStrip}>
         <div>
+          <p style={o3deHealth === "healthy" ? s.o3deHealthGood : o3deHealth === "degraded" ? s.o3deHealthWarn : s.o3deHealthBad}>
+            O3DE Health: {o3deHealth === "healthy" ? "Healthy" : o3deHealth === "degraded" ? "Degraded" : "Unavailable"}
+          </p>
           <p style={s.o3deStripText}>{o3deStatus}</p>
-          <p style={s.o3deStripMeta}>Last check: {o3deLastCheck}</p>
+          <p style={s.o3deStripMeta}>Last check: {o3deLastCheck} | Consecutive failures: {o3deFailureCount}</p>
         </div>
         <button type="button" onClick={() => void refreshO3deStatus()} style={s.toolbarButton}>
           Refresh O3DE
@@ -852,6 +861,24 @@ const s = {
     margin: "3px 0 0",
     fontSize: 11,
     color: "var(--app-text-muted)",
+  },
+  o3deHealthGood: {
+    margin: 0,
+    fontSize: 11,
+    color: "#9af2c0",
+    fontWeight: 700,
+  },
+  o3deHealthWarn: {
+    margin: 0,
+    fontSize: 11,
+    color: "#ffe4a3",
+    fontWeight: 700,
+  },
+  o3deHealthBad: {
+    margin: 0,
+    fontSize: 11,
+    color: "#ffb0ba",
+    fontWeight: 700,
   },
   pageTab: {
     border: "1px solid var(--app-panel-border)",
