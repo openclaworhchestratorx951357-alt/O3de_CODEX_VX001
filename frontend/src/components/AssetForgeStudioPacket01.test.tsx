@@ -7,6 +7,8 @@ import type {
   AssetForgeO3DEReadbackRecord,
   AssetForgeO3DEReviewPacketRecord,
   AssetForgeO3DEAssignmentDesignRecord,
+  AssetForgeO3DEPlacementHarnessExecuteRecord,
+  AssetForgeO3DEPlacementLiveProofRecord,
   AssetForgeO3DEPlacementPlanRecord,
   AssetForgeO3DEPlacementProofRecord,
   AssetForgeBlenderStatusRecord,
@@ -461,6 +463,116 @@ function makePlacementProofReport(
     warnings: ["Runtime proof gate is disabled."],
     safest_next_step: "Enable runtime gate in controlled proof environment.",
     source: "asset-forge-o3de-placement-proof",
+    ...overrides,
+  };
+}
+
+function makePlacementHarnessExecuteReport(
+  overrides: Partial<AssetForgeO3DEPlacementHarnessExecuteRecord> = {},
+): AssetForgeO3DEPlacementHarnessExecuteRecord {
+  return {
+    capability_name: "asset_forge.o3de.placement.runtime_harness.execute",
+    maturity: "proof-only",
+    execute_status: "blocked",
+    candidate_id: "candidate-a",
+    candidate_label: "Weathered Ivy Arch",
+    staged_source_relative_path: "Assets/Generated/asset_forge/candidate_a/candidate_a.glb",
+    target_level_relative_path: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+    target_entity_name: "AssetForgeCandidateA",
+    target_component: "Mesh",
+    selected_platform: "pc",
+    bridge_configured: true,
+    bridge_heartbeat_fresh: true,
+    runtime_gate_enabled: false,
+    bridge_readiness_contract: {
+      corridor_name: "asset_forge.o3de.placement.runtime_harness.v1",
+      runtime_gate_env: "ASSET_FORGE_ENABLE_PLACEMENT_RUNTIME_HARNESS",
+      bridge_required: true,
+    },
+    approval_state: "approved",
+    server_approval_session_id: "approval-session-runtime-001",
+    server_approval_evaluation: {
+      decision_code: "ready_but_mutation_not_admitted",
+      policy_would_allow_if_mutation_admitted: true,
+    },
+    admission_packet_reference: null,
+    admission_operator_id: null,
+    evidence_bundle_reference: null,
+    readback_plan_reference: null,
+    revert_statement_contract_key: null,
+    revert_statement_contract_match: false,
+    runtime_command_contract: {},
+    runtime_result_contract: {},
+    post_run_verification_contract: {},
+    revert_scope_contract: {},
+    operator_note_present: true,
+    contract_evidence_ready: false,
+    fail_closed_reasons: [
+      "runtime_gate_disabled",
+      "placement_runtime_harness_execution_not_admitted",
+    ],
+    bridge_command_id: null,
+    execution_performed: false,
+    readback_captured: false,
+    read_only: true,
+    warnings: ["Runtime harness execute remains proof-only and fail-closed."],
+    safest_next_step: "Enable runtime gate in a bounded proof environment.",
+    source: "asset-forge-o3de-placement-runtime-harness-execute",
+    ...overrides,
+  };
+}
+
+function makePlacementLiveProofReport(
+  overrides: Partial<AssetForgeO3DEPlacementLiveProofRecord> = {},
+): AssetForgeO3DEPlacementLiveProofRecord {
+  return {
+    capability_name: "asset_forge.o3de.placement.live_proof.execute",
+    maturity: "proof-only",
+    proof_status: "blocked",
+    candidate_id: "candidate-a",
+    candidate_label: "Weathered Ivy Arch",
+    target_level_relative_path: "Levels/BridgeLevel01/BridgeLevel01.prefab",
+    target_entity_name: "AssetForgeCandidateA",
+    selected_platform: "pc",
+    bridge_configured: true,
+    bridge_heartbeat_fresh: true,
+    runtime_gate_enabled: false,
+    bridge_readiness_contract: {
+      corridor_name: "asset_forge.o3de.placement.live_proof.v1",
+      runtime_gate_env: "ASSET_FORGE_ENABLE_PLACEMENT_LIVE_PROOF",
+      bridge_required: true,
+    },
+    server_approval_session_id: "approval-session-live-001",
+    server_approval_evaluation: {
+      decision_code: "ready_but_mutation_not_admitted",
+      policy_would_allow_if_mutation_admitted: true,
+    },
+    admission_packet_reference: null,
+    admission_operator_id: null,
+    evidence_bundle_reference: null,
+    readback_plan_reference: null,
+    revert_statement_contract_key: null,
+    revert_statement_contract_match: false,
+    runtime_command_contract: {},
+    runtime_result_contract: {},
+    post_run_verification_contract: {},
+    revert_scope_contract: {},
+    operator_note_present: true,
+    contract_evidence_ready: false,
+    fail_closed_reasons: [
+      "runtime_gate_disabled",
+      "placement_live_proof_execution_not_admitted",
+    ],
+    execution_performed: false,
+    readback_captured: false,
+    entity_exists: null,
+    bridge_command_id: null,
+    evidence_bundle_path: null,
+    revert_statement: "No mutation performed; no revert required.",
+    read_only: true,
+    warnings: ["Live proof remains proof-only and fail-closed."],
+    safest_next_step: "Enable runtime gate in a bounded proof environment.",
+    source: "asset-forge-o3de-placement-live-proof",
     ...overrides,
   };
 }
@@ -1461,6 +1573,78 @@ describe("AssetForgeStudioPacket01", () => {
       await screen.findByText(/Enter a stage-write evidence reference before running placement proof gate\./i),
     ).toBeInTheDocument();
     expect(apiMocks.executeAssetForgeO3DEPlacementProof).not.toHaveBeenCalled();
+  });
+
+  it("submits runtime harness execute with optional approval session id and renders fail-closed details", async () => {
+    apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
+    apiMocks.executeAssetForgeO3DEPlacementRuntimeHarness.mockResolvedValueOnce(makePlacementHarnessExecuteReport());
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create plan-only placement target" }));
+    expect(await screen.findByText(/Plan status: ready-for-approval/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Approval acknowledged for one-shot harness execute gate"));
+    fireEvent.change(screen.getByLabelText("Harness execute approval note"), {
+      target: { value: "Operator approved one-shot harness execute gate." },
+    });
+    fireEvent.change(screen.getByLabelText("Harness execute approval session id (optional)"), {
+      target: { value: " approval-session://placement-runtime/candidate-a " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit one-shot runtime harness gate" }));
+
+    await waitFor(() => {
+      expect(apiMocks.executeAssetForgeO3DEPlacementRuntimeHarness).toHaveBeenCalledWith(
+        expect.objectContaining({
+          approval_state: "approved",
+          approval_note: "Operator approved one-shot harness execute gate.",
+          approval_session_id: "approval-session://placement-runtime/candidate-a",
+        }),
+      );
+    });
+
+    expect(await screen.findByText(/Execute status: blocked/i)).toBeInTheDocument();
+    expect(screen.getByText(/Contract evidence ready: no/i)).toBeInTheDocument();
+    expect(screen.getByText(/Revert contract match: no/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval session id: approval-session-runtime-001/i)).toBeInTheDocument();
+    expect(screen.getByText("Runtime harness fail-closed reasons")).toBeInTheDocument();
+    expect(screen.getByText("runtime_gate_disabled")).toBeInTheDocument();
+  });
+
+  it("submits live proof with optional approval session id and renders fail-closed details", async () => {
+    apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
+    apiMocks.executeAssetForgeO3DEPlacementLiveProof.mockResolvedValueOnce(makePlacementLiveProofReport());
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create plan-only placement target" }));
+    expect(await screen.findByText(/Plan status: ready-for-approval/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Approval acknowledged for one-shot harness execute gate"));
+    fireEvent.change(screen.getByLabelText("Harness execute approval note"), {
+      target: { value: "Operator approved one-shot live proof gate." },
+    });
+    fireEvent.change(screen.getByLabelText("Harness execute approval session id (optional)"), {
+      target: { value: " approval-session://placement-live-proof/candidate-a " },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Run one-shot live proof (read-only)" }));
+
+    await waitFor(() => {
+      expect(apiMocks.executeAssetForgeO3DEPlacementLiveProof).toHaveBeenCalledWith(
+        expect.objectContaining({
+          approval_state: "approved",
+          approval_note: "Operator approved one-shot live proof gate.",
+          approval_session_id: "approval-session://placement-live-proof/candidate-a",
+        }),
+      );
+    });
+
+    expect(await screen.findByText(/Proof status: blocked/i)).toBeInTheDocument();
+    expect(screen.getByText(/Contract evidence ready: no/i)).toBeInTheDocument();
+    expect(screen.getByText(/Revert contract match: no/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval session id: approval-session-live-001/i)).toBeInTheDocument();
+    expect(screen.getByText("Live proof fail-closed reasons")).toBeInTheDocument();
+    expect(screen.getByText("placement_live_proof_execution_not_admitted")).toBeInTheDocument();
   });
 
   it("shows policy-loading status for provider lane while registry data is pending", () => {

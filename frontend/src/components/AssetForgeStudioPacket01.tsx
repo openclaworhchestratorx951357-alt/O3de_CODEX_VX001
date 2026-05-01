@@ -883,6 +883,7 @@ export default function AssetForgeStudioPacket01({
   const [placementHarnessBusy, setPlacementHarnessBusy] = useState(false);
   const [placementHarnessExecuteApprovalGranted, setPlacementHarnessExecuteApprovalGranted] = useState(false);
   const [placementHarnessExecuteApprovalNote, setPlacementHarnessExecuteApprovalNote] = useState("");
+  const [placementHarnessExecuteApprovalSessionId, setPlacementHarnessExecuteApprovalSessionId] = useState("");
   const [placementHarnessExecuteReport, setPlacementHarnessExecuteReport] = useState<AssetForgeO3DEPlacementHarnessExecuteRecord | null>(null);
   const [placementHarnessExecuteError, setPlacementHarnessExecuteError] = useState<string | null>(null);
   const [placementHarnessExecuteBusy, setPlacementHarnessExecuteBusy] = useState(false);
@@ -1756,6 +1757,7 @@ export default function AssetForgeStudioPacket01({
     setPlacementHarnessExecuteBusy(true);
     setPlacementHarnessExecuteError(null);
     try {
+      const approvalSessionId = placementHarnessExecuteApprovalSessionId.trim();
       const report = await executeAssetForgeO3DEPlacementRuntimeHarness({
         candidate_id: selectedCandidate.id,
         candidate_label: selectedCandidate.name,
@@ -1766,6 +1768,7 @@ export default function AssetForgeStudioPacket01({
         selected_platform: "pc",
         approval_state: placementHarnessExecuteApprovalGranted ? "approved" : "not-approved",
         approval_note: placementHarnessExecuteApprovalNote.trim(),
+        approval_session_id: approvalSessionId.length > 0 ? approvalSessionId : undefined,
       });
       setPlacementHarnessExecuteReport(report);
       if (report.execute_status !== "submitted-proof-only") {
@@ -1794,6 +1797,7 @@ export default function AssetForgeStudioPacket01({
     setPlacementLiveProofBusy(true);
     setPlacementLiveProofError(null);
     try {
+      const approvalSessionId = placementHarnessExecuteApprovalSessionId.trim();
       const report = await executeAssetForgeO3DEPlacementLiveProof({
         candidate_id: selectedCandidate.id,
         candidate_label: selectedCandidate.name,
@@ -1802,6 +1806,7 @@ export default function AssetForgeStudioPacket01({
         selected_platform: "pc",
         approval_state: placementHarnessExecuteApprovalGranted ? "approved" : "not-approved",
         approval_note: placementHarnessExecuteApprovalNote.trim(),
+        approval_session_id: approvalSessionId.length > 0 ? approvalSessionId : undefined,
       });
       setPlacementLiveProofReport(report);
       if (report.proof_status === "succeeded") {
@@ -3198,6 +3203,16 @@ export default function AssetForgeStudioPacket01({
               style={s.input}
             />
           </label>
+          <label style={s.labelBlock}>
+            Harness execute approval session id (optional)
+            <input
+              type="text"
+              value={placementHarnessExecuteApprovalSessionId}
+              onChange={(event) => setPlacementHarnessExecuteApprovalSessionId(event.target.value)}
+              placeholder="approval-session://placement-runtime/candidate-a"
+              style={s.input}
+            />
+          </label>
           <div style={s.actionWrap}>
             <button
               type="button"
@@ -3217,8 +3232,21 @@ export default function AssetForgeStudioPacket01({
               <li>Bridge command id: {placementHarnessExecuteReport.bridge_command_id ?? "none"}</li>
               <li>Execution performed: {placementHarnessExecuteReport.execution_performed ? "yes" : "no"}</li>
               <li>Readback captured: {placementHarnessExecuteReport.readback_captured ? "yes" : "no"}</li>
+              <li>Contract evidence ready: {placementHarnessExecuteReport.contract_evidence_ready ? "yes" : "no"}</li>
+              <li>Revert contract match: {placementHarnessExecuteReport.revert_statement_contract_match ? "yes" : "no"}</li>
+              <li>Server approval session id: {placementHarnessExecuteReport.server_approval_session_id ?? "none"}</li>
               <li>Read-only: {placementHarnessExecuteReport.read_only ? "yes" : "no"}</li>
             </ul>
+          ) : null}
+          {placementHarnessExecuteReport?.fail_closed_reasons.length ? (
+            <>
+              <h4 style={s.subheading}>Runtime harness fail-closed reasons</h4>
+              <ul style={s.list}>
+                {placementHarnessExecuteReport.fail_closed_reasons.map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            </>
           ) : null}
           <div style={s.panelHeader}>
             <h4 style={s.subheading}>Live proof attempt (read-only bounded)</h4>
@@ -3246,8 +3274,21 @@ export default function AssetForgeStudioPacket01({
               <li>Entity exists: {placementLiveProofReport.entity_exists === null ? "unknown" : (placementLiveProofReport.entity_exists ? "yes" : "no")}</li>
               <li>Bridge command id: {placementLiveProofReport.bridge_command_id ?? "none"}</li>
               <li>Evidence bundle: {placementLiveProofReport.evidence_bundle_path ?? "not-written"}</li>
+              <li>Contract evidence ready: {placementLiveProofReport.contract_evidence_ready ? "yes" : "no"}</li>
+              <li>Revert contract match: {placementLiveProofReport.revert_statement_contract_match ? "yes" : "no"}</li>
+              <li>Server approval session id: {placementLiveProofReport.server_approval_session_id ?? "none"}</li>
               <li>Revert statement: {placementLiveProofReport.revert_statement}</li>
             </ul>
+          ) : null}
+          {placementLiveProofReport?.fail_closed_reasons.length ? (
+            <>
+              <h4 style={s.subheading}>Live proof fail-closed reasons</h4>
+              <ul style={s.list}>
+                {placementLiveProofReport.fail_closed_reasons.map((reason) => (
+                  <li key={reason}>{reason}</li>
+                ))}
+              </ul>
+            </>
           ) : null}
         </div>
         <button type="button" disabled style={s.disabledButton}>

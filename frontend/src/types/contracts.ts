@@ -1678,6 +1678,7 @@ export interface AssetForgeO3DEPlacementHarnessRecord {
   bridge_configured: boolean;
   bridge_heartbeat_fresh: boolean;
   runtime_gate_enabled: boolean;
+  bridge_readiness_contract: Record<string, unknown>;
   execution_performed: boolean;
   read_only: boolean;
   warnings: string[];
@@ -1695,6 +1696,7 @@ export interface AssetForgeO3DEPlacementHarnessExecuteRequest {
   selected_platform?: string;
   approval_state: "not-approved" | "approved";
   approval_note: string;
+  approval_session_id?: string | null;
 }
 
 export interface AssetForgeO3DEPlacementHarnessExecuteRecord {
@@ -1711,7 +1713,23 @@ export interface AssetForgeO3DEPlacementHarnessExecuteRecord {
   bridge_configured: boolean;
   bridge_heartbeat_fresh: boolean;
   runtime_gate_enabled: boolean;
+  bridge_readiness_contract: Record<string, unknown>;
   approval_state: "not-approved" | "approved";
+  server_approval_session_id: string | null;
+  server_approval_evaluation: Record<string, unknown>;
+  admission_packet_reference: string | null;
+  admission_operator_id: string | null;
+  evidence_bundle_reference: string | null;
+  readback_plan_reference: string | null;
+  revert_statement_contract_key: string | null;
+  revert_statement_contract_match: boolean;
+  runtime_command_contract: Record<string, unknown>;
+  runtime_result_contract: Record<string, unknown>;
+  post_run_verification_contract: Record<string, unknown>;
+  revert_scope_contract: Record<string, unknown>;
+  operator_note_present: boolean;
+  contract_evidence_ready: boolean;
+  fail_closed_reasons: string[];
   bridge_command_id: string | null;
   execution_performed: boolean;
   readback_captured: boolean;
@@ -1729,6 +1747,7 @@ export interface AssetForgeO3DEPlacementLiveProofRequest {
   selected_platform?: string;
   approval_state: "not-approved" | "approved";
   approval_note: string;
+  approval_session_id?: string | null;
 }
 
 export interface AssetForgeO3DEPlacementLiveProofRecord {
@@ -1743,6 +1762,22 @@ export interface AssetForgeO3DEPlacementLiveProofRecord {
   bridge_configured: boolean;
   bridge_heartbeat_fresh: boolean;
   runtime_gate_enabled: boolean;
+  bridge_readiness_contract: Record<string, unknown>;
+  server_approval_session_id: string | null;
+  server_approval_evaluation: Record<string, unknown>;
+  admission_packet_reference: string | null;
+  admission_operator_id: string | null;
+  evidence_bundle_reference: string | null;
+  readback_plan_reference: string | null;
+  revert_statement_contract_key: string | null;
+  revert_statement_contract_match: boolean;
+  runtime_command_contract: Record<string, unknown>;
+  runtime_result_contract: Record<string, unknown>;
+  post_run_verification_contract: Record<string, unknown>;
+  revert_scope_contract: Record<string, unknown>;
+  operator_note_present: boolean;
+  contract_evidence_ready: boolean;
+  fail_closed_reasons: string[];
   execution_performed: boolean;
   readback_captured: boolean;
   entity_exists: boolean | null;
