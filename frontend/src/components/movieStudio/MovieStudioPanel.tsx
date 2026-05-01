@@ -228,6 +228,65 @@ export default function MovieStudioPanel() {
     trackFilter,
     visibleTracks,
   ]);
+  const handoffJson = useMemo(
+    () =>
+      JSON.stringify(
+        {
+          schema: "movie_studio.handoff.v1",
+          exported_at: new Date().toISOString(),
+          selected_clip: {
+            id: selectedClip.id,
+            label: selectedClip.label,
+            start: selectedClip.start,
+            end: selectedClip.end,
+          },
+          timeline: {
+            playhead,
+            range: timelineRange,
+            zoom: timelineZoom,
+            playback_rate: playbackRate,
+            is_playing: isPlaying,
+            markers,
+            selected_marker: selectedMarker,
+          },
+          filters: {
+            track: trackFilter,
+            clip: clipFilter || null,
+          },
+          o3de: {
+            health: o3deHealth,
+            status: o3deStatus,
+            last_check: o3deLastCheck,
+            consecutive_failures: o3deFailureCount,
+            recent_checks: o3deStatusLog,
+          },
+          recent_actions: historyLog,
+        },
+        null,
+        2,
+      ),
+    [
+      clipFilter,
+      historyLog,
+      isPlaying,
+      markers,
+      o3deFailureCount,
+      o3deHealth,
+      o3deLastCheck,
+      o3deStatus,
+      o3deStatusLog,
+      playbackRate,
+      playhead,
+      selectedClip.end,
+      selectedClip.id,
+      selectedClip.label,
+      selectedClip.start,
+      selectedMarker,
+      timelineRange,
+      timelineZoom,
+      trackFilter,
+    ],
+  );
 
   const snapshotCurrent = useCallback(
     (): TimelineHistorySnapshot => ({
@@ -432,6 +491,19 @@ export default function MovieStudioPanel() {
     link.remove();
     URL.revokeObjectURL(url);
     setHandoffStatus("Downloaded packet");
+  }
+
+  function downloadHandoffJson() {
+    const blob = new Blob([handoffJson], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "movie-studio-handoff-packet.json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setHandoffStatus("Downloaded JSON packet");
   }
 
   return (
@@ -769,6 +841,9 @@ export default function MovieStudioPanel() {
                 </button>
                 <button type="button" onClick={downloadHandoffSummary} style={s.toolbarButton}>
                   Download .txt
+                </button>
+                <button type="button" onClick={downloadHandoffJson} style={s.toolbarButton}>
+                  Download .json
                 </button>
                 <span style={s.handoffStatus}>{handoffStatus}</span>
               </div>

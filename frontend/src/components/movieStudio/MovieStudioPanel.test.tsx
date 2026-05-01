@@ -215,6 +215,8 @@ describe("MovieStudioPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Download .txt" }));
     expect(screen.getByText("Downloaded packet")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Download .json" }));
+    expect(screen.getByText("Downloaded JSON packet")).toBeInTheDocument();
     expect(createObjectURLSpy).toHaveBeenCalled();
     expect(revokeObjectURLSpy).toHaveBeenCalled();
     expect(appendSpy).toHaveBeenCalled();
