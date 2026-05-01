@@ -78,6 +78,17 @@ const fallbackOutliner = [
   ["export-manifest", "Export Manifest planned", "manifest", 2, "plan-only"],
 ] as const;
 
+const fallbackStages = [
+  ["Describe", "plan-only"],
+  ["Candidate", "demo"],
+  ["Preflight", "preflight-only"],
+  ["Stage Plan", "plan-only"],
+  ["Stage Write", "proof-only"],
+  ["Readback", "review"],
+  ["Placement Proof", "proof-only"],
+  ["Review", "review"],
+] as const;
+
 function toneStyle(toneRaw: string): CSSProperties {
   const tone = toneRaw as Tone;
   if (tone === "demo") {
@@ -100,6 +111,30 @@ function toneStyle(toneRaw: string): CSSProperties {
 
 function Badge({ tone }: { tone: string }) {
   return <span style={{ ...styles.badge, ...toneStyle(tone) }}>{tone}</span>;
+}
+
+function dotToneStyle(toneRaw: string): CSSProperties {
+  const tone = toneRaw as Tone;
+  if (tone === "demo") {
+    return { background: "#5aa8ff" };
+  }
+  if (tone === "read-only" || tone === "review") {
+    return { background: "#2dd4bf" };
+  }
+  if (tone === "preflight-only") {
+    return { background: "#d6a536" };
+  }
+  if (tone === "proof-only") {
+    return { background: "#a78bfa" };
+  }
+  if (tone === "blocked") {
+    return { background: "#f87171" };
+  }
+  return { background: "#9ca3af" };
+}
+
+function StatusDot({ tone }: { tone: string }) {
+  return <span title={tone} style={{ ...styles.statusDot, ...dotToneStyle(tone) }} />;
 }
 
 function getCandidate(taskModel?: AssetForgeTaskRecord | null) {
@@ -306,6 +341,15 @@ export default function AssetForgeBlenderCockpit({
         </div>
       </section>
 
+      <nav style={styles.stageBar} aria-label="Asset Forge workflow stages">
+        {fallbackStages.map(([label, tone]) => (
+          <div key={label} style={styles.stageTab}>
+            <span style={styles.stageLabel}>{label}</span>
+            <Badge tone={tone} />
+          </div>
+        ))}
+      </nav>
+
       <div style={styles.editorFrame}>
         <aside style={styles.toolShelf} aria-label="Asset Forge left tool shelf">
           <div style={styles.panelHeader}>Object Tools</div>
@@ -314,7 +358,7 @@ export default function AssetForgeBlenderCockpit({
               <button key={tool.id} type="button" style={styles.toolButton}>
                 <span style={styles.toolShortcut}>{tool.shortcut || "*"}</span>
                 <span style={styles.toolLabel}>{tool.label}</span>
-                <Badge tone={tool.truth} />
+                <StatusDot tone={tool.truth} />
               </button>
             ))}
           </div>
@@ -340,9 +384,34 @@ export default function AssetForgeBlenderCockpit({
           <div style={styles.viewportCanvas}>
             <div style={styles.gridLayer} />
             <div style={styles.meshPreview} aria-label="demo wireframe asset preview">
+              <div style={styles.selectionOutline} />
               <div style={styles.headShape} />
               <div style={styles.neckShape} />
               <div style={styles.torsoShape} />
+              {Array.from({ length: 14 }).map((_, index) => (
+                <span
+                  key={`hair-top-${index}`}
+                  style={{
+                    ...styles.hairStroke,
+                    top: `${6 + index * 1.5}%`,
+                    left: `${25 + index * 3.3}%`,
+                    width: `${58 + (index % 4) * 14}px`,
+                    transform: `rotate(${index % 2 === 0 ? -24 + index : 18 - index}deg)`,
+                  }}
+                />
+              ))}
+              {Array.from({ length: 8 }).map((_, index) => (
+                <span
+                  key={`hair-side-${index}`}
+                  style={{
+                    ...styles.hairStroke,
+                    top: `${21 + index * 4.1}%`,
+                    left: index < 4 ? "20%" : "69%",
+                    width: `${40 + (index % 3) * 18}px`,
+                    transform: `rotate(${index < 4 ? -38 + index * 6 : 34 - index * 4}deg)`,
+                  }}
+                />
+              ))}
               {Array.from({ length: 24 }).map((_, index) => (
                 <span
                   key={`wire-h-${index}`}
@@ -467,12 +536,13 @@ const panelHeaderBg = "#a8adb3";
 
 const styles = {
   app: {
-    height: "calc(100vh - 120px)",
-    minHeight: 680,
+    height: "100%",
+    minHeight: 0,
+    maxHeight: "100%",
     width: "100%",
     minWidth: 0,
     display: "grid",
-    gridTemplateRows: "22px 28px minmax(0, 1fr) 48px",
+    gridTemplateRows: "22px 26px 28px minmax(0, 1fr) 42px",
     overflow: "hidden",
     background: "#7a7f86",
     color: "#101820",
@@ -483,16 +553,16 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
+    gap: 8,
     padding: "0 8px",
     background: "#c4c8cd",
     borderBottom: border,
-    fontSize: 12,
+    fontSize: 11,
     minWidth: 0,
   },
   menuLeft: {
     display: "flex",
-    gap: 14,
+    gap: 10,
     alignItems: "center",
     minWidth: 0,
     overflow: "hidden",
@@ -500,9 +570,10 @@ const styles = {
   },
   menuRight: {
     display: "flex",
-    gap: 8,
+    gap: 6,
     alignItems: "center",
     whiteSpace: "nowrap",
+    fontSize: 11,
   },
   brand: {
     fontWeight: 800,
@@ -511,30 +582,30 @@ const styles = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     padding: "0 8px",
     background: "#b4b9bf",
     borderBottom: border,
     minWidth: 0,
-    fontSize: 12,
+    fontSize: 11,
   },
   contextLeft: {
     display: "flex",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     minWidth: 0,
     overflow: "hidden",
     whiteSpace: "nowrap",
   },
   contextActions: {
     display: "flex",
-    gap: 6,
+    gap: 4,
     whiteSpace: "nowrap",
   },
   modePill: {
     border: "1px solid #6f747b",
     borderRadius: 3,
-    padding: "2px 7px",
+    padding: "1px 6px",
     background: "#e1e4e8",
     fontWeight: 700,
   },
@@ -542,11 +613,34 @@ const styles = {
     color: "#c2410c",
     fontWeight: 700,
   },
+  stageBar: {
+    display: "flex",
+    alignItems: "center",
+    gap: 3,
+    padding: "3px 5px",
+    overflowX: "auto",
+    background: "#9ea4ac",
+    borderBottom: border,
+  },
+  stageTab: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    border: "1px solid #717780",
+    borderRadius: 2,
+    background: "#d5d9de",
+    padding: "1px 5px",
+    fontSize: 10,
+    whiteSpace: "nowrap",
+  },
+  stageLabel: {
+    fontSize: 10,
+  },
   editorFrame: {
     minHeight: 0,
     minWidth: 0,
     display: "grid",
-    gridTemplateColumns: "86px minmax(720px, 1fr) 324px",
+    gridTemplateColumns: "112px minmax(640px, 1fr) 324px",
     overflow: "hidden",
     background: "#6f747b",
   },
@@ -554,19 +648,19 @@ const styles = {
     minWidth: 0,
     minHeight: 0,
     display: "grid",
-    gridTemplateRows: "24px minmax(0, 1fr)",
+    gridTemplateRows: "22px minmax(0, 1fr)",
     background: "#8d9298",
     borderRight: border,
     overflow: "hidden",
   },
   panelHeader: {
-    minHeight: 24,
+    minHeight: 22,
     display: "flex",
     alignItems: "center",
     padding: "0 6px",
     background: panelHeaderBg,
     borderBottom: border,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 800,
   },
   toolList: {
@@ -574,31 +668,32 @@ const styles = {
     overflow: "auto",
     display: "grid",
     alignContent: "start",
-    gap: 3,
-    padding: 4,
+    gap: 2,
+    padding: 3,
   },
   toolButton: {
     display: "grid",
-    gridTemplateColumns: "20px minmax(0, 1fr) auto",
+    gridTemplateColumns: "18px minmax(0, 1fr) 8px",
     gap: 3,
     alignItems: "center",
     minWidth: 0,
-    minHeight: 24,
+    minHeight: 22,
     padding: "2px 3px",
     border: "1px solid #646a71",
     borderRadius: 2,
     background: "#c9cdd2",
     color: "#101820",
-    fontSize: 11,
+    fontSize: 10,
     cursor: "pointer",
   },
   toolShortcut: {
     display: "grid",
     placeItems: "center",
-    height: 18,
+    height: 16,
     border: "1px solid #7b8087",
     background: "#eef0f3",
     fontWeight: 800,
+    fontSize: 9,
   },
   toolLabel: {
     overflow: "hidden",
@@ -610,7 +705,7 @@ const styles = {
     minHeight: 0,
     minWidth: 0,
     display: "grid",
-    gridTemplateRows: "24px minmax(0, 1fr) 24px",
+    gridTemplateRows: "22px minmax(0, 1fr) 22px",
     overflow: "hidden",
     background: "#30353b",
   },
@@ -619,30 +714,31 @@ const styles = {
     justifyContent: "space-between",
     gap: 8,
     alignItems: "center",
-    padding: "0 6px",
+    padding: "0 5px",
     background: "#aab0b6",
     borderBottom: border,
-    fontSize: 12,
+    fontSize: 11,
     minWidth: 0,
   },
   viewportMenus: {
     display: "flex",
-    gap: 12,
+    gap: 10,
     overflow: "hidden",
     whiteSpace: "nowrap",
     minWidth: 0,
   },
   viewportModes: {
     display: "flex",
-    gap: 4,
+    gap: 3,
     whiteSpace: "nowrap",
   },
   viewportModeButton: {
     border: "1px solid #646a71",
     borderRadius: 3,
     background: "#d7dbe0",
-    padding: "2px 6px",
-    fontSize: 11,
+    padding: "1px 5px",
+    minHeight: 18,
+    fontSize: 10,
   },
   viewportCanvas: {
     position: "relative",
@@ -661,20 +757,30 @@ const styles = {
   meshPreview: {
     position: "absolute",
     left: "50%",
-    top: "47%",
-    width: "min(60vw, 560px)",
-    height: "min(62vh, 560px)",
+    top: "50%",
+    width: "min(64vw, 620px)",
+    height: "min(70vh, 620px)",
     transform: "translate(-50%, -50%)",
+  },
+  selectionOutline: {
+    position: "absolute",
+    left: "11%",
+    top: "2%",
+    width: "78%",
+    height: "84%",
+    border: "2px solid rgba(90, 168, 255, 0.26)",
+    borderRadius: "38% 38% 18% 18%",
+    pointerEvents: "none",
   },
   headShape: {
     position: "absolute",
-    left: "36%",
-    top: "5%",
-    width: "28%",
+    left: "35%",
+    top: "4%",
+    width: "30%",
     height: "30%",
-    border: "2px solid rgba(230,235,245,0.86)",
-    borderRadius: "44% 44% 48% 48%",
-    background: "rgba(170,176,185,0.18)",
+    border: "2px solid rgba(230,235,245,0.82)",
+    borderRadius: "45% 45% 48% 48%",
+    background: "rgba(175,181,190,0.24)",
   },
   neckShape: {
     position: "absolute",
@@ -687,13 +793,20 @@ const styles = {
   },
   torsoShape: {
     position: "absolute",
-    left: "17%",
+    left: "13%",
     top: "44%",
-    width: "66%",
-    height: "35%",
-    border: "2px solid rgba(96,142,210,0.9)",
-    borderRadius: "22% 22% 10% 10%",
-    background: "rgba(77,111,158,0.42)",
+    width: "74%",
+    height: "38%",
+    border: "2px solid rgba(104,151,224,0.92)",
+    borderRadius: "26% 26% 12% 12%",
+    background: "rgba(77,111,158,0.5)",
+  },
+  hairStroke: {
+    position: "absolute",
+    height: 2,
+    borderRadius: 999,
+    background: "rgba(245, 158, 11, 0.78)",
+    pointerEvents: "none",
   },
   wireLine: {
     position: "absolute",
@@ -711,21 +824,21 @@ const styles = {
     position: "absolute",
     top: 8,
     left: 8,
-    padding: "3px 7px",
+    padding: "2px 6px",
     borderRadius: 3,
     background: "rgba(8,12,18,0.76)",
     color: "#f8fafc",
-    fontSize: 12,
+    fontSize: 11,
   },
   overlayTopRight: {
     position: "absolute",
     top: 8,
     right: 8,
-    padding: "3px 7px",
+    padding: "2px 6px",
     borderRadius: 3,
     background: "rgba(8,12,18,0.76)",
     color: "#f8fafc",
-    fontSize: 12,
+    fontSize: 11,
   },
   overlayList: {
     position: "absolute",
@@ -734,8 +847,8 @@ const styles = {
     margin: 0,
     paddingLeft: 18,
     color: "#f8fafc",
-    fontSize: 12,
-    lineHeight: 1.55,
+    fontSize: 11,
+    lineHeight: 1.45,
     background: "rgba(8,12,18,0.2)",
   },
   overlayBottom: {
@@ -743,21 +856,21 @@ const styles = {
     left: 8,
     bottom: 8,
     maxWidth: "calc(100% - 16px)",
-    padding: "5px 8px",
+    padding: "4px 7px",
     borderRadius: 3,
     background: "rgba(8,12,18,0.82)",
     color: "#f8fafc",
-    fontSize: 12,
+    fontSize: 11,
     overflowWrap: "anywhere",
   },
   viewportFooter: {
     display: "flex",
     alignItems: "center",
-    gap: 12,
+    gap: 8,
     padding: "0 6px",
     background: "#aab0b6",
     borderTop: border,
-    fontSize: 11,
+    fontSize: 10,
     overflow: "hidden",
     whiteSpace: "nowrap",
   },
@@ -773,7 +886,7 @@ const styles = {
   outlinerPanel: {
     minHeight: 0,
     display: "grid",
-    gridTemplateRows: "24px 22px minmax(0, 1fr)",
+    gridTemplateRows: "22px 20px minmax(0, 1fr)",
     overflow: "hidden",
     borderBottom: border,
   },
@@ -783,7 +896,7 @@ const styles = {
     padding: "0 6px",
     background: "#c0c5cb",
     borderBottom: border,
-    fontSize: 11,
+    fontSize: 10,
   },
   outlinerList: {
     minHeight: 0,
@@ -796,11 +909,13 @@ const styles = {
     gridTemplateColumns: "12px minmax(0, 1fr) auto",
     gap: 4,
     alignItems: "center",
+    minHeight: 20,
     borderBottom: "1px solid #b3b8bf",
-    paddingTop: 2,
-    paddingBottom: 2,
+    paddingTop: 1,
+    paddingBottom: 1,
     paddingRight: 4,
     minWidth: 0,
+    fontSize: 11,
   },
   outlinerTwist: {
     color: "#334155",
@@ -813,17 +928,17 @@ const styles = {
   propertiesPanel: {
     minHeight: 0,
     display: "grid",
-    gridTemplateRows: "24px 24px 90px minmax(0, 1fr)",
+    gridTemplateRows: "22px 22px 76px minmax(0, 1fr)",
     overflow: "hidden",
   },
   propertiesTabs: {
     display: "flex",
     alignItems: "center",
-    gap: 4,
+    gap: 3,
     padding: "0 5px",
     background: "#bfc4ca",
     borderBottom: border,
-    fontSize: 11,
+    fontSize: 10,
   },
   previewChecker: {
     display: "grid",
@@ -835,8 +950,8 @@ const styles = {
     borderBottom: border,
   },
   previewSphere: {
-    width: 56,
-    height: 56,
+    width: 48,
+    height: 48,
     borderRadius: "50%",
     background: "radial-gradient(circle at 35% 30%, #f0d5c3, #8d7066)",
     boxShadow: "0 5px 14px rgba(0,0,0,0.35)",
@@ -846,17 +961,18 @@ const styles = {
     overflow: "auto",
     display: "grid",
     alignContent: "start",
-    gap: 4,
-    padding: 5,
+    gap: 3,
+    padding: 4,
     background: "#c9cdd2",
   },
   propertyRow: {
     display: "grid",
-    gridTemplateColumns: "112px minmax(0, 1fr) auto",
-    gap: 5,
+    gridTemplateColumns: "112px minmax(0, 1fr) 42px",
+    gap: 4,
     alignItems: "center",
     minWidth: 0,
-    padding: "3px 4px",
+    minHeight: 20,
+    padding: "2px 4px",
     border: "1px solid #9aa0a8",
     background: "#e2e5e9",
     fontSize: 11,
@@ -866,14 +982,18 @@ const styles = {
     color: "#334155",
   },
   propertyValue: {
+    display: "block",
     minWidth: 0,
+    background: "#f3f4f6",
+    border: "1px solid #b8bec5",
+    padding: "1px 3px",
     overflowWrap: "anywhere",
   },
   timelineStrip: {
     minWidth: 0,
     minHeight: 0,
     display: "grid",
-    gridTemplateRows: "20px 28px",
+    gridTemplateRows: "18px 24px",
     background: "#9ea4ac",
     borderTop: border,
     overflow: "hidden",
@@ -881,25 +1001,25 @@ const styles = {
   timelineTabs: {
     display: "flex",
     alignItems: "center",
-    gap: 12,
+    gap: 10,
     padding: "0 6px",
     background: "#b9bec5",
     borderBottom: border,
-    fontSize: 11,
+    fontSize: 10,
   },
   timelineBody: {
     display: "grid",
-    gridTemplateColumns: "auto minmax(260px, 1fr) auto auto auto auto auto auto auto auto auto auto",
-    gap: 6,
+    gridTemplateColumns: "auto minmax(220px, 1fr) auto auto auto auto auto auto auto auto auto auto",
+    gap: 4,
     alignItems: "center",
     padding: "0 6px",
     minWidth: 0,
     overflow: "hidden",
-    fontSize: 11,
+    fontSize: 10,
   },
   timelineTrack: {
     minWidth: 0,
-    height: 18,
+    height: 15,
     display: "grid",
     gridTemplateColumns: "repeat(30, minmax(8px, 1fr))",
     border: "1px solid #777",
@@ -909,7 +1029,7 @@ const styles = {
   tick: {
     borderRight: "1px solid #aaa",
     textAlign: "center",
-    fontSize: 9,
+    fontSize: 8,
     color: "#333",
   },
   statusText: {
@@ -917,6 +1037,7 @@ const styles = {
     overflow: "hidden",
     textOverflow: "ellipsis",
     minWidth: 0,
+    maxWidth: 112,
   },
   badge: {
     display: "inline-flex",
@@ -924,16 +1045,24 @@ const styles = {
     alignItems: "center",
     border: "1px solid",
     borderRadius: 3,
-    padding: "1px 4px",
-    fontSize: 9,
+    padding: "0 3px",
+    fontSize: 8,
     fontWeight: 800,
     textTransform: "uppercase",
     whiteSpace: "nowrap",
   },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 999,
+    border: "1px solid rgba(0,0,0,0.35)",
+    justifySelf: "center",
+  },
   smallButton: {
     border: "1px solid #777",
     borderRadius: 3,
-    padding: "3px 6px",
+    padding: "2px 6px",
+    minHeight: 20,
     background: "#d6d9dd",
     color: "#111827",
     cursor: "pointer",
@@ -943,7 +1072,8 @@ const styles = {
   primaryButton: {
     border: "1px solid #2563eb",
     borderRadius: 3,
-    padding: "3px 6px",
+    padding: "2px 6px",
+    minHeight: 20,
     background: "#dbeafe",
     color: "#0f172a",
     cursor: "pointer",
