@@ -1491,6 +1491,12 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Assignment execution status: blocked/i)).toBeInTheDocument();
     expect(screen.getByText(/Assignment writes admitted: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Read-only: yes/i)).toBeInTheDocument();
+    expect(screen.getByText(/Assignment design policy keys: 4/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Assignment design policy preview: allowed_stage_prefix, allowed_level_prefix, assignment_execution_admitted \(\+1 more\)/i,
+      ),
+    ).toBeInTheDocument();
   });
 
   it("surfaces assignment-design blocked status with fail-closed reasons", async () => {

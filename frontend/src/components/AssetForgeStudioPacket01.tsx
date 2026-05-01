@@ -2940,6 +2940,8 @@ export default function AssetForgeStudioPacket01({
                 <li>Assignment writes admitted: {assignmentDesignReport.assignment_write_admitted ? "yes" : "no"}</li>
                 <li>Read-only: {assignmentDesignReport.read_only ? "yes" : "no"}</li>
                 <li>Mutation occurred: {assignmentDesignReport.mutation_occurred ? "yes" : "no"}</li>
+                <li>Assignment design policy keys: {contractSummaryKeyCount(assignmentDesignReport.assignment_design_policy)}</li>
+                <li>Assignment design policy preview: {contractSummaryKeyPreview(assignmentDesignReport.assignment_design_policy)}</li>
                 <li>Blocked reason: {assignmentDesignReport.blocked_reason ?? "none"}</li>
                 <li>Next safest step: {assignmentDesignReport.next_safest_step}</li>
               </ul>
