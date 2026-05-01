@@ -586,7 +586,6 @@ export default function AssetForgeBlenderCockpit({
   onLaunchPlacementProofTemplate,
   onLaunchPromptTemplate,
   onOpenRecords,
-  onOpenRuntimeOverview,
   onViewLatestRun,
   onViewExecution,
   onViewArtifact,
