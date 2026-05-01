@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import AssetForgeBlenderCockpit from "./AssetForgeBlenderCockpit";
 import type { AssetForgeEditorModelRecord } from "../../types/contracts";
@@ -103,13 +103,14 @@ describe("AssetForgeBlenderCockpit", () => {
     expect(screen.getByLabelText("Asset Forge right outliner and properties")).toBeInTheDocument();
     expect(screen.getByLabelText("Asset Forge timeline evidence and prompt strip")).toBeInTheDocument();
 
-    expect(screen.getAllByText("Transform").length).toBeGreaterThan(0);
-    expect(screen.getByText("Translate")).toBeInTheDocument();
-    expect(screen.getByText("Rotate")).toBeInTheDocument();
-    expect(screen.getByText("Scale")).toBeInTheDocument();
-    expect(screen.getByText("Duplicate")).toBeInTheDocument();
-    expect(screen.getByText("Delete")).toBeInTheDocument();
-    expect(screen.getByText("Grease Pencil")).toBeInTheDocument();
+    const toolShelf = screen.getByLabelText("Asset Forge left tool shelf");
+    expect(within(toolShelf).getByRole("button", { name: /Transform/i })).toBeInTheDocument();
+    expect(within(toolShelf).getByRole("button", { name: /Translate/i })).toBeInTheDocument();
+    expect(within(toolShelf).getByRole("button", { name: /Rotate/i })).toBeInTheDocument();
+    expect(within(toolShelf).getByRole("button", { name: /Scale/i })).toBeInTheDocument();
+    expect(within(toolShelf).getByRole("button", { name: /Duplicate/i })).toBeInTheDocument();
+    expect(within(toolShelf).getByRole("button", { name: /Delete/i })).toBeInTheDocument();
+    expect(within(toolShelf).getByRole("button", { name: /Grease Pencil/i })).toBeInTheDocument();
 
     expect(screen.getByText(/no provider generation, Blender execution, Asset Processor execution, or O3DE mutation admitted\./i)).toBeInTheDocument();
 
@@ -117,6 +118,154 @@ describe("AssetForgeBlenderCockpit", () => {
     expect(screen.queryByText(/^CENTER$/)).toBeNull();
     expect(screen.queryByText(/^RIGHT$/)).toBeNull();
     expect(screen.queryByText(/^BOTTOM$/)).toBeNull();
+  });
+
+  it("opens top menu dropdowns and changes viewport mode without backend execution", () => {
+    render(<AssetForgeBlenderCockpit />);
+
+    const topMenu = screen.getByLabelText("Asset Forge top menu");
+    ["File", "Edit", "View", "Candidate", "Stage", "Proof", "Review", "Help"].forEach((label) => {
+      expect(within(topMenu).getByRole("button", { name: label })).toBeInTheDocument();
+    });
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "View" }));
+
+    const viewMenu = screen.getByRole("menu", { name: "View menu" });
+    expect(within(viewMenu).getByRole("menuitem", { name: /Wireframe/i })).toBeInTheDocument();
+
+    fireEvent.click(within(viewMenu).getByRole("menuitem", { name: /Wireframe/i }));
+
+    expect(screen.getByText("Viewport mode: Wireframe")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/Viewport mode changed locally to Wireframe/i);
+  });
+
+  it("selects tools, reports blocked reasons, and does not call mutation-style callbacks", () => {
+    const callbacks = {
+      onOpenPromptStudio: vi.fn(),
+      onLaunchInspectTemplate: vi.fn(),
+      onLaunchPlacementProofTemplate: vi.fn(),
+      onOpenRecords: vi.fn(),
+      onOpenRuntimeOverview: vi.fn(),
+      onViewLatestRun: vi.fn(),
+      onViewExecution: vi.fn(),
+      onViewArtifact: vi.fn(),
+      onViewEvidence: vi.fn(),
+    };
+
+    render(<AssetForgeBlenderCockpit {...callbacks} />);
+
+    const toolShelf = screen.getByLabelText("Asset Forge left tool shelf");
+    fireEvent.click(within(toolShelf).getByRole("button", { name: /Transform/i }));
+    expect(screen.getByText("Active tool: Transform")).toBeInTheDocument();
+
+    fireEvent.click(within(toolShelf).getByRole("button", { name: /Delete/i }));
+    expect(screen.getByText("Active tool: Delete")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/Delete blocked/i);
+    expect(screen.getByRole("status")).toHaveTextContent(/Delete would mutate an asset, scene, animation, or editor state that is not admitted/i);
+
+    Object.values(callbacks).forEach((callback) => {
+      expect(callback).not.toHaveBeenCalled();
+    });
+  });
+
+  it("selects outliner objects and updates the inspector object tab", () => {
+    render(<AssetForgeBlenderCockpit />);
+
+    const outliner = screen.getByLabelText("Asset Forge backend outliner");
+    fireEvent.click(within(outliner).getByRole("button", { name: /Mesh_LOD0/i }));
+
+    expect(screen.getByText("Selected object: Mesh_LOD0")).toBeInTheDocument();
+
+    const properties = screen.getByLabelText("Asset Forge transform and material properties");
+    fireEvent.click(within(properties).getByRole("button", { name: "Object" }));
+
+    expect(within(properties).getByText("Selected object")).toBeInTheDocument();
+    expect(within(properties).getByText("Mesh_LOD0")).toBeInTheDocument();
+  });
+
+  it("updates transform fields as local draft values and keeps apply blocked", () => {
+    render(<AssetForgeBlenderCockpit />);
+
+    const properties = screen.getByLabelText("Asset Forge transform and material properties");
+    const locationX = screen.getByLabelText("Location X");
+
+    fireEvent.change(locationX, { target: { value: "12.5" } });
+
+    expect(locationX).toHaveValue("12.5");
+    expect(screen.getByText(/draft only \/ not applied/i)).toBeInTheDocument();
+    expect(within(properties).getByRole("button", { name: "Apply Transform" })).toBeDisabled();
+    expect(screen.getByText("Transform mutation is not admitted yet.")).toBeInTheDocument();
+
+    fireEvent.click(within(properties).getByRole("button", { name: "Reset Draft" }));
+
+    expect(locationX).toHaveValue("0");
+  });
+
+  it("switches properties tabs and keeps material mutation blocked", () => {
+    render(<AssetForgeBlenderCockpit />);
+
+    const properties = screen.getByLabelText("Asset Forge transform and material properties");
+
+    fireEvent.click(within(properties).getByRole("button", { name: "Object" }));
+    expect(within(properties).getByText("Selected object")).toBeInTheDocument();
+
+    fireEvent.click(within(properties).getByRole("button", { name: "Material" }));
+    expect(within(properties).getAllByText("material mutation blocked").length).toBeGreaterThan(0);
+
+    fireEvent.click(within(properties).getByRole("button", { name: "Proof" }));
+    expect(within(properties).getByText(/Prompt templates are preview-first and autoExecute=false/i)).toBeInTheDocument();
+
+    fireEvent.click(within(properties).getByRole("button", { name: "Safety" }));
+    expect(within(properties).getByText("provider generation")).toBeInTheDocument();
+    expect(within(properties).getByText("Blender execution")).toBeInTheDocument();
+    expect(within(properties).getByText("Asset Processor execution")).toBeInTheDocument();
+  });
+
+  it("switches bottom tabs and shows status/evidence/prompt/artifact content", () => {
+    render(<AssetForgeBlenderCockpit />);
+
+    const bottomStrip = screen.getByLabelText("Asset Forge timeline evidence and prompt strip");
+
+    fireEvent.click(within(bottomStrip).getByRole("button", { name: "Evidence" }));
+    expect(within(bottomStrip).getByText(/Evidence drill-in only; no runtime execution/i)).toBeInTheDocument();
+
+    fireEvent.click(within(bottomStrip).getByRole("button", { name: "Prompt Template" }));
+    expect(within(bottomStrip).getByText(/autoExecute=false/i)).toBeInTheDocument();
+
+    fireEvent.click(within(bottomStrip).getByRole("button", { name: "Logs" }));
+    expect(within(bottomStrip).getByText(/Blocked operations explain next unlock/i)).toBeInTheDocument();
+
+    fireEvent.click(within(bottomStrip).getByRole("button", { name: "Latest Artifacts" }));
+    expect(within(bottomStrip).getByText("Run: not selected")).toBeInTheDocument();
+
+    fireEvent.click(within(bottomStrip).getByRole("button", { name: "Timeline" }));
+    expect(within(bottomStrip).getByText("Start 1")).toBeInTheDocument();
+    expect(within(bottomStrip).getByText("End 250")).toBeInTheDocument();
+  });
+
+  it("displays and copies prompt templates without auto-execution", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+
+    render(<AssetForgeBlenderCockpit />);
+
+    const properties = screen.getByLabelText("Asset Forge transform and material properties");
+    fireEvent.click(within(properties).getByRole("button", { name: "Proof" }));
+
+    const selector = screen.getByLabelText("Prompt template selector");
+    fireEvent.change(selector, { target: { value: "placement-proof-only" } });
+
+    expect(within(properties).getByText(/candidate_label "Weathered Ivy Arch"/i)).toBeInTheDocument();
+
+    fireEvent.click(within(properties).getByRole("button", { name: "Copy template" }));
+
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining("placement proof-only candidate"));
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent(/Placement proof-only copied\. autoExecute=false/i);
+    });
   });
 
   it("renders tools and outliner rows from backend editor model when provided", () => {
