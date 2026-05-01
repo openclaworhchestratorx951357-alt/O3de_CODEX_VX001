@@ -411,11 +411,10 @@ describe("App desktop smoke", () => {
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
 
-    const createGameWorkspaceHeading = (await screen.findAllByText("Create Game Cockpit"))[0];
-    const createGameWorkspaceSection = createGameWorkspaceHeading.closest("section");
-    expect(createGameWorkspaceSection).toBeTruthy();
+    await screen.findAllByText("Create Game Cockpit");
+    const createGameLayout = screen.getByTestId("dockable-layout-create-game");
     fireEvent.click(
-      within(createGameWorkspaceSection as HTMLElement).getAllByRole("button", { name: "Open Runtime" })[0],
+      within(createGameLayout).getAllByRole("button", { name: "Open Runtime" })[0],
     );
 
     expect(await screen.findByText(
@@ -426,11 +425,10 @@ describe("App desktop smoke", () => {
     expect(screen.getByText("Runtime Console")).toBeInTheDocument();
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
-    const createGameWorkspaceHeadingAfterReturn = (await screen.findAllByText("Create Game Cockpit"))[0];
-    const createGameWorkspaceSectionAfterReturn = createGameWorkspaceHeadingAfterReturn.closest("section");
-    expect(createGameWorkspaceSectionAfterReturn).toBeTruthy();
+    await screen.findAllByText("Create Game Cockpit");
+    const createGameLayoutAfterReturn = screen.getByTestId("dockable-layout-create-game");
     fireEvent.click(
-      within(createGameWorkspaceSectionAfterReturn as HTMLElement).getAllByRole("button", {
+      within(createGameLayoutAfterReturn).getAllByRole("button", {
         name: "Open Asset Forge",
       })[0],
     );
@@ -460,7 +458,8 @@ describe("App desktop smoke", () => {
 
     fireEvent.click(getDesktopNavButton(/Home/i));
     await screen.findByText("Home start here");
-    fireEvent.click(screen.getAllByRole("button", { name: "Open Asset Forge" })[0]);
+    const assetForgeCard = screen.getByTestId("home-cockpit-card-asset-forge");
+    fireEvent.click(within(assetForgeCard).getByRole("button", { name: "Open Asset Forge" }));
     expect(await screen.findByLabelText("AI Asset Forge")).toBeInTheDocument();
   }, 12000);
 
@@ -489,10 +488,8 @@ describe("App desktop smoke", () => {
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
     await screen.findAllByText("Create Game Cockpit");
-    const createGameWorkspaceHeading = (await screen.findAllByText("Create Game Cockpit"))[0];
-    const createGameWorkspace = createGameWorkspaceHeading.closest("section");
-    expect(createGameWorkspace).not.toBeNull();
-    fireEvent.click(within(createGameWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
+    const createGameLayout = screen.getByTestId("dockable-layout-create-game");
+    fireEvent.click(within(createGameLayout).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
     const promptIntakePanel = await screen.findByLabelText("Prompt intake context panel");
     expect(promptIntakePanel).toHaveTextContent("Mission-first prompt context lanes");
     expect(promptIntakePanel).toHaveTextContent("prefill-only");
@@ -513,10 +510,8 @@ describe("App desktop smoke", () => {
 
     fireEvent.click(getDesktopNavButton(/Create Movie/i));
     await screen.findAllByText("Create Movie Cockpit");
-    const createMovieWorkspaceHeading = (await screen.findAllByText("Create Movie Cockpit"))[0];
-    const createMovieWorkspace = createMovieWorkspaceHeading.closest("section");
-    expect(createMovieWorkspace).not.toBeNull();
-    fireEvent.click(within(createMovieWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
+    const createMovieLayout = screen.getByTestId("dockable-layout-create-movie");
+    fireEvent.click(within(createMovieLayout).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
     const createMovieChooser = await screen.findByLabelText("Prompt template chooser context");
     expect(createMovieChooser).toHaveTextContent("Create Movie template quick-load");
     expect(createMovieChooser).toHaveTextContent("Source workspace: Create Movie");
@@ -531,10 +526,8 @@ describe("App desktop smoke", () => {
 
     fireEvent.click(getDesktopNavButton(/Load Project/i));
     await screen.findAllByText("Load Project Cockpit");
-    const loadProjectWorkspaceHeading = (await screen.findAllByText("Load Project Cockpit"))[0];
-    const loadProjectWorkspace = loadProjectWorkspaceHeading.closest("section");
-    expect(loadProjectWorkspace).not.toBeNull();
-    fireEvent.click(within(loadProjectWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
+    const loadProjectLayout = screen.getByTestId("dockable-layout-load-project");
+    fireEvent.click(within(loadProjectLayout).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
     const loadProjectChooser = await screen.findByLabelText("Prompt template chooser context");
     expect(loadProjectChooser).toHaveTextContent("Load Project template quick-load");
     expect(loadProjectChooser).toHaveTextContent("Source workspace: Load Project");
@@ -582,10 +575,9 @@ describe("App desktop smoke", () => {
     render(<App />);
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
-    const createGameWorkspaceHeading = (await screen.findAllByText("Create Game Cockpit"))[0];
-    const createGameWorkspace = createGameWorkspaceHeading.closest("section");
-    expect(createGameWorkspace).not.toBeNull();
-    fireEvent.click(within(createGameWorkspace as HTMLElement).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
+    await screen.findAllByText("Create Game Cockpit");
+    const createGameLayout = screen.getByTestId("dockable-layout-create-game");
+    fireEvent.click(within(createGameLayout).getAllByRole("button", { name: "Open Prompt Studio" })[0]);
 
     const chooser = await screen.findByLabelText("Prompt template chooser context");
     expect(screen.queryByText("Loaded mission draft: Create safe game entity prompt")).toBeNull();
@@ -774,7 +766,7 @@ describe("App desktop smoke", () => {
     expect(promptEvidenceFromRecords).toHaveTextContent("Prompt session: prompt-proof-1");
     expect(promptEvidenceFromRecords).toHaveTextContent("Source workspace: Records");
     expect(promptEvidenceFromRecords).toHaveTextContent("Source surface: Records mission truth rail");
-  });
+  }, 12000);
 
   it("opens Asset Forge as its own workspace with the standalone Blender-style shell", async () => {
     render(<App />);

@@ -10,10 +10,11 @@ describe("Cockpit workspace views", () => {
     window.localStorage.removeItem("o3de.appos.cockpit-layouts.v1");
   });
 
-  it("renders Create Game cockpit inside DockableCockpitLayout and supports collapse/expand/reset", () => {
+  it("renders Create Game cockpit as a standalone shell and supports collapse/expand/reset", () => {
     render(<CreateGameWorkspaceView />);
 
     expect(screen.getByTestId("dockable-layout-create-game")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Create Game Cockpit guide")).not.toBeInTheDocument();
     expect(screen.getByText("Game creation pipeline")).toBeInTheDocument();
     expect(screen.getByLabelText("create-game left column resize handle")).toBeInTheDocument();
     expect(screen.getByLabelText("create-game center and right column resize handle")).toBeInTheDocument();
@@ -44,10 +45,11 @@ describe("Cockpit workspace views", () => {
     expect(screen.getByText(/Arbitrary scripts blocked/i)).toBeInTheDocument();
   });
 
-  it("renders Create Movie cockpit inside DockableCockpitLayout with reset-stable content", () => {
+  it("renders Create Movie cockpit as a standalone shell with reset-stable content", () => {
     render(<CreateMovieWorkspaceView />);
 
     expect(screen.getByTestId("dockable-layout-create-movie")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Create Movie Cockpit guide")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Reset layout" }));
     expect(screen.getByText("Cinematic pipeline")).toBeInTheDocument();
     expect(screen.getByText("Story / Shot Plan")).toBeInTheDocument();
@@ -68,10 +70,11 @@ describe("Cockpit workspace views", () => {
     expect(screen.getAllByText(/mutation_occurred=false/i).length).toBeGreaterThan(0);
   });
 
-  it("renders Load Project cockpit inside DockableCockpitLayout with reset-stable content", () => {
+  it("renders Load Project cockpit as a standalone shell with reset-stable content", () => {
     render(<LoadProjectWorkspaceView />);
 
     expect(screen.getByTestId("dockable-layout-load-project")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Load Project Cockpit guide")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Reset layout" }));
     expect(screen.getByText("Project connection checklist")).toBeInTheDocument();
     expect(screen.getByText("Project root selected")).toBeInTheDocument();

@@ -1,6 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
 
-import DesktopWindow from "../DesktopWindow";
 import DockableCockpitLayout from "./DockableCockpitLayout";
 import { getCockpitLayoutDefaults } from "./cockpitLayoutDefaults";
 import type { CockpitPanelDefinition } from "./cockpitLayoutTypes";
@@ -98,6 +97,7 @@ export default function CockpitWorkspaceShell({
             <strong>{title}</strong>
             <span style={truthBadgeStyle}>{truthLabel}</span>
           </div>
+          <p style={detailStyle}>{subtitle}</p>
           <p style={detailStyle}><strong>Mission purpose:</strong> {missionPurpose}</p>
         </section>
       ),
@@ -281,24 +281,12 @@ export default function CockpitWorkspaceShell({
   }
 
   return (
-    <DesktopWindow
-      title={title}
-      subtitle={subtitle}
-      helpTooltip="Mission cockpit workspace"
-      guideTitle="How to use this cockpit"
-      guideChecklist={[
-        "Arrange panels with presets, reset, collapse, and move controls.",
-        "Use resizer handles to tune the workspace and keep scroll contained per panel.",
-        "Execute only through admitted or proof-only corridors after prompt preview.",
-      ]}
-    >
-      <DockableCockpitLayout
-        cockpitId={cockpitId}
-        panels={panelDefinitions}
-        defaultPresetId={layoutDefaults.presetId}
-        splitConstraints={layoutDefaults.splitConstraints}
-      />
-    </DesktopWindow>
+    <DockableCockpitLayout
+      cockpitId={cockpitId}
+      panels={panelDefinitions}
+      defaultPresetId={layoutDefaults.presetId}
+      splitConstraints={layoutDefaults.splitConstraints}
+    />
   );
 }
 
