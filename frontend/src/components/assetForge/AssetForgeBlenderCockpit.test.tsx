@@ -341,6 +341,35 @@ describe("AssetForgeBlenderCockpit", () => {
     });
   });
 
+  it("opens Prompt Studio from the proof tab with the selected template handoff", () => {
+    const onLaunchPromptTemplate = vi.fn();
+    const onOpenPromptStudio = vi.fn();
+
+    render(
+      <AssetForgeBlenderCockpit
+        editorModel={buildEditorModelWithPromptTemplate()}
+        onLaunchPromptTemplate={onLaunchPromptTemplate}
+        onOpenPromptStudio={onOpenPromptStudio}
+      />,
+    );
+
+    const properties = screen.getByLabelText("Asset Forge transform and material properties");
+    fireEvent.click(within(properties).getByRole("button", { name: "Proof" }));
+
+    fireEvent.click(within(properties).getByRole("button", { name: "Open Prompt Studio" }));
+
+    expect(onLaunchPromptTemplate).toHaveBeenCalledWith({
+      template_id: "backend-transform-plan",
+      label: "Backend Transform Plan",
+      description: "Backend supplied transform plan template.",
+      text: "Plan a transform update from backend model values. Do not mutate content.",
+      truth_state: "plan-only",
+      safety_labels: ["plan-only", "autoExecute=false", "no mutation"],
+      auto_execute: false,
+    });
+    expect(onOpenPromptStudio).not.toHaveBeenCalled();
+  });
+
   it("shows backend prompt-template safety labels before Prompt Studio handoff", () => {
     render(<AssetForgeBlenderCockpit editorModel={buildEditorModelWithPromptTemplate()} />);
 

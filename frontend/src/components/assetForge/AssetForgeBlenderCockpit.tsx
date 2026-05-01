@@ -911,7 +911,7 @@ export default function AssetForgeBlenderCockpit({
         </div>
         <div style={styles.propertyActionRow}>
           <button type="button" onClick={copyPromptTemplate} style={styles.smallButton}>Copy template</button>
-          <button type="button" onClick={onOpenPromptStudio} style={styles.smallButton}>Open Prompt Studio</button>
+          <button type="button" onClick={loadPromptTemplate} style={styles.smallButton}>Open Prompt Studio</button>
           <button type="button" onClick={loadPromptTemplate} style={styles.primaryButton}>Load template</button>
         </div>
         <div style={styles.statusNotice}>Prompt templates are preview-first and autoExecute=false.</div>
