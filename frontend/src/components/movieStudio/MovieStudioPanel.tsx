@@ -305,6 +305,17 @@ export default function MovieStudioPanel() {
     if (Number.isNaN(epoch)) return "Unknown";
     return Date.now() - epoch <= 45000 ? "Fresh" : "Stale";
   }, [o3deLastCheck]);
+  const o3deStatusPacket = useMemo(
+    () =>
+      [
+        `health=${o3deHealth}`,
+        `status=${o3deStatus}`,
+        `last_check=${o3deLastCheck}`,
+        `freshness=${o3deFreshness}`,
+        `consecutive_failures=${o3deFailureCount}`,
+      ].join(" | "),
+    [o3deFailureCount, o3deFreshness, o3deHealth, o3deLastCheck, o3deStatus],
+  );
 
   const snapshotCurrent = useCallback(
     (): TimelineHistorySnapshot => ({
@@ -582,6 +593,15 @@ export default function MovieStudioPanel() {
     }
   }
 
+  async function copyO3deStatus() {
+    try {
+      await navigator.clipboard.writeText(o3deStatusPacket);
+      setHandoffStatus("Copied O3DE status");
+    } catch {
+      setHandoffStatus("O3DE status copy failed");
+    }
+  }
+
   return (
     <section aria-label="Movie Studio" style={s.shell}>
       <header style={s.header}>
@@ -632,6 +652,9 @@ export default function MovieStudioPanel() {
           disabled={o3deRefreshing}
         >
           {o3deRefreshing ? "Refreshing..." : "Refresh O3DE"}
+        </button>
+        <button type="button" onClick={() => void copyO3deStatus()} style={s.toolbarButton}>
+          Copy O3DE Status
         </button>
       </section>
 

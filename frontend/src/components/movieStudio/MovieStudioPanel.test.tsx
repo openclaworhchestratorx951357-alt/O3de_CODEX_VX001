@@ -20,6 +20,7 @@ describe("MovieStudioPanel", () => {
     expect(screen.getByRole("heading", { name: "Movie Studio" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Master Timeline" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Refresh/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Copy O3DE Status" })).toBeInTheDocument();
     expect(screen.getByText((content) => content.startsWith("O3DE Health:"))).toBeInTheDocument();
     expect(screen.getByText((content) => content.startsWith("Last check:"))).toBeInTheDocument();
     expect(screen.getByText((content) => content.includes("Freshness:"))).toBeInTheDocument();
@@ -168,6 +169,12 @@ describe("MovieStudioPanel", () => {
       expect(after).not.toEqual(before);
     });
     expect(screen.getByRole("button", { name: /Refresh/ })).toBeInTheDocument();
+  });
+
+  it("copies O3DE status packet with feedback", async () => {
+    render(<MovieStudioPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Copy O3DE Status" }));
+    await screen.findByText("Copied O3DE status");
   });
 
   it("supports keyboard transport shortcuts", () => {
