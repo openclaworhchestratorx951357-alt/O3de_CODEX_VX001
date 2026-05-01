@@ -135,7 +135,8 @@ export default function AppCapabilityDashboardShell() {
       </div>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Editor placement proof-only implementation</strong>.
+        Recommended next packet: <strong>Validation intake endpoint-candidate admission design</strong> (docs/design
+        first, default fail-closed, no execution admission changes).
       </p>
     </section>
   );

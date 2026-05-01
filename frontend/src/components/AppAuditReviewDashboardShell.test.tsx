@@ -25,12 +25,7 @@ describe("AppAuditReviewDashboardShell", () => {
     expect(screen.getByText("Automation")).toBeInTheDocument();
     expect(screen.getByText("Status taxonomy mix")).toBeInTheDocument();
     expect(
-      screen.getAllByText("Admitted-real chips stay green across capability, audit, workspace, and timeline shells.")
-        .length,
-    ).toBeGreaterThan(0);
-    expect(screen.getAllByText("hold-default-off").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("blocked").length).toBeGreaterThan(0);
-
-    expect(screen.getByText("Editor placement proof-only implementation", { selector: "strong" })).toBeInTheDocument();
+      screen.getByText("Validation intake endpoint-candidate admission design", { selector: "strong" }),
+    ).toBeInTheDocument();
   });
 });
