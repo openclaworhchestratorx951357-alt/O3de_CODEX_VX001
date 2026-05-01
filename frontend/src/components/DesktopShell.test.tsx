@@ -180,6 +180,8 @@ describe("DesktopShell", () => {
   });
 
   it("hides the workspace tree when a standalone cockpit shell is active", () => {
+    const onSelectWorkspace = vi.fn();
+
     render(
       <DesktopShell
         appTitle="O3DE Agent Control App"
@@ -189,6 +191,18 @@ describe("DesktopShell", () => {
         activeWorkspaceId="create-game"
         hideWorkspaceTree
         navSections={[
+          {
+            id: "start",
+            label: "Start",
+            detail: "Home shell",
+            items: [
+              {
+                id: "home",
+                label: "Home",
+                subtitle: "Overview shell",
+              },
+            ],
+          },
           {
             id: "create",
             label: "Create",
@@ -207,7 +221,7 @@ describe("DesktopShell", () => {
             ],
           },
         ]}
-        onSelectWorkspace={vi.fn()}
+        onSelectWorkspace={onSelectWorkspace}
       >
         <div>Standalone workspace body</div>
       </DesktopShell>,
@@ -216,6 +230,12 @@ describe("DesktopShell", () => {
     expect(screen.queryByText("Control surface")).toBeNull();
     expect(screen.getByText("Standalone workspace body")).toBeInTheDocument();
     expect(screen.getByText("Active workspace")).toBeInTheDocument();
+    const workspaceTabs = screen.getByLabelText("Workspaces workspace sections");
+    expect(workspaceTabs).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create Game" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Home" }));
+    expect(onSelectWorkspace).toHaveBeenCalledWith("home");
   });
 
   it("consumes saved shell settings for dark compact desktop layout", () => {
