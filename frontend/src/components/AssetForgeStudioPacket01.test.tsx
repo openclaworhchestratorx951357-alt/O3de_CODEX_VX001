@@ -1811,6 +1811,29 @@ describe("AssetForgeStudioPacket01", () => {
     expect(await screen.findByText(/Bridge contract bridge required: unknown/i)).toBeInTheDocument();
   });
 
+  it("renders runtime-harness readiness bridge string summaries as n/a when optional fields are absent", async () => {
+    apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
+    apiMocks.prepareAssetForgeO3DEPlacementRuntimeHarness.mockResolvedValueOnce(
+      makePlacementHarnessReport({
+        bridge_readiness_contract: {
+          corridor_name: undefined as unknown as string,
+          runtime_gate_env: undefined as unknown as string,
+          bridge_required: true,
+        },
+      }),
+    );
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create plan-only placement target" }));
+    expect(await screen.findByText(/Plan status: ready-for-approval/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Prepare bounded runtime harness (plan-only)" }));
+
+    expect(await screen.findByText(/Bridge contract corridor: n\/a/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract runtime gate env: n\/a/i)).toBeInTheDocument();
+  });
+
   it("submits runtime harness execute with optional approval session id and renders fail-closed details", async () => {
     apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
     apiMocks.executeAssetForgeO3DEPlacementRuntimeHarness.mockResolvedValueOnce(makePlacementHarnessExecuteReport());
