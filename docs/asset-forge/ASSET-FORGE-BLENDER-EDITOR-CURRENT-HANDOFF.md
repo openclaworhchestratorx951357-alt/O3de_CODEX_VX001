@@ -10,7 +10,7 @@ capability.
 ## Current branch and savepoints
 
 - Current integration branch: `codex/asset-forge-movie-studio-shell-stack-clean`
-- Current integration commit: `f4d16dd Add Records Events routing in Asset Forge app menu`
+- Current integration commit: `4fa4eee Drive Asset Forge app menu from cockpit registry`
 - Protected visual savepoint tag: `asset-forge-blender-layout-polished`
 - Protected visual savepoint commit: `821710a Polish Asset Forge Blender-like editor layout`
 - Active draft PR note: PR #191 tracks this integration branch against
@@ -27,7 +27,7 @@ git rev-parse --short HEAD
 git rev-parse --short asset-forge-blender-layout-polished
 ```
 
-Expected current head at this handoff is `f4d16dd`. If the branch has moved,
+Expected current head at this handoff is `4fa4eee`. If the branch has moved,
 read the newer commits before choosing a packet.
 
 ## Current product truth
@@ -55,6 +55,9 @@ Current implemented behavior:
   Movie, Load Project, Runtime lanes, Builder, Movie Studio Timeline, and
   Records lanes (Runs/Executions/Artifacts/Events), all as navigation-only
   handoff actions.
+- The App menu now consumes backend cockpit registry labels/tone for core
+  cockpit routes (Create Game, Create Movie, Load Project, Asset Forge) with
+  static fallback preserved and no execution/mutation admission changes.
 - Backend `/asset-forge/editor-model` supplies editor-model contract data for
   tools, menus, workflow stages, status strip tabs, outliner, transform,
   properties, material preview, prompt templates, and blocked capabilities.
@@ -99,6 +102,9 @@ Blender itself is admitted as an execution dependency.
 
 The important recent commits, newest first:
 
+- `4fa4eee` - consumes backend cockpit registry registrations in Asset Forge
+  App-menu cockpit routes with fallback and test coverage.
+- `ba566da` - refreshes this Asset Forge handoff after records/events routing.
 - `f4d16dd` - adds App-menu `Records Events` route wiring from Asset Forge
   shell to Records Events.
 - `d3d764d` - adds cross-thread open-PR scan workflow gate via
@@ -162,9 +168,9 @@ git diff --check
 
 Results from the latest slice:
 
-- targeted frontend suite passed: 3 files, 43 tests
+- targeted frontend suite passed: 3 files, 44 tests
 - frontend build passed
-- full frontend suite passed: 70 files, 368 tests
+- full frontend suite passed: 70 files, 369 tests
 - `git diff --check` passed
 
 Recent backend editor-model validation also passed:
@@ -177,16 +183,14 @@ python -m pytest backend/tests/test_api_routes.py -k "asset_forge_editor_model" 
 
 Recommended next packet:
 
-1. Add backend read-only cockpit registry endpoint:
-   `GET /cockpit-apps/registry`.
-2. Mirror the frontend `cockpitAppRegistry` data into a backend service with
-   all execution/mutation admission flags false.
-3. Add backend route tests proving Asset Forge is `full-screen-editor`, all
-   dangerous admission flags are false, blocked capabilities include reasons
-   and next unlocks, and no success/mutation wording appears.
-4. Add frontend TypeScript API types and `fetchCockpitAppRegistry`.
-5. In a later packet only, make the frontend consume the backend cockpit
-   registry with static fallback preserved.
+1. Extend backend `GET /cockpit-apps/registry` with read-only shell menu-group
+   metadata for Runtime/Operations/Records lanes so Asset Forge App-menu
+   sections can be backend-driven beyond core cockpit routes.
+2. Consume those optional backend shell menu groups in
+   `AssetForgeBlenderCockpit` while preserving current static fallback.
+3. Add targeted backend/frontend tests proving all new shell menu metadata
+   remains read-only and keeps execution/mutation/provider/Blender/Asset
+   Processor/placement flags false.
 
 Do not combine the backend registry endpoint with real generation, Blender,
 Asset Processor, placement, material mutation, or prompt auto-execution.
