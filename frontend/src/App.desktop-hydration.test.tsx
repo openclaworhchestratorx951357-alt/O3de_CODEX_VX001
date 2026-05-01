@@ -253,7 +253,7 @@ describe("App desktop hydration", () => {
   });
 
   async function openHomeWorkspace(): Promise<void> {
-    fireEvent.click(getDesktopNavButton(/Home/i));
+    fireEvent.click(getDesktopNavButton(/Legacy Mission Desk/i));
     expect(await screen.findByText("Home start here")).toBeInTheDocument();
   }
 

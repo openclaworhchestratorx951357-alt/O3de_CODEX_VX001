@@ -317,7 +317,7 @@ describe("App desktop smoke", () => {
   });
 
   async function openHomeWorkspace(): Promise<void> {
-    fireEvent.click(getDesktopNavButton(/Home/i));
+    fireEvent.click(getDesktopNavButton(/Legacy Mission Desk/i));
     expect(await screen.findByText("Home start here")).toBeInTheDocument();
   }
 
@@ -386,7 +386,7 @@ describe("App desktop smoke", () => {
     expect(screen.getAllByText("Builder workspace").length).toBeGreaterThan(0);
     expect(screen.getByText("Operations > Dispatch window")).toBeInTheDocument();
 
-    fireEvent.click(getDesktopNavButton(/Home/i));
+    fireEvent.click(getDesktopNavButton(/Legacy Mission Desk/i));
 
     expect(screen.getAllByText("Mission Control").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Launchpad").length).toBeGreaterThan(0);
@@ -485,7 +485,7 @@ describe("App desktop smoke", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Open Prompt Studio" })[0]);
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
 
-    fireEvent.click(getDesktopNavButton(/Home/i));
+    fireEvent.click(getDesktopNavButton(/Legacy Mission Desk/i));
     expect(await screen.findByText("Home start here")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Start Here/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^Mission Control/i })).toBeInTheDocument();
@@ -598,7 +598,7 @@ describe("App desktop smoke", () => {
     );
     expect((await screen.findAllByText("Loaded mission draft: Placement proof-only candidate prompt")).length).toBeGreaterThan(0);
 
-    fireEvent.click(getDesktopNavButton(/Home/i));
+    fireEvent.click(getDesktopNavButton(/Legacy Mission Desk/i));
     await screen.findByText("Home start here");
 
     fireEvent.click(getDesktopNavButton(/Create Game/i));
@@ -962,7 +962,7 @@ describe("App desktop smoke", () => {
     );
     expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
 
-    fireEvent.click(getDesktopNavButton(/Home/i));
+    fireEvent.click(getDesktopNavButton(/Legacy Mission Desk/i));
     expect(await screen.findByText("Home start here")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Load inspect template in Prompt Studio" }));
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();

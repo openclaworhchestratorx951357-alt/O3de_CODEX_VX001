@@ -5075,21 +5075,6 @@ export default function App() {
   const activeDesktopNavItemId: DesktopNavItemId = activeWorkspaceId;
   const desktopNavSections = [
     {
-      id: "start",
-      label: "Start",
-      detail: "Orient yourself first and keep the first decision surface calm.",
-      items: [
-        {
-          id: "home",
-          label: homeWorkspaceGuide.navLabel,
-          subtitle: homeWorkspaceGuide.navSubtitle,
-          badge: attentionRecommendations.length > 0 ? String(attentionRecommendations.length) : null,
-          tone: attentionRecommendations.length > 0 ? "warning" : "info",
-          helpTooltip: homeWorkspaceGuide.tooltip,
-        },
-      ],
-    },
-    {
       id: "create",
       label: "Create",
       detail: "Use natural-language or mission-control surfaces to start and shape work.",
@@ -5148,6 +5133,14 @@ export default function App() {
       label: "Inspect",
       detail: "Review persisted runs, executions, and artifacts once work has moved or completed.",
       items: [
+        {
+          id: "home",
+          label: "Legacy Mission Desk",
+          subtitle: "Compatibility start-here workspace kept for legacy handoff and review continuity.",
+          badge: attentionRecommendations.length > 0 ? String(attentionRecommendations.length) : null,
+          tone: attentionRecommendations.length > 0 ? "warning" : "neutral",
+          helpTooltip: "Legacy workspace preserved for compatibility. Asset Forge remains the primary shell.",
+        },
         {
           id: "records",
           label: recordsWorkspaceGuide.navLabel,
