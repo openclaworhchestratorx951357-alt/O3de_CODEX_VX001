@@ -14,6 +14,7 @@ import { SETTINGS_PROFILE_STORAGE_KEY } from "./types/settings";
 
 const LAZY_SURFACE_TIMEOUT_MS = 5000;
 const MULTI_WORKSPACE_SMOKE_TIMEOUT_MS = 15000;
+const ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY = "o3de-control-app-active-desktop-workspace";
 
 const apiMocks = vi.hoisted(() => ({
   approveApproval: vi.fn(),
@@ -40,6 +41,7 @@ const apiMocks = vi.hoisted(() => ({
   fetchCodexControlNotifications: vi.fn(),
   fetchCodexControlStatus: vi.fn(),
   fetchControlPlaneSummary: vi.fn(),
+  fetchCockpitAppRegistry: vi.fn(),
   fetchExecutor: vi.fn(),
   fetchExecutors: vi.fn(),
   fetchExecution: vi.fn(),
@@ -117,6 +119,7 @@ function buildAssetForgePromptTemplateEditorModel(): AssetForgeEditorModelRecord
     },
     tools: [],
     context_menu_groups: [],
+    workflow_stages: [],
     outliner: [],
     transform: {
       location: { x: 0, y: 0, z: 0, admitted: false },
@@ -148,6 +151,7 @@ function buildAssetForgePromptTemplateEditorModel(): AssetForgeEditorModelRecord
       current_frame: 1,
       status: "read-only",
     },
+    status_strip_tabs: [],
     evidence: {
       latest_run_id: null,
       latest_execution_id: null,
@@ -301,6 +305,7 @@ describe("App desktop smoke", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     window.localStorage.clear();
+    window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "home");
     vi.clearAllMocks();
     Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
       configurable: true,
@@ -309,6 +314,33 @@ describe("App desktop smoke", () => {
     });
 
     setPendingAppApiMocks(apiMocks);
+  });
+
+  it("uses Asset Forge as the app home shell and exposes built-in app navigation", async () => {
+    window.sessionStorage.removeItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY);
+
+    render(<App />);
+
+    const forgePanel = await screen.findByLabelText(
+      "AI Asset Forge",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    );
+    expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge Blender-like editor")).toBeInTheDocument();
+    expect(screen.queryByText("Control surface")).toBeNull();
+
+    const topMenu = within(forgePanel).getByLabelText("Asset Forge top menu");
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+
+    const appMenu = screen.getByRole("menu", { name: "App menu" });
+    expect(within(appMenu).getByRole("menuitem", { name: /Create Game/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Prompt Studio/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Records/i })).toBeInTheDocument();
+
+    fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Prompt Studio/i }));
+
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
   });
 
   it("renders the home workspace and switches to prompt through the shell nav without blanking", async () => {
@@ -454,6 +486,52 @@ describe("App desktop smoke", () => {
     expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
   }, 12000);
+
+  it("consumes backend cockpit registry labels with fallback safety", async () => {
+    apiMocks.fetchCockpitAppRegistry.mockResolvedValueOnce({
+      source: "cockpit-app-registry",
+      inspection_surface: "read_only",
+      registry_status: "available",
+      execution_admitted: false,
+      mutation_admitted: false,
+      provider_generation_admitted: false,
+      blender_execution_admitted: false,
+      asset_processor_execution_admitted: false,
+      placement_write_admitted: false,
+      registrations: [
+        {
+          workspace_id: "asset-forge",
+          nav_label: "Forge Backend",
+          nav_subtitle: "Backend supplied subtitle",
+          workspace_title: "Asset Forge",
+          workspace_subtitle: "Backend full-screen editor subtitle",
+          launch_title: "Backend Asset Forge",
+          detail: "Backend detail",
+          truth_state: "read-only / preflight-only / proof-only",
+          blocked: "Blocked safely.",
+          next_safe_action: "Open safely.",
+          action_label: "Open Asset Forge",
+          shell_mode: "full-screen-editor",
+          tone: "info",
+          help_tooltip: "Backend tooltip",
+          execution_admitted: false,
+          mutation_admitted: false,
+          provider_generation_admitted: false,
+          blender_execution_admitted: false,
+          asset_processor_execution_admitted: false,
+          placement_write_admitted: false,
+        },
+      ],
+      blocked_capabilities: [],
+      next_safe_action: "Open a cockpit safely.",
+    });
+
+    render(<App />);
+
+    await waitFor(() => expect(apiMocks.fetchCockpitAppRegistry).toHaveBeenCalledTimes(1));
+    expect(getDesktopNavButton(/Forge Backend/i)).toBeInTheDocument();
+    expect(getDesktopNavButton(/Create Game/i)).toBeInTheDocument();
+  });
 
   it("opens Runtime and Asset Forge from Create Game cockpit actions", async () => {
     render(<App />);
@@ -897,7 +975,7 @@ describe("App desktop smoke", () => {
     const properties = await within(forgePanel).findByLabelText("Asset Forge transform and material properties");
 
     fireEvent.click(within(properties).getByRole("button", { name: "Proof" }));
-    expect(await within(properties).findByText("Backend Transform Plan")).toBeInTheDocument();
+    expect((await within(properties).findAllByText("Backend Transform Plan")).length).toBeGreaterThan(0);
     fireEvent.click(within(properties).getByRole("button", { name: "Load template" }));
 
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
@@ -967,6 +1045,8 @@ describe("App desktop smoke", () => {
   });
 
   it("applies the saved settings profile to the initial shell workspace and telemetry visibility", async () => {
+    window.sessionStorage.removeItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY);
+
     window.localStorage.setItem(
       SETTINGS_PROFILE_STORAGE_KEY,
       JSON.stringify(createSettingsProfile({

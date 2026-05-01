@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import type {
   AdaptersResponse,
@@ -27,12 +27,18 @@ type Props = {
   latestExecutionId?: string | null;
   latestArtifactId?: string | null;
   latestPlacementProofOnlyReview?: PlacementProofOnlyReviewSnapshot | null;
+  onOpenHome?: () => void;
+  onOpenCreateGame?: () => void;
+  onOpenCreateMovie?: () => void;
+  onOpenLoadProject?: () => void;
   onOpenPromptStudio?: () => void;
   onLaunchInspectTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
   onLaunchPromptTemplate?: (template: AssetForgePromptTemplateRecord) => void;
   onOpenRecords?: () => void;
   onOpenRuntimeOverview?: () => void;
+  onOpenBuilder?: () => void;
+  onOpenOperations?: () => void;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
@@ -43,8 +49,8 @@ type Tone = "demo" | "read-only" | "plan-only" | "preflight-only" | "proof-only"
 type Axis = "x" | "y" | "z";
 type TransformGroup = "location" | "rotation" | "scale" | "dimensions";
 type PropertiesTab = "Transform" | "Object" | "Material" | "Proof" | "Safety";
-type BottomTab = "Timeline" | "Evidence" | "Prompt Template" | "Logs" | "Latest Artifacts";
-type MaterialSubTab = "Surface" | "Wire" | "Volume" | "Halo";
+type BottomTab = string;
+type MaterialSubTab = string;
 
 type EditorTool = {
   id: string;
@@ -78,18 +84,43 @@ type PromptTemplate = {
 
 type TransformDraft = Record<TransformGroup, Record<Axis, string>>;
 
+type DisplayPropertyRow = {
+  label: string;
+  value: string;
+  tone?: string;
+};
+
 type MenuItem = {
   id: string;
   label: string;
   tone: string;
   action: string;
   status: string;
+  blockedReason?: string | null;
+  nextUnlock?: string | null;
 };
 
 type MenuGroup = {
   id: string;
   label: string;
   items: MenuItem[];
+};
+
+type WorkflowStage = {
+  id: string;
+  label: string;
+  truth: string;
+  action: string;
+  status: string;
+  promptTemplateId: string | null;
+};
+
+type StatusStripTab = {
+  id: string;
+  label: string;
+  truth: string;
+  action: string;
+  status: string;
 };
 
 const fallbackTools = [
@@ -132,15 +163,26 @@ const fallbackOutliner = [
 ] as const;
 
 const fallbackStages = [
-  ["Describe", "plan-only"],
-  ["Candidate", "demo"],
-  ["Preflight", "preflight-only"],
-  ["Stage Plan", "plan-only"],
-  ["Stage Write", "proof-only"],
-  ["Readback", "review"],
-  ["Placement Proof", "proof-only"],
-  ["Review", "review"],
+  ["describe", "Describe", "plan-only", "select-template-inspect-candidate", "Description planning is UI-only; no prompt auto-executes.", "inspect-candidate"],
+  ["candidate", "Candidate", "demo", "select-object", "Candidate selection is UI-only; no provider generation is admitted.", ""],
+  ["preflight", "Preflight", "preflight-only", "preflight", "Preflight is metadata-only; no backend tools execute.", "inspect-candidate"],
+  ["stage-plan", "Stage Plan", "plan-only", "stage-plan", "Stage planning is plan-only; no files are written.", ""],
+  ["stage-write", "Stage Write", "proof-only", "select-template-placement-proof-only", "Stage write remains proof-only metadata; no project write occurs.", "placement-proof-only"],
+  ["readback", "Readback", "review", "open-evidence", "Readback opens evidence only; no runtime execution occurs.", ""],
+  ["placement-proof", "Placement Proof", "proof-only", "select-template-placement-proof-only", "Placement proof stays proof-only; no placement write is admitted.", "placement-proof-only"],
+  ["review", "Review", "review", "open-evidence", "Review is read-only operator evidence.", ""],
 ] as const;
+
+const fallbackStatusStripTabs = [
+  ["timeline", "Timeline", "demo", "timeline", "Timeline frame strip is UI-only; no animation playback occurs."],
+  ["evidence", "Evidence", "read-only", "evidence", "Evidence drill-in only; no runtime execution."],
+  ["prompt-template", "Prompt Template", "read-only", "prompt-template", "Prompt templates are preview-first with autoExecute=false."],
+  ["logs", "Logs", "read-only", "logs", "Blocked operations explain next unlock before any execution exists."],
+  ["latest-artifacts", "Latest Artifacts", "read-only", "latest-artifacts", "Latest run/execution/artifact ids are read-only references."],
+] as const;
+
+const fallbackPropertyTabs = ["Transform", "Object", "Material", "Proof", "Safety"] as const;
+const fallbackMaterialTabs = ["Surface", "Wire", "Volume", "Halo"] as const;
 
 const defaultTransformDraft: TransformDraft = {
   location: { x: "0", y: "0", z: "0" },
@@ -148,6 +190,14 @@ const defaultTransformDraft: TransformDraft = {
   scale: { x: "1", y: "1", z: "1" },
   dimensions: { x: "0", y: "0", z: "0" },
 };
+
+const fallbackMaterialRows: DisplayPropertyRow[] = [
+  { label: "Preview", value: "Surface preview sphere/checker", tone: "read-only" },
+  { label: "Diffuse", value: "material mutation blocked", tone: "blocked" },
+  { label: "Specular", value: "material mutation blocked", tone: "blocked" },
+  { label: "Shading", value: "read-only preview metadata", tone: "blocked" },
+  { label: "Transparency", value: "not admitted", tone: "blocked" },
+];
 
 const fallbackPromptTemplates: PromptTemplate[] = [
   {
@@ -262,6 +312,243 @@ const menuGroups: MenuGroup[] = [
     ],
   },
 ];
+
+const appShellMenuGroup: MenuGroup = {
+  id: "app",
+  label: "App",
+  items: [
+    {
+      id: "app-home",
+      label: "Home / Start",
+      tone: "read-only",
+      action: "open-workspace-home",
+      status: "Opened Home from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-create-game",
+      label: "Create Game",
+      tone: "plan-only",
+      action: "open-workspace-create-game",
+      status: "Opened Create Game from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-create-movie",
+      label: "Create Movie",
+      tone: "plan-only",
+      action: "open-workspace-create-movie",
+      status: "Opened Create Movie from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-load-project",
+      label: "Load Project",
+      tone: "read-only",
+      action: "open-workspace-load-project",
+      status: "Opened Load Project from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-prompt",
+      label: "Prompt Studio",
+      tone: "read-only",
+      action: "open-prompt-studio",
+      status: "Opened Prompt Studio from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-builder",
+      label: "Builder",
+      tone: "plan-only",
+      action: "open-workspace-builder",
+      status: "Opened Builder from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-operations",
+      label: "Operations",
+      tone: "read-only",
+      action: "open-workspace-operations",
+      status: "Opened Operations from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-runtime",
+      label: "Runtime Overview",
+      tone: "read-only",
+      action: "open-workspace-runtime",
+      status: "Opened Runtime Overview from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-records",
+      label: "Records",
+      tone: "read-only",
+      action: "open-records",
+      status: "Opened Records from Asset Forge shell navigation only.",
+    },
+  ],
+};
+
+function getMenuGroups(model?: AssetForgeEditorModelRecord | null): MenuGroup[] {
+  if (!model?.context_menu_groups?.length) {
+    return menuGroups;
+  }
+
+  const groups = model.context_menu_groups
+    .map((group) => ({
+      id: group.group_id,
+      label: group.label,
+      items: group.items.map((item) => {
+        const unsafeAdmission = item.execution_admitted || item.mutation_admitted || item.auto_execute;
+        return {
+          id: item.item_id,
+          label: item.label,
+          tone: unsafeAdmission ? "blocked" : item.truth_state,
+          action: unsafeAdmission ? "blocked" : item.action,
+          status: unsafeAdmission
+            ? `${item.label} is blocked by the frontend safety rail because backend menu metadata requested execution, mutation, or auto-execution.`
+            : item.status,
+          blockedReason: item.blocked_reason,
+          nextUnlock: item.next_unlock,
+        };
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
+
+  return groups.length > 0 ? groups : menuGroups;
+}
+
+function getWorkflowStages(model?: AssetForgeEditorModelRecord | null): WorkflowStage[] {
+  if (!model?.workflow_stages?.length) {
+    return fallbackStages.map(([id, label, truth, action, status, promptTemplateId]) => ({
+      id,
+      label,
+      truth,
+      action,
+      status,
+      promptTemplateId: promptTemplateId || null,
+    }));
+  }
+
+  const stages = model.workflow_stages.map((stage) => {
+    const unsafeAdmission = stage.execution_admitted || stage.mutation_admitted || stage.auto_execute;
+    return {
+      id: stage.stage_id,
+      label: stage.label,
+      truth: unsafeAdmission ? "blocked" : stage.truth_state,
+      action: unsafeAdmission ? "blocked" : stage.action,
+      status: unsafeAdmission
+        ? `${stage.label} is blocked by the frontend safety rail because backend stage metadata requested execution, mutation, or auto-execution.`
+        : stage.status,
+      promptTemplateId: unsafeAdmission ? null : (stage.prompt_template_id ?? null),
+    };
+  });
+
+  return stages.length > 0 ? stages : getWorkflowStages();
+}
+
+function getStatusStripTabs(model?: AssetForgeEditorModelRecord | null): StatusStripTab[] {
+  if (!model?.status_strip_tabs?.length) {
+    return fallbackStatusStripTabs.map(([id, label, truth, action, status]) => ({
+      id,
+      label,
+      truth,
+      action,
+      status,
+    }));
+  }
+
+  const tabs = model.status_strip_tabs.map((tab) => {
+    const unsafeAdmission = tab.execution_admitted || tab.mutation_admitted || tab.auto_execute;
+    return {
+      id: tab.tab_id,
+      label: tab.label,
+      truth: unsafeAdmission ? "blocked" : tab.truth_state,
+      action: unsafeAdmission ? "blocked" : tab.action,
+      status: unsafeAdmission
+        ? `${tab.label} is blocked by the frontend safety rail because backend status-strip metadata requested execution, mutation, or auto-execution.`
+        : tab.status,
+    };
+  });
+
+  return tabs.length > 0 ? tabs : getStatusStripTabs();
+}
+
+function isPropertiesTab(tab: string): tab is PropertiesTab {
+  return fallbackPropertyTabs.some((fallbackTab) => fallbackTab === tab);
+}
+
+function getPropertyTabs(model?: AssetForgeEditorModelRecord | null): PropertiesTab[] {
+  const backendTabs = model?.properties?.sections?.filter(isPropertiesTab) ?? [];
+  return backendTabs.length > 0 ? backendTabs : [...fallbackPropertyTabs];
+}
+
+function getMaterialTabs(model?: AssetForgeEditorModelRecord | null): MaterialSubTab[] {
+  const backendTabs = model?.material_preview?.tabs?.filter((tab) => tab.trim().length > 0) ?? [];
+  return backendTabs.length > 0 ? backendTabs : [...fallbackMaterialTabs];
+}
+
+function formatTransformValue(value: number | undefined, fallback: string): string {
+  return typeof value === "number" && Number.isFinite(value) ? String(value) : fallback;
+}
+
+function getAxisDraft(
+  triplet: { x: number; y: number; z: number } | undefined,
+  fallback: Record<Axis, string>,
+): Record<Axis, string> {
+  return {
+    x: formatTransformValue(triplet?.x, fallback.x),
+    y: formatTransformValue(triplet?.y, fallback.y),
+    z: formatTransformValue(triplet?.z, fallback.z),
+  };
+}
+
+function getTransformDraft(model?: AssetForgeEditorModelRecord | null): TransformDraft {
+  const transform = model?.transform;
+  if (!transform) {
+    return defaultTransformDraft;
+  }
+  return {
+    location: getAxisDraft(transform.location, defaultTransformDraft.location),
+    rotation: getAxisDraft(transform.rotation, defaultTransformDraft.rotation),
+    scale: getAxisDraft(transform.scale, defaultTransformDraft.scale),
+    dimensions: getAxisDraft(transform.dimensions, defaultTransformDraft.dimensions),
+  };
+}
+
+function mapEditorPropertyRows(rows: AssetForgeEditorModelRecord["properties"]["rows"] | undefined): DisplayPropertyRow[] {
+  return (rows ?? []).map((row) => ({
+    label: row.label ?? row.name ?? row.row_id,
+    value: row.value ?? row.status ?? "not reported",
+    tone: row.mutation_admitted ? "blocked" : (row.truth_state ?? row.tone),
+  }));
+}
+
+function getMaterialRows(model?: AssetForgeEditorModelRecord | null): DisplayPropertyRow[] {
+  const backendRows = mapEditorPropertyRows(model?.material_preview?.rows);
+  return backendRows.length > 0 ? backendRows : fallbackMaterialRows;
+}
+
+function getSafetyRows(model?: AssetForgeEditorModelRecord | null): DisplayPropertyRow[] {
+  const baseRows: DisplayPropertyRow[] = [
+    ["execution_admitted", "false", "read-only"],
+    ["placement_write_admitted", "false", "read-only"],
+    ["mutation_occurred", "false", "read-only"],
+    ["provider generation", "blocked", "blocked"],
+    ["Blender execution", "blocked", "blocked"],
+    ["Asset Processor execution", "blocked", "blocked"],
+    ["material/prefab mutation", "blocked", "blocked"],
+  ].map(([label, value, tone]) => ({ label, value, tone }));
+
+  const blockedCapabilityRows = (model?.blocked_capabilities ?? []).flatMap((capability) => [
+    {
+      label: capability.label,
+      value: capability.reason,
+      tone: "blocked",
+    },
+    {
+      label: "Next unlock",
+      value: capability.next_unlock,
+      tone: "plan-only",
+    },
+  ]);
+
+  return [...baseRows, ...blockedCapabilityRows];
+}
 
 const toolSafetyDetails: Record<string, Pick<EditorTool, "description" | "blockedReason" | "nextUnlock" | "enabled" | "promptTemplateId">> = {
   transform: {
@@ -581,11 +868,18 @@ export default function AssetForgeBlenderCockpit({
   latestExecutionId,
   latestArtifactId,
   latestPlacementProofOnlyReview,
+  onOpenHome,
+  onOpenCreateGame,
+  onOpenCreateMovie,
+  onOpenLoadProject,
   onOpenPromptStudio,
   onLaunchInspectTemplate,
   onLaunchPlacementProofTemplate,
   onLaunchPromptTemplate,
   onOpenRecords,
+  onOpenRuntimeOverview,
+  onOpenBuilder,
+  onOpenOperations,
   onViewLatestRun,
   onViewExecution,
   onViewArtifact,
@@ -596,6 +890,14 @@ export default function AssetForgeBlenderCockpit({
   const outliner = getOutliner(editorModel);
   const overlays = getOverlayLines(editorModel);
   const promptTemplates = useMemo(() => getPromptTemplates(editorModel), [editorModel]);
+  const editorMenuGroups = useMemo(() => [appShellMenuGroup, ...getMenuGroups(editorModel)], [editorModel]);
+  const workflowStages = useMemo(() => getWorkflowStages(editorModel), [editorModel]);
+  const statusStripTabs = useMemo(() => getStatusStripTabs(editorModel), [editorModel]);
+  const propertyTabs = useMemo(() => getPropertyTabs(editorModel), [editorModel]);
+  const materialTabs = useMemo(() => getMaterialTabs(editorModel), [editorModel]);
+  const initialTransformDraft = useMemo(() => getTransformDraft(editorModel), [editorModel]);
+  const materialRows = useMemo(() => getMaterialRows(editorModel), [editorModel]);
+  const safetyRows = useMemo(() => getSafetyRows(editorModel), [editorModel]);
   const propertyRows = getPropertyRows({
     model: editorModel,
     providerStatus,
@@ -613,7 +915,7 @@ export default function AssetForgeBlenderCockpit({
   const [selectedMaterialSubTab, setSelectedMaterialSubTab] = useState<MaterialSubTab>("Surface");
   const [selectedBottomTab, setSelectedBottomTab] = useState<BottomTab>("Timeline");
   const [selectedPromptTemplateId, setSelectedPromptTemplateId] = useState("inspect-candidate");
-  const [transformDraft, setTransformDraft] = useState<TransformDraft>(defaultTransformDraft);
+  const [transformDraft, setTransformDraft] = useState<TransformDraft>(initialTransformDraft);
   const [transformDirty, setTransformDirty] = useState(false);
   const [gridVisible, setGridVisible] = useState(editorModel?.viewport?.grid_visible ?? true);
   const [statusMessage, setStatusMessage] = useState(
@@ -631,12 +933,19 @@ export default function AssetForgeBlenderCockpit({
     ["dimensions", "Dimensions"],
   ] as const satisfies readonly [TransformGroup, string][];
   const axisList = ["x", "y", "z"] as const;
-  const propertyTabs = ["Transform", "Object", "Material", "Proof", "Safety"] as const;
-  const bottomTabs = ["Timeline", "Evidence", "Prompt Template", "Logs", "Latest Artifacts"] as const;
   const viewportModes = editorModel?.viewport?.shading_modes ?? ["Solid", "Wireframe", "Material Preview", "O3DE Preview"];
+  const selectedStatusStripTab = statusStripTabs.find((tab) => tab.label === selectedBottomTab);
+  const activePropertiesTab = propertyTabs.includes(selectedPropertiesTab) ? selectedPropertiesTab : (propertyTabs[0] ?? "Transform");
+  const activeMaterialSubTab = materialTabs.includes(selectedMaterialSubTab) ? selectedMaterialSubTab : (materialTabs[0] ?? "Surface");
+
+  useEffect(() => {
+    if (!transformDirty) {
+      setTransformDraft(initialTransformDraft);
+    }
+  }, [initialTransformDraft, transformDirty]);
 
   function resetTransformDraft() {
-    setTransformDraft(defaultTransformDraft);
+    setTransformDraft(initialTransformDraft);
     setTransformDirty(false);
     setStatusMessage("Transform draft reset locally; no project mutation occurred.");
   }
@@ -732,7 +1041,8 @@ export default function AssetForgeBlenderCockpit({
 
   function handleMenuItem(item: MenuItem) {
     if (item.action.startsWith("viewport-")) {
-      selectViewportMode(item.action.replace("viewport-", ""));
+      setSelectedViewportMode(item.action.replace("viewport-", ""));
+      setStatusMessage(item.status);
     } else if (item.action.startsWith("select-tool-")) {
       const toolId = item.action.replace("select-tool-", "");
       const tool = tools.find((candidateTool) => candidateTool.id === toolId);
@@ -753,6 +1063,27 @@ export default function AssetForgeBlenderCockpit({
       setStatusMessage(item.status);
     } else if (item.action === "open-records") {
       onOpenRecords?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-home") {
+      onOpenHome?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-create-game") {
+      onOpenCreateGame?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-create-movie") {
+      onOpenCreateMovie?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-load-project") {
+      onOpenLoadProject?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-builder") {
+      onOpenBuilder?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-operations") {
+      onOpenOperations?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-runtime") {
+      onOpenRuntimeOverview?.();
       setStatusMessage(item.status);
     } else if (item.action === "open-evidence") {
       onViewEvidence?.();
@@ -804,7 +1135,9 @@ export default function AssetForgeBlenderCockpit({
             Reset Draft
           </button>
         </div>
-        <div style={styles.statusNotice}>Transform mutation is not admitted yet.</div>
+        <div style={styles.statusNotice}>
+          {editorModel?.transform?.blocked_reason ?? "Transform mutation is not admitted yet."}
+        </div>
       </>
     );
   }
@@ -843,7 +1176,7 @@ export default function AssetForgeBlenderCockpit({
     return (
       <>
         <div style={styles.materialSubTabs}>
-          {(["Surface", "Wire", "Volume", "Halo"] as const).map((tab) => (
+          {materialTabs.map((tab) => (
             <button
               key={tab}
               type="button"
@@ -853,24 +1186,18 @@ export default function AssetForgeBlenderCockpit({
               }}
               style={{
                 ...styles.materialSubTab,
-                ...(selectedMaterialSubTab === tab ? styles.selectedSubTab : {}),
+                ...(activeMaterialSubTab === tab ? styles.selectedSubTab : {}),
               }}
             >
               {tab}
             </button>
           ))}
         </div>
-        {[
-          ["Preview", `${selectedMaterialSubTab} preview sphere/checker`],
-          ["Diffuse", "material mutation blocked"],
-          ["Specular", "material mutation blocked"],
-          ["Shading", "read-only preview metadata"],
-          ["Transparency", "not admitted"],
-        ].map(([label, value]) => (
-          <div key={label} style={styles.propertyRow}>
-            <span style={styles.propertyLabel}>{label}</span>
-            <span style={styles.propertyValue}>{value}</span>
-            <Badge tone={label === "Preview" ? "read-only" : "blocked"} />
+        {(materialRows.length > 0 ? materialRows : fallbackMaterialRows).map((row) => (
+          <div key={`${row.label}-${row.value}`} style={styles.propertyRow}>
+            <span style={styles.propertyLabel}>{row.label}</span>
+            <span style={styles.propertyValue}>{row.value}</span>
+            <Badge tone={row.tone ?? "read-only"} />
           </div>
         ))}
       </>
@@ -895,9 +1222,22 @@ export default function AssetForgeBlenderCockpit({
           <Badge tone={selectedPromptTemplate?.truth ?? "read-only"} />
         </div>
         <div style={styles.promptPreview}>{selectedPromptTemplate?.text}</div>
+        <div
+          aria-label="Prompt template handoff safety summary"
+          style={styles.promptTemplateSafetySummary}
+        >
+          <strong>{selectedPromptTemplate?.label}</strong>
+          <span>{selectedPromptTemplate?.description}</span>
+          <span>Prompt Studio opens this as a dry-run editable draft; no auto-execution or mutation dispatch occurs.</span>
+          <span style={styles.promptTemplateSafetyLabels}>
+            {(selectedPromptTemplate?.safetyLabels ?? ["autoExecute=false", "non-mutating"]).map((label) => (
+              <span key={label} style={styles.promptTemplateSafetyLabel}>{label}</span>
+            ))}
+          </span>
+        </div>
         <div style={styles.propertyActionRow}>
           <button type="button" onClick={copyPromptTemplate} style={styles.smallButton}>Copy template</button>
-          <button type="button" onClick={onOpenPromptStudio} style={styles.smallButton}>Open Prompt Studio</button>
+          <button type="button" onClick={loadPromptTemplate} style={styles.smallButton}>Open Prompt Studio</button>
           <button type="button" onClick={loadPromptTemplate} style={styles.primaryButton}>Load template</button>
         </div>
         <div style={styles.statusNotice}>Prompt templates are preview-first and autoExecute=false.</div>
@@ -908,19 +1248,11 @@ export default function AssetForgeBlenderCockpit({
   function renderSafetyTab() {
     return (
       <>
-        {[
-          ["execution_admitted", "false"],
-          ["placement_write_admitted", "false"],
-          ["mutation_occurred", "false"],
-          ["provider generation", "blocked"],
-          ["Blender execution", "blocked"],
-          ["Asset Processor execution", "blocked"],
-          ["material/prefab mutation", "blocked"],
-        ].map(([label, value]) => (
-          <div key={label} style={styles.propertyRow}>
-            <span style={styles.propertyLabel}>{label}</span>
-            <span style={styles.propertyValue}>{value}</span>
-            <Badge tone={value === "false" ? "read-only" : "blocked"} />
+        {safetyRows.map((row) => (
+          <div key={`${row.label}-${row.value}`} style={styles.propertyRow}>
+            <span style={styles.propertyLabel}>{row.label}</span>
+            <span style={styles.propertyValue}>{row.value}</span>
+            <Badge tone={row.tone ?? "blocked"} />
           </div>
         ))}
       </>
@@ -931,28 +1263,30 @@ export default function AssetForgeBlenderCockpit({
     return (
       <>
         <div role="status" style={styles.statusNotice}>{statusMessage}</div>
-        {selectedPropertiesTab === "Transform" ? renderTransformTab() : null}
-        {selectedPropertiesTab === "Object" ? renderObjectTab() : null}
-        {selectedPropertiesTab === "Material" ? renderMaterialTab() : null}
-        {selectedPropertiesTab === "Proof" ? renderProofTab() : null}
-        {selectedPropertiesTab === "Safety" ? renderSafetyTab() : null}
+        {activePropertiesTab === "Transform" ? renderTransformTab() : null}
+        {activePropertiesTab === "Object" ? renderObjectTab() : null}
+        {activePropertiesTab === "Material" ? renderMaterialTab() : null}
+        {activePropertiesTab === "Proof" ? renderProofTab() : null}
+        {activePropertiesTab === "Safety" ? renderSafetyTab() : null}
       </>
     );
   }
 
   function renderBottomContent() {
-    if (selectedBottomTab === "Evidence") {
+    const selectedBottomAction = selectedStatusStripTab?.action ?? selectedBottomTab;
+
+    if (selectedBottomAction === "evidence" || selectedBottomTab === "Evidence") {
       return (
         <div style={styles.bottomContentRow}>
           <button type="button" onClick={onViewLatestRun} style={styles.smallButton}>Latest run</button>
           <button type="button" onClick={onViewExecution} style={styles.smallButton}>Execution</button>
           <button type="button" onClick={onViewArtifact} style={styles.smallButton}>Artifact</button>
           <button type="button" onClick={onViewEvidence} style={styles.smallButton}>Evidence drawer</button>
-          <span style={styles.statusText}>Evidence drill-in only; no runtime execution.</span>
+          <span style={styles.statusText}>{selectedStatusStripTab?.status ?? "Evidence drill-in only; no runtime execution."}</span>
         </div>
       );
     }
-    if (selectedBottomTab === "Prompt Template") {
+    if (selectedBottomAction === "prompt-template" || selectedBottomTab === "Prompt Template") {
       return (
         <div style={styles.bottomContentRow}>
           <span style={styles.statusText}>{selectedPromptTemplate?.label}: autoExecute=false</span>
@@ -962,21 +1296,30 @@ export default function AssetForgeBlenderCockpit({
         </div>
       );
     }
-    if (selectedBottomTab === "Logs") {
+    if (selectedBottomAction === "logs" || selectedBottomTab === "Logs") {
       return (
         <div style={styles.bottomContentRow}>
           <span style={styles.statusText}>{statusMessage}</span>
-          <span style={styles.statusText}>Blocked operations explain next unlock before any execution exists.</span>
+          <span style={styles.statusText}>{selectedStatusStripTab?.status ?? "Blocked operations explain next unlock before any execution exists."}</span>
         </div>
       );
     }
-    if (selectedBottomTab === "Latest Artifacts") {
+    if (selectedBottomAction === "latest-artifacts" || selectedBottomTab === "Latest Artifacts") {
       return (
         <div style={styles.bottomContentRow}>
           <span style={styles.statusText}>Run: {latestRunId ?? "not selected"}</span>
           <span style={styles.statusText}>Exec: {latestExecutionId ?? "not selected"}</span>
           <span style={styles.statusText}>Artifact: {latestArtifactId ?? "not selected"}</span>
           <span style={styles.statusText}>{latestPlacementProofOnlyReview ? "proof-only snapshot loaded" : "no placement proof snapshot"}</span>
+        </div>
+      );
+    }
+    if (selectedBottomAction !== "timeline" && selectedBottomTab !== "Timeline" && selectedStatusStripTab) {
+      return (
+        <div style={styles.bottomContentRow}>
+          <Badge tone={selectedStatusStripTab.truth} />
+          <span style={styles.statusText}>{selectedStatusStripTab.status}</span>
+          <span style={styles.statusText}>Status strip action is UI-only; no backend dispatch occurs.</span>
         </div>
       );
     }
@@ -990,7 +1333,7 @@ export default function AssetForgeBlenderCockpit({
         </div>
         <span>End 250</span>
         <span style={styles.statusText}>Frame 1</span>
-        <span style={styles.statusText}>{statusMessage}</span>
+        <span style={styles.statusText}>{selectedStatusStripTab?.status ?? statusMessage}</span>
       </div>
     );
   }
@@ -1000,7 +1343,7 @@ export default function AssetForgeBlenderCockpit({
       <header style={styles.menuBar} aria-label="Asset Forge top menu">
         <div style={styles.menuLeft}>
           <strong style={styles.brand}>Asset Forge</strong>
-          {menuGroups.map((menu) => (
+          {editorMenuGroups.map((menu) => (
             <div key={menu.id} style={styles.menuGroup}>
               <button
                 type="button"
@@ -1056,10 +1399,10 @@ export default function AssetForgeBlenderCockpit({
       </section>
 
       <nav style={styles.stageBar} aria-label="Asset Forge workflow stages">
-        {fallbackStages.map(([label, tone]) => (
-          <div key={label} style={styles.stageTab}>
-            <span style={styles.stageLabel}>{label}</span>
-            <Badge tone={tone} />
+        {workflowStages.map((stage) => (
+          <div key={stage.id} style={styles.stageTab} title={stage.status}>
+            <span style={styles.stageLabel}>{stage.label}</span>
+            <Badge tone={stage.truth} />
           </div>
         ))}
       </nav>
@@ -1233,9 +1576,9 @@ export default function AssetForgeBlenderCockpit({
                   }}
                   style={{
                     ...styles.propertiesTabButton,
-                    ...(selectedPropertiesTab === tab ? styles.selectedPropertiesTabButton : {}),
+                    ...(activePropertiesTab === tab ? styles.selectedPropertiesTabButton : {}),
                   }}
-                  aria-pressed={selectedPropertiesTab === tab}
+                  aria-pressed={activePropertiesTab === tab}
                 >
                   {tab}
                 </button>
@@ -1245,7 +1588,7 @@ export default function AssetForgeBlenderCockpit({
               <div style={styles.previewSphere} />
             </div>
             <div style={styles.propertiesRows}>
-              {selectedPropertiesTab === "Transform" && propertyRows.length > 0 ? propertyRows.slice(0, 1).map((row) => (
+              {activePropertiesTab === "Transform" && propertyRows.length > 0 ? propertyRows.slice(0, 1).map((row) => (
                 <div key={`${row.label}-${row.value}`} style={styles.propertyRow}>
                   <span style={styles.propertyLabel}>{row.label}</span>
                   <span style={styles.propertyValue}>{row.value}</span>
@@ -1260,21 +1603,22 @@ export default function AssetForgeBlenderCockpit({
 
       <footer style={styles.timelineStrip} aria-label="Asset Forge timeline evidence and prompt strip">
         <div style={styles.timelineTabs}>
-          {bottomTabs.map((tab) => (
+          {statusStripTabs.map((tab) => (
             <button
-              key={tab}
+              key={tab.id}
               type="button"
               onClick={() => {
-                setSelectedBottomTab(tab);
-                setStatusMessage(`${tab} bottom strip selected. UI state only.`);
+                setSelectedBottomTab(tab.label);
+                setStatusMessage(`${tab.label} bottom strip selected. UI state only.`);
               }}
               style={{
                 ...styles.bottomTabButton,
-                ...(selectedBottomTab === tab ? styles.selectedBottomTabButton : {}),
+                ...(selectedBottomTab === tab.label ? styles.selectedBottomTabButton : {}),
               }}
-              aria-pressed={selectedBottomTab === tab}
+              aria-pressed={selectedBottomTab === tab.label}
+              title={tab.status}
             >
-              {tab}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -1937,6 +2281,35 @@ const styles = {
     padding: 4,
     fontSize: 10,
     lineHeight: 1.35,
+  },
+  promptTemplateSafetySummary: {
+    display: "grid",
+    gap: 3,
+    minWidth: 0,
+    padding: "4px",
+    border: "1px solid #9aa0a8",
+    background: "#fff7ed",
+    color: "#172033",
+    fontSize: 10,
+    lineHeight: 1.35,
+    overflowWrap: "anywhere",
+  },
+  promptTemplateSafetyLabels: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 3,
+    minWidth: 0,
+  },
+  promptTemplateSafetyLabel: {
+    display: "inline-flex",
+    alignItems: "center",
+    border: "1px solid #d6a536",
+    borderRadius: 3,
+    background: "#fff4cc",
+    color: "#3b2f0a",
+    padding: "1px 4px",
+    fontSize: 9,
+    fontWeight: 800,
   },
   timelineStrip: {
     minWidth: 0,

@@ -19,6 +19,7 @@ import type {
   AutonomyObservationsResponse,
   AutonomySummaryResponse,
   AssetForgeBlenderStatusRecord,
+  CockpitAppRegistryRecord,
   AssetForgeEditorModelRecord,
   AssetForgeStudioStatusRecord,
   AssetForgeBlenderInspectRequest,
@@ -1039,6 +1040,13 @@ export async function fetchAssetForgeEditorModel(): Promise<AssetForgeEditorMode
   return getJson<AssetForgeEditorModelRecord>(
     "/asset-forge/editor-model",
     "Asset Forge editor model fetch",
+  );
+}
+
+export async function fetchCockpitAppRegistry(): Promise<CockpitAppRegistryRecord> {
+  return getJson<CockpitAppRegistryRecord>(
+    "/cockpit-apps/registry",
+    "Cockpit app registry fetch",
   );
 }
 

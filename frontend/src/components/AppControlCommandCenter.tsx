@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type FormEvent } from 
 import { createPortal } from "react-dom";
 
 import { buildAppControlExecutionReport, previewAppControlScript } from "../lib/api";
+import { cockpitWorkspaceIds } from "../lib/cockpitAppRegistry";
 import { useSettings } from "../lib/settings/hooks";
 import { loadSettingsProfile } from "../lib/settings/storage";
 import type {
@@ -41,10 +42,7 @@ type AppControlReceipt = Omit<AppControlExecutionReport, "items" | "script_id"> 
 const APP_CONTROL_BACKUP_SESSION_KEY = "o3de-control-app-last-app-control-backup";
 const WORKSPACE_VALUES = [
   "home",
-  "create-game",
-  "create-movie",
-  "load-project",
-  "asset-forge",
+  ...cockpitWorkspaceIds,
   "prompt",
   "builder",
   "operations",

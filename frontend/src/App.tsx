@@ -26,6 +26,7 @@ import {
   fetchArtifactCardsForTruthFilter,
   cleanupO3deBridgeResults,
   fetchControlPlaneSummary,
+  fetchCockpitAppRegistry,
   fetchO3deBridge,
   fetchExecutor,
   fetchExecutors,
@@ -70,6 +71,13 @@ import {
   resetPresetLaneFocus,
 } from "./lib/laneController";
 import { buildHomeRecommendationDescriptors, type HomeRecommendationActionId } from "./lib/recommendations";
+import {
+  buildCockpitAppRegistryByWorkspaceId,
+  cockpitAppRegistry,
+  resolveCockpitAppRegistry,
+  type CockpitAppRegistration,
+  type CockpitWorkspaceId,
+} from "./lib/cockpitAppRegistry";
 import {
   addAllowlistedMeshMissionPromptDraft,
   cinematicPlacementProofOnlyMissionPromptDraft,
@@ -244,10 +252,7 @@ type LanePresetSource = "manual" | "session";
 
 type DesktopWorkspaceId =
   | "home"
-  | "create-game"
-  | "create-movie"
-  | "load-project"
-  | "asset-forge"
+  | CockpitWorkspaceId
   | "prompt"
   | "builder"
   | "operations"
@@ -255,6 +260,50 @@ type DesktopWorkspaceId =
   | "records";
 
 type DesktopNavItemId = DesktopWorkspaceId;
+
+function resolveInitialDesktopWorkspaceId(preferredWorkspaceId: string): DesktopWorkspaceId {
+  if (preferredWorkspaceId === "home") {
+    return "asset-forge";
+  }
+
+  if (
+    preferredWorkspaceId === "create-game"
+    || preferredWorkspaceId === "create-movie"
+    || preferredWorkspaceId === "load-project"
+    || preferredWorkspaceId === "asset-forge"
+    || preferredWorkspaceId === "prompt"
+    || preferredWorkspaceId === "builder"
+    || preferredWorkspaceId === "operations"
+    || preferredWorkspaceId === "runtime"
+    || preferredWorkspaceId === "records"
+  ) {
+    return preferredWorkspaceId;
+  }
+
+  return "asset-forge";
+}
+
+function getInitialDesktopWorkspaceId(preferredWorkspaceId: string): DesktopWorkspaceId {
+  if (typeof window !== "undefined") {
+    const storedWorkspace = window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY);
+    if (
+      storedWorkspace === "home"
+      || storedWorkspace === "create-game"
+      || storedWorkspace === "create-movie"
+      || storedWorkspace === "load-project"
+      || storedWorkspace === "asset-forge"
+      || storedWorkspace === "prompt"
+      || storedWorkspace === "builder"
+      || storedWorkspace === "operations"
+      || storedWorkspace === "runtime"
+      || storedWorkspace === "records"
+    ) {
+      return storedWorkspace;
+    }
+  }
+
+  return resolveInitialDesktopWorkspaceId(preferredWorkspaceId);
+}
 
 type PromptLaunchDraftRequest = {
   requestId: string;
@@ -604,6 +653,9 @@ export default function App() {
   const { settings, saveSettings } = useSettings();
   const [lastResponse, setLastResponse] = useState<ResponseEnvelope | null>(null);
   const [catalogAgents, setCatalogAgents] = useState<CatalogAgent[]>([]);
+  const [cockpitRegistrations, setCockpitRegistrations] = useState<readonly CockpitAppRegistration[]>(
+    cockpitAppRegistry,
+  );
   const [approvals, setApprovals] = useState<ApprovalListItem[]>([]);
   const [adapters, setAdapters] = useState<AdaptersResponse | null>(null);
   const [artifacts, setArtifacts] = useState<ArtifactListItem[]>([]);
@@ -689,11 +741,10 @@ export default function App() {
   const [laneOperatorNotes, setLaneOperatorNotes] = useState<Record<string, LaneOperatorNoteEntry>>({});
   const [laneOperatorNoteDraft, setLaneOperatorNoteDraft] = useState("");
   const [laneExportStatus, setLaneExportStatus] = useState<LaneExportStatus | null>(null);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<DesktopWorkspaceId>(
-    settings.layout.preferredLandingSection as DesktopWorkspaceId,
-  );
+  const initialWorkspaceId = getInitialDesktopWorkspaceId(settings.layout.preferredLandingSection);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<DesktopWorkspaceId>(initialWorkspaceId);
   const [visitedWorkspaceIds, setVisitedWorkspaceIds] = useState<DesktopWorkspaceId[]>([
-    settings.layout.preferredLandingSection as DesktopWorkspaceId,
+    initialWorkspaceId,
   ]);
   const [promptLaunchDraftRequest, setPromptLaunchDraftRequest] =
     useState<PromptLaunchDraftRequest | null>(null);
@@ -2688,6 +2739,15 @@ export default function App() {
     }
   }
 
+  async function loadCockpitRegistry() {
+    try {
+      const registryRecord = await fetchCockpitAppRegistry();
+      setCockpitRegistrations(resolveCockpitAppRegistry(registryRecord));
+    } catch {
+      setCockpitRegistrations(cockpitAppRegistry);
+    }
+  }
+
   function getPreferredExecutionForRun(
     runId: string,
     executionItems: ExecutionListItem[] = executions,
@@ -3249,6 +3309,7 @@ export default function App() {
 
   useEffect(() => {
     async function loadInitialData() {
+      await loadCockpitRegistry();
       await loadCatalog();
 
       await loadApprovals();
@@ -4877,6 +4938,7 @@ export default function App() {
   const warningExecutionCount = executions.filter((execution) => execution.warning_count > 0).length;
   const unresolvedRunCount = runs.filter(isUnresolvedRun).length;
   const bridgeStatusLabel = o3deBridgeStatus?.heartbeat_fresh ? "fresh" : "check";
+  const cockpitRegistryByWorkspaceId = buildCockpitAppRegistryByWorkspaceId(cockpitRegistrations);
   const homeWorkspaceGuide = getShellWorkspaceGuide("home");
   const promptWorkspaceGuide = getShellWorkspaceGuide("prompt");
   const builderWorkspaceGuide = getShellWorkspaceGuide("builder");
@@ -4893,20 +4955,20 @@ export default function App() {
       subtitle: homeWorkspaceGuide.workspaceSubtitle,
     },
     "create-game": {
-      title: "Create Game",
-      subtitle: "Create Game Cockpit with staged mission workflow, bounded editor actions, and evidence review.",
+      title: cockpitRegistryByWorkspaceId["create-game"].workspaceTitle,
+      subtitle: cockpitRegistryByWorkspaceId["create-game"].workspaceSubtitle,
     },
     "create-movie": {
-      title: "Create Movie",
-      subtitle: "Create Movie Cockpit with cinematic planning, proof-only placement review, and explicit blockers.",
+      title: cockpitRegistryByWorkspaceId["create-movie"].workspaceTitle,
+      subtitle: cockpitRegistryByWorkspaceId["create-movie"].workspaceSubtitle,
     },
     "load-project": {
-      title: "Load Project",
-      subtitle: "Load Project Cockpit for read-only target verification and preflight readiness checks.",
+      title: cockpitRegistryByWorkspaceId["load-project"].workspaceTitle,
+      subtitle: cockpitRegistryByWorkspaceId["load-project"].workspaceSubtitle,
     },
     "asset-forge": {
-      title: "Asset Forge",
-      subtitle: "O3DE-native production asset toolbench with read-only evidence, review, and gated creation planning.",
+      title: cockpitRegistryByWorkspaceId["asset-forge"].workspaceTitle,
+      subtitle: cockpitRegistryByWorkspaceId["asset-forge"].workspaceSubtitle,
     },
     prompt: {
       title: promptWorkspaceGuide.workspaceTitle,
@@ -4969,38 +5031,14 @@ export default function App() {
       label: "Create",
       detail: "Use natural-language or mission-control surfaces to start and shape work.",
       items: [
-        {
-          id: "create-game",
-          label: "Create Game",
-          subtitle: "Open the Create Game cockpit environment",
-          badge: null,
-          tone: "success",
-          helpTooltip: "Open the first-class Create Game cockpit with mission pipeline, tools, and blocked-capability guidance.",
-        },
-        {
-          id: "create-movie",
-          label: "Create Movie",
-          subtitle: "Open the Create Movie cockpit environment",
-          badge: null,
-          tone: "info",
-          helpTooltip: "Open the first-class Create Movie cockpit for cinematic pipeline, proof-only placement, and review guidance.",
-        },
-        {
-          id: "load-project",
-          label: "Load Project",
-          subtitle: "Open the Load Project cockpit environment",
-          badge: null,
-          tone: "neutral",
-          helpTooltip: "Open the first-class Load Project cockpit for target verification and configuration preflight.",
-        },
-        {
-          id: "asset-forge",
-          label: "Asset Forge",
-          subtitle: "Open the O3DE-native asset studio workspace",
-          badge: null,
-          tone: "info",
-          helpTooltip: "Open Asset Forge as its own production workspace for read-only asset evidence, preview pages, and gated operator review.",
-        },
+        ...cockpitRegistrations.map((registration) => ({
+          id: registration.workspaceId,
+          label: registration.navLabel,
+          subtitle: registration.navSubtitle,
+          badge: registration.shellMode === "full-screen-editor" ? "full" : null,
+          tone: registration.tone,
+          helpTooltip: registration.helpTooltip,
+        })),
         {
           id: "prompt",
           label: promptWorkspaceGuide.navLabel,
@@ -9169,12 +9207,17 @@ export default function App() {
               )}
             >
               <AIAssetForgePanel
+                onOpenHome={() => setActiveWorkspaceId("home")}
+                onOpenCreateGame={() => setActiveWorkspaceId("create-game")}
+                onOpenCreateMovie={() => setActiveWorkspaceId("create-movie")}
+                onOpenLoadProject={() => setActiveWorkspaceId("load-project")}
                 onOpenPromptStudio={openPromptStudioFromAssetForgeCockpit}
                 onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
                 onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
                 onLaunchPromptTemplate={openPromptStudioWithAssetForgeEditorTemplate}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
+                onOpenOperations={() => setActiveWorkspaceId("operations")}
                 onOpenRecords={openRecordsRuns}
                 onViewLatestRun={openLatestRunEvidence}
                 onViewExecution={openLatestExecutionEvidence}
@@ -9268,6 +9311,7 @@ export default function App() {
               launchpadContent={homeLaunchpadContent}
               overviewContent={homeOverviewContent}
               guideContent={homeGuideContent}
+              cockpitRegistry={cockpitRegistrations}
               onOpenPromptStudio={openPromptStudioFromHomeCockpit}
               onOpenRuntimeOverview={openRuntimeOverview}
               onOpenAssetForge={() => setActiveWorkspaceId("asset-forge")}

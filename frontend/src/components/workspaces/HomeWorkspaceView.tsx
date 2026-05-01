@@ -5,6 +5,7 @@ import DesktopWindow from "../DesktopWindow";
 import HomeCockpitLaunchPanel from "../HomeCockpitLaunchPanel";
 import MissionCardDeck from "../MissionCardDeck";
 import MissionTruthRail from "../MissionTruthRail";
+import type { CockpitAppRegistration } from "../../lib/cockpitAppRegistry";
 import type { PlacementProofOnlyReviewSnapshot } from "../../lib/promptPlacementProofOnlyReview";
 import { getShellWorkspaceGuide, getShellWorkspaceWindowGuide } from "../../content/operatorGuideShell";
 import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
@@ -16,6 +17,7 @@ type HomeWorkspaceViewProps = {
   launchpadContent: ReactNode;
   overviewContent: ReactNode;
   guideContent: ReactNode;
+  cockpitRegistry?: readonly CockpitAppRegistration[];
   onOpenPromptStudio?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenAssetForge?: () => void;
@@ -76,6 +78,7 @@ export default function HomeWorkspaceView({
   launchpadContent,
   overviewContent,
   guideContent,
+  cockpitRegistry,
   onOpenPromptStudio,
   onOpenRuntimeOverview,
   onOpenAssetForge,
@@ -179,6 +182,7 @@ export default function HomeWorkspaceView({
             onLaunchPlacementProofTemplate={onLaunchPlacementProofTemplate}
           />
           <HomeCockpitLaunchPanel
+            registry={cockpitRegistry}
             onOpenCreateGame={onOpenCreateGame}
             onOpenCreateMovie={onOpenCreateMovie}
             onOpenLoadProject={onOpenLoadProject}

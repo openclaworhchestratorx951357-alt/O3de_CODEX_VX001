@@ -604,6 +604,28 @@ export default function PromptControlPanel({
   const executeLabel = selectedSession && selectedSession.status !== "planned"
     ? "Execute / Continue Selected Prompt"
     : "Execute Selected Prompt";
+  const loadedMissionDraftIsAssetForgeEditorModel =
+    loadedMissionDraftSourceSurfaceLabel?.startsWith("Asset Forge editor model /") ?? false;
+
+  function copyLoadedMissionDraftPrompt(): void {
+    const text = loadedMissionDraft?.promptText ?? "";
+    if (!text) {
+      setPromptRecommendationMessage("No loaded prompt text is available to copy. autoExecute=false.");
+      return;
+    }
+    if (navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(text).then(
+        () => setPromptRecommendationMessage("Loaded prompt copied. autoExecute=false."),
+        () => setPromptRecommendationMessage(
+          "Clipboard unavailable. Loaded prompt remains visible for manual copy. autoExecute=false.",
+        ),
+      );
+      return;
+    }
+    setPromptRecommendationMessage(
+      "Clipboard unavailable. Loaded prompt remains visible for manual copy. autoExecute=false.",
+    );
+  }
 
   return (
     <section style={panelStyle}>
@@ -725,6 +747,18 @@ export default function PromptControlPanel({
       ) : null}
       {loadedMissionDraft ? (
         <article style={loadedTemplateReviewStyle} aria-label="Mission template handoff review">
+          {loadedMissionDraftIsAssetForgeEditorModel ? (
+            <div
+              aria-label="Asset Forge editor model handoff safety banner"
+              style={assetForgeEditorHandoffBannerStyle}
+            >
+              <strong>Backend-supplied Asset Forge editor template</strong>
+              <span>
+                preview-first handoff. autoExecute=false. No provider generation,
+                Blender execution, Asset Processor execution, placement write, or mutation is admitted.
+              </span>
+            </div>
+          ) : null}
           <div style={loadedTemplateHeaderStyle}>
             <div style={loadedTemplateTitleGroupStyle}>
               <span style={loadedTemplateEyebrowStyle}>Mission template handoff</span>
@@ -773,6 +807,12 @@ export default function PromptControlPanel({
             </span>
           </div>
           <div style={loadedTemplateActionsStyle}>
+            <button
+              type="button"
+              onClick={copyLoadedMissionDraftPrompt}
+            >
+              Copy loaded prompt text
+            </button>
             <button
               type="button"
               onClick={() => {
@@ -1075,6 +1115,17 @@ const loadedTemplateReviewStyle = {
   border: "1px solid var(--app-success-border)",
   background: "var(--app-success-bg)",
   color: "var(--app-success-text)",
+} satisfies CSSProperties;
+
+const assetForgeEditorHandoffBannerStyle = {
+  display: "grid",
+  gap: 4,
+  padding: "10px 12px",
+  borderRadius: "var(--app-card-radius)",
+  border: "1px solid var(--app-warning-border)",
+  background: "var(--app-warning-bg)",
+  color: "var(--app-warning-text)",
+  lineHeight: 1.45,
 } satisfies CSSProperties;
 
 const loadedTemplateHeaderStyle = {

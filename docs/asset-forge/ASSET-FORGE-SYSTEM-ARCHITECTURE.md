@@ -213,3 +213,33 @@ Fields:
 10. Asset Processor and assetdb evidence.
 11. Editor placement planning.
 12. Admitted placement only after exact proof.
+
+## Current editor/cockpit state (2026-05-01)
+
+The current Asset Forge frontend has moved beyond the original dashboard-style
+GUI shell. It now uses a full-screen Blender-style editor frame with a compact
+top menu, left tool shelf, dominant central viewport, right outliner/properties
+stack, and bottom timeline/status strip.
+
+Backend support now exists for the editor model through
+`GET /asset-forge/editor-model`. That model supplies tool metadata, menu
+groups, workflow stages, status strip tabs, outliner rows, transform values,
+property rows, material preview metadata, prompt templates, and blocked
+capability reasons. The frontend preserves a static fallback when the backend
+model is unavailable.
+
+The app-wide cockpit registry foundation currently lives in frontend code at
+`frontend/src/lib/cockpitAppRegistry.ts`. It registers Create Game, Create
+Movie, Load Project, and Asset Forge, with Asset Forge marked as
+`full-screen-editor`. A future backend contract should expose the same registry
+read-only as `GET /cockpit-apps/registry`.
+
+This current editor state remains non-mutating:
+
+- tool clicks select local UI state only
+- transform edits are local draft values only
+- Apply remains blocked
+- prompt templates are preview/copy/open only
+- no provider generation, Blender execution, Asset Processor execution,
+  placement write, material mutation, prefab mutation, or broad asset mutation
+  is admitted
