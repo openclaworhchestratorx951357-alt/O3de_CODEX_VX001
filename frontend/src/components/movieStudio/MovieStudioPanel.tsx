@@ -605,6 +605,11 @@ export default function MovieStudioPanel() {
     }
   }
 
+  function clearO3deStatusLog() {
+    setO3deStatusLog([]);
+    setHandoffStatus("Cleared O3DE log");
+  }
+
   return (
     <section aria-label="Movie Studio" style={s.shell}>
       <header style={s.header}>
@@ -658,6 +663,9 @@ export default function MovieStudioPanel() {
         </button>
         <button type="button" onClick={() => void copyO3deStatus()} style={s.toolbarButton}>
           Copy O3DE Status
+        </button>
+        <button type="button" onClick={clearO3deStatusLog} style={s.toolbarButton}>
+          Clear O3DE Log
         </button>
       </section>
 

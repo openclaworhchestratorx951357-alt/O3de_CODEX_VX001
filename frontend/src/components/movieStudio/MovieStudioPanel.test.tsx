@@ -21,6 +21,7 @@ describe("MovieStudioPanel", () => {
     expect(screen.getByRole("heading", { name: "Master Timeline" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Refresh/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Copy O3DE Status" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Clear O3DE Log" })).toBeInTheDocument();
     expect(screen.getByText((content) => content.startsWith("O3DE Health:"))).toBeInTheDocument();
     expect(screen.getByText((content) => content.startsWith("Last check:"))).toBeInTheDocument();
     expect(screen.getByText((content) => content.includes("Freshness:"))).toBeInTheDocument();
@@ -181,6 +182,13 @@ describe("MovieStudioPanel", () => {
     render(<MovieStudioPanel />);
     fireEvent.keyDown(window, { key: "S", shiftKey: true });
     await screen.findByText("Copied O3DE status");
+  });
+
+  it("clears O3DE status log with feedback", async () => {
+    render(<MovieStudioPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Clear O3DE Log" }));
+    await screen.findByText("Cleared O3DE log");
+    expect(screen.getByText("Recent checks: none yet")).toBeInTheDocument();
   });
 
   it("supports keyboard transport shortcuts", () => {
