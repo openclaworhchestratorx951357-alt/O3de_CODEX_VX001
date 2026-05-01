@@ -272,6 +272,20 @@ type AssetForgeDockedWorkspaceId =
   | "runtime"
   | "records";
 
+function isAssetForgeDockedWorkspaceId(value: string): value is AssetForgeDockedWorkspaceId {
+  return (
+    value === "none"
+    || value === "create-game"
+    || value === "create-movie"
+    || value === "load-project"
+    || value === "prompt"
+    || value === "builder"
+    || value === "operations"
+    || value === "runtime"
+    || value === "records"
+  );
+}
+
 function resolveInitialDesktopWorkspaceId(preferredWorkspaceId: string): DesktopWorkspaceId {
   if (preferredWorkspaceId === "home") {
     return "asset-forge";
@@ -551,6 +565,7 @@ const ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY = "o3de-control-app-active-desktop-wo
 const ACTIVE_OPERATIONS_SURFACE_SESSION_KEY = "o3de-control-app-active-operations-surface";
 const ACTIVE_RUNTIME_SURFACE_SESSION_KEY = "o3de-control-app-active-runtime-surface";
 const ACTIVE_RECORDS_SURFACE_SESSION_KEY = "o3de-control-app-active-records-surface";
+const ACTIVE_ASSET_FORGE_DOCKED_WORKSPACE_SESSION_KEY = "o3de-control-app-active-asset-forge-docked-workspace";
 const EVENTS_TIMELINE_SAVED_VIEWS_SESSION_KEY = "o3de-control-app-events-timeline-saved-views";
 const WORKSPACE_NEXT_STEP_RECENT_ACTIONS_SESSION_KEY = "o3de-control-app-workspace-next-step-recent-actions";
 const WORKSPACE_NEXT_STEPS_COLLAPSED_SESSION_KEY = "o3de-control-app-workspace-next-steps-collapsed";
@@ -2516,6 +2531,16 @@ export default function App() {
     ) {
       setActiveRecordsSurface(storedRecordsSurface);
     }
+
+    const storedAssetForgeDockedWorkspace = window.sessionStorage.getItem(
+      ACTIVE_ASSET_FORGE_DOCKED_WORKSPACE_SESSION_KEY,
+    );
+    if (
+      storedAssetForgeDockedWorkspace
+      && isAssetForgeDockedWorkspaceId(storedAssetForgeDockedWorkspace)
+    ) {
+      setAssetForgeDockedWorkspaceId(storedAssetForgeDockedWorkspace);
+    }
   }, []);
 
   useEffect(() => {
@@ -2525,6 +2550,17 @@ export default function App() {
 
     window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, activeWorkspaceId);
   }, [activeWorkspaceId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.sessionStorage.setItem(
+      ACTIVE_ASSET_FORGE_DOCKED_WORKSPACE_SESSION_KEY,
+      assetForgeDockedWorkspaceId,
+    );
+  }, [assetForgeDockedWorkspaceId]);
 
   function selectDesktopNavigation(navItemId: string): void {
     switch (navItemId as DesktopNavItemId) {

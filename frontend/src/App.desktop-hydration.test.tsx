@@ -13,6 +13,7 @@ const ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY = "o3de-control-app-active-desktop-wo
 const ACTIVE_OPERATIONS_SURFACE_SESSION_KEY = "o3de-control-app-active-operations-surface";
 const ACTIVE_RUNTIME_SURFACE_SESSION_KEY = "o3de-control-app-active-runtime-surface";
 const ACTIVE_RECORDS_SURFACE_SESSION_KEY = "o3de-control-app-active-records-surface";
+const ACTIVE_ASSET_FORGE_DOCKED_WORKSPACE_SESSION_KEY = "o3de-control-app-active-asset-forge-docked-workspace";
 const LAZY_SURFACE_TIMEOUT_MS = 5000;
 
 const apiMocks = vi.hoisted(() => ({
@@ -248,6 +249,35 @@ describe("App desktop hydration", () => {
     vi.clearAllMocks();
 
     setPendingAppApiMocks(apiMocks);
+  });
+
+  it("restores the Asset Forge docked workspace panel from session storage after remount", async () => {
+    window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "asset-forge");
+    window.sessionStorage.setItem(ACTIVE_ASSET_FORGE_DOCKED_WORKSPACE_SESSION_KEY, "create-game");
+
+    const { unmount } = render(<App />);
+
+    expect(await screen.findByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
+    expect(
+      await screen.findByLabelText(
+        "Asset Forge docked workspace panel",
+        {},
+        { timeout: LAZY_SURFACE_TIMEOUT_MS },
+      ),
+    ).toBeInTheDocument();
+    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
+
+    unmount();
+    render(<App />);
+
+    expect(
+      await screen.findByLabelText(
+        "Asset Forge docked workspace panel",
+        {},
+        { timeout: LAZY_SURFACE_TIMEOUT_MS },
+      ),
+    ).toBeInTheDocument();
+    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
   });
 
   it("restores the command center agents surface from session storage after remount", async () => {
