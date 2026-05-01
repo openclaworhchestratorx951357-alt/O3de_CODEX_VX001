@@ -9215,10 +9215,19 @@ export default function App() {
                 onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
                 onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
                 onLaunchPromptTemplate={openPromptStudioWithAssetForgeEditorTemplate}
+                cockpitRegistrations={cockpitRegistrations}
                 onOpenRuntimeOverview={openRuntimeOverview}
+                onOpenRuntimeGovernance={openRuntimeGovernance}
+                onOpenRuntimeExecutors={openRuntimeExecutors}
+                onOpenRuntimeWorkspaces={openRuntimeWorkspaces}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
                 onOpenOperations={() => setActiveWorkspaceId("operations")}
+                onOpenOperationsApprovals={openOperationsApprovals}
+                onOpenOperationsDispatch={openOperationsDispatch}
                 onOpenRecords={openRecordsRuns}
+                onOpenRecordsExecutions={openRecordsExecutions}
+                onOpenRecordsArtifacts={openRecordsArtifacts}
+                onOpenRecordsEvents={openRecordsEvents}
                 onViewLatestRun={openLatestRunEvidence}
                 onViewExecution={openLatestExecutionEvidence}
                 onViewArtifact={openLatestArtifactEvidence}

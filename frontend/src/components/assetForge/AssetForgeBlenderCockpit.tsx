@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
+import type { CockpitAppRegistration } from "../../lib/cockpitAppRegistry";
 import type {
   AdaptersResponse,
   AssetForgeBlenderStatusRecord,
@@ -27,18 +28,28 @@ type Props = {
   latestExecutionId?: string | null;
   latestArtifactId?: string | null;
   latestPlacementProofOnlyReview?: PlacementProofOnlyReviewSnapshot | null;
+  cockpitRegistrations?: readonly CockpitAppRegistration[];
   onOpenHome?: () => void;
   onOpenCreateGame?: () => void;
   onOpenCreateMovie?: () => void;
+  onOpenMovieStudioTimeline?: () => void;
   onOpenLoadProject?: () => void;
   onOpenPromptStudio?: () => void;
   onLaunchInspectTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
   onLaunchPromptTemplate?: (template: AssetForgePromptTemplateRecord) => void;
   onOpenRecords?: () => void;
+  onOpenRecordsExecutions?: () => void;
+  onOpenRecordsArtifacts?: () => void;
+  onOpenRecordsEvents?: () => void;
   onOpenRuntimeOverview?: () => void;
+  onOpenRuntimeGovernance?: () => void;
+  onOpenRuntimeExecutors?: () => void;
+  onOpenRuntimeWorkspaces?: () => void;
   onOpenBuilder?: () => void;
   onOpenOperations?: () => void;
+  onOpenOperationsApprovals?: () => void;
+  onOpenOperationsDispatch?: () => void;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
@@ -313,75 +324,383 @@ const menuGroups: MenuGroup[] = [
   },
 ];
 
-const appShellMenuGroup: MenuGroup = {
-  id: "app",
-  label: "App",
-  items: [
-    {
-      id: "app-home",
-      label: "Home / Start",
-      tone: "read-only",
-      action: "open-workspace-home",
-      status: "Opened Home from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-create-game",
-      label: "Create Game",
-      tone: "plan-only",
-      action: "open-workspace-create-game",
-      status: "Opened Create Game from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-create-movie",
-      label: "Create Movie",
-      tone: "plan-only",
-      action: "open-workspace-create-movie",
-      status: "Opened Create Movie from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-load-project",
-      label: "Load Project",
-      tone: "read-only",
-      action: "open-workspace-load-project",
-      status: "Opened Load Project from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-prompt",
-      label: "Prompt Studio",
-      tone: "read-only",
-      action: "open-prompt-studio",
-      status: "Opened Prompt Studio from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-builder",
-      label: "Builder",
-      tone: "plan-only",
-      action: "open-workspace-builder",
-      status: "Opened Builder from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-operations",
-      label: "Operations",
-      tone: "read-only",
-      action: "open-workspace-operations",
-      status: "Opened Operations from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-runtime",
-      label: "Runtime Overview",
-      tone: "read-only",
-      action: "open-workspace-runtime",
-      status: "Opened Runtime Overview from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-records",
-      label: "Records",
-      tone: "read-only",
-      action: "open-records",
-      status: "Opened Records from Asset Forge shell navigation only.",
-    },
-  ],
-};
+const assetForgeShellMenuGroups: MenuGroup[] = [
+  {
+    id: "app",
+    label: "App",
+    items: [
+      {
+        id: "app-home",
+        label: "Home",
+        tone: "read-only",
+        action: "open-workspace-home",
+        status: "Returned to Home from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-create-game",
+        label: "Create Game",
+        tone: "plan-only",
+        action: "open-workspace-create-game",
+        status: "Opened Create Game from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-create-movie",
+        label: "Create Movie",
+        tone: "plan-only",
+        action: "open-workspace-create-movie",
+        status: "Opened Create Movie from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-load-project",
+        label: "Load Project",
+        tone: "read-only",
+        action: "open-workspace-load-project",
+        status: "Opened Load Project from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-prompt-studio",
+        label: "Prompt Studio",
+        tone: "read-only",
+        action: "open-prompt-studio",
+        status: "Opened Prompt Studio from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-runtime-overview",
+        label: "Runtime Overview",
+        tone: "read-only",
+        action: "open-workspace-runtime",
+        status: "Opened Runtime Overview from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-runtime-governance",
+        label: "Runtime Governance",
+        tone: "read-only",
+        action: "open-workspace-runtime-governance",
+        status: "Opened Runtime Governance from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-runtime-executors",
+        label: "Runtime Executors",
+        tone: "read-only",
+        action: "open-workspace-runtime-executors",
+        status: "Opened Runtime Executors from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-runtime-workspaces",
+        label: "Runtime Workspaces",
+        tone: "read-only",
+        action: "open-workspace-runtime-workspaces",
+        status: "Opened Runtime Workspaces from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-movie-studio",
+        label: "Movie Studio Timeline",
+        tone: "read-only",
+        action: "open-workspace-movie-studio-timeline",
+        status: "Switched to Movie Studio Timeline inside Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-builder",
+        label: "Builder",
+        tone: "read-only",
+        action: "open-workspace-builder",
+        status: "Opened Builder from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-operations-dashboard",
+        label: "Operations Dashboard",
+        tone: "read-only",
+        action: "open-workspace-operations",
+        status: "Opened Operations from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-operations-approvals",
+        label: "Operations Approvals",
+        tone: "read-only",
+        action: "open-workspace-operations-approvals",
+        status: "Opened Operations Approvals from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-operations-dispatch",
+        label: "Operations Dispatch",
+        tone: "read-only",
+        action: "open-workspace-operations-dispatch",
+        status: "Opened Operations Dispatch from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-records-runs",
+        label: "Records Runs",
+        tone: "read-only",
+        action: "open-records",
+        status: "Opened Records Runs from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-records-executions",
+        label: "Records Executions",
+        tone: "read-only",
+        action: "open-records-executions",
+        status: "Opened Records Executions from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-records-artifacts",
+        label: "Records Artifacts",
+        tone: "read-only",
+        action: "open-records-artifacts",
+        status: "Opened Records Artifacts from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-records-events",
+        label: "Records Events",
+        tone: "read-only",
+        action: "open-records-events",
+        status: "Opened Records Events from Asset Forge shell navigation only.",
+      },
+    ],
+  },
+  {
+    id: "create",
+    label: "Create",
+    items: [
+      {
+        id: "create-game",
+        label: "Game",
+        tone: "plan-only",
+        action: "open-workspace-create-game",
+        status: "Opened Create Game from Asset Forge workbench navigation only.",
+      },
+      {
+        id: "create-movie",
+        label: "Movie",
+        tone: "plan-only",
+        action: "open-workspace-create-movie",
+        status: "Opened Create Movie from Asset Forge workbench navigation only.",
+      },
+      {
+        id: "create-generate-asset",
+        label: "Generate Asset",
+        tone: "blocked",
+        action: "blocked",
+        status: "Provider generation is blocked. Use Prompt Studio planning or proof-only templates until generation is separately admitted.",
+      },
+    ],
+  },
+  {
+    id: "project",
+    label: "Project",
+    items: [
+      {
+        id: "project-load",
+        label: "Load Project",
+        tone: "read-only",
+        action: "open-workspace-load-project",
+        status: "Opened Load Project from Asset Forge workbench navigation only. No project file write occurred.",
+      },
+      {
+        id: "project-status",
+        label: "Project / Bridge Status",
+        tone: "read-only",
+        action: "safety-tab",
+        status: "Project and bridge status are shown as read-only safety context.",
+      },
+    ],
+  },
+  {
+    id: "prompt",
+    label: "Prompt",
+    items: [
+      {
+        id: "prompt-studio",
+        label: "Prompt Studio",
+        tone: "read-only",
+        action: "open-prompt-studio",
+        status: "Opened Prompt Studio from Asset Forge workbench navigation only. No prompt auto-executes.",
+      },
+      {
+        id: "prompt-inspect",
+        label: "Inspect Candidate Template",
+        tone: "read-only",
+        action: "select-template-inspect-candidate",
+        status: "Inspect candidate template selected for preview only.",
+      },
+      {
+        id: "prompt-proof",
+        label: "Placement Proof-Only Template",
+        tone: "proof-only",
+        action: "select-template-placement-proof-only",
+        status: "Placement proof-only template selected. No placement write is admitted.",
+      },
+    ],
+  },
+  {
+    id: "engine",
+    label: "Engine",
+    items: [
+      {
+        id: "engine-runtime",
+        label: "Runtime Overview",
+        tone: "read-only",
+        action: "open-workspace-runtime",
+        status: "Opened Runtime Overview from Asset Forge workbench navigation only.",
+      },
+      {
+        id: "engine-asset-processor",
+        label: "Asset Processor Status",
+        tone: "preflight-only",
+        action: "safety-tab",
+        status: "Asset Processor status is preflight/status only. Asset Processor execution is not admitted.",
+      },
+      {
+        id: "engine-o3de-mutation",
+        label: "O3DE Mutation Gates",
+        tone: "blocked",
+        action: "safety-tab",
+        status: "O3DE project, level, material, prefab, and placement mutation remain blocked without a separate admission packet.",
+      },
+    ],
+  },
+  {
+    id: "records",
+    label: "Records",
+    items: [
+      {
+        id: "records-evidence",
+        label: "Evidence Explorer",
+        tone: "read-only",
+        action: "open-records",
+        status: "Opened Records from Asset Forge workbench navigation only.",
+      },
+      {
+        id: "records-latest-run",
+        label: "Latest Run",
+        tone: "read-only",
+        action: "view-run",
+        status: "Latest run opened as read-only evidence.",
+      },
+      {
+        id: "records-latest-artifact",
+        label: "Latest Artifact",
+        tone: "read-only",
+        action: "view-artifact",
+        status: "Latest artifact opened as read-only evidence.",
+      },
+    ],
+  },
+  {
+    id: "safety",
+    label: "Safety",
+    items: [
+      {
+        id: "safety-gates",
+        label: "Admission Gates",
+        tone: "read-only",
+        action: "safety-tab",
+        status: "Safety gates shown. Execution and mutation flags remain false for this shell packet.",
+      },
+      {
+        id: "safety-blocked",
+        label: "Blocked Capabilities",
+        tone: "blocked",
+        action: "safety-tab",
+        status: "Blocked capabilities shown with next-unlock guidance.",
+      },
+    ],
+  },
+];
+
+function mapTruthStateToTone(truthState: string): string {
+  const normalized = truthState.toLowerCase();
+  if (normalized.includes("blocked")) {
+    return "blocked";
+  }
+  if (normalized.includes("proof")) {
+    return "proof-only";
+  }
+  if (normalized.includes("preflight")) {
+    return "preflight-only";
+  }
+  if (normalized.includes("plan")) {
+    return "plan-only";
+  }
+  if (normalized.includes("read")) {
+    return "read-only";
+  }
+  return "demo";
+}
+
+function mergeAppMenuItemsWithCockpitRegistry(
+  appMenuItems: readonly MenuItem[],
+  cockpitRegistrations?: readonly CockpitAppRegistration[],
+): MenuItem[] {
+  if (!cockpitRegistrations?.length) {
+    return [...appMenuItems];
+  }
+
+  const registrationByWorkspaceId = new Map(
+    cockpitRegistrations.map((registration) => [registration.workspaceId, registration]),
+  );
+
+  const actionByWorkspaceId: Partial<Record<CockpitAppRegistration["workspaceId"], string>> = {
+    "create-game": "open-workspace-create-game",
+    "create-movie": "open-workspace-create-movie",
+    "load-project": "open-workspace-load-project",
+    "asset-forge": "open-workspace-asset-forge",
+  };
+
+  const normalizedItems = appMenuItems.map((item) => {
+    const matchingRegistration = cockpitRegistrations.find(
+      (registration) => actionByWorkspaceId[registration.workspaceId] === item.action,
+    );
+    if (!matchingRegistration) {
+      return item;
+    }
+
+    return {
+      ...item,
+      label: matchingRegistration.navLabel,
+      tone: mapTruthStateToTone(matchingRegistration.truthState),
+      status: `Opened ${matchingRegistration.navLabel} from backend cockpit registry shell navigation only.`,
+    };
+  });
+
+  const hasAssetForgeEntry = normalizedItems.some((item) => item.action === "open-workspace-asset-forge");
+  const assetForgeRegistration = registrationByWorkspaceId.get("asset-forge");
+  if (!hasAssetForgeEntry && assetForgeRegistration) {
+    const insertAfterIndex = normalizedItems.findIndex((item) => item.action === "open-workspace-load-project");
+    const assetForgeItem: MenuItem = {
+      id: "app-asset-forge-registry",
+      label: assetForgeRegistration.navLabel,
+      tone: mapTruthStateToTone(assetForgeRegistration.truthState),
+      action: "open-workspace-asset-forge",
+      status: `Opened ${assetForgeRegistration.navLabel} from backend cockpit registry shell navigation only.`,
+    };
+    if (insertAfterIndex >= 0) {
+      normalizedItems.splice(insertAfterIndex + 1, 0, assetForgeItem);
+    } else {
+      normalizedItems.unshift(assetForgeItem);
+    }
+  }
+
+  return normalizedItems;
+}
+
+function getAssetForgeShellMenuGroups(
+  cockpitRegistrations?: readonly CockpitAppRegistration[],
+): MenuGroup[] {
+  const appGroup = assetForgeShellMenuGroups.find((group) => group.id === "app");
+  if (!appGroup) {
+    return assetForgeShellMenuGroups;
+  }
+
+  return assetForgeShellMenuGroups.map((group) => {
+    if (group.id !== "app") {
+      return group;
+    }
+    return {
+      ...group,
+      items: mergeAppMenuItemsWithCockpitRegistry(group.items, cockpitRegistrations),
+    };
+  });
+}
 
 function getMenuGroups(model?: AssetForgeEditorModelRecord | null): MenuGroup[] {
   if (!model?.context_menu_groups?.length) {
@@ -868,18 +1187,28 @@ export default function AssetForgeBlenderCockpit({
   latestExecutionId,
   latestArtifactId,
   latestPlacementProofOnlyReview,
+  cockpitRegistrations,
   onOpenHome,
   onOpenCreateGame,
   onOpenCreateMovie,
+  onOpenMovieStudioTimeline,
   onOpenLoadProject,
   onOpenPromptStudio,
   onLaunchInspectTemplate,
   onLaunchPlacementProofTemplate,
   onLaunchPromptTemplate,
   onOpenRecords,
+  onOpenRecordsExecutions,
+  onOpenRecordsArtifacts,
+  onOpenRecordsEvents,
   onOpenRuntimeOverview,
+  onOpenRuntimeGovernance,
+  onOpenRuntimeExecutors,
+  onOpenRuntimeWorkspaces,
   onOpenBuilder,
   onOpenOperations,
+  onOpenOperationsApprovals,
+  onOpenOperationsDispatch,
   onViewLatestRun,
   onViewExecution,
   onViewArtifact,
@@ -890,7 +1219,14 @@ export default function AssetForgeBlenderCockpit({
   const outliner = getOutliner(editorModel);
   const overlays = getOverlayLines(editorModel);
   const promptTemplates = useMemo(() => getPromptTemplates(editorModel), [editorModel]);
-  const editorMenuGroups = useMemo(() => [appShellMenuGroup, ...getMenuGroups(editorModel)], [editorModel]);
+  const shellMenuGroups = useMemo(
+    () => getAssetForgeShellMenuGroups(cockpitRegistrations),
+    [cockpitRegistrations],
+  );
+  const editorMenuGroups = useMemo(
+    () => [...shellMenuGroups, ...getMenuGroups(editorModel)],
+    [editorModel, shellMenuGroups],
+  );
   const workflowStages = useMemo(() => getWorkflowStages(editorModel), [editorModel]);
   const statusStripTabs = useMemo(() => getStatusStripTabs(editorModel), [editorModel]);
   const propertyTabs = useMemo(() => getPropertyTabs(editorModel), [editorModel]);
@@ -1064,6 +1400,27 @@ export default function AssetForgeBlenderCockpit({
     } else if (item.action === "open-records") {
       onOpenRecords?.();
       setStatusMessage(item.status);
+    } else if (item.action === "open-records-executions") {
+      if (onOpenRecordsExecutions) {
+        onOpenRecordsExecutions();
+      } else {
+        onViewExecution?.();
+      }
+      setStatusMessage(item.status);
+    } else if (item.action === "open-records-artifacts") {
+      if (onOpenRecordsArtifacts) {
+        onOpenRecordsArtifacts();
+      } else {
+        onViewArtifact?.();
+      }
+      setStatusMessage(item.status);
+    } else if (item.action === "open-records-events") {
+      if (onOpenRecordsEvents) {
+        onOpenRecordsEvents();
+      } else {
+        onViewEvidence?.();
+      }
+      setStatusMessage(item.status);
     } else if (item.action === "open-workspace-home") {
       onOpenHome?.();
       setStatusMessage(item.status);
@@ -1073,8 +1430,13 @@ export default function AssetForgeBlenderCockpit({
     } else if (item.action === "open-workspace-create-movie") {
       onOpenCreateMovie?.();
       setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-movie-studio-timeline") {
+      onOpenMovieStudioTimeline?.();
+      setStatusMessage(item.status);
     } else if (item.action === "open-workspace-load-project") {
       onOpenLoadProject?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-asset-forge") {
       setStatusMessage(item.status);
     } else if (item.action === "open-workspace-builder") {
       onOpenBuilder?.();
@@ -1084,6 +1446,15 @@ export default function AssetForgeBlenderCockpit({
       setStatusMessage(item.status);
     } else if (item.action === "open-workspace-runtime") {
       onOpenRuntimeOverview?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-runtime-governance") {
+      onOpenRuntimeGovernance?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-runtime-executors") {
+      onOpenRuntimeExecutors?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-runtime-workspaces") {
+      onOpenRuntimeWorkspaces?.();
       setStatusMessage(item.status);
     } else if (item.action === "open-evidence") {
       onViewEvidence?.();
@@ -1099,6 +1470,12 @@ export default function AssetForgeBlenderCockpit({
       setStatusMessage(item.status);
     } else if (item.action === "safety-tab") {
       setSelectedPropertiesTab("Safety");
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-operations-approvals") {
+      onOpenOperationsApprovals?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-operations-dispatch") {
+      onOpenOperationsDispatch?.();
       setStatusMessage(item.status);
     } else {
       setStatusMessage(item.status);
@@ -1394,6 +1771,8 @@ export default function AssetForgeBlenderCockpit({
           <button type="button" onClick={onLaunchInspectTemplate} style={styles.smallButton}>Inspect / Preflight</button>
           <button type="button" onClick={onLaunchPlacementProofTemplate} style={styles.primaryButton}>Load proof-only template</button>
           <button type="button" onClick={onOpenPromptStudio} style={styles.smallButton}>Prompt Studio</button>
+          <button type="button" onClick={onOpenBuilder} style={styles.smallButton}>Builder</button>
+          <button type="button" onClick={onOpenOperations} style={styles.smallButton}>Operations</button>
           <button type="button" onClick={onOpenRecords} style={styles.smallButton}>Records</button>
         </div>
       </section>

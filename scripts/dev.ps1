@@ -34,6 +34,8 @@ param(
         "frontend-smoke",
         "compose-up",
         "compose-build",
+        "production-readiness",
+        "pr-open-list",
         "checks"
     )]
     [string]$Task = "checks",
@@ -493,12 +495,145 @@ function Invoke-AppOsReadiness {
         -Environment @{ PYTHONPATH = $BackendPythonPath }
 }
 
+function Test-DockerDaemonReady {
+    $dockerCommand = Get-Command docker -ErrorAction SilentlyContinue
+    if ($null -eq $dockerCommand) {
+        return $false
+    }
+
+    try {
+        & $dockerCommand.Source info *> $null
+        return ($LASTEXITCODE -eq 0)
+    }
+    catch {
+        return $false
+    }
+}
+
+function Ensure-DockerDaemonReady {
+    if (Test-DockerDaemonReady) {
+        return
+    }
+
+    $service = Get-Service -Name "com.docker.service" -ErrorAction SilentlyContinue
+    if ($null -ne $service -and $service.Status -ne "Running") {
+        try {
+            Start-Service -Name "com.docker.service" -ErrorAction Stop
+            Write-Host "Started com.docker.service."
+        }
+        catch {
+            Write-Warning "Unable to start com.docker.service automatically: $($_.Exception.Message)"
+        }
+    }
+
+    $dockerDesktopExecutable = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+    if (Test-Path $dockerDesktopExecutable) {
+        try {
+            Start-Process -FilePath $dockerDesktopExecutable -WindowStyle Hidden -ErrorAction Stop | Out-Null
+            Write-Host "Started Docker Desktop."
+        }
+        catch {
+            Write-Warning "Unable to start Docker Desktop automatically: $($_.Exception.Message)"
+        }
+    }
+
+    $deadline = (Get-Date).AddSeconds(180)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-DockerDaemonReady) {
+            Write-Host "Docker daemon is available."
+            return
+        }
+
+        Start-Sleep -Seconds 3
+    }
+
+    throw (
+        "Docker daemon is unavailable after 180 seconds. " +
+        "Start Docker Desktop manually, then rerun this task."
+    )
+}
+
 function Invoke-ComposeBuild {
+    Ensure-DockerDaemonReady
     Invoke-RepoProcess -WorkingDirectory $RepoRoot -FilePath "docker" -ArgumentList @("compose", "build")
 }
 
 function Invoke-ComposeUp {
+    Ensure-DockerDaemonReady
     Invoke-RepoProcess -WorkingDirectory $RepoRoot -FilePath "docker" -ArgumentList @("compose", "up", "--build")
+}
+
+function Invoke-ProductionReadiness {
+    Write-Host "Running production-readiness validation gate..."
+    Invoke-BackendLint
+    Invoke-BackendTests
+    Invoke-FrontendLint
+    Invoke-FrontendBuild
+    Invoke-SurfaceMatrixCheck
+    Invoke-ComposeBuild
+}
+
+function Get-OriginRepositoryFullName {
+    Push-Location $RepoRoot
+    try {
+        $originUrl = (git remote get-url origin).Trim()
+    }
+    finally {
+        Pop-Location
+    }
+
+    if ($originUrl -match '^https://github\.com/(?<owner>[^/]+)/(?<repo>[^/]+?)(?:\.git)?$') {
+        return "$($Matches.owner)/$($Matches.repo)"
+    }
+
+    if ($originUrl -match '^git@github\.com:(?<owner>[^/]+)/(?<repo>[^/]+?)(?:\.git)?$') {
+        return "$($Matches.owner)/$($Matches.repo)"
+    }
+
+    throw "Unable to parse GitHub repository from origin URL: $originUrl"
+}
+
+function Invoke-OpenPrList {
+    $repositoryFullName = if ($TaskArgs.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($TaskArgs[0])) {
+        $TaskArgs[0].Trim()
+    }
+    else {
+        Get-OriginRepositoryFullName
+    }
+
+    $apiUrl = "https://api.github.com/repos/$repositoryFullName/pulls?state=open&per_page=100"
+    $headers = @{
+        "Accept" = "application/vnd.github+json"
+        "X-GitHub-Api-Version" = "2022-11-28"
+        "User-Agent" = "o3de-codex-vx001-dev-script"
+    }
+
+    Write-Host "repo=$repositoryFullName"
+    Write-Host "api_url=$apiUrl"
+
+    $pullRequests = Invoke-RestMethod -Uri $apiUrl -Headers $headers -Method Get
+    if ($null -eq $pullRequests -or $pullRequests.Count -eq 0) {
+        Write-Host "open_pr_count=0"
+        Write-Host "open_pr_summary=none"
+        return
+    }
+
+    $rows = @(
+        $pullRequests |
+        Sort-Object number |
+        ForEach-Object {
+            [PSCustomObject]@{
+                Number = $_.number
+                Head = $_.head.ref
+                Base = $_.base.ref
+                Title = $_.title
+                Url = $_.html_url
+            }
+        }
+    )
+
+    Write-Host "open_pr_count=$($rows.Count)"
+    $rows | Format-Table -AutoSize
 }
 
 switch ($Task) {
@@ -534,6 +669,8 @@ switch ($Task) {
     "frontend-smoke" { Invoke-FrontendSmoke }
     "compose-build" { Invoke-ComposeBuild }
     "compose-up" { Invoke-ComposeUp }
+    "production-readiness" { Invoke-ProductionReadiness }
+    "pr-open-list" { Invoke-OpenPrList }
     "checks" {
         Invoke-BackendLint
         Invoke-BackendTests

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { describe, expect, it, vi } from "vitest";
 
 import AssetForgeBlenderCockpit from "./AssetForgeBlenderCockpit";
+import type { CockpitAppRegistration } from "../../lib/cockpitAppRegistry";
 import type { AssetForgeEditorModelRecord } from "../../types/contracts";
 
 function buildEditorModelFixture(): AssetForgeEditorModelRecord {
@@ -273,6 +274,99 @@ function buildEditorModelWithBackendPropertyContent(): AssetForgeEditorModelReco
   };
 }
 
+function buildCockpitRegistrationsFixture(): readonly CockpitAppRegistration[] {
+  return [
+    {
+      workspaceId: "create-game",
+      navLabel: "Forge Create",
+      navSubtitle: "Registry create game",
+      workspaceTitle: "Forge Create",
+      workspaceSubtitle: "Registry-backed create cockpit",
+      launchTitle: "Forge Create",
+      detail: "Registry-driven create cockpit navigation",
+      truthState: "plan-only",
+      blocked: "blocked by admission gates",
+      nextSafeAction: "Open and continue read-only planning",
+      actionLabel: "Open Forge Create",
+      shellMode: "dockable-cockpit",
+      tone: "success",
+      helpTooltip: "Registry tooltip",
+      executionAdmitted: false,
+      mutationAdmitted: false,
+      providerGenerationAdmitted: false,
+      blenderExecutionAdmitted: false,
+      assetProcessorExecutionAdmitted: false,
+      placementWriteAdmitted: false,
+    },
+    {
+      workspaceId: "create-movie",
+      navLabel: "Forge Movie",
+      navSubtitle: "Registry create movie",
+      workspaceTitle: "Forge Movie",
+      workspaceSubtitle: "Registry-backed movie cockpit",
+      launchTitle: "Forge Movie",
+      detail: "Registry-driven movie cockpit navigation",
+      truthState: "read-only",
+      blocked: "blocked by admission gates",
+      nextSafeAction: "Open and continue proof-only planning",
+      actionLabel: "Open Forge Movie",
+      shellMode: "dockable-cockpit",
+      tone: "info",
+      helpTooltip: "Registry tooltip",
+      executionAdmitted: false,
+      mutationAdmitted: false,
+      providerGenerationAdmitted: false,
+      blenderExecutionAdmitted: false,
+      assetProcessorExecutionAdmitted: false,
+      placementWriteAdmitted: false,
+    },
+    {
+      workspaceId: "load-project",
+      navLabel: "Forge Load",
+      navSubtitle: "Registry load project",
+      workspaceTitle: "Forge Load",
+      workspaceSubtitle: "Registry-backed load cockpit",
+      launchTitle: "Forge Load",
+      detail: "Registry-driven load cockpit navigation",
+      truthState: "read-only",
+      blocked: "blocked by admission gates",
+      nextSafeAction: "Open and verify target state",
+      actionLabel: "Open Forge Load",
+      shellMode: "dockable-cockpit",
+      tone: "neutral",
+      helpTooltip: "Registry tooltip",
+      executionAdmitted: false,
+      mutationAdmitted: false,
+      providerGenerationAdmitted: false,
+      blenderExecutionAdmitted: false,
+      assetProcessorExecutionAdmitted: false,
+      placementWriteAdmitted: false,
+    },
+    {
+      workspaceId: "asset-forge",
+      navLabel: "Forge Editor",
+      navSubtitle: "Registry asset forge",
+      workspaceTitle: "Forge Editor",
+      workspaceSubtitle: "Registry-backed full-screen editor",
+      launchTitle: "Forge Editor",
+      detail: "Registry-driven editor cockpit navigation",
+      truthState: "read-only / preflight-only",
+      blocked: "blocked by admission gates",
+      nextSafeAction: "Stay in editor mode and continue safe workflows",
+      actionLabel: "Open Forge Editor",
+      shellMode: "full-screen-editor",
+      tone: "info",
+      helpTooltip: "Registry tooltip",
+      executionAdmitted: false,
+      mutationAdmitted: false,
+      providerGenerationAdmitted: false,
+      blenderExecutionAdmitted: false,
+      assetProcessorExecutionAdmitted: false,
+      placementWriteAdmitted: false,
+    },
+  ] as const;
+}
+
 describe("AssetForgeBlenderCockpit", () => {
   it("renders strict Blender-like shell zones and fallback safety text", () => {
     render(<AssetForgeBlenderCockpit editorModelError="editor model backend unavailable" />);
@@ -319,46 +413,192 @@ describe("AssetForgeBlenderCockpit", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/Viewport mode changed locally to Wireframe/i);
   });
 
-  it("renders an app navigation menu that routes to existing workspaces without mutation", () => {
+  it("renders Asset Forge workbench menus that route to existing modules without mutation", () => {
     const callbacks = {
       onOpenHome: vi.fn(),
       onOpenCreateGame: vi.fn(),
       onOpenCreateMovie: vi.fn(),
+      onOpenMovieStudioTimeline: vi.fn(),
       onOpenLoadProject: vi.fn(),
       onOpenPromptStudio: vi.fn(),
       onOpenBuilder: vi.fn(),
       onOpenOperations: vi.fn(),
       onOpenRuntimeOverview: vi.fn(),
+      onOpenRuntimeGovernance: vi.fn(),
+      onOpenRuntimeExecutors: vi.fn(),
+      onOpenRuntimeWorkspaces: vi.fn(),
+      onOpenOperationsApprovals: vi.fn(),
+      onOpenOperationsDispatch: vi.fn(),
       onOpenRecords: vi.fn(),
+      onOpenRecordsExecutions: vi.fn(),
+      onOpenRecordsArtifacts: vi.fn(),
+      onOpenRecordsEvents: vi.fn(),
       onLaunchPlacementProofTemplate: vi.fn(),
     };
 
     render(<AssetForgeBlenderCockpit {...callbacks} />);
 
     const topMenu = screen.getByLabelText("Asset Forge top menu");
+    ["App", "Create", "Project", "Prompt", "Engine", "Records", "Safety"].forEach((label) => {
+      expect(within(topMenu).getByRole("button", { name: label })).toBeInTheDocument();
+    });
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenu = screen.getByRole("menu", { name: "App menu" });
+    expect(within(appMenu).getByRole("menuitem", { name: /Home/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Create Game/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Create Movie/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Load Project/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Prompt Studio/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Runtime Overview/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Runtime Governance/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Runtime Executors/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Runtime Workspaces/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Movie Studio Timeline/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Builder/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Operations Dashboard/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Operations Approvals/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Operations Dispatch/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Records Runs/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Records Executions/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Records Artifacts/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Records Events/i })).toBeInTheDocument();
+
+    fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Home/i }));
+    expect(callbacks.onOpenHome).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuHomeClosed = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuHomeClosed).getByRole("menuitem", { name: /Prompt Studio/i }));
+    expect(callbacks.onOpenPromptStudio).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuRuntime = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuRuntime).getByRole("menuitem", { name: /Runtime Overview/i }));
+    expect(callbacks.onOpenRuntimeOverview).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuRuntimeGovernance = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuRuntimeGovernance).getByRole("menuitem", { name: /Runtime Governance/i }));
+    expect(callbacks.onOpenRuntimeGovernance).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuRuntimeExecutors = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuRuntimeExecutors).getByRole("menuitem", { name: /Runtime Executors/i }));
+    expect(callbacks.onOpenRuntimeExecutors).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuRuntimeWorkspaces = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuRuntimeWorkspaces).getByRole("menuitem", { name: /Runtime Workspaces/i }));
+    expect(callbacks.onOpenRuntimeWorkspaces).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuOperationsDashboard = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuOperationsDashboard).getByRole("menuitem", { name: /Operations Dashboard/i }));
+    expect(callbacks.onOpenOperations).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuOperationsApprovals = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuOperationsApprovals).getByRole("menuitem", { name: /Operations Approvals/i }));
+    expect(callbacks.onOpenOperationsApprovals).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuOperationsDispatch = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuOperationsDispatch).getByRole("menuitem", { name: /Operations Dispatch/i }));
+    expect(callbacks.onOpenOperationsDispatch).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuMovieStudio = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuMovieStudio).getByRole("menuitem", { name: /Movie Studio Timeline/i }));
+    expect(callbacks.onOpenMovieStudioTimeline).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuRecordsRuns = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuRecordsRuns).getByRole("menuitem", { name: /Records Runs/i }));
+    expect(callbacks.onOpenRecords).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuRecordsExecutions = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuRecordsExecutions).getByRole("menuitem", { name: /Records Executions/i }));
+    expect(callbacks.onOpenRecordsExecutions).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuRecordsArtifacts = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuRecordsArtifacts).getByRole("menuitem", { name: /Records Artifacts/i }));
+    expect(callbacks.onOpenRecordsArtifacts).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuRecordsEvents = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuRecordsEvents).getByRole("menuitem", { name: /Records Events/i }));
+    expect(callbacks.onOpenRecordsEvents).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const appMenuReopened = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenuReopened).getByRole("menuitem", { name: /Builder/i }));
+    expect(callbacks.onOpenBuilder).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "Create" }));
+    const createMenu = screen.getByRole("menu", { name: "Create menu" });
+    expect(within(createMenu).getByRole("menuitem", { name: /Game/i })).toBeInTheDocument();
+    expect(within(createMenu).getByRole("menuitem", { name: /Movie/i })).toBeInTheDocument();
+    expect(within(createMenu).getByRole("menuitem", { name: /Generate Asset/i })).toBeInTheDocument();
+
+    fireEvent.click(within(createMenu).getByRole("menuitem", { name: /Game/i }));
+    expect(callbacks.onOpenCreateGame).toHaveBeenCalledTimes(1);
+    expect(callbacks.onLaunchPlacementProofTemplate).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /Opened Create Game from Asset Forge workbench navigation only/i,
+    );
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "Engine" }));
+    const engineMenu = screen.getByRole("menu", { name: "Engine menu" });
+    expect(within(engineMenu).getByRole("menuitem", { name: /Runtime Overview/i })).toBeInTheDocument();
+    expect(within(engineMenu).getByRole("menuitem", { name: /Asset Processor Status/i })).toBeInTheDocument();
+
+    fireEvent.click(within(engineMenu).getByRole("menuitem", { name: /Asset Processor Status/i }));
+    expect(callbacks.onOpenRuntimeOverview).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("status")).toHaveTextContent(/Asset Processor status is preflight\/status only/i);
+    const properties = screen.getByLabelText("Asset Forge transform and material properties");
+    expect(within(properties).getByRole("button", { name: "Safety" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("uses backend cockpit registry labels for App-menu cockpit routes", () => {
+    const callbacks = {
+      onOpenCreateGame: vi.fn(),
+      onOpenCreateMovie: vi.fn(),
+      onOpenLoadProject: vi.fn(),
+    };
+
+    render(
+      <AssetForgeBlenderCockpit
+        cockpitRegistrations={buildCockpitRegistrationsFixture()}
+        {...callbacks}
+      />,
+    );
+
+    const topMenu = screen.getByLabelText("Asset Forge top menu");
     fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
 
     const appMenu = screen.getByRole("menu", { name: "App menu" });
-    [
-      "Home / Start",
-      "Create Game",
-      "Create Movie",
-      "Load Project",
-      "Prompt Studio",
-      "Builder",
-      "Operations",
-      "Runtime Overview",
-      "Records",
-    ].forEach((label) => {
-      expect(within(appMenu).getByRole("menuitem", { name: new RegExp(label, "i") })).toBeInTheDocument();
-    });
+    fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Forge Create/i }));
+    expect(callbacks.onOpenCreateGame).toHaveBeenCalledTimes(1);
 
-    fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Prompt Studio/i }));
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const reopenedMenu = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(reopenedMenu).getByRole("menuitem", { name: /Forge Movie/i }));
+    expect(callbacks.onOpenCreateMovie).toHaveBeenCalledTimes(1);
 
-    expect(callbacks.onOpenPromptStudio).toHaveBeenCalledTimes(1);
-    expect(callbacks.onLaunchPlacementProofTemplate).not.toHaveBeenCalled();
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const loadMenu = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(loadMenu).getByRole("menuitem", { name: /Forge Load/i }));
+    expect(callbacks.onOpenLoadProject).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const assetForgeMenu = screen.getByRole("menu", { name: "App menu" });
+    expect(within(assetForgeMenu).getByRole("menuitem", { name: /Forge Editor/i })).toBeInTheDocument();
+
     expect(screen.getByRole("status")).toHaveTextContent(
-      /Opened Prompt Studio from Asset Forge shell navigation only/i,
+      /Opened Forge Load from backend cockpit registry shell navigation only/i,
     );
   });
 

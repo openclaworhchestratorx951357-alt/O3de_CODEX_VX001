@@ -66,6 +66,21 @@ Then:
 9. Self-merge only if the self-merge rule below allows it.
 10. Pull updated `main` after merge.
 
+Cross-thread review rule:
+
+- When more than one implementation thread is active, each thread must keep an
+  open PR (draft allowed) for its branch until merge.
+- Do not keep thread-only local commits without a PR once work is reviewable.
+- Use the PR body as the cross-thread handoff log (scope, validation, blockers,
+  and compatibility notes).
+- Before opening, updating, or merging a PR in a multi-thread window, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 pr-open-list
+```
+
+  and capture relevant head/base chain dependencies in the PR body.
+
 Never stage `.venv/`, runtime proof JSON, logs, caches, build outputs, local
 databases, or secrets.
 
