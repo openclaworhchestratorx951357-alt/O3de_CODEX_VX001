@@ -494,11 +494,71 @@ function Invoke-AppOsReadiness {
         -Environment @{ PYTHONPATH = $BackendPythonPath }
 }
 
+function Test-DockerDaemonReady {
+    $dockerCommand = Get-Command docker -ErrorAction SilentlyContinue
+    if ($null -eq $dockerCommand) {
+        return $false
+    }
+
+    try {
+        & $dockerCommand.Source info *> $null
+        return ($LASTEXITCODE -eq 0)
+    }
+    catch {
+        return $false
+    }
+}
+
+function Ensure-DockerDaemonReady {
+    if (Test-DockerDaemonReady) {
+        return
+    }
+
+    $service = Get-Service -Name "com.docker.service" -ErrorAction SilentlyContinue
+    if ($null -ne $service -and $service.Status -ne "Running") {
+        try {
+            Start-Service -Name "com.docker.service" -ErrorAction Stop
+            Write-Host "Started com.docker.service."
+        }
+        catch {
+            Write-Warning "Unable to start com.docker.service automatically: $($_.Exception.Message)"
+        }
+    }
+
+    $dockerDesktopExecutable = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+    if (Test-Path $dockerDesktopExecutable) {
+        try {
+            Start-Process -FilePath $dockerDesktopExecutable -WindowStyle Hidden -ErrorAction Stop | Out-Null
+            Write-Host "Started Docker Desktop."
+        }
+        catch {
+            Write-Warning "Unable to start Docker Desktop automatically: $($_.Exception.Message)"
+        }
+    }
+
+    $deadline = (Get-Date).AddSeconds(180)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-DockerDaemonReady) {
+            Write-Host "Docker daemon is available."
+            return
+        }
+
+        Start-Sleep -Seconds 3
+    }
+
+    throw (
+        "Docker daemon is unavailable after 180 seconds. " +
+        "Start Docker Desktop manually, then rerun this task."
+    )
+}
+
 function Invoke-ComposeBuild {
+    Ensure-DockerDaemonReady
     Invoke-RepoProcess -WorkingDirectory $RepoRoot -FilePath "docker" -ArgumentList @("compose", "build")
 }
 
 function Invoke-ComposeUp {
+    Ensure-DockerDaemonReady
     Invoke-RepoProcess -WorkingDirectory $RepoRoot -FilePath "docker" -ArgumentList @("compose", "up", "--build")
 }
 

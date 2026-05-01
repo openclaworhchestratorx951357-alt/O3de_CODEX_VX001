@@ -20,7 +20,8 @@ This executes:
 - frontend lint
 - frontend production build
 - surface matrix drift check
-- Docker compose build
+- Docker compose build (the helper now attempts to start Docker Desktop
+  automatically and fails closed with explicit remediation guidance)
 
 ## Required Readiness Areas
 
