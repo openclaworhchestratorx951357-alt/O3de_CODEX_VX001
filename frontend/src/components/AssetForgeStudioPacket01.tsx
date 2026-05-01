@@ -3269,6 +3269,10 @@ export default function AssetForgeStudioPacket01({
               <li>Server approval policy decision: {contractSummaryString(placementHarnessExecuteReport.server_approval_evaluation, "policy_decision")}</li>
               <li>Server approval status: {contractSummaryString(placementHarnessExecuteReport.server_approval_evaluation, "status")}</li>
               <li>Server approval authorization granted: {contractSummaryBooleanLabel(placementHarnessExecuteReport.server_approval_evaluation, "authorization_granted")}</li>
+              <li>Admission packet reference: {placementHarnessExecuteReport.admission_packet_reference ?? "none"}</li>
+              <li>Admission operator id: {placementHarnessExecuteReport.admission_operator_id ?? "none"}</li>
+              <li>Evidence bundle reference: {placementHarnessExecuteReport.evidence_bundle_reference ?? "none"}</li>
+              <li>Readback plan reference: {placementHarnessExecuteReport.readback_plan_reference ?? "none"}</li>
               <li>Bridge contract corridor: {contractSummaryString(placementHarnessExecuteReport.bridge_readiness_contract, "corridor_name")}</li>
               <li>Bridge contract runtime gate env: {contractSummaryString(placementHarnessExecuteReport.bridge_readiness_contract, "runtime_gate_env")}</li>
               <li>Bridge contract bridge required: {contractSummaryBooleanLabel(placementHarnessExecuteReport.bridge_readiness_contract, "bridge_required")}</li>
@@ -3319,6 +3323,10 @@ export default function AssetForgeStudioPacket01({
               <li>Server approval policy decision: {contractSummaryString(placementLiveProofReport.server_approval_evaluation, "policy_decision")}</li>
               <li>Server approval status: {contractSummaryString(placementLiveProofReport.server_approval_evaluation, "status")}</li>
               <li>Server approval authorization granted: {contractSummaryBooleanLabel(placementLiveProofReport.server_approval_evaluation, "authorization_granted")}</li>
+              <li>Admission packet reference: {placementLiveProofReport.admission_packet_reference ?? "none"}</li>
+              <li>Admission operator id: {placementLiveProofReport.admission_operator_id ?? "none"}</li>
+              <li>Evidence bundle reference: {placementLiveProofReport.evidence_bundle_reference ?? "none"}</li>
+              <li>Readback plan reference: {placementLiveProofReport.readback_plan_reference ?? "none"}</li>
               <li>Bridge contract corridor: {contractSummaryString(placementLiveProofReport.bridge_readiness_contract, "corridor_name")}</li>
               <li>Bridge contract runtime gate env: {contractSummaryString(placementLiveProofReport.bridge_readiness_contract, "runtime_gate_env")}</li>
               <li>Bridge contract bridge required: {contractSummaryBooleanLabel(placementLiveProofReport.bridge_readiness_contract, "bridge_required")}</li>

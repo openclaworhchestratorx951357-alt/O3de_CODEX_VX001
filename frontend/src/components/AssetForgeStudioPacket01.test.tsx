@@ -535,10 +535,10 @@ function makePlacementHarnessExecuteReport(
       authorization_granted: false,
       policy_would_allow_if_mutation_admitted: true,
     },
-    admission_packet_reference: null,
-    admission_operator_id: null,
-    evidence_bundle_reference: null,
-    readback_plan_reference: null,
+    admission_packet_reference: "packet://runtime-harness/candidate-a",
+    admission_operator_id: "operator-789",
+    evidence_bundle_reference: "evidence://runtime-harness/candidate-a",
+    readback_plan_reference: "readback-plan://runtime-harness/candidate-a",
     revert_statement_contract_key: null,
     revert_statement_contract_match: false,
     runtime_command_contract: {},
@@ -591,10 +591,10 @@ function makePlacementLiveProofReport(
       authorization_granted: false,
       policy_would_allow_if_mutation_admitted: true,
     },
-    admission_packet_reference: null,
-    admission_operator_id: null,
-    evidence_bundle_reference: null,
-    readback_plan_reference: null,
+    admission_packet_reference: "packet://live-proof/candidate-a",
+    admission_operator_id: "operator-999",
+    evidence_bundle_reference: "evidence://live-proof/candidate-a",
+    readback_plan_reference: "readback-plan://live-proof/candidate-a",
     revert_statement_contract_key: null,
     revert_statement_contract_match: false,
     runtime_command_contract: {},
@@ -1695,6 +1695,10 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Server approval policy decision: allow_if_mutation_admitted/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval status: approved/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval authorization granted: no/i)).toBeInTheDocument();
+    expect(screen.getByText(/Admission packet reference: packet:\/\/runtime-harness\/candidate-a/i)).toBeInTheDocument();
+    expect(screen.getByText(/Admission operator id: operator-789/i)).toBeInTheDocument();
+    expect(screen.getByText(/Evidence bundle reference: evidence:\/\/runtime-harness\/candidate-a/i)).toBeInTheDocument();
+    expect(screen.getByText(/Readback plan reference: readback-plan:\/\/runtime-harness\/candidate-a/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract corridor: asset_forge\.o3de\.placement\.runtime_harness\.v1/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_RUNTIME_HARNESS/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract bridge required: yes/i)).toBeInTheDocument();
@@ -1739,6 +1743,10 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Server approval policy decision: allow_if_mutation_admitted/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval status: approved/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval authorization granted: no/i)).toBeInTheDocument();
+    expect(screen.getByText(/Admission packet reference: packet:\/\/live-proof\/candidate-a/i)).toBeInTheDocument();
+    expect(screen.getByText(/Admission operator id: operator-999/i)).toBeInTheDocument();
+    expect(screen.getByText(/Evidence bundle reference: evidence:\/\/live-proof\/candidate-a/i)).toBeInTheDocument();
+    expect(screen.getByText(/Readback plan reference: readback-plan:\/\/live-proof\/candidate-a/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract corridor: asset_forge\.o3de\.placement\.live_proof\.v1/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_LIVE_PROOF/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract bridge required: yes/i)).toBeInTheDocument();
