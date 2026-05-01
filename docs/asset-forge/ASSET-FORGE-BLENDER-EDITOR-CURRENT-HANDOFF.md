@@ -10,7 +10,7 @@ capability.
 ## Current branch and savepoints
 
 - Current integration branch: `codex/asset-forge-prompt-prefill-polish`
-- Current integration commit: `4d5bc42 Add cockpit app registry foundation`
+- Current integration commit: `375800c Refresh Asset Forge Blender editor handoff`
 - Protected visual savepoint tag: `asset-forge-blender-layout-polished`
 - Protected visual savepoint commit: `821710a Polish Asset Forge Blender-like editor layout`
 - Draft PR note: PR #188 was opened for the cockpit registry slice and then
@@ -27,7 +27,7 @@ git rev-parse --short HEAD
 git rev-parse --short asset-forge-blender-layout-polished
 ```
 
-Expected current head at this handoff is `4d5bc42`. If the branch has moved,
+Expected current head at this handoff is `375800c`. If the branch has moved,
 read the newer commits before choosing a packet.
 
 ## Current product truth
@@ -95,6 +95,8 @@ Blender itself is admitted as an execution dependency.
 
 The important recent commits, newest first:
 
+- `375800c` - refreshes the durable Asset Forge Blender editor handoff and
+  links it in the status/docs entry points.
 - `4d5bc42` - adds typed frontend cockpit app registry foundation and marks
   Asset Forge as `full-screen-editor`.
 - `64aeb88` - uses backend Asset Forge property content for transform draft

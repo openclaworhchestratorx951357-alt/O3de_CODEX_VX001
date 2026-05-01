@@ -27,7 +27,7 @@ At the time this status snapshot was updated, `main` is:
 The active Asset Forge integration branch is:
 
 ```text
-codex/asset-forge-prompt-prefill-polish @ 4d5bc42
+codex/asset-forge-prompt-prefill-polish @ 375800c
 ```
 
 Current Asset Forge Blender-editor handoff:
@@ -66,7 +66,11 @@ Recent handoff-relevant packets:
   `frontend/src/lib/cockpitAppRegistry.ts`; Asset Forge is marked as a
   first-class `full-screen-editor` cockpit and all execution/mutation/provider/
   Blender/Asset Processor/placement flags remain false.
+- `375800c` refreshes the durable Asset Forge Blender editor handoff and links
+  it into the primary status/docs entry points so future threads can resume
+  from the current editor/cockpit contract baseline without re-discovery.
 - Recent integration commits:
+  `375800c` handoff refresh,
   `317bdd3` editor menu model,
   `ae33131` backend workflow/status model,
   `1f9d011` backend properties/material tabs,
