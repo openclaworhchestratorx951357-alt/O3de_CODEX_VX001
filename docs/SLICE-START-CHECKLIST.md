@@ -59,6 +59,30 @@ The rule is:
 
 > Every slice must begin with a fresh remote fetch, and a fast-forward sync whenever that can be done safely.
 
+## Cross-Thread PR Sweep Gate
+
+After `git fetch origin --prune` and before selecting implementation scope,
+check for open PRs from parallel threads in the same repository.
+
+Primary command when GitHub CLI is available:
+
+```powershell
+gh pr list --repo openclaworhchestratorx951357-alt/O3de_CODEX_VX001 --state open --limit 100 --json number,title,headRefName,baseRefName,isDraft,updatedAt,url
+```
+
+If `gh` is unavailable, use the connected GitHub app/tooling and list recent
+open PRs for `openclaworhchestratorx951357-alt/O3de_CODEX_VX001`.
+
+Before editing, classify each relevant open PR as:
+
+- same branch as current slice
+- parent/child in a stacked branch chain
+- independent but overlapping file scope
+- independent and non-overlapping
+
+If overlap exists, report the intended integration order (rebase/merge stack
+position or defer) before making edits.
+
 ## New Slice Branch Rule
 
 After the promotion merge `9e3825dd9faa9bea3550afb14b19fb870b3cb0da`,

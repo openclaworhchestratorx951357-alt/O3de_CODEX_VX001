@@ -166,6 +166,16 @@ Before each slice:
 4. run `git fetch origin --prune`
 5. if the worktree is clean, `git pull --ff-only origin <branch>`
 6. classify any dirty state before editing
+7. run a cross-thread open-PR sweep and classify stack/overlap before edits
+
+Preferred open-PR sweep command:
+
+```powershell
+gh pr list --repo openclaworhchestratorx951357-alt/O3de_CODEX_VX001 --state open --limit 100 --json number,title,headRefName,baseRefName,isDraft,updatedAt,url
+```
+
+If `gh` is unavailable, use connected GitHub app/tooling to list open PRs for
+the same repository and include the overlap decision in the startup report.
 
 Required references:
 - `docs/FUTURE-THREAD-SUPERVISOR-STARTUP-PROTOCOL.md`

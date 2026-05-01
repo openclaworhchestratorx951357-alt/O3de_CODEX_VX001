@@ -81,8 +81,19 @@ Before changing files:
 4. Run `git pull --ff-only origin main` when starting from main.
 5. Run `git status --short`.
 6. Confirm `.venv/` remains untracked only when present.
-7. Read the current status and relevant phase/surface docs before choosing the
+7. Sweep open PRs from parallel threads and classify branch-stack overlap before
+   choosing scope.
+8. Read the current status and relevant phase/surface docs before choosing the
    implementation path.
+
+PR sweep command when `gh` is available:
+
+```powershell
+gh pr list --repo openclaworhchestratorx951357-alt/O3de_CODEX_VX001 --state open --limit 100 --json number,title,headRefName,baseRefName,isDraft,updatedAt,url
+```
+
+If `gh` is unavailable, use the connected GitHub app/tooling to list open PRs
+for the same repository and include the result in startup readiness notes.
 
 Primary truth sources:
 

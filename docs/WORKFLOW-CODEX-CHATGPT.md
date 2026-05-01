@@ -142,10 +142,11 @@ At the beginning of every Codex work session:
 2. print current branch
 3. print `git status --short`
 4. fetch latest refs
-5. re-read `AGENTS.md` and `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md` if the slice changes capability truth or execution priority
-6. reconcile the active branch with GitHub when it is safe to do so
-7. confirm the exact task being worked on
-8. only then begin edits
+5. run a cross-thread open-PR sweep for this repository
+6. re-read `AGENTS.md` and `docs/CODEX-EVERGREEN-EXECUTION-CHARTER.md` if the slice changes capability truth or execution priority
+7. reconcile the active branch with GitHub when it is safe to do so
+8. confirm the exact task being worked on
+9. only then begin edits
 
 Recommended session start commands:
 
@@ -155,7 +156,12 @@ git remote get-url origin
 git branch --show-current
 git status --short
 git fetch origin --prune
+gh pr list --repo openclaworhchestratorx951357-alt/O3de_CODEX_VX001 --state open --limit 100 --json number,title,headRefName,baseRefName,isDraft,updatedAt,url
 ```
+
+If `gh` is unavailable in the environment, use connected GitHub app/tooling to
+list open PRs in `openclaworhchestratorx951357-alt/O3de_CODEX_VX001` and
+record overlap/stack position in the startup readiness report before edits.
 
 ## Parallel Thread Coordination
 
