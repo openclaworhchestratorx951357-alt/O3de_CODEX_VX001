@@ -106,7 +106,7 @@ describe("layout header navigation help", () => {
 
     expect(screen.getByRole("button", { name: "Open pinned lane" })).toHaveAttribute(
       "title",
-      "Use the pinned-lane actions to refocus, clear, recover, annotate, or filter the current operator lane. Open the pinned record to continue the current operator lane from the shared home header.",
+      "Use the pinned-lane actions to refocus, clear, recover, annotate, or filter the current operator lane. Open the pinned record to continue the current operator lane from the shared legacy mission header.",
     );
     expect(screen.getByRole("button", { name: "Recent: Execution exec-1" })).toHaveAttribute(
       "title",
@@ -118,7 +118,7 @@ describe("layout header navigation help", () => {
     );
     expect(screen.getByRole("button", { name: "Refresh dashboard" })).toHaveAttribute(
       "title",
-      "Refresh the legacy mission overview when the persisted aggregate may be stale. Refresh the full desktop shell summary so home, runtime, operations, and records signals stay aligned.",
+      "Refresh the legacy mission overview when the persisted aggregate may be stale. Refresh the full desktop shell summary so legacy mission, runtime, operations, and records signals stay aligned.",
     );
     expect(screen.getByRole("button", { name: "Simulated only" })).toHaveAttribute(
       "title",

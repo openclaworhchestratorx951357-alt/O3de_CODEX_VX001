@@ -7062,7 +7062,7 @@ function returnToSourceWorkspaceFromPrompt(sourceWorkspaceId: string): void {
     <Suspense
       fallback={renderWorkspaceLoadingFallback(
         "Operator overview",
-        "Loading the Home overview deck and local review memory surfaces.",
+        "Loading the Legacy Mission Desk overview deck and local review memory surfaces.",
       )}
     >
       <div style={homeOverviewStackStyle}>

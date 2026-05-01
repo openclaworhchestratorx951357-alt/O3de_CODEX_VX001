@@ -189,7 +189,7 @@ export default function HomeTaskModePanel({
   }
 
   return (
-    <section aria-label="Home task modes" style={panelStyle}>
+    <section aria-label="Legacy mission task modes" style={panelStyle}>
       <div style={headerStyle}>
         <div>
           <span style={eyebrowStyle}>Task Launcher</span>
@@ -201,7 +201,7 @@ export default function HomeTaskModePanel({
         </div>
       </div>
 
-      <div role="tablist" aria-label="Home task mode tabs" style={tabListStyle}>
+      <div role="tablist" aria-label="Legacy mission task mode tabs" style={tabListStyle}>
         {taskModes.map((mode) => {
           const isActive = mode.id === activeModeId;
           return (

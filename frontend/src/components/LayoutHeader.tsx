@@ -51,13 +51,13 @@ function getLayoutHeaderLaneFilterTitle(
 function getLayoutHeaderRefreshActionTitle(label: string): string {
   switch (label) {
     case "Refresh dashboard":
-      return `${layoutHeaderRefreshControlGuide.tooltip} Refresh the full desktop shell summary so home, runtime, operations, and records signals stay aligned.`;
+      return `${layoutHeaderRefreshControlGuide.tooltip} Refresh the full desktop shell summary so legacy mission, runtime, operations, and records signals stay aligned.`;
     case "Refresh records":
       return `${layoutHeaderRefreshControlGuide.tooltip} Refresh the record-backed summary signals sourced from persisted runs, executions, and artifacts.`;
     case "Refresh overview":
-      return `${layoutHeaderRefreshControlGuide.tooltip} Refresh the home operator overview and mission-control summaries without leaving the current desktop lane.`;
+      return `${layoutHeaderRefreshControlGuide.tooltip} Refresh the legacy mission operator overview and mission-control summaries without leaving the current desktop lane.`;
     default:
-      return `${layoutHeaderRefreshControlGuide.tooltip} Refresh this home header action without leaving the current desktop lane.`;
+      return `${layoutHeaderRefreshControlGuide.tooltip} Refresh this legacy mission header action without leaving the current desktop lane.`;
   }
 }
 
@@ -410,7 +410,7 @@ export default function LayoutHeader({
               type="button"
               onClick={onOpenPinnedRecord}
               title={getLayoutHeaderLaneActionTitle(
-                "Open the pinned record to continue the current operator lane from the shared home header.",
+                "Open the pinned record to continue the current operator lane from the shared legacy mission header.",
               )}
               style={summaryActionButtonStyle}
             >

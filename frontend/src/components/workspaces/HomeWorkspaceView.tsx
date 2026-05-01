@@ -68,7 +68,7 @@ const items: DesktopTabStripItem[] = [
   {
     id: "guidebook",
     label: "Guidebook",
-    detail: "Read operator guidance without keeping every other home panel visible.",
+    detail: "Read operator guidance without keeping every other compatibility panel visible.",
     helpTooltip: guidebookWindow.tooltip,
   },
 ];
@@ -115,7 +115,7 @@ export default function HomeWorkspaceView({
       : {
           title: "Legacy Mission Desk start here",
           subtitle: "Use a calmer launch surface first, then switch into coordination or reference when you need it.",
-          tooltip: "This guided home surface groups launchpad and overview content into one beginner-safe destination.",
+          tooltip: "This guided compatibility surface groups launchpad and overview content into one beginner-safe destination.",
           instructions: homeWorkspace.operatorChecklist,
         };
 
