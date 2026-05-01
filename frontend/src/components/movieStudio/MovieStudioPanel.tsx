@@ -971,11 +971,13 @@ export default function MovieStudioPanel() {
               type="button"
               onClick={() => setShortcutsVisible((current) => !current)}
               style={s.toolbarButton}
+              aria-expanded={shortcutsVisible}
+              aria-controls="movie-studio-shortcuts-list"
             >
               {shortcutsVisible ? "Hide Shortcuts" : "Show Shortcuts"}
             </button>
             {shortcutsVisible ? (
-              <ul style={s.shortcutList}>
+              <ul id="movie-studio-shortcuts-list" aria-label="Extended shortcuts" style={s.shortcutList}>
                 <li style={s.shortcutItem}>Shift+R reset view</li>
                 <li style={s.shortcutItem}>Shift+O refresh O3DE</li>
                 <li style={s.shortcutItem}>Shift+S copy O3DE status</li>
