@@ -122,6 +122,23 @@ function buildEditorModelFixture(): AssetForgeEditorModelRecord {
   };
 }
 
+function buildEditorModelWithPromptTemplate(): AssetForgeEditorModelRecord {
+  return {
+    ...buildEditorModelFixture(),
+    prompt_templates: [
+      {
+        template_id: "backend-transform-plan",
+        label: "Backend Transform Plan",
+        description: "Backend supplied transform plan template.",
+        text: "Plan a transform update from backend model values. Do not mutate content.",
+        truth_state: "plan-only",
+        safety_labels: ["plan-only", "autoExecute=false", "no mutation"],
+        auto_execute: false,
+      },
+    ],
+  };
+}
+
 describe("AssetForgeBlenderCockpit", () => {
   it("renders strict Blender-like shell zones and fallback safety text", () => {
     render(<AssetForgeBlenderCockpit editorModelError="editor model backend unavailable" />);
@@ -294,6 +311,33 @@ describe("AssetForgeBlenderCockpit", () => {
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining("placement proof-only candidate"));
     await waitFor(() => {
       expect(screen.getByRole("status")).toHaveTextContent(/Placement proof-only copied\. autoExecute=false/i);
+    });
+  });
+
+  it("hands selected backend prompt templates to Prompt Studio without auto-execution", () => {
+    const onLaunchPromptTemplate = vi.fn();
+
+    render(
+      <AssetForgeBlenderCockpit
+        editorModel={buildEditorModelWithPromptTemplate()}
+        onLaunchPromptTemplate={onLaunchPromptTemplate}
+      />,
+    );
+
+    const properties = screen.getByLabelText("Asset Forge transform and material properties");
+    fireEvent.click(within(properties).getByRole("button", { name: "Proof" }));
+
+    expect(within(properties).getByText("Backend Transform Plan")).toBeInTheDocument();
+    fireEvent.click(within(properties).getByRole("button", { name: "Load template" }));
+
+    expect(onLaunchPromptTemplate).toHaveBeenCalledWith({
+      template_id: "backend-transform-plan",
+      label: "Backend Transform Plan",
+      description: "Backend supplied transform plan template.",
+      text: "Plan a transform update from backend model values. Do not mutate content.",
+      truth_state: "plan-only",
+      safety_labels: ["plan-only", "autoExecute=false", "no mutation"],
+      auto_execute: false,
     });
   });
 

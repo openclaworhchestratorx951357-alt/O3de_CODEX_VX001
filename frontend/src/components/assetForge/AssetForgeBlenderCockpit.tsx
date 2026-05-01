@@ -4,6 +4,7 @@ import type {
   AdaptersResponse,
   AssetForgeBlenderStatusRecord,
   AssetForgeEditorModelRecord,
+  AssetForgePromptTemplateRecord,
   AssetForgeProviderStatusRecord,
   AssetForgeTaskRecord,
   O3DEBridgeStatus,
@@ -29,6 +30,7 @@ type Props = {
   onOpenPromptStudio?: () => void;
   onLaunchInspectTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
+  onLaunchPromptTemplate?: (template: AssetForgePromptTemplateRecord) => void;
   onOpenRecords?: () => void;
   onOpenRuntimeOverview?: () => void;
   onViewLatestRun?: () => void;
@@ -70,6 +72,7 @@ type PromptTemplate = {
   description: string;
   text: string;
   truth: string;
+  safetyLabels: string[];
   autoExecute: false;
 };
 
@@ -153,6 +156,7 @@ const fallbackPromptTemplates: PromptTemplate[] = [
     description: "Read-only candidate inspection template.",
     text: "Inspect the current Asset Forge candidate and summarize provider readiness, Blender readiness, O3DE stage/readback readiness, blocked capabilities, and safest next step. Do not mutate content.",
     truth: "read-only",
+    safetyLabels: ["read-only", "non-mutating", "autoExecute=false"],
     autoExecute: false,
   },
   {
@@ -161,6 +165,7 @@ const fallbackPromptTemplates: PromptTemplate[] = [
     description: "Proof-only placement prompt; preview-first and user-controlled.",
     text: "In the editor, create a placement proof-only candidate with candidate_id \"candidate-a\", candidate_label \"Weathered Ivy Arch\", staged_source_relative_path \"Assets/Generated/asset_forge/candidate_a/candidate_a.glb\", target_level_relative_path \"Levels/BridgeLevel01/BridgeLevel01.prefab\", target_entity_name \"AssetForgeCandidateA\", target_component \"Mesh\", stage_write_evidence_reference \"packet-10/stage-write-evidence.json\", stage_write_readback_reference \"packet-10/readback-evidence.json\", stage_write_readback_status \"succeeded\", approval_state \"approved\", and approval_note \"bounded proof-only review\".",
     truth: "proof-only",
+    safetyLabels: ["proof-only", "non-mutating", "autoExecute=false"],
     autoExecute: false,
   },
   {
@@ -169,6 +174,7 @@ const fallbackPromptTemplates: PromptTemplate[] = [
     description: "Plan-only transform update request from draft values.",
     text: "Plan a safe transform update for the selected Asset Forge candidate using draft location, rotation, scale, and dimensions values. Do not execute mutation. Return required admission gates, readback requirements, and revert/restore plan.",
     truth: "plan-only",
+    safetyLabels: ["plan-only", "non-mutating", "autoExecute=false"],
     autoExecute: false,
   },
 ];
@@ -463,6 +469,7 @@ function getPromptTemplates(model?: AssetForgeEditorModelRecord | null): PromptT
         description: string;
         text: string;
         truth_state: string;
+        safety_labels: string[];
       }>;
       const id = template.template_id ?? template.id ?? "editor-model-template";
       return {
@@ -471,6 +478,7 @@ function getPromptTemplates(model?: AssetForgeEditorModelRecord | null): PromptT
         description: template.description ?? "Backend-provided prompt template; preview-first only.",
         text: template.text ?? "No template text was provided by the editor model.",
         truth: template.truth_state ?? "read-only",
+        safetyLabels: template.safety_labels ?? ["autoExecute=false", "non-mutating"],
         autoExecute: false,
       };
     });
@@ -576,6 +584,7 @@ export default function AssetForgeBlenderCockpit({
   onOpenPromptStudio,
   onLaunchInspectTemplate,
   onLaunchPlacementProofTemplate,
+  onLaunchPromptTemplate,
   onOpenRecords,
   onViewLatestRun,
   onViewExecution,
@@ -692,8 +701,24 @@ export default function AssetForgeBlenderCockpit({
     setStatusMessage("Prompt template is displayed for manual copy. autoExecute=false.");
   }
 
+  function toPromptTemplateRecord(template: PromptTemplate): AssetForgePromptTemplateRecord {
+    return {
+      template_id: template.id,
+      label: template.label,
+      description: template.description,
+      text: template.text,
+      truth_state: template.truth as AssetForgePromptTemplateRecord["truth_state"],
+      safety_labels: template.safetyLabels,
+      auto_execute: false,
+    };
+  }
+
   function loadPromptTemplate() {
     setStatusMessage(`${selectedPromptTemplate?.label ?? "Prompt template"} loaded for user-controlled Prompt Studio handoff. autoExecute=false.`);
+    if (selectedPromptTemplate && onLaunchPromptTemplate) {
+      onLaunchPromptTemplate(toPromptTemplateRecord(selectedPromptTemplate));
+      return;
+    }
     if (selectedPromptTemplate?.id === "placement-proof-only") {
       onLaunchPlacementProofTemplate?.();
       return;
