@@ -242,6 +242,18 @@ function contractSummaryKeyCount(contract: Record<string, unknown>): number {
   return Object.keys(contract).length;
 }
 
+function contractSummaryKeyPreview(contract: Record<string, unknown>, maxKeys: number = 3): string {
+  const keys = Object.keys(contract);
+  if (keys.length === 0) {
+    return "none";
+  }
+  if (keys.length <= maxKeys) {
+    return keys.join(", ");
+  }
+  const preview = keys.slice(0, maxKeys).join(", ");
+  return `${preview} (+${keys.length - maxKeys} more)`;
+}
+
 function truthTone(truth: AssetForgeTruthState): CSSProperties {
   switch (truth) {
     case "demo":
@@ -3282,9 +3294,13 @@ export default function AssetForgeStudioPacket01({
               <li>Revert contract key: {placementHarnessExecuteReport.revert_statement_contract_key ?? "none"}</li>
               <li>Operator note present: {placementHarnessExecuteReport.operator_note_present ? "yes" : "no"}</li>
               <li>Runtime command contract keys: {contractSummaryKeyCount(placementHarnessExecuteReport.runtime_command_contract)}</li>
+              <li>Runtime command contract preview: {contractSummaryKeyPreview(placementHarnessExecuteReport.runtime_command_contract)}</li>
               <li>Runtime result contract keys: {contractSummaryKeyCount(placementHarnessExecuteReport.runtime_result_contract)}</li>
+              <li>Runtime result contract preview: {contractSummaryKeyPreview(placementHarnessExecuteReport.runtime_result_contract)}</li>
               <li>Post-run verification contract keys: {contractSummaryKeyCount(placementHarnessExecuteReport.post_run_verification_contract)}</li>
+              <li>Post-run verification contract preview: {contractSummaryKeyPreview(placementHarnessExecuteReport.post_run_verification_contract)}</li>
               <li>Revert scope contract keys: {contractSummaryKeyCount(placementHarnessExecuteReport.revert_scope_contract)}</li>
+              <li>Revert scope contract preview: {contractSummaryKeyPreview(placementHarnessExecuteReport.revert_scope_contract)}</li>
               <li>Bridge contract corridor: {contractSummaryString(placementHarnessExecuteReport.bridge_readiness_contract, "corridor_name")}</li>
               <li>Bridge contract runtime gate env: {contractSummaryString(placementHarnessExecuteReport.bridge_readiness_contract, "runtime_gate_env")}</li>
               <li>Bridge contract bridge required: {contractSummaryBooleanLabel(placementHarnessExecuteReport.bridge_readiness_contract, "bridge_required")}</li>
@@ -3342,9 +3358,13 @@ export default function AssetForgeStudioPacket01({
               <li>Revert contract key: {placementLiveProofReport.revert_statement_contract_key ?? "none"}</li>
               <li>Operator note present: {placementLiveProofReport.operator_note_present ? "yes" : "no"}</li>
               <li>Runtime command contract keys: {contractSummaryKeyCount(placementLiveProofReport.runtime_command_contract)}</li>
+              <li>Runtime command contract preview: {contractSummaryKeyPreview(placementLiveProofReport.runtime_command_contract)}</li>
               <li>Runtime result contract keys: {contractSummaryKeyCount(placementLiveProofReport.runtime_result_contract)}</li>
+              <li>Runtime result contract preview: {contractSummaryKeyPreview(placementLiveProofReport.runtime_result_contract)}</li>
               <li>Post-run verification contract keys: {contractSummaryKeyCount(placementLiveProofReport.post_run_verification_contract)}</li>
+              <li>Post-run verification contract preview: {contractSummaryKeyPreview(placementLiveProofReport.post_run_verification_contract)}</li>
               <li>Revert scope contract keys: {contractSummaryKeyCount(placementLiveProofReport.revert_scope_contract)}</li>
+              <li>Revert scope contract preview: {contractSummaryKeyPreview(placementLiveProofReport.revert_scope_contract)}</li>
               <li>Bridge contract corridor: {contractSummaryString(placementLiveProofReport.bridge_readiness_contract, "corridor_name")}</li>
               <li>Bridge contract runtime gate env: {contractSummaryString(placementLiveProofReport.bridge_readiness_contract, "runtime_gate_env")}</li>
               <li>Bridge contract bridge required: {contractSummaryBooleanLabel(placementLiveProofReport.bridge_readiness_contract, "bridge_required")}</li>

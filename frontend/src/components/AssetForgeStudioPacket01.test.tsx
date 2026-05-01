@@ -1704,9 +1704,13 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Revert contract key: revert-contract:\/\/runtime-harness\/v1/i)).toBeInTheDocument();
     expect(screen.getByText(/Operator note present: yes/i)).toBeInTheDocument();
     expect(screen.getByText(/Runtime command contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime command contract preview: command_id/i)).toBeInTheDocument();
     expect(screen.getByText(/Runtime result contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime result contract preview: result_kind/i)).toBeInTheDocument();
     expect(screen.getByText(/Post-run verification contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Post-run verification contract preview: verification_state/i)).toBeInTheDocument();
     expect(screen.getByText(/Revert scope contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Revert scope contract preview: revert_allowed/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract corridor: asset_forge\.o3de\.placement\.runtime_harness\.v1/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_RUNTIME_HARNESS/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract bridge required: yes/i)).toBeInTheDocument();
@@ -1758,9 +1762,13 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Revert contract key: revert-contract:\/\/live-proof\/v1/i)).toBeInTheDocument();
     expect(screen.getByText(/Operator note present: yes/i)).toBeInTheDocument();
     expect(screen.getByText(/Runtime command contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime command contract preview: command_id/i)).toBeInTheDocument();
     expect(screen.getByText(/Runtime result contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Runtime result contract preview: result_kind/i)).toBeInTheDocument();
     expect(screen.getByText(/Post-run verification contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Post-run verification contract preview: verification_state/i)).toBeInTheDocument();
     expect(screen.getByText(/Revert scope contract keys: 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Revert scope contract preview: revert_allowed/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract corridor: asset_forge\.o3de\.placement\.live_proof\.v1/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_LIVE_PROOF/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract bridge required: yes/i)).toBeInTheDocument();
