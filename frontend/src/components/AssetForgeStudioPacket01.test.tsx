@@ -1834,6 +1834,26 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Bridge contract runtime gate env: n\/a/i)).toBeInTheDocument();
   });
 
+  it("renders runtime-harness readiness bridge key summaries when contract is empty", async () => {
+    apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
+    apiMocks.prepareAssetForgeO3DEPlacementRuntimeHarness.mockResolvedValueOnce(
+      makePlacementHarnessReport({
+        bridge_readiness_contract:
+          {} as unknown as AssetForgeO3DEPlacementHarnessRecord["bridge_readiness_contract"],
+      }),
+    );
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create plan-only placement target" }));
+    expect(await screen.findByText(/Plan status: ready-for-approval/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Prepare bounded runtime harness (plan-only)" }));
+
+    expect(await screen.findByText(/Bridge contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract preview: none/i)).toBeInTheDocument();
+  });
+
   it("submits runtime harness execute with optional approval session id and renders fail-closed details", async () => {
     apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
     apiMocks.executeAssetForgeO3DEPlacementRuntimeHarness.mockResolvedValueOnce(makePlacementHarnessExecuteReport());
@@ -2014,6 +2034,34 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Server approval status: n\/a/i)).toBeInTheDocument();
   });
 
+  it("renders runtime-harness execute contract key summaries when bridge and server approval contracts are empty", async () => {
+    apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
+    apiMocks.executeAssetForgeO3DEPlacementRuntimeHarness.mockResolvedValueOnce(
+      makePlacementHarnessExecuteReport({
+        server_approval_evaluation:
+          {} as unknown as AssetForgeO3DEPlacementHarnessExecuteRecord["server_approval_evaluation"],
+        bridge_readiness_contract:
+          {} as unknown as AssetForgeO3DEPlacementHarnessExecuteRecord["bridge_readiness_contract"],
+      }),
+    );
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create plan-only placement target" }));
+    expect(await screen.findByText(/Plan status: ready-for-approval/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Approval acknowledged for one-shot harness execute gate"));
+    fireEvent.change(screen.getByLabelText("Harness execute approval note"), {
+      target: { value: "Operator approved one-shot harness execute gate." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Submit one-shot runtime harness gate" }));
+
+    expect(await screen.findByText(/Server approval contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval contract preview: none/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract preview: none/i)).toBeInTheDocument();
+  });
+
   it("submits live proof with optional approval session id and renders fail-closed details", async () => {
     apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
     apiMocks.executeAssetForgeO3DEPlacementLiveProof.mockResolvedValueOnce(makePlacementLiveProofReport());
@@ -2192,6 +2240,34 @@ describe("AssetForgeStudioPacket01", () => {
 
     expect(await screen.findByText(/Bridge contract corridor: n\/a/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract runtime gate env: n\/a/i)).toBeInTheDocument();
+  });
+
+  it("renders live-proof contract key summaries when bridge and server approval contracts are empty", async () => {
+    apiMocks.createAssetForgeO3DEPlacementPlan.mockResolvedValueOnce(makePlacementPlanReport());
+    apiMocks.executeAssetForgeO3DEPlacementLiveProof.mockResolvedValueOnce(
+      makePlacementLiveProofReport({
+        server_approval_evaluation:
+          {} as unknown as AssetForgeO3DEPlacementLiveProofRecord["server_approval_evaluation"],
+        bridge_readiness_contract:
+          {} as unknown as AssetForgeO3DEPlacementLiveProofRecord["bridge_readiness_contract"],
+      }),
+    );
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create plan-only placement target" }));
+    expect(await screen.findByText(/Plan status: ready-for-approval/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Approval acknowledged for one-shot harness execute gate"));
+    fireEvent.change(screen.getByLabelText("Harness execute approval note"), {
+      target: { value: "Operator approved one-shot live proof gate." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Run one-shot live proof (read-only)" }));
+
+    expect(await screen.findByText(/Server approval contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval contract preview: none/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Bridge contract preview: none/i)).toBeInTheDocument();
   });
 
   it("shows policy-loading status for provider lane while registry data is pending", () => {
