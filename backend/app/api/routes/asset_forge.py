@@ -39,6 +39,10 @@ from app.models.asset_forge import (
     AssetForgeServerApprovalSessionRevokeRequest,
 )
 from app.services.asset_forge import asset_forge_service
+from app.services.asset_forge_editor_model import (
+    AssetForgeEditorModelRecord,
+    build_asset_forge_editor_model,
+)
 
 router = APIRouter(tags=["asset-forge"])
 
@@ -114,6 +118,11 @@ def get_asset_forge_provider_status() -> AssetForgeProviderStatusRecord:
 @router.get("/asset-forge/blender/status", response_model=AssetForgeBlenderStatusRecord)
 def get_asset_forge_blender_status() -> AssetForgeBlenderStatusRecord:
     return asset_forge_service.get_blender_status()
+
+
+@router.get("/asset-forge/editor-model", response_model=AssetForgeEditorModelRecord)
+def get_asset_forge_editor_model() -> AssetForgeEditorModelRecord:
+    return build_asset_forge_editor_model()
 
 
 @router.get("/asset-forge/studio/status", response_model=AssetForgeStudioStatusRecord)
