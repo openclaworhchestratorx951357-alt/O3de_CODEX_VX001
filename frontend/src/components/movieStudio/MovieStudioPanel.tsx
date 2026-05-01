@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { fetchO3deBridge, fetchO3deTarget } from "../../lib/api";
 import {
   clipWidthForZoom,
@@ -183,6 +183,8 @@ export default function MovieStudioPanel() {
   const [o3deHealth, setO3deHealth] = useState<"healthy" | "degraded" | "unavailable">("degraded");
   const [o3deFailureCount, setO3deFailureCount] = useState<number>(0);
   const [o3deStatusLog, setO3deStatusLog] = useState<string[]>([]);
+  const o3deRefreshInFlightRef = useRef<boolean>(false);
+  const [o3deRefreshing, setO3deRefreshing] = useState<boolean>(false);
 
   const trackCount = TRACKS.length;
   const clipCount = useMemo(
@@ -424,6 +426,9 @@ export default function MovieStudioPanel() {
   }, [playhead, markers, selectedMarker, timelineRange, timelineZoom, playbackRate, clipFilter, trackFilter, snapMode]);
 
   async function refreshO3deStatus() {
+    if (o3deRefreshInFlightRef.current) return;
+    o3deRefreshInFlightRef.current = true;
+    setO3deRefreshing(true);
     try {
       const [target, bridge] = await Promise.all([fetchO3deTarget(), fetchO3deBridge()]);
       const targetConfigured = target.project_root_exists && target.runtime_runner_exists;
@@ -447,6 +452,8 @@ export default function MovieStudioPanel() {
       ].slice(0, 6));
     } finally {
       setO3deLastCheck(new Date().toISOString());
+      o3deRefreshInFlightRef.current = false;
+      setO3deRefreshing(false);
     }
   }
 
@@ -616,8 +623,13 @@ export default function MovieStudioPanel() {
             Recent checks: {o3deStatusLog.length > 0 ? o3deStatusLog[0] : "none yet"}
           </p>
         </div>
-        <button type="button" onClick={() => void refreshO3deStatus()} style={s.toolbarButton}>
-          Refresh O3DE
+        <button
+          type="button"
+          onClick={() => void refreshO3deStatus()}
+          style={o3deRefreshing ? s.toolbarButtonDisabled : s.toolbarButton}
+          disabled={o3deRefreshing}
+        >
+          {o3deRefreshing ? "Refreshing..." : "Refresh O3DE"}
         </button>
       </section>
 
