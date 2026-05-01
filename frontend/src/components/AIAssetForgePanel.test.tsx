@@ -1,31 +1,25 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import AIAssetForgePanel from "./AIAssetForgePanel";
+import * as api from "../lib/api";
 
 vi.mock("../lib/api", () => ({
-  fetchAssetForgeStudioStatus: vi.fn(async () => null),
   fetchAssetForgeTask: vi.fn(async () => null),
   fetchAssetForgeProviderStatus: vi.fn(async () => null),
   fetchAssetForgeBlenderStatus: vi.fn(async () => null),
+  fetchAssetForgeEditorModel: vi.fn(async () => null),
 }));
 
 describe("AIAssetForgePanel", () => {
-  it("renders Asset Forge inside DockableCockpitLayout and supports menu zone moves", () => {
+  it("fetches the editor model and renders Blender-like cockpit shell", async () => {
     render(<AIAssetForgePanel />);
 
-    expect(screen.getByLabelText("AI Asset Forge")).toBeInTheDocument();
-    expect(screen.getByTestId("dockable-layout-asset-forge")).toBeInTheDocument();
-    expect(screen.getByLabelText("Asset Forge studio header")).toBeInTheDocument();
+    expect(await screen.findByLabelText("AI Asset Forge")).toBeInTheDocument();
+    expect(await screen.findByLabelText("Asset Forge Blender-like editor")).toBeInTheDocument();
 
-    const leftZone = screen.getByTestId("asset-forge-left-zone");
-    const pipelinePanel = within(leftZone).getByLabelText("Asset Forge guided pipeline panel");
-    expect(pipelinePanel).toBeInTheDocument();
-
-    fireEvent.click(within(pipelinePanel).getByText("Move"));
-    fireEvent.click(within(pipelinePanel).getByRole("button", { name: "Move Asset Forge guided pipeline panel to right" }));
-
-    const rightZone = screen.getByTestId("asset-forge-right-zone");
-    expect(within(rightZone).getByLabelText("Asset Forge guided pipeline panel")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(api.fetchAssetForgeEditorModel).toHaveBeenCalledTimes(1);
+    });
   });
 });
