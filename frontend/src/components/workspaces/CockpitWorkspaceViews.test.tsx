@@ -44,6 +44,10 @@ describe("Cockpit workspace views", () => {
     render(<CreateMovieWorkspaceView />);
 
     expect(screen.getByTestId("dockable-layout-create-movie")).toBeInTheDocument();
+    expect(screen.getByLabelText("Cinematic viewport")).toBeInTheDocument();
+    expect(screen.getByText("Blender-Style Program Viewer")).toBeInTheDocument();
+    expect(screen.getByText("LIVE CINEMATIC PREVIEW")).toBeInTheDocument();
+    expect(screen.getByText("Frame 124 / 480")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Reset layout" }));
     expect(screen.getByText("Cinematic pipeline")).toBeInTheDocument();
     expect(screen.getByText("Story / Shot Plan")).toBeInTheDocument();

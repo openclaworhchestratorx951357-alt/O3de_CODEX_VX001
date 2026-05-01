@@ -58,6 +58,7 @@ type CockpitWorkspaceShellProps = {
   toolCards: CockpitToolCard[];
   promptTemplates: CockpitPromptTemplate[];
   blockedCapabilities: CockpitBlockedCapability[];
+  primaryViewport?: ReactNode;
   truthRail?: ReactNode;
   reviewNote: string;
 };
@@ -75,6 +76,7 @@ export default function CockpitWorkspaceShell({
   toolCards,
   promptTemplates,
   blockedCapabilities,
+  primaryViewport,
   truthRail,
   reviewNote,
 }: CockpitWorkspaceShellProps) {
@@ -125,6 +127,25 @@ export default function CockpitWorkspaceShell({
             </button>
           ))}
         </div>
+      ),
+    },
+    {
+      id: "viewport",
+      title: "Viewport",
+      subtitle: "Primary scene view and timeline transport",
+      truthState: "workspace",
+      defaultZone: "center",
+      collapsible: true,
+      scrollMode: "none",
+      priority: "primary",
+      minHeight: 280,
+      defaultHeight: 420,
+      render: () => (
+        primaryViewport ?? (
+          <section style={viewportFallbackStyle}>
+            <strong>Viewport not configured for this cockpit.</strong>
+          </section>
+        )
       ),
     },
     {
@@ -417,4 +438,14 @@ const primaryButtonStyle = {
   color: "var(--app-text-color)",
   cursor: "pointer",
   fontWeight: 700,
+} satisfies CSSProperties;
+
+const viewportFallbackStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 10,
+  background: "var(--app-panel-bg-muted)",
+  minHeight: 220,
+  display: "grid",
+  placeItems: "center",
+  padding: 16,
 } satisfies CSSProperties;

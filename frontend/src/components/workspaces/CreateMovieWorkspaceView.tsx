@@ -1,4 +1,5 @@
 import MissionTruthRail from "../MissionTruthRail";
+import type { CSSProperties } from "react";
 import type { PlacementProofOnlyReviewSnapshot } from "../../lib/promptPlacementProofOnlyReview";
 import type { AdaptersResponse, O3DEBridgeStatus, ReadinessStatus } from "../../types/contracts";
 import {
@@ -294,6 +295,50 @@ export default function CreateMovieWorkspaceView({
         { label: "Open Runtime", onClick: onOpenRuntimeOverview },
         { label: "Open Records", onClick: onOpenRecords },
       ]}
+      primaryViewport={(
+        <section style={viewerShellStyle} aria-label="Cinematic viewport">
+          <header style={viewerHeaderStyle}>
+            <strong>Blender-Style Program Viewer</strong>
+            <span style={viewerBadgeStyle}>Asset Forge cockpit visual parity</span>
+          </header>
+          <div style={viewerStageStyle}>
+            <aside style={viewerRailStyle}>
+              <strong>Outliner</strong>
+              <span>Scene Collection</span>
+              <span>Camera_Main</span>
+              <span>Character_A</span>
+              <span>Prop_LightRig</span>
+            </aside>
+            <div style={viewerCanvasStyle}>
+              <div style={viewerTopBarStyle}>
+                <span>Shading: Solid</span>
+                <span>View: Perspective</span>
+                <span>Overlays: On</span>
+              </div>
+              <div style={viewerCenterMarkStyle}>LIVE CINEMATIC PREVIEW</div>
+              <div style={viewerBottomBarStyle}>
+                <span>Frame 124 / 480</span>
+                <span>24 fps</span>
+                <span>Camera Lock</span>
+              </div>
+            </div>
+            <aside style={viewerRailStyle}>
+              <strong>Properties</strong>
+              <span>Lens: 35mm</span>
+              <span>Exposure: +0.20</span>
+              <span>DOF: Enabled</span>
+              <span>Render: Filmic</span>
+            </aside>
+          </div>
+          <footer style={timelineStripStyle}>
+            <span>Timeline</span>
+            <span>|IN 96</span>
+            <span>PLAYHEAD 124</span>
+            <span>OUT 156|</span>
+            <span>Zoom 1:1</span>
+          </footer>
+        </section>
+      )}
       truthRail={(
         <MissionTruthRail
           locationLabel="Create Movie Cockpit"
@@ -334,3 +379,100 @@ export default function CreateMovieWorkspaceView({
     />
   );
 }
+
+const viewerShellStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 10,
+  background: "var(--app-panel-bg-muted)",
+  display: "grid",
+  gap: 8,
+  padding: 10,
+  minHeight: 300,
+} satisfies CSSProperties;
+
+const viewerHeaderStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 8,
+  flexWrap: "wrap",
+} satisfies CSSProperties;
+
+const viewerBadgeStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 999,
+  padding: "2px 9px",
+  fontSize: 11,
+  textTransform: "uppercase",
+  background: "var(--app-panel-elevated)",
+} satisfies CSSProperties;
+
+const viewerStageStyle = {
+  display: "grid",
+  gridTemplateColumns: "180px minmax(0, 1fr) 180px",
+  gap: 8,
+  minHeight: 230,
+} satisfies CSSProperties;
+
+const viewerRailStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 8,
+  background: "var(--app-panel-bg-alt)",
+  padding: 8,
+  display: "grid",
+  alignContent: "start",
+  gap: 6,
+  fontSize: 12,
+} satisfies CSSProperties;
+
+const viewerCanvasStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 8,
+  background:
+    "linear-gradient(180deg, rgba(19, 31, 49, 0.95) 0%, rgba(11, 20, 34, 0.95) 100%)",
+  display: "grid",
+  gridTemplateRows: "auto 1fr auto",
+  minHeight: 230,
+} satisfies CSSProperties;
+
+const viewerTopBarStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 8,
+  padding: "7px 9px",
+  borderBottom: "1px solid var(--app-panel-border)",
+  fontSize: 12,
+  color: "var(--app-subtle-color)",
+} satisfies CSSProperties;
+
+const viewerCenterMarkStyle = {
+  display: "grid",
+  placeItems: "center",
+  fontSize: 14,
+  letterSpacing: 1.2,
+  color: "#d5e7ff",
+  fontWeight: 700,
+} satisfies CSSProperties;
+
+const viewerBottomBarStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 8,
+  padding: "7px 9px",
+  borderTop: "1px solid var(--app-panel-border)",
+  fontSize: 12,
+  color: "var(--app-subtle-color)",
+} satisfies CSSProperties;
+
+const timelineStripStyle = {
+  border: "1px solid var(--app-panel-border)",
+  borderRadius: 8,
+  background: "var(--app-panel-bg-alt)",
+  padding: "7px 10px",
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 8,
+  fontSize: 12,
+  color: "var(--app-subtle-color)",
+  flexWrap: "wrap",
+} satisfies CSSProperties;
