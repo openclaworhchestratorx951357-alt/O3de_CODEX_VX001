@@ -38,8 +38,13 @@ type Props = {
   onLaunchPromptTemplate?: (template: AssetForgePromptTemplateRecord) => void;
   onOpenRecords?: () => void;
   onOpenRuntimeOverview?: () => void;
+  onOpenRuntimeGovernance?: () => void;
+  onOpenRuntimeExecutors?: () => void;
+  onOpenRuntimeWorkspaces?: () => void;
   onOpenBuilder?: () => void;
   onOpenOperations?: () => void;
+  onOpenOperationsApprovals?: () => void;
+  onOpenOperationsDispatch?: () => void;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
@@ -355,11 +360,32 @@ const assetForgeShellMenuGroups: MenuGroup[] = [
         status: "Opened Prompt Studio from Asset Forge shell navigation only.",
       },
       {
-        id: "app-runtime",
-        label: "Runtime",
+        id: "app-runtime-overview",
+        label: "Runtime Overview",
         tone: "read-only",
         action: "open-workspace-runtime",
         status: "Opened Runtime Overview from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-runtime-governance",
+        label: "Runtime Governance",
+        tone: "read-only",
+        action: "open-workspace-runtime-governance",
+        status: "Opened Runtime Governance from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-runtime-executors",
+        label: "Runtime Executors",
+        tone: "read-only",
+        action: "open-workspace-runtime-executors",
+        status: "Opened Runtime Executors from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-runtime-workspaces",
+        label: "Runtime Workspaces",
+        tone: "read-only",
+        action: "open-workspace-runtime-workspaces",
+        status: "Opened Runtime Workspaces from Asset Forge shell navigation only.",
       },
       {
         id: "app-movie-studio",
@@ -376,11 +402,25 @@ const assetForgeShellMenuGroups: MenuGroup[] = [
         status: "Opened Builder from Asset Forge shell navigation only.",
       },
       {
-        id: "app-operations",
-        label: "Operations",
+        id: "app-operations-dashboard",
+        label: "Operations Dashboard",
         tone: "read-only",
         action: "open-workspace-operations",
         status: "Opened Operations from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-operations-approvals",
+        label: "Operations Approvals",
+        tone: "read-only",
+        action: "open-workspace-operations-approvals",
+        status: "Opened Operations Approvals from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-operations-dispatch",
+        label: "Operations Dispatch",
+        tone: "read-only",
+        action: "open-workspace-operations-dispatch",
+        status: "Opened Operations Dispatch from Asset Forge shell navigation only.",
       },
       {
         id: "app-records",
@@ -1037,8 +1077,13 @@ export default function AssetForgeBlenderCockpit({
   onLaunchPromptTemplate,
   onOpenRecords,
   onOpenRuntimeOverview,
+  onOpenRuntimeGovernance,
+  onOpenRuntimeExecutors,
+  onOpenRuntimeWorkspaces,
   onOpenBuilder,
   onOpenOperations,
+  onOpenOperationsApprovals,
+  onOpenOperationsDispatch,
   onViewLatestRun,
   onViewExecution,
   onViewArtifact,
@@ -1250,6 +1295,15 @@ export default function AssetForgeBlenderCockpit({
     } else if (item.action === "open-workspace-runtime") {
       onOpenRuntimeOverview?.();
       setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-runtime-governance") {
+      onOpenRuntimeGovernance?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-runtime-executors") {
+      onOpenRuntimeExecutors?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-runtime-workspaces") {
+      onOpenRuntimeWorkspaces?.();
+      setStatusMessage(item.status);
     } else if (item.action === "open-evidence") {
       onViewEvidence?.();
       setStatusMessage(item.status);
@@ -1264,6 +1318,12 @@ export default function AssetForgeBlenderCockpit({
       setStatusMessage(item.status);
     } else if (item.action === "safety-tab") {
       setSelectedPropertiesTab("Safety");
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-operations-approvals") {
+      onOpenOperationsApprovals?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-operations-dispatch") {
+      onOpenOperationsDispatch?.();
       setStatusMessage(item.status);
     } else {
       setStatusMessage(item.status);

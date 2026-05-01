@@ -33,8 +33,13 @@ type AIAssetForgePanelProps = {
   onLaunchPlacementProofTemplate?: () => void;
   onLaunchPromptTemplate?: (template: AssetForgePromptTemplateRecord) => void;
   onOpenRuntimeOverview?: () => void;
+  onOpenRuntimeGovernance?: () => void;
+  onOpenRuntimeExecutors?: () => void;
+  onOpenRuntimeWorkspaces?: () => void;
   onOpenBuilder?: () => void;
   onOpenOperations?: () => void;
+  onOpenOperationsApprovals?: () => void;
+  onOpenOperationsDispatch?: () => void;
   reviewPacketData?: unknown;
   reviewPacketSource?: string;
   bridgeStatus?: O3DEBridgeStatus | null;
@@ -207,8 +212,13 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
           onLaunchPromptTemplate={props.onLaunchPromptTemplate}
           onOpenRecords={props.onOpenRecords}
           onOpenRuntimeOverview={props.onOpenRuntimeOverview}
+          onOpenRuntimeGovernance={props.onOpenRuntimeGovernance}
+          onOpenRuntimeExecutors={props.onOpenRuntimeExecutors}
+          onOpenRuntimeWorkspaces={props.onOpenRuntimeWorkspaces}
           onOpenBuilder={props.onOpenBuilder}
           onOpenOperations={props.onOpenOperations}
+          onOpenOperationsApprovals={props.onOpenOperationsApprovals}
+          onOpenOperationsDispatch={props.onOpenOperationsDispatch}
           onViewLatestRun={props.onViewLatestRun}
           onViewExecution={props.onViewExecution}
           onViewArtifact={props.onViewArtifact}

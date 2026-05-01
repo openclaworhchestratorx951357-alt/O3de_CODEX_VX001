@@ -9216,8 +9216,13 @@ export default function App() {
                 onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
                 onLaunchPromptTemplate={openPromptStudioWithAssetForgeEditorTemplate}
                 onOpenRuntimeOverview={openRuntimeOverview}
+                onOpenRuntimeGovernance={openRuntimeGovernance}
+                onOpenRuntimeExecutors={openRuntimeExecutors}
+                onOpenRuntimeWorkspaces={openRuntimeWorkspaces}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
                 onOpenOperations={() => setActiveWorkspaceId("operations")}
+                onOpenOperationsApprovals={openOperationsApprovals}
+                onOpenOperationsDispatch={openOperationsDispatch}
                 onOpenRecords={openRecordsRuns}
                 onViewLatestRun={openLatestRunEvidence}
                 onViewExecution={openLatestExecutionEvidence}
