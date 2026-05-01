@@ -405,6 +405,9 @@ export default function MovieStudioPanel() {
       } else if (key === "x" && event.shiftKey) {
         event.preventDefault();
         clearO3deStatusLog();
+      } else if (key === "h" && event.shiftKey) {
+        event.preventDefault();
+        void copyHandoffSummary();
       } else if (key === "o" && event.shiftKey) {
         event.preventDefault();
         void refreshO3deStatus();
@@ -958,7 +961,7 @@ export default function MovieStudioPanel() {
               <strong>Snap:</strong> {snapMode}
             </p>
             <p style={s.inspectorLine}>
-              <strong>Shortcuts:</strong> Space play/pause, J prev, K stop, L next, Shift+R reset view, Shift+O refresh O3DE, Shift+S copy O3DE status, Shift+X clear O3DE log
+              <strong>Shortcuts:</strong> Space play/pause, J prev, K stop, L next, Shift+R reset view, Shift+O refresh O3DE, Shift+S copy O3DE status, Shift+X clear O3DE log, Shift+H copy handoff packet
             </p>
             <div style={s.historyBox}>
               <strong style={s.historyTitle}>Timeline History</strong>

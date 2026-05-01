@@ -198,6 +198,12 @@ describe("MovieStudioPanel", () => {
     expect(screen.getByText("Recent checks: none yet")).toBeInTheDocument();
   });
 
+  it("supports Shift+H shortcut for handoff packet copy", async () => {
+    render(<MovieStudioPanel />);
+    fireEvent.keyDown(window, { key: "H", shiftKey: true });
+    await screen.findByText("Copied to clipboard");
+  });
+
   it("supports keyboard transport shortcuts", () => {
     render(<MovieStudioPanel />);
 
