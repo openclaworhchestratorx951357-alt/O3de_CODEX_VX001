@@ -453,6 +453,26 @@ def test_asset_forge_editor_model_route_returns_read_only_contract() -> None:
     assert payload["viewport"]["label"] == "Front Ortho"
     assert "No provider/Blender/Asset Processor/O3DE mutation admitted" in payload["viewport"]["overlays"]
 
+    menu_labels = {group["label"] for group in payload["context_menu_groups"]}
+    for required_menu in {"File", "Edit", "View", "Candidate", "Stage", "Proof", "Review", "Help"}:
+        assert required_menu in menu_labels
+
+    menu_items = [
+        item
+        for group in payload["context_menu_groups"]
+        for item in group["items"]
+    ]
+    assert menu_items
+    assert all(item["action"] for item in menu_items)
+    assert all(item["status"] for item in menu_items)
+    assert all(item["execution_admitted"] is False for item in menu_items)
+    assert all(item["mutation_admitted"] is False for item in menu_items)
+    assert all(item["auto_execute"] is False for item in menu_items)
+    blocked_menu_items = [item for item in menu_items if item["truth_state"] == "blocked"]
+    assert blocked_menu_items
+    assert all(item["blocked_reason"] for item in blocked_menu_items)
+    assert all(item["next_unlock"] for item in blocked_menu_items)
+
     outliner_labels = {node["label"] for node in payload["outliner"]}
     for required_node in {"Asset Root", "Mesh_LOD0", "Materials", "Textures"}:
         assert required_node in outliner_labels

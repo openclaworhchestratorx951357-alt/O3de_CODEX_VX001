@@ -128,10 +128,23 @@ class AssetForgeTimelineRecord(BaseModel):
     status: str
 
 
+class AssetForgeContextMenuItemRecord(BaseModel):
+    item_id: str
+    label: str
+    truth_state: TruthState
+    action: str
+    status: str
+    blocked_reason: str | None = None
+    next_unlock: str | None = None
+    execution_admitted: bool = False
+    mutation_admitted: bool = False
+    auto_execute: bool = False
+
+
 class AssetForgeContextMenuGroupRecord(BaseModel):
     group_id: str
     label: str
-    items: list[dict[str, object]] = Field(default_factory=list)
+    items: list[AssetForgeContextMenuItemRecord] = Field(default_factory=list)
 
 
 class AssetForgeEditorModelRecord(BaseModel):
@@ -226,6 +239,51 @@ def _property_row(
     )
 
 
+def _menu_item(
+    item_id: str,
+    label: str,
+    truth_state: TruthState,
+    action: str,
+    status: str,
+    *,
+    blocked_reason: str | None = None,
+    next_unlock: str | None = None,
+) -> AssetForgeContextMenuItemRecord:
+    if truth_state == "blocked" and (not blocked_reason or not next_unlock):
+        raise ValueError(f"Blocked Asset Forge menu item '{item_id}' must explain reason and next unlock.")
+    return AssetForgeContextMenuItemRecord(
+        item_id=item_id,
+        label=label,
+        truth_state=truth_state,
+        action=action,
+        status=status,
+        blocked_reason=blocked_reason,
+        next_unlock=next_unlock,
+        execution_admitted=False,
+        mutation_admitted=False,
+        auto_execute=False,
+    )
+
+
+def _blocked_menu_item(
+    item_id: str,
+    label: str,
+    action: str,
+    status: str,
+    blocked_reason: str,
+    next_unlock: str,
+) -> AssetForgeContextMenuItemRecord:
+    return _menu_item(
+        item_id,
+        label,
+        "blocked",
+        action,
+        status,
+        blocked_reason=blocked_reason,
+        next_unlock=next_unlock,
+    )
+
+
 def build_asset_forge_editor_model() -> AssetForgeEditorModelRecord:
     tools = [
         _tool("transform", "Transform", "T", "transform", "demo", "UI transform selection only; draft values stay local.", selected=True, prompt_template_id="transform-plan"),
@@ -304,20 +362,147 @@ def build_asset_forge_editor_model() -> AssetForgeEditorModelRecord:
         tools=tools,
         context_menu_groups=[
             AssetForgeContextMenuGroupRecord(
+                group_id="file",
+                label="File",
+                items=[
+                    _menu_item("file-new-plan", "New candidate plan", "plan-only", "candidate-plan", "New candidate planning is plan-only; no provider generation is admitted."),
+                    _menu_item("file-prompt", "Open Prompt Studio", "read-only", "open-prompt-studio", "Opening Prompt Studio is navigation only; no prompt auto-executes."),
+                    _menu_item("file-records", "Open Records", "read-only", "open-records", "Opening records is read-only evidence navigation."),
+                    _blocked_menu_item(
+                        "file-export",
+                        "Export package",
+                        "blocked",
+                        "Export package is blocked until generated asset packaging is admitted.",
+                        "Export would create or package project artifacts.",
+                        "Add generated-asset packaging design, proof, and admission first.",
+                    ),
+                ],
+            ),
+            AssetForgeContextMenuGroupRecord(
+                group_id="edit",
+                label="Edit",
+                items=[
+                    _menu_item("edit-reset-transform", "Reset transform draft", "demo", "reset-transform", "Transform draft reset locally; no project mutation occurred."),
+                    _blocked_menu_item(
+                        "edit-reset-layout",
+                        "Reset layout",
+                        "blocked",
+                        "Layout reset is not wired for this cockpit packet.",
+                        "Resetting persisted layout is not part of this read-only editor model contract.",
+                        "Add a browser-local layout preference packet if persistent layout reset is needed.",
+                    ),
+                    _blocked_menu_item(
+                        "edit-duplicate",
+                        "Duplicate candidate",
+                        "select-tool-duplicate",
+                        "Duplicate candidate is blocked; asset mutation is not admitted.",
+                        "Duplicate would create or mutate asset/editor state.",
+                        "Add a bounded duplicate design, proof, approval, and readback packet first.",
+                    ),
+                    _blocked_menu_item(
+                        "edit-delete",
+                        "Delete candidate",
+                        "select-tool-delete",
+                        "Delete candidate is blocked; asset deletion is not admitted.",
+                        "Delete would remove asset/editor state.",
+                        "Add explicit deletion policy, proof, approval, and restore planning first.",
+                    ),
+                ],
+            ),
+            AssetForgeContextMenuGroupRecord(
                 group_id="view",
                 label="View",
                 items=[
-                    {"item_id": "solid", "label": "Solid", "truth_state": "demo", "execution_admitted": False},
-                    {"item_id": "wireframe", "label": "Wireframe", "truth_state": "demo", "execution_admitted": False},
-                    {"item_id": "o3de-preview", "label": "O3DE Preview", "truth_state": "preflight-only", "execution_admitted": False},
+                    _menu_item("view-solid", "Solid", "demo", "viewport-Solid", "Viewport mode changed locally to Solid."),
+                    _menu_item("view-wireframe", "Wireframe", "demo", "viewport-Wireframe", "Viewport mode changed locally to Wireframe."),
+                    _menu_item("view-material", "Material Preview", "demo", "viewport-Material Preview", "Material Preview is a local UI preview only."),
+                    _menu_item("view-o3de", "O3DE Preview", "preflight-only", "viewport-O3DE Preview", "O3DE Preview remains preflight/proof oriented; no runtime renderer was called."),
+                    _menu_item("view-frame", "Frame selected", "demo", "frame-selected", "Frame selected adjusted viewport overlay locally."),
+                    _menu_item("view-grid", "Toggle grid", "demo", "toggle-grid", "Grid visibility toggled locally."),
+                ],
+            ),
+            AssetForgeContextMenuGroupRecord(
+                group_id="candidate",
+                label="Candidate",
+                items=[
+                    _menu_item("candidate-inspect", "Inspect candidate", "read-only", "select-template-inspect-candidate", "Inspect candidate template selected for preview only."),
+                    _blocked_menu_item(
+                        "candidate-generate",
+                        "Generate candidate",
+                        "blocked",
+                        "Provider generation is blocked in this packet.",
+                        "Provider generation would create a generated asset candidate.",
+                        "Add a provider proof/admission packet with operator approval first.",
+                    ),
+                    _menu_item("candidate-refine", "Refine candidate prompt", "plan-only", "select-template-transform-plan", "Transform plan template selected; no execution is admitted."),
+                    _menu_item("candidate-validate", "Validate metadata", "preflight-only", "preflight", "Metadata validation remains preflight-only."),
+                ],
+            ),
+            AssetForgeContextMenuGroupRecord(
+                group_id="stage",
+                label="Stage",
+                items=[
+                    _menu_item("stage-plan", "Stage plan", "plan-only", "stage-plan", "Stage planning is plan-only."),
+                    _menu_item("stage-write", "Stage write", "proof-only", "blocked", "Stage write is gated/proof-only and is not executed from this UI."),
+                    _menu_item("stage-readback", "Stage readback", "read-only", "open-evidence", "Stage readback is evidence review only."),
+                    _blocked_menu_item(
+                        "stage-ap",
+                        "Asset Processor validate",
+                        "blocked",
+                        "Asset Processor execution is blocked.",
+                        "Asset Processor execution is outside this editor model contract.",
+                        "Add a bounded AP validation corridor with approval and readback first.",
+                    ),
                 ],
             ),
             AssetForgeContextMenuGroupRecord(
                 group_id="proof",
                 label="Proof",
                 items=[
-                    {"item_id": "placement-proof-only", "label": "Load placement proof-only template", "truth_state": "proof-only", "auto_execute": False},
-                    {"item_id": "placement-write", "label": "Placement write", "truth_state": "blocked", "execution_admitted": False},
+                    _menu_item("proof-template", "Load placement proof-only template", "proof-only", "select-template-placement-proof-only", "Placement proof-only template selected; autoExecute=false."),
+                    _menu_item("proof-evidence", "Open proof evidence", "read-only", "open-evidence", "Opening proof evidence is read-only."),
+                    _blocked_menu_item(
+                        "proof-execute",
+                        "Placement execution",
+                        "blocked",
+                        "Placement execution is blocked.",
+                        "Placement execution would mutate O3DE runtime or level state.",
+                        "Add an exact placement admission decision and corridor first.",
+                    ),
+                    _blocked_menu_item(
+                        "proof-write",
+                        "Placement write",
+                        "blocked",
+                        "Placement write is blocked.",
+                        "Placement write would mutate O3DE level/prefab state.",
+                        "Add an exact placement write admission corridor with readback and restore discipline first.",
+                    ),
+                ],
+            ),
+            AssetForgeContextMenuGroupRecord(
+                group_id="review",
+                label="Review",
+                items=[
+                    _menu_item("review-run", "Latest run", "read-only", "view-run", "Latest run opened as read-only evidence."),
+                    _menu_item("review-execution", "Latest execution", "read-only", "view-execution", "Latest execution opened as read-only evidence."),
+                    _menu_item("review-artifact", "Latest artifact", "read-only", "view-artifact", "Latest artifact opened as read-only evidence."),
+                    _menu_item("review-evidence", "Evidence drawer", "read-only", "open-evidence", "Evidence drawer is read-only."),
+                ],
+            ),
+            AssetForgeContextMenuGroupRecord(
+                group_id="help",
+                label="Help",
+                items=[
+                    _menu_item("help-safety", "Safety model", "read-only", "safety-tab", "Safety model shown; mutation flags remain false."),
+                    _blocked_menu_item(
+                        "help-blocked",
+                        "What is blocked",
+                        "safety-tab",
+                        "Blocked capabilities shown in Safety tab.",
+                        "Blocked capabilities cannot be bypassed from the editor UI.",
+                        "Use separate design/proof/admission packets for each capability.",
+                    ),
+                    _menu_item("help-unlock", "Next unlock", "plan-only", "safety-tab", "Next unlock requires a separate backend admission packet."),
                 ],
             ),
         ],

@@ -84,6 +84,8 @@ type MenuItem = {
   tone: string;
   action: string;
   status: string;
+  blockedReason?: string | null;
+  nextUnlock?: string | null;
 };
 
 type MenuGroup = {
@@ -262,6 +264,35 @@ const menuGroups: MenuGroup[] = [
     ],
   },
 ];
+
+function getMenuGroups(model?: AssetForgeEditorModelRecord | null): MenuGroup[] {
+  if (!model?.context_menu_groups?.length) {
+    return menuGroups;
+  }
+
+  const groups = model.context_menu_groups
+    .map((group) => ({
+      id: group.group_id,
+      label: group.label,
+      items: group.items.map((item) => {
+        const unsafeAdmission = item.execution_admitted || item.mutation_admitted || item.auto_execute;
+        return {
+          id: item.item_id,
+          label: item.label,
+          tone: unsafeAdmission ? "blocked" : item.truth_state,
+          action: unsafeAdmission ? "blocked" : item.action,
+          status: unsafeAdmission
+            ? `${item.label} is blocked by the frontend safety rail because backend menu metadata requested execution, mutation, or auto-execution.`
+            : item.status,
+          blockedReason: item.blocked_reason,
+          nextUnlock: item.next_unlock,
+        };
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
+
+  return groups.length > 0 ? groups : menuGroups;
+}
 
 const toolSafetyDetails: Record<string, Pick<EditorTool, "description" | "blockedReason" | "nextUnlock" | "enabled" | "promptTemplateId">> = {
   transform: {
@@ -597,6 +628,7 @@ export default function AssetForgeBlenderCockpit({
   const outliner = getOutliner(editorModel);
   const overlays = getOverlayLines(editorModel);
   const promptTemplates = useMemo(() => getPromptTemplates(editorModel), [editorModel]);
+  const editorMenuGroups = useMemo(() => getMenuGroups(editorModel), [editorModel]);
   const propertyRows = getPropertyRows({
     model: editorModel,
     providerStatus,
@@ -733,7 +765,8 @@ export default function AssetForgeBlenderCockpit({
 
   function handleMenuItem(item: MenuItem) {
     if (item.action.startsWith("viewport-")) {
-      selectViewportMode(item.action.replace("viewport-", ""));
+      setSelectedViewportMode(item.action.replace("viewport-", ""));
+      setStatusMessage(item.status);
     } else if (item.action.startsWith("select-tool-")) {
       const toolId = item.action.replace("select-tool-", "");
       const tool = tools.find((candidateTool) => candidateTool.id === toolId);
@@ -1014,7 +1047,7 @@ export default function AssetForgeBlenderCockpit({
       <header style={styles.menuBar} aria-label="Asset Forge top menu">
         <div style={styles.menuLeft}>
           <strong style={styles.brand}>Asset Forge</strong>
-          {menuGroups.map((menu) => (
+          {editorMenuGroups.map((menu) => (
             <div key={menu.id} style={styles.menuGroup}>
               <button
                 type="button"

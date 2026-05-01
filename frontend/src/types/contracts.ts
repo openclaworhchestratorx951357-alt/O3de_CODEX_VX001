@@ -1391,10 +1391,23 @@ export interface AssetForgeBlockedCapabilityRecord {
   next_unlock: string;
 }
 
+export interface AssetForgeContextMenuItemRecord {
+  item_id: string;
+  label: string;
+  truth_state: AssetForgeEditorTruthState;
+  action: string;
+  status: string;
+  blocked_reason?: string | null;
+  next_unlock?: string | null;
+  execution_admitted: boolean;
+  mutation_admitted: boolean;
+  auto_execute: boolean;
+}
+
 export interface AssetForgeContextMenuGroupRecord {
   group_id: string;
   label: string;
-  items: Record<string, unknown>[];
+  items: AssetForgeContextMenuItemRecord[];
 }
 
 export interface AssetForgeEditorModelRecord {

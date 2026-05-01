@@ -139,6 +139,30 @@ function buildEditorModelWithPromptTemplate(): AssetForgeEditorModelRecord {
   };
 }
 
+function buildEditorModelWithBackendMenus(): AssetForgeEditorModelRecord {
+  return {
+    ...buildEditorModelFixture(),
+    context_menu_groups: [
+      {
+        group_id: "backend-menu",
+        label: "Backend Menu",
+        items: [
+          {
+            item_id: "backend-wireframe",
+            label: "Backend Wireframe",
+            truth_state: "demo",
+            action: "viewport-Wireframe",
+            status: "Backend supplied menu changed viewport mode locally.",
+            execution_admitted: false,
+            mutation_admitted: false,
+            auto_execute: false,
+          },
+        ],
+      },
+    ],
+  };
+}
+
 describe("AssetForgeBlenderCockpit", () => {
   it("renders strict Blender-like shell zones and fallback safety text", () => {
     render(<AssetForgeBlenderCockpit editorModelError="editor model backend unavailable" />);
@@ -393,5 +417,20 @@ describe("AssetForgeBlenderCockpit", () => {
     expect(screen.getByText("Location X/Y/Z")).toBeInTheDocument();
     expect(screen.getByText("10 / 20 / 30")).toBeInTheDocument();
     expect(screen.getByText("Backend overlay line")).toBeInTheDocument();
+  });
+
+  it("renders top menu groups and actions from the backend editor model", () => {
+    render(<AssetForgeBlenderCockpit editorModel={buildEditorModelWithBackendMenus()} />);
+
+    const topMenu = screen.getByLabelText("Asset Forge top menu");
+    expect(within(topMenu).getByRole("button", { name: "Backend Menu" })).toBeInTheDocument();
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "Backend Menu" }));
+    const backendMenu = screen.getByRole("menu", { name: "Backend Menu menu" });
+
+    fireEvent.click(within(backendMenu).getByRole("menuitem", { name: /Backend Wireframe/i }));
+
+    expect(screen.getByText("Viewport mode: Wireframe")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/Backend supplied menu changed viewport mode locally/i);
   });
 });
