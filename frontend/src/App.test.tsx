@@ -14,6 +14,7 @@ import { SETTINGS_PROFILE_STORAGE_KEY } from "./types/settings";
 
 const LAZY_SURFACE_TIMEOUT_MS = 5000;
 const MULTI_WORKSPACE_SMOKE_TIMEOUT_MS = 15000;
+const ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY = "o3de-control-app-active-desktop-workspace";
 
 const apiMocks = vi.hoisted(() => ({
   approveApproval: vi.fn(),
@@ -304,6 +305,7 @@ describe("App desktop smoke", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     window.localStorage.clear();
+    window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "home");
     vi.clearAllMocks();
     Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
       configurable: true,
@@ -312,6 +314,33 @@ describe("App desktop smoke", () => {
     });
 
     setPendingAppApiMocks(apiMocks);
+  });
+
+  it("uses Asset Forge as the app home shell and exposes built-in app navigation", async () => {
+    window.sessionStorage.removeItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY);
+
+    render(<App />);
+
+    const forgePanel = await screen.findByLabelText(
+      "AI Asset Forge",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    );
+    expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
+    expect(within(forgePanel).getByLabelText("Asset Forge Blender-like editor")).toBeInTheDocument();
+    expect(screen.queryByText("Control surface")).toBeNull();
+
+    const topMenu = within(forgePanel).getByLabelText("Asset Forge top menu");
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+
+    const appMenu = screen.getByRole("menu", { name: "App menu" });
+    expect(within(appMenu).getByRole("menuitem", { name: /Create Game/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Prompt Studio/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Records/i })).toBeInTheDocument();
+
+    fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Prompt Studio/i }));
+
+    expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
   });
 
   it("renders the home workspace and switches to prompt through the shell nav without blanking", async () => {
@@ -1016,6 +1045,8 @@ describe("App desktop smoke", () => {
   });
 
   it("applies the saved settings profile to the initial shell workspace and telemetry visibility", async () => {
+    window.sessionStorage.removeItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY);
+
     window.localStorage.setItem(
       SETTINGS_PROFILE_STORAGE_KEY,
       JSON.stringify(createSettingsProfile({

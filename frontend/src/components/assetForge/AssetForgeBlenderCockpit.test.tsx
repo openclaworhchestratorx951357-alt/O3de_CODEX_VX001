@@ -319,6 +319,49 @@ describe("AssetForgeBlenderCockpit", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/Viewport mode changed locally to Wireframe/i);
   });
 
+  it("renders an app navigation menu that routes to existing workspaces without mutation", () => {
+    const callbacks = {
+      onOpenHome: vi.fn(),
+      onOpenCreateGame: vi.fn(),
+      onOpenCreateMovie: vi.fn(),
+      onOpenLoadProject: vi.fn(),
+      onOpenPromptStudio: vi.fn(),
+      onOpenBuilder: vi.fn(),
+      onOpenOperations: vi.fn(),
+      onOpenRuntimeOverview: vi.fn(),
+      onOpenRecords: vi.fn(),
+      onLaunchPlacementProofTemplate: vi.fn(),
+    };
+
+    render(<AssetForgeBlenderCockpit {...callbacks} />);
+
+    const topMenu = screen.getByLabelText("Asset Forge top menu");
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+
+    const appMenu = screen.getByRole("menu", { name: "App menu" });
+    [
+      "Home / Start",
+      "Create Game",
+      "Create Movie",
+      "Load Project",
+      "Prompt Studio",
+      "Builder",
+      "Operations",
+      "Runtime Overview",
+      "Records",
+    ].forEach((label) => {
+      expect(within(appMenu).getByRole("menuitem", { name: new RegExp(label, "i") })).toBeInTheDocument();
+    });
+
+    fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Prompt Studio/i }));
+
+    expect(callbacks.onOpenPromptStudio).toHaveBeenCalledTimes(1);
+    expect(callbacks.onLaunchPlacementProofTemplate).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /Opened Prompt Studio from Asset Forge shell navigation only/i,
+    );
+  });
+
   it("selects tools, reports blocked reasons, and does not call mutation-style callbacks", () => {
     const callbacks = {
       onOpenPromptStudio: vi.fn(),

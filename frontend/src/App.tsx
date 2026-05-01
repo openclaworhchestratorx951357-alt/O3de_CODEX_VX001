@@ -261,6 +261,50 @@ type DesktopWorkspaceId =
 
 type DesktopNavItemId = DesktopWorkspaceId;
 
+function resolveInitialDesktopWorkspaceId(preferredWorkspaceId: string): DesktopWorkspaceId {
+  if (preferredWorkspaceId === "home") {
+    return "asset-forge";
+  }
+
+  if (
+    preferredWorkspaceId === "create-game"
+    || preferredWorkspaceId === "create-movie"
+    || preferredWorkspaceId === "load-project"
+    || preferredWorkspaceId === "asset-forge"
+    || preferredWorkspaceId === "prompt"
+    || preferredWorkspaceId === "builder"
+    || preferredWorkspaceId === "operations"
+    || preferredWorkspaceId === "runtime"
+    || preferredWorkspaceId === "records"
+  ) {
+    return preferredWorkspaceId;
+  }
+
+  return "asset-forge";
+}
+
+function getInitialDesktopWorkspaceId(preferredWorkspaceId: string): DesktopWorkspaceId {
+  if (typeof window !== "undefined") {
+    const storedWorkspace = window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY);
+    if (
+      storedWorkspace === "home"
+      || storedWorkspace === "create-game"
+      || storedWorkspace === "create-movie"
+      || storedWorkspace === "load-project"
+      || storedWorkspace === "asset-forge"
+      || storedWorkspace === "prompt"
+      || storedWorkspace === "builder"
+      || storedWorkspace === "operations"
+      || storedWorkspace === "runtime"
+      || storedWorkspace === "records"
+    ) {
+      return storedWorkspace;
+    }
+  }
+
+  return resolveInitialDesktopWorkspaceId(preferredWorkspaceId);
+}
+
 type PromptLaunchDraftRequest = {
   requestId: string;
   draft: MissionPromptDraft;
@@ -697,11 +741,10 @@ export default function App() {
   const [laneOperatorNotes, setLaneOperatorNotes] = useState<Record<string, LaneOperatorNoteEntry>>({});
   const [laneOperatorNoteDraft, setLaneOperatorNoteDraft] = useState("");
   const [laneExportStatus, setLaneExportStatus] = useState<LaneExportStatus | null>(null);
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<DesktopWorkspaceId>(
-    settings.layout.preferredLandingSection as DesktopWorkspaceId,
-  );
+  const initialWorkspaceId = getInitialDesktopWorkspaceId(settings.layout.preferredLandingSection);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<DesktopWorkspaceId>(initialWorkspaceId);
   const [visitedWorkspaceIds, setVisitedWorkspaceIds] = useState<DesktopWorkspaceId[]>([
-    settings.layout.preferredLandingSection as DesktopWorkspaceId,
+    initialWorkspaceId,
   ]);
   const [promptLaunchDraftRequest, setPromptLaunchDraftRequest] =
     useState<PromptLaunchDraftRequest | null>(null);
@@ -9177,12 +9220,17 @@ export default function App() {
               )}
             >
               <AIAssetForgePanel
+                onOpenHome={() => setActiveWorkspaceId("home")}
+                onOpenCreateGame={() => setActiveWorkspaceId("create-game")}
+                onOpenCreateMovie={() => setActiveWorkspaceId("create-movie")}
+                onOpenLoadProject={() => setActiveWorkspaceId("load-project")}
                 onOpenPromptStudio={openPromptStudioFromAssetForgeCockpit}
                 onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
                 onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
                 onLaunchPromptTemplate={openPromptStudioWithAssetForgeEditorTemplate}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenBuilder={() => setActiveWorkspaceId("builder")}
+                onOpenOperations={() => setActiveWorkspaceId("operations")}
                 onOpenRecords={openRecordsRuns}
                 onViewLatestRun={openLatestRunEvidence}
                 onViewExecution={openLatestExecutionEvidence}

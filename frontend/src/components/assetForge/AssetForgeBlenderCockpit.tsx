@@ -27,12 +27,18 @@ type Props = {
   latestExecutionId?: string | null;
   latestArtifactId?: string | null;
   latestPlacementProofOnlyReview?: PlacementProofOnlyReviewSnapshot | null;
+  onOpenHome?: () => void;
+  onOpenCreateGame?: () => void;
+  onOpenCreateMovie?: () => void;
+  onOpenLoadProject?: () => void;
   onOpenPromptStudio?: () => void;
   onLaunchInspectTemplate?: () => void;
   onLaunchPlacementProofTemplate?: () => void;
   onLaunchPromptTemplate?: (template: AssetForgePromptTemplateRecord) => void;
   onOpenRecords?: () => void;
   onOpenRuntimeOverview?: () => void;
+  onOpenBuilder?: () => void;
+  onOpenOperations?: () => void;
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
@@ -306,6 +312,76 @@ const menuGroups: MenuGroup[] = [
     ],
   },
 ];
+
+const appShellMenuGroup: MenuGroup = {
+  id: "app",
+  label: "App",
+  items: [
+    {
+      id: "app-home",
+      label: "Home / Start",
+      tone: "read-only",
+      action: "open-workspace-home",
+      status: "Opened Home from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-create-game",
+      label: "Create Game",
+      tone: "plan-only",
+      action: "open-workspace-create-game",
+      status: "Opened Create Game from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-create-movie",
+      label: "Create Movie",
+      tone: "plan-only",
+      action: "open-workspace-create-movie",
+      status: "Opened Create Movie from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-load-project",
+      label: "Load Project",
+      tone: "read-only",
+      action: "open-workspace-load-project",
+      status: "Opened Load Project from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-prompt",
+      label: "Prompt Studio",
+      tone: "read-only",
+      action: "open-prompt-studio",
+      status: "Opened Prompt Studio from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-builder",
+      label: "Builder",
+      tone: "plan-only",
+      action: "open-workspace-builder",
+      status: "Opened Builder from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-operations",
+      label: "Operations",
+      tone: "read-only",
+      action: "open-workspace-operations",
+      status: "Opened Operations from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-runtime",
+      label: "Runtime Overview",
+      tone: "read-only",
+      action: "open-workspace-runtime",
+      status: "Opened Runtime Overview from Asset Forge shell navigation only.",
+    },
+    {
+      id: "app-records",
+      label: "Records",
+      tone: "read-only",
+      action: "open-records",
+      status: "Opened Records from Asset Forge shell navigation only.",
+    },
+  ],
+};
 
 function getMenuGroups(model?: AssetForgeEditorModelRecord | null): MenuGroup[] {
   if (!model?.context_menu_groups?.length) {
@@ -792,12 +868,18 @@ export default function AssetForgeBlenderCockpit({
   latestExecutionId,
   latestArtifactId,
   latestPlacementProofOnlyReview,
+  onOpenHome,
+  onOpenCreateGame,
+  onOpenCreateMovie,
+  onOpenLoadProject,
   onOpenPromptStudio,
   onLaunchInspectTemplate,
   onLaunchPlacementProofTemplate,
   onLaunchPromptTemplate,
   onOpenRecords,
   onOpenRuntimeOverview,
+  onOpenBuilder,
+  onOpenOperations,
   onViewLatestRun,
   onViewExecution,
   onViewArtifact,
@@ -808,7 +890,7 @@ export default function AssetForgeBlenderCockpit({
   const outliner = getOutliner(editorModel);
   const overlays = getOverlayLines(editorModel);
   const promptTemplates = useMemo(() => getPromptTemplates(editorModel), [editorModel]);
-  const editorMenuGroups = useMemo(() => getMenuGroups(editorModel), [editorModel]);
+  const editorMenuGroups = useMemo(() => [appShellMenuGroup, ...getMenuGroups(editorModel)], [editorModel]);
   const workflowStages = useMemo(() => getWorkflowStages(editorModel), [editorModel]);
   const statusStripTabs = useMemo(() => getStatusStripTabs(editorModel), [editorModel]);
   const propertyTabs = useMemo(() => getPropertyTabs(editorModel), [editorModel]);
@@ -981,6 +1063,27 @@ export default function AssetForgeBlenderCockpit({
       setStatusMessage(item.status);
     } else if (item.action === "open-records") {
       onOpenRecords?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-home") {
+      onOpenHome?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-create-game") {
+      onOpenCreateGame?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-create-movie") {
+      onOpenCreateMovie?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-load-project") {
+      onOpenLoadProject?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-builder") {
+      onOpenBuilder?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-operations") {
+      onOpenOperations?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-runtime") {
+      onOpenRuntimeOverview?.();
       setStatusMessage(item.status);
     } else if (item.action === "open-evidence") {
       onViewEvidence?.();

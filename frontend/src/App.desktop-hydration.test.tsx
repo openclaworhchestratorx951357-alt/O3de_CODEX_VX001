@@ -58,9 +58,11 @@ const apiMocks = vi.hoisted(() => ({
   fetchO3deTarget: vi.fn(),
   fetchPolicies: vi.fn(),
   fetchReadiness: vi.fn(),
+  fetchCockpitAppRegistry: vi.fn(),
   fetchAssetForgeTask: vi.fn(),
   fetchAssetForgeProviderStatus: vi.fn(),
   fetchAssetForgeBlenderStatus: vi.fn(),
+  fetchAssetForgeEditorModel: vi.fn(),
   createAssetForgeO3DEStagePlan: vi.fn(),
   createAssetForgeO3DEPlacementPlan: vi.fn(),
   executeAssetForgeO3DEPlacementProof: vi.fn(),
@@ -242,6 +244,7 @@ describe("App desktop hydration", () => {
   beforeEach(() => {
     window.sessionStorage.clear();
     window.localStorage.clear();
+    window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "home");
     vi.clearAllMocks();
 
     setPendingAppApiMocks(apiMocks);
@@ -644,7 +647,7 @@ describe("App desktop hydration", () => {
     expect(window.sessionStorage.getItem(ACTIVE_RECORDS_SURFACE_SESSION_KEY)).toBe("runs");
   });
 
-  it("falls back to default workspace surfaces when persisted session values are invalid", () => {
+  it("falls back to the Asset Forge home shell when persisted session values are invalid", async () => {
     window.sessionStorage.setItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY, "invalid-workspace");
     window.sessionStorage.setItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY, "invalid-operations");
     window.sessionStorage.setItem(ACTIVE_RUNTIME_SURFACE_SESSION_KEY, "invalid-runtime");
@@ -652,9 +655,13 @@ describe("App desktop hydration", () => {
 
     render(<App />);
 
-    expect(screen.getAllByText("Mission Control").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Launchpad").length).toBeGreaterThan(0);
-    expect(window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY)).toBe("home");
+    expect(await screen.findByLabelText(
+      "AI Asset Forge",
+      {},
+      { timeout: LAZY_SURFACE_TIMEOUT_MS },
+    )).toBeInTheDocument();
+    expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
+    expect(window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY)).toBe("asset-forge");
     expect(window.sessionStorage.getItem(ACTIVE_OPERATIONS_SURFACE_SESSION_KEY)).toBe("dispatch");
     expect(window.sessionStorage.getItem(ACTIVE_RUNTIME_SURFACE_SESSION_KEY)).toBe("overview");
     expect(window.sessionStorage.getItem(ACTIVE_RECORDS_SURFACE_SESSION_KEY)).toBe("runs");
