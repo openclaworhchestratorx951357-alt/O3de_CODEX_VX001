@@ -71,6 +71,11 @@ import {
 } from "./lib/laneController";
 import { buildHomeRecommendationDescriptors, type HomeRecommendationActionId } from "./lib/recommendations";
 import {
+  cockpitAppRegistry,
+  cockpitAppRegistryByWorkspaceId,
+  type CockpitWorkspaceId,
+} from "./lib/cockpitAppRegistry";
+import {
   addAllowlistedMeshMissionPromptDraft,
   cinematicPlacementProofOnlyMissionPromptDraft,
   createCinematicCameraPlaceholderMissionPromptDraft,
@@ -244,10 +249,7 @@ type LanePresetSource = "manual" | "session";
 
 type DesktopWorkspaceId =
   | "home"
-  | "create-game"
-  | "create-movie"
-  | "load-project"
-  | "asset-forge"
+  | CockpitWorkspaceId
   | "prompt"
   | "builder"
   | "operations"
@@ -4893,20 +4895,20 @@ export default function App() {
       subtitle: homeWorkspaceGuide.workspaceSubtitle,
     },
     "create-game": {
-      title: "Create Game",
-      subtitle: "Create Game Cockpit with staged mission workflow, bounded editor actions, and evidence review.",
+      title: cockpitAppRegistryByWorkspaceId["create-game"].workspaceTitle,
+      subtitle: cockpitAppRegistryByWorkspaceId["create-game"].workspaceSubtitle,
     },
     "create-movie": {
-      title: "Create Movie",
-      subtitle: "Create Movie Cockpit with cinematic planning, proof-only placement review, and explicit blockers.",
+      title: cockpitAppRegistryByWorkspaceId["create-movie"].workspaceTitle,
+      subtitle: cockpitAppRegistryByWorkspaceId["create-movie"].workspaceSubtitle,
     },
     "load-project": {
-      title: "Load Project",
-      subtitle: "Load Project Cockpit for read-only target verification and preflight readiness checks.",
+      title: cockpitAppRegistryByWorkspaceId["load-project"].workspaceTitle,
+      subtitle: cockpitAppRegistryByWorkspaceId["load-project"].workspaceSubtitle,
     },
     "asset-forge": {
-      title: "Asset Forge",
-      subtitle: "O3DE-native production asset toolbench with read-only evidence, review, and gated creation planning.",
+      title: cockpitAppRegistryByWorkspaceId["asset-forge"].workspaceTitle,
+      subtitle: cockpitAppRegistryByWorkspaceId["asset-forge"].workspaceSubtitle,
     },
     prompt: {
       title: promptWorkspaceGuide.workspaceTitle,
@@ -4969,38 +4971,14 @@ export default function App() {
       label: "Create",
       detail: "Use natural-language or mission-control surfaces to start and shape work.",
       items: [
-        {
-          id: "create-game",
-          label: "Create Game",
-          subtitle: "Open the Create Game cockpit environment",
-          badge: null,
-          tone: "success",
-          helpTooltip: "Open the first-class Create Game cockpit with mission pipeline, tools, and blocked-capability guidance.",
-        },
-        {
-          id: "create-movie",
-          label: "Create Movie",
-          subtitle: "Open the Create Movie cockpit environment",
-          badge: null,
-          tone: "info",
-          helpTooltip: "Open the first-class Create Movie cockpit for cinematic pipeline, proof-only placement, and review guidance.",
-        },
-        {
-          id: "load-project",
-          label: "Load Project",
-          subtitle: "Open the Load Project cockpit environment",
-          badge: null,
-          tone: "neutral",
-          helpTooltip: "Open the first-class Load Project cockpit for target verification and configuration preflight.",
-        },
-        {
-          id: "asset-forge",
-          label: "Asset Forge",
-          subtitle: "Open the O3DE-native asset studio workspace",
-          badge: null,
-          tone: "info",
-          helpTooltip: "Open Asset Forge as its own production workspace for read-only asset evidence, preview pages, and gated operator review.",
-        },
+        ...cockpitAppRegistry.map((registration) => ({
+          id: registration.workspaceId,
+          label: registration.navLabel,
+          subtitle: registration.navSubtitle,
+          badge: registration.shellMode === "full-screen-editor" ? "full" : null,
+          tone: registration.tone,
+          helpTooltip: registration.helpTooltip,
+        })),
         {
           id: "prompt",
           label: promptWorkspaceGuide.navLabel,
