@@ -103,6 +103,38 @@ function buildEditorModelFixture(): AssetForgeEditorModelRecord {
       mutation_admitted: false,
       rows: [],
     },
+    mesh_preview: {
+      source_node_id: "backend-mesh-lod0",
+      mesh_label: "Backend Mesh_LOD0",
+      preview_kind: "wireframe_bust_placeholder",
+      topology_status: "backend read-only topology metadata",
+      estimated_vertices: 0,
+      estimated_faces: 0,
+      estimated_triangles: 0,
+      uv_layers: ["Backend UV0"],
+      material_slots: ["Backend Clay", "Backend Moss"],
+      wireframe_visible: true,
+      selection_outline_visible: true,
+      overlays: ["Backend mesh overlay"],
+      execution_admitted: false,
+      mutation_admitted: false,
+      rows: [
+        {
+          row_id: "backend-mesh-topology",
+          label: "Topology",
+          value: "backend read-only topology metadata",
+          truth_state: "read-only",
+          mutation_admitted: false,
+        },
+        {
+          row_id: "backend-mesh-material-slots",
+          label: "Material slots",
+          value: "Backend Clay, Backend Moss",
+          truth_state: "read-only",
+          mutation_admitted: false,
+        },
+      ],
+    },
     timeline: {
       start_frame: 1,
       end_frame: 250,
@@ -571,6 +603,29 @@ describe("AssetForgeBlenderCockpit", () => {
     expect(screen.getByText("Location X/Y/Z")).toBeInTheDocument();
     expect(screen.getByText("10 / 20 / 30")).toBeInTheDocument();
     expect(screen.getByText("Backend overlay line")).toBeInTheDocument();
+    expect(screen.getByText("Backend mesh overlay")).toBeInTheDocument();
+  });
+
+  it("renders backend mesh preview metadata in the viewport and object inspector", () => {
+    render(<AssetForgeBlenderCockpit editorModel={buildEditorModelFixture()} />);
+
+    expect(screen.getByLabelText("demo wireframe asset preview")).toHaveAttribute(
+      "data-preview-kind",
+      "wireframe_bust_placeholder",
+    );
+    expect(screen.getByText("Mesh preview: Backend Mesh_LOD0")).toBeInTheDocument();
+
+    const properties = screen.getByLabelText("Asset Forge transform and material properties");
+    fireEvent.click(within(properties).getByRole("button", { name: "Object" }));
+
+    expect(within(properties).getByText("Backend Mesh_LOD0")).toBeInTheDocument();
+    expect(within(properties).getByText("Topology")).toBeInTheDocument();
+    expect(within(properties).getByText("backend read-only topology metadata")).toBeInTheDocument();
+    expect(within(properties).getByText("Material slots")).toBeInTheDocument();
+    expect(within(properties).getByText("Backend Clay, Backend Moss")).toBeInTheDocument();
+    expect(within(properties).getByText("Execution admitted")).toBeInTheDocument();
+    expect(within(properties).getByText("Mutation admitted")).toBeInTheDocument();
+    expect(within(properties).getAllByText("false").length).toBeGreaterThanOrEqual(2);
   });
 
   it("renders top menu groups and actions from the backend editor model", () => {

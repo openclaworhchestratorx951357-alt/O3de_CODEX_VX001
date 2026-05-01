@@ -121,6 +121,24 @@ class AssetForgeMaterialPreviewRecord(BaseModel):
     rows: list[AssetForgeEditorPropertyRowRecord]
 
 
+class AssetForgeMeshPreviewRecord(BaseModel):
+    source_node_id: str
+    mesh_label: str
+    preview_kind: str
+    topology_status: str
+    estimated_vertices: int
+    estimated_faces: int
+    estimated_triangles: int
+    uv_layers: list[str]
+    material_slots: list[str]
+    wireframe_visible: bool
+    selection_outline_visible: bool
+    overlays: list[str]
+    execution_admitted: bool = False
+    mutation_admitted: bool = False
+    rows: list[AssetForgeEditorPropertyRowRecord]
+
+
 class AssetForgeTimelineRecord(BaseModel):
     start_frame: int
     end_frame: int
@@ -189,6 +207,7 @@ class AssetForgeEditorModelRecord(BaseModel):
     transform: AssetForgeTransformRecord
     properties: AssetForgePropertiesRecord
     material_preview: AssetForgeMaterialPreviewRecord
+    mesh_preview: AssetForgeMeshPreviewRecord
     timeline: AssetForgeTimelineRecord
     status_strip_tabs: list[AssetForgeStatusStripTabRecord]
     evidence: AssetForgeEvidenceSummaryRecord
@@ -408,6 +427,18 @@ def build_asset_forge_editor_model() -> AssetForgeEditorModelRecord:
         _property_row("specular", "Specular", "mutation blocked", "blocked"),
         _property_row("shading", "Shading", "read-only preview metadata", "read-only"),
         _property_row("transparency", "Transparency", "not admitted", "blocked"),
+    ]
+
+    mesh_rows = [
+        _property_row("mesh-source", "Mesh source", "Mesh_LOD0 display contract", "read-only"),
+        _property_row("mesh-topology", "Topology", "read-only contract; no real mesh loaded", "read-only"),
+        _property_row("mesh-vertices", "Vertices", "0 placeholder vertices", "read-only"),
+        _property_row("mesh-faces", "Faces", "0 placeholder faces", "read-only"),
+        _property_row("mesh-triangles", "Triangles", "0 placeholder triangles", "read-only"),
+        _property_row("mesh-uv-layers", "UV layers", "UV0_demo_read_only", "read-only"),
+        _property_row("mesh-material-slots", "Material slots", "Ivy_Bark_Demo, Ivy_Leaf_Demo", "read-only"),
+        _property_row("mesh-collision", "Collision", "planned proxy only; no collider written", "plan-only"),
+        _property_row("mesh-export-readiness", "Export readiness", "preflight metadata only; no GLB write", "preflight-only"),
     ]
 
     return AssetForgeEditorModelRecord(
@@ -639,10 +670,13 @@ def build_asset_forge_editor_model() -> AssetForgeEditorModelRecord:
             AssetForgeOutlinerNodeRecord(node_id="asset-root", label="Asset Root", kind="root", depth=1, truth_state="demo", selected=True),
             AssetForgeOutlinerNodeRecord(node_id="mesh-lod0", label="Mesh_LOD0", kind="mesh", depth=2, truth_state="demo"),
             AssetForgeOutlinerNodeRecord(node_id="mesh-lod1", label="Mesh_LOD1 planned", kind="mesh", depth=2, truth_state="plan-only"),
+            AssetForgeOutlinerNodeRecord(node_id="mesh-topology", label="Topology", kind="mesh-topology", depth=3, truth_state="read-only"),
+            AssetForgeOutlinerNodeRecord(node_id="mesh-uv-maps", label="UV Maps", kind="uv", depth=3, truth_state="read-only"),
+            AssetForgeOutlinerNodeRecord(node_id="mesh-material-slots", label="Material Slots", kind="material-slot", depth=3, truth_state="read-only"),
             AssetForgeOutlinerNodeRecord(node_id="materials", label="Materials", kind="material", depth=2, truth_state="blocked"),
             AssetForgeOutlinerNodeRecord(node_id="textures", label="Textures", kind="texture", depth=2, truth_state="read-only"),
-            AssetForgeOutlinerNodeRecord(node_id="collision", label="Collision planned", kind="collision", depth=2, truth_state="plan-only"),
-            AssetForgeOutlinerNodeRecord(node_id="export-manifest", label="Export Manifest planned", kind="manifest", depth=2, truth_state="plan-only"),
+            AssetForgeOutlinerNodeRecord(node_id="collision", label="Collision Proxy", kind="collision", depth=2, truth_state="plan-only"),
+            AssetForgeOutlinerNodeRecord(node_id="export-manifest", label="Export Readiness", kind="manifest", depth=2, truth_state="preflight-only"),
         ],
         transform=transform,
         properties=AssetForgePropertiesRecord(
@@ -660,6 +694,27 @@ def build_asset_forge_editor_model() -> AssetForgeEditorModelRecord:
             metadata_status="read_only_preview_metadata",
             mutation_admitted=False,
             rows=material_rows,
+        ),
+        mesh_preview=AssetForgeMeshPreviewRecord(
+            source_node_id="mesh-lod0",
+            mesh_label="Weathered Ivy Arch Mesh_LOD0",
+            preview_kind="wireframe_bust_placeholder",
+            topology_status="read_only_contract_no_real_mesh_loaded",
+            estimated_vertices=0,
+            estimated_faces=0,
+            estimated_triangles=0,
+            uv_layers=["UV0_demo_read_only"],
+            material_slots=["Ivy_Bark_Demo", "Ivy_Leaf_Demo"],
+            wireframe_visible=True,
+            selection_outline_visible=True,
+            overlays=[
+                "No real mesh loaded; topology is display metadata only",
+                "Wireframe and material slots are backend contract data",
+                "Mesh/material mutation remains blocked",
+            ],
+            execution_admitted=False,
+            mutation_admitted=False,
+            rows=mesh_rows,
         ),
         timeline=AssetForgeTimelineRecord(
             start_frame=1,

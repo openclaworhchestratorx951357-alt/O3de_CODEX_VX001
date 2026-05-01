@@ -651,6 +651,25 @@ function getMaterialRows(model?: AssetForgeEditorModelRecord | null): DisplayPro
   return backendRows.length > 0 ? backendRows : fallbackMaterialRows;
 }
 
+function getMeshRows(model?: AssetForgeEditorModelRecord | null): DisplayPropertyRow[] {
+  const meshPreview = model?.mesh_preview;
+  if (!meshPreview) {
+    return [
+      { label: "Mesh preview", value: "Demo Mesh_LOD0", tone: "demo" },
+      { label: "Topology", value: "frontend fallback wireframe placeholder", tone: "demo" },
+      { label: "Execution admitted", value: "false", tone: "read-only" },
+      { label: "Mutation admitted", value: "false", tone: "read-only" },
+    ];
+  }
+
+  return [
+    { label: "Mesh preview", value: meshPreview.mesh_label, tone: "read-only" },
+    ...mapEditorPropertyRows(meshPreview.rows),
+    { label: "Execution admitted", value: String(meshPreview.execution_admitted), tone: "read-only" },
+    { label: "Mutation admitted", value: String(meshPreview.mutation_admitted), tone: "read-only" },
+  ];
+}
+
 function getSafetyRows(model?: AssetForgeEditorModelRecord | null): DisplayPropertyRow[] {
   const baseRows: DisplayPropertyRow[] = [
     ["execution_admitted", "false", "read-only"],
@@ -902,13 +921,14 @@ function getPromptTemplates(model?: AssetForgeEditorModelRecord | null): PromptT
 }
 
 function getOverlayLines(model?: AssetForgeEditorModelRecord | null) {
-  return model?.viewport?.overlays?.length
+  const viewportOverlays = model?.viewport?.overlays?.length
     ? model.viewport.overlays
     : [
         "Axis: Z-up demo",
         "No real model loaded",
         "No provider/Blender/Asset Processor/O3DE mutation admitted",
       ];
+  return [...viewportOverlays, ...(model?.mesh_preview?.overlays ?? [])];
 }
 
 function getPropertyRows({
@@ -1025,7 +1045,9 @@ export default function AssetForgeBlenderCockpit({
   const materialTabs = useMemo(() => getMaterialTabs(editorModel), [editorModel]);
   const initialTransformDraft = useMemo(() => getTransformDraft(editorModel), [editorModel]);
   const materialRows = useMemo(() => getMaterialRows(editorModel), [editorModel]);
+  const meshRows = useMemo(() => getMeshRows(editorModel), [editorModel]);
   const safetyRows = useMemo(() => getSafetyRows(editorModel), [editorModel]);
+  const meshPreview = editorModel?.mesh_preview;
   const propertyRows = getPropertyRows({
     model: editorModel,
     providerStatus,
@@ -1296,6 +1318,16 @@ export default function AssetForgeBlenderCockpit({
         {selectedTool?.blockedReason ? (
           <div style={styles.statusNotice}>{selectedTool.blockedReason} Next unlock: {selectedTool.nextUnlock}</div>
         ) : null}
+        <div style={styles.statusNotice}>
+          Mesh preview metadata is read-only. No provider, Blender, Asset Processor, O3DE, mesh, or material mutation is admitted.
+        </div>
+        {meshRows.map((row) => (
+          <div key={`mesh-${row.label}-${row.value}`} style={styles.propertyRow}>
+            <span style={styles.propertyLabel}>{row.label}</span>
+            <span style={styles.propertyValue}>{row.value}</span>
+            {row.tone ? <Badge tone={row.tone} /> : null}
+          </div>
+        ))}
       </>
     );
   }
@@ -1587,7 +1619,11 @@ export default function AssetForgeBlenderCockpit({
 
           <div style={styles.viewportCanvas}>
             {gridVisible ? <div style={styles.gridLayer} /> : null}
-            <div style={styles.meshPreview} aria-label="demo wireframe asset preview">
+            <div
+              style={styles.meshPreview}
+              aria-label="demo wireframe asset preview"
+              data-preview-kind={meshPreview?.preview_kind ?? "css_wireframe_placeholder"}
+            >
               <div style={styles.selectionOutline} />
               <div style={styles.headShape} />
               <div style={styles.neckShape} />
@@ -1653,6 +1689,9 @@ export default function AssetForgeBlenderCockpit({
                 <li key={overlay}>{overlay}</li>
               ))}
             </ul>
+            <div style={styles.meshMetadataPill}>
+              Mesh preview: {meshPreview?.mesh_label ?? "Demo Mesh_LOD0"}
+            </div>
             <div style={styles.overlayBottom}>
               {editorModel?.viewport?.preview_status ?? "demo_no_real_model_loaded"} - no provider generation, Blender execution, Asset Processor execution, or O3DE mutation admitted.
             </div>
@@ -2145,6 +2184,19 @@ const styles = {
     fontSize: 11,
     lineHeight: 1.45,
     background: "rgba(8,12,18,0.2)",
+  },
+  meshMetadataPill: {
+    position: "absolute",
+    right: 8,
+    bottom: 32,
+    maxWidth: "calc(100% - 16px)",
+    padding: "4px 7px",
+    borderRadius: 3,
+    background: "rgba(20,38,58,0.84)",
+    border: "1px solid rgba(125,211,252,0.5)",
+    color: "#e0f2fe",
+    fontSize: 11,
+    overflowWrap: "anywhere",
   },
   overlayBottom: {
     position: "absolute",

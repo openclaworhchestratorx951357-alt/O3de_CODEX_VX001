@@ -1358,6 +1358,24 @@ export interface AssetForgeMaterialPreviewRecord {
   rows: AssetForgeEditorPropertyRowRecord[];
 }
 
+export interface AssetForgeMeshPreviewRecord {
+  source_node_id: string;
+  mesh_label: string;
+  preview_kind: string;
+  topology_status: string;
+  estimated_vertices: number;
+  estimated_faces: number;
+  estimated_triangles: number;
+  uv_layers: string[];
+  material_slots: string[];
+  wireframe_visible: boolean;
+  selection_outline_visible: boolean;
+  overlays: string[];
+  execution_admitted: boolean;
+  mutation_admitted: boolean;
+  rows: AssetForgeEditorPropertyRowRecord[];
+}
+
 export interface AssetForgeTimelineRecord {
   start_frame: number;
   end_frame: number;
@@ -1452,6 +1470,7 @@ export interface AssetForgeEditorModelRecord {
   transform: AssetForgeTransformRecord;
   properties: AssetForgePropertiesRecord;
   material_preview: AssetForgeMaterialPreviewRecord;
+  mesh_preview?: AssetForgeMeshPreviewRecord;
   timeline: AssetForgeTimelineRecord;
   status_strip_tabs: AssetForgeStatusStripTabRecord[];
   evidence: AssetForgeEvidenceSummaryRecord;

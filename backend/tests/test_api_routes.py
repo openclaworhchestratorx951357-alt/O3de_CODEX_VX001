@@ -568,8 +568,48 @@ def test_asset_forge_editor_model_route_returns_read_only_contract() -> None:
     assert all(tab["auto_execute"] is False for tab in payload["status_strip_tabs"])
 
     outliner_labels = {node["label"] for node in payload["outliner"]}
-    for required_node in {"Asset Root", "Mesh_LOD0", "Materials", "Textures"}:
+    for required_node in {
+        "Asset Root",
+        "Mesh_LOD0",
+        "Topology",
+        "UV Maps",
+        "Material Slots",
+        "Materials",
+        "Textures",
+        "Collision Proxy",
+        "Export Readiness",
+    }:
         assert required_node in outliner_labels
+
+    mesh_preview = payload["mesh_preview"]
+    assert mesh_preview["source_node_id"] == "mesh-lod0"
+    assert mesh_preview["mesh_label"] == "Weathered Ivy Arch Mesh_LOD0"
+    assert mesh_preview["preview_kind"] == "wireframe_bust_placeholder"
+    assert mesh_preview["topology_status"] == "read_only_contract_no_real_mesh_loaded"
+    assert mesh_preview["estimated_vertices"] == 0
+    assert mesh_preview["estimated_faces"] == 0
+    assert mesh_preview["estimated_triangles"] == 0
+    assert mesh_preview["wireframe_visible"] is True
+    assert mesh_preview["selection_outline_visible"] is True
+    assert mesh_preview["execution_admitted"] is False
+    assert mesh_preview["mutation_admitted"] is False
+    assert "UV0_demo_read_only" in mesh_preview["uv_layers"]
+    assert "Ivy_Bark_Demo" in mesh_preview["material_slots"]
+    assert "No real mesh loaded; topology is display metadata only" in mesh_preview["overlays"]
+    mesh_row_labels = {row["label"] for row in mesh_preview["rows"]}
+    for required_mesh_row in {
+        "Mesh source",
+        "Topology",
+        "Vertices",
+        "Faces",
+        "Triangles",
+        "UV layers",
+        "Material slots",
+        "Collision",
+        "Export readiness",
+    }:
+        assert required_mesh_row in mesh_row_labels
+    assert all(row["mutation_admitted"] is False for row in mesh_preview["rows"])
 
     assert payload["transform"]["edit_status"] in {"blocked", "preflight-only"}
     assert payload["transform"]["location"]["admitted"] is False
