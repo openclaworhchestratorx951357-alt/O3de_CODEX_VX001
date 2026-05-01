@@ -1284,6 +1284,183 @@ export interface AssetForgeStudioStatusRecord {
   source: string;
 }
 
+export type AssetForgeEditorToolGroup =
+  | "transform"
+  | "object"
+  | "mesh"
+  | "animation"
+  | "grease_pencil"
+  | "history"
+  | "proof"
+  | "review";
+
+export type AssetForgeEditorTruthState =
+  | "demo"
+  | "read-only"
+  | "plan-only"
+  | "preflight-only"
+  | "proof-only"
+  | "blocked";
+
+export interface AssetForgeEditorToolRecord {
+  tool_id: string;
+  label: string;
+  shortcut: string | null;
+  group: AssetForgeEditorToolGroup;
+  truth_state: AssetForgeEditorTruthState;
+  enabled: boolean;
+  selected: boolean;
+  description: string;
+  blocked_reason: string | null;
+  next_unlock: string | null;
+  prompt_template_id: string | null;
+  execution_admitted: false;
+  mutation_admitted: false;
+}
+
+export interface AssetForgeContextMenuActionRecord {
+  action_id: string;
+  label: string;
+  truth_state: AssetForgeEditorTruthState;
+  execution_admitted: false;
+  mutation_admitted: false;
+  blocked_reason: string | null;
+  next_unlock: string | null;
+}
+
+export interface AssetForgeContextMenuGroupRecord {
+  group_id: string;
+  label: string;
+  actions: AssetForgeContextMenuActionRecord[];
+}
+
+export interface AssetForgeOutlinerNodeRecord {
+  node_id: string;
+  label: string;
+  kind: string;
+  depth: number;
+  truth_state: AssetForgeEditorTruthState;
+  visible: boolean;
+  selected: boolean;
+}
+
+export interface AssetForgeAxisTripletRecord {
+  x: number;
+  y: number;
+  z: number;
+  admitted: boolean;
+}
+
+export interface AssetForgeTransformRecord {
+  location: AssetForgeAxisTripletRecord;
+  rotation: AssetForgeAxisTripletRecord;
+  scale: AssetForgeAxisTripletRecord;
+  dimensions: AssetForgeAxisTripletRecord;
+  edit_status: "blocked" | "preflight-only" | "proof-only";
+  blocked_reason: string;
+}
+
+export interface AssetForgeViewportRecord {
+  label: string;
+  mode: string;
+  shading_modes: string[];
+  active_shading_mode: string;
+  grid_visible: boolean;
+  preview_status: string;
+  selected_object_label: string;
+  overlays: string[];
+}
+
+export interface AssetForgeEvidenceSummaryRecord {
+  latest_run_id: string | null;
+  latest_execution_id: string | null;
+  latest_artifact_id: string | null;
+  stage_write_evidence_reference: string | null;
+  stage_write_readback_reference: string | null;
+  stage_write_readback_status: "not_run" | "blocked" | "failed" | "succeeded" | null;
+}
+
+export interface AssetForgePropertyRowRecord {
+  row_id: string;
+  label: string;
+  value: string;
+  truth_state: AssetForgeEditorTruthState;
+  mutation_admitted: boolean;
+  blocked_reason: string | null;
+}
+
+export interface AssetForgePropertiesSectionRecord {
+  section_id: string;
+  label: string;
+  rows: AssetForgePropertyRowRecord[];
+}
+
+export interface AssetForgePropertiesRecord {
+  selected_object: string;
+  material_preview_status: string;
+  sections: AssetForgePropertiesSectionRecord[];
+  rows: AssetForgePropertyRowRecord[];
+}
+
+export interface AssetForgeMaterialPreviewRecord {
+  preview_label: string;
+  preview_background: string;
+  tabs: string[];
+  active_tab: string;
+  rows: AssetForgePropertyRowRecord[];
+  mutation_admitted: boolean;
+  blocked_reason: string;
+}
+
+export interface AssetForgeTimelineRecord {
+  start_frame: number;
+  end_frame: number;
+  current_frame: number;
+  status: string;
+}
+
+export interface AssetForgePromptTemplateRecord {
+  template_id: string;
+  label: string;
+  description: string;
+  text: string;
+  truth_state: AssetForgeEditorTruthState;
+  safety_labels: string[];
+  auto_execute: false;
+}
+
+export interface AssetForgeBlockedCapabilityRecord {
+  capability_id: string;
+  label: string;
+  reason: string;
+  next_unlock: string;
+}
+
+export interface AssetForgeEditorModelRecord {
+  source: "asset-forge-editor-model";
+  inspection_surface: "read_only";
+  editor_model_status: "available";
+  execution_admitted: false;
+  mutation_admitted: false;
+  provider_generation_admitted: false;
+  blender_execution_admitted: false;
+  asset_processor_execution_admitted: false;
+  placement_write_admitted: false;
+  active_tool_id: string;
+  viewport: AssetForgeViewportRecord;
+  tools: AssetForgeEditorToolRecord[];
+  context_menu_groups: AssetForgeContextMenuGroupRecord[];
+  outliner: AssetForgeOutlinerNodeRecord[];
+  transform: AssetForgeTransformRecord;
+  properties: AssetForgePropertiesRecord;
+  material_preview: AssetForgeMaterialPreviewRecord;
+  timeline: AssetForgeTimelineRecord;
+  evidence: AssetForgeEvidenceSummaryRecord;
+  prompt_templates: AssetForgePromptTemplateRecord[];
+  blocked_capabilities: AssetForgeBlockedCapabilityRecord[];
+  next_safe_action: string;
+}
+
 export interface AssetForgeBlenderInspectRequest {
   artifact_path: string;
 }

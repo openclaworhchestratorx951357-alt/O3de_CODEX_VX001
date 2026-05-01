@@ -19,6 +19,7 @@ import type {
   AutonomyObservationsResponse,
   AutonomySummaryResponse,
   AssetForgeBlenderStatusRecord,
+  AssetForgeEditorModelRecord,
   AssetForgeStudioStatusRecord,
   AssetForgeBlenderInspectRequest,
   AssetForgeBlenderInspectReport,
@@ -1038,6 +1039,13 @@ export async function fetchAssetForgeStudioStatus(): Promise<AssetForgeStudioSta
   return getJson<AssetForgeStudioStatusRecord>(
     "/asset-forge/studio/status",
     "Asset Forge studio status fetch",
+  );
+}
+
+export async function fetchAssetForgeEditorModel(): Promise<AssetForgeEditorModelRecord> {
+  return getJson<AssetForgeEditorModelRecord>(
+    "/asset-forge/editor-model",
+    "Asset Forge editor model fetch",
   );
 }
 

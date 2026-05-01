@@ -4,12 +4,14 @@ import AssetForgeBlenderCockpit from "./assetForge/AssetForgeBlenderCockpit";
 import type { PlacementProofOnlyReviewSnapshot } from "../lib/promptPlacementProofOnlyReview";
 import {
   fetchAssetForgeBlenderStatus,
+  fetchAssetForgeEditorModel,
   fetchAssetForgeProviderStatus,
   fetchAssetForgeTask,
 } from "../lib/api";
 import type {
   AdaptersResponse,
   AssetForgeBlenderStatusRecord,
+  AssetForgeEditorModelRecord,
   AssetForgeProviderStatusRecord,
   AssetForgeTaskRecord,
   O3DEBridgeStatus,
@@ -56,6 +58,8 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
   const [taskModel, setTaskModel] = useState<AssetForgeTaskRecord | null>(null);
   const [providerStatus, setProviderStatus] = useState<AssetForgeProviderStatusRecord | null>(null);
   const [blenderStatus, setBlenderStatus] = useState<AssetForgeBlenderStatusRecord | null>(null);
+  const [editorModel, setEditorModel] = useState<AssetForgeEditorModelRecord | null>(null);
+  const [editorModelUnavailable, setEditorModelUnavailable] = useState(false);
 
   useEffect(() => {
     let isActive = true;
@@ -99,10 +103,26 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
       }
     }
 
+    async function loadEditorModel() {
+      try {
+        const payload = await fetchAssetForgeEditorModel();
+        if (isActive) {
+          setEditorModel(payload);
+          setEditorModelUnavailable(false);
+        }
+      } catch {
+        if (isActive) {
+          setEditorModel(null);
+          setEditorModelUnavailable(true);
+        }
+      }
+    }
+
     void Promise.allSettled([
       loadTaskModel(),
       loadProviderStatus(),
       loadBlenderStatus(),
+      loadEditorModel(),
     ]);
 
     return () => {
@@ -117,6 +137,8 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
         taskModel={taskModel}
         providerStatus={providerStatus}
         blenderStatus={blenderStatus}
+        editorModel={editorModel}
+        editorModelUnavailable={editorModelUnavailable}
         bridgeStatus={props.bridgeStatus}
         adapters={props.adapters}
         readiness={props.readiness}

@@ -695,11 +695,12 @@ describe("App desktop smoke", () => {
     expect(within(forgePanel).getByText("3D Viewport")).toBeInTheDocument();
     expect(within(forgePanel).getByText("Tool Shelf")).toBeInTheDocument();
     expect(within(forgePanel).getByText("Asset Outliner")).toBeInTheDocument();
-    expect(within(forgePanel).getByText("Inspector")).toBeInTheDocument();
-    expect(within(forgePanel).getByText("non-mutating / fail-closed / real placement not admitted")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("Transform / Properties")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("Editor model backend unavailable; using frontend fallback. No execution admitted.")).toBeInTheDocument();
+    expect(within(forgePanel).getByText("No provider/Blender/Asset Processor/O3DE mutation admitted")).toBeInTheDocument();
     expect(
       within(forgePanel).getByText(
-        "Demo viewport — no provider generation, Blender execution, Asset Processor execution, or O3DE mutation admitted.",
+        /no provider generation, Blender execution, Asset Processor execution, or O3DE mutation admitted\./i,
       ),
     ).toBeInTheDocument();
   });

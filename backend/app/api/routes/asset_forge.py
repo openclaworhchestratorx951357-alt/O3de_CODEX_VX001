@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 
 from app.models.asset_forge import (
+    AssetForgeEditorModelRecord,
     AssetForgeBlenderInspectReport,
     AssetForgeBlenderInspectRequest,
     AssetForgeBlenderStatusRecord,
@@ -119,6 +120,11 @@ def get_asset_forge_blender_status() -> AssetForgeBlenderStatusRecord:
 @router.get("/asset-forge/studio/status", response_model=AssetForgeStudioStatusRecord)
 def get_asset_forge_studio_status() -> AssetForgeStudioStatusRecord:
     return asset_forge_service.get_studio_status()
+
+
+@router.get("/asset-forge/editor-model", response_model=AssetForgeEditorModelRecord)
+def get_asset_forge_editor_model() -> AssetForgeEditorModelRecord:
+    return asset_forge_service.get_editor_model()
 
 
 @router.post(

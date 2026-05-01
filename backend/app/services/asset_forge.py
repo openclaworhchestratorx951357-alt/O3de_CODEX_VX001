@@ -9,6 +9,7 @@ from typing import Any, Literal, cast
 from uuid import uuid4
 
 from app.models.asset_forge import (
+    AssetForgeEditorModelRecord,
     AssetForgeBlenderInspectReport,
     AssetForgeBlenderInspectRequest,
     AssetForgeBlenderStatusRecord,
@@ -51,6 +52,7 @@ from app.models.asset_forge import (
     AssetForgeTaskRecord,
     AssetForgeTaskPlanRequest,
 )
+from app.services.asset_forge_editor_model import build_asset_forge_editor_model
 from app.services.o3de_target import o3de_target_service
 _PROVIDER_MODES = {"disabled", "mock", "configured", "real"}
 ProviderMode = Literal["disabled", "mock", "configured", "real"]
@@ -1295,6 +1297,9 @@ class AssetForgeService:
             safest_next_step="Keep status lanes read-only while advancing bounded preflight and proof gates.",
             source="asset-forge-studio-status",
         )
+
+    def get_editor_model(self) -> AssetForgeEditorModelRecord:
+        return build_asset_forge_editor_model()
 
     def get_placement_live_proof_evidence_index(
         self,

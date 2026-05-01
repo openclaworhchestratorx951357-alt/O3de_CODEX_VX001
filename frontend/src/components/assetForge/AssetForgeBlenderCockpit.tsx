@@ -1,10 +1,15 @@
-import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 
 import MissionTruthRail from "../MissionTruthRail";
 import type { PlacementProofOnlyReviewSnapshot } from "../../lib/promptPlacementProofOnlyReview";
 import type {
   AdaptersResponse,
   AssetForgeBlenderStatusRecord,
+  AssetForgeBlockedCapabilityRecord,
+  AssetForgeEditorModelRecord,
+  AssetForgeEditorToolRecord,
+  AssetForgeOutlinerNodeRecord,
+  AssetForgePromptTemplateRecord,
   AssetForgeProviderStatusRecord,
   AssetForgeTaskRecord,
   O3DEBridgeStatus,
@@ -18,6 +23,8 @@ type AssetForgeBlenderCockpitProps = {
   taskModel?: AssetForgeTaskRecord | null;
   providerStatus?: AssetForgeProviderStatusRecord | null;
   blenderStatus?: AssetForgeBlenderStatusRecord | null;
+  editorModel?: AssetForgeEditorModelRecord | null;
+  editorModelUnavailable?: boolean;
   bridgeStatus?: O3DEBridgeStatus | null;
   adapters?: AdaptersResponse | null;
   readiness?: ReadinessStatus | null;
@@ -43,6 +50,7 @@ type AssetForgeBlenderCockpitProps = {
 
 type TruthTone =
   | "demo"
+  | "read-only"
   | "plan-only"
   | "preflight-only"
   | "proof-only"
@@ -61,26 +69,447 @@ const stageItems = [
   { label: "Review", truth: "review" as TruthTone },
 ];
 
-const toolItems = [
-  { label: "Select", shortcut: "1", truth: "demo" as TruthTone },
-  { label: "Move", shortcut: "2", truth: "demo" as TruthTone },
-  { label: "Rotate", shortcut: "3", truth: "demo" as TruthTone },
-  { label: "Scale", shortcut: "4", truth: "demo" as TruthTone },
-  { label: "Set Origin", shortcut: "5", truth: "plan-only" as TruthTone },
-  { label: "Align to Ground", shortcut: "6", truth: "plan-only" as TruthTone },
-  { label: "Apply Transforms", shortcut: "7", truth: "preflight-only" as TruthTone },
-  { label: "Measure", shortcut: "8", truth: "preflight-only" as TruthTone },
-  { label: "Inspect Mesh", shortcut: "9", truth: "blocked" as TruthTone },
+const fallbackTools: AssetForgeEditorToolRecord[] = [
+  {
+    tool_id: "transform",
+    label: "Transform",
+    shortcut: null,
+    group: "transform",
+    truth_state: "demo",
+    enabled: true,
+    selected: true,
+    description: "UI tool selection only.",
+    blocked_reason: null,
+    next_unlock: null,
+    prompt_template_id: "inspect-candidate",
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "translate",
+    label: "Translate",
+    shortcut: "G",
+    group: "transform",
+    truth_state: "demo",
+    enabled: true,
+    selected: false,
+    description: "UI tool selection only.",
+    blocked_reason: null,
+    next_unlock: null,
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "rotate",
+    label: "Rotate",
+    shortcut: "R",
+    group: "transform",
+    truth_state: "demo",
+    enabled: true,
+    selected: false,
+    description: "UI tool selection only.",
+    blocked_reason: null,
+    next_unlock: null,
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "scale",
+    label: "Scale",
+    shortcut: "S",
+    group: "transform",
+    truth_state: "demo",
+    enabled: true,
+    selected: false,
+    description: "UI tool selection only.",
+    blocked_reason: null,
+    next_unlock: null,
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "origin",
+    label: "Origin",
+    shortcut: null,
+    group: "object",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Origin mutation remains blocked.",
+    blocked_reason: "Origin writes are not admitted.",
+    next_unlock: "Add explicit transform-write corridor.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "object",
+    label: "Object",
+    shortcut: null,
+    group: "object",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Object mutation remains blocked.",
+    blocked_reason: "Object writes are not admitted.",
+    next_unlock: "Add explicit object mutation corridor.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "duplicate",
+    label: "Duplicate",
+    shortcut: "Shift+D",
+    group: "object",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Duplicate remains blocked.",
+    blocked_reason: "Duplicate would mutate level content.",
+    next_unlock: "Require bounded write admission and rollback proof.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "delete",
+    label: "Delete",
+    shortcut: "X",
+    group: "object",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Delete remains blocked.",
+    blocked_reason: "Delete is destructive mutation.",
+    next_unlock: "Require destructive-corridor admission and restore proof.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "join",
+    label: "Join",
+    shortcut: "Ctrl+J",
+    group: "object",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Join remains blocked.",
+    blocked_reason: "Join mutates object topology.",
+    next_unlock: "Add exact join corridor with readback/rollback proof.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "split",
+    label: "Split",
+    shortcut: "Y",
+    group: "object",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Split remains blocked.",
+    blocked_reason: "Split mutates object topology.",
+    next_unlock: "Add exact split corridor with readback/rollback proof.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "smoothing",
+    label: "Smoothing",
+    shortcut: null,
+    group: "mesh",
+    truth_state: "preflight-only",
+    enabled: true,
+    selected: false,
+    description: "Preflight-only smoothing review.",
+    blocked_reason: null,
+    next_unlock: null,
+    prompt_template_id: "project-asset-preflight",
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "smooth",
+    label: "Smooth",
+    shortcut: null,
+    group: "mesh",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Smooth mutation remains blocked.",
+    blocked_reason: "Mesh smoothing writes are not admitted.",
+    next_unlock: "Add bounded smoothing corridor.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "flat",
+    label: "Flat",
+    shortcut: null,
+    group: "mesh",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Flat shading mutation remains blocked.",
+    blocked_reason: "Shading writes are not admitted.",
+    next_unlock: "Add bounded shading corridor.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "keyframes",
+    label: "Keyframes",
+    shortcut: null,
+    group: "animation",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Keyframe mutation remains blocked.",
+    blocked_reason: "Animation writes are not admitted.",
+    next_unlock: "Add bounded keyframe corridor.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "insert-keyframe",
+    label: "Insert",
+    shortcut: "I",
+    group: "animation",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Insert keyframe remains blocked.",
+    blocked_reason: "Animation writes are not admitted.",
+    next_unlock: "Add bounded keyframe corridor.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "remove-keyframe",
+    label: "Remove",
+    shortcut: "Alt+I",
+    group: "animation",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Remove keyframe remains blocked.",
+    blocked_reason: "Animation writes are not admitted.",
+    next_unlock: "Add bounded keyframe corridor.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "motion-paths",
+    label: "Motion Paths",
+    shortcut: null,
+    group: "animation",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Motion path operations remain blocked.",
+    blocked_reason: "Motion path writes are not admitted.",
+    next_unlock: "Add read-only motion-path evidence then bounded writes.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "calculate-paths",
+    label: "Calculate Paths",
+    shortcut: null,
+    group: "animation",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Calculate paths remains blocked.",
+    blocked_reason: "Motion path writes are not admitted.",
+    next_unlock: "Add read-only motion-path evidence then bounded writes.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "clear-paths",
+    label: "Clear Paths",
+    shortcut: null,
+    group: "animation",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Clear paths remains blocked.",
+    blocked_reason: "Motion path writes are not admitted.",
+    next_unlock: "Add read-only motion-path evidence then bounded writes.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "repeat-last",
+    label: "Repeat Last",
+    shortcut: "Shift+R",
+    group: "history",
+    truth_state: "demo",
+    enabled: true,
+    selected: false,
+    description: "UI guidance only.",
+    blocked_reason: null,
+    next_unlock: null,
+    prompt_template_id: "placement-proof-only",
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "history",
+    label: "History",
+    shortcut: null,
+    group: "history",
+    truth_state: "read-only",
+    enabled: true,
+    selected: false,
+    description: "Read-only evidence history.",
+    blocked_reason: null,
+    next_unlock: null,
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "grease-pencil",
+    label: "Grease Pencil",
+    shortcut: null,
+    group: "grease_pencil",
+    truth_state: "demo",
+    enabled: true,
+    selected: false,
+    description: "UI overlay mode only.",
+    blocked_reason: null,
+    next_unlock: null,
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "draw-line",
+    label: "Draw Line",
+    shortcut: "D",
+    group: "grease_pencil",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Draw line remains blocked.",
+    blocked_reason: "Annotation writes are not admitted.",
+    next_unlock: "Add bounded annotation corridor.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "erase",
+    label: "Erase",
+    shortcut: "E",
+    group: "grease_pencil",
+    truth_state: "blocked",
+    enabled: false,
+    selected: false,
+    description: "Erase remains blocked.",
+    blocked_reason: "Annotation writes are not admitted.",
+    next_unlock: "Add bounded annotation corridor.",
+    prompt_template_id: null,
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
+  {
+    tool_id: "use-sketching",
+    label: "Use Sketching",
+    shortcut: null,
+    group: "grease_pencil",
+    truth_state: "preflight-only",
+    enabled: true,
+    selected: false,
+    description: "Preflight-only sketching guidance.",
+    blocked_reason: null,
+    next_unlock: null,
+    prompt_template_id: "inspect-candidate",
+    execution_admitted: false,
+    mutation_admitted: false,
+  },
 ];
 
-const outlinerItems = [
-  { label: "Asset Root", detail: "candidate scene root", truth: "demo" as TruthTone },
-  { label: "Mesh_LOD0", detail: "primary mesh preview", truth: "demo" as TruthTone },
-  { label: "Mesh_LOD1 planned", detail: "future optimization", truth: "plan-only" as TruthTone },
-  { label: "Materials", detail: "read-only / blocked mutation", truth: "blocked" as TruthTone },
-  { label: "Textures", detail: "read-only references", truth: "preflight-only" as TruthTone },
-  { label: "Collision planned", detail: "future bounded generation", truth: "plan-only" as TruthTone },
-  { label: "Export Manifest planned", detail: "future packaging", truth: "plan-only" as TruthTone },
+const fallbackOutliner: AssetForgeOutlinerNodeRecord[] = [
+  { node_id: "scene", label: "Scene", kind: "scene", depth: 0, truth_state: "read-only", visible: true, selected: false },
+  { node_id: "asset-root", label: "Asset Root", kind: "candidate_root", depth: 1, truth_state: "demo", visible: true, selected: true },
+  { node_id: "mesh-lod0", label: "Mesh_LOD0", kind: "mesh", depth: 2, truth_state: "demo", visible: true, selected: true },
+  { node_id: "materials", label: "Materials", kind: "material_group", depth: 2, truth_state: "blocked", visible: true, selected: false },
+  { node_id: "textures", label: "Textures", kind: "texture_group", depth: 2, truth_state: "preflight-only", visible: true, selected: false },
+];
+
+const fallbackPromptTemplates: AssetForgePromptTemplateRecord[] = [
+  {
+    template_id: "inspect-candidate",
+    label: "Inspect candidate",
+    description: "Read-only inspection template.",
+    text: "Inspect candidate in read-only mode.",
+    truth_state: "read-only",
+    safety_labels: ["read-only", "auto_execute=false"],
+    auto_execute: false,
+  },
+  {
+    template_id: "placement-proof-only",
+    label: "Placement proof-only",
+    description: "Proof-only placement template.",
+    text: "Prepare proof-only placement review metadata.",
+    truth_state: "proof-only",
+    safety_labels: ["proof-only", "auto_execute=false"],
+    auto_execute: false,
+  },
+  {
+    template_id: "project-asset-preflight",
+    label: "Project/asset preflight",
+    description: "Read-only project/asset preflight.",
+    text: "Run read-only preflight checks.",
+    truth_state: "preflight-only",
+    safety_labels: ["preflight-only", "auto_execute=false"],
+    auto_execute: false,
+  },
+];
+
+const fallbackBlockedCapabilities: AssetForgeBlockedCapabilityRecord[] = [
+  {
+    capability_id: "asset_forge.provider.generate",
+    label: "Provider generation",
+    reason: "Provider generation is blocked.",
+    next_unlock: "Add bounded provider admission corridor.",
+  },
+  {
+    capability_id: "asset_forge.blender.execute",
+    label: "Blender execution",
+    reason: "Blender execution is blocked.",
+    next_unlock: "Add bounded Blender execution corridor.",
+  },
+  {
+    capability_id: "asset_forge.asset_processor.execute",
+    label: "Asset Processor execution",
+    reason: "Asset Processor execution is blocked.",
+    next_unlock: "Add bounded execution corridor with readback proof.",
+  },
+  {
+    capability_id: "asset_forge.placement.write",
+    label: "Placement write",
+    reason: "Placement write is blocked.",
+    next_unlock: "Keep proof-only placement corridor until explicit admission.",
+  },
 ];
 
 function truthToneStyle(truth: TruthTone): CSSProperties {
@@ -89,6 +518,13 @@ function truthToneStyle(truth: TruthTone): CSSProperties {
       return {
         borderColor: "rgba(92, 170, 255, 0.55)",
         background: "rgba(59, 130, 246, 0.16)",
+        color: "var(--app-text-color)",
+      };
+    case "read-only":
+    case "safe":
+      return {
+        borderColor: "rgba(74, 222, 128, 0.5)",
+        background: "rgba(34, 197, 94, 0.12)",
         color: "var(--app-text-color)",
       };
     case "plan-only":
@@ -115,12 +551,6 @@ function truthToneStyle(truth: TruthTone): CSSProperties {
         background: "rgba(20, 184, 166, 0.14)",
         color: "var(--app-text-color)",
       };
-    case "safe":
-      return {
-        borderColor: "rgba(74, 222, 128, 0.5)",
-        background: "rgba(34, 197, 94, 0.12)",
-        color: "var(--app-text-color)",
-      };
     case "blocked":
     default:
       return {
@@ -129,6 +559,20 @@ function truthToneStyle(truth: TruthTone): CSSProperties {
         color: "var(--app-text-color)",
       };
   }
+}
+
+function toTruthTone(truth: string): TruthTone {
+  if (
+    truth === "demo" ||
+    truth === "read-only" ||
+    truth === "plan-only" ||
+    truth === "preflight-only" ||
+    truth === "proof-only" ||
+    truth === "blocked"
+  ) {
+    return truth;
+  }
+  return "blocked";
 }
 
 function TruthBadge({ truth }: { truth: TruthTone }) {
@@ -166,9 +610,7 @@ function EditorRegion({
           {actions}
         </div>
       </header>
-      <div style={compact ? styles.regionBodyCompact : styles.regionBody}>
-        {children}
-      </div>
+      <div style={compact ? styles.regionBodyCompact : styles.regionBody}>{children}</div>
     </section>
   );
 }
@@ -179,8 +621,12 @@ function getCandidateSummary(taskModel?: AssetForgeTaskRecord | null) {
     id: firstCandidate?.candidate_id ?? "candidate-a",
     name: firstCandidate?.display_name ?? "Weathered Ivy Arch",
     status: firstCandidate?.status ?? "demo",
-    notes: firstCandidate?.preview_notes ?? "Demo candidate placeholder. No provider generation has executed.",
-    readiness: firstCandidate?.readiness_placeholder ?? "Readiness pending proof-only review.",
+    notes:
+      firstCandidate?.preview_notes ??
+      "Demo candidate placeholder. No provider generation has executed.",
+    readiness:
+      firstCandidate?.readiness_placeholder ??
+      "Readiness pending proof-only review.",
     triangles: firstCandidate?.estimated_triangles ?? "triangle estimate unavailable",
   };
 }
@@ -209,6 +655,8 @@ export default function AssetForgeBlenderCockpit({
   taskModel,
   providerStatus,
   blenderStatus,
+  editorModel,
+  editorModelUnavailable = false,
   bridgeStatus,
   adapters,
   readiness,
@@ -231,6 +679,138 @@ export default function AssetForgeBlenderCockpit({
   onOpenRunDetail,
 }: AssetForgeBlenderCockpitProps) {
   const candidate = getCandidateSummary(taskModel);
+  const tools = editorModel?.tools ?? fallbackTools;
+  const outliner = editorModel?.outliner ?? fallbackOutliner;
+  const promptTemplates = editorModel?.prompt_templates ?? fallbackPromptTemplates;
+  const blockedCapabilities = editorModel?.blocked_capabilities ?? fallbackBlockedCapabilities;
+
+  const [activeToolId, setActiveToolId] = useState<string>(editorModel?.active_tool_id ?? "transform");
+
+  useEffect(() => {
+    setActiveToolId(editorModel?.active_tool_id ?? "transform");
+  }, [editorModel]);
+
+  const effectiveViewport = editorModel?.viewport ?? {
+    label: "Front Ortho",
+    mode: "Object Mode",
+    shading_modes: ["Solid", "Wireframe", "Material Preview", "O3DE Preview"],
+    active_shading_mode: "Solid",
+    grid_visible: true,
+    preview_status: "demo_no_real_model_loaded",
+    selected_object_label: candidate.name,
+    overlays: [
+      "Axis: Z-up demo",
+      "No real model loaded",
+      "No provider/Blender/Asset Processor/O3DE mutation admitted",
+    ],
+  };
+
+  const effectiveTransformRows =
+    editorModel?.properties.rows.filter(
+      (row) =>
+        row.label.startsWith("Location") ||
+        row.label.startsWith("Rotation") ||
+        row.label.startsWith("Scale") ||
+        row.label.startsWith("Dimensions"),
+    ) ?? [
+      {
+        row_id: "location",
+        label: "Location X/Y/Z",
+        value: "0.000, 0.000, 0.000",
+        truth_state: "blocked",
+        mutation_admitted: false,
+        blocked_reason: "Transform writes are blocked.",
+      },
+      {
+        row_id: "rotation",
+        label: "Rotation X/Y/Z",
+        value: "0.000, 0.000, 0.000",
+        truth_state: "blocked",
+        mutation_admitted: false,
+        blocked_reason: "Transform writes are blocked.",
+      },
+      {
+        row_id: "scale",
+        label: "Scale X/Y/Z",
+        value: "1.000, 1.000, 1.000",
+        truth_state: "blocked",
+        mutation_admitted: false,
+        blocked_reason: "Transform writes are blocked.",
+      },
+      {
+        row_id: "dimensions",
+        label: "Dimensions X/Y/Z",
+        value: "2.180, 0.260, 1.850",
+        truth_state: "preflight-only",
+        mutation_admitted: false,
+        blocked_reason: "Dimensions are read-only preview values.",
+      },
+    ];
+
+  const effectiveSafetyRows =
+    editorModel?.properties.rows.filter(
+      (row) =>
+        row.label.includes("Provider") ||
+        row.label.includes("Blender") ||
+        row.label.includes("Asset Processor") ||
+        row.label.includes("Placement"),
+    ) ?? [];
+
+  const effectiveMaterialRows = editorModel?.material_preview.rows ?? [
+    {
+      row_id: "mat-diffuse",
+      label: "Diffuse",
+      value: "Lambert (read-only preview)",
+      truth_state: "preflight-only",
+      mutation_admitted: false,
+      blocked_reason: "Material mutation is blocked.",
+    },
+    {
+      row_id: "mat-specular",
+      label: "Specular",
+      value: "CookTorr (read-only preview)",
+      truth_state: "preflight-only",
+      mutation_admitted: false,
+      blocked_reason: "Material mutation is blocked.",
+    },
+    {
+      row_id: "mat-shading",
+      label: "Shading",
+      value: "Emit 0.0 / Ambient 1.0",
+      truth_state: "preflight-only",
+      mutation_admitted: false,
+      blocked_reason: "Material mutation is blocked.",
+    },
+    {
+      row_id: "mat-transparency",
+      label: "Transparency",
+      value: "blocked mutation path",
+      truth_state: "blocked",
+      mutation_admitted: false,
+      blocked_reason: "Material mutation is blocked.",
+    },
+  ];
+
+  const timeline = editorModel?.timeline ?? {
+    start_frame: 0,
+    end_frame: 240,
+    current_frame: 1,
+    status: "read_only_status_strip",
+  };
+
+  const evidence = useMemo(() => {
+    return {
+      latest_run_id: editorModel?.evidence.latest_run_id ?? latestRunId ?? null,
+      latest_execution_id: editorModel?.evidence.latest_execution_id ?? latestExecutionId ?? null,
+      latest_artifact_id: editorModel?.evidence.latest_artifact_id ?? latestArtifactId ?? null,
+      stage_write_evidence_reference:
+        editorModel?.evidence.stage_write_evidence_reference ?? null,
+      stage_write_readback_reference:
+        editorModel?.evidence.stage_write_readback_reference ?? null,
+      stage_write_readback_status:
+        editorModel?.evidence.stage_write_readback_status ?? null,
+    };
+  }, [editorModel, latestArtifactId, latestExecutionId, latestRunId]);
 
   return (
     <section style={styles.shell} aria-label="Asset Forge Blender-style editor cockpit">
@@ -239,8 +819,13 @@ export default function AssetForgeBlenderCockpit({
           <span style={styles.eyebrow}>Asset Forge Editor Mode</span>
           <h2 style={styles.title}>Asset Forge Studio</h2>
           <p style={styles.subtitle}>
-            Blender/Unreal-style editor cockpit for bounded asset review, staging, readback, and proof-only placement.
+            Backend-supported Blender-style cockpit contract with explicit safety truth labels.
           </p>
+          {editorModelUnavailable ? (
+            <p style={styles.warningInline}>
+              Editor model backend unavailable; using frontend fallback. No execution admitted.
+            </p>
+          ) : null}
         </div>
         <div style={styles.commandRow}>
           <button type="button" onClick={onLaunchInspectTemplate} style={styles.commandButton}>
@@ -269,17 +854,36 @@ export default function AssetForgeBlenderCockpit({
 
       <div style={styles.editorGrid}>
         <aside style={styles.leftArea} aria-label="Asset Forge left tool and outliner area">
-          <EditorRegion title="Tool Shelf" subtitle="Bounded editor tools" label="LEFT" compact>
+          <EditorRegion title="Tool Shelf" subtitle="Backend editor tools" label="LEFT" compact>
             <div style={styles.toolList}>
-              {toolItems.map((tool) => (
-                <button key={tool.label} type="button" style={styles.toolButton}>
-                  <span style={styles.toolText}>
-                    <strong>{tool.label}</strong>
-                    <small>{tool.shortcut}</small>
-                  </span>
-                  <TruthBadge truth={tool.truth} />
-                </button>
-              ))}
+              {tools.map((tool) => {
+                const tone = toTruthTone(tool.truth_state);
+                const isSelected = activeToolId === tool.tool_id;
+                return (
+                  <button
+                    key={tool.tool_id}
+                    type="button"
+                    style={{
+                      ...styles.toolButton,
+                      ...(isSelected ? styles.toolButtonSelected : null),
+                      ...(!tool.enabled ? styles.toolButtonDisabled : null),
+                    }}
+                    onClick={() => {
+                      if (tool.enabled) {
+                        setActiveToolId(tool.tool_id);
+                      }
+                    }}
+                    disabled={!tool.enabled}
+                    aria-label={`Tool ${tool.label}`}
+                  >
+                    <span style={styles.toolText}>
+                      <strong>{tool.label}</strong>
+                      <small>{tool.shortcut ?? ""}</small>
+                    </span>
+                    <TruthBadge truth={tone} />
+                  </button>
+                );
+              })}
             </div>
           </EditorRegion>
 
@@ -294,47 +898,45 @@ export default function AssetForgeBlenderCockpit({
               <p style={styles.metaLine}>{candidate.readiness}</p>
             </article>
           </EditorRegion>
-
-          <EditorRegion title="Asset Outliner" subtitle="Scene-like asset structure" label="LEFT" compact>
-            <div style={styles.outliner}>
-              {outlinerItems.map((item) => (
-                <div key={item.label} style={styles.outlinerItem}>
-                  <div style={styles.outlinerText}>
-                    <strong>{item.label}</strong>
-                    <span>{item.detail}</span>
-                  </div>
-                  <TruthBadge truth={item.truth} />
-                </div>
-              ))}
-            </div>
-          </EditorRegion>
         </aside>
 
         <main style={styles.centerArea} aria-label="Asset Forge center viewport area">
           <EditorRegion
             title="3D Viewport"
-            subtitle="Dominant asset preview editor"
+            subtitle={`${effectiveViewport.mode} / ${effectiveViewport.label}`}
             label="CENTER"
-            actions={<TruthBadge truth="demo" />}
+            actions={<TruthBadge truth={editorModel ? "read-only" : "demo"} />}
           >
             <div style={styles.viewportToolbar}>
-              {["Solid", "Material Preview", "Wireframe", "O3DE Preview"].map((mode) => (
-                <button key={mode} type="button" style={styles.viewportButton}>
+              {effectiveViewport.shading_modes.map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  style={{
+                    ...styles.viewportButton,
+                    ...(mode === effectiveViewport.active_shading_mode ? styles.viewportButtonActive : null),
+                  }}
+                >
                   {mode}
                 </button>
               ))}
             </div>
             <div style={styles.viewport}>
-              <div style={styles.gridOverlay} />
-              <div style={styles.axisBadge}>Axis: Z-up demo</div>
-              <div style={styles.viewBadge}>Solid view / no real model loaded</div>
+              {effectiveViewport.grid_visible ? <div style={styles.gridOverlay} /> : null}
+              <div style={styles.axisBadge}>{effectiveViewport.label}</div>
+              <div style={styles.viewBadge}>{effectiveViewport.mode}</div>
               <div style={styles.previewObject} />
               <div style={styles.viewportNotice}>
-                Demo viewport — no provider generation, Blender execution, Asset Processor execution, or O3DE mutation admitted.
+                {effectiveViewport.preview_status} - no provider generation, Blender execution, Asset Processor execution, or O3DE mutation admitted.
               </div>
+              <ul style={styles.viewportOverlayList}>
+                {effectiveViewport.overlays.map((overlay) => (
+                  <li key={overlay}>{overlay}</li>
+                ))}
+              </ul>
             </div>
             <div style={styles.viewportFooter}>
-              {["Orbit", "Pan", "Zoom", "Frame", "Top", "Front", "Side"].map((control) => (
+              {["View", "Select", "Add", "Object", "Object Mode", "Front Ortho"].map((control) => (
                 <button key={control} type="button" style={styles.footerButton}>
                   {control}
                 </button>
@@ -344,16 +946,59 @@ export default function AssetForgeBlenderCockpit({
         </main>
 
         <aside style={styles.rightArea} aria-label="Asset Forge right inspector area">
-          <EditorRegion title="Inspector" subtitle="Selected candidate and safety details" label="RIGHT">
+          <EditorRegion title="Asset Outliner" subtitle="Backend outliner nodes" label="RIGHT" compact>
+            <div style={styles.outliner}>
+              {outliner.map((node) => (
+                <div key={node.node_id} style={styles.outlinerItem}>
+                  <div style={{ ...styles.outlinerText, marginLeft: node.depth * 10 }}>
+                    <strong>{node.label}</strong>
+                    <span>{node.kind}</span>
+                  </div>
+                  <TruthBadge truth={toTruthTone(node.truth_state)} />
+                </div>
+              ))}
+            </div>
+          </EditorRegion>
+
+          <EditorRegion title="Transform / Properties" subtitle="Location, rotation, scale, dimensions" label="RIGHT">
             <div style={styles.inspectorStack}>
               <InspectorRow label="Candidate" value={`${candidate.name} (${candidate.id})`} />
+              {effectiveTransformRows.map((row) => (
+                <InspectorRow
+                  key={row.row_id}
+                  label={row.label}
+                  value={row.value}
+                  tone={toTruthTone(row.truth_state)}
+                />
+              ))}
+              {effectiveSafetyRows.map((row) => (
+                <InspectorRow
+                  key={row.row_id}
+                  label={row.label}
+                  value={row.value}
+                  tone={toTruthTone(row.truth_state)}
+                />
+              ))}
               <InspectorRow label="Provider" value={providerSummary(providerStatus)} tone="blocked" />
               <InspectorRow label="Blender" value={blenderSummary(blenderStatus)} tone="preflight-only" />
-              <InspectorRow label="Target component" value="Mesh / proof-only candidate target" />
-              <InspectorRow label="Placement execution" value="blocked; execution_admitted=false" tone="blocked" />
-              <InspectorRow label="Placement write" value="blocked; placement_write_admitted=false" tone="blocked" />
-              <InspectorRow label="Next unlock" value="exact admission corridor with readback and revert/restore proof" />
             </div>
+          </EditorRegion>
+
+          <EditorRegion title="Material Preview" subtitle="Surface / Wire / Volume / Halo" label="RIGHT" compact>
+            <div style={styles.badgeRow}>
+              {(editorModel?.material_preview.tabs ?? ["Surface", "Wire", "Volume", "Halo"]).map((tab) => (
+                <span key={tab} style={styles.tabChip}>{tab}</span>
+              ))}
+            </div>
+            <p style={styles.compactText}>{editorModel?.material_preview.preview_label ?? "Preview sphere/checker"}</p>
+            {effectiveMaterialRows.map((row) => (
+              <InspectorRow
+                key={row.row_id}
+                label={row.label}
+                value={row.value}
+                tone={toTruthTone(row.truth_state)}
+              />
+            ))}
           </EditorRegion>
 
           <EditorRegion title="Mission Truth" subtitle="Compact safety rail" label="RIGHT">
@@ -372,7 +1017,7 @@ export default function AssetForgeBlenderCockpit({
               latestExecutionId={latestExecutionId ?? null}
               latestArtifactId={latestArtifactId ?? null}
               latestPlacementProofOnlyReview={latestPlacementProofOnlyReview ?? null}
-              nextSafeAction="Load a proof-only placement prompt template, preview the plan, then review persisted evidence."
+              nextSafeAction={editorModel?.next_safe_action ?? "Load a non-mutating prompt template, then review proof-only evidence."}
               onViewLatestRun={onViewLatestRun}
               onViewExecution={onViewExecution}
               onViewArtifact={onViewArtifact}
@@ -390,54 +1035,53 @@ export default function AssetForgeBlenderCockpit({
       </div>
 
       <footer style={styles.bottomDrawer} aria-label="Asset Forge bottom evidence prompt and log drawer">
-        <EditorRegion title="Evidence / Prompts / Logs" subtitle="Content drawer" label="BOTTOM">
+        <EditorRegion title="Evidence / Prompts / Logs" subtitle="Timeline and safety strip" label="BOTTOM">
           <div style={styles.drawerGrid}>
             <section style={styles.drawerSection}>
-              <strong>Evidence shortcuts</strong>
+              <strong>Timeline / Status strip</strong>
+              <p style={styles.compactText}>Frames {timeline.start_frame} - {timeline.end_frame}; current frame {timeline.current_frame}</p>
+              <p style={styles.compactText}>Status: {timeline.status}</p>
+              <p style={styles.compactText}>Latest run: <code>{evidence.latest_run_id ?? "not selected"}</code></p>
+              <p style={styles.compactText}>Latest execution: <code>{evidence.latest_execution_id ?? "not selected"}</code></p>
+              <p style={styles.compactText}>Latest artifact: <code>{evidence.latest_artifact_id ?? "not selected"}</code></p>
+              <p style={styles.compactText}>Stage-write evidence: <code>{evidence.stage_write_evidence_reference ?? "not provided"}</code></p>
+              <p style={styles.compactText}>Stage-write readback: <code>{evidence.stage_write_readback_reference ?? "not provided"}</code></p>
+              <p style={styles.compactText}>Stage-write readback status: <code>{evidence.stage_write_readback_status ?? "not provided"}</code></p>
               <div style={styles.drawerButtons}>
                 <button type="button" onClick={onViewLatestRun} style={styles.commandButton}>View latest run</button>
                 <button type="button" onClick={onViewExecution} style={styles.commandButton}>View execution</button>
                 <button type="button" onClick={onViewArtifact} style={styles.commandButton}>View artifact</button>
                 <button type="button" onClick={onViewEvidence} style={styles.commandButton}>View evidence</button>
               </div>
-              <p style={styles.compactText}>
-                Latest run: <code>{latestRunId ?? "not selected"}</code>
-              </p>
-              <p style={styles.compactText}>
-                Latest execution: <code>{latestExecutionId ?? "not selected"}</code>
-              </p>
-              <p style={styles.compactText}>
-                Latest artifact: <code>{latestArtifactId ?? "not selected"}</code>
-              </p>
             </section>
 
             <section style={styles.drawerSection}>
-              <strong>Proof-only prompt template</strong>
-              <p style={styles.compactText}>
-                In the editor, create a placement proof-only candidate with candidate_id "candidate-a",
-                candidate_label "Weathered Ivy Arch", staged_source_relative_path
-                "Assets/Generated/asset_forge/candidate_a/candidate_a.glb", target_level_relative_path
-                "Levels/BridgeLevel01/BridgeLevel01.prefab", target_entity_name "AssetForgeCandidateA",
-                target_component "Mesh", stage_write_evidence_reference "packet-10/stage-write-evidence.json",
-                stage_write_readback_reference "packet-10/readback-evidence.json",
-                stage_write_readback_status "succeeded", approval_state "approved", and approval_note
-                "bounded proof-only review".
-              </p>
-              <div style={styles.badgeRow}>
-                <TruthBadge truth="proof-only" />
-                <TruthBadge truth="blocked" />
-                <span style={styles.safetyText}>non-mutating / fail-closed / real placement not admitted</span>
+              <strong>Prompt templates</strong>
+              <div style={styles.templateList}>
+                {promptTemplates.map((template) => (
+                  <article key={template.template_id} style={styles.templateCard}>
+                    <div style={styles.cardHeader}>
+                      <strong>{template.label}</strong>
+                      <TruthBadge truth={toTruthTone(template.truth_state)} />
+                    </div>
+                    <p style={styles.compactText}>{template.description}</p>
+                    <p style={styles.compactText}>{template.text}</p>
+                    <p style={styles.metaLine}>auto_execute=false / non-mutating</p>
+                  </article>
+                ))}
               </div>
             </section>
 
             <section style={styles.drawerSection}>
-              <strong>Blocked execution log</strong>
+              <strong>Blocked capabilities</strong>
               <ul style={styles.blockedList}>
-                <li>Provider generation blocked.</li>
-                <li>Blender execution blocked.</li>
-                <li>Asset Processor execution blocked.</li>
-                <li>Placement runtime execution blocked.</li>
-                <li>Material and prefab mutation blocked.</li>
+                {blockedCapabilities.map((blocked) => (
+                  <li key={blocked.capability_id}>
+                    <strong>{blocked.label}</strong>: {blocked.reason}
+                    <br />
+                    <span style={styles.compactText}>Next unlock: {blocked.next_unlock}</span>
+                  </li>
+                ))}
               </ul>
             </section>
           </div>
@@ -467,7 +1111,7 @@ function InspectorRow({
 const styles = {
   shell: {
     display: "grid",
-    gridTemplateRows: "auto auto minmax(0, 1fr) minmax(160px, 0.28fr)",
+    gridTemplateRows: "auto auto minmax(0, 1fr) minmax(170px, 0.3fr)",
     gap: 10,
     minWidth: 0,
     minHeight: 0,
@@ -508,6 +1152,11 @@ const styles = {
     margin: 0,
     color: "var(--app-muted-color)",
     fontSize: 13,
+  },
+  warningInline: {
+    margin: "4px 0 0",
+    fontSize: 12,
+    color: "#f7c7a0",
   },
   commandRow: {
     display: "flex",
@@ -555,7 +1204,7 @@ const styles = {
   },
   editorGrid: {
     display: "grid",
-    gridTemplateColumns: "minmax(250px, 0.24fr) minmax(520px, 1fr) minmax(300px, 0.28fr)",
+    gridTemplateColumns: "minmax(250px, 0.24fr) minmax(520px, 1fr) minmax(320px, 0.3fr)",
     gap: 10,
     minWidth: 0,
     minHeight: 0,
@@ -673,6 +1322,15 @@ const styles = {
     color: "var(--app-text-color)",
     cursor: "pointer",
     minWidth: 0,
+    textAlign: "left",
+  },
+  toolButtonSelected: {
+    borderColor: "var(--app-accent)",
+    background: "color-mix(in srgb, var(--app-accent) 12%, var(--app-panel-bg-alt))",
+  },
+  toolButtonDisabled: {
+    opacity: 0.72,
+    cursor: "not-allowed",
   },
   toolText: {
     display: "flex",
@@ -741,6 +1399,10 @@ const styles = {
     color: "var(--app-text-color)",
     cursor: "pointer",
   },
+  viewportButtonActive: {
+    borderColor: "var(--app-accent)",
+    background: "color-mix(in srgb, var(--app-accent) 18%, var(--app-panel-bg-alt))",
+  },
   viewport: {
     position: "relative",
     minHeight: 420,
@@ -766,6 +1428,7 @@ const styles = {
     padding: "5px 10px",
     color: "#e2e8f0",
     background: "rgba(2, 6, 23, 0.72)",
+    fontSize: 12,
   },
   viewBadge: {
     position: "absolute",
@@ -776,6 +1439,7 @@ const styles = {
     padding: "5px 10px",
     color: "#e0f2fe",
     background: "rgba(14, 116, 144, 0.32)",
+    fontSize: 12,
   },
   previewObject: {
     position: "absolute",
@@ -801,6 +1465,17 @@ const styles = {
     background: "rgba(2, 6, 23, 0.78)",
     overflowWrap: "anywhere",
     fontSize: 12,
+  },
+  viewportOverlayList: {
+    position: "absolute",
+    left: 16,
+    top: 48,
+    margin: 0,
+    paddingLeft: 16,
+    color: "#d8e8f8",
+    fontSize: 11,
+    display: "grid",
+    gap: 4,
   },
   viewportFooter: {
     display: "flex",
@@ -832,7 +1507,7 @@ const styles = {
   },
   drawerGrid: {
     display: "grid",
-    gridTemplateColumns: "minmax(220px, 0.8fr) minmax(320px, 1.2fr) minmax(220px, 0.8fr)",
+    gridTemplateColumns: "minmax(220px, 0.9fr) minmax(320px, 1.2fr) minmax(220px, 0.9fr)",
     gap: 12,
     minWidth: 0,
   },
@@ -856,15 +1531,31 @@ const styles = {
     gap: 7,
     alignItems: "center",
   },
-  safetyText: {
-    fontSize: 12,
-    color: "var(--app-muted-color)",
+  tabChip: {
+    border: "1px solid var(--app-panel-border)",
+    borderRadius: 999,
+    padding: "3px 8px",
+    fontSize: 11,
+    color: "var(--app-text-color)",
+    background: "var(--app-panel-bg-alt)",
+  },
+  templateList: {
+    display: "grid",
+    gap: 8,
+  },
+  templateCard: {
+    border: "1px solid var(--app-panel-border)",
+    borderRadius: 8,
+    padding: 8,
+    display: "grid",
+    gap: 6,
+    background: "var(--app-panel-bg)",
   },
   blockedList: {
     margin: 0,
     paddingLeft: 18,
     display: "grid",
-    gap: 5,
+    gap: 6,
     fontSize: 12,
     color: "var(--app-muted-color)",
   },

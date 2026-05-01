@@ -176,6 +176,209 @@ class AssetForgeStudioStatusRecord(BaseModel):
     source: str = Field(..., min_length=1)
 
 
+class AssetForgeEditorToolRecord(BaseModel):
+    tool_id: str = Field(..., min_length=1)
+    label: str = Field(..., min_length=1)
+    shortcut: str | None = None
+    group: Literal[
+        "transform",
+        "object",
+        "mesh",
+        "animation",
+        "grease_pencil",
+        "history",
+        "proof",
+        "review",
+    ]
+    truth_state: Literal[
+        "demo",
+        "read-only",
+        "plan-only",
+        "preflight-only",
+        "proof-only",
+        "blocked",
+    ]
+    enabled: bool
+    selected: bool = False
+    description: str = Field(..., min_length=1)
+    blocked_reason: str | None = None
+    next_unlock: str | None = None
+    prompt_template_id: str | None = None
+    execution_admitted: bool = False
+    mutation_admitted: bool = False
+
+
+class AssetForgeContextMenuActionRecord(BaseModel):
+    action_id: str = Field(..., min_length=1)
+    label: str = Field(..., min_length=1)
+    truth_state: Literal[
+        "demo",
+        "read-only",
+        "plan-only",
+        "preflight-only",
+        "proof-only",
+        "blocked",
+    ]
+    execution_admitted: bool = False
+    mutation_admitted: bool = False
+    blocked_reason: str | None = None
+    next_unlock: str | None = None
+
+
+class AssetForgeContextMenuGroupRecord(BaseModel):
+    group_id: str = Field(..., min_length=1)
+    label: str = Field(..., min_length=1)
+    actions: list[AssetForgeContextMenuActionRecord] = Field(default_factory=list)
+
+
+class AssetForgeOutlinerNodeRecord(BaseModel):
+    node_id: str = Field(..., min_length=1)
+    label: str = Field(..., min_length=1)
+    kind: str = Field(..., min_length=1)
+    depth: int = Field(default=0, ge=0)
+    truth_state: Literal[
+        "demo",
+        "read-only",
+        "plan-only",
+        "preflight-only",
+        "proof-only",
+        "blocked",
+    ]
+    visible: bool = True
+    selected: bool = False
+
+
+class AssetForgeAxisTripletRecord(BaseModel):
+    x: float
+    y: float
+    z: float
+    admitted: bool = False
+
+
+class AssetForgeTransformRecord(BaseModel):
+    location: AssetForgeAxisTripletRecord
+    rotation: AssetForgeAxisTripletRecord
+    scale: AssetForgeAxisTripletRecord
+    dimensions: AssetForgeAxisTripletRecord
+    edit_status: Literal["blocked", "preflight-only", "proof-only"]
+    blocked_reason: str = Field(..., min_length=1)
+
+
+class AssetForgeViewportRecord(BaseModel):
+    label: str = Field(..., min_length=1)
+    mode: str = Field(..., min_length=1)
+    shading_modes: list[str] = Field(default_factory=list)
+    active_shading_mode: str = Field(..., min_length=1)
+    grid_visible: bool = True
+    preview_status: str = Field(..., min_length=1)
+    selected_object_label: str = Field(..., min_length=1)
+    overlays: list[str] = Field(default_factory=list)
+
+
+class AssetForgeEvidenceSummaryRecord(BaseModel):
+    latest_run_id: str | None = None
+    latest_execution_id: str | None = None
+    latest_artifact_id: str | None = None
+    stage_write_evidence_reference: str | None = None
+    stage_write_readback_reference: str | None = None
+    stage_write_readback_status: Literal["not_run", "blocked", "failed", "succeeded"] | None = None
+
+
+class AssetForgePropertyRowRecord(BaseModel):
+    row_id: str = Field(..., min_length=1)
+    label: str = Field(..., min_length=1)
+    value: str = Field(..., min_length=1)
+    truth_state: Literal[
+        "demo",
+        "read-only",
+        "plan-only",
+        "preflight-only",
+        "proof-only",
+        "blocked",
+    ]
+    mutation_admitted: bool = False
+    blocked_reason: str | None = None
+
+
+class AssetForgePropertiesSectionRecord(BaseModel):
+    section_id: str = Field(..., min_length=1)
+    label: str = Field(..., min_length=1)
+    rows: list[AssetForgePropertyRowRecord] = Field(default_factory=list)
+
+
+class AssetForgePropertiesRecord(BaseModel):
+    selected_object: str = Field(..., min_length=1)
+    material_preview_status: str = Field(..., min_length=1)
+    sections: list[AssetForgePropertiesSectionRecord] = Field(default_factory=list)
+    rows: list[AssetForgePropertyRowRecord] = Field(default_factory=list)
+
+
+class AssetForgeMaterialPreviewRecord(BaseModel):
+    preview_label: str = Field(..., min_length=1)
+    preview_background: str = Field(..., min_length=1)
+    tabs: list[str] = Field(default_factory=list)
+    active_tab: str = Field(..., min_length=1)
+    rows: list[AssetForgePropertyRowRecord] = Field(default_factory=list)
+    mutation_admitted: bool = False
+    blocked_reason: str = Field(..., min_length=1)
+
+
+class AssetForgeTimelineRecord(BaseModel):
+    start_frame: int = 0
+    end_frame: int = 240
+    current_frame: int = 1
+    status: str = Field(..., min_length=1)
+
+
+class AssetForgePromptTemplateRecord(BaseModel):
+    template_id: str = Field(..., min_length=1)
+    label: str = Field(..., min_length=1)
+    description: str = Field(..., min_length=1)
+    text: str = Field(..., min_length=1)
+    truth_state: Literal[
+        "demo",
+        "read-only",
+        "plan-only",
+        "preflight-only",
+        "proof-only",
+        "blocked",
+    ]
+    safety_labels: list[str] = Field(default_factory=list)
+    auto_execute: bool = False
+
+
+class AssetForgeBlockedCapabilityRecord(BaseModel):
+    capability_id: str = Field(..., min_length=1)
+    label: str = Field(..., min_length=1)
+    reason: str = Field(..., min_length=1)
+    next_unlock: str = Field(..., min_length=1)
+
+
+class AssetForgeEditorModelRecord(BaseModel):
+    source: Literal["asset-forge-editor-model"] = "asset-forge-editor-model"
+    inspection_surface: Literal["read_only"] = "read_only"
+    editor_model_status: Literal["available"] = "available"
+    execution_admitted: bool = False
+    mutation_admitted: bool = False
+    provider_generation_admitted: bool = False
+    blender_execution_admitted: bool = False
+    asset_processor_execution_admitted: bool = False
+    placement_write_admitted: bool = False
+    active_tool_id: str = Field(default="transform", min_length=1)
+    viewport: AssetForgeViewportRecord
+    tools: list[AssetForgeEditorToolRecord] = Field(default_factory=list)
+    context_menu_groups: list[AssetForgeContextMenuGroupRecord] = Field(default_factory=list)
+    outliner: list[AssetForgeOutlinerNodeRecord] = Field(default_factory=list)
+    transform: AssetForgeTransformRecord
+    properties: AssetForgePropertiesRecord
+    material_preview: AssetForgeMaterialPreviewRecord
+    timeline: AssetForgeTimelineRecord
+    evidence: AssetForgeEvidenceSummaryRecord
+    prompt_templates: list[AssetForgePromptTemplateRecord] = Field(default_factory=list)
+    blocked_capabilities: list[AssetForgeBlockedCapabilityRecord] = Field(default_factory=list)
+    next_safe_action: str = Field(..., min_length=1)
+
+
 class AssetForgeBlenderInspectRequest(BaseModel):
     artifact_path: str = Field(..., min_length=1)
 

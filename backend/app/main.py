@@ -118,6 +118,7 @@ def root() -> RootStatus:
         "/asset-forge/provider/status",
         "/asset-forge/blender/status",
         "/asset-forge/studio/status",
+        "/asset-forge/editor-model",
         "/asset-forge/blender/inspect",
         "/asset-forge/o3de/stage-plan",
         "/asset-forge/o3de/stage-write",

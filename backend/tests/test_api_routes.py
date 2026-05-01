@@ -309,6 +309,7 @@ def test_root_includes_current_control_plane_routes() -> None:
         assert "/asset-forge/provider/status" in payload["routes"]
         assert "/asset-forge/blender/status" in payload["routes"]
         assert "/asset-forge/studio/status" in payload["routes"]
+        assert "/asset-forge/editor-model" in payload["routes"]
         assert "/asset-forge/blender/inspect" in payload["routes"]
         assert "/asset-forge/o3de/stage-plan" in payload["routes"]
         assert "/asset-forge/o3de/stage-write" in payload["routes"]
@@ -641,6 +642,64 @@ def test_asset_forge_studio_status_reports_read_only_lane_truth() -> None:
         ]
         assert payload["source"] == "asset-forge-studio-status"
 
+
+def test_asset_forge_editor_model_route_reports_read_only_blender_style_contract() -> None:
+    with isolated_client() as client:
+        response = client.get("/asset-forge/editor-model")
+        assert response.status_code == 200
+        payload = response.json()
+
+        assert payload["source"] == "asset-forge-editor-model"
+        assert payload["inspection_surface"] == "read_only"
+        assert payload["editor_model_status"] == "available"
+        assert payload["execution_admitted"] is False
+        assert payload["mutation_admitted"] is False
+        assert payload["provider_generation_admitted"] is False
+        assert payload["blender_execution_admitted"] is False
+        assert payload["asset_processor_execution_admitted"] is False
+        assert payload["placement_write_admitted"] is False
+
+        tool_labels = {tool["label"] for tool in payload["tools"]}
+        for expected_label in {
+            "Transform",
+            "Translate",
+            "Rotate",
+            "Scale",
+            "Origin",
+            "Duplicate",
+            "Delete",
+            "Join",
+            "Split",
+            "Grease Pencil",
+        }:
+            assert expected_label in tool_labels
+
+        for tool in payload["tools"]:
+            assert tool["execution_admitted"] is False
+            assert tool["mutation_admitted"] is False
+            if tool["truth_state"] == "blocked":
+                assert isinstance(tool.get("blocked_reason"), str)
+                assert tool["blocked_reason"].strip() != ""
+                assert isinstance(tool.get("next_unlock"), str)
+                assert tool["next_unlock"].strip() != ""
+
+        assert payload["viewport"]["mode"] == "Object Mode"
+        assert payload["viewport"]["label"] == "Front Ortho"
+
+        outliner_labels = {node["label"] for node in payload["outliner"]}
+        for required_label in {"Asset Root", "Mesh_LOD0", "Materials", "Textures"}:
+            assert required_label in outliner_labels
+
+        assert payload["transform"]["edit_status"] in {"blocked", "preflight-only"}
+
+        assert all(
+            template["auto_execute"] is False
+            for template in payload["prompt_templates"]
+        )
+
+        response_text = json.dumps(payload).lower()
+        assert "mutation succeeded" not in response_text
+        assert "write succeeded" not in response_text
 
 def test_asset_forge_blender_inspect_blocks_artifact_outside_runtime_root() -> None:
     with TemporaryDirectory(ignore_cleanup_errors=True) as runtime_dir, TemporaryDirectory(
