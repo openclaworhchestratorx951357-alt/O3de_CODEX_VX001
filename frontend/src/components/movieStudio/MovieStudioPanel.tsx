@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { fetchO3deBridge, fetchO3deTarget } from "../../lib/api";
+import { useSettings } from "../../lib/settings/hooks";
 import {
   clipWidthForZoom,
   INITIAL_MARKERS,
@@ -150,6 +151,8 @@ function loadMovieStudioSessionState(): MovieStudioSessionState | null {
 }
 
 export default function MovieStudioPanel() {
+  const { settings, saveSettings, themeTokens } = useSettings();
+  const resolvedThemeMode = themeTokens.resolvedThemeMode;
   const sessionState = loadMovieStudioSessionState();
   const [activePage, setActivePage] = useState<StudioPageId>("timeline");
   const [selectedClipId, setSelectedClipId] = useState<string>("v1a");
@@ -173,6 +176,8 @@ export default function MovieStudioPanel() {
   const [o3deHealth, setO3deHealth] = useState<"healthy" | "degraded" | "unavailable">("degraded");
   const [o3deFailureCount, setO3deFailureCount] = useState<number>(0);
   const [o3deStatusLog, setO3deStatusLog] = useState<string[]>([]);
+  const [localThemeMode, setLocalThemeMode] = useState<"light" | "dark">(resolvedThemeMode);
+  const [themeStatus, setThemeStatus] = useState<string>(`Theme: ${resolvedThemeMode}`);
 
   const trackCount = TRACKS.length;
   const clipCount = useMemo(
@@ -436,6 +441,28 @@ export default function MovieStudioPanel() {
     return () => window.clearInterval(refreshTimer);
   }, []);
 
+  useEffect(() => {
+    setLocalThemeMode(resolvedThemeMode);
+    setThemeStatus(`Theme: ${resolvedThemeMode}`);
+  }, [resolvedThemeMode]);
+
+  function applyThemeMode(mode: "light" | "dark") {
+    if (localThemeMode === mode && settings.appearance.themeMode === mode) {
+      setThemeStatus(`Theme already set to ${mode}`);
+      return;
+    }
+
+    setLocalThemeMode(mode);
+    saveSettings({
+      ...settings,
+      appearance: {
+        ...settings.appearance,
+        themeMode: mode,
+      },
+    });
+    setThemeStatus(`Theme set to ${mode}`);
+  }
+
   function nudgePlayhead(frameDelta: number) {
     pushHistory(frameDelta > 0 ? "Nudge +1 frame" : "Nudge -1 frame");
     setPlayhead((current) => formatFramesToTimecode(parseTimecodeToFrames(current) + frameDelta));
@@ -514,10 +541,37 @@ export default function MovieStudioPanel() {
           <h2 style={s.title}>Movie Studio</h2>
           <p style={s.subtitle}>Timeline-first cinematic workspace with pro editorial controls.</p>
         </div>
-        <div style={s.statGrid}>
-          <Stat label="Tracks" value={String(trackCount)} />
-          <Stat label="Clips" value={String(clipCount)} />
-          <Stat label="Mode" value="Preview / Non-destructive" />
+        <div style={s.headerRight}>
+          <div style={s.themeToggleGroup} aria-label="Movie Studio theme mode toggle">
+            <button
+              type="button"
+              onClick={() => applyThemeMode("light")}
+              aria-pressed={localThemeMode === "light"}
+              style={{
+                ...s.themeToggleButton,
+                ...(localThemeMode === "light" ? s.themeToggleButtonActive : {}),
+              }}
+            >
+              Light
+            </button>
+            <button
+              type="button"
+              onClick={() => applyThemeMode("dark")}
+              aria-pressed={localThemeMode === "dark"}
+              style={{
+                ...s.themeToggleButton,
+                ...(localThemeMode === "dark" ? s.themeToggleButtonActive : {}),
+              }}
+            >
+              Dark
+            </button>
+          </div>
+          <span style={s.themeStatusText}>{themeStatus}</span>
+          <div style={s.statGrid}>
+            <Stat label="Tracks" value={String(trackCount)} />
+            <Stat label="Clips" value={String(clipCount)} />
+            <Stat label="Mode" value="Preview / Non-destructive" />
+          </div>
         </div>
       </header>
 
@@ -896,16 +950,48 @@ const s = {
     display: "grid",
     gap: 16,
     padding: 14,
-    border: "1px solid var(--app-panel-border)",
+    border: "1px solid var(--app-panel-border-strong)",
     borderRadius: 12,
-    background: "linear-gradient(145deg, rgba(14, 20, 29, 0.94), rgba(20, 28, 39, 0.94))",
-    color: "var(--app-text-primary)",
+    background: "var(--app-panel-elevated)",
+    color: "var(--app-text-color)",
   },
   header: {
     display: "flex",
     justifyContent: "space-between",
     gap: 12,
     flexWrap: "wrap",
+  },
+  headerRight: {
+    display: "grid",
+    justifyItems: "end",
+    gap: 8,
+  },
+  themeToggleGroup: {
+    display: "inline-flex",
+    gap: 3,
+    padding: 2,
+    border: "1px solid var(--app-panel-border-strong)",
+    borderRadius: 6,
+    background: "var(--app-panel-bg)",
+  },
+  themeToggleButton: {
+    border: "1px solid transparent",
+    borderRadius: 4,
+    background: "transparent",
+    color: "var(--app-text-color)",
+    padding: "3px 9px",
+    fontSize: 11,
+    cursor: "pointer",
+  },
+  themeToggleButtonActive: {
+    border: "1px solid var(--app-info-border)",
+    background: "var(--app-info-bg)",
+    color: "var(--app-info-text)",
+    fontWeight: 700,
+  },
+  themeStatusText: {
+    fontSize: 11,
+    color: "var(--app-subtle-color)",
   },
   kicker: {
     margin: 0,
@@ -931,7 +1017,7 @@ const s = {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 10,
     padding: "8px 10px",
-    background: "rgba(8, 12, 18, 0.42)",
+    background: "var(--app-panel-bg)",
     display: "grid",
     gap: 4,
   },
@@ -952,7 +1038,7 @@ const s = {
   o3deStrip: {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 10,
-    background: "rgba(12, 17, 24, 0.68)",
+    background: "var(--app-panel-bg)",
     padding: "8px 10px",
     display: "flex",
     justifyContent: "space-between",
@@ -973,26 +1059,26 @@ const s = {
   o3deHealthGood: {
     margin: 0,
     fontSize: 11,
-    color: "#9af2c0",
+    color: "var(--app-success-text)",
     fontWeight: 700,
   },
   o3deHealthWarn: {
     margin: 0,
     fontSize: 11,
-    color: "#ffe4a3",
+    color: "var(--app-warning-text)",
     fontWeight: 700,
   },
   o3deHealthBad: {
     margin: 0,
     fontSize: 11,
-    color: "#ffb0ba",
+    color: "var(--app-danger-text)",
     fontWeight: 700,
   },
   pageTab: {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 10,
-    background: "rgba(12, 17, 24, 0.55)",
-    color: "var(--app-text-primary)",
+    background: "var(--app-panel-bg)",
+    color: "var(--app-text-color)",
     padding: "10px 12px",
     textAlign: "left",
     display: "grid",
@@ -1000,10 +1086,10 @@ const s = {
     cursor: "pointer",
   },
   pageTabActive: {
-    border: "1px solid rgba(116, 199, 255, 0.8)",
+    border: "1px solid var(--app-info-border)",
     borderRadius: 10,
-    background: "rgba(24, 60, 92, 0.55)",
-    color: "var(--app-text-primary)",
+    background: "var(--app-info-bg)",
+    color: "var(--app-text-color)",
     padding: "10px 12px",
     textAlign: "left",
     display: "grid",
@@ -1027,7 +1113,7 @@ const s = {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 10,
     padding: 10,
-    background: "rgba(8, 12, 18, 0.4)",
+    background: "var(--app-panel-bg)",
   },
   panelTitle: {
     margin: "0 0 10px",
@@ -1045,7 +1131,7 @@ const s = {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 8,
     padding: "6px 8px",
-    background: "rgba(14, 20, 29, 0.7)",
+    background: "var(--app-panel-bg-alt)",
   },
   binPanel: {
     marginTop: 12,
@@ -1071,7 +1157,7 @@ const s = {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 10,
     padding: 10,
-    background: "rgba(8, 12, 18, 0.4)",
+    background: "var(--app-panel-bg)",
     minWidth: 0,
   },
   timelineMeta: {
@@ -1082,7 +1168,7 @@ const s = {
   viewerShell: {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 10,
-    background: "rgba(9, 13, 20, 0.76)",
+    background: "var(--app-panel-bg-alt)",
     padding: 8,
     marginBottom: 10,
     display: "grid",
@@ -1108,10 +1194,10 @@ const s = {
   },
   viewerStage: {
     minHeight: 260,
-    border: "1px solid rgba(120, 190, 255, 0.35)",
+    border: "1px solid var(--app-info-border)",
     borderRadius: 8,
     background:
-      "radial-gradient(circle at 50% 35%, rgba(75, 116, 173, 0.24), rgba(14, 20, 30, 0.92) 58%), linear-gradient(135deg, rgba(19, 29, 45, 0.95), rgba(8, 12, 20, 0.98))",
+      "radial-gradient(circle at 50% 35%, rgba(75, 116, 173, 0.24), rgba(14, 20, 30, 0.72) 58%), linear-gradient(135deg, var(--app-panel-bg-alt), var(--app-panel-bg))",
     display: "grid",
     gridTemplateRows: "auto 1fr auto",
     overflow: "hidden",
@@ -1122,13 +1208,13 @@ const s = {
     gap: 8,
     padding: "8px 10px",
     fontSize: 11,
-    color: "#e4efff",
+    color: "var(--app-text-color)",
     background: "linear-gradient(180deg, rgba(4, 7, 12, 0.75), rgba(4, 7, 12, 0.05))",
   },
   viewerCenterMark: {
     alignSelf: "center",
     justifySelf: "center",
-    color: "rgba(226, 238, 255, 0.72)",
+    color: "var(--app-text-color)",
     fontSize: 12,
     letterSpacing: "0.12em",
     border: "1px dashed rgba(170, 214, 255, 0.45)",
@@ -1142,7 +1228,7 @@ const s = {
     flexWrap: "wrap",
     padding: "8px 10px",
     fontSize: 11,
-    color: "#dce9ff",
+    color: "var(--app-text-color)",
     background: "linear-gradient(0deg, rgba(4, 7, 12, 0.75), rgba(4, 7, 12, 0.08))",
   },
   timelineToolbar: {
@@ -1163,33 +1249,33 @@ const s = {
   },
   playheadInput: {
     border: "1px solid var(--app-panel-border)",
-    background: "rgba(12, 17, 24, 0.8)",
-    color: "var(--app-text-primary)",
+    background: "var(--app-input-bg)",
+    color: "var(--app-text-color)",
     borderRadius: 8,
     padding: "6px 8px",
     fontSize: 12,
   },
   selectInput: {
     border: "1px solid var(--app-panel-border)",
-    background: "rgba(12, 17, 24, 0.8)",
-    color: "var(--app-text-primary)",
+    background: "var(--app-input-bg)",
+    color: "var(--app-text-color)",
     borderRadius: 8,
     padding: "6px 8px",
     fontSize: 12,
   },
   toolbarButton: {
-    border: "1px solid rgba(121, 191, 255, 0.72)",
-    background: "rgba(37, 86, 126, 0.55)",
-    color: "var(--app-text-primary)",
+    border: "1px solid var(--app-info-border)",
+    background: "var(--app-info-bg)",
+    color: "var(--app-text-color)",
     borderRadius: 8,
     padding: "6px 10px",
     cursor: "pointer",
     fontSize: 12,
   },
   toolbarButtonDanger: {
-    border: "1px solid rgba(243, 127, 150, 0.8)",
-    background: "rgba(115, 31, 46, 0.56)",
-    color: "#ffd8e1",
+    border: "1px solid var(--app-danger-border)",
+    background: "var(--app-danger-bg)",
+    color: "var(--app-danger-text)",
     borderRadius: 8,
     padding: "6px 10px",
     cursor: "pointer",
@@ -1197,7 +1283,7 @@ const s = {
   },
   toolbarButtonDisabled: {
     border: "1px solid var(--app-panel-border)",
-    background: "rgba(45, 51, 60, 0.55)",
+    background: "var(--app-panel-bg-muted)",
     color: "var(--app-text-muted)",
     borderRadius: 8,
     padding: "6px 10px",
@@ -1212,8 +1298,8 @@ const s = {
   markerPill: {
     fontSize: 11,
     border: "1px solid rgba(255, 210, 124, 0.8)",
-    color: "#ffe4b4",
-    background: "rgba(130, 83, 16, 0.45)",
+    color: "var(--app-warning-text)",
+    background: "var(--app-warning-bg)",
     borderRadius: 999,
     padding: "3px 8px",
     cursor: "pointer",
@@ -1221,8 +1307,8 @@ const s = {
   markerPillActive: {
     fontSize: 11,
     border: "1px solid rgba(255, 226, 166, 0.95)",
-    color: "#fff0c9",
-    background: "rgba(157, 102, 19, 0.62)",
+    color: "var(--app-warning-text)",
+    background: "var(--app-warning-bg)",
     borderRadius: 999,
     padding: "3px 8px",
     cursor: "pointer",
@@ -1240,7 +1326,7 @@ const s = {
   trackLabel: {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 8,
-    background: "rgba(12, 17, 24, 0.75)",
+    background: "var(--app-panel-bg-alt)",
     padding: "8px 10px",
     display: "grid",
     gap: 4,
@@ -1252,7 +1338,7 @@ const s = {
   },
   trackControl: {
     border: "1px solid var(--app-panel-border)",
-    background: "rgba(14, 20, 29, 0.8)",
+    background: "var(--app-panel-bg)",
     color: "var(--app-text-muted)",
     borderRadius: 6,
     padding: "3px 7px",
@@ -1260,9 +1346,9 @@ const s = {
     cursor: "pointer",
   },
   trackControlActive: {
-    border: "1px solid rgba(111, 190, 248, 0.95)",
-    background: "rgba(31, 72, 108, 0.6)",
-    color: "var(--app-text-primary)",
+    border: "1px solid var(--app-info-border)",
+    background: "var(--app-info-bg)",
+    color: "var(--app-text-color)",
     borderRadius: 6,
     padding: "3px 7px",
     fontSize: 10,
@@ -1271,7 +1357,7 @@ const s = {
   clipLane: {
     border: "1px solid var(--app-panel-border)",
     borderRadius: 8,
-    background: "rgba(12, 17, 24, 0.45)",
+    background: "var(--app-panel-bg)",
     padding: 8,
     display: "flex",
     gap: 6,
@@ -1279,8 +1365,8 @@ const s = {
     minHeight: 56,
   },
   clipCard: {
-    border: "1px solid rgba(121, 191, 255, 0.72)",
-    background: "rgba(37, 86, 126, 0.55)",
+    border: "1px solid var(--app-info-border)",
+    background: "var(--app-info-bg)",
     borderRadius: 7,
     padding: "6px 8px",
     fontSize: 11,
@@ -1291,9 +1377,9 @@ const s = {
     position: "relative",
   },
   clipCardActive: {
-    border: "1px solid rgba(160, 220, 255, 0.95)",
-    boxShadow: "0 0 0 1px rgba(160, 220, 255, 0.35)",
-    background: "rgba(52, 110, 156, 0.65)",
+    border: "1px solid var(--app-info-border)",
+    boxShadow: "0 0 0 1px var(--app-info-border)",
+    background: "var(--app-accent-soft)",
     borderRadius: 7,
     padding: "6px 8px",
     fontSize: 11,
@@ -1323,7 +1409,7 @@ const s = {
     marginTop: 10,
     border: "1px solid var(--app-panel-border)",
     borderRadius: 8,
-    background: "rgba(12, 17, 24, 0.7)",
+    background: "var(--app-panel-bg-alt)",
     padding: "8px 10px",
   },
   inspectorTitle: {
@@ -1379,8 +1465,8 @@ const s = {
     minHeight: 130,
     border: "1px solid var(--app-panel-border)",
     borderRadius: 8,
-    background: "rgba(10, 14, 21, 0.92)",
-    color: "var(--app-text-primary)",
+    background: "var(--app-input-bg)",
+    color: "var(--app-text-color)",
     padding: 8,
     fontSize: 11,
     resize: "vertical",
