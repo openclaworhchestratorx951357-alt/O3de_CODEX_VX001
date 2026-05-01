@@ -204,6 +204,12 @@ describe("MovieStudioPanel", () => {
     await screen.findByText("Copied to clipboard");
   });
 
+  it("supports Shift+J shortcut for handoff JSON copy", async () => {
+    render(<MovieStudioPanel />);
+    fireEvent.keyDown(window, { key: "J", shiftKey: true });
+    await screen.findByText("Copied JSON packet");
+  });
+
   it("supports keyboard transport shortcuts", () => {
     render(<MovieStudioPanel />);
 
