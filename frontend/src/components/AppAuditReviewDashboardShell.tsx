@@ -12,19 +12,17 @@ import {
   summaryMutedTextStyle,
   summarySectionStyle,
 } from "./summaryPrimitives";
-import {
-  getStatusChipLinkageCue,
-  sharedShellBoundaryLabels,
-} from "./appShellTaxonomyParity";
 
 const boundaryLabels = [
-  ...sharedShellBoundaryLabels,
+  "Static fixture only",
+  "No backend execution admission changes",
+  "No mutation path widening",
+  "No client-side authorization",
 ] as const;
 
 export default function AppAuditReviewDashboardShell() {
   const verdictCounts = countBy(appAuditReviewDashboardRows, (row) => row.verdict);
   const riskCounts = countBy(appAuditReviewDashboardRows, (row) => row.risk);
-  const statusTaxonomyCounts = countBy(appAuditReviewDashboardRows, (row) => row.statusTaxonomy);
 
   return (
     <section
@@ -70,30 +68,17 @@ export default function AppAuditReviewDashboardShell() {
             ))}
           </div>
         </article>
-        <article style={summaryCardStyle}>
-          <strong>Status taxonomy mix</strong>
-          <div style={chipWrapStyle}>
-            {Object.entries(statusTaxonomyCounts).map(([taxonomy, count]) => (
-              <StatusChip
-                key={taxonomy}
-                label={`${taxonomy}: ${count}`}
-                tone={getTaxonomyTone(taxonomy as (typeof appAuditReviewDashboardRows)[number]["statusTaxonomy"])}
-              />
-            ))}
-          </div>
-        </article>
       </div>
 
       <div style={cardGridStyle}>
         {appAuditReviewDashboardRows.map((row) => (
-          <article key={`${row.domain}:${row.capabilityWindow}`} style={summaryCardStyle}>
+          <article key={row.domain} style={summaryCardStyle}>
             <div style={rowHeadStyle}>
               <strong>{row.domain}</strong>
               <StatusChip label={row.verdict} tone={getVerdictTone(row.verdict)} />
             </div>
             <div style={chipWrapStyle}>
               <StatusChip label={row.currentMaturity} tone="info" />
-              <StatusChip label={row.statusTaxonomy} tone={getTaxonomyTone(row.statusTaxonomy)} />
               <StatusChip label={row.risk} tone={getRiskTone(row.risk)} />
             </div>
             <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
@@ -101,9 +86,6 @@ export default function AppAuditReviewDashboardShell() {
             </p>
             <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
               <strong>Gate:</strong> {row.gateStatus}
-            </p>
-            <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-              <strong>Status-chip linkage:</strong> {getStatusChipLinkageCue(row.statusTaxonomy)}
             </p>
             <p style={{ ...summaryMutedTextStyle, margin: 0 }}>{row.findings}</p>
             <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
@@ -150,24 +132,6 @@ function getRiskTone(risk: AuditRisk): "neutral" | "info" | "success" | "warning
     return "info";
   }
   return "success";
-}
-
-function getTaxonomyTone(
-  taxonomy: (typeof appAuditReviewDashboardRows)[number]["statusTaxonomy"],
-): "neutral" | "info" | "success" | "warning" | "danger" {
-  if (taxonomy === "admitted-real") {
-    return "success";
-  }
-  if (taxonomy === "proof-only") {
-    return "warning";
-  }
-  if (taxonomy === "dry-run only" || taxonomy === "plan-only" || taxonomy === "demo") {
-    return "info";
-  }
-  if (taxonomy === "hold-default-off" || taxonomy === "blocked") {
-    return "danger";
-  }
-  return "neutral";
 }
 
 const topGridStyle = {
