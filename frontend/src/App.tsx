@@ -9215,6 +9215,7 @@ export default function App() {
                 onLaunchInspectTemplate={openPromptStudioWithInspectProjectTemplateFromAssetForge}
                 onLaunchPlacementProofTemplate={openPromptStudioWithPlacementProofTemplateFromAssetForge}
                 onLaunchPromptTemplate={openPromptStudioWithAssetForgeEditorTemplate}
+                cockpitRegistrations={cockpitRegistrations}
                 onOpenRuntimeOverview={openRuntimeOverview}
                 onOpenRuntimeGovernance={openRuntimeGovernance}
                 onOpenRuntimeExecutors={openRuntimeExecutors}

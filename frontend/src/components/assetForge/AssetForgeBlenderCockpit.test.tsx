@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { describe, expect, it, vi } from "vitest";
 
 import AssetForgeBlenderCockpit from "./AssetForgeBlenderCockpit";
+import type { CockpitAppRegistration } from "../../lib/cockpitAppRegistry";
 import type { AssetForgeEditorModelRecord } from "../../types/contracts";
 
 function buildEditorModelFixture(): AssetForgeEditorModelRecord {
@@ -273,6 +274,99 @@ function buildEditorModelWithBackendPropertyContent(): AssetForgeEditorModelReco
   };
 }
 
+function buildCockpitRegistrationsFixture(): readonly CockpitAppRegistration[] {
+  return [
+    {
+      workspaceId: "create-game",
+      navLabel: "Forge Create",
+      navSubtitle: "Registry create game",
+      workspaceTitle: "Forge Create",
+      workspaceSubtitle: "Registry-backed create cockpit",
+      launchTitle: "Forge Create",
+      detail: "Registry-driven create cockpit navigation",
+      truthState: "plan-only",
+      blocked: "blocked by admission gates",
+      nextSafeAction: "Open and continue read-only planning",
+      actionLabel: "Open Forge Create",
+      shellMode: "dockable-cockpit",
+      tone: "success",
+      helpTooltip: "Registry tooltip",
+      executionAdmitted: false,
+      mutationAdmitted: false,
+      providerGenerationAdmitted: false,
+      blenderExecutionAdmitted: false,
+      assetProcessorExecutionAdmitted: false,
+      placementWriteAdmitted: false,
+    },
+    {
+      workspaceId: "create-movie",
+      navLabel: "Forge Movie",
+      navSubtitle: "Registry create movie",
+      workspaceTitle: "Forge Movie",
+      workspaceSubtitle: "Registry-backed movie cockpit",
+      launchTitle: "Forge Movie",
+      detail: "Registry-driven movie cockpit navigation",
+      truthState: "read-only",
+      blocked: "blocked by admission gates",
+      nextSafeAction: "Open and continue proof-only planning",
+      actionLabel: "Open Forge Movie",
+      shellMode: "dockable-cockpit",
+      tone: "info",
+      helpTooltip: "Registry tooltip",
+      executionAdmitted: false,
+      mutationAdmitted: false,
+      providerGenerationAdmitted: false,
+      blenderExecutionAdmitted: false,
+      assetProcessorExecutionAdmitted: false,
+      placementWriteAdmitted: false,
+    },
+    {
+      workspaceId: "load-project",
+      navLabel: "Forge Load",
+      navSubtitle: "Registry load project",
+      workspaceTitle: "Forge Load",
+      workspaceSubtitle: "Registry-backed load cockpit",
+      launchTitle: "Forge Load",
+      detail: "Registry-driven load cockpit navigation",
+      truthState: "read-only",
+      blocked: "blocked by admission gates",
+      nextSafeAction: "Open and verify target state",
+      actionLabel: "Open Forge Load",
+      shellMode: "dockable-cockpit",
+      tone: "neutral",
+      helpTooltip: "Registry tooltip",
+      executionAdmitted: false,
+      mutationAdmitted: false,
+      providerGenerationAdmitted: false,
+      blenderExecutionAdmitted: false,
+      assetProcessorExecutionAdmitted: false,
+      placementWriteAdmitted: false,
+    },
+    {
+      workspaceId: "asset-forge",
+      navLabel: "Forge Editor",
+      navSubtitle: "Registry asset forge",
+      workspaceTitle: "Forge Editor",
+      workspaceSubtitle: "Registry-backed full-screen editor",
+      launchTitle: "Forge Editor",
+      detail: "Registry-driven editor cockpit navigation",
+      truthState: "read-only / preflight-only",
+      blocked: "blocked by admission gates",
+      nextSafeAction: "Stay in editor mode and continue safe workflows",
+      actionLabel: "Open Forge Editor",
+      shellMode: "full-screen-editor",
+      tone: "info",
+      helpTooltip: "Registry tooltip",
+      executionAdmitted: false,
+      mutationAdmitted: false,
+      providerGenerationAdmitted: false,
+      blenderExecutionAdmitted: false,
+      assetProcessorExecutionAdmitted: false,
+      placementWriteAdmitted: false,
+    },
+  ] as const;
+}
+
 describe("AssetForgeBlenderCockpit", () => {
   it("renders strict Blender-like shell zones and fallback safety text", () => {
     render(<AssetForgeBlenderCockpit editorModelError="editor model backend unavailable" />);
@@ -466,6 +560,46 @@ describe("AssetForgeBlenderCockpit", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/Asset Processor status is preflight\/status only/i);
     const properties = screen.getByLabelText("Asset Forge transform and material properties");
     expect(within(properties).getByRole("button", { name: "Safety" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("uses backend cockpit registry labels for App-menu cockpit routes", () => {
+    const callbacks = {
+      onOpenCreateGame: vi.fn(),
+      onOpenCreateMovie: vi.fn(),
+      onOpenLoadProject: vi.fn(),
+    };
+
+    render(
+      <AssetForgeBlenderCockpit
+        cockpitRegistrations={buildCockpitRegistrationsFixture()}
+        {...callbacks}
+      />,
+    );
+
+    const topMenu = screen.getByLabelText("Asset Forge top menu");
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+
+    const appMenu = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Forge Create/i }));
+    expect(callbacks.onOpenCreateGame).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const reopenedMenu = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(reopenedMenu).getByRole("menuitem", { name: /Forge Movie/i }));
+    expect(callbacks.onOpenCreateMovie).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const loadMenu = screen.getByRole("menu", { name: "App menu" });
+    fireEvent.click(within(loadMenu).getByRole("menuitem", { name: /Forge Load/i }));
+    expect(callbacks.onOpenLoadProject).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    const assetForgeMenu = screen.getByRole("menu", { name: "App menu" });
+    expect(within(assetForgeMenu).getByRole("menuitem", { name: /Forge Editor/i })).toBeInTheDocument();
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /Opened Forge Load from backend cockpit registry shell navigation only/i,
+    );
   });
 
   it("selects tools, reports blocked reasons, and does not call mutation-style callbacks", () => {

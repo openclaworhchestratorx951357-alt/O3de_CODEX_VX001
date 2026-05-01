@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 
 import AssetForgeBlenderCockpit from "./assetForge/AssetForgeBlenderCockpit";
 import MovieStudioPanel from "./movieStudio/MovieStudioPanel";
+import type { CockpitAppRegistration } from "../lib/cockpitAppRegistry";
 import type { PlacementProofOnlyReviewSnapshot } from "../lib/promptPlacementProofOnlyReview";
 import {
   fetchAssetForgeBlenderStatus,
@@ -56,6 +57,7 @@ type AIAssetForgePanelProps = {
   latestExecutionId?: string | null;
   latestArtifactId?: string | null;
   latestPlacementProofOnlyReview?: PlacementProofOnlyReviewSnapshot | null;
+  cockpitRegistrations?: readonly CockpitAppRegistration[];
   onViewLatestRun?: () => void;
   onViewExecution?: () => void;
   onViewArtifact?: () => void;
@@ -204,6 +206,7 @@ export default function AIAssetForgePanel(props: AIAssetForgePanelProps) {
           latestExecutionId={props.latestExecutionId}
           latestArtifactId={props.latestArtifactId}
           latestPlacementProofOnlyReview={props.latestPlacementProofOnlyReview}
+          cockpitRegistrations={props.cockpitRegistrations}
           onOpenHome={props.onOpenHome}
           onOpenCreateGame={props.onOpenCreateGame}
           onOpenCreateMovie={props.onOpenCreateMovie}

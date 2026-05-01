@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
+import type { CockpitAppRegistration } from "../../lib/cockpitAppRegistry";
 import type {
   AdaptersResponse,
   AssetForgeBlenderStatusRecord,
@@ -27,6 +28,7 @@ type Props = {
   latestExecutionId?: string | null;
   latestArtifactId?: string | null;
   latestPlacementProofOnlyReview?: PlacementProofOnlyReviewSnapshot | null;
+  cockpitRegistrations?: readonly CockpitAppRegistration[];
   onOpenHome?: () => void;
   onOpenCreateGame?: () => void;
   onOpenCreateMovie?: () => void;
@@ -605,6 +607,101 @@ const assetForgeShellMenuGroups: MenuGroup[] = [
   },
 ];
 
+function mapTruthStateToTone(truthState: string): string {
+  const normalized = truthState.toLowerCase();
+  if (normalized.includes("blocked")) {
+    return "blocked";
+  }
+  if (normalized.includes("proof")) {
+    return "proof-only";
+  }
+  if (normalized.includes("preflight")) {
+    return "preflight-only";
+  }
+  if (normalized.includes("plan")) {
+    return "plan-only";
+  }
+  if (normalized.includes("read")) {
+    return "read-only";
+  }
+  return "demo";
+}
+
+function mergeAppMenuItemsWithCockpitRegistry(
+  appMenuItems: readonly MenuItem[],
+  cockpitRegistrations?: readonly CockpitAppRegistration[],
+): MenuItem[] {
+  if (!cockpitRegistrations?.length) {
+    return [...appMenuItems];
+  }
+
+  const registrationByWorkspaceId = new Map(
+    cockpitRegistrations.map((registration) => [registration.workspaceId, registration]),
+  );
+
+  const actionByWorkspaceId: Partial<Record<CockpitAppRegistration["workspaceId"], string>> = {
+    "create-game": "open-workspace-create-game",
+    "create-movie": "open-workspace-create-movie",
+    "load-project": "open-workspace-load-project",
+    "asset-forge": "open-workspace-asset-forge",
+  };
+
+  const normalizedItems = appMenuItems.map((item) => {
+    const matchingRegistration = cockpitRegistrations.find(
+      (registration) => actionByWorkspaceId[registration.workspaceId] === item.action,
+    );
+    if (!matchingRegistration) {
+      return item;
+    }
+
+    return {
+      ...item,
+      label: matchingRegistration.navLabel,
+      tone: mapTruthStateToTone(matchingRegistration.truthState),
+      status: `Opened ${matchingRegistration.navLabel} from backend cockpit registry shell navigation only.`,
+    };
+  });
+
+  const hasAssetForgeEntry = normalizedItems.some((item) => item.action === "open-workspace-asset-forge");
+  const assetForgeRegistration = registrationByWorkspaceId.get("asset-forge");
+  if (!hasAssetForgeEntry && assetForgeRegistration) {
+    const insertAfterIndex = normalizedItems.findIndex((item) => item.action === "open-workspace-load-project");
+    const assetForgeItem: MenuItem = {
+      id: "app-asset-forge-registry",
+      label: assetForgeRegistration.navLabel,
+      tone: mapTruthStateToTone(assetForgeRegistration.truthState),
+      action: "open-workspace-asset-forge",
+      status: `Opened ${assetForgeRegistration.navLabel} from backend cockpit registry shell navigation only.`,
+    };
+    if (insertAfterIndex >= 0) {
+      normalizedItems.splice(insertAfterIndex + 1, 0, assetForgeItem);
+    } else {
+      normalizedItems.unshift(assetForgeItem);
+    }
+  }
+
+  return normalizedItems;
+}
+
+function getAssetForgeShellMenuGroups(
+  cockpitRegistrations?: readonly CockpitAppRegistration[],
+): MenuGroup[] {
+  const appGroup = assetForgeShellMenuGroups.find((group) => group.id === "app");
+  if (!appGroup) {
+    return assetForgeShellMenuGroups;
+  }
+
+  return assetForgeShellMenuGroups.map((group) => {
+    if (group.id !== "app") {
+      return group;
+    }
+    return {
+      ...group,
+      items: mergeAppMenuItemsWithCockpitRegistry(group.items, cockpitRegistrations),
+    };
+  });
+}
+
 function getMenuGroups(model?: AssetForgeEditorModelRecord | null): MenuGroup[] {
   if (!model?.context_menu_groups?.length) {
     return menuGroups;
@@ -1090,6 +1187,7 @@ export default function AssetForgeBlenderCockpit({
   latestExecutionId,
   latestArtifactId,
   latestPlacementProofOnlyReview,
+  cockpitRegistrations,
   onOpenHome,
   onOpenCreateGame,
   onOpenCreateMovie,
@@ -1121,9 +1219,13 @@ export default function AssetForgeBlenderCockpit({
   const outliner = getOutliner(editorModel);
   const overlays = getOverlayLines(editorModel);
   const promptTemplates = useMemo(() => getPromptTemplates(editorModel), [editorModel]);
+  const shellMenuGroups = useMemo(
+    () => getAssetForgeShellMenuGroups(cockpitRegistrations),
+    [cockpitRegistrations],
+  );
   const editorMenuGroups = useMemo(
-    () => [...assetForgeShellMenuGroups, ...getMenuGroups(editorModel)],
-    [editorModel],
+    () => [...shellMenuGroups, ...getMenuGroups(editorModel)],
+    [editorModel, shellMenuGroups],
   );
   const workflowStages = useMemo(() => getWorkflowStages(editorModel), [editorModel]);
   const statusStripTabs = useMemo(() => getStatusStripTabs(editorModel), [editorModel]);
@@ -1333,6 +1435,8 @@ export default function AssetForgeBlenderCockpit({
       setStatusMessage(item.status);
     } else if (item.action === "open-workspace-load-project") {
       onOpenLoadProject?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-workspace-asset-forge") {
       setStatusMessage(item.status);
     } else if (item.action === "open-workspace-builder") {
       onOpenBuilder?.();
