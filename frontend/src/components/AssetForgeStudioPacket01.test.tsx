@@ -1460,6 +1460,36 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Asset processor contract preview: asset_processor_warnings/i)).toBeInTheDocument();
   });
 
+  it("renders review packet object key summaries as none/0 when optional sections are empty", async () => {
+    apiMocks.createAssetForgeO3DEOperatorReviewPacket.mockResolvedValueOnce(
+      makeReviewPacketReport({
+        provenance: {} as unknown as AssetForgeO3DEReviewPacketRecord["provenance"],
+        o3de_source: {} as unknown as AssetForgeO3DEReviewPacketRecord["o3de_source"],
+        asset_processor: {} as unknown as AssetForgeO3DEReviewPacketRecord["asset_processor"],
+        phase9_readback: {} as unknown as AssetForgeO3DEReviewPacketRecord["phase9_readback"],
+        quality_review: {} as unknown as AssetForgeO3DEReviewPacketRecord["quality_review"],
+      }),
+    );
+
+    render(<AssetForgeStudioPacket01 blenderStatus={makeBlenderStatus()} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Create operator review packet (Packet 09.5)" }));
+
+    expect(await screen.findByText(/Commercial use allowed: unknown/i)).toBeInTheDocument();
+    expect(screen.getByText(/Provenance contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Provenance contract preview: none/i)).toBeInTheDocument();
+    expect(screen.getByText(/O3DE source contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/O3DE source contract preview: none/i)).toBeInTheDocument();
+    expect(screen.getByText(/Asset processor completed: unknown/i)).toBeInTheDocument();
+    expect(screen.getByText(/Asset processor contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Asset processor contract preview: none/i)).toBeInTheDocument();
+    expect(screen.getByText(/Phase9 readback contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Phase9 readback contract preview: none/i)).toBeInTheDocument();
+    expect(screen.getByText(/Mesh quality review: unknown/i)).toBeInTheDocument();
+    expect(screen.getByText(/Quality review contract keys: 0/i)).toBeInTheDocument();
+    expect(screen.getByText(/Quality review contract preview: none/i)).toBeInTheDocument();
+  });
+
   it("surfaces review-packet gate errors for blocked review status", async () => {
     apiMocks.createAssetForgeO3DEOperatorReviewPacket.mockResolvedValueOnce(
       makeReviewPacketReport({
