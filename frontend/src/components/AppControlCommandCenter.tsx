@@ -41,7 +41,6 @@ type AppControlReceipt = Omit<AppControlExecutionReport, "items" | "script_id"> 
 
 const APP_CONTROL_BACKUP_SESSION_KEY = "o3de-control-app-last-app-control-backup";
 const WORKSPACE_VALUES = [
-  "home",
   ...cockpitWorkspaceIds,
   "prompt",
   "builder",
@@ -78,6 +77,14 @@ function saveLastBackup(backup: AppControlBackup): void {
 
 function isWorkspaceValue(value: unknown): value is (typeof WORKSPACE_VALUES)[number] {
   return typeof value === "string" && WORKSPACE_VALUES.includes(value as (typeof WORKSPACE_VALUES)[number]);
+}
+
+function normalizeWorkspaceValue(value: unknown): AppControlWorkspaceValue | null {
+  if (value === "home") {
+    return "asset-forge";
+  }
+
+  return isWorkspaceValue(value) ? value : null;
 }
 
 function setSettingsPath(settings: AppSettings, target: string, value: unknown): AppSettings {
@@ -122,8 +129,11 @@ function resolveWorkspaceAfter(
   operations: AppControlOperation[],
 ): string {
   const navigationOperation = operations.find((operation) => operation.kind === "navigation.open_workspace");
-  return navigationOperation && isWorkspaceValue(navigationOperation.value)
-    ? navigationOperation.value
+  const normalizedWorkspaceId = navigationOperation
+    ? normalizeWorkspaceValue(navigationOperation.value)
+    : null;
+  return normalizedWorkspaceId
+    ? normalizedWorkspaceId
     : workspaceBefore;
 }
 
@@ -242,7 +252,8 @@ function buildApplyReceipt(
     }
 
     if (operation.kind === "navigation.open_workspace") {
-      if (!isWorkspaceValue(operation.value)) {
+      const normalizedWorkspaceId = normalizeWorkspaceValue(operation.value);
+      if (!normalizedWorkspaceId) {
         return {
         id: operation.operation_id,
         label: operation.description,
@@ -257,9 +268,9 @@ function buildApplyReceipt(
         id: operation.operation_id,
         label: operation.description,
         detail: "Navigation request was sent to the shell, but this panel does not read back final workspace focus.",
-        delta: `Workspace: ${settingsBeforeApply.layout.preferredLandingSection} -> ${operation.value}`,
+        delta: `Workspace: ${settingsBeforeApply.layout.preferredLandingSection} -> ${normalizedWorkspaceId}`,
         verification: "assumed",
-        verificationSource: { kind: "navigation", workspaceId: operation.value },
+        verificationSource: { kind: "navigation", workspaceId: normalizedWorkspaceId },
       } satisfies AppControlReceiptItem;
     }
 
@@ -331,7 +342,7 @@ function updateReceiptNavigationVerification(
       return item;
     }
 
-    const verified = activeWorkspaceId === item.verificationSource.workspaceId;
+    const verified = normalizeWorkspaceValue(activeWorkspaceId) === item.verificationSource.workspaceId;
     const nextItem = {
       ...item,
       detail: verified
@@ -361,10 +372,10 @@ function normalizeExecutionReport(report: AppControlExecutionReport): AppControl
     items: report.items.map((item) => ({
       ...item,
       verificationSource: item.verification_source && item.verification_source.kind === "navigation"
-        && isWorkspaceValue(item.verification_source.workspace_id)
+        && normalizeWorkspaceValue(item.verification_source.workspace_id)
         ? {
             kind: "navigation",
-            workspaceId: item.verification_source.workspace_id,
+            workspaceId: normalizeWorkspaceValue(item.verification_source.workspace_id) as AppControlWorkspaceValue,
           }
         : null,
     })),
@@ -484,7 +495,7 @@ export default function AppControlCommandCenter({
     try {
       const nextPreview = await previewAppControlScript({
         instruction,
-        active_workspace_id: activeWorkspaceId,
+        active_workspace_id: normalizeWorkspaceValue(activeWorkspaceId) ?? "asset-forge",
         current_settings: settings as unknown as Record<string, unknown>,
         actor: actorName.trim() ? { display_name: actorName.trim() } : null,
       });
@@ -508,19 +519,23 @@ export default function AppControlCommandCenter({
       return;
     }
 
+    const normalizedActiveWorkspaceId = normalizeWorkspaceValue(activeWorkspaceId) ?? "asset-forge";
     const backup: AppControlBackup = {
       scriptId: preview.script_id,
       createdAt: new Date().toISOString(),
       profile,
-      activeWorkspaceId: isWorkspaceValue(activeWorkspaceId) ? activeWorkspaceId : "home",
+      activeWorkspaceId: normalizeWorkspaceValue(activeWorkspaceId) ?? "asset-forge",
     };
     const nextSettings = applySettingsOperations(settings, preview.operations);
     const nextWorkspaceId = resolveWorkspaceAfter(activeWorkspaceId, preview.operations);
 
     saveSettings(nextSettings);
     preview.operations.forEach((operation) => {
-      if (operation.kind === "navigation.open_workspace" && isWorkspaceValue(operation.value)) {
-        onSelectWorkspace(operation.value);
+      const normalizedWorkspaceId = operation.kind === "navigation.open_workspace"
+        ? normalizeWorkspaceValue(operation.value)
+        : null;
+      if (normalizedWorkspaceId) {
+        onSelectWorkspace(normalizedWorkspaceId);
       }
     });
 
@@ -533,7 +548,7 @@ export default function AppControlCommandCenter({
         operations: preview.operations,
         settings_before: settings as unknown as Record<string, unknown>,
         settings_after: nextSettings as unknown as Record<string, unknown>,
-        workspace_before: activeWorkspaceId,
+        workspace_before: normalizedActiveWorkspaceId,
         workspace_after: nextWorkspaceId,
       });
       setReceipt(normalizeExecutionReport(report));
@@ -554,6 +569,7 @@ export default function AppControlCommandCenter({
     if (isWorkspaceValue(lastBackup.activeWorkspaceId)) {
       onSelectWorkspace(lastBackup.activeWorkspaceId);
     }
+    const normalizedActiveWorkspaceId = normalizeWorkspaceValue(activeWorkspaceId) ?? "asset-forge";
     try {
       const report = await buildAppControlExecutionReport({
         script_id: lastBackup.scriptId,
@@ -561,7 +577,7 @@ export default function AppControlCommandCenter({
         operations: [],
         settings_before: settings as unknown as Record<string, unknown>,
         settings_after: lastBackup.profile.settings as unknown as Record<string, unknown>,
-        workspace_before: activeWorkspaceId,
+        workspace_before: normalizedActiveWorkspaceId,
         workspace_after: lastBackup.activeWorkspaceId,
         backup_settings: lastBackup.profile.settings as unknown as Record<string, unknown>,
         backup_workspace_id: lastBackup.activeWorkspaceId,

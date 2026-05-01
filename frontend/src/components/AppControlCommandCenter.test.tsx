@@ -14,7 +14,7 @@ const apiMocks = vi.hoisted(() => ({
 vi.mock("../lib/api", () => apiMocks);
 
 function AppControlHarness({
-  initialWorkspaceId = "home",
+  initialWorkspaceId = "asset-forge",
   onSelectWorkspaceSpy,
 }: {
   initialWorkspaceId?: string;
@@ -78,7 +78,7 @@ describe("AppControlCommandCenter", () => {
               id: "open-workspace-runtime",
               label: "Open the runtime workspace.",
               detail: "Navigation request was sent to the shell, but the current shell workspace focus does not match yet.",
-              delta: "Workspace: home -> runtime",
+              delta: "Workspace: asset-forge -> runtime",
               verification: "assumed",
               verification_source: {
                 kind: "navigation",
@@ -96,13 +96,13 @@ describe("AppControlCommandCenter", () => {
             },
             {
               id: `${request.script_id}-workspace-restore`,
-              label: "Return to home workspace",
+              label: "Return to asset-forge workspace",
               detail: "Navigation request was sent to the shell, but the current shell workspace focus does not match yet.",
-              delta: "Workspace: runtime -> home",
+              delta: "Workspace: runtime -> asset-forge",
               verification: "assumed",
               verification_source: {
                 kind: "navigation",
-                workspace_id: "home",
+                workspace_id: "asset-forge",
               },
             },
           ],
@@ -209,12 +209,12 @@ describe("AppControlCommandCenter", () => {
     await waitFor(() => {
       expect(window.localStorage.getItem(SETTINGS_PROFILE_STORAGE_KEY)).toContain("\"themeMode\":\"system\"");
     });
-    expect(onSelectWorkspace).toHaveBeenCalledWith("home");
+    expect(onSelectWorkspace).toHaveBeenCalledWith("asset-forge");
     expect(screen.getByText("Revert receipt")).toBeInTheDocument();
     expect(screen.getByText("Audit event: evt-app-control-revert")).toBeInTheDocument();
     expect(screen.getByText(/Verified by re-reading the local saved settings profile after revert/i)).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByText(/Verified by reading the current shell workspace focus as home/i)).toBeInTheDocument();
+      expect(screen.getByText(/Verified by reading the current shell workspace focus as asset-forge/i)).toBeInTheDocument();
     });
     expect(screen.getByText(/Theme mode: dark -> system/)).toBeInTheDocument();
     expect(screen.getByText(/Density: compact -> comfortable/)).toBeInTheDocument();
@@ -243,7 +243,7 @@ describe("AppControlCommandCenter", () => {
 
     render(
       <SettingsProvider>
-        <AppControlCommandCenter activeWorkspaceId="home" onSelectWorkspace={vi.fn()} />
+        <AppControlCommandCenter activeWorkspaceId="asset-forge" onSelectWorkspace={vi.fn()} />
       </SettingsProvider>,
     );
 
@@ -262,7 +262,7 @@ describe("AppControlCommandCenter", () => {
     render(
       <SettingsProvider>
         <button type="button">Outside app surface</button>
-        <AppControlCommandCenter activeWorkspaceId="home" onSelectWorkspace={vi.fn()} />
+        <AppControlCommandCenter activeWorkspaceId="asset-forge" onSelectWorkspace={vi.fn()} />
       </SettingsProvider>,
     );
 
@@ -283,7 +283,7 @@ describe("AppControlCommandCenter", () => {
     render(
       <SettingsProvider>
         <div style={{ whiteSpace: "nowrap" }}>
-          <AppControlCommandCenter activeWorkspaceId="home" onSelectWorkspace={vi.fn()} />
+          <AppControlCommandCenter activeWorkspaceId="asset-forge" onSelectWorkspace={vi.fn()} />
         </div>
       </SettingsProvider>,
     );
