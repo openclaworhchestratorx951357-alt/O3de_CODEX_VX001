@@ -35,6 +35,7 @@ param(
         "compose-up",
         "compose-build",
         "production-readiness",
+        "pr-open-list",
         "checks"
     )]
     [string]$Task = "checks",
@@ -572,6 +573,69 @@ function Invoke-ProductionReadiness {
     Invoke-ComposeBuild
 }
 
+function Get-OriginRepositoryFullName {
+    Push-Location $RepoRoot
+    try {
+        $originUrl = (git remote get-url origin).Trim()
+    }
+    finally {
+        Pop-Location
+    }
+
+    if ($originUrl -match '^https://github\.com/(?<owner>[^/]+)/(?<repo>[^/]+?)(?:\.git)?$') {
+        return "$($Matches.owner)/$($Matches.repo)"
+    }
+
+    if ($originUrl -match '^git@github\.com:(?<owner>[^/]+)/(?<repo>[^/]+?)(?:\.git)?$') {
+        return "$($Matches.owner)/$($Matches.repo)"
+    }
+
+    throw "Unable to parse GitHub repository from origin URL: $originUrl"
+}
+
+function Invoke-OpenPrList {
+    $repositoryFullName = if ($TaskArgs.Count -gt 0 -and -not [string]::IsNullOrWhiteSpace($TaskArgs[0])) {
+        $TaskArgs[0].Trim()
+    }
+    else {
+        Get-OriginRepositoryFullName
+    }
+
+    $apiUrl = "https://api.github.com/repos/$repositoryFullName/pulls?state=open&per_page=100"
+    $headers = @{
+        "Accept" = "application/vnd.github+json"
+        "X-GitHub-Api-Version" = "2022-11-28"
+        "User-Agent" = "o3de-codex-vx001-dev-script"
+    }
+
+    Write-Host "repo=$repositoryFullName"
+    Write-Host "api_url=$apiUrl"
+
+    $pullRequests = Invoke-RestMethod -Uri $apiUrl -Headers $headers -Method Get
+    if ($null -eq $pullRequests -or $pullRequests.Count -eq 0) {
+        Write-Host "open_pr_count=0"
+        Write-Host "open_pr_summary=none"
+        return
+    }
+
+    $rows = @(
+        $pullRequests |
+        Sort-Object number |
+        ForEach-Object {
+            [PSCustomObject]@{
+                Number = $_.number
+                Head = $_.head.ref
+                Base = $_.base.ref
+                Title = $_.title
+                Url = $_.html_url
+            }
+        }
+    )
+
+    Write-Host "open_pr_count=$($rows.Count)"
+    $rows | Format-Table -AutoSize
+}
+
 switch ($Task) {
     "bootstrap-worktree" { Invoke-WorktreeBootstrap }
     "runner-diagnostics" { Invoke-RunnerDiagnostics }
@@ -606,6 +670,7 @@ switch ($Task) {
     "compose-build" { Invoke-ComposeBuild }
     "compose-up" { Invoke-ComposeUp }
     "production-readiness" { Invoke-ProductionReadiness }
+    "pr-open-list" { Invoke-OpenPrList }
     "checks" {
         Invoke-BackendLint
         Invoke-BackendTests
