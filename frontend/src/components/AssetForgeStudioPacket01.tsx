@@ -3142,6 +3142,8 @@ export default function AssetForgeStudioPacket01({
                 <li>Readback plan reference: {placementProofReport.readback_plan_reference ?? "none"}</li>
                 <li>Revert contract key: {placementProofReport.revert_statement_contract_key ?? "none"}</li>
                 <li>Operator note present: {placementProofReport.operator_note_present ? "yes" : "no"}</li>
+                <li>Proof policy keys: {contractSummaryKeyCount(placementProofReport.placement_proof_policy)}</li>
+                <li>Proof policy preview: {contractSummaryKeyPreview(placementProofReport.placement_proof_policy)}</li>
                 <li>Proof approval required: {placementProofReport.placement_proof_policy["approval_required"] ? "yes" : "no"}</li>
                 <li>Proof runtime gate env: {String(placementProofReport.placement_proof_policy["runtime_gate_env"] ?? "ASSET_FORGE_ENABLE_PLACEMENT_PROOF")}</li>
                 <li>Proof mutation scope: {String(placementProofReport.placement_proof_policy["mutation_scope"] ?? "proof-only-no-scene-mutation")}</li>

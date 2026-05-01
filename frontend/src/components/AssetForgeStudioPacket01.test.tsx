@@ -1606,6 +1606,12 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Readback plan reference: readback-plan:\/\/placement-proof\/candidate-a/i)).toBeInTheDocument();
     expect(screen.getByText(/Revert contract key: revert-contract:\/\/placement-proof\/v1/i)).toBeInTheDocument();
     expect(screen.getByText(/Operator note present: yes/i)).toBeInTheDocument();
+    expect(screen.getByText(/Proof policy keys: 6/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Proof policy preview: approval_required, approval_note_required_when_approved, runtime_gate_env \(\+3 more\)/i,
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Placement proof fail-closed reasons/i)).toBeInTheDocument();
     expect(screen.getByText(/Runtime proof gate enabled: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Proof runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_PROOF/i)).toBeInTheDocument();
