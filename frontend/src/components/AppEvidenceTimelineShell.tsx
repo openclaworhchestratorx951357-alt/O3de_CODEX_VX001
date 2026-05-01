@@ -2,21 +2,27 @@ import type { CSSProperties } from "react";
 
 import StatusChip from "./StatusChip";
 import {
-  appEvidenceTimelineFixtureGeneratedAt,
+  appEvidenceTimelineGeneratedAt,
   appEvidenceTimelineRows,
-  type EvidenceTruthLabel,
+  type EvidenceTruthClass,
 } from "../fixtures/appEvidenceTimelineFixture";
+import type { CapabilityMaturity, CapabilityRisk } from "../fixtures/appCapabilityDashboardFixture";
 import {
+  summaryCardStyle,
   summaryMutedTextStyle,
   summarySectionStyle,
 } from "./summaryPrimitives";
-import { sharedShellBoundaryLabels } from "./appShellTaxonomyParity";
 
-const boundaryLabels = [...sharedShellBoundaryLabels] as const;
+const boundaryLabels = [
+  "Static fixture only",
+  "No backend execution admission changes",
+  "No mutation path enablement",
+  "No client-side authorization",
+] as const;
 
 export default function AppEvidenceTimelineShell() {
   const domainCounts = countBy(appEvidenceTimelineRows, (row) => row.domain);
-  const truthLabelCounts = countBy(appEvidenceTimelineRows, (row) => row.truthLabel);
+  const truthClassCounts = countBy(appEvidenceTimelineRows, (row) => row.truthClass);
 
   return (
     <section
@@ -25,18 +31,18 @@ export default function AppEvidenceTimelineShell() {
         display: "grid",
         gap: 16,
         marginBottom: 24,
-        background: "linear-gradient(120deg, rgba(15, 130, 135, 0.16) 0%, var(--app-panel-bg-muted) 58%, rgba(197, 130, 34, 0.16) 100%)",
+        background: "linear-gradient(124deg, rgba(0, 113, 188, 0.16) 0%, var(--app-panel-bg-muted) 54%, rgba(232, 124, 18, 0.16) 100%)",
       }}
       data-testid="app-evidence-timeline-shell"
     >
       <header style={{ display: "grid", gap: 8 }}>
         <strong>App-wide Evidence Timeline shell (static fixture)</strong>
         <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-          Cross-domain evidence chronology for audit/review readiness across demo, plan-only, dry-run, proof-only,
-          and admitted-real lanes.
+          Cross-domain evidence chronology with explicit truth labels for demo, plan-only, dry-run only,
+          proof-only, and admitted-real capability states.
         </p>
         <p style={{ ...summaryMutedTextStyle, margin: 0, fontSize: 12 }}>
-          Fixture baseline: {appEvidenceTimelineFixtureGeneratedAt}
+          Fixture baseline: {appEvidenceTimelineGeneratedAt}
         </p>
       </header>
 
@@ -48,7 +54,7 @@ export default function AppEvidenceTimelineShell() {
 
       <div style={topGridStyle}>
         <article style={summaryCardStyle}>
-          <strong>Domain evidence mix</strong>
+          <strong>Domain evidence coverage</strong>
           <div style={chipWrapStyle}>
             {Object.entries(domainCounts).map(([domain, count]) => (
               <StatusChip key={domain} label={`${domain}: ${count}`} tone="info" />
@@ -56,56 +62,47 @@ export default function AppEvidenceTimelineShell() {
           </div>
         </article>
         <article style={summaryCardStyle}>
-          <strong>Truth-label mix</strong>
+          <strong>Truth-class mix</strong>
           <div style={chipWrapStyle}>
-            {Object.entries(truthLabelCounts).map(([truthLabel, count]) => (
+            {Object.entries(truthClassCounts).map(([truthClass, count]) => (
               <StatusChip
-                key={truthLabel}
-                label={`${truthLabel}: ${count}`}
-                tone={getTruthLabelTone(truthLabel as EvidenceTruthLabel)}
+                key={truthClass}
+                label={`${truthClass}: ${count}`}
+                tone={getTruthClassTone(truthClass as EvidenceTruthClass)}
               />
             ))}
           </div>
         </article>
       </div>
 
-      <div style={tableWrapStyle}>
-        <table style={tableStyle}>
-          <thead>
-            <tr>
-              <th style={headerCellStyle}>Recorded (UTC)</th>
-              <th style={headerCellStyle}>Domain</th>
-              <th style={headerCellStyle}>Evidence lane</th>
-              <th style={headerCellStyle}>Capability window</th>
-              <th style={headerCellStyle}>Truth label</th>
-              <th style={headerCellStyle}>Review status</th>
-              <th style={headerCellStyle}>Summary</th>
-            </tr>
-          </thead>
-          <tbody>
-            {appEvidenceTimelineRows.map((row) => (
-              <tr key={`${row.recordedAtUtc}:${row.domain}:${row.evidenceLane}`}>
-                <td style={bodyCellStyle}>
-                  <code>{row.recordedAtUtc}</code>
-                </td>
-                <td style={bodyCellStyle}>{row.domain}</td>
-                <td style={bodyCellStyle}>{row.evidenceLane}</td>
-                <td style={bodyCellStyle}>
-                  <code>{row.capabilityWindow}</code>
-                </td>
-                <td style={bodyCellStyle}>
-                  <StatusChip label={row.truthLabel} tone={getTruthLabelTone(row.truthLabel)} />
-                </td>
-                <td style={bodyCellStyle}>{row.reviewStatus}</td>
-                <td style={bodyCellStyle}>{row.summary}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ol style={timelineListStyle}>
+        {appEvidenceTimelineRows.map((row) => (
+          <li key={row.id} style={timelineItemStyle}>
+            <article style={summaryCardStyle}>
+              <div style={rowHeadStyle}>
+                <strong>{row.occurredAt}</strong>
+                <StatusChip label={row.risk} tone={getRiskTone(row.risk)} />
+              </div>
+              <div style={chipWrapStyle}>
+                <StatusChip label={row.domain} tone="info" />
+                <StatusChip label={row.truthClass} tone={getTruthClassTone(row.truthClass)} />
+                <StatusChip label={row.maturity} tone={getMaturityTone(row.maturity)} />
+              </div>
+              <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
+                <code>{row.capability}</code>
+              </p>
+              <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
+                <strong>Evidence:</strong> {row.evidence}
+              </p>
+              <p style={{ ...summaryMutedTextStyle, margin: 0 }}>{row.notes}</p>
+            </article>
+          </li>
+        ))}
+      </ol>
 
       <p style={{ ...summaryMutedTextStyle, margin: 0 }}>
-        Recommended next packet: <strong>Editor placement proof-only implementation</strong>.
+        Recommended next packet: <strong>Validation intake endpoint-candidate admission design</strong> (docs/design
+        first, default fail-closed, no execution admission changes).
       </p>
     </section>
   );
@@ -119,16 +116,43 @@ function countBy<T>(rows: readonly T[], getKey: (row: T) => string): Record<stri
   }, {});
 }
 
-function getTruthLabelTone(
-  truthLabel: EvidenceTruthLabel,
-): "neutral" | "info" | "success" | "warning" | "danger" {
-  if (truthLabel === "admitted-real") {
-    return "success";
+function getRiskTone(risk: CapabilityRisk): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (risk === "Critical") {
+    return "danger";
   }
-  if (truthLabel === "proof-only") {
+  if (risk === "High") {
     return "warning";
   }
-  if (truthLabel === "dry-run only" || truthLabel === "plan-only") {
+  if (risk === "Medium") {
+    return "info";
+  }
+  return "success";
+}
+
+function getMaturityTone(maturity: CapabilityMaturity): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (maturity === "admitted-real" || maturity === "reviewable" || maturity === "production-ready") {
+    return "success";
+  }
+  if (maturity === "proof-only" || maturity === "gated execution") {
+    return "warning";
+  }
+  if (maturity === "read-only" || maturity === "preflight-only" || maturity === "dry-run only" || maturity === "GUI/demo only") {
+    return "info";
+  }
+  if (maturity === "missing" || maturity === "needs baseline") {
+    return "danger";
+  }
+  return "neutral";
+}
+
+function getTruthClassTone(truthClass: EvidenceTruthClass): "neutral" | "info" | "success" | "warning" | "danger" {
+  if (truthClass === "admitted-real") {
+    return "success";
+  }
+  if (truthClass === "proof-only") {
+    return "warning";
+  }
+  if (truthClass === "dry-run only" || truthClass === "demo") {
     return "info";
   }
   return "neutral";
@@ -137,7 +161,7 @@ function getTruthLabelTone(
 const topGridStyle = {
   display: "grid",
   gap: 12,
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
 } satisfies CSSProperties;
 
 const chipWrapStyle = {
@@ -146,38 +170,22 @@ const chipWrapStyle = {
   flexWrap: "wrap",
 } satisfies CSSProperties;
 
-const summaryCardStyle = {
-  border: "1px solid var(--app-panel-border)",
-  borderRadius: "var(--app-card-radius)",
-  padding: 12,
-  background: "var(--app-panel-bg)",
-  display: "grid",
+const rowHeadStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
   gap: 8,
 } satisfies CSSProperties;
 
-const tableWrapStyle = {
-  overflowX: "auto",
-  border: "1px solid var(--app-panel-border)",
-  borderRadius: "var(--app-card-radius)",
-  background: "var(--app-panel-bg)",
+const timelineListStyle = {
+  listStyle: "none",
+  margin: 0,
+  padding: 0,
+  display: "grid",
+  gap: 12,
 } satisfies CSSProperties;
 
-const tableStyle = {
-  width: "100%",
-  borderCollapse: "collapse",
-  minWidth: 1100,
-} satisfies CSSProperties;
-
-const headerCellStyle = {
-  borderBottom: "1px solid var(--app-panel-border)",
-  textAlign: "left",
-  padding: "10px 12px",
-  fontSize: 12,
-  color: "var(--app-muted-color)",
-} satisfies CSSProperties;
-
-const bodyCellStyle = {
-  borderBottom: "1px solid var(--app-panel-border)",
-  padding: "10px 12px",
-  verticalAlign: "top",
+const timelineItemStyle = {
+  margin: 0,
+  padding: 0,
 } satisfies CSSProperties;
