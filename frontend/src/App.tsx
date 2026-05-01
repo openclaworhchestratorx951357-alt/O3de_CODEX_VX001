@@ -772,6 +772,10 @@ export default function App() {
     useState<WorkspaceNextStepRecentAction[]>(() => loadWorkspaceNextStepRecentActions());
   const [workspaceNextStepsCollapsed, setWorkspaceNextStepsCollapsed] =
     useState(() => loadWorkspaceNextStepsCollapsed());
+
+  useEffect(() => {
+    document.title = operatorGuideShellApp.title;
+  }, []);
   const [catalogError, setCatalogError] = useState<string | null>(null);
   const [approvalsError, setApprovalsError] = useState<string | null>(null);
   const [adaptersError, setAdaptersError] = useState<string | null>(null);
@@ -9267,6 +9271,7 @@ export default function App() {
       <DesktopShell
         appTitle={operatorGuideShellApp.title}
         appSubtitle={operatorGuideShellApp.subtitle}
+        startBadgeLabel="AF"
         workspaceTitle={activeWorkspaceMeta.title}
         workspaceSubtitle={activeWorkspaceMeta.subtitle}
         activeWorkspaceId={activeWorkspaceId}

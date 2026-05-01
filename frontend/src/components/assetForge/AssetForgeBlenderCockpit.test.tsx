@@ -319,7 +319,7 @@ describe("AssetForgeBlenderCockpit", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/Viewport mode changed locally to Wireframe/i);
   });
 
-  it("renders an app navigation menu that routes to existing workspaces without mutation", () => {
+  it("renders Asset Forge workbench menus that route to existing modules without mutation", () => {
     const callbacks = {
       onOpenHome: vi.fn(),
       onOpenCreateGame: vi.fn(),
@@ -336,30 +336,31 @@ describe("AssetForgeBlenderCockpit", () => {
     render(<AssetForgeBlenderCockpit {...callbacks} />);
 
     const topMenu = screen.getByLabelText("Asset Forge top menu");
-    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
-
-    const appMenu = screen.getByRole("menu", { name: "App menu" });
-    [
-      "Home / Start",
-      "Create Game",
-      "Create Movie",
-      "Load Project",
-      "Prompt Studio",
-      "Builder",
-      "Operations",
-      "Runtime Overview",
-      "Records",
-    ].forEach((label) => {
-      expect(within(appMenu).getByRole("menuitem", { name: new RegExp(label, "i") })).toBeInTheDocument();
+    ["App", "Create", "Project", "Prompt", "Engine", "Records", "Safety"].forEach((label) => {
+      expect(within(topMenu).getByRole("button", { name: label })).toBeInTheDocument();
     });
 
-    fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Prompt Studio/i }));
+    fireEvent.click(within(topMenu).getByRole("button", { name: "Create" }));
+    const createMenu = screen.getByRole("menu", { name: "Create menu" });
+    expect(within(createMenu).getByRole("menuitem", { name: /Game/i })).toBeInTheDocument();
+    expect(within(createMenu).getByRole("menuitem", { name: /Movie/i })).toBeInTheDocument();
+    expect(within(createMenu).getByRole("menuitem", { name: /Generate Asset/i })).toBeInTheDocument();
 
-    expect(callbacks.onOpenPromptStudio).toHaveBeenCalledTimes(1);
+    fireEvent.click(within(createMenu).getByRole("menuitem", { name: /Game/i }));
+    expect(callbacks.onOpenCreateGame).toHaveBeenCalledTimes(1);
     expect(callbacks.onLaunchPlacementProofTemplate).not.toHaveBeenCalled();
-    expect(screen.getByRole("status")).toHaveTextContent(
-      /Opened Prompt Studio from Asset Forge shell navigation only/i,
-    );
+    expect(screen.getByRole("status")).toHaveTextContent(/Opened Create Game from Asset Forge/i);
+
+    fireEvent.click(within(topMenu).getByRole("button", { name: "Engine" }));
+    const engineMenu = screen.getByRole("menu", { name: "Engine menu" });
+    expect(within(engineMenu).getByRole("menuitem", { name: /Runtime Overview/i })).toBeInTheDocument();
+    expect(within(engineMenu).getByRole("menuitem", { name: /Asset Processor Status/i })).toBeInTheDocument();
+
+    fireEvent.click(within(engineMenu).getByRole("menuitem", { name: /Asset Processor Status/i }));
+    expect(callbacks.onOpenRuntimeOverview).not.toHaveBeenCalled();
+    expect(screen.getByRole("status")).toHaveTextContent(/Asset Processor status is preflight\/status only/i);
+    const properties = screen.getByLabelText("Asset Forge transform and material properties");
+    expect(within(properties).getByRole("button", { name: "Safety" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("selects tools, reports blocked reasons, and does not call mutation-style callbacks", () => {

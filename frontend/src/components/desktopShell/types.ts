@@ -37,6 +37,7 @@ export type DesktopShellAgentCallItem = {
 export type DesktopShellProps = {
   appTitle: string;
   appSubtitle: string;
+  startBadgeLabel?: string;
   workspaceTitle: string;
   workspaceSubtitle: string;
   activeWorkspaceId: string;

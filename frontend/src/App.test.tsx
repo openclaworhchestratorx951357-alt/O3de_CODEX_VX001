@@ -328,20 +328,46 @@ describe("App desktop smoke", () => {
     );
     expect(screen.getByLabelText("AssetForgeWorkspacePage")).toBeInTheDocument();
     expect(within(forgePanel).getByLabelText("Asset Forge Blender-like editor")).toBeInTheDocument();
+    expect(screen.getAllByText("Asset Forge").length).toBeGreaterThan(0);
+    expect(document.title).toBe("Asset Forge");
+    expect(screen.queryByText("O3DE Agent Control App")).not.toBeInTheDocument();
+    expect(screen.queryByText("Windows-style control-plane workspace for O3DE operators")).not.toBeInTheDocument();
     expect(screen.queryByText("Control surface")).toBeNull();
 
     const topMenu = within(forgePanel).getByLabelText("Asset Forge top menu");
-    fireEvent.click(within(topMenu).getByRole("button", { name: "App" }));
+    fireEvent.click(within(topMenu).getByRole("button", { name: "Create" }));
 
-    const appMenu = screen.getByRole("menu", { name: "App menu" });
-    expect(within(appMenu).getByRole("menuitem", { name: /Create Game/i })).toBeInTheDocument();
-    expect(within(appMenu).getByRole("menuitem", { name: /Prompt Studio/i })).toBeInTheDocument();
-    expect(within(appMenu).getByRole("menuitem", { name: /Records/i })).toBeInTheDocument();
+    const createMenu = screen.getByRole("menu", { name: "Create menu" });
+    fireEvent.click(within(createMenu).getByRole("menuitem", { name: /Game/i }));
+    expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
 
-    fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Prompt Studio/i }));
+    fireEvent.click(getDesktopNavButton(/Asset Forge/i));
+    const reopenedForgePanel = await screen.findByLabelText("AI Asset Forge");
+    const reopenedTopMenu = within(reopenedForgePanel).getByLabelText("Asset Forge top menu");
 
+    fireEvent.click(within(reopenedTopMenu).getByRole("button", { name: "Prompt" }));
+    const promptMenu = screen.getByRole("menu", { name: "Prompt menu" });
+    fireEvent.click(within(promptMenu).getByRole("menuitem", { name: /Prompt Studio/i }));
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
-  });
+
+    fireEvent.click(getDesktopNavButton(/Asset Forge/i));
+    const forgeForEngine = await screen.findByLabelText("AI Asset Forge");
+    const engineTopMenu = within(forgeForEngine).getByLabelText("Asset Forge top menu");
+
+    fireEvent.click(within(engineTopMenu).getByRole("button", { name: "Engine" }));
+    const engineMenu = screen.getByRole("menu", { name: "Engine menu" });
+    fireEvent.click(within(engineMenu).getByRole("menuitem", { name: /Runtime Overview/i }));
+    expect(await screen.findByText("Runtime Console")).toBeInTheDocument();
+
+    fireEvent.click(getDesktopNavButton(/Asset Forge/i));
+    const forgeForRecords = await screen.findByLabelText("AI Asset Forge");
+    const recordsTopMenu = within(forgeForRecords).getByLabelText("Asset Forge top menu");
+
+    fireEvent.click(within(recordsTopMenu).getByRole("button", { name: "Records" }));
+    const recordsMenu = screen.getByRole("menu", { name: "Records menu" });
+    fireEvent.click(within(recordsMenu).getByRole("menuitem", { name: /Evidence Explorer/i }));
+    expect(await screen.findByText("Records Explorer")).toBeInTheDocument();
+  }, MULTI_WORKSPACE_SMOKE_TIMEOUT_MS);
 
   it("renders the home workspace and switches to prompt through the shell nav without blanking", async () => {
     render(<App />);

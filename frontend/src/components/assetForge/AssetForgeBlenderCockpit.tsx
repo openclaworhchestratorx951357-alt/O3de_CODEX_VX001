@@ -313,75 +313,203 @@ const menuGroups: MenuGroup[] = [
   },
 ];
 
-const appShellMenuGroup: MenuGroup = {
-  id: "app",
-  label: "App",
-  items: [
-    {
-      id: "app-home",
-      label: "Home / Start",
-      tone: "read-only",
-      action: "open-workspace-home",
-      status: "Opened Home from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-create-game",
-      label: "Create Game",
-      tone: "plan-only",
-      action: "open-workspace-create-game",
-      status: "Opened Create Game from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-create-movie",
-      label: "Create Movie",
-      tone: "plan-only",
-      action: "open-workspace-create-movie",
-      status: "Opened Create Movie from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-load-project",
-      label: "Load Project",
-      tone: "read-only",
-      action: "open-workspace-load-project",
-      status: "Opened Load Project from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-prompt",
-      label: "Prompt Studio",
-      tone: "read-only",
-      action: "open-prompt-studio",
-      status: "Opened Prompt Studio from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-builder",
-      label: "Builder",
-      tone: "plan-only",
-      action: "open-workspace-builder",
-      status: "Opened Builder from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-operations",
-      label: "Operations",
-      tone: "read-only",
-      action: "open-workspace-operations",
-      status: "Opened Operations from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-runtime",
-      label: "Runtime Overview",
-      tone: "read-only",
-      action: "open-workspace-runtime",
-      status: "Opened Runtime Overview from Asset Forge shell navigation only.",
-    },
-    {
-      id: "app-records",
-      label: "Records",
-      tone: "read-only",
-      action: "open-records",
-      status: "Opened Records from Asset Forge shell navigation only.",
-    },
-  ],
-};
+const assetForgeShellMenuGroups: MenuGroup[] = [
+  {
+    id: "app",
+    label: "App",
+    items: [
+      {
+        id: "app-home",
+        label: "Home / Start",
+        tone: "read-only",
+        action: "open-workspace-home",
+        status: "Opened Home from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-workbench",
+        label: "Asset Forge Workbench",
+        tone: "read-only",
+        action: "workbench-status",
+        status: "Asset Forge Workbench is already active; no backend dispatch occurred.",
+      },
+      {
+        id: "app-operations",
+        label: "Operations",
+        tone: "read-only",
+        action: "open-workspace-operations",
+        status: "Opened Operations from Asset Forge shell navigation only.",
+      },
+    ],
+  },
+  {
+    id: "create",
+    label: "Create",
+    items: [
+      {
+        id: "create-game",
+        label: "Game",
+        tone: "plan-only",
+        action: "open-workspace-create-game",
+        status: "Opened Create Game from Asset Forge shell navigation only.",
+      },
+      {
+        id: "create-movie",
+        label: "Movie",
+        tone: "plan-only",
+        action: "open-workspace-create-movie",
+        status: "Opened Create Movie from Asset Forge shell navigation only.",
+      },
+      {
+        id: "create-generate-asset",
+        label: "Generate Asset",
+        tone: "blocked",
+        action: "blocked",
+        status: "Generate Asset is blocked: provider generation is not admitted in this packet.",
+        blockedReason: "Provider generation would create or mutate assets and is not admitted.",
+        nextUnlock: "Separate provider admission and readback packet.",
+      },
+    ],
+  },
+  {
+    id: "project",
+    label: "Project",
+    items: [
+      {
+        id: "project-load",
+        label: "Load Project",
+        tone: "read-only",
+        action: "open-workspace-load-project",
+        status: "Opened Load Project from Asset Forge shell navigation only.",
+      },
+      {
+        id: "project-bridge-status",
+        label: "Project / Bridge Status",
+        tone: "read-only",
+        action: "project-status",
+        status: "Project and bridge status are read-only references; no project files were written.",
+      },
+      {
+        id: "project-builder-work-queue",
+        label: "Builder / Work Queue",
+        tone: "plan-only",
+        action: "open-workspace-builder",
+        status: "Opened Builder / Work Queue from Asset Forge shell navigation only.",
+      },
+      {
+        id: "project-mutation-gates",
+        label: "Project Mutation Gates",
+        tone: "blocked",
+        action: "safety-tab",
+        status: "Project mutation gates are blocked and visible in the Safety tab.",
+        blockedReason: "Project writes remain outside the admitted corridor.",
+        nextUnlock: "Explicit bounded write admission with readback evidence.",
+      },
+    ],
+  },
+  {
+    id: "prompt",
+    label: "Prompt",
+    items: [
+      {
+        id: "prompt-studio",
+        label: "Prompt Studio",
+        tone: "read-only",
+        action: "open-prompt-studio",
+        status: "Opened Prompt Studio from Asset Forge shell navigation only; no prompt auto-executes.",
+      },
+      {
+        id: "prompt-inspect-candidate",
+        label: "Inspect Candidate Template",
+        tone: "read-only",
+        action: "select-template-inspect-candidate",
+        status: "Inspect Candidate template selected for preview only. autoExecute=false.",
+      },
+      {
+        id: "prompt-placement-proof",
+        label: "Placement Proof-Only Template",
+        tone: "proof-only",
+        action: "select-template-placement-proof-only",
+        status: "Placement Proof-Only template selected for preview only. autoExecute=false.",
+      },
+    ],
+  },
+  {
+    id: "engine",
+    label: "Engine",
+    items: [
+      {
+        id: "engine-runtime",
+        label: "Runtime Overview",
+        tone: "read-only",
+        action: "open-workspace-runtime",
+        status: "Opened Runtime Overview from Asset Forge shell navigation only.",
+      },
+      {
+        id: "engine-asset-processor-status",
+        label: "Asset Processor Status",
+        tone: "preflight-only",
+        action: "safety-tab",
+        status: "Asset Processor status is preflight/status only; no Asset Processor execution was started.",
+      },
+      {
+        id: "engine-o3de-mutation-gates",
+        label: "O3DE Mutation Gates",
+        tone: "blocked",
+        action: "safety-tab",
+        status: "O3DE mutation gates are blocked; no runtime/editor mutation is admitted.",
+        blockedReason: "O3DE runtime and editor mutation are not admitted from this UI.",
+        nextUnlock: "Separate admitted corridor with proof, execution boundaries, and readback.",
+      },
+    ],
+  },
+  {
+    id: "records",
+    label: "Records",
+    items: [
+      {
+        id: "records-evidence",
+        label: "Evidence Explorer",
+        tone: "read-only",
+        action: "open-records",
+        status: "Opened Evidence Explorer from Asset Forge shell navigation only.",
+      },
+      {
+        id: "records-latest-run",
+        label: "Latest Run",
+        tone: "read-only",
+        action: "view-run",
+        status: "Latest run opened as read-only evidence.",
+      },
+      {
+        id: "records-latest-artifact",
+        label: "Latest Artifact",
+        tone: "read-only",
+        action: "view-artifact",
+        status: "Latest artifact opened as read-only evidence.",
+      },
+    ],
+  },
+  {
+    id: "safety",
+    label: "Safety",
+    items: [
+      {
+        id: "safety-admission-gates",
+        label: "Admission Gates",
+        tone: "blocked",
+        action: "safety-tab",
+        status: "Safety admission gates shown; execution_admitted and mutation_admitted remain false.",
+      },
+      {
+        id: "safety-blocked-capabilities",
+        label: "Blocked Capabilities",
+        tone: "blocked",
+        action: "safety-tab",
+        status: "Blocked capabilities shown with reasons and next unlocks.",
+      },
+    ],
+  },
+];
 
 function getMenuGroups(model?: AssetForgeEditorModelRecord | null): MenuGroup[] {
   if (!model?.context_menu_groups?.length) {
@@ -890,7 +1018,7 @@ export default function AssetForgeBlenderCockpit({
   const outliner = getOutliner(editorModel);
   const overlays = getOverlayLines(editorModel);
   const promptTemplates = useMemo(() => getPromptTemplates(editorModel), [editorModel]);
-  const editorMenuGroups = useMemo(() => [appShellMenuGroup, ...getMenuGroups(editorModel)], [editorModel]);
+  const editorMenuGroups = useMemo(() => [...assetForgeShellMenuGroups, ...getMenuGroups(editorModel)], [editorModel]);
   const workflowStages = useMemo(() => getWorkflowStages(editorModel), [editorModel]);
   const statusStripTabs = useMemo(() => getStatusStripTabs(editorModel), [editorModel]);
   const propertyTabs = useMemo(() => getPropertyTabs(editorModel), [editorModel]);
@@ -1348,6 +1476,7 @@ export default function AssetForgeBlenderCockpit({
               <button
                 type="button"
                 onClick={() => setSelectedMenuId((current) => (current === menu.id ? null : menu.id))}
+                aria-pressed={selectedMenuId === menu.id || (menu.id === "safety" && activePropertiesTab === "Safety")}
                 style={{
                   ...styles.menuButton,
                   ...(selectedMenuId === menu.id ? styles.selectedMenuButton : {}),
