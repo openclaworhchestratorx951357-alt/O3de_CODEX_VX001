@@ -9224,6 +9224,8 @@ export default function App() {
                 onOpenOperationsApprovals={openOperationsApprovals}
                 onOpenOperationsDispatch={openOperationsDispatch}
                 onOpenRecords={openRecordsRuns}
+                onOpenRecordsExecutions={openRecordsExecutions}
+                onOpenRecordsArtifacts={openRecordsArtifacts}
                 onViewLatestRun={openLatestRunEvidence}
                 onViewExecution={openLatestExecutionEvidence}
                 onViewArtifact={openLatestArtifactEvidence}

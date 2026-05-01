@@ -37,6 +37,8 @@ type Props = {
   onLaunchPlacementProofTemplate?: () => void;
   onLaunchPromptTemplate?: (template: AssetForgePromptTemplateRecord) => void;
   onOpenRecords?: () => void;
+  onOpenRecordsExecutions?: () => void;
+  onOpenRecordsArtifacts?: () => void;
   onOpenRuntimeOverview?: () => void;
   onOpenRuntimeGovernance?: () => void;
   onOpenRuntimeExecutors?: () => void;
@@ -423,11 +425,25 @@ const assetForgeShellMenuGroups: MenuGroup[] = [
         status: "Opened Operations Dispatch from Asset Forge shell navigation only.",
       },
       {
-        id: "app-records",
-        label: "Records",
+        id: "app-records-runs",
+        label: "Records Runs",
         tone: "read-only",
         action: "open-records",
-        status: "Opened Records from Asset Forge shell navigation only.",
+        status: "Opened Records Runs from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-records-executions",
+        label: "Records Executions",
+        tone: "read-only",
+        action: "open-records-executions",
+        status: "Opened Records Executions from Asset Forge shell navigation only.",
+      },
+      {
+        id: "app-records-artifacts",
+        label: "Records Artifacts",
+        tone: "read-only",
+        action: "open-records-artifacts",
+        status: "Opened Records Artifacts from Asset Forge shell navigation only.",
       },
     ],
   },
@@ -1076,6 +1092,8 @@ export default function AssetForgeBlenderCockpit({
   onLaunchPlacementProofTemplate,
   onLaunchPromptTemplate,
   onOpenRecords,
+  onOpenRecordsExecutions,
+  onOpenRecordsArtifacts,
   onOpenRuntimeOverview,
   onOpenRuntimeGovernance,
   onOpenRuntimeExecutors,
@@ -1270,6 +1288,20 @@ export default function AssetForgeBlenderCockpit({
       setStatusMessage(item.status);
     } else if (item.action === "open-records") {
       onOpenRecords?.();
+      setStatusMessage(item.status);
+    } else if (item.action === "open-records-executions") {
+      if (onOpenRecordsExecutions) {
+        onOpenRecordsExecutions();
+      } else {
+        onViewExecution?.();
+      }
+      setStatusMessage(item.status);
+    } else if (item.action === "open-records-artifacts") {
+      if (onOpenRecordsArtifacts) {
+        onOpenRecordsArtifacts();
+      } else {
+        onViewArtifact?.();
+      }
       setStatusMessage(item.status);
     } else if (item.action === "open-workspace-home") {
       onOpenHome?.();

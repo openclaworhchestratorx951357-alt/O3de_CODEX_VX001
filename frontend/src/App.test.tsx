@@ -336,7 +336,7 @@ describe("App desktop smoke", () => {
     const appMenu = screen.getByRole("menu", { name: "App menu" });
     expect(within(appMenu).getByRole("menuitem", { name: /Create Game/i })).toBeInTheDocument();
     expect(within(appMenu).getByRole("menuitem", { name: /Prompt Studio/i })).toBeInTheDocument();
-    expect(within(appMenu).getByRole("menuitem", { name: /Records/i })).toBeInTheDocument();
+    expect(within(appMenu).getByRole("menuitem", { name: /Records Runs/i })).toBeInTheDocument();
 
     fireEvent.click(within(appMenu).getByRole("menuitem", { name: /Prompt Studio/i }));
 
