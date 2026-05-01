@@ -32,6 +32,22 @@ Confirm:
 - validation appropriate to the change has passed
 - `git diff --cached --check` passes after staging
 
+When more than one thread is active, run an open-PR lane scan before opening
+or updating your PR so cross-thread branch dependencies stay visible:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 pr-open-list
+```
+
+Optional explicit repository override:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 pr-open-list owner/repo
+```
+
+Record any base/head chain dependencies from that scan in your PR body so other
+threads can rebase or retarget safely.
+
 ## PR Readiness
 
 A PR is ready to merge when:

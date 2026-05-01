@@ -73,6 +73,13 @@ Cross-thread review rule:
 - Do not keep thread-only local commits without a PR once work is reviewable.
 - Use the PR body as the cross-thread handoff log (scope, validation, blockers,
   and compatibility notes).
+- Before opening, updating, or merging a PR in a multi-thread window, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\dev.ps1 pr-open-list
+```
+
+  and capture relevant head/base chain dependencies in the PR body.
 
 Never stage `.venv/`, runtime proof JSON, logs, caches, build outputs, local
 databases, or secrets.
