@@ -76,24 +76,24 @@ export const COCKPIT_LAYOUT_ZONES: readonly CockpitLayoutZone[] = [
 ];
 
 export const DEFAULT_COCKPIT_LAYOUT_SIZES: CockpitLayoutSizes = {
-  leftPrimaryRatio: 0.3,
-  centerPrimaryRatio: 0.62,
-  topPrimaryRatio: 0.74,
+  leftPrimaryRatio: 0.24,
+  centerPrimaryRatio: 0.8,
+  topPrimaryRatio: 0.84,
 };
 
 export const COCKPIT_LAYOUT_VERSION = 1;
 
 const COCKPIT_LAYOUT_VERSION_OVERRIDES: Record<string, number> = {
-  home: 6,
-  "create-game": 6,
-  "create-movie": 6,
-  "load-project": 6,
-  "asset-forge": 6,
-  prompt: 6,
-  builder: 6,
-  operations: 6,
-  runtime: 6,
-  records: 6,
+  home: 7,
+  "create-game": 7,
+  "create-movie": 7,
+  "load-project": 7,
+  "asset-forge": 7,
+  prompt: 7,
+  builder: 7,
+  operations: 7,
+  runtime: 7,
+  records: 7,
 };
 
 export function getCockpitLayoutVersion(cockpitId: string): number {

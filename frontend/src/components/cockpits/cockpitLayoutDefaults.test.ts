@@ -31,8 +31,8 @@ describe("cockpitLayoutDefaults", () => {
         + defaults[cockpitId].splitConstraints.centerMinWidth
         + defaults[cockpitId].splitConstraints.rightMinWidth;
       expect(desktopMinWidth).toBeLessThanOrEqual(1220);
-      expect(defaults[cockpitId].splitConstraints.mainMinHeight).toBeGreaterThanOrEqual(300);
-      expect(defaults[cockpitId].splitConstraints.bottomMinHeight).toBeGreaterThanOrEqual(170);
+      expect(defaults[cockpitId].splitConstraints.mainMinHeight).toBeGreaterThanOrEqual(320);
+      expect(defaults[cockpitId].splitConstraints.bottomMinHeight).toBeGreaterThanOrEqual(180);
     }
   });
 
@@ -74,7 +74,7 @@ describe("cockpitLayoutDefaults", () => {
     ];
 
     for (const cockpitId of cockpitIds) {
-      expect(getCockpitLayoutVersion(cockpitId)).toBe(6);
+      expect(getCockpitLayoutVersion(cockpitId)).toBe(7);
     }
   });
 
