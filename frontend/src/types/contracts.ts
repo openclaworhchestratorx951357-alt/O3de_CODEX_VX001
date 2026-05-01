@@ -1268,6 +1268,85 @@ export interface AssetForgeBlenderStatusRecord {
   source: string;
 }
 
+export interface AssetForgeEditorToolRecord {
+  tool_id: string;
+  label: string;
+  shortcut: string | null;
+  group: string;
+  truth_state: string;
+  enabled: boolean;
+  selected: boolean;
+  description: string;
+  blocked_reason: string | null;
+  next_unlock: string | null;
+  prompt_template_id: string | null;
+  execution_admitted: boolean;
+  mutation_admitted: boolean;
+}
+
+export interface AssetForgeOutlinerNodeRecord {
+  node_id: string;
+  label: string;
+  kind: string;
+  depth: number;
+  truth_state: string;
+  visible: boolean;
+  selected: boolean;
+}
+
+export interface AssetForgeViewportRecord {
+  label: string;
+  mode: string;
+  shading_modes: string[];
+  active_shading_mode: string;
+  grid_visible: boolean;
+  preview_status: string;
+  selected_object_label: string;
+  overlays: string[];
+}
+
+export interface AssetForgeEditorPropertyRowRecord {
+  row_id?: string;
+  label?: string;
+  name?: string;
+  value?: string;
+  status?: string;
+  truth_state?: string;
+  tone?: string;
+}
+
+export interface AssetForgePropertiesRecord {
+  selected_object: string;
+  material_preview_status: string;
+  sections: unknown[];
+  rows: AssetForgeEditorPropertyRowRecord[];
+}
+
+export interface AssetForgeEditorModelRecord {
+  source: string;
+  inspection_surface: string;
+  editor_model_status: string;
+  execution_admitted: boolean;
+  mutation_admitted: boolean;
+  provider_generation_admitted: boolean;
+  blender_execution_admitted: boolean;
+  asset_processor_execution_admitted: boolean;
+  placement_write_admitted: boolean;
+  active_tool_id: string;
+  viewport: AssetForgeViewportRecord;
+  tools: AssetForgeEditorToolRecord[];
+  context_menu_groups: unknown[];
+  outliner: AssetForgeOutlinerNodeRecord[];
+  transform: Record<string, unknown>;
+  properties: AssetForgePropertiesRecord;
+  material_preview: Record<string, unknown>;
+  timeline: Record<string, unknown>;
+  evidence: Record<string, unknown>;
+  prompt_templates: unknown[];
+  blocked_capabilities: unknown[];
+  next_safe_action: string;
+}
+
 export interface AssetForgeStudioLaneStatusRecord {
   lane: "Provider" | "Blender" | "O3DE ingest" | "Placement" | "Review";
   truth: "demo" | "plan-only" | "preflight-only" | "gated-real" | "blocked";

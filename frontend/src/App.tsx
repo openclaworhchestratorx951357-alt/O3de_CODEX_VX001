@@ -9129,8 +9129,8 @@ export default function App() {
           style={{
             minHeight: 0,
             height: assetForgeWorkspacePageHeight,
-            overflow: "auto",
-            padding: "10px 12px 14px",
+            overflow: "hidden",
+            padding: 0,
             boxSizing: "border-box",
           }}
         >
