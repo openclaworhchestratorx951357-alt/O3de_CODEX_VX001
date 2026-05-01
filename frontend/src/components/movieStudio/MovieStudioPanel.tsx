@@ -437,6 +437,14 @@ export default function MovieStudioPanel() {
     return () => window.clearInterval(refreshTimer);
   }, []);
 
+  useEffect(() => {
+    if (handoffStatus === "Ready") return;
+    const statusResetTimer = window.setTimeout(() => {
+      setHandoffStatus("Ready");
+    }, 3000);
+    return () => window.clearTimeout(statusResetTimer);
+  }, [handoffStatus]);
+
   function nudgePlayhead(frameDelta: number) {
     pushHistory(frameDelta > 0 ? "Nudge +1 frame" : "Nudge -1 frame");
     setPlayhead((current) => formatFramesToTimecode(parseTimecodeToFrames(current) + frameDelta));

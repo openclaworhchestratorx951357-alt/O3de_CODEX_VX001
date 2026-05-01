@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach } from "vitest";
 import { describe, expect, it, vi } from "vitest";
 
@@ -220,6 +220,7 @@ describe("MovieStudioPanel", () => {
     expect(screen.getByText("Downloaded packet")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Download .json" }));
     expect(screen.getByText("Downloaded JSON packet")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Ready")).toBeInTheDocument(), { timeout: 4000 });
     expect(createObjectURLSpy).toHaveBeenCalled();
     expect(revokeObjectURLSpy).toHaveBeenCalled();
     expect(appendSpy).toHaveBeenCalled();
