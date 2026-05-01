@@ -1,13 +1,8 @@
 import type { ReactNode } from "react";
 
 import type { DesktopTabStripItem } from "../DesktopTabStrip";
-import DesktopWindow from "../DesktopWindow";
 import CockpitSurfaceWorkspaceLayout from "./CockpitSurfaceWorkspaceLayout";
-import {
-  getWorkspaceSurfaceGuide,
-  getWorkspaceWindowGuide,
-  mergeGuideChecklists,
-} from "../../content/operatorGuide";
+import { getWorkspaceSurfaceGuide } from "../../content/operatorGuide";
 
 type OperationsSurfaceId =
   | "dispatch"
@@ -25,8 +20,6 @@ type OperationsWorkspaceViewProps = {
   timelineContent: ReactNode;
 };
 
-const commandCenterWindow = getWorkspaceWindowGuide("operations", "command-center");
-
 export default function OperationsWorkspaceView({
   activeSurfaceId,
   items,
@@ -39,32 +32,21 @@ export default function OperationsWorkspaceView({
   const activeSurfaceGuide = getWorkspaceSurfaceGuide("operations", activeSurfaceId);
 
   return (
-    <DesktopWindow
-      title={commandCenterWindow.title}
-      subtitle={commandCenterWindow.subtitle}
-      helpTooltip={commandCenterWindow.tooltip}
-      guideTitle="How to use this workspace"
-      guideChecklist={mergeGuideChecklists(
-        commandCenterWindow.instructions,
-        activeSurfaceGuide.instructions,
-      )}
-    >
-      <CockpitSurfaceWorkspaceLayout
-        cockpitId="operations"
-        activeSurfaceId={activeSurfaceId}
-        items={items}
-        onSelectSurface={onSelectSurface}
-        activeSurfaceGuideChecklist={activeSurfaceGuide.instructions}
-        workAreaTitle="Operations dominant work area"
-        workAreaSubtitle="Center command viewport for dispatch, agents, approvals, and timeline follow-up"
-        summaryTitle="Operations queue and timeline summary drawer"
-        surfaceContent={{
-          dispatch: dispatchContent,
-          agents: agentsContent,
-          approvals: approvalsContent,
-          timeline: timelineContent,
-        }}
-      />
-    </DesktopWindow>
+    <CockpitSurfaceWorkspaceLayout
+      cockpitId="operations"
+      activeSurfaceId={activeSurfaceId}
+      items={items}
+      onSelectSurface={onSelectSurface}
+      activeSurfaceGuideChecklist={activeSurfaceGuide.instructions}
+      workAreaTitle="Operations dominant work area"
+      workAreaSubtitle="Center command viewport for dispatch, agents, approvals, and timeline follow-up"
+      summaryTitle="Operations queue and timeline summary drawer"
+      surfaceContent={{
+        dispatch: dispatchContent,
+        agents: agentsContent,
+        approvals: approvalsContent,
+        timeline: timelineContent,
+      }}
+    />
   );
 }

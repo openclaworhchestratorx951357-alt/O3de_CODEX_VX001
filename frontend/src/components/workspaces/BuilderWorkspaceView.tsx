@@ -353,20 +353,12 @@ export default function BuilderWorkspaceView({
   ];
 
   return (
-    <DesktopWindow
-      title={activeSurface.title}
-      subtitle={activeSurface.subtitle}
-      helpTooltip={activeSurface.tooltip}
-      guideTitle="How to use this workspace"
-      guideChecklist={activeSurface.instructions}
-    >
-      <DockableCockpitLayout
-        cockpitId="builder"
-        panels={cockpitPanels}
-        defaultPresetId={layoutDefaults.presetId}
-        splitConstraints={layoutDefaults.splitConstraints}
-      />
-    </DesktopWindow>
+    <DockableCockpitLayout
+      cockpitId="builder"
+      panels={cockpitPanels}
+      defaultPresetId={layoutDefaults.presetId}
+      splitConstraints={layoutDefaults.splitConstraints}
+    />
   );
 }
 

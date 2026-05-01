@@ -389,7 +389,6 @@ describe("App desktop hydration", () => {
       "Execution owners, availability, and related records.",
     ));
 
-    expect(screen.getByText("Runtime Console")).toBeInTheDocument();
     expect(await screen.findByText("ExecutorsPanel stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
@@ -421,7 +420,6 @@ describe("App desktop hydration", () => {
       "Policies, locks, and admitted capability posture.",
     ));
 
-    expect(await screen.findByText("Governance Deck")).toBeInTheDocument();
     expect(await screen.findByText("Phase7CapabilitySummaryPanel stub")).toBeInTheDocument();
     expect(screen.getByText("LocksPanel stub")).toBeInTheDocument();
     expect(
@@ -437,8 +435,6 @@ describe("App desktop hydration", () => {
 
     unmount();
     render(<App />);
-
-    expect(await screen.findByText("Governance Deck")).toBeInTheDocument();
 
     const restoredGovernanceSurfaceButton = getDesktopTabButton(
       "Governance",
@@ -469,7 +465,6 @@ describe("App desktop hydration", () => {
 
     fireEvent.click(workspacesSurfaceButton);
 
-    expect(screen.getByText("Runtime Console")).toBeInTheDocument();
     expect(await screen.findByText("WorkspacesPanel stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
@@ -527,7 +522,6 @@ describe("App desktop hydration", () => {
 
     fireEvent.click(executionsSurfaceButton);
 
-    expect(screen.getAllByText("Records Explorer").length).toBeGreaterThan(0);
     expect(await screen.findByText("ExecutionsPanel stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),
@@ -567,7 +561,6 @@ describe("App desktop hydration", () => {
 
     fireEvent.click(artifactsSurfaceButton);
 
-    expect(screen.getAllByText("Records Explorer").length).toBeGreaterThan(0);
     expect(await screen.findByText("ArtifactsPanel stub")).toBeInTheDocument();
     expect(
       window.sessionStorage.getItem(ACTIVE_DESKTOP_WORKSPACE_SESSION_KEY),

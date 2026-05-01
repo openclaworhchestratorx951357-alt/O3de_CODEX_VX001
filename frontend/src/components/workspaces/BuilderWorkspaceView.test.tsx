@@ -27,7 +27,7 @@ describe("BuilderWorkspaceView", () => {
     expect(screen.getByTestId("builder-bottom-zone")).toHaveTextContent("Recommendations and evidence drawer");
     expect(screen.getByText("Lane creation content")).toBeInTheDocument();
     expect(screen.getByText("Worktrees content")).toBeInTheDocument();
-    expect(screen.getByText("How to use this workspace")).toBeInTheDocument();
+    expect(screen.getByText("Inspector and checklist")).toBeInTheDocument();
     expect(screen.getAllByText(/Check the harness and repo status first/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText("How to use this window")).toHaveLength(3);
     expect(screen.queryByText("Mission board content")).not.toBeInTheDocument();

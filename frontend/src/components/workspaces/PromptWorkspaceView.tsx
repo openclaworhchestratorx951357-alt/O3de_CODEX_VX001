@@ -1,6 +1,5 @@
 import { useMemo, type CSSProperties, type ReactNode } from "react";
 
-import DesktopWindow from "../DesktopWindow";
 import DockableCockpitLayout from "../cockpits/DockableCockpitLayout";
 import { getCockpitLayoutDefaults } from "../cockpits/cockpitLayoutDefaults";
 import type { CockpitPanelDefinition } from "../cockpits/cockpitLayoutTypes";
@@ -29,11 +28,17 @@ export default function PromptWorkspaceView({
       minHeight: 90,
       defaultHeight: 108,
       render: () => (
-        <div style={promptStripStyle}>
-          <span style={promptStripChipStyle}>Prompt Studio cockpit</span>
-          <span style={promptStripChipStyle}>No auto-execution</span>
-          <span style={promptStripChipStyle}>Preview and approval remain required</span>
-        </div>
+        <section style={promptStripStackStyle}>
+          <div style={promptStripTitleGroupStyle}>
+            <strong>{promptStudioWindow.title}</strong>
+            <span style={promptStripSubtitleStyle}>{promptStudioWindow.subtitle}</span>
+          </div>
+          <div style={promptStripStyle}>
+            <span style={promptStripChipStyle}>Prompt Studio cockpit</span>
+            <span style={promptStripChipStyle}>No auto-execution</span>
+            <span style={promptStripChipStyle}>Preview and approval remain required</span>
+          </div>
+        </section>
       ),
     },
     {
@@ -127,22 +132,30 @@ export default function PromptWorkspaceView({
   ]), [content]);
 
   return (
-    <DesktopWindow
-      title={promptStudioWindow.title}
-      subtitle={promptStudioWindow.subtitle}
-      helpTooltip={promptStudioWindow.tooltip}
-      guideTitle="How to use this workspace"
-      guideChecklist={promptStudioWindow.instructions}
-    >
-      <DockableCockpitLayout
-        cockpitId="prompt"
-        panels={panels}
-        defaultPresetId={layoutDefaults.presetId}
-        splitConstraints={layoutDefaults.splitConstraints}
-      />
-    </DesktopWindow>
+    <DockableCockpitLayout
+      cockpitId="prompt"
+      panels={panels}
+      defaultPresetId={layoutDefaults.presetId}
+      splitConstraints={layoutDefaults.splitConstraints}
+    />
   );
 }
+
+const promptStripStackStyle = {
+  display: "grid",
+  gap: 8,
+} satisfies CSSProperties;
+
+const promptStripTitleGroupStyle = {
+  display: "grid",
+  gap: 2,
+} satisfies CSSProperties;
+
+const promptStripSubtitleStyle = {
+  color: "var(--app-subtle-color)",
+  fontSize: 12,
+  overflowWrap: "anywhere",
+} satisfies CSSProperties;
 
 const promptStripStyle = {
   display: "flex",

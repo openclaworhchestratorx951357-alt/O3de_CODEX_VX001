@@ -232,15 +232,12 @@ describe("DesktopShell", () => {
 
     expect(screen.queryByText("Control surface")).toBeNull();
     expect(screen.getByText("Standalone workspace body")).toBeInTheDocument();
-    expect(screen.getByText("Active workspace")).toBeInTheDocument();
-    const workspaceTabs = screen.getByLabelText("Workspaces workspace sections");
-    expect(workspaceTabs).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Home" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Create Game" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Create Game" })).toHaveAttribute("aria-pressed", "true");
-    const tabButtons = workspaceTabs.querySelectorAll("button");
-    expect(tabButtons.item(0)).toHaveTextContent("Create Game");
-    fireEvent.click(screen.getByRole("button", { name: "Home" }));
+    expect(screen.queryByText("Active workspace")).toBeNull();
+    expect(screen.queryByLabelText("Workspaces workspace sections")).toBeNull();
+    const quickAccessInput = screen.getByRole("combobox", { name: "Quick access app explorer" });
+    fireEvent.focus(quickAccessInput);
+    fireEvent.change(quickAccessInput, { target: { value: "home" } });
+    fireEvent.keyDown(quickAccessInput, { key: "Enter" });
     expect(onSelectWorkspace).toHaveBeenCalledWith("home");
   });
 

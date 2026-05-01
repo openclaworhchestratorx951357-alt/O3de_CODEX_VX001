@@ -34,6 +34,7 @@ export default function DesktopShell({
   children,
 }: DesktopShellProps) {
   const themeTokens = useThemeTokens();
+  const standaloneCockpitShell = hideWorkspaceTree;
   const currentNavItemId = activeNavItemId ?? activeWorkspaceId;
   const activeNavSection = navSections.find((section) => (
     section.items.some((item) => item.id === currentNavItemId)
@@ -121,16 +122,23 @@ export default function DesktopShell({
           />
         )}
 
-        <section style={workspaceShellStyle}>
-          <WorkspaceHeader
-            workspaceTitle={workspaceTitle}
-            workspaceSubtitle={workspaceSubtitle}
-            activeWorkspaceId={activeWorkspaceId}
-            activeNavItemId={currentNavItemId}
-            activeNavSection={headerNavSection}
-            quickStats={quickStats}
-            onSelectWorkspace={onSelectWorkspace}
-          />
+        <section
+          style={{
+            ...workspaceShellStyle,
+            ...(standaloneCockpitShell ? standaloneWorkspaceShellStyle : null),
+          }}
+        >
+          {standaloneCockpitShell ? null : (
+            <WorkspaceHeader
+              workspaceTitle={workspaceTitle}
+              workspaceSubtitle={workspaceSubtitle}
+              activeWorkspaceId={activeWorkspaceId}
+              activeNavItemId={currentNavItemId}
+              activeNavSection={headerNavSection}
+              quickStats={quickStats}
+              onSelectWorkspace={onSelectWorkspace}
+            />
+          )}
 
           <div style={workspaceCanvasStyle}>
             {children}
@@ -283,6 +291,10 @@ const workspaceShellStyle = {
   height: "100%",
   maxHeight: "100%",
   overflow: "hidden",
+} satisfies CSSProperties;
+
+const standaloneWorkspaceShellStyle = {
+  gridTemplateRows: "minmax(0, 1fr)",
 } satisfies CSSProperties;
 
 const workspaceCanvasStyle = {

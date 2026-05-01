@@ -357,7 +357,6 @@ describe("App desktop smoke", () => {
       {},
       { timeout: LAZY_SURFACE_TIMEOUT_MS },
     )).toBeInTheDocument();
-    expect(screen.getByText("Runtime Console")).toBeInTheDocument();
     expect(screen.getByText("AdaptersPanel stub")).toBeInTheDocument();
     expect(screen.getByText("OperatorOverviewPanel stub")).toBeInTheDocument();
   });
@@ -369,8 +368,10 @@ describe("App desktop smoke", () => {
 
     expect((await screen.findAllByText("Create Game Cockpit")).length).toBeGreaterThan(0);
     expect(screen.getByText("Game creation pipeline")).toBeInTheDocument();
-    expect(screen.getByText("Active workspace")).toBeInTheDocument();
-    expect(getDesktopNavButton(/Create Game/i)).toBeInTheDocument();
+    expect(screen.queryByText("Active workspace")).toBeNull();
+    expect(
+      screen.getByPlaceholderText("Go to Create Game or type a command..."),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Home start here")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Start Here/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Mission Control/i })).not.toBeInTheDocument();
@@ -422,8 +423,6 @@ describe("App desktop smoke", () => {
       {},
       { timeout: LAZY_SURFACE_TIMEOUT_MS },
     )).toBeInTheDocument();
-    expect(screen.getByText("Runtime Console")).toBeInTheDocument();
-
     fireEvent.click(getDesktopNavButton(/Create Game/i));
     await screen.findAllByText("Create Game Cockpit");
     const createGameLayoutAfterReturn = screen.getByTestId("dockable-layout-create-game");
@@ -432,7 +431,7 @@ describe("App desktop smoke", () => {
         name: "Open Asset Forge",
       })[0],
     );
-    expect(screen.getByText("Active workspace")).toBeInTheDocument();
+    expect(screen.queryByText("Active workspace")).toBeNull();
     expect((await screen.findAllByText("Asset Forge")).length).toBeGreaterThan(0);
     expect(
       await screen.findByPlaceholderText("Go to Asset Forge or type a command..."),
@@ -1010,7 +1009,9 @@ describe("App desktop smoke", () => {
     );
 
     expect(await screen.findByText("PromptWorkspaceDesktop stub")).toBeInTheDocument();
-    expect(screen.getAllByText("Prompt Studio").length).toBeGreaterThan(0);
+    expect(
+      screen.getByPlaceholderText("Go to Prompt Studio or type a command..."),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Desktop telemetry")).not.toBeInTheDocument();
   });
 });

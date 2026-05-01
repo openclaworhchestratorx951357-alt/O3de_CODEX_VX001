@@ -37,15 +37,13 @@ describe("RecordsWorkspaceView", () => {
     );
 
     expect(screen.getByText("Executions content")).toBeInTheDocument();
-    expect(screen.getByText("How to use this workspace")).toBeInTheDocument();
+    expect(screen.getByText("Inspector and truth")).toBeInTheDocument();
     expect(screen.getByTestId("dockable-layout-records")).toBeInTheDocument();
     expect(screen.getByTestId("records-top-zone")).toHaveTextContent("Surface strip");
     expect(screen.getByTestId("records-left-zone")).toHaveTextContent("Surface navigator");
     expect(screen.getByTestId("records-center-zone")).toHaveTextContent("Records dominant work area");
     expect(screen.getByTestId("records-right-zone")).toHaveTextContent("Inspector and truth");
     expect(screen.getByTestId("records-bottom-zone")).toHaveTextContent("Records lane summary drawer");
-    expect(screen.getAllByText(/Treat this workspace as the closeout and handoff evidence source/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Use this tab when warnings or truth labels need review/i).length).toBeGreaterThan(0);
     expect(screen.getByText("Runs content").closest("[aria-hidden='true']")).not.toBeNull();
     expect(screen.getByText("Artifacts content").closest("[aria-hidden='true']")).not.toBeNull();
   });

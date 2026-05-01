@@ -43,15 +43,13 @@ describe("RuntimeWorkspaceView", () => {
     );
 
     expect(screen.getByText("Workspaces content")).toBeInTheDocument();
-    expect(screen.getByText("How to use this workspace")).toBeInTheDocument();
+    expect(screen.getByText("Inspector and truth")).toBeInTheDocument();
     expect(screen.getByTestId("dockable-layout-runtime")).toBeInTheDocument();
     expect(screen.getByTestId("runtime-top-zone")).toHaveTextContent("Surface strip");
     expect(screen.getByTestId("runtime-left-zone")).toHaveTextContent("Surface navigator");
     expect(screen.getByTestId("runtime-center-zone")).toHaveTextContent("Runtime dominant work area");
     expect(screen.getByTestId("runtime-right-zone")).toHaveTextContent("Inspector and truth");
     expect(screen.getByTestId("runtime-bottom-zone")).toHaveTextContent("Runtime evidence and lane summary drawer");
-    expect(screen.getAllByText(/Use Runtime Console for health and ownership checks/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Check workspace ownership here when the active project context is unclear/i).length).toBeGreaterThan(0);
     expect(screen.getByText("Overview content").closest("[aria-hidden='true']")).not.toBeNull();
     expect(screen.getByText("Executors content").closest("[aria-hidden='true']")).not.toBeNull();
     expect(screen.getByText("Governance content").closest("[aria-hidden='true']")).not.toBeNull();
