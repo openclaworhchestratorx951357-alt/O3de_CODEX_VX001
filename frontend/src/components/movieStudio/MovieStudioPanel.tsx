@@ -84,6 +84,7 @@ const TOOLSETS = [
 
 const SCENE_BINS = ["Scene 01", "Scene 02", "Scene 03", "B-Roll", "Music Cues"];
 const MOVIE_STUDIO_SESSION_KEY = "movie-studio-timeline-session-v1";
+const MOVIE_STUDIO_HANDOFF_SCHEMA = "movie_studio.handoff.v1";
 
 type MovieStudioSessionState = {
   playhead: string;
@@ -232,7 +233,7 @@ export default function MovieStudioPanel() {
     () =>
       JSON.stringify(
         {
-          schema: "movie_studio.handoff.v1",
+          schema: MOVIE_STUDIO_HANDOFF_SCHEMA,
           exported_at: new Date().toISOString(),
           selected_clip: {
             id: selectedClip.id,
@@ -504,6 +505,15 @@ export default function MovieStudioPanel() {
     link.remove();
     URL.revokeObjectURL(url);
     setHandoffStatus("Downloaded JSON packet");
+  }
+
+  async function copyHandoffJson() {
+    try {
+      await navigator.clipboard.writeText(handoffJson);
+      setHandoffStatus("Copied JSON packet");
+    } catch {
+      setHandoffStatus("JSON copy failed");
+    }
   }
 
   return (
@@ -835,9 +845,13 @@ export default function MovieStudioPanel() {
               <p style={s.handoffMeta}>
                 Snapshot summary for cross-thread review and PR notes.
               </p>
+              <p style={s.handoffMeta}>Schema: {MOVIE_STUDIO_HANDOFF_SCHEMA}</p>
               <div style={s.handoffActions}>
                 <button type="button" onClick={() => void copyHandoffSummary()} style={s.toolbarButton}>
                   Copy Packet
+                </button>
+                <button type="button" onClick={() => void copyHandoffJson()} style={s.toolbarButton}>
+                  Copy JSON
                 </button>
                 <button type="button" onClick={downloadHandoffSummary} style={s.toolbarButton}>
                   Download .txt

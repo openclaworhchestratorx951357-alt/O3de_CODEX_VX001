@@ -24,6 +24,7 @@ describe("MovieStudioPanel", () => {
     expect(screen.getByText((content) => content.startsWith("Last check:"))).toBeInTheDocument();
     expect(screen.getByText((content) => content.includes("Consecutive failures:"))).toBeInTheDocument();
     expect(screen.getByText((content) => content.startsWith("Recent checks:"))).toBeInTheDocument();
+    expect(screen.getByText("Schema: movie_studio.handoff.v1")).toBeInTheDocument();
     expect(screen.getByText("Ripple Trim")).toBeInTheDocument();
     expect(screen.getAllByText("Scene 01 Wide").length).toBeGreaterThan(0);
   });
@@ -212,6 +213,8 @@ describe("MovieStudioPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Copy Packet" }));
     await screen.findByText("Copied to clipboard");
+    fireEvent.click(screen.getByRole("button", { name: "Copy JSON" }));
+    await screen.findByText("Copied JSON packet");
 
     fireEvent.click(screen.getByRole("button", { name: "Download .txt" }));
     expect(screen.getByText("Downloaded packet")).toBeInTheDocument();
