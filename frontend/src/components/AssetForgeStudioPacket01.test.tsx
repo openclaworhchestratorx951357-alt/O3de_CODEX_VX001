@@ -524,7 +524,11 @@ function makePlacementHarnessExecuteReport(
     approval_state: "approved",
     server_approval_session_id: "approval-session-runtime-001",
     server_approval_evaluation: {
+      decision_state: "ready_but_not_admitted",
       decision_code: "ready_but_mutation_not_admitted",
+      policy_decision: "allow_if_mutation_admitted",
+      status: "approved",
+      authorization_granted: false,
       policy_would_allow_if_mutation_admitted: true,
     },
     admission_packet_reference: null,
@@ -576,7 +580,11 @@ function makePlacementLiveProofReport(
     },
     server_approval_session_id: "approval-session-live-001",
     server_approval_evaluation: {
+      decision_state: "ready_but_not_admitted",
       decision_code: "ready_but_mutation_not_admitted",
+      policy_decision: "allow_if_mutation_admitted",
+      status: "approved",
+      authorization_granted: false,
       policy_would_allow_if_mutation_admitted: true,
     },
     admission_packet_reference: null,
@@ -1668,6 +1676,11 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Contract evidence ready: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Revert contract match: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval session id: approval-session-runtime-001/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval decision state: ready_but_not_admitted/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval decision code: ready_but_mutation_not_admitted/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval policy decision: allow_if_mutation_admitted/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval status: approved/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval authorization granted: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract corridor: asset_forge\.o3de\.placement\.runtime_harness\.v1/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_RUNTIME_HARNESS/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract bridge required: yes/i)).toBeInTheDocument();
@@ -1707,6 +1720,11 @@ describe("AssetForgeStudioPacket01", () => {
     expect(screen.getByText(/Contract evidence ready: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Revert contract match: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Server approval session id: approval-session-live-001/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval decision state: ready_but_not_admitted/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval decision code: ready_but_mutation_not_admitted/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval policy decision: allow_if_mutation_admitted/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval status: approved/i)).toBeInTheDocument();
+    expect(screen.getByText(/Server approval authorization granted: no/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract corridor: asset_forge\.o3de\.placement\.live_proof\.v1/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract runtime gate env: ASSET_FORGE_ENABLE_PLACEMENT_LIVE_PROOF/i)).toBeInTheDocument();
     expect(screen.getByText(/Bridge contract bridge required: yes/i)).toBeInTheDocument();

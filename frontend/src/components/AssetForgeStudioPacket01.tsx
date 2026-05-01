@@ -3254,6 +3254,11 @@ export default function AssetForgeStudioPacket01({
               <li>Contract evidence ready: {placementHarnessExecuteReport.contract_evidence_ready ? "yes" : "no"}</li>
               <li>Revert contract match: {placementHarnessExecuteReport.revert_statement_contract_match ? "yes" : "no"}</li>
               <li>Server approval session id: {placementHarnessExecuteReport.server_approval_session_id ?? "none"}</li>
+              <li>Server approval decision state: {contractSummaryString(placementHarnessExecuteReport.server_approval_evaluation, "decision_state")}</li>
+              <li>Server approval decision code: {contractSummaryString(placementHarnessExecuteReport.server_approval_evaluation, "decision_code")}</li>
+              <li>Server approval policy decision: {contractSummaryString(placementHarnessExecuteReport.server_approval_evaluation, "policy_decision")}</li>
+              <li>Server approval status: {contractSummaryString(placementHarnessExecuteReport.server_approval_evaluation, "status")}</li>
+              <li>Server approval authorization granted: {contractSummaryBooleanLabel(placementHarnessExecuteReport.server_approval_evaluation, "authorization_granted")}</li>
               <li>Bridge contract corridor: {contractSummaryString(placementHarnessExecuteReport.bridge_readiness_contract, "corridor_name")}</li>
               <li>Bridge contract runtime gate env: {contractSummaryString(placementHarnessExecuteReport.bridge_readiness_contract, "runtime_gate_env")}</li>
               <li>Bridge contract bridge required: {contractSummaryBooleanLabel(placementHarnessExecuteReport.bridge_readiness_contract, "bridge_required")}</li>
@@ -3299,6 +3304,11 @@ export default function AssetForgeStudioPacket01({
               <li>Contract evidence ready: {placementLiveProofReport.contract_evidence_ready ? "yes" : "no"}</li>
               <li>Revert contract match: {placementLiveProofReport.revert_statement_contract_match ? "yes" : "no"}</li>
               <li>Server approval session id: {placementLiveProofReport.server_approval_session_id ?? "none"}</li>
+              <li>Server approval decision state: {contractSummaryString(placementLiveProofReport.server_approval_evaluation, "decision_state")}</li>
+              <li>Server approval decision code: {contractSummaryString(placementLiveProofReport.server_approval_evaluation, "decision_code")}</li>
+              <li>Server approval policy decision: {contractSummaryString(placementLiveProofReport.server_approval_evaluation, "policy_decision")}</li>
+              <li>Server approval status: {contractSummaryString(placementLiveProofReport.server_approval_evaluation, "status")}</li>
+              <li>Server approval authorization granted: {contractSummaryBooleanLabel(placementLiveProofReport.server_approval_evaluation, "authorization_granted")}</li>
               <li>Bridge contract corridor: {contractSummaryString(placementLiveProofReport.bridge_readiness_contract, "corridor_name")}</li>
               <li>Bridge contract runtime gate env: {contractSummaryString(placementLiveProofReport.bridge_readiness_contract, "runtime_gate_env")}</li>
               <li>Bridge contract bridge required: {contractSummaryBooleanLabel(placementLiveProofReport.bridge_readiness_contract, "bridge_required")}</li>
