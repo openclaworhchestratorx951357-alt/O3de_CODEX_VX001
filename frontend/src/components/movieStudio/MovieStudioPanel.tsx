@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import { fetchO3deBridge, fetchO3deTarget } from "../../lib/api";
 import {
   clipWidthForZoom,
@@ -225,8 +225,8 @@ export default function MovieStudioPanel() {
     visibleTracks,
   ]);
 
-  function snapshotCurrent(): TimelineHistorySnapshot {
-    return {
+  const snapshotCurrent = useCallback(
+    (): TimelineHistorySnapshot => ({
       playhead,
       markers,
       selectedMarker,
@@ -239,10 +239,11 @@ export default function MovieStudioPanel() {
       clipFilter,
       trackFilter,
       snapMode,
-    };
-  }
+    }),
+    [playhead, markers, selectedMarker, isPlaying, selectedClipId, trackState, timelineRange, timelineZoom, playbackRate, clipFilter, trackFilter, snapMode],
+  );
 
-  function restoreSnapshot(snapshot: TimelineHistorySnapshot) {
+  const restoreSnapshot = useCallback((snapshot: TimelineHistorySnapshot) => {
     setPlayhead(snapshot.playhead);
     setMarkers(snapshot.markers);
     setSelectedMarker(snapshot.selectedMarker);
@@ -255,13 +256,35 @@ export default function MovieStudioPanel() {
     setClipFilter(snapshot.clipFilter);
     setTrackFilter(snapshot.trackFilter);
     setSnapMode(snapshot.snapMode);
-  }
+  }, []);
 
-  function pushHistory(action: string) {
+  const pushHistory = useCallback((action: string) => {
     setHistoryPast((current) => [...current, snapshotCurrent()]);
     setHistoryFuture([]);
     setHistoryLog((current) => [action, ...current].slice(0, 8));
-  }
+  }, [snapshotCurrent]);
+
+  const undoHistory = useCallback(() => {
+    setHistoryPast((past) => {
+      if (past.length === 0) return past;
+      const snapshot = past[past.length - 1];
+      setHistoryFuture((future) => [snapshotCurrent(), ...future]);
+      restoreSnapshot(snapshot);
+      setHistoryLog((current) => ["Undo", ...current].slice(0, 8));
+      return past.slice(0, -1);
+    });
+  }, [restoreSnapshot, snapshotCurrent]);
+
+  const redoHistory = useCallback(() => {
+    setHistoryFuture((future) => {
+      if (future.length === 0) return future;
+      const [snapshot, ...rest] = future;
+      setHistoryPast((past) => [...past, snapshotCurrent()]);
+      restoreSnapshot(snapshot);
+      setHistoryLog((current) => ["Redo", ...current].slice(0, 8));
+      return rest;
+    });
+  }, [restoreSnapshot, snapshotCurrent]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -297,7 +320,7 @@ export default function MovieStudioPanel() {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [selectedClip.end, selectedClip.start, historyPast.length, historyFuture.length]);
+  }, [selectedClip.end, selectedClip.start, pushHistory, redoHistory, undoHistory]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -364,28 +387,6 @@ export default function MovieStudioPanel() {
       const next = current.filter((marker) => marker !== selectedMarker);
       setSelectedMarker(next[0] ?? null);
       return next;
-    });
-  }
-
-  function undoHistory() {
-    setHistoryPast((past) => {
-      if (past.length === 0) return past;
-      const snapshot = past[past.length - 1];
-      setHistoryFuture((future) => [snapshotCurrent(), ...future]);
-      restoreSnapshot(snapshot);
-      setHistoryLog((current) => ["Undo", ...current].slice(0, 8));
-      return past.slice(0, -1);
-    });
-  }
-
-  function redoHistory() {
-    setHistoryFuture((future) => {
-      if (future.length === 0) return future;
-      const [snapshot, ...rest] = future;
-      setHistoryPast((past) => [...past, snapshotCurrent()]);
-      restoreSnapshot(snapshot);
-      setHistoryLog((current) => ["Redo", ...current].slice(0, 8));
-      return rest;
     });
   }
 
